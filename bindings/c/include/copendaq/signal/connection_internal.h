@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:58.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,11 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ConnectionInternal ConnectionInternal;
+    typedef struct daqConnectionInternal daqConnectionInternal;
+    typedef struct daqPacket daqPacket;
 
-    EXPORTED extern const IntfID CONNECTION_INTERNAL_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_CONNECTION_INTERNAL_INTF_ID;
 
-    ErrCode EXPORTED ConnectionInternal_enqueueLastDescriptor(ConnectionInternal* self);
+    daqErrCode EXPORTED daqConnectionInternal_enqueueLastDescriptor(daqConnectionInternal* self);
+    daqErrCode EXPORTED daqConnectionInternal_dequeueUpTo(daqConnectionInternal* self, daqPacket** packetPtr, daqSizeT* count);
 
 #ifdef __cplusplus
 }

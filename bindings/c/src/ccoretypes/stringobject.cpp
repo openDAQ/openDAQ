@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:50.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,30 +15,30 @@
 
 #include <copendaq_private.h>
 
-const IntfID STRING_INTF_ID = { daq::IString::Id.Data1, daq::IString::Id.Data2, daq::IString::Id.Data3, daq::IString::Id.Data4_UInt64 };
+const daqIntfID DAQ_STRING_INTF_ID = { daq::IString::Id.Data1, daq::IString::Id.Data2, daq::IString::Id.Data3, daq::IString::Id.Data4_UInt64 };
 
-ErrCode String_getCharPtr(String* self, ConstCharPtr* value)
+daqErrCode daqString_getCharPtr(daqString* self, daqConstCharPtr* value)
 {
-    return reinterpret_cast<daq::IString*>(self)->getCharPtr(value);
+    return reinterpret_cast<daq::IString*>(self)->getCharPtr(reinterpret_cast<daq::ConstCharPtr*>(value));
 }
 
-ErrCode String_getLength(String* self, SizeT* size)
+daqErrCode daqString_getLength(daqString* self, daqSizeT* size)
 {
     return reinterpret_cast<daq::IString*>(self)->getLength(size);
 }
 
-ErrCode String_createString(String** obj, ConstCharPtr str)
+daqErrCode daqString_createString(daqString** obj, daqConstCharPtr str)
 {
     daq::IString* ptr = nullptr;
-    ErrCode err = daq::createString(&ptr, str);
-    *obj = reinterpret_cast<String*>(ptr);
+    daqErrCode err = daq::createString(&ptr, static_cast<daq::ConstCharPtr>(str));
+    *obj = reinterpret_cast<daqString*>(ptr);
     return err;
 }
 
-ErrCode String_createStringN(String** obj, ConstCharPtr str, SizeT length)
+daqErrCode daqString_createStringN(daqString** obj, daqConstCharPtr str, daqSizeT length)
 {
     daq::IString* ptr = nullptr;
-    ErrCode err = daq::createStringN(&ptr, str, length);
-    *obj = reinterpret_cast<String*>(ptr);
+    daqErrCode err = daq::createStringN(&ptr, static_cast<daq::ConstCharPtr>(str), length);
+    *obj = reinterpret_cast<daqString*>(ptr);
     return err;
 }

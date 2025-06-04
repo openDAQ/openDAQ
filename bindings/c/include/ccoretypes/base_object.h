@@ -23,17 +23,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    EXPORTED extern const IntfID BASE_OBJECT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_BASE_OBJECT_INTF_ID;
 
-    int EXPORTED BaseObject_addRef(BaseObject* self);
-    int EXPORTED BaseObject_releaseRef(BaseObject* self);
-    ErrCode EXPORTED BaseObject_dispose(BaseObject* self);
-    ErrCode EXPORTED BaseObject_getHashCode(BaseObject* self, SizeT* hashCode);
-    ErrCode EXPORTED BaseObject_equals(BaseObject* self, BaseObject* other, Bool* equal);
-    ErrCode EXPORTED BaseObject_toString(BaseObject* self, CharPtr* str);
-    ErrCode EXPORTED BaseObject_create(BaseObject** baseObject);
-    ErrCode EXPORTED BaseObject_queryInterface(BaseObject* self, IntfID intfId, BaseObject** interfacePtr);
-    ErrCode EXPORTED BaseObject_borrowInterface(BaseObject* self, IntfID intfId, BaseObject** interfacePtr);
+    int EXPORTED daqBaseObject_addRef(daqBaseObject* self);
+    int EXPORTED daqBaseObject_releaseRef(daqBaseObject* self);
+    daqErrCode EXPORTED daqBaseObject_dispose(daqBaseObject* self);
+    daqErrCode EXPORTED daqBaseObject_getHashCode(daqBaseObject* self, daqSizeT* hashCode);
+    daqErrCode EXPORTED daqBaseObject_equals(daqBaseObject* self, daqBaseObject* other, daqBool* equal);
+    daqErrCode EXPORTED daqBaseObject_toString(daqBaseObject* self, daqCharPtr* str);
+    daqErrCode EXPORTED daqBaseObject_create(daqBaseObject** baseObject);
+    daqErrCode EXPORTED daqBaseObject_queryInterface(daqBaseObject* self, daqIntfID intfId, daqBaseObject** interfacePtr);
+    daqErrCode EXPORTED daqBaseObject_borrowInterface(daqBaseObject* self, daqIntfID intfId, daqBaseObject** interfacePtr);
 
 #ifdef __cplusplus
 }

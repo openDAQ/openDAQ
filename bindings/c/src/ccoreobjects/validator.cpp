@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:10.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:21.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,27 +15,27 @@
 
 #include <copendaq_private.h>
 
-const IntfID VALIDATOR_INTF_ID = { daq::IValidator::Id.Data1, daq::IValidator::Id.Data2, daq::IValidator::Id.Data3, daq::IValidator::Id.Data4_UInt64 };
+const daqIntfID DAQ_VALIDATOR_INTF_ID = { daq::IValidator::Id.Data1, daq::IValidator::Id.Data2, daq::IValidator::Id.Data3, daq::IValidator::Id.Data4_UInt64 };
 
-ErrCode Validator_validate(Validator* self, BaseObject* propObj, BaseObject* value)
+daqErrCode daqValidator_validate(daqValidator* self, daqBaseObject* propObj, daqBaseObject* value)
 {
     return reinterpret_cast<daq::IValidator*>(self)->validate(reinterpret_cast<daq::IBaseObject*>(propObj), reinterpret_cast<daq::IBaseObject*>(value));
 }
 
-ErrCode Validator_validateNoLock(Validator* self, BaseObject* propObj, BaseObject* value)
+daqErrCode daqValidator_validateNoLock(daqValidator* self, daqBaseObject* propObj, daqBaseObject* value)
 {
     return reinterpret_cast<daq::IValidator*>(self)->validateNoLock(reinterpret_cast<daq::IBaseObject*>(propObj), reinterpret_cast<daq::IBaseObject*>(value));
 }
 
-ErrCode Validator_getEval(Validator* self, String** eval)
+daqErrCode daqValidator_getEval(daqValidator* self, daqString** eval)
 {
     return reinterpret_cast<daq::IValidator*>(self)->getEval(reinterpret_cast<daq::IString**>(eval));
 }
 
-ErrCode Validator_createValidator(Validator** obj, String* eval)
+daqErrCode daqValidator_createValidator(daqValidator** obj, daqString* eval)
 {
     daq::IValidator* ptr = nullptr;
-    ErrCode err = daq::createValidator(&ptr, reinterpret_cast<daq::IString*>(eval));
-    *obj = reinterpret_cast<Validator*>(ptr);
+    daqErrCode err = daq::createValidator(&ptr, reinterpret_cast<daq::IString*>(eval));
+    *obj = reinterpret_cast<daqValidator*>(ptr);
     return err;
 }

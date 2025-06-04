@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:14.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,49 +15,49 @@
 
 #include <copendaq_private.h>
 
-const IntfID SIGNAL_INTF_ID = { daq::ISignal::Id.Data1, daq::ISignal::Id.Data2, daq::ISignal::Id.Data3, daq::ISignal::Id.Data4_UInt64 };
+const daqIntfID DAQ_SIGNAL_INTF_ID = { daq::ISignal::Id.Data1, daq::ISignal::Id.Data2, daq::ISignal::Id.Data3, daq::ISignal::Id.Data4_UInt64 };
 
-ErrCode Signal_getPublic(Signal* self, Bool* isPublic)
+daqErrCode daqSignal_getPublic(daqSignal* self, daqBool* isPublic)
 {
     return reinterpret_cast<daq::ISignal*>(self)->getPublic(isPublic);
 }
 
-ErrCode Signal_setPublic(Signal* self, Bool isPublic)
+daqErrCode daqSignal_setPublic(daqSignal* self, daqBool isPublic)
 {
     return reinterpret_cast<daq::ISignal*>(self)->setPublic(isPublic);
 }
 
-ErrCode Signal_getDescriptor(Signal* self, DataDescriptor** descriptor)
+daqErrCode daqSignal_getDescriptor(daqSignal* self, daqDataDescriptor** descriptor)
 {
     return reinterpret_cast<daq::ISignal*>(self)->getDescriptor(reinterpret_cast<daq::IDataDescriptor**>(descriptor));
 }
 
-ErrCode Signal_getDomainSignal(Signal* self, Signal** signal)
+daqErrCode daqSignal_getDomainSignal(daqSignal* self, daqSignal** signal)
 {
     return reinterpret_cast<daq::ISignal*>(self)->getDomainSignal(reinterpret_cast<daq::ISignal**>(signal));
 }
 
-ErrCode Signal_getRelatedSignals(Signal* self, List** signals)
+daqErrCode daqSignal_getRelatedSignals(daqSignal* self, daqList** signals)
 {
     return reinterpret_cast<daq::ISignal*>(self)->getRelatedSignals(reinterpret_cast<daq::IList**>(signals));
 }
 
-ErrCode Signal_getConnections(Signal* self, List** connections)
+daqErrCode daqSignal_getConnections(daqSignal* self, daqList** connections)
 {
     return reinterpret_cast<daq::ISignal*>(self)->getConnections(reinterpret_cast<daq::IList**>(connections));
 }
 
-ErrCode Signal_getStreamed(Signal* self, Bool* streamed)
+daqErrCode daqSignal_getStreamed(daqSignal* self, daqBool* streamed)
 {
     return reinterpret_cast<daq::ISignal*>(self)->getStreamed(streamed);
 }
 
-ErrCode Signal_setStreamed(Signal* self, Bool streamed)
+daqErrCode daqSignal_setStreamed(daqSignal* self, daqBool streamed)
 {
     return reinterpret_cast<daq::ISignal*>(self)->setStreamed(streamed);
 }
 
-ErrCode Signal_getLastValue(Signal* self, BaseObject** value)
+daqErrCode daqSignal_getLastValue(daqSignal* self, daqBaseObject** value)
 {
     return reinterpret_cast<daq::ISignal*>(self)->getLastValue(reinterpret_cast<daq::IBaseObject**>(value));
 }

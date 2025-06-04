@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:16.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:56.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,24 +15,24 @@
 
 #include <copendaq_private.h>
 
-const IntfID SIGNAL_PRIVATE_INTF_ID = { daq::ISignalPrivate::Id.Data1, daq::ISignalPrivate::Id.Data2, daq::ISignalPrivate::Id.Data3, daq::ISignalPrivate::Id.Data4_UInt64 };
+const daqIntfID DAQ_SIGNAL_PRIVATE_INTF_ID = { daq::ISignalPrivate::Id.Data1, daq::ISignalPrivate::Id.Data2, daq::ISignalPrivate::Id.Data3, daq::ISignalPrivate::Id.Data4_UInt64 };
 
-ErrCode SignalPrivate_clearDomainSignalWithoutNotification(SignalPrivate* self)
+daqErrCode daqSignalPrivate_clearDomainSignalWithoutNotification(daqSignalPrivate* self)
 {
     return reinterpret_cast<daq::ISignalPrivate*>(self)->clearDomainSignalWithoutNotification();
 }
 
-ErrCode SignalPrivate_enableKeepLastValue(SignalPrivate* self, Bool enabled)
+daqErrCode daqSignalPrivate_enableKeepLastValue(daqSignalPrivate* self, daqBool enabled)
 {
     return reinterpret_cast<daq::ISignalPrivate*>(self)->enableKeepLastValue(enabled);
 }
 
-ErrCode SignalPrivate_getSignalSerializeId(SignalPrivate* self, String** serializeId)
+daqErrCode daqSignalPrivate_getSignalSerializeId(daqSignalPrivate* self, daqString** serializeId)
 {
     return reinterpret_cast<daq::ISignalPrivate*>(self)->getSignalSerializeId(reinterpret_cast<daq::IString**>(serializeId));
 }
 
-ErrCode SignalPrivate_getKeepLastValue(SignalPrivate* self, Bool* keepLastValue)
+daqErrCode daqSignalPrivate_getKeepLastValue(daqSignalPrivate* self, daqBool* keepLastValue)
 {
     return reinterpret_cast<daq::ISignalPrivate*>(self)->getKeepLastValue(keepLastValue);
 }

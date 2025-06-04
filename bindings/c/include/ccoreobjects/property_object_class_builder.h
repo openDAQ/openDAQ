@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:06.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,29 +34,29 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PropertyObjectClassBuilder PropertyObjectClassBuilder;
-    typedef struct PropertyObjectClass PropertyObjectClass;
-    typedef struct String String;
-    typedef struct Property Property;
-    typedef struct Dict Dict;
-    typedef struct List List;
-    typedef struct TypeManager TypeManager;
+    typedef struct daqPropertyObjectClassBuilder daqPropertyObjectClassBuilder;
+    typedef struct daqPropertyObjectClass daqPropertyObjectClass;
+    typedef struct daqString daqString;
+    typedef struct daqProperty daqProperty;
+    typedef struct daqDict daqDict;
+    typedef struct daqList daqList;
+    typedef struct daqTypeManager daqTypeManager;
 
-    EXPORTED extern const IntfID PROPERTY_OBJECT_CLASS_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_CLASS_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED PropertyObjectClassBuilder_build(PropertyObjectClassBuilder* self, PropertyObjectClass** propertyObjectClass);
-    ErrCode EXPORTED PropertyObjectClassBuilder_setName(PropertyObjectClassBuilder* self, String* className);
-    ErrCode EXPORTED PropertyObjectClassBuilder_getName(PropertyObjectClassBuilder* self, String** className);
-    ErrCode EXPORTED PropertyObjectClassBuilder_setParentName(PropertyObjectClassBuilder* self, String* parentName);
-    ErrCode EXPORTED PropertyObjectClassBuilder_getParentName(PropertyObjectClassBuilder* self, String** parentName);
-    ErrCode EXPORTED PropertyObjectClassBuilder_addProperty(PropertyObjectClassBuilder* self, Property* property);
-    ErrCode EXPORTED PropertyObjectClassBuilder_getProperties(PropertyObjectClassBuilder* self, Dict** properties);
-    ErrCode EXPORTED PropertyObjectClassBuilder_removeProperty(PropertyObjectClassBuilder* self, String* propertyName);
-    ErrCode EXPORTED PropertyObjectClassBuilder_setPropertyOrder(PropertyObjectClassBuilder* self, List* orderedPropertyNames);
-    ErrCode EXPORTED PropertyObjectClassBuilder_getPropertyOrder(PropertyObjectClassBuilder* self, List** orderedPropertyNames);
-    ErrCode EXPORTED PropertyObjectClassBuilder_getManager(PropertyObjectClassBuilder* self, TypeManager** manager);
-    ErrCode EXPORTED PropertyObjectClassBuilder_createPropertyObjectClassBuilder(PropertyObjectClassBuilder** obj, String* name);
-    ErrCode EXPORTED PropertyObjectClassBuilder_createPropertyObjectClassBuilderWithManager(PropertyObjectClassBuilder** obj, TypeManager* manager, String* name);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_build(daqPropertyObjectClassBuilder* self, daqPropertyObjectClass** propertyObjectClass);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_setName(daqPropertyObjectClassBuilder* self, daqString* className);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_getName(daqPropertyObjectClassBuilder* self, daqString** className);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_setParentName(daqPropertyObjectClassBuilder* self, daqString* parentName);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_getParentName(daqPropertyObjectClassBuilder* self, daqString** parentName);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_addProperty(daqPropertyObjectClassBuilder* self, daqProperty* property);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_getProperties(daqPropertyObjectClassBuilder* self, daqDict** properties);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_removeProperty(daqPropertyObjectClassBuilder* self, daqString* propertyName);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_setPropertyOrder(daqPropertyObjectClassBuilder* self, daqList* orderedPropertyNames);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_getPropertyOrder(daqPropertyObjectClassBuilder* self, daqList** orderedPropertyNames);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_getManager(daqPropertyObjectClassBuilder* self, daqTypeManager** manager);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_createPropertyObjectClassBuilder(daqPropertyObjectClassBuilder** obj, daqString* name);
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_createPropertyObjectClassBuilderWithManager(daqPropertyObjectClassBuilder** obj, daqTypeManager* manager, daqString* name);
 
 #ifdef __cplusplus
 }

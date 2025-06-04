@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:49.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:28.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct StreamReader StreamReader;
-    typedef struct ReaderStatus ReaderStatus;
-    typedef struct Signal Signal;
-    typedef struct InputPortConfig InputPortConfig;
+    typedef struct daqStreamReader daqStreamReader;
+    typedef struct daqReaderStatus daqReaderStatus;
+    typedef struct daqSignal daqSignal;
+    typedef struct daqInputPortConfig daqInputPortConfig;
 
-    EXPORTED extern const IntfID STREAM_READER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_STREAM_READER_INTF_ID;
 
-    ErrCode EXPORTED StreamReader_read(StreamReader* self, void* samples, SizeT* count, SizeT timeoutMs, ReaderStatus** status);
-    ErrCode EXPORTED StreamReader_readWithDomain(StreamReader* self, void* samples, void* domain, SizeT* count, SizeT timeoutMs, ReaderStatus** status);
-    ErrCode EXPORTED StreamReader_skipSamples(StreamReader* self, SizeT* count, ReaderStatus** status);
-    ErrCode EXPORTED StreamReader_createStreamReader(StreamReader** obj, Signal* signal, SampleType valueReadType, SampleType domainReadType, ReadMode mode, ReadTimeoutType timeoutType);
-    ErrCode EXPORTED StreamReader_createStreamReaderFromPort(StreamReader** obj, InputPortConfig* port, SampleType valueReadType, SampleType domainReadType, ReadMode readMode, ReadTimeoutType timeoutType);
-    ErrCode EXPORTED StreamReader_createStreamReaderFromExisting(StreamReader** obj, StreamReader* invalidatedReader, SampleType valueReadType, SampleType domainReadType);
+    daqErrCode EXPORTED daqStreamReader_read(daqStreamReader* self, void* samples, daqSizeT* count, daqSizeT timeoutMs, daqReaderStatus** status);
+    daqErrCode EXPORTED daqStreamReader_readWithDomain(daqStreamReader* self, void* samples, void* domain, daqSizeT* count, daqSizeT timeoutMs, daqReaderStatus** status);
+    daqErrCode EXPORTED daqStreamReader_skipSamples(daqStreamReader* self, daqSizeT* count, daqReaderStatus** status);
+    daqErrCode EXPORTED daqStreamReader_createStreamReader(daqStreamReader** obj, daqSignal* signal, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType);
+    daqErrCode EXPORTED daqStreamReader_createStreamReaderFromPort(daqStreamReader** obj, daqInputPortConfig* port, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode readMode, daqReadTimeoutType timeoutType);
+    daqErrCode EXPORTED daqStreamReader_createStreamReaderFromExisting(daqStreamReader** obj, daqStreamReader* invalidatedReader, daqSampleType valueReadType, daqSampleType domainReadType);
 
 #ifdef __cplusplus
 }

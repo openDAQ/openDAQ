@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:19.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,39 +15,39 @@
 
 #include <copendaq_private.h>
 
-const IntfID STREAMING_INTF_ID = { daq::IStreaming::Id.Data1, daq::IStreaming::Id.Data2, daq::IStreaming::Id.Data3, daq::IStreaming::Id.Data4_UInt64 };
+const daqIntfID DAQ_STREAMING_INTF_ID = { daq::IStreaming::Id.Data1, daq::IStreaming::Id.Data2, daq::IStreaming::Id.Data3, daq::IStreaming::Id.Data4_UInt64 };
 
-ErrCode Streaming_getActive(Streaming* self, Bool* active)
+daqErrCode daqStreaming_getActive(daqStreaming* self, daqBool* active)
 {
     return reinterpret_cast<daq::IStreaming*>(self)->getActive(active);
 }
 
-ErrCode Streaming_setActive(Streaming* self, Bool active)
+daqErrCode daqStreaming_setActive(daqStreaming* self, daqBool active)
 {
     return reinterpret_cast<daq::IStreaming*>(self)->setActive(active);
 }
 
-ErrCode Streaming_addSignals(Streaming* self, List* signals)
+daqErrCode daqStreaming_addSignals(daqStreaming* self, daqList* signals)
 {
     return reinterpret_cast<daq::IStreaming*>(self)->addSignals(reinterpret_cast<daq::IList*>(signals));
 }
 
-ErrCode Streaming_removeSignals(Streaming* self, List* signals)
+daqErrCode daqStreaming_removeSignals(daqStreaming* self, daqList* signals)
 {
     return reinterpret_cast<daq::IStreaming*>(self)->removeSignals(reinterpret_cast<daq::IList*>(signals));
 }
 
-ErrCode Streaming_removeAllSignals(Streaming* self)
+daqErrCode daqStreaming_removeAllSignals(daqStreaming* self)
 {
     return reinterpret_cast<daq::IStreaming*>(self)->removeAllSignals();
 }
 
-ErrCode Streaming_getConnectionString(Streaming* self, String** connectionString)
+daqErrCode daqStreaming_getConnectionString(daqStreaming* self, daqString** connectionString)
 {
     return reinterpret_cast<daq::IStreaming*>(self)->getConnectionString(reinterpret_cast<daq::IString**>(connectionString));
 }
 
-ErrCode Streaming_getConnectionStatus(Streaming* self, Enumeration** connectionStatus)
+daqErrCode daqStreaming_getConnectionStatus(daqStreaming* self, daqEnumeration** connectionStatus)
 {
     return reinterpret_cast<daq::IStreaming*>(self)->getConnectionStatus(reinterpret_cast<daq::IEnumeration**>(connectionStatus));
 }

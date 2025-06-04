@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:52.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,17 +15,17 @@
 
 #include <copendaq_private.h>
 
-const IntfID TAIL_READER_STATUS_INTF_ID = { daq::ITailReaderStatus::Id.Data1, daq::ITailReaderStatus::Id.Data2, daq::ITailReaderStatus::Id.Data3, daq::ITailReaderStatus::Id.Data4_UInt64 };
+const daqIntfID DAQ_TAIL_READER_STATUS_INTF_ID = { daq::ITailReaderStatus::Id.Data1, daq::ITailReaderStatus::Id.Data2, daq::ITailReaderStatus::Id.Data3, daq::ITailReaderStatus::Id.Data4_UInt64 };
 
-ErrCode TailReaderStatus_getSufficientHistory(TailReaderStatus* self, Bool* status)
+daqErrCode daqTailReaderStatus_getSufficientHistory(daqTailReaderStatus* self, daqBool* status)
 {
     return reinterpret_cast<daq::ITailReaderStatus*>(self)->getSufficientHistory(status);
 }
 
-ErrCode TailReaderStatus_createTailReaderStatus(TailReaderStatus** obj, EventPacket* eventPacket, Bool valid, Number* offset, Bool sufficientHistory)
+daqErrCode daqTailReaderStatus_createTailReaderStatus(daqTailReaderStatus** obj, daqEventPacket* eventPacket, daqBool valid, daqNumber* offset, daqBool sufficientHistory)
 {
     daq::ITailReaderStatus* ptr = nullptr;
-    ErrCode err = daq::createTailReaderStatus(&ptr, reinterpret_cast<daq::IEventPacket*>(eventPacket), valid, reinterpret_cast<daq::INumber*>(offset), sufficientHistory);
-    *obj = reinterpret_cast<TailReaderStatus*>(ptr);
+    daqErrCode err = daq::createTailReaderStatus(&ptr, reinterpret_cast<daq::IEventPacket*>(eventPacket), valid, reinterpret_cast<daq::INumber*>(offset), sufficientHistory);
+    *obj = reinterpret_cast<daqTailReaderStatus*>(ptr);
     return err;
 }

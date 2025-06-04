@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:20.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,17 +15,17 @@
 
 #include <copendaq_private.h>
 
-const IntfID STREAMING_TYPE_INTF_ID = { daq::IStreamingType::Id.Data1, daq::IStreamingType::Id.Data2, daq::IStreamingType::Id.Data3, daq::IStreamingType::Id.Data4_UInt64 };
+const daqIntfID DAQ_STREAMING_TYPE_INTF_ID = { daq::IStreamingType::Id.Data1, daq::IStreamingType::Id.Data2, daq::IStreamingType::Id.Data3, daq::IStreamingType::Id.Data4_UInt64 };
 
-ErrCode StreamingType_getConnectionStringPrefix(StreamingType* self, String** prefix)
+daqErrCode daqStreamingType_getConnectionStringPrefix(daqStreamingType* self, daqString** prefix)
 {
     return reinterpret_cast<daq::IStreamingType*>(self)->getConnectionStringPrefix(reinterpret_cast<daq::IString**>(prefix));
 }
 
-ErrCode StreamingType_createStreamingType(StreamingType** obj, String* id, String* name, String* description, String* prefix, PropertyObject* defaultConfig)
+daqErrCode daqStreamingType_createStreamingType(daqStreamingType** obj, daqString* id, daqString* name, daqString* description, daqString* prefix, daqPropertyObject* defaultConfig)
 {
     daq::IStreamingType* ptr = nullptr;
-    ErrCode err = daq::createStreamingType(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(description), reinterpret_cast<daq::IString*>(prefix), reinterpret_cast<daq::IPropertyObject*>(defaultConfig));
-    *obj = reinterpret_cast<StreamingType*>(ptr);
+    daqErrCode err = daq::createStreamingType(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(description), reinterpret_cast<daq::IString*>(prefix), reinterpret_cast<daq::IPropertyObject*>(defaultConfig));
+    *obj = reinterpret_cast<daqStreamingType*>(ptr);
     return err;
 }

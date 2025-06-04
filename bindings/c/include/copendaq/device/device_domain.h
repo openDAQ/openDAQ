@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:24.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,20 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DeviceDomain DeviceDomain;
-    typedef struct Ratio Ratio;
-    typedef struct String String;
-    typedef struct Unit Unit;
-    typedef struct ReferenceDomainInfo ReferenceDomainInfo;
+    typedef struct daqDeviceDomain daqDeviceDomain;
+    typedef struct daqRatio daqRatio;
+    typedef struct daqString daqString;
+    typedef struct daqUnit daqUnit;
+    typedef struct daqReferenceDomainInfo daqReferenceDomainInfo;
 
-    EXPORTED extern const IntfID DEVICE_DOMAIN_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DEVICE_DOMAIN_INTF_ID;
 
-    ErrCode EXPORTED DeviceDomain_getTickResolution(DeviceDomain* self, Ratio** tickResolution);
-    ErrCode EXPORTED DeviceDomain_getOrigin(DeviceDomain* self, String** origin);
-    ErrCode EXPORTED DeviceDomain_getUnit(DeviceDomain* self, Unit** unit);
-    ErrCode EXPORTED DeviceDomain_getReferenceDomainInfo(DeviceDomain* self, ReferenceDomainInfo** referenceDomainInfo);
-    ErrCode EXPORTED DeviceDomain_createDeviceDomain(DeviceDomain** obj, Ratio* tickResolution, String* origin, Unit* unit);
-    ErrCode EXPORTED DeviceDomain_createDeviceDomainWithReferenceDomainInfo(DeviceDomain** obj, Ratio* tickResolution, String* origin, Unit* unit, ReferenceDomainInfo* referenceDomainInfo);
+    daqErrCode EXPORTED daqDeviceDomain_getTickResolution(daqDeviceDomain* self, daqRatio** tickResolution);
+    daqErrCode EXPORTED daqDeviceDomain_getOrigin(daqDeviceDomain* self, daqString** origin);
+    daqErrCode EXPORTED daqDeviceDomain_getUnit(daqDeviceDomain* self, daqUnit** unit);
+    daqErrCode EXPORTED daqDeviceDomain_getReferenceDomainInfo(daqDeviceDomain* self, daqReferenceDomainInfo** referenceDomainInfo);
+    daqErrCode EXPORTED daqDeviceDomain_createDeviceDomain(daqDeviceDomain** obj, daqRatio* tickResolution, daqString* origin, daqUnit* unit);
+    daqErrCode EXPORTED daqDeviceDomain_createDeviceDomainWithReferenceDomainInfo(daqDeviceDomain** obj, daqRatio* tickResolution, daqString* origin, daqUnit* unit, daqReferenceDomainInfo* referenceDomainInfo);
 
 #ifdef __cplusplus
 }

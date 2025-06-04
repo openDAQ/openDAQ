@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:45.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,14 +15,14 @@
 
 #include <copendaq_private.h>
 
-const IntfID ITERABLE_INTF_ID = { daq::IIterable::Id.Data1, daq::IIterable::Id.Data2, daq::IIterable::Id.Data3, daq::IIterable::Id.Data4_UInt64 };
+const daqIntfID DAQ_ITERABLE_INTF_ID = { daq::IIterable::Id.Data1, daq::IIterable::Id.Data2, daq::IIterable::Id.Data3, daq::IIterable::Id.Data4_UInt64 };
 
-ErrCode Iterable_createStartIterator(Iterable* self, Iterator** iterator)
+daqErrCode daqIterable_createStartIterator(daqIterable* self, daqIterator** iterator)
 {
     return reinterpret_cast<daq::IIterable*>(self)->createStartIterator(reinterpret_cast<daq::IIterator**>(iterator));
 }
 
-ErrCode Iterable_createEndIterator(Iterable* self, Iterator** iterator)
+daqErrCode daqIterable_createEndIterator(daqIterable* self, daqIterator** iterator)
 {
     return reinterpret_cast<daq::IIterable*>(self)->createEndIterator(reinterpret_cast<daq::IIterator**>(iterator));
 }

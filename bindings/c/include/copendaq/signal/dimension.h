@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:03.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,22 +34,22 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Dimension Dimension;
-    typedef struct String String;
-    typedef struct Unit Unit;
-    typedef struct List List;
-    typedef struct DimensionRule DimensionRule;
-    typedef struct DimensionBuilder DimensionBuilder;
+    typedef struct daqDimension daqDimension;
+    typedef struct daqString daqString;
+    typedef struct daqUnit daqUnit;
+    typedef struct daqList daqList;
+    typedef struct daqDimensionRule daqDimensionRule;
+    typedef struct daqDimensionBuilder daqDimensionBuilder;
 
-    EXPORTED extern const IntfID DIMENSION_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DIMENSION_INTF_ID;
 
-    ErrCode EXPORTED Dimension_getName(Dimension* self, String** name);
-    ErrCode EXPORTED Dimension_getSize(Dimension* self, SizeT* size);
-    ErrCode EXPORTED Dimension_getUnit(Dimension* self, Unit** unit);
-    ErrCode EXPORTED Dimension_getLabels(Dimension* self, List** labels);
-    ErrCode EXPORTED Dimension_getRule(Dimension* self, DimensionRule** rule);
-    ErrCode EXPORTED Dimension_createDimension(Dimension** obj, DimensionRule* rule, Unit* unit, String* name);
-    ErrCode EXPORTED Dimension_createDimensionFromBuilder(Dimension** obj, DimensionBuilder* builder);
+    daqErrCode EXPORTED daqDimension_getName(daqDimension* self, daqString** name);
+    daqErrCode EXPORTED daqDimension_getSize(daqDimension* self, daqSizeT* size);
+    daqErrCode EXPORTED daqDimension_getUnit(daqDimension* self, daqUnit** unit);
+    daqErrCode EXPORTED daqDimension_getLabels(daqDimension* self, daqList** labels);
+    daqErrCode EXPORTED daqDimension_getRule(daqDimension* self, daqDimensionRule** rule);
+    daqErrCode EXPORTED daqDimension_createDimension(daqDimension** obj, daqDimensionRule* rule, daqUnit* unit, daqString* name);
+    daqErrCode EXPORTED daqDimension_createDimensionFromBuilder(daqDimension** obj, daqDimensionBuilder* builder);
 
 #ifdef __cplusplus
 }

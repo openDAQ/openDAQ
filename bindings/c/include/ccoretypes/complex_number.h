@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:38.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ComplexNumber ComplexNumber;
+    typedef struct daqComplexNumber daqComplexNumber;
 
-    EXPORTED extern const IntfID COMPLEX_NUMBER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPLEX_NUMBER_INTF_ID;
 
 /*
-    ErrCode EXPORTED ComplexNumber_getValue(ComplexNumber* self, ComplexFloat64* value);
+    daqErrCode EXPORTED daqComplexNumber_getValue(daqComplexNumber* self, daqComplexFloat64* value);
 */
 /*
-    ErrCode EXPORTED ComplexNumber_equalsValue(ComplexNumber* self, ComplexFloat64 value, Bool* equal);
+    daqErrCode EXPORTED daqComplexNumber_equalsValue(daqComplexNumber* self, daqComplexFloat64 value, daqBool* equal);
 */
-    ErrCode EXPORTED ComplexNumber_getReal(ComplexNumber* self, Float* real);
-    ErrCode EXPORTED ComplexNumber_getImaginary(ComplexNumber* self, Float* imaginary);
-    ErrCode EXPORTED ComplexNumber_createComplexNumber(ComplexNumber** obj, Float real, Float imaginary);
+    daqErrCode EXPORTED daqComplexNumber_getReal(daqComplexNumber* self, daqFloat* real);
+    daqErrCode EXPORTED daqComplexNumber_getImaginary(daqComplexNumber* self, daqFloat* imaginary);
+    daqErrCode EXPORTED daqComplexNumber_createComplexNumber(daqComplexNumber** obj, daqFloat real, daqFloat imaginary);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:41.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:21.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -14,54 +14,55 @@
 #include <opendaq/opendaq.h>
 
 #include <copendaq_private.h>
+#include "opendaq/device.h"
 
-const IntfID INSTANCE_INTF_ID = { daq::IInstance::Id.Data1, daq::IInstance::Id.Data2, daq::IInstance::Id.Data3, daq::IInstance::Id.Data4_UInt64 };
+const daqIntfID DAQ_INSTANCE_INTF_ID = { daq::IInstance::Id.Data1, daq::IInstance::Id.Data2, daq::IInstance::Id.Data3, daq::IInstance::Id.Data4_UInt64 };
 
-ErrCode Instance_getModuleManager(Instance* self, ModuleManager** manager)
+daqErrCode daqInstance_getModuleManager(daqInstance* self, daqModuleManager** manager)
 {
     return reinterpret_cast<daq::IInstance*>(self)->getModuleManager(reinterpret_cast<daq::IModuleManager**>(manager));
 }
 
-ErrCode Instance_getRootDevice(Instance* self, Device** rootDevice)
+daqErrCode daqInstance_getRootDevice(daqInstance* self, daqDevice** rootDevice)
 {
     return reinterpret_cast<daq::IInstance*>(self)->getRootDevice(reinterpret_cast<daq::IDevice**>(rootDevice));
 }
 
-ErrCode Instance_setRootDevice(Instance* self, String* connectionString, PropertyObject* config)
+daqErrCode daqInstance_setRootDevice(daqInstance* self, daqString* connectionString, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IInstance*>(self)->setRootDevice(reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode Instance_getAvailableServerTypes(Instance* self, Dict** serverTypes)
+daqErrCode daqInstance_getAvailableServerTypes(daqInstance* self, daqDict** serverTypes)
 {
     return reinterpret_cast<daq::IInstance*>(self)->getAvailableServerTypes(reinterpret_cast<daq::IDict**>(serverTypes));
 }
 
-ErrCode Instance_addStandardServers(Instance* self, List** servers)
+daqErrCode daqInstance_addStandardServers(daqInstance* self, daqList** servers)
 {
     return reinterpret_cast<daq::IInstance*>(self)->addStandardServers(reinterpret_cast<daq::IList**>(servers));
 }
 
-ErrCode Instance_createInstance(Instance** obj, Context* context, String* localId)
+daqErrCode daqInstance_createInstance(daqInstance** obj, daqContext* context, daqString* localId)
 {
     daq::IInstance* ptr = nullptr;
-    ErrCode err = daq::createInstance(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IString*>(localId));
-    *obj = reinterpret_cast<Instance*>(ptr);
+    daqErrCode err = daq::createInstance(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IString*>(localId));
+    *obj = reinterpret_cast<daqInstance*>(ptr);
     return err;
 }
 
-ErrCode Instance_createInstanceFromBuilder(Instance** obj, InstanceBuilder* builder)
+daqErrCode daqInstance_createInstanceFromBuilder(daqInstance** obj, daqInstanceBuilder* builder)
 {
     daq::IInstance* ptr = nullptr;
-    ErrCode err = daq::createInstanceFromBuilder(&ptr, reinterpret_cast<daq::IInstanceBuilder*>(builder));
-    *obj = reinterpret_cast<Instance*>(ptr);
+    daqErrCode err = daq::createInstanceFromBuilder(&ptr, reinterpret_cast<daq::IInstanceBuilder*>(builder));
+    *obj = reinterpret_cast<daqInstance*>(ptr);
     return err;
 }
 
-ErrCode Device_createClient(Device** obj, Context* ctx, String* localId, DeviceInfo* defaultDeviceInfo, Component* parent)
+daqErrCode daqDevice_createClient(daqDevice** obj, daqContext* ctx, daqString* localId, daqDeviceInfo* defaultDeviceInfo, daqComponent* parent)
 {
     daq::IDevice* ptr = nullptr;
-    ErrCode err = daq::createClient(&ptr, reinterpret_cast<daq::IContext*>(ctx), reinterpret_cast<daq::IString*>(localId), reinterpret_cast<daq::IDeviceInfo*>(defaultDeviceInfo), reinterpret_cast<daq::IComponent*>(parent));
-    *obj = reinterpret_cast<Device*>(ptr);
+    daqErrCode err = daq::createClient(&ptr, reinterpret_cast<daq::IContext*>(ctx), reinterpret_cast<daq::IString*>(localId), reinterpret_cast<daq::IDeviceInfo*>(defaultDeviceInfo), reinterpret_cast<daq::IComponent*>(parent));
+    *obj = reinterpret_cast<daqDevice*>(ptr);
     return err;
 }

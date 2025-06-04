@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:01.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:12.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID OWNABLE_INTF_ID = { daq::IOwnable::Id.Data1, daq::IOwnable::Id.Data2, daq::IOwnable::Id.Data3, daq::IOwnable::Id.Data4_UInt64 };
+const daqIntfID DAQ_OWNABLE_INTF_ID = { daq::IOwnable::Id.Data1, daq::IOwnable::Id.Data2, daq::IOwnable::Id.Data3, daq::IOwnable::Id.Data4_UInt64 };
 
-ErrCode Ownable_setOwner(Ownable* self, PropertyObject* owner)
+daqErrCode daqOwnable_setOwner(daqOwnable* self, daqPropertyObject* owner)
 {
     return reinterpret_cast<daq::IOwnable*>(self)->setOwner(reinterpret_cast<daq::IPropertyObject*>(owner));
 }

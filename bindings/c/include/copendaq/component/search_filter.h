@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:09.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:48:17.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,27 +34,27 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SearchFilter SearchFilter;
-    typedef struct Component Component;
-    typedef struct List List;
-    typedef struct String String;
-    typedef struct Function Function;
+    typedef struct daqSearchFilter daqSearchFilter;
+    typedef struct daqComponent daqComponent;
+    typedef struct daqList daqList;
+    typedef struct daqString daqString;
+    typedef struct daqFunction daqFunction;
 
-    EXPORTED extern const IntfID SEARCH_FILTER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SEARCH_FILTER_INTF_ID;
 
-    ErrCode EXPORTED SearchFilter_acceptsComponent(SearchFilter* self, Component* component, Bool* accepts);
-    ErrCode EXPORTED SearchFilter_visitChildren(SearchFilter* self, Component* component, Bool* visit);
-    ErrCode EXPORTED SearchFilter_createVisibleSearchFilter(SearchFilter** obj);
-    ErrCode EXPORTED SearchFilter_createRequiredTagsSearchFilter(SearchFilter** obj, List* requiredTags);
-    ErrCode EXPORTED SearchFilter_createExcludedTagsSearchFilter(SearchFilter** obj, List* excludedTags);
-    ErrCode EXPORTED SearchFilter_createInterfaceIdSearchFilter(SearchFilter** obj, IntfID intfId);
-    ErrCode EXPORTED SearchFilter_createLocalIdSearchFilter(SearchFilter** obj, String* localId);
-    ErrCode EXPORTED SearchFilter_createAnySearchFilter(SearchFilter** obj);
-    ErrCode EXPORTED SearchFilter_createAndSearchFilter(SearchFilter** obj, SearchFilter* left, SearchFilter* right);
-    ErrCode EXPORTED SearchFilter_createOrSearchFilter(SearchFilter** obj, SearchFilter* left, SearchFilter* right);
-    ErrCode EXPORTED SearchFilter_createNotSearchFilter(SearchFilter** obj, SearchFilter* filter);
-    ErrCode EXPORTED SearchFilter_createCustomSearchFilter(SearchFilter** obj, Function* acceptsFunction, Function* visitFunction);
-    ErrCode EXPORTED SearchFilter_createRecursiveSearchFilter(SearchFilter** obj, SearchFilter* filter);
+    daqErrCode EXPORTED daqSearchFilter_acceptsComponent(daqSearchFilter* self, daqComponent* component, daqBool* accepts);
+    daqErrCode EXPORTED daqSearchFilter_visitChildren(daqSearchFilter* self, daqComponent* component, daqBool* visit);
+    daqErrCode EXPORTED daqSearchFilter_createVisibleSearchFilter(daqSearchFilter** obj);
+    daqErrCode EXPORTED daqSearchFilter_createRequiredTagsSearchFilter(daqSearchFilter** obj, daqList* requiredTags);
+    daqErrCode EXPORTED daqSearchFilter_createExcludedTagsSearchFilter(daqSearchFilter** obj, daqList* excludedTags);
+    daqErrCode EXPORTED daqSearchFilter_createInterfaceIdSearchFilter(daqSearchFilter** obj, daqIntfID& intfId);
+    daqErrCode EXPORTED daqSearchFilter_createLocalIdSearchFilter(daqSearchFilter** obj, daqString* localId);
+    daqErrCode EXPORTED daqSearchFilter_createAnySearchFilter(daqSearchFilter** obj);
+    daqErrCode EXPORTED daqSearchFilter_createAndSearchFilter(daqSearchFilter** obj, daqSearchFilter* left, daqSearchFilter* right);
+    daqErrCode EXPORTED daqSearchFilter_createOrSearchFilter(daqSearchFilter** obj, daqSearchFilter* left, daqSearchFilter* right);
+    daqErrCode EXPORTED daqSearchFilter_createNotSearchFilter(daqSearchFilter** obj, daqSearchFilter* filter);
+    daqErrCode EXPORTED daqSearchFilter_createCustomSearchFilter(daqSearchFilter** obj, daqFunction* acceptsFunction, daqFunction* visitFunction);
+    daqErrCode EXPORTED daqSearchFilter_createRecursiveSearchFilter(daqSearchFilter** obj, daqSearchFilter* filter);
 
 #ifdef __cplusplus
 }

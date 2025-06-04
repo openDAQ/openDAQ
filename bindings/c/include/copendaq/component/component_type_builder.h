@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:14.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,31 +34,31 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ComponentTypeBuilder ComponentTypeBuilder;
-    typedef struct ComponentType ComponentType;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
+    typedef struct daqComponentTypeBuilder daqComponentTypeBuilder;
+    typedef struct daqComponentType daqComponentType;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
 
-    EXPORTED extern const IntfID COMPONENT_TYPE_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPONENT_TYPE_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED ComponentTypeBuilder_build(ComponentTypeBuilder* self, ComponentType** componentType);
-    ErrCode EXPORTED ComponentTypeBuilder_setId(ComponentTypeBuilder* self, String* id);
-    ErrCode EXPORTED ComponentTypeBuilder_getId(ComponentTypeBuilder* self, String** id);
-    ErrCode EXPORTED ComponentTypeBuilder_setTypeSort(ComponentTypeBuilder* self, ComponentTypeSort sort);
-    ErrCode EXPORTED ComponentTypeBuilder_getTypeSort(ComponentTypeBuilder* self, ComponentTypeSort* sort);
-    ErrCode EXPORTED ComponentTypeBuilder_setName(ComponentTypeBuilder* self, String* name);
-    ErrCode EXPORTED ComponentTypeBuilder_getName(ComponentTypeBuilder* self, String** name);
-    ErrCode EXPORTED ComponentTypeBuilder_setDescription(ComponentTypeBuilder* self, String* description);
-    ErrCode EXPORTED ComponentTypeBuilder_getDescription(ComponentTypeBuilder* self, String** description);
-    ErrCode EXPORTED ComponentTypeBuilder_setConnectionStringPrefix(ComponentTypeBuilder* self, String* prefix);
-    ErrCode EXPORTED ComponentTypeBuilder_getConnectionStringPrefix(ComponentTypeBuilder* self, String** prefix);
-    ErrCode EXPORTED ComponentTypeBuilder_setDefaultConfig(ComponentTypeBuilder* self, PropertyObject* defaultConfig);
-    ErrCode EXPORTED ComponentTypeBuilder_getDefaultConfig(ComponentTypeBuilder* self, PropertyObject** defaultConfig);
-    ErrCode EXPORTED ComponentTypeBuilder_createComponentTypeBuilder(ComponentTypeBuilder** obj);
-    ErrCode EXPORTED ComponentTypeBuilder_createDeviceTypeBuilder(ComponentTypeBuilder** obj);
-    ErrCode EXPORTED ComponentTypeBuilder_createStreamingTypeBuilder(ComponentTypeBuilder** obj);
-    ErrCode EXPORTED ComponentTypeBuilder_createServerTypeBuilder(ComponentTypeBuilder** obj);
-    ErrCode EXPORTED ComponentTypeBuilder_createFunctionBlockTypeBuilder(ComponentTypeBuilder** obj);
+    daqErrCode EXPORTED daqComponentTypeBuilder_build(daqComponentTypeBuilder* self, daqComponentType** componentType);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setId(daqComponentTypeBuilder* self, daqString* id);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getId(daqComponentTypeBuilder* self, daqString** id);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setTypeSort(daqComponentTypeBuilder* self, daqComponentTypeSort sort);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getTypeSort(daqComponentTypeBuilder* self, daqComponentTypeSort* sort);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setName(daqComponentTypeBuilder* self, daqString* name);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getName(daqComponentTypeBuilder* self, daqString** name);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setDescription(daqComponentTypeBuilder* self, daqString* description);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getDescription(daqComponentTypeBuilder* self, daqString** description);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setConnectionStringPrefix(daqComponentTypeBuilder* self, daqString* prefix);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getConnectionStringPrefix(daqComponentTypeBuilder* self, daqString** prefix);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setDefaultConfig(daqComponentTypeBuilder* self, daqPropertyObject* defaultConfig);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getDefaultConfig(daqComponentTypeBuilder* self, daqPropertyObject** defaultConfig);
+    daqErrCode EXPORTED daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj);
+    daqErrCode EXPORTED daqComponentTypeBuilder_createDeviceTypeBuilder(daqComponentTypeBuilder** obj);
+    daqErrCode EXPORTED daqComponentTypeBuilder_createStreamingTypeBuilder(daqComponentTypeBuilder** obj);
+    daqErrCode EXPORTED daqComponentTypeBuilder_createServerTypeBuilder(daqComponentTypeBuilder** obj);
+    daqErrCode EXPORTED daqComponentTypeBuilder_createFunctionBlockTypeBuilder(daqComponentTypeBuilder** obj);
 
 #ifdef __cplusplus
 }

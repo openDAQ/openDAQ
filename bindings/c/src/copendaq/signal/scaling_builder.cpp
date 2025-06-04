@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:13.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,75 +15,75 @@
 
 #include <copendaq_private.h>
 
-const IntfID SCALING_BUILDER_INTF_ID = { daq::IScalingBuilder::Id.Data1, daq::IScalingBuilder::Id.Data2, daq::IScalingBuilder::Id.Data3, daq::IScalingBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_SCALING_BUILDER_INTF_ID = { daq::IScalingBuilder::Id.Data1, daq::IScalingBuilder::Id.Data2, daq::IScalingBuilder::Id.Data3, daq::IScalingBuilder::Id.Data4_UInt64 };
 
-ErrCode ScalingBuilder_build(ScalingBuilder* self, Scaling** scaling)
+daqErrCode daqScalingBuilder_build(daqScalingBuilder* self, daqScaling** scaling)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->build(reinterpret_cast<daq::IScaling**>(scaling));
 }
 
-ErrCode ScalingBuilder_setInputDataType(ScalingBuilder* self, SampleType type)
+daqErrCode daqScalingBuilder_setInputDataType(daqScalingBuilder* self, daqSampleType type)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->setInputDataType(static_cast<daq::SampleType>(type));
 }
 
-ErrCode ScalingBuilder_getInputDataType(ScalingBuilder* self, SampleType* type)
+daqErrCode daqScalingBuilder_getInputDataType(daqScalingBuilder* self, daqSampleType* type)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->getInputDataType(reinterpret_cast<daq::SampleType*>(type));
 }
 
-ErrCode ScalingBuilder_setOutputDataType(ScalingBuilder* self, ScaledSampleType type)
+daqErrCode daqScalingBuilder_setOutputDataType(daqScalingBuilder* self, daqScaledSampleType type)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->setOutputDataType(static_cast<daq::ScaledSampleType>(type));
 }
 
-ErrCode ScalingBuilder_getOutputDataType(ScalingBuilder* self, ScaledSampleType* type)
+daqErrCode daqScalingBuilder_getOutputDataType(daqScalingBuilder* self, daqScaledSampleType* type)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->getOutputDataType(reinterpret_cast<daq::ScaledSampleType*>(type));
 }
 
-ErrCode ScalingBuilder_setScalingType(ScalingBuilder* self, ScalingType type)
+daqErrCode daqScalingBuilder_setScalingType(daqScalingBuilder* self, daqScalingType type)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->setScalingType(static_cast<daq::ScalingType>(type));
 }
 
-ErrCode ScalingBuilder_getScalingType(ScalingBuilder* self, ScalingType* type)
+daqErrCode daqScalingBuilder_getScalingType(daqScalingBuilder* self, daqScalingType* type)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->getScalingType(reinterpret_cast<daq::ScalingType*>(type));
 }
 
-ErrCode ScalingBuilder_setParameters(ScalingBuilder* self, Dict* parameters)
+daqErrCode daqScalingBuilder_setParameters(daqScalingBuilder* self, daqDict* parameters)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->setParameters(reinterpret_cast<daq::IDict*>(parameters));
 }
 
-ErrCode ScalingBuilder_getParameters(ScalingBuilder* self, Dict** parameters)
+daqErrCode daqScalingBuilder_getParameters(daqScalingBuilder* self, daqDict** parameters)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->getParameters(reinterpret_cast<daq::IDict**>(parameters));
 }
 
-ErrCode ScalingBuilder_addParameter(ScalingBuilder* self, String* name, BaseObject* parameter)
+daqErrCode daqScalingBuilder_addParameter(daqScalingBuilder* self, daqString* name, daqBaseObject* parameter)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->addParameter(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IBaseObject*>(parameter));
 }
 
-ErrCode ScalingBuilder_removeParameter(ScalingBuilder* self, String* name)
+daqErrCode daqScalingBuilder_removeParameter(daqScalingBuilder* self, daqString* name)
 {
     return reinterpret_cast<daq::IScalingBuilder*>(self)->removeParameter(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode ScalingBuilder_createScalingBuilder(ScalingBuilder** obj)
+daqErrCode daqScalingBuilder_createScalingBuilder(daqScalingBuilder** obj)
 {
     daq::IScalingBuilder* ptr = nullptr;
-    ErrCode err = daq::createScalingBuilder(&ptr);
-    *obj = reinterpret_cast<ScalingBuilder*>(ptr);
+    daqErrCode err = daq::createScalingBuilder(&ptr);
+    *obj = reinterpret_cast<daqScalingBuilder*>(ptr);
     return err;
 }
 
-ErrCode ScalingBuilder_createScalingBuilderFromExisting(ScalingBuilder** obj, Scaling* scalingToCopy)
+daqErrCode daqScalingBuilder_createScalingBuilderFromExisting(daqScalingBuilder** obj, daqScaling* scalingToCopy)
 {
     daq::IScalingBuilder* ptr = nullptr;
-    ErrCode err = daq::createScalingBuilderFromExisting(&ptr, reinterpret_cast<daq::IScaling*>(scalingToCopy));
-    *obj = reinterpret_cast<ScalingBuilder*>(ptr);
+    daqErrCode err = daq::createScalingBuilderFromExisting(&ptr, reinterpret_cast<daq::IScaling*>(scalingToCopy));
+    *obj = reinterpret_cast<daqScalingBuilder*>(ptr);
     return err;
 }

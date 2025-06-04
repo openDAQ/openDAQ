@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:08.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID INPUT_PORT_PRIVATE_INTF_ID = { daq::IInputPortPrivate::Id.Data1, daq::IInputPortPrivate::Id.Data2, daq::IInputPortPrivate::Id.Data3, daq::IInputPortPrivate::Id.Data4_UInt64 };
+const daqIntfID DAQ_INPUT_PORT_PRIVATE_INTF_ID = { daq::IInputPortPrivate::Id.Data1, daq::IInputPortPrivate::Id.Data2, daq::IInputPortPrivate::Id.Data3, daq::IInputPortPrivate::Id.Data4_UInt64 };
 
-ErrCode InputPortPrivate_disconnectWithoutSignalNotification(InputPortPrivate* self)
+daqErrCode daqInputPortPrivate_disconnectWithoutSignalNotification(daqInputPortPrivate* self)
 {
     return reinterpret_cast<daq::IInputPortPrivate*>(self)->disconnectWithoutSignalNotification();
 }

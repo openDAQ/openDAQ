@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:56.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,24 +15,24 @@
 
 #include <copendaq_private.h>
 
-const IntfID SERVER_INTF_ID = { daq::IServer::Id.Data1, daq::IServer::Id.Data2, daq::IServer::Id.Data3, daq::IServer::Id.Data4_UInt64 };
+const daqIntfID DAQ_SERVER_INTF_ID = { daq::IServer::Id.Data1, daq::IServer::Id.Data2, daq::IServer::Id.Data3, daq::IServer::Id.Data4_UInt64 };
 
-ErrCode Server_stop(Server* self)
+daqErrCode daqServer_stop(daqServer* self)
 {
     return reinterpret_cast<daq::IServer*>(self)->stop();
 }
 
-ErrCode Server_getId(Server* self, String** serverId)
+daqErrCode daqServer_getId(daqServer* self, daqString** serverId)
 {
     return reinterpret_cast<daq::IServer*>(self)->getId(reinterpret_cast<daq::IString**>(serverId));
 }
 
-ErrCode Server_enableDiscovery(Server* self)
+daqErrCode daqServer_enableDiscovery(daqServer* self)
 {
     return reinterpret_cast<daq::IServer*>(self)->enableDiscovery();
 }
 
-ErrCode Server_getSignals(Server* self, List** signals, SearchFilter* searchFilter)
+daqErrCode daqServer_getSignals(daqServer* self, daqList** signals, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IServer*>(self)->getSignals(reinterpret_cast<daq::IList**>(signals), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }

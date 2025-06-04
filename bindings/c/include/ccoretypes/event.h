@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:41.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:49.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,24 +34,24 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Event Event;
-    typedef struct EventHandler EventHandler;
-    typedef struct EventArgs EventArgs;
-    typedef struct List List;
+    typedef struct daqEvent daqEvent;
+    typedef struct daqEventHandler daqEventHandler;
+    typedef struct daqEventArgs daqEventArgs;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID EVENT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_EVENT_INTF_ID;
 
-    ErrCode EXPORTED Event_addHandler(Event* self, EventHandler* eventHandler);
-    ErrCode EXPORTED Event_removeHandler(Event* self, EventHandler* eventHandler);
-    ErrCode EXPORTED Event_trigger(Event* self, BaseObject* sender, EventArgs* args);
-    ErrCode EXPORTED Event_clear(Event* self);
-    ErrCode EXPORTED Event_getSubscriberCount(Event* self, SizeT* count);
-    ErrCode EXPORTED Event_getSubscribers(Event* self, List** subscribers);
-    ErrCode EXPORTED Event_mute(Event* self);
-    ErrCode EXPORTED Event_unmute(Event* self);
-    ErrCode EXPORTED Event_muteListener(Event* self, EventHandler* eventHandler);
-    ErrCode EXPORTED Event_unmuteListener(Event* self, EventHandler* eventHandler);
-    ErrCode EXPORTED Event_createEvent(Event** obj);
+    daqErrCode EXPORTED daqEvent_addHandler(daqEvent* self, daqEventHandler* eventHandler);
+    daqErrCode EXPORTED daqEvent_removeHandler(daqEvent* self, daqEventHandler* eventHandler);
+    daqErrCode EXPORTED daqEvent_trigger(daqEvent* self, daqBaseObject* sender, daqEventArgs* args);
+    daqErrCode EXPORTED daqEvent_clear(daqEvent* self);
+    daqErrCode EXPORTED daqEvent_getSubscriberCount(daqEvent* self, daqSizeT* count);
+    daqErrCode EXPORTED daqEvent_getSubscribers(daqEvent* self, daqList** subscribers);
+    daqErrCode EXPORTED daqEvent_mute(daqEvent* self);
+    daqErrCode EXPORTED daqEvent_unmute(daqEvent* self);
+    daqErrCode EXPORTED daqEvent_muteListener(daqEvent* self, daqEventHandler* eventHandler);
+    daqErrCode EXPORTED daqEvent_unmuteListener(daqEvent* self, daqEventHandler* eventHandler);
+    daqErrCode EXPORTED daqEvent_createEvent(daqEvent** obj);
 
 #ifdef __cplusplus
 }

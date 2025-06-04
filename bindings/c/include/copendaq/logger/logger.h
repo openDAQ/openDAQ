@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:35.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,23 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Logger Logger;
-    typedef struct String String;
-    typedef struct LoggerComponent LoggerComponent;
-    typedef struct List List;
+    typedef struct daqLogger daqLogger;
+    typedef struct daqString daqString;
+    typedef struct daqLoggerComponent daqLoggerComponent;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID LOGGER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_LOGGER_INTF_ID;
 
-    ErrCode EXPORTED Logger_setLevel(Logger* self, LogLevel level);
-    ErrCode EXPORTED Logger_getLevel(Logger* self, LogLevel* level);
-    ErrCode EXPORTED Logger_getOrAddComponent(Logger* self, String* name, LoggerComponent** component);
-    ErrCode EXPORTED Logger_addComponent(Logger* self, String* name, LoggerComponent** component);
-    ErrCode EXPORTED Logger_removeComponent(Logger* self, String* name);
-    ErrCode EXPORTED Logger_getComponents(Logger* self, List** components);
-    ErrCode EXPORTED Logger_getComponent(Logger* self, String* name, LoggerComponent** component);
-    ErrCode EXPORTED Logger_flush(Logger* self);
-    ErrCode EXPORTED Logger_flushOnLevel(Logger* self, LogLevel level);
-    ErrCode EXPORTED Logger_createLogger(Logger** obj, List* sinks, LogLevel level);
+    daqErrCode EXPORTED daqLogger_setLevel(daqLogger* self, daqLogLevel level);
+    daqErrCode EXPORTED daqLogger_getLevel(daqLogger* self, daqLogLevel* level);
+    daqErrCode EXPORTED daqLogger_getOrAddComponent(daqLogger* self, daqString* name, daqLoggerComponent** component);
+    daqErrCode EXPORTED daqLogger_addComponent(daqLogger* self, daqString* name, daqLoggerComponent** component);
+    daqErrCode EXPORTED daqLogger_removeComponent(daqLogger* self, daqString* name);
+    daqErrCode EXPORTED daqLogger_getComponents(daqLogger* self, daqList** components);
+    daqErrCode EXPORTED daqLogger_getComponent(daqLogger* self, daqString* name, daqLoggerComponent** component);
+    daqErrCode EXPORTED daqLogger_flush(daqLogger* self);
+    daqErrCode EXPORTED daqLogger_flushOnLevel(daqLogger* self, daqLogLevel level);
+    daqErrCode EXPORTED daqLogger_createLogger(daqLogger** obj, daqList* sinks, daqLogLevel level);
 
 #ifdef __cplusplus
 }

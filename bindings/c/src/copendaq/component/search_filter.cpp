@@ -5,112 +5,112 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:09.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:48:17.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "copendaq/component/search_filter.h"
+#include <copendaq/component/search_filter.h>
 
 #include <opendaq/opendaq.h>
 
-#include "copendaq_private.h"
+#include <copendaq_private.h>
 
-const IntfID SEARCH_FILTER_INTF_ID = { daq::ISearchFilter::Id.Data1, daq::ISearchFilter::Id.Data2, daq::ISearchFilter::Id.Data3, daq::ISearchFilter::Id.Data4_UInt64 };
+const daqIntfID DAQ_SEARCH_FILTER_INTF_ID = { daq::ISearchFilter::Id.Data1, daq::ISearchFilter::Id.Data2, daq::ISearchFilter::Id.Data3, daq::ISearchFilter::Id.Data4_UInt64 };
 
-ErrCode SearchFilter_acceptsComponent(SearchFilter* self, Component* component, Bool* accepts)
+daqErrCode daqSearchFilter_acceptsComponent(daqSearchFilter* self, daqComponent* component, daqBool* accepts)
 {
     return reinterpret_cast<daq::ISearchFilter*>(self)->acceptsComponent(reinterpret_cast<daq::IComponent*>(component), accepts);
 }
 
-ErrCode SearchFilter_visitChildren(SearchFilter* self, Component* component, Bool* visit)
+daqErrCode daqSearchFilter_visitChildren(daqSearchFilter* self, daqComponent* component, daqBool* visit)
 {
     return reinterpret_cast<daq::ISearchFilter*>(self)->visitChildren(reinterpret_cast<daq::IComponent*>(component), visit);
 }
 
-ErrCode SearchFilter_createVisibleSearchFilter(SearchFilter** obj)
+daqErrCode daqSearchFilter_createVisibleSearchFilter(daqSearchFilter** obj)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createVisibleSearchFilter(&ptr);
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createVisibleSearchFilter(&ptr);
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }
 
-ErrCode SearchFilter_createRequiredTagsSearchFilter(SearchFilter** obj, List* requiredTags)
+daqErrCode daqSearchFilter_createRequiredTagsSearchFilter(daqSearchFilter** obj, daqList* requiredTags)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createRequiredTagsSearchFilter(&ptr, reinterpret_cast<daq::IList*>(requiredTags));
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createRequiredTagsSearchFilter(&ptr, reinterpret_cast<daq::IList*>(requiredTags));
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }
 
-ErrCode SearchFilter_createExcludedTagsSearchFilter(SearchFilter** obj, List* excludedTags)
+daqErrCode daqSearchFilter_createExcludedTagsSearchFilter(daqSearchFilter** obj, daqList* excludedTags)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createExcludedTagsSearchFilter(&ptr, reinterpret_cast<daq::IList*>(excludedTags));
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createExcludedTagsSearchFilter(&ptr, reinterpret_cast<daq::IList*>(excludedTags));
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }
 
-ErrCode SearchFilter_createInterfaceIdSearchFilter(SearchFilter** obj, IntfID intfId)
+daqErrCode daqSearchFilter_createInterfaceIdSearchFilter(daqSearchFilter** obj, daqIntfID& intfId)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createInterfaceIdSearchFilter(&ptr, copendaq::utils::toDaqIntfId(intfId));
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createInterfaceIdSearchFilter(&ptr, copendaq::utils::toDaqIntfId(intfId));
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }
 
-ErrCode SearchFilter_createLocalIdSearchFilter(SearchFilter** obj, String* localId)
+daqErrCode daqSearchFilter_createLocalIdSearchFilter(daqSearchFilter** obj, daqString* localId)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createLocalIdSearchFilter(&ptr, reinterpret_cast<daq::IString*>(localId));
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createLocalIdSearchFilter(&ptr, reinterpret_cast<daq::IString*>(localId));
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }
 
-ErrCode SearchFilter_createAnySearchFilter(SearchFilter** obj)
+daqErrCode daqSearchFilter_createAnySearchFilter(daqSearchFilter** obj)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createAnySearchFilter(&ptr);
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createAnySearchFilter(&ptr);
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }
 
-ErrCode SearchFilter_createAndSearchFilter(SearchFilter** obj, SearchFilter* left, SearchFilter* right)
+daqErrCode daqSearchFilter_createAndSearchFilter(daqSearchFilter** obj, daqSearchFilter* left, daqSearchFilter* right)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createAndSearchFilter(&ptr, reinterpret_cast<daq::ISearchFilter*>(left), reinterpret_cast<daq::ISearchFilter*>(right));
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createAndSearchFilter(&ptr, reinterpret_cast<daq::ISearchFilter*>(left), reinterpret_cast<daq::ISearchFilter*>(right));
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }
 
-ErrCode SearchFilter_createOrSearchFilter(SearchFilter** obj, SearchFilter* left, SearchFilter* right)
+daqErrCode daqSearchFilter_createOrSearchFilter(daqSearchFilter** obj, daqSearchFilter* left, daqSearchFilter* right)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createOrSearchFilter(&ptr, reinterpret_cast<daq::ISearchFilter*>(left), reinterpret_cast<daq::ISearchFilter*>(right));
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createOrSearchFilter(&ptr, reinterpret_cast<daq::ISearchFilter*>(left), reinterpret_cast<daq::ISearchFilter*>(right));
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }
 
-ErrCode SearchFilter_createNotSearchFilter(SearchFilter** obj, SearchFilter* filter)
+daqErrCode daqSearchFilter_createNotSearchFilter(daqSearchFilter** obj, daqSearchFilter* filter)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createNotSearchFilter(&ptr, reinterpret_cast<daq::ISearchFilter*>(filter));
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createNotSearchFilter(&ptr, reinterpret_cast<daq::ISearchFilter*>(filter));
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }
 
-ErrCode SearchFilter_createCustomSearchFilter(SearchFilter** obj, Function* acceptsFunction, Function* visitFunction)
+daqErrCode daqSearchFilter_createCustomSearchFilter(daqSearchFilter** obj, daqFunction* acceptsFunction, daqFunction* visitFunction)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createCustomSearchFilter(&ptr, reinterpret_cast<daq::IFunction*>(acceptsFunction), reinterpret_cast<daq::IFunction*>(visitFunction));
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createCustomSearchFilter(&ptr, reinterpret_cast<daq::IFunction*>(acceptsFunction), reinterpret_cast<daq::IFunction*>(visitFunction));
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }
 
-ErrCode SearchFilter_createRecursiveSearchFilter(SearchFilter** obj, SearchFilter* filter)
+daqErrCode daqSearchFilter_createRecursiveSearchFilter(daqSearchFilter** obj, daqSearchFilter* filter)
 {
     daq::ISearchFilter* ptr = nullptr;
-    ErrCode err = daq::createRecursiveSearchFilter(&ptr, reinterpret_cast<daq::ISearchFilter*>(filter));
-    *obj = reinterpret_cast<SearchFilter*>(ptr);
+    daqErrCode err = daq::createRecursiveSearchFilter(&ptr, reinterpret_cast<daq::ISearchFilter*>(filter));
+    *obj = reinterpret_cast<daqSearchFilter*>(ptr);
     return err;
 }

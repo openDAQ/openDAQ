@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:38.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:17.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,33 +34,33 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Module Module;
-    typedef struct ModuleInfo ModuleInfo;
-    typedef struct List List;
-    typedef struct Dict Dict;
-    typedef struct Device Device;
-    typedef struct String String;
-    typedef struct Component Component;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct FunctionBlock FunctionBlock;
-    typedef struct Server Server;
-    typedef struct Streaming Streaming;
-    typedef struct ServerCapability ServerCapability;
-    typedef struct ServerCapabilityConfig ServerCapabilityConfig;
+    typedef struct daqModule daqModule;
+    typedef struct daqModuleInfo daqModuleInfo;
+    typedef struct daqList daqList;
+    typedef struct daqDict daqDict;
+    typedef struct daqDevice daqDevice;
+    typedef struct daqString daqString;
+    typedef struct daqComponent daqComponent;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqFunctionBlock daqFunctionBlock;
+    typedef struct daqServer daqServer;
+    typedef struct daqStreaming daqStreaming;
+    typedef struct daqServerCapability daqServerCapability;
+    typedef struct daqServerCapabilityConfig daqServerCapabilityConfig;
 
-    EXPORTED extern const IntfID MODULE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_MODULE_INTF_ID;
 
-    ErrCode EXPORTED Module_getModuleInfo(Module* self, ModuleInfo** info);
-    ErrCode EXPORTED Module_getAvailableDevices(Module* self, List** availableDevices);
-    ErrCode EXPORTED Module_getAvailableDeviceTypes(Module* self, Dict** deviceTypes);
-    ErrCode EXPORTED Module_createDevice(Module* self, Device** device, String* connectionString, Component* parent, PropertyObject* config);
-    ErrCode EXPORTED Module_getAvailableFunctionBlockTypes(Module* self, Dict** functionBlockTypes);
-    ErrCode EXPORTED Module_createFunctionBlock(Module* self, FunctionBlock** functionBlock, String* id, Component* parent, String* localId, PropertyObject* config);
-    ErrCode EXPORTED Module_getAvailableServerTypes(Module* self, Dict** serverTypes);
-    ErrCode EXPORTED Module_createServer(Module* self, Server** server, String* serverTypeId, Device* rootDevice, PropertyObject* config);
-    ErrCode EXPORTED Module_createStreaming(Module* self, Streaming** streaming, String* connectionString, PropertyObject* config);
-    ErrCode EXPORTED Module_completeServerCapability(Module* self, Bool* succeeded, ServerCapability* source, ServerCapabilityConfig* target);
-    ErrCode EXPORTED Module_getAvailableStreamingTypes(Module* self, Dict** streamingTypes);
+    daqErrCode EXPORTED daqModule_getModuleInfo(daqModule* self, daqModuleInfo** info);
+    daqErrCode EXPORTED daqModule_getAvailableDevices(daqModule* self, daqList** availableDevices);
+    daqErrCode EXPORTED daqModule_getAvailableDeviceTypes(daqModule* self, daqDict** deviceTypes);
+    daqErrCode EXPORTED daqModule_createDevice(daqModule* self, daqDevice** device, daqString* connectionString, daqComponent* parent, daqPropertyObject* config);
+    daqErrCode EXPORTED daqModule_getAvailableFunctionBlockTypes(daqModule* self, daqDict** functionBlockTypes);
+    daqErrCode EXPORTED daqModule_createFunctionBlock(daqModule* self, daqFunctionBlock** functionBlock, daqString* id, daqComponent* parent, daqString* localId, daqPropertyObject* config);
+    daqErrCode EXPORTED daqModule_getAvailableServerTypes(daqModule* self, daqDict** serverTypes);
+    daqErrCode EXPORTED daqModule_createServer(daqModule* self, daqServer** server, daqString* serverTypeId, daqDevice* rootDevice, daqPropertyObject* config);
+    daqErrCode EXPORTED daqModule_createStreaming(daqModule* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config);
+    daqErrCode EXPORTED daqModule_completeServerCapability(daqModule* self, daqBool* succeeded, daqServerCapability* source, daqServerCapabilityConfig* target);
+    daqErrCode EXPORTED daqModule_getAvailableStreamingTypes(daqModule* self, daqDict** streamingTypes);
 
 #ifdef __cplusplus
 }

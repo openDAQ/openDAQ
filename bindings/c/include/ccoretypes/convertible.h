@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:39.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Convertible Convertible;
+    typedef struct daqConvertible daqConvertible;
 
-    EXPORTED extern const IntfID CONVERTIBLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_CONVERTIBLE_INTF_ID;
 
-    ErrCode EXPORTED Convertible_toFloat(Convertible* self, Float* val);
-    ErrCode EXPORTED Convertible_toInt(Convertible* self, Int* val);
-    ErrCode EXPORTED Convertible_toBool(Convertible* self, Bool* val);
+    daqErrCode EXPORTED daqConvertible_toFloat(daqConvertible* self, daqFloat* val);
+    daqErrCode EXPORTED daqConvertible_toInt(daqConvertible* self, daqInt* val);
+    daqErrCode EXPORTED daqConvertible_toBool(daqConvertible* self, daqBool* val);
 
 #ifdef __cplusplus
 }

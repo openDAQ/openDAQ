@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:50.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:29.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,29 +34,29 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct StreamReaderBuilder StreamReaderBuilder;
-    typedef struct StreamReader StreamReader;
-    typedef struct Signal Signal;
-    typedef struct InputPort InputPort;
+    typedef struct daqStreamReaderBuilder daqStreamReaderBuilder;
+    typedef struct daqStreamReader daqStreamReader;
+    typedef struct daqSignal daqSignal;
+    typedef struct daqInputPort daqInputPort;
 
-    EXPORTED extern const IntfID STREAM_READER_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_STREAM_READER_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED StreamReaderBuilder_build(StreamReaderBuilder* self, StreamReader** streamReader);
-    ErrCode EXPORTED StreamReaderBuilder_setSignal(StreamReaderBuilder* self, Signal* signal);
-    ErrCode EXPORTED StreamReaderBuilder_getSignal(StreamReaderBuilder* self, Signal** signal);
-    ErrCode EXPORTED StreamReaderBuilder_setInputPort(StreamReaderBuilder* self, InputPort* port);
-    ErrCode EXPORTED StreamReaderBuilder_getInputPort(StreamReaderBuilder* self, InputPort** port);
-    ErrCode EXPORTED StreamReaderBuilder_setValueReadType(StreamReaderBuilder* self, SampleType type);
-    ErrCode EXPORTED StreamReaderBuilder_getValueReadType(StreamReaderBuilder* self, SampleType* type);
-    ErrCode EXPORTED StreamReaderBuilder_setDomainReadType(StreamReaderBuilder* self, SampleType type);
-    ErrCode EXPORTED StreamReaderBuilder_getDomainReadType(StreamReaderBuilder* self, SampleType* type);
-    ErrCode EXPORTED StreamReaderBuilder_setReadMode(StreamReaderBuilder* self, ReadMode mode);
-    ErrCode EXPORTED StreamReaderBuilder_getReadMode(StreamReaderBuilder* self, ReadMode* mode);
-    ErrCode EXPORTED StreamReaderBuilder_setReadTimeoutType(StreamReaderBuilder* self, ReadTimeoutType type);
-    ErrCode EXPORTED StreamReaderBuilder_getReadTimeoutType(StreamReaderBuilder* self, ReadTimeoutType* type);
-    ErrCode EXPORTED StreamReaderBuilder_setSkipEvents(StreamReaderBuilder* self, Bool skipEvents);
-    ErrCode EXPORTED StreamReaderBuilder_getSkipEvents(StreamReaderBuilder* self, Bool* skipEvents);
-    ErrCode EXPORTED StreamReaderBuilder_createStreamReaderBuilder(StreamReaderBuilder** obj);
+    daqErrCode EXPORTED daqStreamReaderBuilder_build(daqStreamReaderBuilder* self, daqStreamReader** streamReader);
+    daqErrCode EXPORTED daqStreamReaderBuilder_setSignal(daqStreamReaderBuilder* self, daqSignal* signal);
+    daqErrCode EXPORTED daqStreamReaderBuilder_getSignal(daqStreamReaderBuilder* self, daqSignal** signal);
+    daqErrCode EXPORTED daqStreamReaderBuilder_setInputPort(daqStreamReaderBuilder* self, daqInputPort* port);
+    daqErrCode EXPORTED daqStreamReaderBuilder_getInputPort(daqStreamReaderBuilder* self, daqInputPort** port);
+    daqErrCode EXPORTED daqStreamReaderBuilder_setValueReadType(daqStreamReaderBuilder* self, daqSampleType type);
+    daqErrCode EXPORTED daqStreamReaderBuilder_getValueReadType(daqStreamReaderBuilder* self, daqSampleType* type);
+    daqErrCode EXPORTED daqStreamReaderBuilder_setDomainReadType(daqStreamReaderBuilder* self, daqSampleType type);
+    daqErrCode EXPORTED daqStreamReaderBuilder_getDomainReadType(daqStreamReaderBuilder* self, daqSampleType* type);
+    daqErrCode EXPORTED daqStreamReaderBuilder_setReadMode(daqStreamReaderBuilder* self, daqReadMode mode);
+    daqErrCode EXPORTED daqStreamReaderBuilder_getReadMode(daqStreamReaderBuilder* self, daqReadMode* mode);
+    daqErrCode EXPORTED daqStreamReaderBuilder_setReadTimeoutType(daqStreamReaderBuilder* self, daqReadTimeoutType type);
+    daqErrCode EXPORTED daqStreamReaderBuilder_getReadTimeoutType(daqStreamReaderBuilder* self, daqReadTimeoutType* type);
+    daqErrCode EXPORTED daqStreamReaderBuilder_setSkipEvents(daqStreamReaderBuilder* self, daqBool skipEvents);
+    daqErrCode EXPORTED daqStreamReaderBuilder_getSkipEvents(daqStreamReaderBuilder* self, daqBool* skipEvents);
+    daqErrCode EXPORTED daqStreamReaderBuilder_createStreamReaderBuilder(daqStreamReaderBuilder** obj);
 
 #ifdef __cplusplus
 }

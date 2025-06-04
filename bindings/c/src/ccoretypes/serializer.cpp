@@ -5,102 +5,109 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:34.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/serializer.h"
+#include <ccoretypes/serializer.h>
 
 #include <opendaq/opendaq.h>
 
-const IntfID SERIALIZER_INTF_ID = { daq::ISerializer::Id.Data1, daq::ISerializer::Id.Data2, daq::ISerializer::Id.Data3, daq::ISerializer::Id.Data4_UInt64 };
+#include <copendaq_private.h>
 
-ErrCode Serializer_startTaggedObject(Serializer* self, Serializable* obj)
+const daqIntfID DAQ_SERIALIZER_INTF_ID = { daq::ISerializer::Id.Data1, daq::ISerializer::Id.Data2, daq::ISerializer::Id.Data3, daq::ISerializer::Id.Data4_UInt64 };
+
+daqErrCode daqSerializer_startTaggedObject(daqSerializer* self, daqSerializable* obj)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->startTaggedObject(reinterpret_cast<daq::ISerializable*>(obj));
 }
 
-ErrCode Serializer_startObject(Serializer* self)
+daqErrCode daqSerializer_startObject(daqSerializer* self)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->startObject();
 }
 
-ErrCode Serializer_endObject(Serializer* self)
+daqErrCode daqSerializer_endObject(daqSerializer* self)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->endObject();
 }
 
-ErrCode Serializer_startList(Serializer* self)
+daqErrCode daqSerializer_startList(daqSerializer* self)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->startList();
 }
 
-ErrCode Serializer_endList(Serializer* self)
+daqErrCode daqSerializer_endList(daqSerializer* self)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->endList();
 }
 
-ErrCode Serializer_getOutput(Serializer* self, String** serialized)
+daqErrCode daqSerializer_getOutput(daqSerializer* self, daqString** serialized)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->getOutput(reinterpret_cast<daq::IString**>(serialized));
 }
 
-ErrCode Serializer_key(Serializer* self, ConstCharPtr string)
+daqErrCode daqSerializer_key(daqSerializer* self, daqConstCharPtr string)
 {
-    return reinterpret_cast<daq::ISerializer*>(self)->key(string);
+    return reinterpret_cast<daq::ISerializer*>(self)->key(static_cast<daq::ConstCharPtr>(string));
 }
 
-ErrCode Serializer_keyStr(Serializer* self, String* name)
+daqErrCode daqSerializer_keyStr(daqSerializer* self, daqString* name)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->keyStr(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode Serializer_keyRaw(Serializer* self, ConstCharPtr string, SizeT length)
+daqErrCode daqSerializer_keyRaw(daqSerializer* self, daqConstCharPtr string, daqSizeT length)
 {
-    return reinterpret_cast<daq::ISerializer*>(self)->keyRaw(string, length);
+    return reinterpret_cast<daq::ISerializer*>(self)->keyRaw(static_cast<daq::ConstCharPtr>(string), length);
 }
 
-ErrCode Serializer_writeInt(Serializer* self, Int integer)
+daqErrCode daqSerializer_writeInt(daqSerializer* self, daqInt integer)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->writeInt(integer);
 }
 
-ErrCode Serializer_writeBool(Serializer* self, Bool boolean)
+daqErrCode daqSerializer_writeBool(daqSerializer* self, daqBool boolean)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->writeBool(boolean);
 }
 
-ErrCode Serializer_writeFloat(Serializer* self, Float real)
+daqErrCode daqSerializer_writeFloat(daqSerializer* self, daqFloat real)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->writeFloat(real);
 }
 
-ErrCode Serializer_writeString(Serializer* self, ConstCharPtr string, SizeT length)
+daqErrCode daqSerializer_writeString(daqSerializer* self, daqConstCharPtr string, daqSizeT length)
 {
-    return reinterpret_cast<daq::ISerializer*>(self)->writeString(string, length);
+    return reinterpret_cast<daq::ISerializer*>(self)->writeString(static_cast<daq::ConstCharPtr>(string), length);
 }
 
-ErrCode Serializer_writeNull(Serializer* self)
+daqErrCode daqSerializer_writeNull(daqSerializer* self)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->writeNull();
 }
 
-ErrCode Serializer_reset(Serializer* self)
+daqErrCode daqSerializer_reset(daqSerializer* self)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->reset();
 }
 
-ErrCode Serializer_isComplete(Serializer* self, Bool* complete)
+daqErrCode daqSerializer_isComplete(daqSerializer* self, daqBool* complete)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->isComplete(complete);
 }
 
-ErrCode Serializer_getUser(Serializer* self, BaseObject** user)
+daqErrCode daqSerializer_getUser(daqSerializer* self, daqBaseObject** user)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->getUser(reinterpret_cast<daq::IBaseObject**>(user));
 }
 
-ErrCode Serializer_setUser(Serializer* self, BaseObject* user)
+daqErrCode daqSerializer_setUser(daqSerializer* self, daqBaseObject* user)
 {
     return reinterpret_cast<daq::ISerializer*>(self)->setUser(reinterpret_cast<daq::IBaseObject*>(user));
+}
+
+daqErrCode daqSerializer_getVersion(daqSerializer* self, daqInt* version)
+{
+    return reinterpret_cast<daq::ISerializer*>(self)->getVersion(version);
 }

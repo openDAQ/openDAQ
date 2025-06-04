@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:59.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,82 +15,82 @@
 
 #include <copendaq_private.h>
 
-const IntfID DATA_DESCRIPTOR_INTF_ID = { daq::IDataDescriptor::Id.Data1, daq::IDataDescriptor::Id.Data2, daq::IDataDescriptor::Id.Data3, daq::IDataDescriptor::Id.Data4_UInt64 };
+const daqIntfID DAQ_DATA_DESCRIPTOR_INTF_ID = { daq::IDataDescriptor::Id.Data1, daq::IDataDescriptor::Id.Data2, daq::IDataDescriptor::Id.Data3, daq::IDataDescriptor::Id.Data4_UInt64 };
 
-ErrCode DataDescriptor_getName(DataDescriptor* self, String** name)
+daqErrCode daqDataDescriptor_getName(daqDataDescriptor* self, daqString** name)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode DataDescriptor_getDimensions(DataDescriptor* self, List** dimensions)
+daqErrCode daqDataDescriptor_getDimensions(daqDataDescriptor* self, daqList** dimensions)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getDimensions(reinterpret_cast<daq::IList**>(dimensions));
 }
 
-ErrCode DataDescriptor_getSampleType(DataDescriptor* self, SampleType* sampleType)
+daqErrCode daqDataDescriptor_getSampleType(daqDataDescriptor* self, daqSampleType* sampleType)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getSampleType(reinterpret_cast<daq::SampleType*>(sampleType));
 }
 
-ErrCode DataDescriptor_getUnit(DataDescriptor* self, Unit** unit)
+daqErrCode daqDataDescriptor_getUnit(daqDataDescriptor* self, daqUnit** unit)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getUnit(reinterpret_cast<daq::IUnit**>(unit));
 }
 
-ErrCode DataDescriptor_getValueRange(DataDescriptor* self, Range** range)
+daqErrCode daqDataDescriptor_getValueRange(daqDataDescriptor* self, daqRange** range)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getValueRange(reinterpret_cast<daq::IRange**>(range));
 }
 
-ErrCode DataDescriptor_getRule(DataDescriptor* self, DataRule** rule)
+daqErrCode daqDataDescriptor_getRule(daqDataDescriptor* self, daqDataRule** rule)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getRule(reinterpret_cast<daq::IDataRule**>(rule));
 }
 
-ErrCode DataDescriptor_getOrigin(DataDescriptor* self, String** origin)
+daqErrCode daqDataDescriptor_getOrigin(daqDataDescriptor* self, daqString** origin)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getOrigin(reinterpret_cast<daq::IString**>(origin));
 }
 
-ErrCode DataDescriptor_getTickResolution(DataDescriptor* self, Ratio** tickResolution)
+daqErrCode daqDataDescriptor_getTickResolution(daqDataDescriptor* self, daqRatio** tickResolution)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getTickResolution(reinterpret_cast<daq::IRatio**>(tickResolution));
 }
 
-ErrCode DataDescriptor_getPostScaling(DataDescriptor* self, Scaling** scaling)
+daqErrCode daqDataDescriptor_getPostScaling(daqDataDescriptor* self, daqScaling** scaling)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getPostScaling(reinterpret_cast<daq::IScaling**>(scaling));
 }
 
-ErrCode DataDescriptor_getStructFields(DataDescriptor* self, List** structFields)
+daqErrCode daqDataDescriptor_getStructFields(daqDataDescriptor* self, daqList** structFields)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getStructFields(reinterpret_cast<daq::IList**>(structFields));
 }
 
-ErrCode DataDescriptor_getMetadata(DataDescriptor* self, Dict** metadata)
+daqErrCode daqDataDescriptor_getMetadata(daqDataDescriptor* self, daqDict** metadata)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getMetadata(reinterpret_cast<daq::IDict**>(metadata));
 }
 
-ErrCode DataDescriptor_getSampleSize(DataDescriptor* self, SizeT* sampleSize)
+daqErrCode daqDataDescriptor_getSampleSize(daqDataDescriptor* self, daqSizeT* sampleSize)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getSampleSize(sampleSize);
 }
 
-ErrCode DataDescriptor_getRawSampleSize(DataDescriptor* self, SizeT* rawSampleSize)
+daqErrCode daqDataDescriptor_getRawSampleSize(daqDataDescriptor* self, daqSizeT* rawSampleSize)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getRawSampleSize(rawSampleSize);
 }
 
-ErrCode DataDescriptor_getReferenceDomainInfo(DataDescriptor* self, ReferenceDomainInfo** referenceDomainInfo)
+daqErrCode daqDataDescriptor_getReferenceDomainInfo(daqDataDescriptor* self, daqReferenceDomainInfo** referenceDomainInfo)
 {
     return reinterpret_cast<daq::IDataDescriptor*>(self)->getReferenceDomainInfo(reinterpret_cast<daq::IReferenceDomainInfo**>(referenceDomainInfo));
 }
 
-ErrCode DataDescriptor_createDataDescriptorFromBuilder(DataDescriptor** obj, DataDescriptorBuilder* builder)
+daqErrCode daqDataDescriptor_createDataDescriptorFromBuilder(daqDataDescriptor** obj, daqDataDescriptorBuilder* builder)
 {
     daq::IDataDescriptor* ptr = nullptr;
-    ErrCode err = daq::createDataDescriptorFromBuilder(&ptr, reinterpret_cast<daq::IDataDescriptorBuilder*>(builder));
-    *obj = reinterpret_cast<DataDescriptor*>(ptr);
+    daqErrCode err = daq::createDataDescriptorFromBuilder(&ptr, reinterpret_cast<daq::IDataDescriptorBuilder*>(builder));
+    *obj = reinterpret_cast<daqDataDescriptor*>(ptr);
     return err;
 }

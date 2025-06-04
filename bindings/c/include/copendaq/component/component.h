@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:10.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,34 +34,35 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Component Component;
-    typedef struct String String;
-    typedef struct Context Context;
-    typedef struct Tags Tags;
-    typedef struct List List;
-    typedef struct Event Event;
-    typedef struct ComponentStatusContainer ComponentStatusContainer;
+    typedef struct daqComponent daqComponent;
+    typedef struct daqString daqString;
+    typedef struct daqContext daqContext;
+    typedef struct daqTags daqTags;
+    typedef struct daqList daqList;
+    typedef struct daqEvent daqEvent;
+    typedef struct daqComponentStatusContainer daqComponentStatusContainer;
 
-    EXPORTED extern const IntfID COMPONENT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPONENT_INTF_ID;
 
-    ErrCode EXPORTED Component_getLocalId(Component* self, String** localId);
-    ErrCode EXPORTED Component_getGlobalId(Component* self, String** globalId);
-    ErrCode EXPORTED Component_getActive(Component* self, Bool* active);
-    ErrCode EXPORTED Component_setActive(Component* self, Bool active);
-    ErrCode EXPORTED Component_getContext(Component* self, Context** context);
-    ErrCode EXPORTED Component_getParent(Component* self, Component** parent);
-    ErrCode EXPORTED Component_getName(Component* self, String** name);
-    ErrCode EXPORTED Component_setName(Component* self, String* name);
-    ErrCode EXPORTED Component_getDescription(Component* self, String** description);
-    ErrCode EXPORTED Component_setDescription(Component* self, String* description);
-    ErrCode EXPORTED Component_getTags(Component* self, Tags** tags);
-    ErrCode EXPORTED Component_getVisible(Component* self, Bool* visible);
-    ErrCode EXPORTED Component_setVisible(Component* self, Bool visible);
-    ErrCode EXPORTED Component_getLockedAttributes(Component* self, List** attributes);
-    ErrCode EXPORTED Component_getOnComponentCoreEvent(Component* self, Event** event);
-    ErrCode EXPORTED Component_getStatusContainer(Component* self, ComponentStatusContainer** statusContainer);
-    ErrCode EXPORTED Component_findComponent(Component* self, String* id, Component** outComponent);
-    ErrCode EXPORTED Component_createComponent(Component** obj, Context* context, Component* parent, String* localId, String* className);
+    daqErrCode EXPORTED daqComponent_getLocalId(daqComponent* self, daqString** localId);
+    daqErrCode EXPORTED daqComponent_getGlobalId(daqComponent* self, daqString** globalId);
+    daqErrCode EXPORTED daqComponent_getActive(daqComponent* self, daqBool* active);
+    daqErrCode EXPORTED daqComponent_setActive(daqComponent* self, daqBool active);
+    daqErrCode EXPORTED daqComponent_getContext(daqComponent* self, daqContext** context);
+    daqErrCode EXPORTED daqComponent_getParent(daqComponent* self, daqComponent** parent);
+    daqErrCode EXPORTED daqComponent_getName(daqComponent* self, daqString** name);
+    daqErrCode EXPORTED daqComponent_setName(daqComponent* self, daqString* name);
+    daqErrCode EXPORTED daqComponent_getDescription(daqComponent* self, daqString** description);
+    daqErrCode EXPORTED daqComponent_setDescription(daqComponent* self, daqString* description);
+    daqErrCode EXPORTED daqComponent_getTags(daqComponent* self, daqTags** tags);
+    daqErrCode EXPORTED daqComponent_getVisible(daqComponent* self, daqBool* visible);
+    daqErrCode EXPORTED daqComponent_setVisible(daqComponent* self, daqBool visible);
+    daqErrCode EXPORTED daqComponent_getLockedAttributes(daqComponent* self, daqList** attributes);
+    daqErrCode EXPORTED daqComponent_getOnComponentCoreEvent(daqComponent* self, daqEvent** event);
+    daqErrCode EXPORTED daqComponent_getStatusContainer(daqComponent* self, daqComponentStatusContainer** statusContainer);
+    daqErrCode EXPORTED daqComponent_findComponent(daqComponent* self, daqString* id, daqComponent** outComponent);
+    daqErrCode EXPORTED daqComponent_getOperationMode(daqComponent* self, daqOperationModeType* modeType);
+    daqErrCode EXPORTED daqComponent_createComponent(daqComponent** obj, daqContext* context, daqComponent* parent, daqString* localId, daqString* className);
 
 #ifdef __cplusplus
 }

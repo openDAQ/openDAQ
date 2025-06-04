@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:59.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,14 @@
 
 #include <copendaq_private.h>
 
-const IntfID CONNECTION_INTERNAL_INTF_ID = { daq::IConnectionInternal::Id.Data1, daq::IConnectionInternal::Id.Data2, daq::IConnectionInternal::Id.Data3, daq::IConnectionInternal::Id.Data4_UInt64 };
+const daqIntfID DAQ_CONNECTION_INTERNAL_INTF_ID = { daq::IConnectionInternal::Id.Data1, daq::IConnectionInternal::Id.Data2, daq::IConnectionInternal::Id.Data3, daq::IConnectionInternal::Id.Data4_UInt64 };
 
-ErrCode ConnectionInternal_enqueueLastDescriptor(ConnectionInternal* self)
+daqErrCode daqConnectionInternal_enqueueLastDescriptor(daqConnectionInternal* self)
 {
     return reinterpret_cast<daq::IConnectionInternal*>(self)->enqueueLastDescriptor();
+}
+
+daqErrCode daqConnectionInternal_dequeueUpTo(daqConnectionInternal* self, daqPacket** packetPtr, daqSizeT* count)
+{
+    return reinterpret_cast<daq::IConnectionInternal*>(self)->dequeueUpTo(reinterpret_cast<daq::IPacket**>(packetPtr), count);
 }

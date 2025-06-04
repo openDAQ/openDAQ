@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:51.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,87 +15,87 @@
 
 #include <copendaq_private.h>
 
-const IntfID TAIL_READER_BUILDER_INTF_ID = { daq::ITailReaderBuilder::Id.Data1, daq::ITailReaderBuilder::Id.Data2, daq::ITailReaderBuilder::Id.Data3, daq::ITailReaderBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_TAIL_READER_BUILDER_INTF_ID = { daq::ITailReaderBuilder::Id.Data1, daq::ITailReaderBuilder::Id.Data2, daq::ITailReaderBuilder::Id.Data3, daq::ITailReaderBuilder::Id.Data4_UInt64 };
 
-ErrCode TailReaderBuilder_build(TailReaderBuilder* self, TailReader** tailReader)
+daqErrCode daqTailReaderBuilder_build(daqTailReaderBuilder* self, daqTailReader** tailReader)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->build(reinterpret_cast<daq::ITailReader**>(tailReader));
 }
 
-ErrCode TailReaderBuilder_setSignal(TailReaderBuilder* self, Signal* signal)
+daqErrCode daqTailReaderBuilder_setSignal(daqTailReaderBuilder* self, daqSignal* signal)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->setSignal(reinterpret_cast<daq::ISignal*>(signal));
 }
 
-ErrCode TailReaderBuilder_getSignal(TailReaderBuilder* self, Signal** signal)
+daqErrCode daqTailReaderBuilder_getSignal(daqTailReaderBuilder* self, daqSignal** signal)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->getSignal(reinterpret_cast<daq::ISignal**>(signal));
 }
 
-ErrCode TailReaderBuilder_setInputPort(TailReaderBuilder* self, InputPort* port)
+daqErrCode daqTailReaderBuilder_setInputPort(daqTailReaderBuilder* self, daqInputPort* port)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->setInputPort(reinterpret_cast<daq::IInputPort*>(port));
 }
 
-ErrCode TailReaderBuilder_getInputPort(TailReaderBuilder* self, InputPort** port)
+daqErrCode daqTailReaderBuilder_getInputPort(daqTailReaderBuilder* self, daqInputPort** port)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->getInputPort(reinterpret_cast<daq::IInputPort**>(port));
 }
 
-ErrCode TailReaderBuilder_setValueReadType(TailReaderBuilder* self, SampleType type)
+daqErrCode daqTailReaderBuilder_setValueReadType(daqTailReaderBuilder* self, daqSampleType type)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->setValueReadType(static_cast<daq::SampleType>(type));
 }
 
-ErrCode TailReaderBuilder_getValueReadType(TailReaderBuilder* self, SampleType* type)
+daqErrCode daqTailReaderBuilder_getValueReadType(daqTailReaderBuilder* self, daqSampleType* type)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->getValueReadType(reinterpret_cast<daq::SampleType*>(type));
 }
 
-ErrCode TailReaderBuilder_setDomainReadType(TailReaderBuilder* self, SampleType type)
+daqErrCode daqTailReaderBuilder_setDomainReadType(daqTailReaderBuilder* self, daqSampleType type)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->setDomainReadType(static_cast<daq::SampleType>(type));
 }
 
-ErrCode TailReaderBuilder_getDomainReadType(TailReaderBuilder* self, SampleType* type)
+daqErrCode daqTailReaderBuilder_getDomainReadType(daqTailReaderBuilder* self, daqSampleType* type)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->getDomainReadType(reinterpret_cast<daq::SampleType*>(type));
 }
 
-ErrCode TailReaderBuilder_setReadMode(TailReaderBuilder* self, ReadMode mode)
+daqErrCode daqTailReaderBuilder_setReadMode(daqTailReaderBuilder* self, daqReadMode mode)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->setReadMode(static_cast<daq::ReadMode>(mode));
 }
 
-ErrCode TailReaderBuilder_getReadMode(TailReaderBuilder* self, ReadMode* mode)
+daqErrCode daqTailReaderBuilder_getReadMode(daqTailReaderBuilder* self, daqReadMode* mode)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->getReadMode(reinterpret_cast<daq::ReadMode*>(mode));
 }
 
-ErrCode TailReaderBuilder_setHistorySize(TailReaderBuilder* self, SizeT historySize)
+daqErrCode daqTailReaderBuilder_setHistorySize(daqTailReaderBuilder* self, daqSizeT historySize)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->setHistorySize(historySize);
 }
 
-ErrCode TailReaderBuilder_getHistorySize(TailReaderBuilder* self, SizeT* historySize)
+daqErrCode daqTailReaderBuilder_getHistorySize(daqTailReaderBuilder* self, daqSizeT* historySize)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->getHistorySize(historySize);
 }
 
-ErrCode TailReaderBuilder_setSkipEvents(TailReaderBuilder* self, Bool skipEvents)
+daqErrCode daqTailReaderBuilder_setSkipEvents(daqTailReaderBuilder* self, daqBool skipEvents)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->setSkipEvents(skipEvents);
 }
 
-ErrCode TailReaderBuilder_getSkipEvents(TailReaderBuilder* self, Bool* skipEvents)
+daqErrCode daqTailReaderBuilder_getSkipEvents(daqTailReaderBuilder* self, daqBool* skipEvents)
 {
     return reinterpret_cast<daq::ITailReaderBuilder*>(self)->getSkipEvents(skipEvents);
 }
 
-ErrCode TailReaderBuilder_createTailReaderBuilder(TailReaderBuilder** obj)
+daqErrCode daqTailReaderBuilder_createTailReaderBuilder(daqTailReaderBuilder** obj)
 {
     daq::ITailReaderBuilder* ptr = nullptr;
-    ErrCode err = daq::createTailReaderBuilder(&ptr);
-    *obj = reinterpret_cast<TailReaderBuilder*>(ptr);
+    daqErrCode err = daq::createTailReaderBuilder(&ptr);
+    *obj = reinterpret_cast<daqTailReaderBuilder*>(ptr);
     return err;
 }

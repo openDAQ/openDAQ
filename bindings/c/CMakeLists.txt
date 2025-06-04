@@ -434,6 +434,8 @@ target_include_directories(${LIB_NAME}
 
 target_compile_definitions(${LIB_NAME} PRIVATE BUILDING_SHARED_LIBRARY)
 
+set(CMAKE_INSTALL_INCLUDEDIR bindings/C)
+
 install(TARGETS ${LIB_NAME}
     EXPORT ${SDK_NAME}
     RUNTIME
@@ -447,7 +449,7 @@ install(TARGETS ${LIB_NAME}
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
         COMPONENT ${SDK_NAME}_${LIB_NAME}_Development
     FILE_SET copendaq_interface_headers
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         COMPONENT ${SDK_NAME}_${LIB_NAME}_Development
 )
 

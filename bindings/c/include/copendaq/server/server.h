@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:55.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Server Server;
-    typedef struct String String;
-    typedef struct List List;
-    typedef struct SearchFilter SearchFilter;
+    typedef struct daqServer daqServer;
+    typedef struct daqString daqString;
+    typedef struct daqList daqList;
+    typedef struct daqSearchFilter daqSearchFilter;
 
-    EXPORTED extern const IntfID SERVER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SERVER_INTF_ID;
 
-    ErrCode EXPORTED Server_stop(Server* self);
-    ErrCode EXPORTED Server_getId(Server* self, String** serverId);
-    ErrCode EXPORTED Server_enableDiscovery(Server* self);
-    ErrCode EXPORTED Server_getSignals(Server* self, List** signals, SearchFilter* searchFilter);
+    daqErrCode EXPORTED daqServer_stop(daqServer* self);
+    daqErrCode EXPORTED daqServer_getId(daqServer* self, daqString** serverId);
+    daqErrCode EXPORTED daqServer_enableDiscovery(daqServer* self);
+    daqErrCode EXPORTED daqServer_getSignals(daqServer* self, daqList** signals, daqSearchFilter* searchFilter);
 
 #ifdef __cplusplus
 }

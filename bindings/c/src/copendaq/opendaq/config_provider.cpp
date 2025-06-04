@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:41.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,33 +15,33 @@
 
 #include <copendaq_private.h>
 
-const IntfID CONFIG_PROVIDER_INTF_ID = { daq::IConfigProvider::Id.Data1, daq::IConfigProvider::Id.Data2, daq::IConfigProvider::Id.Data3, daq::IConfigProvider::Id.Data4_UInt64 };
+const daqIntfID DAQ_CONFIG_PROVIDER_INTF_ID = { daq::IConfigProvider::Id.Data1, daq::IConfigProvider::Id.Data2, daq::IConfigProvider::Id.Data3, daq::IConfigProvider::Id.Data4_UInt64 };
 
-ErrCode ConfigProvider_populateOptions(ConfigProvider* self, Dict* options)
+daqErrCode daqConfigProvider_populateOptions(daqConfigProvider* self, daqDict* options)
 {
     return reinterpret_cast<daq::IConfigProvider*>(self)->populateOptions(reinterpret_cast<daq::IDict*>(options));
 }
 
-ErrCode ConfigProvider_createJsonConfigProvider(ConfigProvider** obj, String* filename)
+daqErrCode daqConfigProvider_createJsonConfigProvider(daqConfigProvider** obj, daqString* filename)
 {
     daq::IConfigProvider* ptr = nullptr;
-    ErrCode err = daq::createJsonConfigProvider(&ptr, reinterpret_cast<daq::IString*>(filename));
-    *obj = reinterpret_cast<ConfigProvider*>(ptr);
+    daqErrCode err = daq::createJsonConfigProvider(&ptr, reinterpret_cast<daq::IString*>(filename));
+    *obj = reinterpret_cast<daqConfigProvider*>(ptr);
     return err;
 }
 
-ErrCode ConfigProvider_createEnvConfigProvider(ConfigProvider** obj)
+daqErrCode daqConfigProvider_createEnvConfigProvider(daqConfigProvider** obj)
 {
     daq::IConfigProvider* ptr = nullptr;
-    ErrCode err = daq::createEnvConfigProvider(&ptr);
-    *obj = reinterpret_cast<ConfigProvider*>(ptr);
+    daqErrCode err = daq::createEnvConfigProvider(&ptr);
+    *obj = reinterpret_cast<daqConfigProvider*>(ptr);
     return err;
 }
 
-ErrCode ConfigProvider_createCmdLineArgsConfigProvider(ConfigProvider** obj, List* cmdLineArgs)
+daqErrCode daqConfigProvider_createCmdLineArgsConfigProvider(daqConfigProvider** obj, daqList* cmdLineArgs)
 {
     daq::IConfigProvider* ptr = nullptr;
-    ErrCode err = daq::createCmdLineArgsConfigProvider(&ptr, reinterpret_cast<daq::IList*>(cmdLineArgs));
-    *obj = reinterpret_cast<ConfigProvider*>(ptr);
+    daqErrCode err = daq::createCmdLineArgsConfigProvider(&ptr, reinterpret_cast<daq::IList*>(cmdLineArgs));
+    *obj = reinterpret_cast<daqConfigProvider*>(ptr);
     return err;
 }

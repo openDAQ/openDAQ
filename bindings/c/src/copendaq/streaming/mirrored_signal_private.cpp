@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:19.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,54 +15,54 @@
 
 #include <copendaq_private.h>
 
-const IntfID MIRRORED_SIGNAL_PRIVATE_INTF_ID = { daq::IMirroredSignalPrivate::Id.Data1, daq::IMirroredSignalPrivate::Id.Data2, daq::IMirroredSignalPrivate::Id.Data3, daq::IMirroredSignalPrivate::Id.Data4_UInt64 };
+const daqIntfID DAQ_MIRRORED_SIGNAL_PRIVATE_INTF_ID = { daq::IMirroredSignalPrivate::Id.Data1, daq::IMirroredSignalPrivate::Id.Data2, daq::IMirroredSignalPrivate::Id.Data3, daq::IMirroredSignalPrivate::Id.Data4_UInt64 };
 
-ErrCode MirroredSignalPrivate_triggerEvent(MirroredSignalPrivate* self, EventPacket* eventPacket, Bool* forward)
+daqErrCode daqMirroredSignalPrivate_triggerEvent(daqMirroredSignalPrivate* self, daqEventPacket* eventPacket, daqBool* forward)
 {
     return reinterpret_cast<daq::IMirroredSignalPrivate*>(self)->triggerEvent(reinterpret_cast<daq::IEventPacket*>(eventPacket), forward);
 }
 
-ErrCode MirroredSignalPrivate_addStreamingSource(MirroredSignalPrivate* self, Streaming* streaming)
+daqErrCode daqMirroredSignalPrivate_addStreamingSource(daqMirroredSignalPrivate* self, daqStreaming* streaming)
 {
     return reinterpret_cast<daq::IMirroredSignalPrivate*>(self)->addStreamingSource(reinterpret_cast<daq::IStreaming*>(streaming));
 }
 
-ErrCode MirroredSignalPrivate_removeStreamingSource(MirroredSignalPrivate* self, String* streamingConnectionString)
+daqErrCode daqMirroredSignalPrivate_removeStreamingSource(daqMirroredSignalPrivate* self, daqString* streamingConnectionString)
 {
     return reinterpret_cast<daq::IMirroredSignalPrivate*>(self)->removeStreamingSource(reinterpret_cast<daq::IString*>(streamingConnectionString));
 }
 
-ErrCode MirroredSignalPrivate_subscribeCompleted(MirroredSignalPrivate* self, String* streamingConnectionString)
+daqErrCode daqMirroredSignalPrivate_subscribeCompleted(daqMirroredSignalPrivate* self, daqString* streamingConnectionString)
 {
     return reinterpret_cast<daq::IMirroredSignalPrivate*>(self)->subscribeCompleted(reinterpret_cast<daq::IString*>(streamingConnectionString));
 }
 
-ErrCode MirroredSignalPrivate_unsubscribeCompleted(MirroredSignalPrivate* self, String* streamingConnectionString)
+daqErrCode daqMirroredSignalPrivate_unsubscribeCompleted(daqMirroredSignalPrivate* self, daqString* streamingConnectionString)
 {
     return reinterpret_cast<daq::IMirroredSignalPrivate*>(self)->unsubscribeCompleted(reinterpret_cast<daq::IString*>(streamingConnectionString));
 }
 
-ErrCode MirroredSignalPrivate_unsubscribeCompletedNoLock(MirroredSignalPrivate* self, String* streamingConnectionString)
+daqErrCode daqMirroredSignalPrivate_unsubscribeCompletedNoLock(daqMirroredSignalPrivate* self, daqString* streamingConnectionString)
 {
     return reinterpret_cast<daq::IMirroredSignalPrivate*>(self)->unsubscribeCompletedNoLock(reinterpret_cast<daq::IString*>(streamingConnectionString));
 }
 
-ErrCode MirroredSignalPrivate_getMirroredDataDescriptor(MirroredSignalPrivate* self, DataDescriptor** descriptor)
+daqErrCode daqMirroredSignalPrivate_getMirroredDataDescriptor(daqMirroredSignalPrivate* self, daqDataDescriptor** descriptor)
 {
     return reinterpret_cast<daq::IMirroredSignalPrivate*>(self)->getMirroredDataDescriptor(reinterpret_cast<daq::IDataDescriptor**>(descriptor));
 }
 
-ErrCode MirroredSignalPrivate_setMirroredDataDescriptor(MirroredSignalPrivate* self, DataDescriptor* descriptor)
+daqErrCode daqMirroredSignalPrivate_setMirroredDataDescriptor(daqMirroredSignalPrivate* self, daqDataDescriptor* descriptor)
 {
     return reinterpret_cast<daq::IMirroredSignalPrivate*>(self)->setMirroredDataDescriptor(reinterpret_cast<daq::IDataDescriptor*>(descriptor));
 }
 
-ErrCode MirroredSignalPrivate_getMirroredDomainSignal(MirroredSignalPrivate* self, MirroredSignalConfig** domainSignals)
+daqErrCode daqMirroredSignalPrivate_getMirroredDomainSignal(daqMirroredSignalPrivate* self, daqMirroredSignalConfig** domainSignals)
 {
     return reinterpret_cast<daq::IMirroredSignalPrivate*>(self)->getMirroredDomainSignal(reinterpret_cast<daq::IMirroredSignalConfig**>(domainSignals));
 }
 
-ErrCode MirroredSignalPrivate_setMirroredDomainSignal(MirroredSignalPrivate* self, MirroredSignalConfig* domainSignal)
+daqErrCode daqMirroredSignalPrivate_setMirroredDomainSignal(daqMirroredSignalPrivate* self, daqMirroredSignalConfig* domainSignal)
 {
     return reinterpret_cast<daq::IMirroredSignalPrivate*>(self)->setMirroredDomainSignal(reinterpret_cast<daq::IMirroredSignalConfig*>(domainSignal));
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:21.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:08:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,32 +15,32 @@
 
 #include <copendaq_private.h>
 
-const IntfID SYNC_COMPONENT_INTF_ID = { daq::ISyncComponent::Id.Data1, daq::ISyncComponent::Id.Data2, daq::ISyncComponent::Id.Data3, daq::ISyncComponent::Id.Data4_UInt64 };
+const daqIntfID DAQ_SYNC_COMPONENT_INTF_ID = { daq::ISyncComponent::Id.Data1, daq::ISyncComponent::Id.Data2, daq::ISyncComponent::Id.Data3, daq::ISyncComponent::Id.Data4_UInt64 };
 
-ErrCode SyncComponent_getSyncLocked(SyncComponent* self, Bool* synchronizationLocked)
+daqErrCode daqSyncComponent_getSyncLocked(daqSyncComponent* self, daqBool* synchronizationLocked)
 {
     return reinterpret_cast<daq::ISyncComponent*>(self)->getSyncLocked(synchronizationLocked);
 }
 
-ErrCode SyncComponent_getSelectedSource(SyncComponent* self, Int* selectedSource)
+daqErrCode daqSyncComponent_getSelectedSource(daqSyncComponent* self, daqInt* selectedSource)
 {
     return reinterpret_cast<daq::ISyncComponent*>(self)->getSelectedSource(selectedSource);
 }
 
-ErrCode SyncComponent_setSelectedSource(SyncComponent* self, Int selectedSource)
+daqErrCode daqSyncComponent_setSelectedSource(daqSyncComponent* self, daqInt selectedSource)
 {
     return reinterpret_cast<daq::ISyncComponent*>(self)->setSelectedSource(selectedSource);
 }
 
-ErrCode SyncComponent_getInterfaces(SyncComponent* self, Dict** interfaces)
+daqErrCode daqSyncComponent_getInterfaces(daqSyncComponent* self, daqDict** interfaces)
 {
     return reinterpret_cast<daq::ISyncComponent*>(self)->getInterfaces(reinterpret_cast<daq::IDict**>(interfaces));
 }
 
-ErrCode SyncComponent_createSyncComponent(SyncComponent** obj, Context* context, Component* ParseFailedException, String* localId)
+daqErrCode daqSyncComponent_createSyncComponent(daqSyncComponent** obj, daqContext* context, daqComponent* ParseFailedException, daqString* localId)
 {
     daq::ISyncComponent* ptr = nullptr;
-    ErrCode err = daq::createSyncComponent(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(ParseFailedException), reinterpret_cast<daq::IString*>(localId));
-    *obj = reinterpret_cast<SyncComponent*>(ptr);
+    daqErrCode err = daq::createSyncComponent(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(ParseFailedException), reinterpret_cast<daq::IString*>(localId));
+    *obj = reinterpret_cast<daqSyncComponent*>(ptr);
     return err;
 }

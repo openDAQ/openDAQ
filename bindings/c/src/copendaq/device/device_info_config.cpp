@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:26.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:05.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,140 +15,140 @@
 
 #include <copendaq_private.h>
 
-const IntfID DEVICE_INFO_CONFIG_INTF_ID = { daq::IDeviceInfoConfig::Id.Data1, daq::IDeviceInfoConfig::Id.Data2, daq::IDeviceInfoConfig::Id.Data3, daq::IDeviceInfoConfig::Id.Data4_UInt64 };
+const daqIntfID DAQ_DEVICE_INFO_CONFIG_INTF_ID = { daq::IDeviceInfoConfig::Id.Data1, daq::IDeviceInfoConfig::Id.Data2, daq::IDeviceInfoConfig::Id.Data3, daq::IDeviceInfoConfig::Id.Data4_UInt64 };
 
-ErrCode DeviceInfoConfig_setName(DeviceInfoConfig* self, String* name)
+daqErrCode daqDeviceInfoConfig_setName(daqDeviceInfoConfig* self, daqString* name)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setName(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode DeviceInfoConfig_setConnectionString(DeviceInfoConfig* self, String* connectionString)
+daqErrCode daqDeviceInfoConfig_setConnectionString(daqDeviceInfoConfig* self, daqString* connectionString)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setConnectionString(reinterpret_cast<daq::IString*>(connectionString));
 }
 
-ErrCode DeviceInfoConfig_setDeviceType(DeviceInfoConfig* self, DeviceType* deviceType)
+daqErrCode daqDeviceInfoConfig_setDeviceType(daqDeviceInfoConfig* self, daqDeviceType* deviceType)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setDeviceType(reinterpret_cast<daq::IDeviceType*>(deviceType));
 }
 
-ErrCode DeviceInfoConfig_setManufacturer(DeviceInfoConfig* self, String* manufacturer)
+daqErrCode daqDeviceInfoConfig_setManufacturer(daqDeviceInfoConfig* self, daqString* manufacturer)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setManufacturer(reinterpret_cast<daq::IString*>(manufacturer));
 }
 
-ErrCode DeviceInfoConfig_setManufacturerUri(DeviceInfoConfig* self, String* manufacturerUri)
+daqErrCode daqDeviceInfoConfig_setManufacturerUri(daqDeviceInfoConfig* self, daqString* manufacturerUri)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setManufacturerUri(reinterpret_cast<daq::IString*>(manufacturerUri));
 }
 
-ErrCode DeviceInfoConfig_setModel(DeviceInfoConfig* self, String* model)
+daqErrCode daqDeviceInfoConfig_setModel(daqDeviceInfoConfig* self, daqString* model)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setModel(reinterpret_cast<daq::IString*>(model));
 }
 
-ErrCode DeviceInfoConfig_setProductCode(DeviceInfoConfig* self, String* productCode)
+daqErrCode daqDeviceInfoConfig_setProductCode(daqDeviceInfoConfig* self, daqString* productCode)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setProductCode(reinterpret_cast<daq::IString*>(productCode));
 }
 
-ErrCode DeviceInfoConfig_setDeviceRevision(DeviceInfoConfig* self, String* deviceRevision)
+daqErrCode daqDeviceInfoConfig_setDeviceRevision(daqDeviceInfoConfig* self, daqString* deviceRevision)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setDeviceRevision(reinterpret_cast<daq::IString*>(deviceRevision));
 }
 
-ErrCode DeviceInfoConfig_setHardwareRevision(DeviceInfoConfig* self, String* hardwareRevision)
+daqErrCode daqDeviceInfoConfig_setHardwareRevision(daqDeviceInfoConfig* self, daqString* hardwareRevision)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setHardwareRevision(reinterpret_cast<daq::IString*>(hardwareRevision));
 }
 
-ErrCode DeviceInfoConfig_setSoftwareRevision(DeviceInfoConfig* self, String* softwareRevision)
+daqErrCode daqDeviceInfoConfig_setSoftwareRevision(daqDeviceInfoConfig* self, daqString* softwareRevision)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setSoftwareRevision(reinterpret_cast<daq::IString*>(softwareRevision));
 }
 
-ErrCode DeviceInfoConfig_setDeviceManual(DeviceInfoConfig* self, String* deviceManual)
+daqErrCode daqDeviceInfoConfig_setDeviceManual(daqDeviceInfoConfig* self, daqString* deviceManual)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setDeviceManual(reinterpret_cast<daq::IString*>(deviceManual));
 }
 
-ErrCode DeviceInfoConfig_setDeviceClass(DeviceInfoConfig* self, String* deviceClass)
+daqErrCode daqDeviceInfoConfig_setDeviceClass(daqDeviceInfoConfig* self, daqString* deviceClass)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setDeviceClass(reinterpret_cast<daq::IString*>(deviceClass));
 }
 
-ErrCode DeviceInfoConfig_setSerialNumber(DeviceInfoConfig* self, String* serialNumber)
+daqErrCode daqDeviceInfoConfig_setSerialNumber(daqDeviceInfoConfig* self, daqString* serialNumber)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setSerialNumber(reinterpret_cast<daq::IString*>(serialNumber));
 }
 
-ErrCode DeviceInfoConfig_setProductInstanceUri(DeviceInfoConfig* self, String* productInstanceUri)
+daqErrCode daqDeviceInfoConfig_setProductInstanceUri(daqDeviceInfoConfig* self, daqString* productInstanceUri)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setProductInstanceUri(reinterpret_cast<daq::IString*>(productInstanceUri));
 }
 
-ErrCode DeviceInfoConfig_setRevisionCounter(DeviceInfoConfig* self, Int revisionCounter)
+daqErrCode daqDeviceInfoConfig_setRevisionCounter(daqDeviceInfoConfig* self, daqInt revisionCounter)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setRevisionCounter(revisionCounter);
 }
 
-ErrCode DeviceInfoConfig_setAssetId(DeviceInfoConfig* self, String* id)
+daqErrCode daqDeviceInfoConfig_setAssetId(daqDeviceInfoConfig* self, daqString* id)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setAssetId(reinterpret_cast<daq::IString*>(id));
 }
 
-ErrCode DeviceInfoConfig_setMacAddress(DeviceInfoConfig* self, String* macAddress)
+daqErrCode daqDeviceInfoConfig_setMacAddress(daqDeviceInfoConfig* self, daqString* macAddress)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setMacAddress(reinterpret_cast<daq::IString*>(macAddress));
 }
 
-ErrCode DeviceInfoConfig_setParentMacAddress(DeviceInfoConfig* self, String* macAddress)
+daqErrCode daqDeviceInfoConfig_setParentMacAddress(daqDeviceInfoConfig* self, daqString* macAddress)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setParentMacAddress(reinterpret_cast<daq::IString*>(macAddress));
 }
 
-ErrCode DeviceInfoConfig_setPlatform(DeviceInfoConfig* self, String* platform)
+daqErrCode daqDeviceInfoConfig_setPlatform(daqDeviceInfoConfig* self, daqString* platform)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setPlatform(reinterpret_cast<daq::IString*>(platform));
 }
 
-ErrCode DeviceInfoConfig_setPosition(DeviceInfoConfig* self, Int position)
+daqErrCode daqDeviceInfoConfig_setPosition(daqDeviceInfoConfig* self, daqInt position)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setPosition(position);
 }
 
-ErrCode DeviceInfoConfig_setSystemType(DeviceInfoConfig* self, String* type)
+daqErrCode daqDeviceInfoConfig_setSystemType(daqDeviceInfoConfig* self, daqString* type)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setSystemType(reinterpret_cast<daq::IString*>(type));
 }
 
-ErrCode DeviceInfoConfig_setSystemUuid(DeviceInfoConfig* self, String* uuid)
+daqErrCode daqDeviceInfoConfig_setSystemUuid(daqDeviceInfoConfig* self, daqString* uuid)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setSystemUuid(reinterpret_cast<daq::IString*>(uuid));
 }
 
-ErrCode DeviceInfoConfig_setLocation(DeviceInfoConfig* self, String* location)
+daqErrCode daqDeviceInfoConfig_setLocation(daqDeviceInfoConfig* self, daqString* location)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setLocation(reinterpret_cast<daq::IString*>(location));
 }
 
-ErrCode DeviceInfoConfig_setUserName(DeviceInfoConfig* self, String* userName)
+daqErrCode daqDeviceInfoConfig_setUserName(daqDeviceInfoConfig* self, daqString* userName)
 {
     return reinterpret_cast<daq::IDeviceInfoConfig*>(self)->setUserName(reinterpret_cast<daq::IString*>(userName));
 }
 
-ErrCode DeviceInfoConfig_createDeviceInfoConfig(DeviceInfoConfig** obj, String* name, String* connectionString)
+daqErrCode daqDeviceInfoConfig_createDeviceInfoConfig(daqDeviceInfoConfig** obj, daqString* name, daqString* connectionString)
 {
     daq::IDeviceInfoConfig* ptr = nullptr;
-    ErrCode err = daq::createDeviceInfoConfig(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(connectionString));
-    *obj = reinterpret_cast<DeviceInfoConfig*>(ptr);
+    daqErrCode err = daq::createDeviceInfoConfig(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(connectionString));
+    *obj = reinterpret_cast<daqDeviceInfoConfig*>(ptr);
     return err;
 }
 
-ErrCode DeviceInfoConfig_createDeviceInfoConfigWithCustomSdkVersion(DeviceInfoConfig** obj, String* name, String* connectionString, String* sdkVersion)
+daqErrCode daqDeviceInfoConfig_createDeviceInfoConfigWithCustomSdkVersion(daqDeviceInfoConfig** obj, daqString* name, daqString* connectionString, daqString* sdkVersion)
 {
     daq::IDeviceInfoConfig* ptr = nullptr;
-    ErrCode err = daq::createDeviceInfoConfigWithCustomSdkVersion(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IString*>(sdkVersion));
-    *obj = reinterpret_cast<DeviceInfoConfig*>(ptr);
+    daqErrCode err = daq::createDeviceInfoConfigWithCustomSdkVersion(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IString*>(sdkVersion));
+    *obj = reinterpret_cast<daqDeviceInfoConfig*>(ptr);
     return err;
 }

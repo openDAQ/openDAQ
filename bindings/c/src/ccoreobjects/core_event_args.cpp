@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:59.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:11.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,65 +15,65 @@
 
 #include <copendaq_private.h>
 
-const IntfID CORE_EVENT_ARGS_INTF_ID = { daq::ICoreEventArgs::Id.Data1, daq::ICoreEventArgs::Id.Data2, daq::ICoreEventArgs::Id.Data3, daq::ICoreEventArgs::Id.Data4_UInt64 };
+const daqIntfID DAQ_CORE_EVENT_ARGS_INTF_ID = { daq::ICoreEventArgs::Id.Data1, daq::ICoreEventArgs::Id.Data2, daq::ICoreEventArgs::Id.Data3, daq::ICoreEventArgs::Id.Data4_UInt64 };
 
-ErrCode CoreEventArgs_getParameters(CoreEventArgs* self, Dict** parameters)
+daqErrCode daqCoreEventArgs_getParameters(daqCoreEventArgs* self, daqDict** parameters)
 {
     return reinterpret_cast<daq::ICoreEventArgs*>(self)->getParameters(reinterpret_cast<daq::IDict**>(parameters));
 }
 
-ErrCode CoreEventArgs_createCoreEventArgs(CoreEventArgs** obj, CoreEventId eventId, String* eventName, Dict* parameters)
+daqErrCode daqCoreEventArgs_createCoreEventArgs(daqCoreEventArgs** obj, daqCoreEventId eventId, daqString* eventName, daqDict* parameters)
 {
     daq::ICoreEventArgs* ptr = nullptr;
-    ErrCode err = daq::createCoreEventArgs(&ptr, static_cast<daq::CoreEventId>(eventId), reinterpret_cast<daq::IString*>(eventName), reinterpret_cast<daq::IDict*>(parameters));
-    *obj = reinterpret_cast<CoreEventArgs*>(ptr);
+    daqErrCode err = daq::createCoreEventArgs(&ptr, static_cast<daq::CoreEventId>(eventId), reinterpret_cast<daq::IString*>(eventName), reinterpret_cast<daq::IDict*>(parameters));
+    *obj = reinterpret_cast<daqCoreEventArgs*>(ptr);
     return err;
 }
 
-ErrCode CoreEventArgs_createCoreEventArgsPropertyValueChanged(CoreEventArgs** obj, PropertyObject* propOwner, String* propName, BaseObject* value, String* path)
+daqErrCode daqCoreEventArgs_createCoreEventArgsPropertyValueChanged(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqString* propName, daqBaseObject* value, daqString* path)
 {
     daq::ICoreEventArgs* ptr = nullptr;
-    ErrCode err = daq::createCoreEventArgsPropertyValueChanged(&ptr, reinterpret_cast<daq::IPropertyObject*>(propOwner), reinterpret_cast<daq::IString*>(propName), reinterpret_cast<daq::IBaseObject*>(value), reinterpret_cast<daq::IString*>(path));
-    *obj = reinterpret_cast<CoreEventArgs*>(ptr);
+    daqErrCode err = daq::createCoreEventArgsPropertyValueChanged(&ptr, reinterpret_cast<daq::IPropertyObject*>(propOwner), reinterpret_cast<daq::IString*>(propName), reinterpret_cast<daq::IBaseObject*>(value), reinterpret_cast<daq::IString*>(path));
+    *obj = reinterpret_cast<daqCoreEventArgs*>(ptr);
     return err;
 }
 
-ErrCode CoreEventArgs_createCoreEventArgsPropertyObjectUpdateEnd(CoreEventArgs** obj, PropertyObject* propOwner, Dict* updatedProperties, String* path)
+daqErrCode daqCoreEventArgs_createCoreEventArgsPropertyObjectUpdateEnd(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqDict* updatedProperties, daqString* path)
 {
     daq::ICoreEventArgs* ptr = nullptr;
-    ErrCode err = daq::createCoreEventArgsPropertyObjectUpdateEnd(&ptr, reinterpret_cast<daq::IPropertyObject*>(propOwner), reinterpret_cast<daq::IDict*>(updatedProperties), reinterpret_cast<daq::IString*>(path));
-    *obj = reinterpret_cast<CoreEventArgs*>(ptr);
+    daqErrCode err = daq::createCoreEventArgsPropertyObjectUpdateEnd(&ptr, reinterpret_cast<daq::IPropertyObject*>(propOwner), reinterpret_cast<daq::IDict*>(updatedProperties), reinterpret_cast<daq::IString*>(path));
+    *obj = reinterpret_cast<daqCoreEventArgs*>(ptr);
     return err;
 }
 
-ErrCode CoreEventArgs_createCoreEventArgsPropertyAdded(CoreEventArgs** obj, PropertyObject* propOwner, Property* prop, String* path)
+daqErrCode daqCoreEventArgs_createCoreEventArgsPropertyAdded(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqProperty* prop, daqString* path)
 {
     daq::ICoreEventArgs* ptr = nullptr;
-    ErrCode err = daq::createCoreEventArgsPropertyAdded(&ptr, reinterpret_cast<daq::IPropertyObject*>(propOwner), reinterpret_cast<daq::IProperty*>(prop), reinterpret_cast<daq::IString*>(path));
-    *obj = reinterpret_cast<CoreEventArgs*>(ptr);
+    daqErrCode err = daq::createCoreEventArgsPropertyAdded(&ptr, reinterpret_cast<daq::IPropertyObject*>(propOwner), reinterpret_cast<daq::IProperty*>(prop), reinterpret_cast<daq::IString*>(path));
+    *obj = reinterpret_cast<daqCoreEventArgs*>(ptr);
     return err;
 }
 
-ErrCode CoreEventArgs_createCoreEventArgsPropertyRemoved(CoreEventArgs** obj, PropertyObject* propOwner, String* propName, String* path)
+daqErrCode daqCoreEventArgs_createCoreEventArgsPropertyRemoved(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqString* propName, daqString* path)
 {
     daq::ICoreEventArgs* ptr = nullptr;
-    ErrCode err = daq::createCoreEventArgsPropertyRemoved(&ptr, reinterpret_cast<daq::IPropertyObject*>(propOwner), reinterpret_cast<daq::IString*>(propName), reinterpret_cast<daq::IString*>(path));
-    *obj = reinterpret_cast<CoreEventArgs*>(ptr);
+    daqErrCode err = daq::createCoreEventArgsPropertyRemoved(&ptr, reinterpret_cast<daq::IPropertyObject*>(propOwner), reinterpret_cast<daq::IString*>(propName), reinterpret_cast<daq::IString*>(path));
+    *obj = reinterpret_cast<daqCoreEventArgs*>(ptr);
     return err;
 }
 
-ErrCode CoreEventArgs_createCoreEventArgsTypeAdded(CoreEventArgs** obj, Type* type)
+daqErrCode daqCoreEventArgs_createCoreEventArgsTypeAdded(daqCoreEventArgs** obj, daqType* type)
 {
     daq::ICoreEventArgs* ptr = nullptr;
-    ErrCode err = daq::createCoreEventArgsTypeAdded(&ptr, reinterpret_cast<daq::IType*>(type));
-    *obj = reinterpret_cast<CoreEventArgs*>(ptr);
+    daqErrCode err = daq::createCoreEventArgsTypeAdded(&ptr, reinterpret_cast<daq::IType*>(type));
+    *obj = reinterpret_cast<daqCoreEventArgs*>(ptr);
     return err;
 }
 
-ErrCode CoreEventArgs_createCoreEventArgsTypeRemoved(CoreEventArgs** obj, String* typeName)
+daqErrCode daqCoreEventArgs_createCoreEventArgsTypeRemoved(daqCoreEventArgs** obj, daqString* typeName)
 {
     daq::ICoreEventArgs* ptr = nullptr;
-    ErrCode err = daq::createCoreEventArgsTypeRemoved(&ptr, reinterpret_cast<daq::IString*>(typeName));
-    *obj = reinterpret_cast<CoreEventArgs*>(ptr);
+    daqErrCode err = daq::createCoreEventArgsTypeRemoved(&ptr, reinterpret_cast<daq::IString*>(typeName));
+    *obj = reinterpret_cast<daqCoreEventArgs*>(ptr);
     return err;
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:42.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct EventArgs EventArgs;
-    typedef struct String String;
+    typedef struct daqEventArgs daqEventArgs;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID EVENT_ARGS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_EVENT_ARGS_INTF_ID;
 
-    ErrCode EXPORTED EventArgs_getEventId(EventArgs* self, Int* id);
-    ErrCode EXPORTED EventArgs_getEventName(EventArgs* self, String** name);
-    ErrCode EXPORTED EventArgs_createEventArgs(EventArgs** obj, Int eventId, String* eventName);
+    daqErrCode EXPORTED daqEventArgs_getEventId(daqEventArgs* self, daqInt* id);
+    daqErrCode EXPORTED daqEventArgs_getEventName(daqEventArgs* self, daqString** name);
+    daqErrCode EXPORTED daqEventArgs_createEventArgs(daqEventArgs** obj, daqInt eventId, daqString* eventName);
 
 #ifdef __cplusplus
 }

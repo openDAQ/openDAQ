@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:15.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID COMPONENT_TYPE_PRIVATE_INTF_ID = { daq::IComponentTypePrivate::Id.Data1, daq::IComponentTypePrivate::Id.Data2, daq::IComponentTypePrivate::Id.Data3, daq::IComponentTypePrivate::Id.Data4_UInt64 };
+const daqIntfID DAQ_COMPONENT_TYPE_PRIVATE_INTF_ID = { daq::IComponentTypePrivate::Id.Data1, daq::IComponentTypePrivate::Id.Data2, daq::IComponentTypePrivate::Id.Data3, daq::IComponentTypePrivate::Id.Data4_UInt64 };
 
-ErrCode ComponentTypePrivate_setModuleInfo(ComponentTypePrivate* self, ModuleInfo* info)
+daqErrCode daqComponentTypePrivate_setModuleInfo(daqComponentTypePrivate* self, daqModuleInfo* info)
 {
     return reinterpret_cast<daq::IComponentTypePrivate*>(self)->setModuleInfo(reinterpret_cast<daq::IModuleInfo*>(info));
 }

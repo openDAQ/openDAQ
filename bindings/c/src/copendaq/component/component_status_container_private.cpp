@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:13.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,24 +15,24 @@
 
 #include <copendaq_private.h>
 
-const IntfID COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID = { daq::IComponentStatusContainerPrivate::Id.Data1, daq::IComponentStatusContainerPrivate::Id.Data2, daq::IComponentStatusContainerPrivate::Id.Data3, daq::IComponentStatusContainerPrivate::Id.Data4_UInt64 };
+const daqIntfID DAQ_COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID = { daq::IComponentStatusContainerPrivate::Id.Data1, daq::IComponentStatusContainerPrivate::Id.Data2, daq::IComponentStatusContainerPrivate::Id.Data3, daq::IComponentStatusContainerPrivate::Id.Data4_UInt64 };
 
-ErrCode ComponentStatusContainerPrivate_addStatus(ComponentStatusContainerPrivate* self, String* name, Enumeration* initialValue)
+daqErrCode daqComponentStatusContainerPrivate_addStatus(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* initialValue)
 {
     return reinterpret_cast<daq::IComponentStatusContainerPrivate*>(self)->addStatus(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IEnumeration*>(initialValue));
 }
 
-ErrCode ComponentStatusContainerPrivate_setStatus(ComponentStatusContainerPrivate* self, String* name, Enumeration* value)
+daqErrCode daqComponentStatusContainerPrivate_setStatus(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* value)
 {
     return reinterpret_cast<daq::IComponentStatusContainerPrivate*>(self)->setStatus(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IEnumeration*>(value));
 }
 
-ErrCode ComponentStatusContainerPrivate_addStatusWithMessage(ComponentStatusContainerPrivate* self, String* name, Enumeration* initialValue, String* message)
+daqErrCode daqComponentStatusContainerPrivate_addStatusWithMessage(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* initialValue, daqString* message)
 {
     return reinterpret_cast<daq::IComponentStatusContainerPrivate*>(self)->addStatusWithMessage(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IEnumeration*>(initialValue), reinterpret_cast<daq::IString*>(message));
 }
 
-ErrCode ComponentStatusContainerPrivate_setStatusWithMessage(ComponentStatusContainerPrivate* self, String* name, Enumeration* value, String* message)
+daqErrCode daqComponentStatusContainerPrivate_setStatusWithMessage(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* value, daqString* message)
 {
     return reinterpret_cast<daq::IComponentStatusContainerPrivate*>(self)->setStatusWithMessage(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IEnumeration*>(value), reinterpret_cast<daq::IString*>(message));
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:52.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:32.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct GraphVisualization GraphVisualization;
-    typedef struct String String;
+    typedef struct daqGraphVisualization daqGraphVisualization;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID GRAPH_VISUALIZATION_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_GRAPH_VISUALIZATION_INTF_ID;
 
-    ErrCode EXPORTED GraphVisualization_dump(GraphVisualization* self, String** dot);
+    daqErrCode EXPORTED daqGraphVisualization_dump(daqGraphVisualization* self, daqString** dot);
 
 #ifdef __cplusplus
 }

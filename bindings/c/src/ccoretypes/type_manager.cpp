@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:53.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,37 +15,37 @@
 
 #include <copendaq_private.h>
 
-const IntfID TYPE_MANAGER_INTF_ID = { daq::ITypeManager::Id.Data1, daq::ITypeManager::Id.Data2, daq::ITypeManager::Id.Data3, daq::ITypeManager::Id.Data4_UInt64 };
+const daqIntfID DAQ_TYPE_MANAGER_INTF_ID = { daq::ITypeManager::Id.Data1, daq::ITypeManager::Id.Data2, daq::ITypeManager::Id.Data3, daq::ITypeManager::Id.Data4_UInt64 };
 
-ErrCode TypeManager_addType(TypeManager* self, Type* type)
+daqErrCode daqTypeManager_addType(daqTypeManager* self, daqType* type)
 {
     return reinterpret_cast<daq::ITypeManager*>(self)->addType(reinterpret_cast<daq::IType*>(type));
 }
 
-ErrCode TypeManager_removeType(TypeManager* self, String* typeName)
+daqErrCode daqTypeManager_removeType(daqTypeManager* self, daqString* typeName)
 {
     return reinterpret_cast<daq::ITypeManager*>(self)->removeType(reinterpret_cast<daq::IString*>(typeName));
 }
 
-ErrCode TypeManager_getType(TypeManager* self, String* typeName, Type** type)
+daqErrCode daqTypeManager_getType(daqTypeManager* self, daqString* typeName, daqType** type)
 {
     return reinterpret_cast<daq::ITypeManager*>(self)->getType(reinterpret_cast<daq::IString*>(typeName), reinterpret_cast<daq::IType**>(type));
 }
 
-ErrCode TypeManager_getTypes(TypeManager* self, List** types)
+daqErrCode daqTypeManager_getTypes(daqTypeManager* self, daqList** types)
 {
     return reinterpret_cast<daq::ITypeManager*>(self)->getTypes(reinterpret_cast<daq::IList**>(types));
 }
 
-ErrCode TypeManager_hasType(TypeManager* self, String* typeName, Bool* hasType)
+daqErrCode daqTypeManager_hasType(daqTypeManager* self, daqString* typeName, daqBool* hasType)
 {
     return reinterpret_cast<daq::ITypeManager*>(self)->hasType(reinterpret_cast<daq::IString*>(typeName), hasType);
 }
 
-ErrCode TypeManager_createTypeManager(TypeManager** obj)
+daqErrCode daqTypeManager_createTypeManager(daqTypeManager** obj)
 {
     daq::ITypeManager* ptr = nullptr;
-    ErrCode err = daq::createTypeManager(&ptr);
-    *obj = reinterpret_cast<TypeManager*>(ptr);
+    daqErrCode err = daq::createTypeManager(&ptr);
+    *obj = reinterpret_cast<daqTypeManager*>(ptr);
     return err;
 }

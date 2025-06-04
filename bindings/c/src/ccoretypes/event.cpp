@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:42.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,62 +15,62 @@
 
 #include <copendaq_private.h>
 
-const IntfID EVENT_INTF_ID = { daq::IEvent::Id.Data1, daq::IEvent::Id.Data2, daq::IEvent::Id.Data3, daq::IEvent::Id.Data4_UInt64 };
+const daqIntfID DAQ_EVENT_INTF_ID = { daq::IEvent::Id.Data1, daq::IEvent::Id.Data2, daq::IEvent::Id.Data3, daq::IEvent::Id.Data4_UInt64 };
 
-ErrCode Event_addHandler(Event* self, EventHandler* eventHandler)
+daqErrCode daqEvent_addHandler(daqEvent* self, daqEventHandler* eventHandler)
 {
     return reinterpret_cast<daq::IEvent*>(self)->addHandler(reinterpret_cast<daq::IEventHandler*>(eventHandler));
 }
 
-ErrCode Event_removeHandler(Event* self, EventHandler* eventHandler)
+daqErrCode daqEvent_removeHandler(daqEvent* self, daqEventHandler* eventHandler)
 {
     return reinterpret_cast<daq::IEvent*>(self)->removeHandler(reinterpret_cast<daq::IEventHandler*>(eventHandler));
 }
 
-ErrCode Event_trigger(Event* self, BaseObject* sender, EventArgs* args)
+daqErrCode daqEvent_trigger(daqEvent* self, daqBaseObject* sender, daqEventArgs* args)
 {
     return reinterpret_cast<daq::IEvent*>(self)->trigger(reinterpret_cast<daq::IBaseObject*>(sender), reinterpret_cast<daq::IEventArgs*>(args));
 }
 
-ErrCode Event_clear(Event* self)
+daqErrCode daqEvent_clear(daqEvent* self)
 {
     return reinterpret_cast<daq::IEvent*>(self)->clear();
 }
 
-ErrCode Event_getSubscriberCount(Event* self, SizeT* count)
+daqErrCode daqEvent_getSubscriberCount(daqEvent* self, daqSizeT* count)
 {
     return reinterpret_cast<daq::IEvent*>(self)->getSubscriberCount(count);
 }
 
-ErrCode Event_getSubscribers(Event* self, List** subscribers)
+daqErrCode daqEvent_getSubscribers(daqEvent* self, daqList** subscribers)
 {
     return reinterpret_cast<daq::IEvent*>(self)->getSubscribers(reinterpret_cast<daq::IList**>(subscribers));
 }
 
-ErrCode Event_mute(Event* self)
+daqErrCode daqEvent_mute(daqEvent* self)
 {
     return reinterpret_cast<daq::IEvent*>(self)->mute();
 }
 
-ErrCode Event_unmute(Event* self)
+daqErrCode daqEvent_unmute(daqEvent* self)
 {
     return reinterpret_cast<daq::IEvent*>(self)->unmute();
 }
 
-ErrCode Event_muteListener(Event* self, EventHandler* eventHandler)
+daqErrCode daqEvent_muteListener(daqEvent* self, daqEventHandler* eventHandler)
 {
     return reinterpret_cast<daq::IEvent*>(self)->muteListener(reinterpret_cast<daq::IEventHandler*>(eventHandler));
 }
 
-ErrCode Event_unmuteListener(Event* self, EventHandler* eventHandler)
+daqErrCode daqEvent_unmuteListener(daqEvent* self, daqEventHandler* eventHandler)
 {
     return reinterpret_cast<daq::IEvent*>(self)->unmuteListener(reinterpret_cast<daq::IEventHandler*>(eventHandler));
 }
 
-ErrCode Event_createEvent(Event** obj)
+daqErrCode daqEvent_createEvent(daqEvent** obj)
 {
     daq::IEvent* ptr = nullptr;
-    ErrCode err = daq::createEvent(&ptr);
-    *obj = reinterpret_cast<Event*>(ptr);
+    daqErrCode err = daq::createEvent(&ptr);
+    *obj = reinterpret_cast<daqEvent*>(ptr);
     return err;
 }

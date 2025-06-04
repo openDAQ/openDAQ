@@ -23,7 +23,7 @@
  * @{
  */
 
-#define OPENDAQ_ERRTYPE_DEVICE 0x08u
+#define DAQ_ERRTYPE_DEVICE 0x08u
 
 /*!
  * @}

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:19.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,20 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Streaming Streaming;
-    typedef struct List List;
-    typedef struct String String;
-    typedef struct Enumeration Enumeration;
+    typedef struct daqStreaming daqStreaming;
+    typedef struct daqList daqList;
+    typedef struct daqString daqString;
+    typedef struct daqEnumeration daqEnumeration;
 
-    EXPORTED extern const IntfID STREAMING_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_STREAMING_INTF_ID;
 
-    ErrCode EXPORTED Streaming_getActive(Streaming* self, Bool* active);
-    ErrCode EXPORTED Streaming_setActive(Streaming* self, Bool active);
-    ErrCode EXPORTED Streaming_addSignals(Streaming* self, List* signals);
-    ErrCode EXPORTED Streaming_removeSignals(Streaming* self, List* signals);
-    ErrCode EXPORTED Streaming_removeAllSignals(Streaming* self);
-    ErrCode EXPORTED Streaming_getConnectionString(Streaming* self, String** connectionString);
-    ErrCode EXPORTED Streaming_getConnectionStatus(Streaming* self, Enumeration** connectionStatus);
+    daqErrCode EXPORTED daqStreaming_getActive(daqStreaming* self, daqBool* active);
+    daqErrCode EXPORTED daqStreaming_setActive(daqStreaming* self, daqBool active);
+    daqErrCode EXPORTED daqStreaming_addSignals(daqStreaming* self, daqList* signals);
+    daqErrCode EXPORTED daqStreaming_removeSignals(daqStreaming* self, daqList* signals);
+    daqErrCode EXPORTED daqStreaming_removeAllSignals(daqStreaming* self);
+    daqErrCode EXPORTED daqStreaming_getConnectionString(daqStreaming* self, daqString** connectionString);
+    daqErrCode EXPORTED daqStreaming_getConnectionStatus(daqStreaming* self, daqEnumeration** connectionStatus);
 
 #ifdef __cplusplus
 }

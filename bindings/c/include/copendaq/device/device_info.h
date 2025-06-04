@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:25.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,48 +34,49 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DeviceInfo DeviceInfo;
-    typedef struct String String;
-    typedef struct DeviceType DeviceType;
-    typedef struct List List;
-    typedef struct ServerCapability ServerCapability;
-    typedef struct Dict Dict;
-    typedef struct NetworkInterface NetworkInterface;
+    typedef struct daqDeviceInfo daqDeviceInfo;
+    typedef struct daqString daqString;
+    typedef struct daqDeviceType daqDeviceType;
+    typedef struct daqList daqList;
+    typedef struct daqServerCapability daqServerCapability;
+    typedef struct daqDict daqDict;
+    typedef struct daqNetworkInterface daqNetworkInterface;
 
-    EXPORTED extern const IntfID DEVICE_INFO_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DEVICE_INFO_INTF_ID;
 
-    ErrCode EXPORTED DeviceInfo_getName(DeviceInfo* self, String** name);
-    ErrCode EXPORTED DeviceInfo_getConnectionString(DeviceInfo* self, String** connectionString);
-    ErrCode EXPORTED DeviceInfo_getDeviceType(DeviceInfo* self, DeviceType** deviceType);
-    ErrCode EXPORTED DeviceInfo_getManufacturer(DeviceInfo* self, String** manufacturer);
-    ErrCode EXPORTED DeviceInfo_getManufacturerUri(DeviceInfo* self, String** manufacturerUri);
-    ErrCode EXPORTED DeviceInfo_getModel(DeviceInfo* self, String** model);
-    ErrCode EXPORTED DeviceInfo_getProductCode(DeviceInfo* self, String** productCode);
-    ErrCode EXPORTED DeviceInfo_getDeviceRevision(DeviceInfo* self, String** deviceRevision);
-    ErrCode EXPORTED DeviceInfo_getHardwareRevision(DeviceInfo* self, String** hardwareRevision);
-    ErrCode EXPORTED DeviceInfo_getSoftwareRevision(DeviceInfo* self, String** softwareRevision);
-    ErrCode EXPORTED DeviceInfo_getDeviceManual(DeviceInfo* self, String** deviceManual);
-    ErrCode EXPORTED DeviceInfo_getDeviceClass(DeviceInfo* self, String** deviceClass);
-    ErrCode EXPORTED DeviceInfo_getSerialNumber(DeviceInfo* self, String** serialNumber);
-    ErrCode EXPORTED DeviceInfo_getProductInstanceUri(DeviceInfo* self, String** productInstanceUri);
-    ErrCode EXPORTED DeviceInfo_getRevisionCounter(DeviceInfo* self, Int* revisionCounter);
-    ErrCode EXPORTED DeviceInfo_getAssetId(DeviceInfo* self, String** id);
-    ErrCode EXPORTED DeviceInfo_getMacAddress(DeviceInfo* self, String** macAddress);
-    ErrCode EXPORTED DeviceInfo_getParentMacAddress(DeviceInfo* self, String** macAddress);
-    ErrCode EXPORTED DeviceInfo_getPlatform(DeviceInfo* self, String** platform);
-    ErrCode EXPORTED DeviceInfo_getPosition(DeviceInfo* self, Int* position);
-    ErrCode EXPORTED DeviceInfo_getSystemType(DeviceInfo* self, String** type);
-    ErrCode EXPORTED DeviceInfo_getSystemUuid(DeviceInfo* self, String** uuid);
-    ErrCode EXPORTED DeviceInfo_getCustomInfoPropertyNames(DeviceInfo* self, List** customInfoNames);
-    ErrCode EXPORTED DeviceInfo_getSdkVersion(DeviceInfo* self, String** version);
-    ErrCode EXPORTED DeviceInfo_getServerCapabilities(DeviceInfo* self, List** serverCapabilities);
-    ErrCode EXPORTED DeviceInfo_getLocation(DeviceInfo* self, String** location);
-    ErrCode EXPORTED DeviceInfo_getConfigurationConnectionInfo(DeviceInfo* self, ServerCapability** connectionInfo);
-    ErrCode EXPORTED DeviceInfo_hasServerCapability(DeviceInfo* self, String* protocolId, Bool* hasCapability);
-    ErrCode EXPORTED DeviceInfo_getServerCapability(DeviceInfo* self, String* protocolId, ServerCapability** serverCapability);
-    ErrCode EXPORTED DeviceInfo_getNetworkInterfaces(DeviceInfo* self, Dict** interfaces);
-    ErrCode EXPORTED DeviceInfo_getNetworkInterface(DeviceInfo* self, String* interfaceName, NetworkInterface** interface);
-    ErrCode EXPORTED DeviceInfo_getUserName(DeviceInfo* self, String** userName);
+    daqErrCode EXPORTED daqDeviceInfo_getName(daqDeviceInfo* self, daqString** name);
+    daqErrCode EXPORTED daqDeviceInfo_getConnectionString(daqDeviceInfo* self, daqString** connectionString);
+    daqErrCode EXPORTED daqDeviceInfo_getDeviceType(daqDeviceInfo* self, daqDeviceType** deviceType);
+    daqErrCode EXPORTED daqDeviceInfo_getManufacturer(daqDeviceInfo* self, daqString** manufacturer);
+    daqErrCode EXPORTED daqDeviceInfo_getManufacturerUri(daqDeviceInfo* self, daqString** manufacturerUri);
+    daqErrCode EXPORTED daqDeviceInfo_getModel(daqDeviceInfo* self, daqString** model);
+    daqErrCode EXPORTED daqDeviceInfo_getProductCode(daqDeviceInfo* self, daqString** productCode);
+    daqErrCode EXPORTED daqDeviceInfo_getDeviceRevision(daqDeviceInfo* self, daqString** deviceRevision);
+    daqErrCode EXPORTED daqDeviceInfo_getHardwareRevision(daqDeviceInfo* self, daqString** hardwareRevision);
+    daqErrCode EXPORTED daqDeviceInfo_getSoftwareRevision(daqDeviceInfo* self, daqString** softwareRevision);
+    daqErrCode EXPORTED daqDeviceInfo_getDeviceManual(daqDeviceInfo* self, daqString** deviceManual);
+    daqErrCode EXPORTED daqDeviceInfo_getDeviceClass(daqDeviceInfo* self, daqString** deviceClass);
+    daqErrCode EXPORTED daqDeviceInfo_getSerialNumber(daqDeviceInfo* self, daqString** serialNumber);
+    daqErrCode EXPORTED daqDeviceInfo_getProductInstanceUri(daqDeviceInfo* self, daqString** productInstanceUri);
+    daqErrCode EXPORTED daqDeviceInfo_getRevisionCounter(daqDeviceInfo* self, daqInt* revisionCounter);
+    daqErrCode EXPORTED daqDeviceInfo_getAssetId(daqDeviceInfo* self, daqString** id);
+    daqErrCode EXPORTED daqDeviceInfo_getMacAddress(daqDeviceInfo* self, daqString** macAddress);
+    daqErrCode EXPORTED daqDeviceInfo_getParentMacAddress(daqDeviceInfo* self, daqString** macAddress);
+    daqErrCode EXPORTED daqDeviceInfo_getPlatform(daqDeviceInfo* self, daqString** platform);
+    daqErrCode EXPORTED daqDeviceInfo_getPosition(daqDeviceInfo* self, daqInt* position);
+    daqErrCode EXPORTED daqDeviceInfo_getSystemType(daqDeviceInfo* self, daqString** type);
+    daqErrCode EXPORTED daqDeviceInfo_getSystemUuid(daqDeviceInfo* self, daqString** uuid);
+    daqErrCode EXPORTED daqDeviceInfo_getCustomInfoPropertyNames(daqDeviceInfo* self, daqList** customInfoNames);
+    daqErrCode EXPORTED daqDeviceInfo_getSdkVersion(daqDeviceInfo* self, daqString** version);
+    daqErrCode EXPORTED daqDeviceInfo_getServerCapabilities(daqDeviceInfo* self, daqList** serverCapabilities);
+    daqErrCode EXPORTED daqDeviceInfo_getLocation(daqDeviceInfo* self, daqString** location);
+    daqErrCode EXPORTED daqDeviceInfo_getConfigurationConnectionInfo(daqDeviceInfo* self, daqServerCapability** connectionInfo);
+    daqErrCode EXPORTED daqDeviceInfo_hasServerCapability(daqDeviceInfo* self, daqString* protocolId, daqBool* hasCapability);
+    daqErrCode EXPORTED daqDeviceInfo_getServerCapability(daqDeviceInfo* self, daqString* protocolId, daqServerCapability** serverCapability);
+    daqErrCode EXPORTED daqDeviceInfo_getNetworkInterfaces(daqDeviceInfo* self, daqDict** interfaces);
+    daqErrCode EXPORTED daqDeviceInfo_getNetworkInterface(daqDeviceInfo* self, daqString* interfaceName, daqNetworkInterface** intf);
+    daqErrCode EXPORTED daqDeviceInfo_getUserName(daqDeviceInfo* self, daqString** userName);
+    daqErrCode EXPORTED daqDeviceInfo_getConnectedClientsInfo(daqDeviceInfo* self, daqList** connectedClientsInfo);
 
 #ifdef __cplusplus
 }

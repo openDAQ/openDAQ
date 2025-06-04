@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:53.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:33.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,22 +34,22 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Scheduler Scheduler;
-    typedef struct Function Function;
-    typedef struct Awaitable Awaitable;
-    typedef struct Work Work;
-    typedef struct TaskGraph TaskGraph;
-    typedef struct Logger Logger;
+    typedef struct daqScheduler daqScheduler;
+    typedef struct daqFunction daqFunction;
+    typedef struct daqAwaitable daqAwaitable;
+    typedef struct daqWork daqWork;
+    typedef struct daqTaskGraph daqTaskGraph;
+    typedef struct daqLogger daqLogger;
 
-    EXPORTED extern const IntfID SCHEDULER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SCHEDULER_INTF_ID;
 
-    ErrCode EXPORTED Scheduler_scheduleFunction(Scheduler* self, Function* function, Awaitable** awaitable);
-    ErrCode EXPORTED Scheduler_scheduleWork(Scheduler* self, Work* work);
-    ErrCode EXPORTED Scheduler_scheduleGraph(Scheduler* self, TaskGraph* graph, Awaitable** awaitable);
-    ErrCode EXPORTED Scheduler_stop(Scheduler* self);
-    ErrCode EXPORTED Scheduler_waitAll(Scheduler* self);
-    ErrCode EXPORTED Scheduler_isMultiThreaded(Scheduler* self, Bool* multiThreaded);
-    ErrCode EXPORTED Scheduler_createScheduler(Scheduler** obj, Logger* logger, SizeT numWorkers);
+    daqErrCode EXPORTED daqScheduler_scheduleFunction(daqScheduler* self, daqFunction* function, daqAwaitable** awaitable);
+    daqErrCode EXPORTED daqScheduler_scheduleWork(daqScheduler* self, daqWork* work);
+    daqErrCode EXPORTED daqScheduler_scheduleGraph(daqScheduler* self, daqTaskGraph* graph, daqAwaitable** awaitable);
+    daqErrCode EXPORTED daqScheduler_stop(daqScheduler* self);
+    daqErrCode EXPORTED daqScheduler_waitAll(daqScheduler* self);
+    daqErrCode EXPORTED daqScheduler_isMultiThreaded(daqScheduler* self, daqBool* multiThreaded);
+    daqErrCode EXPORTED daqScheduler_createScheduler(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers);
 
 #ifdef __cplusplus
 }

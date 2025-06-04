@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:21.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,57 +15,57 @@
 
 #include <copendaq_private.h>
 
-const IntfID CONTEXT_INTF_ID = { daq::IContext::Id.Data1, daq::IContext::Id.Data2, daq::IContext::Id.Data3, daq::IContext::Id.Data4_UInt64 };
+const daqIntfID DAQ_CONTEXT_INTF_ID = { daq::IContext::Id.Data1, daq::IContext::Id.Data2, daq::IContext::Id.Data3, daq::IContext::Id.Data4_UInt64 };
 
-ErrCode Context_getScheduler(Context* self, Scheduler** scheduler)
+daqErrCode daqContext_getScheduler(daqContext* self, daqScheduler** scheduler)
 {
     return reinterpret_cast<daq::IContext*>(self)->getScheduler(reinterpret_cast<daq::IScheduler**>(scheduler));
 }
 
-ErrCode Context_getLogger(Context* self, Logger** logger)
+daqErrCode daqContext_getLogger(daqContext* self, daqLogger** logger)
 {
     return reinterpret_cast<daq::IContext*>(self)->getLogger(reinterpret_cast<daq::ILogger**>(logger));
 }
 
-ErrCode Context_getModuleManager(Context* self, BaseObject** manager)
+daqErrCode daqContext_getModuleManager(daqContext* self, daqBaseObject** manager)
 {
     return reinterpret_cast<daq::IContext*>(self)->getModuleManager(reinterpret_cast<daq::IBaseObject**>(manager));
 }
 
-ErrCode Context_getTypeManager(Context* self, TypeManager** manager)
+daqErrCode daqContext_getTypeManager(daqContext* self, daqTypeManager** manager)
 {
     return reinterpret_cast<daq::IContext*>(self)->getTypeManager(reinterpret_cast<daq::ITypeManager**>(manager));
 }
 
-ErrCode Context_getAuthenticationProvider(Context* self, AuthenticationProvider** authenticationProvider)
+daqErrCode daqContext_getAuthenticationProvider(daqContext* self, daqAuthenticationProvider** authenticationProvider)
 {
     return reinterpret_cast<daq::IContext*>(self)->getAuthenticationProvider(reinterpret_cast<daq::IAuthenticationProvider**>(authenticationProvider));
 }
 
-ErrCode Context_getOnCoreEvent(Context* self, Event** event)
+daqErrCode daqContext_getOnCoreEvent(daqContext* self, daqEvent** event)
 {
     return reinterpret_cast<daq::IContext*>(self)->getOnCoreEvent(reinterpret_cast<daq::IEvent**>(event));
 }
 
-ErrCode Context_getOptions(Context* self, Dict** options)
+daqErrCode daqContext_getOptions(daqContext* self, daqDict** options)
 {
     return reinterpret_cast<daq::IContext*>(self)->getOptions(reinterpret_cast<daq::IDict**>(options));
 }
 
-ErrCode Context_getModuleOptions(Context* self, String* moduleId, Dict** options)
+daqErrCode daqContext_getModuleOptions(daqContext* self, daqString* moduleId, daqDict** options)
 {
     return reinterpret_cast<daq::IContext*>(self)->getModuleOptions(reinterpret_cast<daq::IString*>(moduleId), reinterpret_cast<daq::IDict**>(options));
 }
 
-ErrCode Context_getDiscoveryServers(Context* self, Dict** servers)
+daqErrCode daqContext_getDiscoveryServers(daqContext* self, daqDict** servers)
 {
     return reinterpret_cast<daq::IContext*>(self)->getDiscoveryServers(reinterpret_cast<daq::IDict**>(servers));
 }
 
-ErrCode Context_createContext(Context** obj, Scheduler* Scheduler, Logger* Logger, TypeManager* typeManager, ModuleManager* moduleManager, AuthenticationProvider* authenticationProvider, Dict* options, Dict* discoveryServers)
+daqErrCode daqContext_createContext(daqContext** obj, daqScheduler* Scheduler, daqLogger* Logger, daqTypeManager* typeManager, daqModuleManager* moduleManager, daqAuthenticationProvider* authenticationProvider, daqDict* options, daqDict* discoveryServers)
 {
     daq::IContext* ptr = nullptr;
-    ErrCode err = daq::createContext(&ptr, reinterpret_cast<daq::IScheduler*>(Scheduler), reinterpret_cast<daq::ILogger*>(Logger), reinterpret_cast<daq::ITypeManager*>(typeManager), reinterpret_cast<daq::IModuleManager*>(moduleManager), reinterpret_cast<daq::IAuthenticationProvider*>(authenticationProvider), reinterpret_cast<daq::IDict*>(options), reinterpret_cast<daq::IDict*>(discoveryServers));
-    *obj = reinterpret_cast<Context*>(ptr);
+    daqErrCode err = daq::createContext(&ptr, reinterpret_cast<daq::IScheduler*>(Scheduler), reinterpret_cast<daq::ILogger*>(Logger), reinterpret_cast<daq::ITypeManager*>(typeManager), reinterpret_cast<daq::IModuleManager*>(moduleManager), reinterpret_cast<daq::IAuthenticationProvider*>(authenticationProvider), reinterpret_cast<daq::IDict*>(options), reinterpret_cast<daq::IDict*>(discoveryServers));
+    *obj = reinterpret_cast<daqContext*>(ptr);
     return err;
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:39.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:19.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,35 +15,35 @@
 
 #include <copendaq_private.h>
 
-const IntfID MODULE_MANAGER_INTF_ID = { daq::IModuleManager::Id.Data1, daq::IModuleManager::Id.Data2, daq::IModuleManager::Id.Data3, daq::IModuleManager::Id.Data4_UInt64 };
+const daqIntfID DAQ_MODULE_MANAGER_INTF_ID = { daq::IModuleManager::Id.Data1, daq::IModuleManager::Id.Data2, daq::IModuleManager::Id.Data3, daq::IModuleManager::Id.Data4_UInt64 };
 
-ErrCode ModuleManager_getModules(ModuleManager* self, List** modules)
+daqErrCode daqModuleManager_getModules(daqModuleManager* self, daqList** modules)
 {
     return reinterpret_cast<daq::IModuleManager*>(self)->getModules(reinterpret_cast<daq::IList**>(modules));
 }
 
-ErrCode ModuleManager_addModule(ModuleManager* self, Module* module)
+daqErrCode daqModuleManager_addModule(daqModuleManager* self, daqModule* module)
 {
     return reinterpret_cast<daq::IModuleManager*>(self)->addModule(reinterpret_cast<daq::IModule*>(module));
 }
 
-ErrCode ModuleManager_loadModules(ModuleManager* self, Context* context)
+daqErrCode daqModuleManager_loadModules(daqModuleManager* self, daqContext* context)
 {
     return reinterpret_cast<daq::IModuleManager*>(self)->loadModules(reinterpret_cast<daq::IContext*>(context));
 }
 
-ErrCode ModuleManager_createModuleManager(ModuleManager** obj, String* path)
+daqErrCode daqModuleManager_createModuleManager(daqModuleManager** obj, daqString* path)
 {
     daq::IModuleManager* ptr = nullptr;
-    ErrCode err = daq::createModuleManager(&ptr, reinterpret_cast<daq::IString*>(path));
-    *obj = reinterpret_cast<ModuleManager*>(ptr);
+    daqErrCode err = daq::createModuleManager(&ptr, reinterpret_cast<daq::IString*>(path));
+    *obj = reinterpret_cast<daqModuleManager*>(ptr);
     return err;
 }
 
-ErrCode ModuleManager_createModuleManagerMultiplePaths(ModuleManager** obj, List* paths)
+daqErrCode daqModuleManager_createModuleManagerMultiplePaths(daqModuleManager** obj, daqList* paths)
 {
     daq::IModuleManager* ptr = nullptr;
-    ErrCode err = daq::createModuleManagerMultiplePaths(&ptr, reinterpret_cast<daq::IList*>(paths));
-    *obj = reinterpret_cast<ModuleManager*>(ptr);
+    daqErrCode err = daq::createModuleManagerMultiplePaths(&ptr, reinterpret_cast<daq::IList*>(paths));
+    *obj = reinterpret_cast<daqModuleManager*>(ptr);
     return err;
 }

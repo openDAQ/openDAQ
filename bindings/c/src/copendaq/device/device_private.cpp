@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:28.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:07.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,39 +15,39 @@
 
 #include <copendaq_private.h>
 
-const IntfID DEVICE_PRIVATE_INTF_ID = { daq::IDevicePrivate::Id.Data1, daq::IDevicePrivate::Id.Data2, daq::IDevicePrivate::Id.Data3, daq::IDevicePrivate::Id.Data4_UInt64 };
+const daqIntfID DAQ_DEVICE_PRIVATE_INTF_ID = { daq::IDevicePrivate::Id.Data1, daq::IDevicePrivate::Id.Data2, daq::IDevicePrivate::Id.Data3, daq::IDevicePrivate::Id.Data4_UInt64 };
 
-ErrCode DevicePrivate_setAsRoot(DevicePrivate* self)
+daqErrCode daqDevicePrivate_setAsRoot(daqDevicePrivate* self)
 {
     return reinterpret_cast<daq::IDevicePrivate*>(self)->setAsRoot();
 }
 
-ErrCode DevicePrivate_setDeviceConfig(DevicePrivate* self, PropertyObject* config)
+daqErrCode daqDevicePrivate_setDeviceConfig(daqDevicePrivate* self, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IDevicePrivate*>(self)->setDeviceConfig(reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode DevicePrivate_getDeviceConfig(DevicePrivate* self, PropertyObject** config)
+daqErrCode daqDevicePrivate_getDeviceConfig(daqDevicePrivate* self, daqPropertyObject** config)
 {
     return reinterpret_cast<daq::IDevicePrivate*>(self)->getDeviceConfig(reinterpret_cast<daq::IPropertyObject**>(config));
 }
 
-ErrCode DevicePrivate_lock(DevicePrivate* self, User* user)
+daqErrCode daqDevicePrivate_lock(daqDevicePrivate* self, daqUser* user)
 {
     return reinterpret_cast<daq::IDevicePrivate*>(self)->lock(reinterpret_cast<daq::IUser*>(user));
 }
 
-ErrCode DevicePrivate_unlock(DevicePrivate* self, User* user)
+daqErrCode daqDevicePrivate_unlock(daqDevicePrivate* self, daqUser* user)
 {
     return reinterpret_cast<daq::IDevicePrivate*>(self)->unlock(reinterpret_cast<daq::IUser*>(user));
 }
 
-ErrCode DevicePrivate_isLockedInternal(DevicePrivate* self, Bool* locked)
+daqErrCode daqDevicePrivate_isLockedInternal(daqDevicePrivate* self, daqBool* locked)
 {
     return reinterpret_cast<daq::IDevicePrivate*>(self)->isLockedInternal(locked);
 }
 
-ErrCode DevicePrivate_forceUnlock(DevicePrivate* self)
+daqErrCode daqDevicePrivate_forceUnlock(daqDevicePrivate* self)
 {
     return reinterpret_cast<daq::IDevicePrivate*>(self)->forceUnlock();
 }

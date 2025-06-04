@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:33.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:13.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,49 +15,49 @@
 
 #include <copendaq_private.h>
 
-const IntfID FUNCTION_BLOCK_INTF_ID = { daq::IFunctionBlock::Id.Data1, daq::IFunctionBlock::Id.Data2, daq::IFunctionBlock::Id.Data3, daq::IFunctionBlock::Id.Data4_UInt64 };
+const daqIntfID DAQ_FUNCTION_BLOCK_INTF_ID = { daq::IFunctionBlock::Id.Data1, daq::IFunctionBlock::Id.Data2, daq::IFunctionBlock::Id.Data3, daq::IFunctionBlock::Id.Data4_UInt64 };
 
-ErrCode FunctionBlock_getFunctionBlockType(FunctionBlock* self, FunctionBlockType** type)
+daqErrCode daqFunctionBlock_getFunctionBlockType(daqFunctionBlock* self, daqFunctionBlockType** type)
 {
     return reinterpret_cast<daq::IFunctionBlock*>(self)->getFunctionBlockType(reinterpret_cast<daq::IFunctionBlockType**>(type));
 }
 
-ErrCode FunctionBlock_getInputPorts(FunctionBlock* self, List** ports, SearchFilter* searchFilter)
+daqErrCode daqFunctionBlock_getInputPorts(daqFunctionBlock* self, daqList** ports, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IFunctionBlock*>(self)->getInputPorts(reinterpret_cast<daq::IList**>(ports), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode FunctionBlock_getSignals(FunctionBlock* self, List** signals, SearchFilter* searchFilter)
+daqErrCode daqFunctionBlock_getSignals(daqFunctionBlock* self, daqList** signals, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IFunctionBlock*>(self)->getSignals(reinterpret_cast<daq::IList**>(signals), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode FunctionBlock_getSignalsRecursive(FunctionBlock* self, List** signals, SearchFilter* searchFilter)
+daqErrCode daqFunctionBlock_getSignalsRecursive(daqFunctionBlock* self, daqList** signals, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IFunctionBlock*>(self)->getSignalsRecursive(reinterpret_cast<daq::IList**>(signals), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode FunctionBlock_getStatusSignal(FunctionBlock* self, Signal** statusSignal)
+daqErrCode daqFunctionBlock_getStatusSignal(daqFunctionBlock* self, daqSignal** statusSignal)
 {
     return reinterpret_cast<daq::IFunctionBlock*>(self)->getStatusSignal(reinterpret_cast<daq::ISignal**>(statusSignal));
 }
 
-ErrCode FunctionBlock_getFunctionBlocks(FunctionBlock* self, List** functionBlocks, SearchFilter* searchFilter)
+daqErrCode daqFunctionBlock_getFunctionBlocks(daqFunctionBlock* self, daqList** functionBlocks, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IFunctionBlock*>(self)->getFunctionBlocks(reinterpret_cast<daq::IList**>(functionBlocks), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode FunctionBlock_getAvailableFunctionBlockTypes(FunctionBlock* self, Dict** functionBlockTypes)
+daqErrCode daqFunctionBlock_getAvailableFunctionBlockTypes(daqFunctionBlock* self, daqDict** functionBlockTypes)
 {
     return reinterpret_cast<daq::IFunctionBlock*>(self)->getAvailableFunctionBlockTypes(reinterpret_cast<daq::IDict**>(functionBlockTypes));
 }
 
-ErrCode FunctionBlock_addFunctionBlock(FunctionBlock* self, FunctionBlock** functionBlock, String* typeId, PropertyObject* config)
+daqErrCode daqFunctionBlock_addFunctionBlock(daqFunctionBlock* self, daqFunctionBlock** functionBlock, daqString* typeId, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IFunctionBlock*>(self)->addFunctionBlock(reinterpret_cast<daq::IFunctionBlock**>(functionBlock), reinterpret_cast<daq::IString*>(typeId), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode FunctionBlock_removeFunctionBlock(FunctionBlock* self, FunctionBlock* functionBlock)
+daqErrCode daqFunctionBlock_removeFunctionBlock(daqFunctionBlock* self, daqFunctionBlock* functionBlock)
 {
     return reinterpret_cast<daq::IFunctionBlock*>(self)->removeFunctionBlock(reinterpret_cast<daq::IFunctionBlock*>(functionBlock));
 }

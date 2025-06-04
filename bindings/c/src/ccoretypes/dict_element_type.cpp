@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:40.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,14 +15,14 @@
 
 #include <copendaq_private.h>
 
-const IntfID DICT_ELEMENT_TYPE_INTF_ID = { daq::IDictElementType::Id.Data1, daq::IDictElementType::Id.Data2, daq::IDictElementType::Id.Data3, daq::IDictElementType::Id.Data4_UInt64 };
+const daqIntfID DAQ_DICT_ELEMENT_TYPE_INTF_ID = { daq::IDictElementType::Id.Data1, daq::IDictElementType::Id.Data2, daq::IDictElementType::Id.Data3, daq::IDictElementType::Id.Data4_UInt64 };
 
-ErrCode DictElementType_getKeyInterfaceId(DictElementType* self, IntfID* id)
+daqErrCode daqDictElementType_getKeyInterfaceId(daqDictElementType* self, daqIntfID* id)
 {
     return reinterpret_cast<daq::IDictElementType*>(self)->getKeyInterfaceId(copendaq::utils::toDaqIntfId(id));
 }
 
-ErrCode DictElementType_getValueInterfaceId(DictElementType* self, IntfID* id)
+daqErrCode daqDictElementType_getValueInterfaceId(daqDictElementType* self, daqIntfID* id)
 {
     return reinterpret_cast<daq::IDictElementType*>(self)->getValueInterfaceId(copendaq::utils::toDaqIntfId(id));
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:06.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,34 +15,34 @@
 
 #include <copendaq_private.h>
 
-const IntfID INPUT_PORT_INTF_ID = { daq::IInputPort::Id.Data1, daq::IInputPort::Id.Data2, daq::IInputPort::Id.Data3, daq::IInputPort::Id.Data4_UInt64 };
+const daqIntfID DAQ_INPUT_PORT_INTF_ID = { daq::IInputPort::Id.Data1, daq::IInputPort::Id.Data2, daq::IInputPort::Id.Data3, daq::IInputPort::Id.Data4_UInt64 };
 
-ErrCode InputPort_acceptsSignal(InputPort* self, Signal* signal, Bool* accepts)
+daqErrCode daqInputPort_acceptsSignal(daqInputPort* self, daqSignal* signal, daqBool* accepts)
 {
     return reinterpret_cast<daq::IInputPort*>(self)->acceptsSignal(reinterpret_cast<daq::ISignal*>(signal), accepts);
 }
 
-ErrCode InputPort_connect(InputPort* self, Signal* signal)
+daqErrCode daqInputPort_connect(daqInputPort* self, daqSignal* signal)
 {
     return reinterpret_cast<daq::IInputPort*>(self)->connect(reinterpret_cast<daq::ISignal*>(signal));
 }
 
-ErrCode InputPort_disconnect(InputPort* self)
+daqErrCode daqInputPort_disconnect(daqInputPort* self)
 {
     return reinterpret_cast<daq::IInputPort*>(self)->disconnect();
 }
 
-ErrCode InputPort_getSignal(InputPort* self, Signal** signal)
+daqErrCode daqInputPort_getSignal(daqInputPort* self, daqSignal** signal)
 {
     return reinterpret_cast<daq::IInputPort*>(self)->getSignal(reinterpret_cast<daq::ISignal**>(signal));
 }
 
-ErrCode InputPort_getRequiresSignal(InputPort* self, Bool* requiresSignal)
+daqErrCode daqInputPort_getRequiresSignal(daqInputPort* self, daqBool* requiresSignal)
 {
     return reinterpret_cast<daq::IInputPort*>(self)->getRequiresSignal(requiresSignal);
 }
 
-ErrCode InputPort_getConnection(InputPort* self, Connection** connection)
+daqErrCode daqInputPort_getConnection(daqInputPort* self, daqConnection** connection)
 {
     return reinterpret_cast<daq::IInputPort*>(self)->getConnection(reinterpret_cast<daq::IConnection**>(connection));
 }

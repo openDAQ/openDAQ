@@ -5,25 +5,27 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:28.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/function.h"
+#include <ccoretypes/function.h>
 
 #include <opendaq/opendaq.h>
 
-const IntfID FUNCTION_INTF_ID = { daq::IFunction::Id.Data1, daq::IFunction::Id.Data2, daq::IFunction::Id.Data3, daq::IFunction::Id.Data4_UInt64 };
+#include <copendaq_private.h>
 
-ErrCode Function_call(Function* self, BaseObject* params, BaseObject** result)
+const daqIntfID DAQ_FUNCTION_INTF_ID = { daq::IFunction::Id.Data1, daq::IFunction::Id.Data2, daq::IFunction::Id.Data3, daq::IFunction::Id.Data4_UInt64 };
+
+daqErrCode daqFunction_call(daqFunction* self, daqBaseObject* params, daqBaseObject** result)
 {
     return reinterpret_cast<daq::IFunction*>(self)->call(reinterpret_cast<daq::IBaseObject*>(params), reinterpret_cast<daq::IBaseObject**>(result));
 }
 
-ErrCode Function_createFunction(Function** obj, FuncCall value)
+daqErrCode daqFunction_createFunction(daqFunction** obj, daqFuncCall value)
 {
     daq::IFunction* ptr = nullptr;
-    ErrCode err = daq::createFunction(&ptr, reinterpret_cast<daq::FuncCall>(value)); // UB but could work
-    *obj = reinterpret_cast<Function*>(ptr);
+    daqErrCode err = daq::createFunction(&ptr, reinterpret_cast<daq::FuncCall>(value)); //UB but works
+    *obj = reinterpret_cast<daqFunction*>(ptr);
     return err;
 }

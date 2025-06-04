@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:41.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,28 +34,28 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Instance Instance;
-    typedef struct ModuleManager ModuleManager;
-    typedef struct Device Device;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct Dict Dict;
-    typedef struct List List;
-    typedef struct Context Context;
-    typedef struct InstanceBuilder InstanceBuilder;
-    typedef struct DeviceInfo DeviceInfo;
-    typedef struct Component Component;
+    typedef struct daqInstance daqInstance;
+    typedef struct daqModuleManager daqModuleManager;
+    typedef struct daqDevice daqDevice;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqDict daqDict;
+    typedef struct daqList daqList;
+    typedef struct daqContext daqContext;
+    typedef struct daqInstanceBuilder daqInstanceBuilder;
+    typedef struct daqDeviceInfo daqDeviceInfo;
+    typedef struct daqComponent daqComponent;
 
-    EXPORTED extern const IntfID INSTANCE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_INSTANCE_INTF_ID;
 
-    ErrCode EXPORTED Instance_getModuleManager(Instance* self, ModuleManager** manager);
-    ErrCode EXPORTED Instance_getRootDevice(Instance* self, Device** rootDevice);
-    ErrCode EXPORTED Instance_setRootDevice(Instance* self, String* connectionString, PropertyObject* config);
-    ErrCode EXPORTED Instance_getAvailableServerTypes(Instance* self, Dict** serverTypes);
-    ErrCode EXPORTED Instance_addStandardServers(Instance* self, List** servers);
-    ErrCode EXPORTED Instance_createInstance(Instance** obj, Context* context, String* localId);
-    ErrCode EXPORTED Instance_createInstanceFromBuilder(Instance** obj, InstanceBuilder* builder);
-    ErrCode EXPORTED Device_createClient(Device** obj, Context* ctx, String* localId, DeviceInfo* defaultDeviceInfo, Component* parent);
+    daqErrCode EXPORTED daqInstance_getModuleManager(daqInstance* self, daqModuleManager** manager);
+    daqErrCode EXPORTED daqInstance_getRootDevice(daqInstance* self, daqDevice** rootDevice);
+    daqErrCode EXPORTED daqInstance_setRootDevice(daqInstance* self, daqString* connectionString, daqPropertyObject* config);
+    daqErrCode EXPORTED daqInstance_getAvailableServerTypes(daqInstance* self, daqDict** serverTypes);
+    daqErrCode EXPORTED daqInstance_addStandardServers(daqInstance* self, daqList** servers);
+    daqErrCode EXPORTED daqInstance_createInstance(daqInstance** obj, daqContext* context, daqString* localId);
+    daqErrCode EXPORTED daqInstance_createInstanceFromBuilder(daqInstance** obj, daqInstanceBuilder* builder);
+    daqErrCode EXPORTED daqDevice_createClient(daqDevice** obj, daqContext* ctx, daqString* localId, daqDeviceInfo* defaultDeviceInfo, daqComponent* parent);
 
 #ifdef __cplusplus
 }

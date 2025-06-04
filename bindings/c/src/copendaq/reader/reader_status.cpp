@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:48.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:27.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,32 +15,32 @@
 
 #include <copendaq_private.h>
 
-const IntfID READER_STATUS_INTF_ID = { daq::IReaderStatus::Id.Data1, daq::IReaderStatus::Id.Data2, daq::IReaderStatus::Id.Data3, daq::IReaderStatus::Id.Data4_UInt64 };
+const daqIntfID DAQ_READER_STATUS_INTF_ID = { daq::IReaderStatus::Id.Data1, daq::IReaderStatus::Id.Data2, daq::IReaderStatus::Id.Data3, daq::IReaderStatus::Id.Data4_UInt64 };
 
-ErrCode ReaderStatus_getReadStatus(ReaderStatus* self, ReadStatus* status)
+daqErrCode daqReaderStatus_getReadStatus(daqReaderStatus* self, daqReadStatus* status)
 {
     return reinterpret_cast<daq::IReaderStatus*>(self)->getReadStatus(reinterpret_cast<daq::ReadStatus*>(status));
 }
 
-ErrCode ReaderStatus_getEventPacket(ReaderStatus* self, EventPacket** packet)
+daqErrCode daqReaderStatus_getEventPacket(daqReaderStatus* self, daqEventPacket** packet)
 {
     return reinterpret_cast<daq::IReaderStatus*>(self)->getEventPacket(reinterpret_cast<daq::IEventPacket**>(packet));
 }
 
-ErrCode ReaderStatus_getValid(ReaderStatus* self, Bool* valid)
+daqErrCode daqReaderStatus_getValid(daqReaderStatus* self, daqBool* valid)
 {
     return reinterpret_cast<daq::IReaderStatus*>(self)->getValid(valid);
 }
 
-ErrCode ReaderStatus_getOffset(ReaderStatus* self, Number** offset)
+daqErrCode daqReaderStatus_getOffset(daqReaderStatus* self, daqNumber** offset)
 {
     return reinterpret_cast<daq::IReaderStatus*>(self)->getOffset(reinterpret_cast<daq::INumber**>(offset));
 }
 
-ErrCode ReaderStatus_createReaderStatus(ReaderStatus** obj, EventPacket* eventPacket, Bool valid, Number* offset)
+daqErrCode daqReaderStatus_createReaderStatus(daqReaderStatus** obj, daqEventPacket* eventPacket, daqBool valid, daqNumber* offset)
 {
     daq::IReaderStatus* ptr = nullptr;
-    ErrCode err = daq::createReaderStatus(&ptr, reinterpret_cast<daq::IEventPacket*>(eventPacket), valid, reinterpret_cast<daq::INumber*>(offset));
-    *obj = reinterpret_cast<ReaderStatus*>(ptr);
+    daqErrCode err = daq::createReaderStatus(&ptr, reinterpret_cast<daq::IEventPacket*>(eventPacket), valid, reinterpret_cast<daq::INumber*>(offset));
+    *obj = reinterpret_cast<daqReaderStatus*>(ptr);
     return err;
 }

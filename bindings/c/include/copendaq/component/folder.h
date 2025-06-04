@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:17.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:56.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,18 +34,18 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Folder Folder;
-    typedef struct List List;
-    typedef struct SearchFilter SearchFilter;
-    typedef struct String String;
-    typedef struct Component Component;
+    typedef struct daqFolder daqFolder;
+    typedef struct daqList daqList;
+    typedef struct daqSearchFilter daqSearchFilter;
+    typedef struct daqString daqString;
+    typedef struct daqComponent daqComponent;
 
-    EXPORTED extern const IntfID FOLDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_FOLDER_INTF_ID;
 
-    ErrCode EXPORTED Folder_getItems(Folder* self, List** items, SearchFilter* searchFilter);
-    ErrCode EXPORTED Folder_isEmpty(Folder* self, Bool* empty);
-    ErrCode EXPORTED Folder_hasItem(Folder* self, String* localId, Bool* value);
-    ErrCode EXPORTED Folder_getItem(Folder* self, String* localId, Component** item);
+    daqErrCode EXPORTED daqFolder_getItems(daqFolder* self, daqList** items, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqFolder_isEmpty(daqFolder* self, daqBool* empty);
+    daqErrCode EXPORTED daqFolder_hasItem(daqFolder* self, daqString* localId, daqBool* value);
+    daqErrCode EXPORTED daqFolder_getItem(daqFolder* self, daqString* localId, daqComponent** item);
 
 #ifdef __cplusplus
 }

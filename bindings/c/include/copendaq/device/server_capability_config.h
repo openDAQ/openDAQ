@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:31.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:11.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,26 +34,26 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ServerCapabilityConfig ServerCapabilityConfig;
-    typedef struct String String;
-    typedef struct Integer Integer;
-    typedef struct AddressInfo AddressInfo;
+    typedef struct daqServerCapabilityConfig daqServerCapabilityConfig;
+    typedef struct daqString daqString;
+    typedef struct daqInteger daqInteger;
+    typedef struct daqAddressInfo daqAddressInfo;
 
-    EXPORTED extern const IntfID SERVER_CAPABILITY_CONFIG_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SERVER_CAPABILITY_CONFIG_INTF_ID;
 
-    ErrCode EXPORTED ServerCapabilityConfig_setConnectionString(ServerCapabilityConfig* self, String* connectionString);
-    ErrCode EXPORTED ServerCapabilityConfig_addConnectionString(ServerCapabilityConfig* self, String* connectionString);
-    ErrCode EXPORTED ServerCapabilityConfig_setProtocolId(ServerCapabilityConfig* self, String* protocolId);
-    ErrCode EXPORTED ServerCapabilityConfig_setProtocolName(ServerCapabilityConfig* self, String* protocolName);
-    ErrCode EXPORTED ServerCapabilityConfig_setProtocolType(ServerCapabilityConfig* self, ProtocolType type);
-    ErrCode EXPORTED ServerCapabilityConfig_setPrefix(ServerCapabilityConfig* self, String* prefix);
-    ErrCode EXPORTED ServerCapabilityConfig_setConnectionType(ServerCapabilityConfig* self, String* type);
-    ErrCode EXPORTED ServerCapabilityConfig_setCoreEventsEnabled(ServerCapabilityConfig* self, Bool enabled);
-    ErrCode EXPORTED ServerCapabilityConfig_addAddress(ServerCapabilityConfig* self, String* address);
-    ErrCode EXPORTED ServerCapabilityConfig_setPort(ServerCapabilityConfig* self, Integer* port);
-    ErrCode EXPORTED ServerCapabilityConfig_addAddressInfo(ServerCapabilityConfig* self, AddressInfo* addressInfo);
-    ErrCode EXPORTED ServerCapabilityConfig_setProtocolVersion(ServerCapabilityConfig* self, String* version);
-    ErrCode EXPORTED ServerCapabilityConfig_createServerCapability(ServerCapabilityConfig** obj, String* protocolId, String* protocolName, ProtocolType protocolType);
+    daqErrCode EXPORTED daqServerCapabilityConfig_setConnectionString(daqServerCapabilityConfig* self, daqString* connectionString);
+    daqErrCode EXPORTED daqServerCapabilityConfig_addConnectionString(daqServerCapabilityConfig* self, daqString* connectionString);
+    daqErrCode EXPORTED daqServerCapabilityConfig_setProtocolId(daqServerCapabilityConfig* self, daqString* protocolId);
+    daqErrCode EXPORTED daqServerCapabilityConfig_setProtocolName(daqServerCapabilityConfig* self, daqString* protocolName);
+    daqErrCode EXPORTED daqServerCapabilityConfig_setProtocolType(daqServerCapabilityConfig* self, daqProtocolType type);
+    daqErrCode EXPORTED daqServerCapabilityConfig_setPrefix(daqServerCapabilityConfig* self, daqString* prefix);
+    daqErrCode EXPORTED daqServerCapabilityConfig_setConnectionType(daqServerCapabilityConfig* self, daqString* type);
+    daqErrCode EXPORTED daqServerCapabilityConfig_setCoreEventsEnabled(daqServerCapabilityConfig* self, daqBool enabled);
+    daqErrCode EXPORTED daqServerCapabilityConfig_addAddress(daqServerCapabilityConfig* self, daqString* address);
+    daqErrCode EXPORTED daqServerCapabilityConfig_setPort(daqServerCapabilityConfig* self, daqInteger* port);
+    daqErrCode EXPORTED daqServerCapabilityConfig_addAddressInfo(daqServerCapabilityConfig* self, daqAddressInfo* addressInfo);
+    daqErrCode EXPORTED daqServerCapabilityConfig_setProtocolVersion(daqServerCapabilityConfig* self, daqString* version);
+    daqErrCode EXPORTED daqServerCapabilityConfig_createServerCapability(daqServerCapabilityConfig** obj, daqString* protocolId, daqString* protocolName, daqProtocolType protocolType);
 
 #ifdef __cplusplus
 }

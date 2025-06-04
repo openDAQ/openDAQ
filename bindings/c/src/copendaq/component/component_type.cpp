@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:14.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,29 +15,29 @@
 
 #include <copendaq_private.h>
 
-const IntfID COMPONENT_TYPE_INTF_ID = { daq::IComponentType::Id.Data1, daq::IComponentType::Id.Data2, daq::IComponentType::Id.Data3, daq::IComponentType::Id.Data4_UInt64 };
+const daqIntfID DAQ_COMPONENT_TYPE_INTF_ID = { daq::IComponentType::Id.Data1, daq::IComponentType::Id.Data2, daq::IComponentType::Id.Data3, daq::IComponentType::Id.Data4_UInt64 };
 
-ErrCode ComponentType_getId(ComponentType* self, String** id)
+daqErrCode daqComponentType_getId(daqComponentType* self, daqString** id)
 {
     return reinterpret_cast<daq::IComponentType*>(self)->getId(reinterpret_cast<daq::IString**>(id));
 }
 
-ErrCode ComponentType_getName(ComponentType* self, String** name)
+daqErrCode daqComponentType_getName(daqComponentType* self, daqString** name)
 {
     return reinterpret_cast<daq::IComponentType*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode ComponentType_getDescription(ComponentType* self, String** description)
+daqErrCode daqComponentType_getDescription(daqComponentType* self, daqString** description)
 {
     return reinterpret_cast<daq::IComponentType*>(self)->getDescription(reinterpret_cast<daq::IString**>(description));
 }
 
-ErrCode ComponentType_createDefaultConfig(ComponentType* self, PropertyObject** defaultConfig)
+daqErrCode daqComponentType_createDefaultConfig(daqComponentType* self, daqPropertyObject** defaultConfig)
 {
     return reinterpret_cast<daq::IComponentType*>(self)->createDefaultConfig(reinterpret_cast<daq::IPropertyObject**>(defaultConfig));
 }
 
-ErrCode ComponentType_getModuleInfo(ComponentType* self, ModuleInfo** info)
+daqErrCode daqComponentType_getModuleInfo(daqComponentType* self, daqModuleInfo** info)
 {
     return reinterpret_cast<daq::IComponentType*>(self)->getModuleInfo(reinterpret_cast<daq::IModuleInfo**>(info));
 }

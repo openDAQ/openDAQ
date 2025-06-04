@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:49.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:29.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,43 +15,43 @@
 
 #include <copendaq_private.h>
 
-const IntfID STREAM_READER_INTF_ID = { daq::IStreamReader::Id.Data1, daq::IStreamReader::Id.Data2, daq::IStreamReader::Id.Data3, daq::IStreamReader::Id.Data4_UInt64 };
+const daqIntfID DAQ_STREAM_READER_INTF_ID = { daq::IStreamReader::Id.Data1, daq::IStreamReader::Id.Data2, daq::IStreamReader::Id.Data3, daq::IStreamReader::Id.Data4_UInt64 };
 
-ErrCode StreamReader_read(StreamReader* self, void* samples, SizeT* count, SizeT timeoutMs, ReaderStatus** status)
+daqErrCode daqStreamReader_read(daqStreamReader* self, void* samples, daqSizeT* count, daqSizeT timeoutMs, daqReaderStatus** status)
 {
     return reinterpret_cast<daq::IStreamReader*>(self)->read(samples, count, timeoutMs, reinterpret_cast<daq::IReaderStatus**>(status));
 }
 
-ErrCode StreamReader_readWithDomain(StreamReader* self, void* samples, void* domain, SizeT* count, SizeT timeoutMs, ReaderStatus** status)
+daqErrCode daqStreamReader_readWithDomain(daqStreamReader* self, void* samples, void* domain, daqSizeT* count, daqSizeT timeoutMs, daqReaderStatus** status)
 {
     return reinterpret_cast<daq::IStreamReader*>(self)->readWithDomain(samples, domain, count, timeoutMs, reinterpret_cast<daq::IReaderStatus**>(status));
 }
 
-ErrCode StreamReader_skipSamples(StreamReader* self, SizeT* count, ReaderStatus** status)
+daqErrCode daqStreamReader_skipSamples(daqStreamReader* self, daqSizeT* count, daqReaderStatus** status)
 {
     return reinterpret_cast<daq::IStreamReader*>(self)->skipSamples(count, reinterpret_cast<daq::IReaderStatus**>(status));
 }
 
-ErrCode StreamReader_createStreamReader(StreamReader** obj, Signal* signal, SampleType valueReadType, SampleType domainReadType, ReadMode mode, ReadTimeoutType timeoutType)
+daqErrCode daqStreamReader_createStreamReader(daqStreamReader** obj, daqSignal* signal, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType)
 {
     daq::IStreamReader* ptr = nullptr;
-    ErrCode err = daq::createStreamReader(&ptr, reinterpret_cast<daq::ISignal*>(signal), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(mode), static_cast<daq::ReadTimeoutType>(timeoutType));
-    *obj = reinterpret_cast<StreamReader*>(ptr);
+    daqErrCode err = daq::createStreamReader(&ptr, reinterpret_cast<daq::ISignal*>(signal), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(mode), static_cast<daq::ReadTimeoutType>(timeoutType));
+    *obj = reinterpret_cast<daqStreamReader*>(ptr);
     return err;
 }
 
-ErrCode StreamReader_createStreamReaderFromPort(StreamReader** obj, InputPortConfig* port, SampleType valueReadType, SampleType domainReadType, ReadMode readMode, ReadTimeoutType timeoutType)
+daqErrCode daqStreamReader_createStreamReaderFromPort(daqStreamReader** obj, daqInputPortConfig* port, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode readMode, daqReadTimeoutType timeoutType)
 {
     daq::IStreamReader* ptr = nullptr;
-    ErrCode err = daq::createStreamReaderFromPort(&ptr, reinterpret_cast<daq::IInputPortConfig*>(port), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(readMode), static_cast<daq::ReadTimeoutType>(timeoutType));
-    *obj = reinterpret_cast<StreamReader*>(ptr);
+    daqErrCode err = daq::createStreamReaderFromPort(&ptr, reinterpret_cast<daq::IInputPortConfig*>(port), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(readMode), static_cast<daq::ReadTimeoutType>(timeoutType));
+    *obj = reinterpret_cast<daqStreamReader*>(ptr);
     return err;
 }
 
-ErrCode StreamReader_createStreamReaderFromExisting(StreamReader** obj, StreamReader* invalidatedReader, SampleType valueReadType, SampleType domainReadType)
+daqErrCode daqStreamReader_createStreamReaderFromExisting(daqStreamReader** obj, daqStreamReader* invalidatedReader, daqSampleType valueReadType, daqSampleType domainReadType)
 {
     daq::IStreamReader* ptr = nullptr;
-    ErrCode err = daq::createStreamReaderFromExisting(&ptr, reinterpret_cast<daq::IStreamReader*>(invalidatedReader), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType));
-    *obj = reinterpret_cast<StreamReader*>(ptr);
+    daqErrCode err = daq::createStreamReaderFromExisting(&ptr, reinterpret_cast<daq::IStreamReader*>(invalidatedReader), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType));
+    *obj = reinterpret_cast<daqStreamReader*>(ptr);
     return err;
 }

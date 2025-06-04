@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:03.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:15.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,42 +15,42 @@
 
 #include <copendaq_private.h>
 
-const IntfID PERMISSIONS_BUILDER_INTF_ID = { daq::IPermissionsBuilder::Id.Data1, daq::IPermissionsBuilder::Id.Data2, daq::IPermissionsBuilder::Id.Data3, daq::IPermissionsBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_PERMISSIONS_BUILDER_INTF_ID = { daq::IPermissionsBuilder::Id.Data1, daq::IPermissionsBuilder::Id.Data2, daq::IPermissionsBuilder::Id.Data3, daq::IPermissionsBuilder::Id.Data4_UInt64 };
 
-ErrCode PermissionsBuilder_inherit(PermissionsBuilder* self, Bool inherit)
+daqErrCode daqPermissionsBuilder_inherit(daqPermissionsBuilder* self, daqBool inherit)
 {
     return reinterpret_cast<daq::IPermissionsBuilder*>(self)->inherit(inherit);
 }
 
-ErrCode PermissionsBuilder_assign(PermissionsBuilder* self, String* groupId, PermissionMaskBuilder* permissions)
+daqErrCode daqPermissionsBuilder_assign(daqPermissionsBuilder* self, daqString* groupId, daqPermissionMaskBuilder* permissions)
 {
     return reinterpret_cast<daq::IPermissionsBuilder*>(self)->assign(reinterpret_cast<daq::IString*>(groupId), reinterpret_cast<daq::IPermissionMaskBuilder*>(permissions));
 }
 
-ErrCode PermissionsBuilder_allow(PermissionsBuilder* self, String* groupId, PermissionMaskBuilder* permissions)
+daqErrCode daqPermissionsBuilder_allow(daqPermissionsBuilder* self, daqString* groupId, daqPermissionMaskBuilder* permissions)
 {
     return reinterpret_cast<daq::IPermissionsBuilder*>(self)->allow(reinterpret_cast<daq::IString*>(groupId), reinterpret_cast<daq::IPermissionMaskBuilder*>(permissions));
 }
 
-ErrCode PermissionsBuilder_deny(PermissionsBuilder* self, String* groupId, PermissionMaskBuilder* permissions)
+daqErrCode daqPermissionsBuilder_deny(daqPermissionsBuilder* self, daqString* groupId, daqPermissionMaskBuilder* permissions)
 {
     return reinterpret_cast<daq::IPermissionsBuilder*>(self)->deny(reinterpret_cast<daq::IString*>(groupId), reinterpret_cast<daq::IPermissionMaskBuilder*>(permissions));
 }
 
-ErrCode PermissionsBuilder_extend(PermissionsBuilder* self, Permissions* config)
+daqErrCode daqPermissionsBuilder_extend(daqPermissionsBuilder* self, daqPermissions* config)
 {
     return reinterpret_cast<daq::IPermissionsBuilder*>(self)->extend(reinterpret_cast<daq::IPermissions*>(config));
 }
 
-ErrCode PermissionsBuilder_build(PermissionsBuilder* self, Permissions** configOut)
+daqErrCode daqPermissionsBuilder_build(daqPermissionsBuilder* self, daqPermissions** configOut)
 {
     return reinterpret_cast<daq::IPermissionsBuilder*>(self)->build(reinterpret_cast<daq::IPermissions**>(configOut));
 }
 
-ErrCode PermissionsBuilder_createPermissionsBuilder(PermissionsBuilder** obj)
+daqErrCode daqPermissionsBuilder_createPermissionsBuilder(daqPermissionsBuilder** obj)
 {
     daq::IPermissionsBuilder* ptr = nullptr;
-    ErrCode err = daq::createPermissionsBuilder(&ptr);
-    *obj = reinterpret_cast<PermissionsBuilder*>(ptr);
+    daqErrCode err = daq::createPermissionsBuilder(&ptr);
+    *obj = reinterpret_cast<daqPermissionsBuilder*>(ptr);
     return err;
 }

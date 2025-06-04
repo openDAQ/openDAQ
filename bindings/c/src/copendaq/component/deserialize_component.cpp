@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:16.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:56.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,19 +15,19 @@
 
 #include <copendaq_private.h>
 
-const IntfID DESERIALIZE_COMPONENT_INTF_ID = { daq::IDeserializeComponent::Id.Data1, daq::IDeserializeComponent::Id.Data2, daq::IDeserializeComponent::Id.Data3, daq::IDeserializeComponent::Id.Data4_UInt64 };
+const daqIntfID DAQ_DESERIALIZE_COMPONENT_INTF_ID = { daq::IDeserializeComponent::Id.Data1, daq::IDeserializeComponent::Id.Data2, daq::IDeserializeComponent::Id.Data3, daq::IDeserializeComponent::Id.Data4_UInt64 };
 
-ErrCode DeserializeComponent_deserializeValues(DeserializeComponent* self, SerializedObject* serializedObject, BaseObject* context, Function* callbackFactory)
+daqErrCode daqDeserializeComponent_deserializeValues(daqDeserializeComponent* self, daqSerializedObject* serializedObject, daqBaseObject* context, daqFunction* callbackFactory)
 {
     return reinterpret_cast<daq::IDeserializeComponent*>(self)->deserializeValues(reinterpret_cast<daq::ISerializedObject*>(serializedObject), reinterpret_cast<daq::IBaseObject*>(context), reinterpret_cast<daq::IFunction*>(callbackFactory));
 }
 
-ErrCode DeserializeComponent_complete(DeserializeComponent* self)
+daqErrCode daqDeserializeComponent_complete(daqDeserializeComponent* self)
 {
     return reinterpret_cast<daq::IDeserializeComponent*>(self)->complete();
 }
 
-ErrCode DeserializeComponent_getDeserializedParameter(DeserializeComponent* self, String* parameter, BaseObject** value)
+daqErrCode daqDeserializeComponent_getDeserializedParameter(daqDeserializeComponent* self, daqString* parameter, daqBaseObject** value)
 {
     return reinterpret_cast<daq::IDeserializeComponent*>(self)->getDeserializedParameter(reinterpret_cast<daq::IString*>(parameter), reinterpret_cast<daq::IBaseObject**>(value));
 }

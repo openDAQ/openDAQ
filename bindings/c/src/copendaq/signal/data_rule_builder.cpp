@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:02.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:41.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,55 +15,55 @@
 
 #include <copendaq_private.h>
 
-const IntfID DATA_RULE_BUILDER_INTF_ID = { daq::IDataRuleBuilder::Id.Data1, daq::IDataRuleBuilder::Id.Data2, daq::IDataRuleBuilder::Id.Data3, daq::IDataRuleBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_DATA_RULE_BUILDER_INTF_ID = { daq::IDataRuleBuilder::Id.Data1, daq::IDataRuleBuilder::Id.Data2, daq::IDataRuleBuilder::Id.Data3, daq::IDataRuleBuilder::Id.Data4_UInt64 };
 
-ErrCode DataRuleBuilder_build(DataRuleBuilder* self, DataRule** dataRule)
+daqErrCode daqDataRuleBuilder_build(daqDataRuleBuilder* self, daqDataRule** dataRule)
 {
     return reinterpret_cast<daq::IDataRuleBuilder*>(self)->build(reinterpret_cast<daq::IDataRule**>(dataRule));
 }
 
-ErrCode DataRuleBuilder_setType(DataRuleBuilder* self, DataRuleType type)
+daqErrCode daqDataRuleBuilder_setType(daqDataRuleBuilder* self, daqDataRuleType type)
 {
     return reinterpret_cast<daq::IDataRuleBuilder*>(self)->setType(static_cast<daq::DataRuleType>(type));
 }
 
-ErrCode DataRuleBuilder_getType(DataRuleBuilder* self, DataRuleType* type)
+daqErrCode daqDataRuleBuilder_getType(daqDataRuleBuilder* self, daqDataRuleType* type)
 {
     return reinterpret_cast<daq::IDataRuleBuilder*>(self)->getType(reinterpret_cast<daq::DataRuleType*>(type));
 }
 
-ErrCode DataRuleBuilder_setParameters(DataRuleBuilder* self, Dict* parameters)
+daqErrCode daqDataRuleBuilder_setParameters(daqDataRuleBuilder* self, daqDict* parameters)
 {
     return reinterpret_cast<daq::IDataRuleBuilder*>(self)->setParameters(reinterpret_cast<daq::IDict*>(parameters));
 }
 
-ErrCode DataRuleBuilder_getParameters(DataRuleBuilder* self, Dict** parameters)
+daqErrCode daqDataRuleBuilder_getParameters(daqDataRuleBuilder* self, daqDict** parameters)
 {
     return reinterpret_cast<daq::IDataRuleBuilder*>(self)->getParameters(reinterpret_cast<daq::IDict**>(parameters));
 }
 
-ErrCode DataRuleBuilder_addParameter(DataRuleBuilder* self, String* name, BaseObject* parameter)
+daqErrCode daqDataRuleBuilder_addParameter(daqDataRuleBuilder* self, daqString* name, daqBaseObject* parameter)
 {
     return reinterpret_cast<daq::IDataRuleBuilder*>(self)->addParameter(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IBaseObject*>(parameter));
 }
 
-ErrCode DataRuleBuilder_removeParameter(DataRuleBuilder* self, String* name)
+daqErrCode daqDataRuleBuilder_removeParameter(daqDataRuleBuilder* self, daqString* name)
 {
     return reinterpret_cast<daq::IDataRuleBuilder*>(self)->removeParameter(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode DataRuleBuilder_createDataRuleBuilder(DataRuleBuilder** obj)
+daqErrCode daqDataRuleBuilder_createDataRuleBuilder(daqDataRuleBuilder** obj)
 {
     daq::IDataRuleBuilder* ptr = nullptr;
-    ErrCode err = daq::createDataRuleBuilder(&ptr);
-    *obj = reinterpret_cast<DataRuleBuilder*>(ptr);
+    daqErrCode err = daq::createDataRuleBuilder(&ptr);
+    *obj = reinterpret_cast<daqDataRuleBuilder*>(ptr);
     return err;
 }
 
-ErrCode DataRuleBuilder_createDataRuleBuilderFromExisting(DataRuleBuilder** obj, DataRule* ruleToCopy)
+daqErrCode daqDataRuleBuilder_createDataRuleBuilderFromExisting(daqDataRuleBuilder** obj, daqDataRule* ruleToCopy)
 {
     daq::IDataRuleBuilder* ptr = nullptr;
-    ErrCode err = daq::createDataRuleBuilderFromExisting(&ptr, reinterpret_cast<daq::IDataRule*>(ruleToCopy));
-    *obj = reinterpret_cast<DataRuleBuilder*>(ptr);
+    daqErrCode err = daq::createDataRuleBuilderFromExisting(&ptr, reinterpret_cast<daq::IDataRule*>(ruleToCopy));
+    *obj = reinterpret_cast<daqDataRuleBuilder*>(ptr);
     return err;
 }

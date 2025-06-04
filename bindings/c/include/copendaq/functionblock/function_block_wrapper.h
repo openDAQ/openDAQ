@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:34.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,28 +34,28 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct FunctionBlockWrapper FunctionBlockWrapper;
-    typedef struct String String;
-    typedef struct Coercer Coercer;
-    typedef struct Validator Validator;
-    typedef struct List List;
-    typedef struct FunctionBlock FunctionBlock;
+    typedef struct daqFunctionBlockWrapper daqFunctionBlockWrapper;
+    typedef struct daqString daqString;
+    typedef struct daqCoercer daqCoercer;
+    typedef struct daqValidator daqValidator;
+    typedef struct daqList daqList;
+    typedef struct daqFunctionBlock daqFunctionBlock;
 
-    EXPORTED extern const IntfID FUNCTION_BLOCK_WRAPPER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_FUNCTION_BLOCK_WRAPPER_INTF_ID;
 
-    ErrCode EXPORTED FunctionBlockWrapper_includeInputPort(FunctionBlockWrapper* self, String* inputPortName);
-    ErrCode EXPORTED FunctionBlockWrapper_excludeInputPort(FunctionBlockWrapper* self, String* inputPortName);
-    ErrCode EXPORTED FunctionBlockWrapper_includeSignal(FunctionBlockWrapper* self, String* signalLocalId);
-    ErrCode EXPORTED FunctionBlockWrapper_excludeSignal(FunctionBlockWrapper* self, String* signalLocalId);
-    ErrCode EXPORTED FunctionBlockWrapper_includeProperty(FunctionBlockWrapper* self, String* propertyName);
-    ErrCode EXPORTED FunctionBlockWrapper_excludeProperty(FunctionBlockWrapper* self, String* propertyName);
-    ErrCode EXPORTED FunctionBlockWrapper_includeFunctionBlock(FunctionBlockWrapper* self, String* functionBlockLocalId);
-    ErrCode EXPORTED FunctionBlockWrapper_excludeFunctionBlock(FunctionBlockWrapper* self, String* functionBlockLocalId);
-    ErrCode EXPORTED FunctionBlockWrapper_setPropertyCoercer(FunctionBlockWrapper* self, String* propertyName, Coercer* coercer);
-    ErrCode EXPORTED FunctionBlockWrapper_setPropertyValidator(FunctionBlockWrapper* self, String* propertyName, Validator* validator);
-    ErrCode EXPORTED FunctionBlockWrapper_setPropertySelectionValues(FunctionBlockWrapper* self, String* propertyName, List* enumValues);
-    ErrCode EXPORTED FunctionBlockWrapper_getWrappedFunctionBlock(FunctionBlockWrapper* self, FunctionBlock** functionBlock);
-    ErrCode EXPORTED FunctionBlock_createFunctionBlockWrapper(FunctionBlock** obj, FunctionBlock* functionBlock, Bool includeInputPortsByDefault, Bool includeSignalsByDefault, Bool includePropertiesByDefault, Bool includeFunctionBlocksByDefault);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_includeInputPort(daqFunctionBlockWrapper* self, daqString* inputPortName);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_excludeInputPort(daqFunctionBlockWrapper* self, daqString* inputPortName);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_includeSignal(daqFunctionBlockWrapper* self, daqString* signalLocalId);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_excludeSignal(daqFunctionBlockWrapper* self, daqString* signalLocalId);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_includeProperty(daqFunctionBlockWrapper* self, daqString* propertyName);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_excludeProperty(daqFunctionBlockWrapper* self, daqString* propertyName);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_includeFunctionBlock(daqFunctionBlockWrapper* self, daqString* functionBlockLocalId);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_excludeFunctionBlock(daqFunctionBlockWrapper* self, daqString* functionBlockLocalId);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_setPropertyCoercer(daqFunctionBlockWrapper* self, daqString* propertyName, daqCoercer* coercer);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_setPropertyValidator(daqFunctionBlockWrapper* self, daqString* propertyName, daqValidator* validator);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_setPropertySelectionValues(daqFunctionBlockWrapper* self, daqString* propertyName, daqList* enumValues);
+    daqErrCode EXPORTED daqFunctionBlockWrapper_getWrappedFunctionBlock(daqFunctionBlockWrapper* self, daqFunctionBlock** functionBlock);
+    daqErrCode EXPORTED daqFunctionBlock_createFunctionBlockWrapper(daqFunctionBlock** obj, daqFunctionBlock* functionBlock, daqBool includeInputPortsByDefault, daqBool includeSignalsByDefault, daqBool includePropertiesByDefault, daqBool includeFunctionBlocksByDefault);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:41.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:48.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct EnumerationType EnumerationType;
-    typedef struct List List;
-    typedef struct Dict Dict;
-    typedef struct String String;
+    typedef struct daqEnumerationType daqEnumerationType;
+    typedef struct daqList daqList;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID ENUMERATION_TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_ENUMERATION_TYPE_INTF_ID;
 
-    ErrCode EXPORTED EnumerationType_getEnumeratorNames(EnumerationType* self, List** names);
-    ErrCode EXPORTED EnumerationType_getAsDictionary(EnumerationType* self, Dict** dictionary);
-    ErrCode EXPORTED EnumerationType_getEnumeratorIntValue(EnumerationType* self, String* name, Int* value);
-    ErrCode EXPORTED EnumerationType_getCount(EnumerationType* self, SizeT* count);
-    ErrCode EXPORTED EnumerationType_createEnumerationType(EnumerationType** obj, String* typeName, List* enumeratorNames, Int firstEnumeratorIntValue);
-    ErrCode EXPORTED EnumerationType_createEnumerationTypeWithValues(EnumerationType** obj, String* typeName, Dict* enumerators);
+    daqErrCode EXPORTED daqEnumerationType_getEnumeratorNames(daqEnumerationType* self, daqList** names);
+    daqErrCode EXPORTED daqEnumerationType_getAsDictionary(daqEnumerationType* self, daqDict** dictionary);
+    daqErrCode EXPORTED daqEnumerationType_getEnumeratorIntValue(daqEnumerationType* self, daqString* name, daqInt* value);
+    daqErrCode EXPORTED daqEnumerationType_getCount(daqEnumerationType* self, daqSizeT* count);
+    daqErrCode EXPORTED daqEnumerationType_createEnumerationType(daqEnumerationType** obj, daqString* typeName, daqList* enumeratorNames, daqInt firstEnumeratorIntValue);
+    daqErrCode EXPORTED daqEnumerationType_createEnumerationTypeWithValues(daqEnumerationType** obj, daqString* typeName, daqDict* enumerators);
 
 #ifdef __cplusplus
 }

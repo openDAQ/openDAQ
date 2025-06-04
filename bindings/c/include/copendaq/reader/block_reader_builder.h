@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:43.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:22.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,33 +34,33 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct BlockReaderBuilder BlockReaderBuilder;
-    typedef struct BlockReader BlockReader;
-    typedef struct Signal Signal;
-    typedef struct InputPort InputPort;
+    typedef struct daqBlockReaderBuilder daqBlockReaderBuilder;
+    typedef struct daqBlockReader daqBlockReader;
+    typedef struct daqSignal daqSignal;
+    typedef struct daqInputPort daqInputPort;
 
-    EXPORTED extern const IntfID BLOCK_READER_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_BLOCK_READER_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED BlockReaderBuilder_build(BlockReaderBuilder* self, BlockReader** blockReader);
-    ErrCode EXPORTED BlockReaderBuilder_setOldBlockReader(BlockReaderBuilder* self, BlockReader* blockReader);
-    ErrCode EXPORTED BlockReaderBuilder_getOldBlockReader(BlockReaderBuilder* self, BlockReader** blockReader);
-    ErrCode EXPORTED BlockReaderBuilder_setSignal(BlockReaderBuilder* self, Signal* signal);
-    ErrCode EXPORTED BlockReaderBuilder_getSignal(BlockReaderBuilder* self, Signal** signal);
-    ErrCode EXPORTED BlockReaderBuilder_setInputPort(BlockReaderBuilder* self, InputPort* port);
-    ErrCode EXPORTED BlockReaderBuilder_getInputPort(BlockReaderBuilder* self, InputPort** port);
-    ErrCode EXPORTED BlockReaderBuilder_setValueReadType(BlockReaderBuilder* self, SampleType type);
-    ErrCode EXPORTED BlockReaderBuilder_getValueReadType(BlockReaderBuilder* self, SampleType* type);
-    ErrCode EXPORTED BlockReaderBuilder_setDomainReadType(BlockReaderBuilder* self, SampleType type);
-    ErrCode EXPORTED BlockReaderBuilder_getDomainReadType(BlockReaderBuilder* self, SampleType* type);
-    ErrCode EXPORTED BlockReaderBuilder_setReadMode(BlockReaderBuilder* self, ReadMode mode);
-    ErrCode EXPORTED BlockReaderBuilder_getReadMode(BlockReaderBuilder* self, ReadMode* mode);
-    ErrCode EXPORTED BlockReaderBuilder_setBlockSize(BlockReaderBuilder* self, SizeT size);
-    ErrCode EXPORTED BlockReaderBuilder_getBlockSize(BlockReaderBuilder* self, SizeT* size);
-    ErrCode EXPORTED BlockReaderBuilder_setOverlap(BlockReaderBuilder* self, SizeT overlap);
-    ErrCode EXPORTED BlockReaderBuilder_getOverlap(BlockReaderBuilder* self, SizeT* overlap);
-    ErrCode EXPORTED BlockReaderBuilder_setSkipEvents(BlockReaderBuilder* self, Bool skipEvents);
-    ErrCode EXPORTED BlockReaderBuilder_getSkipEvents(BlockReaderBuilder* self, Bool* skipEvents);
-    ErrCode EXPORTED BlockReaderBuilder_createBlockReaderBuilder(BlockReaderBuilder** obj);
+    daqErrCode EXPORTED daqBlockReaderBuilder_build(daqBlockReaderBuilder* self, daqBlockReader** blockReader);
+    daqErrCode EXPORTED daqBlockReaderBuilder_setOldBlockReader(daqBlockReaderBuilder* self, daqBlockReader* blockReader);
+    daqErrCode EXPORTED daqBlockReaderBuilder_getOldBlockReader(daqBlockReaderBuilder* self, daqBlockReader** blockReader);
+    daqErrCode EXPORTED daqBlockReaderBuilder_setSignal(daqBlockReaderBuilder* self, daqSignal* signal);
+    daqErrCode EXPORTED daqBlockReaderBuilder_getSignal(daqBlockReaderBuilder* self, daqSignal** signal);
+    daqErrCode EXPORTED daqBlockReaderBuilder_setInputPort(daqBlockReaderBuilder* self, daqInputPort* port);
+    daqErrCode EXPORTED daqBlockReaderBuilder_getInputPort(daqBlockReaderBuilder* self, daqInputPort** port);
+    daqErrCode EXPORTED daqBlockReaderBuilder_setValueReadType(daqBlockReaderBuilder* self, daqSampleType type);
+    daqErrCode EXPORTED daqBlockReaderBuilder_getValueReadType(daqBlockReaderBuilder* self, daqSampleType* type);
+    daqErrCode EXPORTED daqBlockReaderBuilder_setDomainReadType(daqBlockReaderBuilder* self, daqSampleType type);
+    daqErrCode EXPORTED daqBlockReaderBuilder_getDomainReadType(daqBlockReaderBuilder* self, daqSampleType* type);
+    daqErrCode EXPORTED daqBlockReaderBuilder_setReadMode(daqBlockReaderBuilder* self, daqReadMode mode);
+    daqErrCode EXPORTED daqBlockReaderBuilder_getReadMode(daqBlockReaderBuilder* self, daqReadMode* mode);
+    daqErrCode EXPORTED daqBlockReaderBuilder_setBlockSize(daqBlockReaderBuilder* self, daqSizeT size);
+    daqErrCode EXPORTED daqBlockReaderBuilder_getBlockSize(daqBlockReaderBuilder* self, daqSizeT* size);
+    daqErrCode EXPORTED daqBlockReaderBuilder_setOverlap(daqBlockReaderBuilder* self, daqSizeT overlap);
+    daqErrCode EXPORTED daqBlockReaderBuilder_getOverlap(daqBlockReaderBuilder* self, daqSizeT* overlap);
+    daqErrCode EXPORTED daqBlockReaderBuilder_setSkipEvents(daqBlockReaderBuilder* self, daqBool skipEvents);
+    daqErrCode EXPORTED daqBlockReaderBuilder_getSkipEvents(daqBlockReaderBuilder* self, daqBool* skipEvents);
+    daqErrCode EXPORTED daqBlockReaderBuilder_createBlockReaderBuilder(daqBlockReaderBuilder** obj);
 
 #ifdef __cplusplus
 }

@@ -4,18 +4,18 @@
 
 #include "private/c_event_handler_impl.h"
 
-ErrCode Serializer_createJsonSerializer(Serializer** obj, Bool pretty)
+daqErrCode Serializer_createJsonSerializer(daqSerializer** obj, daqBool pretty)
 {
     daq::ISerializer* ptr = nullptr;
-    ErrCode err = daq::createJsonSerializer(&ptr, pretty);
-    *obj = reinterpret_cast<Serializer*>(ptr);
+    daqErrCode err = daq::createJsonSerializer(&ptr, pretty);
+    *obj = reinterpret_cast<daqSerializer*>(ptr);
     return err;
 }
 
-ErrCode EventHandler_createEventHandler(EventHandler** obj, EventCall call)
+daqErrCode EventHandler_createEventHandler(daqEventHandler** obj, daqEventCall call)
 {
     daq::IEventHandler* ptr = nullptr;
-    ErrCode err = daq::createObjectForwarding<daq::IEventHandler, daq::CEventHandlerImpl>(&ptr, call);
-    *obj = reinterpret_cast<EventHandler*>(ptr);
+    daqErrCode err = daq::createObjectForwarding<daq::IEventHandler, daq::CEventHandlerImpl>(&ptr, call);
+    *obj = reinterpret_cast<daqEventHandler*>(ptr);
     return err;
 }

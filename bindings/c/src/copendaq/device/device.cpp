@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:24.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,184 +15,179 @@
 
 #include <copendaq_private.h>
 
-const IntfID DEVICE_INTF_ID = { daq::IDevice::Id.Data1, daq::IDevice::Id.Data2, daq::IDevice::Id.Data3, daq::IDevice::Id.Data4_UInt64 };
+const daqIntfID DAQ_DEVICE_INTF_ID = { daq::IDevice::Id.Data1, daq::IDevice::Id.Data2, daq::IDevice::Id.Data3, daq::IDevice::Id.Data4_UInt64 };
 
-ErrCode Device_getInfo(Device* self, DeviceInfo** info)
+daqErrCode daqDevice_getInfo(daqDevice* self, daqDeviceInfo** info)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getInfo(reinterpret_cast<daq::IDeviceInfo**>(info));
 }
 
-ErrCode Device_getDomain(Device* self, DeviceDomain** domain)
+daqErrCode daqDevice_getDomain(daqDevice* self, daqDeviceDomain** domain)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getDomain(reinterpret_cast<daq::IDeviceDomain**>(domain));
 }
 
-ErrCode Device_getInputsOutputsFolder(Device* self, Folder** inputsOutputsFolder)
+daqErrCode daqDevice_getInputsOutputsFolder(daqDevice* self, daqFolder** inputsOutputsFolder)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getInputsOutputsFolder(reinterpret_cast<daq::IFolder**>(inputsOutputsFolder));
 }
 
-ErrCode Device_getCustomComponents(Device* self, List** customComponents)
+daqErrCode daqDevice_getCustomComponents(daqDevice* self, daqList** customComponents)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getCustomComponents(reinterpret_cast<daq::IList**>(customComponents));
 }
 
-ErrCode Device_getSignals(Device* self, List** signals, SearchFilter* searchFilter)
+daqErrCode daqDevice_getSignals(daqDevice* self, daqList** signals, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getSignals(reinterpret_cast<daq::IList**>(signals), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode Device_getSignalsRecursive(Device* self, List** signals, SearchFilter* searchFilter)
+daqErrCode daqDevice_getSignalsRecursive(daqDevice* self, daqList** signals, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getSignalsRecursive(reinterpret_cast<daq::IList**>(signals), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode Device_getChannels(Device* self, List** channels, SearchFilter* searchFilter)
+daqErrCode daqDevice_getChannels(daqDevice* self, daqList** channels, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getChannels(reinterpret_cast<daq::IList**>(channels), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode Device_getChannelsRecursive(Device* self, List** channels, SearchFilter* searchFilter)
+daqErrCode daqDevice_getChannelsRecursive(daqDevice* self, daqList** channels, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getChannelsRecursive(reinterpret_cast<daq::IList**>(channels), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode Device_getDevices(Device* self, List** devices, SearchFilter* searchFilter)
+daqErrCode daqDevice_getDevices(daqDevice* self, daqList** devices, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getDevices(reinterpret_cast<daq::IList**>(devices), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode Device_getAvailableDevices(Device* self, List** availableDevices)
+daqErrCode daqDevice_getAvailableDevices(daqDevice* self, daqList** availableDevices)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getAvailableDevices(reinterpret_cast<daq::IList**>(availableDevices));
 }
 
-ErrCode Device_getAvailableDeviceTypes(Device* self, Dict** deviceTypes)
+daqErrCode daqDevice_getAvailableDeviceTypes(daqDevice* self, daqDict** deviceTypes)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getAvailableDeviceTypes(reinterpret_cast<daq::IDict**>(deviceTypes));
 }
 
-ErrCode Device_addDevice(Device* self, Device** device, String* connectionString, PropertyObject* config)
+daqErrCode daqDevice_addDevice(daqDevice* self, daqDevice** device, daqString* connectionString, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IDevice*>(self)->addDevice(reinterpret_cast<daq::IDevice**>(device), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode Device_removeDevice(Device* self, Device* device)
+daqErrCode daqDevice_removeDevice(daqDevice* self, daqDevice* device)
 {
     return reinterpret_cast<daq::IDevice*>(self)->removeDevice(reinterpret_cast<daq::IDevice*>(device));
 }
 
-ErrCode Device_getFunctionBlocks(Device* self, List** functionBlocks, SearchFilter* searchFilter)
+daqErrCode daqDevice_getFunctionBlocks(daqDevice* self, daqList** functionBlocks, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getFunctionBlocks(reinterpret_cast<daq::IList**>(functionBlocks), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode Device_getAvailableFunctionBlockTypes(Device* self, Dict** functionBlockTypes)
+daqErrCode daqDevice_getAvailableFunctionBlockTypes(daqDevice* self, daqDict** functionBlockTypes)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getAvailableFunctionBlockTypes(reinterpret_cast<daq::IDict**>(functionBlockTypes));
 }
 
-ErrCode Device_addFunctionBlock(Device* self, FunctionBlock** functionBlock, String* typeId, PropertyObject* config)
+daqErrCode daqDevice_addFunctionBlock(daqDevice* self, daqFunctionBlock** functionBlock, daqString* typeId, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IDevice*>(self)->addFunctionBlock(reinterpret_cast<daq::IFunctionBlock**>(functionBlock), reinterpret_cast<daq::IString*>(typeId), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode Device_removeFunctionBlock(Device* self, FunctionBlock* functionBlock)
+daqErrCode daqDevice_removeFunctionBlock(daqDevice* self, daqFunctionBlock* functionBlock)
 {
     return reinterpret_cast<daq::IDevice*>(self)->removeFunctionBlock(reinterpret_cast<daq::IFunctionBlock*>(functionBlock));
 }
 
-ErrCode Device_saveConfiguration(Device* self, String** configuration)
+daqErrCode daqDevice_saveConfiguration(daqDevice* self, daqString** configuration)
 {
     return reinterpret_cast<daq::IDevice*>(self)->saveConfiguration(reinterpret_cast<daq::IString**>(configuration));
 }
 
-ErrCode Device_loadConfiguration(Device* self, String* configuration, UpdateParameters* config)
+daqErrCode daqDevice_loadConfiguration(daqDevice* self, daqString* configuration, daqUpdateParameters* config)
 {
     return reinterpret_cast<daq::IDevice*>(self)->loadConfiguration(reinterpret_cast<daq::IString*>(configuration), reinterpret_cast<daq::IUpdateParameters*>(config));
 }
 
-ErrCode Device_getTicksSinceOrigin(Device* self, UInt* ticks)
+daqErrCode daqDevice_getTicksSinceOrigin(daqDevice* self, daqUInt* ticks)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getTicksSinceOrigin(reinterpret_cast<daq::UInt*>(ticks));
 }
 
-ErrCode Device_addStreaming(Device* self, Streaming** streaming, String* connectionString, PropertyObject* config)
+daqErrCode daqDevice_addStreaming(daqDevice* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IDevice*>(self)->addStreaming(reinterpret_cast<daq::IStreaming**>(streaming), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode Device_createDefaultAddDeviceConfig(Device* self, PropertyObject** defaultConfig)
+daqErrCode daqDevice_createDefaultAddDeviceConfig(daqDevice* self, daqPropertyObject** defaultConfig)
 {
     return reinterpret_cast<daq::IDevice*>(self)->createDefaultAddDeviceConfig(reinterpret_cast<daq::IPropertyObject**>(defaultConfig));
 }
 
-ErrCode Device_getSyncComponent(Device* self, SyncComponent** sync)
+daqErrCode daqDevice_getSyncComponent(daqDevice* self, daqSyncComponent** sync)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getSyncComponent(reinterpret_cast<daq::ISyncComponent**>(sync));
 }
 
-ErrCode Device_addServer(Device* self, String* typeId, PropertyObject* config, Server** server)
+daqErrCode daqDevice_addServer(daqDevice* self, daqString* typeId, daqPropertyObject* config, daqServer** server)
 {
     return reinterpret_cast<daq::IDevice*>(self)->addServer(reinterpret_cast<daq::IString*>(typeId), reinterpret_cast<daq::IPropertyObject*>(config), reinterpret_cast<daq::IServer**>(server));
 }
 
-ErrCode Device_removeServer(Device* self, Server* server)
+daqErrCode daqDevice_removeServer(daqDevice* self, daqServer* server)
 {
     return reinterpret_cast<daq::IDevice*>(self)->removeServer(reinterpret_cast<daq::IServer*>(server));
 }
 
-ErrCode Device_getServers(Device* self, List** servers)
+daqErrCode daqDevice_getServers(daqDevice* self, daqList** servers)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getServers(reinterpret_cast<daq::IList**>(servers));
 }
 
-ErrCode Device_lock(Device* self)
+daqErrCode daqDevice_lock(daqDevice* self)
 {
     return reinterpret_cast<daq::IDevice*>(self)->lock();
 }
 
-ErrCode Device_unlock(Device* self)
+daqErrCode daqDevice_unlock(daqDevice* self)
 {
     return reinterpret_cast<daq::IDevice*>(self)->unlock();
 }
 
-ErrCode Device_isLocked(Device* self, Bool* locked)
+daqErrCode daqDevice_isLocked(daqDevice* self, daqBool* locked)
 {
     return reinterpret_cast<daq::IDevice*>(self)->isLocked(locked);
 }
 
-ErrCode Device_getLogFileInfos(Device* self, List** logFileInfos)
+daqErrCode daqDevice_getLogFileInfos(daqDevice* self, daqList** logFileInfos)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getLogFileInfos(reinterpret_cast<daq::IList**>(logFileInfos));
 }
 
-ErrCode Device_getLog(Device* self, String** log, String* id, Int size, Int offset)
+daqErrCode daqDevice_getLog(daqDevice* self, daqString** log, daqString* id, daqInt size, daqInt offset)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getLog(reinterpret_cast<daq::IString**>(log), reinterpret_cast<daq::IString*>(id), size, offset);
 }
 
-ErrCode Device_getConnectionStatusContainer(Device* self, ComponentStatusContainer** statusContainer)
+daqErrCode daqDevice_getConnectionStatusContainer(daqDevice* self, daqComponentStatusContainer** statusContainer)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getConnectionStatusContainer(reinterpret_cast<daq::IComponentStatusContainer**>(statusContainer));
 }
 
-ErrCode Device_getAvailableOperationModes(Device* self, List** availableOpModes)
+daqErrCode daqDevice_getAvailableOperationModes(daqDevice* self, daqList** availableOpModes)
 {
     return reinterpret_cast<daq::IDevice*>(self)->getAvailableOperationModes(reinterpret_cast<daq::IList**>(availableOpModes));
 }
 
-ErrCode Device_setOperationMode(Device* self, OperationModeType modeType)
+daqErrCode daqDevice_setOperationMode(daqDevice* self, daqOperationModeType modeType)
 {
     return reinterpret_cast<daq::IDevice*>(self)->setOperationMode(static_cast<daq::OperationModeType>(modeType));
 }
 
-ErrCode Device_setOperationModeRecursive(Device* self, OperationModeType modeType)
+daqErrCode daqDevice_setOperationModeRecursive(daqDevice* self, daqOperationModeType modeType)
 {
     return reinterpret_cast<daq::IDevice*>(self)->setOperationModeRecursive(static_cast<daq::OperationModeType>(modeType));
-}
-
-ErrCode Device_getOperationMode(Device* self, OperationModeType* modeType)
-{
-    return reinterpret_cast<daq::IDevice*>(self)->getOperationMode(reinterpret_cast<daq::OperationModeType*>(modeType));
 }

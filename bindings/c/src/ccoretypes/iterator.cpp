@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:46.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,14 +15,14 @@
 
 #include <copendaq_private.h>
 
-const IntfID ITERATOR_INTF_ID = { daq::IIterator::Id.Data1, daq::IIterator::Id.Data2, daq::IIterator::Id.Data3, daq::IIterator::Id.Data4_UInt64 };
+const daqIntfID DAQ_ITERATOR_INTF_ID = { daq::IIterator::Id.Data1, daq::IIterator::Id.Data2, daq::IIterator::Id.Data3, daq::IIterator::Id.Data4_UInt64 };
 
-ErrCode Iterator_moveNext(Iterator* self)
+daqErrCode daqIterator_moveNext(daqIterator* self)
 {
     return reinterpret_cast<daq::IIterator*>(self)->moveNext();
 }
 
-ErrCode Iterator_getCurrent(Iterator* self, BaseObject** obj)
+daqErrCode daqIterator_getCurrent(daqIterator* self, daqBaseObject** obj)
 {
     return reinterpret_cast<daq::IIterator*>(self)->getCurrent(reinterpret_cast<daq::IBaseObject**>(obj));
 }

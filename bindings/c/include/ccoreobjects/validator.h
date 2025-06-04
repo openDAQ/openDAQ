@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:10.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:21.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,15 +34,15 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Validator Validator;
-    typedef struct String String;
+    typedef struct daqValidator daqValidator;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID VALIDATOR_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_VALIDATOR_INTF_ID;
 
-    ErrCode EXPORTED Validator_validate(Validator* self, BaseObject* propObj, BaseObject* value);
-    ErrCode EXPORTED Validator_validateNoLock(Validator* self, BaseObject* propObj, BaseObject* value);
-    ErrCode EXPORTED Validator_getEval(Validator* self, String** eval);
-    ErrCode EXPORTED Validator_createValidator(Validator** obj, String* eval);
+    daqErrCode EXPORTED daqValidator_validate(daqValidator* self, daqBaseObject* propObj, daqBaseObject* value);
+    daqErrCode EXPORTED daqValidator_validateNoLock(daqValidator* self, daqBaseObject* propObj, daqBaseObject* value);
+    daqErrCode EXPORTED daqValidator_getEval(daqValidator* self, daqString** eval);
+    daqErrCode EXPORTED daqValidator_createValidator(daqValidator** obj, daqString* eval);
 
 #ifdef __cplusplus
 }

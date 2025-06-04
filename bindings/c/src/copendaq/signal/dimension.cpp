@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:03.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:43.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,45 +15,45 @@
 
 #include <copendaq_private.h>
 
-const IntfID DIMENSION_INTF_ID = { daq::IDimension::Id.Data1, daq::IDimension::Id.Data2, daq::IDimension::Id.Data3, daq::IDimension::Id.Data4_UInt64 };
+const daqIntfID DAQ_DIMENSION_INTF_ID = { daq::IDimension::Id.Data1, daq::IDimension::Id.Data2, daq::IDimension::Id.Data3, daq::IDimension::Id.Data4_UInt64 };
 
-ErrCode Dimension_getName(Dimension* self, String** name)
+daqErrCode daqDimension_getName(daqDimension* self, daqString** name)
 {
     return reinterpret_cast<daq::IDimension*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode Dimension_getSize(Dimension* self, SizeT* size)
+daqErrCode daqDimension_getSize(daqDimension* self, daqSizeT* size)
 {
     return reinterpret_cast<daq::IDimension*>(self)->getSize(size);
 }
 
-ErrCode Dimension_getUnit(Dimension* self, Unit** unit)
+daqErrCode daqDimension_getUnit(daqDimension* self, daqUnit** unit)
 {
     return reinterpret_cast<daq::IDimension*>(self)->getUnit(reinterpret_cast<daq::IUnit**>(unit));
 }
 
-ErrCode Dimension_getLabels(Dimension* self, List** labels)
+daqErrCode daqDimension_getLabels(daqDimension* self, daqList** labels)
 {
     return reinterpret_cast<daq::IDimension*>(self)->getLabels(reinterpret_cast<daq::IList**>(labels));
 }
 
-ErrCode Dimension_getRule(Dimension* self, DimensionRule** rule)
+daqErrCode daqDimension_getRule(daqDimension* self, daqDimensionRule** rule)
 {
     return reinterpret_cast<daq::IDimension*>(self)->getRule(reinterpret_cast<daq::IDimensionRule**>(rule));
 }
 
-ErrCode Dimension_createDimension(Dimension** obj, DimensionRule* rule, Unit* unit, String* name)
+daqErrCode daqDimension_createDimension(daqDimension** obj, daqDimensionRule* rule, daqUnit* unit, daqString* name)
 {
     daq::IDimension* ptr = nullptr;
-    ErrCode err = daq::createDimension(&ptr, reinterpret_cast<daq::IDimensionRule*>(rule), reinterpret_cast<daq::IUnit*>(unit), reinterpret_cast<daq::IString*>(name));
-    *obj = reinterpret_cast<Dimension*>(ptr);
+    daqErrCode err = daq::createDimension(&ptr, reinterpret_cast<daq::IDimensionRule*>(rule), reinterpret_cast<daq::IUnit*>(unit), reinterpret_cast<daq::IString*>(name));
+    *obj = reinterpret_cast<daqDimension*>(ptr);
     return err;
 }
 
-ErrCode Dimension_createDimensionFromBuilder(Dimension** obj, DimensionBuilder* builder)
+daqErrCode daqDimension_createDimensionFromBuilder(daqDimension** obj, daqDimensionBuilder* builder)
 {
     daq::IDimension* ptr = nullptr;
-    ErrCode err = daq::createDimensionFromBuilder(&ptr, reinterpret_cast<daq::IDimensionBuilder*>(builder));
-    *obj = reinterpret_cast<Dimension*>(ptr);
+    daqErrCode err = daq::createDimensionFromBuilder(&ptr, reinterpret_cast<daq::IDimensionBuilder*>(builder));
+    *obj = reinterpret_cast<daqDimension*>(ptr);
     return err;
 }

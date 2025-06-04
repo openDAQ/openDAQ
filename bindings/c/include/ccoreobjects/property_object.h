@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:05.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:16.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,39 +34,39 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PropertyObject PropertyObject;
-    typedef struct String String;
-    typedef struct Property Property;
-    typedef struct Event Event;
-    typedef struct List List;
-    typedef struct PermissionManager PermissionManager;
-    typedef struct TypeManager TypeManager;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqString daqString;
+    typedef struct daqProperty daqProperty;
+    typedef struct daqEvent daqEvent;
+    typedef struct daqList daqList;
+    typedef struct daqPermissionManager daqPermissionManager;
+    typedef struct daqTypeManager daqTypeManager;
 
-    EXPORTED extern const IntfID PROPERTY_OBJECT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_INTF_ID;
 
-    ErrCode EXPORTED PropertyObject_getClassName(PropertyObject* self, String** className);
-    ErrCode EXPORTED PropertyObject_setPropertyValue(PropertyObject* self, String* propertyName, BaseObject* value);
-    ErrCode EXPORTED PropertyObject_getPropertyValue(PropertyObject* self, String* propertyName, BaseObject** value);
-    ErrCode EXPORTED PropertyObject_getPropertySelectionValue(PropertyObject* self, String* propertyName, BaseObject** value);
-    ErrCode EXPORTED PropertyObject_clearPropertyValue(PropertyObject* self, String* propertyName);
-    ErrCode EXPORTED PropertyObject_hasProperty(PropertyObject* self, String* propertyName, Bool* hasProperty);
-    ErrCode EXPORTED PropertyObject_getProperty(PropertyObject* self, String* propertyName, Property** property);
-    ErrCode EXPORTED PropertyObject_addProperty(PropertyObject* self, Property* property);
-    ErrCode EXPORTED PropertyObject_removeProperty(PropertyObject* self, String* propertyName);
-    ErrCode EXPORTED PropertyObject_getOnPropertyValueWrite(PropertyObject* self, String* propertyName, Event** event);
-    ErrCode EXPORTED PropertyObject_getOnPropertyValueRead(PropertyObject* self, String* propertyName, Event** event);
-    ErrCode EXPORTED PropertyObject_getOnAnyPropertyValueWrite(PropertyObject* self, Event** event);
-    ErrCode EXPORTED PropertyObject_getOnAnyPropertyValueRead(PropertyObject* self, Event** event);
-    ErrCode EXPORTED PropertyObject_getVisibleProperties(PropertyObject* self, List** properties);
-    ErrCode EXPORTED PropertyObject_getAllProperties(PropertyObject* self, List** properties);
-    ErrCode EXPORTED PropertyObject_setPropertyOrder(PropertyObject* self, List* orderedPropertyNames);
-    ErrCode EXPORTED PropertyObject_beginUpdate(PropertyObject* self);
-    ErrCode EXPORTED PropertyObject_endUpdate(PropertyObject* self);
-    ErrCode EXPORTED PropertyObject_getUpdating(PropertyObject* self, Bool* updating);
-    ErrCode EXPORTED PropertyObject_getOnEndUpdate(PropertyObject* self, Event** event);
-    ErrCode EXPORTED PropertyObject_getPermissionManager(PropertyObject* self, PermissionManager** permissionManager);
-    ErrCode EXPORTED PropertyObject_createPropertyObject(PropertyObject** obj);
-    ErrCode EXPORTED PropertyObject_createPropertyObjectWithClassAndManager(PropertyObject** obj, TypeManager* manager, String* className);
+    daqErrCode EXPORTED daqPropertyObject_getClassName(daqPropertyObject* self, daqString** className);
+    daqErrCode EXPORTED daqPropertyObject_setPropertyValue(daqPropertyObject* self, daqString* propertyName, daqBaseObject* value);
+    daqErrCode EXPORTED daqPropertyObject_getPropertyValue(daqPropertyObject* self, daqString* propertyName, daqBaseObject** value);
+    daqErrCode EXPORTED daqPropertyObject_getPropertySelectionValue(daqPropertyObject* self, daqString* propertyName, daqBaseObject** value);
+    daqErrCode EXPORTED daqPropertyObject_clearPropertyValue(daqPropertyObject* self, daqString* propertyName);
+    daqErrCode EXPORTED daqPropertyObject_hasProperty(daqPropertyObject* self, daqString* propertyName, daqBool* hasProperty);
+    daqErrCode EXPORTED daqPropertyObject_getProperty(daqPropertyObject* self, daqString* propertyName, daqProperty** property);
+    daqErrCode EXPORTED daqPropertyObject_addProperty(daqPropertyObject* self, daqProperty* property);
+    daqErrCode EXPORTED daqPropertyObject_removeProperty(daqPropertyObject* self, daqString* propertyName);
+    daqErrCode EXPORTED daqPropertyObject_getOnPropertyValueWrite(daqPropertyObject* self, daqString* propertyName, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyObject_getOnPropertyValueRead(daqPropertyObject* self, daqString* propertyName, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyObject_getOnAnyPropertyValueWrite(daqPropertyObject* self, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyObject_getOnAnyPropertyValueRead(daqPropertyObject* self, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyObject_getVisibleProperties(daqPropertyObject* self, daqList** properties);
+    daqErrCode EXPORTED daqPropertyObject_getAllProperties(daqPropertyObject* self, daqList** properties);
+    daqErrCode EXPORTED daqPropertyObject_setPropertyOrder(daqPropertyObject* self, daqList* orderedPropertyNames);
+    daqErrCode EXPORTED daqPropertyObject_beginUpdate(daqPropertyObject* self);
+    daqErrCode EXPORTED daqPropertyObject_endUpdate(daqPropertyObject* self);
+    daqErrCode EXPORTED daqPropertyObject_getUpdating(daqPropertyObject* self, daqBool* updating);
+    daqErrCode EXPORTED daqPropertyObject_getOnEndUpdate(daqPropertyObject* self, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyObject_getPermissionManager(daqPropertyObject* self, daqPermissionManager** permissionManager);
+    daqErrCode EXPORTED daqPropertyObject_createPropertyObject(daqPropertyObject** obj);
+    daqErrCode EXPORTED daqPropertyObject_createPropertyObjectWithClassAndManager(daqPropertyObject** obj, daqTypeManager* manager, daqString* className);
 
 #ifdef __cplusplus
 }

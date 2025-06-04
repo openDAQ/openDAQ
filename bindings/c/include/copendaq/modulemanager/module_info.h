@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:39.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ModuleInfo ModuleInfo;
-    typedef struct VersionInfo VersionInfo;
-    typedef struct String String;
+    typedef struct daqModuleInfo daqModuleInfo;
+    typedef struct daqVersionInfo daqVersionInfo;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID MODULE_INFO_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_MODULE_INFO_INTF_ID;
 
-    ErrCode EXPORTED ModuleInfo_getVersionInfo(ModuleInfo* self, VersionInfo** version);
-    ErrCode EXPORTED ModuleInfo_getName(ModuleInfo* self, String** name);
-    ErrCode EXPORTED ModuleInfo_getId(ModuleInfo* self, String** id);
-    ErrCode EXPORTED ModuleInfo_createModuleInfo(ModuleInfo** obj, VersionInfo* versionInfo, String* name, String* id);
+    daqErrCode EXPORTED daqModuleInfo_getVersionInfo(daqModuleInfo* self, daqVersionInfo** version);
+    daqErrCode EXPORTED daqModuleInfo_getName(daqModuleInfo* self, daqString** name);
+    daqErrCode EXPORTED daqModuleInfo_getId(daqModuleInfo* self, daqString** id);
+    daqErrCode EXPORTED daqModuleInfo_createModuleInfo(daqModuleInfo** obj, daqVersionInfo* versionInfo, daqString* name, daqString* id);
 
 #ifdef __cplusplus
 }

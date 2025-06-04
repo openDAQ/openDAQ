@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:49.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:28.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,29 +15,29 @@
 
 #include <copendaq_private.h>
 
-const IntfID SAMPLE_READER_INTF_ID = { daq::ISampleReader::Id.Data1, daq::ISampleReader::Id.Data2, daq::ISampleReader::Id.Data3, daq::ISampleReader::Id.Data4_UInt64 };
+const daqIntfID DAQ_SAMPLE_READER_INTF_ID = { daq::ISampleReader::Id.Data1, daq::ISampleReader::Id.Data2, daq::ISampleReader::Id.Data3, daq::ISampleReader::Id.Data4_UInt64 };
 
-ErrCode SampleReader_getValueReadType(SampleReader* self, SampleType* sampleType)
+daqErrCode daqSampleReader_getValueReadType(daqSampleReader* self, daqSampleType* sampleType)
 {
     return reinterpret_cast<daq::ISampleReader*>(self)->getValueReadType(reinterpret_cast<daq::SampleType*>(sampleType));
 }
 
-ErrCode SampleReader_getDomainReadType(SampleReader* self, SampleType* sampleType)
+daqErrCode daqSampleReader_getDomainReadType(daqSampleReader* self, daqSampleType* sampleType)
 {
     return reinterpret_cast<daq::ISampleReader*>(self)->getDomainReadType(reinterpret_cast<daq::SampleType*>(sampleType));
 }
 
-ErrCode SampleReader_setValueTransformFunction(SampleReader* self, Function* transform)
+daqErrCode daqSampleReader_setValueTransformFunction(daqSampleReader* self, daqFunction* transform)
 {
     return reinterpret_cast<daq::ISampleReader*>(self)->setValueTransformFunction(reinterpret_cast<daq::IFunction*>(transform));
 }
 
-ErrCode SampleReader_setDomainTransformFunction(SampleReader* self, Function* transform)
+daqErrCode daqSampleReader_setDomainTransformFunction(daqSampleReader* self, daqFunction* transform)
 {
     return reinterpret_cast<daq::ISampleReader*>(self)->setDomainTransformFunction(reinterpret_cast<daq::IFunction*>(transform));
 }
 
-ErrCode SampleReader_getReadMode(SampleReader* self, ReadMode* mode)
+daqErrCode daqSampleReader_getReadMode(daqSampleReader* self, daqReadMode* mode)
 {
     return reinterpret_cast<daq::ISampleReader*>(self)->getReadMode(reinterpret_cast<daq::ReadMode*>(mode));
 }

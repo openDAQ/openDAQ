@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:53.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct TypeManagerPrivate TypeManagerPrivate;
-    typedef struct Procedure Procedure;
+    typedef struct daqTypeManagerPrivate daqTypeManagerPrivate;
+    typedef struct daqProcedure daqProcedure;
 
-    EXPORTED extern const IntfID TYPE_MANAGER_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_TYPE_MANAGER_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED TypeManagerPrivate_setCoreEventCallback(TypeManagerPrivate* self, Procedure* callback);
+    daqErrCode EXPORTED daqTypeManagerPrivate_setCoreEventCallback(daqTypeManagerPrivate* self, daqProcedure* callback);
 
 #ifdef __cplusplus
 }

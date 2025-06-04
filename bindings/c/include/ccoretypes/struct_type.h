@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:52.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:02.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct StructType StructType;
-    typedef struct List List;
-    typedef struct String String;
+    typedef struct daqStructType daqStructType;
+    typedef struct daqList daqList;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID STRUCT_TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_STRUCT_TYPE_INTF_ID;
 
-    ErrCode EXPORTED StructType_getFieldNames(StructType* self, List** names);
-    ErrCode EXPORTED StructType_getFieldDefaultValues(StructType* self, List** defaultValues);
-    ErrCode EXPORTED StructType_getFieldTypes(StructType* self, List** types);
-    ErrCode EXPORTED StructType_createStructType(StructType** obj, String* name, List* names, List* defaultValues, List* types);
-    ErrCode EXPORTED StructType_createStructTypeNoDefaults(StructType** obj, String* name, List* names, List* types);
+    daqErrCode EXPORTED daqStructType_getFieldNames(daqStructType* self, daqList** names);
+    daqErrCode EXPORTED daqStructType_getFieldDefaultValues(daqStructType* self, daqList** defaultValues);
+    daqErrCode EXPORTED daqStructType_getFieldTypes(daqStructType* self, daqList** types);
+    daqErrCode EXPORTED daqStructType_createStructType(daqStructType** obj, daqString* name, daqList* names, daqList* defaultValues, daqList* types);
+    daqErrCode EXPORTED daqStructType_createStructTypeNoDefaults(daqStructType** obj, daqString* name, daqList* names, daqList* types);
 
 #ifdef __cplusplus
 }

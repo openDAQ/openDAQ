@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:04.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:16.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,78 +34,78 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PropertyBuilder PropertyBuilder;
-    typedef struct Property Property;
-    typedef struct String String;
-    typedef struct Unit Unit;
-    typedef struct Number Number;
-    typedef struct List List;
-    typedef struct Boolean Boolean;
-    typedef struct EvalValue EvalValue;
-    typedef struct Validator Validator;
-    typedef struct Coercer Coercer;
-    typedef struct CallableInfo CallableInfo;
-    typedef struct Event Event;
-    typedef struct Integer Integer;
-    typedef struct FloatObject FloatObject;
-    typedef struct Dict Dict;
-    typedef struct Ratio Ratio;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct Struct Struct;
-    typedef struct Enumeration Enumeration;
+    typedef struct daqPropertyBuilder daqPropertyBuilder;
+    typedef struct daqProperty daqProperty;
+    typedef struct daqString daqString;
+    typedef struct daqUnit daqUnit;
+    typedef struct daqNumber daqNumber;
+    typedef struct daqList daqList;
+    typedef struct daqBoolean daqBoolean;
+    typedef struct daqEvalValue daqEvalValue;
+    typedef struct daqValidator daqValidator;
+    typedef struct daqCoercer daqCoercer;
+    typedef struct daqCallableInfo daqCallableInfo;
+    typedef struct daqEvent daqEvent;
+    typedef struct daqInteger daqInteger;
+    typedef struct daqFloatObject daqFloatObject;
+    typedef struct daqDict daqDict;
+    typedef struct daqRatio daqRatio;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqStruct daqStruct;
+    typedef struct daqEnumeration daqEnumeration;
 
-    EXPORTED extern const IntfID PROPERTY_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PROPERTY_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED PropertyBuilder_build(PropertyBuilder* self, Property** property);
-    ErrCode EXPORTED PropertyBuilder_setValueType(PropertyBuilder* self, CoreType type);
-    ErrCode EXPORTED PropertyBuilder_getValueType(PropertyBuilder* self, CoreType* type);
-    ErrCode EXPORTED PropertyBuilder_setName(PropertyBuilder* self, String* name);
-    ErrCode EXPORTED PropertyBuilder_getName(PropertyBuilder* self, String** name);
-    ErrCode EXPORTED PropertyBuilder_setDescription(PropertyBuilder* self, String* description);
-    ErrCode EXPORTED PropertyBuilder_getDescription(PropertyBuilder* self, String** description);
-    ErrCode EXPORTED PropertyBuilder_setUnit(PropertyBuilder* self, Unit* unit);
-    ErrCode EXPORTED PropertyBuilder_getUnit(PropertyBuilder* self, Unit** unit);
-    ErrCode EXPORTED PropertyBuilder_setMinValue(PropertyBuilder* self, Number* min);
-    ErrCode EXPORTED PropertyBuilder_getMinValue(PropertyBuilder* self, Number** min);
-    ErrCode EXPORTED PropertyBuilder_setMaxValue(PropertyBuilder* self, Number* max);
-    ErrCode EXPORTED PropertyBuilder_getMaxValue(PropertyBuilder* self, Number** max);
-    ErrCode EXPORTED PropertyBuilder_setDefaultValue(PropertyBuilder* self, BaseObject* value);
-    ErrCode EXPORTED PropertyBuilder_getDefaultValue(PropertyBuilder* self, BaseObject** value);
-    ErrCode EXPORTED PropertyBuilder_setSuggestedValues(PropertyBuilder* self, List* values);
-    ErrCode EXPORTED PropertyBuilder_getSuggestedValues(PropertyBuilder* self, List** values);
-    ErrCode EXPORTED PropertyBuilder_setVisible(PropertyBuilder* self, Boolean* visible);
-    ErrCode EXPORTED PropertyBuilder_getVisible(PropertyBuilder* self, Boolean** visible);
-    ErrCode EXPORTED PropertyBuilder_setReadOnly(PropertyBuilder* self, Boolean* readOnly);
-    ErrCode EXPORTED PropertyBuilder_getReadOnly(PropertyBuilder* self, Boolean** readOnly);
-    ErrCode EXPORTED PropertyBuilder_setSelectionValues(PropertyBuilder* self, BaseObject* values);
-    ErrCode EXPORTED PropertyBuilder_getSelectionValues(PropertyBuilder* self, BaseObject** values);
-    ErrCode EXPORTED PropertyBuilder_setReferencedProperty(PropertyBuilder* self, EvalValue* propertyEval);
-    ErrCode EXPORTED PropertyBuilder_getReferencedProperty(PropertyBuilder* self, EvalValue** propertyEval);
-    ErrCode EXPORTED PropertyBuilder_setValidator(PropertyBuilder* self, Validator* validator);
-    ErrCode EXPORTED PropertyBuilder_getValidator(PropertyBuilder* self, Validator** validator);
-    ErrCode EXPORTED PropertyBuilder_setCoercer(PropertyBuilder* self, Coercer* coercer);
-    ErrCode EXPORTED PropertyBuilder_getCoercer(PropertyBuilder* self, Coercer** coercer);
-    ErrCode EXPORTED PropertyBuilder_setCallableInfo(PropertyBuilder* self, CallableInfo* callable);
-    ErrCode EXPORTED PropertyBuilder_getCallableInfo(PropertyBuilder* self, CallableInfo** callable);
-    ErrCode EXPORTED PropertyBuilder_setOnPropertyValueWrite(PropertyBuilder* self, Event* event);
-    ErrCode EXPORTED PropertyBuilder_getOnPropertyValueWrite(PropertyBuilder* self, Event** event);
-    ErrCode EXPORTED PropertyBuilder_setOnPropertyValueRead(PropertyBuilder* self, Event* event);
-    ErrCode EXPORTED PropertyBuilder_getOnPropertyValueRead(PropertyBuilder* self, Event** event);
-    ErrCode EXPORTED PropertyBuilder_createPropertyBuilder(PropertyBuilder** obj, String* name);
-    ErrCode EXPORTED PropertyBuilder_createBoolPropertyBuilder(PropertyBuilder** obj, String* name, Boolean* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createIntPropertyBuilder(PropertyBuilder** obj, String* name, Integer* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createFloatPropertyBuilder(PropertyBuilder** obj, String* name, FloatObject* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createStringPropertyBuilder(PropertyBuilder** obj, String* name, String* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createListPropertyBuilder(PropertyBuilder** obj, String* name, List* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createDictPropertyBuilder(PropertyBuilder** obj, String* name, Dict* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createRatioPropertyBuilder(PropertyBuilder** obj, String* name, Ratio* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createObjectPropertyBuilder(PropertyBuilder** obj, String* name, PropertyObject* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createReferencePropertyBuilder(PropertyBuilder** obj, String* name, EvalValue* referencedPropertyEval);
-    ErrCode EXPORTED PropertyBuilder_createFunctionPropertyBuilder(PropertyBuilder** obj, String* name, CallableInfo* callableInfo);
-    ErrCode EXPORTED PropertyBuilder_createSelectionPropertyBuilder(PropertyBuilder** obj, String* name, List* selectionValues, Integer* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createSparseSelectionPropertyBuilder(PropertyBuilder** obj, String* name, Dict* selectionValues, Integer* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createStructPropertyBuilder(PropertyBuilder** obj, String* name, Struct* defaultValue);
-    ErrCode EXPORTED PropertyBuilder_createEnumerationPropertyBuilder(PropertyBuilder** obj, String* name, Enumeration* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_build(daqPropertyBuilder* self, daqProperty** property);
+    daqErrCode EXPORTED daqPropertyBuilder_setValueType(daqPropertyBuilder* self, daqCoreType type);
+    daqErrCode EXPORTED daqPropertyBuilder_getValueType(daqPropertyBuilder* self, daqCoreType* type);
+    daqErrCode EXPORTED daqPropertyBuilder_setName(daqPropertyBuilder* self, daqString* name);
+    daqErrCode EXPORTED daqPropertyBuilder_getName(daqPropertyBuilder* self, daqString** name);
+    daqErrCode EXPORTED daqPropertyBuilder_setDescription(daqPropertyBuilder* self, daqString* description);
+    daqErrCode EXPORTED daqPropertyBuilder_getDescription(daqPropertyBuilder* self, daqString** description);
+    daqErrCode EXPORTED daqPropertyBuilder_setUnit(daqPropertyBuilder* self, daqUnit* unit);
+    daqErrCode EXPORTED daqPropertyBuilder_getUnit(daqPropertyBuilder* self, daqUnit** unit);
+    daqErrCode EXPORTED daqPropertyBuilder_setMinValue(daqPropertyBuilder* self, daqNumber* min);
+    daqErrCode EXPORTED daqPropertyBuilder_getMinValue(daqPropertyBuilder* self, daqNumber** min);
+    daqErrCode EXPORTED daqPropertyBuilder_setMaxValue(daqPropertyBuilder* self, daqNumber* max);
+    daqErrCode EXPORTED daqPropertyBuilder_getMaxValue(daqPropertyBuilder* self, daqNumber** max);
+    daqErrCode EXPORTED daqPropertyBuilder_setDefaultValue(daqPropertyBuilder* self, daqBaseObject* value);
+    daqErrCode EXPORTED daqPropertyBuilder_getDefaultValue(daqPropertyBuilder* self, daqBaseObject** value);
+    daqErrCode EXPORTED daqPropertyBuilder_setSuggestedValues(daqPropertyBuilder* self, daqList* values);
+    daqErrCode EXPORTED daqPropertyBuilder_getSuggestedValues(daqPropertyBuilder* self, daqList** values);
+    daqErrCode EXPORTED daqPropertyBuilder_setVisible(daqPropertyBuilder* self, daqBoolean* visible);
+    daqErrCode EXPORTED daqPropertyBuilder_getVisible(daqPropertyBuilder* self, daqBoolean** visible);
+    daqErrCode EXPORTED daqPropertyBuilder_setReadOnly(daqPropertyBuilder* self, daqBoolean* readOnly);
+    daqErrCode EXPORTED daqPropertyBuilder_getReadOnly(daqPropertyBuilder* self, daqBoolean** readOnly);
+    daqErrCode EXPORTED daqPropertyBuilder_setSelectionValues(daqPropertyBuilder* self, daqBaseObject* values);
+    daqErrCode EXPORTED daqPropertyBuilder_getSelectionValues(daqPropertyBuilder* self, daqBaseObject** values);
+    daqErrCode EXPORTED daqPropertyBuilder_setReferencedProperty(daqPropertyBuilder* self, daqEvalValue* propertyEval);
+    daqErrCode EXPORTED daqPropertyBuilder_getReferencedProperty(daqPropertyBuilder* self, daqEvalValue** propertyEval);
+    daqErrCode EXPORTED daqPropertyBuilder_setValidator(daqPropertyBuilder* self, daqValidator* validator);
+    daqErrCode EXPORTED daqPropertyBuilder_getValidator(daqPropertyBuilder* self, daqValidator** validator);
+    daqErrCode EXPORTED daqPropertyBuilder_setCoercer(daqPropertyBuilder* self, daqCoercer* coercer);
+    daqErrCode EXPORTED daqPropertyBuilder_getCoercer(daqPropertyBuilder* self, daqCoercer** coercer);
+    daqErrCode EXPORTED daqPropertyBuilder_setCallableInfo(daqPropertyBuilder* self, daqCallableInfo* callable);
+    daqErrCode EXPORTED daqPropertyBuilder_getCallableInfo(daqPropertyBuilder* self, daqCallableInfo** callable);
+    daqErrCode EXPORTED daqPropertyBuilder_setOnPropertyValueWrite(daqPropertyBuilder* self, daqEvent* event);
+    daqErrCode EXPORTED daqPropertyBuilder_getOnPropertyValueWrite(daqPropertyBuilder* self, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyBuilder_setOnPropertyValueRead(daqPropertyBuilder* self, daqEvent* event);
+    daqErrCode EXPORTED daqPropertyBuilder_getOnPropertyValueRead(daqPropertyBuilder* self, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyBuilder_createPropertyBuilder(daqPropertyBuilder** obj, daqString* name);
+    daqErrCode EXPORTED daqPropertyBuilder_createBoolPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqBoolean* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createIntPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqInteger* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createFloatPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqFloatObject* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createStringPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqString* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createListPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqList* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createDictPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqDict* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createRatioPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqRatio* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createObjectPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqPropertyObject* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createReferencePropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqEvalValue* referencedPropertyEval);
+    daqErrCode EXPORTED daqPropertyBuilder_createFunctionPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqCallableInfo* callableInfo);
+    daqErrCode EXPORTED daqPropertyBuilder_createSelectionPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqList* selectionValues, daqInteger* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createSparseSelectionPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqDict* selectionValues, daqInteger* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createStructPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqStruct* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createEnumerationPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqEnumeration* defaultValue);
 
 #ifdef __cplusplus
 }

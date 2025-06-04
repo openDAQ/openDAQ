@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:48.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:27.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ReaderStatus ReaderStatus;
-    typedef struct EventPacket EventPacket;
-    typedef struct Number Number;
+    typedef struct daqReaderStatus daqReaderStatus;
+    typedef struct daqEventPacket daqEventPacket;
+    typedef struct daqNumber daqNumber;
 
-    EXPORTED extern const IntfID READER_STATUS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_READER_STATUS_INTF_ID;
 
-    ErrCode EXPORTED ReaderStatus_getReadStatus(ReaderStatus* self, ReadStatus* status);
-    ErrCode EXPORTED ReaderStatus_getEventPacket(ReaderStatus* self, EventPacket** packet);
-    ErrCode EXPORTED ReaderStatus_getValid(ReaderStatus* self, Bool* valid);
-    ErrCode EXPORTED ReaderStatus_getOffset(ReaderStatus* self, Number** offset);
-    ErrCode EXPORTED ReaderStatus_createReaderStatus(ReaderStatus** obj, EventPacket* eventPacket, Bool valid, Number* offset);
+    daqErrCode EXPORTED daqReaderStatus_getReadStatus(daqReaderStatus* self, daqReadStatus* status);
+    daqErrCode EXPORTED daqReaderStatus_getEventPacket(daqReaderStatus* self, daqEventPacket** packet);
+    daqErrCode EXPORTED daqReaderStatus_getValid(daqReaderStatus* self, daqBool* valid);
+    daqErrCode EXPORTED daqReaderStatus_getOffset(daqReaderStatus* self, daqNumber** offset);
+    daqErrCode EXPORTED daqReaderStatus_createReaderStatus(daqReaderStatus** obj, daqEventPacket* eventPacket, daqBool valid, daqNumber* offset);
 
 #ifdef __cplusplus
 }

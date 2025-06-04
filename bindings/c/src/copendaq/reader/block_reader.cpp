@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:42.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:22.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,48 +15,48 @@
 
 #include <copendaq_private.h>
 
-const IntfID BLOCK_READER_INTF_ID = { daq::IBlockReader::Id.Data1, daq::IBlockReader::Id.Data2, daq::IBlockReader::Id.Data3, daq::IBlockReader::Id.Data4_UInt64 };
+const daqIntfID DAQ_BLOCK_READER_INTF_ID = { daq::IBlockReader::Id.Data1, daq::IBlockReader::Id.Data2, daq::IBlockReader::Id.Data3, daq::IBlockReader::Id.Data4_UInt64 };
 
-ErrCode BlockReader_read(BlockReader* self, void* blocks, SizeT* count, SizeT timeoutMs, BlockReaderStatus** status)
+daqErrCode daqBlockReader_read(daqBlockReader* self, void* blocks, daqSizeT* count, daqSizeT timeoutMs, daqBlockReaderStatus** status)
 {
     return reinterpret_cast<daq::IBlockReader*>(self)->read(blocks, count, timeoutMs, reinterpret_cast<daq::IBlockReaderStatus**>(status));
 }
 
-ErrCode BlockReader_readWithDomain(BlockReader* self, void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs, BlockReaderStatus** status)
+daqErrCode daqBlockReader_readWithDomain(daqBlockReader* self, void* dataBlocks, void* domainBlocks, daqSizeT* count, daqSizeT timeoutMs, daqBlockReaderStatus** status)
 {
     return reinterpret_cast<daq::IBlockReader*>(self)->readWithDomain(dataBlocks, domainBlocks, count, timeoutMs, reinterpret_cast<daq::IBlockReaderStatus**>(status));
 }
 
-ErrCode BlockReader_getBlockSize(BlockReader* self, SizeT* size)
+daqErrCode daqBlockReader_getBlockSize(daqBlockReader* self, daqSizeT* size)
 {
     return reinterpret_cast<daq::IBlockReader*>(self)->getBlockSize(size);
 }
 
-ErrCode BlockReader_getOverlap(BlockReader* self, SizeT* overlap)
+daqErrCode daqBlockReader_getOverlap(daqBlockReader* self, daqSizeT* overlap)
 {
     return reinterpret_cast<daq::IBlockReader*>(self)->getOverlap(overlap);
 }
 
-ErrCode BlockReader_createBlockReader(BlockReader** obj, Signal* signal, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
+daqErrCode daqBlockReader_createBlockReader(daqBlockReader** obj, daqSignal* signal, daqSizeT blockSize, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode)
 {
     daq::IBlockReader* ptr = nullptr;
-    ErrCode err = daq::createBlockReader(&ptr, reinterpret_cast<daq::ISignal*>(signal), blockSize, static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(mode));
-    *obj = reinterpret_cast<BlockReader*>(ptr);
+    daqErrCode err = daq::createBlockReader(&ptr, reinterpret_cast<daq::ISignal*>(signal), blockSize, static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(mode));
+    *obj = reinterpret_cast<daqBlockReader*>(ptr);
     return err;
 }
 
-ErrCode BlockReader_createBlockReaderFromExisting(BlockReader** obj, BlockReader* invalidatedReader, SampleType valueReadType, SampleType domainReadType, SizeT blockSize)
+daqErrCode daqBlockReader_createBlockReaderFromExisting(daqBlockReader** obj, daqBlockReader* invalidatedReader, daqSampleType valueReadType, daqSampleType domainReadType, daqSizeT blockSize)
 {
     daq::IBlockReader* ptr = nullptr;
-    ErrCode err = daq::createBlockReaderFromExisting(&ptr, reinterpret_cast<daq::IBlockReader*>(invalidatedReader), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), blockSize);
-    *obj = reinterpret_cast<BlockReader*>(ptr);
+    daqErrCode err = daq::createBlockReaderFromExisting(&ptr, reinterpret_cast<daq::IBlockReader*>(invalidatedReader), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), blockSize);
+    *obj = reinterpret_cast<daqBlockReader*>(ptr);
     return err;
 }
 
-ErrCode BlockReader_createBlockReaderFromPort(BlockReader** obj, InputPortConfig* port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
+daqErrCode daqBlockReader_createBlockReaderFromPort(daqBlockReader** obj, daqInputPortConfig* port, daqSizeT blockSize, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode)
 {
     daq::IBlockReader* ptr = nullptr;
-    ErrCode err = daq::createBlockReaderFromPort(&ptr, reinterpret_cast<daq::IInputPortConfig*>(port), blockSize, static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(mode));
-    *obj = reinterpret_cast<BlockReader*>(ptr);
+    daqErrCode err = daq::createBlockReaderFromPort(&ptr, reinterpret_cast<daq::IInputPortConfig*>(port), blockSize, static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(mode));
+    *obj = reinterpret_cast<daqBlockReader*>(ptr);
     return err;
 }

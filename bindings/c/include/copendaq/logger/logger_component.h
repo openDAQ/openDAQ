@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:36.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:15.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,22 +34,22 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct LoggerComponent LoggerComponent;
-    typedef struct String String;
-    typedef struct List List;
-    typedef struct LoggerThreadPool LoggerThreadPool;
+    typedef struct daqLoggerComponent daqLoggerComponent;
+    typedef struct daqString daqString;
+    typedef struct daqList daqList;
+    typedef struct daqLoggerThreadPool daqLoggerThreadPool;
 
-    EXPORTED extern const IntfID LOGGER_COMPONENT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_LOGGER_COMPONENT_INTF_ID;
 
-    ErrCode EXPORTED LoggerComponent_getName(LoggerComponent* self, String** name);
-    ErrCode EXPORTED LoggerComponent_setLevel(LoggerComponent* self, LogLevel level);
-    ErrCode EXPORTED LoggerComponent_getLevel(LoggerComponent* self, LogLevel* level);
-    // ErrCode EXPORTED LoggerComponent_logMessage(LoggerComponent* self, SourceLocation location, ConstCharPtr msg, LogLevel level);
-    ErrCode EXPORTED LoggerComponent_setPattern(LoggerComponent* self, String* pattern);
-    ErrCode EXPORTED LoggerComponent_shouldLog(LoggerComponent* self, LogLevel level, Bool* willLog);
-    ErrCode EXPORTED LoggerComponent_flush(LoggerComponent* self);
-    ErrCode EXPORTED LoggerComponent_flushOnLevel(LoggerComponent* self, LogLevel level);
-    ErrCode EXPORTED LoggerComponent_createLoggerComponent(LoggerComponent** obj, String* name, List* sinks, LoggerThreadPool* threadPool, LogLevel level);
+    daqErrCode EXPORTED daqLoggerComponent_getName(daqLoggerComponent* self, daqString** name);
+    daqErrCode EXPORTED daqLoggerComponent_setLevel(daqLoggerComponent* self, daqLogLevel level);
+    daqErrCode EXPORTED daqLoggerComponent_getLevel(daqLoggerComponent* self, daqLogLevel* level);
+    // daqErrCode EXPORTED daqLoggerComponent_logMessage(daqLoggerComponent* self, daqSourceLocation location, daqConstCharPtr msg, daqLogLevel level);
+    daqErrCode EXPORTED daqLoggerComponent_setPattern(daqLoggerComponent* self, daqString* pattern);
+    daqErrCode EXPORTED daqLoggerComponent_shouldLog(daqLoggerComponent* self, daqLogLevel level, daqBool* willLog);
+    daqErrCode EXPORTED daqLoggerComponent_flush(daqLoggerComponent* self);
+    daqErrCode EXPORTED daqLoggerComponent_flushOnLevel(daqLoggerComponent* self, daqLogLevel level);
+    daqErrCode EXPORTED daqLoggerComponent_createLoggerComponent(daqLoggerComponent** obj, daqString* name, daqList* sinks, daqLoggerThreadPool* threadPool, daqLogLevel level);
 
 #ifdef __cplusplus
 }

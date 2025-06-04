@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:22.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:08:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,19 +15,19 @@
 
 #include <copendaq_private.h>
 
-const IntfID SYNC_COMPONENT_PRIVATE_INTF_ID = { daq::ISyncComponentPrivate::Id.Data1, daq::ISyncComponentPrivate::Id.Data2, daq::ISyncComponentPrivate::Id.Data3, daq::ISyncComponentPrivate::Id.Data4_UInt64 };
+const daqIntfID DAQ_SYNC_COMPONENT_PRIVATE_INTF_ID = { daq::ISyncComponentPrivate::Id.Data1, daq::ISyncComponentPrivate::Id.Data2, daq::ISyncComponentPrivate::Id.Data3, daq::ISyncComponentPrivate::Id.Data4_UInt64 };
 
-ErrCode SyncComponentPrivate_setSyncLocked(SyncComponentPrivate* self, Bool synchronizationLocked)
+daqErrCode daqSyncComponentPrivate_setSyncLocked(daqSyncComponentPrivate* self, daqBool synchronizationLocked)
 {
     return reinterpret_cast<daq::ISyncComponentPrivate*>(self)->setSyncLocked(synchronizationLocked);
 }
 
-ErrCode SyncComponentPrivate_addInterface(SyncComponentPrivate* self, PropertyObject* syncInterface)
+daqErrCode daqSyncComponentPrivate_addInterface(daqSyncComponentPrivate* self, daqPropertyObject* syncInterface)
 {
     return reinterpret_cast<daq::ISyncComponentPrivate*>(self)->addInterface(reinterpret_cast<daq::IPropertyObject*>(syncInterface));
 }
 
-ErrCode SyncComponentPrivate_removeInterface(SyncComponentPrivate* self, String* syncInterfaceName)
+daqErrCode daqSyncComponentPrivate_removeInterface(daqSyncComponentPrivate* self, daqString* syncInterfaceName)
 {
     return reinterpret_cast<daq::ISyncComponentPrivate*>(self)->removeInterface(reinterpret_cast<daq::IString*>(syncInterfaceName));
 }

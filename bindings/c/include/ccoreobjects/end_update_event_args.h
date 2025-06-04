@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:59.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:11.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct EndUpdateEventArgs EndUpdateEventArgs;
-    typedef struct List List;
+    typedef struct daqEndUpdateEventArgs daqEndUpdateEventArgs;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID END_UPDATE_EVENT_ARGS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_END_UPDATE_EVENT_ARGS_INTF_ID;
 
-    ErrCode EXPORTED EndUpdateEventArgs_getProperties(EndUpdateEventArgs* self, List** properties);
-    ErrCode EXPORTED EndUpdateEventArgs_getIsParentUpdating(EndUpdateEventArgs* self, Bool* isParentUpdating);
-    ErrCode EXPORTED EndUpdateEventArgs_createEndUpdateEventArgs(EndUpdateEventArgs** obj, List* properties, Bool isParentUpdating);
+    daqErrCode EXPORTED daqEndUpdateEventArgs_getProperties(daqEndUpdateEventArgs* self, daqList** properties);
+    daqErrCode EXPORTED daqEndUpdateEventArgs_getIsParentUpdating(daqEndUpdateEventArgs* self, daqBool* isParentUpdating);
+    daqErrCode EXPORTED daqEndUpdateEventArgs_createEndUpdateEventArgs(daqEndUpdateEventArgs** obj, daqList* properties, daqBool isParentUpdating);
 
 #ifdef __cplusplus
 }

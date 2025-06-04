@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:13.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,27 +15,27 @@
 
 #include <copendaq_private.h>
 
-const IntfID COMPONENT_STATUS_CONTAINER_INTF_ID = { daq::IComponentStatusContainer::Id.Data1, daq::IComponentStatusContainer::Id.Data2, daq::IComponentStatusContainer::Id.Data3, daq::IComponentStatusContainer::Id.Data4_UInt64 };
+const daqIntfID DAQ_COMPONENT_STATUS_CONTAINER_INTF_ID = { daq::IComponentStatusContainer::Id.Data1, daq::IComponentStatusContainer::Id.Data2, daq::IComponentStatusContainer::Id.Data3, daq::IComponentStatusContainer::Id.Data4_UInt64 };
 
-ErrCode ComponentStatusContainer_getStatus(ComponentStatusContainer* self, String* name, Enumeration** value)
+daqErrCode daqComponentStatusContainer_getStatus(daqComponentStatusContainer* self, daqString* name, daqEnumeration** value)
 {
     return reinterpret_cast<daq::IComponentStatusContainer*>(self)->getStatus(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IEnumeration**>(value));
 }
 
-ErrCode ComponentStatusContainer_getStatuses(ComponentStatusContainer* self, Dict** statuses)
+daqErrCode daqComponentStatusContainer_getStatuses(daqComponentStatusContainer* self, daqDict** statuses)
 {
     return reinterpret_cast<daq::IComponentStatusContainer*>(self)->getStatuses(reinterpret_cast<daq::IDict**>(statuses));
 }
 
-ErrCode ComponentStatusContainer_getStatusMessage(ComponentStatusContainer* self, String* name, String** message)
+daqErrCode daqComponentStatusContainer_getStatusMessage(daqComponentStatusContainer* self, daqString* name, daqString** message)
 {
     return reinterpret_cast<daq::IComponentStatusContainer*>(self)->getStatusMessage(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString**>(message));
 }
 
-ErrCode ComponentStatusContainer_createComponentStatusContainer(ComponentStatusContainer** obj)
+daqErrCode daqComponentStatusContainer_createComponentStatusContainer(daqComponentStatusContainer** obj)
 {
     daq::IComponentStatusContainer* ptr = nullptr;
-    ErrCode err = daq::createComponentStatusContainer(&ptr);
-    *obj = reinterpret_cast<ComponentStatusContainer*>(ptr);
+    daqErrCode err = daq::createComponentStatusContainer(&ptr);
+    *obj = reinterpret_cast<daqComponentStatusContainer*>(ptr);
     return err;
 }

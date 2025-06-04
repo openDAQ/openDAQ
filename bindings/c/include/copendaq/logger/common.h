@@ -21,26 +21,26 @@ extern "C"
 {
 #endif
 
-#define OPENDAQ_LOG_LEVEL_TRACE 0
-#define OPENDAQ_LOG_LEVEL_DEBUG 1
-#define OPENDAQ_LOG_LEVEL_INFO 2
-#define OPENDAQ_LOG_LEVEL_WARN 3
-#define OPENDAQ_LOG_LEVEL_ERROR 4
-#define OPENDAQ_LOG_LEVEL_CRITICAL 5
-#define OPENDAQ_LOG_LEVEL_OFF 6
-#define OPENDAQ_LOG_LEVEL_DEFAULT 7
+#define DAQ_LOG_LEVEL_TRACE 0
+#define DAQ_LOG_LEVEL_DEBUG 1
+#define DAQ_LOG_LEVEL_INFO 2
+#define DAQ_LOG_LEVEL_WARN 3
+#define DAQ_LOG_LEVEL_ERROR 4
+#define DAQ_LOG_LEVEL_CRITICAL 5
+#define DAQ_LOG_LEVEL_OFF 6
+#define DAQ_LOG_LEVEL_DEFAULT 7
 
-    typedef enum LogLevel
+    typedef enum daqLogLevel
     {
-        LogLevelTrace = OPENDAQ_LOG_LEVEL_TRACE,        ///< used to log any details about the execution for diagnostic
-        LogLevelDebug = OPENDAQ_LOG_LEVEL_DEBUG,        ///< used to log information which useful during software debugging
-        LogLevelInfo = OPENDAQ_LOG_LEVEL_INFO,          ///< used to log significant point-of-interest of the normal execution
-        LogLevelWarn = OPENDAQ_LOG_LEVEL_WARN,          ///< used to log expected problems that do not abort the execution
-        LogLevelError = OPENDAQ_LOG_LEVEL_ERROR,        ///< used to log unexpected failures
-        LogLevelCritical = OPENDAQ_LOG_LEVEL_CRITICAL,  ///< used to log unrecoverable problems or corruptions
-        LogLevelOff = OPENDAQ_LOG_LEVEL_OFF,            ///< used to turn off logging
-        LogLevelDefault = OPENDAQ_LOG_LEVEL_DEFAULT     ///< choose default logging level either from environment or compile-time setting
-    } LogLevel;
+        daqLogLevelTrace = DAQ_LOG_LEVEL_TRACE,        ///< used to log any details about the execution for diagnostic
+        daqLogLevelDebug = DAQ_LOG_LEVEL_DEBUG,        ///< used to log information which useful during software debugging
+        daqLogLevelInfo = DAQ_LOG_LEVEL_INFO,          ///< used to log significant point-of-interest of the normal execution
+        daqLogLevelWarn = DAQ_LOG_LEVEL_WARN,          ///< used to log expected problems that do not abort the execution
+        daqLogLevelError = DAQ_LOG_LEVEL_ERROR,        ///< used to log unexpected failures
+        daqLogLevelCritical = DAQ_LOG_LEVEL_CRITICAL,  ///< used to log unrecoverable problems or corruptions
+        daqLogLevelOff = DAQ_LOG_LEVEL_OFF,            ///< used to turn off logging
+        daqLogLevelDefault = DAQ_LOG_LEVEL_DEFAULT     ///< choose default logging level either from environment or compile-time setting
+    } daqLogLevel;
 
 #ifdef __cplusplus
 }

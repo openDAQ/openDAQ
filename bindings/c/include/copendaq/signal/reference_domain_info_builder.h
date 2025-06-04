@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:11.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,24 +34,24 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ReferenceDomainInfoBuilder ReferenceDomainInfoBuilder;
-    typedef struct ReferenceDomainInfo ReferenceDomainInfo;
-    typedef struct String String;
-    typedef struct Integer Integer;
+    typedef struct daqReferenceDomainInfoBuilder daqReferenceDomainInfoBuilder;
+    typedef struct daqReferenceDomainInfo daqReferenceDomainInfo;
+    typedef struct daqString daqString;
+    typedef struct daqInteger daqInteger;
 
-    EXPORTED extern const IntfID REFERENCE_DOMAIN_INFO_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_REFERENCE_DOMAIN_INFO_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_build(ReferenceDomainInfoBuilder* self, ReferenceDomainInfo** referenceDomainInfo);
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_setReferenceDomainId(ReferenceDomainInfoBuilder* self, String* referenceDomainId);
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_getReferenceDomainId(ReferenceDomainInfoBuilder* self, String** referenceDomainId);
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_setReferenceDomainOffset(ReferenceDomainInfoBuilder* self, Integer* referenceDomainOffset);
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_getReferenceDomainOffset(ReferenceDomainInfoBuilder* self, Integer** referenceDomainOffset);
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_setReferenceTimeSource(ReferenceDomainInfoBuilder* self, TimeSource referenceTimeSource);
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_getReferenceTimeSource(ReferenceDomainInfoBuilder* self, TimeSource* referenceTimeSource);
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_setUsesOffset(ReferenceDomainInfoBuilder* self, UsesOffset usesOffset);
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_getUsesOffset(ReferenceDomainInfoBuilder* self, UsesOffset* usesOffset);
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_createReferenceDomainInfoBuilder(ReferenceDomainInfoBuilder** obj);
-    ErrCode EXPORTED ReferenceDomainInfoBuilder_createReferenceDomainInfoBuilderFromExisting(ReferenceDomainInfoBuilder** obj, ReferenceDomainInfo* referenceDomainInfoToCopy);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_build(daqReferenceDomainInfoBuilder* self, daqReferenceDomainInfo** referenceDomainInfo);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceDomainId(daqReferenceDomainInfoBuilder* self, daqString* referenceDomainId);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceDomainId(daqReferenceDomainInfoBuilder* self, daqString** referenceDomainId);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceDomainOffset(daqReferenceDomainInfoBuilder* self, daqInteger* referenceDomainOffset);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceDomainOffset(daqReferenceDomainInfoBuilder* self, daqInteger** referenceDomainOffset);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceTimeSource(daqReferenceDomainInfoBuilder* self, daqTimeSource referenceTimeSource);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceTimeSource(daqReferenceDomainInfoBuilder* self, daqTimeSource* referenceTimeSource);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setUsesOffset(daqReferenceDomainInfoBuilder* self, daqUsesOffset usesOffset);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getUsesOffset(daqReferenceDomainInfoBuilder* self, daqUsesOffset* usesOffset);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_createReferenceDomainInfoBuilder(daqReferenceDomainInfoBuilder** obj);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_createReferenceDomainInfoBuilderFromExisting(daqReferenceDomainInfoBuilder** obj, daqReferenceDomainInfo* referenceDomainInfoToCopy);
 
 #ifdef __cplusplus
 }

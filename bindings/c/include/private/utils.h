@@ -27,9 +27,9 @@ struct IntfID;
 
 namespace copendaq::utils
 {
-daq::IntfID toDaqIntfId(IntfID id);
-daq::PropertyEventType toDaqPropertyEventType(PropertyEventType type);
-PropertyEventType toCPropertyEventType(daq::PropertyEventType type);
+daq::IntfID toDaqIntfId(daqIntfID id);
+daq::PropertyEventType toDaqPropertyEventType(daqPropertyEventType type);
+daqPropertyEventType toCPropertyEventType(daq::PropertyEventType type);
 
 template <typename To, typename From>
 To convertEnum(From value)

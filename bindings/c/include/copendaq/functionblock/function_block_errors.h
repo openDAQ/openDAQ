@@ -23,7 +23,7 @@
  * @{
  */
 
-#define OPENDAQ_ERRTYPE_FUCTION_BLOCK 0x02u
+#define DAQ_ERRTYPE_FUCTION_BLOCK 0x02u
 
 /*!
  * @}

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:40.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,59 +15,64 @@
 
 #include <copendaq_private.h>
 
-const IntfID MODULE_MANAGER_UTILS_INTF_ID = { daq::IModuleManagerUtils::Id.Data1, daq::IModuleManagerUtils::Id.Data2, daq::IModuleManagerUtils::Id.Data3, daq::IModuleManagerUtils::Id.Data4_UInt64 };
+const daqIntfID DAQ_MODULE_MANAGER_UTILS_INTF_ID = { daq::IModuleManagerUtils::Id.Data1, daq::IModuleManagerUtils::Id.Data2, daq::IModuleManagerUtils::Id.Data3, daq::IModuleManagerUtils::Id.Data4_UInt64 };
 
-ErrCode ModuleManagerUtils_getAvailableDevices(ModuleManagerUtils* self, List** availableDevices)
+daqErrCode daqModuleManagerUtils_getAvailableDevices(daqModuleManagerUtils* self, daqList** availableDevices)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->getAvailableDevices(reinterpret_cast<daq::IList**>(availableDevices));
 }
 
-ErrCode ModuleManagerUtils_getAvailableDeviceTypes(ModuleManagerUtils* self, Dict** deviceTypes)
+daqErrCode daqModuleManagerUtils_getAvailableDeviceTypes(daqModuleManagerUtils* self, daqDict** deviceTypes)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->getAvailableDeviceTypes(reinterpret_cast<daq::IDict**>(deviceTypes));
 }
 
-ErrCode ModuleManagerUtils_createDevice(ModuleManagerUtils* self, Device** device, String* connectionString, Component* parent, PropertyObject* config)
+daqErrCode daqModuleManagerUtils_createDevice(daqModuleManagerUtils* self, daqDevice** device, daqString* connectionString, daqComponent* parent, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createDevice(reinterpret_cast<daq::IDevice**>(device), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode ModuleManagerUtils_getAvailableFunctionBlockTypes(ModuleManagerUtils* self, Dict** functionBlockTypes)
+daqErrCode daqModuleManagerUtils_getAvailableFunctionBlockTypes(daqModuleManagerUtils* self, daqDict** functionBlockTypes)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->getAvailableFunctionBlockTypes(reinterpret_cast<daq::IDict**>(functionBlockTypes));
 }
 
-ErrCode ModuleManagerUtils_createFunctionBlock(ModuleManagerUtils* self, FunctionBlock** functionBlock, String* id, Component* parent, PropertyObject* config, String* localId)
+daqErrCode daqModuleManagerUtils_createFunctionBlock(daqModuleManagerUtils* self, daqFunctionBlock** functionBlock, daqString* id, daqComponent* parent, daqPropertyObject* config, daqString* localId)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createFunctionBlock(reinterpret_cast<daq::IFunctionBlock**>(functionBlock), reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IPropertyObject*>(config), reinterpret_cast<daq::IString*>(localId));
 }
 
-ErrCode ModuleManagerUtils_createStreaming(ModuleManagerUtils* self, Streaming** streaming, String* connectionString, PropertyObject* config)
+daqErrCode daqModuleManagerUtils_createStreaming(daqModuleManagerUtils* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createStreaming(reinterpret_cast<daq::IStreaming**>(streaming), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode ModuleManagerUtils_getAvailableStreamingTypes(ModuleManagerUtils* self, Dict** streamingTypes)
+daqErrCode daqModuleManagerUtils_getAvailableStreamingTypes(daqModuleManagerUtils* self, daqDict** streamingTypes)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->getAvailableStreamingTypes(reinterpret_cast<daq::IDict**>(streamingTypes));
 }
 
-ErrCode ModuleManagerUtils_createDefaultAddDeviceConfig(ModuleManagerUtils* self, PropertyObject** defaultConfig)
+daqErrCode daqModuleManagerUtils_createDefaultAddDeviceConfig(daqModuleManagerUtils* self, daqPropertyObject** defaultConfig)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createDefaultAddDeviceConfig(reinterpret_cast<daq::IPropertyObject**>(defaultConfig));
 }
 
-ErrCode ModuleManagerUtils_createServer(ModuleManagerUtils* self, Server** server, String* serverTypeId, Device* rootDevice, PropertyObject* serverConfig)
+daqErrCode daqModuleManagerUtils_createServer(daqModuleManagerUtils* self, daqServer** server, daqString* serverTypeId, daqDevice* rootDevice, daqPropertyObject* serverConfig)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createServer(reinterpret_cast<daq::IServer**>(server), reinterpret_cast<daq::IString*>(serverTypeId), reinterpret_cast<daq::IDevice*>(rootDevice), reinterpret_cast<daq::IPropertyObject*>(serverConfig));
 }
 
-ErrCode ModuleManagerUtils_changeIpConfig(ModuleManagerUtils* self, String* iface, String* manufacturer, String* serialNumber, PropertyObject* config)
+daqErrCode daqModuleManagerUtils_changeIpConfig(daqModuleManagerUtils* self, daqString* iface, daqString* manufacturer, daqString* serialNumber, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->changeIpConfig(reinterpret_cast<daq::IString*>(iface), reinterpret_cast<daq::IString*>(manufacturer), reinterpret_cast<daq::IString*>(serialNumber), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode ModuleManagerUtils_requestIpConfig(ModuleManagerUtils* self, String* iface, String* manufacturer, String* serialNumber, PropertyObject** config)
+daqErrCode daqModuleManagerUtils_requestIpConfig(daqModuleManagerUtils* self, daqString* iface, daqString* manufacturer, daqString* serialNumber, daqPropertyObject** config)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->requestIpConfig(reinterpret_cast<daq::IString*>(iface), reinterpret_cast<daq::IString*>(manufacturer), reinterpret_cast<daq::IString*>(serialNumber), reinterpret_cast<daq::IPropertyObject**>(config));
+}
+
+daqErrCode daqModuleManagerUtils_completeDeviceCapabilities(daqModuleManagerUtils* self, daqDevice* device)
+{
+    return reinterpret_cast<daq::IModuleManagerUtils*>(self)->completeDeviceCapabilities(reinterpret_cast<daq::IDevice*>(device));
 }

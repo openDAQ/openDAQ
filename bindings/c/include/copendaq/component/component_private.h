@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:12.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,18 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ComponentPrivate ComponentPrivate;
-    typedef struct List List;
-    typedef struct CoreEventArgs CoreEventArgs;
+    typedef struct daqComponentPrivate daqComponentPrivate;
+    typedef struct daqList daqList;
+    typedef struct daqCoreEventArgs daqCoreEventArgs;
+    typedef struct daqPropertyObject daqPropertyObject;
 
-    EXPORTED extern const IntfID COMPONENT_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPONENT_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED ComponentPrivate_lockAttributes(ComponentPrivate* self, List* attributes);
-    ErrCode EXPORTED ComponentPrivate_lockAllAttributes(ComponentPrivate* self);
-    ErrCode EXPORTED ComponentPrivate_unlockAttributes(ComponentPrivate* self, List* attributes);
-    ErrCode EXPORTED ComponentPrivate_unlockAllAttributes(ComponentPrivate* self);
-    ErrCode EXPORTED ComponentPrivate_triggerComponentCoreEvent(ComponentPrivate* self, CoreEventArgs* args);
-    ErrCode EXPORTED ComponentPrivate_updateOperationMode(ComponentPrivate* self, OperationModeType modeType);
+    daqErrCode EXPORTED daqComponentPrivate_lockAttributes(daqComponentPrivate* self, daqList* attributes);
+    daqErrCode EXPORTED daqComponentPrivate_lockAllAttributes(daqComponentPrivate* self);
+    daqErrCode EXPORTED daqComponentPrivate_unlockAttributes(daqComponentPrivate* self, daqList* attributes);
+    daqErrCode EXPORTED daqComponentPrivate_unlockAllAttributes(daqComponentPrivate* self);
+    daqErrCode EXPORTED daqComponentPrivate_triggerComponentCoreEvent(daqComponentPrivate* self, daqCoreEventArgs* args);
+    daqErrCode EXPORTED daqComponentPrivate_updateOperationMode(daqComponentPrivate* self, daqOperationModeType modeType);
+    daqErrCode EXPORTED daqComponentPrivate_setComponentConfig(daqComponentPrivate* self, daqPropertyObject* config);
+    daqErrCode EXPORTED daqComponentPrivate_getComponentConfig(daqComponentPrivate* self, daqPropertyObject** config);
 
 #ifdef __cplusplus
 }

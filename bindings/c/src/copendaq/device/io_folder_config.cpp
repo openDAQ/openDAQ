@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:29.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:08.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,6 +15,6 @@
 
 #include <copendaq_private.h>
 
-const IntfID IO_FOLDER_CONFIG_INTF_ID = { daq::IIoFolderConfig::Id.Data1, daq::IIoFolderConfig::Id.Data2, daq::IIoFolderConfig::Id.Data3, daq::IIoFolderConfig::Id.Data4_UInt64 };
+const daqIntfID DAQ_IO_FOLDER_CONFIG_INTF_ID = { daq::IIoFolderConfig::Id.Data1, daq::IIoFolderConfig::Id.Data2, daq::IIoFolderConfig::Id.Data3, daq::IIoFolderConfig::Id.Data4_UInt64 };
 
 

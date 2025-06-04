@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:59.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,35 +34,35 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DataDescriptor DataDescriptor;
-    typedef struct String String;
-    typedef struct List List;
-    typedef struct Unit Unit;
-    typedef struct Range Range;
-    typedef struct DataRule DataRule;
-    typedef struct Ratio Ratio;
-    typedef struct Scaling Scaling;
-    typedef struct Dict Dict;
-    typedef struct ReferenceDomainInfo ReferenceDomainInfo;
-    typedef struct DataDescriptorBuilder DataDescriptorBuilder;
+    typedef struct daqDataDescriptor daqDataDescriptor;
+    typedef struct daqString daqString;
+    typedef struct daqList daqList;
+    typedef struct daqUnit daqUnit;
+    typedef struct daqRange daqRange;
+    typedef struct daqDataRule daqDataRule;
+    typedef struct daqRatio daqRatio;
+    typedef struct daqScaling daqScaling;
+    typedef struct daqDict daqDict;
+    typedef struct daqReferenceDomainInfo daqReferenceDomainInfo;
+    typedef struct daqDataDescriptorBuilder daqDataDescriptorBuilder;
 
-    EXPORTED extern const IntfID DATA_DESCRIPTOR_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DATA_DESCRIPTOR_INTF_ID;
 
-    ErrCode EXPORTED DataDescriptor_getName(DataDescriptor* self, String** name);
-    ErrCode EXPORTED DataDescriptor_getDimensions(DataDescriptor* self, List** dimensions);
-    ErrCode EXPORTED DataDescriptor_getSampleType(DataDescriptor* self, SampleType* sampleType);
-    ErrCode EXPORTED DataDescriptor_getUnit(DataDescriptor* self, Unit** unit);
-    ErrCode EXPORTED DataDescriptor_getValueRange(DataDescriptor* self, Range** range);
-    ErrCode EXPORTED DataDescriptor_getRule(DataDescriptor* self, DataRule** rule);
-    ErrCode EXPORTED DataDescriptor_getOrigin(DataDescriptor* self, String** origin);
-    ErrCode EXPORTED DataDescriptor_getTickResolution(DataDescriptor* self, Ratio** tickResolution);
-    ErrCode EXPORTED DataDescriptor_getPostScaling(DataDescriptor* self, Scaling** scaling);
-    ErrCode EXPORTED DataDescriptor_getStructFields(DataDescriptor* self, List** structFields);
-    ErrCode EXPORTED DataDescriptor_getMetadata(DataDescriptor* self, Dict** metadata);
-    ErrCode EXPORTED DataDescriptor_getSampleSize(DataDescriptor* self, SizeT* sampleSize);
-    ErrCode EXPORTED DataDescriptor_getRawSampleSize(DataDescriptor* self, SizeT* rawSampleSize);
-    ErrCode EXPORTED DataDescriptor_getReferenceDomainInfo(DataDescriptor* self, ReferenceDomainInfo** referenceDomainInfo);
-    ErrCode EXPORTED DataDescriptor_createDataDescriptorFromBuilder(DataDescriptor** obj, DataDescriptorBuilder* builder);
+    daqErrCode EXPORTED daqDataDescriptor_getName(daqDataDescriptor* self, daqString** name);
+    daqErrCode EXPORTED daqDataDescriptor_getDimensions(daqDataDescriptor* self, daqList** dimensions);
+    daqErrCode EXPORTED daqDataDescriptor_getSampleType(daqDataDescriptor* self, daqSampleType* sampleType);
+    daqErrCode EXPORTED daqDataDescriptor_getUnit(daqDataDescriptor* self, daqUnit** unit);
+    daqErrCode EXPORTED daqDataDescriptor_getValueRange(daqDataDescriptor* self, daqRange** range);
+    daqErrCode EXPORTED daqDataDescriptor_getRule(daqDataDescriptor* self, daqDataRule** rule);
+    daqErrCode EXPORTED daqDataDescriptor_getOrigin(daqDataDescriptor* self, daqString** origin);
+    daqErrCode EXPORTED daqDataDescriptor_getTickResolution(daqDataDescriptor* self, daqRatio** tickResolution);
+    daqErrCode EXPORTED daqDataDescriptor_getPostScaling(daqDataDescriptor* self, daqScaling** scaling);
+    daqErrCode EXPORTED daqDataDescriptor_getStructFields(daqDataDescriptor* self, daqList** structFields);
+    daqErrCode EXPORTED daqDataDescriptor_getMetadata(daqDataDescriptor* self, daqDict** metadata);
+    daqErrCode EXPORTED daqDataDescriptor_getSampleSize(daqDataDescriptor* self, daqSizeT* sampleSize);
+    daqErrCode EXPORTED daqDataDescriptor_getRawSampleSize(daqDataDescriptor* self, daqSizeT* rawSampleSize);
+    daqErrCode EXPORTED daqDataDescriptor_getReferenceDomainInfo(daqDataDescriptor* self, daqReferenceDomainInfo** referenceDomainInfo);
+    daqErrCode EXPORTED daqDataDescriptor_createDataDescriptorFromBuilder(daqDataDescriptor** obj, daqDataDescriptorBuilder* builder);
 
 #ifdef __cplusplus
 }

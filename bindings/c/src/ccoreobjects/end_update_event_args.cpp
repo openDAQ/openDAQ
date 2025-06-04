@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:00.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:11.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,22 @@
 
 #include <copendaq_private.h>
 
-const IntfID END_UPDATE_EVENT_ARGS_INTF_ID = { daq::IEndUpdateEventArgs::Id.Data1, daq::IEndUpdateEventArgs::Id.Data2, daq::IEndUpdateEventArgs::Id.Data3, daq::IEndUpdateEventArgs::Id.Data4_UInt64 };
+const daqIntfID DAQ_END_UPDATE_EVENT_ARGS_INTF_ID = { daq::IEndUpdateEventArgs::Id.Data1, daq::IEndUpdateEventArgs::Id.Data2, daq::IEndUpdateEventArgs::Id.Data3, daq::IEndUpdateEventArgs::Id.Data4_UInt64 };
 
-ErrCode EndUpdateEventArgs_getProperties(EndUpdateEventArgs* self, List** properties)
+daqErrCode daqEndUpdateEventArgs_getProperties(daqEndUpdateEventArgs* self, daqList** properties)
 {
     return reinterpret_cast<daq::IEndUpdateEventArgs*>(self)->getProperties(reinterpret_cast<daq::IList**>(properties));
 }
 
-ErrCode EndUpdateEventArgs_getIsParentUpdating(EndUpdateEventArgs* self, Bool* isParentUpdating)
+daqErrCode daqEndUpdateEventArgs_getIsParentUpdating(daqEndUpdateEventArgs* self, daqBool* isParentUpdating)
 {
     return reinterpret_cast<daq::IEndUpdateEventArgs*>(self)->getIsParentUpdating(isParentUpdating);
 }
 
-ErrCode EndUpdateEventArgs_createEndUpdateEventArgs(EndUpdateEventArgs** obj, List* properties, Bool isParentUpdating)
+daqErrCode daqEndUpdateEventArgs_createEndUpdateEventArgs(daqEndUpdateEventArgs** obj, daqList* properties, daqBool isParentUpdating)
 {
     daq::IEndUpdateEventArgs* ptr = nullptr;
-    ErrCode err = daq::createEndUpdateEventArgs(&ptr, reinterpret_cast<daq::IList*>(properties), isParentUpdating);
-    *obj = reinterpret_cast<EndUpdateEventArgs*>(ptr);
+    daqErrCode err = daq::createEndUpdateEventArgs(&ptr, reinterpret_cast<daq::IList*>(properties), isParentUpdating);
+    *obj = reinterpret_cast<daqEndUpdateEventArgs*>(ptr);
     return err;
 }

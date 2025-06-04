@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:30.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:10.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct NetworkInterface NetworkInterface;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct String String;
+    typedef struct daqNetworkInterface daqNetworkInterface;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID NETWORK_INTERFACE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_NETWORK_INTERFACE_INTF_ID;
 
-    ErrCode EXPORTED NetworkInterface_requestCurrentConfiguration(NetworkInterface* self, PropertyObject** config);
-    ErrCode EXPORTED NetworkInterface_submitConfiguration(NetworkInterface* self, PropertyObject* config);
-    ErrCode EXPORTED NetworkInterface_createDefaultConfiguration(NetworkInterface* self, PropertyObject** defaultConfig);
-    ErrCode EXPORTED NetworkInterface_createNetworkInterface(NetworkInterface** obj, String* name, String* ownerDeviceManufacturerName, String* ownerDeviceSerialNumber, BaseObject* moduleManager);
+    daqErrCode EXPORTED daqNetworkInterface_requestCurrentConfiguration(daqNetworkInterface* self, daqPropertyObject** config);
+    daqErrCode EXPORTED daqNetworkInterface_submitConfiguration(daqNetworkInterface* self, daqPropertyObject* config);
+    daqErrCode EXPORTED daqNetworkInterface_createDefaultConfiguration(daqNetworkInterface* self, daqPropertyObject** defaultConfig);
+    daqErrCode EXPORTED daqNetworkInterface_createNetworkInterface(daqNetworkInterface** obj, daqString* name, daqString* ownerDeviceManufacturerName, daqString* ownerDeviceSerialNumber, daqBaseObject* moduleManager);
 
 #ifdef __cplusplus
 }

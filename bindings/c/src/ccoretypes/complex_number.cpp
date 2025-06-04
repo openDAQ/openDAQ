@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:38.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,36 +15,36 @@
 
 #include <copendaq_private.h>
 
-const IntfID COMPLEX_NUMBER_INTF_ID = { daq::IComplexNumber::Id.Data1, daq::IComplexNumber::Id.Data2, daq::IComplexNumber::Id.Data3, daq::IComplexNumber::Id.Data4_UInt64 };
+const daqIntfID DAQ_COMPLEX_NUMBER_INTF_ID = { daq::IComplexNumber::Id.Data1, daq::IComplexNumber::Id.Data2, daq::IComplexNumber::Id.Data3, daq::IComplexNumber::Id.Data4_UInt64 };
 
 /*
-ErrCode ComplexNumber_getValue(ComplexNumber* self, ComplexFloat64* value)
+daqErrCode daqComplexNumber_getValue(daqComplexNumber* self, daqComplexFloat64* value)
 {
     return reinterpret_cast<daq::IComplexNumber*>(self)->getValue(reinterpret_cast<daq::ComplexFloat64*>(value));
 }
 */
 
 /*
-ErrCode ComplexNumber_equalsValue(ComplexNumber* self, ComplexFloat64 value, Bool* equal)
+daqErrCode daqComplexNumber_equalsValue(daqComplexNumber* self, daqComplexFloat64 value, daqBool* equal)
 {
     return reinterpret_cast<daq::IComplexNumber*>(self)->equalsValue(static_cast<daq::ComplexFloat64>(value), equal);
 }
 */
 
-ErrCode ComplexNumber_getReal(ComplexNumber* self, Float* real)
+daqErrCode daqComplexNumber_getReal(daqComplexNumber* self, daqFloat* real)
 {
     return reinterpret_cast<daq::IComplexNumber*>(self)->getReal(real);
 }
 
-ErrCode ComplexNumber_getImaginary(ComplexNumber* self, Float* imaginary)
+daqErrCode daqComplexNumber_getImaginary(daqComplexNumber* self, daqFloat* imaginary)
 {
     return reinterpret_cast<daq::IComplexNumber*>(self)->getImaginary(imaginary);
 }
 
-ErrCode ComplexNumber_createComplexNumber(ComplexNumber** obj, Float real, Float imaginary)
+daqErrCode daqComplexNumber_createComplexNumber(daqComplexNumber** obj, daqFloat real, daqFloat imaginary)
 {
     daq::IComplexNumber* ptr = nullptr;
-    ErrCode err = daq::createComplexNumber(&ptr, real, imaginary);
-    *obj = reinterpret_cast<ComplexNumber*>(ptr);
+    daqErrCode err = daq::createComplexNumber(&ptr, real, imaginary);
+    *obj = reinterpret_cast<daqComplexNumber*>(ptr);
     return err;
 }

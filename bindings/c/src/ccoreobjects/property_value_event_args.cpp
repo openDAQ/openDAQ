@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:07.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:19.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,42 +15,42 @@
 
 #include <copendaq_private.h>
 
-const IntfID PROPERTY_VALUE_EVENT_ARGS_INTF_ID = { daq::IPropertyValueEventArgs::Id.Data1, daq::IPropertyValueEventArgs::Id.Data2, daq::IPropertyValueEventArgs::Id.Data3, daq::IPropertyValueEventArgs::Id.Data4_UInt64 };
+const daqIntfID DAQ_PROPERTY_VALUE_EVENT_ARGS_INTF_ID = { daq::IPropertyValueEventArgs::Id.Data1, daq::IPropertyValueEventArgs::Id.Data2, daq::IPropertyValueEventArgs::Id.Data3, daq::IPropertyValueEventArgs::Id.Data4_UInt64 };
 
-ErrCode PropertyValueEventArgs_getProperty(PropertyValueEventArgs* self, Property** property)
+daqErrCode daqPropertyValueEventArgs_getProperty(daqPropertyValueEventArgs* self, daqProperty** property)
 {
     return reinterpret_cast<daq::IPropertyValueEventArgs*>(self)->getProperty(reinterpret_cast<daq::IProperty**>(property));
 }
 
-ErrCode PropertyValueEventArgs_getValue(PropertyValueEventArgs* self, BaseObject** value)
+daqErrCode daqPropertyValueEventArgs_getValue(daqPropertyValueEventArgs* self, daqBaseObject** value)
 {
     return reinterpret_cast<daq::IPropertyValueEventArgs*>(self)->getValue(reinterpret_cast<daq::IBaseObject**>(value));
 }
 
-ErrCode PropertyValueEventArgs_setValue(PropertyValueEventArgs* self, BaseObject* value)
+daqErrCode daqPropertyValueEventArgs_setValue(daqPropertyValueEventArgs* self, daqBaseObject* value)
 {
     return reinterpret_cast<daq::IPropertyValueEventArgs*>(self)->setValue(reinterpret_cast<daq::IBaseObject*>(value));
 }
 
-ErrCode PropertyValueEventArgs_getPropertyEventType(PropertyValueEventArgs* self, PropertyEventType* changeType)
+daqErrCode daqPropertyValueEventArgs_getPropertyEventType(daqPropertyValueEventArgs* self, daqPropertyEventType* changeType)
 {
     return reinterpret_cast<daq::IPropertyValueEventArgs*>(self)->getPropertyEventType(reinterpret_cast<daq::PropertyEventType*>(changeType));
 }
 
-ErrCode PropertyValueEventArgs_getIsUpdating(PropertyValueEventArgs* self, Bool* isUpdating)
+daqErrCode daqPropertyValueEventArgs_getIsUpdating(daqPropertyValueEventArgs* self, daqBool* isUpdating)
 {
     return reinterpret_cast<daq::IPropertyValueEventArgs*>(self)->getIsUpdating(isUpdating);
 }
 
-ErrCode PropertyValueEventArgs_getOldValue(PropertyValueEventArgs* self, BaseObject** value)
+daqErrCode daqPropertyValueEventArgs_getOldValue(daqPropertyValueEventArgs* self, daqBaseObject** value)
 {
     return reinterpret_cast<daq::IPropertyValueEventArgs*>(self)->getOldValue(reinterpret_cast<daq::IBaseObject**>(value));
 }
 
-ErrCode PropertyValueEventArgs_createPropertyValueEventArgs(PropertyValueEventArgs** obj, Property* prop, BaseObject* value, BaseObject* oldValue, PropertyEventType type, Bool isUpdating)
+daqErrCode daqPropertyValueEventArgs_createPropertyValueEventArgs(daqPropertyValueEventArgs** obj, daqProperty* prop, daqBaseObject* value, daqBaseObject* oldValue, daqPropertyEventType type, daqBool isUpdating)
 {
     daq::IPropertyValueEventArgs* ptr = nullptr;
-    ErrCode err = daq::createPropertyValueEventArgs(&ptr, reinterpret_cast<daq::IProperty*>(prop), reinterpret_cast<daq::IBaseObject*>(value), reinterpret_cast<daq::IBaseObject*>(oldValue), static_cast<daq::PropertyEventType>(type), isUpdating);
-    *obj = reinterpret_cast<PropertyValueEventArgs*>(ptr);
+    daqErrCode err = daq::createPropertyValueEventArgs(&ptr, reinterpret_cast<daq::IProperty*>(prop), reinterpret_cast<daq::IBaseObject*>(value), reinterpret_cast<daq::IBaseObject*>(oldValue), static_cast<daq::PropertyEventType>(type), isUpdating);
+    *obj = reinterpret_cast<daqPropertyValueEventArgs*>(ptr);
     return err;
 }

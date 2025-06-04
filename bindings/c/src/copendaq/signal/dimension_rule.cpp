@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:04.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,54 +15,54 @@
 
 #include <copendaq_private.h>
 
-const IntfID DIMENSION_RULE_INTF_ID = { daq::IDimensionRule::Id.Data1, daq::IDimensionRule::Id.Data2, daq::IDimensionRule::Id.Data3, daq::IDimensionRule::Id.Data4_UInt64 };
+const daqIntfID DAQ_DIMENSION_RULE_INTF_ID = { daq::IDimensionRule::Id.Data1, daq::IDimensionRule::Id.Data2, daq::IDimensionRule::Id.Data3, daq::IDimensionRule::Id.Data4_UInt64 };
 
-ErrCode DimensionRule_getType(DimensionRule* self, DimensionRuleType* type)
+daqErrCode daqDimensionRule_getType(daqDimensionRule* self, daqDimensionRuleType* type)
 {
     return reinterpret_cast<daq::IDimensionRule*>(self)->getType(reinterpret_cast<daq::DimensionRuleType*>(type));
 }
 
-ErrCode DimensionRule_getParameters(DimensionRule* self, Dict** parameters)
+daqErrCode daqDimensionRule_getParameters(daqDimensionRule* self, daqDict** parameters)
 {
     return reinterpret_cast<daq::IDimensionRule*>(self)->getParameters(reinterpret_cast<daq::IDict**>(parameters));
 }
 
-ErrCode DimensionRule_createLinearDimensionRule(DimensionRule** obj, Number* delta, Number* start, SizeT size)
+daqErrCode daqDimensionRule_createLinearDimensionRule(daqDimensionRule** obj, daqNumber* delta, daqNumber* start, daqSizeT size)
 {
     daq::IDimensionRule* ptr = nullptr;
-    ErrCode err = daq::createLinearDimensionRule(&ptr, reinterpret_cast<daq::INumber*>(delta), reinterpret_cast<daq::INumber*>(start), size);
-    *obj = reinterpret_cast<DimensionRule*>(ptr);
+    daqErrCode err = daq::createLinearDimensionRule(&ptr, reinterpret_cast<daq::INumber*>(delta), reinterpret_cast<daq::INumber*>(start), size);
+    *obj = reinterpret_cast<daqDimensionRule*>(ptr);
     return err;
 }
 
-ErrCode DimensionRule_createListDimensionRule(DimensionRule** obj, List* list)
+daqErrCode daqDimensionRule_createListDimensionRule(daqDimensionRule** obj, daqList* list)
 {
     daq::IDimensionRule* ptr = nullptr;
-    ErrCode err = daq::createListDimensionRule(&ptr, reinterpret_cast<daq::IList*>(list));
-    *obj = reinterpret_cast<DimensionRule*>(ptr);
+    daqErrCode err = daq::createListDimensionRule(&ptr, reinterpret_cast<daq::IList*>(list));
+    *obj = reinterpret_cast<daqDimensionRule*>(ptr);
     return err;
 }
 
-ErrCode DimensionRule_createLogarithmicDimensionRule(DimensionRule** obj, Number* delta, Number* start, Number* base, SizeT size)
+daqErrCode daqDimensionRule_createLogarithmicDimensionRule(daqDimensionRule** obj, daqNumber* delta, daqNumber* start, daqNumber* base, daqSizeT size)
 {
     daq::IDimensionRule* ptr = nullptr;
-    ErrCode err = daq::createLogarithmicDimensionRule(&ptr, reinterpret_cast<daq::INumber*>(delta), reinterpret_cast<daq::INumber*>(start), reinterpret_cast<daq::INumber*>(base), size);
-    *obj = reinterpret_cast<DimensionRule*>(ptr);
+    daqErrCode err = daq::createLogarithmicDimensionRule(&ptr, reinterpret_cast<daq::INumber*>(delta), reinterpret_cast<daq::INumber*>(start), reinterpret_cast<daq::INumber*>(base), size);
+    *obj = reinterpret_cast<daqDimensionRule*>(ptr);
     return err;
 }
 
-ErrCode DimensionRule_createDimensionRule(DimensionRule** obj, DimensionRuleType type, Dict* parameters)
+daqErrCode daqDimensionRule_createDimensionRule(daqDimensionRule** obj, daqDimensionRuleType type, daqDict* parameters)
 {
     daq::IDimensionRule* ptr = nullptr;
-    ErrCode err = daq::createDimensionRule(&ptr, static_cast<daq::DimensionRuleType>(type), reinterpret_cast<daq::IDict*>(parameters));
-    *obj = reinterpret_cast<DimensionRule*>(ptr);
+    daqErrCode err = daq::createDimensionRule(&ptr, static_cast<daq::DimensionRuleType>(type), reinterpret_cast<daq::IDict*>(parameters));
+    *obj = reinterpret_cast<daqDimensionRule*>(ptr);
     return err;
 }
 
-ErrCode DimensionRule_createDimensionRuleFromBuilder(DimensionRule** obj, DimensionRuleBuilder* builder)
+daqErrCode daqDimensionRule_createDimensionRuleFromBuilder(daqDimensionRule** obj, daqDimensionRuleBuilder* builder)
 {
     daq::IDimensionRule* ptr = nullptr;
-    ErrCode err = daq::createDimensionRuleFromBuilder(&ptr, reinterpret_cast<daq::IDimensionRuleBuilder*>(builder));
-    *obj = reinterpret_cast<DimensionRule*>(ptr);
+    daqErrCode err = daq::createDimensionRuleFromBuilder(&ptr, reinterpret_cast<daq::IDimensionRuleBuilder*>(builder));
+    *obj = reinterpret_cast<daqDimensionRule*>(ptr);
     return err;
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:03.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,20 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PermissionsBuilder PermissionsBuilder;
-    typedef struct String String;
-    typedef struct PermissionMaskBuilder PermissionMaskBuilder;
-    typedef struct Permissions Permissions;
+    typedef struct daqPermissionsBuilder daqPermissionsBuilder;
+    typedef struct daqString daqString;
+    typedef struct daqPermissionMaskBuilder daqPermissionMaskBuilder;
+    typedef struct daqPermissions daqPermissions;
 
-    EXPORTED extern const IntfID PERMISSIONS_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PERMISSIONS_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED PermissionsBuilder_inherit(PermissionsBuilder* self, Bool inherit);
-    ErrCode EXPORTED PermissionsBuilder_assign(PermissionsBuilder* self, String* groupId, PermissionMaskBuilder* permissions);
-    ErrCode EXPORTED PermissionsBuilder_allow(PermissionsBuilder* self, String* groupId, PermissionMaskBuilder* permissions);
-    ErrCode EXPORTED PermissionsBuilder_deny(PermissionsBuilder* self, String* groupId, PermissionMaskBuilder* permissions);
-    ErrCode EXPORTED PermissionsBuilder_extend(PermissionsBuilder* self, Permissions* config);
-    ErrCode EXPORTED PermissionsBuilder_build(PermissionsBuilder* self, Permissions** configOut);
-    ErrCode EXPORTED PermissionsBuilder_createPermissionsBuilder(PermissionsBuilder** obj);
+    daqErrCode EXPORTED daqPermissionsBuilder_inherit(daqPermissionsBuilder* self, daqBool inherit);
+    daqErrCode EXPORTED daqPermissionsBuilder_assign(daqPermissionsBuilder* self, daqString* groupId, daqPermissionMaskBuilder* permissions);
+    daqErrCode EXPORTED daqPermissionsBuilder_allow(daqPermissionsBuilder* self, daqString* groupId, daqPermissionMaskBuilder* permissions);
+    daqErrCode EXPORTED daqPermissionsBuilder_deny(daqPermissionsBuilder* self, daqString* groupId, daqPermissionMaskBuilder* permissions);
+    daqErrCode EXPORTED daqPermissionsBuilder_extend(daqPermissionsBuilder* self, daqPermissions* config);
+    daqErrCode EXPORTED daqPermissionsBuilder_build(daqPermissionsBuilder* self, daqPermissions** configOut);
+    daqErrCode EXPORTED daqPermissionsBuilder_createPermissionsBuilder(daqPermissionsBuilder** obj);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:00.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:12.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Ownable Ownable;
-    typedef struct PropertyObject PropertyObject;
+    typedef struct daqOwnable daqOwnable;
+    typedef struct daqPropertyObject daqPropertyObject;
 
-    EXPORTED extern const IntfID OWNABLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_OWNABLE_INTF_ID;
 
-    ErrCode EXPORTED Ownable_setOwner(Ownable* self, PropertyObject* owner);
+    daqErrCode EXPORTED daqOwnable_setOwner(daqOwnable* self, daqPropertyObject* owner);
 
 #ifdef __cplusplus
 }

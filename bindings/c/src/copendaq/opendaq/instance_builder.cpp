@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:42.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:21.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,192 +15,192 @@
 
 #include <copendaq_private.h>
 
-const IntfID INSTANCE_BUILDER_INTF_ID = { daq::IInstanceBuilder::Id.Data1, daq::IInstanceBuilder::Id.Data2, daq::IInstanceBuilder::Id.Data3, daq::IInstanceBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_INSTANCE_BUILDER_INTF_ID = { daq::IInstanceBuilder::Id.Data1, daq::IInstanceBuilder::Id.Data2, daq::IInstanceBuilder::Id.Data3, daq::IInstanceBuilder::Id.Data4_UInt64 };
 
-ErrCode InstanceBuilder_build(InstanceBuilder* self, Instance** instance)
+daqErrCode daqInstanceBuilder_build(daqInstanceBuilder* self, daqInstance** instance)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->build(reinterpret_cast<daq::IInstance**>(instance));
 }
 
-ErrCode InstanceBuilder_addConfigProvider(InstanceBuilder* self, ConfigProvider* configProvider)
+daqErrCode daqInstanceBuilder_addConfigProvider(daqInstanceBuilder* self, daqConfigProvider* configProvider)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->addConfigProvider(reinterpret_cast<daq::IConfigProvider*>(configProvider));
 }
 
-ErrCode InstanceBuilder_setContext(InstanceBuilder* self, Context* context)
+daqErrCode daqInstanceBuilder_setContext(daqInstanceBuilder* self, daqContext* context)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setContext(reinterpret_cast<daq::IContext*>(context));
 }
 
-ErrCode InstanceBuilder_getContext(InstanceBuilder* self, Context** context)
+daqErrCode daqInstanceBuilder_getContext(daqInstanceBuilder* self, daqContext** context)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getContext(reinterpret_cast<daq::IContext**>(context));
 }
 
-ErrCode InstanceBuilder_setLogger(InstanceBuilder* self, Logger* logger)
+daqErrCode daqInstanceBuilder_setLogger(daqInstanceBuilder* self, daqLogger* logger)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setLogger(reinterpret_cast<daq::ILogger*>(logger));
 }
 
-ErrCode InstanceBuilder_getLogger(InstanceBuilder* self, Logger** logger)
+daqErrCode daqInstanceBuilder_getLogger(daqInstanceBuilder* self, daqLogger** logger)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getLogger(reinterpret_cast<daq::ILogger**>(logger));
 }
 
-ErrCode InstanceBuilder_setGlobalLogLevel(InstanceBuilder* self, LogLevel logLevel)
+daqErrCode daqInstanceBuilder_setGlobalLogLevel(daqInstanceBuilder* self, daqLogLevel logLevel)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setGlobalLogLevel(static_cast<daq::LogLevel>(logLevel));
 }
 
-ErrCode InstanceBuilder_getGlobalLogLevel(InstanceBuilder* self, LogLevel* logLevel)
+daqErrCode daqInstanceBuilder_getGlobalLogLevel(daqInstanceBuilder* self, daqLogLevel* logLevel)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getGlobalLogLevel(reinterpret_cast<daq::LogLevel*>(logLevel));
 }
 
-ErrCode InstanceBuilder_setComponentLogLevel(InstanceBuilder* self, String* component, LogLevel logLevel)
+daqErrCode daqInstanceBuilder_setComponentLogLevel(daqInstanceBuilder* self, daqString* component, daqLogLevel logLevel)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setComponentLogLevel(reinterpret_cast<daq::IString*>(component), static_cast<daq::LogLevel>(logLevel));
 }
 
-ErrCode InstanceBuilder_getComponentsLogLevel(InstanceBuilder* self, Dict** components)
+daqErrCode daqInstanceBuilder_getComponentsLogLevel(daqInstanceBuilder* self, daqDict** components)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getComponentsLogLevel(reinterpret_cast<daq::IDict**>(components));
 }
 
-ErrCode InstanceBuilder_addLoggerSink(InstanceBuilder* self, LoggerSink* sink)
+daqErrCode daqInstanceBuilder_addLoggerSink(daqInstanceBuilder* self, daqLoggerSink* sink)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->addLoggerSink(reinterpret_cast<daq::ILoggerSink*>(sink));
 }
 
-ErrCode InstanceBuilder_setSinkLogLevel(InstanceBuilder* self, LoggerSink* sink, LogLevel logLevel)
+daqErrCode daqInstanceBuilder_setSinkLogLevel(daqInstanceBuilder* self, daqLoggerSink* sink, daqLogLevel logLevel)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setSinkLogLevel(reinterpret_cast<daq::ILoggerSink*>(sink), static_cast<daq::LogLevel>(logLevel));
 }
 
-ErrCode InstanceBuilder_getLoggerSinks(InstanceBuilder* self, List** sinks)
+daqErrCode daqInstanceBuilder_getLoggerSinks(daqInstanceBuilder* self, daqList** sinks)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getLoggerSinks(reinterpret_cast<daq::IList**>(sinks));
 }
 
-ErrCode InstanceBuilder_setModulePath(InstanceBuilder* self, String* path)
+daqErrCode daqInstanceBuilder_setModulePath(daqInstanceBuilder* self, daqString* path)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setModulePath(reinterpret_cast<daq::IString*>(path));
 }
 
-ErrCode InstanceBuilder_getModulePath(InstanceBuilder* self, String** path)
+daqErrCode daqInstanceBuilder_getModulePath(daqInstanceBuilder* self, daqString** path)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getModulePath(reinterpret_cast<daq::IString**>(path));
 }
 
-ErrCode InstanceBuilder_addModulePath(InstanceBuilder* self, String* path)
+daqErrCode daqInstanceBuilder_addModulePath(daqInstanceBuilder* self, daqString* path)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->addModulePath(reinterpret_cast<daq::IString*>(path));
 }
 
-ErrCode InstanceBuilder_getModulePathsList(InstanceBuilder* self, List** paths)
+daqErrCode daqInstanceBuilder_getModulePathsList(daqInstanceBuilder* self, daqList** paths)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getModulePathsList(reinterpret_cast<daq::IList**>(paths));
 }
 
-ErrCode InstanceBuilder_setModuleManager(InstanceBuilder* self, ModuleManager* moduleManager)
+daqErrCode daqInstanceBuilder_setModuleManager(daqInstanceBuilder* self, daqModuleManager* moduleManager)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setModuleManager(reinterpret_cast<daq::IModuleManager*>(moduleManager));
 }
 
-ErrCode InstanceBuilder_getModuleManager(InstanceBuilder* self, ModuleManager** moduleManager)
+daqErrCode daqInstanceBuilder_getModuleManager(daqInstanceBuilder* self, daqModuleManager** moduleManager)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getModuleManager(reinterpret_cast<daq::IModuleManager**>(moduleManager));
 }
 
-ErrCode InstanceBuilder_setAuthenticationProvider(InstanceBuilder* self, AuthenticationProvider* authenticationProvider)
+daqErrCode daqInstanceBuilder_setAuthenticationProvider(daqInstanceBuilder* self, daqAuthenticationProvider* authenticationProvider)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setAuthenticationProvider(reinterpret_cast<daq::IAuthenticationProvider*>(authenticationProvider));
 }
 
-ErrCode InstanceBuilder_getAuthenticationProvider(InstanceBuilder* self, AuthenticationProvider** authenticationProvider)
+daqErrCode daqInstanceBuilder_getAuthenticationProvider(daqInstanceBuilder* self, daqAuthenticationProvider** authenticationProvider)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getAuthenticationProvider(reinterpret_cast<daq::IAuthenticationProvider**>(authenticationProvider));
 }
 
-ErrCode InstanceBuilder_setSchedulerWorkerNum(InstanceBuilder* self, SizeT numWorkers)
+daqErrCode daqInstanceBuilder_setSchedulerWorkerNum(daqInstanceBuilder* self, daqSizeT numWorkers)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setSchedulerWorkerNum(numWorkers);
 }
 
-ErrCode InstanceBuilder_getSchedulerWorkerNum(InstanceBuilder* self, SizeT* numWorkers)
+daqErrCode daqInstanceBuilder_getSchedulerWorkerNum(daqInstanceBuilder* self, daqSizeT* numWorkers)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getSchedulerWorkerNum(numWorkers);
 }
 
-ErrCode InstanceBuilder_setScheduler(InstanceBuilder* self, Scheduler* scheduler)
+daqErrCode daqInstanceBuilder_setScheduler(daqInstanceBuilder* self, daqScheduler* scheduler)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setScheduler(reinterpret_cast<daq::IScheduler*>(scheduler));
 }
 
-ErrCode InstanceBuilder_getScheduler(InstanceBuilder* self, Scheduler** scheduler)
+daqErrCode daqInstanceBuilder_getScheduler(daqInstanceBuilder* self, daqScheduler** scheduler)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getScheduler(reinterpret_cast<daq::IScheduler**>(scheduler));
 }
 
-ErrCode InstanceBuilder_setDefaultRootDeviceLocalId(InstanceBuilder* self, String* localId)
+daqErrCode daqInstanceBuilder_setDefaultRootDeviceLocalId(daqInstanceBuilder* self, daqString* localId)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setDefaultRootDeviceLocalId(reinterpret_cast<daq::IString*>(localId));
 }
 
-ErrCode InstanceBuilder_getDefaultRootDeviceLocalId(InstanceBuilder* self, String** localId)
+daqErrCode daqInstanceBuilder_getDefaultRootDeviceLocalId(daqInstanceBuilder* self, daqString** localId)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getDefaultRootDeviceLocalId(reinterpret_cast<daq::IString**>(localId));
 }
 
-ErrCode InstanceBuilder_setRootDevice(InstanceBuilder* self, String* connectionString, PropertyObject* config)
+daqErrCode daqInstanceBuilder_setRootDevice(daqInstanceBuilder* self, daqString* connectionString, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setRootDevice(reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode InstanceBuilder_getRootDevice(InstanceBuilder* self, String** connectionString)
+daqErrCode daqInstanceBuilder_getRootDevice(daqInstanceBuilder* self, daqString** connectionString)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getRootDevice(reinterpret_cast<daq::IString**>(connectionString));
 }
 
-ErrCode InstanceBuilder_getRootDeviceConfig(InstanceBuilder* self, PropertyObject** config)
+daqErrCode daqInstanceBuilder_getRootDeviceConfig(daqInstanceBuilder* self, daqPropertyObject** config)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getRootDeviceConfig(reinterpret_cast<daq::IPropertyObject**>(config));
 }
 
-ErrCode InstanceBuilder_setDefaultRootDeviceInfo(InstanceBuilder* self, DeviceInfo* deviceInfo)
+daqErrCode daqInstanceBuilder_setDefaultRootDeviceInfo(daqInstanceBuilder* self, daqDeviceInfo* deviceInfo)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->setDefaultRootDeviceInfo(reinterpret_cast<daq::IDeviceInfo*>(deviceInfo));
 }
 
-ErrCode InstanceBuilder_getDefaultRootDeviceInfo(InstanceBuilder* self, DeviceInfo** deviceInfo)
+daqErrCode daqInstanceBuilder_getDefaultRootDeviceInfo(daqInstanceBuilder* self, daqDeviceInfo** deviceInfo)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getDefaultRootDeviceInfo(reinterpret_cast<daq::IDeviceInfo**>(deviceInfo));
 }
 
-ErrCode InstanceBuilder_getOptions(InstanceBuilder* self, Dict** options)
+daqErrCode daqInstanceBuilder_getOptions(daqInstanceBuilder* self, daqDict** options)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getOptions(reinterpret_cast<daq::IDict**>(options));
 }
 
-ErrCode InstanceBuilder_enableStandardProviders(InstanceBuilder* self, Bool flag)
+daqErrCode daqInstanceBuilder_enableStandardProviders(daqInstanceBuilder* self, daqBool flag)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->enableStandardProviders(flag);
 }
 
-ErrCode InstanceBuilder_getDiscoveryServers(InstanceBuilder* self, List** serverNames)
+daqErrCode daqInstanceBuilder_getDiscoveryServers(daqInstanceBuilder* self, daqList** serverNames)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->getDiscoveryServers(reinterpret_cast<daq::IList**>(serverNames));
 }
 
-ErrCode InstanceBuilder_addDiscoveryServer(InstanceBuilder* self, String* serverName)
+daqErrCode daqInstanceBuilder_addDiscoveryServer(daqInstanceBuilder* self, daqString* serverName)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->addDiscoveryServer(reinterpret_cast<daq::IString*>(serverName));
 }
 
-ErrCode InstanceBuilder_createInstanceBuilder(InstanceBuilder** obj)
+daqErrCode daqInstanceBuilder_createInstanceBuilder(daqInstanceBuilder** obj)
 {
     daq::IInstanceBuilder* ptr = nullptr;
-    ErrCode err = daq::createInstanceBuilder(&ptr);
-    *obj = reinterpret_cast<InstanceBuilder*>(ptr);
+    daqErrCode err = daq::createInstanceBuilder(&ptr);
+    *obj = reinterpret_cast<daqInstanceBuilder*>(ptr);
     return err;
 }

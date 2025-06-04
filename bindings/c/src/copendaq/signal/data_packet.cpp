@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:01.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:40.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,91 +15,101 @@
 
 #include <copendaq_private.h>
 
-const IntfID DATA_PACKET_INTF_ID = { daq::IDataPacket::Id.Data1, daq::IDataPacket::Id.Data2, daq::IDataPacket::Id.Data3, daq::IDataPacket::Id.Data4_UInt64 };
+const daqIntfID DAQ_DATA_PACKET_INTF_ID = { daq::IDataPacket::Id.Data1, daq::IDataPacket::Id.Data2, daq::IDataPacket::Id.Data3, daq::IDataPacket::Id.Data4_UInt64 };
 
-ErrCode DataPacket_getDataDescriptor(DataPacket* self, DataDescriptor** descriptor)
+daqErrCode daqDataPacket_getDataDescriptor(daqDataPacket* self, daqDataDescriptor** descriptor)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getDataDescriptor(reinterpret_cast<daq::IDataDescriptor**>(descriptor));
 }
 
-ErrCode DataPacket_getSampleCount(DataPacket* self, SizeT* sampleCount)
+daqErrCode daqDataPacket_getSampleCount(daqDataPacket* self, daqSizeT* sampleCount)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getSampleCount(sampleCount);
 }
 
-ErrCode DataPacket_getOffset(DataPacket* self, Number** offset)
+daqErrCode daqDataPacket_getOffset(daqDataPacket* self, daqNumber** offset)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getOffset(reinterpret_cast<daq::INumber**>(offset));
 }
 
-ErrCode DataPacket_getData(DataPacket* self, void** address)
+daqErrCode daqDataPacket_getData(daqDataPacket* self, void** address)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getData(address);
 }
 
-ErrCode DataPacket_getRawData(DataPacket* self, void** address)
+daqErrCode daqDataPacket_getRawData(daqDataPacket* self, void** address)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getRawData(address);
 }
 
-ErrCode DataPacket_getDataSize(DataPacket* self, SizeT* dataSize)
+daqErrCode daqDataPacket_getDataSize(daqDataPacket* self, daqSizeT* dataSize)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getDataSize(dataSize);
 }
 
-ErrCode DataPacket_getRawDataSize(DataPacket* self, SizeT* rawDataSize)
+daqErrCode daqDataPacket_getRawDataSize(daqDataPacket* self, daqSizeT* rawDataSize)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getRawDataSize(rawDataSize);
 }
 
-ErrCode DataPacket_getDomainPacket(DataPacket* self, DataPacket** packet)
+daqErrCode daqDataPacket_getDomainPacket(daqDataPacket* self, daqDataPacket** packet)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getDomainPacket(reinterpret_cast<daq::IDataPacket**>(packet));
 }
 
-ErrCode DataPacket_getPacketId(DataPacket* self, Int* packetId)
+daqErrCode daqDataPacket_getPacketId(daqDataPacket* self, daqInt* packetId)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getPacketId(packetId);
 }
 
-ErrCode DataPacket_getLastValue(DataPacket* self, BaseObject** value, TypeManager* typeManager)
+daqErrCode daqDataPacket_getLastValue(daqDataPacket* self, daqBaseObject** value, daqTypeManager* typeManager)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getLastValue(reinterpret_cast<daq::IBaseObject**>(value), reinterpret_cast<daq::ITypeManager*>(typeManager));
 }
 
-ErrCode DataPacket_getValueByIndex(DataPacket* self, BaseObject** value, SizeT index, TypeManager* typeManager)
+daqErrCode daqDataPacket_getValueByIndex(daqDataPacket* self, daqBaseObject** value, daqSizeT index, daqTypeManager* typeManager)
 {
     return reinterpret_cast<daq::IDataPacket*>(self)->getValueByIndex(reinterpret_cast<daq::IBaseObject**>(value), index, reinterpret_cast<daq::ITypeManager*>(typeManager));
 }
 
-ErrCode DataPacket_createDataPacket(DataPacket** obj, DataDescriptor* descriptor, SizeT sampleCount, Number* offset)
+daqErrCode daqDataPacket_getRawLastValue(daqDataPacket* self, void** value)
+{
+    return reinterpret_cast<daq::IDataPacket*>(self)->getRawLastValue(value);
+}
+
+daqErrCode daqDataPacket_getRawValueByIndex(daqDataPacket* self, void** value, daqSizeT index)
+{
+    return reinterpret_cast<daq::IDataPacket*>(self)->getRawValueByIndex(value, index);
+}
+
+daqErrCode daqDataPacket_createDataPacket(daqDataPacket** obj, daqDataDescriptor* descriptor, daqSizeT sampleCount, daqNumber* offset)
 {
     daq::IDataPacket* ptr = nullptr;
-    ErrCode err = daq::createDataPacket(&ptr, reinterpret_cast<daq::IDataDescriptor*>(descriptor), sampleCount, reinterpret_cast<daq::INumber*>(offset));
-    *obj = reinterpret_cast<DataPacket*>(ptr);
+    daqErrCode err = daq::createDataPacket(&ptr, reinterpret_cast<daq::IDataDescriptor*>(descriptor), sampleCount, reinterpret_cast<daq::INumber*>(offset));
+    *obj = reinterpret_cast<daqDataPacket*>(ptr);
     return err;
 }
 
-ErrCode DataPacket_createDataPacketWithExternalMemory(DataPacket** obj, DataPacket* domainPacket, DataDescriptor* descriptor, SizeT sampleCount, Number* offset, void* externalMemory, Deleter* deleter, SizeT bufferSize)
+daqErrCode daqDataPacket_createDataPacketWithExternalMemory(daqDataPacket** obj, daqDataPacket* domainPacket, daqDataDescriptor* descriptor, daqSizeT sampleCount, daqNumber* offset, void* externalMemory, daqDeleter* deleter, daqSizeT bufferSize)
 {
     daq::IDataPacket* ptr = nullptr;
-    ErrCode err = daq::createDataPacketWithExternalMemory(&ptr, reinterpret_cast<daq::IDataPacket*>(domainPacket), reinterpret_cast<daq::IDataDescriptor*>(descriptor), sampleCount, reinterpret_cast<daq::INumber*>(offset), externalMemory, reinterpret_cast<daq::IDeleter*>(deleter), bufferSize);
-    *obj = reinterpret_cast<DataPacket*>(ptr);
+    daqErrCode err = daq::createDataPacketWithExternalMemory(&ptr, reinterpret_cast<daq::IDataPacket*>(domainPacket), reinterpret_cast<daq::IDataDescriptor*>(descriptor), sampleCount, reinterpret_cast<daq::INumber*>(offset), externalMemory, reinterpret_cast<daq::IDeleter*>(deleter), bufferSize);
+    *obj = reinterpret_cast<daqDataPacket*>(ptr);
     return err;
 }
 
-ErrCode DataPacket_createDataPacketWithDomain(DataPacket** obj, DataPacket* domainPacket, DataDescriptor* descriptor, SizeT sampleCount, Number* offset)
+daqErrCode daqDataPacket_createDataPacketWithDomain(daqDataPacket** obj, daqDataPacket* domainPacket, daqDataDescriptor* descriptor, daqSizeT sampleCount, daqNumber* offset)
 {
     daq::IDataPacket* ptr = nullptr;
-    ErrCode err = daq::createDataPacketWithDomain(&ptr, reinterpret_cast<daq::IDataPacket*>(domainPacket), reinterpret_cast<daq::IDataDescriptor*>(descriptor), sampleCount, reinterpret_cast<daq::INumber*>(offset));
-    *obj = reinterpret_cast<DataPacket*>(ptr);
+    daqErrCode err = daq::createDataPacketWithDomain(&ptr, reinterpret_cast<daq::IDataPacket*>(domainPacket), reinterpret_cast<daq::IDataDescriptor*>(descriptor), sampleCount, reinterpret_cast<daq::INumber*>(offset));
+    *obj = reinterpret_cast<daqDataPacket*>(ptr);
     return err;
 }
 
-ErrCode DataPacket_createConstantDataPacketWithDomain(DataPacket** obj, DataPacket* domainPacket, DataDescriptor* descriptor, SizeT sampleCount, void* initialValue, void* otherValues, SizeT otherValueCount)
+daqErrCode daqDataPacket_createConstantDataPacketWithDomain(daqDataPacket** obj, daqDataPacket* domainPacket, daqDataDescriptor* descriptor, daqSizeT sampleCount, void* initialValue, void* otherValues, daqSizeT otherValueCount)
 {
     daq::IDataPacket* ptr = nullptr;
-    ErrCode err = daq::createConstantDataPacketWithDomain(&ptr, reinterpret_cast<daq::IDataPacket*>(domainPacket), reinterpret_cast<daq::IDataDescriptor*>(descriptor), sampleCount, initialValue, otherValues, otherValueCount);
-    *obj = reinterpret_cast<DataPacket*>(ptr);
+    daqErrCode err = daq::createConstantDataPacketWithDomain(&ptr, reinterpret_cast<daq::IDataPacket*>(domainPacket), reinterpret_cast<daq::IDataDescriptor*>(descriptor), sampleCount, initialValue, otherValues, otherValueCount);
+    *obj = reinterpret_cast<daqDataPacket*>(ptr);
     return err;
 }

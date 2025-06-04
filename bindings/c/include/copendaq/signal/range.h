@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:09.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:49.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Range Range;
-    typedef struct Number Number;
+    typedef struct daqRange daqRange;
+    typedef struct daqNumber daqNumber;
 
-    EXPORTED extern const IntfID RANGE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_RANGE_INTF_ID;
 
-    ErrCode EXPORTED Range_getLowValue(Range* self, Number** value);
-    ErrCode EXPORTED Range_getHighValue(Range* self, Number** value);
-    ErrCode EXPORTED Range_createRange(Range** obj, Number* lowValue, Number* highValue);
+    daqErrCode EXPORTED daqRange_getLowValue(daqRange* self, daqNumber** value);
+    daqErrCode EXPORTED daqRange_getHighValue(daqRange* self, daqNumber** value);
+    daqErrCode EXPORTED daqRange_createRange(daqRange** obj, daqNumber* lowValue, daqNumber* highValue);
 
 #ifdef __cplusplus
 }

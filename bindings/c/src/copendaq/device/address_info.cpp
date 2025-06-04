@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:22.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,40 +15,40 @@
 
 #include <copendaq_private.h>
 
-const IntfID ADDRESS_INFO_INTF_ID = { daq::IAddressInfo::Id.Data1, daq::IAddressInfo::Id.Data2, daq::IAddressInfo::Id.Data3, daq::IAddressInfo::Id.Data4_UInt64 };
+const daqIntfID DAQ_ADDRESS_INFO_INTF_ID = { daq::IAddressInfo::Id.Data1, daq::IAddressInfo::Id.Data2, daq::IAddressInfo::Id.Data3, daq::IAddressInfo::Id.Data4_UInt64 };
 
-ErrCode AddressInfo_getAddress(AddressInfo* self, String** address)
+daqErrCode daqAddressInfo_getAddress(daqAddressInfo* self, daqString** address)
 {
     return reinterpret_cast<daq::IAddressInfo*>(self)->getAddress(reinterpret_cast<daq::IString**>(address));
 }
 
-ErrCode AddressInfo_getConnectionString(AddressInfo* self, String** connectionString)
+daqErrCode daqAddressInfo_getConnectionString(daqAddressInfo* self, daqString** connectionString)
 {
     return reinterpret_cast<daq::IAddressInfo*>(self)->getConnectionString(reinterpret_cast<daq::IString**>(connectionString));
 }
 
-ErrCode AddressInfo_getType(AddressInfo* self, String** type)
+daqErrCode daqAddressInfo_getType(daqAddressInfo* self, daqString** type)
 {
     return reinterpret_cast<daq::IAddressInfo*>(self)->getType(reinterpret_cast<daq::IString**>(type));
 }
 
-ErrCode AddressInfo_getReachabilityStatus(AddressInfo* self, AddressReachabilityStatus* addressReachability)
+daqErrCode daqAddressInfo_getReachabilityStatus(daqAddressInfo* self, daqAddressReachabilityStatus* addressReachability)
 {
     return reinterpret_cast<daq::IAddressInfo*>(self)->getReachabilityStatus(reinterpret_cast<daq::AddressReachabilityStatus*>(addressReachability));
 }
 
-ErrCode AddressInfo_createAddressInfo(AddressInfo** obj)
+daqErrCode daqAddressInfo_createAddressInfo(daqAddressInfo** obj)
 {
     daq::IAddressInfo* ptr = nullptr;
-    ErrCode err = daq::createAddressInfo(&ptr);
-    *obj = reinterpret_cast<AddressInfo*>(ptr);
+    daqErrCode err = daq::createAddressInfo(&ptr);
+    *obj = reinterpret_cast<daqAddressInfo*>(ptr);
     return err;
 }
 
-ErrCode AddressInfo_createAddressInfoFromBuilder(AddressInfo** obj, AddressInfoBuilder* builder)
+daqErrCode daqAddressInfo_createAddressInfoFromBuilder(daqAddressInfo** obj, daqAddressInfoBuilder* builder)
 {
     daq::IAddressInfo* ptr = nullptr;
-    ErrCode err = daq::createAddressInfoFromBuilder(&ptr, reinterpret_cast<daq::IAddressInfoBuilder*>(builder));
-    *obj = reinterpret_cast<AddressInfo*>(ptr);
+    daqErrCode err = daq::createAddressInfoFromBuilder(&ptr, reinterpret_cast<daq::IAddressInfoBuilder*>(builder));
+    *obj = reinterpret_cast<daqAddressInfo*>(ptr);
     return err;
 }

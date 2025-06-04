@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:02.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:13.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PermissionMaskBuilder PermissionMaskBuilder;
+    typedef struct daqPermissionMaskBuilder daqPermissionMaskBuilder;
 
-    EXPORTED extern const IntfID PERMISSION_MASK_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PERMISSION_MASK_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED PermissionMaskBuilder_read(PermissionMaskBuilder* self);
-    ErrCode EXPORTED PermissionMaskBuilder_write(PermissionMaskBuilder* self);
-    ErrCode EXPORTED PermissionMaskBuilder_execute(PermissionMaskBuilder* self);
-    ErrCode EXPORTED PermissionMaskBuilder_clear(PermissionMaskBuilder* self);
-    ErrCode EXPORTED PermissionMaskBuilder_build(PermissionMaskBuilder* self, Int* permissionMask);
-    ErrCode EXPORTED PermissionMaskBuilder_createPermissionMaskBuilder(PermissionMaskBuilder** obj);
-    ErrCode EXPORTED PermissionMaskBuilder_createPermissionMaskBuilderFromMask(PermissionMaskBuilder** obj, Int permissionMask);
+    daqErrCode EXPORTED daqPermissionMaskBuilder_read(daqPermissionMaskBuilder* self);
+    daqErrCode EXPORTED daqPermissionMaskBuilder_write(daqPermissionMaskBuilder* self);
+    daqErrCode EXPORTED daqPermissionMaskBuilder_execute(daqPermissionMaskBuilder* self);
+    daqErrCode EXPORTED daqPermissionMaskBuilder_clear(daqPermissionMaskBuilder* self);
+    daqErrCode EXPORTED daqPermissionMaskBuilder_build(daqPermissionMaskBuilder* self, daqInt* permissionMask);
+    daqErrCode EXPORTED daqPermissionMaskBuilder_createPermissionMaskBuilder(daqPermissionMaskBuilder** obj);
+    daqErrCode EXPORTED daqPermissionMaskBuilder_createPermissionMaskBuilderFromMask(daqPermissionMaskBuilder** obj, daqInt permissionMask);
 
 #ifdef __cplusplus
 }

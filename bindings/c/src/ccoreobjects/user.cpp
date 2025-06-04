@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:09.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:21.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,22 @@
 
 #include <copendaq_private.h>
 
-const IntfID USER_INTF_ID = { daq::IUser::Id.Data1, daq::IUser::Id.Data2, daq::IUser::Id.Data3, daq::IUser::Id.Data4_UInt64 };
+const daqIntfID DAQ_USER_INTF_ID = { daq::IUser::Id.Data1, daq::IUser::Id.Data2, daq::IUser::Id.Data3, daq::IUser::Id.Data4_UInt64 };
 
-ErrCode User_getUsername(User* self, String** username)
+daqErrCode daqUser_getUsername(daqUser* self, daqString** username)
 {
     return reinterpret_cast<daq::IUser*>(self)->getUsername(reinterpret_cast<daq::IString**>(username));
 }
 
-ErrCode User_getGroups(User* self, List** groups)
+daqErrCode daqUser_getGroups(daqUser* self, daqList** groups)
 {
     return reinterpret_cast<daq::IUser*>(self)->getGroups(reinterpret_cast<daq::IList**>(groups));
 }
 
-ErrCode User_createUser(User** obj, String* username, String* passwordHash, List* groups)
+daqErrCode daqUser_createUser(daqUser** obj, daqString* username, daqString* passwordHash, daqList* groups)
 {
     daq::IUser* ptr = nullptr;
-    ErrCode err = daq::createUser(&ptr, reinterpret_cast<daq::IString*>(username), reinterpret_cast<daq::IString*>(passwordHash), reinterpret_cast<daq::IList*>(groups));
-    *obj = reinterpret_cast<User*>(ptr);
+    daqErrCode err = daq::createUser(&ptr, reinterpret_cast<daq::IString*>(username), reinterpret_cast<daq::IString*>(passwordHash), reinterpret_cast<daq::IList*>(groups));
+    *obj = reinterpret_cast<daqUser*>(ptr);
     return err;
 }

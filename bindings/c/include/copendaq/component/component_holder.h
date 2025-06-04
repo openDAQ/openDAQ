@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:11.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:51.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ComponentHolder ComponentHolder;
-    typedef struct String String;
-    typedef struct Component Component;
+    typedef struct daqComponentHolder daqComponentHolder;
+    typedef struct daqString daqString;
+    typedef struct daqComponent daqComponent;
 
-    EXPORTED extern const IntfID COMPONENT_HOLDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPONENT_HOLDER_INTF_ID;
 
-    ErrCode EXPORTED ComponentHolder_getLocalId(ComponentHolder* self, String** localId);
-    ErrCode EXPORTED ComponentHolder_getParentGlobalId(ComponentHolder* self, String** parentId);
-    ErrCode EXPORTED ComponentHolder_getComponent(ComponentHolder* self, Component** component);
-    ErrCode EXPORTED ComponentHolder_createComponentHolder(ComponentHolder** obj, Component* component);
-    ErrCode EXPORTED ComponentHolder_createComponentHolderWithIds(ComponentHolder** obj, String* id, String* parentGlobalId, Component* component);
+    daqErrCode EXPORTED daqComponentHolder_getLocalId(daqComponentHolder* self, daqString** localId);
+    daqErrCode EXPORTED daqComponentHolder_getParentGlobalId(daqComponentHolder* self, daqString** parentId);
+    daqErrCode EXPORTED daqComponentHolder_getComponent(daqComponentHolder* self, daqComponent** component);
+    daqErrCode EXPORTED daqComponentHolder_createComponentHolder(daqComponentHolder** obj, daqComponent* component);
+    daqErrCode EXPORTED daqComponentHolder_createComponentHolderWithIds(daqComponentHolder** obj, daqString* id, daqString* parentGlobalId, daqComponent* component);
 
 #ifdef __cplusplus
 }

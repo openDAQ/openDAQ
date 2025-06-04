@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:20.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:08:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SubscriptionEventArgs SubscriptionEventArgs;
-    typedef struct String String;
+    typedef struct daqSubscriptionEventArgs daqSubscriptionEventArgs;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID SUBSCRIPTION_EVENT_ARGS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SUBSCRIPTION_EVENT_ARGS_INTF_ID;
 
-    ErrCode EXPORTED SubscriptionEventArgs_getStreamingConnectionString(SubscriptionEventArgs* self, String** streamingConnectionString);
-    ErrCode EXPORTED SubscriptionEventArgs_getSubscriptionEventType(SubscriptionEventArgs* self, SubscriptionEventType* type);
-    ErrCode EXPORTED SubscriptionEventArgs_createSubscriptionEventArgs(SubscriptionEventArgs** obj, String* streamingConnectionString, SubscriptionEventType type);
+    daqErrCode EXPORTED daqSubscriptionEventArgs_getStreamingConnectionString(daqSubscriptionEventArgs* self, daqString** streamingConnectionString);
+    daqErrCode EXPORTED daqSubscriptionEventArgs_getSubscriptionEventType(daqSubscriptionEventArgs* self, daqSubscriptionEventType* type);
+    daqErrCode EXPORTED daqSubscriptionEventArgs_createSubscriptionEventArgs(daqSubscriptionEventArgs** obj, daqString* streamingConnectionString, daqSubscriptionEventType type);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:26.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:06.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,24 +15,34 @@
 
 #include <copendaq_private.h>
 
-const IntfID DEVICE_INFO_INTERNAL_INTF_ID = { daq::IDeviceInfoInternal::Id.Data1, daq::IDeviceInfoInternal::Id.Data2, daq::IDeviceInfoInternal::Id.Data3, daq::IDeviceInfoInternal::Id.Data4_UInt64 };
+const daqIntfID DAQ_DEVICE_INFO_INTERNAL_INTF_ID = { daq::IDeviceInfoInternal::Id.Data1, daq::IDeviceInfoInternal::Id.Data2, daq::IDeviceInfoInternal::Id.Data3, daq::IDeviceInfoInternal::Id.Data4_UInt64 };
 
-ErrCode DeviceInfoInternal_addServerCapability(DeviceInfoInternal* self, ServerCapability* serverCapability)
+daqErrCode daqDeviceInfoInternal_addServerCapability(daqDeviceInfoInternal* self, daqServerCapability* serverCapability)
 {
     return reinterpret_cast<daq::IDeviceInfoInternal*>(self)->addServerCapability(reinterpret_cast<daq::IServerCapability*>(serverCapability));
 }
 
-ErrCode DeviceInfoInternal_removeServerCapability(DeviceInfoInternal* self, String* protocolId)
+daqErrCode daqDeviceInfoInternal_removeServerCapability(daqDeviceInfoInternal* self, daqString* protocolId)
 {
     return reinterpret_cast<daq::IDeviceInfoInternal*>(self)->removeServerCapability(reinterpret_cast<daq::IString*>(protocolId));
 }
 
-ErrCode DeviceInfoInternal_clearServerStreamingCapabilities(DeviceInfoInternal* self)
+daqErrCode daqDeviceInfoInternal_clearServerStreamingCapabilities(daqDeviceInfoInternal* self)
 {
     return reinterpret_cast<daq::IDeviceInfoInternal*>(self)->clearServerStreamingCapabilities();
 }
 
-ErrCode DeviceInfoInternal_addNetworkInteface(DeviceInfoInternal* self, String* name, NetworkInterface* networkInterface)
+daqErrCode daqDeviceInfoInternal_addNetworkInteface(daqDeviceInfoInternal* self, daqString* name, daqNetworkInterface* networkInterface)
 {
     return reinterpret_cast<daq::IDeviceInfoInternal*>(self)->addNetworkInteface(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::INetworkInterface*>(networkInterface));
+}
+
+daqErrCode daqDeviceInfoInternal_addConnectedClient(daqDeviceInfoInternal* self, daqSizeT* clientNumber, daqConnectedClientInfo* clientInfo)
+{
+    return reinterpret_cast<daq::IDeviceInfoInternal*>(self)->addConnectedClient(clientNumber, reinterpret_cast<daq::IConnectedClientInfo*>(clientInfo));
+}
+
+daqErrCode daqDeviceInfoInternal_removeConnectedClient(daqDeviceInfoInternal* self, daqSizeT clientNumber)
+{
+    return reinterpret_cast<daq::IDeviceInfoInternal*>(self)->removeConnectedClient(clientNumber);
 }

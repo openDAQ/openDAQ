@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:39.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,27 +15,27 @@
 
 #include <copendaq_private.h>
 
-const IntfID MODULE_INFO_INTF_ID = { daq::IModuleInfo::Id.Data1, daq::IModuleInfo::Id.Data2, daq::IModuleInfo::Id.Data3, daq::IModuleInfo::Id.Data4_UInt64 };
+const daqIntfID DAQ_MODULE_INFO_INTF_ID = { daq::IModuleInfo::Id.Data1, daq::IModuleInfo::Id.Data2, daq::IModuleInfo::Id.Data3, daq::IModuleInfo::Id.Data4_UInt64 };
 
-ErrCode ModuleInfo_getVersionInfo(ModuleInfo* self, VersionInfo** version)
+daqErrCode daqModuleInfo_getVersionInfo(daqModuleInfo* self, daqVersionInfo** version)
 {
     return reinterpret_cast<daq::IModuleInfo*>(self)->getVersionInfo(reinterpret_cast<daq::IVersionInfo**>(version));
 }
 
-ErrCode ModuleInfo_getName(ModuleInfo* self, String** name)
+daqErrCode daqModuleInfo_getName(daqModuleInfo* self, daqString** name)
 {
     return reinterpret_cast<daq::IModuleInfo*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode ModuleInfo_getId(ModuleInfo* self, String** id)
+daqErrCode daqModuleInfo_getId(daqModuleInfo* self, daqString** id)
 {
     return reinterpret_cast<daq::IModuleInfo*>(self)->getId(reinterpret_cast<daq::IString**>(id));
 }
 
-ErrCode ModuleInfo_createModuleInfo(ModuleInfo** obj, VersionInfo* versionInfo, String* name, String* id)
+daqErrCode daqModuleInfo_createModuleInfo(daqModuleInfo** obj, daqVersionInfo* versionInfo, daqString* name, daqString* id)
 {
     daq::IModuleInfo* ptr = nullptr;
-    ErrCode err = daq::createModuleInfo(&ptr, reinterpret_cast<daq::IVersionInfo*>(versionInfo), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(id));
-    *obj = reinterpret_cast<ModuleInfo*>(ptr);
+    daqErrCode err = daq::createModuleInfo(&ptr, reinterpret_cast<daq::IVersionInfo*>(versionInfo), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(id));
+    *obj = reinterpret_cast<daqModuleInfo*>(ptr);
     return err;
 }

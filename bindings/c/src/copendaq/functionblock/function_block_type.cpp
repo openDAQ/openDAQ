@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:34.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,12 +15,12 @@
 
 #include <copendaq_private.h>
 
-const IntfID FUNCTION_BLOCK_TYPE_INTF_ID = { daq::IFunctionBlockType::Id.Data1, daq::IFunctionBlockType::Id.Data2, daq::IFunctionBlockType::Id.Data3, daq::IFunctionBlockType::Id.Data4_UInt64 };
+const daqIntfID DAQ_FUNCTION_BLOCK_TYPE_INTF_ID = { daq::IFunctionBlockType::Id.Data1, daq::IFunctionBlockType::Id.Data2, daq::IFunctionBlockType::Id.Data3, daq::IFunctionBlockType::Id.Data4_UInt64 };
 
-ErrCode FunctionBlockType_createFunctionBlockType(FunctionBlockType** obj, String* id, String* name, String* description, PropertyObject* defaultConfig)
+daqErrCode daqFunctionBlockType_createFunctionBlockType(daqFunctionBlockType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig)
 {
     daq::IFunctionBlockType* ptr = nullptr;
-    ErrCode err = daq::createFunctionBlockType(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(description), reinterpret_cast<daq::IPropertyObject*>(defaultConfig));
-    *obj = reinterpret_cast<FunctionBlockType*>(ptr);
+    daqErrCode err = daq::createFunctionBlockType(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(description), reinterpret_cast<daq::IPropertyObject*>(defaultConfig));
+    *obj = reinterpret_cast<daqFunctionBlockType*>(ptr);
     return err;
 }

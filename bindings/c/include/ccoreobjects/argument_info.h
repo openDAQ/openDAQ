@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:56.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:08.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ArgumentInfo ArgumentInfo;
-    typedef struct String String;
+    typedef struct daqArgumentInfo daqArgumentInfo;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID ARGUMENT_INFO_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_ARGUMENT_INFO_INTF_ID;
 
-    ErrCode EXPORTED ArgumentInfo_getName(ArgumentInfo* self, String** name);
-    ErrCode EXPORTED ArgumentInfo_getType(ArgumentInfo* self, CoreType* type);
-    ErrCode EXPORTED ArgumentInfo_createArgumentInfo(ArgumentInfo** obj, String* name, CoreType type);
+    daqErrCode EXPORTED daqArgumentInfo_getName(daqArgumentInfo* self, daqString** name);
+    daqErrCode EXPORTED daqArgumentInfo_getType(daqArgumentInfo* self, daqCoreType* type);
+    daqErrCode EXPORTED daqArgumentInfo_createArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType type);
 
 #ifdef __cplusplus
 }

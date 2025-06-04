@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:02.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:41.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,22 +34,22 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DataRuleBuilder DataRuleBuilder;
-    typedef struct DataRule DataRule;
-    typedef struct Dict Dict;
-    typedef struct String String;
+    typedef struct daqDataRuleBuilder daqDataRuleBuilder;
+    typedef struct daqDataRule daqDataRule;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID DATA_RULE_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DATA_RULE_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED DataRuleBuilder_build(DataRuleBuilder* self, DataRule** dataRule);
-    ErrCode EXPORTED DataRuleBuilder_setType(DataRuleBuilder* self, DataRuleType type);
-    ErrCode EXPORTED DataRuleBuilder_getType(DataRuleBuilder* self, DataRuleType* type);
-    ErrCode EXPORTED DataRuleBuilder_setParameters(DataRuleBuilder* self, Dict* parameters);
-    ErrCode EXPORTED DataRuleBuilder_getParameters(DataRuleBuilder* self, Dict** parameters);
-    ErrCode EXPORTED DataRuleBuilder_addParameter(DataRuleBuilder* self, String* name, BaseObject* parameter);
-    ErrCode EXPORTED DataRuleBuilder_removeParameter(DataRuleBuilder* self, String* name);
-    ErrCode EXPORTED DataRuleBuilder_createDataRuleBuilder(DataRuleBuilder** obj);
-    ErrCode EXPORTED DataRuleBuilder_createDataRuleBuilderFromExisting(DataRuleBuilder** obj, DataRule* ruleToCopy);
+    daqErrCode EXPORTED daqDataRuleBuilder_build(daqDataRuleBuilder* self, daqDataRule** dataRule);
+    daqErrCode EXPORTED daqDataRuleBuilder_setType(daqDataRuleBuilder* self, daqDataRuleType type);
+    daqErrCode EXPORTED daqDataRuleBuilder_getType(daqDataRuleBuilder* self, daqDataRuleType* type);
+    daqErrCode EXPORTED daqDataRuleBuilder_setParameters(daqDataRuleBuilder* self, daqDict* parameters);
+    daqErrCode EXPORTED daqDataRuleBuilder_getParameters(daqDataRuleBuilder* self, daqDict** parameters);
+    daqErrCode EXPORTED daqDataRuleBuilder_addParameter(daqDataRuleBuilder* self, daqString* name, daqBaseObject* parameter);
+    daqErrCode EXPORTED daqDataRuleBuilder_removeParameter(daqDataRuleBuilder* self, daqString* name);
+    daqErrCode EXPORTED daqDataRuleBuilder_createDataRuleBuilder(daqDataRuleBuilder** obj);
+    daqErrCode EXPORTED daqDataRuleBuilder_createDataRuleBuilderFromExisting(daqDataRuleBuilder** obj, daqDataRule* ruleToCopy);
 
 #ifdef __cplusplus
 }

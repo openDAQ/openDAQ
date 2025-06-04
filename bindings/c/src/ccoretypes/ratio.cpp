@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:47.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,27 +15,27 @@
 
 #include <copendaq_private.h>
 
-const IntfID RATIO_INTF_ID = { daq::IRatio::Id.Data1, daq::IRatio::Id.Data2, daq::IRatio::Id.Data3, daq::IRatio::Id.Data4_UInt64 };
+const daqIntfID DAQ_RATIO_INTF_ID = { daq::IRatio::Id.Data1, daq::IRatio::Id.Data2, daq::IRatio::Id.Data3, daq::IRatio::Id.Data4_UInt64 };
 
-ErrCode Ratio_getNumerator(Ratio* self, Int* numerator)
+daqErrCode daqRatio_getNumerator(daqRatio* self, daqInt* numerator)
 {
     return reinterpret_cast<daq::IRatio*>(self)->getNumerator(numerator);
 }
 
-ErrCode Ratio_getDenominator(Ratio* self, Int* denominator)
+daqErrCode daqRatio_getDenominator(daqRatio* self, daqInt* denominator)
 {
     return reinterpret_cast<daq::IRatio*>(self)->getDenominator(denominator);
 }
 
-ErrCode Ratio_simplify(Ratio* self, Ratio** simplifiedRatio)
+daqErrCode daqRatio_simplify(daqRatio* self, daqRatio** simplifiedRatio)
 {
     return reinterpret_cast<daq::IRatio*>(self)->simplify(reinterpret_cast<daq::IRatio**>(simplifiedRatio));
 }
 
-ErrCode Ratio_createRatio(Ratio** obj, Int numerator, Int denominator)
+daqErrCode daqRatio_createRatio(daqRatio** obj, daqInt numerator, daqInt denominator)
 {
     daq::IRatio* ptr = nullptr;
-    ErrCode err = daq::createRatio(&ptr, numerator, denominator);
-    *obj = reinterpret_cast<Ratio*>(ptr);
+    daqErrCode err = daq::createRatio(&ptr, numerator, denominator);
+    *obj = reinterpret_cast<daqRatio*>(ptr);
     return err;
 }

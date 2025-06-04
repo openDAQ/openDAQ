@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:48.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,24 +34,24 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SerializedList SerializedList;
-    typedef struct SerializedObject SerializedObject;
-    typedef struct Function Function;
-    typedef struct List List;
-    typedef struct String String;
+    typedef struct daqSerializedList daqSerializedList;
+    typedef struct daqSerializedObject daqSerializedObject;
+    typedef struct daqFunction daqFunction;
+    typedef struct daqList daqList;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID SERIALIZED_LIST_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SERIALIZED_LIST_INTF_ID;
 
-    ErrCode EXPORTED SerializedList_readSerializedObject(SerializedList* self, SerializedObject** plainObj);
-    ErrCode EXPORTED SerializedList_readSerializedList(SerializedList* self, SerializedList** list);
-    ErrCode EXPORTED SerializedList_readList(SerializedList* self, BaseObject* context, Function* factoryCallback, List** list);
-    ErrCode EXPORTED SerializedList_readObject(SerializedList* self, BaseObject* context, Function* factoryCallback, BaseObject** obj);
-    ErrCode EXPORTED SerializedList_readString(SerializedList* self, String** string);
-    ErrCode EXPORTED SerializedList_readBool(SerializedList* self, Bool* boolean);
-    ErrCode EXPORTED SerializedList_readFloat(SerializedList* self, Float* real);
-    ErrCode EXPORTED SerializedList_readInt(SerializedList* self, Int* integer);
-    ErrCode EXPORTED SerializedList_getCount(SerializedList* self, SizeT* size);
-    ErrCode EXPORTED SerializedList_getCurrentItemType(SerializedList* self, CoreType* size);
+    daqErrCode EXPORTED daqSerializedList_readSerializedObject(daqSerializedList* self, daqSerializedObject** plainObj);
+    daqErrCode EXPORTED daqSerializedList_readSerializedList(daqSerializedList* self, daqSerializedList** list);
+    daqErrCode EXPORTED daqSerializedList_readList(daqSerializedList* self, daqBaseObject* context, daqFunction* factoryCallback, daqList** list);
+    daqErrCode EXPORTED daqSerializedList_readObject(daqSerializedList* self, daqBaseObject* context, daqFunction* factoryCallback, daqBaseObject** obj);
+    daqErrCode EXPORTED daqSerializedList_readString(daqSerializedList* self, daqString** string);
+    daqErrCode EXPORTED daqSerializedList_readBool(daqSerializedList* self, daqBool* boolean);
+    daqErrCode EXPORTED daqSerializedList_readFloat(daqSerializedList* self, daqFloat* real);
+    daqErrCode EXPORTED daqSerializedList_readInt(daqSerializedList* self, daqInt* integer);
+    daqErrCode EXPORTED daqSerializedList_getCount(daqSerializedList* self, daqSizeT* size);
+    daqErrCode EXPORTED daqSerializedList_getCurrentItemType(daqSerializedList* self, daqCoreType* size);
 
 #ifdef __cplusplus
 }

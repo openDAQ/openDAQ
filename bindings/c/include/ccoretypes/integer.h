@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:44.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Integer Integer;
+    typedef struct daqInteger daqInteger;
 
-    EXPORTED extern const IntfID INTEGER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_INTEGER_INTF_ID;
 
-    ErrCode EXPORTED Integer_getValue(Integer* self, Int* value);
-    ErrCode EXPORTED Integer_equalsValue(Integer* self, Int value, Bool* equals);
-    ErrCode EXPORTED Integer_createInteger(Integer** obj, Int value);
+    daqErrCode EXPORTED daqInteger_getValue(daqInteger* self, daqInt* value);
+    daqErrCode EXPORTED daqInteger_equalsValue(daqInteger* self, daqInt value, daqBool* equals);
+    daqErrCode EXPORTED daqInteger_createInteger(daqInteger** obj, daqInt value);
 
 #ifdef __cplusplus
 }

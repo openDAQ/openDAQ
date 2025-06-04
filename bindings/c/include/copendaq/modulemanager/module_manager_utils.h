@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:40.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:19.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,30 +34,31 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ModuleManagerUtils ModuleManagerUtils;
-    typedef struct List List;
-    typedef struct Dict Dict;
-    typedef struct Device Device;
-    typedef struct String String;
-    typedef struct Component Component;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct FunctionBlock FunctionBlock;
-    typedef struct Streaming Streaming;
-    typedef struct Server Server;
+    typedef struct daqModuleManagerUtils daqModuleManagerUtils;
+    typedef struct daqList daqList;
+    typedef struct daqDict daqDict;
+    typedef struct daqDevice daqDevice;
+    typedef struct daqString daqString;
+    typedef struct daqComponent daqComponent;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqFunctionBlock daqFunctionBlock;
+    typedef struct daqStreaming daqStreaming;
+    typedef struct daqServer daqServer;
 
-    EXPORTED extern const IntfID MODULE_MANAGER_UTILS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_MODULE_MANAGER_UTILS_INTF_ID;
 
-    ErrCode EXPORTED ModuleManagerUtils_getAvailableDevices(ModuleManagerUtils* self, List** availableDevices);
-    ErrCode EXPORTED ModuleManagerUtils_getAvailableDeviceTypes(ModuleManagerUtils* self, Dict** deviceTypes);
-    ErrCode EXPORTED ModuleManagerUtils_createDevice(ModuleManagerUtils* self, Device** device, String* connectionString, Component* parent, PropertyObject* config);
-    ErrCode EXPORTED ModuleManagerUtils_getAvailableFunctionBlockTypes(ModuleManagerUtils* self, Dict** functionBlockTypes);
-    ErrCode EXPORTED ModuleManagerUtils_createFunctionBlock(ModuleManagerUtils* self, FunctionBlock** functionBlock, String* id, Component* parent, PropertyObject* config, String* localId);
-    ErrCode EXPORTED ModuleManagerUtils_createStreaming(ModuleManagerUtils* self, Streaming** streaming, String* connectionString, PropertyObject* config);
-    ErrCode EXPORTED ModuleManagerUtils_getAvailableStreamingTypes(ModuleManagerUtils* self, Dict** streamingTypes);
-    ErrCode EXPORTED ModuleManagerUtils_createDefaultAddDeviceConfig(ModuleManagerUtils* self, PropertyObject** defaultConfig);
-    ErrCode EXPORTED ModuleManagerUtils_createServer(ModuleManagerUtils* self, Server** server, String* serverTypeId, Device* rootDevice, PropertyObject* serverConfig);
-    ErrCode EXPORTED ModuleManagerUtils_changeIpConfig(ModuleManagerUtils* self, String* iface, String* manufacturer, String* serialNumber, PropertyObject* config);
-    ErrCode EXPORTED ModuleManagerUtils_requestIpConfig(ModuleManagerUtils* self, String* iface, String* manufacturer, String* serialNumber, PropertyObject** config);
+    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableDevices(daqModuleManagerUtils* self, daqList** availableDevices);
+    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableDeviceTypes(daqModuleManagerUtils* self, daqDict** deviceTypes);
+    daqErrCode EXPORTED daqModuleManagerUtils_createDevice(daqModuleManagerUtils* self, daqDevice** device, daqString* connectionString, daqComponent* parent, daqPropertyObject* config);
+    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableFunctionBlockTypes(daqModuleManagerUtils* self, daqDict** functionBlockTypes);
+    daqErrCode EXPORTED daqModuleManagerUtils_createFunctionBlock(daqModuleManagerUtils* self, daqFunctionBlock** functionBlock, daqString* id, daqComponent* parent, daqPropertyObject* config, daqString* localId);
+    daqErrCode EXPORTED daqModuleManagerUtils_createStreaming(daqModuleManagerUtils* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config);
+    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableStreamingTypes(daqModuleManagerUtils* self, daqDict** streamingTypes);
+    daqErrCode EXPORTED daqModuleManagerUtils_createDefaultAddDeviceConfig(daqModuleManagerUtils* self, daqPropertyObject** defaultConfig);
+    daqErrCode EXPORTED daqModuleManagerUtils_createServer(daqModuleManagerUtils* self, daqServer** server, daqString* serverTypeId, daqDevice* rootDevice, daqPropertyObject* serverConfig);
+    daqErrCode EXPORTED daqModuleManagerUtils_changeIpConfig(daqModuleManagerUtils* self, daqString* iface, daqString* manufacturer, daqString* serialNumber, daqPropertyObject* config);
+    daqErrCode EXPORTED daqModuleManagerUtils_requestIpConfig(daqModuleManagerUtils* self, daqString* iface, daqString* manufacturer, daqString* serialNumber, daqPropertyObject** config);
+    daqErrCode EXPORTED daqModuleManagerUtils_completeDeviceCapabilities(daqModuleManagerUtils* self, daqDevice* device);
 
 #ifdef __cplusplus
 }

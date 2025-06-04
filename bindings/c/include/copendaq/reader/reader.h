@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:46.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:26.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Reader Reader;
-    typedef struct Procedure Procedure;
+    typedef struct daqReader daqReader;
+    typedef struct daqProcedure daqProcedure;
 
-    EXPORTED extern const IntfID READER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_READER_INTF_ID;
 
-    ErrCode EXPORTED Reader_getAvailableCount(Reader* self, SizeT* count);
-    ErrCode EXPORTED Reader_setOnDataAvailable(Reader* self, Procedure* callback);
-    ErrCode EXPORTED Reader_getEmpty(Reader* self, Bool* empty);
+    daqErrCode EXPORTED daqReader_getAvailableCount(daqReader* self, daqSizeT* count);
+    daqErrCode EXPORTED daqReader_setOnDataAvailable(daqReader* self, daqProcedure* callback);
+    daqErrCode EXPORTED daqReader_getEmpty(daqReader* self, daqBool* empty);
 
 #ifdef __cplusplus
 }

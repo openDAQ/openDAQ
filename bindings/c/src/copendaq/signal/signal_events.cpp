@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:16.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,24 +15,24 @@
 
 #include <copendaq_private.h>
 
-const IntfID SIGNAL_EVENTS_INTF_ID = { daq::ISignalEvents::Id.Data1, daq::ISignalEvents::Id.Data2, daq::ISignalEvents::Id.Data3, daq::ISignalEvents::Id.Data4_UInt64 };
+const daqIntfID DAQ_SIGNAL_EVENTS_INTF_ID = { daq::ISignalEvents::Id.Data1, daq::ISignalEvents::Id.Data2, daq::ISignalEvents::Id.Data3, daq::ISignalEvents::Id.Data4_UInt64 };
 
-ErrCode SignalEvents_listenerConnected(SignalEvents* self, Connection* connection)
+daqErrCode daqSignalEvents_listenerConnected(daqSignalEvents* self, daqConnection* connection)
 {
     return reinterpret_cast<daq::ISignalEvents*>(self)->listenerConnected(reinterpret_cast<daq::IConnection*>(connection));
 }
 
-ErrCode SignalEvents_listenerDisconnected(SignalEvents* self, Connection* connection)
+daqErrCode daqSignalEvents_listenerDisconnected(daqSignalEvents* self, daqConnection* connection)
 {
     return reinterpret_cast<daq::ISignalEvents*>(self)->listenerDisconnected(reinterpret_cast<daq::IConnection*>(connection));
 }
 
-ErrCode SignalEvents_domainSignalReferenceSet(SignalEvents* self, Signal* signal)
+daqErrCode daqSignalEvents_domainSignalReferenceSet(daqSignalEvents* self, daqSignal* signal)
 {
     return reinterpret_cast<daq::ISignalEvents*>(self)->domainSignalReferenceSet(reinterpret_cast<daq::ISignal*>(signal));
 }
 
-ErrCode SignalEvents_domainSignalReferenceRemoved(SignalEvents* self, Signal* signal)
+daqErrCode daqSignalEvents_domainSignalReferenceRemoved(daqSignalEvents* self, daqSignal* signal)
 {
     return reinterpret_cast<daq::ISignalEvents*>(self)->domainSignalReferenceRemoved(reinterpret_cast<daq::ISignal*>(signal));
 }

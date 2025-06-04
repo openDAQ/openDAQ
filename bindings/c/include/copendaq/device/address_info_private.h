@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:22.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:02.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,11 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct AddressInfoPrivate AddressInfoPrivate;
+    typedef struct daqAddressInfoPrivate daqAddressInfoPrivate;
 
-    EXPORTED extern const IntfID ADDRESS_INFO_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_ADDRESS_INFO_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED AddressInfoPrivate_setReachabilityStatusPrivate(AddressInfoPrivate* self, AddressReachabilityStatus addressReachability);
+    daqErrCode EXPORTED daqAddressInfoPrivate_setReachabilityStatusPrivate(daqAddressInfoPrivate* self, daqAddressReachabilityStatus addressReachability);
 
 #ifdef __cplusplus
 }

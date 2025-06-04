@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:44.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Freezable Freezable;
+    typedef struct daqFreezable daqFreezable;
 
-    EXPORTED extern const IntfID FREEZABLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_FREEZABLE_INTF_ID;
 
-    ErrCode EXPORTED Freezable_freeze(Freezable* self);
-    ErrCode EXPORTED Freezable_isFrozen(Freezable* self, Bool* isFrozen);
+    daqErrCode EXPORTED daqFreezable_freeze(daqFreezable* self);
+    daqErrCode EXPORTED daqFreezable_isFrozen(daqFreezable* self, daqBool* isFrozen);
 
 #ifdef __cplusplus
 }

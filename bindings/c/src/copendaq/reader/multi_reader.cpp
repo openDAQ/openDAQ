@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:44.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:24.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,78 +15,78 @@
 
 #include <copendaq_private.h>
 
-const IntfID MULTI_READER_INTF_ID = { daq::IMultiReader::Id.Data1, daq::IMultiReader::Id.Data2, daq::IMultiReader::Id.Data3, daq::IMultiReader::Id.Data4_UInt64 };
+const daqIntfID DAQ_MULTI_READER_INTF_ID = { daq::IMultiReader::Id.Data1, daq::IMultiReader::Id.Data2, daq::IMultiReader::Id.Data3, daq::IMultiReader::Id.Data4_UInt64 };
 
-ErrCode MultiReader_read(MultiReader* self, void* samples, SizeT* count, SizeT timeoutMs, MultiReaderStatus** status)
+daqErrCode daqMultiReader_read(daqMultiReader* self, void* samples, daqSizeT* count, daqSizeT timeoutMs, daqMultiReaderStatus** status)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->read(samples, count, timeoutMs, reinterpret_cast<daq::IMultiReaderStatus**>(status));
 }
 
-ErrCode MultiReader_readWithDomain(MultiReader* self, void* samples, void* domain, SizeT* count, SizeT timeoutMs, MultiReaderStatus** status)
+daqErrCode daqMultiReader_readWithDomain(daqMultiReader* self, void* samples, void* domain, daqSizeT* count, daqSizeT timeoutMs, daqMultiReaderStatus** status)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->readWithDomain(samples, domain, count, timeoutMs, reinterpret_cast<daq::IMultiReaderStatus**>(status));
 }
 
-ErrCode MultiReader_skipSamples(MultiReader* self, SizeT* count, MultiReaderStatus** status)
+daqErrCode daqMultiReader_skipSamples(daqMultiReader* self, daqSizeT* count, daqMultiReaderStatus** status)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->skipSamples(count, reinterpret_cast<daq::IMultiReaderStatus**>(status));
 }
 
-ErrCode MultiReader_getTickResolution(MultiReader* self, Ratio** resolution)
+daqErrCode daqMultiReader_getTickResolution(daqMultiReader* self, daqRatio** resolution)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->getTickResolution(reinterpret_cast<daq::IRatio**>(resolution));
 }
 
-ErrCode MultiReader_getOrigin(MultiReader* self, String** origin)
+daqErrCode daqMultiReader_getOrigin(daqMultiReader* self, daqString** origin)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->getOrigin(reinterpret_cast<daq::IString**>(origin));
 }
 
-ErrCode MultiReader_getOffset(MultiReader* self, void* domainStart)
+daqErrCode daqMultiReader_getOffset(daqMultiReader* self, void* domainStart)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->getOffset(domainStart);
 }
 
-ErrCode MultiReader_getIsSynchronized(MultiReader* self, Bool* isSynchronized)
+daqErrCode daqMultiReader_getIsSynchronized(daqMultiReader* self, daqBool* isSynchronized)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->getIsSynchronized(isSynchronized);
 }
 
-ErrCode MultiReader_getCommonSampleRate(MultiReader* self, Int* commonSampleRate)
+daqErrCode daqMultiReader_getCommonSampleRate(daqMultiReader* self, daqInt* commonSampleRate)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->getCommonSampleRate(commonSampleRate);
 }
 
-ErrCode MultiReader_setActive(MultiReader* self, Bool isActive)
+daqErrCode daqMultiReader_setActive(daqMultiReader* self, daqBool isActive)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->setActive(isActive);
 }
 
-ErrCode MultiReader_getActive(MultiReader* self, Bool* isActive)
+daqErrCode daqMultiReader_getActive(daqMultiReader* self, daqBool* isActive)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->getActive(isActive);
 }
 
-ErrCode MultiReader_createMultiReader(MultiReader** obj, List* signals, SampleType valueReadType, SampleType domainReadType, ReadMode mode, ReadTimeoutType timeoutType)
+daqErrCode daqMultiReader_createMultiReader(daqMultiReader** obj, daqList* signals, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType)
 {
     daq::IMultiReader* ptr = nullptr;
-    ErrCode err = daq::createMultiReader(&ptr, reinterpret_cast<daq::IList*>(signals), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(mode), static_cast<daq::ReadTimeoutType>(timeoutType));
-    *obj = reinterpret_cast<MultiReader*>(ptr);
+    daqErrCode err = daq::createMultiReader(&ptr, reinterpret_cast<daq::IList*>(signals), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(mode), static_cast<daq::ReadTimeoutType>(timeoutType));
+    *obj = reinterpret_cast<daqMultiReader*>(ptr);
     return err;
 }
 
-ErrCode MultiReader_createMultiReaderEx(MultiReader** obj, List* signals, SampleType valueReadType, SampleType domainReadType, ReadMode mode, ReadTimeoutType timeoutType, Int requiredCommonSampleRate, Bool startOnFullUnitOfDomain, SizeT minReadCount)
+daqErrCode daqMultiReader_createMultiReaderEx(daqMultiReader** obj, daqList* signals, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType, daqInt requiredCommonSampleRate, daqBool startOnFullUnitOfDomain, daqSizeT minReadCount)
 {
     daq::IMultiReader* ptr = nullptr;
-    ErrCode err = daq::createMultiReaderEx(&ptr, reinterpret_cast<daq::IList*>(signals), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(mode), static_cast<daq::ReadTimeoutType>(timeoutType), requiredCommonSampleRate, startOnFullUnitOfDomain, minReadCount);
-    *obj = reinterpret_cast<MultiReader*>(ptr);
+    daqErrCode err = daq::createMultiReaderEx(&ptr, reinterpret_cast<daq::IList*>(signals), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType), static_cast<daq::ReadMode>(mode), static_cast<daq::ReadTimeoutType>(timeoutType), requiredCommonSampleRate, startOnFullUnitOfDomain, minReadCount);
+    *obj = reinterpret_cast<daqMultiReader*>(ptr);
     return err;
 }
 
-ErrCode MultiReader_createMultiReaderFromExisting(MultiReader** obj, MultiReader* invalidatedReader, SampleType valueReadType, SampleType domainReadType)
+daqErrCode daqMultiReader_createMultiReaderFromExisting(daqMultiReader** obj, daqMultiReader* invalidatedReader, daqSampleType valueReadType, daqSampleType domainReadType)
 {
     daq::IMultiReader* ptr = nullptr;
-    ErrCode err = daq::createMultiReaderFromExisting(&ptr, reinterpret_cast<daq::IMultiReader*>(invalidatedReader), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType));
-    *obj = reinterpret_cast<MultiReader*>(ptr);
+    daqErrCode err = daq::createMultiReaderFromExisting(&ptr, reinterpret_cast<daq::IMultiReader*>(invalidatedReader), static_cast<daq::SampleType>(valueReadType), static_cast<daq::SampleType>(domainReadType));
+    *obj = reinterpret_cast<daqMultiReader*>(ptr);
     return err;
 }

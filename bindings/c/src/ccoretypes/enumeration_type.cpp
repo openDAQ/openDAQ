@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:41.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:48.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,40 +15,40 @@
 
 #include <copendaq_private.h>
 
-const IntfID ENUMERATION_TYPE_INTF_ID = { daq::IEnumerationType::Id.Data1, daq::IEnumerationType::Id.Data2, daq::IEnumerationType::Id.Data3, daq::IEnumerationType::Id.Data4_UInt64 };
+const daqIntfID DAQ_ENUMERATION_TYPE_INTF_ID = { daq::IEnumerationType::Id.Data1, daq::IEnumerationType::Id.Data2, daq::IEnumerationType::Id.Data3, daq::IEnumerationType::Id.Data4_UInt64 };
 
-ErrCode EnumerationType_getEnumeratorNames(EnumerationType* self, List** names)
+daqErrCode daqEnumerationType_getEnumeratorNames(daqEnumerationType* self, daqList** names)
 {
     return reinterpret_cast<daq::IEnumerationType*>(self)->getEnumeratorNames(reinterpret_cast<daq::IList**>(names));
 }
 
-ErrCode EnumerationType_getAsDictionary(EnumerationType* self, Dict** dictionary)
+daqErrCode daqEnumerationType_getAsDictionary(daqEnumerationType* self, daqDict** dictionary)
 {
     return reinterpret_cast<daq::IEnumerationType*>(self)->getAsDictionary(reinterpret_cast<daq::IDict**>(dictionary));
 }
 
-ErrCode EnumerationType_getEnumeratorIntValue(EnumerationType* self, String* name, Int* value)
+daqErrCode daqEnumerationType_getEnumeratorIntValue(daqEnumerationType* self, daqString* name, daqInt* value)
 {
     return reinterpret_cast<daq::IEnumerationType*>(self)->getEnumeratorIntValue(reinterpret_cast<daq::IString*>(name), value);
 }
 
-ErrCode EnumerationType_getCount(EnumerationType* self, SizeT* count)
+daqErrCode daqEnumerationType_getCount(daqEnumerationType* self, daqSizeT* count)
 {
     return reinterpret_cast<daq::IEnumerationType*>(self)->getCount(count);
 }
 
-ErrCode EnumerationType_createEnumerationType(EnumerationType** obj, String* typeName, List* enumeratorNames, Int firstEnumeratorIntValue)
+daqErrCode daqEnumerationType_createEnumerationType(daqEnumerationType** obj, daqString* typeName, daqList* enumeratorNames, daqInt firstEnumeratorIntValue)
 {
     daq::IEnumerationType* ptr = nullptr;
-    ErrCode err = daq::createEnumerationType(&ptr, reinterpret_cast<daq::IString*>(typeName), reinterpret_cast<daq::IList*>(enumeratorNames), firstEnumeratorIntValue);
-    *obj = reinterpret_cast<EnumerationType*>(ptr);
+    daqErrCode err = daq::createEnumerationType(&ptr, reinterpret_cast<daq::IString*>(typeName), reinterpret_cast<daq::IList*>(enumeratorNames), firstEnumeratorIntValue);
+    *obj = reinterpret_cast<daqEnumerationType*>(ptr);
     return err;
 }
 
-ErrCode EnumerationType_createEnumerationTypeWithValues(EnumerationType** obj, String* typeName, Dict* enumerators)
+daqErrCode daqEnumerationType_createEnumerationTypeWithValues(daqEnumerationType** obj, daqString* typeName, daqDict* enumerators)
 {
     daq::IEnumerationType* ptr = nullptr;
-    ErrCode err = daq::createEnumerationTypeWithValues(&ptr, reinterpret_cast<daq::IString*>(typeName), reinterpret_cast<daq::IDict*>(enumerators));
-    *obj = reinterpret_cast<EnumerationType*>(ptr);
+    daqErrCode err = daq::createEnumerationTypeWithValues(&ptr, reinterpret_cast<daq::IString*>(typeName), reinterpret_cast<daq::IDict*>(enumerators));
+    *obj = reinterpret_cast<daqEnumerationType*>(ptr);
     return err;
 }

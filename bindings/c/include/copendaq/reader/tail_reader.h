@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:50.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:30.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct TailReader TailReader;
-    typedef struct TailReaderStatus TailReaderStatus;
-    typedef struct Signal Signal;
-    typedef struct InputPortConfig InputPortConfig;
+    typedef struct daqTailReader daqTailReader;
+    typedef struct daqTailReaderStatus daqTailReaderStatus;
+    typedef struct daqSignal daqSignal;
+    typedef struct daqInputPortConfig daqInputPortConfig;
 
-    EXPORTED extern const IntfID TAIL_READER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_TAIL_READER_INTF_ID;
 
-    ErrCode EXPORTED TailReader_read(TailReader* self, void* values, SizeT* count, TailReaderStatus** status);
-    ErrCode EXPORTED TailReader_readWithDomain(TailReader* self, void* values, void* domain, SizeT* count, TailReaderStatus** status);
-    ErrCode EXPORTED TailReader_getHistorySize(TailReader* self, SizeT* size);
-    ErrCode EXPORTED TailReader_createTailReader(TailReader** obj, Signal* signal, SizeT historySize, SampleType valueReadType, SampleType domainReadType, ReadMode mode);
-    ErrCode EXPORTED TailReader_createTailReaderFromPort(TailReader** obj, InputPortConfig* port, SizeT historySize, SampleType valueReadType, SampleType domainReadType, ReadMode mode);
-    ErrCode EXPORTED TailReader_createTailReaderFromExisting(TailReader** obj, TailReader* invalidatedReader, SizeT historySize, SampleType valueReadType, SampleType domainReadType);
+    daqErrCode EXPORTED daqTailReader_read(daqTailReader* self, void* values, daqSizeT* count, daqTailReaderStatus** status);
+    daqErrCode EXPORTED daqTailReader_readWithDomain(daqTailReader* self, void* values, void* domain, daqSizeT* count, daqTailReaderStatus** status);
+    daqErrCode EXPORTED daqTailReader_getHistorySize(daqTailReader* self, daqSizeT* size);
+    daqErrCode EXPORTED daqTailReader_createTailReader(daqTailReader** obj, daqSignal* signal, daqSizeT historySize, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode);
+    daqErrCode EXPORTED daqTailReader_createTailReaderFromPort(daqTailReader** obj, daqInputPortConfig* port, daqSizeT historySize, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode);
+    daqErrCode EXPORTED daqTailReader_createTailReaderFromExisting(daqTailReader** obj, daqTailReader* invalidatedReader, daqSizeT historySize, daqSampleType valueReadType, daqSampleType domainReadType);
 
 #ifdef __cplusplus
 }

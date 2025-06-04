@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:58.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:09.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,15 +34,15 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct CallableInfo CallableInfo;
-    typedef struct List List;
+    typedef struct daqCallableInfo daqCallableInfo;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID CALLABLE_INFO_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_CALLABLE_INFO_INTF_ID;
 
-    ErrCode EXPORTED CallableInfo_getReturnType(CallableInfo* self, CoreType* type);
-    ErrCode EXPORTED CallableInfo_getArguments(CallableInfo* self, List** argumentInfo);
-    ErrCode EXPORTED CallableInfo_isConst(CallableInfo* self, Bool* constFlag);
-    ErrCode EXPORTED CallableInfo_createCallableInfo(CallableInfo** obj, List* argumentInfo, CoreType returnType, Bool constFlag);
+    daqErrCode EXPORTED daqCallableInfo_getReturnType(daqCallableInfo* self, daqCoreType* type);
+    daqErrCode EXPORTED daqCallableInfo_getArguments(daqCallableInfo* self, daqList** argumentInfo);
+    daqErrCode EXPORTED daqCallableInfo_isConst(daqCallableInfo* self, daqBool* constFlag);
+    daqErrCode EXPORTED daqCallableInfo_createCallableInfo(daqCallableInfo** obj, daqList* argumentInfo, daqCoreType returnType, daqBool constFlag);
 
 #ifdef __cplusplus
 }

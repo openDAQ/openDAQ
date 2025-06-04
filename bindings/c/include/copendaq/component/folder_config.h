@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:17.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,20 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct FolderConfig FolderConfig;
-    typedef struct Component Component;
-    typedef struct String String;
-    typedef struct Context Context;
+    typedef struct daqFolderConfig daqFolderConfig;
+    typedef struct daqComponent daqComponent;
+    typedef struct daqString daqString;
+    typedef struct daqContext daqContext;
 
-    EXPORTED extern const IntfID FOLDER_CONFIG_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_FOLDER_CONFIG_INTF_ID;
 
-    ErrCode EXPORTED FolderConfig_addItem(FolderConfig* self, Component* item);
-    ErrCode EXPORTED FolderConfig_removeItem(FolderConfig* self, Component* item);
-    ErrCode EXPORTED FolderConfig_removeItemWithLocalId(FolderConfig* self, String* localId);
-    ErrCode EXPORTED FolderConfig_clear(FolderConfig* self);
-    ErrCode EXPORTED FolderConfig_createFolder(FolderConfig** obj, Context* context, Component* parent, String* localId);
-    ErrCode EXPORTED FolderConfig_createFolderWithItemType(FolderConfig** obj, IntfID itemType, Context* context, Component* parent, String* localId);
-    ErrCode EXPORTED FolderConfig_createIoFolder(FolderConfig** obj, Context* context, Component* parent, String* localId);
+    daqErrCode EXPORTED daqFolderConfig_addItem(daqFolderConfig* self, daqComponent* item);
+    daqErrCode EXPORTED daqFolderConfig_removeItem(daqFolderConfig* self, daqComponent* item);
+    daqErrCode EXPORTED daqFolderConfig_removeItemWithLocalId(daqFolderConfig* self, daqString* localId);
+    daqErrCode EXPORTED daqFolderConfig_clear(daqFolderConfig* self);
+    daqErrCode EXPORTED daqFolderConfig_createFolder(daqFolderConfig** obj, daqContext* context, daqComponent* parent, daqString* localId);
+    daqErrCode EXPORTED daqFolderConfig_createFolderWithItemType(daqFolderConfig** obj, daqIntfID itemType, daqContext* context, daqComponent* parent, daqString* localId);
+    daqErrCode EXPORTED daqFolderConfig_createIoFolder(daqFolderConfig** obj, daqContext* context, daqComponent* parent, daqString* localId);
 
 #ifdef __cplusplus
 }

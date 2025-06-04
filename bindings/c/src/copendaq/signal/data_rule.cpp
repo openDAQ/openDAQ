@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:01.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:41.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,62 +15,62 @@
 
 #include <copendaq_private.h>
 
-const IntfID DATA_RULE_INTF_ID = { daq::IDataRule::Id.Data1, daq::IDataRule::Id.Data2, daq::IDataRule::Id.Data3, daq::IDataRule::Id.Data4_UInt64 };
+const daqIntfID DAQ_DATA_RULE_INTF_ID = { daq::IDataRule::Id.Data1, daq::IDataRule::Id.Data2, daq::IDataRule::Id.Data3, daq::IDataRule::Id.Data4_UInt64 };
 
-ErrCode DataRule_getType(DataRule* self, DataRuleType* type)
+daqErrCode daqDataRule_getType(daqDataRule* self, daqDataRuleType* type)
 {
     return reinterpret_cast<daq::IDataRule*>(self)->getType(reinterpret_cast<daq::DataRuleType*>(type));
 }
 
-ErrCode DataRule_getParameters(DataRule* self, Dict** parameters)
+daqErrCode daqDataRule_getParameters(daqDataRule* self, daqDict** parameters)
 {
     return reinterpret_cast<daq::IDataRule*>(self)->getParameters(reinterpret_cast<daq::IDict**>(parameters));
 }
 
-ErrCode DataRule_createLinearDataRule(DataRule** obj, Number* delta, Number* start)
+daqErrCode daqDataRule_createLinearDataRule(daqDataRule** obj, daqNumber* delta, daqNumber* start)
 {
     daq::IDataRule* ptr = nullptr;
-    ErrCode err = daq::createLinearDataRule(&ptr, reinterpret_cast<daq::INumber*>(delta), reinterpret_cast<daq::INumber*>(start));
-    *obj = reinterpret_cast<DataRule*>(ptr);
+    daqErrCode err = daq::createLinearDataRule(&ptr, reinterpret_cast<daq::INumber*>(delta), reinterpret_cast<daq::INumber*>(start));
+    *obj = reinterpret_cast<daqDataRule*>(ptr);
     return err;
 }
 
-ErrCode DataRule_createConstantDataRule(DataRule** obj)
+daqErrCode daqDataRule_createConstantDataRule(daqDataRule** obj)
 {
     daq::IDataRule* ptr = nullptr;
-    ErrCode err = daq::createConstantDataRule(&ptr);
-    *obj = reinterpret_cast<DataRule*>(ptr);
+    daqErrCode err = daq::createConstantDataRule(&ptr);
+    *obj = reinterpret_cast<daqDataRule*>(ptr);
     return err;
 }
 
-ErrCode DataRule_createExplicitDataRule(DataRule** obj)
+daqErrCode daqDataRule_createExplicitDataRule(daqDataRule** obj)
 {
     daq::IDataRule* ptr = nullptr;
-    ErrCode err = daq::createExplicitDataRule(&ptr);
-    *obj = reinterpret_cast<DataRule*>(ptr);
+    daqErrCode err = daq::createExplicitDataRule(&ptr);
+    *obj = reinterpret_cast<daqDataRule*>(ptr);
     return err;
 }
 
-ErrCode DataRule_createExplicitDomainDataRule(DataRule** obj, Number* minExpectedDelta, Number* maxExpectedDelta)
+daqErrCode daqDataRule_createExplicitDomainDataRule(daqDataRule** obj, daqNumber* minExpectedDelta, daqNumber* maxExpectedDelta)
 {
     daq::IDataRule* ptr = nullptr;
-    ErrCode err = daq::createExplicitDomainDataRule(&ptr, reinterpret_cast<daq::INumber*>(minExpectedDelta), reinterpret_cast<daq::INumber*>(maxExpectedDelta));
-    *obj = reinterpret_cast<DataRule*>(ptr);
+    daqErrCode err = daq::createExplicitDomainDataRule(&ptr, reinterpret_cast<daq::INumber*>(minExpectedDelta), reinterpret_cast<daq::INumber*>(maxExpectedDelta));
+    *obj = reinterpret_cast<daqDataRule*>(ptr);
     return err;
 }
 
-ErrCode DataRule_createDataRule(DataRule** obj, DataRuleType ruleType, Dict* parameters)
+daqErrCode daqDataRule_createDataRule(daqDataRule** obj, daqDataRuleType ruleType, daqDict* parameters)
 {
     daq::IDataRule* ptr = nullptr;
-    ErrCode err = daq::createDataRule(&ptr, static_cast<daq::DataRuleType>(ruleType), reinterpret_cast<daq::IDict*>(parameters));
-    *obj = reinterpret_cast<DataRule*>(ptr);
+    daqErrCode err = daq::createDataRule(&ptr, static_cast<daq::DataRuleType>(ruleType), reinterpret_cast<daq::IDict*>(parameters));
+    *obj = reinterpret_cast<daqDataRule*>(ptr);
     return err;
 }
 
-ErrCode DataRule_createDataRuleFromBuilder(DataRule** obj, DataRuleBuilder* builder)
+daqErrCode daqDataRule_createDataRuleFromBuilder(daqDataRule** obj, daqDataRuleBuilder* builder)
 {
     daq::IDataRule* ptr = nullptr;
-    ErrCode err = daq::createDataRuleFromBuilder(&ptr, reinterpret_cast<daq::IDataRuleBuilder*>(builder));
-    *obj = reinterpret_cast<DataRule*>(ptr);
+    daqErrCode err = daq::createDataRuleFromBuilder(&ptr, reinterpret_cast<daq::IDataRuleBuilder*>(builder));
+    *obj = reinterpret_cast<daqDataRule*>(ptr);
     return err;
 }

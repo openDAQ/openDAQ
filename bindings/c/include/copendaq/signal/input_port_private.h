@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:08.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,11 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct InputPortPrivate InputPortPrivate;
+    typedef struct daqInputPortPrivate daqInputPortPrivate;
 
-    EXPORTED extern const IntfID INPUT_PORT_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_INPUT_PORT_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED InputPortPrivate_disconnectWithoutSignalNotification(InputPortPrivate* self);
+    daqErrCode EXPORTED daqInputPortPrivate_disconnectWithoutSignalNotification(daqInputPortPrivate* self);
 
 #ifdef __cplusplus
 }

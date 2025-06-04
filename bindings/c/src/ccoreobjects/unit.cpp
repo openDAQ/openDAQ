@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:08.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,32 +15,32 @@
 
 #include <copendaq_private.h>
 
-const IntfID UNIT_INTF_ID = { daq::IUnit::Id.Data1, daq::IUnit::Id.Data2, daq::IUnit::Id.Data3, daq::IUnit::Id.Data4_UInt64 };
+const daqIntfID DAQ_UNIT_INTF_ID = { daq::IUnit::Id.Data1, daq::IUnit::Id.Data2, daq::IUnit::Id.Data3, daq::IUnit::Id.Data4_UInt64 };
 
-ErrCode Unit_getId(Unit* self, Int* id)
+daqErrCode daqUnit_getId(daqUnit* self, daqInt* id)
 {
     return reinterpret_cast<daq::IUnit*>(self)->getId(id);
 }
 
-ErrCode Unit_getSymbol(Unit* self, String** symbol)
+daqErrCode daqUnit_getSymbol(daqUnit* self, daqString** symbol)
 {
     return reinterpret_cast<daq::IUnit*>(self)->getSymbol(reinterpret_cast<daq::IString**>(symbol));
 }
 
-ErrCode Unit_getName(Unit* self, String** name)
+daqErrCode daqUnit_getName(daqUnit* self, daqString** name)
 {
     return reinterpret_cast<daq::IUnit*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode Unit_getQuantity(Unit* self, String** quantity)
+daqErrCode daqUnit_getQuantity(daqUnit* self, daqString** quantity)
 {
     return reinterpret_cast<daq::IUnit*>(self)->getQuantity(reinterpret_cast<daq::IString**>(quantity));
 }
 
-ErrCode Unit_createUnit(Unit** obj, Int id, String* symbol, String* name, String* quantity)
+daqErrCode daqUnit_createUnit(daqUnit** obj, daqInt id, daqString* symbol, daqString* name, daqString* quantity)
 {
     daq::IUnit* ptr = nullptr;
-    ErrCode err = daq::createUnit(&ptr, id, reinterpret_cast<daq::IString*>(symbol), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(quantity));
-    *obj = reinterpret_cast<Unit*>(ptr);
+    daqErrCode err = daq::createUnit(&ptr, id, reinterpret_cast<daq::IString*>(symbol), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(quantity));
+    *obj = reinterpret_cast<daqUnit*>(ptr);
     return err;
 }

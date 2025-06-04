@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:28.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Function Function;
+    typedef struct daqFunction daqFunction;
 
-    EXPORTED extern const IntfID FUNCTION_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_FUNCTION_INTF_ID;
 
-    ErrCode EXPORTED Function_call(Function* self, BaseObject* params, BaseObject** result);
-    ErrCode EXPORTED Function_createFunction(Function** obj, FuncCall value);
+    daqErrCode EXPORTED daqFunction_call(daqFunction* self, daqBaseObject* params, daqBaseObject** result);
+    daqErrCode EXPORTED daqFunction_createFunction(daqFunction** obj, daqFuncCall value);
 
 #ifdef __cplusplus
 }

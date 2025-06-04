@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:36.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct BinaryData BinaryData;
+    typedef struct daqBinaryData daqBinaryData;
 
-    EXPORTED extern const IntfID BINARY_DATA_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_BINARY_DATA_INTF_ID;
 
-    ErrCode EXPORTED BinaryData_getAddress(BinaryData* self, void** data);
-    ErrCode EXPORTED BinaryData_getSize(BinaryData* self, SizeT* size);
-    ErrCode EXPORTED BinaryData_createBinaryData(BinaryData** obj, SizeT size);
+    daqErrCode EXPORTED daqBinaryData_getAddress(daqBinaryData* self, void** data);
+    daqErrCode EXPORTED daqBinaryData_getSize(daqBinaryData* self, daqSizeT* size);
+    daqErrCode EXPORTED daqBinaryData_createBinaryData(daqBinaryData** obj, daqSizeT size);
 
 #ifdef __cplusplus
 }

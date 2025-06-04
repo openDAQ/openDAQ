@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:47.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Ratio Ratio;
+    typedef struct daqRatio daqRatio;
 
-    EXPORTED extern const IntfID RATIO_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_RATIO_INTF_ID;
 
-    ErrCode EXPORTED Ratio_getNumerator(Ratio* self, Int* numerator);
-    ErrCode EXPORTED Ratio_getDenominator(Ratio* self, Int* denominator);
-    ErrCode EXPORTED Ratio_simplify(Ratio* self, Ratio** simplifiedRatio);
-    ErrCode EXPORTED Ratio_createRatio(Ratio** obj, Int numerator, Int denominator);
+    daqErrCode EXPORTED daqRatio_getNumerator(daqRatio* self, daqInt* numerator);
+    daqErrCode EXPORTED daqRatio_getDenominator(daqRatio* self, daqInt* denominator);
+    daqErrCode EXPORTED daqRatio_simplify(daqRatio* self, daqRatio** simplifiedRatio);
+    daqErrCode EXPORTED daqRatio_createRatio(daqRatio** obj, daqInt numerator, daqInt denominator);
 
 #ifdef __cplusplus
 }

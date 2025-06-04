@@ -21,68 +21,68 @@ extern "C"
 {
 #endif
 
-    typedef enum DataRuleType
+    typedef enum daqDataRuleType
     {
-        DataRuleTypeOther = 0,  ///< The rule is unknown to openDAQ and cannot be handled automatically.
-        DataRuleTypeLinear,  ///< The parameters contain a `delta` and `start` parameters member. The value is calculated as: <em>inputValue
+        daqDataRuleTypeOther = 0,  ///< The rule is unknown to openDAQ and cannot be handled automatically.
+        daqDataRuleTypeLinear,  ///< The parameters contain a `delta` and `start` parameters member. The value is calculated as: <em>inputValue
                              ///< * delta + start</em> .
-        DataRuleTypeConstant,  ///< The value is a constant, as defined in the `constant` parameter field.
-        DataRuleTypeExplicit   ///< The value is explicitly defined and is part of the signal's packet buffers.
-    } DataRuleType;
+        daqDataRuleTypeConstant,  ///< The value is a constant, as defined in the `constant` parameter field.
+        daqDataRuleTypeExplicit   ///< The value is explicitly defined and is part of the signal's packet buffers.
+    } daqDataRuleType;
 
-    typedef enum DimensionRuleType
+    typedef enum daqDimensionRuleType
     {
-        DimensionRuleTypeOther = 0,  ///< The rule is unknown to openDAQ and cannot be handled automatically.
-        DimensionRuleTypeLinear,  ///< The parameters contain a `delta`, `start`, and `size` parameters member. Calculated as: <em>index *
+        daqDimensionRuleTypeOther = 0,  ///< The rule is unknown to openDAQ and cannot be handled automatically.
+        daqDimensionRuleTypeLinear,  ///< The parameters contain a `delta`, `start`, and `size` parameters member. Calculated as: <em>index *
                                   ///< delta + start</em> for `size` number of elements.
-        DimensionRuleTypeLogarithmic,  ///< The parameters contain a `delta`, `start`, `base`, and `size` parameters member. Calculated as:
+        daqDimensionRuleTypeLogarithmic,  ///< The parameters contain a `delta`, `start`, `base`, and `size` parameters member. Calculated as:
                                        ///< <em>base ^ (index * delta + start)</em> for `size` number of elements.
-        DimensionRuleTypeList          ///< The parameters contain a `list` parameters member. The list contains all dimension labels.
-    } DimensionRuleType;
+        daqDimensionRuleTypeList          ///< The parameters contain a `list` parameters member. The list contains all dimension labels.
+    } daqDimensionRuleType;
 
-    typedef enum PacketReadyNotification
+    typedef enum daqPacketReadyNotification
     {
-        PacketReadyNotificationNone,                   ///< Ignore the notification.
-        PacketReadyNotificationSameThread,             ///< Call the listener in the same thread the notification was received.
-        PacketReadyNotificationScheduler,              ///< Call the listener asynchronously or in another thread.
-        PacketReadyNotificationSchedulerQueueWasEmpty  ///< Call the listener asynchronously or in another thread only if connection packet
+        daqPacketReadyNotificationNone,                   ///< Ignore the notification.
+        daqPacketReadyNotificationSameThread,             ///< Call the listener in the same thread the notification was received.
+        daqPacketReadyNotificationScheduler,              ///< Call the listener asynchronously or in another thread.
+        daqPacketReadyNotificationSchedulerQueueWasEmpty  ///< Call the listener asynchronously or in another thread only if connection packet
                                                        ///< queue was empty
-    } PacketReadyNotification;
+    } daqPacketReadyNotification;
 
-    typedef enum PacketType
+    typedef enum daqPacketType
     {
-        PacketTypeNone = 0,  ///< Undefined packet type
-        PacketTypeData,      ///< Packet is a Data packet
-        PacketTypeEvent      ///< Packet is an Event packet
-    } PacketType;
+        daqPacketTypeNone = 0,  ///< Undefined packet type
+        daqPacketTypeData,      ///< Packet is a Data packet
+        daqPacketTypeEvent      ///< Packet is an Event packet
+    } daqPacketType;
 
-    typedef enum TimeSource
+    typedef enum daqTimeSource
     {
-        TimeSourceUnknown,
-        TimeSourceTai,
-        TimeSourceGps,
-        TimeSourceUtc
-    } TimeSource;
+        daqTimeSourceUnknown,
+        daqTimeSourceTai,
+        daqTimeSourceGps,
+        daqTimeSourceUtc
+    } daqTimeSource;
 
-    typedef enum UsesOffset
+    typedef enum daqUsesOffset
     {
-        UsesOffsetUnknown,
-        UsesOffsetTrue,
-        UsesOffsetFalse
-    } UsesOffset;
+        daqUsesOffsetUnknown,
+        daqUsesOffsetTrue,
+        daqUsesOffsetFalse
+    } daqUsesOffset;
 
-    typedef enum ScaledSampleType
+    typedef enum daqScaledSampleType
     {
-        ScaledSampleTypeInvalid = 0,
-        ScaledSampleTypeFloat32,
-        ScaledSampleTypeFloat64,
-    } ScaledSampleType;
+        daqScaledSampleTypeInvalid = 0,
+        daqScaledSampleTypeFloat32,
+        daqScaledSampleTypeFloat64,
+    } daqScaledSampleType;
 
-    typedef enum ScalingType
+    typedef enum daqScalingType
     {
-        ScalingTypeOther = 0,
-        ScalingTypeLinear  ///< The parameters contain a `scale` and `offset`. Calculated as: <em>inputValue * scale + offset</em> .
-    } ScalingType;
+        daqScalingTypeOther = 0,
+        daqScalingTypeLinear  ///< The parameters contain a `scale` and `offset`. Calculated as: <em>inputValue * scale + offset</em> .
+    } daqScalingType;
 
 #ifdef __cplusplus
 }

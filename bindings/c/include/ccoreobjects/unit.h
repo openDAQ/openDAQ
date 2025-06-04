@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:08.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:19.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Unit Unit;
-    typedef struct String String;
+    typedef struct daqUnit daqUnit;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID UNIT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_UNIT_INTF_ID;
 
-    ErrCode EXPORTED Unit_getId(Unit* self, Int* id);
-    ErrCode EXPORTED Unit_getSymbol(Unit* self, String** symbol);
-    ErrCode EXPORTED Unit_getName(Unit* self, String** name);
-    ErrCode EXPORTED Unit_getQuantity(Unit* self, String** quantity);
-    ErrCode EXPORTED Unit_createUnit(Unit** obj, Int id, String* symbol, String* name, String* quantity);
+    daqErrCode EXPORTED daqUnit_getId(daqUnit* self, daqInt* id);
+    daqErrCode EXPORTED daqUnit_getSymbol(daqUnit* self, daqString** symbol);
+    daqErrCode EXPORTED daqUnit_getName(daqUnit* self, daqString** name);
+    daqErrCode EXPORTED daqUnit_getQuantity(daqUnit* self, daqString** quantity);
+    daqErrCode EXPORTED daqUnit_createUnit(daqUnit** obj, daqInt id, daqString* symbol, daqString* name, daqString* quantity);
 
 #ifdef __cplusplus
 }

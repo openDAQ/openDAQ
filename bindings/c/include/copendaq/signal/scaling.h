@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:12.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,20 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Scaling Scaling;
-    typedef struct Dict Dict;
-    typedef struct Number Number;
-    typedef struct ScalingBuilder ScalingBuilder;
+    typedef struct daqScaling daqScaling;
+    typedef struct daqDict daqDict;
+    typedef struct daqNumber daqNumber;
+    typedef struct daqScalingBuilder daqScalingBuilder;
 
-    EXPORTED extern const IntfID SCALING_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SCALING_INTF_ID;
 
-    ErrCode EXPORTED Scaling_getInputSampleType(Scaling* self, SampleType* type);
-    ErrCode EXPORTED Scaling_getOutputSampleType(Scaling* self, ScaledSampleType* type);
-    ErrCode EXPORTED Scaling_getType(Scaling* self, ScalingType* type);
-    ErrCode EXPORTED Scaling_getParameters(Scaling* self, Dict** parameters);
-    ErrCode EXPORTED Scaling_createLinearScaling(Scaling** obj, Number* scale, Number* offset, SampleType inputDataType, ScaledSampleType outputDataType);
-    ErrCode EXPORTED Scaling_createScaling(Scaling** obj, SampleType inputDataType, ScaledSampleType outputDataType, ScalingType scalingType, Dict* parameters);
-    ErrCode EXPORTED Scaling_createScalingFromBuilder(Scaling** obj, ScalingBuilder* builder);
+    daqErrCode EXPORTED daqScaling_getInputSampleType(daqScaling* self, daqSampleType* type);
+    daqErrCode EXPORTED daqScaling_getOutputSampleType(daqScaling* self, daqScaledSampleType* type);
+    daqErrCode EXPORTED daqScaling_getType(daqScaling* self, daqScalingType* type);
+    daqErrCode EXPORTED daqScaling_getParameters(daqScaling* self, daqDict** parameters);
+    daqErrCode EXPORTED daqScaling_createLinearScaling(daqScaling** obj, daqNumber* scale, daqNumber* offset, daqSampleType inputDataType, daqScaledSampleType outputDataType);
+    daqErrCode EXPORTED daqScaling_createScaling(daqScaling** obj, daqSampleType inputDataType, daqScaledSampleType outputDataType, daqScalingType scalingType, daqDict* parameters);
+    daqErrCode EXPORTED daqScaling_createScalingFromBuilder(daqScaling** obj, daqScalingBuilder* builder);
 
 #ifdef __cplusplus
 }

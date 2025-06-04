@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:55.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:34.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,12 +15,12 @@
 
 #include <copendaq_private.h>
 
-const IntfID TASK_GRAPH_INTF_ID = { daq::ITaskGraph::Id.Data1, daq::ITaskGraph::Id.Data2, daq::ITaskGraph::Id.Data3, daq::ITaskGraph::Id.Data4_UInt64 };
+const daqIntfID DAQ_TASK_GRAPH_INTF_ID = { daq::ITaskGraph::Id.Data1, daq::ITaskGraph::Id.Data2, daq::ITaskGraph::Id.Data3, daq::ITaskGraph::Id.Data4_UInt64 };
 
-ErrCode TaskGraph_createTaskGraph(TaskGraph** obj, Procedure* work, String* name)
+daqErrCode daqTaskGraph_createTaskGraph(daqTaskGraph** obj, daqProcedure* work, daqString* name)
 {
     daq::ITaskGraph* ptr = nullptr;
-    ErrCode err = daq::createTaskGraph(&ptr, reinterpret_cast<daq::IProcedure*>(work), reinterpret_cast<daq::IString*>(name));
-    *obj = reinterpret_cast<TaskGraph*>(ptr);
+    daqErrCode err = daq::createTaskGraph(&ptr, reinterpret_cast<daq::IProcedure*>(work), reinterpret_cast<daq::IString*>(name));
+    *obj = reinterpret_cast<daqTaskGraph*>(ptr);
     return err;
 }

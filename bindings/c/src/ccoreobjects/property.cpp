@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:04.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:15.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,231 +15,231 @@
 
 #include <copendaq_private.h>
 
-const IntfID PROPERTY_INTF_ID = { daq::IProperty::Id.Data1, daq::IProperty::Id.Data2, daq::IProperty::Id.Data3, daq::IProperty::Id.Data4_UInt64 };
+const daqIntfID DAQ_PROPERTY_INTF_ID = { daq::IProperty::Id.Data1, daq::IProperty::Id.Data2, daq::IProperty::Id.Data3, daq::IProperty::Id.Data4_UInt64 };
 
-ErrCode Property_getValueType(Property* self, CoreType* type)
+daqErrCode daqProperty_getValueType(daqProperty* self, daqCoreType* type)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getValueType(reinterpret_cast<daq::CoreType*>(type));
 }
 
-ErrCode Property_getKeyType(Property* self, CoreType* type)
+daqErrCode daqProperty_getKeyType(daqProperty* self, daqCoreType* type)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getKeyType(reinterpret_cast<daq::CoreType*>(type));
 }
 
-ErrCode Property_getItemType(Property* self, CoreType* type)
+daqErrCode daqProperty_getItemType(daqProperty* self, daqCoreType* type)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getItemType(reinterpret_cast<daq::CoreType*>(type));
 }
 
-ErrCode Property_getName(Property* self, String** name)
+daqErrCode daqProperty_getName(daqProperty* self, daqString** name)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode Property_getDescription(Property* self, String** description)
+daqErrCode daqProperty_getDescription(daqProperty* self, daqString** description)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getDescription(reinterpret_cast<daq::IString**>(description));
 }
 
-ErrCode Property_getUnit(Property* self, Unit** unit)
+daqErrCode daqProperty_getUnit(daqProperty* self, daqUnit** unit)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getUnit(reinterpret_cast<daq::IUnit**>(unit));
 }
 
-ErrCode Property_getMinValue(Property* self, Number** min)
+daqErrCode daqProperty_getMinValue(daqProperty* self, daqNumber** min)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getMinValue(reinterpret_cast<daq::INumber**>(min));
 }
 
-ErrCode Property_getMaxValue(Property* self, Number** max)
+daqErrCode daqProperty_getMaxValue(daqProperty* self, daqNumber** max)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getMaxValue(reinterpret_cast<daq::INumber**>(max));
 }
 
-ErrCode Property_getDefaultValue(Property* self, BaseObject** value)
+daqErrCode daqProperty_getDefaultValue(daqProperty* self, daqBaseObject** value)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getDefaultValue(reinterpret_cast<daq::IBaseObject**>(value));
 }
 
-ErrCode Property_getSuggestedValues(Property* self, List** values)
+daqErrCode daqProperty_getSuggestedValues(daqProperty* self, daqList** values)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getSuggestedValues(reinterpret_cast<daq::IList**>(values));
 }
 
-ErrCode Property_getVisible(Property* self, Bool* visible)
+daqErrCode daqProperty_getVisible(daqProperty* self, daqBool* visible)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getVisible(visible);
 }
 
-ErrCode Property_getReadOnly(Property* self, Bool* readOnly)
+daqErrCode daqProperty_getReadOnly(daqProperty* self, daqBool* readOnly)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getReadOnly(readOnly);
 }
 
-ErrCode Property_getSelectionValues(Property* self, BaseObject** values)
+daqErrCode daqProperty_getSelectionValues(daqProperty* self, daqBaseObject** values)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getSelectionValues(reinterpret_cast<daq::IBaseObject**>(values));
 }
 
-ErrCode Property_getReferencedProperty(Property* self, Property** property)
+daqErrCode daqProperty_getReferencedProperty(daqProperty* self, daqProperty** property)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getReferencedProperty(reinterpret_cast<daq::IProperty**>(property));
 }
 
-ErrCode Property_getIsReferenced(Property* self, Bool* isReferenced)
+daqErrCode daqProperty_getIsReferenced(daqProperty* self, daqBool* isReferenced)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getIsReferenced(isReferenced);
 }
 
-ErrCode Property_getValidator(Property* self, Validator** validator)
+daqErrCode daqProperty_getValidator(daqProperty* self, daqValidator** validator)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getValidator(reinterpret_cast<daq::IValidator**>(validator));
 }
 
-ErrCode Property_getCoercer(Property* self, Coercer** coercer)
+daqErrCode daqProperty_getCoercer(daqProperty* self, daqCoercer** coercer)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getCoercer(reinterpret_cast<daq::ICoercer**>(coercer));
 }
 
-ErrCode Property_getCallableInfo(Property* self, CallableInfo** callable)
+daqErrCode daqProperty_getCallableInfo(daqProperty* self, daqCallableInfo** callable)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getCallableInfo(reinterpret_cast<daq::ICallableInfo**>(callable));
 }
 
-ErrCode Property_getStructType(Property* self, StructType** structType)
+daqErrCode daqProperty_getStructType(daqProperty* self, daqStructType** structType)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getStructType(reinterpret_cast<daq::IStructType**>(structType));
 }
 
-ErrCode Property_getOnPropertyValueWrite(Property* self, Event** event)
+daqErrCode daqProperty_getOnPropertyValueWrite(daqProperty* self, daqEvent** event)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getOnPropertyValueWrite(reinterpret_cast<daq::IEvent**>(event));
 }
 
-ErrCode Property_getOnPropertyValueRead(Property* self, Event** event)
+daqErrCode daqProperty_getOnPropertyValueRead(daqProperty* self, daqEvent** event)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getOnPropertyValueRead(reinterpret_cast<daq::IEvent**>(event));
 }
 
-ErrCode Property_getValue(Property* self, BaseObject** value)
+daqErrCode daqProperty_getValue(daqProperty* self, daqBaseObject** value)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getValue(reinterpret_cast<daq::IBaseObject**>(value));
 }
 
-ErrCode Property_setValue(Property* self, BaseObject* value)
+daqErrCode daqProperty_setValue(daqProperty* self, daqBaseObject* value)
 {
     return reinterpret_cast<daq::IProperty*>(self)->setValue(reinterpret_cast<daq::IBaseObject*>(value));
 }
 
-ErrCode Property_createBoolProperty(Property** obj, String* name, Boolean* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createBoolProperty(daqProperty** obj, daqString* name, daqBoolean* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createBoolProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IBoolean*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createBoolProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IBoolean*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createIntProperty(Property** obj, String* name, Integer* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createIntProperty(daqProperty** obj, daqString* name, daqInteger* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createIntProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IInteger*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createIntProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IInteger*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createFloatProperty(Property** obj, String* name, Float* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createFloatProperty(daqProperty** obj, daqString* name, daqFloatObject* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createFloatProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IFloat*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createFloatProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IFloat*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createStringProperty(Property** obj, String* name, String* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createStringProperty(daqProperty** obj, daqString* name, daqString* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createStringProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createStringProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createListProperty(Property** obj, String* name, List* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createListProperty(daqProperty** obj, daqString* name, daqList* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createListProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IList*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createListProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IList*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createDictProperty(Property** obj, String* name, Dict* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createDictProperty(daqProperty** obj, daqString* name, daqDict* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createDictProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IDict*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createDictProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IDict*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createRatioProperty(Property** obj, String* name, Ratio* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createRatioProperty(daqProperty** obj, daqString* name, daqRatio* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createRatioProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IRatio*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createRatioProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IRatio*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createObjectProperty(Property** obj, String* name, PropertyObject* defaultValue)
+daqErrCode daqProperty_createObjectProperty(daqProperty** obj, daqString* name, daqPropertyObject* defaultValue)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createObjectProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IPropertyObject*>(defaultValue));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createObjectProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IPropertyObject*>(defaultValue));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createReferenceProperty(Property** obj, String* name, EvalValue* referencedPropertyEval)
+daqErrCode daqProperty_createReferenceProperty(daqProperty** obj, daqString* name, daqEvalValue* referencedPropertyEval)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createReferenceProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IEvalValue*>(referencedPropertyEval));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createReferenceProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IEvalValue*>(referencedPropertyEval));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createFunctionProperty(Property** obj, String* name, CallableInfo* callableInfo, Boolean* visible)
+daqErrCode daqProperty_createFunctionProperty(daqProperty** obj, daqString* name, daqCallableInfo* callableInfo, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createFunctionProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::ICallableInfo*>(callableInfo), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createFunctionProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::ICallableInfo*>(callableInfo), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createSelectionProperty(Property** obj, String* name, List* selectionValues, Integer* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createSelectionProperty(daqProperty** obj, daqString* name, daqList* selectionValues, daqInteger* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createSelectionProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IList*>(selectionValues), reinterpret_cast<daq::IInteger*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createSelectionProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IList*>(selectionValues), reinterpret_cast<daq::IInteger*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createSparseSelectionProperty(Property** obj, String* name, Dict* selectionValues, Integer* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createSparseSelectionProperty(daqProperty** obj, daqString* name, daqDict* selectionValues, daqInteger* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createSparseSelectionProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IDict*>(selectionValues), reinterpret_cast<daq::IInteger*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createSparseSelectionProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IDict*>(selectionValues), reinterpret_cast<daq::IInteger*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createStructProperty(Property** obj, String* name, Struct* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createStructProperty(daqProperty** obj, daqString* name, daqStruct* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createStructProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IStruct*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createStructProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IStruct*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }
 
-ErrCode Property_createEnumerationProperty(Property** obj, String* name, Enumeration* defaultValue, Boolean* visible)
+daqErrCode daqProperty_createEnumerationProperty(daqProperty** obj, daqString* name, daqEnumeration* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
-    ErrCode err = daq::createEnumerationProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IEnumeration*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
-    *obj = reinterpret_cast<Property*>(ptr);
+    daqErrCode err = daq::createEnumerationProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IEnumeration*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));
+    *obj = reinterpret_cast<daqProperty*>(ptr);
     return err;
 }

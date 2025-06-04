@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:39.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,11 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct CoreTypeObject CoreTypeObject;
+    typedef struct daqCoreTypeObject daqCoreTypeObject;
 
-    EXPORTED extern const IntfID CORE_TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_CORE_TYPE_INTF_ID;
 
-    ErrCode EXPORTED CoreType_getCoreType(CoreTypeObject* self, CoreType* coreType);
+    daqErrCode EXPORTED daqCoreType_getCoreType(daqCoreTypeObject* self, daqCoreType* coreType);
 
 #ifdef __cplusplus
 }

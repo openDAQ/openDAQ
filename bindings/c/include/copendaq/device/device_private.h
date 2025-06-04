@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:27.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:07.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DevicePrivate DevicePrivate;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct User User;
+    typedef struct daqDevicePrivate daqDevicePrivate;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqUser daqUser;
 
-    EXPORTED extern const IntfID DEVICE_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DEVICE_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED DevicePrivate_setAsRoot(DevicePrivate* self);
-    ErrCode EXPORTED DevicePrivate_setDeviceConfig(DevicePrivate* self, PropertyObject* config);
-    ErrCode EXPORTED DevicePrivate_getDeviceConfig(DevicePrivate* self, PropertyObject** config);
-    ErrCode EXPORTED DevicePrivate_lock(DevicePrivate* self, User* user);
-    ErrCode EXPORTED DevicePrivate_unlock(DevicePrivate* self, User* user);
-    ErrCode EXPORTED DevicePrivate_isLockedInternal(DevicePrivate* self, Bool* locked);
-    ErrCode EXPORTED DevicePrivate_forceUnlock(DevicePrivate* self);
+    daqErrCode EXPORTED daqDevicePrivate_setAsRoot(daqDevicePrivate* self);
+    daqErrCode EXPORTED daqDevicePrivate_setDeviceConfig(daqDevicePrivate* self, daqPropertyObject* config);
+    daqErrCode EXPORTED daqDevicePrivate_getDeviceConfig(daqDevicePrivate* self, daqPropertyObject** config);
+    daqErrCode EXPORTED daqDevicePrivate_lock(daqDevicePrivate* self, daqUser* user);
+    daqErrCode EXPORTED daqDevicePrivate_unlock(daqDevicePrivate* self, daqUser* user);
+    daqErrCode EXPORTED daqDevicePrivate_isLockedInternal(daqDevicePrivate* self, daqBool* locked);
+    daqErrCode EXPORTED daqDevicePrivate_forceUnlock(daqDevicePrivate* self);
 
 #ifdef __cplusplus
 }

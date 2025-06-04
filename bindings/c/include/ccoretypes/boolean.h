@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:36.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:43.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Boolean Boolean;
+    typedef struct daqBoolean daqBoolean;
 
-    EXPORTED extern const IntfID BOOLEAN_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_BOOLEAN_INTF_ID;
 
-    ErrCode EXPORTED Boolean_getValue(Boolean* self, Bool* value);
-    ErrCode EXPORTED Boolean_equalsValue(Boolean* self, Bool value, Bool* equal);
-    ErrCode EXPORTED Boolean_createBoolean(Boolean** obj, Bool value);
-    ErrCode EXPORTED Boolean_createBoolObject(Boolean** obj, Bool value);
+    daqErrCode EXPORTED daqBoolean_getValue(daqBoolean* self, daqBool* value);
+    daqErrCode EXPORTED daqBoolean_equalsValue(daqBoolean* self, daqBool value, daqBool* equal);
+    daqErrCode EXPORTED daqBoolean_createBoolean(daqBoolean** obj, daqBool value);
+    daqErrCode EXPORTED daqBoolean_createBoolObject(daqBoolean** obj, daqBool value);
 
 #ifdef __cplusplus
 }

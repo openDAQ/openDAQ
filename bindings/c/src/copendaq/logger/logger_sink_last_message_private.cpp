@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:36.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:16.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,14 +15,14 @@
 
 #include <copendaq_private.h>
 
-const IntfID LAST_MESSAGE_LOGGER_SINK_PRIVATE_INTF_ID = { daq::ILastMessageLoggerSinkPrivate::Id.Data1, daq::ILastMessageLoggerSinkPrivate::Id.Data2, daq::ILastMessageLoggerSinkPrivate::Id.Data3, daq::ILastMessageLoggerSinkPrivate::Id.Data4_UInt64 };
+const daqIntfID DAQ_LAST_MESSAGE_LOGGER_SINK_PRIVATE_INTF_ID = { daq::ILastMessageLoggerSinkPrivate::Id.Data1, daq::ILastMessageLoggerSinkPrivate::Id.Data2, daq::ILastMessageLoggerSinkPrivate::Id.Data3, daq::ILastMessageLoggerSinkPrivate::Id.Data4_UInt64 };
 
-ErrCode LastMessageLoggerSinkPrivate_getLastMessage(LastMessageLoggerSinkPrivate* self, String** lastMessage)
+daqErrCode daqLastMessageLoggerSinkPrivate_getLastMessage(daqLastMessageLoggerSinkPrivate* self, daqString** lastMessage)
 {
     return reinterpret_cast<daq::ILastMessageLoggerSinkPrivate*>(self)->getLastMessage(reinterpret_cast<daq::IString**>(lastMessage));
 }
 
-ErrCode LastMessageLoggerSinkPrivate_waitForMessage(LastMessageLoggerSinkPrivate* self, SizeT timeoutMs, Bool* success)
+daqErrCode daqLastMessageLoggerSinkPrivate_waitForMessage(daqLastMessageLoggerSinkPrivate* self, daqSizeT timeoutMs, daqBool* success)
 {
     return reinterpret_cast<daq::ILastMessageLoggerSinkPrivate*>(self)->waitForMessage(timeoutMs, success);
 }

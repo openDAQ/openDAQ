@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:03.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,19 +15,19 @@
 
 #include <copendaq_private.h>
 
-const IntfID PERMISSIONS_INTF_ID = { daq::IPermissions::Id.Data1, daq::IPermissions::Id.Data2, daq::IPermissions::Id.Data3, daq::IPermissions::Id.Data4_UInt64 };
+const daqIntfID DAQ_PERMISSIONS_INTF_ID = { daq::IPermissions::Id.Data1, daq::IPermissions::Id.Data2, daq::IPermissions::Id.Data3, daq::IPermissions::Id.Data4_UInt64 };
 
-ErrCode Permissions_getInherited(Permissions* self, Bool* isInherited)
+daqErrCode daqPermissions_getInherited(daqPermissions* self, daqBool* isInherited)
 {
     return reinterpret_cast<daq::IPermissions*>(self)->getInherited(isInherited);
 }
 
-ErrCode Permissions_getAllowed(Permissions* self, Dict** permissions)
+daqErrCode daqPermissions_getAllowed(daqPermissions* self, daqDict** permissions)
 {
     return reinterpret_cast<daq::IPermissions*>(self)->getAllowed(reinterpret_cast<daq::IDict**>(permissions));
 }
 
-ErrCode Permissions_getDenied(Permissions* self, Dict** permissions)
+daqErrCode daqPermissions_getDenied(daqPermissions* self, daqDict** permissions)
 {
     return reinterpret_cast<daq::IPermissions*>(self)->getDenied(reinterpret_cast<daq::IDict**>(permissions));
 }

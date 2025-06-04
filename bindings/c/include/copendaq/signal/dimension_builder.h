@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:03.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:43.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,23 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DimensionBuilder DimensionBuilder;
-    typedef struct Dimension Dimension;
-    typedef struct String String;
-    typedef struct Unit Unit;
-    typedef struct DimensionRule DimensionRule;
+    typedef struct daqDimensionBuilder daqDimensionBuilder;
+    typedef struct daqDimension daqDimension;
+    typedef struct daqString daqString;
+    typedef struct daqUnit daqUnit;
+    typedef struct daqDimensionRule daqDimensionRule;
 
-    EXPORTED extern const IntfID DIMENSION_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DIMENSION_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED DimensionBuilder_build(DimensionBuilder* self, Dimension** dimension);
-    ErrCode EXPORTED DimensionBuilder_setName(DimensionBuilder* self, String* name);
-    ErrCode EXPORTED DimensionBuilder_getName(DimensionBuilder* self, String** name);
-    ErrCode EXPORTED DimensionBuilder_setUnit(DimensionBuilder* self, Unit* unit);
-    ErrCode EXPORTED DimensionBuilder_getUnit(DimensionBuilder* self, Unit** unit);
-    ErrCode EXPORTED DimensionBuilder_setRule(DimensionBuilder* self, DimensionRule* rule);
-    ErrCode EXPORTED DimensionBuilder_getRule(DimensionBuilder* self, DimensionRule** rule);
-    ErrCode EXPORTED DimensionBuilder_createDimensionBuilder(DimensionBuilder** obj);
-    ErrCode EXPORTED DimensionBuilder_createDimensionBuilderFromExisting(DimensionBuilder** obj, Dimension* dimensionToCopy);
+    daqErrCode EXPORTED daqDimensionBuilder_build(daqDimensionBuilder* self, daqDimension** dimension);
+    daqErrCode EXPORTED daqDimensionBuilder_setName(daqDimensionBuilder* self, daqString* name);
+    daqErrCode EXPORTED daqDimensionBuilder_getName(daqDimensionBuilder* self, daqString** name);
+    daqErrCode EXPORTED daqDimensionBuilder_setUnit(daqDimensionBuilder* self, daqUnit* unit);
+    daqErrCode EXPORTED daqDimensionBuilder_getUnit(daqDimensionBuilder* self, daqUnit** unit);
+    daqErrCode EXPORTED daqDimensionBuilder_setRule(daqDimensionBuilder* self, daqDimensionRule* rule);
+    daqErrCode EXPORTED daqDimensionBuilder_getRule(daqDimensionBuilder* self, daqDimensionRule** rule);
+    daqErrCode EXPORTED daqDimensionBuilder_createDimensionBuilder(daqDimensionBuilder** obj);
+    daqErrCode EXPORTED daqDimensionBuilder_createDimensionBuilderFromExisting(daqDimensionBuilder** obj, daqDimension* dimensionToCopy);
 
 #ifdef __cplusplus
 }

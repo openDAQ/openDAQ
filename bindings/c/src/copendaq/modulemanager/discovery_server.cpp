@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:38.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:17.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,27 +15,27 @@
 
 #include <copendaq_private.h>
 
-const IntfID DISCOVERY_SERVER_INTF_ID = { daq::IDiscoveryServer::Id.Data1, daq::IDiscoveryServer::Id.Data2, daq::IDiscoveryServer::Id.Data3, daq::IDiscoveryServer::Id.Data4_UInt64 };
+const daqIntfID DAQ_DISCOVERY_SERVER_INTF_ID = { daq::IDiscoveryServer::Id.Data1, daq::IDiscoveryServer::Id.Data2, daq::IDiscoveryServer::Id.Data3, daq::IDiscoveryServer::Id.Data4_UInt64 };
 
-ErrCode DiscoveryServer_registerService(DiscoveryServer* self, String* id, PropertyObject* config, DeviceInfo* deviceInfo)
+daqErrCode daqDiscoveryServer_registerService(daqDiscoveryServer* self, daqString* id, daqPropertyObject* config, daqDeviceInfo* deviceInfo)
 {
     return reinterpret_cast<daq::IDiscoveryServer*>(self)->registerService(reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IPropertyObject*>(config), reinterpret_cast<daq::IDeviceInfo*>(deviceInfo));
 }
 
-ErrCode DiscoveryServer_unregisterService(DiscoveryServer* self, String* id)
+daqErrCode daqDiscoveryServer_unregisterService(daqDiscoveryServer* self, daqString* id)
 {
     return reinterpret_cast<daq::IDiscoveryServer*>(self)->unregisterService(reinterpret_cast<daq::IString*>(id));
 }
 
-ErrCode DiscoveryServer_setRootDevice(DiscoveryServer* self, Device* device)
+daqErrCode daqDiscoveryServer_setRootDevice(daqDiscoveryServer* self, daqDevice* device)
 {
     return reinterpret_cast<daq::IDiscoveryServer*>(self)->setRootDevice(reinterpret_cast<daq::IDevice*>(device));
 }
 
-ErrCode DiscoveryServer_createMdnsDiscoveryServer(DiscoveryServer** obj, Logger* logger)
+daqErrCode daqDiscoveryServer_createMdnsDiscoveryServer(daqDiscoveryServer** obj, daqLogger* logger)
 {
     daq::IDiscoveryServer* ptr = nullptr;
-    ErrCode err = daq::createMdnsDiscoveryServer(&ptr, reinterpret_cast<daq::ILogger*>(logger));
-    *obj = reinterpret_cast<DiscoveryServer*>(ptr);
+    daqErrCode err = daq::createMdnsDiscoveryServer(&ptr, reinterpret_cast<daq::ILogger*>(logger));
+    *obj = reinterpret_cast<daqDiscoveryServer*>(ptr);
     return err;
 }

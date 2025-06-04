@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:11.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:51.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,47 +15,47 @@
 
 #include <copendaq_private.h>
 
-const IntfID COMPONENT_DESERIALIZE_CONTEXT_INTF_ID = { daq::IComponentDeserializeContext::Id.Data1, daq::IComponentDeserializeContext::Id.Data2, daq::IComponentDeserializeContext::Id.Data3, daq::IComponentDeserializeContext::Id.Data4_UInt64 };
+const daqIntfID DAQ_COMPONENT_DESERIALIZE_CONTEXT_INTF_ID = { daq::IComponentDeserializeContext::Id.Data1, daq::IComponentDeserializeContext::Id.Data2, daq::IComponentDeserializeContext::Id.Data3, daq::IComponentDeserializeContext::Id.Data4_UInt64 };
 
-ErrCode ComponentDeserializeContext_getParent(ComponentDeserializeContext* self, Component** parent)
+daqErrCode daqComponentDeserializeContext_getParent(daqComponentDeserializeContext* self, daqComponent** parent)
 {
     return reinterpret_cast<daq::IComponentDeserializeContext*>(self)->getParent(reinterpret_cast<daq::IComponent**>(parent));
 }
 
-ErrCode ComponentDeserializeContext_getRoot(ComponentDeserializeContext* self, Component** root)
+daqErrCode daqComponentDeserializeContext_getRoot(daqComponentDeserializeContext* self, daqComponent** root)
 {
     return reinterpret_cast<daq::IComponentDeserializeContext*>(self)->getRoot(reinterpret_cast<daq::IComponent**>(root));
 }
 
-ErrCode ComponentDeserializeContext_getLocalId(ComponentDeserializeContext* self, String** localId)
+daqErrCode daqComponentDeserializeContext_getLocalId(daqComponentDeserializeContext* self, daqString** localId)
 {
     return reinterpret_cast<daq::IComponentDeserializeContext*>(self)->getLocalId(reinterpret_cast<daq::IString**>(localId));
 }
 
-ErrCode ComponentDeserializeContext_getContext(ComponentDeserializeContext* self, Context** context)
+daqErrCode daqComponentDeserializeContext_getContext(daqComponentDeserializeContext* self, daqContext** context)
 {
     return reinterpret_cast<daq::IComponentDeserializeContext*>(self)->getContext(reinterpret_cast<daq::IContext**>(context));
 }
 
-ErrCode ComponentDeserializeContext_getIntfID(ComponentDeserializeContext* self, IntfID* intfID)
+daqErrCode daqComponentDeserializeContext_getIntfID(daqComponentDeserializeContext* self, daqIntfID* intfID)
 {
     return reinterpret_cast<daq::IComponentDeserializeContext*>(self)->getIntfID(copendaq::utils::toDaqIntfId(intfID));
 }
 
-ErrCode ComponentDeserializeContext_getTriggerCoreEvent(ComponentDeserializeContext* self, Procedure** triggerCoreEvent)
+daqErrCode daqComponentDeserializeContext_getTriggerCoreEvent(daqComponentDeserializeContext* self, daqProcedure** triggerCoreEvent)
 {
     return reinterpret_cast<daq::IComponentDeserializeContext*>(self)->getTriggerCoreEvent(reinterpret_cast<daq::IProcedure**>(triggerCoreEvent));
 }
 
-ErrCode ComponentDeserializeContext_clone(ComponentDeserializeContext* self, Component* newParent, String* newLocalId, ComponentDeserializeContext** newComponentDeserializeContext, IntfID* newIntfID, Procedure* newTriggerCoreEvent)
+daqErrCode daqComponentDeserializeContext_clone(daqComponentDeserializeContext* self, daqComponent* newParent, daqString* newLocalId, daqComponentDeserializeContext** newComponentDeserializeContext, daqIntfID* newIntfID, daqProcedure* newTriggerCoreEvent)
 {
     return reinterpret_cast<daq::IComponentDeserializeContext*>(self)->clone(reinterpret_cast<daq::IComponent*>(newParent), reinterpret_cast<daq::IString*>(newLocalId), reinterpret_cast<daq::IComponentDeserializeContext**>(newComponentDeserializeContext), copendaq::utils::toDaqIntfId(newIntfID), reinterpret_cast<daq::IProcedure*>(newTriggerCoreEvent));
 }
 
-ErrCode ComponentDeserializeContext_createComponentDeserializeContext(ComponentDeserializeContext** obj, Context* context, Component* root, Component* parent, String* localId, IntfID* intfID, Procedure* triggerCoreEvent)
+daqErrCode daqComponentDeserializeContext_createComponentDeserializeContext(daqComponentDeserializeContext** obj, daqContext* context, daqComponent* root, daqComponent* parent, daqString* localId, daqIntfID* intfID, daqProcedure* triggerCoreEvent)
 {
     daq::IComponentDeserializeContext* ptr = nullptr;
-    ErrCode err = daq::createComponentDeserializeContext(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(root), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId), copendaq::utils::toDaqIntfId(intfID), reinterpret_cast<daq::IProcedure*>(triggerCoreEvent));
-    *obj = reinterpret_cast<ComponentDeserializeContext*>(ptr);
+    daqErrCode err = daq::createComponentDeserializeContext(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(root), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId), copendaq::utils::toDaqIntfId(intfID), reinterpret_cast<daq::IProcedure*>(triggerCoreEvent));
+    *obj = reinterpret_cast<daqComponentDeserializeContext*>(ptr);
     return err;
 }

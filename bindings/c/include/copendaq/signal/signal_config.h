@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:15.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,30 +34,30 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SignalConfig SignalConfig;
-    typedef struct DataDescriptor DataDescriptor;
-    typedef struct Signal Signal;
-    typedef struct List List;
-    typedef struct Packet Packet;
-    typedef struct Context Context;
-    typedef struct Component Component;
-    typedef struct String String;
+    typedef struct daqSignalConfig daqSignalConfig;
+    typedef struct daqDataDescriptor daqDataDescriptor;
+    typedef struct daqSignal daqSignal;
+    typedef struct daqList daqList;
+    typedef struct daqPacket daqPacket;
+    typedef struct daqContext daqContext;
+    typedef struct daqComponent daqComponent;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID SIGNAL_CONFIG_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SIGNAL_CONFIG_INTF_ID;
 
-    ErrCode EXPORTED SignalConfig_setDescriptor(SignalConfig* self, DataDescriptor* descriptor);
-    ErrCode EXPORTED SignalConfig_setDomainSignal(SignalConfig* self, Signal* signal);
-    ErrCode EXPORTED SignalConfig_setRelatedSignals(SignalConfig* self, List* signals);
-    ErrCode EXPORTED SignalConfig_addRelatedSignal(SignalConfig* self, Signal* signal);
-    ErrCode EXPORTED SignalConfig_removeRelatedSignal(SignalConfig* self, Signal* signal);
-    ErrCode EXPORTED SignalConfig_clearRelatedSignals(SignalConfig* self);
-    ErrCode EXPORTED SignalConfig_sendPacket(SignalConfig* self, Packet* packet);
-    ErrCode EXPORTED SignalConfig_sendPackets(SignalConfig* self, List* packets);
-    ErrCode EXPORTED SignalConfig_sendPacketAndStealRef(SignalConfig* self, Packet* packet);
-    ErrCode EXPORTED SignalConfig_sendPacketsAndStealRef(SignalConfig* self, List* packets);
-    ErrCode EXPORTED SignalConfig_setLastValue(SignalConfig* self, BaseObject* lastValue);
-    ErrCode EXPORTED SignalConfig_createSignal(SignalConfig** obj, Context* context, Component* parent, String* localId, String* className);
-    ErrCode EXPORTED SignalConfig_createSignalWithDescriptor(SignalConfig** obj, Context* context, DataDescriptor* descriptor, Component* parent, String* localId, String* className);
+    daqErrCode EXPORTED daqSignalConfig_setDescriptor(daqSignalConfig* self, daqDataDescriptor* descriptor);
+    daqErrCode EXPORTED daqSignalConfig_setDomainSignal(daqSignalConfig* self, daqSignal* signal);
+    daqErrCode EXPORTED daqSignalConfig_setRelatedSignals(daqSignalConfig* self, daqList* signals);
+    daqErrCode EXPORTED daqSignalConfig_addRelatedSignal(daqSignalConfig* self, daqSignal* signal);
+    daqErrCode EXPORTED daqSignalConfig_removeRelatedSignal(daqSignalConfig* self, daqSignal* signal);
+    daqErrCode EXPORTED daqSignalConfig_clearRelatedSignals(daqSignalConfig* self);
+    daqErrCode EXPORTED daqSignalConfig_sendPacket(daqSignalConfig* self, daqPacket* packet);
+    daqErrCode EXPORTED daqSignalConfig_sendPackets(daqSignalConfig* self, daqList* packets);
+    daqErrCode EXPORTED daqSignalConfig_sendPacketAndStealRef(daqSignalConfig* self, daqPacket* packet);
+    daqErrCode EXPORTED daqSignalConfig_sendPacketsAndStealRef(daqSignalConfig* self, daqList* packets);
+    daqErrCode EXPORTED daqSignalConfig_setLastValue(daqSignalConfig* self, daqBaseObject* lastValue);
+    daqErrCode EXPORTED daqSignalConfig_createSignal(daqSignalConfig** obj, daqContext* context, daqComponent* parent, daqString* localId, daqString* className);
+    daqErrCode EXPORTED daqSignalConfig_createSignalWithDescriptor(daqSignalConfig** obj, daqContext* context, daqDataDescriptor* descriptor, daqComponent* parent, daqString* localId, daqString* className);
 
 #ifdef __cplusplus
 }

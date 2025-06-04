@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:40.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:48.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,21 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Enumeration Enumeration;
-    typedef struct EnumerationType EnumerationType;
-    typedef struct String String;
-    typedef struct TypeManager TypeManager;
-    typedef struct Integer Integer;
+    typedef struct daqEnumeration daqEnumeration;
+    typedef struct daqEnumerationType daqEnumerationType;
+    typedef struct daqString daqString;
+    typedef struct daqTypeManager daqTypeManager;
+    typedef struct daqInteger daqInteger;
 
-    EXPORTED extern const IntfID ENUMERATION_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_ENUMERATION_INTF_ID;
 
-    ErrCode EXPORTED Enumeration_getEnumerationType(Enumeration* self, EnumerationType** type);
-    ErrCode EXPORTED Enumeration_getValue(Enumeration* self, String** value);
-    ErrCode EXPORTED Enumeration_getIntValue(Enumeration* self, Int* value);
-    ErrCode EXPORTED Enumeration_createEnumeration(Enumeration** obj, String* name, String* value, TypeManager* typeManager);
-    ErrCode EXPORTED Enumeration_createEnumerationWithIntValue(Enumeration** obj, String* name, Integer* value, TypeManager* typeManager);
-    ErrCode EXPORTED Enumeration_createEnumerationWithType(Enumeration** obj, EnumerationType* type, String* value);
-    ErrCode EXPORTED Enumeration_createEnumerationWithIntValueAndType(Enumeration** obj, EnumerationType* type, Integer* value);
+    daqErrCode EXPORTED daqEnumeration_getEnumerationType(daqEnumeration* self, daqEnumerationType** type);
+    daqErrCode EXPORTED daqEnumeration_getValue(daqEnumeration* self, daqString** value);
+    daqErrCode EXPORTED daqEnumeration_getIntValue(daqEnumeration* self, daqInt* value);
+    daqErrCode EXPORTED daqEnumeration_createEnumeration(daqEnumeration** obj, daqString* name, daqString* value, daqTypeManager* typeManager);
+    daqErrCode EXPORTED daqEnumeration_createEnumerationWithIntValue(daqEnumeration** obj, daqString* name, daqInteger* value, daqTypeManager* typeManager);
+    daqErrCode EXPORTED daqEnumeration_createEnumerationWithType(daqEnumeration** obj, daqEnumerationType* type, daqString* value);
+    daqErrCode EXPORTED daqEnumeration_createEnumerationWithIntValueAndType(daqEnumeration** obj, daqEnumerationType* type, daqInteger* value);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:42.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,22 @@
 
 #include <copendaq_private.h>
 
-const IntfID EVENT_ARGS_INTF_ID = { daq::IEventArgs::Id.Data1, daq::IEventArgs::Id.Data2, daq::IEventArgs::Id.Data3, daq::IEventArgs::Id.Data4_UInt64 };
+const daqIntfID DAQ_EVENT_ARGS_INTF_ID = { daq::IEventArgs::Id.Data1, daq::IEventArgs::Id.Data2, daq::IEventArgs::Id.Data3, daq::IEventArgs::Id.Data4_UInt64 };
 
-ErrCode EventArgs_getEventId(EventArgs* self, Int* id)
+daqErrCode daqEventArgs_getEventId(daqEventArgs* self, daqInt* id)
 {
     return reinterpret_cast<daq::IEventArgs*>(self)->getEventId(id);
 }
 
-ErrCode EventArgs_getEventName(EventArgs* self, String** name)
+daqErrCode daqEventArgs_getEventName(daqEventArgs* self, daqString** name)
 {
     return reinterpret_cast<daq::IEventArgs*>(self)->getEventName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode EventArgs_createEventArgs(EventArgs** obj, Int eventId, String* eventName)
+daqErrCode daqEventArgs_createEventArgs(daqEventArgs** obj, daqInt eventId, daqString* eventName)
 {
     daq::IEventArgs* ptr = nullptr;
-    ErrCode err = daq::createEventArgs(&ptr, eventId, reinterpret_cast<daq::IString*>(eventName));
-    *obj = reinterpret_cast<EventArgs*>(ptr);
+    daqErrCode err = daq::createEventArgs(&ptr, eventId, reinterpret_cast<daq::IString*>(eventName));
+    *obj = reinterpret_cast<daqEventArgs*>(ptr);
     return err;
 }

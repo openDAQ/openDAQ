@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:49.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,11 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SimpleType SimpleType;
+    typedef struct daqSimpleType daqSimpleType;
 
-    EXPORTED extern const IntfID SIMPLE_TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SIMPLE_TYPE_INTF_ID;
 
-    ErrCode EXPORTED SimpleType_createSimpleType(SimpleType** obj, CoreType coreType);
+    daqErrCode EXPORTED daqSimpleType_createSimpleType(daqSimpleType** obj, daqCoreType coreType);
 
 #ifdef __cplusplus
 }

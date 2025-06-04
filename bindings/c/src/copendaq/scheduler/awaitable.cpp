@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:52.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:32.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,24 +15,24 @@
 
 #include <copendaq_private.h>
 
-const IntfID AWAITABLE_INTF_ID = { daq::IAwaitable::Id.Data1, daq::IAwaitable::Id.Data2, daq::IAwaitable::Id.Data3, daq::IAwaitable::Id.Data4_UInt64 };
+const daqIntfID DAQ_AWAITABLE_INTF_ID = { daq::IAwaitable::Id.Data1, daq::IAwaitable::Id.Data2, daq::IAwaitable::Id.Data3, daq::IAwaitable::Id.Data4_UInt64 };
 
-ErrCode Awaitable_cancel(Awaitable* self, Bool* canceled)
+daqErrCode daqAwaitable_cancel(daqAwaitable* self, daqBool* canceled)
 {
     return reinterpret_cast<daq::IAwaitable*>(self)->cancel(canceled);
 }
 
-ErrCode Awaitable_wait(Awaitable* self)
+daqErrCode daqAwaitable_wait(daqAwaitable* self)
 {
     return reinterpret_cast<daq::IAwaitable*>(self)->wait();
 }
 
-ErrCode Awaitable_getResult(Awaitable* self, BaseObject** result)
+daqErrCode daqAwaitable_getResult(daqAwaitable* self, daqBaseObject** result)
 {
     return reinterpret_cast<daq::IAwaitable*>(self)->getResult(reinterpret_cast<daq::IBaseObject**>(result));
 }
 
-ErrCode Awaitable_hasCompleted(Awaitable* self, Bool* completed)
+daqErrCode daqAwaitable_hasCompleted(daqAwaitable* self, daqBool* completed)
 {
     return reinterpret_cast<daq::IAwaitable*>(self)->hasCompleted(completed);
 }

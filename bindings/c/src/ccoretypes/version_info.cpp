@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:55.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:06.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,27 +15,27 @@
 
 #include <copendaq_private.h>
 
-const IntfID VERSION_INFO_INTF_ID = { daq::IVersionInfo::Id.Data1, daq::IVersionInfo::Id.Data2, daq::IVersionInfo::Id.Data3, daq::IVersionInfo::Id.Data4_UInt64 };
+const daqIntfID DAQ_VERSION_INFO_INTF_ID = { daq::IVersionInfo::Id.Data1, daq::IVersionInfo::Id.Data2, daq::IVersionInfo::Id.Data3, daq::IVersionInfo::Id.Data4_UInt64 };
 
-ErrCode VersionInfo_getMajor(VersionInfo* self, SizeT* major)
+daqErrCode daqVersionInfo_getMajor(daqVersionInfo* self, daqSizeT* major)
 {
     return reinterpret_cast<daq::IVersionInfo*>(self)->getMajor(major);
 }
 
-ErrCode VersionInfo_getMinor(VersionInfo* self, SizeT* minor)
+daqErrCode daqVersionInfo_getMinor(daqVersionInfo* self, daqSizeT* minor)
 {
     return reinterpret_cast<daq::IVersionInfo*>(self)->getMinor(minor);
 }
 
-ErrCode VersionInfo_getPatch(VersionInfo* self, SizeT* patch)
+daqErrCode daqVersionInfo_getPatch(daqVersionInfo* self, daqSizeT* patch)
 {
     return reinterpret_cast<daq::IVersionInfo*>(self)->getPatch(patch);
 }
 
-ErrCode VersionInfo_createVersionInfo(VersionInfo** obj, SizeT major, SizeT minor, SizeT patch)
+daqErrCode daqVersionInfo_createVersionInfo(daqVersionInfo** obj, daqSizeT major, daqSizeT minor, daqSizeT patch)
 {
     daq::IVersionInfo* ptr = nullptr;
-    ErrCode err = daq::createVersionInfo(&ptr, major, minor, patch);
-    *obj = reinterpret_cast<VersionInfo*>(ptr);
+    daqErrCode err = daq::createVersionInfo(&ptr, major, minor, patch);
+    *obj = reinterpret_cast<daqVersionInfo*>(ptr);
     return err;
 }

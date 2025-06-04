@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:50.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct String String;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID STRING_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_STRING_INTF_ID;
 
-    ErrCode EXPORTED String_getCharPtr(String* self, ConstCharPtr* value);
-    ErrCode EXPORTED String_getLength(String* self, SizeT* size);
-    ErrCode EXPORTED String_createString(String** obj, ConstCharPtr str);
-    ErrCode EXPORTED String_createStringN(String** obj, ConstCharPtr str, SizeT length);
+    daqErrCode EXPORTED daqString_getCharPtr(daqString* self, daqConstCharPtr* value);
+    daqErrCode EXPORTED daqString_getLength(daqString* self, daqSizeT* size);
+    daqErrCode EXPORTED daqString_createString(daqString** obj, daqConstCharPtr str);
+    daqErrCode EXPORTED daqString_createStringN(daqString** obj, daqConstCharPtr str, daqSizeT length);
 
 #ifdef __cplusplus
 }

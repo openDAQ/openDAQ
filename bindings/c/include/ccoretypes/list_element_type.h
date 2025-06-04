@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:46.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,11 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ListElementType ListElementType;
+    typedef struct daqListElementType daqListElementType;
 
-    EXPORTED extern const IntfID LIST_ELEMENT_TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_LIST_ELEMENT_TYPE_INTF_ID;
 
-    ErrCode EXPORTED ListElementType_getElementInterfaceId(ListElementType* self, IntfID* id);
+    daqErrCode EXPORTED daqListElementType_getElementInterfaceId(daqListElementType* self, daqIntfID* id);
 
 #ifdef __cplusplus
 }

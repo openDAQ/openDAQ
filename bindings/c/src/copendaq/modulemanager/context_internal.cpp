@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:37.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:16.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID CONTEXT_INTERNAL_INTF_ID = { daq::IContextInternal::Id.Data1, daq::IContextInternal::Id.Data2, daq::IContextInternal::Id.Data3, daq::IContextInternal::Id.Data4_UInt64 };
+const daqIntfID DAQ_CONTEXT_INTERNAL_INTF_ID = { daq::IContextInternal::Id.Data1, daq::IContextInternal::Id.Data2, daq::IContextInternal::Id.Data3, daq::IContextInternal::Id.Data4_UInt64 };
 
-ErrCode ContextInternal_moveModuleManager(ContextInternal* self, ModuleManager** manager)
+daqErrCode daqContextInternal_moveModuleManager(daqContextInternal* self, daqModuleManager** manager)
 {
     return reinterpret_cast<daq::IContextInternal*>(self)->moveModuleManager(reinterpret_cast<daq::IModuleManager**>(manager));
 }

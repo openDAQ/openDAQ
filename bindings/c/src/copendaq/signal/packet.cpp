@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:08.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:48.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,19 +15,19 @@
 
 #include <copendaq_private.h>
 
-const IntfID PACKET_INTF_ID = { daq::IPacket::Id.Data1, daq::IPacket::Id.Data2, daq::IPacket::Id.Data3, daq::IPacket::Id.Data4_UInt64 };
+const daqIntfID DAQ_PACKET_INTF_ID = { daq::IPacket::Id.Data1, daq::IPacket::Id.Data2, daq::IPacket::Id.Data3, daq::IPacket::Id.Data4_UInt64 };
 
-ErrCode Packet_getType(Packet* self, PacketType* type)
+daqErrCode daqPacket_getType(daqPacket* self, daqPacketType* type)
 {
     return reinterpret_cast<daq::IPacket*>(self)->getType(reinterpret_cast<daq::PacketType*>(type));
 }
 
-ErrCode Packet_subscribeForDestructNotification(Packet* self, PacketDestructCallback* packetDestructCallback)
+daqErrCode daqPacket_subscribeForDestructNotification(daqPacket* self, daqPacketDestructCallback* packetDestructCallback)
 {
     return reinterpret_cast<daq::IPacket*>(self)->subscribeForDestructNotification(reinterpret_cast<daq::IPacketDestructCallback*>(packetDestructCallback));
 }
 
-ErrCode Packet_getRefCount(Packet* self, SizeT* refCount)
+daqErrCode daqPacket_getRefCount(daqPacket* self, daqSizeT* refCount)
 {
     return reinterpret_cast<daq::IPacket*>(self)->getRefCount(refCount);
 }

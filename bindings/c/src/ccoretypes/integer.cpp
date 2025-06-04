@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:45.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,22 @@
 
 #include <copendaq_private.h>
 
-const IntfID INTEGER_INTF_ID = { daq::IInteger::Id.Data1, daq::IInteger::Id.Data2, daq::IInteger::Id.Data3, daq::IInteger::Id.Data4_UInt64 };
+const daqIntfID DAQ_INTEGER_INTF_ID = { daq::IInteger::Id.Data1, daq::IInteger::Id.Data2, daq::IInteger::Id.Data3, daq::IInteger::Id.Data4_UInt64 };
 
-ErrCode Integer_getValue(Integer* self, Int* value)
+daqErrCode daqInteger_getValue(daqInteger* self, daqInt* value)
 {
     return reinterpret_cast<daq::IInteger*>(self)->getValue(value);
 }
 
-ErrCode Integer_equalsValue(Integer* self, Int value, Bool* equals)
+daqErrCode daqInteger_equalsValue(daqInteger* self, daqInt value, daqBool* equals)
 {
     return reinterpret_cast<daq::IInteger*>(self)->equalsValue(value, equals);
 }
 
-ErrCode Integer_createInteger(Integer** obj, Int value)
+daqErrCode daqInteger_createInteger(daqInteger** obj, daqInt value)
 {
     daq::IInteger* ptr = nullptr;
-    ErrCode err = daq::createInteger(&ptr, value);
-    *obj = reinterpret_cast<Integer*>(ptr);
+    daqErrCode err = daq::createInteger(&ptr, value);
+    *obj = reinterpret_cast<daqInteger*>(ptr);
     return err;
 }

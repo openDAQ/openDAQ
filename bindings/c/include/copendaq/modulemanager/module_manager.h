@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:39.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:19.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ModuleManager ModuleManager;
-    typedef struct List List;
-    typedef struct Module Module;
-    typedef struct Context Context;
-    typedef struct String String;
+    typedef struct daqModuleManager daqModuleManager;
+    typedef struct daqList daqList;
+    typedef struct daqModule daqModule;
+    typedef struct daqContext daqContext;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID MODULE_MANAGER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_MODULE_MANAGER_INTF_ID;
 
-    ErrCode EXPORTED ModuleManager_getModules(ModuleManager* self, List** modules);
-    ErrCode EXPORTED ModuleManager_addModule(ModuleManager* self, Module* module);
-    ErrCode EXPORTED ModuleManager_loadModules(ModuleManager* self, Context* context);
-    ErrCode EXPORTED ModuleManager_createModuleManager(ModuleManager** obj, String* path);
-    ErrCode EXPORTED ModuleManager_createModuleManagerMultiplePaths(ModuleManager** obj, List* paths);
+    daqErrCode EXPORTED daqModuleManager_getModules(daqModuleManager* self, daqList** modules);
+    daqErrCode EXPORTED daqModuleManager_addModule(daqModuleManager* self, daqModule* module);
+    daqErrCode EXPORTED daqModuleManager_loadModules(daqModuleManager* self, daqContext* context);
+    daqErrCode EXPORTED daqModuleManager_createModuleManager(daqModuleManager** obj, daqString* path);
+    daqErrCode EXPORTED daqModuleManager_createModuleManagerMultiplePaths(daqModuleManager** obj, daqList* paths);
 
 #ifdef __cplusplus
 }

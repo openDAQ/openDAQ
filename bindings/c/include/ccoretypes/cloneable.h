@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:37.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,11 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Cloneable Cloneable;
+    typedef struct daqCloneable daqCloneable;
 
-    EXPORTED extern const IntfID CLONEABLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_CLONEABLE_INTF_ID;
 
-    ErrCode EXPORTED Cloneable_clone(Cloneable* self, BaseObject** cloned);
+    daqErrCode EXPORTED daqCloneable_clone(daqCloneable* self, daqBaseObject** cloned);
 
 #ifdef __cplusplus
 }

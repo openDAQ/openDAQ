@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:25.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,40 +15,40 @@
 
 #include <copendaq_private.h>
 
-const IntfID DEVICE_DOMAIN_INTF_ID = { daq::IDeviceDomain::Id.Data1, daq::IDeviceDomain::Id.Data2, daq::IDeviceDomain::Id.Data3, daq::IDeviceDomain::Id.Data4_UInt64 };
+const daqIntfID DAQ_DEVICE_DOMAIN_INTF_ID = { daq::IDeviceDomain::Id.Data1, daq::IDeviceDomain::Id.Data2, daq::IDeviceDomain::Id.Data3, daq::IDeviceDomain::Id.Data4_UInt64 };
 
-ErrCode DeviceDomain_getTickResolution(DeviceDomain* self, Ratio** tickResolution)
+daqErrCode daqDeviceDomain_getTickResolution(daqDeviceDomain* self, daqRatio** tickResolution)
 {
     return reinterpret_cast<daq::IDeviceDomain*>(self)->getTickResolution(reinterpret_cast<daq::IRatio**>(tickResolution));
 }
 
-ErrCode DeviceDomain_getOrigin(DeviceDomain* self, String** origin)
+daqErrCode daqDeviceDomain_getOrigin(daqDeviceDomain* self, daqString** origin)
 {
     return reinterpret_cast<daq::IDeviceDomain*>(self)->getOrigin(reinterpret_cast<daq::IString**>(origin));
 }
 
-ErrCode DeviceDomain_getUnit(DeviceDomain* self, Unit** unit)
+daqErrCode daqDeviceDomain_getUnit(daqDeviceDomain* self, daqUnit** unit)
 {
     return reinterpret_cast<daq::IDeviceDomain*>(self)->getUnit(reinterpret_cast<daq::IUnit**>(unit));
 }
 
-ErrCode DeviceDomain_getReferenceDomainInfo(DeviceDomain* self, ReferenceDomainInfo** referenceDomainInfo)
+daqErrCode daqDeviceDomain_getReferenceDomainInfo(daqDeviceDomain* self, daqReferenceDomainInfo** referenceDomainInfo)
 {
     return reinterpret_cast<daq::IDeviceDomain*>(self)->getReferenceDomainInfo(reinterpret_cast<daq::IReferenceDomainInfo**>(referenceDomainInfo));
 }
 
-ErrCode DeviceDomain_createDeviceDomain(DeviceDomain** obj, Ratio* tickResolution, String* origin, Unit* unit)
+daqErrCode daqDeviceDomain_createDeviceDomain(daqDeviceDomain** obj, daqRatio* tickResolution, daqString* origin, daqUnit* unit)
 {
     daq::IDeviceDomain* ptr = nullptr;
-    ErrCode err = daq::createDeviceDomain(&ptr, reinterpret_cast<daq::IRatio*>(tickResolution), reinterpret_cast<daq::IString*>(origin), reinterpret_cast<daq::IUnit*>(unit));
-    *obj = reinterpret_cast<DeviceDomain*>(ptr);
+    daqErrCode err = daq::createDeviceDomain(&ptr, reinterpret_cast<daq::IRatio*>(tickResolution), reinterpret_cast<daq::IString*>(origin), reinterpret_cast<daq::IUnit*>(unit));
+    *obj = reinterpret_cast<daqDeviceDomain*>(ptr);
     return err;
 }
 
-ErrCode DeviceDomain_createDeviceDomainWithReferenceDomainInfo(DeviceDomain** obj, Ratio* tickResolution, String* origin, Unit* unit, ReferenceDomainInfo* referenceDomainInfo)
+daqErrCode daqDeviceDomain_createDeviceDomainWithReferenceDomainInfo(daqDeviceDomain** obj, daqRatio* tickResolution, daqString* origin, daqUnit* unit, daqReferenceDomainInfo* referenceDomainInfo)
 {
     daq::IDeviceDomain* ptr = nullptr;
-    ErrCode err = daq::createDeviceDomainWithReferenceDomainInfo(&ptr, reinterpret_cast<daq::IRatio*>(tickResolution), reinterpret_cast<daq::IString*>(origin), reinterpret_cast<daq::IUnit*>(unit), reinterpret_cast<daq::IReferenceDomainInfo*>(referenceDomainInfo));
-    *obj = reinterpret_cast<DeviceDomain*>(ptr);
+    daqErrCode err = daq::createDeviceDomainWithReferenceDomainInfo(&ptr, reinterpret_cast<daq::IRatio*>(tickResolution), reinterpret_cast<daq::IString*>(origin), reinterpret_cast<daq::IUnit*>(unit), reinterpret_cast<daq::IReferenceDomainInfo*>(referenceDomainInfo));
+    *obj = reinterpret_cast<daqDeviceDomain*>(ptr);
     return err;
 }

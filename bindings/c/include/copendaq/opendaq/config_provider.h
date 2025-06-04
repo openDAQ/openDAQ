@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:40.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ConfigProvider ConfigProvider;
-    typedef struct Dict Dict;
-    typedef struct String String;
-    typedef struct List List;
+    typedef struct daqConfigProvider daqConfigProvider;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID CONFIG_PROVIDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_CONFIG_PROVIDER_INTF_ID;
 
-    ErrCode EXPORTED ConfigProvider_populateOptions(ConfigProvider* self, Dict* options);
-    ErrCode EXPORTED ConfigProvider_createJsonConfigProvider(ConfigProvider** obj, String* filename);
-    ErrCode EXPORTED ConfigProvider_createEnvConfigProvider(ConfigProvider** obj);
-    ErrCode EXPORTED ConfigProvider_createCmdLineArgsConfigProvider(ConfigProvider** obj, List* cmdLineArgs);
+    daqErrCode EXPORTED daqConfigProvider_populateOptions(daqConfigProvider* self, daqDict* options);
+    daqErrCode EXPORTED daqConfigProvider_createJsonConfigProvider(daqConfigProvider** obj, daqString* filename);
+    daqErrCode EXPORTED daqConfigProvider_createEnvConfigProvider(daqConfigProvider** obj);
+    daqErrCode EXPORTED daqConfigProvider_createCmdLineArgsConfigProvider(daqConfigProvider** obj, daqList* cmdLineArgs);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:11.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,65 +15,65 @@
 
 #include <copendaq_private.h>
 
-const IntfID REFERENCE_DOMAIN_INFO_BUILDER_INTF_ID = { daq::IReferenceDomainInfoBuilder::Id.Data1, daq::IReferenceDomainInfoBuilder::Id.Data2, daq::IReferenceDomainInfoBuilder::Id.Data3, daq::IReferenceDomainInfoBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_REFERENCE_DOMAIN_INFO_BUILDER_INTF_ID = { daq::IReferenceDomainInfoBuilder::Id.Data1, daq::IReferenceDomainInfoBuilder::Id.Data2, daq::IReferenceDomainInfoBuilder::Id.Data3, daq::IReferenceDomainInfoBuilder::Id.Data4_UInt64 };
 
-ErrCode ReferenceDomainInfoBuilder_build(ReferenceDomainInfoBuilder* self, ReferenceDomainInfo** referenceDomainInfo)
+daqErrCode daqReferenceDomainInfoBuilder_build(daqReferenceDomainInfoBuilder* self, daqReferenceDomainInfo** referenceDomainInfo)
 {
     return reinterpret_cast<daq::IReferenceDomainInfoBuilder*>(self)->build(reinterpret_cast<daq::IReferenceDomainInfo**>(referenceDomainInfo));
 }
 
-ErrCode ReferenceDomainInfoBuilder_setReferenceDomainId(ReferenceDomainInfoBuilder* self, String* referenceDomainId)
+daqErrCode daqReferenceDomainInfoBuilder_setReferenceDomainId(daqReferenceDomainInfoBuilder* self, daqString* referenceDomainId)
 {
     return reinterpret_cast<daq::IReferenceDomainInfoBuilder*>(self)->setReferenceDomainId(reinterpret_cast<daq::IString*>(referenceDomainId));
 }
 
-ErrCode ReferenceDomainInfoBuilder_getReferenceDomainId(ReferenceDomainInfoBuilder* self, String** referenceDomainId)
+daqErrCode daqReferenceDomainInfoBuilder_getReferenceDomainId(daqReferenceDomainInfoBuilder* self, daqString** referenceDomainId)
 {
     return reinterpret_cast<daq::IReferenceDomainInfoBuilder*>(self)->getReferenceDomainId(reinterpret_cast<daq::IString**>(referenceDomainId));
 }
 
-ErrCode ReferenceDomainInfoBuilder_setReferenceDomainOffset(ReferenceDomainInfoBuilder* self, Integer* referenceDomainOffset)
+daqErrCode daqReferenceDomainInfoBuilder_setReferenceDomainOffset(daqReferenceDomainInfoBuilder* self, daqInteger* referenceDomainOffset)
 {
     return reinterpret_cast<daq::IReferenceDomainInfoBuilder*>(self)->setReferenceDomainOffset(reinterpret_cast<daq::IInteger*>(referenceDomainOffset));
 }
 
-ErrCode ReferenceDomainInfoBuilder_getReferenceDomainOffset(ReferenceDomainInfoBuilder* self, Integer** referenceDomainOffset)
+daqErrCode daqReferenceDomainInfoBuilder_getReferenceDomainOffset(daqReferenceDomainInfoBuilder* self, daqInteger** referenceDomainOffset)
 {
     return reinterpret_cast<daq::IReferenceDomainInfoBuilder*>(self)->getReferenceDomainOffset(reinterpret_cast<daq::IInteger**>(referenceDomainOffset));
 }
 
-ErrCode ReferenceDomainInfoBuilder_setReferenceTimeSource(ReferenceDomainInfoBuilder* self, TimeSource referenceTimeSource)
+daqErrCode daqReferenceDomainInfoBuilder_setReferenceTimeSource(daqReferenceDomainInfoBuilder* self, daqTimeSource referenceTimeSource)
 {
     return reinterpret_cast<daq::IReferenceDomainInfoBuilder*>(self)->setReferenceTimeSource(static_cast<daq::TimeSource>(referenceTimeSource));
 }
 
-ErrCode ReferenceDomainInfoBuilder_getReferenceTimeSource(ReferenceDomainInfoBuilder* self, TimeSource* referenceTimeSource)
+daqErrCode daqReferenceDomainInfoBuilder_getReferenceTimeSource(daqReferenceDomainInfoBuilder* self, daqTimeSource* referenceTimeSource)
 {
     return reinterpret_cast<daq::IReferenceDomainInfoBuilder*>(self)->getReferenceTimeSource(reinterpret_cast<daq::TimeSource*>(referenceTimeSource));
 }
 
-ErrCode ReferenceDomainInfoBuilder_setUsesOffset(ReferenceDomainInfoBuilder* self, UsesOffset usesOffset)
+daqErrCode daqReferenceDomainInfoBuilder_setUsesOffset(daqReferenceDomainInfoBuilder* self, daqUsesOffset usesOffset)
 {
     return reinterpret_cast<daq::IReferenceDomainInfoBuilder*>(self)->setUsesOffset(static_cast<daq::UsesOffset>(usesOffset));
 }
 
-ErrCode ReferenceDomainInfoBuilder_getUsesOffset(ReferenceDomainInfoBuilder* self, UsesOffset* usesOffset)
+daqErrCode daqReferenceDomainInfoBuilder_getUsesOffset(daqReferenceDomainInfoBuilder* self, daqUsesOffset* usesOffset)
 {
     return reinterpret_cast<daq::IReferenceDomainInfoBuilder*>(self)->getUsesOffset(reinterpret_cast<daq::UsesOffset*>(usesOffset));
 }
 
-ErrCode ReferenceDomainInfoBuilder_createReferenceDomainInfoBuilder(ReferenceDomainInfoBuilder** obj)
+daqErrCode daqReferenceDomainInfoBuilder_createReferenceDomainInfoBuilder(daqReferenceDomainInfoBuilder** obj)
 {
     daq::IReferenceDomainInfoBuilder* ptr = nullptr;
-    ErrCode err = daq::createReferenceDomainInfoBuilder(&ptr);
-    *obj = reinterpret_cast<ReferenceDomainInfoBuilder*>(ptr);
+    daqErrCode err = daq::createReferenceDomainInfoBuilder(&ptr);
+    *obj = reinterpret_cast<daqReferenceDomainInfoBuilder*>(ptr);
     return err;
 }
 
-ErrCode ReferenceDomainInfoBuilder_createReferenceDomainInfoBuilderFromExisting(ReferenceDomainInfoBuilder** obj, ReferenceDomainInfo* referenceDomainInfoToCopy)
+daqErrCode daqReferenceDomainInfoBuilder_createReferenceDomainInfoBuilderFromExisting(daqReferenceDomainInfoBuilder** obj, daqReferenceDomainInfo* referenceDomainInfoToCopy)
 {
     daq::IReferenceDomainInfoBuilder* ptr = nullptr;
-    ErrCode err = daq::createReferenceDomainInfoBuilderFromExisting(&ptr, reinterpret_cast<daq::IReferenceDomainInfo*>(referenceDomainInfoToCopy));
-    *obj = reinterpret_cast<ReferenceDomainInfoBuilder*>(ptr);
+    daqErrCode err = daq::createReferenceDomainInfoBuilderFromExisting(&ptr, reinterpret_cast<daq::IReferenceDomainInfo*>(referenceDomainInfoToCopy));
+    *obj = reinterpret_cast<daqReferenceDomainInfoBuilder*>(ptr);
     return err;
 }

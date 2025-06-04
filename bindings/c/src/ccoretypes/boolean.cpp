@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:37.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:43.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,30 +15,30 @@
 
 #include <copendaq_private.h>
 
-const IntfID BOOLEAN_INTF_ID = { daq::IBoolean::Id.Data1, daq::IBoolean::Id.Data2, daq::IBoolean::Id.Data3, daq::IBoolean::Id.Data4_UInt64 };
+const daqIntfID DAQ_BOOLEAN_INTF_ID = { daq::IBoolean::Id.Data1, daq::IBoolean::Id.Data2, daq::IBoolean::Id.Data3, daq::IBoolean::Id.Data4_UInt64 };
 
-ErrCode Boolean_getValue(Boolean* self, Bool* value)
+daqErrCode daqBoolean_getValue(daqBoolean* self, daqBool* value)
 {
     return reinterpret_cast<daq::IBoolean*>(self)->getValue(value);
 }
 
-ErrCode Boolean_equalsValue(Boolean* self, Bool value, Bool* equal)
+daqErrCode daqBoolean_equalsValue(daqBoolean* self, daqBool value, daqBool* equal)
 {
     return reinterpret_cast<daq::IBoolean*>(self)->equalsValue(value, equal);
 }
 
-ErrCode Boolean_createBoolean(Boolean** obj, Bool value)
+daqErrCode daqBoolean_createBoolean(daqBoolean** obj, daqBool value)
 {
     daq::IBoolean* ptr = nullptr;
-    ErrCode err = daq::createBoolean(&ptr, value);
-    *obj = reinterpret_cast<Boolean*>(ptr);
+    daqErrCode err = daq::createBoolean(&ptr, value);
+    *obj = reinterpret_cast<daqBoolean*>(ptr);
     return err;
 }
 
-ErrCode Boolean_createBoolObject(Boolean** obj, Bool value)
+daqErrCode daqBoolean_createBoolObject(daqBoolean** obj, daqBool value)
 {
     daq::IBoolean* ptr = nullptr;
-    ErrCode err = daq::createBoolObject(&ptr, value);
-    *obj = reinterpret_cast<Boolean*>(ptr);
+    daqErrCode err = daq::createBoolObject(&ptr, value);
+    *obj = reinterpret_cast<daqBoolean*>(ptr);
     return err;
 }

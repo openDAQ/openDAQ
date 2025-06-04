@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:47.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:56.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Number Number;
+    typedef struct daqNumber daqNumber;
 
-    EXPORTED extern const IntfID NUMBER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_NUMBER_INTF_ID;
 
-    ErrCode EXPORTED Number_getFloatValue(Number* self, Float* value);
-    ErrCode EXPORTED Number_getIntValue(Number* self, Int* value);
+    daqErrCode EXPORTED daqNumber_getFloatValue(daqNumber* self, daqFloat* value);
+    daqErrCode EXPORTED daqNumber_getIntValue(daqNumber* self, daqInt* value);
 
 #ifdef __cplusplus
 }

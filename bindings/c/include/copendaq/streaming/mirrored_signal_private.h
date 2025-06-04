@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:18.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,25 +34,25 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct MirroredSignalPrivate MirroredSignalPrivate;
-    typedef struct EventPacket EventPacket;
-    typedef struct Streaming Streaming;
-    typedef struct String String;
-    typedef struct DataDescriptor DataDescriptor;
-    typedef struct MirroredSignalConfig MirroredSignalConfig;
+    typedef struct daqMirroredSignalPrivate daqMirroredSignalPrivate;
+    typedef struct daqEventPacket daqEventPacket;
+    typedef struct daqStreaming daqStreaming;
+    typedef struct daqString daqString;
+    typedef struct daqDataDescriptor daqDataDescriptor;
+    typedef struct daqMirroredSignalConfig daqMirroredSignalConfig;
 
-    EXPORTED extern const IntfID MIRRORED_SIGNAL_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_MIRRORED_SIGNAL_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED MirroredSignalPrivate_triggerEvent(MirroredSignalPrivate* self, EventPacket* eventPacket, Bool* forward);
-    ErrCode EXPORTED MirroredSignalPrivate_addStreamingSource(MirroredSignalPrivate* self, Streaming* streaming);
-    ErrCode EXPORTED MirroredSignalPrivate_removeStreamingSource(MirroredSignalPrivate* self, String* streamingConnectionString);
-    ErrCode EXPORTED MirroredSignalPrivate_subscribeCompleted(MirroredSignalPrivate* self, String* streamingConnectionString);
-    ErrCode EXPORTED MirroredSignalPrivate_unsubscribeCompleted(MirroredSignalPrivate* self, String* streamingConnectionString);
-    ErrCode EXPORTED MirroredSignalPrivate_unsubscribeCompletedNoLock(MirroredSignalPrivate* self, String* streamingConnectionString);
-    ErrCode EXPORTED MirroredSignalPrivate_getMirroredDataDescriptor(MirroredSignalPrivate* self, DataDescriptor** descriptor);
-    ErrCode EXPORTED MirroredSignalPrivate_setMirroredDataDescriptor(MirroredSignalPrivate* self, DataDescriptor* descriptor);
-    ErrCode EXPORTED MirroredSignalPrivate_getMirroredDomainSignal(MirroredSignalPrivate* self, MirroredSignalConfig** domainSignals);
-    ErrCode EXPORTED MirroredSignalPrivate_setMirroredDomainSignal(MirroredSignalPrivate* self, MirroredSignalConfig* domainSignal);
+    daqErrCode EXPORTED daqMirroredSignalPrivate_triggerEvent(daqMirroredSignalPrivate* self, daqEventPacket* eventPacket, daqBool* forward);
+    daqErrCode EXPORTED daqMirroredSignalPrivate_addStreamingSource(daqMirroredSignalPrivate* self, daqStreaming* streaming);
+    daqErrCode EXPORTED daqMirroredSignalPrivate_removeStreamingSource(daqMirroredSignalPrivate* self, daqString* streamingConnectionString);
+    daqErrCode EXPORTED daqMirroredSignalPrivate_subscribeCompleted(daqMirroredSignalPrivate* self, daqString* streamingConnectionString);
+    daqErrCode EXPORTED daqMirroredSignalPrivate_unsubscribeCompleted(daqMirroredSignalPrivate* self, daqString* streamingConnectionString);
+    daqErrCode EXPORTED daqMirroredSignalPrivate_unsubscribeCompletedNoLock(daqMirroredSignalPrivate* self, daqString* streamingConnectionString);
+    daqErrCode EXPORTED daqMirroredSignalPrivate_getMirroredDataDescriptor(daqMirroredSignalPrivate* self, daqDataDescriptor** descriptor);
+    daqErrCode EXPORTED daqMirroredSignalPrivate_setMirroredDataDescriptor(daqMirroredSignalPrivate* self, daqDataDescriptor* descriptor);
+    daqErrCode EXPORTED daqMirroredSignalPrivate_getMirroredDomainSignal(daqMirroredSignalPrivate* self, daqMirroredSignalConfig** domainSignals);
+    daqErrCode EXPORTED daqMirroredSignalPrivate_setMirroredDomainSignal(daqMirroredSignalPrivate* self, daqMirroredSignalConfig* domainSignal);
 
 #ifdef __cplusplus
 }

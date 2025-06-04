@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:50.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:29.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,87 +15,87 @@
 
 #include <copendaq_private.h>
 
-const IntfID STREAM_READER_BUILDER_INTF_ID = { daq::IStreamReaderBuilder::Id.Data1, daq::IStreamReaderBuilder::Id.Data2, daq::IStreamReaderBuilder::Id.Data3, daq::IStreamReaderBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_STREAM_READER_BUILDER_INTF_ID = { daq::IStreamReaderBuilder::Id.Data1, daq::IStreamReaderBuilder::Id.Data2, daq::IStreamReaderBuilder::Id.Data3, daq::IStreamReaderBuilder::Id.Data4_UInt64 };
 
-ErrCode StreamReaderBuilder_build(StreamReaderBuilder* self, StreamReader** streamReader)
+daqErrCode daqStreamReaderBuilder_build(daqStreamReaderBuilder* self, daqStreamReader** streamReader)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->build(reinterpret_cast<daq::IStreamReader**>(streamReader));
 }
 
-ErrCode StreamReaderBuilder_setSignal(StreamReaderBuilder* self, Signal* signal)
+daqErrCode daqStreamReaderBuilder_setSignal(daqStreamReaderBuilder* self, daqSignal* signal)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->setSignal(reinterpret_cast<daq::ISignal*>(signal));
 }
 
-ErrCode StreamReaderBuilder_getSignal(StreamReaderBuilder* self, Signal** signal)
+daqErrCode daqStreamReaderBuilder_getSignal(daqStreamReaderBuilder* self, daqSignal** signal)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->getSignal(reinterpret_cast<daq::ISignal**>(signal));
 }
 
-ErrCode StreamReaderBuilder_setInputPort(StreamReaderBuilder* self, InputPort* port)
+daqErrCode daqStreamReaderBuilder_setInputPort(daqStreamReaderBuilder* self, daqInputPort* port)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->setInputPort(reinterpret_cast<daq::IInputPort*>(port));
 }
 
-ErrCode StreamReaderBuilder_getInputPort(StreamReaderBuilder* self, InputPort** port)
+daqErrCode daqStreamReaderBuilder_getInputPort(daqStreamReaderBuilder* self, daqInputPort** port)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->getInputPort(reinterpret_cast<daq::IInputPort**>(port));
 }
 
-ErrCode StreamReaderBuilder_setValueReadType(StreamReaderBuilder* self, SampleType type)
+daqErrCode daqStreamReaderBuilder_setValueReadType(daqStreamReaderBuilder* self, daqSampleType type)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->setValueReadType(static_cast<daq::SampleType>(type));
 }
 
-ErrCode StreamReaderBuilder_getValueReadType(StreamReaderBuilder* self, SampleType* type)
+daqErrCode daqStreamReaderBuilder_getValueReadType(daqStreamReaderBuilder* self, daqSampleType* type)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->getValueReadType(reinterpret_cast<daq::SampleType*>(type));
 }
 
-ErrCode StreamReaderBuilder_setDomainReadType(StreamReaderBuilder* self, SampleType type)
+daqErrCode daqStreamReaderBuilder_setDomainReadType(daqStreamReaderBuilder* self, daqSampleType type)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->setDomainReadType(static_cast<daq::SampleType>(type));
 }
 
-ErrCode StreamReaderBuilder_getDomainReadType(StreamReaderBuilder* self, SampleType* type)
+daqErrCode daqStreamReaderBuilder_getDomainReadType(daqStreamReaderBuilder* self, daqSampleType* type)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->getDomainReadType(reinterpret_cast<daq::SampleType*>(type));
 }
 
-ErrCode StreamReaderBuilder_setReadMode(StreamReaderBuilder* self, ReadMode mode)
+daqErrCode daqStreamReaderBuilder_setReadMode(daqStreamReaderBuilder* self, daqReadMode mode)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->setReadMode(static_cast<daq::ReadMode>(mode));
 }
 
-ErrCode StreamReaderBuilder_getReadMode(StreamReaderBuilder* self, ReadMode* mode)
+daqErrCode daqStreamReaderBuilder_getReadMode(daqStreamReaderBuilder* self, daqReadMode* mode)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->getReadMode(reinterpret_cast<daq::ReadMode*>(mode));
 }
 
-ErrCode StreamReaderBuilder_setReadTimeoutType(StreamReaderBuilder* self, ReadTimeoutType type)
+daqErrCode daqStreamReaderBuilder_setReadTimeoutType(daqStreamReaderBuilder* self, daqReadTimeoutType type)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->setReadTimeoutType(static_cast<daq::ReadTimeoutType>(type));
 }
 
-ErrCode StreamReaderBuilder_getReadTimeoutType(StreamReaderBuilder* self, ReadTimeoutType* type)
+daqErrCode daqStreamReaderBuilder_getReadTimeoutType(daqStreamReaderBuilder* self, daqReadTimeoutType* type)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->getReadTimeoutType(reinterpret_cast<daq::ReadTimeoutType*>(type));
 }
 
-ErrCode StreamReaderBuilder_setSkipEvents(StreamReaderBuilder* self, Bool skipEvents)
+daqErrCode daqStreamReaderBuilder_setSkipEvents(daqStreamReaderBuilder* self, daqBool skipEvents)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->setSkipEvents(skipEvents);
 }
 
-ErrCode StreamReaderBuilder_getSkipEvents(StreamReaderBuilder* self, Bool* skipEvents)
+daqErrCode daqStreamReaderBuilder_getSkipEvents(daqStreamReaderBuilder* self, daqBool* skipEvents)
 {
     return reinterpret_cast<daq::IStreamReaderBuilder*>(self)->getSkipEvents(skipEvents);
 }
 
-ErrCode StreamReaderBuilder_createStreamReaderBuilder(StreamReaderBuilder** obj)
+daqErrCode daqStreamReaderBuilder_createStreamReaderBuilder(daqStreamReaderBuilder** obj)
 {
     daq::IStreamReaderBuilder* ptr = nullptr;
-    ErrCode err = daq::createStreamReaderBuilder(&ptr);
-    *obj = reinterpret_cast<StreamReaderBuilder*>(ptr);
+    daqErrCode err = daq::createStreamReaderBuilder(&ptr);
+    *obj = reinterpret_cast<daqStreamReaderBuilder*>(ptr);
     return err;
 }

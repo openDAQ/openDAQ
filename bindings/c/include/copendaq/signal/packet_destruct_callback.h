@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:09.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:48.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,11 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PacketDestructCallback PacketDestructCallback;
+    typedef struct daqPacketDestructCallback daqPacketDestructCallback;
 
-    EXPORTED extern const IntfID PACKET_DESTRUCT_CALLBACK_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PACKET_DESTRUCT_CALLBACK_INTF_ID;
 
-    ErrCode EXPORTED PacketDestructCallback_onPacketDestroyed(PacketDestructCallback* self);
+    daqErrCode EXPORTED daqPacketDestructCallback_onPacketDestroyed(daqPacketDestructCallback* self);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:13.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,48 +15,48 @@
 
 #include <copendaq_private.h>
 
-const IntfID SCALING_INTF_ID = { daq::IScaling::Id.Data1, daq::IScaling::Id.Data2, daq::IScaling::Id.Data3, daq::IScaling::Id.Data4_UInt64 };
+const daqIntfID DAQ_SCALING_INTF_ID = { daq::IScaling::Id.Data1, daq::IScaling::Id.Data2, daq::IScaling::Id.Data3, daq::IScaling::Id.Data4_UInt64 };
 
-ErrCode Scaling_getInputSampleType(Scaling* self, SampleType* type)
+daqErrCode daqScaling_getInputSampleType(daqScaling* self, daqSampleType* type)
 {
     return reinterpret_cast<daq::IScaling*>(self)->getInputSampleType(reinterpret_cast<daq::SampleType*>(type));
 }
 
-ErrCode Scaling_getOutputSampleType(Scaling* self, ScaledSampleType* type)
+daqErrCode daqScaling_getOutputSampleType(daqScaling* self, daqScaledSampleType* type)
 {
     return reinterpret_cast<daq::IScaling*>(self)->getOutputSampleType(reinterpret_cast<daq::ScaledSampleType*>(type));
 }
 
-ErrCode Scaling_getType(Scaling* self, ScalingType* type)
+daqErrCode daqScaling_getType(daqScaling* self, daqScalingType* type)
 {
     return reinterpret_cast<daq::IScaling*>(self)->getType(reinterpret_cast<daq::ScalingType*>(type));
 }
 
-ErrCode Scaling_getParameters(Scaling* self, Dict** parameters)
+daqErrCode daqScaling_getParameters(daqScaling* self, daqDict** parameters)
 {
     return reinterpret_cast<daq::IScaling*>(self)->getParameters(reinterpret_cast<daq::IDict**>(parameters));
 }
 
-ErrCode Scaling_createLinearScaling(Scaling** obj, Number* scale, Number* offset, SampleType inputDataType, ScaledSampleType outputDataType)
+daqErrCode daqScaling_createLinearScaling(daqScaling** obj, daqNumber* scale, daqNumber* offset, daqSampleType inputDataType, daqScaledSampleType outputDataType)
 {
     daq::IScaling* ptr = nullptr;
-    ErrCode err = daq::createLinearScaling(&ptr, reinterpret_cast<daq::INumber*>(scale), reinterpret_cast<daq::INumber*>(offset), static_cast<daq::SampleType>(inputDataType), static_cast<daq::ScaledSampleType>(outputDataType));
-    *obj = reinterpret_cast<Scaling*>(ptr);
+    daqErrCode err = daq::createLinearScaling(&ptr, reinterpret_cast<daq::INumber*>(scale), reinterpret_cast<daq::INumber*>(offset), static_cast<daq::SampleType>(inputDataType), static_cast<daq::ScaledSampleType>(outputDataType));
+    *obj = reinterpret_cast<daqScaling*>(ptr);
     return err;
 }
 
-ErrCode Scaling_createScaling(Scaling** obj, SampleType inputDataType, ScaledSampleType outputDataType, ScalingType scalingType, Dict* parameters)
+daqErrCode daqScaling_createScaling(daqScaling** obj, daqSampleType inputDataType, daqScaledSampleType outputDataType, daqScalingType scalingType, daqDict* parameters)
 {
     daq::IScaling* ptr = nullptr;
-    ErrCode err = daq::createScaling(&ptr, static_cast<daq::SampleType>(inputDataType), static_cast<daq::ScaledSampleType>(outputDataType), static_cast<daq::ScalingType>(scalingType), reinterpret_cast<daq::IDict*>(parameters));
-    *obj = reinterpret_cast<Scaling*>(ptr);
+    daqErrCode err = daq::createScaling(&ptr, static_cast<daq::SampleType>(inputDataType), static_cast<daq::ScaledSampleType>(outputDataType), static_cast<daq::ScalingType>(scalingType), reinterpret_cast<daq::IDict*>(parameters));
+    *obj = reinterpret_cast<daqScaling*>(ptr);
     return err;
 }
 
-ErrCode Scaling_createScalingFromBuilder(Scaling** obj, ScalingBuilder* builder)
+daqErrCode daqScaling_createScalingFromBuilder(daqScaling** obj, daqScalingBuilder* builder)
 {
     daq::IScaling* ptr = nullptr;
-    ErrCode err = daq::createScalingFromBuilder(&ptr, reinterpret_cast<daq::IScalingBuilder*>(builder));
-    *obj = reinterpret_cast<Scaling*>(ptr);
+    daqErrCode err = daq::createScalingFromBuilder(&ptr, reinterpret_cast<daq::IScalingBuilder*>(builder));
+    *obj = reinterpret_cast<daqScaling*>(ptr);
     return err;
 }

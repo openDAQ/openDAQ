@@ -21,43 +21,43 @@ extern "C"
 {
 #endif
 
-    typedef enum CoreEventId
+    typedef enum daqCoreEventId
     {
-        CoreEventIdPropertyValueChanged = 0,
-        CoreEventIdPropertyObjectUpdateEnd = 10,
-        CoreEventIdPropertyAdded = 20,
-        CoreEventIdPropertyRemoved = 30,
-        CoreEventIdComponentAdded = 40,
-        CoreEventIdComponentRemoved = 50,
-        CoreEventIdSignalConnected = 60,
-        CoreEventIdSignalDisconnected = 70,
-        CoreEventIdDataDescriptorChanged = 80,
-        CoreEventIdComponentUpdateEnd = 90,
-        CoreEventIdAttributeChanged = 100,
-        CoreEventIdTagsChanged = 110,
-        CoreEventIdStatusChanged = 120,
-        CoreEventIdTypeAdded = 130,
-        CoreEventIdTypeRemoved = 140,
-        CoreEventIdDeviceDomainChanged = 150,
-        CoreEventIdDeviceLockStateChanged = 160,
-        CoreEventIdConnectionStatusChanged = 170,
-        CoreEventIdDeviceOperationModeChanged = 180,
-    } CoreEventId;
+        daqCoreEventIdPropertyValueChanged = 0,
+        daqCoreEventIdPropertyObjectUpdateEnd = 10,
+        daqCoreEventIdPropertyAdded = 20,
+        daqCoreEventIdPropertyRemoved = 30,
+        daqCoreEventIdComponentAdded = 40,
+        daqCoreEventIdComponentRemoved = 50,
+        daqCoreEventIdSignalConnected = 60,
+        daqCoreEventIdSignalDisconnected = 70,
+        daqCoreEventIdDataDescriptorChanged = 80,
+        daqCoreEventIdComponentUpdateEnd = 90,
+        daqCoreEventIdAttributeChanged = 100,
+        daqCoreEventIdTagsChanged = 110,
+        daqCoreEventIdStatusChanged = 120,
+        daqCoreEventIdTypeAdded = 130,
+        daqCoreEventIdTypeRemoved = 140,
+        daqCoreEventIdDeviceDomainChanged = 150,
+        daqCoreEventIdDeviceLockStateChanged = 160,
+        daqCoreEventIdConnectionStatusChanged = 170,
+        daqCoreEventIdDeviceOperationModeChanged = 180,
+    } daqCoreEventId;
 
-    typedef enum Permission
+    typedef enum daqPermission
     {
-        PermissionNone = 0x0,    // The user has no permissions on the object.
-        PermissionRead = 0x1,    // The user can see and read an object.
-        PermissionWrite = 0x2,   // The user can change or write to the object.
-        PermissionExecute = 0x4  // The user can execute an action attached to the object.
-    } Permission;
+        daqPermissionNone = 0x0,    // The user has no permissions on the object.
+        daqPermissionRead = 0x1,    // The user can see and read an object.
+        daqPermissionWrite = 0x2,   // The user can change or write to the object.
+        daqPermissionExecute = 0x4  // The user can execute an action attached to the object.
+    } daqPermission;
 
-    typedef enum PropertyEventType
+    typedef enum daqPropertyEventType
     {
-        PropertyEventTypeEventTypeUpdate,
-        PropertyEventTypeEventTypeClear,
-        PropertyEventTypeEventTypeRead
-    } PropertyEventType;
+        daqPropertyEventTypeEventTypeUpdate,
+        daqPropertyEventTypeEventTypeClear,
+        daqPropertyEventTypeEventTypeRead
+    } daqPropertyEventType;
 
 #ifdef __cplusplus
 }

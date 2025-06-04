@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:35.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:15.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,57 +15,57 @@
 
 #include <copendaq_private.h>
 
-const IntfID LOGGER_INTF_ID = { daq::ILogger::Id.Data1, daq::ILogger::Id.Data2, daq::ILogger::Id.Data3, daq::ILogger::Id.Data4_UInt64 };
+const daqIntfID DAQ_LOGGER_INTF_ID = { daq::ILogger::Id.Data1, daq::ILogger::Id.Data2, daq::ILogger::Id.Data3, daq::ILogger::Id.Data4_UInt64 };
 
-ErrCode Logger_setLevel(Logger* self, LogLevel level)
+daqErrCode daqLogger_setLevel(daqLogger* self, daqLogLevel level)
 {
     return reinterpret_cast<daq::ILogger*>(self)->setLevel(static_cast<daq::LogLevel>(level));
 }
 
-ErrCode Logger_getLevel(Logger* self, LogLevel* level)
+daqErrCode daqLogger_getLevel(daqLogger* self, daqLogLevel* level)
 {
     return reinterpret_cast<daq::ILogger*>(self)->getLevel(reinterpret_cast<daq::LogLevel*>(level));
 }
 
-ErrCode Logger_getOrAddComponent(Logger* self, String* name, LoggerComponent** component)
+daqErrCode daqLogger_getOrAddComponent(daqLogger* self, daqString* name, daqLoggerComponent** component)
 {
     return reinterpret_cast<daq::ILogger*>(self)->getOrAddComponent(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::ILoggerComponent**>(component));
 }
 
-ErrCode Logger_addComponent(Logger* self, String* name, LoggerComponent** component)
+daqErrCode daqLogger_addComponent(daqLogger* self, daqString* name, daqLoggerComponent** component)
 {
     return reinterpret_cast<daq::ILogger*>(self)->addComponent(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::ILoggerComponent**>(component));
 }
 
-ErrCode Logger_removeComponent(Logger* self, String* name)
+daqErrCode daqLogger_removeComponent(daqLogger* self, daqString* name)
 {
     return reinterpret_cast<daq::ILogger*>(self)->removeComponent(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode Logger_getComponents(Logger* self, List** components)
+daqErrCode daqLogger_getComponents(daqLogger* self, daqList** components)
 {
     return reinterpret_cast<daq::ILogger*>(self)->getComponents(reinterpret_cast<daq::IList**>(components));
 }
 
-ErrCode Logger_getComponent(Logger* self, String* name, LoggerComponent** component)
+daqErrCode daqLogger_getComponent(daqLogger* self, daqString* name, daqLoggerComponent** component)
 {
     return reinterpret_cast<daq::ILogger*>(self)->getComponent(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::ILoggerComponent**>(component));
 }
 
-ErrCode Logger_flush(Logger* self)
+daqErrCode daqLogger_flush(daqLogger* self)
 {
     return reinterpret_cast<daq::ILogger*>(self)->flush();
 }
 
-ErrCode Logger_flushOnLevel(Logger* self, LogLevel level)
+daqErrCode daqLogger_flushOnLevel(daqLogger* self, daqLogLevel level)
 {
     return reinterpret_cast<daq::ILogger*>(self)->flushOnLevel(static_cast<daq::LogLevel>(level));
 }
 
-ErrCode Logger_createLogger(Logger** obj, List* sinks, LogLevel level)
+daqErrCode daqLogger_createLogger(daqLogger** obj, daqList* sinks, daqLogLevel level)
 {
     daq::ILogger* ptr = nullptr;
-    ErrCode err = daq::createLogger(&ptr, reinterpret_cast<daq::IList*>(sinks), static_cast<daq::LogLevel>(level));
-    *obj = reinterpret_cast<Logger*>(ptr);
+    daqErrCode err = daq::createLogger(&ptr, reinterpret_cast<daq::IList*>(sinks), static_cast<daq::LogLevel>(level));
+    *obj = reinterpret_cast<daqLogger*>(ptr);
     return err;
 }

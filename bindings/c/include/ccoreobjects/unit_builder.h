@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:08.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,23 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct UnitBuilder UnitBuilder;
-    typedef struct Unit Unit;
-    typedef struct String String;
+    typedef struct daqUnitBuilder daqUnitBuilder;
+    typedef struct daqUnit daqUnit;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID UNIT_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_UNIT_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED UnitBuilder_build(UnitBuilder* self, Unit** unit);
-    ErrCode EXPORTED UnitBuilder_setId(UnitBuilder* self, Int id);
-    ErrCode EXPORTED UnitBuilder_getId(UnitBuilder* self, Int* id);
-    ErrCode EXPORTED UnitBuilder_setSymbol(UnitBuilder* self, String* symbol);
-    ErrCode EXPORTED UnitBuilder_getSymbol(UnitBuilder* self, String** symbol);
-    ErrCode EXPORTED UnitBuilder_setName(UnitBuilder* self, String* name);
-    ErrCode EXPORTED UnitBuilder_getName(UnitBuilder* self, String** name);
-    ErrCode EXPORTED UnitBuilder_setQuantity(UnitBuilder* self, String* quantity);
-    ErrCode EXPORTED UnitBuilder_getQuantity(UnitBuilder* self, String** quantity);
-    ErrCode EXPORTED UnitBuilder_createUnitBuilder(UnitBuilder** obj);
-    ErrCode EXPORTED UnitBuilder_createUnitBuilderFromExisting(UnitBuilder** obj, Unit* unitToCopy);
+    daqErrCode EXPORTED daqUnitBuilder_build(daqUnitBuilder* self, daqUnit** unit);
+    daqErrCode EXPORTED daqUnitBuilder_setId(daqUnitBuilder* self, daqInt id);
+    daqErrCode EXPORTED daqUnitBuilder_getId(daqUnitBuilder* self, daqInt* id);
+    daqErrCode EXPORTED daqUnitBuilder_setSymbol(daqUnitBuilder* self, daqString* symbol);
+    daqErrCode EXPORTED daqUnitBuilder_getSymbol(daqUnitBuilder* self, daqString** symbol);
+    daqErrCode EXPORTED daqUnitBuilder_setName(daqUnitBuilder* self, daqString* name);
+    daqErrCode EXPORTED daqUnitBuilder_getName(daqUnitBuilder* self, daqString** name);
+    daqErrCode EXPORTED daqUnitBuilder_setQuantity(daqUnitBuilder* self, daqString* quantity);
+    daqErrCode EXPORTED daqUnitBuilder_getQuantity(daqUnitBuilder* self, daqString** quantity);
+    daqErrCode EXPORTED daqUnitBuilder_createUnitBuilder(daqUnitBuilder** obj);
+    daqErrCode EXPORTED daqUnitBuilder_createUnitBuilderFromExisting(daqUnitBuilder** obj, daqUnit* unitToCopy);
 
 #ifdef __cplusplus
 }

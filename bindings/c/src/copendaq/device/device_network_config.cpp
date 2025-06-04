@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:27.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:07.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,24 +15,24 @@
 
 #include <copendaq_private.h>
 
-const IntfID DEVICE_NETWORK_CONFIG_INTF_ID = { daq::IDeviceNetworkConfig::Id.Data1, daq::IDeviceNetworkConfig::Id.Data2, daq::IDeviceNetworkConfig::Id.Data3, daq::IDeviceNetworkConfig::Id.Data4_UInt64 };
+const daqIntfID DAQ_DEVICE_NETWORK_CONFIG_INTF_ID = { daq::IDeviceNetworkConfig::Id.Data1, daq::IDeviceNetworkConfig::Id.Data2, daq::IDeviceNetworkConfig::Id.Data3, daq::IDeviceNetworkConfig::Id.Data4_UInt64 };
 
-ErrCode DeviceNetworkConfig_submitNetworkConfiguration(DeviceNetworkConfig* self, String* ifaceName, PropertyObject* config)
+daqErrCode daqDeviceNetworkConfig_submitNetworkConfiguration(daqDeviceNetworkConfig* self, daqString* ifaceName, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IDeviceNetworkConfig*>(self)->submitNetworkConfiguration(reinterpret_cast<daq::IString*>(ifaceName), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode DeviceNetworkConfig_retrieveNetworkConfiguration(DeviceNetworkConfig* self, String* ifaceName, PropertyObject** config)
+daqErrCode daqDeviceNetworkConfig_retrieveNetworkConfiguration(daqDeviceNetworkConfig* self, daqString* ifaceName, daqPropertyObject** config)
 {
     return reinterpret_cast<daq::IDeviceNetworkConfig*>(self)->retrieveNetworkConfiguration(reinterpret_cast<daq::IString*>(ifaceName), reinterpret_cast<daq::IPropertyObject**>(config));
 }
 
-ErrCode DeviceNetworkConfig_getNetworkConfigurationEnabled(DeviceNetworkConfig* self, Bool* enabled)
+daqErrCode daqDeviceNetworkConfig_getNetworkConfigurationEnabled(daqDeviceNetworkConfig* self, daqBool* enabled)
 {
     return reinterpret_cast<daq::IDeviceNetworkConfig*>(self)->getNetworkConfigurationEnabled(enabled);
 }
 
-ErrCode DeviceNetworkConfig_getNetworkInterfaceNames(DeviceNetworkConfig* self, List** ifaceNames)
+daqErrCode daqDeviceNetworkConfig_getNetworkInterfaceNames(daqDeviceNetworkConfig* self, daqList** ifaceNames)
 {
     return reinterpret_cast<daq::IDeviceNetworkConfig*>(self)->getNetworkInterfaceNames(reinterpret_cast<daq::IList**>(ifaceNames));
 }

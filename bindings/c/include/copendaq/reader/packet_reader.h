@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:46.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:25.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,18 +34,18 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PacketReader PacketReader;
-    typedef struct Packet Packet;
-    typedef struct List List;
-    typedef struct Signal Signal;
-    typedef struct InputPortConfig InputPortConfig;
+    typedef struct daqPacketReader daqPacketReader;
+    typedef struct daqPacket daqPacket;
+    typedef struct daqList daqList;
+    typedef struct daqSignal daqSignal;
+    typedef struct daqInputPortConfig daqInputPortConfig;
 
-    EXPORTED extern const IntfID PACKET_READER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PACKET_READER_INTF_ID;
 
-    ErrCode EXPORTED PacketReader_read(PacketReader* self, Packet** packet);
-    ErrCode EXPORTED PacketReader_readAll(PacketReader* self, List** packets);
-    ErrCode EXPORTED PacketReader_createPacketReader(PacketReader** obj, Signal* signal);
-    ErrCode EXPORTED PacketReader_createPacketReaderFromPort(PacketReader** obj, InputPortConfig* port);
+    daqErrCode EXPORTED daqPacketReader_read(daqPacketReader* self, daqPacket** packet);
+    daqErrCode EXPORTED daqPacketReader_readAll(daqPacketReader* self, daqList** packets);
+    daqErrCode EXPORTED daqPacketReader_createPacketReader(daqPacketReader** obj, daqSignal* signal);
+    daqErrCode EXPORTED daqPacketReader_createPacketReaderFromPort(daqPacketReader** obj, daqInputPortConfig* port);
 
 #ifdef __cplusplus
 }

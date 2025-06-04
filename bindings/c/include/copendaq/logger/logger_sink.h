@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.5.0) on 14.04.2025 21:37:27.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:54:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,22 +34,22 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct LoggerSink LoggerSink;
-    typedef struct String String;
+    typedef struct daqLoggerSink daqLoggerSink;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID LOGGER_SINK_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_LOGGER_SINK_INTF_ID;
 
-    ErrCode EXPORTED LoggerSink_setLevel(LoggerSink* self, LogLevel level);
-    ErrCode EXPORTED LoggerSink_getLevel(LoggerSink* self, LogLevel* level);
-    ErrCode EXPORTED LoggerSink_shouldLog(LoggerSink* self, LogLevel level, Bool* willLog);
-    ErrCode EXPORTED LoggerSink_setPattern(LoggerSink* self, String* pattern);
-    ErrCode EXPORTED LoggerSink_flush(LoggerSink* self);
-    ErrCode EXPORTED LoggerSink_createStdErrLoggerSink(LoggerSink** obj);
-    ErrCode EXPORTED LoggerSink_createStdOutLoggerSink(LoggerSink** obj);
-    ErrCode EXPORTED LoggerSink_createRotatingFileLoggerSink(LoggerSink** obj, String* fileName, SizeT maxFileByteSize, SizeT maxFiles);
-    ErrCode EXPORTED LoggerSink_createBasicFileLoggerSink(LoggerSink** obj, String* fileName);
+    daqErrCode EXPORTED daqLoggerSink_setLevel(daqLoggerSink* self, daqLogLevel level);
+    daqErrCode EXPORTED daqLoggerSink_getLevel(daqLoggerSink* self, daqLogLevel* level);
+    daqErrCode EXPORTED daqLoggerSink_shouldLog(daqLoggerSink* self, daqLogLevel level, daqBool* willLog);
+    daqErrCode EXPORTED daqLoggerSink_setPattern(daqLoggerSink* self, daqString* pattern);
+    daqErrCode EXPORTED daqLoggerSink_flush(daqLoggerSink* self);
+    daqErrCode EXPORTED daqLoggerSink_createStdErrLoggerSink(daqLoggerSink** obj);
+    daqErrCode EXPORTED daqLoggerSink_createStdOutLoggerSink(daqLoggerSink** obj);
+    daqErrCode EXPORTED daqLoggerSink_createRotatingFileLoggerSink(daqLoggerSink** obj, daqString* fileName, daqSizeT maxFileByteSize, daqSizeT maxFiles);
+    daqErrCode EXPORTED daqLoggerSink_createBasicFileLoggerSink(daqLoggerSink** obj, daqString* fileName);
 #ifdef _WIN32
-    ErrCode EXPORTED LoggerSink_createWinDebugLoggerSink(LoggerSink** obj);
+    daqErrCode EXPORTED daqLoggerSink_createWinDebugLoggerSink(daqLoggerSink** obj);
 #endif
 
 #ifdef __cplusplus

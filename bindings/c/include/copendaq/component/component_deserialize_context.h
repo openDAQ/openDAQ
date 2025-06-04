@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:11.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:51.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,22 +34,22 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ComponentDeserializeContext ComponentDeserializeContext;
-    typedef struct Component Component;
-    typedef struct String String;
-    typedef struct Context Context;
-    typedef struct Procedure Procedure;
+    typedef struct daqComponentDeserializeContext daqComponentDeserializeContext;
+    typedef struct daqComponent daqComponent;
+    typedef struct daqString daqString;
+    typedef struct daqContext daqContext;
+    typedef struct daqProcedure daqProcedure;
 
-    EXPORTED extern const IntfID COMPONENT_DESERIALIZE_CONTEXT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPONENT_DESERIALIZE_CONTEXT_INTF_ID;
 
-    ErrCode EXPORTED ComponentDeserializeContext_getParent(ComponentDeserializeContext* self, Component** parent);
-    ErrCode EXPORTED ComponentDeserializeContext_getRoot(ComponentDeserializeContext* self, Component** root);
-    ErrCode EXPORTED ComponentDeserializeContext_getLocalId(ComponentDeserializeContext* self, String** localId);
-    ErrCode EXPORTED ComponentDeserializeContext_getContext(ComponentDeserializeContext* self, Context** context);
-    ErrCode EXPORTED ComponentDeserializeContext_getIntfID(ComponentDeserializeContext* self, IntfID* intfID);
-    ErrCode EXPORTED ComponentDeserializeContext_getTriggerCoreEvent(ComponentDeserializeContext* self, Procedure** triggerCoreEvent);
-    ErrCode EXPORTED ComponentDeserializeContext_clone(ComponentDeserializeContext* self, Component* newParent, String* newLocalId, ComponentDeserializeContext** newComponentDeserializeContext, IntfID* newIntfID, Procedure* newTriggerCoreEvent);
-    ErrCode EXPORTED ComponentDeserializeContext_createComponentDeserializeContext(ComponentDeserializeContext** obj, Context* context, Component* root, Component* parent, String* localId, IntfID* intfID, Procedure* triggerCoreEvent);
+    daqErrCode EXPORTED daqComponentDeserializeContext_getParent(daqComponentDeserializeContext* self, daqComponent** parent);
+    daqErrCode EXPORTED daqComponentDeserializeContext_getRoot(daqComponentDeserializeContext* self, daqComponent** root);
+    daqErrCode EXPORTED daqComponentDeserializeContext_getLocalId(daqComponentDeserializeContext* self, daqString** localId);
+    daqErrCode EXPORTED daqComponentDeserializeContext_getContext(daqComponentDeserializeContext* self, daqContext** context);
+    daqErrCode EXPORTED daqComponentDeserializeContext_getIntfID(daqComponentDeserializeContext* self, daqIntfID* intfID);
+    daqErrCode EXPORTED daqComponentDeserializeContext_getTriggerCoreEvent(daqComponentDeserializeContext* self, daqProcedure** triggerCoreEvent);
+    daqErrCode EXPORTED daqComponentDeserializeContext_clone(daqComponentDeserializeContext* self, daqComponent* newParent, daqString* newLocalId, daqComponentDeserializeContext** newComponentDeserializeContext, daqIntfID* newIntfID, daqProcedure* newTriggerCoreEvent);
+    daqErrCode EXPORTED daqComponentDeserializeContext_createComponentDeserializeContext(daqComponentDeserializeContext** obj, daqContext* context, daqComponent* root, daqComponent* parent, daqString* localId, daqIntfID* intfID, daqProcedure* triggerCoreEvent);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:05.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,22 +34,22 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DimensionRuleBuilder DimensionRuleBuilder;
-    typedef struct DimensionRule DimensionRule;
-    typedef struct Dict Dict;
-    typedef struct String String;
+    typedef struct daqDimensionRuleBuilder daqDimensionRuleBuilder;
+    typedef struct daqDimensionRule daqDimensionRule;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID DIMENSION_RULE_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DIMENSION_RULE_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED DimensionRuleBuilder_build(DimensionRuleBuilder* self, DimensionRule** dimensionRule);
-    ErrCode EXPORTED DimensionRuleBuilder_setType(DimensionRuleBuilder* self, DimensionRuleType type);
-    ErrCode EXPORTED DimensionRuleBuilder_getType(DimensionRuleBuilder* self, DimensionRuleType* type);
-    ErrCode EXPORTED DimensionRuleBuilder_setParameters(DimensionRuleBuilder* self, Dict* parameters);
-    ErrCode EXPORTED DimensionRuleBuilder_getParameters(DimensionRuleBuilder* self, Dict** parameters);
-    ErrCode EXPORTED DimensionRuleBuilder_addParameter(DimensionRuleBuilder* self, String* name, BaseObject* parameter);
-    ErrCode EXPORTED DimensionRuleBuilder_removeParameter(DimensionRuleBuilder* self, String* name);
-    ErrCode EXPORTED DimensionRuleBuilder_createDimensionRuleBuilder(DimensionRuleBuilder** obj);
-    ErrCode EXPORTED DimensionRuleBuilder_createDimensionRuleBuilderFromExisting(DimensionRuleBuilder** obj, DimensionRule* ruleToCopy);
+    daqErrCode EXPORTED daqDimensionRuleBuilder_build(daqDimensionRuleBuilder* self, daqDimensionRule** dimensionRule);
+    daqErrCode EXPORTED daqDimensionRuleBuilder_setType(daqDimensionRuleBuilder* self, daqDimensionRuleType type);
+    daqErrCode EXPORTED daqDimensionRuleBuilder_getType(daqDimensionRuleBuilder* self, daqDimensionRuleType* type);
+    daqErrCode EXPORTED daqDimensionRuleBuilder_setParameters(daqDimensionRuleBuilder* self, daqDict* parameters);
+    daqErrCode EXPORTED daqDimensionRuleBuilder_getParameters(daqDimensionRuleBuilder* self, daqDict** parameters);
+    daqErrCode EXPORTED daqDimensionRuleBuilder_addParameter(daqDimensionRuleBuilder* self, daqString* name, daqBaseObject* parameter);
+    daqErrCode EXPORTED daqDimensionRuleBuilder_removeParameter(daqDimensionRuleBuilder* self, daqString* name);
+    daqErrCode EXPORTED daqDimensionRuleBuilder_createDimensionRuleBuilder(daqDimensionRuleBuilder** obj);
+    daqErrCode EXPORTED daqDimensionRuleBuilder_createDimensionRuleBuilderFromExisting(daqDimensionRuleBuilder** obj, daqDimensionRule* ruleToCopy);
 
 #ifdef __cplusplus
 }

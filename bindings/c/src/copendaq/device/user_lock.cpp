@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:32.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:12.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,32 +15,32 @@
 
 #include <copendaq_private.h>
 
-const IntfID USER_LOCK_INTF_ID = { daq::IUserLock::Id.Data1, daq::IUserLock::Id.Data2, daq::IUserLock::Id.Data3, daq::IUserLock::Id.Data4_UInt64 };
+const daqIntfID DAQ_USER_LOCK_INTF_ID = { daq::IUserLock::Id.Data1, daq::IUserLock::Id.Data2, daq::IUserLock::Id.Data3, daq::IUserLock::Id.Data4_UInt64 };
 
-ErrCode UserLock_lock(UserLock* self, User* user)
+daqErrCode daqUserLock_lock(daqUserLock* self, daqUser* user)
 {
     return reinterpret_cast<daq::IUserLock*>(self)->lock(reinterpret_cast<daq::IUser*>(user));
 }
 
-ErrCode UserLock_unlock(UserLock* self, User* user)
+daqErrCode daqUserLock_unlock(daqUserLock* self, daqUser* user)
 {
     return reinterpret_cast<daq::IUserLock*>(self)->unlock(reinterpret_cast<daq::IUser*>(user));
 }
 
-ErrCode UserLock_forceUnlock(UserLock* self)
+daqErrCode daqUserLock_forceUnlock(daqUserLock* self)
 {
     return reinterpret_cast<daq::IUserLock*>(self)->forceUnlock();
 }
 
-ErrCode UserLock_isLocked(UserLock* self, Bool* isLockedOut)
+daqErrCode daqUserLock_isLocked(daqUserLock* self, daqBool* isLockedOut)
 {
     return reinterpret_cast<daq::IUserLock*>(self)->isLocked(isLockedOut);
 }
 
-ErrCode UserLock_createUserLock(UserLock** obj)
+daqErrCode daqUserLock_createUserLock(daqUserLock** obj)
 {
     daq::IUserLock* ptr = nullptr;
-    ErrCode err = daq::createUserLock(&ptr);
-    *obj = reinterpret_cast<UserLock*>(ptr);
+    daqErrCode err = daq::createUserLock(&ptr);
+    *obj = reinterpret_cast<daqUserLock*>(ptr);
     return err;
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:12.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,35 +15,35 @@
 
 #include <copendaq_private.h>
 
-const IntfID COMPONENT_HOLDER_INTF_ID = { daq::IComponentHolder::Id.Data1, daq::IComponentHolder::Id.Data2, daq::IComponentHolder::Id.Data3, daq::IComponentHolder::Id.Data4_UInt64 };
+const daqIntfID DAQ_COMPONENT_HOLDER_INTF_ID = { daq::IComponentHolder::Id.Data1, daq::IComponentHolder::Id.Data2, daq::IComponentHolder::Id.Data3, daq::IComponentHolder::Id.Data4_UInt64 };
 
-ErrCode ComponentHolder_getLocalId(ComponentHolder* self, String** localId)
+daqErrCode daqComponentHolder_getLocalId(daqComponentHolder* self, daqString** localId)
 {
     return reinterpret_cast<daq::IComponentHolder*>(self)->getLocalId(reinterpret_cast<daq::IString**>(localId));
 }
 
-ErrCode ComponentHolder_getParentGlobalId(ComponentHolder* self, String** parentId)
+daqErrCode daqComponentHolder_getParentGlobalId(daqComponentHolder* self, daqString** parentId)
 {
     return reinterpret_cast<daq::IComponentHolder*>(self)->getParentGlobalId(reinterpret_cast<daq::IString**>(parentId));
 }
 
-ErrCode ComponentHolder_getComponent(ComponentHolder* self, Component** component)
+daqErrCode daqComponentHolder_getComponent(daqComponentHolder* self, daqComponent** component)
 {
     return reinterpret_cast<daq::IComponentHolder*>(self)->getComponent(reinterpret_cast<daq::IComponent**>(component));
 }
 
-ErrCode ComponentHolder_createComponentHolder(ComponentHolder** obj, Component* component)
+daqErrCode daqComponentHolder_createComponentHolder(daqComponentHolder** obj, daqComponent* component)
 {
     daq::IComponentHolder* ptr = nullptr;
-    ErrCode err = daq::createComponentHolder(&ptr, reinterpret_cast<daq::IComponent*>(component));
-    *obj = reinterpret_cast<ComponentHolder*>(ptr);
+    daqErrCode err = daq::createComponentHolder(&ptr, reinterpret_cast<daq::IComponent*>(component));
+    *obj = reinterpret_cast<daqComponentHolder*>(ptr);
     return err;
 }
 
-ErrCode ComponentHolder_createComponentHolderWithIds(ComponentHolder** obj, String* id, String* parentGlobalId, Component* component)
+daqErrCode daqComponentHolder_createComponentHolderWithIds(daqComponentHolder** obj, daqString* id, daqString* parentGlobalId, daqComponent* component)
 {
     daq::IComponentHolder* ptr = nullptr;
-    ErrCode err = daq::createComponentHolderWithIds(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(parentGlobalId), reinterpret_cast<daq::IComponent*>(component));
-    *obj = reinterpret_cast<ComponentHolder*>(ptr);
+    daqErrCode err = daq::createComponentHolderWithIds(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(parentGlobalId), reinterpret_cast<daq::IComponent*>(component));
+    *obj = reinterpret_cast<daqComponentHolder*>(ptr);
     return err;
 }

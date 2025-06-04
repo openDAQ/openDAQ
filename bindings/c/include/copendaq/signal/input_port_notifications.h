@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:07.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct InputPortNotifications InputPortNotifications;
-    typedef struct InputPort InputPort;
-    typedef struct Signal Signal;
+    typedef struct daqInputPortNotifications daqInputPortNotifications;
+    typedef struct daqInputPort daqInputPort;
+    typedef struct daqSignal daqSignal;
 
-    EXPORTED extern const IntfID INPUT_PORT_NOTIFICATIONS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_INPUT_PORT_NOTIFICATIONS_INTF_ID;
 
-    ErrCode EXPORTED InputPortNotifications_acceptsSignal(InputPortNotifications* self, InputPort* port, Signal* signal, Bool* accept);
-    ErrCode EXPORTED InputPortNotifications_connected(InputPortNotifications* self, InputPort* port);
-    ErrCode EXPORTED InputPortNotifications_disconnected(InputPortNotifications* self, InputPort* port);
-    ErrCode EXPORTED InputPortNotifications_packetReceived(InputPortNotifications* self, InputPort* port);
+    daqErrCode EXPORTED daqInputPortNotifications_acceptsSignal(daqInputPortNotifications* self, daqInputPort* port, daqSignal* signal, daqBool* accept);
+    daqErrCode EXPORTED daqInputPortNotifications_connected(daqInputPortNotifications* self, daqInputPort* port);
+    daqErrCode EXPORTED daqInputPortNotifications_disconnected(daqInputPortNotifications* self, daqInputPort* port);
+    daqErrCode EXPORTED daqInputPortNotifications_packetReceived(daqInputPortNotifications* self, daqInputPort* port);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:01.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:40.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,21 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DataRule DataRule;
-    typedef struct Dict Dict;
-    typedef struct Number Number;
-    typedef struct DataRuleBuilder DataRuleBuilder;
+    typedef struct daqDataRule daqDataRule;
+    typedef struct daqDict daqDict;
+    typedef struct daqNumber daqNumber;
+    typedef struct daqDataRuleBuilder daqDataRuleBuilder;
 
-    EXPORTED extern const IntfID DATA_RULE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DATA_RULE_INTF_ID;
 
-    ErrCode EXPORTED DataRule_getType(DataRule* self, DataRuleType* type);
-    ErrCode EXPORTED DataRule_getParameters(DataRule* self, Dict** parameters);
-    ErrCode EXPORTED DataRule_createLinearDataRule(DataRule** obj, Number* delta, Number* start);
-    ErrCode EXPORTED DataRule_createConstantDataRule(DataRule** obj);
-    ErrCode EXPORTED DataRule_createExplicitDataRule(DataRule** obj);
-    ErrCode EXPORTED DataRule_createExplicitDomainDataRule(DataRule** obj, Number* minExpectedDelta, Number* maxExpectedDelta);
-    ErrCode EXPORTED DataRule_createDataRule(DataRule** obj, DataRuleType ruleType, Dict* parameters);
-    ErrCode EXPORTED DataRule_createDataRuleFromBuilder(DataRule** obj, DataRuleBuilder* builder);
+    daqErrCode EXPORTED daqDataRule_getType(daqDataRule* self, daqDataRuleType* type);
+    daqErrCode EXPORTED daqDataRule_getParameters(daqDataRule* self, daqDict** parameters);
+    daqErrCode EXPORTED daqDataRule_createLinearDataRule(daqDataRule** obj, daqNumber* delta, daqNumber* start);
+    daqErrCode EXPORTED daqDataRule_createConstantDataRule(daqDataRule** obj);
+    daqErrCode EXPORTED daqDataRule_createExplicitDataRule(daqDataRule** obj);
+    daqErrCode EXPORTED daqDataRule_createExplicitDomainDataRule(daqDataRule** obj, daqNumber* minExpectedDelta, daqNumber* maxExpectedDelta);
+    daqErrCode EXPORTED daqDataRule_createDataRule(daqDataRule** obj, daqDataRuleType ruleType, daqDict* parameters);
+    daqErrCode EXPORTED daqDataRule_createDataRuleFromBuilder(daqDataRule** obj, daqDataRuleBuilder* builder);
 
 #ifdef __cplusplus
 }

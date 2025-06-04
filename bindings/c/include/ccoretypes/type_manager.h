@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:53.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct TypeManager TypeManager;
-    typedef struct Type Type;
-    typedef struct String String;
-    typedef struct List List;
+    typedef struct daqTypeManager daqTypeManager;
+    typedef struct daqType daqType;
+    typedef struct daqString daqString;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID TYPE_MANAGER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_TYPE_MANAGER_INTF_ID;
 
-    ErrCode EXPORTED TypeManager_addType(TypeManager* self, Type* type);
-    ErrCode EXPORTED TypeManager_removeType(TypeManager* self, String* typeName);
-    ErrCode EXPORTED TypeManager_getType(TypeManager* self, String* typeName, Type** type);
-    ErrCode EXPORTED TypeManager_getTypes(TypeManager* self, List** types);
-    ErrCode EXPORTED TypeManager_hasType(TypeManager* self, String* typeName, Bool* hasType);
-    ErrCode EXPORTED TypeManager_createTypeManager(TypeManager** obj);
+    daqErrCode EXPORTED daqTypeManager_addType(daqTypeManager* self, daqType* type);
+    daqErrCode EXPORTED daqTypeManager_removeType(daqTypeManager* self, daqString* typeName);
+    daqErrCode EXPORTED daqTypeManager_getType(daqTypeManager* self, daqString* typeName, daqType** type);
+    daqErrCode EXPORTED daqTypeManager_getTypes(daqTypeManager* self, daqList** types);
+    daqErrCode EXPORTED daqTypeManager_hasType(daqTypeManager* self, daqString* typeName, daqBool* hasType);
+    daqErrCode EXPORTED daqTypeManager_createTypeManager(daqTypeManager** obj);
 
 #ifdef __cplusplus
 }

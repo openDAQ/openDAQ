@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:55.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:06.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,25 +34,25 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Dict Dict;
-    typedef struct List List;
-    typedef struct Iterable Iterable;
+    typedef struct daqDict daqDict;
+    typedef struct daqList daqList;
+    typedef struct daqIterable daqIterable;
 
-    EXPORTED extern const IntfID DICT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DICT_INTF_ID;
 
-    ErrCode EXPORTED Dict_get(Dict* self, BaseObject* key, BaseObject** value);
-    ErrCode EXPORTED Dict_set(Dict* self, BaseObject* key, BaseObject* value);
-    ErrCode EXPORTED Dict_remove(Dict* self, BaseObject* key, BaseObject** value);
-    ErrCode EXPORTED Dict_deleteItem(Dict* self, BaseObject* key);
-    ErrCode EXPORTED Dict_clear(Dict* self);
-    ErrCode EXPORTED Dict_getCount(Dict* self, SizeT* size);
-    ErrCode EXPORTED Dict_hasKey(Dict* self, BaseObject* key, Bool* hasKey);
-    ErrCode EXPORTED Dict_getKeyList(Dict* self, List** keys);
-    ErrCode EXPORTED Dict_getValueList(Dict* self, List** values);
-    ErrCode EXPORTED Dict_getKeys(Dict* self, Iterable** iterable);
-    ErrCode EXPORTED Dict_getValues(Dict* self, Iterable** iterable);
-    ErrCode EXPORTED Dict_createDict(Dict** obj);
-    ErrCode EXPORTED Dict_createDictWithExpectedTypes(Dict** obj, IntfID keyType, IntfID valueType);
+    daqErrCode EXPORTED daqDict_get(daqDict* self, daqBaseObject* key, daqBaseObject** value);
+    daqErrCode EXPORTED daqDict_set(daqDict* self, daqBaseObject* key, daqBaseObject* value);
+    daqErrCode EXPORTED daqDict_remove(daqDict* self, daqBaseObject* key, daqBaseObject** value);
+    daqErrCode EXPORTED daqDict_deleteItem(daqDict* self, daqBaseObject* key);
+    daqErrCode EXPORTED daqDict_clear(daqDict* self);
+    daqErrCode EXPORTED daqDict_getCount(daqDict* self, daqSizeT* size);
+    daqErrCode EXPORTED daqDict_hasKey(daqDict* self, daqBaseObject* key, daqBool* hasKey);
+    daqErrCode EXPORTED daqDict_getKeyList(daqDict* self, daqList** keys);
+    daqErrCode EXPORTED daqDict_getValueList(daqDict* self, daqList** values);
+    daqErrCode EXPORTED daqDict_getKeys(daqDict* self, daqIterable** iterable);
+    daqErrCode EXPORTED daqDict_getValues(daqDict* self, daqIterable** iterable);
+    daqErrCode EXPORTED daqDict_createDict(daqDict** obj);
+    daqErrCode EXPORTED daqDict_createDictWithExpectedTypes(daqDict** obj, daqIntfID keyType, daqIntfID valueType);
 
 #ifdef __cplusplus
 }

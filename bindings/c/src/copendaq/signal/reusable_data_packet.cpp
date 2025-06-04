@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:11.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:51.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID REUSABLE_DATA_PACKET_INTF_ID = { daq::IReusableDataPacket::Id.Data1, daq::IReusableDataPacket::Id.Data2, daq::IReusableDataPacket::Id.Data3, daq::IReusableDataPacket::Id.Data4_UInt64 };
+const daqIntfID DAQ_REUSABLE_DATA_PACKET_INTF_ID = { daq::IReusableDataPacket::Id.Data1, daq::IReusableDataPacket::Id.Data2, daq::IReusableDataPacket::Id.Data3, daq::IReusableDataPacket::Id.Data4_UInt64 };
 
-ErrCode ReusableDataPacket_reuse(ReusableDataPacket* self, DataDescriptor* newDescriptor, SizeT newSampleCount, Number* newOffset, DataPacket* newDomainPacket, Bool canReallocMemory, Bool* success)
+daqErrCode daqReusableDataPacket_reuse(daqReusableDataPacket* self, daqDataDescriptor* newDescriptor, daqSizeT newSampleCount, daqNumber* newOffset, daqDataPacket* newDomainPacket, daqBool canReallocMemory, daqBool* success)
 {
     return reinterpret_cast<daq::IReusableDataPacket*>(self)->reuse(reinterpret_cast<daq::IDataDescriptor*>(newDescriptor), newSampleCount, reinterpret_cast<daq::INumber*>(newOffset), reinterpret_cast<daq::IDataPacket*>(newDomainPacket), canReallocMemory, success);
 }

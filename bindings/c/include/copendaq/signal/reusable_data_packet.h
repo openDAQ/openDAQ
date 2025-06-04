@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:11.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:51.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ReusableDataPacket ReusableDataPacket;
-    typedef struct DataDescriptor DataDescriptor;
-    typedef struct Number Number;
-    typedef struct DataPacket DataPacket;
+    typedef struct daqReusableDataPacket daqReusableDataPacket;
+    typedef struct daqDataDescriptor daqDataDescriptor;
+    typedef struct daqNumber daqNumber;
+    typedef struct daqDataPacket daqDataPacket;
 
-    EXPORTED extern const IntfID REUSABLE_DATA_PACKET_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_REUSABLE_DATA_PACKET_INTF_ID;
 
-    ErrCode EXPORTED ReusableDataPacket_reuse(ReusableDataPacket* self, DataDescriptor* newDescriptor, SizeT newSampleCount, Number* newOffset, DataPacket* newDomainPacket, Bool canReallocMemory, Bool* success);
+    daqErrCode EXPORTED daqReusableDataPacket_reuse(daqReusableDataPacket* self, daqDataDescriptor* newDescriptor, daqSizeT newSampleCount, daqNumber* newOffset, daqDataPacket* newDomainPacket, daqBool canReallocMemory, daqBool* success);
 
 #ifdef __cplusplus
 }

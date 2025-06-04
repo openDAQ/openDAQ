@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:19.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,15 +34,15 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct TagsPrivate TagsPrivate;
-    typedef struct String String;
-    typedef struct List List;
+    typedef struct daqTagsPrivate daqTagsPrivate;
+    typedef struct daqString daqString;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID TAGS_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_TAGS_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED TagsPrivate_add(TagsPrivate* self, String* name);
-    ErrCode EXPORTED TagsPrivate_remove(TagsPrivate* self, String* name);
-    ErrCode EXPORTED TagsPrivate_replace(TagsPrivate* self, List* tags);
+    daqErrCode EXPORTED daqTagsPrivate_add(daqTagsPrivate* self, daqString* name);
+    daqErrCode EXPORTED daqTagsPrivate_remove(daqTagsPrivate* self, daqString* name);
+    daqErrCode EXPORTED daqTagsPrivate_replace(daqTagsPrivate* self, daqList* tags);
 
 #ifdef __cplusplus
 }

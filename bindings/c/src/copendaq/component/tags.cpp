@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:19.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,27 +15,27 @@
 
 #include <copendaq_private.h>
 
-const IntfID TAGS_INTF_ID = { daq::ITags::Id.Data1, daq::ITags::Id.Data2, daq::ITags::Id.Data3, daq::ITags::Id.Data4_UInt64 };
+const daqIntfID DAQ_TAGS_INTF_ID = { daq::ITags::Id.Data1, daq::ITags::Id.Data2, daq::ITags::Id.Data3, daq::ITags::Id.Data4_UInt64 };
 
-ErrCode Tags_getList(Tags* self, List** value)
+daqErrCode daqTags_getList(daqTags* self, daqList** value)
 {
     return reinterpret_cast<daq::ITags*>(self)->getList(reinterpret_cast<daq::IList**>(value));
 }
 
-ErrCode Tags_contains(Tags* self, String* name, Bool* value)
+daqErrCode daqTags_contains(daqTags* self, daqString* name, daqBool* value)
 {
     return reinterpret_cast<daq::ITags*>(self)->contains(reinterpret_cast<daq::IString*>(name), value);
 }
 
-ErrCode Tags_query(Tags* self, String* query, Bool* value)
+daqErrCode daqTags_query(daqTags* self, daqString* query, daqBool* value)
 {
     return reinterpret_cast<daq::ITags*>(self)->query(reinterpret_cast<daq::IString*>(query), value);
 }
 
-ErrCode Tags_createTags(Tags** obj)
+daqErrCode daqTags_createTags(daqTags** obj)
 {
     daq::ITags* ptr = nullptr;
-    ErrCode err = daq::createTags(&ptr);
-    *obj = reinterpret_cast<Tags*>(ptr);
+    daqErrCode err = daq::createTags(&ptr);
+    *obj = reinterpret_cast<daqTags*>(ptr);
     return err;
 }

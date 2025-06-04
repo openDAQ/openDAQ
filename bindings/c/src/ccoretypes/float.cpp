@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:43.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:51.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,30 +15,30 @@
 
 #include <copendaq_private.h>
 
-const IntfID FLOAT_INTF_ID = { daq::IFloat::Id.Data1, daq::IFloat::Id.Data2, daq::IFloat::Id.Data3, daq::IFloat::Id.Data4_UInt64 };
+const daqIntfID DAQ_FLOAT_OBJECT_INTF_ID = { daq::IFloat::Id.Data1, daq::IFloat::Id.Data2, daq::IFloat::Id.Data3, daq::IFloat::Id.Data4_UInt64 };
 
-ErrCode FloatObject_getValue(FloatObject* self, Float* value)
+daqErrCode daqFloatObject_getValue(daqFloat* self, daqFloat* value)
 {
     return reinterpret_cast<daq::IFloat*>(self)->getValue(value);
 }
 
-ErrCode FloatObject_equalsValue(FloatObject* self, Float value, Bool* equals)
+daqErrCode daqFloatObject_equalsValue(daqFloat* self, daqFloat value, daqBool* equals)
 {
     return reinterpret_cast<daq::IFloat*>(self)->equalsValue(value, equals);
 }
 
-ErrCode FloatObject_createFloat(FloatObject** obj, Float value)
+daqErrCode daqFloatObject_createFloat(daqFloat** obj, daqFloat value)
 {
     daq::IFloat* ptr = nullptr;
-    ErrCode err = daq::createFloat(&ptr, value);
-    *obj = reinterpret_cast<FloatObject*>(ptr);
+    daqErrCode err = daq::createFloat(&ptr, value);
+    *obj = reinterpret_cast<daqFloat*>(ptr);
     return err;
 }
 
-ErrCode FloatObject_createFloatObject(FloatObject** obj, Float value)
+daqErrCode daqFloatObject_createFloatObject(daqFloat** obj, daqFloat value)
 {
     daq::IFloat* ptr = nullptr;
-    ErrCode err = daq::createFloatObject(&ptr, value);
-    *obj = reinterpret_cast<FloatObject*>(ptr);
+    daqErrCode err = daq::createFloatObject(&ptr, value);
+    *obj = reinterpret_cast<daqFloat*>(ptr);
     return err;
 }

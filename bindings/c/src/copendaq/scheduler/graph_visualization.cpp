@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:53.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:32.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID GRAPH_VISUALIZATION_INTF_ID = { daq::IGraphVisualization::Id.Data1, daq::IGraphVisualization::Id.Data2, daq::IGraphVisualization::Id.Data3, daq::IGraphVisualization::Id.Data4_UInt64 };
+const daqIntfID DAQ_GRAPH_VISUALIZATION_INTF_ID = { daq::IGraphVisualization::Id.Data1, daq::IGraphVisualization::Id.Data2, daq::IGraphVisualization::Id.Data3, daq::IGraphVisualization::Id.Data4_UInt64 };
 
-ErrCode GraphVisualization_dump(GraphVisualization* self, String** dot)
+daqErrCode daqGraphVisualization_dump(daqGraphVisualization* self, daqString** dot)
 {
     return reinterpret_cast<daq::IGraphVisualization*>(self)->dump(reinterpret_cast<daq::IString**>(dot));
 }

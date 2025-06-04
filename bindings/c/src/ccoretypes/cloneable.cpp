@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:37.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID CLONEABLE_INTF_ID = { daq::ICloneable::Id.Data1, daq::ICloneable::Id.Data2, daq::ICloneable::Id.Data3, daq::ICloneable::Id.Data4_UInt64 };
+const daqIntfID DAQ_CLONEABLE_INTF_ID = { daq::ICloneable::Id.Data1, daq::ICloneable::Id.Data2, daq::ICloneable::Id.Data3, daq::ICloneable::Id.Data4_UInt64 };
 
-ErrCode Cloneable_clone(Cloneable* self, BaseObject** cloned)
+daqErrCode daqCloneable_clone(daqCloneable* self, daqBaseObject** cloned)
 {
     return reinterpret_cast<daq::ICloneable*>(self)->clone(reinterpret_cast<daq::IBaseObject**>(cloned));
 }

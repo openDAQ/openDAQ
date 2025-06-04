@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:19.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Tags Tags;
-    typedef struct List List;
-    typedef struct String String;
+    typedef struct daqTags daqTags;
+    typedef struct daqList daqList;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID TAGS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_TAGS_INTF_ID;
 
-    ErrCode EXPORTED Tags_getList(Tags* self, List** value);
-    ErrCode EXPORTED Tags_contains(Tags* self, String* name, Bool* value);
-    ErrCode EXPORTED Tags_query(Tags* self, String* query, Bool* value);
-    ErrCode EXPORTED Tags_createTags(Tags** obj);
+    daqErrCode EXPORTED daqTags_getList(daqTags* self, daqList** value);
+    daqErrCode EXPORTED daqTags_contains(daqTags* self, daqString* name, daqBool* value);
+    daqErrCode EXPORTED daqTags_query(daqTags* self, daqString* query, daqBool* value);
+    daqErrCode EXPORTED daqTags_createTags(daqTags** obj);
 
 #ifdef __cplusplus
 }

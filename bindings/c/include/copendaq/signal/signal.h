@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:14.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,21 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Signal Signal;
-    typedef struct DataDescriptor DataDescriptor;
-    typedef struct List List;
+    typedef struct daqSignal daqSignal;
+    typedef struct daqDataDescriptor daqDataDescriptor;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID SIGNAL_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SIGNAL_INTF_ID;
 
-    ErrCode EXPORTED Signal_getPublic(Signal* self, Bool* isPublic);
-    ErrCode EXPORTED Signal_setPublic(Signal* self, Bool isPublic);
-    ErrCode EXPORTED Signal_getDescriptor(Signal* self, DataDescriptor** descriptor);
-    ErrCode EXPORTED Signal_getDomainSignal(Signal* self, Signal** signal);
-    ErrCode EXPORTED Signal_getRelatedSignals(Signal* self, List** signals);
-    ErrCode EXPORTED Signal_getConnections(Signal* self, List** connections);
-    ErrCode EXPORTED Signal_getStreamed(Signal* self, Bool* streamed);
-    ErrCode EXPORTED Signal_setStreamed(Signal* self, Bool streamed);
-    ErrCode EXPORTED Signal_getLastValue(Signal* self, BaseObject** value);
+    daqErrCode EXPORTED daqSignal_getPublic(daqSignal* self, daqBool* isPublic);
+    daqErrCode EXPORTED daqSignal_setPublic(daqSignal* self, daqBool isPublic);
+    daqErrCode EXPORTED daqSignal_getDescriptor(daqSignal* self, daqDataDescriptor** descriptor);
+    daqErrCode EXPORTED daqSignal_getDomainSignal(daqSignal* self, daqSignal** signal);
+    daqErrCode EXPORTED daqSignal_getRelatedSignals(daqSignal* self, daqList** signals);
+    daqErrCode EXPORTED daqSignal_getConnections(daqSignal* self, daqList** connections);
+    daqErrCode EXPORTED daqSignal_getStreamed(daqSignal* self, daqBool* streamed);
+    daqErrCode EXPORTED daqSignal_setStreamed(daqSignal* self, daqBool streamed);
+    daqErrCode EXPORTED daqSignal_getLastValue(daqSignal* self, daqBaseObject** value);
 
 #ifdef __cplusplus
 }

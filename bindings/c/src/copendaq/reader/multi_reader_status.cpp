@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:46.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:25.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,22 @@
 
 #include <copendaq_private.h>
 
-const IntfID MULTI_READER_STATUS_INTF_ID = { daq::IMultiReaderStatus::Id.Data1, daq::IMultiReaderStatus::Id.Data2, daq::IMultiReaderStatus::Id.Data3, daq::IMultiReaderStatus::Id.Data4_UInt64 };
+const daqIntfID DAQ_MULTI_READER_STATUS_INTF_ID = { daq::IMultiReaderStatus::Id.Data1, daq::IMultiReaderStatus::Id.Data2, daq::IMultiReaderStatus::Id.Data3, daq::IMultiReaderStatus::Id.Data4_UInt64 };
 
-ErrCode MultiReaderStatus_getEventPackets(MultiReaderStatus* self, Dict** eventPackets)
+daqErrCode daqMultiReaderStatus_getEventPackets(daqMultiReaderStatus* self, daqDict** eventPackets)
 {
     return reinterpret_cast<daq::IMultiReaderStatus*>(self)->getEventPackets(reinterpret_cast<daq::IDict**>(eventPackets));
 }
 
-ErrCode MultiReaderStatus_getMainDescriptor(MultiReaderStatus* self, EventPacket** descriptor)
+daqErrCode daqMultiReaderStatus_getMainDescriptor(daqMultiReaderStatus* self, daqEventPacket** descriptor)
 {
     return reinterpret_cast<daq::IMultiReaderStatus*>(self)->getMainDescriptor(reinterpret_cast<daq::IEventPacket**>(descriptor));
 }
 
-ErrCode MultiReaderStatus_createMultiReaderStatus(MultiReaderStatus** obj, EventPacket* mainDescriptor, Dict* eventPackets, Bool valid, Number* offset)
+daqErrCode daqMultiReaderStatus_createMultiReaderStatus(daqMultiReaderStatus** obj, daqEventPacket* mainDescriptor, daqDict* eventPackets, daqBool valid, daqNumber* offset)
 {
     daq::IMultiReaderStatus* ptr = nullptr;
-    ErrCode err = daq::createMultiReaderStatus(&ptr, reinterpret_cast<daq::IEventPacket*>(mainDescriptor), reinterpret_cast<daq::IDict*>(eventPackets), valid, reinterpret_cast<daq::INumber*>(offset));
-    *obj = reinterpret_cast<MultiReaderStatus*>(ptr);
+    daqErrCode err = daq::createMultiReaderStatus(&ptr, reinterpret_cast<daq::IEventPacket*>(mainDescriptor), reinterpret_cast<daq::IDict*>(eventPackets), valid, reinterpret_cast<daq::INumber*>(offset));
+    *obj = reinterpret_cast<daqMultiReaderStatus*>(ptr);
     return err;
 }

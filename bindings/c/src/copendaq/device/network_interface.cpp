@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:30.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:10.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,27 +15,27 @@
 
 #include <copendaq_private.h>
 
-const IntfID NETWORK_INTERFACE_INTF_ID = { daq::INetworkInterface::Id.Data1, daq::INetworkInterface::Id.Data2, daq::INetworkInterface::Id.Data3, daq::INetworkInterface::Id.Data4_UInt64 };
+const daqIntfID DAQ_NETWORK_INTERFACE_INTF_ID = { daq::INetworkInterface::Id.Data1, daq::INetworkInterface::Id.Data2, daq::INetworkInterface::Id.Data3, daq::INetworkInterface::Id.Data4_UInt64 };
 
-ErrCode NetworkInterface_requestCurrentConfiguration(NetworkInterface* self, PropertyObject** config)
+daqErrCode daqNetworkInterface_requestCurrentConfiguration(daqNetworkInterface* self, daqPropertyObject** config)
 {
     return reinterpret_cast<daq::INetworkInterface*>(self)->requestCurrentConfiguration(reinterpret_cast<daq::IPropertyObject**>(config));
 }
 
-ErrCode NetworkInterface_submitConfiguration(NetworkInterface* self, PropertyObject* config)
+daqErrCode daqNetworkInterface_submitConfiguration(daqNetworkInterface* self, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::INetworkInterface*>(self)->submitConfiguration(reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode NetworkInterface_createDefaultConfiguration(NetworkInterface* self, PropertyObject** defaultConfig)
+daqErrCode daqNetworkInterface_createDefaultConfiguration(daqNetworkInterface* self, daqPropertyObject** defaultConfig)
 {
     return reinterpret_cast<daq::INetworkInterface*>(self)->createDefaultConfiguration(reinterpret_cast<daq::IPropertyObject**>(defaultConfig));
 }
 
-ErrCode NetworkInterface_createNetworkInterface(NetworkInterface** obj, String* name, String* ownerDeviceManufacturerName, String* ownerDeviceSerialNumber, BaseObject* moduleManager)
+daqErrCode daqNetworkInterface_createNetworkInterface(daqNetworkInterface** obj, daqString* name, daqString* ownerDeviceManufacturerName, daqString* ownerDeviceSerialNumber, daqBaseObject* moduleManager)
 {
     daq::INetworkInterface* ptr = nullptr;
-    ErrCode err = daq::createNetworkInterface(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(ownerDeviceManufacturerName), reinterpret_cast<daq::IString*>(ownerDeviceSerialNumber), reinterpret_cast<daq::IBaseObject*>(moduleManager));
-    *obj = reinterpret_cast<NetworkInterface*>(ptr);
+    daqErrCode err = daq::createNetworkInterface(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(ownerDeviceManufacturerName), reinterpret_cast<daq::IString*>(ownerDeviceSerialNumber), reinterpret_cast<daq::IBaseObject*>(moduleManager));
+    *obj = reinterpret_cast<daqNetworkInterface*>(ptr);
     return err;
 }

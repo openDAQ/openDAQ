@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:27.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:06.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DeviceNetworkConfig DeviceNetworkConfig;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct List List;
+    typedef struct daqDeviceNetworkConfig daqDeviceNetworkConfig;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID DEVICE_NETWORK_CONFIG_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DEVICE_NETWORK_CONFIG_INTF_ID;
 
-    ErrCode EXPORTED DeviceNetworkConfig_submitNetworkConfiguration(DeviceNetworkConfig* self, String* ifaceName, PropertyObject* config);
-    ErrCode EXPORTED DeviceNetworkConfig_retrieveNetworkConfiguration(DeviceNetworkConfig* self, String* ifaceName, PropertyObject** config);
-    ErrCode EXPORTED DeviceNetworkConfig_getNetworkConfigurationEnabled(DeviceNetworkConfig* self, Bool* enabled);
-    ErrCode EXPORTED DeviceNetworkConfig_getNetworkInterfaceNames(DeviceNetworkConfig* self, List** ifaceNames);
+    daqErrCode EXPORTED daqDeviceNetworkConfig_submitNetworkConfiguration(daqDeviceNetworkConfig* self, daqString* ifaceName, daqPropertyObject* config);
+    daqErrCode EXPORTED daqDeviceNetworkConfig_retrieveNetworkConfiguration(daqDeviceNetworkConfig* self, daqString* ifaceName, daqPropertyObject** config);
+    daqErrCode EXPORTED daqDeviceNetworkConfig_getNetworkConfigurationEnabled(daqDeviceNetworkConfig* self, daqBool* enabled);
+    daqErrCode EXPORTED daqDeviceNetworkConfig_getNetworkInterfaceNames(daqDeviceNetworkConfig* self, daqList** ifaceNames);
 
 #ifdef __cplusplus
 }

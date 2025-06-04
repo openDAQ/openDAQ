@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:18.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,39 +15,39 @@
 
 #include <copendaq_private.h>
 
-const IntfID MIRRORED_SIGNAL_CONFIG_INTF_ID = { daq::IMirroredSignalConfig::Id.Data1, daq::IMirroredSignalConfig::Id.Data2, daq::IMirroredSignalConfig::Id.Data3, daq::IMirroredSignalConfig::Id.Data4_UInt64 };
+const daqIntfID DAQ_MIRRORED_SIGNAL_CONFIG_INTF_ID = { daq::IMirroredSignalConfig::Id.Data1, daq::IMirroredSignalConfig::Id.Data2, daq::IMirroredSignalConfig::Id.Data3, daq::IMirroredSignalConfig::Id.Data4_UInt64 };
 
-ErrCode MirroredSignalConfig_getRemoteId(MirroredSignalConfig* self, String** id)
+daqErrCode daqMirroredSignalConfig_getRemoteId(daqMirroredSignalConfig* self, daqString** id)
 {
     return reinterpret_cast<daq::IMirroredSignalConfig*>(self)->getRemoteId(reinterpret_cast<daq::IString**>(id));
 }
 
-ErrCode MirroredSignalConfig_getStreamingSources(MirroredSignalConfig* self, List** streamingConnectionStrings)
+daqErrCode daqMirroredSignalConfig_getStreamingSources(daqMirroredSignalConfig* self, daqList** streamingConnectionStrings)
 {
     return reinterpret_cast<daq::IMirroredSignalConfig*>(self)->getStreamingSources(reinterpret_cast<daq::IList**>(streamingConnectionStrings));
 }
 
-ErrCode MirroredSignalConfig_setActiveStreamingSource(MirroredSignalConfig* self, String* streamingConnectionString)
+daqErrCode daqMirroredSignalConfig_setActiveStreamingSource(daqMirroredSignalConfig* self, daqString* streamingConnectionString)
 {
     return reinterpret_cast<daq::IMirroredSignalConfig*>(self)->setActiveStreamingSource(reinterpret_cast<daq::IString*>(streamingConnectionString));
 }
 
-ErrCode MirroredSignalConfig_getActiveStreamingSource(MirroredSignalConfig* self, String** streamingConnectionString)
+daqErrCode daqMirroredSignalConfig_getActiveStreamingSource(daqMirroredSignalConfig* self, daqString** streamingConnectionString)
 {
     return reinterpret_cast<daq::IMirroredSignalConfig*>(self)->getActiveStreamingSource(reinterpret_cast<daq::IString**>(streamingConnectionString));
 }
 
-ErrCode MirroredSignalConfig_deactivateStreaming(MirroredSignalConfig* self)
+daqErrCode daqMirroredSignalConfig_deactivateStreaming(daqMirroredSignalConfig* self)
 {
     return reinterpret_cast<daq::IMirroredSignalConfig*>(self)->deactivateStreaming();
 }
 
-ErrCode MirroredSignalConfig_getOnSubscribeComplete(MirroredSignalConfig* self, Event** event)
+daqErrCode daqMirroredSignalConfig_getOnSubscribeComplete(daqMirroredSignalConfig* self, daqEvent** event)
 {
     return reinterpret_cast<daq::IMirroredSignalConfig*>(self)->getOnSubscribeComplete(reinterpret_cast<daq::IEvent**>(event));
 }
 
-ErrCode MirroredSignalConfig_getOnUnsubscribeComplete(MirroredSignalConfig* self, Event** event)
+daqErrCode daqMirroredSignalConfig_getOnUnsubscribeComplete(daqMirroredSignalConfig* self, daqEvent** event)
 {
     return reinterpret_cast<daq::IMirroredSignalConfig*>(self)->getOnUnsubscribeComplete(reinterpret_cast<daq::IEvent**>(event));
 }

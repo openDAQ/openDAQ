@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:52.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:03.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,35 +15,35 @@
 
 #include <copendaq_private.h>
 
-const IntfID STRUCT_TYPE_INTF_ID = { daq::IStructType::Id.Data1, daq::IStructType::Id.Data2, daq::IStructType::Id.Data3, daq::IStructType::Id.Data4_UInt64 };
+const daqIntfID DAQ_STRUCT_TYPE_INTF_ID = { daq::IStructType::Id.Data1, daq::IStructType::Id.Data2, daq::IStructType::Id.Data3, daq::IStructType::Id.Data4_UInt64 };
 
-ErrCode StructType_getFieldNames(StructType* self, List** names)
+daqErrCode daqStructType_getFieldNames(daqStructType* self, daqList** names)
 {
     return reinterpret_cast<daq::IStructType*>(self)->getFieldNames(reinterpret_cast<daq::IList**>(names));
 }
 
-ErrCode StructType_getFieldDefaultValues(StructType* self, List** defaultValues)
+daqErrCode daqStructType_getFieldDefaultValues(daqStructType* self, daqList** defaultValues)
 {
     return reinterpret_cast<daq::IStructType*>(self)->getFieldDefaultValues(reinterpret_cast<daq::IList**>(defaultValues));
 }
 
-ErrCode StructType_getFieldTypes(StructType* self, List** types)
+daqErrCode daqStructType_getFieldTypes(daqStructType* self, daqList** types)
 {
     return reinterpret_cast<daq::IStructType*>(self)->getFieldTypes(reinterpret_cast<daq::IList**>(types));
 }
 
-ErrCode StructType_createStructType(StructType** obj, String* name, List* names, List* defaultValues, List* types)
+daqErrCode daqStructType_createStructType(daqStructType** obj, daqString* name, daqList* names, daqList* defaultValues, daqList* types)
 {
     daq::IStructType* ptr = nullptr;
-    ErrCode err = daq::createStructType(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IList*>(names), reinterpret_cast<daq::IList*>(defaultValues), reinterpret_cast<daq::IList*>(types));
-    *obj = reinterpret_cast<StructType*>(ptr);
+    daqErrCode err = daq::createStructType(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IList*>(names), reinterpret_cast<daq::IList*>(defaultValues), reinterpret_cast<daq::IList*>(types));
+    *obj = reinterpret_cast<daqStructType*>(ptr);
     return err;
 }
 
-ErrCode StructType_createStructTypeNoDefaults(StructType** obj, String* name, List* names, List* types)
+daqErrCode daqStructType_createStructTypeNoDefaults(daqStructType** obj, daqString* name, daqList* names, daqList* types)
 {
     daq::IStructType* ptr = nullptr;
-    ErrCode err = daq::createStructTypeNoDefaults(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IList*>(names), reinterpret_cast<daq::IList*>(types));
-    *obj = reinterpret_cast<StructType*>(ptr);
+    daqErrCode err = daq::createStructTypeNoDefaults(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IList*>(names), reinterpret_cast<daq::IList*>(types));
+    *obj = reinterpret_cast<daqStructType*>(ptr);
     return err;
 }

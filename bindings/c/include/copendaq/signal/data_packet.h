@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:00.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:40.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,29 +34,31 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DataPacket DataPacket;
-    typedef struct DataDescriptor DataDescriptor;
-    typedef struct Number Number;
-    typedef struct TypeManager TypeManager;
-    typedef struct Deleter Deleter;
+    typedef struct daqDataPacket daqDataPacket;
+    typedef struct daqDataDescriptor daqDataDescriptor;
+    typedef struct daqNumber daqNumber;
+    typedef struct daqTypeManager daqTypeManager;
+    typedef struct daqDeleter daqDeleter;
 
-    EXPORTED extern const IntfID DATA_PACKET_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DATA_PACKET_INTF_ID;
 
-    ErrCode EXPORTED DataPacket_getDataDescriptor(DataPacket* self, DataDescriptor** descriptor);
-    ErrCode EXPORTED DataPacket_getSampleCount(DataPacket* self, SizeT* sampleCount);
-    ErrCode EXPORTED DataPacket_getOffset(DataPacket* self, Number** offset);
-    ErrCode EXPORTED DataPacket_getData(DataPacket* self, void** address);
-    ErrCode EXPORTED DataPacket_getRawData(DataPacket* self, void** address);
-    ErrCode EXPORTED DataPacket_getDataSize(DataPacket* self, SizeT* dataSize);
-    ErrCode EXPORTED DataPacket_getRawDataSize(DataPacket* self, SizeT* rawDataSize);
-    ErrCode EXPORTED DataPacket_getDomainPacket(DataPacket* self, DataPacket** packet);
-    ErrCode EXPORTED DataPacket_getPacketId(DataPacket* self, Int* packetId);
-    ErrCode EXPORTED DataPacket_getLastValue(DataPacket* self, BaseObject** value, TypeManager* typeManager);
-    ErrCode EXPORTED DataPacket_getValueByIndex(DataPacket* self, BaseObject** value, SizeT index, TypeManager* typeManager);
-    ErrCode EXPORTED DataPacket_createDataPacket(DataPacket** obj, DataDescriptor* descriptor, SizeT sampleCount, Number* offset);
-    ErrCode EXPORTED DataPacket_createDataPacketWithExternalMemory(DataPacket** obj, DataPacket* domainPacket, DataDescriptor* descriptor, SizeT sampleCount, Number* offset, void* externalMemory, Deleter* deleter, SizeT bufferSize);
-    ErrCode EXPORTED DataPacket_createDataPacketWithDomain(DataPacket** obj, DataPacket* domainPacket, DataDescriptor* descriptor, SizeT sampleCount, Number* offset);
-    ErrCode EXPORTED DataPacket_createConstantDataPacketWithDomain(DataPacket** obj, DataPacket* domainPacket, DataDescriptor* descriptor, SizeT sampleCount, void* initialValue, void* otherValues, SizeT otherValueCount);
+    daqErrCode EXPORTED daqDataPacket_getDataDescriptor(daqDataPacket* self, daqDataDescriptor** descriptor);
+    daqErrCode EXPORTED daqDataPacket_getSampleCount(daqDataPacket* self, daqSizeT* sampleCount);
+    daqErrCode EXPORTED daqDataPacket_getOffset(daqDataPacket* self, daqNumber** offset);
+    daqErrCode EXPORTED daqDataPacket_getData(daqDataPacket* self, void** address);
+    daqErrCode EXPORTED daqDataPacket_getRawData(daqDataPacket* self, void** address);
+    daqErrCode EXPORTED daqDataPacket_getDataSize(daqDataPacket* self, daqSizeT* dataSize);
+    daqErrCode EXPORTED daqDataPacket_getRawDataSize(daqDataPacket* self, daqSizeT* rawDataSize);
+    daqErrCode EXPORTED daqDataPacket_getDomainPacket(daqDataPacket* self, daqDataPacket** packet);
+    daqErrCode EXPORTED daqDataPacket_getPacketId(daqDataPacket* self, daqInt* packetId);
+    daqErrCode EXPORTED daqDataPacket_getLastValue(daqDataPacket* self, daqBaseObject** value, daqTypeManager* typeManager);
+    daqErrCode EXPORTED daqDataPacket_getValueByIndex(daqDataPacket* self, daqBaseObject** value, daqSizeT index, daqTypeManager* typeManager);
+    daqErrCode EXPORTED daqDataPacket_getRawLastValue(daqDataPacket* self, void** value);
+    daqErrCode EXPORTED daqDataPacket_getRawValueByIndex(daqDataPacket* self, void** value, daqSizeT index);
+    daqErrCode EXPORTED daqDataPacket_createDataPacket(daqDataPacket** obj, daqDataDescriptor* descriptor, daqSizeT sampleCount, daqNumber* offset);
+    daqErrCode EXPORTED daqDataPacket_createDataPacketWithExternalMemory(daqDataPacket** obj, daqDataPacket* domainPacket, daqDataDescriptor* descriptor, daqSizeT sampleCount, daqNumber* offset, void* externalMemory, daqDeleter* deleter, daqSizeT bufferSize);
+    daqErrCode EXPORTED daqDataPacket_createDataPacketWithDomain(daqDataPacket** obj, daqDataPacket* domainPacket, daqDataDescriptor* descriptor, daqSizeT sampleCount, daqNumber* offset);
+    daqErrCode EXPORTED daqDataPacket_createConstantDataPacketWithDomain(daqDataPacket** obj, daqDataPacket* domainPacket, daqDataDescriptor* descriptor, daqSizeT sampleCount, void* initialValue, void* otherValues, daqSizeT otherValueCount);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:06.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,23 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct InputPortConfig InputPortConfig;
-    typedef struct InputPortNotifications InputPortNotifications;
-    typedef struct Context Context;
-    typedef struct Component Component;
-    typedef struct String String;
+    typedef struct daqInputPortConfig daqInputPortConfig;
+    typedef struct daqInputPortNotifications daqInputPortNotifications;
+    typedef struct daqContext daqContext;
+    typedef struct daqComponent daqComponent;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID INPUT_PORT_CONFIG_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_INPUT_PORT_CONFIG_INTF_ID;
 
-    ErrCode EXPORTED InputPortConfig_setNotificationMethod(InputPortConfig* self, PacketReadyNotification method);
-    ErrCode EXPORTED InputPortConfig_notifyPacketEnqueued(InputPortConfig* self, Bool queueWasEmpty);
-    ErrCode EXPORTED InputPortConfig_notifyPacketEnqueuedOnThisThread(InputPortConfig* self);
-    ErrCode EXPORTED InputPortConfig_setListener(InputPortConfig* self, InputPortNotifications* port);
-    ErrCode EXPORTED InputPortConfig_getCustomData(InputPortConfig* self, BaseObject** customData);
-    ErrCode EXPORTED InputPortConfig_setCustomData(InputPortConfig* self, BaseObject* customData);
-    ErrCode EXPORTED InputPortConfig_setRequiresSignal(InputPortConfig* self, Bool requiresSignal);
-    ErrCode EXPORTED InputPortConfig_getGapCheckingEnabled(InputPortConfig* self, Bool* gapCheckingEnabled);
-    ErrCode EXPORTED InputPortConfig_createInputPort(InputPortConfig** obj, Context* context, Component* parent, String* localId, Bool gapChecking);
+    daqErrCode EXPORTED daqInputPortConfig_setNotificationMethod(daqInputPortConfig* self, daqPacketReadyNotification method);
+    daqErrCode EXPORTED daqInputPortConfig_notifyPacketEnqueued(daqInputPortConfig* self, daqBool queueWasEmpty);
+    daqErrCode EXPORTED daqInputPortConfig_notifyPacketEnqueuedOnThisThread(daqInputPortConfig* self);
+    daqErrCode EXPORTED daqInputPortConfig_setListener(daqInputPortConfig* self, daqInputPortNotifications* port);
+    daqErrCode EXPORTED daqInputPortConfig_getCustomData(daqInputPortConfig* self, daqBaseObject** customData);
+    daqErrCode EXPORTED daqInputPortConfig_setCustomData(daqInputPortConfig* self, daqBaseObject* customData);
+    daqErrCode EXPORTED daqInputPortConfig_setRequiresSignal(daqInputPortConfig* self, daqBool requiresSignal);
+    daqErrCode EXPORTED daqInputPortConfig_getGapCheckingEnabled(daqInputPortConfig* self, daqBool* gapCheckingEnabled);
+    daqErrCode EXPORTED daqInputPortConfig_createInputPort(daqInputPortConfig** obj, daqContext* context, daqComponent* parent, daqString* localId, daqBool gapChecking);
 
 #ifdef __cplusplus
 }

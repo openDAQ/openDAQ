@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:38.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID COMPARABLE_INTF_ID = { daq::IComparable::Id.Data1, daq::IComparable::Id.Data2, daq::IComparable::Id.Data3, daq::IComparable::Id.Data4_UInt64 };
+const daqIntfID DAQ_COMPARABLE_INTF_ID = { daq::IComparable::Id.Data1, daq::IComparable::Id.Data2, daq::IComparable::Id.Data3, daq::IComparable::Id.Data4_UInt64 };
 
-ErrCode Comparable_compareTo(Comparable* self, BaseObject* obj)
+daqErrCode daqComparable_compareTo(daqComparable* self, daqBaseObject* obj)
 {
     return reinterpret_cast<daq::IComparable*>(self)->compareTo(reinterpret_cast<daq::IBaseObject*>(obj));
 }

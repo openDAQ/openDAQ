@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:21.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:08:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SyncComponent SyncComponent;
-    typedef struct Dict Dict;
-    typedef struct Context Context;
-    typedef struct Component Component;
-    typedef struct String String;
+    typedef struct daqSyncComponent daqSyncComponent;
+    typedef struct daqDict daqDict;
+    typedef struct daqContext daqContext;
+    typedef struct daqComponent daqComponent;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID SYNC_COMPONENT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SYNC_COMPONENT_INTF_ID;
 
-    ErrCode EXPORTED SyncComponent_getSyncLocked(SyncComponent* self, Bool* synchronizationLocked);
-    ErrCode EXPORTED SyncComponent_getSelectedSource(SyncComponent* self, Int* selectedSource);
-    ErrCode EXPORTED SyncComponent_setSelectedSource(SyncComponent* self, Int selectedSource);
-    ErrCode EXPORTED SyncComponent_getInterfaces(SyncComponent* self, Dict** interfaces);
-    ErrCode EXPORTED SyncComponent_createSyncComponent(SyncComponent** obj, Context* context, Component* ParseFailedException, String* localId);
+    daqErrCode EXPORTED daqSyncComponent_getSyncLocked(daqSyncComponent* self, daqBool* synchronizationLocked);
+    daqErrCode EXPORTED daqSyncComponent_getSelectedSource(daqSyncComponent* self, daqInt* selectedSource);
+    daqErrCode EXPORTED daqSyncComponent_setSelectedSource(daqSyncComponent* self, daqInt selectedSource);
+    daqErrCode EXPORTED daqSyncComponent_getInterfaces(daqSyncComponent* self, daqDict** interfaces);
+    daqErrCode EXPORTED daqSyncComponent_createSyncComponent(daqSyncComponent** obj, daqContext* context, daqComponent* ParseFailedException, daqString* localId);
 
 #ifdef __cplusplus
 }

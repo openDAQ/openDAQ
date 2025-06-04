@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:22.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:02.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,22 +34,22 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct AddressInfoBuilder AddressInfoBuilder;
-    typedef struct AddressInfo AddressInfo;
-    typedef struct String String;
+    typedef struct daqAddressInfoBuilder daqAddressInfoBuilder;
+    typedef struct daqAddressInfo daqAddressInfo;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID ADDRESS_INFO_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_ADDRESS_INFO_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED AddressInfoBuilder_build(AddressInfoBuilder* self, AddressInfo** address);
-    ErrCode EXPORTED AddressInfoBuilder_getAddress(AddressInfoBuilder* self, String** address);
-    ErrCode EXPORTED AddressInfoBuilder_setAddress(AddressInfoBuilder* self, String* address);
-    ErrCode EXPORTED AddressInfoBuilder_getConnectionString(AddressInfoBuilder* self, String** connectionString);
-    ErrCode EXPORTED AddressInfoBuilder_setConnectionString(AddressInfoBuilder* self, String* connectionString);
-    ErrCode EXPORTED AddressInfoBuilder_getType(AddressInfoBuilder* self, String** type);
-    ErrCode EXPORTED AddressInfoBuilder_setType(AddressInfoBuilder* self, String* type);
-    ErrCode EXPORTED AddressInfoBuilder_getReachabilityStatus(AddressInfoBuilder* self, AddressReachabilityStatus* addressReachability);
-    ErrCode EXPORTED AddressInfoBuilder_setReachabilityStatus(AddressInfoBuilder* self, AddressReachabilityStatus addressReachability);
-    ErrCode EXPORTED AddressInfoBuilder_createAddressInfoBuilder(AddressInfoBuilder** obj);
+    daqErrCode EXPORTED daqAddressInfoBuilder_build(daqAddressInfoBuilder* self, daqAddressInfo** address);
+    daqErrCode EXPORTED daqAddressInfoBuilder_getAddress(daqAddressInfoBuilder* self, daqString** address);
+    daqErrCode EXPORTED daqAddressInfoBuilder_setAddress(daqAddressInfoBuilder* self, daqString* address);
+    daqErrCode EXPORTED daqAddressInfoBuilder_getConnectionString(daqAddressInfoBuilder* self, daqString** connectionString);
+    daqErrCode EXPORTED daqAddressInfoBuilder_setConnectionString(daqAddressInfoBuilder* self, daqString* connectionString);
+    daqErrCode EXPORTED daqAddressInfoBuilder_getType(daqAddressInfoBuilder* self, daqString** type);
+    daqErrCode EXPORTED daqAddressInfoBuilder_setType(daqAddressInfoBuilder* self, daqString* type);
+    daqErrCode EXPORTED daqAddressInfoBuilder_getReachabilityStatus(daqAddressInfoBuilder* self, daqAddressReachabilityStatus* addressReachability);
+    daqErrCode EXPORTED daqAddressInfoBuilder_setReachabilityStatus(daqAddressInfoBuilder* self, daqAddressReachabilityStatus addressReachability);
+    daqErrCode EXPORTED daqAddressInfoBuilder_createAddressInfoBuilder(daqAddressInfoBuilder** obj);
 
 #ifdef __cplusplus
 }

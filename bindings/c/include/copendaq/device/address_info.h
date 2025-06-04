@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:21.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,18 +34,18 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct AddressInfo AddressInfo;
-    typedef struct String String;
-    typedef struct AddressInfoBuilder AddressInfoBuilder;
+    typedef struct daqAddressInfo daqAddressInfo;
+    typedef struct daqString daqString;
+    typedef struct daqAddressInfoBuilder daqAddressInfoBuilder;
 
-    EXPORTED extern const IntfID ADDRESS_INFO_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_ADDRESS_INFO_INTF_ID;
 
-    ErrCode EXPORTED AddressInfo_getAddress(AddressInfo* self, String** address);
-    ErrCode EXPORTED AddressInfo_getConnectionString(AddressInfo* self, String** connectionString);
-    ErrCode EXPORTED AddressInfo_getType(AddressInfo* self, String** type);
-    ErrCode EXPORTED AddressInfo_getReachabilityStatus(AddressInfo* self, AddressReachabilityStatus* addressReachability);
-    ErrCode EXPORTED AddressInfo_createAddressInfo(AddressInfo** obj);
-    ErrCode EXPORTED AddressInfo_createAddressInfoFromBuilder(AddressInfo** obj, AddressInfoBuilder* builder);
+    daqErrCode EXPORTED daqAddressInfo_getAddress(daqAddressInfo* self, daqString** address);
+    daqErrCode EXPORTED daqAddressInfo_getConnectionString(daqAddressInfo* self, daqString** connectionString);
+    daqErrCode EXPORTED daqAddressInfo_getType(daqAddressInfo* self, daqString** type);
+    daqErrCode EXPORTED daqAddressInfo_getReachabilityStatus(daqAddressInfo* self, daqAddressReachabilityStatus* addressReachability);
+    daqErrCode EXPORTED daqAddressInfo_createAddressInfo(daqAddressInfo** obj);
+    daqErrCode EXPORTED daqAddressInfo_createAddressInfoFromBuilder(daqAddressInfo** obj, daqAddressInfoBuilder* builder);
 
 #ifdef __cplusplus
 }

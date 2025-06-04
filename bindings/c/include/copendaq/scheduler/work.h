@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:55.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:34.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,11 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Work Work;
+    typedef struct daqWork daqWork;
 
-    EXPORTED extern const IntfID WORK_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_WORK_INTF_ID;
 
-    ErrCode EXPORTED Work_execute(Work* self);
+    daqErrCode EXPORTED daqWork_execute(daqWork* self);
 
 #ifdef __cplusplus
 }

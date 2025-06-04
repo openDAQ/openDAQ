@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:13.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ScalingCalcPrivate ScalingCalcPrivate;
+    typedef struct daqScalingCalcPrivate daqScalingCalcPrivate;
 
-    EXPORTED extern const IntfID SCALING_CALC_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SCALING_CALC_PRIVATE_INTF_ID;
 
-    void EXPORTED ScalingCalcPrivate_scaleData(ScalingCalcPrivate* self, void* data, SizeT sampleCount);
-    void EXPORTED ScalingCalcPrivate_scaleData(ScalingCalcPrivate* self, void* data, SizeT sampleCount, void** output);
-    Bool EXPORTED ScalingCalcPrivate_hasScalingCalc(ScalingCalcPrivate* self);
+    daqvoid EXPORTED daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount);
+    daqvoid EXPORTED daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount, void** output);
+    daqBool EXPORTED daqScalingCalcPrivate_hasScalingCalc(daqScalingCalcPrivate* self);
 
 #ifdef __cplusplus
 }

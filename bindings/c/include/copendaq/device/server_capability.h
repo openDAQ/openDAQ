@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:31.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:10.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,25 +34,25 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ServerCapability ServerCapability;
-    typedef struct String String;
-    typedef struct List List;
-    typedef struct Integer Integer;
+    typedef struct daqServerCapability daqServerCapability;
+    typedef struct daqString daqString;
+    typedef struct daqList daqList;
+    typedef struct daqInteger daqInteger;
 
-    EXPORTED extern const IntfID SERVER_CAPABILITY_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SERVER_CAPABILITY_INTF_ID;
 
-    ErrCode EXPORTED ServerCapability_getConnectionString(ServerCapability* self, String** connectionString);
-    ErrCode EXPORTED ServerCapability_getConnectionStrings(ServerCapability* self, List** connectionStrings);
-    ErrCode EXPORTED ServerCapability_getProtocolName(ServerCapability* self, String** protocolName);
-    ErrCode EXPORTED ServerCapability_getProtocolId(ServerCapability* self, String** protocolId);
-    ErrCode EXPORTED ServerCapability_getProtocolType(ServerCapability* self, ProtocolType* type);
-    ErrCode EXPORTED ServerCapability_getPrefix(ServerCapability* self, String** prefix);
-    ErrCode EXPORTED ServerCapability_getConnectionType(ServerCapability* self, String** type);
-    ErrCode EXPORTED ServerCapability_getCoreEventsEnabled(ServerCapability* self, Bool* enabled);
-    ErrCode EXPORTED ServerCapability_getAddresses(ServerCapability* self, List** addresses);
-    ErrCode EXPORTED ServerCapability_getPort(ServerCapability* self, Integer** port);
-    ErrCode EXPORTED ServerCapability_getAddressInfo(ServerCapability* self, List** addressInfo);
-    ErrCode EXPORTED ServerCapability_getProtocolVersion(ServerCapability* self, String** version);
+    daqErrCode EXPORTED daqServerCapability_getConnectionString(daqServerCapability* self, daqString** connectionString);
+    daqErrCode EXPORTED daqServerCapability_getConnectionStrings(daqServerCapability* self, daqList** connectionStrings);
+    daqErrCode EXPORTED daqServerCapability_getProtocolName(daqServerCapability* self, daqString** protocolName);
+    daqErrCode EXPORTED daqServerCapability_getProtocolId(daqServerCapability* self, daqString** protocolId);
+    daqErrCode EXPORTED daqServerCapability_getProtocolType(daqServerCapability* self, daqProtocolType* type);
+    daqErrCode EXPORTED daqServerCapability_getPrefix(daqServerCapability* self, daqString** prefix);
+    daqErrCode EXPORTED daqServerCapability_getConnectionType(daqServerCapability* self, daqString** type);
+    daqErrCode EXPORTED daqServerCapability_getCoreEventsEnabled(daqServerCapability* self, daqBool* enabled);
+    daqErrCode EXPORTED daqServerCapability_getAddresses(daqServerCapability* self, daqList** addresses);
+    daqErrCode EXPORTED daqServerCapability_getPort(daqServerCapability* self, daqInteger** port);
+    daqErrCode EXPORTED daqServerCapability_getAddressInfo(daqServerCapability* self, daqList** addressInfo);
+    daqErrCode EXPORTED daqServerCapability_getProtocolVersion(daqServerCapability* self, daqString** version);
 
 #ifdef __cplusplus
 }

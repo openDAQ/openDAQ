@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:21.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:08:01.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,15 +34,15 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SyncComponentPrivate SyncComponentPrivate;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct String String;
+    typedef struct daqSyncComponentPrivate daqSyncComponentPrivate;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID SYNC_COMPONENT_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SYNC_COMPONENT_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED SyncComponentPrivate_setSyncLocked(SyncComponentPrivate* self, Bool synchronizationLocked);
-    ErrCode EXPORTED SyncComponentPrivate_addInterface(SyncComponentPrivate* self, PropertyObject* syncInterface);
-    ErrCode EXPORTED SyncComponentPrivate_removeInterface(SyncComponentPrivate* self, String* syncInterfaceName);
+    daqErrCode EXPORTED daqSyncComponentPrivate_setSyncLocked(daqSyncComponentPrivate* self, daqBool synchronizationLocked);
+    daqErrCode EXPORTED daqSyncComponentPrivate_addInterface(daqSyncComponentPrivate* self, daqPropertyObject* syncInterface);
+    daqErrCode EXPORTED daqSyncComponentPrivate_removeInterface(daqSyncComponentPrivate* self, daqString* syncInterfaceName);
 
 #ifdef __cplusplus
 }

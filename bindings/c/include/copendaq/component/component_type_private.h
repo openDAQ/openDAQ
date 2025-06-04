@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:15.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ComponentTypePrivate ComponentTypePrivate;
-    typedef struct ModuleInfo ModuleInfo;
+    typedef struct daqComponentTypePrivate daqComponentTypePrivate;
+    typedef struct daqModuleInfo daqModuleInfo;
 
-    EXPORTED extern const IntfID COMPONENT_TYPE_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPONENT_TYPE_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED ComponentTypePrivate_setModuleInfo(ComponentTypePrivate* self, ModuleInfo* info);
+    daqErrCode EXPORTED daqComponentTypePrivate_setModuleInfo(daqComponentTypePrivate* self, daqModuleInfo* info);
 
 #ifdef __cplusplus
 }

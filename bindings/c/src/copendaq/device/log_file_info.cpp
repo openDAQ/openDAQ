@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:29.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:09.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,47 +15,47 @@
 
 #include <copendaq_private.h>
 
-const IntfID LOG_FILE_INFO_INTF_ID = { daq::ILogFileInfo::Id.Data1, daq::ILogFileInfo::Id.Data2, daq::ILogFileInfo::Id.Data3, daq::ILogFileInfo::Id.Data4_UInt64 };
+const daqIntfID DAQ_LOG_FILE_INFO_INTF_ID = { daq::ILogFileInfo::Id.Data1, daq::ILogFileInfo::Id.Data2, daq::ILogFileInfo::Id.Data3, daq::ILogFileInfo::Id.Data4_UInt64 };
 
-ErrCode LogFileInfo_getId(LogFileInfo* self, String** id)
+daqErrCode daqLogFileInfo_getId(daqLogFileInfo* self, daqString** id)
 {
     return reinterpret_cast<daq::ILogFileInfo*>(self)->getId(reinterpret_cast<daq::IString**>(id));
 }
 
-ErrCode LogFileInfo_getLocalPath(LogFileInfo* self, String** localPath)
+daqErrCode daqLogFileInfo_getLocalPath(daqLogFileInfo* self, daqString** localPath)
 {
     return reinterpret_cast<daq::ILogFileInfo*>(self)->getLocalPath(reinterpret_cast<daq::IString**>(localPath));
 }
 
-ErrCode LogFileInfo_getName(LogFileInfo* self, String** name)
+daqErrCode daqLogFileInfo_getName(daqLogFileInfo* self, daqString** name)
 {
     return reinterpret_cast<daq::ILogFileInfo*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode LogFileInfo_getDescription(LogFileInfo* self, String** description)
+daqErrCode daqLogFileInfo_getDescription(daqLogFileInfo* self, daqString** description)
 {
     return reinterpret_cast<daq::ILogFileInfo*>(self)->getDescription(reinterpret_cast<daq::IString**>(description));
 }
 
-ErrCode LogFileInfo_getSize(LogFileInfo* self, SizeT* size)
+daqErrCode daqLogFileInfo_getSize(daqLogFileInfo* self, daqSizeT* size)
 {
     return reinterpret_cast<daq::ILogFileInfo*>(self)->getSize(size);
 }
 
-ErrCode LogFileInfo_getEncoding(LogFileInfo* self, String** encoding)
+daqErrCode daqLogFileInfo_getEncoding(daqLogFileInfo* self, daqString** encoding)
 {
     return reinterpret_cast<daq::ILogFileInfo*>(self)->getEncoding(reinterpret_cast<daq::IString**>(encoding));
 }
 
-ErrCode LogFileInfo_getLastModified(LogFileInfo* self, String** lastModified)
+daqErrCode daqLogFileInfo_getLastModified(daqLogFileInfo* self, daqString** lastModified)
 {
     return reinterpret_cast<daq::ILogFileInfo*>(self)->getLastModified(reinterpret_cast<daq::IString**>(lastModified));
 }
 
-ErrCode LogFileInfo_createLogFileInfoFromBuilder(LogFileInfo** obj, LogFileInfoBuilder* builder)
+daqErrCode daqLogFileInfo_createLogFileInfoFromBuilder(daqLogFileInfo** obj, daqLogFileInfoBuilder* builder)
 {
     daq::ILogFileInfo* ptr = nullptr;
-    ErrCode err = daq::createLogFileInfoFromBuilder(&ptr, reinterpret_cast<daq::ILogFileInfoBuilder*>(builder));
-    *obj = reinterpret_cast<LogFileInfo*>(ptr);
+    daqErrCode err = daq::createLogFileInfoFromBuilder(&ptr, reinterpret_cast<daq::ILogFileInfoBuilder*>(builder));
+    *obj = reinterpret_cast<daqLogFileInfo*>(ptr);
     return err;
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:10.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:49.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,18 +34,18 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ReferenceDomainInfo ReferenceDomainInfo;
-    typedef struct String String;
-    typedef struct Integer Integer;
-    typedef struct ReferenceDomainInfoBuilder ReferenceDomainInfoBuilder;
+    typedef struct daqReferenceDomainInfo daqReferenceDomainInfo;
+    typedef struct daqString daqString;
+    typedef struct daqInteger daqInteger;
+    typedef struct daqReferenceDomainInfoBuilder daqReferenceDomainInfoBuilder;
 
-    EXPORTED extern const IntfID REFERENCE_DOMAIN_INFO_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_REFERENCE_DOMAIN_INFO_INTF_ID;
 
-    ErrCode EXPORTED ReferenceDomainInfo_getReferenceDomainId(ReferenceDomainInfo* self, String** referenceDomainId);
-    ErrCode EXPORTED ReferenceDomainInfo_getReferenceDomainOffset(ReferenceDomainInfo* self, Integer** referenceDomainOffset);
-    ErrCode EXPORTED ReferenceDomainInfo_getReferenceTimeSource(ReferenceDomainInfo* self, TimeSource* referenceTimeSource);
-    ErrCode EXPORTED ReferenceDomainInfo_getUsesOffset(ReferenceDomainInfo* self, UsesOffset* usesOffset);
-    ErrCode EXPORTED ReferenceDomainInfo_createReferenceDomainInfoFromBuilder(ReferenceDomainInfo** obj, ReferenceDomainInfoBuilder* builder);
+    daqErrCode EXPORTED daqReferenceDomainInfo_getReferenceDomainId(daqReferenceDomainInfo* self, daqString** referenceDomainId);
+    daqErrCode EXPORTED daqReferenceDomainInfo_getReferenceDomainOffset(daqReferenceDomainInfo* self, daqInteger** referenceDomainOffset);
+    daqErrCode EXPORTED daqReferenceDomainInfo_getReferenceTimeSource(daqReferenceDomainInfo* self, daqTimeSource* referenceTimeSource);
+    daqErrCode EXPORTED daqReferenceDomainInfo_getUsesOffset(daqReferenceDomainInfo* self, daqUsesOffset* usesOffset);
+    daqErrCode EXPORTED daqReferenceDomainInfo_createReferenceDomainInfoFromBuilder(daqReferenceDomainInfo** obj, daqReferenceDomainInfoBuilder* builder);
 
 #ifdef __cplusplus
 }

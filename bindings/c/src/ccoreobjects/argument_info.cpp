@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:57.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:08.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,22 @@
 
 #include <copendaq_private.h>
 
-const IntfID ARGUMENT_INFO_INTF_ID = { daq::IArgumentInfo::Id.Data1, daq::IArgumentInfo::Id.Data2, daq::IArgumentInfo::Id.Data3, daq::IArgumentInfo::Id.Data4_UInt64 };
+const daqIntfID DAQ_ARGUMENT_INFO_INTF_ID = { daq::IArgumentInfo::Id.Data1, daq::IArgumentInfo::Id.Data2, daq::IArgumentInfo::Id.Data3, daq::IArgumentInfo::Id.Data4_UInt64 };
 
-ErrCode ArgumentInfo_getName(ArgumentInfo* self, String** name)
+daqErrCode daqArgumentInfo_getName(daqArgumentInfo* self, daqString** name)
 {
     return reinterpret_cast<daq::IArgumentInfo*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode ArgumentInfo_getType(ArgumentInfo* self, CoreType* type)
+daqErrCode daqArgumentInfo_getType(daqArgumentInfo* self, daqCoreType* type)
 {
     return reinterpret_cast<daq::IArgumentInfo*>(self)->getType(reinterpret_cast<daq::CoreType*>(type));
 }
 
-ErrCode ArgumentInfo_createArgumentInfo(ArgumentInfo** obj, String* name, CoreType type)
+daqErrCode daqArgumentInfo_createArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType type)
 {
     daq::IArgumentInfo* ptr = nullptr;
-    ErrCode err = daq::createArgumentInfo(&ptr, reinterpret_cast<daq::IString*>(name), static_cast<daq::CoreType>(type));
-    *obj = reinterpret_cast<ArgumentInfo*>(ptr);
+    daqErrCode err = daq::createArgumentInfo(&ptr, reinterpret_cast<daq::IString*>(name), static_cast<daq::CoreType>(type));
+    *obj = reinterpret_cast<daqArgumentInfo*>(ptr);
     return err;
 }

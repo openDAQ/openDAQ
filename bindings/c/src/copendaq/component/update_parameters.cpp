@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:20.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,22 @@
 
 #include <copendaq_private.h>
 
-const IntfID UPDATE_PARAMETERS_INTF_ID = { daq::IUpdateParameters::Id.Data1, daq::IUpdateParameters::Id.Data2, daq::IUpdateParameters::Id.Data3, daq::IUpdateParameters::Id.Data4_UInt64 };
+const daqIntfID DAQ_UPDATE_PARAMETERS_INTF_ID = { daq::IUpdateParameters::Id.Data1, daq::IUpdateParameters::Id.Data2, daq::IUpdateParameters::Id.Data3, daq::IUpdateParameters::Id.Data4_UInt64 };
 
-ErrCode UpdateParameters_getReAddDevicesEnabled(UpdateParameters* self, Bool* enabled)
+daqErrCode daqUpdateParameters_getReAddDevicesEnabled(daqUpdateParameters* self, daqBool* enabled)
 {
     return reinterpret_cast<daq::IUpdateParameters*>(self)->getReAddDevicesEnabled(enabled);
 }
 
-ErrCode UpdateParameters_setReAddDevicesEnabled(UpdateParameters* self, Bool enabled)
+daqErrCode daqUpdateParameters_setReAddDevicesEnabled(daqUpdateParameters* self, daqBool enabled)
 {
     return reinterpret_cast<daq::IUpdateParameters*>(self)->setReAddDevicesEnabled(enabled);
 }
 
-ErrCode UpdateParameters_createUpdateParameters(UpdateParameters** obj)
+daqErrCode daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj)
 {
     daq::IUpdateParameters* ptr = nullptr;
-    ErrCode err = daq::createUpdateParameters(&ptr);
-    *obj = reinterpret_cast<UpdateParameters*>(ptr);
+    daqErrCode err = daq::createUpdateParameters(&ptr);
+    *obj = reinterpret_cast<daqUpdateParameters*>(ptr);
     return err;
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:57.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:09.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,56 +15,56 @@
 
 #include <copendaq_private.h>
 
-const IntfID AUTHENTICATION_PROVIDER_INTF_ID = { daq::IAuthenticationProvider::Id.Data1, daq::IAuthenticationProvider::Id.Data2, daq::IAuthenticationProvider::Id.Data3, daq::IAuthenticationProvider::Id.Data4_UInt64 };
+const daqIntfID DAQ_AUTHENTICATION_PROVIDER_INTF_ID = { daq::IAuthenticationProvider::Id.Data1, daq::IAuthenticationProvider::Id.Data2, daq::IAuthenticationProvider::Id.Data3, daq::IAuthenticationProvider::Id.Data4_UInt64 };
 
-ErrCode AuthenticationProvider_authenticate(AuthenticationProvider* self, String* username, String* password, User** userOut)
+daqErrCode daqAuthenticationProvider_authenticate(daqAuthenticationProvider* self, daqString* username, daqString* password, daqUser** userOut)
 {
     return reinterpret_cast<daq::IAuthenticationProvider*>(self)->authenticate(reinterpret_cast<daq::IString*>(username), reinterpret_cast<daq::IString*>(password), reinterpret_cast<daq::IUser**>(userOut));
 }
 
-ErrCode AuthenticationProvider_isAnonymousAllowed(AuthenticationProvider* self, Bool* allowedOut)
+daqErrCode daqAuthenticationProvider_isAnonymousAllowed(daqAuthenticationProvider* self, daqBool* allowedOut)
 {
     return reinterpret_cast<daq::IAuthenticationProvider*>(self)->isAnonymousAllowed(allowedOut);
 }
 
-ErrCode AuthenticationProvider_authenticateAnonymous(AuthenticationProvider* self, User** userOut)
+daqErrCode daqAuthenticationProvider_authenticateAnonymous(daqAuthenticationProvider* self, daqUser** userOut)
 {
     return reinterpret_cast<daq::IAuthenticationProvider*>(self)->authenticateAnonymous(reinterpret_cast<daq::IUser**>(userOut));
 }
 
-ErrCode AuthenticationProvider_findUser(AuthenticationProvider* self, String* username, User** userOut)
+daqErrCode daqAuthenticationProvider_findUser(daqAuthenticationProvider* self, daqString* username, daqUser** userOut)
 {
     return reinterpret_cast<daq::IAuthenticationProvider*>(self)->findUser(reinterpret_cast<daq::IString*>(username), reinterpret_cast<daq::IUser**>(userOut));
 }
 
-ErrCode AuthenticationProvider_createAuthenticationProvider(AuthenticationProvider** obj, Bool allowAnonymous)
+daqErrCode daqAuthenticationProvider_createAuthenticationProvider(daqAuthenticationProvider** obj, daqBool allowAnonymous)
 {
     daq::IAuthenticationProvider* ptr = nullptr;
-    ErrCode err = daq::createAuthenticationProvider(&ptr, allowAnonymous);
-    *obj = reinterpret_cast<AuthenticationProvider*>(ptr);
+    daqErrCode err = daq::createAuthenticationProvider(&ptr, allowAnonymous);
+    *obj = reinterpret_cast<daqAuthenticationProvider*>(ptr);
     return err;
 }
 
-ErrCode AuthenticationProvider_createStaticAuthenticationProvider(AuthenticationProvider** obj, Bool allowAnonymous, List* userList)
+daqErrCode daqAuthenticationProvider_createStaticAuthenticationProvider(daqAuthenticationProvider** obj, daqBool allowAnonymous, daqList* userList)
 {
     daq::IAuthenticationProvider* ptr = nullptr;
-    ErrCode err = daq::createStaticAuthenticationProvider(&ptr, allowAnonymous, reinterpret_cast<daq::IList*>(userList));
-    *obj = reinterpret_cast<AuthenticationProvider*>(ptr);
+    daqErrCode err = daq::createStaticAuthenticationProvider(&ptr, allowAnonymous, reinterpret_cast<daq::IList*>(userList));
+    *obj = reinterpret_cast<daqAuthenticationProvider*>(ptr);
     return err;
 }
 
-ErrCode AuthenticationProvider_createJsonStringAuthenticationProvider(AuthenticationProvider** obj, String* jsonString)
+daqErrCode daqAuthenticationProvider_createJsonStringAuthenticationProvider(daqAuthenticationProvider** obj, daqString* jsonString)
 {
     daq::IAuthenticationProvider* ptr = nullptr;
-    ErrCode err = daq::createJsonStringAuthenticationProvider(&ptr, reinterpret_cast<daq::IString*>(jsonString));
-    *obj = reinterpret_cast<AuthenticationProvider*>(ptr);
+    daqErrCode err = daq::createJsonStringAuthenticationProvider(&ptr, reinterpret_cast<daq::IString*>(jsonString));
+    *obj = reinterpret_cast<daqAuthenticationProvider*>(ptr);
     return err;
 }
 
-ErrCode AuthenticationProvider_createJsonFileAuthenticationProvider(AuthenticationProvider** obj, String* filename)
+daqErrCode daqAuthenticationProvider_createJsonFileAuthenticationProvider(daqAuthenticationProvider** obj, daqString* filename)
 {
     daq::IAuthenticationProvider* ptr = nullptr;
-    ErrCode err = daq::createJsonFileAuthenticationProvider(&ptr, reinterpret_cast<daq::IString*>(filename));
-    *obj = reinterpret_cast<AuthenticationProvider*>(ptr);
+    daqErrCode err = daq::createJsonFileAuthenticationProvider(&ptr, reinterpret_cast<daq::IString*>(filename));
+    *obj = reinterpret_cast<daqAuthenticationProvider*>(ptr);
     return err;
 }

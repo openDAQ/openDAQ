@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:56.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:07.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,95 +15,95 @@
 
 #include <copendaq_private.h>
 
-const IntfID LIST_INTF_ID = { daq::IList::Id.Data1, daq::IList::Id.Data2, daq::IList::Id.Data3, daq::IList::Id.Data4_UInt64 };
+const daqIntfID DAQ_LIST_INTF_ID = { daq::IList::Id.Data1, daq::IList::Id.Data2, daq::IList::Id.Data3, daq::IList::Id.Data4_UInt64 };
 
-ErrCode List_getItemAt(List* self, SizeT index, BaseObject** obj)
+daqErrCode daqList_getItemAt(daqList* self, daqSizeT index, daqBaseObject** obj)
 {
     return reinterpret_cast<daq::IList*>(self)->getItemAt(index, reinterpret_cast<daq::IBaseObject**>(obj));
 }
 
-ErrCode List_getCount(List* self, SizeT* size)
+daqErrCode daqList_getCount(daqList* self, daqSizeT* size)
 {
     return reinterpret_cast<daq::IList*>(self)->getCount(size);
 }
 
-ErrCode List_setItemAt(List* self, SizeT index, BaseObject* obj)
+daqErrCode daqList_setItemAt(daqList* self, daqSizeT index, daqBaseObject* obj)
 {
     return reinterpret_cast<daq::IList*>(self)->setItemAt(index, reinterpret_cast<daq::IBaseObject*>(obj));
 }
 
-ErrCode List_pushBack(List* self, BaseObject* obj)
+daqErrCode daqList_pushBack(daqList* self, daqBaseObject* obj)
 {
     return reinterpret_cast<daq::IList*>(self)->pushBack(reinterpret_cast<daq::IBaseObject*>(obj));
 }
 
-ErrCode List_pushFront(List* self, BaseObject* obj)
+daqErrCode daqList_pushFront(daqList* self, daqBaseObject* obj)
 {
     return reinterpret_cast<daq::IList*>(self)->pushFront(reinterpret_cast<daq::IBaseObject*>(obj));
 }
 
-ErrCode List_moveBack(List* self, BaseObject* obj)
+daqErrCode daqList_moveBack(daqList* self, daqBaseObject* obj)
 {
     return reinterpret_cast<daq::IList*>(self)->moveBack(reinterpret_cast<daq::IBaseObject*>(obj));
 }
 
-ErrCode List_moveFront(List* self, BaseObject* obj)
+daqErrCode daqList_moveFront(daqList* self, daqBaseObject* obj)
 {
     return reinterpret_cast<daq::IList*>(self)->moveFront(reinterpret_cast<daq::IBaseObject*>(obj));
 }
 
-ErrCode List_popBack(List* self, BaseObject** obj)
+daqErrCode daqList_popBack(daqList* self, daqBaseObject** obj)
 {
     return reinterpret_cast<daq::IList*>(self)->popBack(reinterpret_cast<daq::IBaseObject**>(obj));
 }
 
-ErrCode List_popFront(List* self, BaseObject** obj)
+daqErrCode daqList_popFront(daqList* self, daqBaseObject** obj)
 {
     return reinterpret_cast<daq::IList*>(self)->popFront(reinterpret_cast<daq::IBaseObject**>(obj));
 }
 
-ErrCode List_insertAt(List* self, SizeT index, BaseObject* obj)
+daqErrCode daqList_insertAt(daqList* self, daqSizeT index, daqBaseObject* obj)
 {
     return reinterpret_cast<daq::IList*>(self)->insertAt(index, reinterpret_cast<daq::IBaseObject*>(obj));
 }
 
-ErrCode List_removeAt(List* self, SizeT index, BaseObject** obj)
+daqErrCode daqList_removeAt(daqList* self, daqSizeT index, daqBaseObject** obj)
 {
     return reinterpret_cast<daq::IList*>(self)->removeAt(index, reinterpret_cast<daq::IBaseObject**>(obj));
 }
 
-ErrCode List_deleteAt(List* self, SizeT index)
+daqErrCode daqList_deleteAt(daqList* self, daqSizeT index)
 {
     return reinterpret_cast<daq::IList*>(self)->deleteAt(index);
 }
 
-ErrCode List_clear(List* self)
+daqErrCode daqList_clear(daqList* self)
 {
     return reinterpret_cast<daq::IList*>(self)->clear();
 }
 
-ErrCode List_createStartIterator(List* self, Iterator** iterator)
+daqErrCode daqList_createStartIterator(daqList* self, daqIterator** iterator)
 {
     return reinterpret_cast<daq::IList*>(self)->createStartIterator(reinterpret_cast<daq::IIterator**>(iterator));
 }
 
-ErrCode List_createEndIterator(List* self, Iterator** iterator)
+daqErrCode daqList_createEndIterator(daqList* self, daqIterator** iterator)
 {
     return reinterpret_cast<daq::IList*>(self)->createEndIterator(reinterpret_cast<daq::IIterator**>(iterator));
 }
 
-ErrCode List_createList(List** obj)
+daqErrCode daqList_createList(daqList** obj)
 {
     daq::IList* ptr = nullptr;
-    ErrCode err = daq::createList(&ptr);
-    *obj = reinterpret_cast<List*>(ptr);
+    daqErrCode err = daq::createList(&ptr);
+    *obj = reinterpret_cast<daqList*>(ptr);
     return err;
 }
 
-ErrCode List_createListWithElementType(List** obj, IntfID id)
+daqErrCode daqList_createListWithElementType(daqList** obj, daqIntfID id)
 {
     daq::IList* ptr = nullptr;
-    ErrCode err = daq::createListWithElementType(&ptr, copendaq::utils::toDaqIntfId(id));
-    *obj = reinterpret_cast<List*>(ptr);
+    daqErrCode err = daq::createListWithElementType(&ptr, copendaq::utils::toDaqIntfId(id));
+    *obj = reinterpret_cast<daqList*>(ptr);
     return err;
 }

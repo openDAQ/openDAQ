@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:50.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,12 +15,12 @@
 
 #include <copendaq_private.h>
 
-const IntfID SIMPLE_TYPE_INTF_ID = { daq::ISimpleType::Id.Data1, daq::ISimpleType::Id.Data2, daq::ISimpleType::Id.Data3, daq::ISimpleType::Id.Data4_UInt64 };
+const daqIntfID DAQ_SIMPLE_TYPE_INTF_ID = { daq::ISimpleType::Id.Data1, daq::ISimpleType::Id.Data2, daq::ISimpleType::Id.Data3, daq::ISimpleType::Id.Data4_UInt64 };
 
-ErrCode SimpleType_createSimpleType(SimpleType** obj, CoreType coreType)
+daqErrCode daqSimpleType_createSimpleType(daqSimpleType** obj, daqCoreType coreType)
 {
     daq::ISimpleType* ptr = nullptr;
-    ErrCode err = daq::createSimpleType(&ptr, static_cast<daq::CoreType>(coreType));
-    *obj = reinterpret_cast<SimpleType*>(ptr);
+    daqErrCode err = daq::createSimpleType(&ptr, static_cast<daq::CoreType>(coreType));
+    *obj = reinterpret_cast<daqSimpleType*>(ptr);
     return err;
 }

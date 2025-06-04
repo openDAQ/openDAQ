@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:53.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:33.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,42 +15,42 @@
 
 #include <copendaq_private.h>
 
-const IntfID SCHEDULER_INTF_ID = { daq::IScheduler::Id.Data1, daq::IScheduler::Id.Data2, daq::IScheduler::Id.Data3, daq::IScheduler::Id.Data4_UInt64 };
+const daqIntfID DAQ_SCHEDULER_INTF_ID = { daq::IScheduler::Id.Data1, daq::IScheduler::Id.Data2, daq::IScheduler::Id.Data3, daq::IScheduler::Id.Data4_UInt64 };
 
-ErrCode Scheduler_scheduleFunction(Scheduler* self, Function* function, Awaitable** awaitable)
+daqErrCode daqScheduler_scheduleFunction(daqScheduler* self, daqFunction* function, daqAwaitable** awaitable)
 {
     return reinterpret_cast<daq::IScheduler*>(self)->scheduleFunction(reinterpret_cast<daq::IFunction*>(function), reinterpret_cast<daq::IAwaitable**>(awaitable));
 }
 
-ErrCode Scheduler_scheduleWork(Scheduler* self, Work* work)
+daqErrCode daqScheduler_scheduleWork(daqScheduler* self, daqWork* work)
 {
     return reinterpret_cast<daq::IScheduler*>(self)->scheduleWork(reinterpret_cast<daq::IWork*>(work));
 }
 
-ErrCode Scheduler_scheduleGraph(Scheduler* self, TaskGraph* graph, Awaitable** awaitable)
+daqErrCode daqScheduler_scheduleGraph(daqScheduler* self, daqTaskGraph* graph, daqAwaitable** awaitable)
 {
     return reinterpret_cast<daq::IScheduler*>(self)->scheduleGraph(reinterpret_cast<daq::ITaskGraph*>(graph), reinterpret_cast<daq::IAwaitable**>(awaitable));
 }
 
-ErrCode Scheduler_stop(Scheduler* self)
+daqErrCode daqScheduler_stop(daqScheduler* self)
 {
     return reinterpret_cast<daq::IScheduler*>(self)->stop();
 }
 
-ErrCode Scheduler_waitAll(Scheduler* self)
+daqErrCode daqScheduler_waitAll(daqScheduler* self)
 {
     return reinterpret_cast<daq::IScheduler*>(self)->waitAll();
 }
 
-ErrCode Scheduler_isMultiThreaded(Scheduler* self, Bool* multiThreaded)
+daqErrCode daqScheduler_isMultiThreaded(daqScheduler* self, daqBool* multiThreaded)
 {
     return reinterpret_cast<daq::IScheduler*>(self)->isMultiThreaded(multiThreaded);
 }
 
-ErrCode Scheduler_createScheduler(Scheduler** obj, Logger* logger, SizeT numWorkers)
+daqErrCode daqScheduler_createScheduler(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers)
 {
     daq::IScheduler* ptr = nullptr;
-    ErrCode err = daq::createScheduler(&ptr, reinterpret_cast<daq::ILogger*>(logger), numWorkers);
-    *obj = reinterpret_cast<Scheduler*>(ptr);
+    daqErrCode err = daq::createScheduler(&ptr, reinterpret_cast<daq::ILogger*>(logger), numWorkers);
+    *obj = reinterpret_cast<daqScheduler*>(ptr);
     return err;
 }

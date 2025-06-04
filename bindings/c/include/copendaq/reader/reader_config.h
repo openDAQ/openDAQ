@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:47.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:27.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ReaderConfig ReaderConfig;
-    typedef struct Function Function;
-    typedef struct List List;
+    typedef struct daqReaderConfig daqReaderConfig;
+    typedef struct daqFunction daqFunction;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID READER_CONFIG_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_READER_CONFIG_INTF_ID;
 
-    ErrCode EXPORTED ReaderConfig_getValueTransformFunction(ReaderConfig* self, Function** transform);
-    ErrCode EXPORTED ReaderConfig_getDomainTransformFunction(ReaderConfig* self, Function** transform);
-    ErrCode EXPORTED ReaderConfig_getInputPorts(ReaderConfig* self, List** ports);
-    ErrCode EXPORTED ReaderConfig_getReadTimeoutType(ReaderConfig* self, ReadTimeoutType* timeoutType);
-    ErrCode EXPORTED ReaderConfig_markAsInvalid(ReaderConfig* self);
+    daqErrCode EXPORTED daqReaderConfig_getValueTransformFunction(daqReaderConfig* self, daqFunction** transform);
+    daqErrCode EXPORTED daqReaderConfig_getDomainTransformFunction(daqReaderConfig* self, daqFunction** transform);
+    daqErrCode EXPORTED daqReaderConfig_getInputPorts(daqReaderConfig* self, daqList** ports);
+    daqErrCode EXPORTED daqReaderConfig_getReadTimeoutType(daqReaderConfig* self, daqReadTimeoutType* timeoutType);
+    daqErrCode EXPORTED daqReaderConfig_markAsInvalid(daqReaderConfig* self);
 
 #ifdef __cplusplus
 }

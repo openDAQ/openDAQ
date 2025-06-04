@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:07.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:19.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,18 +34,18 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PropertyValueEventArgs PropertyValueEventArgs;
-    typedef struct Property Property;
+    typedef struct daqPropertyValueEventArgs daqPropertyValueEventArgs;
+    typedef struct daqProperty daqProperty;
 
-    EXPORTED extern const IntfID PROPERTY_VALUE_EVENT_ARGS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PROPERTY_VALUE_EVENT_ARGS_INTF_ID;
 
-    ErrCode EXPORTED PropertyValueEventArgs_getProperty(PropertyValueEventArgs* self, Property** property);
-    ErrCode EXPORTED PropertyValueEventArgs_getValue(PropertyValueEventArgs* self, BaseObject** value);
-    ErrCode EXPORTED PropertyValueEventArgs_setValue(PropertyValueEventArgs* self, BaseObject* value);
-    ErrCode EXPORTED PropertyValueEventArgs_getPropertyEventType(PropertyValueEventArgs* self, PropertyEventType* changeType);
-    ErrCode EXPORTED PropertyValueEventArgs_getIsUpdating(PropertyValueEventArgs* self, Bool* isUpdating);
-    ErrCode EXPORTED PropertyValueEventArgs_getOldValue(PropertyValueEventArgs* self, BaseObject** value);
-    ErrCode EXPORTED PropertyValueEventArgs_createPropertyValueEventArgs(PropertyValueEventArgs** obj, Property* prop, BaseObject* value, BaseObject* oldValue, PropertyEventType type, Bool isUpdating);
+    daqErrCode EXPORTED daqPropertyValueEventArgs_getProperty(daqPropertyValueEventArgs* self, daqProperty** property);
+    daqErrCode EXPORTED daqPropertyValueEventArgs_getValue(daqPropertyValueEventArgs* self, daqBaseObject** value);
+    daqErrCode EXPORTED daqPropertyValueEventArgs_setValue(daqPropertyValueEventArgs* self, daqBaseObject* value);
+    daqErrCode EXPORTED daqPropertyValueEventArgs_getPropertyEventType(daqPropertyValueEventArgs* self, daqPropertyEventType* changeType);
+    daqErrCode EXPORTED daqPropertyValueEventArgs_getIsUpdating(daqPropertyValueEventArgs* self, daqBool* isUpdating);
+    daqErrCode EXPORTED daqPropertyValueEventArgs_getOldValue(daqPropertyValueEventArgs* self, daqBaseObject** value);
+    daqErrCode EXPORTED daqPropertyValueEventArgs_createPropertyValueEventArgs(daqPropertyValueEventArgs** obj, daqProperty* prop, daqBaseObject* value, daqBaseObject* oldValue, daqPropertyEventType type, daqBool isUpdating);
 
 #ifdef __cplusplus
 }

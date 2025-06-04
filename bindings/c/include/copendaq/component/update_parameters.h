@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:20.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct UpdateParameters UpdateParameters;
+    typedef struct daqUpdateParameters daqUpdateParameters;
 
-    EXPORTED extern const IntfID UPDATE_PARAMETERS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_UPDATE_PARAMETERS_INTF_ID;
 
-    ErrCode EXPORTED UpdateParameters_getReAddDevicesEnabled(UpdateParameters* self, Bool* enabled);
-    ErrCode EXPORTED UpdateParameters_setReAddDevicesEnabled(UpdateParameters* self, Bool enabled);
-    ErrCode EXPORTED UpdateParameters_createUpdateParameters(UpdateParameters** obj);
+    daqErrCode EXPORTED daqUpdateParameters_getReAddDevicesEnabled(daqUpdateParameters* self, daqBool* enabled);
+    daqErrCode EXPORTED daqUpdateParameters_setReAddDevicesEnabled(daqUpdateParameters* self, daqBool enabled);
+    daqErrCode EXPORTED daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj);
 
 #ifdef __cplusplus
 }

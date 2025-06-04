@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:43.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:51.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-typedef struct FloatObject FloatObject;
+    typedef struct daqFloatObject daqFloatObject;
 
-    EXPORTED extern const IntfID FLOAT_OBJECT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_FLOAT_OBJECT_INTF_ID;
 
-    ErrCode EXPORTED FloatObject_getValue(FloatObject* self, Float* value);
-    ErrCode EXPORTED FloatObject_equalsValue(FloatObject* self, Float value, Bool* equals);
-    ErrCode EXPORTED FloatObject_createFloat(FloatObject** obj, Float value);
-    ErrCode EXPORTED FloatObject_createFloatObject(FloatObject** obj, Float value);
+    daqErrCode EXPORTED daqFloatObject_getValue(daqFloatObject* self, daqFloat* value);
+    daqErrCode EXPORTED daqFloatObject_equalsValue(daqFloatObject* self, daqFloat value, daqBool* equals);
+    daqErrCode EXPORTED daqFloatObject_createFloat(daqFloatObject** obj, daqFloat value);
+    daqErrCode EXPORTED daqFloatObject_createFloatObject(daqFloatObject** obj, daqFloat value);
 
 #ifdef __cplusplus
 }

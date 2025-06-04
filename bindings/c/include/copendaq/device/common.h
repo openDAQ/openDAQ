@@ -21,20 +21,20 @@ extern "C"
 {
 #endif
 
-    typedef enum AddressReachabilityStatus
+    typedef enum daqAddressReachabilityStatus
     {
-        AddressReachabilityStatusUnknown = 0,
-        AddressReachabilityStatusReachable,
-        AddressReachabilityStatusUnreachable,
-    } AddressReachabilityStatus;
+        daqAddressReachabilityStatusUnknown = 0,
+        daqAddressReachabilityStatusReachable,
+        daqAddressReachabilityStatusUnreachable,
+    } daqAddressReachabilityStatus;
 
-    typedef enum ProtocolType
+    typedef enum daqProtocolType
     {
-        ProtocolTypeUnknown = 0,
-        ProtocolTypeConfiguration,
-        ProtocolTypeStreaming,
-        ProtocolTypeConfigurationAndStreaming,
-    } ProtocolType;
+        daqProtocolTypeUnknown = 0,
+        daqProtocolTypeConfiguration,
+        daqProtocolTypeStreaming,
+        daqProtocolTypeConfigurationAndStreaming,
+    } daqProtocolType;
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:51.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:02.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,27 +34,27 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct StructBuilder StructBuilder;
-    typedef struct Struct Struct;
-    typedef struct StructType StructType;
-    typedef struct List List;
-    typedef struct String String;
-    typedef struct Dict Dict;
-    typedef struct TypeManager TypeManager;
+    typedef struct daqStructBuilder daqStructBuilder;
+    typedef struct daqStruct daqStruct;
+    typedef struct daqStructType daqStructType;
+    typedef struct daqList daqList;
+    typedef struct daqString daqString;
+    typedef struct daqDict daqDict;
+    typedef struct daqTypeManager daqTypeManager;
 
-    EXPORTED extern const IntfID STRUCT_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_STRUCT_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED StructBuilder_build(StructBuilder* self, Struct** struct_);
-    ErrCode EXPORTED StructBuilder_getStructType(StructBuilder* self, StructType** type);
-    ErrCode EXPORTED StructBuilder_getFieldNames(StructBuilder* self, List** names);
-    ErrCode EXPORTED StructBuilder_setFieldValues(StructBuilder* self, List* values);
-    ErrCode EXPORTED StructBuilder_getFieldValues(StructBuilder* self, List** values);
-    ErrCode EXPORTED StructBuilder_set(StructBuilder* self, String* name, BaseObject* field);
-    ErrCode EXPORTED StructBuilder_get(StructBuilder* self, String* name, BaseObject** field);
-    ErrCode EXPORTED StructBuilder_hasField(StructBuilder* self, String* name, Bool* contains);
-    ErrCode EXPORTED StructBuilder_getAsDictionary(StructBuilder* self, Dict** dictionary);
-    ErrCode EXPORTED StructBuilder_createStructBuilder(StructBuilder** obj, String* name, TypeManager* typeManager);
-    ErrCode EXPORTED StructBuilder_createStructBuilderFromStruct(StructBuilder** obj, Struct* struct_);
+    daqErrCode EXPORTED daqStructBuilder_build(daqStructBuilder* self, daqStruct** struct_);
+    daqErrCode EXPORTED daqStructBuilder_getStructType(daqStructBuilder* self, daqStructType** type);
+    daqErrCode EXPORTED daqStructBuilder_getFieldNames(daqStructBuilder* self, daqList** names);
+    daqErrCode EXPORTED daqStructBuilder_setFieldValues(daqStructBuilder* self, daqList* values);
+    daqErrCode EXPORTED daqStructBuilder_getFieldValues(daqStructBuilder* self, daqList** values);
+    daqErrCode EXPORTED daqStructBuilder_set(daqStructBuilder* self, daqString* name, daqBaseObject* field);
+    daqErrCode EXPORTED daqStructBuilder_get(daqStructBuilder* self, daqString* name, daqBaseObject** field);
+    daqErrCode EXPORTED daqStructBuilder_hasField(daqStructBuilder* self, daqString* name, daqBool* contains);
+    daqErrCode EXPORTED daqStructBuilder_getAsDictionary(daqStructBuilder* self, daqDict** dictionary);
+    daqErrCode EXPORTED daqStructBuilder_createStructBuilder(daqStructBuilder** obj, daqString* name, daqTypeManager* typeManager);
+    daqErrCode EXPORTED daqStructBuilder_createStructBuilderFromStruct(daqStructBuilder** obj, daqStruct* struct_);
 
 #ifdef __cplusplus
 }

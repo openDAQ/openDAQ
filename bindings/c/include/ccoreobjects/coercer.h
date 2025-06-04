@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:58.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:10.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,15 +34,15 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Coercer Coercer;
-    typedef struct String String;
+    typedef struct daqCoercer daqCoercer;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID COERCER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COERCER_INTF_ID;
 
-    ErrCode EXPORTED Coercer_coerce(Coercer* self, BaseObject* propObj, BaseObject* value, BaseObject** result);
-    ErrCode EXPORTED Coercer_coerceNoLock(Coercer* self, BaseObject* propObj, BaseObject* value, BaseObject** result);
-    ErrCode EXPORTED Coercer_getEval(Coercer* self, String** eval);
-    ErrCode EXPORTED Coercer_createCoercer(Coercer** obj, String* eval);
+    daqErrCode EXPORTED daqCoercer_coerce(daqCoercer* self, daqBaseObject* propObj, daqBaseObject* value, daqBaseObject** result);
+    daqErrCode EXPORTED daqCoercer_coerceNoLock(daqCoercer* self, daqBaseObject* propObj, daqBaseObject* value, daqBaseObject** result);
+    daqErrCode EXPORTED daqCoercer_getEval(daqCoercer* self, daqString** eval);
+    daqErrCode EXPORTED daqCoercer_createCoercer(daqCoercer** obj, daqString* eval);
 
 #ifdef __cplusplus
 }

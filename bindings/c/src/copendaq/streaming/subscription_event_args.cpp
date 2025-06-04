@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:20.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:08:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,22 @@
 
 #include <copendaq_private.h>
 
-const IntfID SUBSCRIPTION_EVENT_ARGS_INTF_ID = { daq::ISubscriptionEventArgs::Id.Data1, daq::ISubscriptionEventArgs::Id.Data2, daq::ISubscriptionEventArgs::Id.Data3, daq::ISubscriptionEventArgs::Id.Data4_UInt64 };
+const daqIntfID DAQ_SUBSCRIPTION_EVENT_ARGS_INTF_ID = { daq::ISubscriptionEventArgs::Id.Data1, daq::ISubscriptionEventArgs::Id.Data2, daq::ISubscriptionEventArgs::Id.Data3, daq::ISubscriptionEventArgs::Id.Data4_UInt64 };
 
-ErrCode SubscriptionEventArgs_getStreamingConnectionString(SubscriptionEventArgs* self, String** streamingConnectionString)
+daqErrCode daqSubscriptionEventArgs_getStreamingConnectionString(daqSubscriptionEventArgs* self, daqString** streamingConnectionString)
 {
     return reinterpret_cast<daq::ISubscriptionEventArgs*>(self)->getStreamingConnectionString(reinterpret_cast<daq::IString**>(streamingConnectionString));
 }
 
-ErrCode SubscriptionEventArgs_getSubscriptionEventType(SubscriptionEventArgs* self, SubscriptionEventType* type)
+daqErrCode daqSubscriptionEventArgs_getSubscriptionEventType(daqSubscriptionEventArgs* self, daqSubscriptionEventType* type)
 {
     return reinterpret_cast<daq::ISubscriptionEventArgs*>(self)->getSubscriptionEventType(reinterpret_cast<daq::SubscriptionEventType*>(type));
 }
 
-ErrCode SubscriptionEventArgs_createSubscriptionEventArgs(SubscriptionEventArgs** obj, String* streamingConnectionString, SubscriptionEventType type)
+daqErrCode daqSubscriptionEventArgs_createSubscriptionEventArgs(daqSubscriptionEventArgs** obj, daqString* streamingConnectionString, daqSubscriptionEventType type)
 {
     daq::ISubscriptionEventArgs* ptr = nullptr;
-    ErrCode err = daq::createSubscriptionEventArgs(&ptr, reinterpret_cast<daq::IString*>(streamingConnectionString), static_cast<daq::SubscriptionEventType>(type));
-    *obj = reinterpret_cast<SubscriptionEventArgs*>(ptr);
+    daqErrCode err = daq::createSubscriptionEventArgs(&ptr, reinterpret_cast<daq::IString*>(streamingConnectionString), static_cast<daq::SubscriptionEventType>(type));
+    *obj = reinterpret_cast<daqSubscriptionEventArgs*>(ptr);
     return err;
 }

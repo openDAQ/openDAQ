@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:00.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:12.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,23 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct EvalValue EvalValue;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct List List;
-    typedef struct Function Function;
+    typedef struct daqEvalValue daqEvalValue;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqList daqList;
+    typedef struct daqFunction daqFunction;
 
-    EXPORTED extern const IntfID EVAL_VALUE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_EVAL_VALUE_INTF_ID;
 
-    ErrCode EXPORTED EvalValue_getEval(EvalValue* self, String** eval);
-    ErrCode EXPORTED EvalValue_getResult(EvalValue* self, BaseObject** obj);
-    ErrCode EXPORTED EvalValue_cloneWithOwner(EvalValue* self, PropertyObject* owner, EvalValue** clonedValue);
-    ErrCode EXPORTED EvalValue_getParseErrorCode(EvalValue* self);
-    ErrCode EXPORTED EvalValue_getPropertyReferences(EvalValue* self, List** propertyReferences);
-    ErrCode EXPORTED EvalValue_getResultNoLock(EvalValue* self, BaseObject** obj);
-    ErrCode EXPORTED EvalValue_createEvalValue(EvalValue** obj, String* eval);
-    ErrCode EXPORTED EvalValue_createEvalValueArgs(EvalValue** obj, String* eval, List* args);
-    ErrCode EXPORTED EvalValue_createEvalValueFunc(EvalValue** obj, String* eval, Function* func);
+    daqErrCode EXPORTED daqEvalValue_getEval(daqEvalValue* self, daqString** eval);
+    daqErrCode EXPORTED daqEvalValue_getResult(daqEvalValue* self, daqBaseObject** obj);
+    daqErrCode EXPORTED daqEvalValue_cloneWithOwner(daqEvalValue* self, daqPropertyObject* owner, daqEvalValue** clonedValue);
+    daqErrCode EXPORTED daqEvalValue_getParseErrorCode(daqEvalValue* self);
+    daqErrCode EXPORTED daqEvalValue_getPropertyReferences(daqEvalValue* self, daqList** propertyReferences);
+    daqErrCode EXPORTED daqEvalValue_getResultNoLock(daqEvalValue* self, daqBaseObject** obj);
+    daqErrCode EXPORTED daqEvalValue_createEvalValue(daqEvalValue** obj, daqString* eval);
+    daqErrCode EXPORTED daqEvalValue_createEvalValueArgs(daqEvalValue** obj, daqString* eval, daqList* args);
+    daqErrCode EXPORTED daqEvalValue_createEvalValueFunc(daqEvalValue** obj, daqString* eval, daqFunction* func);
 
 #ifdef __cplusplus
 }

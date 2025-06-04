@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:13.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,26 +34,26 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ScalingBuilder ScalingBuilder;
-    typedef struct Scaling Scaling;
-    typedef struct Dict Dict;
-    typedef struct String String;
+    typedef struct daqScalingBuilder daqScalingBuilder;
+    typedef struct daqScaling daqScaling;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID SCALING_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SCALING_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED ScalingBuilder_build(ScalingBuilder* self, Scaling** scaling);
-    ErrCode EXPORTED ScalingBuilder_setInputDataType(ScalingBuilder* self, SampleType type);
-    ErrCode EXPORTED ScalingBuilder_getInputDataType(ScalingBuilder* self, SampleType* type);
-    ErrCode EXPORTED ScalingBuilder_setOutputDataType(ScalingBuilder* self, ScaledSampleType type);
-    ErrCode EXPORTED ScalingBuilder_getOutputDataType(ScalingBuilder* self, ScaledSampleType* type);
-    ErrCode EXPORTED ScalingBuilder_setScalingType(ScalingBuilder* self, ScalingType type);
-    ErrCode EXPORTED ScalingBuilder_getScalingType(ScalingBuilder* self, ScalingType* type);
-    ErrCode EXPORTED ScalingBuilder_setParameters(ScalingBuilder* self, Dict* parameters);
-    ErrCode EXPORTED ScalingBuilder_getParameters(ScalingBuilder* self, Dict** parameters);
-    ErrCode EXPORTED ScalingBuilder_addParameter(ScalingBuilder* self, String* name, BaseObject* parameter);
-    ErrCode EXPORTED ScalingBuilder_removeParameter(ScalingBuilder* self, String* name);
-    ErrCode EXPORTED ScalingBuilder_createScalingBuilder(ScalingBuilder** obj);
-    ErrCode EXPORTED ScalingBuilder_createScalingBuilderFromExisting(ScalingBuilder** obj, Scaling* scalingToCopy);
+    daqErrCode EXPORTED daqScalingBuilder_build(daqScalingBuilder* self, daqScaling** scaling);
+    daqErrCode EXPORTED daqScalingBuilder_setInputDataType(daqScalingBuilder* self, daqSampleType type);
+    daqErrCode EXPORTED daqScalingBuilder_getInputDataType(daqScalingBuilder* self, daqSampleType* type);
+    daqErrCode EXPORTED daqScalingBuilder_setOutputDataType(daqScalingBuilder* self, daqScaledSampleType type);
+    daqErrCode EXPORTED daqScalingBuilder_getOutputDataType(daqScalingBuilder* self, daqScaledSampleType* type);
+    daqErrCode EXPORTED daqScalingBuilder_setScalingType(daqScalingBuilder* self, daqScalingType type);
+    daqErrCode EXPORTED daqScalingBuilder_getScalingType(daqScalingBuilder* self, daqScalingType* type);
+    daqErrCode EXPORTED daqScalingBuilder_setParameters(daqScalingBuilder* self, daqDict* parameters);
+    daqErrCode EXPORTED daqScalingBuilder_getParameters(daqScalingBuilder* self, daqDict** parameters);
+    daqErrCode EXPORTED daqScalingBuilder_addParameter(daqScalingBuilder* self, daqString* name, daqBaseObject* parameter);
+    daqErrCode EXPORTED daqScalingBuilder_removeParameter(daqScalingBuilder* self, daqString* name);
+    daqErrCode EXPORTED daqScalingBuilder_createScalingBuilder(daqScalingBuilder** obj);
+    daqErrCode EXPORTED daqScalingBuilder_createScalingBuilderFromExisting(daqScalingBuilder** obj, daqScaling* scalingToCopy);
 
 #ifdef __cplusplus
 }

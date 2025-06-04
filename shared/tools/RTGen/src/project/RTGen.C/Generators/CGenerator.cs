@@ -30,6 +30,9 @@ namespace RTGen.C.Generators
             "ComplexFloat64"
         };
 
+        protected static readonly String Prefix = "daq";
+        protected static readonly String PrefixUpper = "DAQ_";
+
         protected GeneratorType _generatorType = GeneratorType.Header;
         protected ISet<string> _typesToDeclare = new HashSet<string>();
         protected ISet<string> _methodNamesToCommentOut = new HashSet<string>();
@@ -39,7 +42,7 @@ namespace RTGen.C.Generators
         public override IVersionInfo Version => new VersionInfo
         {
             Major = 0,
-            Minor = 6,
+            Minor = 7,
             Patch = 0
         };
 
@@ -84,7 +87,7 @@ namespace RTGen.C.Generators
         {
             if (variable == "ArgTypeNameNonInterface")
             {
-                return arg.Type.NonInterfaceName;
+                return Prefix + arg.Type.NonInterfaceName;
             }
             return null;
         }
@@ -149,7 +152,7 @@ namespace RTGen.C.Generators
         protected string GetIntfIDDeclaration()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(base.Indentation + $"EXPORTED extern const IntfID {RtFile.CurrentClass.Type.NonInterfaceName.ToLowerSnakeCase().ToUpper()}_INTF_ID;");
+            sb.AppendLine(base.Indentation + $"EXPORTED extern const {Prefix}IntfID {PrefixUpper}{RtFile.CurrentClass.Type.NonInterfaceName.ToLowerSnakeCase().ToUpper()}_INTF_ID;");
             return sb.ToString();
         }
 
@@ -159,7 +162,7 @@ namespace RTGen.C.Generators
             string ns = RtFile.CurrentClass.Type.Namespace.ToString();
             string iface = RtFile.CurrentClass.Type.Name;
 
-            sb.Append($"const IntfID {RtFile.CurrentClass.Type.NonInterfaceName.ToLowerSnakeCase().ToUpper()}_INTF_ID = ");
+            sb.Append($"const {Prefix}IntfID {PrefixUpper}{RtFile.CurrentClass.Type.NonInterfaceName.ToLowerSnakeCase().ToUpper()}_INTF_ID = ");
             sb.AppendLine($"{{ {ns}::{iface}::Id.Data1, {ns}::{iface}::Id.Data2, {ns}::{iface}::Id.Data3, {ns}::{iface}::Id.Data4_UInt64 }};");
             return sb.ToString();
         }
@@ -173,7 +176,7 @@ namespace RTGen.C.Generators
                 {
                     continue;
                 }
-                sb.AppendLine(base.Indentation + $"typedef struct {type} {type};");
+                sb.AppendLine(base.Indentation + $"typedef struct {Prefix}{type} {Prefix}{type};");
             }
             return sb.ToString();
         }
@@ -230,7 +233,7 @@ namespace RTGen.C.Generators
 
                 if (listType == ArgsListType.MethodDeclaration)
                 {
-                    sb.Append($"{arg.Type.NonInterfaceName}{arg.Type.Modifiers} {arg.Name}");
+                    sb.Append($"{(arg.Type.Name != "void" ? Prefix : "")}{arg.Type.NonInterfaceName}{arg.Type.Modifiers} {arg.Name}");
                 }
                 else
                 {
@@ -357,6 +360,8 @@ namespace RTGen.C.Generators
             {
                 switch (variable)
                 {
+                    case "Prefix":
+                        return Prefix;
                     case "Name":
                         return method != null ? method.Name : factory.Name ?? "";
                     case "ReturnType":
@@ -379,6 +384,8 @@ namespace RTGen.C.Generators
             {
                 switch (variable)
                 {
+                    case "Prefix":
+                        return Prefix;
                     case "Name":
                         return method != null ? method.Name : factory.Name ?? "";
                     case "ReturnType":

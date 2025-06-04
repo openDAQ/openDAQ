@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:09.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,15 +34,15 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct User User;
-    typedef struct String String;
-    typedef struct List List;
+    typedef struct daqUser daqUser;
+    typedef struct daqString daqString;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID USER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_USER_INTF_ID;
 
-    ErrCode EXPORTED User_getUsername(User* self, String** username);
-    ErrCode EXPORTED User_getGroups(User* self, List** groups);
-    ErrCode EXPORTED User_createUser(User** obj, String* username, String* passwordHash, List* groups);
+    daqErrCode EXPORTED daqUser_getUsername(daqUser* self, daqString** username);
+    daqErrCode EXPORTED daqUser_getGroups(daqUser* self, daqList** groups);
+    daqErrCode EXPORTED daqUser_createUser(daqUser** obj, daqString* username, daqString* passwordHash, daqList* groups);
 
 #ifdef __cplusplus
 }

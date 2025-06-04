@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:43.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:23.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,107 +15,107 @@
 
 #include <copendaq_private.h>
 
-const IntfID BLOCK_READER_BUILDER_INTF_ID = { daq::IBlockReaderBuilder::Id.Data1, daq::IBlockReaderBuilder::Id.Data2, daq::IBlockReaderBuilder::Id.Data3, daq::IBlockReaderBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_BLOCK_READER_BUILDER_INTF_ID = { daq::IBlockReaderBuilder::Id.Data1, daq::IBlockReaderBuilder::Id.Data2, daq::IBlockReaderBuilder::Id.Data3, daq::IBlockReaderBuilder::Id.Data4_UInt64 };
 
-ErrCode BlockReaderBuilder_build(BlockReaderBuilder* self, BlockReader** blockReader)
+daqErrCode daqBlockReaderBuilder_build(daqBlockReaderBuilder* self, daqBlockReader** blockReader)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->build(reinterpret_cast<daq::IBlockReader**>(blockReader));
 }
 
-ErrCode BlockReaderBuilder_setOldBlockReader(BlockReaderBuilder* self, BlockReader* blockReader)
+daqErrCode daqBlockReaderBuilder_setOldBlockReader(daqBlockReaderBuilder* self, daqBlockReader* blockReader)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->setOldBlockReader(reinterpret_cast<daq::IBlockReader*>(blockReader));
 }
 
-ErrCode BlockReaderBuilder_getOldBlockReader(BlockReaderBuilder* self, BlockReader** blockReader)
+daqErrCode daqBlockReaderBuilder_getOldBlockReader(daqBlockReaderBuilder* self, daqBlockReader** blockReader)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->getOldBlockReader(reinterpret_cast<daq::IBlockReader**>(blockReader));
 }
 
-ErrCode BlockReaderBuilder_setSignal(BlockReaderBuilder* self, Signal* signal)
+daqErrCode daqBlockReaderBuilder_setSignal(daqBlockReaderBuilder* self, daqSignal* signal)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->setSignal(reinterpret_cast<daq::ISignal*>(signal));
 }
 
-ErrCode BlockReaderBuilder_getSignal(BlockReaderBuilder* self, Signal** signal)
+daqErrCode daqBlockReaderBuilder_getSignal(daqBlockReaderBuilder* self, daqSignal** signal)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->getSignal(reinterpret_cast<daq::ISignal**>(signal));
 }
 
-ErrCode BlockReaderBuilder_setInputPort(BlockReaderBuilder* self, InputPort* port)
+daqErrCode daqBlockReaderBuilder_setInputPort(daqBlockReaderBuilder* self, daqInputPort* port)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->setInputPort(reinterpret_cast<daq::IInputPort*>(port));
 }
 
-ErrCode BlockReaderBuilder_getInputPort(BlockReaderBuilder* self, InputPort** port)
+daqErrCode daqBlockReaderBuilder_getInputPort(daqBlockReaderBuilder* self, daqInputPort** port)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->getInputPort(reinterpret_cast<daq::IInputPort**>(port));
 }
 
-ErrCode BlockReaderBuilder_setValueReadType(BlockReaderBuilder* self, SampleType type)
+daqErrCode daqBlockReaderBuilder_setValueReadType(daqBlockReaderBuilder* self, daqSampleType type)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->setValueReadType(static_cast<daq::SampleType>(type));
 }
 
-ErrCode BlockReaderBuilder_getValueReadType(BlockReaderBuilder* self, SampleType* type)
+daqErrCode daqBlockReaderBuilder_getValueReadType(daqBlockReaderBuilder* self, daqSampleType* type)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->getValueReadType(reinterpret_cast<daq::SampleType*>(type));
 }
 
-ErrCode BlockReaderBuilder_setDomainReadType(BlockReaderBuilder* self, SampleType type)
+daqErrCode daqBlockReaderBuilder_setDomainReadType(daqBlockReaderBuilder* self, daqSampleType type)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->setDomainReadType(static_cast<daq::SampleType>(type));
 }
 
-ErrCode BlockReaderBuilder_getDomainReadType(BlockReaderBuilder* self, SampleType* type)
+daqErrCode daqBlockReaderBuilder_getDomainReadType(daqBlockReaderBuilder* self, daqSampleType* type)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->getDomainReadType(reinterpret_cast<daq::SampleType*>(type));
 }
 
-ErrCode BlockReaderBuilder_setReadMode(BlockReaderBuilder* self, ReadMode mode)
+daqErrCode daqBlockReaderBuilder_setReadMode(daqBlockReaderBuilder* self, daqReadMode mode)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->setReadMode(static_cast<daq::ReadMode>(mode));
 }
 
-ErrCode BlockReaderBuilder_getReadMode(BlockReaderBuilder* self, ReadMode* mode)
+daqErrCode daqBlockReaderBuilder_getReadMode(daqBlockReaderBuilder* self, daqReadMode* mode)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->getReadMode(reinterpret_cast<daq::ReadMode*>(mode));
 }
 
-ErrCode BlockReaderBuilder_setBlockSize(BlockReaderBuilder* self, SizeT size)
+daqErrCode daqBlockReaderBuilder_setBlockSize(daqBlockReaderBuilder* self, daqSizeT size)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->setBlockSize(size);
 }
 
-ErrCode BlockReaderBuilder_getBlockSize(BlockReaderBuilder* self, SizeT* size)
+daqErrCode daqBlockReaderBuilder_getBlockSize(daqBlockReaderBuilder* self, daqSizeT* size)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->getBlockSize(size);
 }
 
-ErrCode BlockReaderBuilder_setOverlap(BlockReaderBuilder* self, SizeT overlap)
+daqErrCode daqBlockReaderBuilder_setOverlap(daqBlockReaderBuilder* self, daqSizeT overlap)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->setOverlap(overlap);
 }
 
-ErrCode BlockReaderBuilder_getOverlap(BlockReaderBuilder* self, SizeT* overlap)
+daqErrCode daqBlockReaderBuilder_getOverlap(daqBlockReaderBuilder* self, daqSizeT* overlap)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->getOverlap(overlap);
 }
 
-ErrCode BlockReaderBuilder_setSkipEvents(BlockReaderBuilder* self, Bool skipEvents)
+daqErrCode daqBlockReaderBuilder_setSkipEvents(daqBlockReaderBuilder* self, daqBool skipEvents)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->setSkipEvents(skipEvents);
 }
 
-ErrCode BlockReaderBuilder_getSkipEvents(BlockReaderBuilder* self, Bool* skipEvents)
+daqErrCode daqBlockReaderBuilder_getSkipEvents(daqBlockReaderBuilder* self, daqBool* skipEvents)
 {
     return reinterpret_cast<daq::IBlockReaderBuilder*>(self)->getSkipEvents(skipEvents);
 }
 
-ErrCode BlockReaderBuilder_createBlockReaderBuilder(BlockReaderBuilder** obj)
+daqErrCode daqBlockReaderBuilder_createBlockReaderBuilder(daqBlockReaderBuilder** obj)
 {
     daq::IBlockReaderBuilder* ptr = nullptr;
-    ErrCode err = daq::createBlockReaderBuilder(&ptr);
-    *obj = reinterpret_cast<BlockReaderBuilder*>(ptr);
+    daqErrCode err = daq::createBlockReaderBuilder(&ptr);
+    *obj = reinterpret_cast<daqBlockReaderBuilder*>(ptr);
     return err;
 }

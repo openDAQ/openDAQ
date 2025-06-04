@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:33.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:13.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,26 +34,26 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct FunctionBlock FunctionBlock;
-    typedef struct FunctionBlockType FunctionBlockType;
-    typedef struct List List;
-    typedef struct SearchFilter SearchFilter;
-    typedef struct Signal Signal;
-    typedef struct Dict Dict;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
+    typedef struct daqFunctionBlock daqFunctionBlock;
+    typedef struct daqFunctionBlockType daqFunctionBlockType;
+    typedef struct daqList daqList;
+    typedef struct daqSearchFilter daqSearchFilter;
+    typedef struct daqSignal daqSignal;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
 
-    EXPORTED extern const IntfID FUNCTION_BLOCK_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_FUNCTION_BLOCK_INTF_ID;
 
-    ErrCode EXPORTED FunctionBlock_getFunctionBlockType(FunctionBlock* self, FunctionBlockType** type);
-    ErrCode EXPORTED FunctionBlock_getInputPorts(FunctionBlock* self, List** ports, SearchFilter* searchFilter);
-    ErrCode EXPORTED FunctionBlock_getSignals(FunctionBlock* self, List** signals, SearchFilter* searchFilter);
-    ErrCode EXPORTED FunctionBlock_getSignalsRecursive(FunctionBlock* self, List** signals, SearchFilter* searchFilter);
-    ErrCode EXPORTED FunctionBlock_getStatusSignal(FunctionBlock* self, Signal** statusSignal);
-    ErrCode EXPORTED FunctionBlock_getFunctionBlocks(FunctionBlock* self, List** functionBlocks, SearchFilter* searchFilter);
-    ErrCode EXPORTED FunctionBlock_getAvailableFunctionBlockTypes(FunctionBlock* self, Dict** functionBlockTypes);
-    ErrCode EXPORTED FunctionBlock_addFunctionBlock(FunctionBlock* self, FunctionBlock** functionBlock, String* typeId, PropertyObject* config);
-    ErrCode EXPORTED FunctionBlock_removeFunctionBlock(FunctionBlock* self, FunctionBlock* functionBlock);
+    daqErrCode EXPORTED daqFunctionBlock_getFunctionBlockType(daqFunctionBlock* self, daqFunctionBlockType** type);
+    daqErrCode EXPORTED daqFunctionBlock_getInputPorts(daqFunctionBlock* self, daqList** ports, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqFunctionBlock_getSignals(daqFunctionBlock* self, daqList** signals, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqFunctionBlock_getSignalsRecursive(daqFunctionBlock* self, daqList** signals, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqFunctionBlock_getStatusSignal(daqFunctionBlock* self, daqSignal** statusSignal);
+    daqErrCode EXPORTED daqFunctionBlock_getFunctionBlocks(daqFunctionBlock* self, daqList** functionBlocks, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqFunctionBlock_getAvailableFunctionBlockTypes(daqFunctionBlock* self, daqDict** functionBlockTypes);
+    daqErrCode EXPORTED daqFunctionBlock_addFunctionBlock(daqFunctionBlock* self, daqFunctionBlock** functionBlock, daqString* typeId, daqPropertyObject* config);
+    daqErrCode EXPORTED daqFunctionBlock_removeFunctionBlock(daqFunctionBlock* self, daqFunctionBlock* functionBlock);
 
 #ifdef __cplusplus
 }

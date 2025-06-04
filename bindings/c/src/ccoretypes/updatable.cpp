@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:54.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:05.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,24 +15,24 @@
 
 #include <copendaq_private.h>
 
-const IntfID UPDATABLE_INTF_ID = { daq::IUpdatable::Id.Data1, daq::IUpdatable::Id.Data2, daq::IUpdatable::Id.Data3, daq::IUpdatable::Id.Data4_UInt64 };
+const daqIntfID DAQ_UPDATABLE_INTF_ID = { daq::IUpdatable::Id.Data1, daq::IUpdatable::Id.Data2, daq::IUpdatable::Id.Data3, daq::IUpdatable::Id.Data4_UInt64 };
 
-ErrCode Updatable_update(Updatable* self, SerializedObject* update, BaseObject* config)
+daqErrCode daqUpdatable_update(daqUpdatable* self, daqSerializedObject* update, daqBaseObject* config)
 {
     return reinterpret_cast<daq::IUpdatable*>(self)->update(reinterpret_cast<daq::ISerializedObject*>(update), reinterpret_cast<daq::IBaseObject*>(config));
 }
 
-ErrCode Updatable_serializeForUpdate(Updatable* self, Serializer* serializer)
+daqErrCode daqUpdatable_serializeForUpdate(daqUpdatable* self, daqSerializer* serializer)
 {
     return reinterpret_cast<daq::IUpdatable*>(self)->serializeForUpdate(reinterpret_cast<daq::ISerializer*>(serializer));
 }
 
-ErrCode Updatable_updateEnded(Updatable* self, BaseObject* context)
+daqErrCode daqUpdatable_updateEnded(daqUpdatable* self, daqBaseObject* context)
 {
     return reinterpret_cast<daq::IUpdatable*>(self)->updateEnded(reinterpret_cast<daq::IBaseObject*>(context));
 }
 
-ErrCode Updatable_updateInternal(Updatable* self, SerializedObject* update, BaseObject* context)
+daqErrCode daqUpdatable_updateInternal(daqUpdatable* self, daqSerializedObject* update, daqBaseObject* context)
 {
     return reinterpret_cast<daq::IUpdatable*>(self)->updateInternal(reinterpret_cast<daq::ISerializedObject*>(update), reinterpret_cast<daq::IBaseObject*>(context));
 }

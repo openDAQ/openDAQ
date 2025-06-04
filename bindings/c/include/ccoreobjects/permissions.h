@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:02.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Permissions Permissions;
-    typedef struct Dict Dict;
+    typedef struct daqPermissions daqPermissions;
+    typedef struct daqDict daqDict;
 
-    EXPORTED extern const IntfID PERMISSIONS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PERMISSIONS_INTF_ID;
 
-    ErrCode EXPORTED Permissions_getInherited(Permissions* self, Bool* isInherited);
-    ErrCode EXPORTED Permissions_getAllowed(Permissions* self, Dict** permissions);
-    ErrCode EXPORTED Permissions_getDenied(Permissions* self, Dict** permissions);
+    daqErrCode EXPORTED daqPermissions_getInherited(daqPermissions* self, daqBool* isInherited);
+    daqErrCode EXPORTED daqPermissions_getAllowed(daqPermissions* self, daqDict** permissions);
+    daqErrCode EXPORTED daqPermissions_getDenied(daqPermissions* self, daqDict** permissions);
 
 #ifdef __cplusplus
 }

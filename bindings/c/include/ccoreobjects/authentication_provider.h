@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:57.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:09.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,21 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct AuthenticationProvider AuthenticationProvider;
-    typedef struct String String;
-    typedef struct User User;
-    typedef struct List List;
+    typedef struct daqAuthenticationProvider daqAuthenticationProvider;
+    typedef struct daqString daqString;
+    typedef struct daqUser daqUser;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID AUTHENTICATION_PROVIDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_AUTHENTICATION_PROVIDER_INTF_ID;
 
-    ErrCode EXPORTED AuthenticationProvider_authenticate(AuthenticationProvider* self, String* username, String* password, User** userOut);
-    ErrCode EXPORTED AuthenticationProvider_isAnonymousAllowed(AuthenticationProvider* self, Bool* allowedOut);
-    ErrCode EXPORTED AuthenticationProvider_authenticateAnonymous(AuthenticationProvider* self, User** userOut);
-    ErrCode EXPORTED AuthenticationProvider_findUser(AuthenticationProvider* self, String* username, User** userOut);
-    ErrCode EXPORTED AuthenticationProvider_createAuthenticationProvider(AuthenticationProvider** obj, Bool allowAnonymous);
-    ErrCode EXPORTED AuthenticationProvider_createStaticAuthenticationProvider(AuthenticationProvider** obj, Bool allowAnonymous, List* userList);
-    ErrCode EXPORTED AuthenticationProvider_createJsonStringAuthenticationProvider(AuthenticationProvider** obj, String* jsonString);
-    ErrCode EXPORTED AuthenticationProvider_createJsonFileAuthenticationProvider(AuthenticationProvider** obj, String* filename);
+    daqErrCode EXPORTED daqAuthenticationProvider_authenticate(daqAuthenticationProvider* self, daqString* username, daqString* password, daqUser** userOut);
+    daqErrCode EXPORTED daqAuthenticationProvider_isAnonymousAllowed(daqAuthenticationProvider* self, daqBool* allowedOut);
+    daqErrCode EXPORTED daqAuthenticationProvider_authenticateAnonymous(daqAuthenticationProvider* self, daqUser** userOut);
+    daqErrCode EXPORTED daqAuthenticationProvider_findUser(daqAuthenticationProvider* self, daqString* username, daqUser** userOut);
+    daqErrCode EXPORTED daqAuthenticationProvider_createAuthenticationProvider(daqAuthenticationProvider** obj, daqBool allowAnonymous);
+    daqErrCode EXPORTED daqAuthenticationProvider_createStaticAuthenticationProvider(daqAuthenticationProvider** obj, daqBool allowAnonymous, daqList* userList);
+    daqErrCode EXPORTED daqAuthenticationProvider_createJsonStringAuthenticationProvider(daqAuthenticationProvider** obj, daqString* jsonString);
+    daqErrCode EXPORTED daqAuthenticationProvider_createJsonFileAuthenticationProvider(daqAuthenticationProvider** obj, daqString* filename);
 
 #ifdef __cplusplus
 }

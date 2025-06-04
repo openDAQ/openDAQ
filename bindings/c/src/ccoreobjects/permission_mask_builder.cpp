@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:02.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,45 +15,45 @@
 
 #include <copendaq_private.h>
 
-const IntfID PERMISSION_MASK_BUILDER_INTF_ID = { daq::IPermissionMaskBuilder::Id.Data1, daq::IPermissionMaskBuilder::Id.Data2, daq::IPermissionMaskBuilder::Id.Data3, daq::IPermissionMaskBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_PERMISSION_MASK_BUILDER_INTF_ID = { daq::IPermissionMaskBuilder::Id.Data1, daq::IPermissionMaskBuilder::Id.Data2, daq::IPermissionMaskBuilder::Id.Data3, daq::IPermissionMaskBuilder::Id.Data4_UInt64 };
 
-ErrCode PermissionMaskBuilder_read(PermissionMaskBuilder* self)
+daqErrCode daqPermissionMaskBuilder_read(daqPermissionMaskBuilder* self)
 {
     return reinterpret_cast<daq::IPermissionMaskBuilder*>(self)->read();
 }
 
-ErrCode PermissionMaskBuilder_write(PermissionMaskBuilder* self)
+daqErrCode daqPermissionMaskBuilder_write(daqPermissionMaskBuilder* self)
 {
     return reinterpret_cast<daq::IPermissionMaskBuilder*>(self)->write();
 }
 
-ErrCode PermissionMaskBuilder_execute(PermissionMaskBuilder* self)
+daqErrCode daqPermissionMaskBuilder_execute(daqPermissionMaskBuilder* self)
 {
     return reinterpret_cast<daq::IPermissionMaskBuilder*>(self)->execute();
 }
 
-ErrCode PermissionMaskBuilder_clear(PermissionMaskBuilder* self)
+daqErrCode daqPermissionMaskBuilder_clear(daqPermissionMaskBuilder* self)
 {
     return reinterpret_cast<daq::IPermissionMaskBuilder*>(self)->clear();
 }
 
-ErrCode PermissionMaskBuilder_build(PermissionMaskBuilder* self, Int* permissionMask)
+daqErrCode daqPermissionMaskBuilder_build(daqPermissionMaskBuilder* self, daqInt* permissionMask)
 {
     return reinterpret_cast<daq::IPermissionMaskBuilder*>(self)->build(permissionMask);
 }
 
-ErrCode PermissionMaskBuilder_createPermissionMaskBuilder(PermissionMaskBuilder** obj)
+daqErrCode daqPermissionMaskBuilder_createPermissionMaskBuilder(daqPermissionMaskBuilder** obj)
 {
     daq::IPermissionMaskBuilder* ptr = nullptr;
-    ErrCode err = daq::createPermissionMaskBuilder(&ptr);
-    *obj = reinterpret_cast<PermissionMaskBuilder*>(ptr);
+    daqErrCode err = daq::createPermissionMaskBuilder(&ptr);
+    *obj = reinterpret_cast<daqPermissionMaskBuilder*>(ptr);
     return err;
 }
 
-ErrCode PermissionMaskBuilder_createPermissionMaskBuilderFromMask(PermissionMaskBuilder** obj, Int permissionMask)
+daqErrCode daqPermissionMaskBuilder_createPermissionMaskBuilderFromMask(daqPermissionMaskBuilder** obj, daqInt permissionMask)
 {
     daq::IPermissionMaskBuilder* ptr = nullptr;
-    ErrCode err = daq::createPermissionMaskBuilderFromMask(&ptr, permissionMask);
-    *obj = reinterpret_cast<PermissionMaskBuilder*>(ptr);
+    daqErrCode err = daq::createPermissionMaskBuilderFromMask(&ptr, permissionMask);
+    *obj = reinterpret_cast<daqPermissionMaskBuilder*>(ptr);
     return err;
 }

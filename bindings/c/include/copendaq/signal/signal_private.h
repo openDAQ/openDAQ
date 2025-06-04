@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:16.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,15 +34,15 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SignalPrivate SignalPrivate;
-    typedef struct String String;
+    typedef struct daqSignalPrivate daqSignalPrivate;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID SIGNAL_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SIGNAL_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED SignalPrivate_clearDomainSignalWithoutNotification(SignalPrivate* self);
-    ErrCode EXPORTED SignalPrivate_enableKeepLastValue(SignalPrivate* self, Bool enabled);
-    ErrCode EXPORTED SignalPrivate_getSignalSerializeId(SignalPrivate* self, String** serializeId);
-    ErrCode EXPORTED SignalPrivate_getKeepLastValue(SignalPrivate* self, Bool* keepLastValue);
+    daqErrCode EXPORTED daqSignalPrivate_clearDomainSignalWithoutNotification(daqSignalPrivate* self);
+    daqErrCode EXPORTED daqSignalPrivate_enableKeepLastValue(daqSignalPrivate* self, daqBool enabled);
+    daqErrCode EXPORTED daqSignalPrivate_getSignalSerializeId(daqSignalPrivate* self, daqString** serializeId);
+    daqErrCode EXPORTED daqSignalPrivate_getKeepLastValue(daqSignalPrivate* self, daqBool* keepLastValue);
 
 #ifdef __cplusplus
 }

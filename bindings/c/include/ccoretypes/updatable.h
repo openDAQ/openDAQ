@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:54.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:05.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Updatable Updatable;
-    typedef struct SerializedObject SerializedObject;
-    typedef struct Serializer Serializer;
+    typedef struct daqUpdatable daqUpdatable;
+    typedef struct daqSerializedObject daqSerializedObject;
+    typedef struct daqSerializer daqSerializer;
 
-    EXPORTED extern const IntfID UPDATABLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_UPDATABLE_INTF_ID;
 
-    ErrCode EXPORTED Updatable_update(Updatable* self, SerializedObject* update, BaseObject* config);
-    ErrCode EXPORTED Updatable_serializeForUpdate(Updatable* self, Serializer* serializer);
-    ErrCode EXPORTED Updatable_updateEnded(Updatable* self, BaseObject* context);
-    ErrCode EXPORTED Updatable_updateInternal(Updatable* self, SerializedObject* update, BaseObject* context);
+    daqErrCode EXPORTED daqUpdatable_update(daqUpdatable* self, daqSerializedObject* update, daqBaseObject* config);
+    daqErrCode EXPORTED daqUpdatable_serializeForUpdate(daqUpdatable* self, daqSerializer* serializer);
+    daqErrCode EXPORTED daqUpdatable_updateEnded(daqUpdatable* self, daqBaseObject* context);
+    daqErrCode EXPORTED daqUpdatable_updateInternal(daqUpdatable* self, daqSerializedObject* update, daqBaseObject* context);
 
 #ifdef __cplusplus
 }

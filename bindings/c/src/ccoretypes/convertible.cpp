@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:39.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,19 +15,19 @@
 
 #include <copendaq_private.h>
 
-const IntfID CONVERTIBLE_INTF_ID = { daq::IConvertible::Id.Data1, daq::IConvertible::Id.Data2, daq::IConvertible::Id.Data3, daq::IConvertible::Id.Data4_UInt64 };
+const daqIntfID DAQ_CONVERTIBLE_INTF_ID = { daq::IConvertible::Id.Data1, daq::IConvertible::Id.Data2, daq::IConvertible::Id.Data3, daq::IConvertible::Id.Data4_UInt64 };
 
-ErrCode Convertible_toFloat(Convertible* self, Float* val)
+daqErrCode daqConvertible_toFloat(daqConvertible* self, daqFloat* val)
 {
     return reinterpret_cast<daq::IConvertible*>(self)->toFloat(val);
 }
 
-ErrCode Convertible_toInt(Convertible* self, Int* val)
+daqErrCode daqConvertible_toInt(daqConvertible* self, daqInt* val)
 {
     return reinterpret_cast<daq::IConvertible*>(self)->toInt(val);
 }
 
-ErrCode Convertible_toBool(Convertible* self, Bool* val)
+daqErrCode daqConvertible_toBool(daqConvertible* self, daqBool* val)
 {
     return reinterpret_cast<daq::IConvertible*>(self)->toBool(val);
 }

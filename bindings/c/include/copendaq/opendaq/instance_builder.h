@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:42.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:21.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,60 +34,60 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct InstanceBuilder InstanceBuilder;
-    typedef struct Instance Instance;
-    typedef struct ConfigProvider ConfigProvider;
-    typedef struct Context Context;
-    typedef struct Logger Logger;
-    typedef struct String String;
-    typedef struct Dict Dict;
-    typedef struct LoggerSink LoggerSink;
-    typedef struct List List;
-    typedef struct ModuleManager ModuleManager;
-    typedef struct AuthenticationProvider AuthenticationProvider;
-    typedef struct Scheduler Scheduler;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct DeviceInfo DeviceInfo;
+    typedef struct daqInstanceBuilder daqInstanceBuilder;
+    typedef struct daqInstance daqInstance;
+    typedef struct daqConfigProvider daqConfigProvider;
+    typedef struct daqContext daqContext;
+    typedef struct daqLogger daqLogger;
+    typedef struct daqString daqString;
+    typedef struct daqDict daqDict;
+    typedef struct daqLoggerSink daqLoggerSink;
+    typedef struct daqList daqList;
+    typedef struct daqModuleManager daqModuleManager;
+    typedef struct daqAuthenticationProvider daqAuthenticationProvider;
+    typedef struct daqScheduler daqScheduler;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqDeviceInfo daqDeviceInfo;
 
-    EXPORTED extern const IntfID INSTANCE_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_INSTANCE_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED InstanceBuilder_build(InstanceBuilder* self, Instance** instance);
-    ErrCode EXPORTED InstanceBuilder_addConfigProvider(InstanceBuilder* self, ConfigProvider* configProvider);
-    ErrCode EXPORTED InstanceBuilder_setContext(InstanceBuilder* self, Context* context);
-    ErrCode EXPORTED InstanceBuilder_getContext(InstanceBuilder* self, Context** context);
-    ErrCode EXPORTED InstanceBuilder_setLogger(InstanceBuilder* self, Logger* logger);
-    ErrCode EXPORTED InstanceBuilder_getLogger(InstanceBuilder* self, Logger** logger);
-    ErrCode EXPORTED InstanceBuilder_setGlobalLogLevel(InstanceBuilder* self, LogLevel logLevel);
-    ErrCode EXPORTED InstanceBuilder_getGlobalLogLevel(InstanceBuilder* self, LogLevel* logLevel);
-    ErrCode EXPORTED InstanceBuilder_setComponentLogLevel(InstanceBuilder* self, String* component, LogLevel logLevel);
-    ErrCode EXPORTED InstanceBuilder_getComponentsLogLevel(InstanceBuilder* self, Dict** components);
-    ErrCode EXPORTED InstanceBuilder_addLoggerSink(InstanceBuilder* self, LoggerSink* sink);
-    ErrCode EXPORTED InstanceBuilder_setSinkLogLevel(InstanceBuilder* self, LoggerSink* sink, LogLevel logLevel);
-    ErrCode EXPORTED InstanceBuilder_getLoggerSinks(InstanceBuilder* self, List** sinks);
-    ErrCode EXPORTED InstanceBuilder_setModulePath(InstanceBuilder* self, String* path);
-    ErrCode EXPORTED InstanceBuilder_getModulePath(InstanceBuilder* self, String** path);
-    ErrCode EXPORTED InstanceBuilder_addModulePath(InstanceBuilder* self, String* path);
-    ErrCode EXPORTED InstanceBuilder_getModulePathsList(InstanceBuilder* self, List** paths);
-    ErrCode EXPORTED InstanceBuilder_setModuleManager(InstanceBuilder* self, ModuleManager* moduleManager);
-    ErrCode EXPORTED InstanceBuilder_getModuleManager(InstanceBuilder* self, ModuleManager** moduleManager);
-    ErrCode EXPORTED InstanceBuilder_setAuthenticationProvider(InstanceBuilder* self, AuthenticationProvider* authenticationProvider);
-    ErrCode EXPORTED InstanceBuilder_getAuthenticationProvider(InstanceBuilder* self, AuthenticationProvider** authenticationProvider);
-    ErrCode EXPORTED InstanceBuilder_setSchedulerWorkerNum(InstanceBuilder* self, SizeT numWorkers);
-    ErrCode EXPORTED InstanceBuilder_getSchedulerWorkerNum(InstanceBuilder* self, SizeT* numWorkers);
-    ErrCode EXPORTED InstanceBuilder_setScheduler(InstanceBuilder* self, Scheduler* scheduler);
-    ErrCode EXPORTED InstanceBuilder_getScheduler(InstanceBuilder* self, Scheduler** scheduler);
-    ErrCode EXPORTED InstanceBuilder_setDefaultRootDeviceLocalId(InstanceBuilder* self, String* localId);
-    ErrCode EXPORTED InstanceBuilder_getDefaultRootDeviceLocalId(InstanceBuilder* self, String** localId);
-    ErrCode EXPORTED InstanceBuilder_setRootDevice(InstanceBuilder* self, String* connectionString, PropertyObject* config);
-    ErrCode EXPORTED InstanceBuilder_getRootDevice(InstanceBuilder* self, String** connectionString);
-    ErrCode EXPORTED InstanceBuilder_getRootDeviceConfig(InstanceBuilder* self, PropertyObject** config);
-    ErrCode EXPORTED InstanceBuilder_setDefaultRootDeviceInfo(InstanceBuilder* self, DeviceInfo* deviceInfo);
-    ErrCode EXPORTED InstanceBuilder_getDefaultRootDeviceInfo(InstanceBuilder* self, DeviceInfo** deviceInfo);
-    ErrCode EXPORTED InstanceBuilder_getOptions(InstanceBuilder* self, Dict** options);
-    ErrCode EXPORTED InstanceBuilder_enableStandardProviders(InstanceBuilder* self, Bool flag);
-    ErrCode EXPORTED InstanceBuilder_getDiscoveryServers(InstanceBuilder* self, List** serverNames);
-    ErrCode EXPORTED InstanceBuilder_addDiscoveryServer(InstanceBuilder* self, String* serverName);
-    ErrCode EXPORTED InstanceBuilder_createInstanceBuilder(InstanceBuilder** obj);
+    daqErrCode EXPORTED daqInstanceBuilder_build(daqInstanceBuilder* self, daqInstance** instance);
+    daqErrCode EXPORTED daqInstanceBuilder_addConfigProvider(daqInstanceBuilder* self, daqConfigProvider* configProvider);
+    daqErrCode EXPORTED daqInstanceBuilder_setContext(daqInstanceBuilder* self, daqContext* context);
+    daqErrCode EXPORTED daqInstanceBuilder_getContext(daqInstanceBuilder* self, daqContext** context);
+    daqErrCode EXPORTED daqInstanceBuilder_setLogger(daqInstanceBuilder* self, daqLogger* logger);
+    daqErrCode EXPORTED daqInstanceBuilder_getLogger(daqInstanceBuilder* self, daqLogger** logger);
+    daqErrCode EXPORTED daqInstanceBuilder_setGlobalLogLevel(daqInstanceBuilder* self, daqLogLevel logLevel);
+    daqErrCode EXPORTED daqInstanceBuilder_getGlobalLogLevel(daqInstanceBuilder* self, daqLogLevel* logLevel);
+    daqErrCode EXPORTED daqInstanceBuilder_setComponentLogLevel(daqInstanceBuilder* self, daqString* component, daqLogLevel logLevel);
+    daqErrCode EXPORTED daqInstanceBuilder_getComponentsLogLevel(daqInstanceBuilder* self, daqDict** components);
+    daqErrCode EXPORTED daqInstanceBuilder_addLoggerSink(daqInstanceBuilder* self, daqLoggerSink* sink);
+    daqErrCode EXPORTED daqInstanceBuilder_setSinkLogLevel(daqInstanceBuilder* self, daqLoggerSink* sink, daqLogLevel logLevel);
+    daqErrCode EXPORTED daqInstanceBuilder_getLoggerSinks(daqInstanceBuilder* self, daqList** sinks);
+    daqErrCode EXPORTED daqInstanceBuilder_setModulePath(daqInstanceBuilder* self, daqString* path);
+    daqErrCode EXPORTED daqInstanceBuilder_getModulePath(daqInstanceBuilder* self, daqString** path);
+    daqErrCode EXPORTED daqInstanceBuilder_addModulePath(daqInstanceBuilder* self, daqString* path);
+    daqErrCode EXPORTED daqInstanceBuilder_getModulePathsList(daqInstanceBuilder* self, daqList** paths);
+    daqErrCode EXPORTED daqInstanceBuilder_setModuleManager(daqInstanceBuilder* self, daqModuleManager* moduleManager);
+    daqErrCode EXPORTED daqInstanceBuilder_getModuleManager(daqInstanceBuilder* self, daqModuleManager** moduleManager);
+    daqErrCode EXPORTED daqInstanceBuilder_setAuthenticationProvider(daqInstanceBuilder* self, daqAuthenticationProvider* authenticationProvider);
+    daqErrCode EXPORTED daqInstanceBuilder_getAuthenticationProvider(daqInstanceBuilder* self, daqAuthenticationProvider** authenticationProvider);
+    daqErrCode EXPORTED daqInstanceBuilder_setSchedulerWorkerNum(daqInstanceBuilder* self, daqSizeT numWorkers);
+    daqErrCode EXPORTED daqInstanceBuilder_getSchedulerWorkerNum(daqInstanceBuilder* self, daqSizeT* numWorkers);
+    daqErrCode EXPORTED daqInstanceBuilder_setScheduler(daqInstanceBuilder* self, daqScheduler* scheduler);
+    daqErrCode EXPORTED daqInstanceBuilder_getScheduler(daqInstanceBuilder* self, daqScheduler** scheduler);
+    daqErrCode EXPORTED daqInstanceBuilder_setDefaultRootDeviceLocalId(daqInstanceBuilder* self, daqString* localId);
+    daqErrCode EXPORTED daqInstanceBuilder_getDefaultRootDeviceLocalId(daqInstanceBuilder* self, daqString** localId);
+    daqErrCode EXPORTED daqInstanceBuilder_setRootDevice(daqInstanceBuilder* self, daqString* connectionString, daqPropertyObject* config);
+    daqErrCode EXPORTED daqInstanceBuilder_getRootDevice(daqInstanceBuilder* self, daqString** connectionString);
+    daqErrCode EXPORTED daqInstanceBuilder_getRootDeviceConfig(daqInstanceBuilder* self, daqPropertyObject** config);
+    daqErrCode EXPORTED daqInstanceBuilder_setDefaultRootDeviceInfo(daqInstanceBuilder* self, daqDeviceInfo* deviceInfo);
+    daqErrCode EXPORTED daqInstanceBuilder_getDefaultRootDeviceInfo(daqInstanceBuilder* self, daqDeviceInfo** deviceInfo);
+    daqErrCode EXPORTED daqInstanceBuilder_getOptions(daqInstanceBuilder* self, daqDict** options);
+    daqErrCode EXPORTED daqInstanceBuilder_enableStandardProviders(daqInstanceBuilder* self, daqBool flag);
+    daqErrCode EXPORTED daqInstanceBuilder_getDiscoveryServers(daqInstanceBuilder* self, daqList** serverNames);
+    daqErrCode EXPORTED daqInstanceBuilder_addDiscoveryServer(daqInstanceBuilder* self, daqString* serverName);
+    daqErrCode EXPORTED daqInstanceBuilder_createInstanceBuilder(daqInstanceBuilder** obj);
 
 #ifdef __cplusplus
 }

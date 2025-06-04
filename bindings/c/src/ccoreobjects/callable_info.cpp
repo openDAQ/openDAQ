@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:58.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:10.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,27 +15,27 @@
 
 #include <copendaq_private.h>
 
-const IntfID CALLABLE_INFO_INTF_ID = { daq::ICallableInfo::Id.Data1, daq::ICallableInfo::Id.Data2, daq::ICallableInfo::Id.Data3, daq::ICallableInfo::Id.Data4_UInt64 };
+const daqIntfID DAQ_CALLABLE_INFO_INTF_ID = { daq::ICallableInfo::Id.Data1, daq::ICallableInfo::Id.Data2, daq::ICallableInfo::Id.Data3, daq::ICallableInfo::Id.Data4_UInt64 };
 
-ErrCode CallableInfo_getReturnType(CallableInfo* self, CoreType* type)
+daqErrCode daqCallableInfo_getReturnType(daqCallableInfo* self, daqCoreType* type)
 {
     return reinterpret_cast<daq::ICallableInfo*>(self)->getReturnType(reinterpret_cast<daq::CoreType*>(type));
 }
 
-ErrCode CallableInfo_getArguments(CallableInfo* self, List** argumentInfo)
+daqErrCode daqCallableInfo_getArguments(daqCallableInfo* self, daqList** argumentInfo)
 {
     return reinterpret_cast<daq::ICallableInfo*>(self)->getArguments(reinterpret_cast<daq::IList**>(argumentInfo));
 }
 
-ErrCode CallableInfo_isConst(CallableInfo* self, Bool* constFlag)
+daqErrCode daqCallableInfo_isConst(daqCallableInfo* self, daqBool* constFlag)
 {
     return reinterpret_cast<daq::ICallableInfo*>(self)->isConst(constFlag);
 }
 
-ErrCode CallableInfo_createCallableInfo(CallableInfo** obj, List* argumentInfo, CoreType returnType, Bool constFlag)
+daqErrCode daqCallableInfo_createCallableInfo(daqCallableInfo** obj, daqList* argumentInfo, daqCoreType returnType, daqBool constFlag)
 {
     daq::ICallableInfo* ptr = nullptr;
-    ErrCode err = daq::createCallableInfo(&ptr, reinterpret_cast<daq::IList*>(argumentInfo), static_cast<daq::CoreType>(returnType), constFlag);
-    *obj = reinterpret_cast<CallableInfo*>(ptr);
+    daqErrCode err = daq::createCallableInfo(&ptr, reinterpret_cast<daq::IList*>(argumentInfo), static_cast<daq::CoreType>(returnType), constFlag);
+    *obj = reinterpret_cast<daqCallableInfo*>(ptr);
     return err;
 }

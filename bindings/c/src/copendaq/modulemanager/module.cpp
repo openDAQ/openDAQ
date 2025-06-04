@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:38.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,59 +15,59 @@
 
 #include <copendaq_private.h>
 
-const IntfID MODULE_INTF_ID = { daq::IModule::Id.Data1, daq::IModule::Id.Data2, daq::IModule::Id.Data3, daq::IModule::Id.Data4_UInt64 };
+const daqIntfID DAQ_MODULE_INTF_ID = { daq::IModule::Id.Data1, daq::IModule::Id.Data2, daq::IModule::Id.Data3, daq::IModule::Id.Data4_UInt64 };
 
-ErrCode Module_getModuleInfo(Module* self, ModuleInfo** info)
+daqErrCode daqModule_getModuleInfo(daqModule* self, daqModuleInfo** info)
 {
     return reinterpret_cast<daq::IModule*>(self)->getModuleInfo(reinterpret_cast<daq::IModuleInfo**>(info));
 }
 
-ErrCode Module_getAvailableDevices(Module* self, List** availableDevices)
+daqErrCode daqModule_getAvailableDevices(daqModule* self, daqList** availableDevices)
 {
     return reinterpret_cast<daq::IModule*>(self)->getAvailableDevices(reinterpret_cast<daq::IList**>(availableDevices));
 }
 
-ErrCode Module_getAvailableDeviceTypes(Module* self, Dict** deviceTypes)
+daqErrCode daqModule_getAvailableDeviceTypes(daqModule* self, daqDict** deviceTypes)
 {
     return reinterpret_cast<daq::IModule*>(self)->getAvailableDeviceTypes(reinterpret_cast<daq::IDict**>(deviceTypes));
 }
 
-ErrCode Module_createDevice(Module* self, Device** device, String* connectionString, Component* parent, PropertyObject* config)
+daqErrCode daqModule_createDevice(daqModule* self, daqDevice** device, daqString* connectionString, daqComponent* parent, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IModule*>(self)->createDevice(reinterpret_cast<daq::IDevice**>(device), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode Module_getAvailableFunctionBlockTypes(Module* self, Dict** functionBlockTypes)
+daqErrCode daqModule_getAvailableFunctionBlockTypes(daqModule* self, daqDict** functionBlockTypes)
 {
     return reinterpret_cast<daq::IModule*>(self)->getAvailableFunctionBlockTypes(reinterpret_cast<daq::IDict**>(functionBlockTypes));
 }
 
-ErrCode Module_createFunctionBlock(Module* self, FunctionBlock** functionBlock, String* id, Component* parent, String* localId, PropertyObject* config)
+daqErrCode daqModule_createFunctionBlock(daqModule* self, daqFunctionBlock** functionBlock, daqString* id, daqComponent* parent, daqString* localId, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IModule*>(self)->createFunctionBlock(reinterpret_cast<daq::IFunctionBlock**>(functionBlock), reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode Module_getAvailableServerTypes(Module* self, Dict** serverTypes)
+daqErrCode daqModule_getAvailableServerTypes(daqModule* self, daqDict** serverTypes)
 {
     return reinterpret_cast<daq::IModule*>(self)->getAvailableServerTypes(reinterpret_cast<daq::IDict**>(serverTypes));
 }
 
-ErrCode Module_createServer(Module* self, Server** server, String* serverTypeId, Device* rootDevice, PropertyObject* config)
+daqErrCode daqModule_createServer(daqModule* self, daqServer** server, daqString* serverTypeId, daqDevice* rootDevice, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IModule*>(self)->createServer(reinterpret_cast<daq::IServer**>(server), reinterpret_cast<daq::IString*>(serverTypeId), reinterpret_cast<daq::IDevice*>(rootDevice), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode Module_createStreaming(Module* self, Streaming** streaming, String* connectionString, PropertyObject* config)
+daqErrCode daqModule_createStreaming(daqModule* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config)
 {
     return reinterpret_cast<daq::IModule*>(self)->createStreaming(reinterpret_cast<daq::IStreaming**>(streaming), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-ErrCode Module_completeServerCapability(Module* self, Bool* succeeded, ServerCapability* source, ServerCapabilityConfig* target)
+daqErrCode daqModule_completeServerCapability(daqModule* self, daqBool* succeeded, daqServerCapability* source, daqServerCapabilityConfig* target)
 {
     return reinterpret_cast<daq::IModule*>(self)->completeServerCapability(succeeded, reinterpret_cast<daq::IServerCapability*>(source), reinterpret_cast<daq::IServerCapabilityConfig*>(target));
 }
 
-ErrCode Module_getAvailableStreamingTypes(Module* self, Dict** streamingTypes)
+daqErrCode daqModule_getAvailableStreamingTypes(daqModule* self, daqDict** streamingTypes)
 {
     return reinterpret_cast<daq::IModule*>(self)->getAvailableStreamingTypes(reinterpret_cast<daq::IDict**>(streamingTypes));
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:14.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,19 +15,19 @@
 
 #include <copendaq_private.h>
 
-const IntfID SCALING_CALC_PRIVATE_INTF_ID = { daq::IScalingCalcPrivate::Id.Data1, daq::IScalingCalcPrivate::Id.Data2, daq::IScalingCalcPrivate::Id.Data3, daq::IScalingCalcPrivate::Id.Data4_UInt64 };
+const daqIntfID DAQ_SCALING_CALC_PRIVATE_INTF_ID = { daq::IScalingCalcPrivate::Id.Data1, daq::IScalingCalcPrivate::Id.Data2, daq::IScalingCalcPrivate::Id.Data3, daq::IScalingCalcPrivate::Id.Data4_UInt64 };
 
-void ScalingCalcPrivate_scaleData(ScalingCalcPrivate* self, void* data, SizeT sampleCount)
+daqvoid daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount)
 {
     return reinterpret_cast<daq::IScalingCalcPrivate*>(self)->scaleData(data, sampleCount);
 }
 
-void ScalingCalcPrivate_scaleData(ScalingCalcPrivate* self, void* data, SizeT sampleCount, void** output)
+daqvoid daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount, void** output)
 {
     return reinterpret_cast<daq::IScalingCalcPrivate*>(self)->scaleData(data, sampleCount, output);
 }
 
-Bool ScalingCalcPrivate_hasScalingCalc(ScalingCalcPrivate* self)
+daqBool daqScalingCalcPrivate_hasScalingCalc(daqScalingCalcPrivate* self)
 {
     return reinterpret_cast<daq::IScalingCalcPrivate*>(self)->hasScalingCalc();
 }

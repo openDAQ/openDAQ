@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:48.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,14 +15,14 @@
 
 #include <copendaq_private.h>
 
-const IntfID SERIALIZABLE_INTF_ID = { daq::ISerializable::Id.Data1, daq::ISerializable::Id.Data2, daq::ISerializable::Id.Data3, daq::ISerializable::Id.Data4_UInt64 };
+const daqIntfID DAQ_SERIALIZABLE_INTF_ID = { daq::ISerializable::Id.Data1, daq::ISerializable::Id.Data2, daq::ISerializable::Id.Data3, daq::ISerializable::Id.Data4_UInt64 };
 
-ErrCode Serializable_serialize(Serializable* self, Serializer* serializer)
+daqErrCode daqSerializable_serialize(daqSerializable* self, daqSerializer* serializer)
 {
     return reinterpret_cast<daq::ISerializable*>(self)->serialize(reinterpret_cast<daq::ISerializer*>(serializer));
 }
 
-ErrCode Serializable_getSerializeId(Serializable* self, ConstCharPtr* id)
+daqErrCode daqSerializable_getSerializeId(daqSerializable* self, daqConstCharPtr* id)
 {
-    return reinterpret_cast<daq::ISerializable*>(self)->getSerializeId(id);
+    return reinterpret_cast<daq::ISerializable*>(self)->getSerializeId(reinterpret_cast<daq::ConstCharPtr*>(id));
 }

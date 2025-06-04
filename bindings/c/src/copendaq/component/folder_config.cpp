@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:18.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,48 +15,48 @@
 
 #include <copendaq_private.h>
 
-const IntfID FOLDER_CONFIG_INTF_ID = { daq::IFolderConfig::Id.Data1, daq::IFolderConfig::Id.Data2, daq::IFolderConfig::Id.Data3, daq::IFolderConfig::Id.Data4_UInt64 };
+const daqIntfID DAQ_FOLDER_CONFIG_INTF_ID = { daq::IFolderConfig::Id.Data1, daq::IFolderConfig::Id.Data2, daq::IFolderConfig::Id.Data3, daq::IFolderConfig::Id.Data4_UInt64 };
 
-ErrCode FolderConfig_addItem(FolderConfig* self, Component* item)
+daqErrCode daqFolderConfig_addItem(daqFolderConfig* self, daqComponent* item)
 {
     return reinterpret_cast<daq::IFolderConfig*>(self)->addItem(reinterpret_cast<daq::IComponent*>(item));
 }
 
-ErrCode FolderConfig_removeItem(FolderConfig* self, Component* item)
+daqErrCode daqFolderConfig_removeItem(daqFolderConfig* self, daqComponent* item)
 {
     return reinterpret_cast<daq::IFolderConfig*>(self)->removeItem(reinterpret_cast<daq::IComponent*>(item));
 }
 
-ErrCode FolderConfig_removeItemWithLocalId(FolderConfig* self, String* localId)
+daqErrCode daqFolderConfig_removeItemWithLocalId(daqFolderConfig* self, daqString* localId)
 {
     return reinterpret_cast<daq::IFolderConfig*>(self)->removeItemWithLocalId(reinterpret_cast<daq::IString*>(localId));
 }
 
-ErrCode FolderConfig_clear(FolderConfig* self)
+daqErrCode daqFolderConfig_clear(daqFolderConfig* self)
 {
     return reinterpret_cast<daq::IFolderConfig*>(self)->clear();
 }
 
-ErrCode FolderConfig_createFolder(FolderConfig** obj, Context* context, Component* parent, String* localId)
+daqErrCode daqFolderConfig_createFolder(daqFolderConfig** obj, daqContext* context, daqComponent* parent, daqString* localId)
 {
     daq::IFolderConfig* ptr = nullptr;
-    ErrCode err = daq::createFolder(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId));
-    *obj = reinterpret_cast<FolderConfig*>(ptr);
+    daqErrCode err = daq::createFolder(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId));
+    *obj = reinterpret_cast<daqFolderConfig*>(ptr);
     return err;
 }
 
-ErrCode FolderConfig_createFolderWithItemType(FolderConfig** obj, IntfID itemType, Context* context, Component* parent, String* localId)
+daqErrCode daqFolderConfig_createFolderWithItemType(daqFolderConfig** obj, daqIntfID itemType, daqContext* context, daqComponent* parent, daqString* localId)
 {
     daq::IFolderConfig* ptr = nullptr;
-    ErrCode err = daq::createFolderWithItemType(&ptr, copendaq::utils::toDaqIntfId(itemType), reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId));
-    *obj = reinterpret_cast<FolderConfig*>(ptr);
+    daqErrCode err = daq::createFolderWithItemType(&ptr, copendaq::utils::toDaqIntfId(itemType), reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId));
+    *obj = reinterpret_cast<daqFolderConfig*>(ptr);
     return err;
 }
 
-ErrCode FolderConfig_createIoFolder(FolderConfig** obj, Context* context, Component* parent, String* localId)
+daqErrCode daqFolderConfig_createIoFolder(daqFolderConfig** obj, daqContext* context, daqComponent* parent, daqString* localId)
 {
     daq::IFolderConfig* ptr = nullptr;
-    ErrCode err = daq::createIoFolder(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId));
-    *obj = reinterpret_cast<FolderConfig*>(ptr);
+    daqErrCode err = daq::createIoFolder(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId));
+    *obj = reinterpret_cast<daqFolderConfig*>(ptr);
     return err;
 }

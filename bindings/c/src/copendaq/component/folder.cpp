@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:17.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,24 +15,24 @@
 
 #include <copendaq_private.h>
 
-const IntfID FOLDER_INTF_ID = { daq::IFolder::Id.Data1, daq::IFolder::Id.Data2, daq::IFolder::Id.Data3, daq::IFolder::Id.Data4_UInt64 };
+const daqIntfID DAQ_FOLDER_INTF_ID = { daq::IFolder::Id.Data1, daq::IFolder::Id.Data2, daq::IFolder::Id.Data3, daq::IFolder::Id.Data4_UInt64 };
 
-ErrCode Folder_getItems(Folder* self, List** items, SearchFilter* searchFilter)
+daqErrCode daqFolder_getItems(daqFolder* self, daqList** items, daqSearchFilter* searchFilter)
 {
     return reinterpret_cast<daq::IFolder*>(self)->getItems(reinterpret_cast<daq::IList**>(items), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
 }
 
-ErrCode Folder_isEmpty(Folder* self, Bool* empty)
+daqErrCode daqFolder_isEmpty(daqFolder* self, daqBool* empty)
 {
     return reinterpret_cast<daq::IFolder*>(self)->isEmpty(empty);
 }
 
-ErrCode Folder_hasItem(Folder* self, String* localId, Bool* value)
+daqErrCode daqFolder_hasItem(daqFolder* self, daqString* localId, daqBool* value)
 {
     return reinterpret_cast<daq::IFolder*>(self)->hasItem(reinterpret_cast<daq::IString*>(localId), value);
 }
 
-ErrCode Folder_getItem(Folder* self, String* localId, Component** item)
+daqErrCode daqFolder_getItem(daqFolder* self, daqString* localId, daqComponent** item)
 {
     return reinterpret_cast<daq::IFolder*>(self)->getItem(reinterpret_cast<daq::IString*>(localId), reinterpret_cast<daq::IComponent**>(item));
 }

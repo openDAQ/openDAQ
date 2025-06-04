@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:49.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,54 +15,54 @@
 
 #include <copendaq_private.h>
 
-const IntfID SERIALIZED_LIST_INTF_ID = { daq::ISerializedList::Id.Data1, daq::ISerializedList::Id.Data2, daq::ISerializedList::Id.Data3, daq::ISerializedList::Id.Data4_UInt64 };
+const daqIntfID DAQ_SERIALIZED_LIST_INTF_ID = { daq::ISerializedList::Id.Data1, daq::ISerializedList::Id.Data2, daq::ISerializedList::Id.Data3, daq::ISerializedList::Id.Data4_UInt64 };
 
-ErrCode SerializedList_readSerializedObject(SerializedList* self, SerializedObject** plainObj)
+daqErrCode daqSerializedList_readSerializedObject(daqSerializedList* self, daqSerializedObject** plainObj)
 {
     return reinterpret_cast<daq::ISerializedList*>(self)->readSerializedObject(reinterpret_cast<daq::ISerializedObject**>(plainObj));
 }
 
-ErrCode SerializedList_readSerializedList(SerializedList* self, SerializedList** list)
+daqErrCode daqSerializedList_readSerializedList(daqSerializedList* self, daqSerializedList** list)
 {
     return reinterpret_cast<daq::ISerializedList*>(self)->readSerializedList(reinterpret_cast<daq::ISerializedList**>(list));
 }
 
-ErrCode SerializedList_readList(SerializedList* self, BaseObject* context, Function* factoryCallback, List** list)
+daqErrCode daqSerializedList_readList(daqSerializedList* self, daqBaseObject* context, daqFunction* factoryCallback, daqList** list)
 {
     return reinterpret_cast<daq::ISerializedList*>(self)->readList(reinterpret_cast<daq::IBaseObject*>(context), reinterpret_cast<daq::IFunction*>(factoryCallback), reinterpret_cast<daq::IList**>(list));
 }
 
-ErrCode SerializedList_readObject(SerializedList* self, BaseObject* context, Function* factoryCallback, BaseObject** obj)
+daqErrCode daqSerializedList_readObject(daqSerializedList* self, daqBaseObject* context, daqFunction* factoryCallback, daqBaseObject** obj)
 {
     return reinterpret_cast<daq::ISerializedList*>(self)->readObject(reinterpret_cast<daq::IBaseObject*>(context), reinterpret_cast<daq::IFunction*>(factoryCallback), reinterpret_cast<daq::IBaseObject**>(obj));
 }
 
-ErrCode SerializedList_readString(SerializedList* self, String** string)
+daqErrCode daqSerializedList_readString(daqSerializedList* self, daqString** string)
 {
     return reinterpret_cast<daq::ISerializedList*>(self)->readString(reinterpret_cast<daq::IString**>(string));
 }
 
-ErrCode SerializedList_readBool(SerializedList* self, Bool* boolean)
+daqErrCode daqSerializedList_readBool(daqSerializedList* self, daqBool* boolean)
 {
     return reinterpret_cast<daq::ISerializedList*>(self)->readBool(boolean);
 }
 
-ErrCode SerializedList_readFloat(SerializedList* self, Float* real)
+daqErrCode daqSerializedList_readFloat(daqSerializedList* self, daqFloat* real)
 {
     return reinterpret_cast<daq::ISerializedList*>(self)->readFloat(real);
 }
 
-ErrCode SerializedList_readInt(SerializedList* self, Int* integer)
+daqErrCode daqSerializedList_readInt(daqSerializedList* self, daqInt* integer)
 {
     return reinterpret_cast<daq::ISerializedList*>(self)->readInt(integer);
 }
 
-ErrCode SerializedList_getCount(SerializedList* self, SizeT* size)
+daqErrCode daqSerializedList_getCount(daqSerializedList* self, daqSizeT* size)
 {
     return reinterpret_cast<daq::ISerializedList*>(self)->getCount(size);
 }
 
-ErrCode SerializedList_getCurrentItemType(SerializedList* self, CoreType* size)
+daqErrCode daqSerializedList_getCurrentItemType(daqSerializedList* self, daqCoreType* size)
 {
     return reinterpret_cast<daq::ISerializedList*>(self)->getCurrentItemType(reinterpret_cast<daq::CoreType*>(size));
 }

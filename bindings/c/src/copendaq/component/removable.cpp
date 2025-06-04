@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:19.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,14 +15,14 @@
 
 #include <copendaq_private.h>
 
-const IntfID REMOVABLE_INTF_ID = { daq::IRemovable::Id.Data1, daq::IRemovable::Id.Data2, daq::IRemovable::Id.Data3, daq::IRemovable::Id.Data4_UInt64 };
+const daqIntfID DAQ_REMOVABLE_INTF_ID = { daq::IRemovable::Id.Data1, daq::IRemovable::Id.Data2, daq::IRemovable::Id.Data3, daq::IRemovable::Id.Data4_UInt64 };
 
-ErrCode Removable_remove(Removable* self)
+daqErrCode daqRemovable_remove(daqRemovable* self)
 {
     return reinterpret_cast<daq::IRemovable*>(self)->remove();
 }
 
-ErrCode Removable_isRemoved(Removable* self, Bool* removed)
+daqErrCode daqRemovable_isRemoved(daqRemovable* self, daqBool* removed)
 {
     return reinterpret_cast<daq::IRemovable*>(self)->isRemoved(removed);
 }

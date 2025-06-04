@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:47.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:27.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,29 +15,29 @@
 
 #include <copendaq_private.h>
 
-const IntfID READER_CONFIG_INTF_ID = { daq::IReaderConfig::Id.Data1, daq::IReaderConfig::Id.Data2, daq::IReaderConfig::Id.Data3, daq::IReaderConfig::Id.Data4_UInt64 };
+const daqIntfID DAQ_READER_CONFIG_INTF_ID = { daq::IReaderConfig::Id.Data1, daq::IReaderConfig::Id.Data2, daq::IReaderConfig::Id.Data3, daq::IReaderConfig::Id.Data4_UInt64 };
 
-ErrCode ReaderConfig_getValueTransformFunction(ReaderConfig* self, Function** transform)
+daqErrCode daqReaderConfig_getValueTransformFunction(daqReaderConfig* self, daqFunction** transform)
 {
     return reinterpret_cast<daq::IReaderConfig*>(self)->getValueTransformFunction(reinterpret_cast<daq::IFunction**>(transform));
 }
 
-ErrCode ReaderConfig_getDomainTransformFunction(ReaderConfig* self, Function** transform)
+daqErrCode daqReaderConfig_getDomainTransformFunction(daqReaderConfig* self, daqFunction** transform)
 {
     return reinterpret_cast<daq::IReaderConfig*>(self)->getDomainTransformFunction(reinterpret_cast<daq::IFunction**>(transform));
 }
 
-ErrCode ReaderConfig_getInputPorts(ReaderConfig* self, List** ports)
+daqErrCode daqReaderConfig_getInputPorts(daqReaderConfig* self, daqList** ports)
 {
     return reinterpret_cast<daq::IReaderConfig*>(self)->getInputPorts(reinterpret_cast<daq::IList**>(ports));
 }
 
-ErrCode ReaderConfig_getReadTimeoutType(ReaderConfig* self, ReadTimeoutType* timeoutType)
+daqErrCode daqReaderConfig_getReadTimeoutType(daqReaderConfig* self, daqReadTimeoutType* timeoutType)
 {
     return reinterpret_cast<daq::IReaderConfig*>(self)->getReadTimeoutType(reinterpret_cast<daq::ReadTimeoutType*>(timeoutType));
 }
 
-ErrCode ReaderConfig_markAsInvalid(ReaderConfig* self)
+daqErrCode daqReaderConfig_markAsInvalid(daqReaderConfig* self)
 {
     return reinterpret_cast<daq::IReaderConfig*>(self)->markAsInvalid();
 }

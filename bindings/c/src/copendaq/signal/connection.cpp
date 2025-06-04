@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:58.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,102 +15,102 @@
 
 #include <copendaq_private.h>
 
-const IntfID CONNECTION_INTF_ID = { daq::IConnection::Id.Data1, daq::IConnection::Id.Data2, daq::IConnection::Id.Data3, daq::IConnection::Id.Data4_UInt64 };
+const daqIntfID DAQ_CONNECTION_INTF_ID = { daq::IConnection::Id.Data1, daq::IConnection::Id.Data2, daq::IConnection::Id.Data3, daq::IConnection::Id.Data4_UInt64 };
 
-ErrCode Connection_enqueue(Connection* self, Packet* packet)
+daqErrCode daqConnection_enqueue(daqConnection* self, daqPacket* packet)
 {
     return reinterpret_cast<daq::IConnection*>(self)->enqueue(reinterpret_cast<daq::IPacket*>(packet));
 }
 
-ErrCode Connection_enqueueOnThisThread(Connection* self, Packet* packet)
+daqErrCode daqConnection_enqueueOnThisThread(daqConnection* self, daqPacket* packet)
 {
     return reinterpret_cast<daq::IConnection*>(self)->enqueueOnThisThread(reinterpret_cast<daq::IPacket*>(packet));
 }
 
-ErrCode Connection_dequeue(Connection* self, Packet** packet)
+daqErrCode daqConnection_dequeue(daqConnection* self, daqPacket** packet)
 {
     return reinterpret_cast<daq::IConnection*>(self)->dequeue(reinterpret_cast<daq::IPacket**>(packet));
 }
 
-ErrCode Connection_peek(Connection* self, Packet** packet)
+daqErrCode daqConnection_peek(daqConnection* self, daqPacket** packet)
 {
     return reinterpret_cast<daq::IConnection*>(self)->peek(reinterpret_cast<daq::IPacket**>(packet));
 }
 
-ErrCode Connection_getPacketCount(Connection* self, SizeT* packetCount)
+daqErrCode daqConnection_getPacketCount(daqConnection* self, daqSizeT* packetCount)
 {
     return reinterpret_cast<daq::IConnection*>(self)->getPacketCount(packetCount);
 }
 
-ErrCode Connection_getSignal(Connection* self, Signal** signal)
+daqErrCode daqConnection_getSignal(daqConnection* self, daqSignal** signal)
 {
     return reinterpret_cast<daq::IConnection*>(self)->getSignal(reinterpret_cast<daq::ISignal**>(signal));
 }
 
-ErrCode Connection_getInputPort(Connection* self, InputPort** inputPort)
+daqErrCode daqConnection_getInputPort(daqConnection* self, daqInputPort** inputPort)
 {
     return reinterpret_cast<daq::IConnection*>(self)->getInputPort(reinterpret_cast<daq::IInputPort**>(inputPort));
 }
 
-ErrCode Connection_getAvailableSamples(Connection* self, SizeT* samples)
+daqErrCode daqConnection_getAvailableSamples(daqConnection* self, daqSizeT* samples)
 {
     return reinterpret_cast<daq::IConnection*>(self)->getAvailableSamples(samples);
 }
 
-ErrCode Connection_getSamplesUntilNextDescriptor(Connection* self, SizeT* samples)
+daqErrCode daqConnection_getSamplesUntilNextDescriptor(daqConnection* self, daqSizeT* samples)
 {
     return reinterpret_cast<daq::IConnection*>(self)->getSamplesUntilNextDescriptor(samples);
 }
 
-ErrCode Connection_isRemote(Connection* self, Bool* remote)
+daqErrCode daqConnection_isRemote(daqConnection* self, daqBool* remote)
 {
     return reinterpret_cast<daq::IConnection*>(self)->isRemote(remote);
 }
 
-ErrCode Connection_enqueueAndStealRef(Connection* self, Packet* packet)
+daqErrCode daqConnection_enqueueAndStealRef(daqConnection* self, daqPacket* packet)
 {
     return reinterpret_cast<daq::IConnection*>(self)->enqueueAndStealRef(reinterpret_cast<daq::IPacket*>(packet));
 }
 
-ErrCode Connection_enqueueMultiple(Connection* self, List* packets)
+daqErrCode daqConnection_enqueueMultiple(daqConnection* self, daqList* packets)
 {
     return reinterpret_cast<daq::IConnection*>(self)->enqueueMultiple(reinterpret_cast<daq::IList*>(packets));
 }
 
-ErrCode Connection_enqueueMultipleAndStealRef(Connection* self, List* packets)
+daqErrCode daqConnection_enqueueMultipleAndStealRef(daqConnection* self, daqList* packets)
 {
     return reinterpret_cast<daq::IConnection*>(self)->enqueueMultipleAndStealRef(reinterpret_cast<daq::IList*>(packets));
 }
 
-ErrCode Connection_dequeueAll(Connection* self, List** packets)
+daqErrCode daqConnection_dequeueAll(daqConnection* self, daqList** packets)
 {
     return reinterpret_cast<daq::IConnection*>(self)->dequeueAll(reinterpret_cast<daq::IList**>(packets));
 }
 
-ErrCode Connection_getSamplesUntilNextEventPacket(Connection* self, SizeT* samples)
+daqErrCode daqConnection_getSamplesUntilNextEventPacket(daqConnection* self, daqSizeT* samples)
 {
     return reinterpret_cast<daq::IConnection*>(self)->getSamplesUntilNextEventPacket(samples);
 }
 
-ErrCode Connection_getSamplesUntilNextGapPacket(Connection* self, SizeT* samples)
+daqErrCode daqConnection_getSamplesUntilNextGapPacket(daqConnection* self, daqSizeT* samples)
 {
     return reinterpret_cast<daq::IConnection*>(self)->getSamplesUntilNextGapPacket(samples);
 }
 
-ErrCode Connection_hasEventPacket(Connection* self, Bool* hasEventPacket)
+daqErrCode daqConnection_hasEventPacket(daqConnection* self, daqBool* hasEventPacket)
 {
     return reinterpret_cast<daq::IConnection*>(self)->hasEventPacket(hasEventPacket);
 }
 
-ErrCode Connection_hasGapPacket(Connection* self, Bool* hasGapPacket)
+daqErrCode daqConnection_hasGapPacket(daqConnection* self, daqBool* hasGapPacket)
 {
     return reinterpret_cast<daq::IConnection*>(self)->hasGapPacket(hasGapPacket);
 }
 
-ErrCode Connection_createConnection(Connection** obj, InputPort* inputPort, Signal* signal, Context* context)
+daqErrCode daqConnection_createConnection(daqConnection** obj, daqInputPort* inputPort, daqSignal* signal, daqContext* context)
 {
     daq::IConnection* ptr = nullptr;
-    ErrCode err = daq::createConnection(&ptr, reinterpret_cast<daq::IInputPort*>(inputPort), reinterpret_cast<daq::ISignal*>(signal), reinterpret_cast<daq::IContext*>(context));
-    *obj = reinterpret_cast<Connection*>(ptr);
+    daqErrCode err = daq::createConnection(&ptr, reinterpret_cast<daq::IInputPort*>(inputPort), reinterpret_cast<daq::ISignal*>(signal), reinterpret_cast<daq::IContext*>(context));
+    *obj = reinterpret_cast<daqConnection*>(ptr);
     return err;
 }

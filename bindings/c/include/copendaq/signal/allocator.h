@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:57.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Allocator Allocator;
-    typedef struct DataDescriptor DataDescriptor;
-    typedef struct Deleter Deleter;
+    typedef struct daqAllocator daqAllocator;
+    typedef struct daqDataDescriptor daqDataDescriptor;
+    typedef struct daqDeleter daqDeleter;
 
-    EXPORTED extern const IntfID ALLOCATOR_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_ALLOCATOR_INTF_ID;
 
-    ErrCode EXPORTED Allocator_allocate(Allocator* self, DataDescriptor* descriptor, SizeT bytes, SizeT align, void** address);
-    ErrCode EXPORTED Allocator_free(Allocator* self, void* address);
-    ErrCode EXPORTED Allocator_createMallocAllocator(Allocator** obj);
-    // ErrCode EXPORTED Allocator_createMiMallocAllocator(Allocator** obj);
-    ErrCode EXPORTED Allocator_createExternalAllocator(Allocator** obj, void* data, Deleter* deleter);
+    daqErrCode EXPORTED daqAllocator_allocate(daqAllocator* self, daqDataDescriptor* descriptor, daqSizeT bytes, daqSizeT align, void** address);
+    daqErrCode EXPORTED daqAllocator_free(daqAllocator* self, void* address);
+    daqErrCode EXPORTED daqAllocator_createMallocAllocator(daqAllocator** obj);
+    // daqErrCode EXPORTED daqAllocator_createMiMallocAllocator(daqAllocator** obj);
+    daqErrCode EXPORTED daqAllocator_createExternalAllocator(daqAllocator** obj, void* data, daqDeleter* deleter);
 
 #ifdef __cplusplus
 }

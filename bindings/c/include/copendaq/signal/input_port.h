@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:06.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,18 +34,18 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct InputPort InputPort;
-    typedef struct Signal Signal;
-    typedef struct Connection Connection;
+    typedef struct daqInputPort daqInputPort;
+    typedef struct daqSignal daqSignal;
+    typedef struct daqConnection daqConnection;
 
-    EXPORTED extern const IntfID INPUT_PORT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_INPUT_PORT_INTF_ID;
 
-    ErrCode EXPORTED InputPort_acceptsSignal(InputPort* self, Signal* signal, Bool* accepts);
-    ErrCode EXPORTED InputPort_connect(InputPort* self, Signal* signal);
-    ErrCode EXPORTED InputPort_disconnect(InputPort* self);
-    ErrCode EXPORTED InputPort_getSignal(InputPort* self, Signal** signal);
-    ErrCode EXPORTED InputPort_getRequiresSignal(InputPort* self, Bool* requiresSignal);
-    ErrCode EXPORTED InputPort_getConnection(InputPort* self, Connection** connection);
+    daqErrCode EXPORTED daqInputPort_acceptsSignal(daqInputPort* self, daqSignal* signal, daqBool* accepts);
+    daqErrCode EXPORTED daqInputPort_connect(daqInputPort* self, daqSignal* signal);
+    daqErrCode EXPORTED daqInputPort_disconnect(daqInputPort* self);
+    daqErrCode EXPORTED daqInputPort_getSignal(daqInputPort* self, daqSignal** signal);
+    daqErrCode EXPORTED daqInputPort_getRequiresSignal(daqInputPort* self, daqBool* requiresSignal);
+    daqErrCode EXPORTED daqInputPort_getConnection(daqInputPort* self, daqConnection** connection);
 
 #ifdef __cplusplus
 }

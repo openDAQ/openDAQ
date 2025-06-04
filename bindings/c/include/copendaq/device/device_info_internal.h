@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:26.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:06.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DeviceInfoInternal DeviceInfoInternal;
-    typedef struct ServerCapability ServerCapability;
-    typedef struct String String;
-    typedef struct NetworkInterface NetworkInterface;
+    typedef struct daqDeviceInfoInternal daqDeviceInfoInternal;
+    typedef struct daqServerCapability daqServerCapability;
+    typedef struct daqString daqString;
+    typedef struct daqNetworkInterface daqNetworkInterface;
+    typedef struct daqConnectedClientInfo daqConnectedClientInfo;
 
-    EXPORTED extern const IntfID DEVICE_INFO_INTERNAL_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DEVICE_INFO_INTERNAL_INTF_ID;
 
-    ErrCode EXPORTED DeviceInfoInternal_addServerCapability(DeviceInfoInternal* self, ServerCapability* serverCapability);
-    ErrCode EXPORTED DeviceInfoInternal_removeServerCapability(DeviceInfoInternal* self, String* protocolId);
-    ErrCode EXPORTED DeviceInfoInternal_clearServerStreamingCapabilities(DeviceInfoInternal* self);
-    ErrCode EXPORTED DeviceInfoInternal_addNetworkInteface(DeviceInfoInternal* self, String* name, NetworkInterface* networkInterface);
+    daqErrCode EXPORTED daqDeviceInfoInternal_addServerCapability(daqDeviceInfoInternal* self, daqServerCapability* serverCapability);
+    daqErrCode EXPORTED daqDeviceInfoInternal_removeServerCapability(daqDeviceInfoInternal* self, daqString* protocolId);
+    daqErrCode EXPORTED daqDeviceInfoInternal_clearServerStreamingCapabilities(daqDeviceInfoInternal* self);
+    daqErrCode EXPORTED daqDeviceInfoInternal_addNetworkInteface(daqDeviceInfoInternal* self, daqString* name, daqNetworkInterface* networkInterface);
+    daqErrCode EXPORTED daqDeviceInfoInternal_addConnectedClient(daqDeviceInfoInternal* self, daqSizeT* clientNumber, daqConnectedClientInfo* clientInfo);
+    daqErrCode EXPORTED daqDeviceInfoInternal_removeConnectedClient(daqDeviceInfoInternal* self, daqSizeT clientNumber);
 
 #ifdef __cplusplus
 }

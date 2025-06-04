@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:45.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:25.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct MultiReaderStatus MultiReaderStatus;
-    typedef struct Dict Dict;
-    typedef struct EventPacket EventPacket;
-    typedef struct Number Number;
+    typedef struct daqMultiReaderStatus daqMultiReaderStatus;
+    typedef struct daqDict daqDict;
+    typedef struct daqEventPacket daqEventPacket;
+    typedef struct daqNumber daqNumber;
 
-    EXPORTED extern const IntfID MULTI_READER_STATUS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_MULTI_READER_STATUS_INTF_ID;
 
-    ErrCode EXPORTED MultiReaderStatus_getEventPackets(MultiReaderStatus* self, Dict** eventPackets);
-    ErrCode EXPORTED MultiReaderStatus_getMainDescriptor(MultiReaderStatus* self, EventPacket** descriptor);
-    ErrCode EXPORTED MultiReaderStatus_createMultiReaderStatus(MultiReaderStatus** obj, EventPacket* mainDescriptor, Dict* eventPackets, Bool valid, Number* offset);
+    daqErrCode EXPORTED daqMultiReaderStatus_getEventPackets(daqMultiReaderStatus* self, daqDict** eventPackets);
+    daqErrCode EXPORTED daqMultiReaderStatus_getMainDescriptor(daqMultiReaderStatus* self, daqEventPacket** descriptor);
+    daqErrCode EXPORTED daqMultiReaderStatus_createMultiReaderStatus(daqMultiReaderStatus** obj, daqEventPacket* mainDescriptor, daqDict* eventPackets, daqBool valid, daqNumber* offset);
 
 #ifdef __cplusplus
 }

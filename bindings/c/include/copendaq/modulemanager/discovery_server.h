@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:37.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:17.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DiscoveryServer DiscoveryServer;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct DeviceInfo DeviceInfo;
-    typedef struct Device Device;
-    typedef struct Logger Logger;
+    typedef struct daqDiscoveryServer daqDiscoveryServer;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqDeviceInfo daqDeviceInfo;
+    typedef struct daqDevice daqDevice;
+    typedef struct daqLogger daqLogger;
 
-    EXPORTED extern const IntfID DISCOVERY_SERVER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DISCOVERY_SERVER_INTF_ID;
 
-    ErrCode EXPORTED DiscoveryServer_registerService(DiscoveryServer* self, String* id, PropertyObject* config, DeviceInfo* deviceInfo);
-    ErrCode EXPORTED DiscoveryServer_unregisterService(DiscoveryServer* self, String* id);
-    ErrCode EXPORTED DiscoveryServer_setRootDevice(DiscoveryServer* self, Device* device);
-    ErrCode EXPORTED DiscoveryServer_createMdnsDiscoveryServer(DiscoveryServer** obj, Logger* logger);
+    daqErrCode EXPORTED daqDiscoveryServer_registerService(daqDiscoveryServer* self, daqString* id, daqPropertyObject* config, daqDeviceInfo* deviceInfo);
+    daqErrCode EXPORTED daqDiscoveryServer_unregisterService(daqDiscoveryServer* self, daqString* id);
+    daqErrCode EXPORTED daqDiscoveryServer_setRootDevice(daqDiscoveryServer* self, daqDevice* device);
+    daqErrCode EXPORTED daqDiscoveryServer_createMdnsDiscoveryServer(daqDiscoveryServer** obj, daqLogger* logger);
 
 #ifdef __cplusplus
 }

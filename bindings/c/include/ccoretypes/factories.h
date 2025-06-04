@@ -23,11 +23,11 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Serializer Serializer;
-    typedef struct EventHandler EventHandler;
+    typedef struct daqSerializer daqSerializer;
+    typedef struct daqEventHandler daqEventHandler;
 
-    ErrCode EXPORTED Serializer_createJsonSerializer(Serializer** obj, Bool pretty);
-    ErrCode EXPORTED EventHandler_createEventHandler(EventHandler** obj, EventCall call);
+    daqErrCode EXPORTED daqSerializer_createJsonSerializer(daqSerializer** obj, daqBool pretty);
+    daqErrCode EXPORTED daqEventHandler_createEventHandler(daqEventHandler** obj, daqEventCall call);
 
 #ifdef __cplusplus
 }

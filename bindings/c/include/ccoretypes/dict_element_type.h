@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:40.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DictElementType DictElementType;
+    typedef struct daqDictElementType daqDictElementType;
 
-    EXPORTED extern const IntfID DICT_ELEMENT_TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DICT_ELEMENT_TYPE_INTF_ID;
 
-    ErrCode EXPORTED DictElementType_getKeyInterfaceId(DictElementType* self, IntfID* id);
-    ErrCode EXPORTED DictElementType_getValueInterfaceId(DictElementType* self, IntfID* id);
+    daqErrCode EXPORTED daqDictElementType_getKeyInterfaceId(daqDictElementType* self, daqIntfID* id);
+    daqErrCode EXPORTED daqDictElementType_getValueInterfaceId(daqDictElementType* self, daqIntfID* id);
 
 #ifdef __cplusplus
 }

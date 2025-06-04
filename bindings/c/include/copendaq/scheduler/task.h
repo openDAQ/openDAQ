@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:54.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:33.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Task Task;
-    typedef struct String String;
-    typedef struct Procedure Procedure;
+    typedef struct daqTask daqTask;
+    typedef struct daqString daqString;
+    typedef struct daqProcedure daqProcedure;
 
-    EXPORTED extern const IntfID TASK_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_TASK_INTF_ID;
 
-    ErrCode EXPORTED Task_getName(Task* self, String** name);
-    ErrCode EXPORTED Task_setName(Task* self, String* name);
-    ErrCode EXPORTED Task_then(Task* self, Task* continuation);
-    ErrCode EXPORTED Task_createTask(Task** obj, Procedure* work, String* name);
+    daqErrCode EXPORTED daqTask_getName(daqTask* self, daqString** name);
+    daqErrCode EXPORTED daqTask_setName(daqTask* self, daqString* name);
+    daqErrCode EXPORTED daqTask_then(daqTask* self, daqTask* continuation);
+    daqErrCode EXPORTED daqTask_createTask(daqTask** obj, daqProcedure* work, daqString* name);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:33.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,30 +34,31 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Serializer Serializer;
-    typedef struct Serializable Serializable;
-    typedef struct String String;
+    typedef struct daqSerializer daqSerializer;
+    typedef struct daqSerializable daqSerializable;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID SERIALIZER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SERIALIZER_INTF_ID;
 
-    ErrCode EXPORTED Serializer_startTaggedObject(Serializer* self, Serializable* obj);
-    ErrCode EXPORTED Serializer_startObject(Serializer* self);
-    ErrCode EXPORTED Serializer_endObject(Serializer* self);
-    ErrCode EXPORTED Serializer_startList(Serializer* self);
-    ErrCode EXPORTED Serializer_endList(Serializer* self);
-    ErrCode EXPORTED Serializer_getOutput(Serializer* self, String** serialized);
-    ErrCode EXPORTED Serializer_key(Serializer* self, ConstCharPtr string);
-    ErrCode EXPORTED Serializer_keyStr(Serializer* self, String* name);
-    ErrCode EXPORTED Serializer_keyRaw(Serializer* self, ConstCharPtr string, SizeT length);
-    ErrCode EXPORTED Serializer_writeInt(Serializer* self, Int integer);
-    ErrCode EXPORTED Serializer_writeBool(Serializer* self, Bool boolean);
-    ErrCode EXPORTED Serializer_writeFloat(Serializer* self, Float real);
-    ErrCode EXPORTED Serializer_writeString(Serializer* self, ConstCharPtr string, SizeT length);
-    ErrCode EXPORTED Serializer_writeNull(Serializer* self);
-    ErrCode EXPORTED Serializer_reset(Serializer* self);
-    ErrCode EXPORTED Serializer_isComplete(Serializer* self, Bool* complete);
-    ErrCode EXPORTED Serializer_getUser(Serializer* self, BaseObject** user);
-    ErrCode EXPORTED Serializer_setUser(Serializer* self, BaseObject* user);
+    daqErrCode EXPORTED daqSerializer_startTaggedObject(daqSerializer* self, daqSerializable* obj);
+    daqErrCode EXPORTED daqSerializer_startObject(daqSerializer* self);
+    daqErrCode EXPORTED daqSerializer_endObject(daqSerializer* self);
+    daqErrCode EXPORTED daqSerializer_startList(daqSerializer* self);
+    daqErrCode EXPORTED daqSerializer_endList(daqSerializer* self);
+    daqErrCode EXPORTED daqSerializer_getOutput(daqSerializer* self, daqString** serialized);
+    daqErrCode EXPORTED daqSerializer_key(daqSerializer* self, daqConstCharPtr string);
+    daqErrCode EXPORTED daqSerializer_keyStr(daqSerializer* self, daqString* name);
+    daqErrCode EXPORTED daqSerializer_keyRaw(daqSerializer* self, daqConstCharPtr string, daqSizeT length);
+    daqErrCode EXPORTED daqSerializer_writeInt(daqSerializer* self, daqInt integer);
+    daqErrCode EXPORTED daqSerializer_writeBool(daqSerializer* self, daqBool boolean);
+    daqErrCode EXPORTED daqSerializer_writeFloat(daqSerializer* self, daqFloat real);
+    daqErrCode EXPORTED daqSerializer_writeString(daqSerializer* self, daqConstCharPtr string, daqSizeT length);
+    daqErrCode EXPORTED daqSerializer_writeNull(daqSerializer* self);
+    daqErrCode EXPORTED daqSerializer_reset(daqSerializer* self);
+    daqErrCode EXPORTED daqSerializer_isComplete(daqSerializer* self, daqBool* complete);
+    daqErrCode EXPORTED daqSerializer_getUser(daqSerializer* self, daqBaseObject** user);
+    daqErrCode EXPORTED daqSerializer_setUser(daqSerializer* self, daqBaseObject* user);
+    daqErrCode EXPORTED daqSerializer_getVersion(daqSerializer* self, daqInt* version);
 
 #ifdef __cplusplus
 }

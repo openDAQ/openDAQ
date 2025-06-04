@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:09.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:49.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID PACKET_DESTRUCT_CALLBACK_INTF_ID = { daq::IPacketDestructCallback::Id.Data1, daq::IPacketDestructCallback::Id.Data2, daq::IPacketDestructCallback::Id.Data3, daq::IPacketDestructCallback::Id.Data4_UInt64 };
+const daqIntfID DAQ_PACKET_DESTRUCT_CALLBACK_INTF_ID = { daq::IPacketDestructCallback::Id.Data1, daq::IPacketDestructCallback::Id.Data2, daq::IPacketDestructCallback::Id.Data3, daq::IPacketDestructCallback::Id.Data4_UInt64 };
 
-ErrCode PacketDestructCallback_onPacketDestroyed(PacketDestructCallback* self)
+daqErrCode daqPacketDestructCallback_onPacketDestroyed(daqPacketDestructCallback* self)
 {
     return reinterpret_cast<daq::IPacketDestructCallback*>(self)->onPacketDestroyed();
 }

@@ -23,7 +23,7 @@
  * @{
  */
 
-#define OPENDAQ_ERRTYPE_LOGGER 0x07u
+#define DAQ_ERRTYPE_LOGGER 0x07u
 
 /*!
  * @}

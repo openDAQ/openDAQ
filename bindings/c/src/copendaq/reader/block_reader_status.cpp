@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:44.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:23.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,17 +15,17 @@
 
 #include <copendaq_private.h>
 
-const IntfID BLOCK_READER_STATUS_INTF_ID = { daq::IBlockReaderStatus::Id.Data1, daq::IBlockReaderStatus::Id.Data2, daq::IBlockReaderStatus::Id.Data3, daq::IBlockReaderStatus::Id.Data4_UInt64 };
+const daqIntfID DAQ_BLOCK_READER_STATUS_INTF_ID = { daq::IBlockReaderStatus::Id.Data1, daq::IBlockReaderStatus::Id.Data2, daq::IBlockReaderStatus::Id.Data3, daq::IBlockReaderStatus::Id.Data4_UInt64 };
 
-ErrCode BlockReaderStatus_getReadSamples(BlockReaderStatus* self, SizeT* readSamples)
+daqErrCode daqBlockReaderStatus_getReadSamples(daqBlockReaderStatus* self, daqSizeT* readSamples)
 {
     return reinterpret_cast<daq::IBlockReaderStatus*>(self)->getReadSamples(readSamples);
 }
 
-ErrCode BlockReaderStatus_createBlockReaderStatus(BlockReaderStatus** obj, EventPacket* eventPacket, Bool valid, Number* offset, SizeT readSamples)
+daqErrCode daqBlockReaderStatus_createBlockReaderStatus(daqBlockReaderStatus** obj, daqEventPacket* eventPacket, daqBool valid, daqNumber* offset, daqSizeT readSamples)
 {
     daq::IBlockReaderStatus* ptr = nullptr;
-    ErrCode err = daq::createBlockReaderStatus(&ptr, reinterpret_cast<daq::IEventPacket*>(eventPacket), valid, reinterpret_cast<daq::INumber*>(offset), readSamples);
-    *obj = reinterpret_cast<BlockReaderStatus*>(ptr);
+    daqErrCode err = daq::createBlockReaderStatus(&ptr, reinterpret_cast<daq::IEventPacket*>(eventPacket), valid, reinterpret_cast<daq::INumber*>(offset), readSamples);
+    *obj = reinterpret_cast<daqBlockReaderStatus*>(ptr);
     return err;
 }

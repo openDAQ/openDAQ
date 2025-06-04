@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:05.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,55 +15,55 @@
 
 #include <copendaq_private.h>
 
-const IntfID DIMENSION_RULE_BUILDER_INTF_ID = { daq::IDimensionRuleBuilder::Id.Data1, daq::IDimensionRuleBuilder::Id.Data2, daq::IDimensionRuleBuilder::Id.Data3, daq::IDimensionRuleBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_DIMENSION_RULE_BUILDER_INTF_ID = { daq::IDimensionRuleBuilder::Id.Data1, daq::IDimensionRuleBuilder::Id.Data2, daq::IDimensionRuleBuilder::Id.Data3, daq::IDimensionRuleBuilder::Id.Data4_UInt64 };
 
-ErrCode DimensionRuleBuilder_build(DimensionRuleBuilder* self, DimensionRule** dimensionRule)
+daqErrCode daqDimensionRuleBuilder_build(daqDimensionRuleBuilder* self, daqDimensionRule** dimensionRule)
 {
     return reinterpret_cast<daq::IDimensionRuleBuilder*>(self)->build(reinterpret_cast<daq::IDimensionRule**>(dimensionRule));
 }
 
-ErrCode DimensionRuleBuilder_setType(DimensionRuleBuilder* self, DimensionRuleType type)
+daqErrCode daqDimensionRuleBuilder_setType(daqDimensionRuleBuilder* self, daqDimensionRuleType type)
 {
     return reinterpret_cast<daq::IDimensionRuleBuilder*>(self)->setType(static_cast<daq::DimensionRuleType>(type));
 }
 
-ErrCode DimensionRuleBuilder_getType(DimensionRuleBuilder* self, DimensionRuleType* type)
+daqErrCode daqDimensionRuleBuilder_getType(daqDimensionRuleBuilder* self, daqDimensionRuleType* type)
 {
     return reinterpret_cast<daq::IDimensionRuleBuilder*>(self)->getType(reinterpret_cast<daq::DimensionRuleType*>(type));
 }
 
-ErrCode DimensionRuleBuilder_setParameters(DimensionRuleBuilder* self, Dict* parameters)
+daqErrCode daqDimensionRuleBuilder_setParameters(daqDimensionRuleBuilder* self, daqDict* parameters)
 {
     return reinterpret_cast<daq::IDimensionRuleBuilder*>(self)->setParameters(reinterpret_cast<daq::IDict*>(parameters));
 }
 
-ErrCode DimensionRuleBuilder_getParameters(DimensionRuleBuilder* self, Dict** parameters)
+daqErrCode daqDimensionRuleBuilder_getParameters(daqDimensionRuleBuilder* self, daqDict** parameters)
 {
     return reinterpret_cast<daq::IDimensionRuleBuilder*>(self)->getParameters(reinterpret_cast<daq::IDict**>(parameters));
 }
 
-ErrCode DimensionRuleBuilder_addParameter(DimensionRuleBuilder* self, String* name, BaseObject* parameter)
+daqErrCode daqDimensionRuleBuilder_addParameter(daqDimensionRuleBuilder* self, daqString* name, daqBaseObject* parameter)
 {
     return reinterpret_cast<daq::IDimensionRuleBuilder*>(self)->addParameter(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IBaseObject*>(parameter));
 }
 
-ErrCode DimensionRuleBuilder_removeParameter(DimensionRuleBuilder* self, String* name)
+daqErrCode daqDimensionRuleBuilder_removeParameter(daqDimensionRuleBuilder* self, daqString* name)
 {
     return reinterpret_cast<daq::IDimensionRuleBuilder*>(self)->removeParameter(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode DimensionRuleBuilder_createDimensionRuleBuilder(DimensionRuleBuilder** obj)
+daqErrCode daqDimensionRuleBuilder_createDimensionRuleBuilder(daqDimensionRuleBuilder** obj)
 {
     daq::IDimensionRuleBuilder* ptr = nullptr;
-    ErrCode err = daq::createDimensionRuleBuilder(&ptr);
-    *obj = reinterpret_cast<DimensionRuleBuilder*>(ptr);
+    daqErrCode err = daq::createDimensionRuleBuilder(&ptr);
+    *obj = reinterpret_cast<daqDimensionRuleBuilder*>(ptr);
     return err;
 }
 
-ErrCode DimensionRuleBuilder_createDimensionRuleBuilderFromExisting(DimensionRuleBuilder** obj, DimensionRule* ruleToCopy)
+daqErrCode daqDimensionRuleBuilder_createDimensionRuleBuilderFromExisting(daqDimensionRuleBuilder** obj, daqDimensionRule* ruleToCopy)
 {
     daq::IDimensionRuleBuilder* ptr = nullptr;
-    ErrCode err = daq::createDimensionRuleBuilderFromExisting(&ptr, reinterpret_cast<daq::IDimensionRule*>(ruleToCopy));
-    *obj = reinterpret_cast<DimensionRuleBuilder*>(ptr);
+    daqErrCode err = daq::createDimensionRuleBuilderFromExisting(&ptr, reinterpret_cast<daq::IDimensionRule*>(ruleToCopy));
+    *obj = reinterpret_cast<daqDimensionRuleBuilder*>(ptr);
     return err;
 }

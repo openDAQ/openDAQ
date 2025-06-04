@@ -21,52 +21,52 @@ extern "C"
 {
 #endif
 
-    typedef enum SampleType
+    typedef enum daqSampleType
     {
-        SampleTypeInvalid = 0,
-        SampleTypeUndefined = 0,
-        SampleTypeFloat32,
-        SampleTypeFloat64,
-        SampleTypeUInt8,
-        SampleTypeInt8,
-        SampleTypeUInt16,
-        SampleTypeInt16,
-        SampleTypeUInt32,
-        SampleTypeInt32,
-        SampleTypeUInt64,
-        SampleTypeInt64,
-        SampleTypeRangeInt64,
-        SampleTypeComplexFloat32,
-        SampleTypeComplexFloat64,
-        SampleTypeBinary,
-        SampleTypeString,
-        SampleTypeStruct,
-        SampleTypeNull,
-        SampleType_count
-    } SampleType;
+        daqSampleTypeInvalid = 0,
+        daqSampleTypeUndefined = 0,
+        daqSampleTypeFloat32,
+        daqSampleTypeFloat64,
+        daqSampleTypeUInt8,
+        daqSampleTypeInt8,
+        daqSampleTypeUInt16,
+        daqSampleTypeInt16,
+        daqSampleTypeUInt32,
+        daqSampleTypeInt32,
+        daqSampleTypeUInt64,
+        daqSampleTypeInt64,
+        daqSampleTypeRangeInt64,
+        daqSampleTypeComplexFloat32,
+        daqSampleTypeComplexFloat64,
+        daqSampleTypeBinary,
+        daqSampleTypeString,
+        daqSampleTypeStruct,
+        daqSampleTypeNull,
+        daqSampleType_count
+    } daqSampleType;
 
-    typedef enum ReadMode
+    typedef enum daqReadMode
     {
-        ReadModeUnscaled,
-        ReadModeScaled,
-        ReadModeRawValue
-    } ReadMode;
+        daqReadModeUnscaled,
+        daqReadModeScaled,
+        daqReadModeRawValue
+    } daqReadMode;
 
-    typedef enum ReadTimeoutType
+    typedef enum daqReadTimeoutType
     {
-        ReadTimeoutTypeAny, /*!< When some segments are available return them immediately.
+        daqReadTimeoutTypeAny, /*!< When some segments are available return them immediately.
                              *   When no segments are available return immediately when any arrive or time-out is exceeded.
                              */
-        ReadTimeoutTypeAll  /*!< Wait for the requested amount or until time-out is exceeded.*/
-    } ReadTimeoutType;
+        daqReadTimeoutTypeAll  /*!< Wait for the requested amount or until time-out is exceeded.*/
+    } daqReadTimeoutType;
 
-    typedef enum ReadStatus
+    typedef enum daqReadStatus
     {
-        ReadStatusOk = 0,
-        ReadStatusEvent,
-        ReadStatusFail,
-        ReadStatusUnknown = 0xFFFF
-    } ReadStatus;
+        daqReadStatusOk = 0,
+        daqReadStatusEvent,
+        daqReadStatusFail,
+        daqReadStatusUnknown = 0xFFFF
+    } daqReadStatus;
 
 #ifdef __cplusplus
 }

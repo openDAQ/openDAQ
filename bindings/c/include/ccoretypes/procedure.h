@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:30.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Procedure Procedure;
+    typedef struct daqProcedure daqProcedure;
 
-    EXPORTED extern const IntfID PROCEDURE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PROCEDURE_INTF_ID;
 
-    ErrCode EXPORTED Procedure_dispatch(Procedure* self, BaseObject* params);
-    ErrCode EXPORTED Procedure_createProcedure(Procedure** obj, ProcCall value);
+    daqErrCode EXPORTED daqProcedure_dispatch(daqProcedure* self, daqBaseObject* params);
+    daqErrCode EXPORTED daqProcedure_createProcedure(daqProcedure** obj, daqProcCall value);
 
 #ifdef __cplusplus
 }

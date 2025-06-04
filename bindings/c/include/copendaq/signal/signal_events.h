@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:15.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SignalEvents SignalEvents;
-    typedef struct Connection Connection;
-    typedef struct Signal Signal;
+    typedef struct daqSignalEvents daqSignalEvents;
+    typedef struct daqConnection daqConnection;
+    typedef struct daqSignal daqSignal;
 
-    EXPORTED extern const IntfID SIGNAL_EVENTS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SIGNAL_EVENTS_INTF_ID;
 
-    ErrCode EXPORTED SignalEvents_listenerConnected(SignalEvents* self, Connection* connection);
-    ErrCode EXPORTED SignalEvents_listenerDisconnected(SignalEvents* self, Connection* connection);
-    ErrCode EXPORTED SignalEvents_domainSignalReferenceSet(SignalEvents* self, Signal* signal);
-    ErrCode EXPORTED SignalEvents_domainSignalReferenceRemoved(SignalEvents* self, Signal* signal);
+    daqErrCode EXPORTED daqSignalEvents_listenerConnected(daqSignalEvents* self, daqConnection* connection);
+    daqErrCode EXPORTED daqSignalEvents_listenerDisconnected(daqSignalEvents* self, daqConnection* connection);
+    daqErrCode EXPORTED daqSignalEvents_domainSignalReferenceSet(daqSignalEvents* self, daqSignal* signal);
+    daqErrCode EXPORTED daqSignalEvents_domainSignalReferenceRemoved(daqSignalEvents* self, daqSignal* signal);
 
 #ifdef __cplusplus
 }

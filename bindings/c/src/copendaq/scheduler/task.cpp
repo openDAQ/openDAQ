@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:54.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:33.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,27 +15,27 @@
 
 #include <copendaq_private.h>
 
-const IntfID TASK_INTF_ID = { daq::ITask::Id.Data1, daq::ITask::Id.Data2, daq::ITask::Id.Data3, daq::ITask::Id.Data4_UInt64 };
+const daqIntfID DAQ_TASK_INTF_ID = { daq::ITask::Id.Data1, daq::ITask::Id.Data2, daq::ITask::Id.Data3, daq::ITask::Id.Data4_UInt64 };
 
-ErrCode Task_getName(Task* self, String** name)
+daqErrCode daqTask_getName(daqTask* self, daqString** name)
 {
     return reinterpret_cast<daq::ITask*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode Task_setName(Task* self, String* name)
+daqErrCode daqTask_setName(daqTask* self, daqString* name)
 {
     return reinterpret_cast<daq::ITask*>(self)->setName(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode Task_then(Task* self, Task* continuation)
+daqErrCode daqTask_then(daqTask* self, daqTask* continuation)
 {
     return reinterpret_cast<daq::ITask*>(self)->then(reinterpret_cast<daq::ITask*>(continuation));
 }
 
-ErrCode Task_createTask(Task** obj, Procedure* work, String* name)
+daqErrCode daqTask_createTask(daqTask** obj, daqProcedure* work, daqString* name)
 {
     daq::ITask* ptr = nullptr;
-    ErrCode err = daq::createTask(&ptr, reinterpret_cast<daq::IProcedure*>(work), reinterpret_cast<daq::IString*>(name));
-    *obj = reinterpret_cast<Task*>(ptr);
+    daqErrCode err = daq::createTask(&ptr, reinterpret_cast<daq::IProcedure*>(work), reinterpret_cast<daq::IString*>(name));
+    *obj = reinterpret_cast<daqTask*>(ptr);
     return err;
 }

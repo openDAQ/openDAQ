@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:54.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID TYPE_MANAGER_PRIVATE_INTF_ID = { daq::ITypeManagerPrivate::Id.Data1, daq::ITypeManagerPrivate::Id.Data2, daq::ITypeManagerPrivate::Id.Data3, daq::ITypeManagerPrivate::Id.Data4_UInt64 };
+const daqIntfID DAQ_TYPE_MANAGER_PRIVATE_INTF_ID = { daq::ITypeManagerPrivate::Id.Data1, daq::ITypeManagerPrivate::Id.Data2, daq::ITypeManagerPrivate::Id.Data3, daq::ITypeManagerPrivate::Id.Data4_UInt64 };
 
-ErrCode TypeManagerPrivate_setCoreEventCallback(TypeManagerPrivate* self, Procedure* callback)
+daqErrCode daqTypeManagerPrivate_setCoreEventCallback(daqTypeManagerPrivate* self, daqProcedure* callback)
 {
     return reinterpret_cast<daq::ITypeManagerPrivate*>(self)->setCoreEventCallback(reinterpret_cast<daq::IProcedure*>(callback));
 }

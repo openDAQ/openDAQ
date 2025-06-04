@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:15.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,75 +15,75 @@
 
 #include <copendaq_private.h>
 
-const IntfID SIGNAL_CONFIG_INTF_ID = { daq::ISignalConfig::Id.Data1, daq::ISignalConfig::Id.Data2, daq::ISignalConfig::Id.Data3, daq::ISignalConfig::Id.Data4_UInt64 };
+const daqIntfID DAQ_SIGNAL_CONFIG_INTF_ID = { daq::ISignalConfig::Id.Data1, daq::ISignalConfig::Id.Data2, daq::ISignalConfig::Id.Data3, daq::ISignalConfig::Id.Data4_UInt64 };
 
-ErrCode SignalConfig_setDescriptor(SignalConfig* self, DataDescriptor* descriptor)
+daqErrCode daqSignalConfig_setDescriptor(daqSignalConfig* self, daqDataDescriptor* descriptor)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->setDescriptor(reinterpret_cast<daq::IDataDescriptor*>(descriptor));
 }
 
-ErrCode SignalConfig_setDomainSignal(SignalConfig* self, Signal* signal)
+daqErrCode daqSignalConfig_setDomainSignal(daqSignalConfig* self, daqSignal* signal)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->setDomainSignal(reinterpret_cast<daq::ISignal*>(signal));
 }
 
-ErrCode SignalConfig_setRelatedSignals(SignalConfig* self, List* signals)
+daqErrCode daqSignalConfig_setRelatedSignals(daqSignalConfig* self, daqList* signals)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->setRelatedSignals(reinterpret_cast<daq::IList*>(signals));
 }
 
-ErrCode SignalConfig_addRelatedSignal(SignalConfig* self, Signal* signal)
+daqErrCode daqSignalConfig_addRelatedSignal(daqSignalConfig* self, daqSignal* signal)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->addRelatedSignal(reinterpret_cast<daq::ISignal*>(signal));
 }
 
-ErrCode SignalConfig_removeRelatedSignal(SignalConfig* self, Signal* signal)
+daqErrCode daqSignalConfig_removeRelatedSignal(daqSignalConfig* self, daqSignal* signal)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->removeRelatedSignal(reinterpret_cast<daq::ISignal*>(signal));
 }
 
-ErrCode SignalConfig_clearRelatedSignals(SignalConfig* self)
+daqErrCode daqSignalConfig_clearRelatedSignals(daqSignalConfig* self)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->clearRelatedSignals();
 }
 
-ErrCode SignalConfig_sendPacket(SignalConfig* self, Packet* packet)
+daqErrCode daqSignalConfig_sendPacket(daqSignalConfig* self, daqPacket* packet)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->sendPacket(reinterpret_cast<daq::IPacket*>(packet));
 }
 
-ErrCode SignalConfig_sendPackets(SignalConfig* self, List* packets)
+daqErrCode daqSignalConfig_sendPackets(daqSignalConfig* self, daqList* packets)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->sendPackets(reinterpret_cast<daq::IList*>(packets));
 }
 
-ErrCode SignalConfig_sendPacketAndStealRef(SignalConfig* self, Packet* packet)
+daqErrCode daqSignalConfig_sendPacketAndStealRef(daqSignalConfig* self, daqPacket* packet)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->sendPacketAndStealRef(reinterpret_cast<daq::IPacket*>(packet));
 }
 
-ErrCode SignalConfig_sendPacketsAndStealRef(SignalConfig* self, List* packets)
+daqErrCode daqSignalConfig_sendPacketsAndStealRef(daqSignalConfig* self, daqList* packets)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->sendPacketsAndStealRef(reinterpret_cast<daq::IList*>(packets));
 }
 
-ErrCode SignalConfig_setLastValue(SignalConfig* self, BaseObject* lastValue)
+daqErrCode daqSignalConfig_setLastValue(daqSignalConfig* self, daqBaseObject* lastValue)
 {
     return reinterpret_cast<daq::ISignalConfig*>(self)->setLastValue(reinterpret_cast<daq::IBaseObject*>(lastValue));
 }
 
-ErrCode SignalConfig_createSignal(SignalConfig** obj, Context* context, Component* parent, String* localId, String* className)
+daqErrCode daqSignalConfig_createSignal(daqSignalConfig** obj, daqContext* context, daqComponent* parent, daqString* localId, daqString* className)
 {
     daq::ISignalConfig* ptr = nullptr;
-    ErrCode err = daq::createSignal(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId), reinterpret_cast<daq::IString*>(className));
-    *obj = reinterpret_cast<SignalConfig*>(ptr);
+    daqErrCode err = daq::createSignal(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId), reinterpret_cast<daq::IString*>(className));
+    *obj = reinterpret_cast<daqSignalConfig*>(ptr);
     return err;
 }
 
-ErrCode SignalConfig_createSignalWithDescriptor(SignalConfig** obj, Context* context, DataDescriptor* descriptor, Component* parent, String* localId, String* className)
+daqErrCode daqSignalConfig_createSignalWithDescriptor(daqSignalConfig** obj, daqContext* context, daqDataDescriptor* descriptor, daqComponent* parent, daqString* localId, daqString* className)
 {
     daq::ISignalConfig* ptr = nullptr;
-    ErrCode err = daq::createSignalWithDescriptor(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IDataDescriptor*>(descriptor), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId), reinterpret_cast<daq::IString*>(className));
-    *obj = reinterpret_cast<SignalConfig*>(ptr);
+    daqErrCode err = daq::createSignalWithDescriptor(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IDataDescriptor*>(descriptor), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId), reinterpret_cast<daq::IString*>(className));
+    *obj = reinterpret_cast<daqSignalConfig*>(ptr);
     return err;
 }

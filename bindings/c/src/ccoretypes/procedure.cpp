@@ -5,25 +5,27 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.1.0) on 25.03.2025 01:13:31.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include "ccoretypes/procedure.h"
+#include <ccoretypes/procedure.h>
 
 #include <opendaq/opendaq.h>
 
-const IntfID PROCEDURE_INTF_ID = { daq::IProcedure::Id.Data1, daq::IProcedure::Id.Data2, daq::IProcedure::Id.Data3, daq::IProcedure::Id.Data4_UInt64 };
+#include <copendaq_private.h>
 
-ErrCode Procedure_dispatch(Procedure* self, BaseObject* params)
+const daqIntfID DAQ_PROCEDURE_INTF_ID = { daq::IProcedure::Id.Data1, daq::IProcedure::Id.Data2, daq::IProcedure::Id.Data3, daq::IProcedure::Id.Data4_UInt64 };
+
+daqErrCode daqProcedure_dispatch(daqProcedure* self, daqBaseObject* params)
 {
     return reinterpret_cast<daq::IProcedure*>(self)->dispatch(reinterpret_cast<daq::IBaseObject*>(params));
 }
 
-ErrCode Procedure_createProcedure(Procedure** obj, ProcCall value)
+daqErrCode daqProcedure_createProcedure(daqProcedure** obj, daqProcCall value)
 {
     daq::IProcedure* ptr = nullptr;
-    ErrCode err = daq::createProcedure(&ptr, reinterpret_cast<daq::ProcCall>(value)); // UB but could work
-    *obj = reinterpret_cast<Procedure*>(ptr);
+    daqErrCode err = daq::createProcedure(&ptr, reinterpret_cast<daq::ProcCall>(value));
+    *obj = reinterpret_cast<daqProcedure*>(ptr);
     return err;
 }

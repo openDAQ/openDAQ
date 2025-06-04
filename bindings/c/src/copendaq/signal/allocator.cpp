@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:57.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,38 +15,38 @@
 
 #include <copendaq_private.h>
 
-const IntfID ALLOCATOR_INTF_ID = { daq::IAllocator::Id.Data1, daq::IAllocator::Id.Data2, daq::IAllocator::Id.Data3, daq::IAllocator::Id.Data4_UInt64 };
+const daqIntfID DAQ_ALLOCATOR_INTF_ID = { daq::IAllocator::Id.Data1, daq::IAllocator::Id.Data2, daq::IAllocator::Id.Data3, daq::IAllocator::Id.Data4_UInt64 };
 
-ErrCode Allocator_allocate(Allocator* self, DataDescriptor* descriptor, SizeT bytes, SizeT align, void** address)
+daqErrCode daqAllocator_allocate(daqAllocator* self, daqDataDescriptor* descriptor, daqSizeT bytes, daqSizeT align, void** address)
 {
     return reinterpret_cast<daq::IAllocator*>(self)->allocate(reinterpret_cast<daq::IDataDescriptor*>(descriptor), bytes, align, address);
 }
 
-ErrCode Allocator_free(Allocator* self, void* address)
+daqErrCode daqAllocator_free(daqAllocator* self, void* address)
 {
     return reinterpret_cast<daq::IAllocator*>(self)->free(address);
 }
 
-ErrCode Allocator_createMallocAllocator(Allocator** obj)
+daqErrCode daqAllocator_createMallocAllocator(daqAllocator** obj)
 {
     daq::IAllocator* ptr = nullptr;
-    ErrCode err = daq::createMallocAllocator(&ptr);
-    *obj = reinterpret_cast<Allocator*>(ptr);
+    daqErrCode err = daq::createMallocAllocator(&ptr);
+    *obj = reinterpret_cast<daqAllocator*>(ptr);
     return err;
 }
 
-// ErrCode Allocator_createMiMallocAllocator(Allocator** obj)
+// daqErrCode daqAllocator_createMiMallocAllocator(daqAllocator** obj)
 // {
 //     daq::IAllocator* ptr = nullptr;
-//     ErrCode err = daq::createMiMallocAllocator(&ptr);
-//     *obj = reinterpret_cast<Allocator*>(ptr);
+//     daqErrCode err = daq::createMiMallocAllocator(&ptr);
+//     *obj = reinterpret_cast<daqAllocator*>(ptr);
 //     return err;
 // }
 
-ErrCode Allocator_createExternalAllocator(Allocator** obj, void* data, Deleter* deleter)
+daqErrCode daqAllocator_createExternalAllocator(daqAllocator** obj, void* data, daqDeleter* deleter)
 {
     daq::IAllocator* ptr = nullptr;
-    ErrCode err = daq::createExternalAllocator(&ptr, data, reinterpret_cast<daq::IDeleter*>(deleter));
-    *obj = reinterpret_cast<Allocator*>(ptr);
+    daqErrCode err = daq::createExternalAllocator(&ptr, data, reinterpret_cast<daq::IDeleter*>(deleter));
+    *obj = reinterpret_cast<daqAllocator*>(ptr);
     return err;
 }

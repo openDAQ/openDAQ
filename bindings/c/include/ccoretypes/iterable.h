@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:45.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Iterable Iterable;
-    typedef struct Iterator Iterator;
+    typedef struct daqIterable daqIterable;
+    typedef struct daqIterator daqIterator;
 
-    EXPORTED extern const IntfID ITERABLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_ITERABLE_INTF_ID;
 
-    ErrCode EXPORTED Iterable_createStartIterator(Iterable* self, Iterator** iterator);
-    ErrCode EXPORTED Iterable_createEndIterator(Iterable* self, Iterator** iterator);
+    daqErrCode EXPORTED daqIterable_createStartIterator(daqIterable* self, daqIterator** iterator);
+    daqErrCode EXPORTED daqIterable_createEndIterator(daqIterable* self, daqIterator** iterator);
 
 #ifdef __cplusplus
 }

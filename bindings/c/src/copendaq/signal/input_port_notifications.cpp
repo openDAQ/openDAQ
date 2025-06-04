@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:07.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,24 +15,24 @@
 
 #include <copendaq_private.h>
 
-const IntfID INPUT_PORT_NOTIFICATIONS_INTF_ID = { daq::IInputPortNotifications::Id.Data1, daq::IInputPortNotifications::Id.Data2, daq::IInputPortNotifications::Id.Data3, daq::IInputPortNotifications::Id.Data4_UInt64 };
+const daqIntfID DAQ_INPUT_PORT_NOTIFICATIONS_INTF_ID = { daq::IInputPortNotifications::Id.Data1, daq::IInputPortNotifications::Id.Data2, daq::IInputPortNotifications::Id.Data3, daq::IInputPortNotifications::Id.Data4_UInt64 };
 
-ErrCode InputPortNotifications_acceptsSignal(InputPortNotifications* self, InputPort* port, Signal* signal, Bool* accept)
+daqErrCode daqInputPortNotifications_acceptsSignal(daqInputPortNotifications* self, daqInputPort* port, daqSignal* signal, daqBool* accept)
 {
     return reinterpret_cast<daq::IInputPortNotifications*>(self)->acceptsSignal(reinterpret_cast<daq::IInputPort*>(port), reinterpret_cast<daq::ISignal*>(signal), accept);
 }
 
-ErrCode InputPortNotifications_connected(InputPortNotifications* self, InputPort* port)
+daqErrCode daqInputPortNotifications_connected(daqInputPortNotifications* self, daqInputPort* port)
 {
     return reinterpret_cast<daq::IInputPortNotifications*>(self)->connected(reinterpret_cast<daq::IInputPort*>(port));
 }
 
-ErrCode InputPortNotifications_disconnected(InputPortNotifications* self, InputPort* port)
+daqErrCode daqInputPortNotifications_disconnected(daqInputPortNotifications* self, daqInputPort* port)
 {
     return reinterpret_cast<daq::IInputPortNotifications*>(self)->disconnected(reinterpret_cast<daq::IInputPort*>(port));
 }
 
-ErrCode InputPortNotifications_packetReceived(InputPortNotifications* self, InputPort* port)
+daqErrCode daqInputPortNotifications_packetReceived(daqInputPortNotifications* self, daqInputPort* port)
 {
     return reinterpret_cast<daq::IInputPortNotifications*>(self)->packetReceived(reinterpret_cast<daq::IInputPort*>(port));
 }

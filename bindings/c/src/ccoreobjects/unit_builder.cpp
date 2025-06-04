@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:09.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,65 +15,65 @@
 
 #include <copendaq_private.h>
 
-const IntfID UNIT_BUILDER_INTF_ID = { daq::IUnitBuilder::Id.Data1, daq::IUnitBuilder::Id.Data2, daq::IUnitBuilder::Id.Data3, daq::IUnitBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_UNIT_BUILDER_INTF_ID = { daq::IUnitBuilder::Id.Data1, daq::IUnitBuilder::Id.Data2, daq::IUnitBuilder::Id.Data3, daq::IUnitBuilder::Id.Data4_UInt64 };
 
-ErrCode UnitBuilder_build(UnitBuilder* self, Unit** unit)
+daqErrCode daqUnitBuilder_build(daqUnitBuilder* self, daqUnit** unit)
 {
     return reinterpret_cast<daq::IUnitBuilder*>(self)->build(reinterpret_cast<daq::IUnit**>(unit));
 }
 
-ErrCode UnitBuilder_setId(UnitBuilder* self, Int id)
+daqErrCode daqUnitBuilder_setId(daqUnitBuilder* self, daqInt id)
 {
     return reinterpret_cast<daq::IUnitBuilder*>(self)->setId(id);
 }
 
-ErrCode UnitBuilder_getId(UnitBuilder* self, Int* id)
+daqErrCode daqUnitBuilder_getId(daqUnitBuilder* self, daqInt* id)
 {
     return reinterpret_cast<daq::IUnitBuilder*>(self)->getId(id);
 }
 
-ErrCode UnitBuilder_setSymbol(UnitBuilder* self, String* symbol)
+daqErrCode daqUnitBuilder_setSymbol(daqUnitBuilder* self, daqString* symbol)
 {
     return reinterpret_cast<daq::IUnitBuilder*>(self)->setSymbol(reinterpret_cast<daq::IString*>(symbol));
 }
 
-ErrCode UnitBuilder_getSymbol(UnitBuilder* self, String** symbol)
+daqErrCode daqUnitBuilder_getSymbol(daqUnitBuilder* self, daqString** symbol)
 {
     return reinterpret_cast<daq::IUnitBuilder*>(self)->getSymbol(reinterpret_cast<daq::IString**>(symbol));
 }
 
-ErrCode UnitBuilder_setName(UnitBuilder* self, String* name)
+daqErrCode daqUnitBuilder_setName(daqUnitBuilder* self, daqString* name)
 {
     return reinterpret_cast<daq::IUnitBuilder*>(self)->setName(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode UnitBuilder_getName(UnitBuilder* self, String** name)
+daqErrCode daqUnitBuilder_getName(daqUnitBuilder* self, daqString** name)
 {
     return reinterpret_cast<daq::IUnitBuilder*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode UnitBuilder_setQuantity(UnitBuilder* self, String* quantity)
+daqErrCode daqUnitBuilder_setQuantity(daqUnitBuilder* self, daqString* quantity)
 {
     return reinterpret_cast<daq::IUnitBuilder*>(self)->setQuantity(reinterpret_cast<daq::IString*>(quantity));
 }
 
-ErrCode UnitBuilder_getQuantity(UnitBuilder* self, String** quantity)
+daqErrCode daqUnitBuilder_getQuantity(daqUnitBuilder* self, daqString** quantity)
 {
     return reinterpret_cast<daq::IUnitBuilder*>(self)->getQuantity(reinterpret_cast<daq::IString**>(quantity));
 }
 
-ErrCode UnitBuilder_createUnitBuilder(UnitBuilder** obj)
+daqErrCode daqUnitBuilder_createUnitBuilder(daqUnitBuilder** obj)
 {
     daq::IUnitBuilder* ptr = nullptr;
-    ErrCode err = daq::createUnitBuilder(&ptr);
-    *obj = reinterpret_cast<UnitBuilder*>(ptr);
+    daqErrCode err = daq::createUnitBuilder(&ptr);
+    *obj = reinterpret_cast<daqUnitBuilder*>(ptr);
     return err;
 }
 
-ErrCode UnitBuilder_createUnitBuilderFromExisting(UnitBuilder** obj, Unit* unitToCopy)
+daqErrCode daqUnitBuilder_createUnitBuilderFromExisting(daqUnitBuilder** obj, daqUnit* unitToCopy)
 {
     daq::IUnitBuilder* ptr = nullptr;
-    ErrCode err = daq::createUnitBuilderFromExisting(&ptr, reinterpret_cast<daq::IUnit*>(unitToCopy));
-    *obj = reinterpret_cast<UnitBuilder*>(ptr);
+    daqErrCode err = daq::createUnitBuilderFromExisting(&ptr, reinterpret_cast<daq::IUnit*>(unitToCopy));
+    *obj = reinterpret_cast<daqUnitBuilder*>(ptr);
     return err;
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:16.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:56.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct MirroredDevice MirroredDevice;
-    typedef struct List List;
+    typedef struct daqMirroredDevice daqMirroredDevice;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID MIRRORED_DEVICE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_MIRRORED_DEVICE_INTF_ID;
 
-    ErrCode EXPORTED MirroredDevice_getStreamingSources(MirroredDevice* self, List** streamingSources);
+    daqErrCode EXPORTED daqMirroredDevice_getStreamingSources(daqMirroredDevice* self, daqList** streamingSources);
 
 #ifdef __cplusplus
 }

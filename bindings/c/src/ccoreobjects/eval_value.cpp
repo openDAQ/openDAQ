@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:00.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:12.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,58 +15,58 @@
 
 #include <copendaq_private.h>
 
-const IntfID EVAL_VALUE_INTF_ID = { daq::IEvalValue::Id.Data1, daq::IEvalValue::Id.Data2, daq::IEvalValue::Id.Data3, daq::IEvalValue::Id.Data4_UInt64 };
+const daqIntfID DAQ_EVAL_VALUE_INTF_ID = { daq::IEvalValue::Id.Data1, daq::IEvalValue::Id.Data2, daq::IEvalValue::Id.Data3, daq::IEvalValue::Id.Data4_UInt64 };
 
-ErrCode EvalValue_getEval(EvalValue* self, String** eval)
+daqErrCode daqEvalValue_getEval(daqEvalValue* self, daqString** eval)
 {
     return reinterpret_cast<daq::IEvalValue*>(self)->getEval(reinterpret_cast<daq::IString**>(eval));
 }
 
-ErrCode EvalValue_getResult(EvalValue* self, BaseObject** obj)
+daqErrCode daqEvalValue_getResult(daqEvalValue* self, daqBaseObject** obj)
 {
     return reinterpret_cast<daq::IEvalValue*>(self)->getResult(reinterpret_cast<daq::IBaseObject**>(obj));
 }
 
-ErrCode EvalValue_cloneWithOwner(EvalValue* self, PropertyObject* owner, EvalValue** clonedValue)
+daqErrCode daqEvalValue_cloneWithOwner(daqEvalValue* self, daqPropertyObject* owner, daqEvalValue** clonedValue)
 {
     return reinterpret_cast<daq::IEvalValue*>(self)->cloneWithOwner(reinterpret_cast<daq::IPropertyObject*>(owner), reinterpret_cast<daq::IEvalValue**>(clonedValue));
 }
 
-ErrCode EvalValue_getParseErrorCode(EvalValue* self)
+daqErrCode daqEvalValue_getParseErrorCode(daqEvalValue* self)
 {
     return reinterpret_cast<daq::IEvalValue*>(self)->getParseErrorCode();
 }
 
-ErrCode EvalValue_getPropertyReferences(EvalValue* self, List** propertyReferences)
+daqErrCode daqEvalValue_getPropertyReferences(daqEvalValue* self, daqList** propertyReferences)
 {
     return reinterpret_cast<daq::IEvalValue*>(self)->getPropertyReferences(reinterpret_cast<daq::IList**>(propertyReferences));
 }
 
-ErrCode EvalValue_getResultNoLock(EvalValue* self, BaseObject** obj)
+daqErrCode daqEvalValue_getResultNoLock(daqEvalValue* self, daqBaseObject** obj)
 {
     return reinterpret_cast<daq::IEvalValue*>(self)->getResultNoLock(reinterpret_cast<daq::IBaseObject**>(obj));
 }
 
-ErrCode EvalValue_createEvalValue(EvalValue** obj, String* eval)
+daqErrCode daqEvalValue_createEvalValue(daqEvalValue** obj, daqString* eval)
 {
     daq::IEvalValue* ptr = nullptr;
-    ErrCode err = daq::createEvalValue(&ptr, reinterpret_cast<daq::IString*>(eval));
-    *obj = reinterpret_cast<EvalValue*>(ptr);
+    daqErrCode err = daq::createEvalValue(&ptr, reinterpret_cast<daq::IString*>(eval));
+    *obj = reinterpret_cast<daqEvalValue*>(ptr);
     return err;
 }
 
-ErrCode EvalValue_createEvalValueArgs(EvalValue** obj, String* eval, List* args)
+daqErrCode daqEvalValue_createEvalValueArgs(daqEvalValue** obj, daqString* eval, daqList* args)
 {
     daq::IEvalValue* ptr = nullptr;
-    ErrCode err = daq::createEvalValueArgs(&ptr, reinterpret_cast<daq::IString*>(eval), reinterpret_cast<daq::IList*>(args));
-    *obj = reinterpret_cast<EvalValue*>(ptr);
+    daqErrCode err = daq::createEvalValueArgs(&ptr, reinterpret_cast<daq::IString*>(eval), reinterpret_cast<daq::IList*>(args));
+    *obj = reinterpret_cast<daqEvalValue*>(ptr);
     return err;
 }
 
-ErrCode EvalValue_createEvalValueFunc(EvalValue** obj, String* eval, Function* func)
+daqErrCode daqEvalValue_createEvalValueFunc(daqEvalValue** obj, daqString* eval, daqFunction* func)
 {
     daq::IEvalValue* ptr = nullptr;
-    ErrCode err = daq::createEvalValueFunc(&ptr, reinterpret_cast<daq::IString*>(eval), reinterpret_cast<daq::IFunction*>(func));
-    *obj = reinterpret_cast<EvalValue*>(ptr);
+    daqErrCode err = daq::createEvalValueFunc(&ptr, reinterpret_cast<daq::IString*>(eval), reinterpret_cast<daq::IFunction*>(func));
+    *obj = reinterpret_cast<daqEvalValue*>(ptr);
     return err;
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:30.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:09.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,87 +15,87 @@
 
 #include <copendaq_private.h>
 
-const IntfID LOG_FILE_INFO_BUILDER_INTF_ID = { daq::ILogFileInfoBuilder::Id.Data1, daq::ILogFileInfoBuilder::Id.Data2, daq::ILogFileInfoBuilder::Id.Data3, daq::ILogFileInfoBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_LOG_FILE_INFO_BUILDER_INTF_ID = { daq::ILogFileInfoBuilder::Id.Data1, daq::ILogFileInfoBuilder::Id.Data2, daq::ILogFileInfoBuilder::Id.Data3, daq::ILogFileInfoBuilder::Id.Data4_UInt64 };
 
-ErrCode LogFileInfoBuilder_build(LogFileInfoBuilder* self, LogFileInfo** logFileInfo)
+daqErrCode daqLogFileInfoBuilder_build(daqLogFileInfoBuilder* self, daqLogFileInfo** logFileInfo)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->build(reinterpret_cast<daq::ILogFileInfo**>(logFileInfo));
 }
 
-ErrCode LogFileInfoBuilder_getLocalPath(LogFileInfoBuilder* self, String** localPath)
+daqErrCode daqLogFileInfoBuilder_getLocalPath(daqLogFileInfoBuilder* self, daqString** localPath)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->getLocalPath(reinterpret_cast<daq::IString**>(localPath));
 }
 
-ErrCode LogFileInfoBuilder_setLocalPath(LogFileInfoBuilder* self, String* localPath)
+daqErrCode daqLogFileInfoBuilder_setLocalPath(daqLogFileInfoBuilder* self, daqString* localPath)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->setLocalPath(reinterpret_cast<daq::IString*>(localPath));
 }
 
-ErrCode LogFileInfoBuilder_getName(LogFileInfoBuilder* self, String** name)
+daqErrCode daqLogFileInfoBuilder_getName(daqLogFileInfoBuilder* self, daqString** name)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode LogFileInfoBuilder_setName(LogFileInfoBuilder* self, String* name)
+daqErrCode daqLogFileInfoBuilder_setName(daqLogFileInfoBuilder* self, daqString* name)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->setName(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode LogFileInfoBuilder_getId(LogFileInfoBuilder* self, String** id)
+daqErrCode daqLogFileInfoBuilder_getId(daqLogFileInfoBuilder* self, daqString** id)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->getId(reinterpret_cast<daq::IString**>(id));
 }
 
-ErrCode LogFileInfoBuilder_setId(LogFileInfoBuilder* self, String* id)
+daqErrCode daqLogFileInfoBuilder_setId(daqLogFileInfoBuilder* self, daqString* id)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->setId(reinterpret_cast<daq::IString*>(id));
 }
 
-ErrCode LogFileInfoBuilder_getDescription(LogFileInfoBuilder* self, String** description)
+daqErrCode daqLogFileInfoBuilder_getDescription(daqLogFileInfoBuilder* self, daqString** description)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->getDescription(reinterpret_cast<daq::IString**>(description));
 }
 
-ErrCode LogFileInfoBuilder_setDescription(LogFileInfoBuilder* self, String* description)
+daqErrCode daqLogFileInfoBuilder_setDescription(daqLogFileInfoBuilder* self, daqString* description)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->setDescription(reinterpret_cast<daq::IString*>(description));
 }
 
-ErrCode LogFileInfoBuilder_getSize(LogFileInfoBuilder* self, SizeT* size)
+daqErrCode daqLogFileInfoBuilder_getSize(daqLogFileInfoBuilder* self, daqSizeT* size)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->getSize(size);
 }
 
-ErrCode LogFileInfoBuilder_setSize(LogFileInfoBuilder* self, SizeT size)
+daqErrCode daqLogFileInfoBuilder_setSize(daqLogFileInfoBuilder* self, daqSizeT size)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->setSize(size);
 }
 
-ErrCode LogFileInfoBuilder_getEncoding(LogFileInfoBuilder* self, String** encoding)
+daqErrCode daqLogFileInfoBuilder_getEncoding(daqLogFileInfoBuilder* self, daqString** encoding)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->getEncoding(reinterpret_cast<daq::IString**>(encoding));
 }
 
-ErrCode LogFileInfoBuilder_setEncoding(LogFileInfoBuilder* self, String* encoding)
+daqErrCode daqLogFileInfoBuilder_setEncoding(daqLogFileInfoBuilder* self, daqString* encoding)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->setEncoding(reinterpret_cast<daq::IString*>(encoding));
 }
 
-ErrCode LogFileInfoBuilder_getLastModified(LogFileInfoBuilder* self, String** lastModified)
+daqErrCode daqLogFileInfoBuilder_getLastModified(daqLogFileInfoBuilder* self, daqString** lastModified)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->getLastModified(reinterpret_cast<daq::IString**>(lastModified));
 }
 
-ErrCode LogFileInfoBuilder_setLastModified(LogFileInfoBuilder* self, String* lastModified)
+daqErrCode daqLogFileInfoBuilder_setLastModified(daqLogFileInfoBuilder* self, daqString* lastModified)
 {
     return reinterpret_cast<daq::ILogFileInfoBuilder*>(self)->setLastModified(reinterpret_cast<daq::IString*>(lastModified));
 }
 
-ErrCode LogFileInfoBuilder_createLogFileInfoBuilder(LogFileInfoBuilder** obj)
+daqErrCode daqLogFileInfoBuilder_createLogFileInfoBuilder(daqLogFileInfoBuilder** obj)
 {
     daq::ILogFileInfoBuilder* ptr = nullptr;
-    ErrCode err = daq::createLogFileInfoBuilder(&ptr);
-    *obj = reinterpret_cast<LogFileInfoBuilder*>(ptr);
+    daqErrCode err = daq::createLogFileInfoBuilder(&ptr);
+    *obj = reinterpret_cast<daqLogFileInfoBuilder*>(ptr);
     return err;
 }

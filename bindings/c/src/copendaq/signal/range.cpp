@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:10.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:49.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,22 @@
 
 #include <copendaq_private.h>
 
-const IntfID RANGE_INTF_ID = { daq::IRange::Id.Data1, daq::IRange::Id.Data2, daq::IRange::Id.Data3, daq::IRange::Id.Data4_UInt64 };
+const daqIntfID DAQ_RANGE_INTF_ID = { daq::IRange::Id.Data1, daq::IRange::Id.Data2, daq::IRange::Id.Data3, daq::IRange::Id.Data4_UInt64 };
 
-ErrCode Range_getLowValue(Range* self, Number** value)
+daqErrCode daqRange_getLowValue(daqRange* self, daqNumber** value)
 {
     return reinterpret_cast<daq::IRange*>(self)->getLowValue(reinterpret_cast<daq::INumber**>(value));
 }
 
-ErrCode Range_getHighValue(Range* self, Number** value)
+daqErrCode daqRange_getHighValue(daqRange* self, daqNumber** value)
 {
     return reinterpret_cast<daq::IRange*>(self)->getHighValue(reinterpret_cast<daq::INumber**>(value));
 }
 
-ErrCode Range_createRange(Range** obj, Number* lowValue, Number* highValue)
+daqErrCode daqRange_createRange(daqRange** obj, daqNumber* lowValue, daqNumber* highValue)
 {
     daq::IRange* ptr = nullptr;
-    ErrCode err = daq::createRange(&ptr, reinterpret_cast<daq::INumber*>(lowValue), reinterpret_cast<daq::INumber*>(highValue));
-    *obj = reinterpret_cast<Range*>(ptr);
+    daqErrCode err = daq::createRange(&ptr, reinterpret_cast<daq::INumber*>(lowValue), reinterpret_cast<daq::INumber*>(highValue));
+    *obj = reinterpret_cast<daqRange*>(ptr);
     return err;
 }

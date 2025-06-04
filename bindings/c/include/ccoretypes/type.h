@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:52.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:03.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Type Type;
-    typedef struct String String;
+    typedef struct daqType daqType;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_TYPE_INTF_ID;
 
-    ErrCode EXPORTED Type_getName(Type* self, String** typeName);
+    daqErrCode EXPORTED daqType_getName(daqType* self, daqString** typeName);
 
 #ifdef __cplusplus
 }

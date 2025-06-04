@@ -21,22 +21,22 @@ extern "C"
 {
 #endif
 
-    typedef enum OperationModeType
+    typedef enum daqOperationModeType
     {
-        OperationModeTypeUnknown = 0,
-        OperationModeTypeIdle,
-        OperationModeTypeOperation,
-        OperationModeTypeSafeOperation
-    } OperationModeType;
+        daqOperationModeTypeUnknown = 0,
+        daqOperationModeTypeIdle,
+        daqOperationModeTypeOperation,
+        daqOperationModeTypeSafeOperation
+    } daqOperationModeType;
 
-    typedef enum ComponentTypeSort
+    typedef enum daqComponentTypeSort
     {
-        ComponentTypeSortUndefined = 0,
-        ComponentTypeSortServer = 1,
-        ComponentTypeSortDevice,
-        ComponentTypeSortFunctionBlock,
-        ComponentTypeSortStreaming
-    } ComponentTypeSort;
+        daqComponentTypeSortUndefined = 0,
+        daqComponentTypeSortServer = 1,
+        daqComponentTypeSortDevice,
+        daqComponentTypeSortFunctionBlock,
+        daqComponentTypeSortStreaming
+    } daqComponentTypeSort;
 
 #ifdef __cplusplus
 }

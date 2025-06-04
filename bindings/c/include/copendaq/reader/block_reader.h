@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:42.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:22.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,20 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct BlockReader BlockReader;
-    typedef struct BlockReaderStatus BlockReaderStatus;
-    typedef struct Signal Signal;
-    typedef struct InputPortConfig InputPortConfig;
+    typedef struct daqBlockReader daqBlockReader;
+    typedef struct daqBlockReaderStatus daqBlockReaderStatus;
+    typedef struct daqSignal daqSignal;
+    typedef struct daqInputPortConfig daqInputPortConfig;
 
-    EXPORTED extern const IntfID BLOCK_READER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_BLOCK_READER_INTF_ID;
 
-    ErrCode EXPORTED BlockReader_read(BlockReader* self, void* blocks, SizeT* count, SizeT timeoutMs, BlockReaderStatus** status);
-    ErrCode EXPORTED BlockReader_readWithDomain(BlockReader* self, void* dataBlocks, void* domainBlocks, SizeT* count, SizeT timeoutMs, BlockReaderStatus** status);
-    ErrCode EXPORTED BlockReader_getBlockSize(BlockReader* self, SizeT* size);
-    ErrCode EXPORTED BlockReader_getOverlap(BlockReader* self, SizeT* overlap);
-    ErrCode EXPORTED BlockReader_createBlockReader(BlockReader** obj, Signal* signal, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode);
-    ErrCode EXPORTED BlockReader_createBlockReaderFromExisting(BlockReader** obj, BlockReader* invalidatedReader, SampleType valueReadType, SampleType domainReadType, SizeT blockSize);
-    ErrCode EXPORTED BlockReader_createBlockReaderFromPort(BlockReader** obj, InputPortConfig* port, SizeT blockSize, SampleType valueReadType, SampleType domainReadType, ReadMode mode);
+    daqErrCode EXPORTED daqBlockReader_read(daqBlockReader* self, void* blocks, daqSizeT* count, daqSizeT timeoutMs, daqBlockReaderStatus** status);
+    daqErrCode EXPORTED daqBlockReader_readWithDomain(daqBlockReader* self, void* dataBlocks, void* domainBlocks, daqSizeT* count, daqSizeT timeoutMs, daqBlockReaderStatus** status);
+    daqErrCode EXPORTED daqBlockReader_getBlockSize(daqBlockReader* self, daqSizeT* size);
+    daqErrCode EXPORTED daqBlockReader_getOverlap(daqBlockReader* self, daqSizeT* overlap);
+    daqErrCode EXPORTED daqBlockReader_createBlockReader(daqBlockReader** obj, daqSignal* signal, daqSizeT blockSize, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode);
+    daqErrCode EXPORTED daqBlockReader_createBlockReaderFromExisting(daqBlockReader** obj, daqBlockReader* invalidatedReader, daqSampleType valueReadType, daqSampleType domainReadType, daqSizeT blockSize);
+    daqErrCode EXPORTED daqBlockReader_createBlockReaderFromPort(daqBlockReader** obj, daqInputPortConfig* port, daqSizeT blockSize, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode);
 
 #ifdef __cplusplus
 }

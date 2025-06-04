@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:24.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:03.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,60 +34,59 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Device Device;
-    typedef struct DeviceInfo DeviceInfo;
-    typedef struct DeviceDomain DeviceDomain;
-    typedef struct Folder Folder;
-    typedef struct List List;
-    typedef struct SearchFilter SearchFilter;
-    typedef struct Dict Dict;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct FunctionBlock FunctionBlock;
-    typedef struct UpdateParameters UpdateParameters;
-    typedef struct Streaming Streaming;
-    typedef struct SyncComponent SyncComponent;
-    typedef struct Server Server;
-    typedef struct ComponentStatusContainer ComponentStatusContainer;
+    typedef struct daqDevice daqDevice;
+    typedef struct daqDeviceInfo daqDeviceInfo;
+    typedef struct daqDeviceDomain daqDeviceDomain;
+    typedef struct daqFolder daqFolder;
+    typedef struct daqList daqList;
+    typedef struct daqSearchFilter daqSearchFilter;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqFunctionBlock daqFunctionBlock;
+    typedef struct daqUpdateParameters daqUpdateParameters;
+    typedef struct daqStreaming daqStreaming;
+    typedef struct daqSyncComponent daqSyncComponent;
+    typedef struct daqServer daqServer;
+    typedef struct daqComponentStatusContainer daqComponentStatusContainer;
 
-    EXPORTED extern const IntfID DEVICE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DEVICE_INTF_ID;
 
-    ErrCode EXPORTED Device_getInfo(Device* self, DeviceInfo** info);
-    ErrCode EXPORTED Device_getDomain(Device* self, DeviceDomain** domain);
-    ErrCode EXPORTED Device_getInputsOutputsFolder(Device* self, Folder** inputsOutputsFolder);
-    ErrCode EXPORTED Device_getCustomComponents(Device* self, List** customComponents);
-    ErrCode EXPORTED Device_getSignals(Device* self, List** signals, SearchFilter* searchFilter);
-    ErrCode EXPORTED Device_getSignalsRecursive(Device* self, List** signals, SearchFilter* searchFilter);
-    ErrCode EXPORTED Device_getChannels(Device* self, List** channels, SearchFilter* searchFilter);
-    ErrCode EXPORTED Device_getChannelsRecursive(Device* self, List** channels, SearchFilter* searchFilter);
-    ErrCode EXPORTED Device_getDevices(Device* self, List** devices, SearchFilter* searchFilter);
-    ErrCode EXPORTED Device_getAvailableDevices(Device* self, List** availableDevices);
-    ErrCode EXPORTED Device_getAvailableDeviceTypes(Device* self, Dict** deviceTypes);
-    ErrCode EXPORTED Device_addDevice(Device* self, Device** device, String* connectionString, PropertyObject* config);
-    ErrCode EXPORTED Device_removeDevice(Device* self, Device* device);
-    ErrCode EXPORTED Device_getFunctionBlocks(Device* self, List** functionBlocks, SearchFilter* searchFilter);
-    ErrCode EXPORTED Device_getAvailableFunctionBlockTypes(Device* self, Dict** functionBlockTypes);
-    ErrCode EXPORTED Device_addFunctionBlock(Device* self, FunctionBlock** functionBlock, String* typeId, PropertyObject* config);
-    ErrCode EXPORTED Device_removeFunctionBlock(Device* self, FunctionBlock* functionBlock);
-    ErrCode EXPORTED Device_saveConfiguration(Device* self, String** configuration);
-    ErrCode EXPORTED Device_loadConfiguration(Device* self, String* configuration, UpdateParameters* config);
-    ErrCode EXPORTED Device_getTicksSinceOrigin(Device* self, UInt* ticks);
-    ErrCode EXPORTED Device_addStreaming(Device* self, Streaming** streaming, String* connectionString, PropertyObject* config);
-    ErrCode EXPORTED Device_createDefaultAddDeviceConfig(Device* self, PropertyObject** defaultConfig);
-    ErrCode EXPORTED Device_getSyncComponent(Device* self, SyncComponent** sync);
-    ErrCode EXPORTED Device_addServer(Device* self, String* typeId, PropertyObject* config, Server** server);
-    ErrCode EXPORTED Device_removeServer(Device* self, Server* server);
-    ErrCode EXPORTED Device_getServers(Device* self, List** servers);
-    ErrCode EXPORTED Device_lock(Device* self);
-    ErrCode EXPORTED Device_unlock(Device* self);
-    ErrCode EXPORTED Device_isLocked(Device* self, Bool* locked);
-    ErrCode EXPORTED Device_getLogFileInfos(Device* self, List** logFileInfos);
-    ErrCode EXPORTED Device_getLog(Device* self, String** log, String* id, Int size, Int offset);
-    ErrCode EXPORTED Device_getConnectionStatusContainer(Device* self, ComponentStatusContainer** statusContainer);
-    ErrCode EXPORTED Device_getAvailableOperationModes(Device* self, List** availableOpModes);
-    ErrCode EXPORTED Device_setOperationMode(Device* self, OperationModeType modeType);
-    ErrCode EXPORTED Device_setOperationModeRecursive(Device* self, OperationModeType modeType);
-    ErrCode EXPORTED Device_getOperationMode(Device* self, OperationModeType* modeType);
+    daqErrCode EXPORTED daqDevice_getInfo(daqDevice* self, daqDeviceInfo** info);
+    daqErrCode EXPORTED daqDevice_getDomain(daqDevice* self, daqDeviceDomain** domain);
+    daqErrCode EXPORTED daqDevice_getInputsOutputsFolder(daqDevice* self, daqFolder** inputsOutputsFolder);
+    daqErrCode EXPORTED daqDevice_getCustomComponents(daqDevice* self, daqList** customComponents);
+    daqErrCode EXPORTED daqDevice_getSignals(daqDevice* self, daqList** signals, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqDevice_getSignalsRecursive(daqDevice* self, daqList** signals, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqDevice_getChannels(daqDevice* self, daqList** channels, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqDevice_getChannelsRecursive(daqDevice* self, daqList** channels, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqDevice_getDevices(daqDevice* self, daqList** devices, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqDevice_getAvailableDevices(daqDevice* self, daqList** availableDevices);
+    daqErrCode EXPORTED daqDevice_getAvailableDeviceTypes(daqDevice* self, daqDict** deviceTypes);
+    daqErrCode EXPORTED daqDevice_addDevice(daqDevice* self, daqDevice** device, daqString* connectionString, daqPropertyObject* config);
+    daqErrCode EXPORTED daqDevice_removeDevice(daqDevice* self, daqDevice* device);
+    daqErrCode EXPORTED daqDevice_getFunctionBlocks(daqDevice* self, daqList** functionBlocks, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqDevice_getAvailableFunctionBlockTypes(daqDevice* self, daqDict** functionBlockTypes);
+    daqErrCode EXPORTED daqDevice_addFunctionBlock(daqDevice* self, daqFunctionBlock** functionBlock, daqString* typeId, daqPropertyObject* config);
+    daqErrCode EXPORTED daqDevice_removeFunctionBlock(daqDevice* self, daqFunctionBlock* functionBlock);
+    daqErrCode EXPORTED daqDevice_saveConfiguration(daqDevice* self, daqString** configuration);
+    daqErrCode EXPORTED daqDevice_loadConfiguration(daqDevice* self, daqString* configuration, daqUpdateParameters* config);
+    daqErrCode EXPORTED daqDevice_getTicksSinceOrigin(daqDevice* self, daqUInt* ticks);
+    daqErrCode EXPORTED daqDevice_addStreaming(daqDevice* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config);
+    daqErrCode EXPORTED daqDevice_createDefaultAddDeviceConfig(daqDevice* self, daqPropertyObject** defaultConfig);
+    daqErrCode EXPORTED daqDevice_getSyncComponent(daqDevice* self, daqSyncComponent** sync);
+    daqErrCode EXPORTED daqDevice_addServer(daqDevice* self, daqString* typeId, daqPropertyObject* config, daqServer** server);
+    daqErrCode EXPORTED daqDevice_removeServer(daqDevice* self, daqServer* server);
+    daqErrCode EXPORTED daqDevice_getServers(daqDevice* self, daqList** servers);
+    daqErrCode EXPORTED daqDevice_lock(daqDevice* self);
+    daqErrCode EXPORTED daqDevice_unlock(daqDevice* self);
+    daqErrCode EXPORTED daqDevice_isLocked(daqDevice* self, daqBool* locked);
+    daqErrCode EXPORTED daqDevice_getLogFileInfos(daqDevice* self, daqList** logFileInfos);
+    daqErrCode EXPORTED daqDevice_getLog(daqDevice* self, daqString** log, daqString* id, daqInt size, daqInt offset);
+    daqErrCode EXPORTED daqDevice_getConnectionStatusContainer(daqDevice* self, daqComponentStatusContainer** statusContainer);
+    daqErrCode EXPORTED daqDevice_getAvailableOperationModes(daqDevice* self, daqList** availableOpModes);
+    daqErrCode EXPORTED daqDevice_setOperationMode(daqDevice* self, daqOperationModeType modeType);
+    daqErrCode EXPORTED daqDevice_setOperationModeRecursive(daqDevice* self, daqOperationModeType modeType);
 
 #ifdef __cplusplus
 }

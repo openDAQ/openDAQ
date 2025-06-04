@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:16.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:56.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DeserializeComponent DeserializeComponent;
-    typedef struct SerializedObject SerializedObject;
-    typedef struct Function Function;
-    typedef struct String String;
+    typedef struct daqDeserializeComponent daqDeserializeComponent;
+    typedef struct daqSerializedObject daqSerializedObject;
+    typedef struct daqFunction daqFunction;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID DESERIALIZE_COMPONENT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DESERIALIZE_COMPONENT_INTF_ID;
 
-    ErrCode EXPORTED DeserializeComponent_deserializeValues(DeserializeComponent* self, SerializedObject* serializedObject, BaseObject* context, Function* callbackFactory);
-    ErrCode EXPORTED DeserializeComponent_complete(DeserializeComponent* self);
-    ErrCode EXPORTED DeserializeComponent_getDeserializedParameter(DeserializeComponent* self, String* parameter, BaseObject** value);
+    daqErrCode EXPORTED daqDeserializeComponent_deserializeValues(daqDeserializeComponent* self, daqSerializedObject* serializedObject, daqBaseObject* context, daqFunction* callbackFactory);
+    daqErrCode EXPORTED daqDeserializeComponent_complete(daqDeserializeComponent* self);
+    daqErrCode EXPORTED daqDeserializeComponent_getDeserializedParameter(daqDeserializeComponent* self, daqString* parameter, daqBaseObject** value);
 
 #ifdef __cplusplus
 }

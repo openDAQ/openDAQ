@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:14.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,18 +34,18 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ComponentType ComponentType;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct ModuleInfo ModuleInfo;
+    typedef struct daqComponentType daqComponentType;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqModuleInfo daqModuleInfo;
 
-    EXPORTED extern const IntfID COMPONENT_TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPONENT_TYPE_INTF_ID;
 
-    ErrCode EXPORTED ComponentType_getId(ComponentType* self, String** id);
-    ErrCode EXPORTED ComponentType_getName(ComponentType* self, String** name);
-    ErrCode EXPORTED ComponentType_getDescription(ComponentType* self, String** description);
-    ErrCode EXPORTED ComponentType_createDefaultConfig(ComponentType* self, PropertyObject** defaultConfig);
-    ErrCode EXPORTED ComponentType_getModuleInfo(ComponentType* self, ModuleInfo** info);
+    daqErrCode EXPORTED daqComponentType_getId(daqComponentType* self, daqString** id);
+    daqErrCode EXPORTED daqComponentType_getName(daqComponentType* self, daqString** name);
+    daqErrCode EXPORTED daqComponentType_getDescription(daqComponentType* self, daqString** description);
+    daqErrCode EXPORTED daqComponentType_createDefaultConfig(daqComponentType* self, daqPropertyObject** defaultConfig);
+    daqErrCode EXPORTED daqComponentType_getModuleInfo(daqComponentType* self, daqModuleInfo** info);
 
 #ifdef __cplusplus
 }

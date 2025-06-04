@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:19.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct StreamingType StreamingType;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
+    typedef struct daqStreamingType daqStreamingType;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
 
-    EXPORTED extern const IntfID STREAMING_TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_STREAMING_TYPE_INTF_ID;
 
-    ErrCode EXPORTED StreamingType_getConnectionStringPrefix(StreamingType* self, String** prefix);
-    ErrCode EXPORTED StreamingType_createStreamingType(StreamingType** obj, String* id, String* name, String* description, String* prefix, PropertyObject* defaultConfig);
+    daqErrCode EXPORTED daqStreamingType_getConnectionStringPrefix(daqStreamingType* self, daqString** prefix);
+    daqErrCode EXPORTED daqStreamingType_createStreamingType(daqStreamingType** obj, daqString* id, daqString* name, daqString* description, daqString* prefix, daqPropertyObject* defaultConfig);
 
 #ifdef __cplusplus
 }

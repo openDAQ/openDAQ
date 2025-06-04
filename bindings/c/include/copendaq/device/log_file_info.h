@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:29.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:09.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,20 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct LogFileInfo LogFileInfo;
-    typedef struct String String;
-    typedef struct LogFileInfoBuilder LogFileInfoBuilder;
+    typedef struct daqLogFileInfo daqLogFileInfo;
+    typedef struct daqString daqString;
+    typedef struct daqLogFileInfoBuilder daqLogFileInfoBuilder;
 
-    EXPORTED extern const IntfID LOG_FILE_INFO_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_LOG_FILE_INFO_INTF_ID;
 
-    ErrCode EXPORTED LogFileInfo_getId(LogFileInfo* self, String** id);
-    ErrCode EXPORTED LogFileInfo_getLocalPath(LogFileInfo* self, String** localPath);
-    ErrCode EXPORTED LogFileInfo_getName(LogFileInfo* self, String** name);
-    ErrCode EXPORTED LogFileInfo_getDescription(LogFileInfo* self, String** description);
-    ErrCode EXPORTED LogFileInfo_getSize(LogFileInfo* self, SizeT* size);
-    ErrCode EXPORTED LogFileInfo_getEncoding(LogFileInfo* self, String** encoding);
-    ErrCode EXPORTED LogFileInfo_getLastModified(LogFileInfo* self, String** lastModified);
-    ErrCode EXPORTED LogFileInfo_createLogFileInfoFromBuilder(LogFileInfo** obj, LogFileInfoBuilder* builder);
+    daqErrCode EXPORTED daqLogFileInfo_getId(daqLogFileInfo* self, daqString** id);
+    daqErrCode EXPORTED daqLogFileInfo_getLocalPath(daqLogFileInfo* self, daqString** localPath);
+    daqErrCode EXPORTED daqLogFileInfo_getName(daqLogFileInfo* self, daqString** name);
+    daqErrCode EXPORTED daqLogFileInfo_getDescription(daqLogFileInfo* self, daqString** description);
+    daqErrCode EXPORTED daqLogFileInfo_getSize(daqLogFileInfo* self, daqSizeT* size);
+    daqErrCode EXPORTED daqLogFileInfo_getEncoding(daqLogFileInfo* self, daqString** encoding);
+    daqErrCode EXPORTED daqLogFileInfo_getLastModified(daqLogFileInfo* self, daqString** lastModified);
+    daqErrCode EXPORTED daqLogFileInfo_createLogFileInfoFromBuilder(daqLogFileInfo** obj, daqLogFileInfoBuilder* builder);
 
 #ifdef __cplusplus
 }

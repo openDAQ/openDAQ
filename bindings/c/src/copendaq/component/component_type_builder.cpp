@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:15.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,109 +15,109 @@
 
 #include <copendaq_private.h>
 
-const IntfID COMPONENT_TYPE_BUILDER_INTF_ID = { daq::IComponentTypeBuilder::Id.Data1, daq::IComponentTypeBuilder::Id.Data2, daq::IComponentTypeBuilder::Id.Data3, daq::IComponentTypeBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_COMPONENT_TYPE_BUILDER_INTF_ID = { daq::IComponentTypeBuilder::Id.Data1, daq::IComponentTypeBuilder::Id.Data2, daq::IComponentTypeBuilder::Id.Data3, daq::IComponentTypeBuilder::Id.Data4_UInt64 };
 
-ErrCode ComponentTypeBuilder_build(ComponentTypeBuilder* self, ComponentType** componentType)
+daqErrCode daqComponentTypeBuilder_build(daqComponentTypeBuilder* self, daqComponentType** componentType)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->build(reinterpret_cast<daq::IComponentType**>(componentType));
 }
 
-ErrCode ComponentTypeBuilder_setId(ComponentTypeBuilder* self, String* id)
+daqErrCode daqComponentTypeBuilder_setId(daqComponentTypeBuilder* self, daqString* id)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setId(reinterpret_cast<daq::IString*>(id));
 }
 
-ErrCode ComponentTypeBuilder_getId(ComponentTypeBuilder* self, String** id)
+daqErrCode daqComponentTypeBuilder_getId(daqComponentTypeBuilder* self, daqString** id)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getId(reinterpret_cast<daq::IString**>(id));
 }
 
-ErrCode ComponentTypeBuilder_setTypeSort(ComponentTypeBuilder* self, ComponentTypeSort sort)
+daqErrCode daqComponentTypeBuilder_setTypeSort(daqComponentTypeBuilder* self, daqComponentTypeSort sort)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setTypeSort(static_cast<daq::ComponentTypeSort>(sort));
 }
 
-ErrCode ComponentTypeBuilder_getTypeSort(ComponentTypeBuilder* self, ComponentTypeSort* sort)
+daqErrCode daqComponentTypeBuilder_getTypeSort(daqComponentTypeBuilder* self, daqComponentTypeSort* sort)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getTypeSort(reinterpret_cast<daq::ComponentTypeSort*>(sort));
 }
 
-ErrCode ComponentTypeBuilder_setName(ComponentTypeBuilder* self, String* name)
+daqErrCode daqComponentTypeBuilder_setName(daqComponentTypeBuilder* self, daqString* name)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setName(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode ComponentTypeBuilder_getName(ComponentTypeBuilder* self, String** name)
+daqErrCode daqComponentTypeBuilder_getName(daqComponentTypeBuilder* self, daqString** name)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode ComponentTypeBuilder_setDescription(ComponentTypeBuilder* self, String* description)
+daqErrCode daqComponentTypeBuilder_setDescription(daqComponentTypeBuilder* self, daqString* description)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setDescription(reinterpret_cast<daq::IString*>(description));
 }
 
-ErrCode ComponentTypeBuilder_getDescription(ComponentTypeBuilder* self, String** description)
+daqErrCode daqComponentTypeBuilder_getDescription(daqComponentTypeBuilder* self, daqString** description)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getDescription(reinterpret_cast<daq::IString**>(description));
 }
 
-ErrCode ComponentTypeBuilder_setConnectionStringPrefix(ComponentTypeBuilder* self, String* prefix)
+daqErrCode daqComponentTypeBuilder_setConnectionStringPrefix(daqComponentTypeBuilder* self, daqString* prefix)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setConnectionStringPrefix(reinterpret_cast<daq::IString*>(prefix));
 }
 
-ErrCode ComponentTypeBuilder_getConnectionStringPrefix(ComponentTypeBuilder* self, String** prefix)
+daqErrCode daqComponentTypeBuilder_getConnectionStringPrefix(daqComponentTypeBuilder* self, daqString** prefix)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getConnectionStringPrefix(reinterpret_cast<daq::IString**>(prefix));
 }
 
-ErrCode ComponentTypeBuilder_setDefaultConfig(ComponentTypeBuilder* self, PropertyObject* defaultConfig)
+daqErrCode daqComponentTypeBuilder_setDefaultConfig(daqComponentTypeBuilder* self, daqPropertyObject* defaultConfig)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setDefaultConfig(reinterpret_cast<daq::IPropertyObject*>(defaultConfig));
 }
 
-ErrCode ComponentTypeBuilder_getDefaultConfig(ComponentTypeBuilder* self, PropertyObject** defaultConfig)
+daqErrCode daqComponentTypeBuilder_getDefaultConfig(daqComponentTypeBuilder* self, daqPropertyObject** defaultConfig)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getDefaultConfig(reinterpret_cast<daq::IPropertyObject**>(defaultConfig));
 }
 
-ErrCode ComponentTypeBuilder_createComponentTypeBuilder(ComponentTypeBuilder** obj)
+daqErrCode daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj)
 {
     daq::IComponentTypeBuilder* ptr = nullptr;
-    ErrCode err = daq::createComponentTypeBuilder(&ptr);
-    *obj = reinterpret_cast<ComponentTypeBuilder*>(ptr);
+    daqErrCode err = daq::createComponentTypeBuilder(&ptr);
+    *obj = reinterpret_cast<daqComponentTypeBuilder*>(ptr);
     return err;
 }
 
-ErrCode ComponentTypeBuilder_createDeviceTypeBuilder(ComponentTypeBuilder** obj)
+daqErrCode daqComponentTypeBuilder_createDeviceTypeBuilder(daqComponentTypeBuilder** obj)
 {
     daq::IComponentTypeBuilder* ptr = nullptr;
-    ErrCode err = daq::createDeviceTypeBuilder(&ptr);
-    *obj = reinterpret_cast<ComponentTypeBuilder*>(ptr);
+    daqErrCode err = daq::createDeviceTypeBuilder(&ptr);
+    *obj = reinterpret_cast<daqComponentTypeBuilder*>(ptr);
     return err;
 }
 
-ErrCode ComponentTypeBuilder_createStreamingTypeBuilder(ComponentTypeBuilder** obj)
+daqErrCode daqComponentTypeBuilder_createStreamingTypeBuilder(daqComponentTypeBuilder** obj)
 {
     daq::IComponentTypeBuilder* ptr = nullptr;
-    ErrCode err = daq::createStreamingTypeBuilder(&ptr);
-    *obj = reinterpret_cast<ComponentTypeBuilder*>(ptr);
+    daqErrCode err = daq::createStreamingTypeBuilder(&ptr);
+    *obj = reinterpret_cast<daqComponentTypeBuilder*>(ptr);
     return err;
 }
 
-ErrCode ComponentTypeBuilder_createServerTypeBuilder(ComponentTypeBuilder** obj)
+daqErrCode daqComponentTypeBuilder_createServerTypeBuilder(daqComponentTypeBuilder** obj)
 {
     daq::IComponentTypeBuilder* ptr = nullptr;
-    ErrCode err = daq::createServerTypeBuilder(&ptr);
-    *obj = reinterpret_cast<ComponentTypeBuilder*>(ptr);
+    daqErrCode err = daq::createServerTypeBuilder(&ptr);
+    *obj = reinterpret_cast<daqComponentTypeBuilder*>(ptr);
     return err;
 }
 
-ErrCode ComponentTypeBuilder_createFunctionBlockTypeBuilder(ComponentTypeBuilder** obj)
+daqErrCode daqComponentTypeBuilder_createFunctionBlockTypeBuilder(daqComponentTypeBuilder** obj)
 {
     daq::IComponentTypeBuilder* ptr = nullptr;
-    ErrCode err = daq::createFunctionBlockTypeBuilder(&ptr);
-    *obj = reinterpret_cast<ComponentTypeBuilder*>(ptr);
+    daqErrCode err = daq::createFunctionBlockTypeBuilder(&ptr);
+    *obj = reinterpret_cast<daqComponentTypeBuilder*>(ptr);
     return err;
 }

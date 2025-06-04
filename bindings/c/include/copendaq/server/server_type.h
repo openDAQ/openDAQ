@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:56.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ServerType ServerType;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
+    typedef struct daqServerType daqServerType;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
 
-    EXPORTED extern const IntfID SERVER_TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SERVER_TYPE_INTF_ID;
 
-    ErrCode EXPORTED ServerType_createServerType(ServerType** obj, String* id, String* name, String* description, PropertyObject* defaultConfig);
+    daqErrCode EXPORTED daqServerType_createServerType(daqServerType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig);
 
 #ifdef __cplusplus
 }

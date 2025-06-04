@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:48.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:28.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SampleReader SampleReader;
-    typedef struct Function Function;
+    typedef struct daqSampleReader daqSampleReader;
+    typedef struct daqFunction daqFunction;
 
-    EXPORTED extern const IntfID SAMPLE_READER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SAMPLE_READER_INTF_ID;
 
-    ErrCode EXPORTED SampleReader_getValueReadType(SampleReader* self, SampleType* sampleType);
-    ErrCode EXPORTED SampleReader_getDomainReadType(SampleReader* self, SampleType* sampleType);
-    ErrCode EXPORTED SampleReader_setValueTransformFunction(SampleReader* self, Function* transform);
-    ErrCode EXPORTED SampleReader_setDomainTransformFunction(SampleReader* self, Function* transform);
-    ErrCode EXPORTED SampleReader_getReadMode(SampleReader* self, ReadMode* mode);
+    daqErrCode EXPORTED daqSampleReader_getValueReadType(daqSampleReader* self, daqSampleType* sampleType);
+    daqErrCode EXPORTED daqSampleReader_getDomainReadType(daqSampleReader* self, daqSampleType* sampleType);
+    daqErrCode EXPORTED daqSampleReader_setValueTransformFunction(daqSampleReader* self, daqFunction* transform);
+    daqErrCode EXPORTED daqSampleReader_setDomainTransformFunction(daqSampleReader* self, daqFunction* transform);
+    daqErrCode EXPORTED daqSampleReader_getReadMode(daqSampleReader* self, daqReadMode* mode);
 
 #ifdef __cplusplus
 }

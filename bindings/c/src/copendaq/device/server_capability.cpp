@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:31.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:11.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,64 +15,64 @@
 
 #include <copendaq_private.h>
 
-const IntfID SERVER_CAPABILITY_INTF_ID = { daq::IServerCapability::Id.Data1, daq::IServerCapability::Id.Data2, daq::IServerCapability::Id.Data3, daq::IServerCapability::Id.Data4_UInt64 };
+const daqIntfID DAQ_SERVER_CAPABILITY_INTF_ID = { daq::IServerCapability::Id.Data1, daq::IServerCapability::Id.Data2, daq::IServerCapability::Id.Data3, daq::IServerCapability::Id.Data4_UInt64 };
 
-ErrCode ServerCapability_getConnectionString(ServerCapability* self, String** connectionString)
+daqErrCode daqServerCapability_getConnectionString(daqServerCapability* self, daqString** connectionString)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getConnectionString(reinterpret_cast<daq::IString**>(connectionString));
 }
 
-ErrCode ServerCapability_getConnectionStrings(ServerCapability* self, List** connectionStrings)
+daqErrCode daqServerCapability_getConnectionStrings(daqServerCapability* self, daqList** connectionStrings)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getConnectionStrings(reinterpret_cast<daq::IList**>(connectionStrings));
 }
 
-ErrCode ServerCapability_getProtocolName(ServerCapability* self, String** protocolName)
+daqErrCode daqServerCapability_getProtocolName(daqServerCapability* self, daqString** protocolName)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolName(reinterpret_cast<daq::IString**>(protocolName));
 }
 
-ErrCode ServerCapability_getProtocolId(ServerCapability* self, String** protocolId)
+daqErrCode daqServerCapability_getProtocolId(daqServerCapability* self, daqString** protocolId)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolId(reinterpret_cast<daq::IString**>(protocolId));
 }
 
-ErrCode ServerCapability_getProtocolType(ServerCapability* self, ProtocolType* type)
+daqErrCode daqServerCapability_getProtocolType(daqServerCapability* self, daqProtocolType* type)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolType(reinterpret_cast<daq::ProtocolType*>(type));
 }
 
-ErrCode ServerCapability_getPrefix(ServerCapability* self, String** prefix)
+daqErrCode daqServerCapability_getPrefix(daqServerCapability* self, daqString** prefix)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getPrefix(reinterpret_cast<daq::IString**>(prefix));
 }
 
-ErrCode ServerCapability_getConnectionType(ServerCapability* self, String** type)
+daqErrCode daqServerCapability_getConnectionType(daqServerCapability* self, daqString** type)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getConnectionType(reinterpret_cast<daq::IString**>(type));
 }
 
-ErrCode ServerCapability_getCoreEventsEnabled(ServerCapability* self, Bool* enabled)
+daqErrCode daqServerCapability_getCoreEventsEnabled(daqServerCapability* self, daqBool* enabled)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getCoreEventsEnabled(enabled);
 }
 
-ErrCode ServerCapability_getAddresses(ServerCapability* self, List** addresses)
+daqErrCode daqServerCapability_getAddresses(daqServerCapability* self, daqList** addresses)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getAddresses(reinterpret_cast<daq::IList**>(addresses));
 }
 
-ErrCode ServerCapability_getPort(ServerCapability* self, Integer** port)
+daqErrCode daqServerCapability_getPort(daqServerCapability* self, daqInteger** port)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getPort(reinterpret_cast<daq::IInteger**>(port));
 }
 
-ErrCode ServerCapability_getAddressInfo(ServerCapability* self, List** addressInfo)
+daqErrCode daqServerCapability_getAddressInfo(daqServerCapability* self, daqList** addressInfo)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getAddressInfo(reinterpret_cast<daq::IList**>(addressInfo));
 }
 
-ErrCode ServerCapability_getProtocolVersion(ServerCapability* self, String** version)
+daqErrCode daqServerCapability_getProtocolVersion(daqServerCapability* self, daqString** version)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolVersion(reinterpret_cast<daq::IString**>(version));
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:56.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:07.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,28 +34,28 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct List List;
-    typedef struct Iterator Iterator;
+    typedef struct daqList daqList;
+    typedef struct daqIterator daqIterator;
 
-    EXPORTED extern const IntfID LIST_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_LIST_INTF_ID;
 
-    ErrCode EXPORTED List_getItemAt(List* self, SizeT index, BaseObject** obj);
-    ErrCode EXPORTED List_getCount(List* self, SizeT* size);
-    ErrCode EXPORTED List_setItemAt(List* self, SizeT index, BaseObject* obj);
-    ErrCode EXPORTED List_pushBack(List* self, BaseObject* obj);
-    ErrCode EXPORTED List_pushFront(List* self, BaseObject* obj);
-    ErrCode EXPORTED List_moveBack(List* self, BaseObject* obj);
-    ErrCode EXPORTED List_moveFront(List* self, BaseObject* obj);
-    ErrCode EXPORTED List_popBack(List* self, BaseObject** obj);
-    ErrCode EXPORTED List_popFront(List* self, BaseObject** obj);
-    ErrCode EXPORTED List_insertAt(List* self, SizeT index, BaseObject* obj);
-    ErrCode EXPORTED List_removeAt(List* self, SizeT index, BaseObject** obj);
-    ErrCode EXPORTED List_deleteAt(List* self, SizeT index);
-    ErrCode EXPORTED List_clear(List* self);
-    ErrCode EXPORTED List_createStartIterator(List* self, Iterator** iterator);
-    ErrCode EXPORTED List_createEndIterator(List* self, Iterator** iterator);
-    ErrCode EXPORTED List_createList(List** obj);
-    ErrCode EXPORTED List_createListWithElementType(List** obj, IntfID id);
+    daqErrCode EXPORTED daqList_getItemAt(daqList* self, daqSizeT index, daqBaseObject** obj);
+    daqErrCode EXPORTED daqList_getCount(daqList* self, daqSizeT* size);
+    daqErrCode EXPORTED daqList_setItemAt(daqList* self, daqSizeT index, daqBaseObject* obj);
+    daqErrCode EXPORTED daqList_pushBack(daqList* self, daqBaseObject* obj);
+    daqErrCode EXPORTED daqList_pushFront(daqList* self, daqBaseObject* obj);
+    daqErrCode EXPORTED daqList_moveBack(daqList* self, daqBaseObject* obj);
+    daqErrCode EXPORTED daqList_moveFront(daqList* self, daqBaseObject* obj);
+    daqErrCode EXPORTED daqList_popBack(daqList* self, daqBaseObject** obj);
+    daqErrCode EXPORTED daqList_popFront(daqList* self, daqBaseObject** obj);
+    daqErrCode EXPORTED daqList_insertAt(daqList* self, daqSizeT index, daqBaseObject* obj);
+    daqErrCode EXPORTED daqList_removeAt(daqList* self, daqSizeT index, daqBaseObject** obj);
+    daqErrCode EXPORTED daqList_deleteAt(daqList* self, daqSizeT index);
+    daqErrCode EXPORTED daqList_clear(daqList* self);
+    daqErrCode EXPORTED daqList_createStartIterator(daqList* self, daqIterator** iterator);
+    daqErrCode EXPORTED daqList_createEndIterator(daqList* self, daqIterator** iterator);
+    daqErrCode EXPORTED daqList_createList(daqList** obj);
+    daqErrCode EXPORTED daqList_createListWithElementType(daqList** obj, daqIntfID id);
 
 #ifdef __cplusplus
 }

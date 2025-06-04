@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:05.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:17.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PropertyObjectClass PropertyObjectClass;
-    typedef struct String String;
-    typedef struct Property Property;
-    typedef struct List List;
-    typedef struct PropertyObjectClassBuilder PropertyObjectClassBuilder;
+    typedef struct daqPropertyObjectClass daqPropertyObjectClass;
+    typedef struct daqString daqString;
+    typedef struct daqProperty daqProperty;
+    typedef struct daqList daqList;
+    typedef struct daqPropertyObjectClassBuilder daqPropertyObjectClassBuilder;
 
-    EXPORTED extern const IntfID PROPERTY_OBJECT_CLASS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_CLASS_INTF_ID;
 
-    ErrCode EXPORTED PropertyObjectClass_getParentName(PropertyObjectClass* self, String** parentName);
-    ErrCode EXPORTED PropertyObjectClass_getProperty(PropertyObjectClass* self, String* propertyName, Property** property);
-    ErrCode EXPORTED PropertyObjectClass_hasProperty(PropertyObjectClass* self, String* propertyName, Bool* hasProperty);
-    ErrCode EXPORTED PropertyObjectClass_getProperties(PropertyObjectClass* self, Bool includeInherited, List** properties);
-    ErrCode EXPORTED PropertyObjectClass_createPropertyObjectClassFromBuilder(PropertyObjectClass** obj, PropertyObjectClassBuilder* builder);
+    daqErrCode EXPORTED daqPropertyObjectClass_getParentName(daqPropertyObjectClass* self, daqString** parentName);
+    daqErrCode EXPORTED daqPropertyObjectClass_getProperty(daqPropertyObjectClass* self, daqString* propertyName, daqProperty** property);
+    daqErrCode EXPORTED daqPropertyObjectClass_hasProperty(daqPropertyObjectClass* self, daqString* propertyName, daqBool* hasProperty);
+    daqErrCode EXPORTED daqPropertyObjectClass_getProperties(daqPropertyObjectClass* self, daqBool includeInherited, daqList** properties);
+    daqErrCode EXPORTED daqPropertyObjectClass_createPropertyObjectClassFromBuilder(daqPropertyObjectClass** obj, daqPropertyObjectClassBuilder* builder);
 
 #ifdef __cplusplus
 }

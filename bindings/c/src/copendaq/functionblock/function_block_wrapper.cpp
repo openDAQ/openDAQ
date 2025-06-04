@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:35.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,72 +15,72 @@
 
 #include <copendaq_private.h>
 
-const IntfID FUNCTION_BLOCK_WRAPPER_INTF_ID = { daq::IFunctionBlockWrapper::Id.Data1, daq::IFunctionBlockWrapper::Id.Data2, daq::IFunctionBlockWrapper::Id.Data3, daq::IFunctionBlockWrapper::Id.Data4_UInt64 };
+const daqIntfID DAQ_FUNCTION_BLOCK_WRAPPER_INTF_ID = { daq::IFunctionBlockWrapper::Id.Data1, daq::IFunctionBlockWrapper::Id.Data2, daq::IFunctionBlockWrapper::Id.Data3, daq::IFunctionBlockWrapper::Id.Data4_UInt64 };
 
-ErrCode FunctionBlockWrapper_includeInputPort(FunctionBlockWrapper* self, String* inputPortName)
+daqErrCode daqFunctionBlockWrapper_includeInputPort(daqFunctionBlockWrapper* self, daqString* inputPortName)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->includeInputPort(reinterpret_cast<daq::IString*>(inputPortName));
 }
 
-ErrCode FunctionBlockWrapper_excludeInputPort(FunctionBlockWrapper* self, String* inputPortName)
+daqErrCode daqFunctionBlockWrapper_excludeInputPort(daqFunctionBlockWrapper* self, daqString* inputPortName)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->excludeInputPort(reinterpret_cast<daq::IString*>(inputPortName));
 }
 
-ErrCode FunctionBlockWrapper_includeSignal(FunctionBlockWrapper* self, String* signalLocalId)
+daqErrCode daqFunctionBlockWrapper_includeSignal(daqFunctionBlockWrapper* self, daqString* signalLocalId)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->includeSignal(reinterpret_cast<daq::IString*>(signalLocalId));
 }
 
-ErrCode FunctionBlockWrapper_excludeSignal(FunctionBlockWrapper* self, String* signalLocalId)
+daqErrCode daqFunctionBlockWrapper_excludeSignal(daqFunctionBlockWrapper* self, daqString* signalLocalId)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->excludeSignal(reinterpret_cast<daq::IString*>(signalLocalId));
 }
 
-ErrCode FunctionBlockWrapper_includeProperty(FunctionBlockWrapper* self, String* propertyName)
+daqErrCode daqFunctionBlockWrapper_includeProperty(daqFunctionBlockWrapper* self, daqString* propertyName)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->includeProperty(reinterpret_cast<daq::IString*>(propertyName));
 }
 
-ErrCode FunctionBlockWrapper_excludeProperty(FunctionBlockWrapper* self, String* propertyName)
+daqErrCode daqFunctionBlockWrapper_excludeProperty(daqFunctionBlockWrapper* self, daqString* propertyName)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->excludeProperty(reinterpret_cast<daq::IString*>(propertyName));
 }
 
-ErrCode FunctionBlockWrapper_includeFunctionBlock(FunctionBlockWrapper* self, String* functionBlockLocalId)
+daqErrCode daqFunctionBlockWrapper_includeFunctionBlock(daqFunctionBlockWrapper* self, daqString* functionBlockLocalId)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->includeFunctionBlock(reinterpret_cast<daq::IString*>(functionBlockLocalId));
 }
 
-ErrCode FunctionBlockWrapper_excludeFunctionBlock(FunctionBlockWrapper* self, String* functionBlockLocalId)
+daqErrCode daqFunctionBlockWrapper_excludeFunctionBlock(daqFunctionBlockWrapper* self, daqString* functionBlockLocalId)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->excludeFunctionBlock(reinterpret_cast<daq::IString*>(functionBlockLocalId));
 }
 
-ErrCode FunctionBlockWrapper_setPropertyCoercer(FunctionBlockWrapper* self, String* propertyName, Coercer* coercer)
+daqErrCode daqFunctionBlockWrapper_setPropertyCoercer(daqFunctionBlockWrapper* self, daqString* propertyName, daqCoercer* coercer)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->setPropertyCoercer(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::ICoercer*>(coercer));
 }
 
-ErrCode FunctionBlockWrapper_setPropertyValidator(FunctionBlockWrapper* self, String* propertyName, Validator* validator)
+daqErrCode daqFunctionBlockWrapper_setPropertyValidator(daqFunctionBlockWrapper* self, daqString* propertyName, daqValidator* validator)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->setPropertyValidator(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IValidator*>(validator));
 }
 
-ErrCode FunctionBlockWrapper_setPropertySelectionValues(FunctionBlockWrapper* self, String* propertyName, List* enumValues)
+daqErrCode daqFunctionBlockWrapper_setPropertySelectionValues(daqFunctionBlockWrapper* self, daqString* propertyName, daqList* enumValues)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->setPropertySelectionValues(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IList*>(enumValues));
 }
 
-ErrCode FunctionBlockWrapper_getWrappedFunctionBlock(FunctionBlockWrapper* self, FunctionBlock** functionBlock)
+daqErrCode daqFunctionBlockWrapper_getWrappedFunctionBlock(daqFunctionBlockWrapper* self, daqFunctionBlock** functionBlock)
 {
     return reinterpret_cast<daq::IFunctionBlockWrapper*>(self)->getWrappedFunctionBlock(reinterpret_cast<daq::IFunctionBlock**>(functionBlock));
 }
 
-ErrCode FunctionBlock_createFunctionBlockWrapper(FunctionBlock** obj, FunctionBlock* functionBlock, Bool includeInputPortsByDefault, Bool includeSignalsByDefault, Bool includePropertiesByDefault, Bool includeFunctionBlocksByDefault)
+daqErrCode daqFunctionBlock_createFunctionBlockWrapper(daqFunctionBlock** obj, daqFunctionBlock* functionBlock, daqBool includeInputPortsByDefault, daqBool includeSignalsByDefault, daqBool includePropertiesByDefault, daqBool includeFunctionBlocksByDefault)
 {
     daq::IFunctionBlock* ptr = nullptr;
-    ErrCode err = daq::createFunctionBlockWrapper(&ptr, reinterpret_cast<daq::IFunctionBlock*>(functionBlock), includeInputPortsByDefault, includeSignalsByDefault, includePropertiesByDefault, includeFunctionBlocksByDefault);
-    *obj = reinterpret_cast<FunctionBlock*>(ptr);
+    daqErrCode err = daq::createFunctionBlockWrapper(&ptr, reinterpret_cast<daq::IFunctionBlock*>(functionBlock), includeInputPortsByDefault, includeSignalsByDefault, includePropertiesByDefault, includeFunctionBlocksByDefault);
+    *obj = reinterpret_cast<daqFunctionBlock*>(ptr);
     return err;
 }

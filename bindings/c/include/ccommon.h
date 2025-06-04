@@ -32,51 +32,51 @@ extern "C"
 #include <stddef.h>
 #include <stdint.h>
 
-    typedef uint32_t ErrCode;
-    typedef uint8_t Bool;
-    typedef int64_t Int;
-    typedef uint64_t UInt;
-    typedef double Float;
-    typedef char* CharPtr;
-    typedef const char* ConstCharPtr;
-    typedef void* VoidPtr;
-    typedef size_t SizeT;
-    typedef uint32_t EnumType;
-    typedef void BaseObject;
+    typedef uint32_t daqErrCode;
+    typedef uint8_t daqBool;
+    typedef int64_t daqInt;
+    typedef uint64_t daqUInt;
+    typedef double daqFloat;
+    typedef char* daqCharPtr;
+    typedef const char* daqConstCharPtr;
+    typedef void* daqVoidPtr;
+    typedef size_t daqSizeT;
+    typedef uint32_t daqEnumType;
+    typedef void daqBaseObject;
 
-    const Bool True = 1;
-    const Bool False = 0;
+    const daqBool True = 1;
+    const daqBool False = 0;
 
-    typedef enum CoreType
+    typedef enum daqCoreType
     {
-        ctBool = 0,             ///< Boolean, True or False
-        ctInt,                  ///< 64 bit signed integer
-        ctFloat,                ///< IEEE 754 64 bit floating point
-        ctString,               ///< UTF8 zero terminated string
-        ctList,                 ///< List of IBaseObject
-        ctDict,                 ///< Dictionary of (key: IBaseObject, value: IBaseObject)
-        ctRatio,                ///< Rational number (numerator / denominator)
-        ctProc,                 ///< Callback without return value
-        ctObject,               ///< Generic object
-        ctBinaryData,           ///< Binary buffer with predefined size
-        ctFunc,                 ///< Callback with return value
-        ctComplexNumber,        ///< Complex number (real, imaginary)
-        ctStruct,               ///< Constant structure with dictionary of fields and types
-        ctEnumeration,          ///< Enumeration representing a predefined set of named integral constants
-        ctUndefined = 0xFFFF,   ///< Undefined
-    } CoreType;
+        daqCtBool = 0,             ///< Boolean, True or False
+        daqCtInt,                  ///< 64 bit signed integer
+        daqCtFloat,                ///< IEEE 754 64 bit floating point
+        daqCtString,               ///< UTF8 zero terminated string
+        daqCtList,                 ///< List of IBaseObject
+        daqCtDict,                 ///< Dictionary of (key: IBaseObject, value: IBaseObject)
+        daqCtRatio,                ///< Rational number (numerator / denominator)
+        daqCtProc,                 ///< Callback without return value
+        daqCtObject,               ///< Generic object
+        daqCtBinaryData,           ///< Binary buffer with predefined size
+        daqCtFunc,                 ///< Callback with return value
+        daqCtComplexNumber,        ///< Complex number (real, imaginary)
+        daqCtStruct,               ///< Constant structure with dictionary of fields and types
+        daqCtEnumeration,          ///< Enumeration representing a predefined set of named integral constants
+        daqCtUndefined = 0xFFFF,   ///< Undefined
+    } daqCoreType;
 
-    typedef ErrCode (*FuncCall)(BaseObject*, BaseObject**);
-    typedef ErrCode (*ProcCall)(BaseObject*);
-    typedef void (*EventCall)(BaseObject*, BaseObject*);
+    typedef daqErrCode (*daqFuncCall)(daqBaseObject*, daqBaseObject**);
+    typedef daqErrCode (*daqProcCall)(daqBaseObject*);
+    typedef void (*daqEventCall)(daqBaseObject*, daqBaseObject*);
 
-    typedef struct IntfID
+    typedef struct daqIntfID
     {
         uint32_t Data1;
         uint16_t Data2;
         uint16_t Data3;
         uint64_t Data4;
-    } IntfID;
+    } daqIntfID;
 
 #include <ccoreobjects/common.h>
 

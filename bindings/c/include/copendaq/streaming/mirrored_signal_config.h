@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:18.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,20 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct MirroredSignalConfig MirroredSignalConfig;
-    typedef struct String String;
-    typedef struct List List;
-    typedef struct Event Event;
+    typedef struct daqMirroredSignalConfig daqMirroredSignalConfig;
+    typedef struct daqString daqString;
+    typedef struct daqList daqList;
+    typedef struct daqEvent daqEvent;
 
-    EXPORTED extern const IntfID MIRRORED_SIGNAL_CONFIG_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_MIRRORED_SIGNAL_CONFIG_INTF_ID;
 
-    ErrCode EXPORTED MirroredSignalConfig_getRemoteId(MirroredSignalConfig* self, String** id);
-    ErrCode EXPORTED MirroredSignalConfig_getStreamingSources(MirroredSignalConfig* self, List** streamingConnectionStrings);
-    ErrCode EXPORTED MirroredSignalConfig_setActiveStreamingSource(MirroredSignalConfig* self, String* streamingConnectionString);
-    ErrCode EXPORTED MirroredSignalConfig_getActiveStreamingSource(MirroredSignalConfig* self, String** streamingConnectionString);
-    ErrCode EXPORTED MirroredSignalConfig_deactivateStreaming(MirroredSignalConfig* self);
-    ErrCode EXPORTED MirroredSignalConfig_getOnSubscribeComplete(MirroredSignalConfig* self, Event** event);
-    ErrCode EXPORTED MirroredSignalConfig_getOnUnsubscribeComplete(MirroredSignalConfig* self, Event** event);
+    daqErrCode EXPORTED daqMirroredSignalConfig_getRemoteId(daqMirroredSignalConfig* self, daqString** id);
+    daqErrCode EXPORTED daqMirroredSignalConfig_getStreamingSources(daqMirroredSignalConfig* self, daqList** streamingConnectionStrings);
+    daqErrCode EXPORTED daqMirroredSignalConfig_setActiveStreamingSource(daqMirroredSignalConfig* self, daqString* streamingConnectionString);
+    daqErrCode EXPORTED daqMirroredSignalConfig_getActiveStreamingSource(daqMirroredSignalConfig* self, daqString** streamingConnectionString);
+    daqErrCode EXPORTED daqMirroredSignalConfig_deactivateStreaming(daqMirroredSignalConfig* self);
+    daqErrCode EXPORTED daqMirroredSignalConfig_getOnSubscribeComplete(daqMirroredSignalConfig* self, daqEvent** event);
+    daqErrCode EXPORTED daqMirroredSignalConfig_getOnUnsubscribeComplete(daqMirroredSignalConfig* self, daqEvent** event);
 
 #ifdef __cplusplus
 }

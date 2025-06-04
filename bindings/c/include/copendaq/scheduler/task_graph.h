@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:54.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:34.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct TaskGraph TaskGraph;
-    typedef struct Procedure Procedure;
-    typedef struct String String;
+    typedef struct daqTaskGraph daqTaskGraph;
+    typedef struct daqProcedure daqProcedure;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID TASK_GRAPH_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_TASK_GRAPH_INTF_ID;
 
-    ErrCode EXPORTED TaskGraph_createTaskGraph(TaskGraph** obj, Procedure* work, String* name);
+    daqErrCode EXPORTED daqTaskGraph_createTaskGraph(daqTaskGraph** obj, daqProcedure* work, daqString* name);
 
 #ifdef __cplusplus
 }

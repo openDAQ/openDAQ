@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:04.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:43.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,21 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DimensionRule DimensionRule;
-    typedef struct Dict Dict;
-    typedef struct Number Number;
-    typedef struct List List;
-    typedef struct DimensionRuleBuilder DimensionRuleBuilder;
+    typedef struct daqDimensionRule daqDimensionRule;
+    typedef struct daqDict daqDict;
+    typedef struct daqNumber daqNumber;
+    typedef struct daqList daqList;
+    typedef struct daqDimensionRuleBuilder daqDimensionRuleBuilder;
 
-    EXPORTED extern const IntfID DIMENSION_RULE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DIMENSION_RULE_INTF_ID;
 
-    ErrCode EXPORTED DimensionRule_getType(DimensionRule* self, DimensionRuleType* type);
-    ErrCode EXPORTED DimensionRule_getParameters(DimensionRule* self, Dict** parameters);
-    ErrCode EXPORTED DimensionRule_createLinearDimensionRule(DimensionRule** obj, Number* delta, Number* start, SizeT size);
-    ErrCode EXPORTED DimensionRule_createListDimensionRule(DimensionRule** obj, List* list);
-    ErrCode EXPORTED DimensionRule_createLogarithmicDimensionRule(DimensionRule** obj, Number* delta, Number* start, Number* base, SizeT size);
-    ErrCode EXPORTED DimensionRule_createDimensionRule(DimensionRule** obj, DimensionRuleType type, Dict* parameters);
-    ErrCode EXPORTED DimensionRule_createDimensionRuleFromBuilder(DimensionRule** obj, DimensionRuleBuilder* builder);
+    daqErrCode EXPORTED daqDimensionRule_getType(daqDimensionRule* self, daqDimensionRuleType* type);
+    daqErrCode EXPORTED daqDimensionRule_getParameters(daqDimensionRule* self, daqDict** parameters);
+    daqErrCode EXPORTED daqDimensionRule_createLinearDimensionRule(daqDimensionRule** obj, daqNumber* delta, daqNumber* start, daqSizeT size);
+    daqErrCode EXPORTED daqDimensionRule_createListDimensionRule(daqDimensionRule** obj, daqList* list);
+    daqErrCode EXPORTED daqDimensionRule_createLogarithmicDimensionRule(daqDimensionRule** obj, daqNumber* delta, daqNumber* start, daqNumber* base, daqSizeT size);
+    daqErrCode EXPORTED daqDimensionRule_createDimensionRule(daqDimensionRule** obj, daqDimensionRuleType type, daqDict* parameters);
+    daqErrCode EXPORTED daqDimensionRule_createDimensionRuleFromBuilder(daqDimensionRule** obj, daqDimensionRuleBuilder* builder);
 
 #ifdef __cplusplus
 }

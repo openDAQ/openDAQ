@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:28.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:07.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DeviceType DeviceType;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
+    typedef struct daqDeviceType daqDeviceType;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
 
-    EXPORTED extern const IntfID DEVICE_TYPE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DEVICE_TYPE_INTF_ID;
 
-    ErrCode EXPORTED DeviceType_getConnectionStringPrefix(DeviceType* self, String** prefix);
-    ErrCode EXPORTED DeviceType_createDeviceType(DeviceType** obj, String* id, String* name, String* description, PropertyObject* defaultConfig, String* prefix);
+    daqErrCode EXPORTED daqDeviceType_getConnectionStringPrefix(daqDeviceType* self, daqString** prefix);
+    daqErrCode EXPORTED daqDeviceType_createDeviceType(daqDeviceType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig, daqString* prefix);
 
 #ifdef __cplusplus
 }

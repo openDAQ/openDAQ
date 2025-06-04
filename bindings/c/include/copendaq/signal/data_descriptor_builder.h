@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:00.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,47 +34,47 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct DataDescriptorBuilder DataDescriptorBuilder;
-    typedef struct DataDescriptor DataDescriptor;
-    typedef struct String String;
-    typedef struct List List;
-    typedef struct Unit Unit;
-    typedef struct Range Range;
-    typedef struct DataRule DataRule;
-    typedef struct Ratio Ratio;
-    typedef struct Scaling Scaling;
-    typedef struct Dict Dict;
-    typedef struct ReferenceDomainInfo ReferenceDomainInfo;
+    typedef struct daqDataDescriptorBuilder daqDataDescriptorBuilder;
+    typedef struct daqDataDescriptor daqDataDescriptor;
+    typedef struct daqString daqString;
+    typedef struct daqList daqList;
+    typedef struct daqUnit daqUnit;
+    typedef struct daqRange daqRange;
+    typedef struct daqDataRule daqDataRule;
+    typedef struct daqRatio daqRatio;
+    typedef struct daqScaling daqScaling;
+    typedef struct daqDict daqDict;
+    typedef struct daqReferenceDomainInfo daqReferenceDomainInfo;
 
-    EXPORTED extern const IntfID DATA_DESCRIPTOR_BUILDER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_DATA_DESCRIPTOR_BUILDER_INTF_ID;
 
-    ErrCode EXPORTED DataDescriptorBuilder_build(DataDescriptorBuilder* self, DataDescriptor** dataDescriptor);
-    ErrCode EXPORTED DataDescriptorBuilder_setName(DataDescriptorBuilder* self, String* name);
-    ErrCode EXPORTED DataDescriptorBuilder_getName(DataDescriptorBuilder* self, String** name);
-    ErrCode EXPORTED DataDescriptorBuilder_setDimensions(DataDescriptorBuilder* self, List* dimensions);
-    ErrCode EXPORTED DataDescriptorBuilder_getDimensions(DataDescriptorBuilder* self, List** dimensions);
-    ErrCode EXPORTED DataDescriptorBuilder_setSampleType(DataDescriptorBuilder* self, SampleType sampleType);
-    ErrCode EXPORTED DataDescriptorBuilder_getSampleType(DataDescriptorBuilder* self, SampleType* sampleType);
-    ErrCode EXPORTED DataDescriptorBuilder_setUnit(DataDescriptorBuilder* self, Unit* unit);
-    ErrCode EXPORTED DataDescriptorBuilder_getUnit(DataDescriptorBuilder* self, Unit** unit);
-    ErrCode EXPORTED DataDescriptorBuilder_setValueRange(DataDescriptorBuilder* self, Range* range);
-    ErrCode EXPORTED DataDescriptorBuilder_getValueRange(DataDescriptorBuilder* self, Range** range);
-    ErrCode EXPORTED DataDescriptorBuilder_setRule(DataDescriptorBuilder* self, DataRule* rule);
-    ErrCode EXPORTED DataDescriptorBuilder_getRule(DataDescriptorBuilder* self, DataRule** rule);
-    ErrCode EXPORTED DataDescriptorBuilder_setOrigin(DataDescriptorBuilder* self, String* origin);
-    ErrCode EXPORTED DataDescriptorBuilder_getOrigin(DataDescriptorBuilder* self, String** origin);
-    ErrCode EXPORTED DataDescriptorBuilder_setTickResolution(DataDescriptorBuilder* self, Ratio* tickResolution);
-    ErrCode EXPORTED DataDescriptorBuilder_getTickResolution(DataDescriptorBuilder* self, Ratio** tickResolution);
-    ErrCode EXPORTED DataDescriptorBuilder_setPostScaling(DataDescriptorBuilder* self, Scaling* scaling);
-    ErrCode EXPORTED DataDescriptorBuilder_getPostScaling(DataDescriptorBuilder* self, Scaling** scaling);
-    ErrCode EXPORTED DataDescriptorBuilder_setStructFields(DataDescriptorBuilder* self, List* structFields);
-    ErrCode EXPORTED DataDescriptorBuilder_getStructFields(DataDescriptorBuilder* self, List** structFields);
-    ErrCode EXPORTED DataDescriptorBuilder_setMetadata(DataDescriptorBuilder* self, Dict* metadata);
-    ErrCode EXPORTED DataDescriptorBuilder_getMetadata(DataDescriptorBuilder* self, Dict** metadata);
-    ErrCode EXPORTED DataDescriptorBuilder_setReferenceDomainInfo(DataDescriptorBuilder* self, ReferenceDomainInfo* referenceDomainInfo);
-    ErrCode EXPORTED DataDescriptorBuilder_getReferenceDomainInfo(DataDescriptorBuilder* self, ReferenceDomainInfo** referenceDomainInfo);
-    ErrCode EXPORTED DataDescriptorBuilder_createDataDescriptorBuilder(DataDescriptorBuilder** obj);
-    ErrCode EXPORTED DataDescriptorBuilder_createDataDescriptorBuilderFromExisting(DataDescriptorBuilder** obj, DataDescriptor* descriptorToCopy);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_build(daqDataDescriptorBuilder* self, daqDataDescriptor** dataDescriptor);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setName(daqDataDescriptorBuilder* self, daqString* name);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getName(daqDataDescriptorBuilder* self, daqString** name);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setDimensions(daqDataDescriptorBuilder* self, daqList* dimensions);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getDimensions(daqDataDescriptorBuilder* self, daqList** dimensions);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setSampleType(daqDataDescriptorBuilder* self, daqSampleType sampleType);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getSampleType(daqDataDescriptorBuilder* self, daqSampleType* sampleType);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setUnit(daqDataDescriptorBuilder* self, daqUnit* unit);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getUnit(daqDataDescriptorBuilder* self, daqUnit** unit);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setValueRange(daqDataDescriptorBuilder* self, daqRange* range);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getValueRange(daqDataDescriptorBuilder* self, daqRange** range);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setRule(daqDataDescriptorBuilder* self, daqDataRule* rule);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getRule(daqDataDescriptorBuilder* self, daqDataRule** rule);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setOrigin(daqDataDescriptorBuilder* self, daqString* origin);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getOrigin(daqDataDescriptorBuilder* self, daqString** origin);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setTickResolution(daqDataDescriptorBuilder* self, daqRatio* tickResolution);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getTickResolution(daqDataDescriptorBuilder* self, daqRatio** tickResolution);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setPostScaling(daqDataDescriptorBuilder* self, daqScaling* scaling);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getPostScaling(daqDataDescriptorBuilder* self, daqScaling** scaling);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setStructFields(daqDataDescriptorBuilder* self, daqList* structFields);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getStructFields(daqDataDescriptorBuilder* self, daqList** structFields);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setMetadata(daqDataDescriptorBuilder* self, daqDict* metadata);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getMetadata(daqDataDescriptorBuilder* self, daqDict** metadata);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setReferenceDomainInfo(daqDataDescriptorBuilder* self, daqReferenceDomainInfo* referenceDomainInfo);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getReferenceDomainInfo(daqDataDescriptorBuilder* self, daqReferenceDomainInfo** referenceDomainInfo);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_createDataDescriptorBuilder(daqDataDescriptorBuilder** obj);
+    daqErrCode EXPORTED daqDataDescriptorBuilder_createDataDescriptorBuilderFromExisting(daqDataDescriptorBuilder** obj, daqDataDescriptor* descriptorToCopy);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:07.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,52 +15,52 @@
 
 #include <copendaq_private.h>
 
-const IntfID INPUT_PORT_CONFIG_INTF_ID = { daq::IInputPortConfig::Id.Data1, daq::IInputPortConfig::Id.Data2, daq::IInputPortConfig::Id.Data3, daq::IInputPortConfig::Id.Data4_UInt64 };
+const daqIntfID DAQ_INPUT_PORT_CONFIG_INTF_ID = { daq::IInputPortConfig::Id.Data1, daq::IInputPortConfig::Id.Data2, daq::IInputPortConfig::Id.Data3, daq::IInputPortConfig::Id.Data4_UInt64 };
 
-ErrCode InputPortConfig_setNotificationMethod(InputPortConfig* self, PacketReadyNotification method)
+daqErrCode daqInputPortConfig_setNotificationMethod(daqInputPortConfig* self, daqPacketReadyNotification method)
 {
     return reinterpret_cast<daq::IInputPortConfig*>(self)->setNotificationMethod(static_cast<daq::PacketReadyNotification>(method));
 }
 
-ErrCode InputPortConfig_notifyPacketEnqueued(InputPortConfig* self, Bool queueWasEmpty)
+daqErrCode daqInputPortConfig_notifyPacketEnqueued(daqInputPortConfig* self, daqBool queueWasEmpty)
 {
     return reinterpret_cast<daq::IInputPortConfig*>(self)->notifyPacketEnqueued(queueWasEmpty);
 }
 
-ErrCode InputPortConfig_notifyPacketEnqueuedOnThisThread(InputPortConfig* self)
+daqErrCode daqInputPortConfig_notifyPacketEnqueuedOnThisThread(daqInputPortConfig* self)
 {
     return reinterpret_cast<daq::IInputPortConfig*>(self)->notifyPacketEnqueuedOnThisThread();
 }
 
-ErrCode InputPortConfig_setListener(InputPortConfig* self, InputPortNotifications* port)
+daqErrCode daqInputPortConfig_setListener(daqInputPortConfig* self, daqInputPortNotifications* port)
 {
     return reinterpret_cast<daq::IInputPortConfig*>(self)->setListener(reinterpret_cast<daq::IInputPortNotifications*>(port));
 }
 
-ErrCode InputPortConfig_getCustomData(InputPortConfig* self, BaseObject** customData)
+daqErrCode daqInputPortConfig_getCustomData(daqInputPortConfig* self, daqBaseObject** customData)
 {
     return reinterpret_cast<daq::IInputPortConfig*>(self)->getCustomData(reinterpret_cast<daq::IBaseObject**>(customData));
 }
 
-ErrCode InputPortConfig_setCustomData(InputPortConfig* self, BaseObject* customData)
+daqErrCode daqInputPortConfig_setCustomData(daqInputPortConfig* self, daqBaseObject* customData)
 {
     return reinterpret_cast<daq::IInputPortConfig*>(self)->setCustomData(reinterpret_cast<daq::IBaseObject*>(customData));
 }
 
-ErrCode InputPortConfig_setRequiresSignal(InputPortConfig* self, Bool requiresSignal)
+daqErrCode daqInputPortConfig_setRequiresSignal(daqInputPortConfig* self, daqBool requiresSignal)
 {
     return reinterpret_cast<daq::IInputPortConfig*>(self)->setRequiresSignal(requiresSignal);
 }
 
-ErrCode InputPortConfig_getGapCheckingEnabled(InputPortConfig* self, Bool* gapCheckingEnabled)
+daqErrCode daqInputPortConfig_getGapCheckingEnabled(daqInputPortConfig* self, daqBool* gapCheckingEnabled)
 {
     return reinterpret_cast<daq::IInputPortConfig*>(self)->getGapCheckingEnabled(gapCheckingEnabled);
 }
 
-ErrCode InputPortConfig_createInputPort(InputPortConfig** obj, Context* context, Component* parent, String* localId, Bool gapChecking)
+daqErrCode daqInputPortConfig_createInputPort(daqInputPortConfig** obj, daqContext* context, daqComponent* parent, daqString* localId, daqBool gapChecking)
 {
     daq::IInputPortConfig* ptr = nullptr;
-    ErrCode err = daq::createInputPort(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId), gapChecking);
-    *obj = reinterpret_cast<InputPortConfig*>(ptr);
+    daqErrCode err = daq::createInputPort(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId), gapChecking);
+    *obj = reinterpret_cast<daqInputPortConfig*>(ptr);
     return err;
 }

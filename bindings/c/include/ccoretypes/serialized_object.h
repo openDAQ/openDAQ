@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:49.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,27 +34,27 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct SerializedObject SerializedObject;
-    typedef struct String String;
-    typedef struct SerializedList SerializedList;
-    typedef struct Function Function;
-    typedef struct List List;
+    typedef struct daqSerializedObject daqSerializedObject;
+    typedef struct daqString daqString;
+    typedef struct daqSerializedList daqSerializedList;
+    typedef struct daqFunction daqFunction;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const IntfID SERIALIZED_OBJECT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_SERIALIZED_OBJECT_INTF_ID;
 
-    ErrCode EXPORTED SerializedObject_readSerializedObject(SerializedObject* self, String* key, SerializedObject** plainObj);
-    ErrCode EXPORTED SerializedObject_readSerializedList(SerializedObject* self, String* key, SerializedList** list);
-    ErrCode EXPORTED SerializedObject_readList(SerializedObject* self, String* key, BaseObject* context, Function* factoryCallback, List** list);
-    ErrCode EXPORTED SerializedObject_readObject(SerializedObject* self, String* key, BaseObject* context, Function* factoryCallback, BaseObject** obj);
-    ErrCode EXPORTED SerializedObject_readString(SerializedObject* self, String* key, String** string);
-    ErrCode EXPORTED SerializedObject_readBool(SerializedObject* self, String* key, Bool* boolean);
-    ErrCode EXPORTED SerializedObject_readFloat(SerializedObject* self, String* key, Float* real);
-    ErrCode EXPORTED SerializedObject_readInt(SerializedObject* self, String* key, Int* integer);
-    ErrCode EXPORTED SerializedObject_hasKey(SerializedObject* self, String* key, Bool* hasKey);
-    ErrCode EXPORTED SerializedObject_getKeys(SerializedObject* self, List** list);
-    ErrCode EXPORTED SerializedObject_getType(SerializedObject* self, String* key, CoreType* type);
-    ErrCode EXPORTED SerializedObject_isRoot(SerializedObject* self, Bool* isRoot);
-    ErrCode EXPORTED SerializedObject_toJson(SerializedObject* self, String** jsonString);
+    daqErrCode EXPORTED daqSerializedObject_readSerializedObject(daqSerializedObject* self, daqString* key, daqSerializedObject** plainObj);
+    daqErrCode EXPORTED daqSerializedObject_readSerializedList(daqSerializedObject* self, daqString* key, daqSerializedList** list);
+    daqErrCode EXPORTED daqSerializedObject_readList(daqSerializedObject* self, daqString* key, daqBaseObject* context, daqFunction* factoryCallback, daqList** list);
+    daqErrCode EXPORTED daqSerializedObject_readObject(daqSerializedObject* self, daqString* key, daqBaseObject* context, daqFunction* factoryCallback, daqBaseObject** obj);
+    daqErrCode EXPORTED daqSerializedObject_readString(daqSerializedObject* self, daqString* key, daqString** string);
+    daqErrCode EXPORTED daqSerializedObject_readBool(daqSerializedObject* self, daqString* key, daqBool* boolean);
+    daqErrCode EXPORTED daqSerializedObject_readFloat(daqSerializedObject* self, daqString* key, daqFloat* real);
+    daqErrCode EXPORTED daqSerializedObject_readInt(daqSerializedObject* self, daqString* key, daqInt* integer);
+    daqErrCode EXPORTED daqSerializedObject_hasKey(daqSerializedObject* self, daqString* key, daqBool* hasKey);
+    daqErrCode EXPORTED daqSerializedObject_getKeys(daqSerializedObject* self, daqList** list);
+    daqErrCode EXPORTED daqSerializedObject_getType(daqSerializedObject* self, daqString* key, daqCoreType* type);
+    daqErrCode EXPORTED daqSerializedObject_isRoot(daqSerializedObject* self, daqBool* isRoot);
+    daqErrCode EXPORTED daqSerializedObject_toJson(daqSerializedObject* self, daqString** jsonString);
 
 #ifdef __cplusplus
 }

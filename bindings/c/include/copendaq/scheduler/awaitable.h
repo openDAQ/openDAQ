@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:52.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Awaitable Awaitable;
+    typedef struct daqAwaitable daqAwaitable;
 
-    EXPORTED extern const IntfID AWAITABLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_AWAITABLE_INTF_ID;
 
-    ErrCode EXPORTED Awaitable_cancel(Awaitable* self, Bool* canceled);
-    ErrCode EXPORTED Awaitable_wait(Awaitable* self);
-    ErrCode EXPORTED Awaitable_getResult(Awaitable* self, BaseObject** result);
-    ErrCode EXPORTED Awaitable_hasCompleted(Awaitable* self, Bool* completed);
+    daqErrCode EXPORTED daqAwaitable_cancel(daqAwaitable* self, daqBool* canceled);
+    daqErrCode EXPORTED daqAwaitable_wait(daqAwaitable* self);
+    daqErrCode EXPORTED daqAwaitable_getResult(daqAwaitable* self, daqBaseObject** result);
+    daqErrCode EXPORTED daqAwaitable_hasCompleted(daqAwaitable* self, daqBool* completed);
 
 #ifdef __cplusplus
 }

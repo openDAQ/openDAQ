@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:55.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:05.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct VersionInfo VersionInfo;
+    typedef struct daqVersionInfo daqVersionInfo;
 
-    EXPORTED extern const IntfID VERSION_INFO_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_VERSION_INFO_INTF_ID;
 
-    ErrCode EXPORTED VersionInfo_getMajor(VersionInfo* self, SizeT* major);
-    ErrCode EXPORTED VersionInfo_getMinor(VersionInfo* self, SizeT* minor);
-    ErrCode EXPORTED VersionInfo_getPatch(VersionInfo* self, SizeT* patch);
-    ErrCode EXPORTED VersionInfo_createVersionInfo(VersionInfo** obj, SizeT major, SizeT minor, SizeT patch);
+    daqErrCode EXPORTED daqVersionInfo_getMajor(daqVersionInfo* self, daqSizeT* major);
+    daqErrCode EXPORTED daqVersionInfo_getMinor(daqVersionInfo* self, daqSizeT* minor);
+    daqErrCode EXPORTED daqVersionInfo_getPatch(daqVersionInfo* self, daqSizeT* patch);
+    daqErrCode EXPORTED daqVersionInfo_createVersionInfo(daqVersionInfo** obj, daqSizeT major, daqSizeT minor, daqSizeT patch);
 
 #ifdef __cplusplus
 }

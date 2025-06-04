@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:07.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PropertyObjectProtected PropertyObjectProtected;
-    typedef struct String String;
+    typedef struct daqPropertyObjectProtected daqPropertyObjectProtected;
+    typedef struct daqString daqString;
 
-    EXPORTED extern const IntfID PROPERTY_OBJECT_PROTECTED_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_PROTECTED_INTF_ID;
 
-    ErrCode EXPORTED PropertyObjectProtected_setProtectedPropertyValue(PropertyObjectProtected* self, String* propertyName, BaseObject* value);
-    ErrCode EXPORTED PropertyObjectProtected_clearProtectedPropertyValue(PropertyObjectProtected* self, String* propertyName);
+    daqErrCode EXPORTED daqPropertyObjectProtected_setProtectedPropertyValue(daqPropertyObjectProtected* self, daqString* propertyName, daqBaseObject* value);
+    daqErrCode EXPORTED daqPropertyObjectProtected_clearProtectedPropertyValue(daqPropertyObjectProtected* self, daqString* propertyName);
 
 #ifdef __cplusplus
 }

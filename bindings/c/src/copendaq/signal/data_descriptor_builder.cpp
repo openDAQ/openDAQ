@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:00.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,145 +15,145 @@
 
 #include <copendaq_private.h>
 
-const IntfID DATA_DESCRIPTOR_BUILDER_INTF_ID = { daq::IDataDescriptorBuilder::Id.Data1, daq::IDataDescriptorBuilder::Id.Data2, daq::IDataDescriptorBuilder::Id.Data3, daq::IDataDescriptorBuilder::Id.Data4_UInt64 };
+const daqIntfID DAQ_DATA_DESCRIPTOR_BUILDER_INTF_ID = { daq::IDataDescriptorBuilder::Id.Data1, daq::IDataDescriptorBuilder::Id.Data2, daq::IDataDescriptorBuilder::Id.Data3, daq::IDataDescriptorBuilder::Id.Data4_UInt64 };
 
-ErrCode DataDescriptorBuilder_build(DataDescriptorBuilder* self, DataDescriptor** dataDescriptor)
+daqErrCode daqDataDescriptorBuilder_build(daqDataDescriptorBuilder* self, daqDataDescriptor** dataDescriptor)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->build(reinterpret_cast<daq::IDataDescriptor**>(dataDescriptor));
 }
 
-ErrCode DataDescriptorBuilder_setName(DataDescriptorBuilder* self, String* name)
+daqErrCode daqDataDescriptorBuilder_setName(daqDataDescriptorBuilder* self, daqString* name)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setName(reinterpret_cast<daq::IString*>(name));
 }
 
-ErrCode DataDescriptorBuilder_getName(DataDescriptorBuilder* self, String** name)
+daqErrCode daqDataDescriptorBuilder_getName(daqDataDescriptorBuilder* self, daqString** name)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getName(reinterpret_cast<daq::IString**>(name));
 }
 
-ErrCode DataDescriptorBuilder_setDimensions(DataDescriptorBuilder* self, List* dimensions)
+daqErrCode daqDataDescriptorBuilder_setDimensions(daqDataDescriptorBuilder* self, daqList* dimensions)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setDimensions(reinterpret_cast<daq::IList*>(dimensions));
 }
 
-ErrCode DataDescriptorBuilder_getDimensions(DataDescriptorBuilder* self, List** dimensions)
+daqErrCode daqDataDescriptorBuilder_getDimensions(daqDataDescriptorBuilder* self, daqList** dimensions)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getDimensions(reinterpret_cast<daq::IList**>(dimensions));
 }
 
-ErrCode DataDescriptorBuilder_setSampleType(DataDescriptorBuilder* self, SampleType sampleType)
+daqErrCode daqDataDescriptorBuilder_setSampleType(daqDataDescriptorBuilder* self, daqSampleType sampleType)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setSampleType(static_cast<daq::SampleType>(sampleType));
 }
 
-ErrCode DataDescriptorBuilder_getSampleType(DataDescriptorBuilder* self, SampleType* sampleType)
+daqErrCode daqDataDescriptorBuilder_getSampleType(daqDataDescriptorBuilder* self, daqSampleType* sampleType)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getSampleType(reinterpret_cast<daq::SampleType*>(sampleType));
 }
 
-ErrCode DataDescriptorBuilder_setUnit(DataDescriptorBuilder* self, Unit* unit)
+daqErrCode daqDataDescriptorBuilder_setUnit(daqDataDescriptorBuilder* self, daqUnit* unit)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setUnit(reinterpret_cast<daq::IUnit*>(unit));
 }
 
-ErrCode DataDescriptorBuilder_getUnit(DataDescriptorBuilder* self, Unit** unit)
+daqErrCode daqDataDescriptorBuilder_getUnit(daqDataDescriptorBuilder* self, daqUnit** unit)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getUnit(reinterpret_cast<daq::IUnit**>(unit));
 }
 
-ErrCode DataDescriptorBuilder_setValueRange(DataDescriptorBuilder* self, Range* range)
+daqErrCode daqDataDescriptorBuilder_setValueRange(daqDataDescriptorBuilder* self, daqRange* range)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setValueRange(reinterpret_cast<daq::IRange*>(range));
 }
 
-ErrCode DataDescriptorBuilder_getValueRange(DataDescriptorBuilder* self, Range** range)
+daqErrCode daqDataDescriptorBuilder_getValueRange(daqDataDescriptorBuilder* self, daqRange** range)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getValueRange(reinterpret_cast<daq::IRange**>(range));
 }
 
-ErrCode DataDescriptorBuilder_setRule(DataDescriptorBuilder* self, DataRule* rule)
+daqErrCode daqDataDescriptorBuilder_setRule(daqDataDescriptorBuilder* self, daqDataRule* rule)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setRule(reinterpret_cast<daq::IDataRule*>(rule));
 }
 
-ErrCode DataDescriptorBuilder_getRule(DataDescriptorBuilder* self, DataRule** rule)
+daqErrCode daqDataDescriptorBuilder_getRule(daqDataDescriptorBuilder* self, daqDataRule** rule)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getRule(reinterpret_cast<daq::IDataRule**>(rule));
 }
 
-ErrCode DataDescriptorBuilder_setOrigin(DataDescriptorBuilder* self, String* origin)
+daqErrCode daqDataDescriptorBuilder_setOrigin(daqDataDescriptorBuilder* self, daqString* origin)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setOrigin(reinterpret_cast<daq::IString*>(origin));
 }
 
-ErrCode DataDescriptorBuilder_getOrigin(DataDescriptorBuilder* self, String** origin)
+daqErrCode daqDataDescriptorBuilder_getOrigin(daqDataDescriptorBuilder* self, daqString** origin)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getOrigin(reinterpret_cast<daq::IString**>(origin));
 }
 
-ErrCode DataDescriptorBuilder_setTickResolution(DataDescriptorBuilder* self, Ratio* tickResolution)
+daqErrCode daqDataDescriptorBuilder_setTickResolution(daqDataDescriptorBuilder* self, daqRatio* tickResolution)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setTickResolution(reinterpret_cast<daq::IRatio*>(tickResolution));
 }
 
-ErrCode DataDescriptorBuilder_getTickResolution(DataDescriptorBuilder* self, Ratio** tickResolution)
+daqErrCode daqDataDescriptorBuilder_getTickResolution(daqDataDescriptorBuilder* self, daqRatio** tickResolution)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getTickResolution(reinterpret_cast<daq::IRatio**>(tickResolution));
 }
 
-ErrCode DataDescriptorBuilder_setPostScaling(DataDescriptorBuilder* self, Scaling* scaling)
+daqErrCode daqDataDescriptorBuilder_setPostScaling(daqDataDescriptorBuilder* self, daqScaling* scaling)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setPostScaling(reinterpret_cast<daq::IScaling*>(scaling));
 }
 
-ErrCode DataDescriptorBuilder_getPostScaling(DataDescriptorBuilder* self, Scaling** scaling)
+daqErrCode daqDataDescriptorBuilder_getPostScaling(daqDataDescriptorBuilder* self, daqScaling** scaling)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getPostScaling(reinterpret_cast<daq::IScaling**>(scaling));
 }
 
-ErrCode DataDescriptorBuilder_setStructFields(DataDescriptorBuilder* self, List* structFields)
+daqErrCode daqDataDescriptorBuilder_setStructFields(daqDataDescriptorBuilder* self, daqList* structFields)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setStructFields(reinterpret_cast<daq::IList*>(structFields));
 }
 
-ErrCode DataDescriptorBuilder_getStructFields(DataDescriptorBuilder* self, List** structFields)
+daqErrCode daqDataDescriptorBuilder_getStructFields(daqDataDescriptorBuilder* self, daqList** structFields)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getStructFields(reinterpret_cast<daq::IList**>(structFields));
 }
 
-ErrCode DataDescriptorBuilder_setMetadata(DataDescriptorBuilder* self, Dict* metadata)
+daqErrCode daqDataDescriptorBuilder_setMetadata(daqDataDescriptorBuilder* self, daqDict* metadata)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setMetadata(reinterpret_cast<daq::IDict*>(metadata));
 }
 
-ErrCode DataDescriptorBuilder_getMetadata(DataDescriptorBuilder* self, Dict** metadata)
+daqErrCode daqDataDescriptorBuilder_getMetadata(daqDataDescriptorBuilder* self, daqDict** metadata)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getMetadata(reinterpret_cast<daq::IDict**>(metadata));
 }
 
-ErrCode DataDescriptorBuilder_setReferenceDomainInfo(DataDescriptorBuilder* self, ReferenceDomainInfo* referenceDomainInfo)
+daqErrCode daqDataDescriptorBuilder_setReferenceDomainInfo(daqDataDescriptorBuilder* self, daqReferenceDomainInfo* referenceDomainInfo)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->setReferenceDomainInfo(reinterpret_cast<daq::IReferenceDomainInfo*>(referenceDomainInfo));
 }
 
-ErrCode DataDescriptorBuilder_getReferenceDomainInfo(DataDescriptorBuilder* self, ReferenceDomainInfo** referenceDomainInfo)
+daqErrCode daqDataDescriptorBuilder_getReferenceDomainInfo(daqDataDescriptorBuilder* self, daqReferenceDomainInfo** referenceDomainInfo)
 {
     return reinterpret_cast<daq::IDataDescriptorBuilder*>(self)->getReferenceDomainInfo(reinterpret_cast<daq::IReferenceDomainInfo**>(referenceDomainInfo));
 }
 
-ErrCode DataDescriptorBuilder_createDataDescriptorBuilder(DataDescriptorBuilder** obj)
+daqErrCode daqDataDescriptorBuilder_createDataDescriptorBuilder(daqDataDescriptorBuilder** obj)
 {
     daq::IDataDescriptorBuilder* ptr = nullptr;
-    ErrCode err = daq::createDataDescriptorBuilder(&ptr);
-    *obj = reinterpret_cast<DataDescriptorBuilder*>(ptr);
+    daqErrCode err = daq::createDataDescriptorBuilder(&ptr);
+    *obj = reinterpret_cast<daqDataDescriptorBuilder*>(ptr);
     return err;
 }
 
-ErrCode DataDescriptorBuilder_createDataDescriptorBuilderFromExisting(DataDescriptorBuilder** obj, DataDescriptor* descriptorToCopy)
+daqErrCode daqDataDescriptorBuilder_createDataDescriptorBuilderFromExisting(daqDataDescriptorBuilder** obj, daqDataDescriptor* descriptorToCopy)
 {
     daq::IDataDescriptorBuilder* ptr = nullptr;
-    ErrCode err = daq::createDataDescriptorBuilderFromExisting(&ptr, reinterpret_cast<daq::IDataDescriptor*>(descriptorToCopy));
-    *obj = reinterpret_cast<DataDescriptorBuilder*>(ptr);
+    daqErrCode err = daq::createDataDescriptorBuilderFromExisting(&ptr, reinterpret_cast<daq::IDataDescriptor*>(descriptorToCopy));
+    *obj = reinterpret_cast<daqDataDescriptorBuilder*>(ptr);
     return err;
 }

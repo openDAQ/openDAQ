@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:43.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:23.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct BlockReaderStatus BlockReaderStatus;
-    typedef struct EventPacket EventPacket;
-    typedef struct Number Number;
+    typedef struct daqBlockReaderStatus daqBlockReaderStatus;
+    typedef struct daqEventPacket daqEventPacket;
+    typedef struct daqNumber daqNumber;
 
-    EXPORTED extern const IntfID BLOCK_READER_STATUS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_BLOCK_READER_STATUS_INTF_ID;
 
-    ErrCode EXPORTED BlockReaderStatus_getReadSamples(BlockReaderStatus* self, SizeT* readSamples);
-    ErrCode EXPORTED BlockReaderStatus_createBlockReaderStatus(BlockReaderStatus** obj, EventPacket* eventPacket, Bool valid, Number* offset, SizeT readSamples);
+    daqErrCode EXPORTED daqBlockReaderStatus_getReadSamples(daqBlockReaderStatus* self, daqSizeT* readSamples);
+    daqErrCode EXPORTED daqBlockReaderStatus_createBlockReaderStatus(daqBlockReaderStatus** obj, daqEventPacket* eventPacket, daqBool valid, daqNumber* offset, daqSizeT readSamples);
 
 #ifdef __cplusplus
 }

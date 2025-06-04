@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:36.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:43.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,22 @@
 
 #include <copendaq_private.h>
 
-const IntfID BINARY_DATA_INTF_ID = { daq::IBinaryData::Id.Data1, daq::IBinaryData::Id.Data2, daq::IBinaryData::Id.Data3, daq::IBinaryData::Id.Data4_UInt64 };
+const daqIntfID DAQ_BINARY_DATA_INTF_ID = { daq::IBinaryData::Id.Data1, daq::IBinaryData::Id.Data2, daq::IBinaryData::Id.Data3, daq::IBinaryData::Id.Data4_UInt64 };
 
-ErrCode BinaryData_getAddress(BinaryData* self, void** data)
+daqErrCode daqBinaryData_getAddress(daqBinaryData* self, void** data)
 {
     return reinterpret_cast<daq::IBinaryData*>(self)->getAddress(data);
 }
 
-ErrCode BinaryData_getSize(BinaryData* self, SizeT* size)
+daqErrCode daqBinaryData_getSize(daqBinaryData* self, daqSizeT* size)
 {
     return reinterpret_cast<daq::IBinaryData*>(self)->getSize(size);
 }
 
-ErrCode BinaryData_createBinaryData(BinaryData** obj, SizeT size)
+daqErrCode daqBinaryData_createBinaryData(daqBinaryData** obj, daqSizeT size)
 {
     daq::IBinaryData* ptr = nullptr;
-    ErrCode err = daq::createBinaryData(&ptr, size);
-    *obj = reinterpret_cast<BinaryData*>(ptr);
+    daqErrCode err = daq::createBinaryData(&ptr, size);
+    *obj = reinterpret_cast<daqBinaryData*>(ptr);
     return err;
 }

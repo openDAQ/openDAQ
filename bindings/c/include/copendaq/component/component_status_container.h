@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:13.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,17 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ComponentStatusContainer ComponentStatusContainer;
-    typedef struct String String;
-    typedef struct Enumeration Enumeration;
-    typedef struct Dict Dict;
+    typedef struct daqComponentStatusContainer daqComponentStatusContainer;
+    typedef struct daqString daqString;
+    typedef struct daqEnumeration daqEnumeration;
+    typedef struct daqDict daqDict;
 
-    EXPORTED extern const IntfID COMPONENT_STATUS_CONTAINER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPONENT_STATUS_CONTAINER_INTF_ID;
 
-    ErrCode EXPORTED ComponentStatusContainer_getStatus(ComponentStatusContainer* self, String* name, Enumeration** value);
-    ErrCode EXPORTED ComponentStatusContainer_getStatuses(ComponentStatusContainer* self, Dict** statuses);
-    ErrCode EXPORTED ComponentStatusContainer_getStatusMessage(ComponentStatusContainer* self, String* name, String** message);
-    ErrCode EXPORTED ComponentStatusContainer_createComponentStatusContainer(ComponentStatusContainer** obj);
+    daqErrCode EXPORTED daqComponentStatusContainer_getStatus(daqComponentStatusContainer* self, daqString* name, daqEnumeration** value);
+    daqErrCode EXPORTED daqComponentStatusContainer_getStatuses(daqComponentStatusContainer* self, daqDict** statuses);
+    daqErrCode EXPORTED daqComponentStatusContainer_getStatusMessage(daqComponentStatusContainer* self, daqString* name, daqString** message);
+    daqErrCode EXPORTED daqComponentStatusContainer_createComponentStatusContainer(daqComponentStatusContainer** obj);
 
 #ifdef __cplusplus
 }

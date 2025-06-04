@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:15.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:55.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,21 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ComponentUpdateContext ComponentUpdateContext;
-    typedef struct String String;
-    typedef struct Dict Dict;
-    typedef struct Component Component;
-    typedef struct Signal Signal;
+    typedef struct daqComponentUpdateContext daqComponentUpdateContext;
+    typedef struct daqString daqString;
+    typedef struct daqDict daqDict;
+    typedef struct daqComponent daqComponent;
+    typedef struct daqSignal daqSignal;
 
-    EXPORTED extern const IntfID COMPONENT_UPDATE_CONTEXT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPONENT_UPDATE_CONTEXT_INTF_ID;
 
-    ErrCode EXPORTED ComponentUpdateContext_setInputPortConnection(ComponentUpdateContext* self, String* parentId, String* portId, String* signalId);
-    ErrCode EXPORTED ComponentUpdateContext_getInputPortConnections(ComponentUpdateContext* self, String* parentId, Dict** connections);
-    ErrCode EXPORTED ComponentUpdateContext_removeInputPortConnection(ComponentUpdateContext* self, String* parentId);
-    ErrCode EXPORTED ComponentUpdateContext_getRootComponent(ComponentUpdateContext* self, Component** rootComponent);
-    ErrCode EXPORTED ComponentUpdateContext_getSignal(ComponentUpdateContext* self, String* parentId, String* portId, Signal** signal);
-    ErrCode EXPORTED ComponentUpdateContext_setSignalDependency(ComponentUpdateContext* self, String* signalId, String* parentId);
-    ErrCode EXPORTED ComponentUpdateContext_getReAddDevicesEnabled(ComponentUpdateContext* self, Bool* enabled);
+    daqErrCode EXPORTED daqComponentUpdateContext_setInputPortConnection(daqComponentUpdateContext* self, daqString* parentId, daqString* portId, daqString* signalId);
+    daqErrCode EXPORTED daqComponentUpdateContext_getInputPortConnections(daqComponentUpdateContext* self, daqString* parentId, daqDict** connections);
+    daqErrCode EXPORTED daqComponentUpdateContext_removeInputPortConnection(daqComponentUpdateContext* self, daqString* parentId);
+    daqErrCode EXPORTED daqComponentUpdateContext_getRootComponent(daqComponentUpdateContext* self, daqComponent** rootComponent);
+    daqErrCode EXPORTED daqComponentUpdateContext_getSignal(daqComponentUpdateContext* self, daqString* parentId, daqString* portId, daqSignal** signal);
+    daqErrCode EXPORTED daqComponentUpdateContext_setSignalDependency(daqComponentUpdateContext* self, daqString* signalId, daqString* parentId);
+    daqErrCode EXPORTED daqComponentUpdateContext_getReAddDevicesEnabled(daqComponentUpdateContext* self, daqBool* enabled);
 
 #ifdef __cplusplus
 }

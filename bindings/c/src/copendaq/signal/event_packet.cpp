@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:05.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,38 +15,38 @@
 
 #include <copendaq_private.h>
 
-const IntfID EVENT_PACKET_INTF_ID = { daq::IEventPacket::Id.Data1, daq::IEventPacket::Id.Data2, daq::IEventPacket::Id.Data3, daq::IEventPacket::Id.Data4_UInt64 };
+const daqIntfID DAQ_EVENT_PACKET_INTF_ID = { daq::IEventPacket::Id.Data1, daq::IEventPacket::Id.Data2, daq::IEventPacket::Id.Data3, daq::IEventPacket::Id.Data4_UInt64 };
 
-ErrCode EventPacket_getEventId(EventPacket* self, String** id)
+daqErrCode daqEventPacket_getEventId(daqEventPacket* self, daqString** id)
 {
     return reinterpret_cast<daq::IEventPacket*>(self)->getEventId(reinterpret_cast<daq::IString**>(id));
 }
 
-ErrCode EventPacket_getParameters(EventPacket* self, Dict** parameters)
+daqErrCode daqEventPacket_getParameters(daqEventPacket* self, daqDict** parameters)
 {
     return reinterpret_cast<daq::IEventPacket*>(self)->getParameters(reinterpret_cast<daq::IDict**>(parameters));
 }
 
-ErrCode EventPacket_createEventPacket(EventPacket** obj, String* id, Dict* params)
+daqErrCode daqEventPacket_createEventPacket(daqEventPacket** obj, daqString* id, daqDict* params)
 {
     daq::IEventPacket* ptr = nullptr;
-    ErrCode err = daq::createEventPacket(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IDict*>(params));
-    *obj = reinterpret_cast<EventPacket*>(ptr);
+    daqErrCode err = daq::createEventPacket(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IDict*>(params));
+    *obj = reinterpret_cast<daqEventPacket*>(ptr);
     return err;
 }
 
-ErrCode EventPacket_createDataDescriptorChangedEventPacket(EventPacket** obj, DataDescriptor* dataDescriptor, DataDescriptor* domainDataDescriptor)
+daqErrCode daqEventPacket_createDataDescriptorChangedEventPacket(daqEventPacket** obj, daqDataDescriptor* dataDescriptor, daqDataDescriptor* domainDataDescriptor)
 {
     daq::IEventPacket* ptr = nullptr;
-    ErrCode err = daq::createDataDescriptorChangedEventPacket(&ptr, reinterpret_cast<daq::IDataDescriptor*>(dataDescriptor), reinterpret_cast<daq::IDataDescriptor*>(domainDataDescriptor));
-    *obj = reinterpret_cast<EventPacket*>(ptr);
+    daqErrCode err = daq::createDataDescriptorChangedEventPacket(&ptr, reinterpret_cast<daq::IDataDescriptor*>(dataDescriptor), reinterpret_cast<daq::IDataDescriptor*>(domainDataDescriptor));
+    *obj = reinterpret_cast<daqEventPacket*>(ptr);
     return err;
 }
 
-ErrCode EventPacket_createImplicitDomainGapDetectedEventPacket(EventPacket** obj, Number* diff)
+daqErrCode daqEventPacket_createImplicitDomainGapDetectedEventPacket(daqEventPacket** obj, daqNumber* diff)
 {
     daq::IEventPacket* ptr = nullptr;
-    ErrCode err = daq::createImplicitDomainGapDetectedEventPacket(&ptr, reinterpret_cast<daq::INumber*>(diff));
-    *obj = reinterpret_cast<EventPacket*>(ptr);
+    daqErrCode err = daq::createImplicitDomainGapDetectedEventPacket(&ptr, reinterpret_cast<daq::INumber*>(diff));
+    *obj = reinterpret_cast<daqEventPacket*>(ptr);
     return err;
 }

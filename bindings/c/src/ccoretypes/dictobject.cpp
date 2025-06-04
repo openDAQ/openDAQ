@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:55.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:06.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,75 +15,75 @@
 
 #include <copendaq_private.h>
 
-const IntfID DICT_INTF_ID = { daq::IDict::Id.Data1, daq::IDict::Id.Data2, daq::IDict::Id.Data3, daq::IDict::Id.Data4_UInt64 };
+const daqIntfID DAQ_DICT_INTF_ID = { daq::IDict::Id.Data1, daq::IDict::Id.Data2, daq::IDict::Id.Data3, daq::IDict::Id.Data4_UInt64 };
 
-ErrCode Dict_get(Dict* self, BaseObject* key, BaseObject** value)
+daqErrCode daqDict_get(daqDict* self, daqBaseObject* key, daqBaseObject** value)
 {
     return reinterpret_cast<daq::IDict*>(self)->get(reinterpret_cast<daq::IBaseObject*>(key), reinterpret_cast<daq::IBaseObject**>(value));
 }
 
-ErrCode Dict_set(Dict* self, BaseObject* key, BaseObject* value)
+daqErrCode daqDict_set(daqDict* self, daqBaseObject* key, daqBaseObject* value)
 {
     return reinterpret_cast<daq::IDict*>(self)->set(reinterpret_cast<daq::IBaseObject*>(key), reinterpret_cast<daq::IBaseObject*>(value));
 }
 
-ErrCode Dict_remove(Dict* self, BaseObject* key, BaseObject** value)
+daqErrCode daqDict_remove(daqDict* self, daqBaseObject* key, daqBaseObject** value)
 {
     return reinterpret_cast<daq::IDict*>(self)->remove(reinterpret_cast<daq::IBaseObject*>(key), reinterpret_cast<daq::IBaseObject**>(value));
 }
 
-ErrCode Dict_deleteItem(Dict* self, BaseObject* key)
+daqErrCode daqDict_deleteItem(daqDict* self, daqBaseObject* key)
 {
     return reinterpret_cast<daq::IDict*>(self)->deleteItem(reinterpret_cast<daq::IBaseObject*>(key));
 }
 
-ErrCode Dict_clear(Dict* self)
+daqErrCode daqDict_clear(daqDict* self)
 {
     return reinterpret_cast<daq::IDict*>(self)->clear();
 }
 
-ErrCode Dict_getCount(Dict* self, SizeT* size)
+daqErrCode daqDict_getCount(daqDict* self, daqSizeT* size)
 {
     return reinterpret_cast<daq::IDict*>(self)->getCount(size);
 }
 
-ErrCode Dict_hasKey(Dict* self, BaseObject* key, Bool* hasKey)
+daqErrCode daqDict_hasKey(daqDict* self, daqBaseObject* key, daqBool* hasKey)
 {
     return reinterpret_cast<daq::IDict*>(self)->hasKey(reinterpret_cast<daq::IBaseObject*>(key), hasKey);
 }
 
-ErrCode Dict_getKeyList(Dict* self, List** keys)
+daqErrCode daqDict_getKeyList(daqDict* self, daqList** keys)
 {
     return reinterpret_cast<daq::IDict*>(self)->getKeyList(reinterpret_cast<daq::IList**>(keys));
 }
 
-ErrCode Dict_getValueList(Dict* self, List** values)
+daqErrCode daqDict_getValueList(daqDict* self, daqList** values)
 {
     return reinterpret_cast<daq::IDict*>(self)->getValueList(reinterpret_cast<daq::IList**>(values));
 }
 
-ErrCode Dict_getKeys(Dict* self, Iterable** iterable)
+daqErrCode daqDict_getKeys(daqDict* self, daqIterable** iterable)
 {
     return reinterpret_cast<daq::IDict*>(self)->getKeys(reinterpret_cast<daq::IIterable**>(iterable));
 }
 
-ErrCode Dict_getValues(Dict* self, Iterable** iterable)
+daqErrCode daqDict_getValues(daqDict* self, daqIterable** iterable)
 {
     return reinterpret_cast<daq::IDict*>(self)->getValues(reinterpret_cast<daq::IIterable**>(iterable));
 }
 
-ErrCode Dict_createDict(Dict** obj)
+daqErrCode daqDict_createDict(daqDict** obj)
 {
     daq::IDict* ptr = nullptr;
-    ErrCode err = daq::createDict(&ptr);
-    *obj = reinterpret_cast<Dict*>(ptr);
+    daqErrCode err = daq::createDict(&ptr);
+    *obj = reinterpret_cast<daqDict*>(ptr);
     return err;
 }
 
-ErrCode Dict_createDictWithExpectedTypes(Dict** obj, IntfID keyType, IntfID valueType)
+daqErrCode daqDict_createDictWithExpectedTypes(daqDict** obj, daqIntfID keyType, daqIntfID valueType)
 {
     daq::IDict* ptr = nullptr;
-    ErrCode err = daq::createDictWithExpectedTypes(&ptr, copendaq::utils::toDaqIntfId(keyType), copendaq::utils::toDaqIntfId(valueType));
-    *obj = reinterpret_cast<Dict*>(ptr);
+    daqErrCode err = daq::createDictWithExpectedTypes(&ptr, copendaq::utils::toDaqIntfId(keyType), copendaq::utils::toDaqIntfId(valueType));
+    *obj = reinterpret_cast<daqDict*>(ptr);
     return err;
 }

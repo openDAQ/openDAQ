@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:06.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:17.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,32 +15,32 @@
 
 #include <copendaq_private.h>
 
-const IntfID PROPERTY_OBJECT_CLASS_INTF_ID = { daq::IPropertyObjectClass::Id.Data1, daq::IPropertyObjectClass::Id.Data2, daq::IPropertyObjectClass::Id.Data3, daq::IPropertyObjectClass::Id.Data4_UInt64 };
+const daqIntfID DAQ_PROPERTY_OBJECT_CLASS_INTF_ID = { daq::IPropertyObjectClass::Id.Data1, daq::IPropertyObjectClass::Id.Data2, daq::IPropertyObjectClass::Id.Data3, daq::IPropertyObjectClass::Id.Data4_UInt64 };
 
-ErrCode PropertyObjectClass_getParentName(PropertyObjectClass* self, String** parentName)
+daqErrCode daqPropertyObjectClass_getParentName(daqPropertyObjectClass* self, daqString** parentName)
 {
     return reinterpret_cast<daq::IPropertyObjectClass*>(self)->getParentName(reinterpret_cast<daq::IString**>(parentName));
 }
 
-ErrCode PropertyObjectClass_getProperty(PropertyObjectClass* self, String* propertyName, Property** property)
+daqErrCode daqPropertyObjectClass_getProperty(daqPropertyObjectClass* self, daqString* propertyName, daqProperty** property)
 {
     return reinterpret_cast<daq::IPropertyObjectClass*>(self)->getProperty(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IProperty**>(property));
 }
 
-ErrCode PropertyObjectClass_hasProperty(PropertyObjectClass* self, String* propertyName, Bool* hasProperty)
+daqErrCode daqPropertyObjectClass_hasProperty(daqPropertyObjectClass* self, daqString* propertyName, daqBool* hasProperty)
 {
     return reinterpret_cast<daq::IPropertyObjectClass*>(self)->hasProperty(reinterpret_cast<daq::IString*>(propertyName), hasProperty);
 }
 
-ErrCode PropertyObjectClass_getProperties(PropertyObjectClass* self, Bool includeInherited, List** properties)
+daqErrCode daqPropertyObjectClass_getProperties(daqPropertyObjectClass* self, daqBool includeInherited, daqList** properties)
 {
     return reinterpret_cast<daq::IPropertyObjectClass*>(self)->getProperties(includeInherited, reinterpret_cast<daq::IList**>(properties));
 }
 
-ErrCode PropertyObjectClass_createPropertyObjectClassFromBuilder(PropertyObjectClass** obj, PropertyObjectClassBuilder* builder)
+daqErrCode daqPropertyObjectClass_createPropertyObjectClassFromBuilder(daqPropertyObjectClass** obj, daqPropertyObjectClassBuilder* builder)
 {
     daq::IPropertyObjectClass* ptr = nullptr;
-    ErrCode err = daq::createPropertyObjectClassFromBuilder(&ptr, reinterpret_cast<daq::IPropertyObjectClassBuilder*>(builder));
-    *obj = reinterpret_cast<PropertyObjectClass*>(ptr);
+    daqErrCode err = daq::createPropertyObjectClassFromBuilder(&ptr, reinterpret_cast<daq::IPropertyObjectClassBuilder*>(builder));
+    *obj = reinterpret_cast<daqPropertyObjectClass*>(ptr);
     return err;
 }

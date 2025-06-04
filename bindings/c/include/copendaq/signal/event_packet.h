@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:34:05.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,19 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct EventPacket EventPacket;
-    typedef struct String String;
-    typedef struct Dict Dict;
-    typedef struct DataDescriptor DataDescriptor;
-    typedef struct Number Number;
+    typedef struct daqEventPacket daqEventPacket;
+    typedef struct daqString daqString;
+    typedef struct daqDict daqDict;
+    typedef struct daqDataDescriptor daqDataDescriptor;
+    typedef struct daqNumber daqNumber;
 
-    EXPORTED extern const IntfID EVENT_PACKET_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_EVENT_PACKET_INTF_ID;
 
-    ErrCode EXPORTED EventPacket_getEventId(EventPacket* self, String** id);
-    ErrCode EXPORTED EventPacket_getParameters(EventPacket* self, Dict** parameters);
-    ErrCode EXPORTED EventPacket_createEventPacket(EventPacket** obj, String* id, Dict* params);
-    ErrCode EXPORTED EventPacket_createDataDescriptorChangedEventPacket(EventPacket** obj, DataDescriptor* dataDescriptor, DataDescriptor* domainDataDescriptor);
-    ErrCode EXPORTED EventPacket_createImplicitDomainGapDetectedEventPacket(EventPacket** obj, Number* diff);
+    daqErrCode EXPORTED daqEventPacket_getEventId(daqEventPacket* self, daqString** id);
+    daqErrCode EXPORTED daqEventPacket_getParameters(daqEventPacket* self, daqDict** parameters);
+    daqErrCode EXPORTED daqEventPacket_createEventPacket(daqEventPacket** obj, daqString* id, daqDict* params);
+    daqErrCode EXPORTED daqEventPacket_createDataDescriptorChangedEventPacket(daqEventPacket** obj, daqDataDescriptor* dataDescriptor, daqDataDescriptor* domainDataDescriptor);
+    daqErrCode EXPORTED daqEventPacket_createImplicitDomainGapDetectedEventPacket(daqEventPacket** obj, daqNumber* diff);
 
 #ifdef __cplusplus
 }

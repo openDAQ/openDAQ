@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:01.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:13.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,22 +15,30 @@
 
 #include <copendaq_private.h>
 
-const IntfID PERMISSION_MANAGER_INTF_ID = { daq::IPermissionManager::Id.Data1, daq::IPermissionManager::Id.Data2, daq::IPermissionManager::Id.Data3, daq::IPermissionManager::Id.Data4_UInt64 };
+const daqIntfID DAQ_PERMISSION_MANAGER_INTF_ID = { daq::IPermissionManager::Id.Data1, daq::IPermissionManager::Id.Data2, daq::IPermissionManager::Id.Data3, daq::IPermissionManager::Id.Data4_UInt64 };
 
-ErrCode PermissionManager_setPermissions(PermissionManager* self, Permissions* permissions)
+daqErrCode daqPermissionManager_setPermissions(daqPermissionManager* self, daqPermissions* permissions)
 {
     return reinterpret_cast<daq::IPermissionManager*>(self)->setPermissions(reinterpret_cast<daq::IPermissions*>(permissions));
 }
 
-ErrCode PermissionManager_isAuthorized(PermissionManager* self, User* user, Permission permission, Bool* authorizedOut)
+daqErrCode daqPermissionManager_isAuthorized(daqPermissionManager* self, daqUser* user, daqPermission permission, daqBool* authorizedOut)
 {
     return reinterpret_cast<daq::IPermissionManager*>(self)->isAuthorized(reinterpret_cast<daq::IUser*>(user), static_cast<daq::Permission>(permission), authorizedOut);
 }
 
-ErrCode PermissionManager_createPermissionManager(PermissionManager** obj, PermissionManager* parent)
+daqErrCode daqPermissionManager_createPermissionManager(daqPermissionManager** obj, daqPermissionManager* parent)
 {
     daq::IPermissionManager* ptr = nullptr;
-    ErrCode err = daq::createPermissionManager(&ptr, reinterpret_cast<daq::IPermissionManager*>(parent));
-    *obj = reinterpret_cast<PermissionManager*>(ptr);
+    daqErrCode err = daq::createPermissionManager(&ptr, reinterpret_cast<daq::IPermissionManager*>(parent));
+    *obj = reinterpret_cast<daqPermissionManager*>(ptr);
+    return err;
+}
+
+daqErrCode daqPermissionManager_createDisabledPermissionManager(daqPermissionManager** obj)
+{
+    daq::IPermissionManager* ptr = nullptr;
+    daqErrCode err = daq::createDisabledPermissionManager(&ptr);
+    *obj = reinterpret_cast<daqPermissionManager*>(ptr);
     return err;
 }

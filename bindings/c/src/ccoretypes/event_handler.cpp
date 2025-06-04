@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:43.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:51.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,9 +15,9 @@
 
 #include <copendaq_private.h>
 
-const IntfID EVENT_HANDLER_INTF_ID = { daq::IEventHandler::Id.Data1, daq::IEventHandler::Id.Data2, daq::IEventHandler::Id.Data3, daq::IEventHandler::Id.Data4_UInt64 };
+const daqIntfID DAQ_EVENT_HANDLER_INTF_ID = { daq::IEventHandler::Id.Data1, daq::IEventHandler::Id.Data2, daq::IEventHandler::Id.Data3, daq::IEventHandler::Id.Data4_UInt64 };
 
-ErrCode EventHandler_handleEvent(EventHandler* self, BaseObject* sender, EventArgs* eventArgs)
+daqErrCode daqEventHandler_handleEvent(daqEventHandler* self, daqBaseObject* sender, daqEventArgs* eventArgs)
 {
     return reinterpret_cast<daq::IEventHandler*>(self)->handleEvent(reinterpret_cast<daq::IBaseObject*>(sender), reinterpret_cast<daq::IEventArgs*>(eventArgs));
 }

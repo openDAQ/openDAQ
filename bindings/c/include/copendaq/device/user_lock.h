@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:32.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:11.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct UserLock UserLock;
-    typedef struct User User;
+    typedef struct daqUserLock daqUserLock;
+    typedef struct daqUser daqUser;
 
-    EXPORTED extern const IntfID USER_LOCK_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_USER_LOCK_INTF_ID;
 
-    ErrCode EXPORTED UserLock_lock(UserLock* self, User* user);
-    ErrCode EXPORTED UserLock_unlock(UserLock* self, User* user);
-    ErrCode EXPORTED UserLock_forceUnlock(UserLock* self);
-    ErrCode EXPORTED UserLock_isLocked(UserLock* self, Bool* isLockedOut);
-    ErrCode EXPORTED UserLock_createUserLock(UserLock** obj);
+    daqErrCode EXPORTED daqUserLock_lock(daqUserLock* self, daqUser* user);
+    daqErrCode EXPORTED daqUserLock_unlock(daqUserLock* self, daqUser* user);
+    daqErrCode EXPORTED daqUserLock_forceUnlock(daqUserLock* self);
+    daqErrCode EXPORTED daqUserLock_isLocked(daqUserLock* self, daqBool* isLockedOut);
+    daqErrCode EXPORTED daqUserLock_createUserLock(daqUserLock** obj);
 
 #ifdef __cplusplus
 }

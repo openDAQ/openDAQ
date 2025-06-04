@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:46.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:26.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -15,30 +15,30 @@
 
 #include <copendaq_private.h>
 
-const IntfID PACKET_READER_INTF_ID = { daq::IPacketReader::Id.Data1, daq::IPacketReader::Id.Data2, daq::IPacketReader::Id.Data3, daq::IPacketReader::Id.Data4_UInt64 };
+const daqIntfID DAQ_PACKET_READER_INTF_ID = { daq::IPacketReader::Id.Data1, daq::IPacketReader::Id.Data2, daq::IPacketReader::Id.Data3, daq::IPacketReader::Id.Data4_UInt64 };
 
-ErrCode PacketReader_read(PacketReader* self, Packet** packet)
+daqErrCode daqPacketReader_read(daqPacketReader* self, daqPacket** packet)
 {
     return reinterpret_cast<daq::IPacketReader*>(self)->read(reinterpret_cast<daq::IPacket**>(packet));
 }
 
-ErrCode PacketReader_readAll(PacketReader* self, List** packets)
+daqErrCode daqPacketReader_readAll(daqPacketReader* self, daqList** packets)
 {
     return reinterpret_cast<daq::IPacketReader*>(self)->readAll(reinterpret_cast<daq::IList**>(packets));
 }
 
-ErrCode PacketReader_createPacketReader(PacketReader** obj, Signal* signal)
+daqErrCode daqPacketReader_createPacketReader(daqPacketReader** obj, daqSignal* signal)
 {
     daq::IPacketReader* ptr = nullptr;
-    ErrCode err = daq::createPacketReader(&ptr, reinterpret_cast<daq::ISignal*>(signal));
-    *obj = reinterpret_cast<PacketReader*>(ptr);
+    daqErrCode err = daq::createPacketReader(&ptr, reinterpret_cast<daq::ISignal*>(signal));
+    *obj = reinterpret_cast<daqPacketReader*>(ptr);
     return err;
 }
 
-ErrCode PacketReader_createPacketReaderFromPort(PacketReader** obj, InputPortConfig* port)
+daqErrCode daqPacketReader_createPacketReaderFromPort(daqPacketReader** obj, daqInputPortConfig* port)
 {
     daq::IPacketReader* ptr = nullptr;
-    ErrCode err = daq::createPacketReaderFromPort(&ptr, reinterpret_cast<daq::IInputPortConfig*>(port));
-    *obj = reinterpret_cast<PacketReader*>(ptr);
+    daqErrCode err = daq::createPacketReaderFromPort(&ptr, reinterpret_cast<daq::IInputPortConfig*>(port));
+    *obj = reinterpret_cast<daqPacketReader*>(ptr);
     return err;
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:21.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,28 +34,28 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct Context Context;
-    typedef struct Scheduler Scheduler;
-    typedef struct Logger Logger;
-    typedef struct TypeManager TypeManager;
-    typedef struct AuthenticationProvider AuthenticationProvider;
-    typedef struct Event Event;
-    typedef struct Dict Dict;
-    typedef struct String String;
-    typedef struct ModuleManager ModuleManager;
+    typedef struct daqContext daqContext;
+    typedef struct daqScheduler daqScheduler;
+    typedef struct daqLogger daqLogger;
+    typedef struct daqTypeManager daqTypeManager;
+    typedef struct daqAuthenticationProvider daqAuthenticationProvider;
+    typedef struct daqEvent daqEvent;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
+    typedef struct daqModuleManager daqModuleManager;
 
-    EXPORTED extern const IntfID CONTEXT_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_CONTEXT_INTF_ID;
 
-    ErrCode EXPORTED Context_getScheduler(Context* self, Scheduler** scheduler);
-    ErrCode EXPORTED Context_getLogger(Context* self, Logger** logger);
-    ErrCode EXPORTED Context_getModuleManager(Context* self, BaseObject** manager);
-    ErrCode EXPORTED Context_getTypeManager(Context* self, TypeManager** manager);
-    ErrCode EXPORTED Context_getAuthenticationProvider(Context* self, AuthenticationProvider** authenticationProvider);
-    ErrCode EXPORTED Context_getOnCoreEvent(Context* self, Event** event);
-    ErrCode EXPORTED Context_getOptions(Context* self, Dict** options);
-    ErrCode EXPORTED Context_getModuleOptions(Context* self, String* moduleId, Dict** options);
-    ErrCode EXPORTED Context_getDiscoveryServers(Context* self, Dict** servers);
-    ErrCode EXPORTED Context_createContext(Context** obj, Scheduler* Scheduler, Logger* Logger, TypeManager* typeManager, ModuleManager* moduleManager, AuthenticationProvider* authenticationProvider, Dict* options, Dict* discoveryServers);
+    daqErrCode EXPORTED daqContext_getScheduler(daqContext* self, daqScheduler** scheduler);
+    daqErrCode EXPORTED daqContext_getLogger(daqContext* self, daqLogger** logger);
+    daqErrCode EXPORTED daqContext_getModuleManager(daqContext* self, daqBaseObject** manager);
+    daqErrCode EXPORTED daqContext_getTypeManager(daqContext* self, daqTypeManager** manager);
+    daqErrCode EXPORTED daqContext_getAuthenticationProvider(daqContext* self, daqAuthenticationProvider** authenticationProvider);
+    daqErrCode EXPORTED daqContext_getOnCoreEvent(daqContext* self, daqEvent** event);
+    daqErrCode EXPORTED daqContext_getOptions(daqContext* self, daqDict** options);
+    daqErrCode EXPORTED daqContext_getModuleOptions(daqContext* self, daqString* moduleId, daqDict** options);
+    daqErrCode EXPORTED daqContext_getDiscoveryServers(daqContext* self, daqDict** servers);
+    daqErrCode EXPORTED daqContext_createContext(daqContext** obj, daqScheduler* Scheduler, daqLogger* Logger, daqTypeManager* typeManager, daqModuleManager* moduleManager, daqAuthenticationProvider* authenticationProvider, daqDict* options, daqDict* discoveryServers);
 
 #ifdef __cplusplus
 }

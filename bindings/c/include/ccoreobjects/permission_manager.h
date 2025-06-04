@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:01.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:13.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,15 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct PermissionManager PermissionManager;
-    typedef struct Permissions Permissions;
-    typedef struct User User;
+    typedef struct daqPermissionManager daqPermissionManager;
+    typedef struct daqPermissions daqPermissions;
+    typedef struct daqUser daqUser;
 
-    EXPORTED extern const IntfID PERMISSION_MANAGER_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PERMISSION_MANAGER_INTF_ID;
 
-    ErrCode EXPORTED PermissionManager_setPermissions(PermissionManager* self, Permissions* permissions);
-    ErrCode EXPORTED PermissionManager_isAuthorized(PermissionManager* self, User* user, Permission permission, Bool* authorizedOut);
-    ErrCode EXPORTED PermissionManager_createPermissionManager(PermissionManager** obj, PermissionManager* parent);
+    daqErrCode EXPORTED daqPermissionManager_setPermissions(daqPermissionManager* self, daqPermissions* permissions);
+    daqErrCode EXPORTED daqPermissionManager_isAuthorized(daqPermissionManager* self, daqUser* user, daqPermission permission, daqBool* authorizedOut);
+    daqErrCode EXPORTED daqPermissionManager_createPermissionManager(daqPermissionManager** obj, daqPermissionManager* parent);
+    daqErrCode EXPORTED daqPermissionManager_createDisabledPermissionManager(daqPermissionManager** obj);
 
 #ifdef __cplusplus
 }

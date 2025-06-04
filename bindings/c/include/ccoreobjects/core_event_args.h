@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:32:59.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:10.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,23 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct CoreEventArgs CoreEventArgs;
-    typedef struct Dict Dict;
-    typedef struct String String;
-    typedef struct PropertyObject PropertyObject;
-    typedef struct Property Property;
-    typedef struct Type Type;
+    typedef struct daqCoreEventArgs daqCoreEventArgs;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
+    typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqProperty daqProperty;
+    typedef struct daqType daqType;
 
-    EXPORTED extern const IntfID CORE_EVENT_ARGS_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_CORE_EVENT_ARGS_INTF_ID;
 
-    ErrCode EXPORTED CoreEventArgs_getParameters(CoreEventArgs* self, Dict** parameters);
-    ErrCode EXPORTED CoreEventArgs_createCoreEventArgs(CoreEventArgs** obj, CoreEventId eventId, String* eventName, Dict* parameters);
-    ErrCode EXPORTED CoreEventArgs_createCoreEventArgsPropertyValueChanged(CoreEventArgs** obj, PropertyObject* propOwner, String* propName, BaseObject* value, String* path);
-    ErrCode EXPORTED CoreEventArgs_createCoreEventArgsPropertyObjectUpdateEnd(CoreEventArgs** obj, PropertyObject* propOwner, Dict* updatedProperties, String* path);
-    ErrCode EXPORTED CoreEventArgs_createCoreEventArgsPropertyAdded(CoreEventArgs** obj, PropertyObject* propOwner, Property* prop, String* path);
-    ErrCode EXPORTED CoreEventArgs_createCoreEventArgsPropertyRemoved(CoreEventArgs** obj, PropertyObject* propOwner, String* propName, String* path);
-    ErrCode EXPORTED CoreEventArgs_createCoreEventArgsTypeAdded(CoreEventArgs** obj, Type* type);
-    ErrCode EXPORTED CoreEventArgs_createCoreEventArgsTypeRemoved(CoreEventArgs** obj, String* typeName);
+    daqErrCode EXPORTED daqCoreEventArgs_getParameters(daqCoreEventArgs* self, daqDict** parameters);
+    daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgs(daqCoreEventArgs** obj, daqCoreEventId eventId, daqString* eventName, daqDict* parameters);
+    daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyValueChanged(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqString* propName, daqBaseObject* value, daqString* path);
+    daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyObjectUpdateEnd(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqDict* updatedProperties, daqString* path);
+    daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyAdded(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqProperty* prop, daqString* path);
+    daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyRemoved(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqString* propName, daqString* path);
+    daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsTypeAdded(daqCoreEventArgs** obj, daqType* type);
+    daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsTypeRemoved(daqCoreEventArgs** obj, daqString* typeName);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.6.0) on 27.04.2025 18:33:13.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,16 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct ComponentStatusContainerPrivate ComponentStatusContainerPrivate;
-    typedef struct String String;
-    typedef struct Enumeration Enumeration;
+    typedef struct daqComponentStatusContainerPrivate daqComponentStatusContainerPrivate;
+    typedef struct daqString daqString;
+    typedef struct daqEnumeration daqEnumeration;
 
-    EXPORTED extern const IntfID COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID;
 
-    ErrCode EXPORTED ComponentStatusContainerPrivate_addStatus(ComponentStatusContainerPrivate* self, String* name, Enumeration* initialValue);
-    ErrCode EXPORTED ComponentStatusContainerPrivate_setStatus(ComponentStatusContainerPrivate* self, String* name, Enumeration* value);
-    ErrCode EXPORTED ComponentStatusContainerPrivate_addStatusWithMessage(ComponentStatusContainerPrivate* self, String* name, Enumeration* initialValue, String* message);
-    ErrCode EXPORTED ComponentStatusContainerPrivate_setStatusWithMessage(ComponentStatusContainerPrivate* self, String* name, Enumeration* value, String* message);
+    daqErrCode EXPORTED daqComponentStatusContainerPrivate_addStatus(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* initialValue);
+    daqErrCode EXPORTED daqComponentStatusContainerPrivate_setStatus(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* value);
+    daqErrCode EXPORTED daqComponentStatusContainerPrivate_addStatusWithMessage(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* initialValue, daqString* message);
+    daqErrCode EXPORTED daqComponentStatusContainerPrivate_setStatusWithMessage(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* value, daqString* message);
 
 #ifdef __cplusplus
 }

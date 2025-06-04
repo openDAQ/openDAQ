@@ -70,6 +70,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     isActive = old->isActive;
     minReadCount = old->minReadCount;
     tickOffsetTolerance = old->tickOffsetTolerance;
+    readCallback = old->readCallback;
 
     bool fromInputPorts;
 

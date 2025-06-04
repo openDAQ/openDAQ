@@ -167,6 +167,11 @@ void PowerReaderFbImpl::onDataReceived()
                 configure(domainDescriptor, voltageDescriptor, currentDescriptor);
         }
     }
+
+    if (!status.getValid())
+    {
+        reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+    }
 }
 
 RangePtr PowerReaderFbImpl::getValueRange(DataDescriptorPtr voltageDataDescriptor, DataDescriptorPtr currentDataDescriptor)

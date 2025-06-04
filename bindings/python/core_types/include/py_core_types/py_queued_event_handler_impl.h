@@ -41,7 +41,9 @@ public:
 template <class F>
 daq::ErrCode PyQueuedEventHandlerImpl<F>::handleEvent(daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
 {
-    enqueuePythonEvent(this->borrowInterface<daq::IPythonQueuedEventHandler>(), sender, eventArgs);
+    auto queueWeak = PyEventQueue::GetWeak();
+    if (auto queue = queueWeak.lock())
+        queue->enqueueEvent(this->borrowInterface<daq::IPythonQueuedEventHandler>(), sender, eventArgs);
     return OPENDAQ_SUCCESS;
 }
 

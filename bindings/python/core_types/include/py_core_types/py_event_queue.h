@@ -20,6 +20,25 @@
 #include <pybind11/pybind11.h>
 #include "py_core_types/py_queued_event_handler.h"
 
-void enqueuePythonEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::IBaseObject* sender, daq::IEventArgs* eventArgs);
-void processPythonEventFromQueue();
-void clearPythonEventQueue();
+#include <queue>
+#include <mutex>
+#include <functional>
+
+class PyEventQueue
+{
+public:
+    static std::shared_ptr<PyEventQueue> Create();
+    static std::weak_ptr<PyEventQueue> GetWeak();
+
+    void enqueueEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::IBaseObject* sender, daq::IEventArgs* eventArgs);
+    void processEvents();
+    void clearQueue();
+
+private:
+    PyEventQueue() = default;
+    std::queue<std::function<void()>> callbackQueue;
+    std::mutex callbackQueueMutex;
+};
+
+pybind11::class_<PyEventQueue, std::shared_ptr<PyEventQueue>> declarePyEventQueue(pybind11::module_ m);
+void definePyEventQueue(pybind11::module_ m, pybind11::class_<PyEventQueue, std::shared_ptr<PyEventQueue>> cls);

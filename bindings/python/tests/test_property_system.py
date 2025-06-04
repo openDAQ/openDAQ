@@ -639,7 +639,7 @@ class TestPropertySystem(opendaq_test.TestCase):
         
         property_object.set_property_value('property1', 'newValue')
         
-        opendaq.process_events_from_queue()
+        opendaq.event_queue.process_events()
         
         self.assertEqual(property_object.get_property_value('property1'), 'newValue')
         self.assertEqual(property_object.get_property_value('property2'), 'newValue2')

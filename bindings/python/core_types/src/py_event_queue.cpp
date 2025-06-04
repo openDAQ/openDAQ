@@ -5,21 +5,29 @@
 #include <coretypes/event_handler.h>
 #include <coretypes/event_handler_ptr.h>
 
-#include "py_core_types/py_queued_event_handler_impl.h"
 #include "py_core_types/py_event_queue.h"
 
-#include <queue>
-#include <mutex>
-#include <functional>
+std::weak_ptr<PyEventQueue> eventQueueWeakPtr;
 
-
-namespace
+std::shared_ptr<PyEventQueue> PyEventQueue::Create()
 {
-    std::queue<std::function<void()>> callbackQueue;
-    std::mutex callbackQueueMutex;
+    auto existing = eventQueueWeakPtr.lock();
+    if (existing)
+    {
+        return existing;
+    }
+
+    auto queue = std::shared_ptr<PyEventQueue>(new PyEventQueue());
+    eventQueueWeakPtr = queue;
+    return queue;
 }
 
-void enqueuePythonEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
+std::weak_ptr<PyEventQueue> PyEventQueue::GetWeak()
+{
+    return eventQueueWeakPtr;
+}
+
+void PyEventQueue::enqueueEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::IBaseObject* sender, daq::IEventArgs* eventArgs)
 {
     if (eventHandler == nullptr)
         return;
@@ -37,7 +45,7 @@ void enqueuePythonEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::IBase
     });
 }
 
-void processPythonEventFromQueue()
+void PyEventQueue::processEvents()
 {
     std::queue<std::function<void()>> localQueue;
 
@@ -54,8 +62,20 @@ void processPythonEventFromQueue()
     }
 }
 
-void clearPythonEventQueue()
+void PyEventQueue::clearQueue()
 {
     std::lock_guard<std::mutex> lock(callbackQueueMutex);
     callbackQueue = {};
+}
+
+pybind11::class_<PyEventQueue, std::shared_ptr<PyEventQueue>> declarePyEventQueue(pybind11::module_ m)
+{
+    return pybind11::class_<PyEventQueue, std::shared_ptr<PyEventQueue>>(m, "EventQueue");
+}
+
+void definePyEventQueue(pybind11::module_ m, pybind11::class_<PyEventQueue, std::shared_ptr<PyEventQueue>> cls)
+{
+    cls.def("enqueue_event", &PyEventQueue::enqueueEvent);
+    cls.def("process_events", &PyEventQueue::processEvents);
+    cls.def("clear", &PyEventQueue::clearQueue);
 }

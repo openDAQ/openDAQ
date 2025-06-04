@@ -168,7 +168,7 @@ class App(tk.Tk):
 
     def poll_opendaq_events(self):
         try:
-            daq.process_events_from_queue()
+            daq.event_queue.process_events()
         except Exception as e:
             print("Callback processing error:", e)
 

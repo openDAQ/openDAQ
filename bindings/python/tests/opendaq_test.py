@@ -9,7 +9,7 @@ class TestCase(unittest.TestCase):
 
     def tearDown(self):
         daq.clear_error_info()
-        daq.clear_event_queue()
+        daq.event_queue.clear()
         gc.collect()
         cnt = daq.get_tracked_object_count()
         if not self.expect_memory_leak:

@@ -19,8 +19,7 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <thread>
-
-#include "coreobjects/property_factory.h"
+#include <coreobjects/property_factory.h>
 
 using SignalTest = testing::Test;
 

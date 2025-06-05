@@ -70,18 +70,16 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     isActive = old->isActive;
     minReadCount = old->minReadCount;
     tickOffsetTolerance = old->tickOffsetTolerance;
-    readCallback = old->readCallback;
-
-    bool fromInputPorts;
-
-    auto oldSignals = old->getSignals();
-    checkEarlyPreconditionsAndCacheContext(oldSignals);
     commonSampleRate = old->commonSampleRate;
     requiredCommonSampleRate = old->requiredCommonSampleRate;
 
+    auto oldSignals = old->getSignals();
+    checkEarlyPreconditionsAndCacheContext(oldSignals);
+    
     this->internalAddRef();
     try
     {
+        bool fromInputPorts;
         checkPreconditions(oldSignals, false, fromInputPorts);
         auto listener = this->thisPtr<InputPortNotificationsPtr>();
         for (auto& signal : old->signals)
@@ -92,6 +90,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
         updateCommonSampleRateAndDividers();
         if (invalid)
             DAQ_THROW_EXCEPTION(InvalidParameterException, "Signal sample rate does not match required common sample rate");
+        readCallback = std::move(old->readCallback);
     }
     catch (...)
     {

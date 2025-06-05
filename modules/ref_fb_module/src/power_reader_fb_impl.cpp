@@ -124,7 +124,7 @@ bool PowerReaderFbImpl::getDomainDescriptor(const EventPacketPtr& eventPacket, D
 
 void PowerReaderFbImpl::onDataReceived()
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getRecursiveConfigLock();
 
     SizeT cnt = reader.getAvailableCount();
     const auto voltageData = std::make_unique<double[]>(cnt);
@@ -246,6 +246,7 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
 
         setComponentStatus(ComponentStatus::Ok);
+        reader.setActive(True);
     }
     catch (const std::exception& e)
     {
@@ -277,11 +278,11 @@ void PowerReaderFbImpl::createReader()
 
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
     reader.setOnDataAvailable([this, thisWeakRef = std::move(thisWeakRef)]
-        {
-            const auto thisFb = thisWeakRef.getRef();
-            if (thisFb.assigned())
-                this->onDataReceived();
-        });
+    {
+        const auto thisFb = thisWeakRef.getRef();
+        if (thisFb.assigned())
+            this->onDataReceived();
+    });
 }
 
 void PowerReaderFbImpl::createSignals()

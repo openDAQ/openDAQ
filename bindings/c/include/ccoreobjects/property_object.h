@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:16.
+//     RTGen (CGenerator v0.7.0) on 05.06.2025 17:27:48.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqEvent daqEvent;
     typedef struct daqList daqList;
     typedef struct daqPermissionManager daqPermissionManager;
+    typedef struct daqSearchFilter daqSearchFilter;
     typedef struct daqTypeManager daqTypeManager;
 
     EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_INTF_ID;
@@ -65,6 +66,7 @@ extern "C"
     daqErrCode EXPORTED daqPropertyObject_getUpdating(daqPropertyObject* self, daqBool* updating);
     daqErrCode EXPORTED daqPropertyObject_getOnEndUpdate(daqPropertyObject* self, daqEvent** event);
     daqErrCode EXPORTED daqPropertyObject_getPermissionManager(daqPropertyObject* self, daqPermissionManager** permissionManager);
+    daqErrCode EXPORTED daqPropertyObject_findProperties(daqPropertyObject* self, daqList** properties, daqSearchFilter* propertyFilter, daqSearchFilter* componentFilter);
     daqErrCode EXPORTED daqPropertyObject_createPropertyObject(daqPropertyObject** obj);
     daqErrCode EXPORTED daqPropertyObject_createPropertyObjectWithClassAndManager(daqPropertyObject** obj, daqTypeManager* manager, daqString* className);
 

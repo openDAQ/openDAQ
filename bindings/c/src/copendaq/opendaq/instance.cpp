@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:21.
+//     RTGen (CGenerator v0.7.0) on 05.06.2025 21:37:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -14,7 +14,6 @@
 #include <opendaq/opendaq.h>
 
 #include <copendaq_private.h>
-#include "opendaq/device.h"
 
 const daqIntfID DAQ_INSTANCE_INTF_ID = { daq::IInstance::Id.Data1, daq::IInstance::Id.Data2, daq::IInstance::Id.Data3, daq::IInstance::Id.Data4_UInt64 };
 

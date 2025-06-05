@@ -42,7 +42,6 @@ extern "C"
 
     EXPORTED extern const daqIntfID DAQ_SEARCH_FILTER_INTF_ID;
 
-    daqErrCode EXPORTED daqSearchFilter_acceptsComponent(daqSearchFilter* self, daqComponent* component, daqBool* accepts);
     daqErrCode EXPORTED daqSearchFilter_visitChildren(daqSearchFilter* self, daqComponent* component, daqBool* visit);
     daqErrCode EXPORTED daqSearchFilter_createVisibleSearchFilter(daqSearchFilter** obj);
     daqErrCode EXPORTED daqSearchFilter_createRequiredTagsSearchFilter(daqSearchFilter** obj, daqList* requiredTags);

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:17.
+//     RTGen (CGenerator v0.7.0) on 05.06.2025 21:36:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -120,6 +120,11 @@ daqErrCode daqPropertyObject_getOnEndUpdate(daqPropertyObject* self, daqEvent** 
 daqErrCode daqPropertyObject_getPermissionManager(daqPropertyObject* self, daqPermissionManager** permissionManager)
 {
     return reinterpret_cast<daq::IPropertyObject*>(self)->getPermissionManager(reinterpret_cast<daq::IPermissionManager**>(permissionManager));
+}
+
+daqErrCode daqPropertyObject_findProperties(daqPropertyObject* self, daqList** properties, daqSearchFilter* propertyFilter, daqSearchFilter* componentFilter)
+{
+    return reinterpret_cast<daq::IPropertyObject*>(self)->findProperties(reinterpret_cast<daq::IList**>(properties), reinterpret_cast<daq::ISearchFilter*>(propertyFilter), reinterpret_cast<daq::ISearchFilter*>(componentFilter));
 }
 
 daqErrCode daqPropertyObject_createPropertyObject(daqPropertyObject** obj)

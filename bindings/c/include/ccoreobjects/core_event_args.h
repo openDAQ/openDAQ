@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:10.
+//     RTGen (CGenerator v0.7.0) on 05.06.2025 21:36:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqProperty daqProperty;
     typedef struct daqType daqType;
+    typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_CORE_EVENT_ARGS_INTF_ID;
 
@@ -51,6 +52,7 @@ extern "C"
     daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyRemoved(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqString* propName, daqString* path);
     daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsTypeAdded(daqCoreEventArgs** obj, daqType* type);
     daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsTypeRemoved(daqCoreEventArgs** obj, daqString* typeName);
+    daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyOrderChanged(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqList* propertyOrder, daqString* path);
 
 #ifdef __cplusplus
 }

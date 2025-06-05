@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:53.
+//     RTGen (CGenerator v0.7.0) on 05.06.2025 21:37:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,8 +38,8 @@ extern "C"
 
     EXPORTED extern const daqIntfID DAQ_SCALING_CALC_PRIVATE_INTF_ID;
 
-    daqvoid EXPORTED daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount);
-    daqvoid EXPORTED daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount, void** output);
+    void EXPORTED daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount);
+    void EXPORTED daqScalingCalcPrivate_scaleDataOutput(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount, void** output);
     daqBool EXPORTED daqScalingCalcPrivate_hasScalingCalc(daqScalingCalcPrivate* self);
 
 #ifdef __cplusplus

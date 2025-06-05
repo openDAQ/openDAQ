@@ -17,11 +17,6 @@
 
 const daqIntfID DAQ_SEARCH_FILTER_INTF_ID = { daq::ISearchFilter::Id.Data1, daq::ISearchFilter::Id.Data2, daq::ISearchFilter::Id.Data3, daq::ISearchFilter::Id.Data4_UInt64 };
 
-daqErrCode daqSearchFilter_acceptsComponent(daqSearchFilter* self, daqComponent* component, daqBool* accepts)
-{
-    return reinterpret_cast<daq::ISearchFilter*>(self)->acceptsComponent(reinterpret_cast<daq::IComponent*>(component), accepts);
-}
-
 daqErrCode daqSearchFilter_visitChildren(daqSearchFilter* self, daqComponent* component, daqBool* visit)
 {
     return reinterpret_cast<daq::ISearchFilter*>(self)->visitChildren(reinterpret_cast<daq::IComponent*>(component), visit);

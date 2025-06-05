@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:11.
+//     RTGen (CGenerator v0.7.0) on 05.06.2025 17:27:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -74,6 +74,14 @@ daqErrCode daqCoreEventArgs_createCoreEventArgsTypeRemoved(daqCoreEventArgs** ob
 {
     daq::ICoreEventArgs* ptr = nullptr;
     daqErrCode err = daq::createCoreEventArgsTypeRemoved(&ptr, reinterpret_cast<daq::IString*>(typeName));
+    *obj = reinterpret_cast<daqCoreEventArgs*>(ptr);
+    return err;
+}
+
+daqErrCode daqCoreEventArgs_createCoreEventArgsPropertyOrderChanged(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqList* propertyOrder, daqString* path)
+{
+    daq::ICoreEventArgs* ptr = nullptr;
+    daqErrCode err = daq::createCoreEventArgsPropertyOrderChanged(&ptr, reinterpret_cast<daq::IPropertyObject*>(propOwner), reinterpret_cast<daq::IList*>(propertyOrder), reinterpret_cast<daq::IString*>(path));
     *obj = reinterpret_cast<daqCoreEventArgs*>(ptr);
     return err;
 }

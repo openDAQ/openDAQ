@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:19.
+//     RTGen (CGenerator v0.7.0) on 05.06.2025 21:37:16.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -30,6 +30,11 @@ daqErrCode daqModuleManager_addModule(daqModuleManager* self, daqModule* module)
 daqErrCode daqModuleManager_loadModules(daqModuleManager* self, daqContext* context)
 {
     return reinterpret_cast<daq::IModuleManager*>(self)->loadModules(reinterpret_cast<daq::IContext*>(context));
+}
+
+daqErrCode daqModuleManager_loadModule(daqModuleManager* self, daqString* path, daqModule** module)
+{
+    return reinterpret_cast<daq::IModuleManager*>(self)->loadModule(reinterpret_cast<daq::IString*>(path), reinterpret_cast<daq::IModule**>(module));
 }
 
 daqErrCode daqModuleManager_createModuleManager(daqModuleManager** obj, daqString* path)

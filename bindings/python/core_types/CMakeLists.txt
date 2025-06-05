@@ -9,6 +9,10 @@ set(SRC_Headers
     include/py_core_types/py_list_object.h
     include/py_core_types/py_procedure.h
     include/py_core_types/py_function.h
+    #
+    include/py_core_types/py_queued_event_handler.h
+    include/py_core_types/py_queued_event_handler_impl.h
+    include/py_core_types/py_event_queue.h
 )
 
 set(SRC_Cpp
@@ -32,6 +36,8 @@ set(SRC_Cpp
     src/py_dict.cpp
     src/py_procedure.cpp
     src/py_function.cpp
+    src/py_queued_event_handler_impl.cpp
+    src/py_event_queue.cpp
     #
     generated/py_event_handler.cpp
     generated/py_event.cpp

@@ -164,6 +164,17 @@ class App(tk.Tk):
         if args.config != '':
             self._load_config(args.config)
 
+        self.poll_opendaq_events()
+
+    def poll_opendaq_events(self):
+        try:
+            daq.event_queue.process_events()
+        except Exception as e:
+            print("Callback processing error:", e)
+
+        # Re-schedule after 50 ms
+        self.after(50, self.poll_opendaq_events)
+
     def init_opendaq(self):
 
         # add the first device if connection string is provided once on start

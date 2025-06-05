@@ -600,19 +600,18 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
 
-    return daqTry(
-        [this, &configuration]()
-        {
-            auto serializer = JsonSerializer(True);
+    return daqTry([this, &configuration]()
+    {
+        auto serializer = JsonSerializer(True);
 
-            checkErrorInfo(this->serializeForUpdate(serializer));
+        checkErrorInfo(this->serializeForUpdate(serializer));
 
-            auto str = serializer.getOutput();
+        auto str = serializer.getOutput();
 
-            *configuration = str.detach();
+        *configuration = str.detach();
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode InstanceImpl::loadConfiguration(IString* configuration, IUpdateParameters* config)
@@ -741,9 +740,10 @@ ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)
 
 ErrCode InstanceImpl::serialize(ISerializer* serializer)
 {
-    return daqTry([this, &serializer] {
-            rootDevice.asPtr<ISerializable>(true).serialize(serializer);
-        });
+    return daqTry([this, &serializer] 
+    {
+        return rootDevice.asPtr<ISerializable>(true)->serialize(serializer);
+    });
 }
 
 ErrCode InstanceImpl::getSerializeId(ConstCharPtr* id) const

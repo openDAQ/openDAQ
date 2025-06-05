@@ -6,22 +6,22 @@ using COpendaqLoggerTest = testing::Test;
 
 TEST_F(COpendaqLoggerTest, Logger)
 {
-    List* sinks = nullptr;
-    List_createList(&sinks);
+    daqList* sinks = nullptr;
+    daqList_createList(&sinks);
 
-    LoggerSink* sink = nullptr;
-    LoggerSink_createStdOutLoggerSink(&sink);
-    List_pushBack(sinks, sink);
+    daqLoggerSink* sink = nullptr;
+    daqLoggerSink_createStdOutLoggerSink(&sink);
+    daqList_pushBack(sinks, sink);
 
-    Logger* logger = nullptr;
-    Logger_createLogger(&logger, sinks, LogLevel::LogLevelDebug);
+    daqLogger* logger = nullptr;
+    daqLogger_createLogger(&logger, sinks, daqLogLevel::daqLogLevelDebug);
 
     ASSERT_NE(logger, nullptr);
-    LogLevel level = LogLevel::LogLevelOff;
-    Logger_getLevel(logger, &level);
-    ASSERT_EQ(level, LogLevel::LogLevelDebug);
+    daqLogLevel level = daqLogLevel::daqLogLevelOff;
+    daqLogger_getLevel(logger, &level);
+    ASSERT_EQ(level, daqLogLevel::daqLogLevelDebug);
 
-    BaseObject_releaseRef(logger);
-    BaseObject_releaseRef(sink);
-    BaseObject_releaseRef(sinks);
+    daqBaseObject_releaseRef(logger);
+    daqBaseObject_releaseRef(sink);
+    daqBaseObject_releaseRef(sinks);
 }

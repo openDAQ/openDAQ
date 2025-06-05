@@ -6,78 +6,78 @@ class COpendaqModuleManagerTest : public testing::Test
 {
     void SetUp() override
     {
-        List* sinks = nullptr;
-        List_createList(&sinks);
+        daqList* sinks = nullptr;
+        daqList_createList(&sinks);
 
-        LoggerSink* sink = nullptr;
-        LoggerSink_createStdErrLoggerSink(&sink);
-        List_pushBack(sinks, sink);
+        daqLoggerSink* sink = nullptr;
+        daqLoggerSink_createStdErrLoggerSink(&sink);
+        daqList_pushBack(sinks, sink);
 
-        Logger* logger = nullptr;
-        Logger_createLogger(&logger, sinks, LogLevel::LogLevelDebug);
+        daqLogger* logger = nullptr;
+        daqLogger_createLogger(&logger, sinks, daqLogLevel::daqLogLevelDebug);
 
-        TypeManager* typeManager = nullptr;
-        TypeManager_createTypeManager(&typeManager);
+        daqTypeManager* typeManager = nullptr;
+        daqTypeManager_createTypeManager(&typeManager);
 
-        Dict *options = nullptr, *discoveryServers = nullptr;
-        Dict_createDict(&options);
-        Dict_createDict(&discoveryServers);
+        daqDict *options = nullptr, *discoveryServers = nullptr;
+        daqDict_createDict(&options);
+        daqDict_createDict(&discoveryServers);
 
-        Context_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
+        daqContext_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
 
-        BaseObject_releaseRef(discoveryServers);
-        BaseObject_releaseRef(options);
-        BaseObject_releaseRef(typeManager);
-        BaseObject_releaseRef(logger);
-        BaseObject_releaseRef(sink);
-        BaseObject_releaseRef(sinks);
+        daqBaseObject_releaseRef(discoveryServers);
+        daqBaseObject_releaseRef(options);
+        daqBaseObject_releaseRef(typeManager);
+        daqBaseObject_releaseRef(logger);
+        daqBaseObject_releaseRef(sink);
+        daqBaseObject_releaseRef(sinks);
     }
 
     void TearDown() override
     {
-        BaseObject_releaseRef(ctx);
+        daqBaseObject_releaseRef(ctx);
     }
 
 protected:
-    Context* ctx = nullptr;
+    daqContext* ctx = nullptr;
 };
 
-//Even just constructing and destroying the ModuleManager produces leaks on some platforms 
+// Even just constructing and destroying the ModuleManager produces leaks on some platforms
 TEST_F(COpendaqModuleManagerTest, DISABLED_ModuleManager)
 {
-    ModuleManager* moduleManager = nullptr;
+    daqModuleManager* moduleManager = nullptr;
 
-    String* path = nullptr;
-    String_createString(&path, ".");
-    ModuleManager_createModuleManager(&moduleManager, path);
+    daqString* path = nullptr;
+    daqString_createString(&path, ".");
+    daqModuleManager_createModuleManager(&moduleManager, path);
     ASSERT_NE(moduleManager, nullptr);
 
-    ModuleManager_loadModules(moduleManager, ctx);
+    daqModuleManager_loadModules(moduleManager, ctx);
 
-    List* modules = nullptr;
-    ModuleManager_getModules(moduleManager, &modules);
+    daqList* modules = nullptr;
+    daqModuleManager_getModules(moduleManager, &modules);
 
     ASSERT_NE(modules, nullptr);
-    SizeT size = 0;
-    List_getCount(modules, &size);
+    daqSizeT size = 0;
+    daqList_getCount(modules, &size);
     ASSERT_GT(size, 0);
 
-    Module* module = nullptr;
-    List_getItemAt(modules, 0, reinterpret_cast<BaseObject**>(&module));
+    daqModule* module = nullptr;
+    daqList_getItemAt(modules, 0, (daqBaseObject**) &module);
     ASSERT_NE(module, nullptr);
 
-    ModuleInfo* info = nullptr;
-    Module_getModuleInfo(module, &info);
+    daqModuleInfo* info = nullptr;
+    daqModule_getModuleInfo(module, &info);
     ASSERT_NE(info, nullptr);
 
-    String* name = nullptr;
-    ModuleInfo_getId(info, &name);
+    daqString* name = nullptr;
+    daqModuleInfo_getId(info, &name);
     ASSERT_NE(name, nullptr);
 
-    BaseObject_releaseRef(name);
-    BaseObject_releaseRef(info);
-    BaseObject_releaseRef(module);
-    BaseObject_releaseRef(modules);
-    BaseObject_releaseRef(moduleManager);
-    BaseObject_releaseRef(path);
+    daqBaseObject_releaseRef(name);
+    daqBaseObject_releaseRef(info);
+    daqBaseObject_releaseRef(module);
+    daqBaseObject_releaseRef(modules);
+    daqBaseObject_releaseRef(moduleManager);
+    daqBaseObject_releaseRef(path);
 }

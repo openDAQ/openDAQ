@@ -8,26 +8,26 @@ using COpendaqOpendaqTest = testing::Test;
 
 TEST_F(COpendaqOpendaqTest, ConfigProvider)
 {
-    ConfigProvider* configProvider = nullptr;
-    ConfigProvider_createEnvConfigProvider(&configProvider);
+    daqConfigProvider* configProvider = nullptr;
+    daqConfigProvider_createEnvConfigProvider(&configProvider);
     ASSERT_NE(configProvider, nullptr);
-    BaseObject_releaseRef(configProvider);
+    daqBaseObject_releaseRef(configProvider);
 }
 
 TEST_F(COpendaqOpendaqTest, InstanceAndBuilder)
 {
-    InstanceBuilder* builder = nullptr;
-    InstanceBuilder_createInstanceBuilder(&builder);
+    daqInstanceBuilder* builder = nullptr;
+    daqInstanceBuilder_createInstanceBuilder(&builder);
     ASSERT_NE(builder, nullptr);
 
     auto context = daq::NullContext();
-    Context* ctx = reinterpret_cast<Context*>(context.getObject());
+    daqContext* ctx = (daqContext*) context.getObject();
 
-    Instance* instance = nullptr;
+    daqInstance* instance = nullptr;
     // Creating an instance with a builder causes memleaks on some compilers
-    Instance_createInstance(&instance, ctx, nullptr);
+    daqInstance_createInstance(&instance, ctx, nullptr);
     ASSERT_NE(instance, nullptr);
 
-    BaseObject_releaseRef(builder);
-    BaseObject_releaseRef(instance);
+    daqBaseObject_releaseRef(builder);
+    daqBaseObject_releaseRef(instance);
 }

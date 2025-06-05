@@ -6,233 +6,233 @@ class COpendaqComponentTest : public testing::Test
 {
     void SetUp() override
     {
-        List* sinks = nullptr;
-        List_createList(&sinks);
+        daqList* sinks = nullptr;
+        daqList_createList(&sinks);
 
-        LoggerSink* sink = nullptr;
-        LoggerSink_createStdErrLoggerSink(&sink);
-        List_pushBack(sinks, sink);
+        daqLoggerSink* sink = nullptr;
+        daqLoggerSink_createStdErrLoggerSink(&sink);
+        daqList_pushBack(sinks, sink);
 
-        Logger* logger = nullptr;
-        Logger_createLogger(&logger, sinks, LogLevel::LogLevelDebug);
+        daqLogger* logger = nullptr;
+        daqLogger_createLogger(&logger, sinks, daqLogLevel::daqLogLevelDebug);
 
-        TypeManager* typeManager = nullptr;
-        TypeManager_createTypeManager(&typeManager);
+        daqTypeManager* typeManager = nullptr;
+        daqTypeManager_createTypeManager(&typeManager);
 
-        Dict *options = nullptr, *discoveryServers = nullptr;
-        Dict_createDict(&options);
-        Dict_createDict(&discoveryServers);
+        daqDict *options = nullptr, *discoveryServers = nullptr;
+        daqDict_createDict(&options);
+        daqDict_createDict(&discoveryServers);
 
-        Context_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
+        daqContext_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
 
-        BaseObject_releaseRef(discoveryServers);
-        BaseObject_releaseRef(options);
-        BaseObject_releaseRef(typeManager);
-        BaseObject_releaseRef(logger);
-        BaseObject_releaseRef(sink);
-        BaseObject_releaseRef(sinks);
+        daqBaseObject_releaseRef(discoveryServers);
+        daqBaseObject_releaseRef(options);
+        daqBaseObject_releaseRef(typeManager);
+        daqBaseObject_releaseRef(logger);
+        daqBaseObject_releaseRef(sink);
+        daqBaseObject_releaseRef(sinks);
     }
 
     void TearDown() override
     {
-        BaseObject_releaseRef(ctx);
+        daqBaseObject_releaseRef(ctx);
     }
 
 protected:
-    Context* ctx = nullptr;
+    daqContext* ctx = nullptr;
 };
 
 TEST_F(COpendaqComponentTest, ComponentPrivate)
 {
-    String* id = nullptr;
-    String_createString(&id, "parent");
+    daqString* id = nullptr;
+    daqString_createString(&id, "parent");
 
-    Component* component = nullptr;
-    Component_createComponent(&component, ctx, nullptr, id, nullptr);
+    daqComponent* component = nullptr;
+    daqComponent_createComponent(&component, ctx, nullptr, id, nullptr);
 
-    String* name = nullptr;
-    String_createString(&name, "Name");
+    daqString* name = nullptr;
+    daqString_createString(&name, "Name");
 
-    String* desc = nullptr;
-    String_createString(&desc, "Description");
+    daqString* desc = nullptr;
+    daqString_createString(&desc, "Description");
 
-    Component_setName(component, name);
-    Component_setDescription(component, desc);
-    Component_setActive(component, True);
-    Component_setVisible(component, True);
+    daqComponent_setName(component, name);
+    daqComponent_setDescription(component, desc);
+    daqComponent_setActive(component, True);
+    daqComponent_setVisible(component, True);
 
-    ComponentPrivate* priv = nullptr;
-    BaseObject_borrowInterface(component, COMPONENT_PRIVATE_INTF_ID, reinterpret_cast<void**>(&priv));
+    daqComponentPrivate* priv = nullptr;
+    daqBaseObject_borrowInterface(component, DAQ_COMPONENT_PRIVATE_INTF_ID, (void**) &priv);
 
-    ComponentPrivate_lockAllAttributes(priv);
+    daqComponentPrivate_lockAllAttributes(priv);
 
-    String* newName = nullptr;
-    String_createString(&newName, "New Name");
+    daqString* newName = nullptr;
+    daqString_createString(&newName, "New Name");
 
-    String* newDesc = nullptr;
-    String_createString(&newDesc, "New Description");
+    daqString* newDesc = nullptr;
+    daqString_createString(&newDesc, "New Description");
 
-    Component_setName(component, newName);
-    Component_setDescription(component, newDesc);
-    Component_setActive(component, False);
-    Component_setVisible(component, False);
+    daqComponent_setName(component, newName);
+    daqComponent_setDescription(component, newDesc);
+    daqComponent_setActive(component, False);
+    daqComponent_setVisible(component, False);
 
-    String* outName = nullptr;
-    Component_getName(component, &outName);
-    String* outDesc = nullptr;
-    Component_getDescription(component, &outDesc);
-    Bool active = False;
-    Component_getActive(component, &active);
-    Bool visible = False;
-    Component_getVisible(component, &visible);
+    daqString* outName = nullptr;
+    daqComponent_getName(component, &outName);
+    daqString* outDesc = nullptr;
+    daqComponent_getDescription(component, &outDesc);
+    daqBool active = False;
+    daqComponent_getActive(component, &active);
+    daqBool visible = False;
+    daqComponent_getVisible(component, &visible);
 
-    ConstCharPtr nameStr = nullptr;
-    String_getCharPtr(outName, &nameStr);
-    ConstCharPtr descStr = nullptr;
-    String_getCharPtr(outDesc, &descStr);
+    daqConstCharPtr nameStr = nullptr;
+    daqString_getCharPtr(outName, &nameStr);
+    daqConstCharPtr descStr = nullptr;
+    daqString_getCharPtr(outDesc, &descStr);
 
     ASSERT_STREQ(nameStr, "Name");
     ASSERT_STREQ(descStr, "Description");
     ASSERT_TRUE(active);
     ASSERT_TRUE(visible);
 
-    BaseObject_releaseRef(outName);
-    BaseObject_releaseRef(outDesc);
-    BaseObject_releaseRef(newDesc);
-    BaseObject_releaseRef(newName);
-    BaseObject_releaseRef(desc);
-    BaseObject_releaseRef(name);
-    BaseObject_releaseRef(component);
-    BaseObject_releaseRef(id);
+    daqBaseObject_releaseRef(outName);
+    daqBaseObject_releaseRef(outDesc);
+    daqBaseObject_releaseRef(newDesc);
+    daqBaseObject_releaseRef(newName);
+    daqBaseObject_releaseRef(desc);
+    daqBaseObject_releaseRef(name);
+    daqBaseObject_releaseRef(component);
+    daqBaseObject_releaseRef(id);
 }
 
 TEST_F(COpendaqComponentTest, ComponentStatusContainer)
 {
-    String* id = nullptr;
-    String_createString(&id, "parent");
+    daqString* id = nullptr;
+    daqString_createString(&id, "parent");
 
-    Component* component = nullptr;
-    Component_createComponent(&component, ctx, nullptr, id, nullptr);
+    daqComponent* component = nullptr;
+    daqComponent_createComponent(&component, ctx, nullptr, id, nullptr);
 
-    ComponentStatusContainer* status = nullptr;
-    Component_getStatusContainer(component, &status);
+    daqComponentStatusContainer* status = nullptr;
+    daqComponent_getStatusContainer(component, &status);
 
     ASSERT_NE(status, nullptr);
 
-    ComponentStatusContainerPrivate* priv = nullptr;
-    BaseObject_borrowInterface(status, COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID, reinterpret_cast<void**>(&priv));
+    daqComponentStatusContainerPrivate* priv = nullptr;
+    daqBaseObject_borrowInterface(status, DAQ_COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID, (void**) &priv);
 
     ASSERT_NE(priv, nullptr);
 
-    BaseObject_releaseRef(status);
-    BaseObject_releaseRef(component);
-    BaseObject_releaseRef(id);
+    daqBaseObject_releaseRef(status);
+    daqBaseObject_releaseRef(component);
+    daqBaseObject_releaseRef(id);
 }
 
 TEST_F(COpendaqComponentTest, Component)
 {
-    String* id = nullptr;
-    String_createString(&id, "parent");
-    String* idc = nullptr;
-    String_createString(&idc, "child");
+    daqString* id = nullptr;
+    daqString_createString(&id, "parent");
+    daqString* idc = nullptr;
+    daqString_createString(&idc, "child");
 
-    Component* component = nullptr;
-    Component_createComponent(&component, ctx, nullptr, id, nullptr);
+    daqComponent* component = nullptr;
+    daqComponent_createComponent(&component, ctx, nullptr, id, nullptr);
 
-    Component* child = nullptr;
-    Component_createComponent(&child, ctx, component, idc, nullptr);
+    daqComponent* child = nullptr;
+    daqComponent_createComponent(&child, ctx, component, idc, nullptr);
 
-    String* childLocalId = nullptr;
-    Component_getLocalId(child, &childLocalId);
-    ConstCharPtr childLocalIdStr = nullptr;
-    String_getCharPtr(childLocalId, &childLocalIdStr);
+    daqString* childLocalId = nullptr;
+    daqComponent_getLocalId(child, &childLocalId);
+    daqConstCharPtr childLocalIdStr = nullptr;
+    daqString_getCharPtr(childLocalId, &childLocalIdStr);
 
-    String* childGlobalId = nullptr;
-    Component_getGlobalId(child, &childGlobalId);
-    ConstCharPtr childGlobalIdStr = nullptr;
-    String_getCharPtr(childGlobalId, &childGlobalIdStr);
+    daqString* childGlobalId = nullptr;
+    daqComponent_getGlobalId(child, &childGlobalId);
+    daqConstCharPtr childGlobalIdStr = nullptr;
+    daqString_getCharPtr(childGlobalId, &childGlobalIdStr);
 
     ASSERT_STREQ(childLocalIdStr, "child");
     ASSERT_STREQ(childGlobalIdStr, "/parent/child");
 
-    BaseObject_releaseRef(childGlobalId);
-    BaseObject_releaseRef(childLocalId);
-    BaseObject_releaseRef(child);
-    BaseObject_releaseRef(component);
-    BaseObject_releaseRef(idc);
-    BaseObject_releaseRef(id);
+    daqBaseObject_releaseRef(childGlobalId);
+    daqBaseObject_releaseRef(childLocalId);
+    daqBaseObject_releaseRef(child);
+    daqBaseObject_releaseRef(component);
+    daqBaseObject_releaseRef(idc);
+    daqBaseObject_releaseRef(id);
 }
 
 TEST_F(COpendaqComponentTest, Folder)
 {
-    String* folderId = nullptr;
-    String_createString(&folderId, "folder");
+    daqString* folderId = nullptr;
+    daqString_createString(&folderId, "folder");
 
-    String* itemId = nullptr;
-    String_createString(&itemId, "item");
+    daqString* itemId = nullptr;
+    daqString_createString(&itemId, "item");
 
-    FolderConfig* folder = nullptr;
-    FolderConfig_createFolder(&folder, ctx, nullptr, folderId);
+    daqFolderConfig* folder = nullptr;
+    daqFolderConfig_createFolder(&folder, ctx, nullptr, folderId);
 
-    Component* component = nullptr;
-    Component_createComponent(&component, ctx, nullptr, itemId, nullptr);
-    FolderConfig_addItem(folder, component);
+    daqComponent* component = nullptr;
+    daqComponent_createComponent(&component, ctx, nullptr, itemId, nullptr);
+    daqFolderConfig_addItem(folder, component);
 
-    Folder* f = nullptr;
-    BaseObject_borrowInterface(folder, FOLDER_INTF_ID, reinterpret_cast<void**>(&f));
+    daqFolder* f = nullptr;
+    daqBaseObject_borrowInterface(folder, DAQ_FOLDER_INTF_ID, (void**) &f);
 
-    Bool empty = false;
-    Folder_isEmpty(f, &empty);
+    daqBool empty = false;
+    daqFolder_isEmpty(f, &empty);
     ASSERT_EQ(empty, false);
 
-    FolderConfig_clear(folder);
-    Folder_isEmpty(f, &empty);
+    daqFolderConfig_clear(folder);
+    daqFolder_isEmpty(f, &empty);
     ASSERT_EQ(empty, true);
 
-    BaseObject_releaseRef(component);
-    BaseObject_releaseRef(folder);
-    BaseObject_releaseRef(itemId);
-    BaseObject_releaseRef(folderId);
+    daqBaseObject_releaseRef(component);
+    daqBaseObject_releaseRef(folder);
+    daqBaseObject_releaseRef(itemId);
+    daqBaseObject_releaseRef(folderId);
 }
 
 TEST_F(COpendaqComponentTest, Removable)
 {
-    String* id = nullptr;
-    String_createString(&id, "parent");
+    daqString* id = nullptr;
+    daqString_createString(&id, "parent");
 
-    Component* component = nullptr;
-    Component_createComponent(&component, ctx, nullptr, id, nullptr);
+    daqComponent* component = nullptr;
+    daqComponent_createComponent(&component, ctx, nullptr, id, nullptr);
 
-    Removable* rm = nullptr;
-    BaseObject_borrowInterface(component, REMOVABLE_INTF_ID, reinterpret_cast<void**>(&rm));
+    daqRemovable* rm = nullptr;
+    daqBaseObject_borrowInterface(component, DAQ_REMOVABLE_INTF_ID, (void**) &rm);
 
-    Removable_remove(rm);
-    Bool isRemoved = False;
-    Removable_isRemoved(rm, &isRemoved);
+    daqRemovable_remove(rm);
+    daqBool isRemoved = False;
+    daqRemovable_isRemoved(rm, &isRemoved);
 
     ASSERT_EQ(isRemoved, True);
 
-    BaseObject_releaseRef(component);
-    BaseObject_releaseRef(id);
+    daqBaseObject_releaseRef(component);
+    daqBaseObject_releaseRef(id);
 }
 
 TEST_F(COpendaqComponentTest, Tags)
 {
-    Tags* tags = nullptr;
-    Tags_createTags(&tags);
+    daqTags* tags = nullptr;
+    daqTags_createTags(&tags);
 
-    TagsPrivate* priv = nullptr;
-    BaseObject_borrowInterface(tags, TAGS_PRIVATE_INTF_ID, reinterpret_cast<void**>(&priv));
+    daqTagsPrivate* priv = nullptr;
+    daqBaseObject_borrowInterface(tags, DAQ_TAGS_PRIVATE_INTF_ID, (void**) &priv);
 
-    String* tag = nullptr;
-    String_createString(&tag, "test");
+    daqString* tag = nullptr;
+    daqString_createString(&tag, "test");
 
-    TagsPrivate_add(priv, tag);
+    daqTagsPrivate_add(priv, tag);
 
-    Bool result = false;
-    Tags_contains(tags, tag, &result);
+    daqBool result = false;
+    daqTags_contains(tags, tag, &result);
 
     ASSERT_TRUE(result);
-    BaseObject_releaseRef(tag);
-    BaseObject_releaseRef(tags);
+    daqBaseObject_releaseRef(tag);
+    daqBaseObject_releaseRef(tags);
 }

@@ -6,62 +6,62 @@ using COpendaqSynchronizationTest = testing::Test;
 
 TEST_F(COpendaqSynchronizationTest, SyncComponent)
 {
-    List* sinks = nullptr;
-    List_createList(&sinks);
+    daqList* sinks = nullptr;
+    daqList_createList(&sinks);
 
-    LoggerSink* sink = nullptr;
-    LoggerSink_createStdErrLoggerSink(&sink);
-    List_pushBack(sinks, sink);
+    daqLoggerSink* sink = nullptr;
+    daqLoggerSink_createStdErrLoggerSink(&sink);
+    daqList_pushBack(sinks, sink);
 
-    Logger* logger = nullptr;
-    Logger_createLogger(&logger, sinks, LogLevel::LogLevelDebug);
+    daqLogger* logger = nullptr;
+    daqLogger_createLogger(&logger, sinks, daqLogLevel::daqLogLevelDebug);
 
-    TypeManager* typeManager = nullptr;
-    TypeManager_createTypeManager(&typeManager);
+    daqTypeManager* typeManager = nullptr;
+    daqTypeManager_createTypeManager(&typeManager);
 
-    Dict *options = nullptr, *discoveryServers = nullptr;
-    Dict_createDict(&options);
-    Dict_createDict(&discoveryServers);
+    daqDict *options = nullptr, *discoveryServers = nullptr;
+    daqDict_createDict(&options);
+    daqDict_createDict(&discoveryServers);
 
-    Context* context = nullptr;
-    Context_createContext(&context, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
+    daqContext* context = nullptr;
+    daqContext_createContext(&context, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
 
-    SyncComponent* syncComponent = nullptr;
-    String* localId = nullptr;
-    String_createString(&localId, "localId");
+    daqSyncComponent* syncComponent = nullptr;
+    daqString* localId = nullptr;
+    daqString_createString(&localId, "localId");
 
-    SyncComponent_createSyncComponent(&syncComponent, context, nullptr, localId);
+    daqSyncComponent_createSyncComponent(&syncComponent, context, nullptr, localId);
 
-    SyncComponentPrivate* syncComponentPrivate = nullptr;
-    BaseObject_borrowInterface(syncComponent, SYNC_COMPONENT_PRIVATE_INTF_ID, reinterpret_cast<void**>(&syncComponentPrivate));
+    daqSyncComponentPrivate* syncComponentPrivate = nullptr;
+    daqBaseObject_borrowInterface(syncComponent, DAQ_SYNC_COMPONENT_PRIVATE_INTF_ID, (void**) &syncComponentPrivate);
 
     ASSERT_NE(syncComponentPrivate, nullptr);
 
-    PropertyObject* interface = nullptr;
-    String* className = nullptr;
-    String_createString(&className, "InterfaceClockSync");
-    PropertyObject_createPropertyObjectWithClassAndManager(&interface, typeManager, className);
+    daqPropertyObject* interface = nullptr;
+    daqString* className = nullptr;
+    daqString_createString(&className, "InterfaceClockSync");
+    daqPropertyObject_createPropertyObjectWithClassAndManager(&interface, typeManager, className);
 
-    ErrCode err = SyncComponentPrivate_addInterface(syncComponentPrivate, interface);
+    daqErrCode err = daqSyncComponentPrivate_addInterface(syncComponentPrivate, interface);
     ASSERT_EQ(err, 0);
 
-    Dict* interfaces = nullptr;
-    SyncComponent_getInterfaces(syncComponent, &interfaces);
+    daqDict* interfaces = nullptr;
+    daqSyncComponent_getInterfaces(syncComponent, &interfaces);
     ASSERT_NE(interfaces, nullptr);
-    SizeT size = 0;
-    Dict_getCount(interfaces, &size);
+    daqSizeT size = 0;
+    daqDict_getCount(interfaces, &size);
     ASSERT_EQ(size, 1);
 
-    BaseObject_releaseRef(interfaces);
-    BaseObject_releaseRef(interface);
-    BaseObject_releaseRef(className);
-    BaseObject_releaseRef(syncComponent);
-    BaseObject_releaseRef(localId);
-    BaseObject_releaseRef(context);
-    BaseObject_releaseRef(discoveryServers);
-    BaseObject_releaseRef(options);
-    BaseObject_releaseRef(typeManager);
-    BaseObject_releaseRef(logger);
-    BaseObject_releaseRef(sink);
-    BaseObject_releaseRef(sinks);
+    daqBaseObject_releaseRef(interfaces);
+    daqBaseObject_releaseRef(interface);
+    daqBaseObject_releaseRef(className);
+    daqBaseObject_releaseRef(syncComponent);
+    daqBaseObject_releaseRef(localId);
+    daqBaseObject_releaseRef(context);
+    daqBaseObject_releaseRef(discoveryServers);
+    daqBaseObject_releaseRef(options);
+    daqBaseObject_releaseRef(typeManager);
+    daqBaseObject_releaseRef(logger);
+    daqBaseObject_releaseRef(sink);
+    daqBaseObject_releaseRef(sinks);
 }

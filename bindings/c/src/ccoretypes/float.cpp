@@ -17,28 +17,28 @@
 
 const daqIntfID DAQ_FLOAT_OBJECT_INTF_ID = { daq::IFloat::Id.Data1, daq::IFloat::Id.Data2, daq::IFloat::Id.Data3, daq::IFloat::Id.Data4_UInt64 };
 
-daqErrCode daqFloatObject_getValue(daqFloat* self, daqFloat* value)
+daqErrCode daqFloatObject_getValue(daqFloatObject* self, daqFloat* value)
 {
     return reinterpret_cast<daq::IFloat*>(self)->getValue(value);
 }
 
-daqErrCode daqFloatObject_equalsValue(daqFloat* self, daqFloat value, daqBool* equals)
+daqErrCode daqFloatObject_equalsValue(daqFloatObject* self, daqFloat value, daqBool* equals)
 {
     return reinterpret_cast<daq::IFloat*>(self)->equalsValue(value, equals);
 }
 
-daqErrCode daqFloatObject_createFloat(daqFloat** obj, daqFloat value)
+daqErrCode daqFloatObject_createFloat(daqFloatObject** obj, daqFloat value)
 {
     daq::IFloat* ptr = nullptr;
     daqErrCode err = daq::createFloat(&ptr, value);
-    *obj = reinterpret_cast<daqFloat*>(ptr);
+    *obj = reinterpret_cast<daqFloatObject*>(ptr);
     return err;
 }
 
-daqErrCode daqFloatObject_createFloatObject(daqFloat** obj, daqFloat value)
+daqErrCode daqFloatObject_createFloatObject(daqFloatObject** obj, daqFloat value)
 {
     daq::IFloat* ptr = nullptr;
     daqErrCode err = daq::createFloatObject(&ptr, value);
-    *obj = reinterpret_cast<daqFloat*>(ptr);
+    *obj = reinterpret_cast<daqFloatObject*>(ptr);
     return err;
 }

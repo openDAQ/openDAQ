@@ -18,9 +18,9 @@ protected:
 
 TEST_F(COpendaqFunctionBlockTest, FunctionBlock)
 {
-    FunctionBlock* funcBlock = reinterpret_cast<FunctionBlock*>(fb->getObject());
-    FunctionBlockType* fbType = nullptr;
-    FunctionBlock_getFunctionBlockType(funcBlock, &fbType);
+    daqFunctionBlock* funcBlock = (daqFunctionBlock*) fb->getObject();
+    daqFunctionBlockType* fbType = nullptr;
+    daqFunctionBlock_getFunctionBlockType(funcBlock, &fbType);
     ASSERT_NE(fbType, nullptr);
-    BaseObject_releaseRef(fbType);
+    daqBaseObject_releaseRef(fbType);
 }

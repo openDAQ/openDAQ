@@ -4,7 +4,7 @@
 
 #include "private/c_event_handler_impl.h"
 
-daqErrCode Serializer_createJsonSerializer(daqSerializer** obj, daqBool pretty)
+daqErrCode daqSerializer_createJsonSerializer(daqSerializer** obj, daqBool pretty)
 {
     daq::ISerializer* ptr = nullptr;
     daqErrCode err = daq::createJsonSerializer(&ptr, pretty);
@@ -12,7 +12,7 @@ daqErrCode Serializer_createJsonSerializer(daqSerializer** obj, daqBool pretty)
     return err;
 }
 
-daqErrCode EventHandler_createEventHandler(daqEventHandler** obj, daqEventCall call)
+daqErrCode daqEventHandler_createEventHandler(daqEventHandler** obj, daqEventCall call)
 {
     daq::IEventHandler* ptr = nullptr;
     daqErrCode err = daq::createObjectForwarding<daq::IEventHandler, daq::CEventHandlerImpl>(&ptr, call);

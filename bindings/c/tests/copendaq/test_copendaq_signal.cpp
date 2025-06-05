@@ -4,443 +4,443 @@
 
 using COpendaqSignalTest = testing::Test;
 
-Context* createContext()
+daqContext* createContext()
 {
-    Context* ctx = nullptr;
-    List* sinks = nullptr;
-    List_createList(&sinks);
+    daqContext* ctx = nullptr;
+    daqList* sinks = nullptr;
+    daqList_createList(&sinks);
 
-    LoggerSink* sink = nullptr;
-    LoggerSink_createStdErrLoggerSink(&sink);
-    List_pushBack(sinks, sink);
-    BaseObject_releaseRef(sink);
+    daqLoggerSink* sink = nullptr;
+    daqLoggerSink_createStdErrLoggerSink(&sink);
+    daqList_pushBack(sinks, sink);
+    daqBaseObject_releaseRef(sink);
 
-    Logger* logger = nullptr;
-    Logger_createLogger(&logger, sinks, LogLevel::LogLevelDebug);
-    BaseObject_releaseRef(sinks);
+    daqLogger* logger = nullptr;
+    daqLogger_createLogger(&logger, sinks, daqLogLevel::daqLogLevelDebug);
+    daqBaseObject_releaseRef(sinks);
 
-    TypeManager* typeManager = nullptr;
-    TypeManager_createTypeManager(&typeManager);
+    daqTypeManager* typeManager = nullptr;
+    daqTypeManager_createTypeManager(&typeManager);
 
-    Dict *options = nullptr, *discoveryServers = nullptr;
-    Dict_createDict(&options);
-    Dict_createDict(&discoveryServers);
+    daqDict *options = nullptr, *discoveryServers = nullptr;
+    daqDict_createDict(&options);
+    daqDict_createDict(&discoveryServers);
 
-    Context_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
+    daqContext_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
 
-    BaseObject_releaseRef(discoveryServers);
-    BaseObject_releaseRef(options);
-    BaseObject_releaseRef(typeManager);
-    BaseObject_releaseRef(logger);
+    daqBaseObject_releaseRef(discoveryServers);
+    daqBaseObject_releaseRef(options);
+    daqBaseObject_releaseRef(typeManager);
+    daqBaseObject_releaseRef(logger);
 
     return ctx;
 }
 
-DataDescriptor* createValueDescriptor()
+daqDataDescriptor* createValueDescriptor()
 {
-    DataDescriptor* descriptor = nullptr;
-    DataDescriptorBuilder* builder = nullptr;
-    DataDescriptorBuilder_createDataDescriptorBuilder(&builder);
-    DataDescriptorBuilder_setSampleType(builder, SampleType::SampleTypeInt64);
+    daqDataDescriptor* descriptor = nullptr;
+    daqDataDescriptorBuilder* builder = nullptr;
+    daqDataDescriptorBuilder_createDataDescriptorBuilder(&builder);
+    daqDataDescriptorBuilder_setSampleType(builder, daqSampleType::daqSampleTypeInt64);
 
-    UnitBuilder* unitBuilder = nullptr;
-    UnitBuilder_createUnitBuilder(&unitBuilder);
+    daqUnitBuilder* unitBuilder = nullptr;
+    daqUnitBuilder_createUnitBuilder(&unitBuilder);
 
-    String* unitName = nullptr;
-    String_createString(&unitName, "volts");
-    UnitBuilder_setName(unitBuilder, unitName);
-    BaseObject_releaseRef(unitName);
+    daqString* unitName = nullptr;
+    daqString_createString(&unitName, "volts");
+    daqUnitBuilder_setName(unitBuilder, unitName);
+    daqBaseObject_releaseRef(unitName);
 
-    String* unitSymbol = nullptr;
-    String_createString(&unitSymbol, "V");
-    UnitBuilder_setSymbol(unitBuilder, unitSymbol);
-    BaseObject_releaseRef(unitSymbol);
+    daqString* unitSymbol = nullptr;
+    daqString_createString(&unitSymbol, "V");
+    daqUnitBuilder_setSymbol(unitBuilder, unitSymbol);
+    daqBaseObject_releaseRef(unitSymbol);
 
-    String* unitQuantity = nullptr;
-    String_createString(&unitQuantity, "voltage");
-    UnitBuilder_setQuantity(unitBuilder, unitQuantity);
-    BaseObject_releaseRef(unitQuantity);
+    daqString* unitQuantity = nullptr;
+    daqString_createString(&unitQuantity, "voltage");
+    daqUnitBuilder_setQuantity(unitBuilder, unitQuantity);
+    daqBaseObject_releaseRef(unitQuantity);
 
-    UnitBuilder_setId(unitBuilder, -1);
+    daqUnitBuilder_setId(unitBuilder, -1);
 
-    Unit* unit = nullptr;
-    UnitBuilder_build(unitBuilder, &unit);
-    DataDescriptorBuilder_setUnit(builder, unit);
-    BaseObject_releaseRef(unitBuilder);
-    BaseObject_releaseRef(unit);
+    daqUnit* unit = nullptr;
+    daqUnitBuilder_build(unitBuilder, &unit);
+    daqDataDescriptorBuilder_setUnit(builder, unit);
+    daqBaseObject_releaseRef(unitBuilder);
+    daqBaseObject_releaseRef(unit);
 
-    String* name = nullptr;
-    String_createString(&name, "vals");
-    DataDescriptorBuilder_setName(builder, name);
-    BaseObject_releaseRef(name);
+    daqString* name = nullptr;
+    daqString_createString(&name, "vals");
+    daqDataDescriptorBuilder_setName(builder, name);
+    daqBaseObject_releaseRef(name);
 
-    DataDescriptorBuilder_build(builder, &descriptor);
-    BaseObject_releaseRef(builder);
+    daqDataDescriptorBuilder_build(builder, &descriptor);
+    daqBaseObject_releaseRef(builder);
 
     return descriptor;
 }
 
-DataDescriptor* createDomainDescriptor()
+daqDataDescriptor* createDomainDescriptor()
 {
-    DataDescriptor* descriptor = nullptr;
+    daqDataDescriptor* descriptor = nullptr;
 
-    DataDescriptorBuilder* builder = nullptr;
-    DataDescriptorBuilder_createDataDescriptorBuilder(&builder);
+    daqDataDescriptorBuilder* builder = nullptr;
+    daqDataDescriptorBuilder_createDataDescriptorBuilder(&builder);
 
-    DataDescriptorBuilder_setSampleType(builder, SampleType::SampleTypeInt64);
+    daqDataDescriptorBuilder_setSampleType(builder, daqSampleType::daqSampleTypeInt64);
 
-    UnitBuilder* unitBuilder = nullptr;
-    UnitBuilder_createUnitBuilder(&unitBuilder);
+    daqUnitBuilder* unitBuilder = nullptr;
+    daqUnitBuilder_createUnitBuilder(&unitBuilder);
 
-    String* unitName = nullptr;
-    String_createString(&unitName, "seconds");
-    UnitBuilder_setName(unitBuilder, unitName);
-    BaseObject_releaseRef(unitName);
+    daqString* unitName = nullptr;
+    daqString_createString(&unitName, "seconds");
+    daqUnitBuilder_setName(unitBuilder, unitName);
+    daqBaseObject_releaseRef(unitName);
 
-    String* unitSymbol = nullptr;
-    String_createString(&unitSymbol, "s");
-    UnitBuilder_setSymbol(unitBuilder, unitSymbol);
-    BaseObject_releaseRef(unitSymbol);
+    daqString* unitSymbol = nullptr;
+    daqString_createString(&unitSymbol, "s");
+    daqUnitBuilder_setSymbol(unitBuilder, unitSymbol);
+    daqBaseObject_releaseRef(unitSymbol);
 
-    String* unitQuantity = nullptr;
-    String_createString(&unitQuantity, "time");
-    UnitBuilder_setQuantity(unitBuilder, unitQuantity);
-    BaseObject_releaseRef(unitQuantity);
+    daqString* unitQuantity = nullptr;
+    daqString_createString(&unitQuantity, "time");
+    daqUnitBuilder_setQuantity(unitBuilder, unitQuantity);
+    daqBaseObject_releaseRef(unitQuantity);
 
-    UnitBuilder_setId(unitBuilder, -1);
+    daqUnitBuilder_setId(unitBuilder, -1);
 
-    Unit* unit = nullptr;
-    UnitBuilder_build(unitBuilder, &unit);
-    BaseObject_releaseRef(unitBuilder);
+    daqUnit* unit = nullptr;
+    daqUnitBuilder_build(unitBuilder, &unit);
+    daqBaseObject_releaseRef(unitBuilder);
 
-    DataDescriptorBuilder_setUnit(builder, unit);
-    BaseObject_releaseRef(unit);
+    daqDataDescriptorBuilder_setUnit(builder, unit);
+    daqBaseObject_releaseRef(unit);
 
-    String* name = nullptr;
-    String_createString(&name, "time");
-    DataDescriptorBuilder_setName(builder, name);
-    BaseObject_releaseRef(name);
+    daqString* name = nullptr;
+    daqString_createString(&name, "time");
+    daqDataDescriptorBuilder_setName(builder, name);
+    daqBaseObject_releaseRef(name);
 
-    Ratio* ratio = nullptr;
-    Ratio_createRatio(&ratio, 1, 1000);
-    DataDescriptorBuilder_setTickResolution(builder, ratio);
-    BaseObject_releaseRef(ratio);
+    daqRatio* ratio = nullptr;
+    daqRatio_createRatio(&ratio, 1, 1000);
+    daqDataDescriptorBuilder_setTickResolution(builder, ratio);
+    daqBaseObject_releaseRef(ratio);
 
-    Integer* delta = nullptr;
-    Integer_createInteger(&delta, 1);
-    Integer* start = nullptr;
-    Integer_createInteger(&start, 0);
+    daqInteger* delta = nullptr;
+    daqInteger_createInteger(&delta, 1);
+    daqInteger* start = nullptr;
+    daqInteger_createInteger(&start, 0);
 
-    Number* deltaNum = nullptr;
-    BaseObject_queryInterface(delta, NUMBER_INTF_ID, reinterpret_cast<void**>(&deltaNum));
-    Number* startNum = nullptr;
-    BaseObject_queryInterface(start, NUMBER_INTF_ID, reinterpret_cast<void**>(&startNum));
+    daqNumber* deltaNum = nullptr;
+    daqBaseObject_queryInterface(delta, DAQ_NUMBER_INTF_ID, (void**) &deltaNum);
+    daqNumber* startNum = nullptr;
+    daqBaseObject_queryInterface(start, DAQ_NUMBER_INTF_ID, (void**) &startNum);
 
-    BaseObject_releaseRef(delta);
-    BaseObject_releaseRef(start);
+    daqBaseObject_releaseRef(delta);
+    daqBaseObject_releaseRef(start);
 
-    DataRule* rule = nullptr;
-    DataRule_createLinearDataRule(&rule, deltaNum, startNum);
-    BaseObject_releaseRef(deltaNum);
-    BaseObject_releaseRef(startNum);
+    daqDataRule* rule = nullptr;
+    daqDataRule_createLinearDataRule(&rule, deltaNum, startNum);
+    daqBaseObject_releaseRef(deltaNum);
+    daqBaseObject_releaseRef(startNum);
 
-    DataDescriptorBuilder_setRule(builder, rule);
-    BaseObject_releaseRef(rule);
+    daqDataDescriptorBuilder_setRule(builder, rule);
+    daqBaseObject_releaseRef(rule);
 
-    String* origin = nullptr;
-    String_createString(&origin, "2025-01-01T00:00:00Z");
-    DataDescriptorBuilder_setOrigin(builder, origin);
-    BaseObject_releaseRef(origin);
+    daqString* origin = nullptr;
+    daqString_createString(&origin, "2025-01-01T00:00:00Z");
+    daqDataDescriptorBuilder_setOrigin(builder, origin);
+    daqBaseObject_releaseRef(origin);
 
-    DataDescriptorBuilder_build(builder, &descriptor);
-    BaseObject_releaseRef(builder);
+    daqDataDescriptorBuilder_build(builder, &descriptor);
+    daqBaseObject_releaseRef(builder);
 
     return descriptor;
 }
 
 TEST_F(COpendaqSignalTest, Allocator)
 {
-    Allocator* allocator = nullptr;
-    Allocator_createMallocAllocator(&allocator);
+    daqAllocator* allocator = nullptr;
+    daqAllocator_createMallocAllocator(&allocator);
     ASSERT_NE(allocator, nullptr);
 
-    DataDescriptor* valueDescriptor = createValueDescriptor();
+    daqDataDescriptor* valueDescriptor = createValueDescriptor();
 
     void* address = nullptr;
-    ErrCode err = Allocator_allocate(allocator, valueDescriptor, 32, 4, &address);
+    daqErrCode err = daqAllocator_allocate(allocator, valueDescriptor, 32, 4, &address);
 
     ASSERT_EQ(err, 0);
     ASSERT_NE(address, nullptr);
 
-    err = Allocator_free(allocator, address);
+    err = daqAllocator_free(allocator, address);
     ASSERT_EQ(err, 0);
 
-    BaseObject_releaseRef(allocator);
-    BaseObject_releaseRef(valueDescriptor);
+    daqBaseObject_releaseRef(allocator);
+    daqBaseObject_releaseRef(valueDescriptor);
 }
 
 TEST_F(COpendaqSignalTest, DataDescriptor)
 {
-    DataDescriptor* valueDescriptor = createValueDescriptor();
+    daqDataDescriptor* valueDescriptor = createValueDescriptor();
 
-    String* name = nullptr;
-    DataDescriptor_getName(valueDescriptor, &name);
-    ConstCharPtr nameStr = nullptr;
-    String_getCharPtr(name, &nameStr);
+    daqString* name = nullptr;
+    daqDataDescriptor_getName(valueDescriptor, &name);
+    daqConstCharPtr nameStr = nullptr;
+    daqString_getCharPtr(name, &nameStr);
     ASSERT_STREQ(nameStr, "vals");
-    BaseObject_releaseRef(name);
+    daqBaseObject_releaseRef(name);
 
-    Unit* unit = nullptr;
-    DataDescriptor_getUnit(valueDescriptor, &unit);
-    String* symbol = nullptr;
-    Unit_getSymbol(unit, &symbol);
-    ConstCharPtr symbolStr = nullptr;
-    String_getCharPtr(symbol, &symbolStr);
+    daqUnit* unit = nullptr;
+    daqDataDescriptor_getUnit(valueDescriptor, &unit);
+    daqString* symbol = nullptr;
+    daqUnit_getSymbol(unit, &symbol);
+    daqConstCharPtr symbolStr = nullptr;
+    daqString_getCharPtr(symbol, &symbolStr);
     ASSERT_STREQ(symbolStr, "V");
-    BaseObject_releaseRef(symbol);
-    BaseObject_releaseRef(unit);
+    daqBaseObject_releaseRef(symbol);
+    daqBaseObject_releaseRef(unit);
 
-    SampleType sampleType = SampleType::SampleTypeNull;
-    DataDescriptor_getSampleType(valueDescriptor, &sampleType);
-    ASSERT_EQ(sampleType, SampleType::SampleTypeInt64);
+    daqSampleType sampleType = daqSampleType::daqSampleTypeNull;
+    daqDataDescriptor_getSampleType(valueDescriptor, &sampleType);
+    ASSERT_EQ(sampleType, daqSampleType::daqSampleTypeInt64);
 
-    BaseObject_releaseRef(valueDescriptor);
+    daqBaseObject_releaseRef(valueDescriptor);
 }
 
 TEST_F(COpendaqSignalTest, DataPacket)
 {
-    DataDescriptor* valueDescriptor = createValueDescriptor();
-    DataPacket* packet = nullptr;
+    daqDataDescriptor* valueDescriptor = createValueDescriptor();
+    daqDataPacket* packet = nullptr;
 
-    Integer* offset = nullptr;
-    Integer_createInteger(&offset, 0);
-    Number* offsetNum = nullptr;
-    BaseObject_queryInterface(offset, NUMBER_INTF_ID, reinterpret_cast<void**>(&offsetNum));
-    BaseObject_releaseRef(offset);
+    daqInteger* offset = nullptr;
+    daqInteger_createInteger(&offset, 0);
+    daqNumber* offsetNum = nullptr;
+    daqBaseObject_queryInterface(offset, DAQ_NUMBER_INTF_ID, (void**) &offsetNum);
+    daqBaseObject_releaseRef(offset);
 
-    SizeT sampleCount = 10;
-    DataPacket_createDataPacket(&packet, valueDescriptor, sampleCount, offsetNum);
-    BaseObject_releaseRef(offsetNum);
+    daqSizeT sampleCount = 10;
+    daqDataPacket_createDataPacket(&packet, valueDescriptor, sampleCount, offsetNum);
+    daqBaseObject_releaseRef(offsetNum);
 
     void* data = nullptr;
-    DataPacket_getRawData(packet, &data);
+    daqDataPacket_getRawData(packet, &data);
     ASSERT_NE(data, nullptr);
 
-    BaseObject_releaseRef(packet);
-    BaseObject_releaseRef(valueDescriptor);
+    daqBaseObject_releaseRef(packet);
+    daqBaseObject_releaseRef(valueDescriptor);
 }
 
 TEST_F(COpendaqSignalTest, DimensionRule)
 {
-    DimensionRuleBuilder* builder = nullptr;
-    DimensionRuleBuilder_createDimensionRuleBuilder(&builder);
-    DimensionRuleBuilder_setType(builder, DimensionRuleType::DimensionRuleTypeLinear);
-    Integer* delta = nullptr;
-    Integer_createInteger(&delta, 1);
-    Integer* start = nullptr;
-    Integer_createInteger(&start, 0);
-    Integer* size = nullptr;
-    Integer_createInteger(&size, 10);
-    Number* deltaNum = nullptr;
-    BaseObject_queryInterface(delta, NUMBER_INTF_ID, reinterpret_cast<void**>(&deltaNum));
-    Number* startNum = nullptr;
-    BaseObject_queryInterface(start, NUMBER_INTF_ID, reinterpret_cast<void**>(&startNum));
-    Number* sizeNum = nullptr;
-    BaseObject_queryInterface(size, NUMBER_INTF_ID, reinterpret_cast<void**>(&sizeNum));
-    BaseObject_releaseRef(delta);
-    BaseObject_releaseRef(start);
-    BaseObject_releaseRef(size);
+    daqDimensionRuleBuilder* builder = nullptr;
+    daqDimensionRuleBuilder_createDimensionRuleBuilder(&builder);
+    daqDimensionRuleBuilder_setType(builder, daqDimensionRuleType::daqDimensionRuleTypeLinear);
+    daqInteger* delta = nullptr;
+    daqInteger_createInteger(&delta, 1);
+    daqInteger* start = nullptr;
+    daqInteger_createInteger(&start, 0);
+    daqInteger* size = nullptr;
+    daqInteger_createInteger(&size, 10);
+    daqNumber* deltaNum = nullptr;
+    daqBaseObject_queryInterface(delta, DAQ_NUMBER_INTF_ID, (void**) &deltaNum);
+    daqNumber* startNum = nullptr;
+    daqBaseObject_queryInterface(start, DAQ_NUMBER_INTF_ID, (void**) &startNum);
+    daqNumber* sizeNum = nullptr;
+    daqBaseObject_queryInterface(size, DAQ_NUMBER_INTF_ID, (void**) &sizeNum);
+    daqBaseObject_releaseRef(delta);
+    daqBaseObject_releaseRef(start);
+    daqBaseObject_releaseRef(size);
 
-    String* deltaStr = nullptr;
-    String_createString(&deltaStr, "delta");
-    String* startStr = nullptr;
-    String_createString(&startStr, "start");
-    String* sizeStr = nullptr;
-    String_createString(&sizeStr, "size");
-    DimensionRuleBuilder_addParameter(builder, sizeStr, sizeNum);
-    DimensionRuleBuilder_addParameter(builder, deltaStr, deltaNum);
-    DimensionRuleBuilder_addParameter(builder, startStr, startNum);
-    BaseObject_releaseRef(deltaNum);
-    BaseObject_releaseRef(startNum);
-    BaseObject_releaseRef(sizeNum);
+    daqString* deltaStr = nullptr;
+    daqString_createString(&deltaStr, "delta");
+    daqString* startStr = nullptr;
+    daqString_createString(&startStr, "start");
+    daqString* sizeStr = nullptr;
+    daqString_createString(&sizeStr, "size");
+    daqDimensionRuleBuilder_addParameter(builder, sizeStr, sizeNum);
+    daqDimensionRuleBuilder_addParameter(builder, deltaStr, deltaNum);
+    daqDimensionRuleBuilder_addParameter(builder, startStr, startNum);
+    daqBaseObject_releaseRef(deltaNum);
+    daqBaseObject_releaseRef(startNum);
+    daqBaseObject_releaseRef(sizeNum);
 
-    DimensionRule* rule = nullptr;
-    DimensionRuleBuilder_build(builder, &rule);
-    BaseObject_releaseRef(builder);
+    daqDimensionRule* rule = nullptr;
+    daqDimensionRuleBuilder_build(builder, &rule);
+    daqBaseObject_releaseRef(builder);
 
     ASSERT_NE(rule, nullptr);
 
-    DimensionRuleType ruleType = DimensionRuleType::DimensionRuleTypeOther;
-    DimensionRule_getType(rule, &ruleType);
+    daqDimensionRuleType ruleType = daqDimensionRuleType::daqDimensionRuleTypeOther;
+    daqDimensionRule_getType(rule, &ruleType);
 
-    ASSERT_EQ(ruleType, DimensionRuleType::DimensionRuleTypeLinear);
+    ASSERT_EQ(ruleType, daqDimensionRuleType::daqDimensionRuleTypeLinear);
 
-    Dict* params = nullptr;
-    DimensionRule_getParameters(rule, &params);
+    daqDict* params = nullptr;
+    daqDimensionRule_getParameters(rule, &params);
     ASSERT_NE(params, nullptr);
 
-    Number* outDelta = nullptr;
-    Dict_get(params, deltaStr, reinterpret_cast<BaseObject**>(&outDelta));
-    Number* outStart = nullptr;
-    Dict_get(params, startStr, reinterpret_cast<BaseObject**>(&outStart));
-    Number* outSize = nullptr;
-    Dict_get(params, sizeStr, reinterpret_cast<BaseObject**>(&outSize));
+    daqNumber* outDelta = nullptr;
+    daqDict_get(params, deltaStr, (daqBaseObject**) &outDelta);
+    daqNumber* outStart = nullptr;
+    daqDict_get(params, startStr, (daqBaseObject**) &outStart);
+    daqNumber* outSize = nullptr;
+    daqDict_get(params, sizeStr, (daqBaseObject**) &outSize);
 
-    Int deltaInt = -1;
-    Int startInt = -1;
-    Int sizeInt = -1;
-    Number_getIntValue(outDelta, &deltaInt);
-    Number_getIntValue(outStart, &startInt);
-    Number_getIntValue(outSize, &sizeInt);
+    daqInt deltaInt = -1;
+    daqInt startInt = -1;
+    daqInt sizeInt = -1;
+    daqNumber_getIntValue(outDelta, &deltaInt);
+    daqNumber_getIntValue(outStart, &startInt);
+    daqNumber_getIntValue(outSize, &sizeInt);
     ASSERT_EQ(deltaInt, 1);
     ASSERT_EQ(startInt, 0);
     ASSERT_EQ(sizeInt, 10);
 
-    BaseObject_releaseRef(outSize);
-    BaseObject_releaseRef(outDelta);
-    BaseObject_releaseRef(outStart);
-    BaseObject_releaseRef(params);
-    BaseObject_releaseRef(rule);
-    BaseObject_releaseRef(deltaStr);
-    BaseObject_releaseRef(startStr);
-    BaseObject_releaseRef(sizeStr);
+    daqBaseObject_releaseRef(outSize);
+    daqBaseObject_releaseRef(outDelta);
+    daqBaseObject_releaseRef(outStart);
+    daqBaseObject_releaseRef(params);
+    daqBaseObject_releaseRef(rule);
+    daqBaseObject_releaseRef(deltaStr);
+    daqBaseObject_releaseRef(startStr);
+    daqBaseObject_releaseRef(sizeStr);
 }
 
 TEST_F(COpendaqSignalTest, EventPacket)
 {
-    EventPacket* packet = nullptr;
-    DataDescriptor* valueDescriptor = createValueDescriptor();
-    DataDescriptor* domainDescriptor = createDomainDescriptor();
-    EventPacket_createDataDescriptorChangedEventPacket(&packet, valueDescriptor, domainDescriptor);
+    daqEventPacket* packet = nullptr;
+    daqDataDescriptor* valueDescriptor = createValueDescriptor();
+    daqDataDescriptor* domainDescriptor = createDomainDescriptor();
+    daqEventPacket_createDataDescriptorChangedEventPacket(&packet, valueDescriptor, domainDescriptor);
 
     ASSERT_NE(packet, nullptr);
-    String* id = nullptr;
-    EventPacket_getEventId(packet, &id);
-    ConstCharPtr idStr = nullptr;
-    String_getCharPtr(id, &idStr);
+    daqString* id = nullptr;
+    daqEventPacket_getEventId(packet, &id);
+    daqConstCharPtr idStr = nullptr;
+    daqString_getCharPtr(id, &idStr);
     ASSERT_STREQ(idStr, "DATA_DESCRIPTOR_CHANGED");
 
-    BaseObject_releaseRef(id);
-    BaseObject_releaseRef(packet);
-    BaseObject_releaseRef(valueDescriptor);
-    BaseObject_releaseRef(domainDescriptor);
+    daqBaseObject_releaseRef(id);
+    daqBaseObject_releaseRef(packet);
+    daqBaseObject_releaseRef(valueDescriptor);
+    daqBaseObject_releaseRef(domainDescriptor);
 }
 
 TEST_F(COpendaqSignalTest, InputPort)
 {
-    InputPortConfig* inputPortConfig = nullptr;
-    Context* ctx = createContext();
-    String* id = nullptr;
-    String_createString(&id, "InputPort");
-    InputPortConfig_createInputPort(&inputPortConfig, ctx, nullptr, id, False);
+    daqInputPortConfig* inputPortConfig = nullptr;
+    daqContext* ctx = createContext();
+    daqString* id = nullptr;
+    daqString_createString(&id, "daqInputPort");
+    daqInputPortConfig_createInputPort(&inputPortConfig, ctx, nullptr, id, False);
     ASSERT_NE(inputPortConfig, nullptr);
 
-    BaseObject_releaseRef(id);
-    BaseObject_releaseRef(ctx);
-    BaseObject_releaseRef(inputPortConfig);
+    daqBaseObject_releaseRef(id);
+    daqBaseObject_releaseRef(ctx);
+    daqBaseObject_releaseRef(inputPortConfig);
 }
 
 TEST_F(COpendaqSignalTest, Range)
 {
-    Range* range = nullptr;
-    Integer* lowValue = nullptr;
-    Integer_createInteger(&lowValue, 0);
-    Integer* highValue = nullptr;
-    Integer_createInteger(&highValue, 10);
-    Number* lowValueNum = nullptr;
-    BaseObject_queryInterface(lowValue, NUMBER_INTF_ID, reinterpret_cast<void**>(&lowValueNum));
-    BaseObject_releaseRef(lowValue);
-    Number* highValueNum = nullptr;
-    BaseObject_queryInterface(highValue, NUMBER_INTF_ID, reinterpret_cast<void**>(&highValueNum));
-    BaseObject_releaseRef(highValue);
-    Range_createRange(&range, lowValueNum, highValueNum);
-    BaseObject_releaseRef(lowValueNum);
-    BaseObject_releaseRef(highValueNum);
+    daqRange* range = nullptr;
+    daqInteger* lowValue = nullptr;
+    daqInteger_createInteger(&lowValue, 0);
+    daqInteger* highValue = nullptr;
+    daqInteger_createInteger(&highValue, 10);
+    daqNumber* lowValueNum = nullptr;
+    daqBaseObject_queryInterface(lowValue, DAQ_NUMBER_INTF_ID, (void**) &lowValueNum);
+    daqBaseObject_releaseRef(lowValue);
+    daqNumber* highValueNum = nullptr;
+    daqBaseObject_queryInterface(highValue, DAQ_NUMBER_INTF_ID, (void**) &highValueNum);
+    daqBaseObject_releaseRef(highValue);
+    daqRange_createRange(&range, lowValueNum, highValueNum);
+    daqBaseObject_releaseRef(lowValueNum);
+    daqBaseObject_releaseRef(highValueNum);
 
     ASSERT_NE(range, nullptr);
 
-    Number* outLowValue = nullptr;
-    Number* outHighValue = nullptr;
-    Range_getLowValue(range, &outLowValue);
-    Range_getHighValue(range, &outHighValue);
-    Int lowValueInt = -1;
-    Int highValueInt = -1;
-    Number_getIntValue(outLowValue, &lowValueInt);
-    Number_getIntValue(outHighValue, &highValueInt);
+    daqNumber* outLowValue = nullptr;
+    daqNumber* outHighValue = nullptr;
+    daqRange_getLowValue(range, &outLowValue);
+    daqRange_getHighValue(range, &outHighValue);
+    daqInt lowValueInt = -1;
+    daqInt highValueInt = -1;
+    daqNumber_getIntValue(outLowValue, &lowValueInt);
+    daqNumber_getIntValue(outHighValue, &highValueInt);
     ASSERT_EQ(lowValueInt, 0);
     ASSERT_EQ(highValueInt, 10);
 
-    BaseObject_releaseRef(outHighValue);
-    BaseObject_releaseRef(outLowValue);
-    BaseObject_releaseRef(range);
+    daqBaseObject_releaseRef(outHighValue);
+    daqBaseObject_releaseRef(outLowValue);
+    daqBaseObject_releaseRef(range);
 }
 
 TEST_F(COpendaqSignalTest, Scaling)
 {
-    ScalingBuilder* builder = nullptr;
-    ScalingBuilder_createScalingBuilder(&builder);
-    ScalingBuilder_setInputDataType(builder, SampleType::SampleTypeInt16);
-    ScalingBuilder_setOutputDataType(builder, ScaledSampleType::ScaledSampleTypeFloat32);
-    ScalingBuilder_setScalingType(builder, ScalingType::ScalingTypeLinear);
+    daqScalingBuilder* builder = nullptr;
+    daqScalingBuilder_createScalingBuilder(&builder);
+    daqScalingBuilder_setInputDataType(builder, daqSampleType::daqSampleTypeInt16);
+    daqScalingBuilder_setOutputDataType(builder, daqScaledSampleType::daqScaledSampleTypeFloat32);
+    daqScalingBuilder_setScalingType(builder, daqScalingType::daqScalingTypeLinear);
 
-    Dict* params = nullptr;
-    Dict_createDict(&params);
+    daqDict* params = nullptr;
+    daqDict_createDict(&params);
 
-    String* scaleStr = nullptr;
-    String_createString(&scaleStr, "scale");
-    String* offsetStr = nullptr;
-    String_createString(&offsetStr, "offset");
+    daqString* scaleStr = nullptr;
+    daqString_createString(&scaleStr, "scale");
+    daqString* offsetStr = nullptr;
+    daqString_createString(&offsetStr, "offset");
 
-    Integer* scale = nullptr;
-    Integer_createInteger(&scale, 10);
-    Integer* offset = nullptr;
-    Integer_createInteger(&offset, 10);
+    daqInteger* scale = nullptr;
+    daqInteger_createInteger(&scale, 10);
+    daqInteger* offset = nullptr;
+    daqInteger_createInteger(&offset, 10);
 
-    Dict_set(params, scaleStr, scale);
-    Dict_set(params, offsetStr, offset);
-    ScalingBuilder_setParameters(builder, params);
-    BaseObject_releaseRef(scale);
-    BaseObject_releaseRef(offset);
-    BaseObject_releaseRef(scaleStr);
-    BaseObject_releaseRef(offsetStr);
+    daqDict_set(params, scaleStr, scale);
+    daqDict_set(params, offsetStr, offset);
+    daqScalingBuilder_setParameters(builder, params);
+    daqBaseObject_releaseRef(scale);
+    daqBaseObject_releaseRef(offset);
+    daqBaseObject_releaseRef(scaleStr);
+    daqBaseObject_releaseRef(offsetStr);
 
-    Scaling* scaling = nullptr;
-    ScalingBuilder_build(builder, &scaling);
-    BaseObject_releaseRef(builder);
+    daqScaling* scaling = nullptr;
+    daqScalingBuilder_build(builder, &scaling);
+    daqBaseObject_releaseRef(builder);
 
     ASSERT_NE(scaling, nullptr);
 
-    ScalingType scalingType = ScalingType::ScalingTypeOther;
-    Scaling_getType(scaling, &scalingType);
-    ASSERT_EQ(scalingType, ScalingType::ScalingTypeLinear);
-    SampleType inputSampleType = SampleType::SampleTypeNull;
-    Scaling_getInputSampleType(scaling, &inputSampleType);
-    ASSERT_EQ(inputSampleType, SampleType::SampleTypeInt16);
-    ScaledSampleType outputSampleType = ScaledSampleType::ScaledSampleTypeInvalid;
-    Scaling_getOutputSampleType(scaling, &outputSampleType);
-    ASSERT_EQ(outputSampleType, ScaledSampleType::ScaledSampleTypeFloat32);
-    Dict* scalingParams = nullptr;
-    Scaling_getParameters(scaling, &scalingParams);
+    daqScalingType scalingType = daqScalingType::daqScalingTypeOther;
+    daqScaling_getType(scaling, &scalingType);
+    ASSERT_EQ(scalingType, daqScalingType::daqScalingTypeLinear);
+    daqSampleType inputSampleType = daqSampleType::daqSampleTypeNull;
+    daqScaling_getInputSampleType(scaling, &inputSampleType);
+    ASSERT_EQ(inputSampleType, daqSampleType::daqSampleTypeInt16);
+    daqScaledSampleType outputSampleType = daqScaledSampleType::daqScaledSampleTypeInvalid;
+    daqScaling_getOutputSampleType(scaling, &outputSampleType);
+    ASSERT_EQ(outputSampleType, daqScaledSampleType::daqScaledSampleTypeFloat32);
+    daqDict* scalingParams = nullptr;
+    daqScaling_getParameters(scaling, &scalingParams);
     ASSERT_NE(scalingParams, nullptr);
 
-    Bool equal = False;
-    BaseObject_equals(scalingParams, params, &equal);
+    daqBool equal = False;
+    daqBaseObject_equals(scalingParams, params, &equal);
     ASSERT_EQ(equal, True);
 
-    BaseObject_releaseRef(scalingParams);
-    BaseObject_releaseRef(scaling);
-    BaseObject_releaseRef(params);
+    daqBaseObject_releaseRef(scalingParams);
+    daqBaseObject_releaseRef(scaling);
+    daqBaseObject_releaseRef(params);
 }
 
 TEST_F(COpendaqSignalTest, Signal)
 {
-    SignalConfig* signalConfig = nullptr;
-    String* id = nullptr;
-    String_createString(&id, "sig");
-    Context* ctx = createContext();
-    SignalConfig_createSignal(&signalConfig, ctx, nullptr, id, nullptr);
+    daqSignalConfig* signalConfig = nullptr;
+    daqString* id = nullptr;
+    daqString_createString(&id, "sig");
+    daqContext* ctx = createContext();
+    daqSignalConfig_createSignal(&signalConfig, ctx, nullptr, id, nullptr);
     ASSERT_NE(signalConfig, nullptr);
-    BaseObject_releaseRef(id);
-    BaseObject_releaseRef(ctx);
-    BaseObject_releaseRef(signalConfig);
+    daqBaseObject_releaseRef(id);
+    daqBaseObject_releaseRef(ctx);
+    daqBaseObject_releaseRef(signalConfig);
 }

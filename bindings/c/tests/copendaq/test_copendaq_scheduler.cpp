@@ -4,25 +4,25 @@
 
 using COpendaqSchedulerTest = testing::Test;
 
-static Bool taskCalled = False;
-static Bool taskGraphCalled = False;
-static Bool functionCalled = False;
+static daqBool taskCalled = False;
+static daqBool taskGraphCalled = False;
+static daqBool functionCalled = False;
 
-ErrCode procedureTask(BaseObject*)
+daqErrCode procedureTask(daqBaseObject*)
 {
     printf("task called\n");
     taskCalled = true;
     return 0;
 }
 
-ErrCode procedureTaskGraph(BaseObject*)
+daqErrCode procedureTaskGraph(daqBaseObject*)
 {
     printf("taskGraph called\n");
     taskGraphCalled = true;
     return 0;
 }
 
-ErrCode functionCall(BaseObject*, BaseObject**)
+daqErrCode functionCall(daqBaseObject*, daqBaseObject**)
 {
     printf("function called\n");
     functionCalled = true;
@@ -31,75 +31,75 @@ ErrCode functionCall(BaseObject*, BaseObject**)
 
 TEST_F(COpendaqSchedulerTest, Scheduler)
 {
-    List* sinks = nullptr;
-    List_createList(&sinks);
+    daqList* sinks = nullptr;
+    daqList_createList(&sinks);
 
-    LoggerSink* sink = nullptr;
-    LoggerSink_createStdErrLoggerSink(&sink);
-    List_pushBack(sinks, sink);
+    daqLoggerSink* sink = nullptr;
+    daqLoggerSink_createStdErrLoggerSink(&sink);
+    daqList_pushBack(sinks, sink);
 
-    Logger* logger = nullptr;
-    Logger_createLogger(&logger, sinks, LogLevel::LogLevelDebug);
+    daqLogger* logger = nullptr;
+    daqLogger_createLogger(&logger, sinks, daqLogLevel::daqLogLevelDebug);
 
-    Scheduler* scheduler = nullptr;
-    Scheduler_createScheduler(&scheduler, logger, 1);
+    daqScheduler* scheduler = nullptr;
+    daqScheduler_createScheduler(&scheduler, logger, 1);
     ASSERT_NE(scheduler, nullptr);
 
-    Procedure* procGraph = nullptr;
-    Procedure_createProcedure(&procGraph, procedureTaskGraph);
+    daqProcedure* procGraph = nullptr;
+    daqProcedure_createProcedure(&procGraph, procedureTaskGraph);
 
-    String* nameGraph = nullptr;
-    String_createString(&nameGraph, "taskGraph");
+    daqString* nameGraph = nullptr;
+    daqString_createString(&nameGraph, "taskGraph");
 
-    TaskGraph* taskGraph = nullptr;
-    TaskGraph_createTaskGraph(&taskGraph, procGraph, nameGraph);
+    daqTaskGraph* taskGraph = nullptr;
+    daqTaskGraph_createTaskGraph(&taskGraph, procGraph, nameGraph);
 
-    Task* task = nullptr;
-    BaseObject_borrowInterface(taskGraph, TASK_INTF_ID, reinterpret_cast<void**>(&task));
+    daqTask* task = nullptr;
+    daqBaseObject_borrowInterface(taskGraph, DAQ_TASK_INTF_ID, (void**) &task);
     ASSERT_NE(task, nullptr);
 
-    Procedure* taskProc = nullptr;
-    Procedure_createProcedure(&taskProc, procedureTask);
+    daqProcedure* taskProc = nullptr;
+    daqProcedure_createProcedure(&taskProc, procedureTask);
 
-    String* name = nullptr;
-    String_createString(&name, "task");
+    daqString* name = nullptr;
+    daqString_createString(&name, "task");
 
-    Task* task2 = nullptr;
-    Task_createTask(&task2, taskProc, name);
+    daqTask* task2 = nullptr;
+    daqTask_createTask(&task2, taskProc, name);
 
-    Task_then(task, task2);
+    daqTask_then(task, task2);
 
-    Awaitable* awaitable = nullptr;
-    Scheduler_scheduleGraph(scheduler, taskGraph, &awaitable);
+    daqAwaitable* awaitable = nullptr;
+    daqScheduler_scheduleGraph(scheduler, taskGraph, &awaitable);
     ASSERT_NE(awaitable, nullptr);
 
-    Function* function = nullptr;
-    Function_createFunction(&function, functionCall);
+    daqFunction* function = nullptr;
+    daqFunction_createFunction(&function, functionCall);
 
-    Awaitable* awaitable2 = nullptr;
-    Scheduler_scheduleFunction(scheduler, function, &awaitable2);
+    daqAwaitable* awaitable2 = nullptr;
+    daqScheduler_scheduleFunction(scheduler, function, &awaitable2);
     ASSERT_NE(awaitable2, nullptr);
 
-    Scheduler_waitAll(scheduler);
+    daqScheduler_waitAll(scheduler);
 
     ASSERT_EQ(taskCalled, True);
     ASSERT_EQ(functionCalled, True);
     ASSERT_EQ(taskGraphCalled, True);
 
-    BaseObject_releaseRef(awaitable2);
-    BaseObject_releaseRef(function);
+    daqBaseObject_releaseRef(awaitable2);
+    daqBaseObject_releaseRef(function);
 
-    BaseObject_releaseRef(awaitable);
-    BaseObject_releaseRef(task2);
-    BaseObject_releaseRef(name);
-    BaseObject_releaseRef(taskProc);
+    daqBaseObject_releaseRef(awaitable);
+    daqBaseObject_releaseRef(task2);
+    daqBaseObject_releaseRef(name);
+    daqBaseObject_releaseRef(taskProc);
 
-    BaseObject_releaseRef(taskGraph);
-    BaseObject_releaseRef(procGraph);
-    BaseObject_releaseRef(nameGraph);
+    daqBaseObject_releaseRef(taskGraph);
+    daqBaseObject_releaseRef(procGraph);
+    daqBaseObject_releaseRef(nameGraph);
 
-    BaseObject_releaseRef(scheduler);
-    BaseObject_releaseRef(logger);
-    BaseObject_releaseRef(sink);
-    BaseObject_releaseRef(sinks);
+    daqBaseObject_releaseRef(scheduler);
+    daqBaseObject_releaseRef(logger);
+    daqBaseObject_releaseRef(sink);
+    daqBaseObject_releaseRef(sinks);
 }

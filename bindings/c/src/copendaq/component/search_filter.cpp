@@ -51,7 +51,7 @@ daqErrCode daqSearchFilter_createExcludedTagsSearchFilter(daqSearchFilter** obj,
     return err;
 }
 
-daqErrCode daqSearchFilter_createInterfaceIdSearchFilter(daqSearchFilter** obj, daqIntfID& intfId)
+daqErrCode daqSearchFilter_createInterfaceIdSearchFilter(daqSearchFilter** obj, daqIntfID intfId)
 {
     daq::ISearchFilter* ptr = nullptr;
     daqErrCode err = daq::createInterfaceIdSearchFilter(&ptr, copendaq::utils::toDaqIntfId(intfId));

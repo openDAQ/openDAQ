@@ -47,7 +47,7 @@ extern "C"
     daqErrCode EXPORTED daqSearchFilter_createVisibleSearchFilter(daqSearchFilter** obj);
     daqErrCode EXPORTED daqSearchFilter_createRequiredTagsSearchFilter(daqSearchFilter** obj, daqList* requiredTags);
     daqErrCode EXPORTED daqSearchFilter_createExcludedTagsSearchFilter(daqSearchFilter** obj, daqList* excludedTags);
-    daqErrCode EXPORTED daqSearchFilter_createInterfaceIdSearchFilter(daqSearchFilter** obj, daqIntfID& intfId);
+    daqErrCode EXPORTED daqSearchFilter_createInterfaceIdSearchFilter(daqSearchFilter** obj, daqIntfID intfId);
     daqErrCode EXPORTED daqSearchFilter_createLocalIdSearchFilter(daqSearchFilter** obj, daqString* localId);
     daqErrCode EXPORTED daqSearchFilter_createAnySearchFilter(daqSearchFilter** obj);
     daqErrCode EXPORTED daqSearchFilter_createAndSearchFilter(daqSearchFilter** obj, daqSearchFilter* left, daqSearchFilter* right);

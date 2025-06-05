@@ -5,360 +5,362 @@
 class COpendaqReaderTest : public testing::Test
 {
 protected:
-    DataDescriptor* SetUpDataDescriptor()
+    daqDataDescriptor* SetUpDataDescriptor()
     {
-        DataDescriptor* descriptor = nullptr;
-        DataDescriptorBuilder* builder = nullptr;
-        DataDescriptorBuilder_createDataDescriptorBuilder(&builder);
-        DataDescriptorBuilder_setSampleType(builder, SampleType::SampleTypeFloat64);
+        daqDataDescriptor* descriptor = nullptr;
+        daqDataDescriptorBuilder* builder = nullptr;
+        daqDataDescriptorBuilder_createDataDescriptorBuilder(&builder);
+        daqDataDescriptorBuilder_setSampleType(builder, daqSampleType::daqSampleTypeFloat64);
 
-        Unit* unit = nullptr;
-        String *symbol = nullptr, *unitName = nullptr, *quantity = nullptr;
-        String_createString(&symbol, "V");
-        String_createString(&unitName, "volts");
-        String_createString(&quantity, "voltage");
-        Unit_createUnit(&unit, -1, symbol, unitName, quantity);
-        BaseObject_releaseRef(symbol);
-        BaseObject_releaseRef(unitName);
-        BaseObject_releaseRef(quantity);
+        daqUnit* unit = nullptr;
+        daqString *symbol = nullptr, *unitName = nullptr, *quantity = nullptr;
+        daqString_createString(&symbol, "V");
+        daqString_createString(&unitName, "volts");
+        daqString_createString(&quantity, "voltage");
+        daqUnit_createUnit(&unit, -1, symbol, unitName, quantity);
+        daqBaseObject_releaseRef(symbol);
+        daqBaseObject_releaseRef(unitName);
+        daqBaseObject_releaseRef(quantity);
 
-        DataDescriptorBuilder_setUnit(builder, unit);
-        BaseObject_releaseRef(unit);
+        daqDataDescriptorBuilder_setUnit(builder, unit);
+        daqBaseObject_releaseRef(unit);
 
-        String* signalName = nullptr;
-        String_createString(&signalName, "signal_values");
-        DataDescriptorBuilder_setName(builder, signalName);
-        BaseObject_releaseRef(signalName);
+        daqString* signalName = nullptr;
+        daqString_createString(&signalName, "signal_values");
+        daqDataDescriptorBuilder_setName(builder, signalName);
+        daqBaseObject_releaseRef(signalName);
 
-        DataDescriptorBuilder_build(builder, &descriptor);
-        BaseObject_releaseRef(builder);
+        daqDataDescriptorBuilder_build(builder, &descriptor);
+        daqBaseObject_releaseRef(builder);
         return descriptor;
     }
 
-    DataDescriptor* SetUpDomainDescriptor()
+    daqDataDescriptor* SetUpDomainDescriptor()
     {
-        DataDescriptor* descriptor = nullptr;
-        DataDescriptorBuilder* builder = nullptr;
-        DataDescriptorBuilder_createDataDescriptorBuilder(&builder);
-        DataDescriptorBuilder_setSampleType(builder, SampleType::SampleTypeInt64);
-        Unit* unit = nullptr;
-        String *symbol = nullptr, *unitName = nullptr, *quantity = nullptr;
+        daqDataDescriptor* descriptor = nullptr;
+        daqDataDescriptorBuilder* builder = nullptr;
+        daqDataDescriptorBuilder_createDataDescriptorBuilder(&builder);
+        daqDataDescriptorBuilder_setSampleType(builder, daqSampleType::daqSampleTypeInt64);
+        daqUnit* unit = nullptr;
+        daqString *symbol = nullptr, *unitName = nullptr, *quantity = nullptr;
 
-        String_createString(&symbol, "s");
-        String_createString(&unitName, "seconds");
-        String_createString(&quantity, "time");
-        Unit_createUnit(&unit, -1, symbol, unitName, quantity);
-        BaseObject_releaseRef(symbol);
-        BaseObject_releaseRef(unitName);
-        BaseObject_releaseRef(quantity);
+        daqString_createString(&symbol, "s");
+        daqString_createString(&unitName, "seconds");
+        daqString_createString(&quantity, "time");
+        daqUnit_createUnit(&unit, -1, symbol, unitName, quantity);
+        daqBaseObject_releaseRef(symbol);
+        daqBaseObject_releaseRef(unitName);
+        daqBaseObject_releaseRef(quantity);
 
-        DataDescriptorBuilder_setUnit(builder, unit);
-        BaseObject_releaseRef(unit);
+        daqDataDescriptorBuilder_setUnit(builder, unit);
+        daqBaseObject_releaseRef(unit);
 
-        String* signalName = nullptr;
-        String_createString(&signalName, "signal_time");
-        DataDescriptorBuilder_setName(builder, signalName);
-        BaseObject_releaseRef(signalName);
+        daqString* signalName = nullptr;
+        daqString_createString(&signalName, "signal_time");
+        daqDataDescriptorBuilder_setName(builder, signalName);
+        daqBaseObject_releaseRef(signalName);
 
-        Ratio* tickResolution = nullptr;
-        Ratio_createRatio(&tickResolution, 1, 1000);
-        DataDescriptorBuilder_setTickResolution(builder, tickResolution);
-        BaseObject_releaseRef(tickResolution);
-        DataRule* rule = nullptr;
+        daqRatio* tickResolution = nullptr;
+        daqRatio_createRatio(&tickResolution, 1, 1000);
+        daqDataDescriptorBuilder_setTickResolution(builder, tickResolution);
+        daqBaseObject_releaseRef(tickResolution);
+        daqDataRule* rule = nullptr;
 
-        Integer *start = nullptr, *delta = nullptr;
-        Integer_createInteger(&start, 0);
-        Integer_createInteger(&delta, 1);
-        Number *deltaNum = nullptr, *startNum = nullptr;
-        BaseObject_queryInterface(delta, NUMBER_INTF_ID, reinterpret_cast<BaseObject**>(&deltaNum));
-        BaseObject_queryInterface(start, NUMBER_INTF_ID, reinterpret_cast<BaseObject**>(&startNum));
-        BaseObject_releaseRef(delta);
-        BaseObject_releaseRef(start);
-        DataRule_createLinearDataRule(&rule, startNum, deltaNum);
-        BaseObject_releaseRef(deltaNum);
-        BaseObject_releaseRef(startNum);
-        DataDescriptorBuilder_setRule(builder, rule);
-        BaseObject_releaseRef(rule);
+        daqInteger *start = nullptr, *delta = nullptr;
+        daqInteger_createInteger(&start, 0);
+        daqInteger_createInteger(&delta, 1);
+        daqNumber *deltaNum = nullptr, *startNum = nullptr;
+        daqBaseObject_queryInterface(delta, DAQ_NUMBER_INTF_ID, (daqBaseObject**) &deltaNum);
+        daqBaseObject_queryInterface(start, DAQ_NUMBER_INTF_ID, (daqBaseObject**) &startNum);
+        daqBaseObject_releaseRef(delta);
+        daqBaseObject_releaseRef(start);
+        daqDataRule_createLinearDataRule(&rule, startNum, deltaNum);
+        daqBaseObject_releaseRef(deltaNum);
+        daqBaseObject_releaseRef(startNum);
+        daqDataDescriptorBuilder_setRule(builder, rule);
+        daqBaseObject_releaseRef(rule);
 
-        String* epoch = nullptr;
-        String_createString(&epoch, "2025-01-01T00:00:00+0000");
-        DataDescriptorBuilder_setOrigin(builder, epoch);
-        BaseObject_releaseRef(epoch);
+        daqString* epoch = nullptr;
+        daqString_createString(&epoch, "2025-01-01T00:00:00+0000");
+        daqDataDescriptorBuilder_setOrigin(builder, epoch);
+        daqBaseObject_releaseRef(epoch);
 
-        DataDescriptorBuilder_build(builder, &descriptor);
-        BaseObject_releaseRef(builder);
+        daqDataDescriptorBuilder_build(builder, &descriptor);
+        daqBaseObject_releaseRef(builder);
         return descriptor;
     }
 
-    Context* SetUpContext()
+    daqContext* daqSetUpContext()
     {
-        List* sinks = nullptr;
-        List_createList(&sinks);
+        daqList* sinks = nullptr;
+        daqList_createList(&sinks);
 
-        LoggerSink* sink = nullptr;
-        LoggerSink_createStdErrLoggerSink(&sink);
-        List_pushBack(sinks, sink);
+        daqLoggerSink* sink = nullptr;
+        daqLoggerSink_createStdErrLoggerSink(&sink);
+        daqList_pushBack(sinks, sink);
 
-        Logger* logger = nullptr;
-        Logger_createLogger(&logger, sinks, LogLevel::LogLevelDebug);
+        daqLogger* logger = nullptr;
+        daqLogger_createLogger(&logger, sinks, daqLogLevel::daqLogLevelDebug);
 
-        TypeManager* typeManager = nullptr;
-        TypeManager_createTypeManager(&typeManager);
+        daqTypeManager* typeManager = nullptr;
+        daqTypeManager_createTypeManager(&typeManager);
 
-        Scheduler* scheduler = nullptr;
-        Scheduler_createScheduler(&scheduler, logger, 1);
+        daqScheduler* scheduler = nullptr;
+        daqScheduler_createScheduler(&scheduler, logger, 1);
 
-        Dict *options = nullptr, *discoveryServers = nullptr;
-        Dict_createDict(&options);
-        Dict_createDict(&discoveryServers);
+        daqDict *options = nullptr, *discoveryServers = nullptr;
+        daqDict_createDict(&options);
+        daqDict_createDict(&discoveryServers);
 
-        Context_createContext(&ctx, scheduler, logger, typeManager, nullptr, nullptr, options, discoveryServers);
-        BaseObject_releaseRef(discoveryServers);
-        BaseObject_releaseRef(options);
-        BaseObject_releaseRef(scheduler);
-        BaseObject_releaseRef(typeManager);
-        BaseObject_releaseRef(logger);
-        BaseObject_releaseRef(sink);
-        BaseObject_releaseRef(sinks);
+        daqContext_createContext(&ctx, scheduler, logger, typeManager, nullptr, nullptr, options, discoveryServers);
+        daqBaseObject_releaseRef(discoveryServers);
+        daqBaseObject_releaseRef(options);
+        daqBaseObject_releaseRef(scheduler);
+        daqBaseObject_releaseRef(typeManager);
+        daqBaseObject_releaseRef(logger);
+        daqBaseObject_releaseRef(sink);
+        daqBaseObject_releaseRef(sinks);
 
         return ctx;
     }
 
-    Packet* PrepareDataPacket()
+    daqPacket* daqPrepareDataPacket()
     {
-        DataPacket* domainPacket = nullptr;
+        daqDataPacket* domainPacket = nullptr;
 
-        Integer* offset = nullptr;
-        Integer_createInteger(&offset, 0);
-        Number* offsetNum = nullptr;
-        BaseObject_queryInterface(offset, NUMBER_INTF_ID, reinterpret_cast<BaseObject**>(&offsetNum));
-        BaseObject_releaseRef(offset);
+        daqInteger* offset = nullptr;
+        daqInteger_createInteger(&offset, 0);
+        daqNumber* offsetNum = nullptr;
+        daqBaseObject_queryInterface(offset, DAQ_NUMBER_INTF_ID, (daqBaseObject**) &offsetNum);
+        daqBaseObject_releaseRef(offset);
 
-        DataPacket_createDataPacket(&domainPacket, domainDescriptor, 10, offsetNum);
+        daqDataPacket_createDataPacket(&domainPacket, domainDescriptor, 10, offsetNum);
 
-        DataPacket* packet = nullptr;
-        DataPacket_createDataPacketWithDomain(&packet, domainPacket, valueDescriptor, 10, offsetNum);
-        BaseObject_releaseRef(domainPacket);
-        BaseObject_releaseRef(offsetNum);
+        daqDataPacket* packet = nullptr;
+        daqDataPacket_createDataPacketWithDomain(&packet, domainPacket, valueDescriptor, 10, offsetNum);
+        daqBaseObject_releaseRef(domainPacket);
+        daqBaseObject_releaseRef(offsetNum);
 
-        Float values[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
+        daqFloat values[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
 
-        Float* data = nullptr;
-        DataPacket_getRawData(packet, reinterpret_cast<void**>(&data));
+        daqFloat* data = nullptr;
+        daqDataPacket_getRawData(packet, (void**) &data);
         memcpy(data, values, sizeof(values));
 
-        Packet* outputPacket = nullptr;
-        BaseObject_queryInterface(packet, PACKET_INTF_ID, reinterpret_cast<BaseObject**>(&outputPacket));
-        BaseObject_releaseRef(packet);
+        daqPacket* outputPacket = nullptr;
+        daqBaseObject_queryInterface(packet, DAQ_PACKET_INTF_ID, (daqBaseObject**) &outputPacket);
+        daqBaseObject_releaseRef(packet);
 
         return outputPacket;
     }
 
     void SetUp() override
     {
-        String* id = nullptr;
-        String_createString(&id, "sig_values");
-        String* domainId = nullptr;
-        String_createString(&domainId, "sig_time");
+        daqString* id = nullptr;
+        daqString_createString(&id, "sig_values");
+        daqString* domainId = nullptr;
+        daqString_createString(&domainId, "sig_time");
 
-        ctx = SetUpContext();
+        ctx = daqSetUpContext();
         valueDescriptor = SetUpDataDescriptor();
         domainDescriptor = SetUpDomainDescriptor();
 
         signalConfig = nullptr;
-        SignalConfig_createSignal(&signalConfig, ctx, nullptr, id, nullptr);
+        daqSignalConfig_createSignal(&signalConfig, ctx, nullptr, id, nullptr);
 
         domainSignalConfig = nullptr;
-        SignalConfig_createSignal(&domainSignalConfig, ctx, nullptr, domainId, nullptr);
+        daqSignalConfig_createSignal(&domainSignalConfig, ctx, nullptr, domainId, nullptr);
 
-        BaseObject_queryInterface(signalConfig, SIGNAL_INTF_ID, reinterpret_cast<BaseObject**>(&signal));
-        BaseObject_queryInterface(domainSignalConfig, SIGNAL_INTF_ID, reinterpret_cast<BaseObject**>(&domainSignal));
+        daqBaseObject_queryInterface(signalConfig, DAQ_SIGNAL_INTF_ID, (daqBaseObject**) &signal);
+        daqBaseObject_queryInterface(domainSignalConfig, DAQ_SIGNAL_INTF_ID, (daqBaseObject**) &domainSignal);
 
-        SignalConfig_setDescriptor(signalConfig, valueDescriptor);
-        SignalConfig_setDescriptor(domainSignalConfig, domainDescriptor);
-        SignalConfig_setDomainSignal(signalConfig, domainSignal);
+        daqSignalConfig_setDescriptor(signalConfig, valueDescriptor);
+        daqSignalConfig_setDescriptor(domainSignalConfig, domainDescriptor);
+        daqSignalConfig_setDomainSignal(signalConfig, domainSignal);
 
-        BaseObject_releaseRef(id);
-        BaseObject_releaseRef(domainId);
+        daqBaseObject_releaseRef(id);
+        daqBaseObject_releaseRef(domainId);
     }
 
     void TearDown() override
     {
-        BaseObject_releaseRef(ctx);
-        BaseObject_releaseRef(signal);
-        BaseObject_releaseRef(domainSignal);
-        BaseObject_releaseRef(signalConfig);
-        BaseObject_releaseRef(domainSignalConfig);
-        BaseObject_releaseRef(valueDescriptor);
-        BaseObject_releaseRef(domainDescriptor);
+        daqBaseObject_releaseRef(ctx);
+        daqBaseObject_releaseRef(signal);
+        daqBaseObject_releaseRef(domainSignal);
+        daqBaseObject_releaseRef(signalConfig);
+        daqBaseObject_releaseRef(domainSignalConfig);
+        daqBaseObject_releaseRef(valueDescriptor);
+        daqBaseObject_releaseRef(domainDescriptor);
     }
 
-    Context* ctx = nullptr;
-    Signal* signal = nullptr;
-    Signal* domainSignal = nullptr;
-    SignalConfig* signalConfig = nullptr;
-    SignalConfig* domainSignalConfig = nullptr;
-    DataDescriptor* valueDescriptor = nullptr;
-    DataDescriptor* domainDescriptor = nullptr;
+    daqContext* ctx = nullptr;
+    daqSignal* signal = nullptr;
+    daqSignal* domainSignal = nullptr;
+    daqSignalConfig* signalConfig = nullptr;
+    daqSignalConfig* domainSignalConfig = nullptr;
+    daqDataDescriptor* valueDescriptor = nullptr;
+    daqDataDescriptor* domainDescriptor = nullptr;
 };
 
-TEST_F(COpendaqReaderTest, BlockReader)
+TEST_F(COpendaqReaderTest, daqBlockReader)
 {
-    BlockReader* blockReader = nullptr;
-    BlockReader_createBlockReader(&blockReader, signal, 2, SampleTypeFloat64, SampleTypeInt64, ReadModeScaled);
+    daqBlockReader* blockReader = nullptr;
+    daqBlockReader_createBlockReader(&blockReader, signal, 2, daqSampleTypeFloat64, daqSampleTypeInt64, daqReadModeScaled);
 
-    Packet* packet = PrepareDataPacket();
+    daqPacket* packet = daqPrepareDataPacket();
 
-    SignalConfig_sendPacket(signalConfig, packet);
-    BaseObject_releaseRef(packet);
+    daqSignalConfig_sendPacket(signalConfig, packet);
+    daqBaseObject_releaseRef(packet);
 
-    Float data[10] = {0};
-    BlockReaderStatus* status = nullptr;
-    SizeT count = 5;
-    SizeT timeoutMs = 1000;
+    daqFloat data[10] = {0};
+    daqBlockReaderStatus* status = nullptr;
+    daqSizeT count = 5;
+    daqSizeT timeoutMs = 1000;
 
-    BlockReader_read(blockReader, data, &count, timeoutMs, &status);
+    daqBlockReader_read(blockReader, data, &count, timeoutMs, &status);
     ASSERT_EQ(count, 0);
-    ReadStatus statusValue = ReadStatus::ReadStatusUnknown;
-    ReaderStatus_getReadStatus(reinterpret_cast<ReaderStatus*>(status), &statusValue);
-    ASSERT_EQ(statusValue, ReadStatus::ReadStatusEvent);
-    BaseObject_releaseRef(status);
+    daqReadStatus statusValue = daqReadStatus::daqReadStatusUnknown;
+    daqReaderStatus_getReadStatus((daqReaderStatus*) status, &statusValue);
+    ASSERT_EQ(statusValue, daqReadStatus::daqReadStatusEvent);
+    daqBaseObject_releaseRef(status);
     count = 5;
-    BlockReader_read(blockReader, data, &count, timeoutMs, &status);
-    ReadStatus statusValue2 = ReadStatus::ReadStatusUnknown;
-    ReaderStatus_getReadStatus(reinterpret_cast<ReaderStatus*>(status), &statusValue2);
-    ASSERT_EQ(statusValue2, ReadStatus::ReadStatusOk);
+    daqBlockReader_read(blockReader, data, &count, timeoutMs, &status);
+    daqReadStatus statusValue2 = daqReadStatus::daqReadStatusUnknown;
+    daqReaderStatus_getReadStatus((daqReaderStatus*) status, &statusValue2);
+    ASSERT_EQ(statusValue2, daqReadStatus::daqReadStatusOk);
     ASSERT_EQ(count, 5);
-    for (SizeT i = 0; i < count; ++i)
+    for (daqSizeT i = 0; i < count; ++i)
     {
-        ASSERT_EQ(data[i], static_cast<Float>(i + 1));
+        ASSERT_EQ(data[i], (daqFloat) i + 1);
     }
-    BaseObject_releaseRef(status);
-    BaseObject_releaseRef(blockReader);
+    daqBaseObject_releaseRef(status);
+    daqBaseObject_releaseRef(blockReader);
 }
 
-TEST_F(COpendaqReaderTest, PacketReader)
+TEST_F(COpendaqReaderTest, daqPacketReader)
 {
-    PacketReader* packetReader = nullptr;
-    PacketReader_createPacketReader(&packetReader, signal);
-    Packet* packet = PrepareDataPacket();
-    SignalConfig_sendPacket(signalConfig, packet);
-    BaseObject_releaseRef(packet);
+    daqPacketReader* packetReader = nullptr;
+    daqPacketReader_createPacketReader(&packetReader, signal);
+    daqPacket* packet = daqPrepareDataPacket();
+    daqSignalConfig_sendPacket(signalConfig, packet);
+    daqBaseObject_releaseRef(packet);
     packet = nullptr;
 
-    PacketReader_read(packetReader, &packet);
+    daqPacketReader_read(packetReader, &packet);
     ASSERT_NE(packet, nullptr);
 
-    PacketType type = PacketType::PacketTypeNone;
-    Packet_getType(packet, &type);
-    ASSERT_EQ(type, PacketType::PacketTypeEvent);
-    BaseObject_releaseRef(packet);
+    daqPacketType type = daqPacketType::daqPacketTypeNone;
+    daqPacket_getType(packet, &type);
+    ASSERT_EQ(type, daqPacketType::daqPacketTypeEvent);
+    daqBaseObject_releaseRef(packet);
     packet = nullptr;
 
-    PacketReader_read(packetReader, &packet);
+    daqPacketReader_read(packetReader, &packet);
     ASSERT_NE(packet, nullptr);
-    Packet_getType(packet, &type);
-    ASSERT_EQ(type, PacketType::PacketTypeData);
+    daqPacket_getType(packet, &type);
+    ASSERT_EQ(type, daqPacketType::daqPacketTypeData);
 
-    BaseObject_releaseRef(packet);
-    BaseObject_releaseRef(packetReader);
+    daqBaseObject_releaseRef(packet);
+    daqBaseObject_releaseRef(packetReader);
 }
 
-TEST_F(COpendaqReaderTest, Reader)
+TEST_F(COpendaqReaderTest, daqReader)
 {
-    StreamReader* streamReader = nullptr;
-    StreamReader_createStreamReader(&streamReader, signal, SampleTypeFloat64, SampleTypeInt64, ReadModeScaled, ReadTimeoutTypeAll);
-    Reader* reader = nullptr;
-    BaseObject_queryInterface(streamReader, READER_INTF_ID, reinterpret_cast<BaseObject**>(&reader));
+    daqStreamReader* streamReader = nullptr;
+    daqStreamReader_createStreamReader(
+        &streamReader, signal, daqSampleTypeFloat64, daqSampleTypeInt64, daqReadModeScaled, daqReadTimeoutTypeAll);
+    daqReader* reader = nullptr;
+    daqBaseObject_queryInterface(streamReader, DAQ_READER_INTF_ID, (daqBaseObject**) &reader);
 
-    Packet* packet = PrepareDataPacket();
-    SignalConfig_sendPacket(signalConfig, packet);
-    BaseObject_releaseRef(packet);
+    daqPacket* packet = daqPrepareDataPacket();
+    daqSignalConfig_sendPacket(signalConfig, packet);
+    daqBaseObject_releaseRef(packet);
 
-    Float data[10] = {0};
-    SizeT count = 10;
-    SizeT timeoutMs = 1000;
-    ReaderStatus* status = nullptr;
+    daqFloat data[10] = {0};
+    daqSizeT count = 10;
+    daqSizeT timeoutMs = 1000;
+    daqReaderStatus* status = nullptr;
 
-    StreamReader_read(streamReader, data, &count, timeoutMs, &status);
+    daqStreamReader_read(streamReader, data, &count, timeoutMs, &status);
     ASSERT_EQ(count, 0);
-    ReadStatus statusValue = ReadStatus::ReadStatusUnknown;
-    ReaderStatus_getReadStatus(status, &statusValue);
-    ASSERT_EQ(statusValue, ReadStatus::ReadStatusEvent);
-    BaseObject_releaseRef(status);
+    daqReadStatus statusValue = daqReadStatus::daqReadStatusUnknown;
+    daqReaderStatus_getReadStatus(status, &statusValue);
+    ASSERT_EQ(statusValue, daqReadStatus::daqReadStatusEvent);
+    daqBaseObject_releaseRef(status);
 
-    Reader_getAvailableCount(reader, &count);
+    daqReader_getAvailableCount(reader, &count);
     ASSERT_EQ(count, 10);
 
-    BaseObject_releaseRef(reader);
-    BaseObject_releaseRef(streamReader);
+    daqBaseObject_releaseRef(reader);
+    daqBaseObject_releaseRef(streamReader);
 }
 
-TEST_F(COpendaqReaderTest, StreamReader)
+TEST_F(COpendaqReaderTest, daqStreamReader)
 {
-    StreamReader* streamReader = nullptr;
-    StreamReader_createStreamReader(&streamReader, signal, SampleTypeFloat64, SampleTypeInt64, ReadModeScaled, ReadTimeoutTypeAll);
+    daqStreamReader* streamReader = nullptr;
+    daqStreamReader_createStreamReader(
+        &streamReader, signal, daqSampleTypeFloat64, daqSampleTypeInt64, daqReadModeScaled, daqReadTimeoutTypeAll);
 
-    Packet* packet = PrepareDataPacket();
+    daqPacket* packet = daqPrepareDataPacket();
 
-    SignalConfig_sendPacket(signalConfig, packet);
-    BaseObject_releaseRef(packet);
+    daqSignalConfig_sendPacket(signalConfig, packet);
+    daqBaseObject_releaseRef(packet);
 
-    Float data[10] = {0};
-    ReaderStatus* status = nullptr;
-    SizeT count = 10;
-    SizeT timeoutMs = 1000;
+    daqFloat data[10] = {0};
+    daqReaderStatus* status = nullptr;
+    daqSizeT count = 10;
+    daqSizeT timeoutMs = 1000;
 
-    StreamReader_read(streamReader, data, &count, timeoutMs, &status);
+    daqStreamReader_read(streamReader, data, &count, timeoutMs, &status);
     ASSERT_EQ(count, 0);
-    ReadStatus statusValue = ReadStatus::ReadStatusUnknown;
-    ReaderStatus_getReadStatus(status, &statusValue);
-    ASSERT_EQ(statusValue, ReadStatus::ReadStatusEvent);
-    BaseObject_releaseRef(status);
+    daqReadStatus statusValue = daqReadStatus::daqReadStatusUnknown;
+    daqReaderStatus_getReadStatus(status, &statusValue);
+    ASSERT_EQ(statusValue, daqReadStatus::daqReadStatusEvent);
+    daqBaseObject_releaseRef(status);
     count = 10;
-    StreamReader_read(streamReader, data, &count, timeoutMs, &status);
-    ReadStatus statusValue2 = ReadStatus::ReadStatusUnknown;
-    ReaderStatus_getReadStatus(status, &statusValue2);
-    ASSERT_EQ(statusValue2, ReadStatus::ReadStatusOk);
+    daqStreamReader_read(streamReader, data, &count, timeoutMs, &status);
+    daqReadStatus statusValue2 = daqReadStatus::daqReadStatusUnknown;
+    daqReaderStatus_getReadStatus(status, &statusValue2);
+    ASSERT_EQ(statusValue2, daqReadStatus::daqReadStatusOk);
     ASSERT_EQ(count, 10);
-    for (SizeT i = 0; i < count; ++i)
+    for (daqSizeT i = 0; i < count; ++i)
     {
-        ASSERT_EQ(data[i], static_cast<Float>(i + 1));
+        ASSERT_EQ(data[i], (daqFloat) i + 1);
     }
-    BaseObject_releaseRef(status);
-    BaseObject_releaseRef(streamReader);
+    daqBaseObject_releaseRef(status);
+    daqBaseObject_releaseRef(streamReader);
 }
 
-TEST_F(COpendaqReaderTest, TailReader)
+TEST_F(COpendaqReaderTest, daqTailReader)
 {
-    TailReader* tailReader = nullptr;
-    TailReader_createTailReader(&tailReader, signal, 10, SampleTypeFloat64, SampleTypeInt64, ReadModeScaled);
+    daqTailReader* tailReader = nullptr;
+    daqTailReader_createTailReader(&tailReader, signal, 10, daqSampleTypeFloat64, daqSampleTypeInt64, daqReadModeScaled);
 
-    Packet* packet = PrepareDataPacket();
+    daqPacket* packet = daqPrepareDataPacket();
 
-    SignalConfig_sendPacket(signalConfig, packet);
-    BaseObject_releaseRef(packet);
+    daqSignalConfig_sendPacket(signalConfig, packet);
+    daqBaseObject_releaseRef(packet);
 
-    Float data[10] = {0};
-    TailReaderStatus* status = nullptr;
-    SizeT count = 10;
+    daqFloat data[10] = {0};
+    daqTailReaderStatus* status = nullptr;
+    daqSizeT count = 10;
 
-    TailReader_read(tailReader, data, &count, &status);
+    daqTailReader_read(tailReader, data, &count, &status);
     ASSERT_EQ(count, 0);
-    ReadStatus statusValue = ReadStatus::ReadStatusUnknown;
-    ReaderStatus_getReadStatus(reinterpret_cast<ReaderStatus*>(status), &statusValue);
-    ASSERT_EQ(statusValue, ReadStatus::ReadStatusEvent);
-    BaseObject_releaseRef(status);
+    daqReadStatus statusValue = daqReadStatus::daqReadStatusUnknown;
+    daqReaderStatus_getReadStatus((daqReaderStatus*) status, &statusValue);
+    ASSERT_EQ(statusValue, daqReadStatus::daqReadStatusEvent);
+    daqBaseObject_releaseRef(status);
     count = 10;
-    TailReader_read(tailReader, data, &count, &status);
-    ReadStatus statusValue2 = ReadStatus::ReadStatusUnknown;
-    ReaderStatus_getReadStatus(reinterpret_cast<ReaderStatus*>(status), &statusValue2);
-    ASSERT_EQ(statusValue2, ReadStatus::ReadStatusOk);
+    daqTailReader_read(tailReader, data, &count, &status);
+    daqReadStatus statusValue2 = daqReadStatus::daqReadStatusUnknown;
+    daqReaderStatus_getReadStatus((daqReaderStatus*) status, &statusValue2);
+    ASSERT_EQ(statusValue2, daqReadStatus::daqReadStatusOk);
     ASSERT_EQ(count, 10);
-    for (SizeT i = 0; i < count; ++i)
+    for (daqSizeT i = 0; i < count; ++i)
     {
-        ASSERT_EQ(data[i], static_cast<Float>(i + 1));
+        ASSERT_EQ(data[i], (daqFloat) i + 1);
     }
-    BaseObject_releaseRef(status);
-    BaseObject_releaseRef(tailReader);
+    daqBaseObject_releaseRef(status);
+    daqBaseObject_releaseRef(tailReader);
 }

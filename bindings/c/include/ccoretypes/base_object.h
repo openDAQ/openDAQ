@@ -34,6 +34,64 @@ extern "C"
     daqErrCode EXPORTED daqBaseObject_create(daqBaseObject** baseObject);
     daqErrCode EXPORTED daqBaseObject_queryInterface(daqBaseObject* self, daqIntfID intfId, daqBaseObject** interfacePtr);
     daqErrCode EXPORTED daqBaseObject_borrowInterface(daqBaseObject* self, daqIntfID intfId, daqBaseObject** interfacePtr);
+    
+    inline int daqAddRef(daqBaseObject* self)
+    {
+        return daqBaseObject_addRef(self);
+    }
+
+    inline int daqReleaseRef(daqBaseObject* self)
+    {
+        return daqBaseObject_releaseRef(self);
+    }
+
+    inline daqErrCode daqDispose(daqBaseObject* self)
+    {
+        return daqBaseObject_dispose(self);
+    }
+
+    inline daqErrCode daqGetHashCode(daqBaseObject* self, daqSizeT* hashCode)
+    {
+        return daqBaseObject_getHashCode(self, hashCode);
+    }
+
+    inline daqErrCode daqEquals(daqBaseObject* self, daqBaseObject* other, daqBool* equal)
+    {
+        return daqBaseObject_equals(self, other, equal);
+    }
+
+    inline daqErrCode daqToString(daqBaseObject* self, daqCharPtr* str)
+    {
+        return daqBaseObject_toString(self, str);
+    }
+
+    inline daqErrCode daqQueryInterface(daqBaseObject* self, daqIntfID intfId, daqBaseObject** interfacePtr)
+    {
+        return daqBaseObject_queryInterface(self, intfId, interfacePtr);
+    }
+
+    inline daqErrCode daqBorrowInterface(daqBaseObject* self, daqIntfID intfId, daqBaseObject** interfacePtr)
+    {
+        return daqBaseObject_borrowInterface(self, intfId, interfacePtr);
+    }
+
+    inline daqBaseObject* daqQueryInterfacePtr(daqBaseObject* self, daqIntfID intfId)
+    {
+        daqBaseObject* interfacePtr = NULL;
+        daqErrCode err = daqBaseObject_queryInterface(self, intfId, &interfacePtr);
+        return err ? NULL : interfacePtr;
+    }
+
+    inline daqBaseObject* daqBorrowInterfacePtr(daqBaseObject* self, daqIntfID intfId)
+    {
+        daqBaseObject* interfacePtr = NULL;
+        daqErrCode err = daqBaseObject_borrowInterface(self, intfId, &interfacePtr);
+        return err ? NULL : interfacePtr;
+    }
+
+#define DAQ_QUERY_INTERFACE(obj, intfId) daqQueryInterfacePtr((daqBaseObject*)(obj), (intfId))
+#define DAQ_BORROW_INTERFACE(obj, intfId) daqBorrowInterfacePtr((daqBaseObject*)(obj), (intfId))
+#define DAQ_SUPPORTS_INTERFACE(obj, intfId) (daqBorrowInterfacePtr((daqBaseObject*)(obj), (intfId)) != NULL)
 
 #ifdef __cplusplus
 }

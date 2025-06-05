@@ -9,93 +9,93 @@ class COpendaqDeviceTest : public testing::Test
     void SetUp() override
     {
         auto context = daq::NullContext();
-        Context* ctx = reinterpret_cast<Context*>(context.getObject());
+        daqContext* ctx = (daqContext*) context.getObject();
 
-        Instance_createInstance(&instance, ctx, nullptr);
-        Instance_getRootDevice(instance, &dev);
+        daqInstance_createInstance(&instance, ctx, nullptr);
+        daqInstance_getRootDevice(instance, &dev);
     }
 
     void TearDown() override
     {
-        BaseObject_releaseRef(instance);
-        BaseObject_releaseRef(dev);
+        daqBaseObject_releaseRef(instance);
+        daqBaseObject_releaseRef(dev);
     }
 
 protected:
-    Instance* instance = nullptr;
-    Device* dev = nullptr;
+    daqInstance* instance = nullptr;
+    daqDevice* dev = nullptr;
 };
 
 TEST_F(COpendaqDeviceTest, AddressInfo)
 {
-    AddressInfoBuilder* builder = nullptr;
-    AddressInfoBuilder_createAddressInfoBuilder(&builder);
+    daqAddressInfoBuilder* builder = nullptr;
+    daqAddressInfoBuilder_createAddressInfoBuilder(&builder);
 
-    String* connectionString = nullptr;
-    String_createString(&connectionString, "daqref://device0");
-    AddressInfoBuilder_setConnectionString(builder, connectionString);
-    AddressInfoBuilder_setReachabilityStatus(builder, AddressReachabilityStatusUnknown);
-    String* type = nullptr;
-    String_createString(&type, "Type");
-    AddressInfoBuilder_setType(builder, type);
-    BaseObject_releaseRef(type);
-    String* address = nullptr;
-    String_createString(&address, "Address");
-    AddressInfoBuilder_setAddress(builder, connectionString);
-    AddressInfoBuilder_setAddress(builder, address);
-    BaseObject_releaseRef(address);
-    BaseObject_releaseRef(connectionString);
+    daqString* connectionString = nullptr;
+    daqString_createString(&connectionString, "daqref://device0");
+    daqAddressInfoBuilder_setConnectionString(builder, connectionString);
+    daqAddressInfoBuilder_setReachabilityStatus(builder, daqAddressReachabilityStatusUnknown);
+    daqString* type = nullptr;
+    daqString_createString(&type, "Type");
+    daqAddressInfoBuilder_setType(builder, type);
+    daqBaseObject_releaseRef(type);
+    daqString* address = nullptr;
+    daqString_createString(&address, "Address");
+    daqAddressInfoBuilder_setAddress(builder, connectionString);
+    daqAddressInfoBuilder_setAddress(builder, address);
+    daqBaseObject_releaseRef(address);
+    daqBaseObject_releaseRef(connectionString);
 
-    AddressInfo* addressInfo = nullptr;
-    AddressInfoBuilder_build(builder, &addressInfo);
+    daqAddressInfo* addressInfo = nullptr;
+    daqAddressInfoBuilder_build(builder, &addressInfo);
     ASSERT_NE(addressInfo, nullptr);
 
-    String* connectionStringOut = nullptr;
-    AddressInfo_getConnectionString(addressInfo, &connectionStringOut);
+    daqString* connectionStringOut = nullptr;
+    daqAddressInfo_getConnectionString(addressInfo, &connectionStringOut);
     ASSERT_NE(connectionStringOut, nullptr);
 
-    BaseObject_releaseRef(connectionStringOut);
-    BaseObject_releaseRef(addressInfo);
-    BaseObject_releaseRef(builder);
+    daqBaseObject_releaseRef(connectionStringOut);
+    daqBaseObject_releaseRef(addressInfo);
+    daqBaseObject_releaseRef(builder);
 }
 
 TEST_F(COpendaqDeviceTest, DeviceInfo)
 {
-    DeviceInfo* deviceInfo = nullptr;
-    Device_getInfo(dev, &deviceInfo);
+    daqDeviceInfo* deviceInfo = nullptr;
+    daqDevice_getInfo(dev, &deviceInfo);
     ASSERT_NE(deviceInfo, nullptr);
-    String* connectionString = nullptr;
-    DeviceInfo_getConnectionString(deviceInfo, &connectionString);
+    daqString* connectionString = nullptr;
+    daqDeviceInfo_getConnectionString(deviceInfo, &connectionString);
     ASSERT_NE(connectionString, nullptr);
-    ConstCharPtr connectionStringStr = nullptr;
-    String_getCharPtr(connectionString, &connectionStringStr);
+    daqConstCharPtr connectionStringStr = nullptr;
+    daqString_getCharPtr(connectionString, &connectionStringStr);
 
-    String* name = nullptr;
-    DeviceInfo_getName(deviceInfo, &name);
-    ConstCharPtr nameStr = nullptr;
-    String_getCharPtr(name, &nameStr);
+    daqString* name = nullptr;
+    daqDeviceInfo_getName(deviceInfo, &name);
+    daqConstCharPtr nameStr = nullptr;
+    daqString_getCharPtr(name, &nameStr);
 
-    BaseObject_releaseRef(name);
-    BaseObject_releaseRef(connectionString);
-    BaseObject_releaseRef(deviceInfo);
+    daqBaseObject_releaseRef(name);
+    daqBaseObject_releaseRef(connectionString);
+    daqBaseObject_releaseRef(deviceInfo);
 }
 
 TEST_F(COpendaqDeviceTest, IoFolderConfig)
 {
-    Component* component = nullptr;
-    BaseObject_borrowInterface(instance, COMPONENT_INTF_ID, reinterpret_cast<BaseObject**>(&component));
+    daqComponent* component = nullptr;
+    daqBaseObject_borrowInterface(instance, DAQ_COMPONENT_INTF_ID, (daqBaseObject**) &component);
     ASSERT_NE(component, nullptr);
 
-    FolderConfig* folderConfig = nullptr;
-    String* localId = nullptr;
-    String_createString(&localId, "IoFolder");
-    Context* ctx = nullptr;
-    Component_getContext(component, &ctx);
+    daqFolderConfig* folderConfig = nullptr;
+    daqString* localId = nullptr;
+    daqString_createString(&localId, "IoFolder");
+    daqContext* ctx = nullptr;
+    daqComponent_getContext(component, &ctx);
     ASSERT_NE(ctx, nullptr);
-    FolderConfig_createIoFolder(&folderConfig, ctx, nullptr, localId);
+    daqFolderConfig_createIoFolder(&folderConfig, ctx, nullptr, localId);
     ASSERT_NE(folderConfig, nullptr);
 
-    BaseObject_releaseRef(localId);
-    BaseObject_releaseRef(folderConfig);
-    BaseObject_releaseRef(ctx);
+    daqBaseObject_releaseRef(localId);
+    daqBaseObject_releaseRef(folderConfig);
+    daqBaseObject_releaseRef(ctx);
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:53.
+//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:06:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct daqInspectable daqInspectable;
-    typedef struct daqString daqString;
+    typedef struct daqLoggerThreadPool daqLoggerThreadPool;
 
-    EXPORTED extern const daqIntfID DAQ_INSPECTABLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_LOGGER_THREAD_POOL_INTF_ID;
 
-    // daqErrCode EXPORTED daqInspectable_getInterfaceIds(daqInspectable* self, daqSizeT* idCount, daqIntfID** ids);
-    daqErrCode EXPORTED daqInspectable_getRuntimeClassName(daqInspectable* self, daqString** implementationName);
+    daqErrCode EXPORTED daqLoggerThreadPool_createLoggerThreadPool(daqLoggerThreadPool** obj);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:53.
+//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:06:24.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,18 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct daqInspectable daqInspectable;
+    typedef struct daqConnectedClientInfo daqConnectedClientInfo;
     typedef struct daqString daqString;
 
-    EXPORTED extern const daqIntfID DAQ_INSPECTABLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_CONNECTED_CLIENT_INFO_INTF_ID;
 
-    // daqErrCode EXPORTED daqInspectable_getInterfaceIds(daqInspectable* self, daqSizeT* idCount, daqIntfID** ids);
-    daqErrCode EXPORTED daqInspectable_getRuntimeClassName(daqInspectable* self, daqString** implementationName);
+    daqErrCode EXPORTED daqConnectedClientInfo_getAddress(daqConnectedClientInfo* self, daqString** address);
+    daqErrCode EXPORTED daqConnectedClientInfo_getProtocolType(daqConnectedClientInfo* self, daqProtocolType* type);
+    daqErrCode EXPORTED daqConnectedClientInfo_getProtocolName(daqConnectedClientInfo* self, daqString** protocolName);
+    daqErrCode EXPORTED daqConnectedClientInfo_getClientTypeName(daqConnectedClientInfo* self, daqString** type);
+    daqErrCode EXPORTED daqConnectedClientInfo_getHostName(daqConnectedClientInfo* self, daqString** hostName);
+    daqErrCode EXPORTED daqConnectedClientInfo_createConnectedClientInfo(daqConnectedClientInfo** obj);
+    daqErrCode EXPORTED daqConnectedClientInfo_createConnectedClientInfoWithParams(daqConnectedClientInfo** obj, daqString* address, daqProtocolType protocolType, daqString* protocolName, daqString* clientType, daqString* hostName);
 
 #ifdef __cplusplus
 }

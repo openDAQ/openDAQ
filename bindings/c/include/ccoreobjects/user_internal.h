@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:53.
+//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct daqInspectable daqInspectable;
+    typedef struct daqUserInternal daqUserInternal;
     typedef struct daqString daqString;
 
-    EXPORTED extern const daqIntfID DAQ_INSPECTABLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_USER_INTERNAL_INTF_ID;
 
-    // daqErrCode EXPORTED daqInspectable_getInterfaceIds(daqInspectable* self, daqSizeT* idCount, daqIntfID** ids);
-    daqErrCode EXPORTED daqInspectable_getRuntimeClassName(daqInspectable* self, daqString** implementationName);
+    daqErrCode EXPORTED daqUserInternal_getPasswordHash(daqUserInternal* self, daqString** passwordHash);
+    daqErrCode EXPORTED daqUserInternal_isAnonymous(daqUserInternal* self, daqBool* anonymous);
 
 #ifdef __cplusplus
 }

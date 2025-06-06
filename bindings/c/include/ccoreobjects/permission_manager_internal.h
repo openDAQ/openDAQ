@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:53.
+//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,13 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct daqInspectable daqInspectable;
-    typedef struct daqString daqString;
+    typedef struct daqPermissionManagerInternal daqPermissionManagerInternal;
+    typedef struct daqPermissionManager daqPermissionManager;
+    typedef struct daqPermissions daqPermissions;
 
-    EXPORTED extern const daqIntfID DAQ_INSPECTABLE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_PERMISSION_MANAGER_INTERNAL_INTF_ID;
 
-    // daqErrCode EXPORTED daqInspectable_getInterfaceIds(daqInspectable* self, daqSizeT* idCount, daqIntfID** ids);
-    daqErrCode EXPORTED daqInspectable_getRuntimeClassName(daqInspectable* self, daqString** implementationName);
+    daqErrCode EXPORTED daqPermissionManagerInternal_setParent(daqPermissionManagerInternal* self, daqPermissionManager* parentManager);
+    daqErrCode EXPORTED daqPermissionManagerInternal_addChildManager(daqPermissionManagerInternal* self, daqPermissionManager* childManager);
+    daqErrCode EXPORTED daqPermissionManagerInternal_removeChildManager(daqPermissionManagerInternal* self, daqPermissionManager* childManager);
+    daqErrCode EXPORTED daqPermissionManagerInternal_getPermissions(daqPermissionManagerInternal* self, daqPermissions** permissionsOut);
+    daqErrCode EXPORTED daqPermissionManagerInternal_updateInheritedPermissions(daqPermissionManagerInternal* self);
 
 #ifdef __cplusplus
 }

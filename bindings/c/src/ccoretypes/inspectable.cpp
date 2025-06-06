@@ -17,10 +17,10 @@
 
 const daqIntfID DAQ_INSPECTABLE_INTF_ID = { daq::IInspectable::Id.Data1, daq::IInspectable::Id.Data2, daq::IInspectable::Id.Data3, daq::IInspectable::Id.Data4_UInt64 };
 
-daqErrCode daqInspectable_getInterfaceIds(daqInspectable* self, daqSizeT* idCount, daqIntfID** ids)
-{
-    return reinterpret_cast<daq::IInspectable*>(self)->getInterfaceIds(idCount, copendaq::utils::toDaqIntfId(ids));
-}
+// daqErrCode daqInspectable_getInterfaceIds(daqInspectable* self, daqSizeT* idCount, daqIntfID** ids)
+// {
+//     return reinterpret_cast<daq::IInspectable*>(self)->getInterfaceIds(idCount, copendaq::utils::toDaqIntfId(ids));
+// }
 
 daqErrCode daqInspectable_getRuntimeClassName(daqInspectable* self, daqString** implementationName)
 {

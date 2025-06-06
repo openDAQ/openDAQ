@@ -20,7 +20,7 @@ function run_rtgen {
 
     command_h="${RTGEN} --language=c --library=${lib_name} --namespace=daq --source=${source_dir}/${file_h} --outputDir=${dest_dir_headers} --output=${out_name} --extension=.h"
     command_cpp="${RTGEN} --language=c --library=${lib_name} --namespace=daq --source=${source_dir}/${file_h} --outputDir=${dest_dir_sources} --output=${out_name} --extension=.cpp"
-    
+
     echo "------------------------------------------"
     echo "$command_h"
     $command_h
@@ -77,6 +77,28 @@ run_rtgen ccoretypes coretypes coretypes version_info version_info
 run_rtgen ccoretypes corecontainers coretypes dictobject dictobject
 run_rtgen ccoretypes corecontainers coretypes listobject listobject
 
+# run_rtgen ccoretypes coretypes coretypes anonymous_variable anonymous_variable #some macros
+# run_rtgen ccoretypes coretypes coretypes arguments arguments #traits
+# run_rtgen ccoretypes coretypes coretypes event_emitter event_emitter #C++
+# run_rtgen ccoretypes coretypes coretypes event_factory event_factory #C++
+# run_rtgen ccoretypes coretypes coretypes event_wrapper event_wrapper #C++
+# run_rtgen ccoretypes coretypes coretypes filesystem filesystem #C++
+# run_rtgen ccoretypes coretypes coretypes json_serialized_list json_serialized_list #C++
+# run_rtgen ccoretypes coretypes coretypes json_serialized_object json_serialized_object #C++
+# run_rtgen ccoretypes coretypes coretypes json_serializer json_serializer #factories
+# run_rtgen ccoretypes coretypes coretypes object_decorator object_decorator #C++
+run_rtgen ccoretypes coretypes coretypes recursive_search recursive_search # empty iface
+run_rtgen ccoretypes coretypes coretypes search_filter search_filter
+# run_rtgen ccoretypes coretypes coretypes serialization serialization # includes
+# run_rtgen ccoretypes coretypes coretypes sha1 sha1 # C++
+# run_rtgen ccoretypes coretypes coretypes span span # C++
+# run_rtgen ccoretypes coretypes coretypes type_name type_name #C++
+# run_rtgen ccoretypes coretypes coretypes type_name_detail type_name_detail # C++
+# run_rtgen ccoretypes coretypes coretypes validation validation # macros
+# run_rtgen ccoretypes coretypes coretypes weakref weakref # two interfaces
+# run_rtgen ccoretypes coretypes coretypes weakrefobj weakrefobj # C++
+# run_rtgen ccoretypes coretypes coretypes weakrefptr weakrefptr # C++
+
 # core objects
 
 run_rtgen ccoreobjects coreobjects coreobjects argument_info argument_info
@@ -99,13 +121,22 @@ run_rtgen ccoreobjects coreobjects coreobjects property_object_class property_ob
 run_rtgen ccoreobjects coreobjects coreobjects property_object_class_builder property_object_class_builder
 run_rtgen ccoreobjects coreobjects coreobjects property_object_protected property_object_protected
 # enum collisions should be manually converted
-# run_rtgen ccoreobjects coreobjects coreobjects property_value_event_args property_value_event_args  
+# run_rtgen ccoreobjects coreobjects coreobjects property_value_event_args property_value_event_args
 run_rtgen ccoreobjects coreobjects coreobjects unit unit
 run_rtgen ccoreobjects coreobjects coreobjects unit_builder unit_builder
 run_rtgen ccoreobjects coreobjects coreobjects user user
 # run_rtgen ccoreobjects coreobjects coreobjects util util #function could be added manually
 run_rtgen ccoreobjects coreobjects coreobjects validator validator
 # run_rtgen ccoreobjects coreobjects coreobjects version version #function should be added manually
+
+run_rtgen ccoreobjects coreobjects coreobjects object_lock_guard object_lock_guard # empty iface
+run_rtgen ccoreobjects coreobjects coreobjects permission_manager_internal permission_manager_internal
+run_rtgen ccoreobjects coreobjects coreobjects permissions_internal permissions_internal
+run_rtgen ccoreobjects coreobjects coreobjects property_internal property_internal
+run_rtgen ccoreobjects coreobjects coreobjects property_object_class_internal property_object_class_internal
+run_rtgen ccoreobjects coreobjects coreobjects property_object_internal property_object_internal
+run_rtgen ccoreobjects coreobjects coreobjects search_filter search_filter
+run_rtgen ccoreobjects coreobjects coreobjects user_internal user_internal
 
 # opendaq component
 
@@ -125,7 +156,7 @@ run_rtgen copendaq/component opendaq/component opendaq folder folder
 run_rtgen copendaq/component opendaq/component opendaq folder_config folder_config
 run_rtgen copendaq/component opendaq/component opendaq recursive_search recursive_search
 run_rtgen copendaq/component opendaq/component opendaq removable removable
-# run_rtgen copendaq/component opendaq/component opendaq search_filter search_filter #pass by reference
+run_rtgen copendaq/component opendaq/component opendaq search_filter search_filter #pass by reference
 run_rtgen copendaq/component opendaq/component opendaq tags tags
 run_rtgen copendaq/component opendaq/component opendaq tags_private tags_private
 run_rtgen copendaq/component opendaq/component opendaq update_parameters update_parameters
@@ -158,6 +189,8 @@ run_rtgen copendaq/device opendaq/device opendaq server_capability server_capabi
 run_rtgen copendaq/device opendaq/device opendaq server_capability_config server_capability_config
 run_rtgen copendaq/device opendaq/device opendaq user_lock user_lock
 
+run_rtgen copendaq/device opendaq/device opendaq connected_client_info connected_client_info
+
 # opendaq functionblock
 
 run_rtgen copendaq/functionblock opendaq/functionblock opendaq channel channel
@@ -165,6 +198,8 @@ run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block fu
 # run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_errors function_block_errors #contains error codes
 run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_type function_block_type
 run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_wrapper function_block_wrapper
+
+run_rtgen copendaq/functionblock opendaq/functionblock opendaq recorder recorder
 
 # opendaq logger
 
@@ -174,6 +209,13 @@ run_rtgen copendaq/logger opendaq/logger opendaq logger_component logger_compone
 # run_rtgen copendaq/logger opendaq/logger opendaq logger_errors logger_errors #contains error codes
 # run_rtgen copendaq/logger opendaq/logger opendaq logger_sink logger_sink #enum, os dependent code
 run_rtgen copendaq/logger opendaq/logger opendaq logger_sink_last_message_private logger_sink_last_message_private
+
+# run_rtgen copendaq/logger opendaq/logger opendaq custom_log custom_log # defines
+# run_rtgen copendaq/logger opendaq/logger opendaq log log #defines
+# run_rtgen copendaq/logger opendaq/logger opendaq logger_sink_base_private logger_sink_base_private #C++
+run_rtgen copendaq/logger opendaq/logger opendaq logger_thread_pool logger_thread_pool
+# run_rtgen copendaq/logger opendaq/logger opendaq logger_thread_pool_private logger_thread_pool_private #C++
+# run_rtgen copendaq/logger opendaq/logger opendaq source_location source_location #C++
 
 # opendaq modulemanager
 
@@ -186,6 +228,16 @@ run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager mo
 # run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager_init module_manager_init #functions should be added manually
 run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_manager_utils module_manager_utils
 
+# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq boost_dll boost_dll #includes
+# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq format format #C++
+# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq icmp_header icmp_header #C++
+# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq icmp_ping icmp_ping #C++
+# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq ipv4_header ipv4_header #C++
+# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_check_dependencies module_check_dependencies #C++
+# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_exports module_exports #utility macro
+# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq module_library module_library #C++
+# run_rtgen copendaq/modulemanager opendaq/modulemanager opendaq orphaned_modules orphaned_modules #C++
+
 # opendaq opendaq
 
 run_rtgen copendaq/opendaq opendaq/opendaq opendaq config_provider config_provider
@@ -194,6 +246,10 @@ run_rtgen copendaq/opendaq opendaq/opendaq opendaq instance instance
 run_rtgen copendaq/opendaq opendaq/opendaq opendaq instance_builder instance_builder
 # run_rtgen copendaq/opendaq opendaq/opendaq opendaq opendaq_init opendaq_init #functions should be added manually
 # run_rtgen copendaq/opendaq opendaq/opendaq opendaq version version #functions should be added manually
+
+# run_rtgen copendaq/opendaq opendaq/opendaq opendaq client_type client_type #C++
+# run_rtgen copendaq/opendaq opendaq/opendaq opendaq create_device create_device #C++
+# run_rtgen copendaq/opendaq opendaq/opendaq opendaq path_tool path_tool #C++
 
 # opendaq reader
 
@@ -216,6 +272,13 @@ run_rtgen copendaq/reader opendaq/reader opendaq tail_reader tail_reader
 run_rtgen copendaq/reader opendaq/reader opendaq tail_reader_builder tail_reader_builder
 run_rtgen copendaq/reader opendaq/reader opendaq tail_reader_status tail_reader_status
 
+# run_rtgen copendaq/reader opendaq/reader opendaq multi_typed_reader multi_typed_reader #C++
+# run_rtgen copendaq/reader opendaq/reader opendaq read_info read_info #C++
+# run_rtgen copendaq/reader opendaq/reader opendaq reader_utils reader_utils #C++
+# run_rtgen copendaq/reader opendaq/reader opendaq signal_reader signal_reader #C++
+# run_rtgen copendaq/reader opendaq/reader opendaq time_reader time_reader #C++
+# run_rtgen copendaq/reader opendaq/reader opendaq typed_reader typed_reader #C++
+
 # opendaq scheduler
 
 run_rtgen copendaq/scheduler opendaq/scheduler opendaq awaitable awaitable
@@ -225,6 +288,9 @@ run_rtgen copendaq/scheduler opendaq/scheduler opendaq scheduler scheduler
 run_rtgen copendaq/scheduler opendaq/scheduler opendaq task task
 run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_graph task_graph
 run_rtgen copendaq/scheduler opendaq/scheduler opendaq work work
+
+# run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_flow task_flow #C++
+# run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_internal task_internal #C++
 
 # opendaq server
 
@@ -271,6 +337,15 @@ run_rtgen copendaq/signal opendaq/signal opendaq signal_config signal_config
 run_rtgen copendaq/signal opendaq/signal opendaq signal_events signal_events
 run_rtgen copendaq/signal opendaq/signal opendaq signal_private signal_private
 
+# run_rtgen copendaq/signal opendaq/signal opendaq data_rule_calc data_rule_calc #C++
+# run_rtgen copendaq/signal opendaq/signal opendaq data_rule_calc_private data_rule_calc_private #C++
+# run_rtgen copendaq/signal opendaq/signal opendaq event_packet_utils event_packet_utils #C++
+# run_rtgen copendaq/signal opendaq/signal opendaq range_type range_type #C++
+# run_rtgen copendaq/signal opendaq/signal opendaq reference_domain_offset_adder reference_domain_offset_adder #C++
+# run_rtgen copendaq/signal opendaq/signal opendaq sample_type_traits sample_type_traits #C++
+# run_rtgen copendaq/signal opendaq/signal opendaq scaling_calc scaling_calc #C++
+# run_rtgen copendaq/signal opendaq/signal opendaq signal_utils signal_utils #C++
+
 # opendaq streaming
 
 run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_device mirrored_device
@@ -280,6 +355,9 @@ run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_signal_private m
 run_rtgen copendaq/streaming opendaq/streaming opendaq streaming streaming
 run_rtgen copendaq/streaming opendaq/streaming opendaq streaming_type streaming_type
 run_rtgen copendaq/streaming opendaq/streaming opendaq subscription_event_args subscription_event_args #enum
+
+# run_rtgen copendaq/streaming opendaq/streaming opendaq streaming_private streaming_private #C++
+# run_rtgen copendaq/streaming opendaq/streaming opendaq streaming_source_manager streaming_source_manager #C++
 
 # opendaq synchronization
 

@@ -23,7 +23,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_update_parameters
- * @addtogroup opendaq_update Paramerters
+ * @addtogroup opendaq_update Parameters
  * @{
  */
 

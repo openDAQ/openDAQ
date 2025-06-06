@@ -561,7 +561,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         Streaming streaming = device.AddStreaming("daq.ns://127.0.0.1");
 
         // Get all Device's Signals recursively
-        var deviceSignals = device.GetSignals(OpenDAQFactory.CreateRecursiveSearchFilter(OpenDAQFactory.CreateAnySearchFilter()));
+        var deviceSignals = device.GetSignals(SearchFactory.Recursive(SearchFactory.Any()));
 
         // Associate Device's Signals with Streaming
         streaming.AddSignals(deviceSignals);

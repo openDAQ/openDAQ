@@ -30,7 +30,7 @@ jobs:
 
       - name: Run Antora
         run: >
-          npx antora antora-playbook.yml
+          npx antora antora-playbook.yml --stacktrace
 
       - name: Compress Documentation
         working-directory: ${{ env.site_path }}

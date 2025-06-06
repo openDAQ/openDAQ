@@ -72,6 +72,8 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     tickOffsetTolerance = old->tickOffsetTolerance;
     commonSampleRate = old->commonSampleRate;
     requiredCommonSampleRate = old->requiredCommonSampleRate;
+    mainValueDescriptor = old->mainValueDescriptor;
+    mainDomainDescriptor = old->mainDomainDescriptor;
 
     auto oldSignals = old->getSignals();
     checkEarlyPreconditionsAndCacheContext(oldSignals);

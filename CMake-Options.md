@@ -30,6 +30,7 @@ The following options might be used to customize the build passing them in the *
 |-|-|-|-|-|
 | `OPENDAQ_GENERATE_DELPHI_BINDINGS` | Bool | `OFF` | Generate Delphi bindings | Delphi bindings only available in Windows |
 | `OPENDAQ_GENERATE_CSHARP_BINDINGS` | Bool | `OFF` | Generate CSharp bindings | - |
+| `OPENDAQ_GENERATE_C_BINDINGS` | Bool | `OFF` | Generate C bindings | - |
 | `OPENDAQ_GENERATE_PYTHON_BINDINGS` | Bool | `OFF` | Generate Python bindings | - |
 | `OPENDAQ_GENERATE_PYTHON_BINDINGS_STUBS` | Bool | `OFF` | Generate Python bindings stubs for auto-completion | Only relevant if `OPENDAQ_GENERATE_PYTHON_BINDINGS` is ON |
 

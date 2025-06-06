@@ -38,6 +38,7 @@
 
 ## Bug fixes
 
+- [#833](https://github.com/openDAQ/openDAQ/pull/833) Fix Invalid MultiReader in PowerReaderFb on Sample Rate Change
 - [#831](https://github.com/openDAQ/openDAQ/pull/831) Uses newly added sendPacketRecursiveLock method to send descriptor changed events on value signals that use the signal of which descriptor was changed as their domain signal.
 - [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active
 - [#823](https://github.com/openDAQ/openDAQ/pull/823) Fix property order is preserved from server to client via the native protocol

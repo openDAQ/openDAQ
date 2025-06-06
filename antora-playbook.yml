@@ -3,6 +3,10 @@ site:
   start_page: opendaq::introduction.adoc
 asciidoc:
   attributes:
+    doxygen_module: "Home"
+    doxygen_interface_version: "v3.3.1"
+    doxygen_document_date: "01.06.2022"
+    doxygen_source_repo: "https://github.com/OpenSimulationInterface/open-simulation-interface.git"
     page-pagination: true
     tabs-sync-option: true
     gpp: g++
@@ -16,6 +20,8 @@ antora:
     - require: "@antora/lunr-extension" 
       index_latest_only: true
     - require: "@springio/antora-extensions/tabs-migration-extension"
+    - require: './asam-antora-extensions/asam-antora_extension.js'
+      doxygen: true
 
 content:
   sources:

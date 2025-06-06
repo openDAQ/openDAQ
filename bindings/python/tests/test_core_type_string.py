@@ -42,6 +42,14 @@ class TestString(opendaq_test.TestCase):
 
     def test_int_conversion(self):
         self.assertEqual(int(daq.String('10')), 10)
+        
+    def test_string_cast(self):
+        str = daq.String("test")
+        strRef = daq.IString.cast_from(str)
+        
+    def test_string_converty(self):
+        str = daq.String("test")
+        strRef = daq.IString.convert_from(str)
 
     '''
     def test_add(self):

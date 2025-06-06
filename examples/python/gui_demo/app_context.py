@@ -44,7 +44,7 @@ class AppContext(object):
             builder.add_module_path(params.module_path)
         
         self.instance = daq.InstanceFromBuilder(builder)
-        self.instance.context.on_core_event + daq.EventHandler(self.on_core_event)
+        self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)
         self.enabled_devices = {}
         self.connection_string = ''
         self.signals = {}

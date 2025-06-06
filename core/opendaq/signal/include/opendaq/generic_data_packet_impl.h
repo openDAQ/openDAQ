@@ -32,6 +32,11 @@ public:
 protected:
     DataPacketPtr domainPacket;
     Int packetId;
+
+    void internalDispose([[maybe_unused]] bool disposing) override
+    {
+        domainPacket.release();
+    }
 };
 
 Int generatePacketId();

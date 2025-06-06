@@ -17,11 +17,11 @@
 using Daq.Core.Types;
 using Daq.Core.Objects;
 
+
 namespace Daq.Core.OpenDAQ;
 
-#region Class Factory
 
-// Factory functions of the &apos;OpenDAQ&apos; library.
+// SearchFilter factory functions of the &apos;OpenDAQ&apos; library.
 public static partial class OpenDAQFactory
 {
     //ErrorCode createVisibleSearchFilter(daq.ISearchFilter** obj); cdecl;
@@ -196,6 +196,60 @@ public static partial class OpenDAQFactory
     }
 
 
+    //ErrorCode createInterfaceIdSearchFilter(daq.ISearchFilter** obj, const daq.core.types.IntfID& intfId); cdecl;
+    [DllImport(OpenDAQDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
+    private static extern ErrorCode createInterfaceIdSearchFilter(out IntPtr obj, Guid intfId);
+
+    /// <summary>
+    /// Creates a search filter that accepts components that implement the interface with the given interface ID. &quot;Visit children&quot;
+    /// always returns <c>true</c>.
+    /// </summary>
+    /// <param name="obj">The &apos;SearchFilter&apos; object.</param>
+    /// <param name="intfId">The interface ID that should be implemented by accepted components.</param>
+    public static ErrorCode CreateInterfaceIdSearchFilter(out SearchFilter obj, Guid intfId)
+    {
+        //initialize output argument
+        obj = default;
+
+        //native output argument
+        IntPtr objPtr;
+
+        //call native function
+        ErrorCode errorCode = createInterfaceIdSearchFilter(out objPtr, intfId);
+
+        if (Result.Succeeded(errorCode))
+        {
+            //create object
+            obj = new SearchFilter(objPtr, incrementReference: false);
+        }
+
+        return errorCode;
+    }
+
+    /// <summary>
+    /// Creates a search filter that accepts components that implement the interface with the given interface ID. &quot;Visit children&quot;
+    /// always returns <c>true</c>.
+    /// </summary>
+    /// <returns>The &apos;SearchFilter&apos; object.</returns>
+    /// <param name="intfId">The interface ID that should be implemented by accepted components.</param>
+    public static SearchFilter CreateInterfaceIdSearchFilter(Guid intfId)
+    {
+        //native output argument
+        IntPtr objPtr;
+
+        //call native function
+        ErrorCode errorCode = createInterfaceIdSearchFilter(out objPtr, intfId);
+
+        if (Result.Failed(errorCode))
+        {
+            throw new OpenDaqException(errorCode);
+        }
+
+        //create and return object
+        return new SearchFilter(objPtr, incrementReference: false);
+    }
+
+
     //ErrorCode createLocalIdSearchFilter(daq.ISearchFilter** obj, daq.IString* localId); cdecl;
     [DllImport(OpenDAQDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
     private static extern ErrorCode createLocalIdSearchFilter(out IntPtr obj, IntPtr localId);
@@ -255,5 +309,3 @@ public static partial class OpenDAQFactory
         return new SearchFilter(objPtr, incrementReference: false);
     }
 }
-
-#endregion Class Factory

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 set_cmake_folder_context(TARGET_FOLDER_NAME)
 project(opcuatms VERSION ${OPENDAQ_PACKAGE_VERSION} LANGUAGES CXX)
 

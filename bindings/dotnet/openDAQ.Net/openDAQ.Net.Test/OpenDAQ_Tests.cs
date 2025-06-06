@@ -12,6 +12,7 @@ using Daq.Core.Types;
 using Daq.Core.Objects;
 using Daq.Core.OpenDAQ;
 using Daq.Core;
+using System.Data.Common;
 
 
 namespace openDaq.Net.Test;
@@ -90,49 +91,50 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
         //foreach (var deviceInfo in availableDevicesInfos) { }
 
-        using (var deviceInfoIterator = availableDevicesInfos.GetEnumerator())
+        if (desiredConnection != eDesiredConnection.LocalHost)
         {
-            while (deviceInfoIterator.MoveNext())
+            using (var deviceInfoIterator = availableDevicesInfos.GetEnumerator())
             {
-                using var deviceInfo             = deviceInfoIterator.Current;
-                var       deviceConnectionString = deviceInfo.ConnectionString;
-                var       deviceName             = deviceInfo.Name;
-
-                if (deviceName.StartsWith("HBK-CAL"))
-                    continue;
-
-                if (deviceName.StartsWith("HBK-HF-"))
-                    continue;
-
-                if (deviceName.StartsWith("HBK-SY-"))
-                    continue;
-
-                //define when only local VM should be used (home office)
-#if LOCAL_ONLY
-                if (deviceConnectionString.StartsWith("daq.opcua://172.")
-                   )
+                while (deviceInfoIterator.MoveNext())
                 {
-                    continue;
-                }
+                    using var deviceInfo             = deviceInfoIterator.Current;
+                    var       deviceConnectionString = deviceInfo.ConnectionString;
+                    var       deviceName             = deviceInfo.Name;
+
+                    if (deviceName.StartsWith("HBK-CAL"))
+                        continue;
+                    if (deviceName.StartsWith("HBK-HF-"))
+                        continue;
+                    if (deviceName.StartsWith("HBK-SY-"))
+                        continue;
+
+                    //define when only local VM should be used (home office)
+#if LOCAL_ONLY
+                    if (deviceConnectionString.StartsWith("daq.opcua://172.")
+                       )
+                    {
+                        continue;
+                    }
 #endif
 #if FUSION_BRIDGE_ONLY
-                if (deviceConnectionString.StartsWith("daq.opcua://172.")
-                    //|| deviceConnectionString.StartsWith("daq.opcua://192.") && !deviceName.StartsWith("HBK-B")
-                    //&& !deviceConnectionString.Equals("daq.opcua://172.19.195.187/")
-                    //&& !deviceConnectionString.Equals("daq.opcua://172.19.195.188/")
-                    )
-                {
-                    continue;
-                }
+                    if (deviceConnectionString.StartsWith("daq.opcua://172.")
+                        //|| deviceConnectionString.StartsWith("daq.opcua://192.") && !deviceName.StartsWith("HBK-B")
+                        //&& !deviceConnectionString.Equals("daq.opcua://172.19.195.187/")
+                        //&& !deviceConnectionString.Equals("daq.opcua://172.19.195.188/")
+                        )
+                    {
+                        continue;
+                    }
 #endif
 
-                //connectible device?
-                if ((doOpcUa && deviceConnectionString.StartsWith(ConnectionProtocolOpcUa, StringComparison.InvariantCultureIgnoreCase))
-                    || (doWinSock && deviceConnectionString.StartsWith(ConnectionProtocolWinSock, StringComparison.InvariantCultureIgnoreCase))
-                    || (doDaqRef && deviceConnectionString.StartsWith(ConnectionProtocolDaqRef, StringComparison.InvariantCultureIgnoreCase))) //DaqRef last (fall-back for Any)!
-                {
-                    connectionString = deviceConnectionString;
-                    break;
+                    //connectible device?
+                    if ((doOpcUa && deviceConnectionString.StartsWith(ConnectionProtocolOpcUa, StringComparison.InvariantCultureIgnoreCase))
+                        || (doWinSock && deviceConnectionString.StartsWith(ConnectionProtocolWinSock, StringComparison.InvariantCultureIgnoreCase))
+                        || (doDaqRef && deviceConnectionString.StartsWith(ConnectionProtocolDaqRef, StringComparison.InvariantCultureIgnoreCase))) //DaqRef last (fall-back for Any)!
+                    {
+                        connectionString = deviceConnectionString;
+                        break;
+                    }
                 }
             }
         }
@@ -383,7 +385,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
     [TestCase(eDesiredConnection.WinSock)]
     [TestCase(eDesiredConnection.WinSock, true)]
     [TestCase(eDesiredConnection.LocalHost)]
-    [TestCase(eDesiredConnection.LocalHost, true)]
+    [TestCase(eDesiredConnection.LocalHost, true)] //AccessViolation
     public void ConnectDeviceNoUsingsTest(eDesiredConnection desiredConnection, bool disposeDeviceLast = false)
     {
         Console.WriteLine($"Connect first {desiredConnection} device and dispose device {(disposeDeviceLast ? "last" : "first")}");
@@ -392,8 +394,8 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
         var device = ConnectFirstAvailableDevice(daqInstance, desiredConnection, doLog: true);
 
-        //var deviceInfo = device.Info;
-        //ShowAllProperties(deviceInfo, nameof(deviceInfo));
+        var deviceInfo = device.Info;
+        ShowAllProperties(deviceInfo, nameof(deviceInfo));
 
         if (!disposeDeviceLast) device.Dispose();
 
@@ -405,6 +407,7 @@ public class OpenDaq_Tests : OpenDAQTestsBase
     [TestCase(eDesiredConnection.DaqRef)]
     [TestCase(eDesiredConnection.OpcUa)]
     [TestCase(eDesiredConnection.WinSock)]
+    [TestCase(eDesiredConnection.LocalHost)]
     public void GetAndConnectAvailableDevicesNoUsingsTest(eDesiredConnection desiredConnection)
     {
         // From CppTests
@@ -424,10 +427,11 @@ public class OpenDaq_Tests : OpenDAQTestsBase
         var devices = CoreTypesFactory.CreateList<Device>(); //no-go, somehow with this the devices are being collected AFTER the instance and it crashes
 #endif
 
-        bool doAny     = (desiredConnection == eDesiredConnection.Any);
-        bool doDaqRef  = doAny || (desiredConnection == eDesiredConnection.DaqRef);
-        bool doOpcUa   = doAny || (desiredConnection == eDesiredConnection.OpcUa);
-        bool doWinSock = doAny || (desiredConnection == eDesiredConnection.WinSock);
+        bool doAny       = (desiredConnection == eDesiredConnection.Any);
+        bool doDaqRef    = doAny || (desiredConnection == eDesiredConnection.DaqRef);
+        bool doOpcUa     = doAny || (desiredConnection == eDesiredConnection.OpcUa);
+        bool doWinSock   = doAny || (desiredConnection == eDesiredConnection.WinSock);
+        bool doLocalHost = doAny || (desiredConnection == eDesiredConnection.LocalHost);
 
 #if USE_IENUMERATOR_NOT_IENUMERABLE
         using var deviceInfoIterator = deviceInfos.GetEnumerator();
@@ -470,10 +474,38 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             }
             else
             {
-                Console.WriteLine($"  - {deviceConnectionString}");
+                Console.WriteLine($"  - not connecting {deviceConnectionString}");
             }
 
             deviceInfo.Dispose(); //free as it's not needed anymore
+        }
+
+        if (doLocalHost)
+        {
+            var deviceConnectionString = "daq.opcua://127.0.0.1";
+
+            Console.WriteLine($"  - trying {deviceConnectionString}");
+
+            sw.Start();
+
+            try
+            {
+                // Connect to device and store it in a list
+                using var device = instance.AddDevice(deviceConnectionString); //when 'using' is missing, there's an access violation exception in C++ on GC.Collect()
+
+#if USE_LISTOBJECT
+                devices.PushBack(device);
+#endif
+
+                sw.Stop();
+
+                device.PrintReferenceCount();
+            }
+            catch (OpenDaqException ex)
+            {
+                sw.Stop();
+                Console.WriteLine($"  *** connection failed: {ex.GetType().Name} - {ex}");
+            }
         }
 
         // Output the names and connection strings of all connected-to devices
@@ -482,7 +514,8 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 #endif
 
         Debug.Print($"+++> connected {devices.Count} devices");
-        Console.WriteLine($"{devices.Count} connected devices - elapsed in {sw.Elapsed.TotalMilliseconds} ms");
+        Console.WriteLine($"  {devices.Count} connected devices - elapsed in {sw.Elapsed.TotalMilliseconds} ms");
+        Console.WriteLine("device.Info");
 
 #if USE_IENUMERATOR_NOT_IENUMERABLE
         using var deviceIterator = devices.GetEnumerator();
@@ -499,21 +532,6 @@ public class OpenDaq_Tests : OpenDAQTestsBase
             device.PrintReferenceCount();
             device.Dispose(); //because right now there is an issue with GC collecting all devices when collecting 'Instance'
         }
-
-        //cleanup (not in C++ code example due to Smart-Pointers)
-//#if USE_IENUMERATOR_NOT_IENUMERABLE
-//        deviceIterator = devices.GetEnumerator();
-//        while (deviceIterator.MoveNext())
-//        {
-//            using var device = deviceIterator.Current;
-//#else
-//            foreach (var device in devices)
-//        {
-//#endif
-//            instance.RemoveDevice(device);
-//            device.Dispose();
-//        }
-//        devices.Clear();
     }
 
     [TestCase(eDesiredConnection.DaqRef)]

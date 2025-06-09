@@ -176,6 +176,14 @@ DECLARE_OPENDAQ_INTERFACE(IConnection, IBaseObject)
      * @param[out] hasGapPacket True if the connection has a gap packet.
      */
     virtual ErrCode INTERFACE_FUNC hasGapPacket(Bool* hasGapPacket) = 0;
+
+    /*!
+     * @brief Places a packet at the back of the queue.
+     * @param packet The packet to be enqueued.
+     *
+     * The connection schedules the `onPacketReceived` notification.
+     */
+    virtual ErrCode INTERFACE_FUNC enqueueWithScheduler(IPacket* packet) = 0;
 };
 /*!@}*/
 

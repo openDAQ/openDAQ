@@ -99,6 +99,13 @@ DECLARE_OPENDAQ_INTERFACE(IInputPortConfig, IInputPort)
      * @param gapCheckingEnabled true if gap checking is requested by the input port.
      */
     virtual ErrCode INTERFACE_FUNC getGapCheckingEnabled(Bool* gapCheckingEnabled) = 0;
+
+    /*!
+     * @brief Gets called when a packet was enqueued in a connection.
+     *
+     * The notification is scheduled.
+     */
+    virtual ErrCode INTERFACE_FUNC notifyPacketEnqueuedWithScheduler()  = 0;
 };
 /*!@}*/
 

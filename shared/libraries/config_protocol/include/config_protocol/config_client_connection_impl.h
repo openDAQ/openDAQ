@@ -33,6 +33,7 @@ public:
     ErrCode INTERFACE_FUNC enqueueAndStealRef(IPacket* packet) override;
     ErrCode INTERFACE_FUNC enqueueMultipleAndStealRef(IList* packet) override;
     ErrCode INTERFACE_FUNC enqueueOnThisThread(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC enqueueWithScheduler(IPacket* packet) override;
     ErrCode INTERFACE_FUNC dequeue(IPacket** packet) override;
     ErrCode INTERFACE_FUNC dequeueAll(IList** packet) override;
     ErrCode INTERFACE_FUNC peek(IPacket** packet) override;
@@ -92,6 +93,11 @@ inline ErrCode INTERFACE_FUNC ConfigClientConnectionImpl::enqueueMultipleAndStea
 }
 
 inline ErrCode ConfigClientConnectionImpl::enqueueOnThisThread(IPacket* packet)
+{
+    return OPENDAQ_IGNORED;
+}
+
+inline ErrCode ConfigClientConnectionImpl::enqueueWithScheduler(IPacket* packet)
 {
     return OPENDAQ_IGNORED;
 }

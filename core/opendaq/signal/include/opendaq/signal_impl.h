@@ -99,6 +99,7 @@ public:
 
     // ISignalEvents
     ErrCode INTERFACE_FUNC listenerConnected(IConnection* connection) override;
+    ErrCode INTERFACE_FUNC listenerConnectedScheduled(IConnection* connection) override;
     ErrCode INTERFACE_FUNC listenerDisconnected(IConnection* connection) override;
     ErrCode INTERFACE_FUNC domainSignalReferenceSet(ISignal* signal) override;
     ErrCode INTERFACE_FUNC domainSignalReferenceRemoved(ISignal* signal) override;
@@ -158,6 +159,7 @@ private:
     bool keepLastPacket;
     bool keepLastValue;
 
+    ErrCode listenerConnectedInternal(IConnection* connection, bool schedule);
     ErrCode sendPacketInner(IPacket* packet, bool recursiveLock);
     bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
     bool sendPacketInternal(PacketPtr&& packet, bool ignoreActive = false) const;
@@ -850,6 +852,47 @@ ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastVal
 }
 
 template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::listenerConnectedInternal(IConnection* connection, bool schedule)
+{
+    OPENDAQ_PARAM_NOT_NULL(connection);
+
+    const auto connectionPtr = ConnectionPtr::Borrow(connection);
+
+    auto lock = this->getRecursiveConfigLock();
+
+    if (connectionPtr.isRemote())
+    {
+        const auto it = std::find(remoteConnections.begin(), remoteConnections.end(), connectionPtr);
+        if (it != remoteConnections.end())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
+
+        remoteConnections.push_back(connectionPtr);
+        return OPENDAQ_SUCCESS;
+    }
+
+    const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
+    if (it != connections.end())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
+    
+    const auto packet = createDataDescriptorChangedEventPacket();
+
+    if (connections.empty())
+    {
+        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+    }
+
+    connections.push_back(connectionPtr);
+
+    if (!schedule)
+        connectionPtr.enqueueOnThisThread(packet);
+    else
+        connectionPtr.enqueueWithScheduler(packet);
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::sendPacketInner(IPacket* packet, bool recursiveLock)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
@@ -928,39 +971,13 @@ DataDescriptorPtr SignalBase<TInterface, Interfaces...>::onGetDescriptor()
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::listenerConnected(IConnection* connection)
 {
-    OPENDAQ_PARAM_NOT_NULL(connection);
+    return listenerConnectedInternal(connection, false);
+}
 
-    const auto connectionPtr = ConnectionPtr::Borrow(connection);
-
-    auto lock = this->getRecursiveConfigLock();
-
-    if (connectionPtr.isRemote())
-    {
-        const auto it = std::find(remoteConnections.begin(), remoteConnections.end(), connectionPtr);
-        if (it != remoteConnections.end())
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
-
-        remoteConnections.push_back(connectionPtr);
-        return OPENDAQ_SUCCESS;
-    }
-
-    const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
-    if (it != connections.end())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
-    
-    const auto packet = createDataDescriptorChangedEventPacket();
-
-    if (connections.empty())
-    {
-        const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-    }
-
-    connections.push_back(connectionPtr);
-
-    connectionPtr.enqueueOnThisThread(packet);
-
-    return OPENDAQ_SUCCESS;
+template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::listenerConnectedScheduled(IConnection* connection)
+{
+    return listenerConnectedInternal(connection, true);
 }
 
 template <typename TInterface, typename... Interfaces>

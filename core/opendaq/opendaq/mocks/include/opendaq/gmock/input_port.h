@@ -40,6 +40,7 @@ struct MockInputPort : daq::MockGenericComponent<MockInputPort, daq::IInputPortC
     MOCK_METHOD(daq::ErrCode, setNotificationMethod, (daq::PacketReadyNotification method), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, notifyPacketEnqueued, (daq::Bool value), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, notifyPacketEnqueuedOnThisThread, (), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, notifyPacketEnqueuedWithScheduler, (), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setListener, (daq::IInputPortNotifications * port), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, getCustomData, (daq::IBaseObject** customData), (override MOCK_CALL));

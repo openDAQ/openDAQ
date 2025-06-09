@@ -47,6 +47,7 @@ public:
     ErrCode INTERFACE_FUNC enqueueMultipleAndStealRef(IList* packets) override;
 
     ErrCode INTERFACE_FUNC enqueueOnThisThread(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC enqueueWithScheduler(IPacket* packet) override;
     ErrCode INTERFACE_FUNC dequeue(IPacket** packet) override;
     ErrCode INTERFACE_FUNC dequeueAll(IList** packets) override;
     ErrCode INTERFACE_FUNC peek(IPacket** packet) override;

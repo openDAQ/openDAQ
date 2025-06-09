@@ -37,7 +37,7 @@ enum class ClientType : EnumType
 class ClientTypeTools
 {
 public:
-    static void ClientTypeTools::DefineConfigProperties(const PropertyObjectPtr& obj)
+    static void DefineConfigProperties(const PropertyObjectPtr& obj)
     {
         auto clientTypes = Dict<IInteger, IString>();
         clientTypes.set(static_cast<Int>(ClientType::Control), "Control");
@@ -60,7 +60,7 @@ public:
         obj.addProperty(dropOthersProp);
     }
 
-    static ClientType ClientTypeTools::IntToClientType(Int value)
+    static ClientType IntToClientType(Int value)
     {
         switch (value)
         {
@@ -75,7 +75,7 @@ public:
         DAQ_THROW_EXCEPTION(InvalidValueException, "Client type value invalid");
     }
 
-    static StringPtr ClientTypeTools::ClientTypeToString(ClientType value)
+    static StringPtr ClientTypeToString(ClientType value)
     {
         switch (value)
         {

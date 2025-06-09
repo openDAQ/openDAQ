@@ -490,6 +490,6 @@ install(TARGETS ${LIB_NAME}
         COMPONENT ${SDK_NAME}_${LIB_NAME}_Development
 )
 
-if(OPENDAQ_ENABLE_TESTS)
+if(OPENDAQ_ENABLE_C_BINDINGS_TESTS)
     add_subdirectory(tests)
 endif()

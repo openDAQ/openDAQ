@@ -7,7 +7,7 @@
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/tags_private_ptr.h>
 #include <coreobjects/property_object_class_factory.h>
-#include <opendaq/input_port_private.h>
+#include <opendaq/input_port_private_ptr.h>
 #include <opendaq/scheduler_factory.h>
 
 using FunctionBlockTest = testing::Test;
@@ -223,13 +223,10 @@ TEST_F(FunctionBlockTest, SetDomainDescriptorUnderLock)
 
     fb.getOnPropertyValueWrite("ConnectIp") += [&fb, &signal1, &signal2](daq::PropertyObjectPtr&, const daq::PropertyValueEventArgsPtr& args)
     {
-        daq::ErrCode err;
         if (static_cast<int>(args.getValue()) % 2 == 0)
-            err = fb.getInputPorts()[0].asPtr<daq::IInputPortPrivate>()->connectSignalSchedulerNotification(signal1);
+            ASSERT_NO_THROW(fb.getInputPorts()[0].asPtr<daq::IInputPortPrivate>().connectSignalSchedulerNotification(signal1));
         else
-            err = fb.getInputPorts()[0].asPtr<daq::IInputPortPrivate>()->connectSignalSchedulerNotification(signal2);
-
-        ASSERT_TRUE(OPENDAQ_SUCCEEDED(err));
+            ASSERT_NO_THROW(fb.getInputPorts()[0].asPtr<daq::IInputPortPrivate>().connectSignalSchedulerNotification(signal2));
     };
 
     for (int i = 0; i < 10; ++i)

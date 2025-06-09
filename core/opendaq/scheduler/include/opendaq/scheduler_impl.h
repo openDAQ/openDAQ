@@ -52,4 +52,10 @@ private:
     std::unique_ptr<tf::Executor> executor;
 };
 
+
+inline std::size_t SchedulerImpl::getWorkerCount() const
+{
+    return executor->num_workers();
+}
+
 END_NAMESPACE_OPENDAQ

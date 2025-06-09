@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/common.h>
 #include <coreobjects/property_object_ptr.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,14 +32,63 @@ enum class ClientType : EnumType
 };
 
 /*!
- * @brief A class containg helper methods for working with ClientType enum
+ * @brief A class containing helper methods for working with ClientType enum
  */
 class ClientTypeTools
 {
 public:
-    static void DefineConfigProperties(PropertyObjectPtr& obj);
-    static ClientType IntToClientType(Int value);
-    static StringPtr ClientTypeToString(ClientType value);
+    static void ClientTypeTools::DefineConfigProperties(const PropertyObjectPtr& obj)
+    {
+        auto clientTypes = Dict<IInteger, IString>();
+        clientTypes.set(static_cast<Int>(ClientType::Control), "Control");
+        clientTypes.set(static_cast<Int>(ClientType::ExclusiveControl), "Exclusive Control");
+        clientTypes.set(static_cast<Int>(ClientType::ViewOnly), "View Only");
+
+        const auto clientTypeProp =
+            SparseSelectionPropertyBuilder("ClientType", clientTypes, (Int) ClientType::Control)
+                .setDescription("Specifies the client's connection type. Control and Exclusive Control clients can modify the device, while "
+                                "View Only clients can only read from the device. When an Exclusive Control client is connected, no other "
+                                "Control or Exclusive Control clients can connect to the same device.")
+                .build();
+
+        auto dropOthersProp =
+            BoolPropertyBuilder("ExclusiveControlDropOthers", false)
+                .setDescription("If enabled, when connecting as an Exclusive Control client, any existing Control clients will be disconnected.")
+                .build();
+
+        obj.addProperty(clientTypeProp);
+        obj.addProperty(dropOthersProp);
+    }
+
+    static ClientType ClientTypeTools::IntToClientType(Int value)
+    {
+        switch (value)
+        {
+            case static_cast<Int>(ClientType::Control):
+                return ClientType::Control;
+            case static_cast<Int>(ClientType::ExclusiveControl):
+                return ClientType::ExclusiveControl;
+            case static_cast<Int>(ClientType::ViewOnly):
+                return ClientType::ViewOnly;
+        }
+
+        DAQ_THROW_EXCEPTION(InvalidValueException, "Client type value invalid");
+    }
+
+    static StringPtr ClientTypeTools::ClientTypeToString(ClientType value)
+    {
+        switch (value)
+        {
+            case ClientType::Control:
+                return String("Control");
+            case ClientType::ExclusiveControl:
+                return String("ExclusiveControl");
+            case ClientType::ViewOnly:
+                return String("ViewOnly");
+        }
+
+        return String("");
+    }
 };
 
 END_NAMESPACE_OPENDAQ

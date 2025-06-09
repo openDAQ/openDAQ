@@ -23,8 +23,61 @@
 #include <opendaq/awaitable_ptr.h>
 
 #include <opendaq/task_flow.h>
+#include <opendaq/work_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+
+class MainThreadWorker
+{
+public:
+    MainThreadWorker()
+        :stop(false)
+    {
+    }
+    
+    ~MainThreadWorker()
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            stop = true;
+        }
+        cv.notify_all();
+    }
+
+    void start()
+    {
+        while(true)
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            cv.wait(lock, [this] { return stop || !workQueue.empty(); });
+            if (stop)
+                return;
+            auto work = std::move(workQueue.front());
+            workQueue.pop_front();
+            lock.unlock();
+            work->execute();
+            lock.lock();
+        }
+    }
+
+    ErrCode execute(IWork* work)
+    {
+        OPENDAQ_PARAM_NOT_NULL(work);
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            workQueue.push_back(WorkPtr(work));
+        }
+        cv.notify_one();
+        return OPENDAQ_SUCCESS;
+    }
+
+private:
+    std::mutex mutex;
+    std::condition_variable cv;
+    std::deque<WorkPtr> workQueue;
+    bool stop = false;
+};
 
 class SchedulerImpl final : public ImplementationOf<IScheduler>
 {
@@ -40,6 +93,11 @@ public:
     ErrCode INTERFACE_FUNC stop() override;
     ErrCode INTERFACE_FUNC waitAll() override;
 
+    ErrCode INTERFACE_FUNC mainLoop() override;
+    ErrCode INTERFACE_FUNC isMainLoopRunning(Bool* running) override;
+    ErrCode INTERFACE_FUNC scheduleWorkOnMainThread(IWork* work) override;
+
+
     [[nodiscard]] std::size_t getWorkerCount() const;
 
 private:
@@ -50,6 +108,8 @@ private:
     LoggerComponentPtr loggerComponent;
 
     std::unique_ptr<tf::Executor> executor;
+
+    std::unique_ptr<MainThreadWorker> mainThreadWorker;
 };
 
 END_NAMESPACE_OPENDAQ

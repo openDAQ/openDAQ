@@ -85,6 +85,11 @@ DECLARE_OPENDAQ_INTERFACE(IScheduler, IBaseObject)
      * @param[out] multiThreaded Returns @c true if more that one worker thread is used by the scheduler.
      */
     virtual ErrCode INTERFACE_FUNC isMultiThreaded(Bool* multiThreaded) = 0;
+
+    virtual ErrCode INTERFACE_FUNC mainLoop() = 0;
+    virtual ErrCode INTERFACE_FUNC isMainLoopRunning(Bool* running) = 0;
+    virtual ErrCode INTERFACE_FUNC scheduleWorkOnMainThread(IWork* work) = 0;
+
 };
 /*!@}*/
 

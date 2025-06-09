@@ -63,6 +63,9 @@ ErrCode SchedulerImpl::stop()
     LOGP_T("Stopping scheduler")
     executor.reset();
 
+    LOGP_T("Stopping main thread worker")
+    mainThreadWorker.reset();
+
     LOGP_T("Stopped")
     return OPENDAQ_SUCCESS;
 }
@@ -140,6 +143,27 @@ ErrCode SchedulerImpl::isMultiThreaded(Bool* multiThreaded)
 std::size_t SchedulerImpl::getWorkerCount() const
 {
     return executor->num_workers();
+}
+
+ErrCode SchedulerImpl::mainLoop()
+{
+    if (mainThreadWorker)
+        return OPENDAQ_IGNORED;
+    
+    mainThreadWorker = std::make_unique<MainThreadWorker>();
+    return OPENDAQ_SUCCESS;
+}
+ErrCode SchedulerImpl::isMainLoopRunning(Bool* running)
+{
+    OPENDAQ_PARAM_NOT_NULL(running);
+    *running = mainThreadWorker != nullptr;
+    return OPENDAQ_SUCCESS;
+}
+ErrCode SchedulerImpl::scheduleWorkOnMainThread(IWork* work)
+{
+    if (!mainThreadWorker)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Main thread worker is not running");
+    return mainThreadWorker->execute(work);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

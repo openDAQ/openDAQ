@@ -27,11 +27,12 @@ struct fmt::formatter<daq::Comparable> : ostream_formatter
 
 BEGIN_NAMESPACE_OPENDAQ
 
+// Non-builder constructor
 MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode,
-                                 ReadTimeoutType timeoutType,
+                                 ReadTimeoutType timeoutType,// Why is this unused?
                                  std::int64_t requiredCommonSampleRate,
                                  Bool startOnFullUnitOfDomain,
                                  SizeT minReadCount)
@@ -101,47 +102,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     }
 }
 
-MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
-    : tickOffsetTolerance(nullptr)
-    , minReadCount(1)
-{
-    if (!readerConfig.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException, "Existing reader must not be null");
-
-    readerConfig.markAsInvalid();
-
-    this->internalAddRef();
-    try
-    {
-        auto listener = this->thisPtr<InputPortNotificationsPtr>();
-
-        auto ports = readerConfig.getInputPorts();
-
-        checkEarlyPreconditionsAndCacheContext(ports);
-        loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
-        bool fromInputPorts;
-        checkPreconditions(ports, false, fromInputPorts);
-
-        SignalInfo sigInfo{nullptr, readerConfig.getValueTransformFunction(), readerConfig.getDomainTransformFunction(), mode, loggerComponent};
-
-        for (const auto& port : ports)
-        {
-            sigInfo.port = port;
-            port.setListener(listener);
-            signals.emplace_back(sigInfo, listener, valueReadType, domainReadType);
-        }
-
-        updateCommonSampleRateAndDividers();
-        if (invalid)
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Signal sample rate does not match required common sample rate");
-    }
-    catch (...)
-    {
-        this->releaseWeakRefOnException();
-        throw;
-    }
-}
-
+// From builder
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : tickOffsetTolerance(builder.getTickOffsetTolerance())
     , requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
@@ -1429,14 +1390,15 @@ struct ObjectCreator<IMultiReader>
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
         }
 
-        ReadMode mode;
-        toCopy->getReadMode(&mode);
-
         auto old = ReaderConfigPtr::Borrow(toCopy);
         auto impl = dynamic_cast<MultiReaderImpl*>(old.getObject());
 
-        return impl != nullptr ? createObject<IMultiReader, MultiReaderImpl>(out, impl, valueReadType, domainReadType)
-                               : createObject<IMultiReader, MultiReaderImpl>(out, old, valueReadType, domainReadType, mode);
+        if (impl == nullptr)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "MultiReader from existing can only be used with the base multi reader implementation");
+        }
+
+        return createObject<IMultiReader, MultiReaderImpl>(out, impl, valueReadType, domainReadType);
     }
 };
 

@@ -40,11 +40,6 @@ public:
                     SampleType valueReadType,
                     SampleType domainReadType);
 
-    MultiReaderImpl(const ReaderConfigPtr& readerConfig,
-                    SampleType valueReadType,
-                    SampleType domainReadType,
-                    ReadMode mode);
-
     MultiReaderImpl(const MultiReaderBuilderPtr& builder);
 
     ~MultiReaderImpl() override;

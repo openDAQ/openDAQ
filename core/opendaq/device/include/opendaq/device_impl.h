@@ -1311,17 +1311,24 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addDevices(IDict** devices, ID
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
+    DictPtr<IString, IPropertyObject> connectionArgsDictPtr = DictPtr<IString, IPropertyObject>::Borrow(connectionArgs);
+    if (connectionArgsDictPtr.getCount() == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "None connection arguments provided");
+
     DictPtr<IString, IDevice> devicesDictPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddDevices, devicesDictPtr, connectionArgs, errCodes, errorInfos);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    *devices = devicesDictPtr.detach();
+    if (!devicesDictPtr.assigned())
+        return OPENDAQ_SUCCESS;
 
     SizeT addedDevicesCount = 0;
     for (const auto& [_, device] : devicesDictPtr)
         if (device.assigned())
             ++addedDevicesCount;
-    if (addedDevicesCount == devicesDictPtr.getCount())
+
+    *devices = devicesDictPtr.detach();
+    if (addedDevicesCount == connectionArgsDictPtr.getCount())
         return OPENDAQ_SUCCESS;
     else if (addedDevicesCount == 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "No devices were added");
@@ -1423,7 +1430,7 @@ DictPtr<IString, IDevice> GenericDevice<TInterface, Interfaces...>::onAddDevices
     auto lock = this->getRecursiveConfigLock();
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
-    auto createdDevices = managerUtils.createDevices(connectionArgs, errCodes, errorInfos);
+    auto createdDevices = managerUtils.createDevices(connectionArgs, devices, errCodes, errorInfos);
 
     auto addedDevices = Dict<IString, IDevice>();
     for (const auto& [connectionString, device] : createdDevices)
@@ -1432,7 +1439,7 @@ DictPtr<IString, IDevice> GenericDevice<TInterface, Interfaces...>::onAddDevices
         if (device.assigned())
         {
             ErrCode errCode = OPENDAQ_SUCCESS;
-            ObjectPtr<IErrorInfo> errInfo = nullptr;
+            ObjectPtr<IErrorInfo> errorInfo = nullptr;
             try
             {
                 addSubDevice(device);
@@ -1441,23 +1448,25 @@ DictPtr<IString, IDevice> GenericDevice<TInterface, Interfaces...>::onAddDevices
             catch (const DaqException& e)
             {
                 errCode = errorFromException(e, this->getThisAsBaseObject());
-                daqGetErrorInfo(&errInfo);
+                daqGetErrorInfo(&errorInfo);
                 daqClearErrorInfo();
             }
             catch (const std::exception& e)
             {
                 errCode = DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-                daqGetErrorInfo(&errInfo);
+                daqGetErrorInfo(&errorInfo);
                 daqClearErrorInfo();
             }
             catch (...)
             {
-                errCode = OPENDAQ_ERR_GENERALERROR;
+                errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+                daqGetErrorInfo(&errorInfo);
+                daqClearErrorInfo();
             }
             if (errCodes.assigned())
                 errCodes[connectionString] = errCode;
             if (errorInfos.assigned())
-                errorInfos[connectionString] = errInfo;
+                errorInfos[connectionString] = errorInfo;
         }
     }
 

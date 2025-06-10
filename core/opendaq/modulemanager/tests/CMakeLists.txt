@@ -8,15 +8,14 @@ set(TEST_MOCKS mock/mock_module.h
 ##############################
 # DLL Test
 
-
-set(TEST_SOURCES test_check_dependencies.cpp
+set(TEST_SOURCES test_app.cpp
+                 test_module_manager_internals.cpp
+                 test_check_dependencies.cpp
                  module_manager_test.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                        SOURCES
-                           test_app.cpp
-						   test_module_manager_internals.cpp
                            ${TEST_MOCKS}
                            ${TEST_SOURCES}
 )
@@ -31,15 +30,21 @@ target_compile_definitions(${TEST_APP} PRIVATE MODULE_TEST_DIR="mock"
 )
 
 target_link_libraries(${TEST_APP} 
-    PRIVATE 
-        $<BUILD_INTERFACE:Boost::dll>
+	PRIVATE 
+		$<BUILD_INTERFACE:Boost::dll>
 )
+
+if (UNIX)
+    target_link_libraries(${TEST_APP} 
+        PRIVATE 
+            ${CMAKE_DL_LIBS}
+    )
+endif()
 
 set_target_properties(${TEST_APP}
     PROPERTIES
         VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
-
 
 add_subdirectory(mock)
 
@@ -50,15 +55,8 @@ add_dependencies(${TEST_APP} empty_dll
                              dependencies_succeeded
 )
 
-set_target_properties(${TEST_APP}
-    PROPERTIES
-        VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
-)
-
 ##############################
 # CTest setup
-
-
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>

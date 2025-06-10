@@ -21,7 +21,6 @@
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/awaitable_ptr.h>
-
 #include <opendaq/task_flow.h>
 
 BEGIN_NAMESPACE_OPENDAQ

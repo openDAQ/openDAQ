@@ -56,6 +56,11 @@ DECLARE_OPENDAQ_INTERFACE(IInputPortConfig, IInputPort)
      * @brief Sets the input-ports response to the packet enqueued notification.
      */
     virtual ErrCode INTERFACE_FUNC setNotificationMethod(PacketReadyNotification method) = 0;
+    
+    /*!
+     * @brief Gets the input-ports response to the packet enqueued notification.
+     */
+    virtual ErrCode INTERFACE_FUNC getNotificationMethod(PacketReadyNotification* method) = 0;
 
     /*!
      * @brief Gets called when a packet was enqueued in a connection.

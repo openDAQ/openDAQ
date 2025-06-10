@@ -57,6 +57,7 @@ public:
     ErrCode INTERFACE_FUNC getRequiresSignal(Bool* requiresSignal) override;
 
     ErrCode INTERFACE_FUNC setNotificationMethod(PacketReadyNotification method) override;
+    ErrCode INTERFACE_FUNC getNotificationMethod(PacketReadyNotification* method) override;
     ErrCode INTERFACE_FUNC notifyPacketEnqueued(Bool queueWasEmpty) override;
     ErrCode INTERFACE_FUNC notifyPacketEnqueuedOnThisThread() override;
     ErrCode INTERFACE_FUNC notifyPacketEnqueuedWithScheduler() override;
@@ -281,6 +282,15 @@ ErrCode GenericInputPortImpl<Interfaces...>::setNotificationMethod(PacketReadyNo
     else
         notifyMethod = method;
 
+    return OPENDAQ_SUCCESS;
+}
+
+template <class ... Interfaces>
+ErrCode GenericInputPortImpl<Interfaces...>::getNotificationMethod(PacketReadyNotification* method)
+{
+    OPENDAQ_PARAM_NOT_NULL(method);
+
+    *method = notifyMethod;
     return OPENDAQ_SUCCESS;
 }
 

@@ -16,6 +16,7 @@ MultiReaderBuilderImpl::MultiReaderBuilderImpl()
     , startOnFullUnitOfDomain(false)
     , minReadCount(1)
     , offsetTolerance(nullptr)
+    , allowDifferentRates(true)
 {
 }
 
@@ -157,6 +158,21 @@ ErrCode MultiReaderBuilderImpl::getTickOffsetTolerance(IRatio** offsetTolerance)
     OPENDAQ_PARAM_NOT_NULL(offsetTolerance);
 
     *offsetTolerance = this->offsetTolerance.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::setAllowDifferentSamplingRates(Bool allowDifferentRates)
+{
+    this->allowDifferentRates = allowDifferentRates;
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::getAllowDifferentSamplingRates(Bool* allowDifferentRates)
+{
+    OPENDAQ_PARAM_NOT_NULL(allowDifferentRates);
+
+    *allowDifferentRates = this->allowDifferentRates;
     return OPENDAQ_SUCCESS;
 }
 

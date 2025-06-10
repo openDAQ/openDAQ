@@ -76,7 +76,6 @@ private:
                    const DataDescriptorPtr& voltageDescriptor,
                    const DataDescriptorPtr& currentDescriptor);
 
-    void processPacket();
     void initProperties();
     void propertyChanged(bool configure);
     void readProperties();

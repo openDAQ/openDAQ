@@ -175,6 +175,10 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * @param offsetTolerance[out] Ratio that define offset tolerance as a fraction of domain unit.
      */
     virtual ErrCode INTERFACE_FUNC getTickOffsetTolerance(IRatio** offsetTolerance) = 0;
+    
+    // [returnSelf]
+    virtual ErrCode INTERFACE_FUNC setAllowDifferentSamplingRates(Bool allowDifferentRates) = 0;
+    virtual ErrCode INTERFACE_FUNC getAllowDifferentSamplingRates(Bool* allowDifferentRates) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, MultiReaderBuilder, IMultiReaderBuilder)

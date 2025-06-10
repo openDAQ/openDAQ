@@ -102,32 +102,8 @@ void print(const FunctionBlockPtr& fb)
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
-    // Define users authentication provider
-    auto users = List<IUser>();
-    users.pushBack(User("opendaq", "$2a$12$itwh.4Iwj1bNPWd.j4r3c.ZwFAXFuT1fzBDC0UUHjFruumCCUnQGS"));          //"password"
-    users.pushBack(User("root", "$2a$12$pPeaK/YL7sKGHPp/Ab8uROXZEC3b03Rt6k2v.McqqgE0Scvx2KdV.", {"admin"}));  //"admin"
-    const AuthenticationProviderPtr authenticationProvider = StaticAuthenticationProvider(true, users);
-
-    // Define configuration for the Reference Device Simulator
-    PropertyObjectPtr config = PropertyObject();
-    config.addProperty(StringProperty("Name", "Properties device simulator"));
-    config.addProperty(StringProperty("LocalId", "PropDevSimulator"));
-    config.addProperty(StringProperty("SerialNumber", "sim007"));
-
-    // Create an Instance, loading modules at MODULE_PATH, using the authentication provider, adding a discovery server and a root device
-    const InstancePtr instance = InstanceBuilder()
-                                     .setModulePath(MODULE_PATH)
-                                     .setAuthenticationProvider(authenticationProvider)
-                                     .addDiscoveryServer("mdns")
-                                     .setRootDevice("daqref://device0", config)
-                                     .build();
-
-    // Add standard servers and enable discovery
-    const auto servers = instance.addStandardServers();
-    for (const auto& server : servers)
-        server.enableDiscovery();
-
-    auto fbTypes = instance.getAvailableFunctionBlockTypes();
+    // Create an Instance, loading modules in the default module path
+    const InstancePtr instance = Instance();
 
     // Add Function Block by type ID
     auto fb = instance.addFunctionBlock("PropertiesFb");

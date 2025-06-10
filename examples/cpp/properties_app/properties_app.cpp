@@ -61,7 +61,7 @@ void printProperty(const PropertyPtr& property, const size_t& indent = 0)
     printMetadata(Boolean(property.getVisible()), "Visible", indent + 1);
     printMetadata(property.getUnit(), "Unit", indent + 1);
 
-    // TODO: get CoreType instead of casting?
+    // TODO: kind of hacky
     auto propObj = property.getValue().asPtrOrNull<IPropertyObject>();
     auto dictObj = property.getValue().asPtrOrNull<IDict>();
     if (propObj.assigned())
@@ -86,17 +86,11 @@ void printProperty(const PropertyPtr& property, const size_t& indent = 0)
 
 void print(const FunctionBlockPtr& fb)
 {
-    // Get all Properties
-    auto properties = fb.getAllProperties();
-
-    // Print all Function Block Properties
     std::cout << "\nFunction Block: " << fb.getName() << "\n";
-
-    for (const auto& prop : properties)
+    for (const auto& prop : fb.getAllProperties())
     {
         printProperty(prop);
     }
-
     std::cout << "\n";
 }
 
@@ -187,7 +181,6 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("Sparse", 6);
 
     // Object
-    PropertyObjectPtr propObj = fb.getPropertyValue("Object");
     fb.setPropertyValue("Object.InnerObject.Bool", True);
     fb.setPropertyValue("Object.Int", 987);
     fb.setPropertyValue("Object.Float", 4.44);
@@ -203,7 +196,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     std::cout << "Reference is referenced: " << Boolean(fb.getProperty("Reference").getIsReferenced()) << "\n";
 
     // Stubborn Int
-    fb.setPropertyValue("StubbornInt", 41);  // Will actually set the value to 43, due to getOnPropertyValueWrite callback in module
+    fb.setPropertyValue("StubbornInt", 41);  // Will be forced to 43
 
     // Read-only Int
     try
@@ -216,14 +209,14 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Coerced Int
-    fb.setPropertyValue("CoercedProp", 4);    // Will set to 4, no coercion
-    fb.setPropertyValue("CoercedProp", 142);  // Will set to 10, due to coercion
+    fb.setPropertyValue("CoercedProp", 4);    // No coercion
+    fb.setPropertyValue("CoercedProp", 142);  // Coerced to 10
 
     // Validated Int
-    fb.setPropertyValue("ValidatedProp", 43);  // Will set to 43
+    fb.setPropertyValue("ValidatedProp", 43);  // Valid
     try
     {
-        fb.setPropertyValue("ValidatedProp", 1000);  // Will fail, due to validation
+        fb.setPropertyValue("ValidatedProp", 1000);  // Fails validation
     }
     catch (const std::exception& e)
     {
@@ -231,9 +224,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Min and max Float
-    fb.setPropertyValue("MinMaxProp", 101.1);  // Will set to 100.0
-    fb.setPropertyValue("MinMaxProp", -1.1);   // Will set to 0.0
-    fb.setPropertyValue("MinMaxProp", 50.1);   // Will set to 50.1
+    fb.setPropertyValue("MinMaxProp", 101.1);  // Clamped to 100.0
+    fb.setPropertyValue("MinMaxProp", -1.1);   // Clamped to 0.0
+    fb.setPropertyValue("MinMaxProp", 50.1);   // Within range
 
     // Suggested values Float
     auto suggested = fb.getProperty("SuggestedProp").getSuggestedValues();
@@ -245,17 +238,13 @@ int main(int /*argc*/, const char* /*argv*/[])
     print(fb);
 
     // Register callback for single property read
-    auto boolProp = fb.getProperty("Bool");
-    fb.getOnPropertyValueRead("Bool") +=
-        [](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& /*args*/) { std::cout << "Bool read\n"; };
+    fb.getOnPropertyValueRead("Bool") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Bool read\n"; };
 
     // Register callback for any property read/writes
-    fb.getOnAnyPropertyValueRead() +=
-        [](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& /*args*/) { std::cout << "Something read\n"; };
-    fb.getOnAnyPropertyValueWrite() +=
-        [](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& /*args*/) { std::cout << "Something written\n"; };
+    fb.getOnAnyPropertyValueRead() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something read\n"; };
+    fb.getOnAnyPropertyValueWrite() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something written\n"; };
 
-    // Test the previously registered callbacks
+    // Test callbacks
     auto dummyBool = fb.getPropertyValue("Bool");
     fb.setPropertyValue("Int", 3);
 

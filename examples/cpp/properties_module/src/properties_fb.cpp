@@ -15,7 +15,7 @@ void PropertiesFb::addPropertyAndCallback(const PropertyPtr& prop)
 {
     objPtr.addProperty(prop);
     auto name = prop.getName();
-    objPtr.getOnPropertyValueWrite(name) += [name](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    objPtr.getOnPropertyValueWrite(name) += [name](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
     { std::cout << name << " changed to: " << args.getValue() << "\n"; };
 }
 
@@ -55,9 +55,9 @@ void PropertiesFb::initProperties()
     dict["key3"] = "Lady";
     auto dictProp = DictProperty("Dict", dict);
 
-    // This one has a special callback
+    // Dictionary with custom callback
     objPtr.addProperty(dictProp);
-    objPtr.getOnPropertyValueWrite("Dict") += [](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    objPtr.getOnPropertyValueWrite("Dict") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
     {
         DictPtr<IString, IString> dict = args.getValue();
         std::cout << "Dict changed to: " << "\n";
@@ -95,6 +95,8 @@ void PropertiesFb::initProperties()
     auto funProp =
         FunctionProperty("Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("a", ctInt), ArgumentInfo("b", ctInt))));
     funObj.addProperty(funProp);
+
+    // Explicit permissions for function execution
     auto permissions = PermissionsBuilder()
                            .inherit(false)
                            .assign("everyone", PermissionMaskBuilder().read())
@@ -108,10 +110,12 @@ void PropertiesFb::initProperties()
             std::cout << "Function called\n";
             return a + b;
         });
-    funObj.setPropertyValue("Function", fun);  // Set the Function in the ObjectProperty
-    auto name = funProp.getName();
-    funProp.getOnPropertyValueWrite() += [name](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
-    { std::cout << name << " changed to: " << args.getValue() << "\n"; };
+    funObj.setPropertyValue("Function", fun);
+
+    // Callback for nested function property
+    funObj.getOnPropertyValueWrite("Function") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+    { std::cout << "Nested Function changed to: " << args.getValue() << "\n"; };
+
     addPropertyAndCallback(funObjProp);
 
     // Selection
@@ -152,14 +156,14 @@ void PropertiesFb::initProperties()
                                         .build();
     addPropertyAndCallback(sometimesVisibleProperty);
 
-    // Stubborn Int
+    // Stubborn Int (always sets to 43)
     auto stubbornProp = IntProperty("StubbornInt", 42);
 
     // This one has a special callback
     objPtr.addProperty(stubbornProp);
-    objPtr.getOnPropertyValueWrite("StubbornInt") += [this](PropertyObjectPtr& /*obj*/, const PropertyValueEventArgsPtr& args)
+    objPtr.getOnPropertyValueWrite("StubbornInt") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
     {
-        args.setValue(43);  // This will set the value to 43, even if the user tried to set it to something else
+        args.setValue(43);  // Force value to 43
         std::cout << "StubbornInt changed to: " << args.getValue() << "\n";
     };
 

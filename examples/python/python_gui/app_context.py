@@ -10,6 +10,7 @@ class AppContext(object):
 
         self.icons = self.__load_icons(os.path.join(os.path.dirname(__file__), 'icons'))
         self.daq_instance = self.__init_opendaq(params)
+        self.daq_instance.set_root_device("daqref://device0")
 
     def __load_icons(self, directory):
         images = {}

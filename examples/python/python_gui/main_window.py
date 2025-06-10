@@ -140,6 +140,9 @@ class MainWindow(tk.Tk):
         add_function_block_button = ttk.Button(self.bottom_bar, text="Add Function Block")
         add_function_block_button.pack(side="top", fill="x")
 
+        add_server_button = ttk.Button(self.bottom_bar, text="Add server")
+        add_server_button.pack(side="top", fill="x")
+
 
     def init_top_bar(self, parent):
         top_frame = tk.Frame(parent, height=50, bg=self.cget("bg"))

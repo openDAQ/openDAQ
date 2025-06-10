@@ -32,7 +32,7 @@ class BaseTreeElement:
     def visible(self):
         return True
 
-    def set_name(self, name: str) -> None:
+    def __set_name(self, name: str) -> None:
         self.name = name
         self.tree.item(self.tree_element, text=self.name)
 

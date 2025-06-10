@@ -1,11 +1,6 @@
-import tkinter as tk
-from tkinter import ttk
-from typing import Dict, Optional
-
-from components.base_tree_element import BaseTreeElement
-from app_context import AppContext
-
+from components.base_tree_element import *
 import opendaq as daq
+from components.property_view import PropertyView
 
 
 class ComponentTreeElement(BaseTreeElement):
@@ -22,8 +17,8 @@ class ComponentTreeElement(BaseTreeElement):
 
         self.type = "Component"
 
-    def init(self):
-        super().init()
+    def init(self, parent: Optional['BaseTreeElement'] = None):
+        super().init(parent)
         self.daq_component.on_component_core_event + daq.EventHandler(self.on_core_event)
 
     @property
@@ -39,7 +34,11 @@ class ComponentTreeElement(BaseTreeElement):
 
     def on_changed_attribute(self, name, value):
         if name == "Name":
-            self.set_name(value)
+            self.__set_name(value)
+
+    def on_selected(self, main_content: tk.Frame) -> None:
+        self.property_view = PropertyView(main_content, self.context, self.daq_component)
+        self.property_view.pack(fill="both", expand=True, padx=5, pady=(0, 5))
 
 
 

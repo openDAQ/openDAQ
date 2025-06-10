@@ -1,20 +1,18 @@
-import tkinter as tk
-from tkinter import ttk
-from typing import Dict, Optional
-
-from components.component_tree_element import ComponentTreeElement
-from app_context import AppContext
-
-from opendaq import IDevice
+from components.component_tree_element import *
 
 
 class DeviceTreeElement(ComponentTreeElement):
     def __init__(self, 
                  context: AppContext, 
                  tree: ttk.Treeview,
-                 device: IDevice):
+                 device: daq.IDevice):
         super().__init__(context, tree, device)
         self.type = "Device"
         self.icon_name = "device"
+
+    def init(self, parent: Optional['BaseTreeElement'] = None):
+        super().init(parent)
+        for device in self.daq_component.devices:
+            self.add_child(DeviceTreeElement(self.context, self.tree, device))
 
     

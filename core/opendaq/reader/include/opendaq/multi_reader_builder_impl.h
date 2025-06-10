@@ -54,6 +54,9 @@ public:
     ErrCode INTERFACE_FUNC setTickOffsetTolerance(IRatio* offsetTolerance) override;
     ErrCode INTERFACE_FUNC getTickOffsetTolerance(IRatio** offsetTolerance) override;
 
+    ErrCode INTERFACE_FUNC setAllowDifferentSamplingRates(Bool allowDifferentRates) override;
+    ErrCode INTERFACE_FUNC getAllowDifferentSamplingRates(Bool* allowDifferentRates) override;
+
 private:
     ListPtr<IComponent> sources;
     SampleType valueReadType;
@@ -64,6 +67,7 @@ private:
     Bool startOnFullUnitOfDomain;
     SizeT minReadCount;
     RatioPtr offsetTolerance;
+    Bool allowDifferentRates;
 };
 
 END_NAMESPACE_OPENDAQ

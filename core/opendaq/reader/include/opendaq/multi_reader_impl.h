@@ -18,7 +18,6 @@
 #include <opendaq/read_info.h>
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/signal_reader.h>
-#include <coreobjects/property_object_factory.h>
 #include <opendaq/multi_reader_builder_ptr.h>
 #include <opendaq/reader_factory.h>
 
@@ -119,7 +118,9 @@ private:
     MultiReaderStatusPtr createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, const NumberPtr& offset = nullptr);
 
     std::mutex mutex;
+    std::mutex packetReceivedMutex;
     bool invalid{false};
+    bool eventInQueue{false};
     std::string errorMessage;
 
     SizeT remainingSamplesToRead{};
@@ -138,6 +139,7 @@ private:
     std::int64_t commonSampleRate = -1;
     std::int32_t sampleRateDividerLcm = 1;
     bool sameSampleRates = false;
+    Bool allowDifferentRates = true;
 
     std::vector<SignalReader> signals;
     PropertyObjectPtr portBinder;
@@ -154,7 +156,7 @@ private:
     DataDescriptorPtr mainValueDescriptor;
     DataDescriptorPtr mainDomainDescriptor;
 
-    void isDomainValid(const ListPtr<IInputPortConfig>& list);
+    void isDomainValid(const ListPtr<IInputPortConfig>& list) const;
     void checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list);
 
     ContextPtr context;

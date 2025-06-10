@@ -17,8 +17,9 @@
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reader_factory.h>
 
-BEGIN_NAMESPACE_REF_FB_MODULE
+#include <iostream>
 
+BEGIN_NAMESPACE_REF_FB_MODULE
 namespace PowerReader
 {
 
@@ -163,14 +164,14 @@ void PowerReaderFbImpl::onDataReceived()
 
             getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
 
-            if (voltageDescriptor.assigned() || currentDescriptor.assigned())
+            if (voltageDescriptor.assigned() || currentDescriptor.assigned() || domainDescriptor.assigned())
                 configure(domainDescriptor, voltageDescriptor, currentDescriptor);
         }
-    }
 
-    if (!status.getValid())
-    {
-        reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+        if (!status.getValid())
+        {
+            reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+        }
     }
 }
 
@@ -274,6 +275,7 @@ void PowerReaderFbImpl::createReader()
         .setDomainReadType(SampleType::Int64)
         .setValueReadType(SampleType::Float64)
         .setTickOffsetTolerance(tolerance)
+        .setAllowDifferentSamplingRates(false)
         .build();
 
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();

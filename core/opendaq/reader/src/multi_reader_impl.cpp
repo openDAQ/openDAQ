@@ -76,6 +76,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     requiredCommonSampleRate = old->requiredCommonSampleRate;
     mainValueDescriptor = old->mainValueDescriptor;
     mainDomainDescriptor = old->mainDomainDescriptor;
+    allowDifferentRates = old->allowDifferentRates;
     context = old->context;
     
     this->internalAddRef();
@@ -88,8 +89,6 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
         }
 
         updateCommonSampleRateAndDividers();
-        if (invalid)
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Signal sample rate does not match required common sample rate");
         readCallback = std::move(old->readCallback);
     }
     catch (...)
@@ -103,6 +102,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : tickOffsetTolerance(builder.getTickOffsetTolerance())
     , requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
+    , allowDifferentRates(builder.getAllowDifferentSamplingRates())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
     , minReadCount(builder.getMinReadCount())
 {
@@ -160,7 +160,7 @@ struct MultiReaderImpl::ReferenceDomainBin
     }
 };
 
-void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
+void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) const
 {
     StringPtr domainUnitSymbol;
     StringPtr domainQuantity;
@@ -320,6 +320,13 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
             if (tickOffsetTolerance.assigned() && lastSampleRate.value() != signal.sampleRate)
             {
                 sameSampleRates = false;
+                if (!allowDifferentRates)
+                {
+                    LOG_W("Signal sample rates differ. AllowDifferentSamplingRates must be set to True to allow such configurations.")
+                    invalid = true;
+                    return;
+                }
+
                 LOG_W("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
             }
         }
@@ -330,6 +337,7 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
         signal.setCommonSampleRate(commonSampleRate);
         if (signal.invalid)
         {
+            LOG_W("Signal sample rates differ. Signal sample rate does not match required common sample rate.")
             invalid = true;
             return;
         }
@@ -357,8 +365,8 @@ void MultiReaderImpl::checkEarlyPreconditionsAndCacheContext(const ListPtr<IComp
 
 ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<IComponent>& list, bool& fromInputPorts)
 {
-    bool haveInputPorts = false;
-    bool haveSignals = false;
+    bool hasInputPorts = false;
+    bool hasSignals = false;
 
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
@@ -367,9 +375,9 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
     {
         if (auto signal = el.asPtrOrNull<ISignal>(); signal.assigned())
         {
-            if (haveInputPorts)
+            if (hasInputPorts)
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
-            haveSignals = true;
+            hasSignals = true;
 
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
             port.setNotificationMethod(PacketReadyNotification::Scheduler);
@@ -379,15 +387,16 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         }
         else if (auto port = el.asPtrOrNull<IInputPortConfig>(); port.assigned())
         {
-            if (haveSignals)
+            if (hasSignals)
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
+
             if (port.getNotificationMethod() == PacketReadyNotification::None)
             {
                 LOG_W("Port with ID {} has input port notification set to 'None', overriding with 'Scheduler' mode", port.getLocalId());
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);
             }
-
-            haveInputPorts = true;
+            port.setNotificationMethod(PacketReadyNotification::SameThread);
+            hasInputPorts = true;
             portList.pushBack(port);
         }
         else
@@ -396,7 +405,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         }
     }
 
-    fromInputPorts = haveInputPorts;
+    fromInputPorts = hasInputPorts;
 
     isDomainValid(portList);
     return portList;
@@ -550,10 +559,17 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMul
 
     if (invalid)
     {
+        MultiReaderStatusPtr statusPtr;
+        if (eventInQueue)
+            statusPtr = readPackets();
+        else
+            statusPtr = createReaderStatus();
+
         if (status)
-            *status = createReaderStatus().detach();
+            *status = statusPtr.detach();
+
         *count = 0;
-        return OPENDAQ_IGNORED;
+        return OPENDAQ_SUCCESS;
     }
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
@@ -584,10 +600,17 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
 
     if (invalid)
     {
+        MultiReaderStatusPtr statusPtr;
+        if (eventInQueue)
+            statusPtr = readPackets();
+        else
+            statusPtr = createReaderStatus();
+
         if (status)
-            *status = createReaderStatus().detach();
+            *status = statusPtr.detach();
+
         *count = 0;
-        return OPENDAQ_IGNORED;
+        return OPENDAQ_SUCCESS;
     }
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
@@ -1051,27 +1074,42 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     bool hasEventPacket = false;
     bool hasDataPacket = true;
 
+    std::scoped_lock lockPacketReceived(packetReceivedMutex);
     std::unique_lock lock(notify.mutex);
     if (portDisconnected)
     {
         return OPENDAQ_SUCCESS;
     }
 
-    for (auto& signal : signals)
+    if (invalid)
     {
-        if (signal.isFirstPacketEvent())
+        for (auto& signal : signals)
         {
-            hasEventPacket = true;
-            break;
+            signal.skipUntilLastEventPacket();
+            hasEventPacket |= signal.isFirstPacketEvent();
         }
-        hasDataPacket &= (signal.getAvailable(true) != 0);
+        eventInQueue = hasEventPacket;
     }
+    else
+    {
+        for (auto& signal : signals)
+        {
+            if (signal.isFirstPacketEvent())
+            {
+                hasEventPacket = true;
+                break;
+            }
+            hasDataPacket &= (signal.getAvailable(true) != 0);
+        }
+    }
+
 
     if (hasEventPacket || hasDataPacket)
     {
         ProcedurePtr callback = readCallback;
         lock.unlock();
         notify.condition.notify_one();
+
         if (callback.assigned())
         {
             return wrapHandler(callback);

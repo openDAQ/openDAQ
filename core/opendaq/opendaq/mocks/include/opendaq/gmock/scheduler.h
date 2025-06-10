@@ -35,4 +35,8 @@ struct MockScheduler : daq::ImplementationOf<daq::IScheduler>
     MOCK_METHOD(daq::ErrCode, stop, (), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, waitAll, (), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, isMultiThreaded, (daq::Bool* multiThreaded), (override MOCK_CALL));
+
+    MOCK_METHOD(daq::ErrCode, mainLoop, (), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, isMainLoopRunning, (daq::Bool* running), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, scheduleWorkOnMainThread, (daq::IWork* work), (override MOCK_CALL));
 };

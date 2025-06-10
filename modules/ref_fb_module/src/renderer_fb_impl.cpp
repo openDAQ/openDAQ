@@ -12,7 +12,7 @@
 #include <opendaq/thread_name.h>
 #include <date/date.h>
 #include <iomanip>
-
+#include <opendaq/work_factory.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -36,7 +36,8 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent
     updateInputPorts();
 
     LOGP_D("Starting render thread")
-    renderThread = std::thread{ &RendererFbImpl::renderLoop, this };
+    initializeRenderer();
+    // renderThread = std::thread{ &RendererFbImpl::renderLoop, this };
 }
 
 void RendererFbImpl::stopRendering()
@@ -52,7 +53,7 @@ RendererFbImpl::~RendererFbImpl()
 {
     stopRendering();
 
-    renderThread.join();
+    // renderThread.join();
     LOGP_D("Render thread stopped")
 }
 
@@ -737,73 +738,74 @@ void RendererFbImpl::updateSingleXAxis() {
     }
 }
 
-void RendererFbImpl::renderLoop()
+void RendererFbImpl::initializeRenderer()
 {
-    daqNameThread("Renderer");
-
     unsigned int width;
     unsigned int height;
     getWidthAndHeight(width, height);
-    sf::RenderWindow window{sf::VideoMode({width, height}), "Renderer", sf::Style::Close | sf::Style::Titlebar};
+    window = std::make_unique<sf::RenderWindow>(sf::VideoMode({width, height}), "Renderer", sf::Style::Close | sf::Style::Titlebar);
     topLeft = sf::Vector2(0.0f, 0.0f);
     bottomRight = sf::Vector2f(width, height);
 
-    sf::Font font;
-    if (!font.loadFromMemory(ARIAL_TTF, sizeof(ARIAL_TTF)))
+    font = std::make_unique<sf::Font>();
+    if (!font->loadFromMemory(ARIAL_TTF, sizeof(ARIAL_TTF)))
     {
         setComponentStatusWithMessage(ComponentStatus::Error, "Failed to load font");
         throw std::runtime_error("Failed to load font");
     }
-        
 
-    auto lock = getUniqueLock();
-    const auto defaultWaitTime = std::chrono::milliseconds(20);
-    auto waitTime = defaultWaitTime;
-    while (!stopRender && window.isOpen())
+    defaultWaitTime = std::chrono::milliseconds(20);
+    waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
+    renderLoop();
+}
+
+void RendererFbImpl::renderLoop()
+{
+    // daqNameThread("Renderer");
+    if (stopRender || !window->isOpen())
     {
-        cv.wait_for(lock, waitTime);
-        auto t1 = std::chrono::steady_clock::now();
-        if (!stopRender && window.isOpen())
-        {
-            if (resChanged)
-            {
-                resChanged = false;
-                resize(window);
-            }
-
-            sf::Event event{};
-            while (window.pollEvent(event))
-            {
-                if (event.type == sf::Event::Closed)
-                    window.close();
-            }
-
-            processSignalContexts();
-
-            window.clear();
-
-            updateSingleXAxis();
-
-            if (singleXAxis)
-                prepareSingleXAxis();
-            renderAxes(window, font);
-            renderSignals(window, font);
-
-            window.display();
-
-            setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
-            futureComponentStatus = ComponentStatus::Ok;
-            futureComponentMessage = "";
-        }
-        auto t2 = std::chrono::steady_clock::now();
-
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
-        waitTime = defaultWaitTime - duration;
-        if (waitTime < std::chrono::milliseconds(1))
-            waitTime = std::chrono::milliseconds(1);
+        resChanged = false;
+        return;
     }
 
-    resChanged = false;
+    this->context.getScheduler().scheduleWorkOnMainThread(Work([this]
+    {
+        renderLoop();
+    }));
+
+    if (std::chrono::steady_clock::now() < waitTime)
+        return;
+    waitTime += defaultWaitTime;
+
+    if (resChanged)
+    {
+        resChanged = false;
+        resize(*window);
+    }
+
+    sf::Event event{};
+    while (window->pollEvent(event))
+    {
+        if (event.type == sf::Event::Closed)
+            window->close();
+    }
+
+    processSignalContexts();
+
+    window->clear();
+
+    updateSingleXAxis();
+
+    if (singleXAxis)
+        prepareSingleXAxis();
+    renderAxes(*window, *font);
+    renderSignals(*window, *font);
+
+    window->display();
+
+    setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
+    futureComponentStatus = ComponentStatus::Ok;
+    futureComponentMessage = "";
 }
 
 void RendererFbImpl::resize(sf::RenderWindow& window)

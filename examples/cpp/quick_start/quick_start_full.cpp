@@ -1,10 +1,31 @@
 #include <opendaq/opendaq.h>
+#include <opendaq/work_factory.h>
 #include <iostream>
 #include <chrono>
 #include <thread>
 
 using namespace std::literals::chrono_literals;
 using namespace date;
+
+std::chrono::milliseconds defaultWaitTime(25);
+std::chrono::steady_clock::time_point waitTime;
+
+void adjustAmplitude(const daq::SchedulerPtr& scheduler, const daq::ChannelPtr& channel, double& amplStep)
+{
+    scheduler->scheduleWorkOnMainThread(daq::Work([&]()
+    {
+        adjustAmplitude(scheduler, channel, amplStep);
+    }));
+
+    if (waitTime > std::chrono::steady_clock::now())
+        return;
+    waitTime += defaultWaitTime;
+
+    const double ampl = channel.getPropertyValue("Amplitude");
+    if (9.95 < ampl || ampl < 1.05)
+        amplStep *= -1;
+    channel.setPropertyValue("Amplitude", ampl + amplStep);
+}
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
@@ -120,17 +141,12 @@ int main(int /*argc*/, const char* /*argv*/[])
     channel.setPropertyValue("Frequency", 5);
     // Set the noise amplitude to 0.75
     channel.setPropertyValue("NoiseAmplitude", 0.75);
-
     // Modulate the signal amplitude by a step of 0.1 every 25ms.
     double amplStep = 0.1;
-    for (int i = 0; i < 200; ++i)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(25));
-        const double ampl = channel.getPropertyValue("Amplitude");
-        if (9.95 < ampl || ampl < 1.05)
-            amplStep *= -1;
-        channel.setPropertyValue("Amplitude", ampl + amplStep);
-    }
+    auto scheduler = instance.getContext().getScheduler();
+    adjustAmplitude(scheduler, channel, amplStep);
+    waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
+    scheduler.mainLoop();
 
     return 0;
 }

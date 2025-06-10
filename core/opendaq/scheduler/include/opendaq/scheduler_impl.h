@@ -31,27 +31,30 @@ BEGIN_NAMESPACE_OPENDAQ
 class MainThreadWorker
 {
 public:
-    MainThreadWorker()
-        :stop(false)
-    {
-    }
+    MainThreadWorker() = default;
     
     ~MainThreadWorker()
     {
+        stop();
+    }
+
+    void stop()
+    {
         {
             std::lock_guard<std::mutex> lock(mutex);
-            stop = true;
+            running = false;
         }
         cv.notify_all();
     }
 
-    void start()
+    void run()
     {
+        running = true;
         while(true)
         {
             std::unique_lock<std::mutex> lock(mutex);
-            cv.wait(lock, [this] { return stop || !workQueue.empty(); });
-            if (stop)
+            cv.wait(lock, [this] { return !workQueue.empty() || !running; });
+            if (!running)
                 return;
             auto work = std::move(workQueue.front());
             workQueue.pop_front();
@@ -60,6 +63,12 @@ public:
             lock.lock();
         }
     }
+
+    bool isRunning() const
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return running;
+    } 
 
     ErrCode execute(IWork* work)
     {
@@ -73,10 +82,10 @@ public:
     }
 
 private:
-    std::mutex mutex;
+    mutable std::mutex mutex;
     std::condition_variable cv;
     std::deque<WorkPtr> workQueue;
-    bool stop = false;
+    bool running {false};
 };
 
 class SchedulerImpl final : public ImplementationOf<IScheduler>

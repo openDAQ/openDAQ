@@ -36,6 +36,7 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers)
                           : throw ArgumentNullException("Logger must not be null"))
     , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers,
                std::make_shared<CustomWorkerInterface>()))
+    , mainThreadWorker(std::make_unique<MainThreadWorker>())
 {
     LOG_D("Starting scheduler with {} workers.", executor->num_workers())
 }
@@ -146,17 +147,16 @@ std::size_t SchedulerImpl::getWorkerCount() const
 }
 
 ErrCode SchedulerImpl::mainLoop()
-{
-    if (mainThreadWorker)
-        return OPENDAQ_IGNORED;
-    
-    mainThreadWorker = std::make_unique<MainThreadWorker>();
+{    
+    mainThreadWorker->run();
     return OPENDAQ_SUCCESS;
 }
 ErrCode SchedulerImpl::isMainLoopRunning(Bool* running)
 {
     OPENDAQ_PARAM_NOT_NULL(running);
-    *running = mainThreadWorker != nullptr;
+    *running = false;
+    if (mainThreadWorker)
+        *running = mainThreadWorker->isRunning() ? True : False;
     return OPENDAQ_SUCCESS;
 }
 ErrCode SchedulerImpl::scheduleWorkOnMainThread(IWork* work)

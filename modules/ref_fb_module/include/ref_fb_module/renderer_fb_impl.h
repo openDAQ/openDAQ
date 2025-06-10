@@ -133,6 +133,11 @@ protected:
     void removed() override;
 
 private:
+    std::unique_ptr<sf::RenderWindow> window;
+    std::unique_ptr<sf::Font> font;
+    std::chrono::milliseconds defaultWaitTime;
+    std::chrono::steady_clock::time_point waitTime;
+
     std::vector<SignalContext> signalContexts;
     std::thread renderThread;
     std::condition_variable cv;
@@ -267,6 +272,7 @@ private:
     void stopRendering();
 
     void updateSingleXAxis();
+    void initializeRenderer();
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

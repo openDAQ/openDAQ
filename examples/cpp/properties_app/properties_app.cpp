@@ -99,155 +99,164 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Create an Instance, loading modules in the default module path
     const InstancePtr instance = Instance();
 
-    // Add Function Block by type ID
-    auto fb = instance.addFunctionBlock("PropertiesFb");
+    // PROPERTIES FUNCTION BLOCK 1 DEMO
+    {
+        // Add Function Block by type ID
+        auto fb1 = instance.addFunctionBlock("PropertiesFb1");
 
-    // Print before modifications
-    std::cout << "\nBefore modifications:\n";
-    print(fb);
+        // Print before modifications
+        std::cout << "\nBefore modifications:\n";
+        print(fb1);
 
-    // Make modifications
-    std::cout << "\nDuring setting property values:\n\n";
+        // Make modifications
+        std::cout << "\nDuring setting property values:\n\n";
 
-    // Bool
-    fb.setPropertyValue("Bool", true);
+        // Bool
+        fb1.setPropertyValue("Bool", true);
 
-    // Int
-    fb.setPropertyValue("Int", 100);
+        // Int
+        fb1.setPropertyValue("Int", 100);
 
-    // Float
-    fb.setPropertyValue("Float", 3.14);
+        // Float
+        fb1.setPropertyValue("Float", 3.14);
 
-    // String
-    fb.setPropertyValue("String", "Hello openDAQ");
+        // String
+        fb1.setPropertyValue("String", "Hello openDAQ");
 
-    // Ratio
-    fb.setPropertyValue("Ratio", Ratio(1, 2));
+        // Ratio
+        fb1.setPropertyValue("Ratio", Ratio(1, 2));
 
-    // List
-    auto list = List<IInteger>();
-    list.pushBack(32);
-    list.pushBack(64);
-    fb.setPropertyValue("List", list);
-    std::cout << "Second element in list: " << fb.getPropertyValue("List[1]") << "\n";
+        // Register callback for single property read
+        fb1.getOnPropertyValueRead("Bool") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Bool read\n"; };
 
-    // Dictionary
-    auto dict = Dict<IString, IString>();
-    dict["key1"] = "Horse";
-    dict["key2"] = "Tired";
-    fb.setPropertyValue("Dict", dict);
+        // Register callback for any property read/writes
+        fb1.getOnAnyPropertyValueRead() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something read\n"; };
+        fb1.getOnAnyPropertyValueWrite() +=
+            [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something written\n"; };
 
-    // Struct
-    auto manager = instance.getContext().getTypeManager();
-    auto stru = StructBuilder("Struct", manager).set("Int", 100).set("String", "openDAQ").build();
-    fb.setPropertyValue("Struct", stru);
+        // Test callbacks
+        auto dummyBool = fb1.getPropertyValue("Bool");
+        fb1.setPropertyValue("Int", 3);
+    }
 
-    // Struct modification via builder
-    StructPtr struMod = fb.getPropertyValue("Struct");
-    auto structBuild = StructBuilder(struMod).set("Int", 200).set("String", "openDAQ modified").build();
-    fb.setPropertyValue("Struct", structBuild);
+    // PROPERTIES FUNCTION BLOCK 2 DEMO
+    {
+        // Add Function Block by type ID
+        auto fb2 = instance.addFunctionBlock("PropertiesFb2");
 
-    // Enumeration
-    auto enumVal = Enumeration("Enum", "Third", manager);
-    fb.setPropertyValue("Enum", enumVal);
+        // List
+        auto list = List<IInteger>();
+        list.pushBack(32);
+        list.pushBack(64);
+        fb2.setPropertyValue("List", list);
+        std::cout << "Second element in list: " << fb2.getPropertyValue("List[1]") << "\n";
 
-    // Procedure
-    ProcedurePtr oldProc = fb.getPropertyValue("Procedure");
-    oldProc(42);
-    auto proc = Procedure([](IntegerPtr a) { std::cout << "New procedure called with: " << a << "\n"; });
-    fb.setPropertyValue("Procedure", proc);
-    ProcedurePtr newProc = fb.getPropertyValue("Procedure");
-    newProc(42);
+        // Dictionary
+        auto dict = Dict<IString, IString>();
+        dict["key1"] = "Horse";
+        dict["key2"] = "Tired";
+        fb2.setPropertyValue("Dict", dict);
 
-    // Function
-    FunctionPtr oldFun = fb.getPropertyValue("FunctionObject.Function");
-    auto res = oldFun(2, 3);
-    std::cout << "Old function result (2 + 3): " << res << "\n";
-    auto fun = Function(
-        [](IntegerPtr a, IntegerPtr b)
+        // Struct
+        auto manager = instance.getContext().getTypeManager();
+        auto stru = StructBuilder("Struct", manager).set("Int", 100).set("String", "openDAQ").build();
+        fb2.setPropertyValue("Struct", stru);
+
+        // Struct modification via builder
+        StructPtr struMod = fb2.getPropertyValue("Struct");
+        auto structBuild = StructBuilder(struMod).set("Int", 200).set("String", "openDAQ modified").build();
+        fb2.setPropertyValue("Struct", structBuild);
+
+        // Enumeration
+        auto enumVal = Enumeration("Enum", "Third", manager);
+        fb2.setPropertyValue("Enum", enumVal);
+
+        // Procedure
+        ProcedurePtr oldProc = fb2.getPropertyValue("Procedure");
+        oldProc(42);
+        auto proc = Procedure([](IntegerPtr a) { std::cout << "New procedure called with: " << a << "\n"; });
+        fb2.setPropertyValue("Procedure", proc);
+        ProcedurePtr newProc = fb2.getPropertyValue("Procedure");
+        newProc(42);
+
+        // Function
+        FunctionPtr oldFun = fb2.getPropertyValue("FunctionObject.Function");
+        auto res = oldFun(2, 3);
+        std::cout << "Old function result (2 + 3): " << res << "\n";
+        auto fun = Function(
+            [](IntegerPtr a, IntegerPtr b)
+            {
+                std::cout << "New function called\n";
+                return a * b;
+            });
+        fb2.setPropertyValue("FunctionObject.Function", fun);
+        FunctionPtr newFun = fb2.getPropertyValue("FunctionObject.Function");
+        auto newRes = newFun(2, 3);
+        std::cout << "New function result (2 * 3): " << newRes << "\n";
+
+        // Selection
+        fb2.setPropertyValue("Selection", 2);
+
+        // Sparse selection
+        fb2.setPropertyValue("Sparse", 6);
+
+        // Object
+        fb2.setPropertyValue("Object.InnerObject.Bool", True);
+        fb2.setPropertyValue("Object.Int", 987);
+        fb2.setPropertyValue("Object.Float", 4.44);
+
+        // Property visibility depending on another Property
+        fb2.setPropertyValue("SometimesVisible", 2);
+
+        // Referenced and reference Bool
+        fb2.setPropertyValue("Reference", True);
+
+        // Check if Properties are referenced
+        std::cout << "Referenced is referenced: " << Boolean(fb2.getProperty("Referenced").getIsReferenced()) << "\n";
+        std::cout << "Reference is referenced: " << Boolean(fb2.getProperty("Reference").getIsReferenced()) << "\n";
+
+        // Stubborn Int
+        fb2.setPropertyValue("StubbornInt", 41);  // Will be forced to 43
+
+        // Read-only Int
+        try
         {
-            std::cout << "New function called\n";
-            return a * b;
-        });
-    fb.setPropertyValue("FunctionObject.Function", fun);
-    FunctionPtr newFun = fb.getPropertyValue("FunctionObject.Function");
-    auto newRes = newFun(2, 3);
-    std::cout << "New function result (2 * 3): " << newRes << "\n";
+            fb2.setPropertyValue("ReadOnlyInt", 42);
+        }
+        catch (const std::exception& e)
+        {
+            std::cout << "Exception: " << e.what() << "\n";
+        }
 
-    // Selection
-    fb.setPropertyValue("Selection", 2);
+        // Coerced Int
+        fb2.setPropertyValue("CoercedProp", 4);    // No coercion
+        fb2.setPropertyValue("CoercedProp", 142);  // Coerced to 10
 
-    // Sparse selection
-    fb.setPropertyValue("Sparse", 6);
+        // Validated Int
+        fb2.setPropertyValue("ValidatedProp", 43);  // Valid
+        try
+        {
+            fb2.setPropertyValue("ValidatedProp", 1000);  // Fails validation
+        }
+        catch (const std::exception& e)
+        {
+            std::cout << "Exception: " << e.what() << "\n";
+        }
 
-    // Object
-    fb.setPropertyValue("Object.InnerObject.Bool", True);
-    fb.setPropertyValue("Object.Int", 987);
-    fb.setPropertyValue("Object.Float", 4.44);
+        // Min and max Float
+        fb2.setPropertyValue("MinMaxProp", 101.1);  // Clamped to 100.0
+        fb2.setPropertyValue("MinMaxProp", -1.1);   // Clamped to 0.0
+        fb2.setPropertyValue("MinMaxProp", 50.1);   // Within range
 
-    // Property visibility depending on another Property
-    fb.setPropertyValue("SometimesVisible", 2);
+        // Suggested values Float
+        auto suggested = fb2.getProperty("SuggestedProp").getSuggestedValues();
+        auto selected = suggested[2].asPtrOrNull<IFloat>();
+        fb2.setPropertyValue("SuggestedProp", selected);  // Will set to 3.3, because that's the third suggested value in the module
 
-    // Referenced and reference Bool
-    fb.setPropertyValue("Reference", True);
-
-    // Check if Properties are referenced
-    std::cout << "Referenced is referenced: " << Boolean(fb.getProperty("Referenced").getIsReferenced()) << "\n";
-    std::cout << "Reference is referenced: " << Boolean(fb.getProperty("Reference").getIsReferenced()) << "\n";
-
-    // Stubborn Int
-    fb.setPropertyValue("StubbornInt", 41);  // Will be forced to 43
-
-    // Read-only Int
-    try
-    {
-        fb.setPropertyValue("ReadOnlyInt", 42);
+        // Print after modifications
+        std::cout << "\nAfter modifications:\n";
+        print(fb2);
     }
-    catch (const std::exception& e)
-    {
-        std::cout << "Exception: " << e.what() << "\n";
-    }
-
-    // Coerced Int
-    fb.setPropertyValue("CoercedProp", 4);    // No coercion
-    fb.setPropertyValue("CoercedProp", 142);  // Coerced to 10
-
-    // Validated Int
-    fb.setPropertyValue("ValidatedProp", 43);  // Valid
-    try
-    {
-        fb.setPropertyValue("ValidatedProp", 1000);  // Fails validation
-    }
-    catch (const std::exception& e)
-    {
-        std::cout << "Exception: " << e.what() << "\n";
-    }
-
-    // Min and max Float
-    fb.setPropertyValue("MinMaxProp", 101.1);  // Clamped to 100.0
-    fb.setPropertyValue("MinMaxProp", -1.1);   // Clamped to 0.0
-    fb.setPropertyValue("MinMaxProp", 50.1);   // Within range
-
-    // Suggested values Float
-    auto suggested = fb.getProperty("SuggestedProp").getSuggestedValues();
-    auto selected = suggested[2].asPtrOrNull<IFloat>();
-    fb.setPropertyValue("SuggestedProp", selected);  // Will set to 3.3, because that's the third suggested value in the module
-
-    // Print after modifications
-    std::cout << "\nAfter modifications:\n";
-    print(fb);
-
-    // Register callback for single property read
-    fb.getOnPropertyValueRead("Bool") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Bool read\n"; };
-
-    // Register callback for any property read/writes
-    fb.getOnAnyPropertyValueRead() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something read\n"; };
-    fb.getOnAnyPropertyValueWrite() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something written\n"; };
-
-    // Test callbacks
-    auto dummyBool = fb.getPropertyValue("Bool");
-    fb.setPropertyValue("Int", 3);
-
     // Gracefully exit
     std::cout << "Press \"enter\" to exit the application...\n";
     std::cin.get();

@@ -1,6 +1,7 @@
 #include <coretypes/version_info_factory.h>
 #include <opendaq/custom_log.h>
-#include <properties_module/properties_fb.h>
+#include <properties_module/properties_fb_1.h>
+#include <properties_module/properties_fb_2.h>
 #include <properties_module/properties_module.h>
 #include <properties_module/version.h>
 
@@ -18,8 +19,11 @@ DictPtr<IString, IFunctionBlockType> PropertiesModule::onGetAvailableFunctionBlo
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
-    const auto propertiesType = PropertiesFb::CreateType();
-    types.set(propertiesType.getId(), propertiesType);
+    const auto propertiesType1 = PropertiesFb1::CreateType();
+    types.set(propertiesType1.getId(), propertiesType1);
+
+    const auto propertiesType2 = PropertiesFb2::CreateType();
+    types.set(propertiesType2.getId(), propertiesType2);
 
     return types;
 }
@@ -29,9 +33,14 @@ FunctionBlockPtr PropertiesModule::onCreateFunctionBlock(const StringPtr& id,
                                                          const StringPtr& localId,
                                                          const PropertyObjectPtr& /*config*/)
 {
-    if (id == PropertiesFb::CreateType().getId())
+    if (id == PropertiesFb1::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb1>(context, parent, localId);
+        return fb;
+    }
+    if (id == PropertiesFb2::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb2>(context, parent, localId);
         return fb;
     }
 

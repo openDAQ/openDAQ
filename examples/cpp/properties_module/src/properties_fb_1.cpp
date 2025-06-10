@@ -1,7 +1,7 @@
 #include <properties_module/properties_fb_1.h>
+#include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
-
 PropertiesFb1::PropertiesFb1(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
@@ -31,6 +31,24 @@ void PropertiesFb1::initProperties()
     // Ratio - used for properties that hold ratios, like fractions, proportions, etc.
     auto ratioProp = RatioProperty("Ratio", Ratio(1, 12));
     objPtr.addProperty(ratioProp);
+
+    // Min and max Float
+    auto minMaxProp = FloatPropertyBuilder("MinMaxProp", 50.0).setMinValue(0.0).setMaxValue(100.0).build();
+    objPtr.addProperty(minMaxProp);
+
+    // Suggested values Float
+    auto suggestedProp = FloatPropertyBuilder("SuggestedProp", 2.2).setSuggestedValues(List<IFloat>(1.1, 2.2, 3.3)).build();
+    objPtr.addProperty(suggestedProp);
+
+    // Stubborn Int (always sets to 43)
+    auto stubbornProp = IntProperty("StubbornInt", 43);
+    objPtr.addProperty(stubbornProp);
+    // We can add callbacks in the module or in the application
+    objPtr.getOnPropertyValueWrite("StubbornInt") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+    {
+        args.setValue(43);  // Force value to 43
+        std::cout << "StubbornInt changed to: " << args.getValue() << "\n";
+    };
 }
 
 FunctionBlockTypePtr PropertiesFb1::CreateType()

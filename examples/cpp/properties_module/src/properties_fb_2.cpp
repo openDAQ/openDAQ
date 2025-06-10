@@ -24,12 +24,10 @@ void PropertiesFb2::initProperties()
     dict["key2"] = "Cake";
     dict["key3"] = "Lady";
     auto dictProp = DictProperty("Dict", dict);
-
-    // Dictionary with custom callback
     objPtr.addProperty(dictProp);
 
     // Struct - used for grouping multiple properties of different types
-    auto manager = context.getTypeManager();
+    auto manager = context.getTypeManager();  // Struct type must be registered before creating the Struct
     manager.addType(StructType("Struct", List<IString>("Int", "String"), List<IType>(SimpleType(ctInt), SimpleType(ctString))));
     auto stru = StructBuilder("Struct", manager).set("Int", 42).set("String", "Flowers").build();
     auto structProp = StructProperty("Struct", stru);
@@ -40,7 +38,7 @@ void PropertiesFb2::initProperties()
     enumNames.pushBack("First");
     enumNames.pushBack("Second");
     enumNames.pushBack("Third");
-    manager.addType(EnumerationType("Enum", enumNames));
+    manager.addType(EnumerationType("Enum", enumNames));  // Must be registered before creating the Enumeration
     auto enu = Enumeration("Enum", "Second", manager);
     auto enumProp = EnumerationProperty("Enum", enu);
     objPtr.addProperty(enumProp);
@@ -58,6 +56,7 @@ void PropertiesFb2::initProperties()
     funObj.addProperty(funProp);
 
     // Explicit permissions for function execution - used for controlling access to the function
+    // TODO: this is not used in the example (we don't add any servers, etc.), but it can be useful for more complex scenarios
     auto permissions = PermissionsBuilder()
                            .inherit(false)
                            .assign("everyone", PermissionMaskBuilder().read())
@@ -117,16 +116,9 @@ void PropertiesFb2::initProperties()
                                         .build();
     objPtr.addProperty(sometimesVisibleProperty);
 
-    // Stubborn Int (always sets to 43)
-    auto stubbornProp = IntProperty("StubbornInt", 42);
-
-    // This one has a special callback
-    objPtr.addProperty(stubbornProp);
-
     // Read-only Int
     auto readOnlyProp = IntPropertyBuilder("ReadOnlyInt", 42).setReadOnly(true).build();
     objPtr.addProperty(readOnlyProp);
-    // No point in adding an on-write callback for a read-only property, as it cannot be changed by the user
 
     // Coerced Int
     auto coercedProp = IntPropertyBuilder("CoercedProp", 5).setCoercer(Coercer("if(Value > 10, 10, Value)")).build();
@@ -135,14 +127,6 @@ void PropertiesFb2::initProperties()
     // Validated Int
     auto validatedProp = IntPropertyBuilder("ValidatedProp", 42).setValidator(Validator("Value < 100")).build();
     objPtr.addProperty(validatedProp);
-
-    // Min and max Float
-    auto minMaxProp = FloatPropertyBuilder("MinMaxProp", 0.0).setMinValue(0.0).setMaxValue(100.0).build();
-    objPtr.addProperty(minMaxProp);
-
-    // Suggested values Float
-    auto suggestedProp = FloatPropertyBuilder("SuggestedProp", 2.2).setSuggestedValues(List<IFloat>(1.1, 2.2, 3.3)).build();
-    objPtr.addProperty(suggestedProp);
 }
 
 FunctionBlockTypePtr PropertiesFb2::CreateType()

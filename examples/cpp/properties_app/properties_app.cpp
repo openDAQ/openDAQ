@@ -126,8 +126,23 @@ int main(int /*argc*/, const char* /*argv*/[])
         // Ratio
         fb1.setPropertyValue("Ratio", Ratio(1, 2));
 
+        // Min and max Float
+        fb1.setPropertyValue("MinMaxProp", 101.1);  // Clamped to 100.0
+        fb1.setPropertyValue("MinMaxProp", -1.1);   // Clamped to 0.0
+        fb1.setPropertyValue("MinMaxProp", 50.1);   // Within range
+
+        // Suggested values Float
+        auto suggested = fb1.getProperty("SuggestedProp").getSuggestedValues();
+        auto selected = suggested[2].asPtrOrNull<IFloat>();
+        fb1.setPropertyValue("SuggestedProp", selected);  // Will set to 3.3, because that's the third suggested value in the module
+
+        // Stubborn Int
+        fb1.setPropertyValue("StubbornInt", 41);  // Will be forced to 43
+
         // Register callback for single property read
         fb1.getOnPropertyValueRead("Bool") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Bool read\n"; };
+        fb1.getOnPropertyValueWrite("Int") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+        { std::cout << "Int written with value: " << args.getValue() << "\n"; };
 
         // Register callback for any property read/writes
         fb1.getOnAnyPropertyValueRead() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something read\n"; };
@@ -215,9 +230,6 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cout << "Referenced is referenced: " << Boolean(fb2.getProperty("Referenced").getIsReferenced()) << "\n";
         std::cout << "Reference is referenced: " << Boolean(fb2.getProperty("Reference").getIsReferenced()) << "\n";
 
-        // Stubborn Int
-        fb2.setPropertyValue("StubbornInt", 41);  // Will be forced to 43
-
         // Read-only Int
         try
         {
@@ -242,16 +254,6 @@ int main(int /*argc*/, const char* /*argv*/[])
         {
             std::cout << "Exception: " << e.what() << "\n";
         }
-
-        // Min and max Float
-        fb2.setPropertyValue("MinMaxProp", 101.1);  // Clamped to 100.0
-        fb2.setPropertyValue("MinMaxProp", -1.1);   // Clamped to 0.0
-        fb2.setPropertyValue("MinMaxProp", 50.1);   // Within range
-
-        // Suggested values Float
-        auto suggested = fb2.getProperty("SuggestedProp").getSuggestedValues();
-        auto selected = suggested[2].asPtrOrNull<IFloat>();
-        fb2.setPropertyValue("SuggestedProp", selected);  // Will set to 3.3, because that's the third suggested value in the module
 
         // Print after modifications
         std::cout << "\nAfter modifications:\n";

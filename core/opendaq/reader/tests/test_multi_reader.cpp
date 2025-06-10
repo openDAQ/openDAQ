@@ -2229,6 +2229,7 @@ TEST_F(MultiReaderTest, MultiReaderTimeoutWhenDataAvailable)
     sig1.createAndSendPacket(0);
     sig2.createAndSendPacket(0);
 
+    std::this_thread::sleep_for(1s);
     ASSERT_EQ(multireader.getAvailableCount(), 10);
 
     count = SizeT(sig0.packetSize);

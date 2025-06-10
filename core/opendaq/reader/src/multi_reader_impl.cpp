@@ -47,7 +47,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
         checkEarlyPreconditionsAndCacheContext(list);
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
         bool fromInputPorts;
-        auto ports = checkPreconditions(list, true, fromInputPorts);
+        auto ports = checkPreconditions(list, fromInputPorts);
 
         if (fromInputPorts)
             portBinder = PropertyObject();
@@ -61,6 +61,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     }
 }
 
+// From old
 MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType, SampleType domainReadType)
     : loggerComponent(old->loggerComponent)
 {
@@ -75,15 +76,11 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     requiredCommonSampleRate = old->requiredCommonSampleRate;
     mainValueDescriptor = old->mainValueDescriptor;
     mainDomainDescriptor = old->mainDomainDescriptor;
-
-    auto oldSignals = old->getSignals();
-    checkEarlyPreconditionsAndCacheContext(oldSignals);
+    context = old->context;
     
     this->internalAddRef();
     try
     {
-        bool fromInputPorts;
-        checkPreconditions(oldSignals, false, fromInputPorts);
         auto listener = this->thisPtr<InputPortNotificationsPtr>();
         for (auto& signal : old->signals)
         {
@@ -116,7 +113,7 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
         checkEarlyPreconditionsAndCacheContext(sourceComponents);
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
         bool fromInputPorts;
-        auto ports = checkPreconditions(sourceComponents, false, fromInputPorts);
+        auto ports = checkPreconditions(sourceComponents, fromInputPorts);
 
         if (fromInputPorts)
             portBinder = PropertyObject();
@@ -358,7 +355,7 @@ void MultiReaderImpl::checkEarlyPreconditionsAndCacheContext(const ListPtr<IComp
     context = list[0].getContext();
 }
 
-ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts)
+ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<IComponent>& list, bool& fromInputPorts)
 {
     bool haveInputPorts = false;
     bool haveSignals = false;
@@ -375,7 +372,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
             haveSignals = true;
 
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
-            port.setNotificationMethod(PacketReadyNotification::SameThread);
+            port.setNotificationMethod(PacketReadyNotification::Scheduler);
             port.setListener(listener);
             port.connect(signal);
             portList.pushBack(port);
@@ -384,10 +381,13 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         {
             if (haveSignals)
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
-            haveInputPorts = true;
-
-            if (overrideMethod)
+            if (port.getNotificationMethod() == PacketReadyNotification::None)
+            {
+                LOG_W("Port with ID {} has input port notification set to 'None', overriding with 'Scheduler' mode", port.getLocalId());
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);
+            }
+
+            haveInputPorts = true;
             portList.pushBack(port);
         }
         else

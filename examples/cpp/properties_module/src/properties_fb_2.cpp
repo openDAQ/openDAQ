@@ -11,22 +11,14 @@ PropertiesFb2::PropertiesFb2(const ContextPtr& ctx, const ComponentPtr& par, con
     initProperties();
 }
 
-void PropertiesFb2::addPropertyAndCallback(const PropertyPtr& prop)
-{
-    objPtr.addProperty(prop);
-    auto name = prop.getName();
-    objPtr.getOnPropertyValueWrite(name) += [name](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
-    { std::cout << name << " changed to: " << args.getValue() << "\n"; };
-}
-
 void PropertiesFb2::initProperties()
 {
-    // List (may contain other types)
+    // List (may contain other types) - used for storing multiple values of the same type
     auto list = List<IInteger>();
     auto listProp = ListProperty("List", list);
-    addPropertyAndCallback(listProp);
+    objPtr.addProperty(listProp);
 
-    // Dictionary (associative array, key-value pairs, may contain other types)
+    // Dictionary - used for storing key-value pairs
     auto dict = Dict<IString, IString>();
     dict["key1"] = "Cheese";
     dict["key2"] = "Cake";
@@ -35,24 +27,15 @@ void PropertiesFb2::initProperties()
 
     // Dictionary with custom callback
     objPtr.addProperty(dictProp);
-    objPtr.getOnPropertyValueWrite("Dict") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
-    {
-        DictPtr<IString, IString> dict = args.getValue();
-        std::cout << "Dict changed to: " << "\n";
-        for (const auto& item : dict)
-        {
-            std::cout << "  " << item.first << ": " << item.second << "\n";
-        }
-    };
 
-    // Struct
+    // Struct - used for grouping multiple properties of different types
     auto manager = context.getTypeManager();
     manager.addType(StructType("Struct", List<IString>("Int", "String"), List<IType>(SimpleType(ctInt), SimpleType(ctString))));
     auto stru = StructBuilder("Struct", manager).set("Int", 42).set("String", "Flowers").build();
     auto structProp = StructProperty("Struct", stru);
-    addPropertyAndCallback(structProp);
+    objPtr.addProperty(structProp);
 
-    // Enumeration
+    // Enumeration - used for defining a set of named values (such as values for a drop-down menu)
     auto enumNames = List<IString>();
     enumNames.pushBack("First");
     enumNames.pushBack("Second");
@@ -60,21 +43,21 @@ void PropertiesFb2::initProperties()
     manager.addType(EnumerationType("Enum", enumNames));
     auto enu = Enumeration("Enum", "Second", manager);
     auto enumProp = EnumerationProperty("Enum", enu);
-    addPropertyAndCallback(enumProp);
+    objPtr.addProperty(enumProp);
 
-    // Procedure
+    // Procedure - used for defining a callable procedure with arguments (doesn't return anything)
     auto procProp = FunctionProperty("Procedure", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("a", ctInt))));
-    addPropertyAndCallback(procProp);
+    objPtr.addProperty(procProp);
     auto proc = Procedure([](IntegerPtr a) { std::cout << "Procedure called with: " << a << "\n"; });
     objPtr.setPropertyValue("Procedure", proc);
 
-    // Protected nested Function
+    // Protected nested Function - used for defining a callable function with arguments and a return value
     auto funObj = PropertyObject();
     auto funProp =
         FunctionProperty("Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("a", ctInt), ArgumentInfo("b", ctInt))));
     funObj.addProperty(funProp);
 
-    // Explicit permissions for function execution
+    // Explicit permissions for function execution - used for controlling access to the function
     auto permissions = PermissionsBuilder()
                            .inherit(false)
                            .assign("everyone", PermissionMaskBuilder().read())
@@ -90,25 +73,25 @@ void PropertiesFb2::initProperties()
         });
     funObj.setPropertyValue("Function", fun);
 
-    // Callback for nested function property
+    // Callback for nested function property - used for handling changes to the function property
     funObj.getOnPropertyValueWrite("Function") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
     { std::cout << "Nested Function changed to: " << args.getValue() << "\n"; };
 
-    addPropertyAndCallback(funObjProp);
+    objPtr.addProperty(funObjProp);
 
-    // Selection
+    // Selection - used for selecting one value from a list of options
     auto selectionProp = SelectionProperty("Selection", List<IUnit>(Unit("FirstUnit"), Unit("SecondUnit"), Unit("ThirdUnit")), 1);
-    addPropertyAndCallback(selectionProp);
+    objPtr.addProperty(selectionProp);
 
-    // Sparse selection
+    // Sparse selection - used for selecting one value from a sparse set of options
     auto selection = Dict<Int, IString>();
     selection.set(4, "First");
     selection.set(5, "Second");
     selection.set(6, "Third");
     auto sparseProp = SparseSelectionProperty("Sparse", selection, 4);
-    addPropertyAndCallback(sparseProp);
+    objPtr.addProperty(sparseProp);
 
-    // Object
+    // Object - used for grouping multiple properties of different types, including nested objects
     auto innerObj = PropertyObject();
     innerObj.addProperty(BoolProperty("Bool", False));
     auto innerProp = ObjectProperty("InnerObject", innerObj);
@@ -117,33 +100,28 @@ void PropertiesFb2::initProperties()
     propObj.addProperty(IntProperty("Int", 42));
     propObj.addProperty(FloatProperty("Float", 7.2));
     auto objProp = ObjectProperty("Object", propObj);
-    addPropertyAndCallback(objProp);
+    objPtr.addProperty(objProp);
 
-    // Referenced Bool
+    // Referenced Bool - used for demo purposes fo referencing another Property
     auto referencedProp = BoolProperty("Referenced", False);
-    addPropertyAndCallback(referencedProp);
+    objPtr.addProperty(referencedProp);
 
     // Reference Bool, and using EvalValue syntax
     auto referenceProp = ReferenceProperty("Reference", EvalValue("%Referenced"));
-    addPropertyAndCallback(referenceProp);
+    objPtr.addProperty(referenceProp);
 
     // Property visibility depending on another Property, and using EvalValue syntax
     auto sometimesVisibleProperty = IntPropertyBuilder("SometimesVisible", 3)
                                         .setVisible(EvalValue("$Referenced"))  // This will evaluate referenced Property
                                         .setUnit(EvalValue("%Selection:SelectedValue"))
                                         .build();
-    addPropertyAndCallback(sometimesVisibleProperty);
+    objPtr.addProperty(sometimesVisibleProperty);
 
     // Stubborn Int (always sets to 43)
     auto stubbornProp = IntProperty("StubbornInt", 42);
 
     // This one has a special callback
     objPtr.addProperty(stubbornProp);
-    objPtr.getOnPropertyValueWrite("StubbornInt") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
-    {
-        args.setValue(43);  // Force value to 43
-        std::cout << "StubbornInt changed to: " << args.getValue() << "\n";
-    };
 
     // Read-only Int
     auto readOnlyProp = IntPropertyBuilder("ReadOnlyInt", 42).setReadOnly(true).build();
@@ -152,19 +130,19 @@ void PropertiesFb2::initProperties()
 
     // Coerced Int
     auto coercedProp = IntPropertyBuilder("CoercedProp", 5).setCoercer(Coercer("if(Value > 10, 10, Value)")).build();
-    addPropertyAndCallback(coercedProp);
+    objPtr.addProperty(coercedProp);
 
     // Validated Int
     auto validatedProp = IntPropertyBuilder("ValidatedProp", 42).setValidator(Validator("Value < 100")).build();
-    addPropertyAndCallback(validatedProp);
+    objPtr.addProperty(validatedProp);
 
     // Min and max Float
     auto minMaxProp = FloatPropertyBuilder("MinMaxProp", 0.0).setMinValue(0.0).setMaxValue(100.0).build();
-    addPropertyAndCallback(minMaxProp);
+    objPtr.addProperty(minMaxProp);
 
     // Suggested values Float
     auto suggestedProp = FloatPropertyBuilder("SuggestedProp", 2.2).setSuggestedValues(List<IFloat>(1.1, 2.2, 3.3)).build();
-    addPropertyAndCallback(suggestedProp);
+    objPtr.addProperty(suggestedProp);
 }
 
 FunctionBlockTypePtr PropertiesFb2::CreateType()

@@ -31,7 +31,6 @@ public:
 
 private:
     void initProperties();
-    void addPropertyAndCallback(const PropertyPtr& prop);
 };
 
 END_NAMESPACE_PROPERTIES_MODULE

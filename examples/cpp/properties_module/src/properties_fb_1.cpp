@@ -1,7 +1,4 @@
-#include <coreobjects/argument_info_factory.h>
-#include <coreobjects/callable_info_factory.h>
 #include <properties_module/properties_fb_1.h>
-#include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
@@ -11,37 +8,29 @@ PropertiesFb1::PropertiesFb1(const ContextPtr& ctx, const ComponentPtr& par, con
     initProperties();
 }
 
-void PropertiesFb1::addPropertyAndCallback(const PropertyPtr& prop)
-{
-    objPtr.addProperty(prop);
-    auto name = prop.getName();
-    objPtr.getOnPropertyValueWrite(name) += [name](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
-    { std::cout << name << " changed to: " << args.getValue() << "\n"; };
-}
-
 void PropertiesFb1::initProperties()
 {
-    // Bool
+    // Bool - used for properties with two states, like on/off, true/false, etc.
     auto boolProp = BoolPropertyBuilder("Bool", False)
                         .setDescription("A very nice boolean")  //  Description is optional, without it, we could forego using the builder
                         .build();
-    addPropertyAndCallback(boolProp);
+    objPtr.addProperty(boolProp);
 
-    // Int
+    // Int - used for properties that hold integer values, like counts, indices, etc.
     auto intProp = IntPropertyBuilder("Int", 42).setUnit(Unit("Unit")).build();  // Unit is optional
-    addPropertyAndCallback(intProp);
+    objPtr.addProperty(intProp);
 
-    // Float
+    // Float - used for properties that hold floating-point values, like measurements, etc.
     auto floatProp = FloatProperty("Float", 7.2);
-    addPropertyAndCallback(floatProp);
+    objPtr.addProperty(floatProp);
 
-    // String
+    // String - used for properties that hold text values, like names, descriptions, etc.
     auto stringProp = StringProperty("String", "Hello World");
-    addPropertyAndCallback(stringProp);
+    objPtr.addProperty(stringProp);
 
-    // Ratio
+    // Ratio - used for properties that hold ratios, like fractions, proportions, etc.
     auto ratioProp = RatioProperty("Ratio", Ratio(1, 12));
-    addPropertyAndCallback(ratioProp);
+    objPtr.addProperty(ratioProp);
 }
 
 FunctionBlockTypePtr PropertiesFb1::CreateType()

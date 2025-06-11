@@ -47,37 +47,6 @@ class BasicCsvRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRec
     public:
 
         /*!
-         * @brief The type ID of this function block.
-         */
-        static constexpr const char *TYPE_ID = "BasicCsvRecorder";
-
-        /*!
-         * @brief Contains constants for the names of tags assigned to this function block.
-         */
-        struct Tags
-        {
-            /*!
-             * @brief A tag identifying this function block as a recorder.
-             */
-            static constexpr const char *RECORDER = "Recorder";
-        };
-
-        /*!
-         * Contains constants for the names of properties supported by this function block.
-         */
-        struct Props
-        {
-            /*!
-             * @brief The absolute path to the directory where CSV files should be written.
-             *
-             * A separate CSV file is written for each recorded signal. The current implementation
-             * interprets relative paths with respect to the current working directory of the
-             * process, but this behavior is not guaranteed.
-             */
-            static constexpr const char *PATH = "Path";
-        };
-
-        /*!
          * @brief Creates and returns a type object describing this function block.
          * @returns A populated function block type object.
          */

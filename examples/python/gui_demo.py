@@ -178,7 +178,7 @@ class App(tk.Tk):
             print("Scheduler processing error:", e)
 
         # Re-schedule after 50 ms
-        self.after(50, self.poll_opendaq_events)
+        self.after(20, self.poll_opendaq_events)
 
     def init_opendaq(self):
 

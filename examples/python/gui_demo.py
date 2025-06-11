@@ -172,6 +172,11 @@ class App(tk.Tk):
         except Exception as e:
             print("Callback processing error:", e)
 
+        try:
+            self.context.instance.context.scheduler.proccess_main_thread_tasks()
+        except Exception as e:
+            print("Scheduler processing error:", e)
+
         # Re-schedule after 50 ms
         self.after(50, self.poll_opendaq_events)
 

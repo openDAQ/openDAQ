@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/work_ptr.h>
+#include <opendaq/work_repetitive_ptr.h>
 #include <opendaq/work_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -32,8 +33,16 @@ BEGIN_NAMESPACE_OPENDAQ
 template <class Callback>
 WorkPtr Work(Callback&& callback)
 {
-    auto obj = createWithImplementation<IWork, WorkImpl<Callback>>(std::forward<Callback>(callback));
-    return obj;
+    return createWithImplementation<IWork, WorkImpl<Callback>>(std::forward<Callback>(callback));
+}
+
+/*!
+ *  @brief creates a work object, a lightweight implementation of callback used in scheduler for worker tasks.
+ */
+template <class Callback>
+WorkRepetitivePtr WorkRepetitive(Callback&& callback)
+{
+    return createWithImplementation<IWorkRepetitive, WorkRepetitiveImpl<Callback>>(std::forward<Callback>(callback));
 }
 
 /*!@}*/

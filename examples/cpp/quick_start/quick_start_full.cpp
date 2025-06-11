@@ -7,26 +7,6 @@
 using namespace std::literals::chrono_literals;
 using namespace date;
 
-std::chrono::milliseconds defaultWaitTime(25);
-std::chrono::steady_clock::time_point waitTime;
-
-void adjustAmplitude(const daq::SchedulerPtr& scheduler, const daq::ChannelPtr& channel, double& amplStep)
-{
-    scheduler->scheduleWorkOnMainThread(daq::Work([&]()
-    {
-        adjustAmplitude(scheduler, channel, amplStep);
-    }));
-
-    if (waitTime > std::chrono::steady_clock::now())
-        return;
-    waitTime += defaultWaitTime;
-
-    const double ampl = channel.getPropertyValue("Amplitude");
-    if (9.95 < ampl || ampl < 1.05)
-        amplStep *= -1;
-    channel.setPropertyValue("Amplitude", ampl + amplStep);
-}
-
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
@@ -34,15 +14,15 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Find and connect to a simulator device
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
-    for (const auto& deviceInfo : availableDevices)
-    {
-        if (deviceInfo.getName() == "Reference device simulator")
-        {
-            device = instance.addDevice(deviceInfo.getConnectionString());
-            break;
-        }        
-    }
+    daq::DevicePtr device = instance.addDevice("daqref://device0");
+    // for (const auto& deviceInfo : availableDevices)
+    // {
+    //     if (deviceInfo.getName() == "Reference device simulator")
+    //     {
+    //         device = instance.addDevice(deviceInfo.getConnectionString());
+    //         break;
+    //     }        
+    // }
 
     // Exit if no device is found
     if (!device.assigned())
@@ -141,12 +121,27 @@ int main(int /*argc*/, const char* /*argv*/[])
     channel.setPropertyValue("Frequency", 5);
     // Set the noise amplitude to 0.75
     channel.setPropertyValue("NoiseAmplitude", 0.75);
+
     // Modulate the signal amplitude by a step of 0.1 every 25ms.
     double amplStep = 0.1;
     auto scheduler = instance.getContext().getScheduler();
-    adjustAmplitude(scheduler, channel, amplStep);
-    waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
-    scheduler.mainLoop();
 
+    auto defaultWaitTime = std::chrono::milliseconds(25);
+    auto waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
+
+    scheduler.scheduleWorkOnMainThread(daq::WorkRepetitive([&]
+    {
+        if (std::chrono::steady_clock::now() < waitTime)
+            return true;
+        waitTime = waitTime + defaultWaitTime;
+
+        const double ampl = channel.getPropertyValue("Amplitude");
+        if (9.95 < ampl || ampl < 1.05)
+            amplStep *= -1;
+        channel.setPropertyValue("Amplitude", ampl + amplStep);
+
+        return true; // Keep the work running
+    }));
+    scheduler.mainLoop();
     return 0;
 }

@@ -24,12 +24,34 @@
 
 #include <opendaq/task_flow.h>
 #include <opendaq/work_ptr.h>
+#include <opendaq/work_repetitive.h>
+#include <opendaq/scheduler_errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 
 class MainThreadWorker
 {
+    struct WorkWrapper
+    {
+        WorkWrapper(IWork* work)
+            : work(work)
+            , isRepetitive(this->work.supportsInterface<IWorkRepetitive>()) 
+        {}
+
+        bool execute() const
+        {
+            if (isRepetitive)
+                return work->execute() != OPENDAQ_ERR_REPETITIVE_TASK_STOPPED;
+
+            work->execute();
+            return false;
+        }
+
+    private:
+        const WorkPtr work;
+        const bool isRepetitive;
+    };
 public:
     MainThreadWorker() = default;
     
@@ -47,20 +69,36 @@ public:
         cv.notify_all();
     }
 
+    void runIterationNoLock()
+    {
+        for (auto it = workQueue.begin(); it != workQueue.end();)
+        {
+            auto& work = *it;
+            if (work.execute())
+                ++it; 
+            else
+                it = workQueue.erase(it);
+        }
+    }
+
+    void runIteration()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        runIterationNoLock();
+    }
+
     void run()
     {
+        std::unique_lock<std::mutex> lock(mutex);
         running = true;
+
         while(true)
         {
-            std::unique_lock<std::mutex> lock(mutex);
             cv.wait(lock, [this] { return !workQueue.empty() || !running; });
             if (!running)
                 return;
-            auto work = std::move(workQueue.front());
-            workQueue.pop_front();
-            lock.unlock();
-            work->execute();
-            lock.lock();
+
+            runIterationNoLock();
         }
     }
 
@@ -75,16 +113,18 @@ public:
         OPENDAQ_PARAM_NOT_NULL(work);
         {
             std::lock_guard<std::mutex> lock(mutex);
-            workQueue.push_back(WorkPtr(work));
+            workQueue.push_back(WorkWrapper(work));
         }
         cv.notify_one();
         return OPENDAQ_SUCCESS;
     }
 
 private:
+    
+
     mutable std::mutex mutex;
     std::condition_variable cv;
-    std::deque<WorkPtr> workQueue;
+    std::list<WorkWrapper> workQueue;
     bool running {false};
 };
 
@@ -103,7 +143,7 @@ public:
     ErrCode INTERFACE_FUNC waitAll() override;
 
     ErrCode INTERFACE_FUNC mainLoop() override;
-    ErrCode INTERFACE_FUNC isMainLoopRunning(Bool* running) override;
+    ErrCode INTERFACE_FUNC proccessMainThreadTasks() override;
     ErrCode INTERFACE_FUNC scheduleWorkOnMainThread(IWork* work) override;
 
 

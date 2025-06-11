@@ -107,9 +107,9 @@ ErrCode SchedulerImpl::scheduleWork(IWork* work)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SCHEDULER_STOPPED);
 
     executor->silent_async([work = WorkPtr(work)]()
-        {
-            work->execute();
-        });
+    {
+        work->execute();
+    });
 
     return OPENDAQ_SUCCESS;
 }
@@ -151,18 +151,16 @@ ErrCode SchedulerImpl::mainLoop()
     mainThreadWorker->run();
     return OPENDAQ_SUCCESS;
 }
-ErrCode SchedulerImpl::isMainLoopRunning(Bool* running)
+
+ErrCode SchedulerImpl::proccessMainThreadTasks()
 {
-    OPENDAQ_PARAM_NOT_NULL(running);
-    *running = false;
-    if (mainThreadWorker)
-        *running = mainThreadWorker->isRunning() ? True : False;
+    mainThreadWorker->runIteration();
     return OPENDAQ_SUCCESS;
 }
+
 ErrCode SchedulerImpl::scheduleWorkOnMainThread(IWork* work)
 {
-    if (!mainThreadWorker)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Main thread worker is not running");
+    OPENDAQ_PARAM_NOT_NULL(work);
     return mainThreadWorker->execute(work);
 }
 

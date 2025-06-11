@@ -37,7 +37,6 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent
 
     LOGP_D("Starting render thread")
     initializeRenderer();
-    // renderThread = std::thread{ &RendererFbImpl::renderLoop, this };
 }
 
 void RendererFbImpl::stopRendering()
@@ -53,7 +52,8 @@ RendererFbImpl::~RendererFbImpl()
 {
     stopRendering();
 
-    // renderThread.join();
+    if (renderThread.joinable())
+        renderThread.join();
     LOGP_D("Render thread stopped")
 }
 
@@ -756,56 +756,98 @@ void RendererFbImpl::initializeRenderer()
 
     defaultWaitTime = std::chrono::milliseconds(20);
     waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
-    renderLoop();
+
+    auto scheduler = context.getScheduler();
+    auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
+    scheduler.scheduleWorkOnMainThread(WorkRepetitive([this, thisWeakRef = std::move(thisWeakRef)]
+    {
+        const auto thisFb = thisWeakRef.getRef();
+        if (!thisFb.assigned())
+            return false;
+
+        if (stopRender)
+            return false;
+
+        if (std::chrono::steady_clock::now() < waitTime)
+            return true;
+        waitTime += defaultWaitTime;
+
+        if (resChanged)
+        {
+            resChanged = false;
+            resize(*window);
+        }
+
+        sf::Event event{};
+        while (window->pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+                window->close();
+        }
+
+        processSignalContexts();
+
+        window->clear();
+
+        updateSingleXAxis();
+
+        if (singleXAxis)
+            prepareSingleXAxis();
+        renderAxes(*window, *font);
+        renderSignals(*window, *font);
+
+        window->display();
+
+        setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
+        futureComponentStatus = ComponentStatus::Ok;
+        futureComponentMessage = "";
+        return true;
+    }));
+    //renderThread = std::thread{ &RendererFbImpl::renderLoop, this };
 }
 
 void RendererFbImpl::renderLoop()
 {
-    // daqNameThread("Renderer");
-    if (stopRender || !window->isOpen())
+    daqNameThread("Renderer");
+
+    auto lock = getUniqueLock();
+    while (!stopRender && window->isOpen())
     {
-        resChanged = false;
-        return;
+        if (cv.wait_until(lock, waitTime, [this] { return stopRender || !window->isOpen(); }))
+            continue;
+
+        if (resChanged)
+        {
+            resChanged = false;
+            resize(*window);
+        }
+
+        sf::Event event{};
+        while (window->pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+                window->close();
+        }
+
+        processSignalContexts();
+
+        window->clear();
+
+        updateSingleXAxis();
+
+        if (singleXAxis)
+            prepareSingleXAxis();
+        renderAxes(*window, *font);
+        renderSignals(*window, *font);
+
+        window->display();
+
+        setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
+        futureComponentStatus = ComponentStatus::Ok;
+        futureComponentMessage = "";
     }
 
-    this->context.getScheduler().scheduleWorkOnMainThread(Work([this]
-    {
-        renderLoop();
-    }));
-
-    if (std::chrono::steady_clock::now() < waitTime)
-        return;
-    waitTime += defaultWaitTime;
-
-    if (resChanged)
-    {
-        resChanged = false;
-        resize(*window);
-    }
-
-    sf::Event event{};
-    while (window->pollEvent(event))
-    {
-        if (event.type == sf::Event::Closed)
-            window->close();
-    }
-
-    processSignalContexts();
-
-    window->clear();
-
-    updateSingleXAxis();
-
-    if (singleXAxis)
-        prepareSingleXAxis();
-    renderAxes(*window, *font);
-    renderSignals(*window, *font);
-
-    window->display();
-
-    setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
-    futureComponentStatus = ComponentStatus::Ok;
-    futureComponentMessage = "";
+    resChanged = false;
 }
 
 void RendererFbImpl::resize(sf::RenderWindow& window)

@@ -239,6 +239,9 @@ int main(int /*argc*/, const char* /*argv*/[])
         auto newRes = newFun(2, 3);
         std::cout << "New function result (2 * 3): " << newRes << "\n";
 
+        // Object class
+        fb3.setPropertyValue("ClassObject.Integer", 5);
+
         // Print after modifications
         std::cout << "\nFB3 after modifications:\n";
         print(fb3);

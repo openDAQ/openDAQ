@@ -51,11 +51,18 @@ void PropertiesFb3::initProperties()
         });
     funObj.setPropertyValue("Function", fun);
 
-    // Callback for nested function property - used for handling changes to the function property
-    funObj.getOnPropertyValueWrite("Function") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
-    { std::cout << "Nested Function changed to: " << args.getValue() << "\n"; };
-
     objPtr.addProperty(funObjProp);
+
+    // Object class - used for defining a class-like structure with properties and methods
+    auto objectClassProp = PropertyObjectClassBuilder("Class")
+                               .addProperty(IntProperty("Integer", 10))
+                               .addProperty(SelectionProperty("Selection", List<IString>("Banana", "Apple", "Kiwi"), 1))
+                               .build();
+    auto typeManager = context.getTypeManager();
+    typeManager.addType(objectClassProp);
+    auto obj = PropertyObject(typeManager, "Class");
+    auto classProp = ObjectProperty("ClassObject", obj);
+    objPtr.addProperty(classProp);
 }
 
 FunctionBlockTypePtr PropertiesFb3::CreateType()

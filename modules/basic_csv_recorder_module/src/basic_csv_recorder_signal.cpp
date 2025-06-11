@@ -35,7 +35,7 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
  *
  * @returns A filename, including a ".csv" extension.
  */
-static std::string getFilename(const fs::path& path, const SignalPtr& signal)
+static std::string getFilename(const fs::path& path, const SignalPtr& signal, const std::string& format)
 {
     std::string id = signal.getGlobalId();
 
@@ -49,10 +49,12 @@ static std::string getFilename(const fs::path& path, const SignalPtr& signal)
     boost::trim_if(id, boost::is_any_of("_-."));
 
     unsigned sequence = 0;
-    std::string name = id + ".csv";
+    std::string extension = format == Props::Format::FORMAT_CSV ? ".csv" : ".parquet";
+
+    std::string name = id + extension;
 
     while (fs::exists(path / name))
-        name = id + " (" + std::to_string(++sequence) + ").csv";
+        name = id + " (" + std::to_string(++sequence) + ")" + extension;
 
     return name;
 }
@@ -140,10 +142,8 @@ static std::string getValueName(const DataDescriptorPtr& descriptor)
     return stream.str();
 }
 
-BasicCsvRecorderSignal::BasicCsvRecorderSignal(
-    fs::path path,
-        const SignalPtr& signal)
-    : writer(path / getFilename(path, signal))
+BasicCsvRecorderSignal::BasicCsvRecorderSignal(fs::path path, const std::string& format, const SignalPtr& signal)
+    : writer(path / getFilename(path, signal, format), format)
 {
 }
 
@@ -179,10 +179,10 @@ void BasicCsvRecorderSignal::onPacketReceived(const PacketPtr& packet)
  * @param writer The CSV writer to write to.
  */
 template <typename Sample, typename Domain>
-void writeSamples(DataPacketPtr packet, DataPacketPtr domainPacket, CsvWriter& writer)
+void writeSamples(DataPacketPtr packet, DataPacketPtr domainPacket, Writer& writer)
 {
-    auto data = reinterpret_cast<const Sample *>(packet.getData());
-    auto domainData = reinterpret_cast<const Domain *>(domainPacket.getData());
+    auto data = reinterpret_cast<const Sample*>(packet.getData());
+    auto domainData = reinterpret_cast<const Domain*>(domainPacket.getData());
 
     auto count = packet.getSampleCount();
     if (domainPacket.getSampleCount() != count)
@@ -203,7 +203,7 @@ void writeSamples(DataPacketPtr packet, DataPacketPtr domainPacket, CsvWriter& w
  * @param writer The CSV writer to write to.
  */
 template <typename Sample>
-void writeSamples(DataPacketPtr packet, CsvWriter& writer)
+void writeSamples(DataPacketPtr packet, Writer& writer)
 {
     auto domainPacket = packet.getDomainPacket();
     if (!domainPacket.assigned())
@@ -215,17 +215,38 @@ void writeSamples(DataPacketPtr packet, CsvWriter& writer)
 
     switch (domainDescriptor.getSampleType())
     {
-        case SampleType::Int8:      writeSamples<Sample, std::int8_t>(packet, domainPacket, writer); return;
-        case SampleType::Int16:     writeSamples<Sample, std::int16_t>(packet, domainPacket, writer); return;
-        case SampleType::Int32:     writeSamples<Sample, std::int32_t>(packet, domainPacket, writer); return;
-        case SampleType::Int64:     writeSamples<Sample, std::int64_t>(packet, domainPacket, writer); return;
-        case SampleType::UInt8:     writeSamples<Sample, std::uint8_t>(packet, domainPacket, writer); return;
-        case SampleType::UInt16:    writeSamples<Sample, std::uint16_t>(packet, domainPacket, writer); return;
-        case SampleType::UInt32:    writeSamples<Sample, std::uint32_t>(packet, domainPacket, writer); return;
-        case SampleType::UInt64:    writeSamples<Sample, std::uint64_t>(packet, domainPacket, writer); return;
-        case SampleType::Float32:   writeSamples<Sample, float>(packet, domainPacket, writer); return;
-        case SampleType::Float64:   writeSamples<Sample, double>(packet, domainPacket, writer); return;
-        default: break;
+        case SampleType::Int8:
+            writeSamples<Sample, std::int8_t>(packet, domainPacket, writer);
+            return;
+        case SampleType::Int16:
+            writeSamples<Sample, std::int16_t>(packet, domainPacket, writer);
+            return;
+        case SampleType::Int32:
+            writeSamples<Sample, std::int32_t>(packet, domainPacket, writer);
+            return;
+        case SampleType::Int64:
+            writeSamples<Sample, std::int64_t>(packet, domainPacket, writer);
+            return;
+        case SampleType::UInt8:
+            writeSamples<Sample, std::uint8_t>(packet, domainPacket, writer);
+            return;
+        case SampleType::UInt16:
+            writeSamples<Sample, std::uint16_t>(packet, domainPacket, writer);
+            return;
+        case SampleType::UInt32:
+            writeSamples<Sample, std::uint32_t>(packet, domainPacket, writer);
+            return;
+        case SampleType::UInt64:
+            writeSamples<Sample, std::uint64_t>(packet, domainPacket, writer);
+            return;
+        case SampleType::Float32:
+            writeSamples<Sample, float>(packet, domainPacket, writer);
+            return;
+        case SampleType::Float64:
+            writeSamples<Sample, double>(packet, domainPacket, writer);
+            return;
+        default:
+            break;
     }
 }
 
@@ -233,9 +254,8 @@ void BasicCsvRecorderSignal::onEventPacketReceived(EventPacketPtr packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        tryWriteHeaders(
-            packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR),
-            packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
+        tryWriteHeaders(packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR),
+                        packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
     }
 }
 
@@ -248,24 +268,43 @@ void BasicCsvRecorderSignal::onDataPacketReceived(DataPacketPtr packet)
     if (!headersWritten)
     {
         auto domainPacket = packet.getDomainPacket();
-        tryWriteHeaders(
-            descriptor,
-            domainPacket.assigned() ? domainPacket.getDataDescriptor() : nullptr);
+        tryWriteHeaders(descriptor, domainPacket.assigned() ? domainPacket.getDataDescriptor() : nullptr);
     }
 
     switch (descriptor.getSampleType())
     {
-        case SampleType::Int8:      writeSamples<std::int8_t>(packet, writer); return;
-        case SampleType::Int16:     writeSamples<std::int16_t>(packet, writer); return;
-        case SampleType::Int32:     writeSamples<std::int32_t>(packet, writer); return;
-        case SampleType::Int64:     writeSamples<std::int64_t>(packet, writer); return;
-        case SampleType::UInt8:     writeSamples<std::uint8_t>(packet, writer); return;
-        case SampleType::UInt16:    writeSamples<std::uint16_t>(packet, writer); return;
-        case SampleType::UInt32:    writeSamples<std::uint32_t>(packet, writer); return;
-        case SampleType::UInt64:    writeSamples<std::uint64_t>(packet, writer); return;
-        case SampleType::Float32:   writeSamples<float>(packet, writer); return;
-        case SampleType::Float64:   writeSamples<double>(packet, writer); return;
-        default: break;
+        case SampleType::Int8:
+            writeSamples<std::int8_t>(packet, writer);
+            return;
+        case SampleType::Int16:
+            writeSamples<std::int16_t>(packet, writer);
+            return;
+        case SampleType::Int32:
+            writeSamples<std::int32_t>(packet, writer);
+            return;
+        case SampleType::Int64:
+            writeSamples<std::int64_t>(packet, writer);
+            return;
+        case SampleType::UInt8:
+            writeSamples<std::uint8_t>(packet, writer);
+            return;
+        case SampleType::UInt16:
+            writeSamples<std::uint16_t>(packet, writer);
+            return;
+        case SampleType::UInt32:
+            writeSamples<std::uint32_t>(packet, writer);
+            return;
+        case SampleType::UInt64:
+            writeSamples<std::uint64_t>(packet, writer);
+            return;
+        case SampleType::Float32:
+            writeSamples<float>(packet, writer);
+            return;
+        case SampleType::Float64:
+            writeSamples<double>(packet, writer);
+            return;
+        default:
+            break;
     }
 }
 
@@ -274,11 +313,10 @@ void BasicCsvRecorderSignal::tryWriteHeaders(const DataDescriptorPtr& descriptor
     if (headersWritten)
         DAQ_THROW_EXCEPTION(daq::InvalidOperationException);
 
-    writer.headers(
-        getDomainName(domainDescriptor).c_str(),
-        getValueName(descriptor).c_str(),
-        getDomainMetadataLine(domainDescriptor).c_str(),
-        getValueMetadataLine(descriptor).c_str());
+    writer.headers(getDomainName(domainDescriptor).c_str(),
+                   getValueName(descriptor).c_str(),
+                   getDomainMetadataLine(domainDescriptor).c_str(),
+                   getValueMetadataLine(descriptor).c_str());
 
     headersWritten = true;
 }

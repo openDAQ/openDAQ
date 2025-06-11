@@ -33,7 +33,7 @@ if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)
 endif()
 
-target_link_libraries(${LIB_NAME} PRIVATE Boost::algorithm PUBLIC daq::opendaq
+target_link_libraries(${LIB_NAME} PRIVATE Boost::algorithm PUBLIC daq::opendaq Arrow::arrow_static parquet_static
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

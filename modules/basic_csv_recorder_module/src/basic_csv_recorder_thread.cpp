@@ -14,10 +14,11 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
 BasicCsvRecorderThread::BasicCsvRecorderThread(
         fs::path path,
+        const std::string& format,
         const SignalPtr& signal,
         const LoggerComponentPtr& loggerComponent)
     : loggerComponent(loggerComponent)
-    , recorderSignal(std::make_unique<BasicCsvRecorderSignal>(path, signal))
+    , recorderSignal(std::make_unique<BasicCsvRecorderSignal>(path, format, signal))
     , thread([this]() { threadMain(); })
 {
 }

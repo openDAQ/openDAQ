@@ -229,29 +229,29 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cout << "\nFB2 after modifications:\n";
         print(fb2);
     }
-    // PROPERTIES FUNCTION BLOCK 3 DEMO
+    // PROPERTIES FUNCTION BLOCK 4 DEMO
     {
         // Add Function Block by type ID
-        auto fb3 = instance.addFunctionBlock("PropertiesFb3");
+        auto fb4 = instance.addFunctionBlock("PropertiesFb4");
 
         // Print before modifications
-        std::cout << "\nFB3 before modifications:\n";
-        print(fb3);
+        std::cout << "\nFB4 before modifications:\n";
+        print(fb4);
 
         // Property visibility depending on another Property
-        fb3.setPropertyValue("SometimesVisible", 2);
+        fb4.setPropertyValue("SometimesVisible", 2);
 
         // Referenced and reference Bool
-        fb3.setPropertyValue("Reference", True);
+        fb4.setPropertyValue("Reference", True);
 
         // Check if Properties are referenced
-        std::cout << "Referenced is referenced: " << Boolean(fb3.getProperty("Referenced").getIsReferenced()) << "\n";
-        std::cout << "Reference is referenced: " << Boolean(fb3.getProperty("Reference").getIsReferenced()) << "\n";
+        std::cout << "Referenced is referenced: " << Boolean(fb4.getProperty("Referenced").getIsReferenced()) << "\n";
+        std::cout << "Reference is referenced: " << Boolean(fb4.getProperty("Reference").getIsReferenced()) << "\n";
 
         // Read-only Int
         try
         {
-            fb3.setPropertyValue("ReadOnlyInt", 42);
+            fb4.setPropertyValue("ReadOnlyInt", 42);
         }
         catch (const std::exception& e)
         {
@@ -259,14 +259,14 @@ int main(int /*argc*/, const char* /*argv*/[])
         }
 
         // Coerced Int
-        fb3.setPropertyValue("CoercedProp", 4);    // No coercion
-        fb3.setPropertyValue("CoercedProp", 142);  // Coerced to 10
+        fb4.setPropertyValue("CoercedProp", 4);    // No coercion
+        fb4.setPropertyValue("CoercedProp", 142);  // Coerced to 10
 
         // Validated Int
-        fb3.setPropertyValue("ValidatedProp", 43);  // Valid
+        fb4.setPropertyValue("ValidatedProp", 43);  // Valid
         try
         {
-            fb3.setPropertyValue("ValidatedProp", 1000);  // Fails validation
+            fb4.setPropertyValue("ValidatedProp", 1000);  // Fails validation
         }
         catch (const std::exception& e)
         {
@@ -274,8 +274,8 @@ int main(int /*argc*/, const char* /*argv*/[])
         }
 
         // Print after modifications
-        std::cout << "\nFB3 after modifications:\n";
-        print(fb3);
+        std::cout << "\nFB4 after modifications:\n";
+        print(fb4);
     }
 
     // Gracefully exit

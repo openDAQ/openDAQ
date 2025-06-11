@@ -3,6 +3,7 @@
 #include <properties_module/properties_fb_1.h>
 #include <properties_module/properties_fb_2.h>
 #include <properties_module/properties_fb_3.h>
+#include <properties_module/properties_fb_4.h>
 #include <properties_module/properties_module.h>
 #include <properties_module/version.h>
 
@@ -29,6 +30,9 @@ DictPtr<IString, IFunctionBlockType> PropertiesModule::onGetAvailableFunctionBlo
     const auto propertiesType3 = PropertiesFb3::CreateType();
     types.set(propertiesType3.getId(), propertiesType3);
 
+    const auto propertiesType4 = PropertiesFb4::CreateType();
+    types.set(propertiesType4.getId(), propertiesType4);
+
     return types;
 }
 
@@ -50,6 +54,11 @@ FunctionBlockPtr PropertiesModule::onCreateFunctionBlock(const StringPtr& id,
     if (id == PropertiesFb3::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb3>(context, parent, localId);
+        return fb;
+    }
+    if (id == PropertiesFb4::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb4>(context, parent, localId);
         return fb;
     }
 

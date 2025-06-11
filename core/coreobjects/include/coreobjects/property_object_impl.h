@@ -566,19 +566,19 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     , updateCount(0)
     , coreEventMuted(true)
     , path("")
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+    , permissionManager(PermissionManager())
+#else
+    , permissionManager(DisabledPermissionManager())
+#endif
     , className(nullptr)
     , objectClass(nullptr)
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 
-#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
-    this->permissionManager = PermissionManager();
     this->permissionManager.setPermissions(
         PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
-#else
-    this->permissionManager = DisabledPermissionManager();
-#endif
 
     PropertyValueEventEmitter readEmitter;
     PropertyValueEventEmitter writeEmitter;

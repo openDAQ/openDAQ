@@ -54,12 +54,19 @@ void PropertiesFb3::initProperties()
     objPtr.addProperty(funObjProp);
 
     // Object class - used for defining a class-like structure with properties and methods
-    auto objectClassProp = PropertyObjectClassBuilder("Class")
-                               .addProperty(IntProperty("Integer", 10))
-                               .addProperty(SelectionProperty("Selection", List<IString>("Banana", "Apple", "Kiwi"), 1))
-                               .build();
     auto typeManager = context.getTypeManager();
-    typeManager.addType(objectClassProp);
+
+    auto inheritedObjClassProp = PropertyObjectClassBuilder("InheritedClass")
+                                     .addProperty(IntProperty("Integer", 10))
+                                     .addProperty(SelectionProperty("Selection", List<IString>("Banana", "Apple", "Kiwi"), 1))
+                                     .build();
+    typeManager.addType(inheritedObjClassProp);
+
+    // Object class - can also use inheritance
+    auto objClassProp =
+        PropertyObjectClassBuilder(typeManager, "Class").addProperty(StringProperty("Foo", "Bar")).setParentName("InheritedClass").build();
+    typeManager.addType(objClassProp);
+
     auto obj = PropertyObject(typeManager, "Class");
     auto classProp = ObjectProperty("ClassObject", obj);
     objPtr.addProperty(classProp);

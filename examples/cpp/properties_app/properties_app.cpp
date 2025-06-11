@@ -240,6 +240,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         std::cout << "New function result (2 * 3): " << newRes << "\n";
 
         // Object class
+        fb3.setPropertyValue("ClassObject.Foo", "BarBar");
         fb3.setPropertyValue("ClassObject.Integer", 5);
 
         // Print after modifications

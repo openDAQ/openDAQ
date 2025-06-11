@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from app_context import AppContext
-from components.component_creator import CreateTreeElement
+from components.component_factory import create_tree_element
 
 class MainWindow(tk.Tk):
     def __init__(self, args):
@@ -22,8 +22,9 @@ class MainWindow(tk.Tk):
 
     def build_tree(self):
         root_device = self.context.daq_instance.root_device
-        self.root_tree_element = CreateTreeElement(self.context, self.tree, root_device)
+        self.root_tree_element = create_tree_element(self.context, self.tree, root_device)
         self.root_tree_element.init()
+        self.root_tree_element.show_filtered()
 
 
     def init_menu_bar(self):

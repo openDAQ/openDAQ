@@ -26,7 +26,6 @@ class BaseTreeElement:
             self.tree_element = self.tree.insert(parent_tree_element, "end", text=self.name, open=True, iid=self.global_id, image=image)
         else:
             self.tree_element = self.tree.insert(parent_tree_element, "end", text=self.name, open=True, iid=self.global_id)
-        self.show_filtered(parent_tree_element)
 
     @property
     def visible(self):

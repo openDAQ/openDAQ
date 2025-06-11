@@ -86,8 +86,30 @@ DECLARE_OPENDAQ_INTERFACE(IScheduler, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC isMultiThreaded(Bool* multiThreaded) = 0;
 
+    /*!
+     * @brief Starts and blocks the main thread loop, executing tasks scheduled for the main thread.
+     * The method blocks until @ref stop is called, processing enqueued work (including repetitive tasks).
+     * This is typically run in a dedicated thread.
+     * @retval OPENDAQ_SUCCESS on successful loop termination.
+     */
     virtual ErrCode INTERFACE_FUNC mainLoop() = 0;
+
+    /*!
+     * @brief Executes a single iteration of main-thread-scheduled tasks.
+     * This non-blocking method processes and removes all one-time tasks from the queue
+     * and advances repetitive tasks. Intended to be called periodically from the main thread.
+     * @retval OPENDAQ_SUCCESS after completing one iteration of scheduled tasks.
+     */
     virtual ErrCode INTERFACE_FUNC proccessMainThreadTasks() = 0;
+
+    /*!
+     * @brief Schedules the specified work object to be executed on the main thread.
+     * The task will be queued and later executed during a call to either @ref mainLoop
+     * or @ref proccessMainThreadTasks.
+     * @param work A lightweight, non-blocking task object to be executed.
+     * @retval OPENDAQ_ERR_SCHEDULER_STOPPED if the main thread worker has been stopped.
+     * @retval OPENDAQ_SUCCESS if the task was successfully enqueued.
+     */
     virtual ErrCode INTERFACE_FUNC scheduleWorkOnMainThread(IWork* work) = 0;
 
 };

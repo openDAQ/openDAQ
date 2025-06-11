@@ -120,8 +120,6 @@ public:
     }
 
 private:
-    
-
     mutable std::mutex mutex;
     std::condition_variable cv;
     std::list<WorkWrapper> workQueue;

@@ -68,7 +68,7 @@ FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
 #ifdef OPENDAQ_ENABLE_RENDERER
     if (id == Renderer::RendererFbImpl::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Renderer::RendererFbImpl>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Renderer::RendererFbImpl>(context, parent, localId, config);
         return fb;
     }
 #endif

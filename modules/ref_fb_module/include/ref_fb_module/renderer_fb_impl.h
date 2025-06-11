@@ -121,7 +121,7 @@ struct SignalContext
 class RendererFbImpl final : public FunctionBlock
 {
 public:
-    explicit RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
     ~RendererFbImpl() override;
 
     void onConnected(const InputPortPtr& port) override;
@@ -133,6 +133,7 @@ protected:
     void removed() override;
 
 private:
+    bool usingMainThread{false};
     std::unique_ptr<sf::RenderWindow> window;
     std::unique_ptr<sf::Font> font;
     std::chrono::milliseconds defaultWaitTime;
@@ -279,7 +280,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     INTERNAL_FACTORY, RendererFb, IFunctionBlock,
     IContext*, context,
     IString*, parentGlobalId,
-    IString*, localId
+    IString*, localId,
+    IPropertyObject*, config
     );
 
 }

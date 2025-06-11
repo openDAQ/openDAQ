@@ -19,7 +19,10 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace Renderer
 {
 
-RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, 
+                               const ComponentPtr& parent, 
+                               const StringPtr& localId,
+                               const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
     , stopRender(false)
     , resChanged(false)
@@ -29,13 +32,17 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent
     , futureComponentStatus(ComponentStatus::Ok)
     , futureComponentMessage("")
 {
+
+#ifdef __APPLE__
+        usingMainThread = true;
+#else
+    if (config.assigned() && config.hasProperty("useMainThreadForRenderer") && config.getPropertyValue("useMainThreadForRenderer"))
+        usingMainThread = true;
+#endif
+
     initComponentStatus();
-    futureComponentStatus = ComponentStatus::Ok;
-    futureComponentMessage = "";
     initProperties();
     updateInputPorts();
-
-    LOGP_D("Starting render thread")
     initializeRenderer();
 }
 
@@ -59,10 +66,16 @@ RendererFbImpl::~RendererFbImpl()
 
 FunctionBlockTypePtr RendererFbImpl::CreateType()
 {
+    auto defaultConfig = PropertyObject();
+#ifndef __APPLE__
+    defaultConfig.addProperty(BoolProperty("useMainThreadForRenderer", false));
+#endif
+
     return FunctionBlockType(
         "RefFBModuleRenderer",
         "Renderer",
-        "Signal visualization"
+        "Signal visualization",
+        defaultConfig
     );
 }
 
@@ -757,53 +770,63 @@ void RendererFbImpl::initializeRenderer()
     defaultWaitTime = std::chrono::milliseconds(20);
     waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
 
-    auto scheduler = context.getScheduler();
-    auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
-    scheduler.scheduleWorkOnMainThread(WorkRepetitive([this, thisWeakRef = std::move(thisWeakRef)]
+
+    
+    if(usingMainThread)
     {
-        const auto thisFb = thisWeakRef.getRef();
-        if (!thisFb.assigned())
-            return false;
+        LOGP_D("Using main thread for rendering")
+        auto scheduler = context.getScheduler();
+        auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
+        scheduler.scheduleWorkOnMainThread(WorkRepetitive([this, thisWeakRef = std::move(thisWeakRef)]
+        {
+            const auto thisFb = thisWeakRef.getRef();
+            if (!thisFb.assigned())
+                return false;
 
-        if (stopRender)
-            return false;
+            if (stopRender)
+                return false;
 
-        if (std::chrono::steady_clock::now() < waitTime)
+            if (std::chrono::steady_clock::now() < waitTime)
+                return true;
+            waitTime += defaultWaitTime;
+
+            if (resChanged)
+            {
+                resChanged = false;
+                resize(*window);
+            }
+
+            sf::Event event{};
+            while (window->pollEvent(event))
+            {
+                if (event.type == sf::Event::Closed)
+                    window->close();
+            }
+
+            processSignalContexts();
+
+            window->clear();
+
+            updateSingleXAxis();
+
+            if (singleXAxis)
+                prepareSingleXAxis();
+            renderAxes(*window, *font);
+            renderSignals(*window, *font);
+
+            window->display();
+
+            setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
+            futureComponentStatus = ComponentStatus::Ok;
+            futureComponentMessage = "";
             return true;
-        waitTime += defaultWaitTime;
-
-        if (resChanged)
-        {
-            resChanged = false;
-            resize(*window);
-        }
-
-        sf::Event event{};
-        while (window->pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-                window->close();
-        }
-
-        processSignalContexts();
-
-        window->clear();
-
-        updateSingleXAxis();
-
-        if (singleXAxis)
-            prepareSingleXAxis();
-        renderAxes(*window, *font);
-        renderSignals(*window, *font);
-
-        window->display();
-
-        setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
-        futureComponentStatus = ComponentStatus::Ok;
-        futureComponentMessage = "";
-        return true;
-    }));
-    //renderThread = std::thread{ &RendererFbImpl::renderLoop, this };
+        }));
+    }
+    else 
+    {
+        LOG_D("Using separate thread for rendering")
+        renderThread = std::thread{ &RendererFbImpl::renderLoop, this };
+    }
 }
 
 void RendererFbImpl::renderLoop()

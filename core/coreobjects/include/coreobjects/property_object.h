@@ -382,7 +382,7 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
     /*!
      * @brief Retrieves a list of properties from the Property object that match the given property filter.
      * @param propertyFilter A filter used to select relevant properties. Can include a recursive wrapper
-     * to search thru nested property objects.
+     * to search through nested property objects.
      * @param componentFilter An optional filter to determine which components' properties are included in the search.
      * A recursive wrapper can be used to enable tree-traversal search.
      * @param[out] properties The list containing the matching properties.

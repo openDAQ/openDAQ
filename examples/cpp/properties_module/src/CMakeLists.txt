@@ -6,12 +6,14 @@ set(SRC_Include common.h
                 properties_module.h
                 properties_fb_1.h
                 properties_fb_2.h
+                properties_fb_3.h
 )
 
 set(SRC_Srcs module_dll.cpp
              properties_module.cpp
              properties_fb_1.cpp
              properties_fb_2.cpp
+             properties_fb_3.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
@@ -20,11 +22,13 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/common.h
                             ${MODULE_HEADERS_DIR}/properties_module.h
                             ${MODULE_HEADERS_DIR}/properties_fb_1.h
                             ${MODULE_HEADERS_DIR}/properties_fb_2.h
+                            ${MODULE_HEADERS_DIR}/properties_fb_3.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             module_dll.cpp
                             properties_module.cpp
                             properties_fb_1.cpp
                             properties_fb_2.cpp
+                            properties_fb_3.cpp
 )
 
 

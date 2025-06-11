@@ -105,11 +105,8 @@ int main(int /*argc*/, const char* /*argv*/[])
         auto fb1 = instance.addFunctionBlock("PropertiesFb1");
 
         // Print before modifications
-        std::cout << "\nBefore modifications:\n";
+        std::cout << "\nFB1 before modifications:\n";
         print(fb1);
-
-        // Make modifications
-        std::cout << "\nDuring setting property values:\n\n";
 
         // Bool
         fb1.setPropertyValue("Bool", true);
@@ -139,6 +136,10 @@ int main(int /*argc*/, const char* /*argv*/[])
         // Stubborn Int
         fb1.setPropertyValue("StubbornInt", 41);  // Will be forced to 43
 
+        // Print after modifications
+        std::cout << "\nFB1 after modifications:\n";
+        print(fb1);
+
         // Register callback for single property read
         fb1.getOnPropertyValueRead("Bool") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Bool read\n"; };
         fb1.getOnPropertyValueWrite("Int") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
@@ -158,6 +159,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         // Add Function Block by type ID
         auto fb2 = instance.addFunctionBlock("PropertiesFb2");
+
+        // Print before modifications
+        std::cout << "\nFB2 before modifications:\n";
+        print(fb2);
 
         // List
         auto list = List<IInteger>();
@@ -220,20 +225,33 @@ int main(int /*argc*/, const char* /*argv*/[])
         fb2.setPropertyValue("Object.Int", 987);
         fb2.setPropertyValue("Object.Float", 4.44);
 
+        // Print after modifications
+        std::cout << "\nFB2 after modifications:\n";
+        print(fb2);
+    }
+    // PROPERTIES FUNCTION BLOCK 3 DEMO
+    {
+        // Add Function Block by type ID
+        auto fb3 = instance.addFunctionBlock("PropertiesFb3");
+
+        // Print before modifications
+        std::cout << "\nFB3 before modifications:\n";
+        print(fb3);
+
         // Property visibility depending on another Property
-        fb2.setPropertyValue("SometimesVisible", 2);
+        fb3.setPropertyValue("SometimesVisible", 2);
 
         // Referenced and reference Bool
-        fb2.setPropertyValue("Reference", True);
+        fb3.setPropertyValue("Reference", True);
 
         // Check if Properties are referenced
-        std::cout << "Referenced is referenced: " << Boolean(fb2.getProperty("Referenced").getIsReferenced()) << "\n";
-        std::cout << "Reference is referenced: " << Boolean(fb2.getProperty("Reference").getIsReferenced()) << "\n";
+        std::cout << "Referenced is referenced: " << Boolean(fb3.getProperty("Referenced").getIsReferenced()) << "\n";
+        std::cout << "Reference is referenced: " << Boolean(fb3.getProperty("Reference").getIsReferenced()) << "\n";
 
         // Read-only Int
         try
         {
-            fb2.setPropertyValue("ReadOnlyInt", 42);
+            fb3.setPropertyValue("ReadOnlyInt", 42);
         }
         catch (const std::exception& e)
         {
@@ -241,14 +259,14 @@ int main(int /*argc*/, const char* /*argv*/[])
         }
 
         // Coerced Int
-        fb2.setPropertyValue("CoercedProp", 4);    // No coercion
-        fb2.setPropertyValue("CoercedProp", 142);  // Coerced to 10
+        fb3.setPropertyValue("CoercedProp", 4);    // No coercion
+        fb3.setPropertyValue("CoercedProp", 142);  // Coerced to 10
 
         // Validated Int
-        fb2.setPropertyValue("ValidatedProp", 43);  // Valid
+        fb3.setPropertyValue("ValidatedProp", 43);  // Valid
         try
         {
-            fb2.setPropertyValue("ValidatedProp", 1000);  // Fails validation
+            fb3.setPropertyValue("ValidatedProp", 1000);  // Fails validation
         }
         catch (const std::exception& e)
         {
@@ -256,9 +274,10 @@ int main(int /*argc*/, const char* /*argv*/[])
         }
 
         // Print after modifications
-        std::cout << "\nAfter modifications:\n";
-        print(fb2);
+        std::cout << "\nFB3 after modifications:\n";
+        print(fb3);
     }
+
     // Gracefully exit
     std::cout << "Press \"enter\" to exit the application...\n";
     std::cin.get();

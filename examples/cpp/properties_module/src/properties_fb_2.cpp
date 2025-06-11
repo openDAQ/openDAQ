@@ -54,7 +54,6 @@ void PropertiesFb2::initProperties()
     auto funProp =
         FunctionProperty("Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("a", ctInt), ArgumentInfo("b", ctInt))));
     funObj.addProperty(funProp);
-
     // Explicit permissions for function execution - used for controlling access to the function
     // TODO: this is not used in the example (we don't add any servers, etc.), but it can be useful for more complex scenarios
     auto permissions = PermissionsBuilder()
@@ -79,7 +78,7 @@ void PropertiesFb2::initProperties()
     objPtr.addProperty(funObjProp);
 
     // Selection - used for selecting one value from a list of options
-    auto selectionProp = SelectionProperty("Selection", List<IUnit>(Unit("FirstUnit"), Unit("SecondUnit"), Unit("ThirdUnit")), 1);
+    auto selectionProp = SelectionProperty("Selection", List<IFloat>(41.1, 42.2, 43.3), 1);
     objPtr.addProperty(selectionProp);
 
     // Sparse selection - used for selecting one value from a sparse set of options
@@ -100,33 +99,6 @@ void PropertiesFb2::initProperties()
     propObj.addProperty(FloatProperty("Float", 7.2));
     auto objProp = ObjectProperty("Object", propObj);
     objPtr.addProperty(objProp);
-
-    // Referenced Bool - used for demo purposes fo referencing another Property
-    auto referencedProp = BoolProperty("Referenced", False);
-    objPtr.addProperty(referencedProp);
-
-    // Reference Bool, and using EvalValue syntax
-    auto referenceProp = ReferenceProperty("Reference", EvalValue("%Referenced"));
-    objPtr.addProperty(referenceProp);
-
-    // Property visibility depending on another Property, and using EvalValue syntax
-    auto sometimesVisibleProperty = IntPropertyBuilder("SometimesVisible", 3)
-                                        .setVisible(EvalValue("$Referenced"))  // This will evaluate referenced Property
-                                        .setUnit(EvalValue("%Selection:SelectedValue"))
-                                        .build();
-    objPtr.addProperty(sometimesVisibleProperty);
-
-    // Read-only Int
-    auto readOnlyProp = IntPropertyBuilder("ReadOnlyInt", 42).setReadOnly(true).build();
-    objPtr.addProperty(readOnlyProp);
-
-    // Coerced Int
-    auto coercedProp = IntPropertyBuilder("CoercedProp", 5).setCoercer(Coercer("if(Value > 10, 10, Value)")).build();
-    objPtr.addProperty(coercedProp);
-
-    // Validated Int
-    auto validatedProp = IntPropertyBuilder("ValidatedProp", 42).setValidator(Validator("Value < 100")).build();
-    objPtr.addProperty(validatedProp);
 }
 
 FunctionBlockTypePtr PropertiesFb2::CreateType()

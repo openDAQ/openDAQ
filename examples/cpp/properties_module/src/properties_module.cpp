@@ -2,6 +2,7 @@
 #include <opendaq/custom_log.h>
 #include <properties_module/properties_fb_1.h>
 #include <properties_module/properties_fb_2.h>
+#include <properties_module/properties_fb_3.h>
 #include <properties_module/properties_module.h>
 #include <properties_module/version.h>
 
@@ -25,6 +26,9 @@ DictPtr<IString, IFunctionBlockType> PropertiesModule::onGetAvailableFunctionBlo
     const auto propertiesType2 = PropertiesFb2::CreateType();
     types.set(propertiesType2.getId(), propertiesType2);
 
+    const auto propertiesType3 = PropertiesFb3::CreateType();
+    types.set(propertiesType3.getId(), propertiesType3);
+
     return types;
 }
 
@@ -41,6 +45,11 @@ FunctionBlockPtr PropertiesModule::onCreateFunctionBlock(const StringPtr& id,
     if (id == PropertiesFb2::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb2>(context, parent, localId);
+        return fb;
+    }
+    if (id == PropertiesFb3::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb3>(context, parent, localId);
         return fb;
     }
 

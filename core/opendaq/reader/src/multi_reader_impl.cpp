@@ -395,7 +395,6 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
                 LOG_W("Port with ID {} has input port notification set to 'None', overriding with 'Scheduler' mode", port.getLocalId());
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);
             }
-            port.setNotificationMethod(PacketReadyNotification::SameThread);
             hasInputPorts = true;
             portList.pushBack(port);
         }

@@ -25,7 +25,7 @@ void PropertiesFb4::initProperties()
     // Property visibility depending on another Property, and using EvalValue syntax
     auto sometimesVisibleProperty =
         IntPropertyBuilder("SometimesVisible", 3)
-            .setVisible(EvalValue("$Referenced"))            // This will evaluate referenced Property
+            .setVisible(EvalValue("$Referenced"))                // This will evaluate referenced Property
             .setUnit(EvalValue("%UnitSelection:SelectedValue"))  // This will set unit to the selected value of the Selection Property
             .build();
     objPtr.addProperty(sometimesVisibleProperty);

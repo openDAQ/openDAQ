@@ -191,16 +191,41 @@ int main(int /*argc*/, const char* /*argv*/[])
         auto enumVal = Enumeration("Enum", "Third", manager);
         fb2.setPropertyValue("Enum", enumVal);
 
+        // Selection
+        fb2.setPropertyValue("Selection", 2);
+
+        // Sparse selection
+        fb2.setPropertyValue("Sparse", 6);
+
+        // Print after modifications
+        std::cout << "\nFB2 after modifications:\n";
+        print(fb2);
+    }
+
+    // PROPERTIES FUNCTION BLOCK 3 DEMO
+    {
+        // Add Function Block by type ID
+        auto fb3 = instance.addFunctionBlock("PropertiesFb3");
+
+        // Print before modifications
+        std::cout << "\nFB3 before modifications:\n";
+        print(fb3);
+
+        // Object
+        fb3.setPropertyValue("Object.InnerObject.Bool", True);
+        fb3.setPropertyValue("Object.Int", 987);
+        fb3.setPropertyValue("Object.Float", 4.44);
+
         // Procedure
-        ProcedurePtr oldProc = fb2.getPropertyValue("Procedure");
+        ProcedurePtr oldProc = fb3.getPropertyValue("Procedure");
         oldProc(42);
         auto proc = Procedure([](IntegerPtr a) { std::cout << "New procedure called with: " << a << "\n"; });
-        fb2.setPropertyValue("Procedure", proc);
-        ProcedurePtr newProc = fb2.getPropertyValue("Procedure");
+        fb3.setPropertyValue("Procedure", proc);
+        ProcedurePtr newProc = fb3.getPropertyValue("Procedure");
         newProc(42);
 
         // Function
-        FunctionPtr oldFun = fb2.getPropertyValue("FunctionObject.Function");
+        FunctionPtr oldFun = fb3.getPropertyValue("FunctionObject.Function");
         auto res = oldFun(2, 3);
         std::cout << "Old function result (2 + 3): " << res << "\n";
         auto fun = Function(
@@ -209,25 +234,14 @@ int main(int /*argc*/, const char* /*argv*/[])
                 std::cout << "New function called\n";
                 return a * b;
             });
-        fb2.setPropertyValue("FunctionObject.Function", fun);
-        FunctionPtr newFun = fb2.getPropertyValue("FunctionObject.Function");
+        fb3.setPropertyValue("FunctionObject.Function", fun);
+        FunctionPtr newFun = fb3.getPropertyValue("FunctionObject.Function");
         auto newRes = newFun(2, 3);
         std::cout << "New function result (2 * 3): " << newRes << "\n";
 
-        // Selection
-        fb2.setPropertyValue("Selection", 2);
-
-        // Sparse selection
-        fb2.setPropertyValue("Sparse", 6);
-
-        // Object
-        fb2.setPropertyValue("Object.InnerObject.Bool", True);
-        fb2.setPropertyValue("Object.Int", 987);
-        fb2.setPropertyValue("Object.Float", 4.44);
-
         // Print after modifications
-        std::cout << "\nFB2 after modifications:\n";
-        print(fb2);
+        std::cout << "\nFB3 after modifications:\n";
+        print(fb3);
     }
     // PROPERTIES FUNCTION BLOCK 4 DEMO
     {

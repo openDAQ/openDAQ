@@ -1,7 +1,9 @@
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <set>
 #include <string>
+#include "coreobjects/callable_info_factory.h"
 
 #include <coretypes/filesystem.h>
 #include <opendaq/function_block_impl.h>
@@ -108,7 +110,19 @@ void BasicCsvRecorderImpl::onPacketReceived(const InputPortPtr& port)
 void BasicCsvRecorderImpl::addProperties()
 {
     objPtr.addProperty(StringProperty(Props::PATH, ""));
+
+    objPtr.addProperty(SelectionProperty(Props::FORMAT, List<IString>(Props::Format::FORMAT_CSV, Props::Format::FORMAT_PARQUET), 0));
     objPtr.getOnPropertyValueWrite(Props::PATH) += std::bind(&BasicCsvRecorderImpl::reconfigure, this);
+
+    const auto startRecordingProp =
+        FunctionProperty("StartRecording", ProcedureInfo());
+    objPtr.addProperty(startRecordingProp);
+    objPtr.setPropertyValue("StartRecording", Procedure([this] { this->startRecording(); }));
+
+    const auto stopRecordingProp =
+        FunctionProperty("StopRecording", ProcedureInfo());
+    objPtr.addProperty(stopRecordingProp);
+    objPtr.setPropertyValue("StopRecording", Procedure([this] { this->stopRecording(); }));
 }
 
 void BasicCsvRecorderImpl::addInputPort()
@@ -119,6 +133,7 @@ void BasicCsvRecorderImpl::addInputPort()
 void BasicCsvRecorderImpl::reconfigure()
 {
     fs::path path = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
+    std::string format = static_cast<std::string>(objPtr.getPropertySelectionValue(Props::FORMAT));
 
     if (recordingActive)
     {
@@ -146,7 +161,7 @@ void BasicCsvRecorderImpl::reconfigure()
                 if (it == threads.end())
                     threads.emplace(
                         inputPort.getObject(),
-                        std::make_shared<BasicCsvRecorderThread>(path, signal, loggerComponent));
+                        std::make_shared<BasicCsvRecorderThread>(path, format, signal, loggerComponent));
             }
         }
 
@@ -157,12 +172,8 @@ void BasicCsvRecorderImpl::reconfigure()
         {
             if (ports.find(it->first) == ports.end())
             {
-                auto jt = it;
-                ++jt;
-                threads.erase(it);
-                it = jt;
+                it = threads.erase(it);
             }
-
             else
             {
                 ++it;

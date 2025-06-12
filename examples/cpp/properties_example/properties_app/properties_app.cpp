@@ -212,6 +212,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         fb3.setPropertyValue("Object.InnerObject.Bool", True);
         fb3.setPropertyValue("Object.Int", 987);
         fb3.setPropertyValue("Object.Float", 4.44);
+        fb3.clearPropertyValue("Object");  // Resets the Object to its default state, so the above lines will be invalidated
 
         // Procedure
         ProcedurePtr oldProc = fb3.getPropertyValue("Procedure");

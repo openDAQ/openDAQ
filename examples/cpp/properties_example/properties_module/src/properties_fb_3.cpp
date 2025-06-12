@@ -34,14 +34,6 @@ void PropertiesFb3::initProperties()
     auto funProp =
         FunctionProperty("Function", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("a", ctInt), ArgumentInfo("b", ctInt))));
     funObj.addProperty(funProp);
-    // Explicit permissions for function execution - used for controlling access to the function
-    // TODO: this is not used in the example (we don't add any servers, etc.), but it can be useful for more complex scenarios
-    auto permissions = PermissionsBuilder()
-                           .inherit(false)
-                           .assign("everyone", PermissionMaskBuilder().read())
-                           .assign("admin", PermissionMaskBuilder().read().write().execute())
-                           .build();
-    funObj.getPermissionManager().setPermissions(permissions);
     auto funObjProp = ObjectProperty("FunctionObject", funObj);
     auto fun = Function(
         [](IntegerPtr a, IntegerPtr b)
@@ -50,8 +42,16 @@ void PropertiesFb3::initProperties()
             return a + b;
         });
     funObj.setPropertyValue("Function", fun);
-
     objPtr.addProperty(funObjProp);
+
+    // Explicit permissions for function execution - used for controlling access to the function
+    // TODO: this is not used in the example (we don't add any servers, etc.), but it can be useful for more complex scenarios
+    auto permissions = PermissionsBuilder()
+                           .inherit(false)
+                           .assign("everyone", PermissionMaskBuilder().read())
+                           .assign("admin", PermissionMaskBuilder().read().write().execute())
+                           .build();
+    funObj.getPermissionManager().setPermissions(permissions);
 
     // Object class - used for defining a class-like structure with properties and methods
     auto typeManager = context.getTypeManager();

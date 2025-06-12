@@ -1,2 +1,5 @@
 add_subdirectory(properties_module)
-add_subdirectory(properties_app)
+add_subdirectory(properties_app_1)
+add_subdirectory(properties_app_2)
+add_subdirectory(properties_app_3)
+add_subdirectory(properties_app_4)

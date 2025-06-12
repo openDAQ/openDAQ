@@ -43,7 +43,13 @@ void PropertiesFb1::initProperties()
     // Stubborn Int (always sets to 43)
     auto stubbornProp = IntProperty("StubbornInt", 43);
     objPtr.addProperty(stubbornProp);
-    // We can add callbacks in the module or in the application
+
+    // We can add callbacks
+
+    // Read callbacks will mess with our prints in application if enabled, so we comment them out
+    // objPtr.getOnAnyPropertyValueRead() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something read\n"; };
+    // objPtr.getOnPropertyValueRead("Bool") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Bool read\n"; };
+    objPtr.getOnAnyPropertyValueWrite() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something written\n"; };
     objPtr.getOnPropertyValueWrite("StubbornInt") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
     {
         args.setValue(43);  // Force value to 43

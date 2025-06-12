@@ -40,10 +40,15 @@ add_library(${LIB_NAME} SHARED ${SRC_Include}
                                ${SRC_Srcs}
 )
 
+
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
 if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)
+endif()
+
+if(NOT TARGET daq::opendaq) 
+    find_package(openDAQ) 
 endif()
 
 target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq

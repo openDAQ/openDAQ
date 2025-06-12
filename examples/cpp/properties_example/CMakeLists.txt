@@ -1,0 +1,2 @@
+add_subdirectory(properties_module)
+add_subdirectory(properties_app)

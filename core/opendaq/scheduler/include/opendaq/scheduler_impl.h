@@ -33,7 +33,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class MainThreadEventLoop
 {
 public:
-    MainThreadEventLoop();
+    MainThreadEventLoop() = default;
     ~MainThreadEventLoop();
 
     void stop();

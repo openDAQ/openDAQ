@@ -50,8 +50,6 @@ private:
     const bool isRepetitive;
 };
 
-MainThreadEventLoop::MainThreadEventLoop() = default;
-
 MainThreadEventLoop::~MainThreadEventLoop()
 {
     stop();

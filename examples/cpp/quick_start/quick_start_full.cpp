@@ -14,15 +14,15 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Find and connect to a simulator device
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device = instance.addDevice("daqref://device0");
-    // for (const auto& deviceInfo : availableDevices)
-    // {
-    //     if (deviceInfo.getName() == "Reference device simulator")
-    //     {
-    //         device = instance.addDevice(deviceInfo.getConnectionString());
-    //         break;
-    //     }        
-    // }
+    daq::DevicePtr device;
+    for (const auto& deviceInfo : availableDevices)
+    {
+        if (deviceInfo.getName() == "Reference device simulator")
+        {
+            device = instance.addDevice(deviceInfo.getConnectionString());
+            break;
+        }        
+    }
 
     // Exit if no device is found
     if (!device.assigned())

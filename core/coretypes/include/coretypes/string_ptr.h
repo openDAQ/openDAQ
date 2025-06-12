@@ -89,20 +89,12 @@ public:
 
     StringPtr& operator=(const StringPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         ObjectPtr<IString>::operator=(other);
         return *this;
     }
 
     StringPtr& operator=(StringPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
         ObjectPtr<IString>::operator=(std::move(other));
         return *this;
     }

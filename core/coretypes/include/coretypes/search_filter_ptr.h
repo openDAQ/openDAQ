@@ -78,18 +78,12 @@ public:
     
     SearchFilterPtr& operator=(const SearchFilterPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         ObjectPtr<ISearchFilter>::operator =(other);
         return *this;
     }
 
     SearchFilterPtr& operator=(SearchFilterPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-            return *this;
-
         ObjectPtr<ISearchFilter>::operator =(std::move(other));
         return *this;
     }

@@ -90,23 +90,13 @@ public:
     
     EnumerationTypePtr& operator=(const EnumerationTypePtr& other)
     {
-        if (this == &other)
-            return *this;
-
         GenericTypePtr<IEnumerationType>::operator =(other);
-
         return *this;
     }
 
     EnumerationTypePtr& operator=(EnumerationTypePtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
         GenericTypePtr<IEnumerationType>::operator =(std::move(other));
-
         return *this;
     }
 

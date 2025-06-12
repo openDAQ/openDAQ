@@ -9,3 +9,4 @@ add_compile_definitions(MODULE_PATH="${OPENDAQ_MODULES_DIR}")
 
 add_executable(properties_app properties_app.cpp)
 target_link_libraries(properties_app PRIVATE daq::opendaq)
+set_target_properties(properties_app PROPERTIES FOLDER ${PROPERTIES_FOLDER_PATH})

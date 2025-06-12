@@ -28,6 +28,7 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 
     add_compile_definitions(MODULE_PATH="")
 
+    set(PROPERTIES_FOLDER_PATH "openDAQ/examples/properties_example")
     add_subdirectory(cpp/properties_example)
 
     add_executable(client_discovery cpp/client_discovery/client_discovery.cpp)

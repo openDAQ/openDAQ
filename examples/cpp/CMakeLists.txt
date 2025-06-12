@@ -106,5 +106,6 @@ if (OPENDAQ_IP_MODIFICATION)
 endif()
 
 if (OPENDAQ_PROPERTIES_EXAMPLE)
+    set(PROPERTIES_FOLDER_PATH "properties_example")
     add_subdirectory(properties_example)
 endif()

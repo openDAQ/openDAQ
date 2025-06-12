@@ -14,15 +14,15 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Find and connect to a simulator device
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device;
-    for (const auto& deviceInfo : availableDevices)
-    {
-        if (deviceInfo.getName() == "Reference device simulator")
-        {
-            device = instance.addDevice(deviceInfo.getConnectionString());
-            break;
-        }        
-    }
+    daq::DevicePtr device = instance.addDevice("daqref://device0");
+    // for (const auto& deviceInfo : availableDevices)
+    // {
+    //     if (deviceInfo.getName() == "Reference device simulator")
+    //     {
+    //         device = instance.addDevice(deviceInfo.getConnectionString());
+    //         break;
+    //     }        
+    // }
 
     // Exit if no device is found
     if (!device.assigned())
@@ -129,7 +129,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto defaultWaitTime = std::chrono::milliseconds(25);
     auto waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
 
-    scheduler.scheduleWorkOnMainThread(daq::WorkRepetitive([&]
+    scheduler.scheduleWorkOnMainLoop(daq::WorkRepetitive([&]
     {
         if (std::chrono::steady_clock::now() < waitTime)
             return true;
@@ -142,6 +142,6 @@ int main(int /*argc*/, const char* /*argv*/[])
 
         return true; // Keep the work running
     }));
-    scheduler.mainLoop();
+    scheduler.runMainLoop();
     return 0;
 }

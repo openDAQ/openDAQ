@@ -30,100 +30,28 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 
-class MainThreadWorker
+class MainThreadEventLoop
 {
-    struct WorkWrapper
-    {
-        WorkWrapper(IWork* work)
-            : work(work)
-            , isRepetitive(this->work.supportsInterface<IWorkRepetitive>()) 
-        {}
-
-        bool execute() const
-        {
-            if (isRepetitive)
-                return work->execute() != OPENDAQ_ERR_REPETITIVE_TASK_STOPPED;
-
-            work->execute();
-            return false;
-        }
-
-    private:
-        const WorkPtr work;
-        const bool isRepetitive;
-    };
 public:
-    MainThreadWorker() = default;
-    
-    ~MainThreadWorker()
-    {
-        stop();
-    }
+    MainThreadEventLoop();
+    ~MainThreadEventLoop();
 
-    void stop()
-    {
-        {
-            std::lock_guard<std::mutex> lock(mutex);
-            running = false;
-        }
-        cv.notify_all();
-    }
+    void stop();
+    void runIteration();
+    void run();
+    bool isRunning() const;
+    ErrCode execute(IWork* work);
 
-    void runIterationNoLock()
-    {
-        for (auto it = workQueue.begin(); it != workQueue.end();)
-        {
-            auto& work = *it;
-            if (work.execute())
-                ++it; 
-            else
-                it = workQueue.erase(it);
-        }
-    }
-
-    void runIteration()
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        runIterationNoLock();
-    }
-
-    void run()
-    {
-        std::unique_lock<std::mutex> lock(mutex);
-        running = true;
-
-        while(true)
-        {
-            cv.wait(lock, [this] { return !workQueue.empty() || !running; });
-            if (!running)
-                return;
-
-            runIterationNoLock();
-        }
-    }
-
-    bool isRunning() const
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        return running;
-    } 
-
-    ErrCode execute(IWork* work)
-    {
-        OPENDAQ_PARAM_NOT_NULL(work);
-        {
-            std::lock_guard<std::mutex> lock(mutex);
-            workQueue.push_back(WorkWrapper(work));
-        }
-        cv.notify_one();
-        return OPENDAQ_SUCCESS;
-    }
+    MainThreadEventLoop(const MainThreadEventLoop&) = delete;
+    MainThreadEventLoop& operator=(const MainThreadEventLoop&) = delete;
 
 private:
+    class WorkWrapper;
+
     mutable std::mutex mutex;
     std::condition_variable cv;
     std::list<WorkWrapper> workQueue;
-    bool running {false};
+    bool running{ false };
 };
 
 class SchedulerImpl final : public ImplementationOf<IScheduler>
@@ -140,10 +68,10 @@ public:
     ErrCode INTERFACE_FUNC stop() override;
     ErrCode INTERFACE_FUNC waitAll() override;
 
-    ErrCode INTERFACE_FUNC mainLoop() override;
-    ErrCode INTERFACE_FUNC proccessMainThreadTasks() override;
-    ErrCode INTERFACE_FUNC scheduleWorkOnMainThread(IWork* work) override;
-
+    ErrCode INTERFACE_FUNC runMainLoop() override;
+    ErrCode INTERFACE_FUNC stopMainLoop() override;
+    ErrCode INTERFACE_FUNC runMainLoopIteration() override;
+    ErrCode INTERFACE_FUNC scheduleWorkOnMainLoop(IWork* work) override;
 
     [[nodiscard]] std::size_t getWorkerCount() const;
 
@@ -156,7 +84,7 @@ private:
 
     std::unique_ptr<tf::Executor> executor;
 
-    std::unique_ptr<MainThreadWorker> mainThreadWorker;
+    std::unique_ptr<MainThreadEventLoop> mainThreadWorker;
 };
 
 END_NAMESPACE_OPENDAQ

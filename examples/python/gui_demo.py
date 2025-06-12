@@ -173,7 +173,7 @@ class App(tk.Tk):
             print("Callback processing error:", e)
 
         try:
-            self.context.instance.context.scheduler.proccess_main_thread_tasks()
+            self.context.instance.context.scheduler.run_main_loop_iteration()
         except Exception as e:
             print("Scheduler processing error:", e)
 

@@ -28,6 +28,102 @@ public:
 
 BEGIN_NAMESPACE_OPENDAQ
 
+class MainThreadEventLoop::WorkWrapper
+{
+public:
+    explicit WorkWrapper(WorkPtr work)
+        : work(std::move(work))
+        , isRepetitive(this->work.supportsInterface<IWorkRepetitive>())
+    {}
+
+    bool execute() const
+    {
+        if (isRepetitive)
+            return work->execute() != OPENDAQ_ERR_REPETITIVE_TASK_STOPPED;
+
+        work->execute();
+        return false;
+    }
+
+private:
+    const WorkPtr work;
+    const bool isRepetitive;
+};
+
+MainThreadEventLoop::MainThreadEventLoop() = default;
+
+MainThreadEventLoop::~MainThreadEventLoop()
+{
+    stop();
+}
+
+void MainThreadEventLoop::stop()
+{
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        running = false;
+    }
+    cv.notify_all();
+}
+
+void MainThreadEventLoop::runIteration()
+{
+    std::list<WorkWrapper> currentWork;
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        currentWork.swap(workQueue);
+    }
+
+    for (auto it = currentWork.begin(); it != currentWork.end();)
+    {
+        if (it->execute())
+            ++it;
+        else
+            it = currentWork.erase(it);
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        workQueue.splice(workQueue.end(), currentWork);
+    }
+}
+
+void MainThreadEventLoop::run()
+{
+    std::unique_lock<std::mutex> lock(mutex);
+    running = true;
+
+    while (true)
+    {
+        cv.wait(lock, [this] { return !workQueue.empty() || !running; });
+        if (!running)
+            return;
+
+        lock.unlock();
+        runIteration();
+        lock.lock();
+    }
+}
+
+bool MainThreadEventLoop::isRunning() const
+{
+    std::lock_guard<std::mutex> lock(mutex);
+    return running;
+}
+
+ErrCode MainThreadEventLoop::execute(IWork* work)
+{
+    OPENDAQ_PARAM_NOT_NULL(work);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        workQueue.emplace_back(work);
+    }
+
+    cv.notify_one();
+    return OPENDAQ_SUCCESS;
+}
+
 SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers)
     : stopped(false)
     , logger(std::move(logger))
@@ -36,7 +132,7 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers)
                           : throw ArgumentNullException("Logger must not be null"))
     , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers,
                std::make_shared<CustomWorkerInterface>()))
-    , mainThreadWorker(std::make_unique<MainThreadWorker>())
+    , mainThreadWorker(std::make_unique<MainThreadEventLoop>())
 {
     LOG_D("Starting scheduler with {} workers.", executor->num_workers())
 }
@@ -146,19 +242,25 @@ std::size_t SchedulerImpl::getWorkerCount() const
     return executor->num_workers();
 }
 
-ErrCode SchedulerImpl::mainLoop()
+ErrCode SchedulerImpl::runMainLoop()
 {    
     mainThreadWorker->run();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode SchedulerImpl::proccessMainThreadTasks()
+ErrCode SchedulerImpl::stopMainLoop()
+{    
+    mainThreadWorker->stop();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode SchedulerImpl::runMainLoopIteration()
 {
     mainThreadWorker->runIteration();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode SchedulerImpl::scheduleWorkOnMainThread(IWork* work)
+ErrCode SchedulerImpl::scheduleWorkOnMainLoop(IWork* work)
 {
     OPENDAQ_PARAM_NOT_NULL(work);
     return mainThreadWorker->execute(work);

@@ -61,21 +61,18 @@ void printProperty(const PropertyPtr& property, const size_t& indent = 0)
     printMetadata(Boolean(property.getVisible()), "Visible", indent + 1);
     printMetadata(property.getUnit(), "Unit", indent + 1);
 
-    // TODO: kind of hacky
-    auto propObj = property.getValue().asPtrOrNull<IPropertyObject>();
-    auto dictObj = property.getValue().asPtrOrNull<IDict>();
-    if (propObj.assigned())
+    if (property.getValue().getCoreType() == CoreType::ctObject)
     {
-        for (const auto& prop : propObj.getAllProperties())
+        for (const auto& prop : property.getValue().asPtrOrNull<IPropertyObject>().getAllProperties())
         {
             printProperty(prop, indent + 1);
         }
     }
-    else if (dictObj.assigned())
+    else if (property.getValue().getCoreType() == CoreType::ctDict)
     {
-        for (const auto& [key, value] : dictObj)
+        for (const auto& [key, value] : property.getValue().asPtrOrNull<IDict>())
         {
-            std::cout << std::string(indent * 2, ' ') << "  Key:" << key << " Value: " << value << "\n";
+            std::cout << std::string(indent * 2, ' ') << "  Key: " << key << " Value: " << value << "\n";
         }
     }
     else

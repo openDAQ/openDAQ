@@ -122,9 +122,9 @@ void PolylineImplGeneric::drawLine(const sf::Vector2f& topLeft, const sf::Vector
 
 void PolylineImplGeneric::drawTriangle(const sf::Vector2f& pt1, const sf::Vector2f& pt2, const sf::Vector2f& pt3)
 {
-    m_vertices.append(sf::Vertex(pt1, m_color));
-    m_vertices.append(sf::Vertex(pt2, m_color));
-    m_vertices.append(sf::Vertex(pt3, m_color));
+    m_vertices.append(sf::Vertex{pt1, m_color});
+    m_vertices.append(sf::Vertex{pt2, m_color});
+    m_vertices.append(sf::Vertex{pt3, m_color});
 }
 
 void PolylineImplGeneric::calcRects(const sf::Vector2f& p1, const sf::Vector2f& p2, const sf::Vector2f& halfOrthoNormVec, sf::Vector2f& topLeft, sf::Vector2f& bottomLeft, sf::Vector2f& topRight, sf::Vector2f& bottomRight)

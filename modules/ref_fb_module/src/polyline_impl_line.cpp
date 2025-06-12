@@ -1,7 +1,7 @@
 #include <ref_fb_module/polyline_impl_line.h>
 
 PolylineImplLine::PolylineImplLine(LineStyle style)
-    : PolylineImpl(style == LineStyle::solid ? sf::PrimitiveType::LinesStrip : sf::PrimitiveType::Lines, style)
+    : PolylineImpl(style == LineStyle::solid ? sf::PrimitiveType::LineStrip : sf::PrimitiveType::Lines, style)
 {
 }
 
@@ -9,14 +9,14 @@ void PolylineImplLine::addPoint(const sf::Vector2f& pt)
 {
     if (m_style == LineStyle::solid)
     {
-        m_vertices.append(sf::Vertex(pt, m_color));
+        m_vertices.append(sf::Vertex{pt, m_color});
     }
     else
     {
         if (!m_vertices.getVertexCount())
         {
-            m_vertices.append(sf::Vertex(pt, m_color));
-            m_vertices.append(sf::Vertex(pt, m_color));
+            m_vertices.append(sf::Vertex{pt, m_color});
+            m_vertices.append(sf::Vertex{pt, m_color});
             return;
         }
         auto prevPt = m_vertices[m_vertices.getVertexCount() - 1].position;
@@ -37,8 +37,8 @@ void PolylineImplLine::addPoint(const sf::Vector2f& pt)
             else
                 nextPt = pt;
 
-            m_vertices.append(sf::Vertex(prevPt, m_color));
-            m_vertices.append(sf::Vertex(nextPt, m_color));
+            m_vertices.append(sf::Vertex{prevPt, m_color});
+            m_vertices.append(sf::Vertex{nextPt, m_color});
 
             prevPt = nextPt + normVec * skipDistance;
             drawnDistance += skipDistance;

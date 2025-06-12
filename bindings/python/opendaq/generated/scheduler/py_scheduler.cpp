@@ -93,4 +93,37 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
             return objectPtr.isMultiThreaded();
         },
         "Returns whether more than one worker thread is used.");
+    cls.def("run_main_loop",
+        [](daq::IScheduler *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SchedulerPtr::Borrow(object);
+            objectPtr.runMainLoop();
+        },
+        "");
+    cls.def("stop_main_loop",
+        [](daq::IScheduler *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SchedulerPtr::Borrow(object);
+            objectPtr.stopMainLoop();
+        },
+        "");
+    cls.def("run_main_loop_iteration",
+        [](daq::IScheduler *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SchedulerPtr::Borrow(object);
+            objectPtr.runMainLoopIteration();
+        },
+        "");
+    cls.def("schedule_work_on_main_loop",
+        [](daq::IScheduler *object, daq::IWork* work)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SchedulerPtr::Borrow(object);
+            objectPtr.scheduleWorkOnMainLoop(work);
+        },
+        py::arg("work"),
+        "");
 }

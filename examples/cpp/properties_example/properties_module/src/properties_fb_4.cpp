@@ -30,15 +30,15 @@ void PropertiesFb4::initProperties()
             .build();
     objPtr.addProperty(sometimesVisibleProperty);
 
-    // Read-only Int
+    // Read-only Int - used to demonstrate a read-only Property
     auto readOnlyProp = IntPropertyBuilder("ReadOnlyInt", 42).setReadOnly(true).build();
     objPtr.addProperty(readOnlyProp);
 
-    // Coerced Int
+    // Coerced Int - used to demonstrate coercion of Property values
     auto coercedProp = IntPropertyBuilder("CoercedProp", 5).setCoercer(Coercer("if(Value > 10, 10, Value)")).build();
     objPtr.addProperty(coercedProp);
 
-    // Validated Int
+    // Validated Int - used to demonstrate validation of Property values
     auto validatedProp = IntPropertyBuilder("ValidatedProp", 42).setValidator(Validator("Value < 100")).build();
     objPtr.addProperty(validatedProp);
 }

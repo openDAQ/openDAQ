@@ -137,11 +137,6 @@ ErrCode SchedulerImpl::isMultiThreaded(Bool* multiThreaded)
     return OPENDAQ_SUCCESS;
 }
 
-std::size_t SchedulerImpl::getWorkerCount() const
-{
-    return executor->num_workers();
-}
-
 OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY, Scheduler,
     ILogger*, logger,

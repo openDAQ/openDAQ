@@ -21,7 +21,6 @@
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/awaitable_ptr.h>
-
 #include <opendaq/task_flow.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -51,5 +50,11 @@ private:
 
     std::unique_ptr<tf::Executor> executor;
 };
+
+
+inline std::size_t SchedulerImpl::getWorkerCount() const
+{
+    return executor->num_workers();
+}
 
 END_NAMESPACE_OPENDAQ

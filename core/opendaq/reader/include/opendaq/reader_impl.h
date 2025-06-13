@@ -131,7 +131,17 @@ public:
     virtual ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
-        inputPort->getConnection(&connection);
+        ProcedurePtr callback;
+
+        {
+            inputPort->getConnection(&connection);
+            
+            std::scoped_lock lock(mutex);
+            callback = connectedCallback;
+        }
+
+        if (callback.assigned())
+            return wrapHandler<InputPortPtr>(callback, InputPortPtr(inputPort));
         return OPENDAQ_SUCCESS;
     }
 
@@ -142,9 +152,17 @@ public:
     virtual ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
+        ProcedurePtr callback;
 
-        std::scoped_lock lock(mutex);
-        connection = nullptr;
+        {
+            std::scoped_lock lock(mutex);
+            connection = nullptr;
+
+            callback = disconnectedCallback;
+        }
+
+        if (callback.assigned())
+            return wrapHandler<InputPortPtr>(callback, InputPortPtr(inputPort));
         return OPENDAQ_SUCCESS;
     }
 
@@ -153,6 +171,21 @@ public:
         std::scoped_lock lock(mutex);
 
         readCallback = callback;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC setOnConnected(IProcedure* callback) override
+    {
+        std::scoped_lock lock(mutex);
+
+        connectedCallback = callback;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC setOnDisconnected(IProcedure* callback) override
+    {        std::scoped_lock lock(mutex);
+
+        disconnectedCallback = callback;
         return OPENDAQ_SUCCESS;
     }
 
@@ -527,6 +560,8 @@ protected:
     PropertyObjectPtr portBinder;
     ConnectionPtr connection;
     ProcedurePtr readCallback;
+    ProcedurePtr connectedCallback;
+    ProcedurePtr disconnectedCallback;
     ReadTimeoutType timeoutType;
 
     std::unique_ptr<Reader> valueReader;

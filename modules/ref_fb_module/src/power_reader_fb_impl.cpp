@@ -16,10 +16,10 @@
 #include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reader_factory.h>
-
 #include <iostream>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
+
 namespace PowerReader
 {
 

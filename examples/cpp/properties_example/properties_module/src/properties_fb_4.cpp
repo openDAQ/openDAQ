@@ -41,6 +41,20 @@ void PropertiesFb4::initProperties()
     // Validated Int - used to demonstrate validation of Property values
     auto validatedProp = IntPropertyBuilder("ValidatedProp", 42).setValidator(Validator("Value < 100")).build();
     objPtr.addProperty(validatedProp);
+
+    // Demonstrate property ordering
+    // First, properties are in insertion order by default
+    // Then set a custom order that groups related properties together
+    auto customOrder = List<IString>(
+        "UnitSelection",      // Selection properties first
+        "SometimesVisible",   // Then properties that depend on selection
+        "Referenced",         // Then reference source
+        "Reference",          // Then reference target
+        "ReadOnlyInt",        // Then read-only properties
+        "CoercedProp",        // Then properties with coercion
+        "ValidatedProp"       // Finally properties with validation
+    );
+    objPtr.setPropertyOrder(customOrder);
 }
 
 FunctionBlockTypePtr PropertiesFb4::CreateType()

@@ -21,16 +21,15 @@ private:
     const IntfID& valueId;
 };
 
-ListImpl::ListImpl()
-    : iid(IUnknown::Id)
-{
-    list.reserve(16);
-}
-
 ListImpl::ListImpl(IntfID id)
     : iid(id)
 {
     list.reserve(16);
+}
+
+ListImpl::ListImpl()
+    : ListImpl(IUnknown::Id)
+{
 }
 
 ErrCode ListImpl::getElementInterfaceId(IntfID* id)

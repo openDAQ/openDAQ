@@ -129,8 +129,7 @@ public:
         this->valueType = ctBool;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // IntProperty()
@@ -140,8 +139,7 @@ public:
         this->valueType = ctInt;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // FloatProperty()
@@ -151,8 +149,7 @@ public:
         this->valueType = ctFloat;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // StringProperty()
@@ -162,8 +159,7 @@ public:
         this->valueType = ctString;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // ListProperty()
@@ -173,8 +169,7 @@ public:
         this->valueType = ctList;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // DictProperty()
@@ -184,8 +179,7 @@ public:
         this->valueType = ctDict;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // RatioProperty()
@@ -195,8 +189,7 @@ public:
         this->valueType = ctRatio;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // ObjectProperty()
@@ -209,8 +202,7 @@ public:
             this->defaultValue = PropertyObject().detach();
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // FunctionProperty()
@@ -232,8 +224,7 @@ public:
         }
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // ReferenceProperty()
@@ -243,8 +234,7 @@ public:
         this->refProp = referencedProperty;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // SelectionProperty()
@@ -255,8 +245,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // SparseSelectionProperty()
@@ -267,8 +256,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // StructProperty()
@@ -279,8 +267,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // EnumerationProperty()
@@ -291,8 +278,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
@@ -310,14 +296,14 @@ public:
         OPENDAQ_PARAM_NOT_NULL(type);
 
 	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *type = lock ? prop.getValueType() : prop.asPtr<IPropertyInternal>().getValueTypeNoLock();
-		        else
-			        *type = this->valueType;
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *type = lock ? prop.getValueType() : prop.asPtr<IPropertyInternal>().getValueTypeNoLock();
+            else
+                *type = this->valueType;
+                
+            return OPENDAQ_SUCCESS;
+        });
     }
     
     ErrCode INTERFACE_FUNC getKeyType(CoreType* type) override

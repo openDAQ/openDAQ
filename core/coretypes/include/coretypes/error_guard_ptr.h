@@ -75,30 +75,6 @@ public:
         return *this;
     }
 
-    ConstCharPtr getFileName() const
-    {
-        if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException);
-
-        ConstCharPtr fileName;
-        const ErrCode errCode = this->object->getFileName(&fileName);
-        checkErrorInfo(errCode);
-
-        return fileName;
-    }
-
-    Int getFileLine() const
-    {
-        if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException);
-
-        Int fileLine;
-        const ErrCode errCode = this->object->getFileLine(&fileLine);
-        checkErrorInfo(errCode);
-
-        return fileLine;
-    }
-
     ListPtr<IErrorInfo> getErrorInfos() const
     {
         if (this->object == nullptr)

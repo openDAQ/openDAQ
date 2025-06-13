@@ -52,22 +52,19 @@ void ErrorInfoHolder::setErrorInfo(IErrorInfo* errorInfo)
 
         if (!errorInfoList->empty())
         {
-            if (scopeEntry)
-            {
-                auto it = std::prev(errorInfoList->end());
-                if (it == scopeEntry->it)
-                    throw std::runtime_error("Clearing error info out of scope");
-            }
-            
-            errorInfoList->pop_back();
+            auto it = std::prev(errorInfoList->end());
+            if (scopeEntry && it == scopeEntry->it)
+                return;
+
+            errorInfoList->erase(it, errorInfoList->end());
         }
 
-        if (errorInfoList->empty() && scopeEntry == nullptr)
+        if (errorInfoList->empty())
             errorInfoList.reset();
         return;
     }
 
-    getList()->push_back(errorInfo);
+    getList()->emplace_back(errorInfo);
 }
 
 IErrorInfo* ErrorInfoHolder::getErrorInfo() const
@@ -75,16 +72,28 @@ IErrorInfo* ErrorInfoHolder::getErrorInfo() const
     if (!errorInfoList || errorInfoList->empty())
         return nullptr;
 
-    IErrorInfo* errorInfo = errorInfoList->back().get();
-    return errorInfo;
+    return errorInfoList->back().get();
 }
 
-IList* ErrorInfoHolder::moveErrorInfoList()
+IList* ErrorInfoHolder::getErrorInfoList()
 {
-    IList* list = ListWithElementType_Create(IErrorInfo::Id);
+    IList* list;
+    
+    if (scopeEntry != nullptr)
+    {
+        const ErrCode errCode = scopeEntry->getErrorInfos(&list);
+        if (OPENDAQ_FAILED(errCode))
+            throw std::runtime_error("Failed to get error info list"    );
+        return list;
+    }
+
+    const ErrCode res = createListWithElementType(&list, IErrorInfo::Id);
+    if (OPENDAQ_FAILED(res))
+        throw std::runtime_error("Failed to create error info list");
+
     if (!errorInfoList)
         return list;
-    for (auto& item : *errorInfoList)
+    for (const auto& item : *errorInfoList)
     {
         IBaseObject* errorInfoObject = nullptr;
         item.borrow()->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(&errorInfoObject));
@@ -98,59 +107,47 @@ IList* ErrorInfoHolder::moveErrorInfoList()
 // ErrorScope
 
 ErrorGuardImpl::ErrorGuardImpl(ConstCharPtr filename, int fileLine)
-    : filename(filename)
-    , fileLine(fileLine)
-    , prevScopeEntry(daq::errorInfoHolder.scopeEntry)
+    : threadId(std::this_thread::get_id())
+    , prevScopeEntry(errorInfoHolder.scopeEntry)
 {
-    auto list = daq::errorInfoHolder.getList();
-    if (!list->empty())
+    errorInfoHolder.scopeEntry = this;
+
+    IErrorInfo* errorMark = nullptr;
+    const ErrCode errCode = createErrorInfo(&errorMark);
+    if (OPENDAQ_FAILED(errCode))
+        throw std::runtime_error("Failed to create error info");
+
+    errorMark->setFileName(filename);
+    errorMark->setFileLine(fileLine);
+
+    auto list = errorInfoHolder.getList();
+    list->emplace_back(errorMark);
+    errorMark->releaseRef();
         it = std::prev(list->end());
-    else
-        it = list->end();
-    daq::errorInfoHolder.scopeEntry = this;
 }
 
 ErrorGuardImpl::~ErrorGuardImpl()
 {
-    daq::errorInfoHolder.scopeEntry = prevScopeEntry;
-    auto errorList = daq::errorInfoHolder.getList();
-    auto it = getIterator();
-    errorList->erase(it, errorList->end());
-}
-
-ErrCode ErrorGuardImpl::getFileName(ConstCharPtr* fileName)
-{
-    if (fileName == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    *fileName = this->filename;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode ErrorGuardImpl::getFileLine(Int* fileLine)
-{
-    if (fileLine == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
-    *fileLine = this->fileLine;
-    return OPENDAQ_SUCCESS; 
-}
-
-std::list<ErrorInfoWrapper>::iterator ErrorGuardImpl::getIterator()
-{
-    auto it = this->it;
-    auto errorList = daq::errorInfoHolder.getList();
-    if (it == errorList->end())
-        return errorList->begin();
-    return it;
+    assert(std::this_thread::get_id() == threadId && "ErrorGuard must be used in the same thread where it was created");
+    errorInfoHolder.scopeEntry = prevScopeEntry;
+    auto errorList = errorInfoHolder.getList();
+    errorList->erase(this->it, errorList->end());
 }
 
 ErrCode ErrorGuardImpl::getErrorInfos(IList** errorInfos)
 {
     if (errorInfos == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+    if (threadId != std::this_thread::get_id())
+        return OPENDAQ_ERR_INVALIDVALUE;
 
-    IList* list = ListWithElementType_Create(IErrorInfo::Id);
-    auto errorList = daq::errorInfoHolder.getList();
-    for (auto it = getIterator(); it != errorList->end(); it++)
+    IList* list;
+    const ErrCode res = createListWithElementType(&list, IErrorInfo::Id);
+    if (OPENDAQ_FAILED(res))
+        throw std::runtime_error("Failed to create error info list");
+
+    auto errorList = errorInfoHolder.getList();
+    for (auto it = this->it; it != errorList->end(); it++)
     {
         IBaseObject* errorInfoObject = nullptr;
         it->borrow()->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(&errorInfoObject));
@@ -165,15 +162,19 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message)
 {
     if (message == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
+    if (threadId != std::this_thread::get_id())
+        return OPENDAQ_ERR_INVALIDVALUE;
+   
+    auto errorList = errorInfoHolder.getList();
+    if (std::next(this->it) == errorList->end())
+        return OPENDAQ_SUCCESS;
 
     std::ostringstream ss;
-
-    auto errorList = daq::errorInfoHolder.getList();
-    for (auto it = getIterator(); it != errorList->end(); it++)
+    for (auto it = this->it; it != errorList->end(); it++)
     {
         StringPtr message;
         it->borrow()->getFormatMessage(&message);
-        if (message)
+        if (message.assigned())
             ss << message << "\n";
     }
 
@@ -363,7 +364,7 @@ void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo)
 extern "C" 
 void PUBLIC_EXPORT daqGetErrorInfoList(daq::IList** errorInfoList)
 {
-    *errorInfoList = daq::errorInfoHolder.moveErrorInfoList();
+    *errorInfoList = daq::errorInfoHolder.getErrorInfoList();
 }
 
 extern "C"
@@ -373,13 +374,31 @@ void PUBLIC_EXPORT daqClearErrorInfo()
 }
 
 extern "C" 
-void PUBLIC_EXPORT daqCheckErrorGuard(daq::IErrorGuard* errorGuard)
+void PUBLIC_EXPORT daqCheckErrorGuard(daq::ErrCode errCode, daq::IErrorGuard* errorGuard)
 {
-    if (!errorGuard)
+
+#ifdef NDEBUG
+    if (OPENDAQ_SUCCEEDED(errCode))
+        return;
+#endif
+
+    std::string message;
+    if (errorGuard)
+    {
+        daq::IString* messagePtr = nullptr;
+        errorGuard->getFormatMessage(&messagePtr);
+        if (messagePtr)
+        {
+            daq::ConstCharPtr msgCharPtr;
+            messagePtr->getCharPtr(&msgCharPtr);
+            if (msgCharPtr)
+                message = msgCharPtr;
+            messagePtr->releaseRef();
+        }
+    }
+   
+    if (OPENDAQ_SUCCEEDED(errCode) && message.empty())
         return;
 
-    daq::StringPtr message;
-    errorGuard->getFormatMessage(&message);
-
-    throwExceptionFromErrorCode(OPENDAQ_ERR_GENERALERROR, message.assigned() ? message : "");
+    daq::throwExceptionFromErrorCode(errCode, message);
 }

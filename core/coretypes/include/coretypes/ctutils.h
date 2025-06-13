@@ -21,6 +21,7 @@
 #include <sstream>
 #include <utility>
 #include <coretypes/errorinfo.h>
+#include <coretypes/error_guard.h>
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
 #include <numeric>
@@ -195,15 +196,11 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
 }
 inline void checkErrorInfo(ErrCode errCode)
 {
+    if (OPENDAQ_SUCCEEDED(errCode))
+        return;
+
     IList* errorInfoList;
     daqGetErrorInfoList(&errorInfoList);
-
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        if (errorInfoList != nullptr)
-            errorInfoList->releaseRef();
-        return;
-    }
 
     std::ostringstream ss;
     if (errorInfoList != nullptr)
@@ -309,13 +306,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     inline ErrCode extendErrorInfo(ErrCode errCode, const std::string& message, Params... params)
     {
-       return makeErrorInfo(errCode, nullptr, "Cause by: " + message, std::forward<Params>(params)...);
-    }
-
-    template <typename... Params>
-    inline ErrCode extendErrorInfo(ErrCode /* errCode */, ErrCode errCode, const std::string& message, Params... params)
-    {
-        return makeErrorInfo(errCode, nullptr, "Cause by: " + message, std::forward<Params>(params)...);
+       return makeErrorInfo(errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
     }
 
     template <typename... Params>
@@ -325,10 +316,16 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     }
 
     template <typename... Params>
-    inline ErrCode extendErrorInfo(ErrCode oldErrCode, ErrCode errCode)
+    inline ErrCode extendErrorInfo(ErrCode /* oldErrCode */, ErrCode errCode, const std::string& message, Params... params)
+    {
+        return makeErrorInfo(errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
+    }
+
+    template <typename... Params>
+    inline ErrCode extendErrorInfo(ErrCode /* oldErrCode */, ErrCode errCode)
     {
         const std::string msg = ErrorCodeMessage(errCode);
-        return extendErrorInfo(oldErrCode, errCode, msg);
+        return extendErrorInfo(errCode, msg);
     }
 
     #define DAQ_EXTEND_ERROR_INFO(errCode, ...) \
@@ -338,13 +335,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, Params... params)
     {
-        return makeErrorInfo(errCode, nullptr, "Cause by: " + message, std::forward<Params>(params)...);
-    }
-
-    template <typename... Params>
-    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode /* errCode */, ErrCode errCode, const std::string& message, Params... params)
-    {
-        return makeErrorInfo(errCode, nullptr, "Cause by: " + message, std::forward<Params>(params)...);
+        return makeErrorInfo(errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
     }
 
     template <typename... Params>
@@ -354,10 +345,16 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     }
 
     template <typename... Params>
-    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode oldErrCode, ErrCode errCode)
+    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode /* oldErrCode */, ErrCode errCode, const std::string& message, Params... params)
+    {
+        return makeErrorInfo(errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
+    }
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode /* oldErrCode */, ErrCode errCode)
     {
         const std::string msg = ErrorCodeMessage(errCode);
-        return extendErrorInfo(fileName, fileLine, oldErrCode, errCode, msg);
+        return extendErrorInfo(fileName, fileLine, errCode, msg);
     }
 
     #define DAQ_EXTEND_ERROR_INFO(errCode, ...) \
@@ -380,9 +377,6 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
         if (OPENDAQ_FAILED(errCode_))                                                   \
             return DAQ_EXTEND_ERROR_INFO(errCode_, ##__VA_ARGS__);                      \
     } while (0)
-
-#define OPENDAQ_PARAM_REQUIRE(cond) \
-    do { if (!(cond)) return OPENDAQ_ERR_INVALIDPARAMETER; } while (0)
 
 inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = nullptr)
 {
@@ -575,6 +569,7 @@ ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Para
 
 template <typename T>
 class ShowType;
+
 
 template <class F>
 ErrCode daqTry(const IBaseObject* context, F&& func)

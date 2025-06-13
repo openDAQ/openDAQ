@@ -1,6 +1,6 @@
 #set_cmake_folder_context(TARGET_FOLDER_NAME)
 
-set(GTest_REQUIREDVERSION "1.15.0")
+set(GTest_REQUIREDVERSION "1.12.1")
 
 find_package(GTest ${GTest_REQUIREDVERSION} GLOBAL)
 if(GTest_FOUND)
@@ -19,8 +19,8 @@ else()
     set(gtest_force_shared_crt ON)
     FetchContent_Declare(
             GTest
-            URL https://github.com/google/googletest/archive/refs/tags/v${GTest_REQUIREDVERSION}.zip
-            URL_HASH SHA256=ed98258b96c6dc8af33eeb03c8d94a05b185866604382e12980f576595bdc509
+            URL https://github.com/google/googletest/archive/release-${GTest_REQUIREDVERSION}.zip
+            URL_HASH SHA256=24564e3b712d3eb30ac9a85d92f7d720f60cc0173730ac166f27dda7fed76cb2
             ${FC_PARAMS}
     )
 

@@ -6,5 +6,5 @@
 
         auto errorGuard = DAQ_ERROR_GUARD();
         auto errCode = this->object->$NameInInterface$($ArgumentNames$);
-        daqCheckErrorGuard(errorGuard);
+        daqCheckErrorGuard(errCode, errorGuard);
     }

@@ -1116,7 +1116,7 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
     DictPtr<IString, IDeviceType> types;
     const ErrCode err = module->getAvailableDeviceTypes(&types);
     if (err != OPENDAQ_ERR_NOTIMPLEMENTED && OPENDAQ_FAILED(err))
-        throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
 
     if (!types.assigned())
         return nullptr;

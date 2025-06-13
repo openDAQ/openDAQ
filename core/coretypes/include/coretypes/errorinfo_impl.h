@@ -21,6 +21,7 @@
 #include <coretypes/listobject.h>
 #include <coretypes/intfs.h>
 #include <list>
+#include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -54,6 +55,7 @@ private:
 
 
 class ErrorInfoWrapper;
+class ErrorInfoHolder;
 
 class ErrorGuardImpl : public ImplementationOf<IErrorGuard>
 {
@@ -61,20 +63,15 @@ public:
     ErrorGuardImpl(ConstCharPtr filename, int fileLine);
     ~ErrorGuardImpl();
 
-    ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) override;
-    ErrCode INTERFACE_FUNC getFileLine(Int* fileLine) override;
     ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) override;
     ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
-
-    std::list<ErrorInfoWrapper>::iterator getIterator();
 
 private:
     friend class ErrorInfoHolder;
 
-    ConstCharPtr filename;
-    Int fileLine;
     ErrorGuardImpl* prevScopeEntry;
     std::list<ErrorInfoWrapper>::iterator it;
+    std::thread::id threadId;
 };
 
 class ErrorInfoWrapper
@@ -98,7 +95,7 @@ public:
 
     void setErrorInfo(IErrorInfo* errorInfo);
     IErrorInfo* getErrorInfo() const;
-    IList* moveErrorInfoList();
+    IList* getErrorInfoList();
 
 private:
     friend class ErrorGuardImpl;

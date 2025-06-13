@@ -18,7 +18,6 @@
 #include <opendaq/read_info.h>
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/signal_reader.h>
-#include <coreobjects/property_object_factory.h>
 #include <opendaq/multi_reader_builder_ptr.h>
 #include <opendaq/reader_factory.h>
 
@@ -40,16 +39,13 @@ public:
                     SampleType valueReadType,
                     SampleType domainReadType);
 
-    MultiReaderImpl(const ReaderConfigPtr& readerConfig,
-                    SampleType valueReadType,
-                    SampleType domainReadType,
-                    ReadMode mode);
-
     MultiReaderImpl(const MultiReaderBuilderPtr& builder);
 
     ~MultiReaderImpl() override;
 
     ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
+    ErrCode INTERFACE_FUNC setOnConnected(IProcedure* callback) override;
+    ErrCode INTERFACE_FUNC setOnDisconnected(IProcedure* callback) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC getDomainReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC setValueTransformFunction(IFunction* transform) override;
@@ -89,7 +85,7 @@ private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
 
-    ListPtr<IInputPortConfig> checkPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
+    ListPtr<IInputPortConfig> checkPreconditions(const ListPtr<IComponent>& list, bool& fromInputPorts);
     void updateCommonSampleRateAndDividers();
     ListPtr<ISignal> getSignals() const;
 
@@ -124,7 +120,9 @@ private:
     MultiReaderStatusPtr createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, const NumberPtr& offset = nullptr);
 
     std::mutex mutex;
+    std::mutex packetReceivedMutex;
     bool invalid{false};
+    bool eventInQueue{false};
     std::string errorMessage;
 
     SizeT remainingSamplesToRead{};
@@ -143,10 +141,13 @@ private:
     std::int64_t commonSampleRate = -1;
     std::int32_t sampleRateDividerLcm = 1;
     bool sameSampleRates = false;
+    Bool allowDifferentRates = true;
 
     std::vector<SignalReader> signals;
     PropertyObjectPtr portBinder;
     ProcedurePtr readCallback;
+    ProcedurePtr connectedCallback;
+    ProcedurePtr disconnectedCallback;
 
     LoggerComponentPtr loggerComponent;
 
@@ -159,7 +160,7 @@ private:
     DataDescriptorPtr mainValueDescriptor;
     DataDescriptorPtr mainDomainDescriptor;
 
-    void isDomainValid(const ListPtr<IInputPortConfig>& list);
+    void isDomainValid(const ListPtr<IInputPortConfig>& list) const;
     void checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list);
 
     ContextPtr context;

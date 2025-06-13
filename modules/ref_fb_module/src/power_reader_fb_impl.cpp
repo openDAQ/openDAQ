@@ -16,6 +16,7 @@
 #include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reader_factory.h>
+#include <iostream>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -102,6 +103,20 @@ FunctionBlockTypePtr PowerReaderFbImpl::CreateType()
     return FunctionBlockType("RefFBModulePowerReader", "Power with reader", "Calculates power using multi reader");
 }
 
+bool PowerReaderFbImpl::descriptorNotNull(const DataDescriptorPtr& descriptor)
+{
+    return descriptor.assigned() && descriptor != NullDataDescriptor();
+}
+
+void PowerReaderFbImpl::getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc)
+{
+    if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+    {
+        valueDesc = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+        domainDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+    }
+}
+
 bool PowerReaderFbImpl::getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc)
 {
     if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
@@ -155,22 +170,30 @@ void PowerReaderFbImpl::onDataReceived()
             DataDescriptorPtr voltageDescriptor;
             DataDescriptorPtr currentDescriptor;
 
+            bool domainChanged = false;
             if (eventPackets.hasKey(voltageInputPort.getGlobalId()))
-                getDataDescriptor(eventPackets.get(voltageInputPort.getGlobalId()), voltageDescriptor);
+            {
+                getDataDescriptors(eventPackets.get(voltageInputPort.getGlobalId()), voltageDescriptor, domainDescriptor);
+                domainChanged = descriptorNotNull(domainDescriptor);
+            }
+
 
             if (eventPackets.hasKey(currentInputPort.getGlobalId()))
-                getDataDescriptor(eventPackets.get(currentInputPort.getGlobalId()), currentDescriptor);
-
+            {
+                getDataDescriptors(eventPackets.get(currentInputPort.getGlobalId()), currentDescriptor, domainDescriptor);
+                domainChanged |= descriptorNotNull(domainDescriptor);
+            }
+                
             getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
 
-            if (voltageDescriptor.assigned() || currentDescriptor.assigned())
+            if (voltageDescriptor.assigned() || currentDescriptor.assigned() || domainChanged)
                 configure(domainDescriptor, voltageDescriptor, currentDescriptor);
         }
-    }
 
-    if (!status.getValid())
-    {
-        reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+        if (!status.getValid())
+        {
+            reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+        }
     }
 }
 
@@ -274,6 +297,7 @@ void PowerReaderFbImpl::createReader()
         .setDomainReadType(SampleType::Int64)
         .setValueReadType(SampleType::Float64)
         .setTickOffsetTolerance(tolerance)
+        .setAllowDifferentSamplingRates(false)
         .build();
 
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();

@@ -27,11 +27,12 @@ struct fmt::formatter<daq::Comparable> : ostream_formatter
 
 BEGIN_NAMESPACE_OPENDAQ
 
+// Non-builder constructor
 MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode,
-                                 ReadTimeoutType timeoutType,
+                                 ReadTimeoutType timeoutType,// Why is this unused?
                                  std::int64_t requiredCommonSampleRate,
                                  Bool startOnFullUnitOfDomain,
                                  SizeT minReadCount)
@@ -46,7 +47,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
         checkEarlyPreconditionsAndCacheContext(list);
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
         bool fromInputPorts;
-        auto ports = checkPreconditions(list, true, fromInputPorts);
+        auto ports = checkPreconditions(list, fromInputPorts);
 
         if (fromInputPorts)
             portBinder = PropertyObject();
@@ -60,6 +61,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     }
 }
 
+// From old
 MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType, SampleType domainReadType)
     : loggerComponent(old->loggerComponent)
 {
@@ -74,15 +76,12 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     requiredCommonSampleRate = old->requiredCommonSampleRate;
     mainValueDescriptor = old->mainValueDescriptor;
     mainDomainDescriptor = old->mainDomainDescriptor;
-
-    auto oldSignals = old->getSignals();
-    checkEarlyPreconditionsAndCacheContext(oldSignals);
+    allowDifferentRates = old->allowDifferentRates;
+    context = old->context;
     
     this->internalAddRef();
     try
     {
-        bool fromInputPorts;
-        checkPreconditions(oldSignals, false, fromInputPorts);
         auto listener = this->thisPtr<InputPortNotificationsPtr>();
         for (auto& signal : old->signals)
         {
@@ -90,8 +89,6 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
         }
 
         updateCommonSampleRateAndDividers();
-        if (invalid)
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Signal sample rate does not match required common sample rate");
         readCallback = std::move(old->readCallback);
     }
     catch (...)
@@ -101,50 +98,11 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     }
 }
 
-MultiReaderImpl::MultiReaderImpl(const ReaderConfigPtr& readerConfig, SampleType valueReadType, SampleType domainReadType, ReadMode mode)
-    : tickOffsetTolerance(nullptr)
-    , minReadCount(1)
-{
-    if (!readerConfig.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException, "Existing reader must not be null");
-
-    readerConfig.markAsInvalid();
-
-    this->internalAddRef();
-    try
-    {
-        auto listener = this->thisPtr<InputPortNotificationsPtr>();
-
-        auto ports = readerConfig.getInputPorts();
-
-        checkEarlyPreconditionsAndCacheContext(ports);
-        loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
-        bool fromInputPorts;
-        checkPreconditions(ports, false, fromInputPorts);
-
-        SignalInfo sigInfo{nullptr, readerConfig.getValueTransformFunction(), readerConfig.getDomainTransformFunction(), mode, loggerComponent};
-
-        for (const auto& port : ports)
-        {
-            sigInfo.port = port;
-            port.setListener(listener);
-            signals.emplace_back(sigInfo, listener, valueReadType, domainReadType);
-        }
-
-        updateCommonSampleRateAndDividers();
-        if (invalid)
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Signal sample rate does not match required common sample rate");
-    }
-    catch (...)
-    {
-        this->releaseWeakRefOnException();
-        throw;
-    }
-}
-
+// From builder
 MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     : tickOffsetTolerance(builder.getTickOffsetTolerance())
     , requiredCommonSampleRate(builder.getRequiredCommonSampleRate())
+    , allowDifferentRates(builder.getAllowDifferentSamplingRates())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
     , minReadCount(builder.getMinReadCount())
 {
@@ -155,7 +113,7 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
         checkEarlyPreconditionsAndCacheContext(sourceComponents);
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
         bool fromInputPorts;
-        auto ports = checkPreconditions(sourceComponents, false, fromInputPorts);
+        auto ports = checkPreconditions(sourceComponents, fromInputPorts);
 
         if (fromInputPorts)
             portBinder = PropertyObject();
@@ -202,7 +160,7 @@ struct MultiReaderImpl::ReferenceDomainBin
     }
 };
 
-void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list)
+void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) const
 {
     StringPtr domainUnitSymbol;
     StringPtr domainQuantity;
@@ -362,6 +320,13 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
             if (tickOffsetTolerance.assigned() && lastSampleRate.value() != signal.sampleRate)
             {
                 sameSampleRates = false;
+                if (!allowDifferentRates)
+                {
+                    LOG_W("Signal sample rates differ. AllowDifferentSamplingRates must be set to True to allow such configurations.")
+                    invalid = true;
+                    return;
+                }
+
                 LOG_W("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
             }
         }
@@ -372,6 +337,7 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
         signal.setCommonSampleRate(commonSampleRate);
         if (signal.invalid)
         {
+            LOG_W("Signal sample rates differ. Signal sample rate does not match required common sample rate.")
             invalid = true;
             return;
         }
@@ -397,10 +363,10 @@ void MultiReaderImpl::checkEarlyPreconditionsAndCacheContext(const ListPtr<IComp
     context = list[0].getContext();
 }
 
-ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts)
+ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<IComponent>& list, bool& fromInputPorts)
 {
-    bool haveInputPorts = false;
-    bool haveSignals = false;
+    bool hasInputPorts = false;
+    bool hasSignals = false;
 
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
@@ -409,24 +375,27 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
     {
         if (auto signal = el.asPtrOrNull<ISignal>(); signal.assigned())
         {
-            if (haveInputPorts)
+            if (hasInputPorts)
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
-            haveSignals = true;
+            hasSignals = true;
 
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
-            port.setNotificationMethod(PacketReadyNotification::SameThread);
+            port.setNotificationMethod(PacketReadyNotification::Scheduler);
             port.setListener(listener);
             port.connect(signal);
             portList.pushBack(port);
         }
         else if (auto port = el.asPtrOrNull<IInputPortConfig>(); port.assigned())
         {
-            if (haveSignals)
+            if (hasSignals)
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
-            haveInputPorts = true;
 
-            if (overrideMethod)
+            if (port.getNotificationMethod() == PacketReadyNotification::None)
+            {
+                LOG_W("Port with ID {} has input port notification set to 'None', overriding with 'Scheduler' mode", port.getLocalId());
                 port.setNotificationMethod(PacketReadyNotification::Scheduler);
+            }
+            hasInputPorts = true;
             portList.pushBack(port);
         }
         else
@@ -435,7 +404,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
         }
     }
 
-    fromInputPorts = haveInputPorts;
+    fromInputPorts = hasInputPorts;
 
     isDomainValid(portList);
     return portList;
@@ -498,6 +467,22 @@ ErrCode MultiReaderImpl::setOnDataAvailable(IProcedure* callback)
     std::scoped_lock lock(mutex);
 
     readCallback = callback;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::setOnConnected(IProcedure* callback)
+{
+    std::scoped_lock lock(mutex);
+
+    connectedCallback = callback;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::setOnDisconnected(IProcedure* callback)
+{
+    std::scoped_lock lock(mutex);
+
+    disconnectedCallback = callback;
     return OPENDAQ_SUCCESS;
 }
 
@@ -589,10 +574,17 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMul
 
     if (invalid)
     {
+        MultiReaderStatusPtr statusPtr;
+        if (eventInQueue)
+            statusPtr = readPackets();
+        else
+            statusPtr = createReaderStatus();
+
         if (status)
-            *status = createReaderStatus().detach();
+            *status = statusPtr.detach();
+
         *count = 0;
-        return OPENDAQ_IGNORED;
+        return OPENDAQ_SUCCESS;
     }
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
@@ -623,10 +615,17 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
 
     if (invalid)
     {
+        MultiReaderStatusPtr statusPtr;
+        if (eventInQueue)
+            statusPtr = readPackets();
+        else
+            statusPtr = createReaderStatus();
+
         if (status)
-            *status = createReaderStatus().detach();
+            *status = statusPtr.detach();
+
         *count = 0;
-        return OPENDAQ_IGNORED;
+        return OPENDAQ_SUCCESS;
     }
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
@@ -993,45 +992,54 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     OPENDAQ_PARAM_NOT_NULL(port);
 
     auto findSigByPort = [port](const SignalReader& signal) { return signal.port == port; };
+    ProcedurePtr callback;
 
-    std::scoped_lock lock(notify.mutex);
-    if (signals.empty())
-        return OPENDAQ_SUCCESS;
-
-    auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
-    if (sigInfo != signals.end())
     {
-        sigInfo->connection = sigInfo->port.getConnection();
+        std::scoped_lock lock(notify.mutex);
+        if (signals.empty())
+            return OPENDAQ_SUCCESS;
 
-        // check new signals
-        auto portList = List<IInputPortConfig>();
-        for (const auto& signalReader : signals)
+        auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
+        if (sigInfo != signals.end())
         {
-            if (signalReader.connection.assigned())
-                portList.pushBack(signalReader.port);
+            sigInfo->connection = sigInfo->port.getConnection();
+
+            // check new signals
+            auto portList = List<IInputPortConfig>();
+            for (const auto& signalReader : signals)
+            {
+                if (signalReader.connection.assigned())
+                    portList.pushBack(signalReader.port);
+            }
+
+            isDomainValid(portList);
+            portConnected = true;
         }
 
-        isDomainValid(portList);
-        portConnected = true;
-    }
-
-    portDisconnected = false;
-    for (auto& signal : signals)
-    {
-        if (!signal.connection.assigned())
-        {
-            portDisconnected = true;
-            break;
-        }
-    }
-    if (!portDisconnected)
-    {
+        portDisconnected = false;
         for (auto& signal : signals)
         {
-            signal.port.setActive(isActive);
+            if (!signal.connection.assigned())
+            {
+                portDisconnected = true;
+                break;
+            }
         }
-        portConnected = true;
+        if (!portDisconnected)
+        {
+            for (auto& signal : signals)
+            {
+                signal.port.setActive(isActive);
+            }
+            portConnected = true;
+
+            callback = connectedCallback;
+        }
     }
+
+    if (callback.assigned())
+        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -1039,25 +1047,34 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
     auto findSigByPort = [port](const SignalReader& signal) { return signal.port == port; };
+    ProcedurePtr callback;
 
-    std::scoped_lock lock(notify.mutex);
-    if (signals.empty())
-        return OPENDAQ_SUCCESS;
-
-    auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
-
-    if (sigInfo != signals.end())
     {
-        sigInfo->connection = nullptr;
-        if (portDisconnected == false)
+        std::scoped_lock lock(notify.mutex);
+        if (signals.empty())
+            return OPENDAQ_SUCCESS;
+
+        auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
+
+        if (sigInfo != signals.end())
         {
-            portDisconnected = true;
-            for (auto& signal : signals)
+            sigInfo->connection = nullptr;
+            if (portDisconnected == false)
             {
-                signal.port.setActive(false);
+                portDisconnected = true;
+                for (auto& signal : signals)
+                {
+                    signal.port.setActive(false);
+                }
             }
         }
+
+        callback = connectedCallback;
     }
+
+    if (callback.assigned())
+        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -1090,27 +1107,42 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
     bool hasEventPacket = false;
     bool hasDataPacket = true;
 
+    std::scoped_lock lockPacketReceived(packetReceivedMutex);
     std::unique_lock lock(notify.mutex);
     if (portDisconnected)
     {
         return OPENDAQ_SUCCESS;
     }
 
-    for (auto& signal : signals)
+    if (invalid)
     {
-        if (signal.isFirstPacketEvent())
+        for (auto& signal : signals)
         {
-            hasEventPacket = true;
-            break;
+            signal.skipUntilLastEventPacket();
+            hasEventPacket |= signal.isFirstPacketEvent();
         }
-        hasDataPacket &= (signal.getAvailable(true) != 0);
+        eventInQueue = hasEventPacket;
     }
+    else
+    {
+        for (auto& signal : signals)
+        {
+            if (signal.isFirstPacketEvent())
+            {
+                hasEventPacket = true;
+                break;
+            }
+            hasDataPacket &= (signal.getAvailable(true) != 0);
+        }
+    }
+
 
     if (hasEventPacket || hasDataPacket)
     {
         ProcedurePtr callback = readCallback;
         lock.unlock();
         notify.condition.notify_one();
+
         if (callback.assigned())
         {
             return wrapHandler(callback);
@@ -1429,14 +1461,15 @@ struct ObjectCreator<IMultiReader>
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Existing reader must not be null");
         }
 
-        ReadMode mode;
-        toCopy->getReadMode(&mode);
-
         auto old = ReaderConfigPtr::Borrow(toCopy);
         auto impl = dynamic_cast<MultiReaderImpl*>(old.getObject());
 
-        return impl != nullptr ? createObject<IMultiReader, MultiReaderImpl>(out, impl, valueReadType, domainReadType)
-                               : createObject<IMultiReader, MultiReaderImpl>(out, old, valueReadType, domainReadType, mode);
+        if (impl == nullptr)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "MultiReader from existing can only be used with the base multi reader implementation");
+        }
+
+        return createObject<IMultiReader, MultiReaderImpl>(out, impl, valueReadType, domainReadType);
     }
 };
 

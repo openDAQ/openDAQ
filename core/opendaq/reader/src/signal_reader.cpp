@@ -253,18 +253,21 @@ bool SignalReader::isFirstPacketEvent()
     {
         if (packet.getType() == PacketType::Data)
         {
-            connection.dequeue();
-            info.dataPacket = packet;
+            info.dataPacket = connection.dequeue();
             info.prevSampleIndex = 0;
             return false;
         }
-        else if (packet.getType() == PacketType::Event)
+
+        if (packet.getType() == PacketType::Event)
         {
             return true;
         }
+
+        // For undefined packet types
         connection.dequeue();
         packet = connection.peek();
     }
+
     return false;
 }
 

@@ -238,18 +238,34 @@ ErrCode StreamReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool*
 ErrCode StreamReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
+    ProcedurePtr callback;
 
-    std::scoped_lock lock(notify.mutex);
-    port->getConnection(&connection);
+    {
+        port->getConnection(&connection);
+        
+        std::scoped_lock lock(mutex);
+        callback = connectedCallback;
+    }
+
+    if (callback.assigned())
+        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
+    ProcedurePtr callback;
 
-    std::scoped_lock lock(notify.mutex);
-    connection = nullptr;
+    {
+        std::scoped_lock lock(mutex);
+        connection = nullptr;
+
+        callback = disconnectedCallback;
+    }
+
+    if (callback.assigned())
+        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
     return OPENDAQ_SUCCESS;
 }
 
@@ -697,6 +713,22 @@ ErrCode StreamReaderImpl::setOnDataAvailable(IProcedure* callback)
     std::scoped_lock lock(mutex);
 
     readCallback = callback;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode StreamReaderImpl::setOnConnected(IProcedure* callback)
+{
+    std::scoped_lock lock(mutex);
+
+    connectedCallback = callback;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode StreamReaderImpl::setOnDisconnected(IProcedure* callback)
+{
+    std::scoped_lock lock(mutex);
+
+    disconnectedCallback = callback;
     return OPENDAQ_SUCCESS;
 }
 

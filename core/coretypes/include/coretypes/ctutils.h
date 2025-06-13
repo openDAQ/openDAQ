@@ -335,7 +335,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, Params... params)
     {
-        return makeErrorInfo(errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
+        return makeErrorInfo(fileName, fileLine, errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
     }
 
     template <typename... Params>
@@ -347,7 +347,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode /* oldErrCode */, ErrCode errCode, const std::string& message, Params... params)
     {
-        return makeErrorInfo(errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
+        return makeErrorInfo(fileName, fileLine, errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
     }
 
     template <typename... Params>

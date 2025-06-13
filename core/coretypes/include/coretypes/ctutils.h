@@ -18,7 +18,6 @@
 #include <functional>
 #include <coretypes/common.h>
 #include <coretypes/mem.h>
-#include <regex>
 #include <sstream>
 #include <utility>
 #include <coretypes/errorinfo.h>
@@ -88,88 +87,6 @@ inline std::string objectToString(IBaseObject* object)
     }
     return stream.str();
 }
-
-inline std::ostringstream& ErrorFormat(std::ostringstream& ss, IErrorInfo* errorInfo)
-{
-    if (errorInfo == nullptr)
-        return ss;
-
-    IString* message;
-    errorInfo->getMessage(&message);
-
-    if (message != nullptr)
-    {
-        ConstCharPtr msgCharPtr;
-        message->getCharPtr(&msgCharPtr);
-
-        if (msgCharPtr != nullptr)
-            ss << msgCharPtr;
-        
-        message->releaseRef();
-    }
-
-#ifndef NDEBUG
-    ConstCharPtr fileNameCharPtr;
-    Int fileLine = -1;
-    
-    errorInfo->getFileName(&fileNameCharPtr);
-    errorInfo->getFileLine(&fileLine);
-
-    if (fileNameCharPtr != nullptr)
-    {
-        ss << " [ File " << fileNameCharPtr;
-        if (fileLine != -1)
-            ss << ":" << fileLine;
-        ss << " ]";
-    }
-#endif
-    
-    return ss;
-}
-
-inline void checkErrorInfo(ErrCode errCode)
-{
-    IList* errorInfoList;
-    daqGetErrorInfoList(&errorInfoList);
-
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        if (errorInfoList != nullptr)
-            errorInfoList->releaseRef();
-        return;
-    }
-
-    std::ostringstream ss;
-    if (errorInfoList != nullptr)
-    {
-        SizeT count = 0;
-        errorInfoList->getCount(&count);
-
-        for (SizeT i = 0; i < count; i++)
-        {
-            IBaseObject* errorInfoObj;
-            errorInfoList->getItemAt(i, &errorInfoObj);
-
-            IErrorInfo* errorInfo;
-            errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
-        
-            if (errorInfo != nullptr)
-            {
-                ErrorFormat(ss, errorInfo);
-                if (i != count - 1)
-                    ss << "\n";
-            }
-            if (errorInfoObj != nullptr)
-                errorInfoObj->releaseRef();
-        }
-    }
-
-    if (errorInfoList != nullptr)
-        errorInfoList->releaseRef();
-
-    throwExceptionFromErrorCode(errCode, ss.str());
-}
-
 
 template <typename... Params>
 ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObject* sourceObj, const std::string& message, Params... params)
@@ -264,6 +181,65 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     }
 #endif
 
+inline std::string ErrorCodeMessage(ErrCode errCode)
+{
+    IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
+    std::string msg = fact->getExceptionMessage();
+
+    if (!msg.empty())
+        return msg;
+
+    std::stringstream ss;
+    ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
+    return ss.str();
+}
+inline void checkErrorInfo(ErrCode errCode)
+{
+    IList* errorInfoList;
+    daqGetErrorInfoList(&errorInfoList);
+
+    if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        if (errorInfoList != nullptr)
+            errorInfoList->releaseRef();
+        return;
+    }
+
+    std::ostringstream ss;
+    if (errorInfoList != nullptr)
+    {
+        SizeT count = 0;
+        errorInfoList->getCount(&count);
+
+        for (SizeT i = 0; i < count; i++)
+        {
+            IBaseObject* errorInfoObj;
+            errorInfoList->getItemAt(i, &errorInfoObj);
+
+            IErrorInfo* errorInfo;
+            errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
+        
+            if (errorInfo != nullptr)
+            {
+                IString* message;
+                errorInfo->getFormatMessage(&message);
+                ConstCharPtr msgChrPtr;
+                message->getCharPtr(&msgChrPtr);
+                if (msgChrPtr)
+                    ss << msgChrPtr << "\n";
+                message->releaseRef();
+            }
+            if (errorInfoObj != nullptr)
+                errorInfoObj->releaseRef();
+        }
+    }
+
+    if (errorInfoList != nullptr)
+        errorInfoList->releaseRef();
+
+    throwExceptionFromErrorCode(errCode, ss.str());
+}
+
 template <typename... Params>
 void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Params... params)
 {
@@ -302,18 +278,8 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source)
     {
-        IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
-        std::string msg = fact->getExceptionMessage();
-
-        if (msg.empty())
-        {
-            std::stringstream ss;
-            ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
-            msg = ss.str();
-        }
-
-        setErrorInfoWithSource(source, msg);
-        return errCode;
+        const std::string msg = ErrorCodeMessage(errCode);
+        return makeErrorInfo(errCode, source, msg);
     }
 
     #define DAQ_MAKE_ERROR_INFO(errCode, ...) \
@@ -330,34 +296,90 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     ErrCode makeErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, IBaseObject* source)
     {
-        IExceptionFactory* fact = ErrorCodeToException::GetInstance()->getExceptionFactory(errCode);
-        std::string msg = fact->getExceptionMessage();
-
-        if (msg.empty())
-        {
-            std::stringstream ss;
-            ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
-            msg = ss.str();
-        }
-
-        setErrorInfoWithSource(fileName, fileLine, source, msg);
-        return errCode;
+        const std::string msg = ErrorCodeMessage(errCode);
+        return makeErrorInfo(fileName, fileLine, errCode, source, msg);
     }
 
     #define DAQ_MAKE_ERROR_INFO(errCode, ...) \
         daq::makeErrorInfo(__FILE__, __LINE__, errCode, nullptr, ##__VA_ARGS__)
 #endif
 
-#define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode)                       \
+#ifdef NDEBUG
+
+    template <typename... Params>
+    inline ErrCode extendErrorInfo(ErrCode errCode, const std::string& message, Params... params)
+    {
+       return makeErrorInfo(errCode, nullptr, "Cause by: " + message, std::forward<Params>(params)...);
+    }
+
+    template <typename... Params>
+    inline ErrCode extendErrorInfo(ErrCode /* errCode */, ErrCode errCode, const std::string& message, Params... params)
+    {
+        return makeErrorInfo(errCode, nullptr, "Cause by: " + message, std::forward<Params>(params)...);
+    }
+
+    template <typename... Params>
+    inline ErrCode extendErrorInfo(ErrCode errCode)
+    {
+        return errCode;
+    }
+
+    template <typename... Params>
+    inline ErrCode extendErrorInfo(ErrCode oldErrCode, ErrCode errCode)
+    {
+        const std::string msg = ErrorCodeMessage(errCode);
+        return extendErrorInfo(oldErrCode, errCode, msg);
+    }
+
+    #define DAQ_EXTEND_ERROR_INFO(errCode, ...) \
+        daq::extendErrorInfo(errCode, ##__VA_ARGS__)
+#else
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, Params... params)
+    {
+        return makeErrorInfo(errCode, nullptr, "Cause by: " + message, std::forward<Params>(params)...);
+    }
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode /* errCode */, ErrCode errCode, const std::string& message, Params... params)
+    {
+        return makeErrorInfo(errCode, nullptr, "Cause by: " + message, std::forward<Params>(params)...);
+    }
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode)
+    {
+        return extendErrorInfo(fileName, fileLine, errCode, std::string());
+    }
+
+    template <typename... Params>
+    ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode oldErrCode, ErrCode errCode)
+    {
+        const std::string msg = ErrorCodeMessage(errCode);
+        return extendErrorInfo(fileName, fileLine, oldErrCode, errCode, msg);
+    }
+
+    #define DAQ_EXTEND_ERROR_INFO(errCode, ...) \
+        daq::extendErrorInfo(__FILE__, __LINE__, errCode, ##__VA_ARGS__)
+#endif
+
+
+#define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode, ...)                  \
     do {                                                                                \
-        if ((errCode) == (expectedErrCode))                                             \
+        const ErrCode errCode_ = (errCode);                                             \
+        if ((errCode_) == (expectedErrCode))                                            \
             daqClearErrorInfo();                                                        \
-        else if (OPENDAQ_FAILED(errCode))                                               \
-            return DAQ_MAKE_ERROR_INFO(errCode, "Error propagated from lower level");   \
+        else if (OPENDAQ_FAILED(errCode_))                                              \
+            return DAQ_EXTEND_ERROR_INFO(errCode_, ##__VA_ARGS__);                      \
     } while (0)
 
-#define OPENDAQ_RETURN_IF_FAILED(errCode) \
-    do { if (OPENDAQ_FAILED(errCode)) return DAQ_MAKE_ERROR_INFO(errCode, "Error propagated from lower level"); } while (0)
+#define OPENDAQ_RETURN_IF_FAILED(errCode, ...)                                          \
+    do {                                                                                \
+        const ErrCode errCode_ = (errCode);                                             \
+        if (OPENDAQ_FAILED(errCode_))                                                   \
+            return DAQ_EXTEND_ERROR_INFO(errCode_, ##__VA_ARGS__);                      \
+    } while (0)
 
 #define OPENDAQ_PARAM_REQUIRE(cond) \
     do { if (!(cond)) return OPENDAQ_ERR_INVALIDPARAMETER; } while (0)

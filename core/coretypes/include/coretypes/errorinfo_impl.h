@@ -16,9 +16,11 @@
 
 #pragma once
 #include <coretypes/errorinfo.h>
+#include <coretypes/error_guard.h>
 #include <coretypes/freezable.h>
 #include <coretypes/listobject.h>
 #include <coretypes/intfs.h>
+#include <list>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,6 +38,8 @@ public:
     ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) override;
     ErrCode INTERFACE_FUNC setFileLine(Int line) override;
     ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
+
+    ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
     
     ErrCode INTERFACE_FUNC freeze() override;
     ErrCode INTERFACE_FUNC isFrozen(Bool* frozen) const override;
@@ -44,23 +48,65 @@ private:
     IString* message;
     IString* source;
     ConstCharPtr fileName;
-    Int line;
+    Int fileLine;
     Bool frozen;
+};
+
+
+class ErrorInfoWrapper;
+
+class ErrorGuardImpl : public ImplementationOf<IErrorGuard>
+{
+public:
+    ErrorGuardImpl(ConstCharPtr filename, int fileLine);
+    ~ErrorGuardImpl();
+
+    ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) override;
+    ErrCode INTERFACE_FUNC getFileLine(Int* fileLine) override;
+    ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) override;
+    ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
+
+    std::list<ErrorInfoWrapper>::iterator getIterator();
+
+private:
+    friend class ErrorInfoHolder;
+
+    ConstCharPtr filename;
+    Int fileLine;
+    ErrorGuardImpl* prevScopeEntry;
+    std::list<ErrorInfoWrapper>::iterator it;
+};
+
+class ErrorInfoWrapper
+{
+public:
+    ErrorInfoWrapper(IErrorInfo*);
+    ~ErrorInfoWrapper();
+
+    IErrorInfo* get() const;
+    IErrorInfo* borrow() const;
+private:
+    IErrorInfo* errorInfo;
 };
 
 class ErrorInfoHolder
 {
 public:
+    using ContainerT = std::list<ErrorInfoWrapper>;
+    
     ErrorInfoHolder() = default;
-#ifndef __MINGW32__
-    ~ErrorInfoHolder();
-#endif
 
     void setErrorInfo(IErrorInfo* errorInfo);
     IErrorInfo* getErrorInfo() const;
-    IList* getErrorInfoList();
+    IList* moveErrorInfoList();
+
 private:
-    IList* errorInfoList;
+    friend class ErrorGuardImpl;
+
+    ContainerT* getList();
+
+    std::unique_ptr<ContainerT> errorInfoList;
+    ErrorGuardImpl* scopeEntry = nullptr;
 };
 
 END_NAMESPACE_OPENDAQ

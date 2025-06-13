@@ -6,6 +6,8 @@
 #include <coretypes/objectptr.h>
 #include <coretypes/inspectable_ptr.h>
 #include <coretypes/validation.h>
+#include "coretypes/ctutils.h"
+#include "coretypes/errors.h"
 
 using namespace daq;
 
@@ -44,8 +46,10 @@ public:
 
     ErrCode INTERFACE_FUNC multipleErrorInfoTest() override
     {
-        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed once");
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed twice");
+        const ErrCode errCode = newMakeErrorInfoTest();
+        OPENDAQ_RETURN_IF_FAILED(errCode, "multipleErrorInfoTest failed twice");
+
+        return OPENDAQ_SUCCESS;
     }
 
     ErrCode INTERFACE_FUNC argumentNotNullTest(IBaseObject* obj) override
@@ -218,8 +222,8 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "multipleErrorInfoTest failed once" + getErrorPostfix(47);
-    expected += "\nmultipleErrorInfoTest failed twice" + getErrorPostfix(48);
+    std::string expected = "multipleErrorInfoTest failed once" + getErrorPostfix(44);
+    expected += "\nmultipleErrorInfoTest failed twice" + getErrorPostfix(50);
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 

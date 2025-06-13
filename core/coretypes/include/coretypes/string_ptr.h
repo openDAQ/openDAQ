@@ -44,7 +44,7 @@ struct InterfaceToSmartPtr<IString>
  * StringPtr String(ConstCharPtr str)
  * StringPtr String(ConstCharPtr str, SizeT length)
  * StringPtr String(const std::string& str)
- * StringPtr operator"" _daq(const char* str)
+ * StringPtr operator""_daq(const char* str)
  * @endcode
  */
 

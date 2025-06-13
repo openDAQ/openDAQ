@@ -16,23 +16,29 @@
 
 #pragma once
 #include <coretypes/errorinfo.h>
-#include <coretypes/objectptr.h>
-#include <coretypes/error_guard_ptr.h>
-
 BEGIN_NAMESPACE_OPENDAQ
 
-inline ObjectPtr<IErrorInfo> ErrorInfo()
-{
-    return ErrorInfo_Create();
-}
+/*!
+ * @addtogroup types_utility
+ * @{
+ */
 
-inline ErrorGuardPtr ErrorGuard(ConstCharPtr fileName, Int fileLine)
+DECLARE_OPENDAQ_INTERFACE(IErrorGuard, IBaseObject)
 {
-    return ErrorGuard_Create(fileName, fileLine);
-}
+    virtual ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) = 0;
+    virtual ErrCode INTERFACE_FUNC getFileLine(Int* fileLine) = 0;
+    virtual ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) = 0;
+    virtual ErrCode INTERFACE_FUNC getFormatMessage(IString** message) = 0;
+};
 
-using ErrorInfoPtr = ObjectPtr<IErrorInfo>;
+/*!@}*/
+
+OPENDAQ_DECLARE_CLASS_FACTORY(
+    LIBRARY_FACTORY, ErrorGuard, 
+    ConstCharPtr, fileName,
+    Int, fileLine)
 
 END_NAMESPACE_OPENDAQ
 
-#define DAQ_ERROR_GUARD() daq::ErrorGuard(__FILE__, __LINE__)
+extern "C" void PUBLIC_EXPORT daqCheckErrorGuard(daq::IErrorGuard* errorGuard);
+

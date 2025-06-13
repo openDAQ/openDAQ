@@ -100,6 +100,12 @@ DECLARE_OPENDAQ_INTERFACE(IErrorInfo, IBaseObject)
      * @param fileLine Line number.
      */
     virtual ErrCode INTERFACE_FUNC getFileLine(Int* fileLine) = 0;
+
+    /*!
+     * @brief Gets a formatted error message containing the error description, file name, and line number.
+     * @param message A pointer to store the formatted error message.
+     */
+    virtual ErrCode INTERFACE_FUNC getFormatMessage(IString** message) = 0;
 };
 
 /*!@}*/

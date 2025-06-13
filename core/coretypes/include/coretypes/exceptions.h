@@ -19,7 +19,6 @@
 #include <coretypes/common.h>
 #include <coretypes/error_code_to_exception.h>
 #include <coretypes/errors.h>
-#include <cstdio>
 #include <stdexcept>
 #include <string>
 

@@ -5,7 +5,6 @@
 - [#810](https://github.com/openDAQ/openDAQ/pull/810) Load individual modules.
 - [#788](https://github.com/openDAQ/openDAQ/pull/788) Component property search.
 
-
 ## Python
 
 - [#811](https://github.com/openDAQ/openDAQ/pull/811) Add color coding and message display for Component statuses in Python GUI demo application.
@@ -20,6 +19,7 @@
 ## Misc
 
 - [#829](https://github.com/openDAQ/openDAQ/pull/829) Add search functionality to Antora documentation to significantly improve user experience. 
+- [#804](https://github.com/openDAQ/openDAQ/pull/804) Add Properties example.
 
 
 ## Required application changes

@@ -247,7 +247,39 @@ inline void modifyProperty(const daq::PropertyPtr& property, const daq::TypeMana
                     {
                         newStruct.set(*nameIt, daq::String("Twice modified"));
                     };
-                    // TODO: Handle other types of fields if necessary, using *typeIt
+                    // Handle other types of fields if necessary, using *typeIt
+                    switch ((*typeIt).getCoreType())
+                    {
+                        case daq::CoreType::ctInt:
+                            newStruct.set(*nameIt, 123);
+                            break;
+                        case daq::CoreType::ctFloat:
+                            newStruct.set(*nameIt, 3.14);
+                            break;
+                        case daq::CoreType::ctBool:
+                            newStruct.set(*nameIt, true);
+                            break;
+                        case daq::CoreType::ctList:
+                        {
+                            auto list = daq::List<daq::IntegerPtr>();
+                            list.pushBack(1);
+                            list.pushBack(2);
+                            newStruct.set(*nameIt, list);
+                            break;
+                        }
+                        case daq::CoreType::ctDict:
+                        {
+                            auto dict = daq::Dict<daq::IString, daq::IString>();
+                            dict.set("A", "Alpha");
+                            dict.set("B", "Beta");
+                            newStruct.set(*nameIt, dict);
+                            break;
+                        }
+                        // TODO: Add more cases as needed for other types
+                        default:
+                            // Leave field unchanged for unhandled types
+                            break;
+                    }
                 }
                 property.setValue(newStruct.build());
             }

@@ -134,9 +134,9 @@ C#::
 [source,csharp]
 ----
 var scalingFb = instance.AddFunctionBlock("RefFBModuleScaling");
-Console.WriteLine("The Scaling Function Block available statuses: ");
-foreach (string statusName in functionBlock.StatusContainer.Statuses.Keys)
-    Console.WriteLine($"\"{statusName}\"");
+Console.Write("The Scaling Function Block available statuses: ");
+foreach (string statusName in scalingFb.StatusContainer.Statuses.Keys)
+    Console.Write($"\"{statusName}\"; ");
 Console.WriteLine();
 Console.WriteLine("The Scaling Function Block \"ComponentStatus\" is {0}",
                   scalingFb.StatusContainer.GetStatus("ComponentStatus"));
@@ -194,6 +194,16 @@ def find_signals(device: opendaq.IDevice):
     search_filter = opendaq.RecursiveSearchFilter(opendaq.AnySearchFilter())
     for signal in device.get_signals(search_filter):
         print(signal.global_id)
+----
+C#::
++
+[source,csharp]
+----
+void FindSignals(Device device)
+{
+    foreach (var signal in device.GetSignals(OpenDAQFactory.Recursive(OpenDAQFactory.Any())))
+        Console.WriteLine(signal.GlobalId);
+}
 ----
 ====
 

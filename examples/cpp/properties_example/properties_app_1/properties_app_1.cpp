@@ -5,6 +5,8 @@
 
 #include <utils.h>
 
+using namespace daq;
+
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create an Instance, loading modules in the default module path
@@ -47,6 +49,13 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Print after modifications
     std::cout << "\nFB1 after modifications:\n";
+    print(fb1);
+
+    // Modify
+    modify(fb1, instance.getContext().getTypeManager());
+
+    // Print after modifications
+    std::cout << "\nFB1 after second round of modifications:\n";
     print(fb1);
 
     // Gracefully exit

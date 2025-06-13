@@ -18,9 +18,9 @@ void PropertiesFb2::initProperties()
 
     // Dictionary - used for storing key-value pairs
     auto dict = Dict<IString, IString>();
-    dict["key1"] = "Cheese";
-    dict["key2"] = "Cake";
-    dict["key3"] = "Lady";
+    dict["Key1"] = "Cheese";
+    dict["Key2"] = "Cake";
+    dict["Key3"] = "Lady";
     auto dictProp = DictProperty("Dict", dict);
     objPtr.addProperty(dictProp);
 
@@ -47,9 +47,9 @@ void PropertiesFb2::initProperties()
 
     // Sparse selection - used for selecting one value from a sparse set of options
     auto selection = Dict<Int, IString>();
-    selection.set(4, "First");
-    selection.set(5, "Second");
-    selection.set(6, "Third");
+    selection.set(0, "First");
+    selection.set(2, "Second");
+    selection.set(4, "Third");
     auto sparseProp = SparseSelectionProperty("Sparse", selection, 4);
     objPtr.addProperty(sparseProp);
 }

@@ -5,6 +5,8 @@
 
 #include <utils.h>
 
+using namespace daq;
+
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create an Instance, loading modules in the default module path
@@ -36,7 +38,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb2.setPropertyValue("Struct", stru);
 
     // Struct modification via builder
-    StructPtr struMod = fb2.getPropertyValue("Struct");
+    auto struMod = fb2.getPropertyValue("Struct");
     auto structBuild = StructBuilder(struMod).set("Int", 200).set("String", "openDAQ modified").build();
     fb2.setPropertyValue("Struct", structBuild);
 
@@ -48,10 +50,17 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb2.setPropertyValue("Selection", 2);
 
     // Sparse selection
-    fb2.setPropertyValue("Sparse", 6);
+    fb2.setPropertyValue("Sparse", 2);
 
     // Print after modifications
     std::cout << "\nFB2 after modifications:\n";
+    print(fb2);
+
+    // Modify
+    modify(fb2, instance.getContext().getTypeManager());
+
+    // Print after modifications
+    std::cout << "\nFB2 after second round of modifications:\n";
     print(fb2);
 
     // Gracefully exit

@@ -119,7 +119,7 @@ DECLARE_OPENDAQ_INTERFACE(ISignalConfig, ISignal)
     // [elementType(packets, IPacket), overloadFor(sendPackets), stealRef(packets)]
     /*!
      * @brief Sends multiple packets through all connections of the signal. Ownership of the packets is transfered.
-     * @param packet The packets to be sent.
+     * @param packets The packets to be sent.
      *
      * After calling the method, the packets should not be touched again. The ownership of the packets
      * is taken by underlying connections and they could be destroyed before the function returns.

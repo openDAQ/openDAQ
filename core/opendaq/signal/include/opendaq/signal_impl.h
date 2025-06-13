@@ -108,6 +108,7 @@ public:
     ErrCode INTERFACE_FUNC enableKeepLastValue(Bool enabled) override;
     ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
     ErrCode INTERFACE_FUNC getKeepLastValue(Bool* keepLastValue) override;
+    ErrCode INTERFACE_FUNC sendPacketRecursiveLock(IPacket* packet) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -157,6 +158,7 @@ private:
     bool keepLastPacket;
     bool keepLastValue;
 
+    ErrCode sendPacketInner(IPacket* packet, bool recursiveLock);
     bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
     bool sendPacketInternal(PacketPtr&& packet, bool ignoreActive = false) const;
     void triggerRelatedSignalsChanged();
@@ -171,9 +173,11 @@ private:
     void enqueuePacketToConnections(PacketPtr&& packet, const TempConnections& tempConnections);
     void enqueuePacketsToConnections(const ListPtr<IPacket>& packets, const TempConnections& tempConnections);
     void enqueuePacketsToConnections(ListPtr<IPacket>&& packets, const TempConnections& tempConnections);
-
+    
     template <class Packet>
-    bool keepLastPacketAndEnqueue(Packet&& packet);
+    bool checkKeepLastPacketAndBuildConnections(Packet&& packet, TempConnections& tempConnections);
+    template <class Packet>
+    bool keepLastPacketAndEnqueue(Packet&& packet, bool recursiveLock = false);
 
     template <class ListOfPackets>
     bool keepLastPacketAndEnqueueMultiple(ListOfPackets&& packets);
@@ -434,7 +438,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
             DataDescriptorChangedEventPacket(nullptr, descriptorToEventPacketParam(dataDescriptor));
         for (const auto& sig : valueSignalsOfDomainSignal)
         {
-            const auto err = sig->sendPacket(domainChangedPacket);
+            const auto err = sig.asPtr<ISignalPrivate>()->sendPacketRecursiveLock(domainChangedPacket);
             success &= err == OPENDAQ_SUCCESS;
         }
     }
@@ -719,21 +723,36 @@ void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
     (*startIt)->enqueueMultipleAndStealRef(packets.detach());
 }
 
+template <typename TInterface, typename ... Interfaces>
+template <class Packet>
+bool SignalBase<TInterface, Interfaces...>::checkKeepLastPacketAndBuildConnections(Packet&& packet, TempConnections& tempConnections)
+{
+    if (!this->active)
+        return false;
+
+    checkKeepLastPacket(packet);
+    buildTempConnections(tempConnections);
+    return true;
+}
+
 template <typename TInterface, typename... Interfaces>
 template <class Packet>
-bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueue(Packet&& packet)
+bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueue(Packet&& packet, bool recursiveLock)
 {
     TempConnectionsMemPool memPool;
     TempConnections tempConnections{TempConnectionsAllocator(memPool)};
 
+    if (!recursiveLock)
     {
         auto lock = this->getAcquisitionLock();
-
-        if (!this->active)
+        if (!checkKeepLastPacketAndBuildConnections(packet, tempConnections))
             return false;
-
-        checkKeepLastPacket(packet);
-        buildTempConnections(tempConnections);
+    }
+    else
+    {
+        auto lock = this->getRecursiveConfigLock();
+        if (!checkKeepLastPacketAndBuildConnections(packet, tempConnections))
+            return false;
     }
 
     enqueuePacketToConnections(std::forward<Packet>(packet), tempConnections);
@@ -768,18 +787,7 @@ bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueueMultiple(Lis
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::sendPacket(IPacket* packet)
 {
-    OPENDAQ_PARAM_NOT_NULL(packet);
-
-    const auto packetPtr = PacketPtr::Borrow(packet);
-
-    return daqTry(
-        [this, &packetPtr]
-        {
-            if (!keepLastPacketAndEnqueue(packetPtr))
-                return OPENDAQ_IGNORED;
-
-            return OPENDAQ_SUCCESS;
-        });
+    return sendPacketInner(packet, false);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -839,6 +847,21 @@ ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastVal
     setLastValueFromPacket(nullptr);
     this->lastDataValue = lastValue;
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::sendPacketInner(IPacket* packet, bool recursiveLock)
+{
+    OPENDAQ_PARAM_NOT_NULL(packet);
+    const auto packetPtr = PacketPtr::Borrow(packet);
+    return daqTry(
+        [this, &packetPtr, recursiveLock]
+        {
+            if (!keepLastPacketAndEnqueue(packetPtr, recursiveLock))
+                return OPENDAQ_IGNORED;
+
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1248,6 +1271,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::getKeepLastValue(Bool* keepLastVa
 
     *keepLastValue = this->keepLastValue ? True : False;
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::sendPacketRecursiveLock(IPacket* packet)
+{
+    return sendPacketInner(packet, true);
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -1,6 +1,7 @@
 /**
  * properties_app_3
  * (demos using properties_fb_3)
+ * Object properties, procedures, functions, and inheritance
  */
 
 #include <utils.h>

@@ -1,6 +1,7 @@
 /**
  * properties_app_4
  * (demos using properties_fb_4)
+ * Advanced features like references, validation, coercion, and conditional visibility
  */
 
 #include <utils.h>

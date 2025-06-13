@@ -1,6 +1,7 @@
 /**
  * properties_app_2
  * (demos using properties_fb_2)
+ * Container types and selection properties
  */
 
 #include <utils.h>

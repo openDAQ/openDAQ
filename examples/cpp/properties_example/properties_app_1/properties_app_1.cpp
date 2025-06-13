@@ -1,6 +1,7 @@
 /**
  * properties_app_1
  * (demos using properties_fb_1)
+ * Basic property types and callbacks
  */
 
 #include <utils.h>

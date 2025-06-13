@@ -15,8 +15,11 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Add Function Block by type ID
     auto fb4 = instance.addFunctionBlock("PropertiesFb4");
 
+    // Apply changes in one sweep later
+    fb4.beginUpdate();
+
     // Print before modifications
-    std::cout << "\nFB4 before modifications:\n";
+    std::cout << "\nFB4 before modifications/update:\n";
     print(fb4);
 
     // Property visibility depending on another Property
@@ -29,6 +32,17 @@ int main(int /*argc*/, const char* /*argv*/[])
     std::cout << "Referenced is referenced: " << Boolean(fb4.getProperty("Referenced").getIsReferenced()) << "\n";
     std::cout << "Reference is referenced: " << Boolean(fb4.getProperty("Reference").getIsReferenced()) << "\n";
 
+    // Coerced Int
+    fb4.setPropertyValue("CoercedProp", 4);    // No coercion
+    fb4.setPropertyValue("CoercedProp", 142);  // Coerced to 10
+
+    // Print after calling set but before modifications are applied via endUpdate
+    std::cout << "\nFB4 after calling set but before modifications are applied (should be the same as before):\n";
+    print(fb4);
+
+    // Apply changes in one sweep
+    fb4.endUpdate();
+
     // Read-only Int
     try
     {
@@ -38,10 +52,6 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         std::cout << "Exception: " << e.what() << "\n";
     }
-
-    // Coerced Int
-    fb4.setPropertyValue("CoercedProp", 4);    // No coercion
-    fb4.setPropertyValue("CoercedProp", 142);  // Coerced to 10
 
     // Validated Int
     fb4.setPropertyValue("ValidatedProp", 43);  // Valid

@@ -59,6 +59,10 @@ DECLARE_OPENDAQ_INTERFACE(IReader, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) = 0;
 
+    virtual ErrCode INTERFACE_FUNC setOnConnected(IProcedure* callback) = 0;
+
+    virtual ErrCode INTERFACE_FUNC setOnDisconnected(IProcedure* callback) = 0;
+
     /*!
      * @brief Checks if there is data to read. 
      * @param[out] empty Set to true if there is data to read, false otherwise.

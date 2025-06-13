@@ -470,6 +470,22 @@ ErrCode MultiReaderImpl::setOnDataAvailable(IProcedure* callback)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode MultiReaderImpl::setOnConnected(IProcedure* callback)
+{
+    std::scoped_lock lock(mutex);
+
+    connectedCallback = callback;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::setOnDisconnected(IProcedure* callback)
+{
+    std::scoped_lock lock(mutex);
+
+    disconnectedCallback = callback;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode MultiReaderImpl::getValueReadType(SampleType* sampleType)
 {
     OPENDAQ_PARAM_NOT_NULL(sampleType);
@@ -976,45 +992,54 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     OPENDAQ_PARAM_NOT_NULL(port);
 
     auto findSigByPort = [port](const SignalReader& signal) { return signal.port == port; };
+    ProcedurePtr callback;
 
-    std::scoped_lock lock(notify.mutex);
-    if (signals.empty())
-        return OPENDAQ_SUCCESS;
-
-    auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
-    if (sigInfo != signals.end())
     {
-        sigInfo->connection = sigInfo->port.getConnection();
+        std::scoped_lock lock(notify.mutex);
+        if (signals.empty())
+            return OPENDAQ_SUCCESS;
 
-        // check new signals
-        auto portList = List<IInputPortConfig>();
-        for (const auto& signalReader : signals)
+        auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
+        if (sigInfo != signals.end())
         {
-            if (signalReader.connection.assigned())
-                portList.pushBack(signalReader.port);
+            sigInfo->connection = sigInfo->port.getConnection();
+
+            // check new signals
+            auto portList = List<IInputPortConfig>();
+            for (const auto& signalReader : signals)
+            {
+                if (signalReader.connection.assigned())
+                    portList.pushBack(signalReader.port);
+            }
+
+            isDomainValid(portList);
+            portConnected = true;
         }
 
-        isDomainValid(portList);
-        portConnected = true;
-    }
-
-    portDisconnected = false;
-    for (auto& signal : signals)
-    {
-        if (!signal.connection.assigned())
-        {
-            portDisconnected = true;
-            break;
-        }
-    }
-    if (!portDisconnected)
-    {
+        portDisconnected = false;
         for (auto& signal : signals)
         {
-            signal.port.setActive(isActive);
+            if (!signal.connection.assigned())
+            {
+                portDisconnected = true;
+                break;
+            }
         }
-        portConnected = true;
+        if (!portDisconnected)
+        {
+            for (auto& signal : signals)
+            {
+                signal.port.setActive(isActive);
+            }
+            portConnected = true;
+
+            callback = connectedCallback;
+        }
     }
+
+    if (callback.assigned())
+        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -1022,25 +1047,34 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
     auto findSigByPort = [port](const SignalReader& signal) { return signal.port == port; };
+    ProcedurePtr callback;
 
-    std::scoped_lock lock(notify.mutex);
-    if (signals.empty())
-        return OPENDAQ_SUCCESS;
-
-    auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
-
-    if (sigInfo != signals.end())
     {
-        sigInfo->connection = nullptr;
-        if (portDisconnected == false)
+        std::scoped_lock lock(notify.mutex);
+        if (signals.empty())
+            return OPENDAQ_SUCCESS;
+
+        auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
+
+        if (sigInfo != signals.end())
         {
-            portDisconnected = true;
-            for (auto& signal : signals)
+            sigInfo->connection = nullptr;
+            if (portDisconnected == false)
             {
-                signal.port.setActive(false);
+                portDisconnected = true;
+                for (auto& signal : signals)
+                {
+                    signal.port.setActive(false);
+                }
             }
         }
+
+        callback = connectedCallback;
     }
+
+    if (callback.assigned())
+        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
+
     return OPENDAQ_SUCCESS;
 }
 

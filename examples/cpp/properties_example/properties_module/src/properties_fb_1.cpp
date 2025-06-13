@@ -40,7 +40,7 @@ void PropertiesFb1::initProperties()
     auto suggestedProp = FloatPropertyBuilder("SuggestedProp", 2.2).setSuggestedValues(List<IFloat>(1.1, 2.2, 3.3)).build();
     objPtr.addProperty(suggestedProp);
 
-    // Stubborn Int (always sets to 43)
+    // Stubborn Int (always sets to 43 - we set this up below)
     auto stubbornProp = IntProperty("StubbornInt", 43);
     objPtr.addProperty(stubbornProp);
 

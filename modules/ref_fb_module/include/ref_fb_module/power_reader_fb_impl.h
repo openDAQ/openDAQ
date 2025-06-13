@@ -35,6 +35,8 @@ public:
     ~PowerReaderFbImpl() override = default;
 
     static FunctionBlockTypePtr CreateType();
+    static bool descriptorNotNull(const DataDescriptorPtr& descriptor);
+    static void getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc);
     static bool getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc);
     static bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);
 

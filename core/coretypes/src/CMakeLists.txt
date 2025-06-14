@@ -129,7 +129,6 @@ set(SRC_PublicHeaders
 
     errorinfo.h
     error_guard.h
-    error_guard_ptr.h
     errorinfo_factory.h
 
     factory.h

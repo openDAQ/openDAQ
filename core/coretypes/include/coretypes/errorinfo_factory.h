@@ -17,7 +17,7 @@
 #pragma once
 #include <coretypes/errorinfo.h>
 #include <coretypes/objectptr.h>
-#include <coretypes/error_guard_ptr.h>
+#include <coretypes/error_guard.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -26,12 +26,13 @@ inline ObjectPtr<IErrorInfo> ErrorInfo()
     return ErrorInfo_Create();
 }
 
-inline ErrorGuardPtr ErrorGuard(ConstCharPtr fileName, Int fileLine)
+inline ObjectPtr<IErrorGuard> ErrorGuard(ConstCharPtr fileName, Int fileLine)
 {
     return ErrorGuard_Create(fileName, fileLine);
 }
 
 using ErrorInfoPtr = ObjectPtr<IErrorInfo>;
+using ErrorGuardPtr = ObjectPtr<IErrorGuard>;
 
 END_NAMESPACE_OPENDAQ
 

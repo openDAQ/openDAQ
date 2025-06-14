@@ -380,10 +380,11 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
 
 inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = nullptr)
 {
+    makeErrorInfo(e.getErrCode(), source, e.what());
 #ifdef NDEBUG
-    return makeErrorInfo(e.getErrCode(), source, e.what());
+    return e.getErrCode();
 #else
-    return makeErrorInfo(e.getFileName(), e.getFileLine(), e.getErrCode(), source, e.what());
+    return extendErrorInfo(e.getFileName(), e.getFileLine(), e.getErrCode());
 #endif
 }
 

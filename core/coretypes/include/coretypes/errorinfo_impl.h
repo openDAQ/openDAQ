@@ -53,27 +53,6 @@ private:
     Bool frozen;
 };
 
-
-class ErrorInfoWrapper;
-class ErrorInfoHolder;
-
-class ErrorGuardImpl : public ImplementationOf<IErrorGuard>
-{
-public:
-    ErrorGuardImpl(ConstCharPtr filename, int fileLine);
-    ~ErrorGuardImpl();
-
-    ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) override;
-    ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
-
-private:
-    friend class ErrorInfoHolder;
-
-    ErrorGuardImpl* prevScopeEntry;
-    std::list<ErrorInfoWrapper>::iterator it;
-    std::thread::id threadId;
-};
-
 class ErrorInfoWrapper
 {
 public:
@@ -86,6 +65,8 @@ private:
     IErrorInfo* errorInfo;
 };
 
+class ErrorGuardImpl;
+
 class ErrorInfoHolder
 {
 public:
@@ -95,15 +76,32 @@ public:
 
     void setErrorInfo(IErrorInfo* errorInfo);
     IErrorInfo* getErrorInfo() const;
+
     IList* getErrorInfoList();
+    IString* getFormatMessage() const;
+
+    void setScopeEntry(ErrorGuardImpl* entry);
 
 private:
-    friend class ErrorGuardImpl;
 
     ContainerT* getList();
 
     std::unique_ptr<ContainerT> errorInfoList;
     ErrorGuardImpl* scopeEntry = nullptr;
+};
+
+class ErrorGuardImpl : public ImplementationOf<IErrorGuard>
+{
+public:
+    ErrorGuardImpl(ConstCharPtr filename, int fileLine);
+    ~ErrorGuardImpl();
+
+private:
+    friend class ErrorInfoHolder;
+
+    std::thread::id threadId;
+    ErrorGuardImpl* prevScopeEntry;
+    std::list<ErrorInfoWrapper>::iterator it;
 };
 
 END_NAMESPACE_OPENDAQ

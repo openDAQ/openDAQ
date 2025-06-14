@@ -25,8 +25,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IErrorGuard, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) = 0;
-    virtual ErrCode INTERFACE_FUNC getFormatMessage(IString** message) = 0;
 };
 
 /*!@}*/
@@ -38,5 +36,5 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
 
 END_NAMESPACE_OPENDAQ
 
-extern "C" void PUBLIC_EXPORT daqCheckErrorGuard(daq::ErrCode errCode, daq::IErrorGuard* errorGuard);
+extern "C" void PUBLIC_EXPORT daqCheckErrorGuard(daq::ErrCode errCode);
 

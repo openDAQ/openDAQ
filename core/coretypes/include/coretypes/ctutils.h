@@ -196,45 +196,7 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
 }
 inline void checkErrorInfo(ErrCode errCode)
 {
-    if (OPENDAQ_SUCCEEDED(errCode))
-        return;
-
-    IList* errorInfoList;
-    daqGetErrorInfoList(&errorInfoList);
-
-    std::ostringstream ss;
-    if (errorInfoList != nullptr)
-    {
-        SizeT count = 0;
-        errorInfoList->getCount(&count);
-
-        for (SizeT i = 0; i < count; i++)
-        {
-            IBaseObject* errorInfoObj;
-            errorInfoList->getItemAt(i, &errorInfoObj);
-
-            IErrorInfo* errorInfo;
-            errorInfoObj->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
-        
-            if (errorInfo != nullptr)
-            {
-                IString* message;
-                errorInfo->getFormatMessage(&message);
-                ConstCharPtr msgChrPtr;
-                message->getCharPtr(&msgChrPtr);
-                if (msgChrPtr)
-                    ss << msgChrPtr << "\n";
-                message->releaseRef();
-            }
-            if (errorInfoObj != nullptr)
-                errorInfoObj->releaseRef();
-        }
-    }
-
-    if (errorInfoList != nullptr)
-        errorInfoList->releaseRef();
-
-    throwExceptionFromErrorCode(errCode, ss.str());
+    daqCheckErrorGuard(errCode);
 }
 
 template <typename... Params>
@@ -381,11 +343,11 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
 inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = nullptr)
 {
     makeErrorInfo(e.getErrCode(), source, e.what());
-#ifdef NDEBUG
-    return e.getErrCode();
-#else
-    return extendErrorInfo(e.getFileName(), e.getFileLine(), e.getErrCode());
+#ifndef NDEBUG
+    if (e.getFileName())
+        return extendErrorInfo(e.getFileName(), e.getFileLine(), e.getErrCode());
 #endif
+    return e.getErrCode();
 }
 
 inline ErrCode errorFromException(const std::exception& e, IBaseObject* source = nullptr, ErrCode errCode = OPENDAQ_ERR_GENERALERROR)

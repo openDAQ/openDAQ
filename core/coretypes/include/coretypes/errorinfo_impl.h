@@ -36,7 +36,7 @@ public:
     ErrCode INTERFACE_FUNC setSource(IString* source) override;
     ErrCode INTERFACE_FUNC getSource(IString** source) override;
     ErrCode INTERFACE_FUNC setFileName(ConstCharPtr fileName) override;
-    ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) override;
+    ErrCode INTERFACE_FUNC getFileName(CharPtr* fileName) override;
     ErrCode INTERFACE_FUNC setFileLine(Int line) override;
     ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
 
@@ -48,7 +48,7 @@ public:
 private:
     IString* message;
     IString* source;
-    ConstCharPtr fileName;
+    CharPtr fileName;
     Int fileLine;
     Bool frozen;
 };
@@ -83,7 +83,6 @@ public:
     void setScopeEntry(ErrorGuardImpl* entry);
 
 private:
-
     ContainerT* getList();
 
     std::unique_ptr<ContainerT> errorInfoList;
@@ -99,9 +98,13 @@ public:
 private:
     friend class ErrorInfoHolder;
 
+    ConstCharPtr filename;
+    int fileLine;
+
     std::thread::id threadId;
     ErrorGuardImpl* prevScopeEntry;
-    std::list<ErrorInfoWrapper>::iterator it;
+    IErrorInfo* errorMark;
+    ErrorInfoHolder* holder;
 };
 
 END_NAMESPACE_OPENDAQ

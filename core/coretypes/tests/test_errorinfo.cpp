@@ -189,9 +189,10 @@ TEST_F(ErrorInfoTest, MultipleMessages)
         ASSERT_STREQ(msgCharPtr, expectedMsg.c_str());
 
 #ifndef NDEBUG
-        ConstCharPtr fileName;
+        CharPtr fileName;
         errorInfo->getFileName(&fileName);
         ASSERT_TRUE(fileName != nullptr);
+        daqFreeMemory(fileName);
 
         Int line;
         errorInfo->getFileLine(&line);

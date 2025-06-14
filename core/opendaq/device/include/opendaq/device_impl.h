@@ -1386,6 +1386,7 @@ PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onCreateDefaultAddDe
 {
     PropertyObjectPtr obj;
     const ModuleManagerUtilsPtr manager = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    auto errorGuard = DAQ_ERROR_GUARD();
     checkErrorInfo(manager->createDefaultAddDeviceConfig(&obj));
 
     return obj;
@@ -1545,8 +1546,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
     return daqTry([this, &configuration]
     {
         auto serializer = JsonSerializer(True);
-
+        
+        auto errorGuard = DAQ_ERROR_GUARD();
         checkErrorInfo(this->serialize(serializer));
+        errorGuard.release();
 
         auto str = serializer.getOutput();
 
@@ -1691,7 +1694,9 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     }
 
     DeviceInfoPtr deviceInfo;
+    auto errorGuard = DAQ_ERROR_GUARD();
     checkErrorInfo(this->getInfo(&deviceInfo));
+    errorGuard.release();
 
     if (!forUpdate)
     {
@@ -1870,6 +1875,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         if (devices.hasItem(deviceId))
         {
             DevicePtr device = devices.getItem(deviceId);
+            auto errorGuard = DAQ_ERROR_GUARD();
             checkErrorInfo(this->removeDevice(device));
         }
 

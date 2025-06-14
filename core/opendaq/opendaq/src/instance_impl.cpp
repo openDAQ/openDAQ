@@ -131,7 +131,10 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 
     // Configure moduleManager
     if (!moduleManager.assigned())
+    {
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
+        builderPtr->setModuleManager(moduleManager);
+    }
 
     auto discoveryServers = Dict<IString, IDiscoveryServer>();
     for (const auto& serverName : builderPtr.getDiscoveryServers())
@@ -604,7 +607,9 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
     {
         auto serializer = JsonSerializer(True);
 
+        auto errorGuard = DAQ_ERROR_GUARD();
         checkErrorInfo(this->serializeForUpdate(serializer));
+        errorGuard.release();
 
         auto str = serializer.getOutput();
 

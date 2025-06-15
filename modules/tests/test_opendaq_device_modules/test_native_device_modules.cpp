@@ -3540,3 +3540,45 @@ TEST_F(NativeDeviceModulesTest, TestPropertyOrderOnClient)
             ASSERT_EQ(propertyOrder[i], props[i].getName());
     }
 }
+
+TEST_F(NativeDeviceModulesTest, AddDevicesParallelSuccess)
+{
+    const auto server = CreateServerInstance();
+    const auto client = Instance();
+
+    auto connectionArgs =
+        Dict<IString, IPropertyObject>(
+            {
+                {"daq.nd://127.0.0.1", nullptr},
+                {"daq.ns://127.0.0.1", nullptr}
+            }
+        );
+
+    auto devices = client.addDevices(connectionArgs);
+    ASSERT_EQ(devices.getCount(), 2u);
+    ASSERT_EQ(devices.get("daq.nd://127.0.0.1").getInfo().getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_EQ(devices.get("daq.ns://127.0.0.1").getInfo().getConnectionString(), "daq.ns://127.0.0.1");
+
+    ASSERT_EQ(client.getDevices().getCount(), 2u);
+}
+
+TEST_F(NativeDeviceModulesTest, AddDevicesParallelPartialSuccess)
+{
+    const auto server = CreateServerInstance();
+    const auto client = Instance();
+
+    auto connectionArgs =
+        Dict<IString, IPropertyObject>(
+            {
+                {"daq.nd://127.0.0.1", nullptr},
+                {"daq.nd://127.0.0.1:7420", nullptr}
+            }
+        );
+
+    auto devices = client.addDevices(connectionArgs);
+    ASSERT_EQ(devices.getCount(), 2u);
+    ASSERT_TRUE(devices.get("daq.nd://127.0.0.1").assigned());
+    ASSERT_FALSE(devices.get("daq.nd://127.0.0.1:7420").assigned());
+
+    ASSERT_EQ(client.getDevices().getCount(), 1u);
+}

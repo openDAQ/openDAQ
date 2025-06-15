@@ -53,6 +53,9 @@ public:
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    DictPtr<IString, IDevice> onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                           DictPtr<IString, IInteger> errCodes,
+                                           DictPtr<IString, IErrorInfo> errorInfos) override;
     void onRemoveDevice(const DevicePtr& device) override;
     PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
 
@@ -166,6 +169,14 @@ DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPt
         return dev;
     }
     return this->devices.getItem(dev.getLocalId());
+}
+
+template <class TDeviceBase>
+DictPtr<IString, IDevice> GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevices(const DictPtr<IString, IPropertyObject>& /*connectionArgs*/,
+                                                                                   DictPtr<IString, IInteger> /*errCodes*/,
+                                                                                   DictPtr<IString, IErrorInfo> /*errorInfos*/)
+{
+    DAQ_THROW_EXCEPTION(NotImplementedException);
 }
 
 template <class TDeviceBase>

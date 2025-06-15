@@ -18,7 +18,6 @@
 #include <opendaq/instance_builder.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/config_provider_ptr.h>
-#include <set>
 
 BEGIN_NAMESPACE_OPENDAQ
 

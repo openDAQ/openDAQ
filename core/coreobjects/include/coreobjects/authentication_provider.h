@@ -31,7 +31,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief A class which is responsible for authenticating a user. The authentication is usually done by verifying
  * the username and password. An authenticator implementation might use external services for achieving that. It might
- * make a call to an external databse, do a lookup to a json file with defined users or it might simply check the
+ * make a call to an external database, do a lookup to a json file with defined users or it might simply check the
  * password against a hardcoded one.
  */
 DECLARE_OPENDAQ_INTERFACE(IAuthenticationProvider, IBaseObject)

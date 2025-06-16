@@ -27,7 +27,11 @@ public:
     ErrCode INTERFACE_FUNC build(IMultiReader** multiReader) override;
 
     ErrCode INTERFACE_FUNC addSignal(ISignal* signal) override;
+    ErrCode INTERFACE_FUNC addSignals(IList* signals) override;
+
     ErrCode INTERFACE_FUNC addInputPort(IInputPort* port) override;
+    ErrCode INTERFACE_FUNC addInputPorts(IList* inputPorts) override;
+
     ErrCode INTERFACE_FUNC getSourceComponents(IList** ports) override;
    
     ErrCode INTERFACE_FUNC setValueReadType(SampleType type) override;
@@ -57,6 +61,9 @@ public:
     ErrCode INTERFACE_FUNC setAllowDifferentSamplingRates(Bool allowDifferentRates) override;
     ErrCode INTERFACE_FUNC getAllowDifferentSamplingRates(Bool* allowDifferentRates) override;
 
+    ErrCode INTERFACE_FUNC setInputPortNotificationMethod(PacketReadyNotification notificationMethod) override;
+    ErrCode INTERFACE_FUNC getInputPortNotificationMethod(PacketReadyNotification* notificationMethod) override;
+
 private:
     ListPtr<IComponent> sources;
     SampleType valueReadType;
@@ -68,6 +75,7 @@ private:
     SizeT minReadCount;
     RatioPtr offsetTolerance;
     Bool allowDifferentRates;
+    PacketReadyNotification notificationMethod;
 };
 
 END_NAMESPACE_OPENDAQ

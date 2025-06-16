@@ -40,6 +40,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     , requiredCommonSampleRate(requiredCommonSampleRate)
     , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
     , minReadCount(minReadCount)
+    , notificationMethod(PacketReadyNotification::None)
 {
     this->internalAddRef();
     try
@@ -77,6 +78,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     mainValueDescriptor = old->mainValueDescriptor;
     mainDomainDescriptor = old->mainDomainDescriptor;
     allowDifferentRates = old->allowDifferentRates;
+    notificationMethod = old->notificationMethod;
     context = old->context;
     
     this->internalAddRef();
@@ -105,6 +107,7 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     , allowDifferentRates(builder.getAllowDifferentSamplingRates())
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
     , minReadCount(builder.getMinReadCount())
+    , notificationMethod(builder.getInputPortNotificationMethod())
 {
     internalAddRef();
     try
@@ -382,7 +385,8 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
             hasSignals = true;
 
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
-            port.setNotificationMethod(PacketReadyNotification::Scheduler);
+            if (notificationMethod != PacketReadyNotification::None)
+                port.setNotificationMethod(notificationMethod);
             port.setListener(listener);
             port.connect(signal);
             portList.pushBack(port);
@@ -392,11 +396,19 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
             if (hasSignals)
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
 
-            if (port.getNotificationMethod() == PacketReadyNotification::None)
+            if (notificationMethod == PacketReadyNotification::None)
             {
-                LOG_W("Port with ID {} has input port notification set to 'None', overriding with 'Scheduler' mode", port.getLocalId());
-                port.setNotificationMethod(PacketReadyNotification::Scheduler);
+                if (port.getNotificationMethod() == PacketReadyNotification::None)
+                {
+                    LOG_W("Port with ID {} has input port notification set to 'None', overriding with 'Scheduler' mode", port.getLocalId());
+                    port.setNotificationMethod(PacketReadyNotification::Scheduler);
+                }
             }
+            else
+            {
+                port.setNotificationMethod(notificationMethod);
+            }
+
             hasInputPorts = true;
             portList.pushBack(port);
         }

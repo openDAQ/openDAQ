@@ -168,6 +168,7 @@ private:
     bool isActive{true};
 
     SizeT minReadCount;
+    PacketReadyNotification notificationMethod;
 };
 
 END_NAMESPACE_OPENDAQ

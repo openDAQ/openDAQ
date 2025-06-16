@@ -2,7 +2,6 @@
 #include <opendaq/multi_reader_builder_ptr.h>
 #include <opendaq/reader_factory.h>
 #include <coretypes/validation.h>
-#include <opendaq/signal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -17,6 +16,7 @@ MultiReaderBuilderImpl::MultiReaderBuilderImpl()
     , minReadCount(1)
     , offsetTolerance(nullptr)
     , allowDifferentRates(true)
+    , notificationMethod(PacketReadyNotification::None)
 {
 }
 
@@ -46,6 +46,36 @@ ErrCode MultiReaderBuilderImpl::addInputPort(IInputPort* port)
     OPENDAQ_PARAM_NOT_NULL(port);
 
     sources.pushBack(port);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::addSignals(IList* signals)
+{
+    OPENDAQ_PARAM_NOT_NULL(signals);
+
+    ListPtr<IBaseObject> list = signals;
+    for (const auto& obj : list)
+    {
+        if (!obj.supportsInterface(ISignal::Id))
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Object added to multi reader builder is not a signal.");
+        sources.pushBack(obj);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::addInputPorts(IList* inputPorts)
+{
+    OPENDAQ_PARAM_NOT_NULL(inputPorts);
+
+    ListPtr<IBaseObject> list = inputPorts;
+    for (const auto& obj : list)
+    {
+        if (!obj.supportsInterface(IInputPort::Id))
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Object added to multi reader builder is not an input port.");
+        sources.pushBack(obj);
+    }
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -173,6 +203,19 @@ ErrCode MultiReaderBuilderImpl::getAllowDifferentSamplingRates(Bool* allowDiffer
     OPENDAQ_PARAM_NOT_NULL(allowDifferentRates);
 
     *allowDifferentRates = this->allowDifferentRates;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::setInputPortNotificationMethod(PacketReadyNotification notificationMethod)
+{
+    this->notificationMethod = notificationMethod;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::getInputPortNotificationMethod(PacketReadyNotification* notificationMethod)
+{
+    OPENDAQ_PARAM_NOT_NULL(notificationMethod);
+    *notificationMethod = this->notificationMethod;
     return OPENDAQ_SUCCESS;
 }
 

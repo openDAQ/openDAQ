@@ -131,14 +131,10 @@ public:
     virtual ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
-        ProcedurePtr callback;
 
-        {
-            inputPort->getConnection(&connection);
-            
-            std::scoped_lock lock(mutex);
-            callback = connectedCallback;
-        }
+        // TODO: Thread safety
+        inputPort->getConnection(&connection);
+        ProcedurePtr callback = connectedCallback;
 
         if (callback.assigned())
             return wrapHandler<InputPortPtr>(callback, InputPortPtr(inputPort));

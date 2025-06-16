@@ -19,8 +19,9 @@
 #include <opendaq/multi_reader.h>
 #include <opendaq/input_port.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+#include "opendaq/input_port_config.h"
 
+BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @ingroup opendaq_readers
  * @addtogroup opendaq_multi_reader Multi reader builder
@@ -45,6 +46,9 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * @param signal The signal which will be handled in multi reader
      */
     virtual ErrCode INTERFACE_FUNC addSignal(ISignal* signal) = 0;
+    // [elementType(signals, ISignal)]
+    // [returnSelf]
+    virtual ErrCode INTERFACE_FUNC addSignals(IList* signals) = 0;
 
     // [returnSelf]
     /*!
@@ -52,6 +56,10 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * @param port The input port which will be handled in multi reader
      */
     virtual ErrCode INTERFACE_FUNC addInputPort(IInputPort* port) = 0;
+
+    // [elementType(inputPorts, IInputPort)]
+    // [returnSelf]
+    virtual ErrCode INTERFACE_FUNC addInputPorts(IList* inputPorts) = 0;
 
     // [templateType(ports, IComponent)]
     /*!
@@ -179,6 +187,13 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
     // [returnSelf]
     virtual ErrCode INTERFACE_FUNC setAllowDifferentSamplingRates(Bool allowDifferentRates) = 0;
     virtual ErrCode INTERFACE_FUNC getAllowDifferentSamplingRates(Bool* allowDifferentRates) = 0;
+    
+    // [returnSelf]
+    /*!
+     * @brief If "None", uses Scheduler for multi reader with signals, and keeps the mode of the input port
+     */
+    virtual ErrCode INTERFACE_FUNC setInputPortNotificationMethod(PacketReadyNotification notificationMethod) = 0;
+    virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethod(PacketReadyNotification* notificationMethod) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, MultiReaderBuilder, IMultiReaderBuilder)

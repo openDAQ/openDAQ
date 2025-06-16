@@ -178,14 +178,10 @@ ErrCode PacketReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool*
 ErrCode PacketReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    ProcedurePtr callback;
 
-    {
-        port->getConnection(&connection);
-        
-        std::scoped_lock lock(mutex);
-        callback = connectedCallback;
-    }
+    // TODO: Thread safety
+    port->getConnection(&connection);
+    ProcedurePtr callback = connectedCallback;
 
     if (callback.assigned())
         return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));

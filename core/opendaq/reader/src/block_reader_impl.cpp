@@ -155,17 +155,33 @@ ErrCode BlockReaderImpl::connected(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
 
-    std::scoped_lock lock(notify.mutex);
-    inputPort->getConnection(&connection);
+    ProcedurePtr callback;
+
+    {
+        std::scoped_lock lock(notify.mutex);
+        port->getConnection(&connection);
+        callback = connectedCallback;
+    }
+
+    if (callback.assigned())
+        return wrapHandler<InputPortPtr>(callback, InputPortPtr(inputPort));
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode BlockReaderImpl::disconnected(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
+    ProcedurePtr callback;
 
-    std::scoped_lock lock(notify.mutex);
-    connection = nullptr;
+    {
+        std::scoped_lock lock(notify.mutex);
+        connection = nullptr;
+
+        callback = disconnectedCallback;
+    }
+
+    if (callback.assigned())
+        return wrapHandler<InputPortPtr>(callback, InputPortPtr(inputPort));
     return OPENDAQ_SUCCESS;
 }
 

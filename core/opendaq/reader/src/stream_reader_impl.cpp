@@ -241,9 +241,8 @@ ErrCode StreamReaderImpl::connected(IInputPort* port)
     ProcedurePtr callback;
 
     {
+        std::scoped_lock lock(notify.mutex);
         port->getConnection(&connection);
-        
-        std::scoped_lock lock(mutex);
         callback = connectedCallback;
     }
 
@@ -258,7 +257,7 @@ ErrCode StreamReaderImpl::disconnected(IInputPort* port)
     ProcedurePtr callback;
 
     {
-        std::scoped_lock lock(mutex);
+        std::scoped_lock lock(notify.mutex);
         connection = nullptr;
 
         callback = disconnectedCallback;
@@ -277,6 +276,7 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
         std::scoped_lock lock(notify.mutex);
         callback = readCallback;
     }
+
     notify.condition.notify_one();
     if (callback.assigned())
         return wrapHandler(callback);

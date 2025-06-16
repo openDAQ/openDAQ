@@ -160,7 +160,7 @@ private:
     DataDescriptorPtr mainValueDescriptor;
     DataDescriptorPtr mainDomainDescriptor;
 
-    void isDomainValid(const ListPtr<IInputPortConfig>& list) const;
+    ErrCode isDomainValid(const ListPtr<IInputPortConfig>& list) const;
     void checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list);
 
     ContextPtr context;

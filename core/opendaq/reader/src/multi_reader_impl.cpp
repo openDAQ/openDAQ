@@ -160,7 +160,7 @@ struct MultiReaderImpl::ReferenceDomainBin
     }
 };
 
-void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) const
+ErrCode MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) const
 {
     StringPtr domainUnitSymbol;
     StringPtr domainQuantity;
@@ -174,23 +174,23 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) const
         {
             continue;
         }
-
+        
         auto domain = signal.getDomainSignal();
         if (!domain.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain signal set.)", signal.getLocalId());
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Signal "{}" does not have a domain signal set.)", signal.getLocalId()));
         }
 
         auto domainDescriptor = domain.getDescriptor();
         if (!domainDescriptor.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain descriptor set.)", signal.getLocalId());
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Signal "{}" does not have a domain descriptor set.)", signal.getLocalId()));
         }
 
         auto domainUnit = domainDescriptor.getUnit();
         if (!domainUnit.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId());
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId()));
         }
 
         if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
@@ -200,35 +200,35 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) const
 
             if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
             {
-                DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Signal "{}" does not have a domain quantity set.)", signal.getLocalId());
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Signal "{}" does not have a domain quantity set.)", signal.getLocalId()));
             }
 
             if (domainQuantity != "time")
             {
-                DAQ_THROW_EXCEPTION(NotSupportedException,
-                                    R"(Signal "{}" domain quantity is not "time" but "{}" which is not currently supported.)",
-                                    signal.getLocalId(),
-                                    domainQuantity);
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED,
+                                           fmt::format(R"(Signal "{}" domain quantity is not "time" but "{}" which is not currently supported.)",
+                                           signal.getLocalId(),
+                                           domainQuantity));
             }
 
             if (domainUnitSymbol != "s")
             {
-                DAQ_THROW_EXCEPTION(NotSupportedException,
-                                    R"(Signal "{}" domain unit is not "s" but "{}" which is not currently supported.)",
-                                    signal.getLocalId(),
-                                    domainUnitSymbol);
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED,
+                                           fmt::format(R"(Signal "{}" domain unit is not "s" but "{}" which is not currently supported.)",
+                                           signal.getLocalId(),
+                                           domainUnitSymbol));
             }
         }
         else
         {
             if (domainQuantity != domainUnit.getQuantity())
             {
-                DAQ_THROW_EXCEPTION(InvalidStateException, R"(Signal "{}" domain quantity does not match with others.)", signal.getLocalId());
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Signal "{}" domain quantity does not match with others.)", signal.getLocalId()));
             }
 
             if (domainUnitSymbol != domainUnit.getSymbol())
             {
-                DAQ_THROW_EXCEPTION(InvalidStateException, R"(Signal "{}" domain unit does not match with others.)", signal.getLocalId());
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Signal "{}" domain unit does not match with others.)", signal.getLocalId()));
             }
         }
 
@@ -256,7 +256,7 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) const
             else
             {
                 if (timeSource != TimeSource::Unknown && referenceDomainInfo.getReferenceTimeSource() != timeSource)
-                    DAQ_THROW_EXCEPTION(InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Only one known Reference Time Source is allowed per Multi Reader.");
                 timeSource = referenceDomainInfo.getReferenceTimeSource();
             }
 
@@ -288,13 +288,15 @@ void MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) const
 
                 if (needsKnownTimeSource && !hasKnownTimeSource)
                 {
-                    DAQ_THROW_EXCEPTION(InvalidStateException, "Reference domain is incompatible.");
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Reference domain is incompatible.");
                 }
             }
 
             bins.insert(bin);
         }
     }
+
+    return OPENDAQ_SUCCESS;
 }
 
 void MultiReaderImpl::updateCommonSampleRateAndDividers()
@@ -406,7 +408,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::checkPreconditions(const ListPtr<ICom
 
     fromInputPorts = hasInputPorts;
 
-    isDomainValid(portList);
+    checkErrorInfo(isDomainValid(portList));
     return portList;
 }
 
@@ -1012,7 +1014,8 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
                     portList.pushBack(signalReader.port);
             }
 
-            isDomainValid(portList);
+            if (OPENDAQ_FAILED(isDomainValid(portList)))
+                invalid = true;
             portConnected = true;
         }
 

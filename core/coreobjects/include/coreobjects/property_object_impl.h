@@ -577,8 +577,10 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
     this->permissionManager.setPermissions(
         PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
+#endif
 
     PropertyValueEventEmitter readEmitter;
     PropertyValueEventEmitter writeEmitter;

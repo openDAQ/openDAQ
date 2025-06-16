@@ -8,29 +8,46 @@
 #include <thread>
 #include <opendaq/reusable_data_packet_ptr.h>
 #include <opendaq/sample_type_traits.h>
-#include <opendaq/scaling_factory.h>
-#include <opendaq/scaling_ptr.h>
 #include <iostream>
 
+using namespace daq;
 
-
+// Name?
 class Packetet : public daq::PacketBuffer
 {
 public:
 
-    using PacketBuffer::getReadPos;
-    using PacketBuffer::getWritePos;
-    using PacketBuffer::setWritePos;
-    using PacketBuffer::setReadPos;
-    using PacketBuffer::getIsFull;
-
-
-    bufferReturnCodes::EReturnCodesPacketBuffer callReadSample(void* beginningOfDelegatedSpace, size_t sampleCount)
+    void* getReadPos()
     {
-        return Read(beginningOfDelegatedSpace, sampleCount);
+        return readPos;
+    }
+    void* getWritePos()
+    {
+        return writePos;
     }
 
-    bufferReturnCodes::EReturnCodesPacketBuffer callWriteSample(size_t* sampleCount, void** memPos)
+    bool getIsFull()
+    {
+        return bIsFull;
+    }
+
+    void setWritePos(size_t offset)
+    {
+        writePos = static_cast<void*>(static_cast<uint8_t*>(writePos) + sizeOfSample * offset);
+    }
+
+    void setReadPos(size_t offset)
+    {
+        readPos = static_cast<void*>(static_cast<uint8_t*>(readPos) + sizeOfSample * offset);
+    }
+
+
+    bufferReturnCodes::ReturnCodesPacketBuffer callReadSample(void* beginningOfDelegatedSpace, size_t sampleCount)
+    {
+        return Read(beginningOfDelegatedSpace, sampleCount, sizeOfMem);
+    }
+
+    bufferReturnCodes::ReturnCodesPacketBuffer callWriteSample(size_t* sampleCount, void** memPos)
     {
         return Write(sampleCount, memPos);
     }
@@ -39,7 +56,7 @@ public:
                                         daq::DataDescriptorPtr dataDescriptor,
                                         daq::DataPacketPtr& domainPacket)
     {
-        return createPacket(sampleCount, dataDescriptor, domainPacket);
+        return daq::PacketBuffer::createPacket(sampleCount, dataDescriptor, domainPacket);
     }
 
     std::mutex* goForLock()
@@ -49,9 +66,11 @@ public:
 
     daq::Packet getCreatePacket(size_t* sampleCount, size_t dataDescriptor);
 
+    daq::Packet createPacket(size_t* sampleCount, size_t dataDescriptor);
+
 
     Packetet()
-        : PacketBuffer(sizeof(double), 1024, nullptr)
+        : PacketBuffer(nullptr)
     {
     }
 
@@ -60,7 +79,7 @@ public:
 class daq::Packet
 {
 public:
-    Packet(size_t desiredNumOfSamples, void* beginningOfData, std::function<void(void*, size_t)> callback)
+    Packet(size_t desiredNumOfSamples, void* beginningOfData, std::function<void(void*, size_t, size_t)> callback)
         : cb(std::move(callback)),
           sampleAmount(desiredNumOfSamples),
           assignedData(beginningOfData)
@@ -76,12 +95,12 @@ public:
 
     ~Packet()
     {
-        cb(assignedData, sampleAmount);
+        cb(assignedData, sampleAmount, sampleAmount);
     }
 
 
 private:
-    std::function<void(void*, size_t)> cb;
+    std::function<void(void*, size_t, size_t)> cb;
     size_t sampleAmount;
     void* assignedData;
 };
@@ -94,16 +113,16 @@ daq::Packet Packetet::getCreatePacket(size_t* sampleCount, size_t dataDescriptor
 
 
 // This is a test function that was used to help gauge the behaviour of the buffer class
-daq::Packet daq::PacketBuffer::createPacket(size_t* sampleCount, size_t dataDescriptor)
+daq::Packet Packetet::createPacket(size_t* sampleCount, size_t dataDescriptor)
 {
     void* startOfSpace = nullptr;
-    bufferReturnCodes::EReturnCodesPacketBuffer ret = this->Write(sampleCount, &startOfSpace);
-    std::function<void(void*, size_t)> cb = std::bind(&PacketBuffer::Read, this, std::placeholders::_1, std::placeholders::_2);
-    if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::Ok)
+    bufferReturnCodes::ReturnCodesPacketBuffer ret = Write(sampleCount, &startOfSpace);
+    std::function<void(void*, size_t, size_t)> cb = std::bind(&PacketBuffer::Read, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    if (ret == bufferReturnCodes::ReturnCodesPacketBuffer::Ok)
     {
         return Packet(*sampleCount, startOfSpace, cb);
     }
-    else if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize)
+    else if (ret == bufferReturnCodes::ReturnCodesPacketBuffer::AdjustedSize)
     {
         // The argument of the function needs to be changed to reflect the spec details
         std::cout << "The size of the packet is smaller than requested. It's so JOEVER " << std::endl;
@@ -146,9 +165,9 @@ TEST_F(CircularPacketTest, SanityWritePosCheck)
     size_t bb = 0;
     size_t* delique = &bb;
     *delique = 16;
-    ASSERT_EQ(pb.callWriteSample(delique, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callWriteSample(delique, &check), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *delique = 1024;
-    ASSERT_EQ(pb.callWriteSample(delique, &check), bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize);
+    ASSERT_EQ(pb.callWriteSample(delique, &check), bufferReturnCodes::ReturnCodesPacketBuffer::AdjustedSize);
 }
 
 TEST_F(CircularPacketTest, WriteFullRangeFill)
@@ -158,10 +177,10 @@ TEST_F(CircularPacketTest, WriteFullRangeFill)
     size_t bb = 0;
     size_t* fun = &bb;
     *fun = 512;
-    ASSERT_EQ(pb.callWriteSample(fun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
-    ASSERT_EQ(pb.callWriteSample(fun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callWriteSample(fun, &check), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callWriteSample(fun, &check), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *fun = 2;
-    ASSERT_EQ(pb.callWriteSample(fun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory);       // This one fails because the buffer is full
+    ASSERT_EQ(pb.callWriteSample(fun, &check), bufferReturnCodes::ReturnCodesPacketBuffer::OutOfMemory);       // This one fails because the buffer is full
 }
 
 TEST_F(CircularPacketTest, WriteAdjustedSize)
@@ -171,9 +190,9 @@ TEST_F(CircularPacketTest, WriteAdjustedSize)
     size_t bb = 0;
     size_t* run = &bb;
     *run = 1000;
-    ASSERT_EQ(pb.callWriteSample(run, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callWriteSample(run, &check), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *run = 30;
-    ASSERT_EQ(pb.callWriteSample(run, &check), bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize);
+    ASSERT_EQ(pb.callWriteSample(run, &check), bufferReturnCodes::ReturnCodesPacketBuffer::AdjustedSize);
 }
 
 TEST_F(CircularPacketTest, WriteEmptyCall)
@@ -183,7 +202,7 @@ TEST_F(CircularPacketTest, WriteEmptyCall)
     size_t bb = 0;
     size_t* tun = &bb;
     *tun = 0;
-    ASSERT_EQ(pb.callWriteSample(tun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callWriteSample(tun, &check), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
 }
 
 
@@ -193,7 +212,7 @@ TEST_F(CircularPacketTest, ReadEmpty)
     size_t bb = 0;
     size_t* gun = &bb;
     *gun = 0;
-    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *gun), bufferReturnCodes::EReturnCodesPacketBuffer::Failure);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *gun), bufferReturnCodes::ReturnCodesPacketBuffer::Failure);
 }
 
 TEST_F(CircularPacketTest, ReadFromFullBuffer)
@@ -205,7 +224,7 @@ TEST_F(CircularPacketTest, ReadFromFullBuffer)
     *wan = 1024;
     pb.callWriteSample(wan, &check);
     *wan = 512;
-    ASSERT_EQ(pb.callReadSample(check, *wan), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(check, *wan), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
 }
 
 TEST_F(CircularPacketTest, ReadFullBuffer)
@@ -217,13 +236,13 @@ TEST_F(CircularPacketTest, ReadFullBuffer)
     *hun = 512;
     pb.callWriteSample(hun, &check);
     *hun = 256;
-    ASSERT_EQ(pb.callReadSample(check, *hun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(check, *hun), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *hun = 1000;
-    ASSERT_EQ(pb.callWriteSample(hun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize);
+    ASSERT_EQ(pb.callWriteSample(hun, &check), bufferReturnCodes::ReturnCodesPacketBuffer::AdjustedSize);
     *hun = 128;
-    ASSERT_EQ(pb.callWriteSample(hun, &check), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callWriteSample(hun, &check), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *hun = 800;
-    ASSERT_EQ(pb.callReadSample(check, *hun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(check, *hun), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
 }
 
 TEST_F(CircularPacketTest, ReadPartialWorkflow)
@@ -235,22 +254,22 @@ TEST_F(CircularPacketTest, ReadPartialWorkflow)
     *jun = 512; 
     pb.callWriteSample(jun, &check);
     *jun = 256;
-    ASSERT_EQ(pb.callReadSample(check, *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(check, *jun), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *jun = 128;
-    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *jun = 64;
-    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *jun = 32;
-    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *jun = 16;
-    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *jun = 8;
-    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *jun = 4;
-    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
-    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::ReturnCodesPacketBuffer::Ok);
     *jun = 1;
-    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::EReturnCodesPacketBuffer::Failure);
+    ASSERT_EQ(pb.callReadSample(pb.getReadPos(), *jun), bufferReturnCodes::ReturnCodesPacketBuffer::Failure);
 }
 
 

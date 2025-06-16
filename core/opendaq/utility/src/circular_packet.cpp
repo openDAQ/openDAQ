@@ -2,57 +2,40 @@
 
 using namespace daq;
 
-PacketBufferInit::PacketBufferInit(const daq::DataDescriptorPtr& description, size_t sampleAmount, const ContextPtr ctx)
+PacketBufferInit::PacketBufferInit(const DataDescriptorPtr& descriptor, const ContextPtr& context)
+   // : descriptor(descriptor)
+   // , context(context)
 {
-    if (ctx != nullptr)
-    {
-        logger = ctx.getLogger();
-    }
-    else
-    {
-        logger = Logger();
-    }
+    if (!context.assigned())
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Context must be assigned on packet buffer creation!");
 
-    if (description == nullptr)
-    {
+    if (!descriptor.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Data descriptor cannot be empty.");
-    }
-    desc = *description;
 
-    sampleCount = sampleAmount;
-
-    if (sampleAmount == 0)
-    {
-        if (desc.getUnit().getSymbol() != "s")
-            return ;
-
-        auto r = desc.getTickResolution();
-        auto newSampleAmount = 2 * (1 / r.getNumerator() / r.getDenominator());  // 2s worth of packets for the buffer
-        sampleCount = newSampleAmount;
-    }
+    // Is this a worth while constructor??
 }
 
-PacketBuffer::PacketBuffer(size_t sampleSize, size_t memSize, const ContextPtr ctx)
-    : bIsFull(false)
-    , bUnderReset(false)
-    , sizeOfMem(memSize)
-    , sizeOfSample(sampleSize)
-    , data(std::vector<uint8_t>(sizeOfMem*sizeOfSample))
-    , sizeAdjusted(0)
-    , bAdjustedSize(false)
+PacketBufferInit::PacketBufferInit(size_t memSize, const ContextPtr& context)
+    : context(context)
+    , sampleCount(memSize)
 {
-    if (ctx == nullptr)
-    {
-        logger = Logger(); // For testing (????)
-    }
-    else
-    {
-        logger = ctx.getLogger();
-    }
+    // This might not be a good way of assigning this, becouse memSize is a product of 2 different values by default
+    // I really don't like the way this is structured
+}
 
-    loggerComponent = logger.getOrAddComponent("CircularBuffer");
-    writePos = &data;
-    readPos = &data;
+PacketBufferInit::PacketBufferInit(size_t sampleSize, size_t sampleSizeInMilliseconds, const ContextPtr& context)
+    : context(context)
+    , sampleCount(sampleSize)
+{
+    // The amount of space that will be initialy taken up by the data std::vector (sampleSize * sampleSizInMilliseconds * 2000)
+}
+
+PacketBufferInit::PacketBufferInit(size_t sampleSize, std::chrono::milliseconds duration, const ContextPtr& context)
+    : context(context)
+    , sampleCount(sampleSize)
+{
+    // The amount of space initialy taken up by the vector (I guess the assumption is that a single sample will take up to 1 millisecond (??))
+    // Here the space calculation will probably need some engineering magic
 }
 
 PacketBuffer::~PacketBuffer()
@@ -63,10 +46,11 @@ PacketBuffer::~PacketBuffer()
 PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
     : bIsFull(false)
     , bUnderReset(false)
-    , sizeOfMem(instructions.sampleCount)
-    , sizeOfSample(instructions.desc.getRawSampleSize())
-    , data(std::vector<uint8_t>(sizeOfMem * sizeOfSample))
-    , logger(instructions.logger)
+    , sizeOfMem(instructions.sampleCount) // Is this actually just sample count? memSize is the norm usually.
+    , rawSampleSize(instructions.descriptor.getRawSampleSize()) // Why not rawSampleSize
+    , data(std::vector<uint8_t>(sizeOfMem * rawSampleSize))
+    , logger(instructions.context.getLogger())
+    , context(instructions.context)
     , sizeAdjusted(0)
     , bAdjustedSize(false)
 {
@@ -75,73 +59,30 @@ PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
 }
 
 
-void PacketBuffer::setWritePos(size_t offset)
-{
-    writePos = (uint8_t*)writePos + sizeOfSample * offset;
-}
-
-void PacketBuffer::setReadPos(size_t offset)
-{
-    readPos = (size_t*)readPos + sizeOfSample * offset;
-}
-
-void* PacketBuffer::getWritePos() const
-{
-    return writePos;
-}
-
-void* PacketBuffer::getReadPos() const
-{
-    return readPos;
-}
-
-void PacketBuffer::setIsFull(bool bState)
-{
-    bIsFull = bState;
-}
-
-bool PacketBuffer::getIsFull() const
-{
-    return bIsFull;
-}
-
-bool PacketBuffer::isEmpty() const
-{
-    return writePos == readPos && !bIsFull;
-}
-
-size_t PacketBuffer::getAdjustedSize() const
-{
-    if (bAdjustedSize)
-        return sizeAdjusted;
-
-    return 0;
-}
-
-bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCount, void** memPos)
+bufferReturnCodes::ReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCount, void** memPos)
 {
     // We lock the thread outside in createPacket
 
-    auto writePosVirtuallyAdjusted = ((uint8_t*) writePos + sizeOfSample * *sampleCount);
+    auto writePosVirtuallyAdjusted = (static_cast<uint8_t*>(writePos) + rawSampleSize * *sampleCount);
 
-    auto endOfBuffer = ((uint8_t*) &data + sizeOfSample * sizeOfMem);
+    auto endOfBuffer = (reinterpret_cast<uint8_t*>(&data) + rawSampleSize * sizeOfMem);
 
-    auto readPosWritePosDiff = ((uint8_t*) writePos - (uint8_t*) readPos)/(int)sizeOfSample;
-    auto writePosEndBufferDiff = (endOfBuffer - (uint8_t*) writePos)/(int)sizeOfSample;
+    auto readPosWritePosDiff = (static_cast<uint8_t*>(writePos) - static_cast<uint8_t*>(readPos))/static_cast<int>(rawSampleSize);
+    auto writePosEndBufferDiff = (endOfBuffer - static_cast<uint8_t*>(writePos))/static_cast<int>(rawSampleSize);
 
     size_t availableSamples;
     bool bSizeAdjusted = false;
 
     if (readPosWritePosDiff < 0)
     {
-        availableSamples = (size_t) std::abs(readPosWritePosDiff);
+        availableSamples = static_cast<size_t>(std::abs(readPosWritePosDiff));
     }
     else
     {
         if (bIsFull && readPosWritePosDiff == 0)
-            return bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory;
+            return bufferReturnCodes::ReturnCodesPacketBuffer::OutOfMemory;
 
-        availableSamples = (size_t) writePosEndBufferDiff;
+        availableSamples = static_cast<size_t>(writePosEndBufferDiff);
     }
 
     if (availableSamples < *sampleCount)
@@ -149,7 +90,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCo
         // Adjust size
         *memPos = writePos;
         *sampleCount = availableSamples;
-        writePos = (void*) ((uint8_t*) writePos + sizeOfSample * availableSamples);
+        writePos = static_cast<void*>(static_cast<uint8_t*>(writePos) + rawSampleSize * availableSamples);
         bSizeAdjusted = true;
     }
     else
@@ -163,9 +104,9 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCo
         bIsFull = true;
 
         if (bSizeAdjusted)
-            return bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize;
+            return bufferReturnCodes::ReturnCodesPacketBuffer::AdjustedSize;
 
-        return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
+        return bufferReturnCodes::ReturnCodesPacketBuffer::Ok;
     }
     if (writePos == (void*) endOfBuffer)
     {
@@ -174,16 +115,16 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCo
             bIsFull = true;
 
         if (bSizeAdjusted)
-            return bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize;
+            return bufferReturnCodes::ReturnCodesPacketBuffer::AdjustedSize;
 
-        return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
+        return bufferReturnCodes::ReturnCodesPacketBuffer::Ok;
     }
 
-    return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
+    return bufferReturnCodes::ReturnCodesPacketBuffer::Ok;
 
 }
 
-bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOfDelegatedSpace, size_t sampleCount)
+bufferReturnCodes::ReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOfDelegatedSpace, size_t sampleCount, size_t rawSize)
 {
     {
         std::lock_guard<std::mutex> lock(mxFlip);
@@ -200,7 +141,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOf
                     std::make_pair(((uint8_t*) &data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) &data), sampleCount));
 
             oos_packets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount));
-            return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
+            return bufferReturnCodes::ReturnCodesPacketBuffer::Ok;
         }
         else
         {
@@ -208,7 +149,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOf
             // or simulatedWritePos
             while (!oos_packets.empty())
             {
-                auto mm = (void*) ((uint8_t*) beginningOfDelegatedSpace + sizeOfSample * sampleCount);
+                auto mm = static_cast<void*>(static_cast<uint8_t*>(beginningOfDelegatedSpace) + rawSize * sampleCount);
                 if (oos_packets.top().first == mm)
                 {
                     sampleCount += oos_packets.top().second;
@@ -225,22 +166,29 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOf
         // Empty exit
         if (readPos == writePos && !bIsFull)
         {
-            return bufferReturnCodes::EReturnCodesPacketBuffer::Failure;
+            return bufferReturnCodes::ReturnCodesPacketBuffer::Failure;
         }
 
         // Due to checks in writeSample we cannot go further than WritePos
 
-        // Therefore we only need to check for wraparound and adjust the that
+        // Therefore we only need to check for wraparound and adjust for that
 
-        readPos = (void*) ((uint8_t*) readPos + sizeOfSample * sampleCount);
+        readPos = (void*) ((uint8_t*) readPos + rawSize * sampleCount);
 
-        if ((uint8_t*) readPos >= (uint8_t*) &data + sizeOfSample * sizeOfMem)
-            readPos = (void*) ((uint8_t*) readPos - (sizeOfSample * sizeOfMem));
+        // Re-think if all calculations should contain the rawSize*sizeOfMem part of the calculation
+
+        // Notes on reconfiguration change the sizeOfMem to already have internally calculate rawSize*sampleAmount
+        // when instaciating the object
+
+        // <-- Look if anywhere the sizeOfMem is being used on it's own
+
+        if ((uint8_t*) readPos >= (uint8_t*) &data + rawSize * sizeOfMem)
+            readPos = (void*) ((uint8_t*) readPos - (rawSize * sizeOfMem));
 
         bIsFull = false;
     }
     cv.notify_all();
-    return bufferReturnCodes::EReturnCodesPacketBuffer::Ok;
+    return bufferReturnCodes::ReturnCodesPacketBuffer::Ok;
     
     // I need to think about the full buffer state (when writePos is a start)
    
@@ -248,7 +196,7 @@ bufferReturnCodes::EReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOf
 
 size_t PacketBuffer::getAvailableSampleCount() const
 {
-    auto ff_g = (uint8_t*) &data + sizeOfMem * sizeOfSample;
+    auto ff_g = (uint8_t*) &data + sizeOfMem * rawSampleSize;
 
     if (writePos == readPos)
     {
@@ -263,9 +211,9 @@ size_t PacketBuffer::getAvailableSampleCount() const
         return (uint8_t*)readPos - (uint8_t*)writePos;
     }
     
-    // This is the recommended way of doing this from the code review
-     
-    //return (((uint8_t*)data + sizeOfSample * sizeOfMem) - (uint8_t*)writePos);
+    // This is the recommended way of doing this from the code review     
+    // return (((uint8_t*)data + rawSampleSize * sizeOfMem) - (uint8_t*)writePos);
+
 }
 
 DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescriptorPtr dataDescriptor, daq::DataPacketPtr& domainPacket)
@@ -283,20 +231,20 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
         //this->cv.wait(loa, [&] { return !bUnderReset; });
         return daq::DataPacketPtr();
     }
-    sizeOfSample = dataDescriptor.getRawSampleSize();
+    rawSampleSize = dataDescriptor.getRawSampleSize();
     void* startOfSpace = nullptr;
     // Here the should be a lock for creation
 
-    bufferReturnCodes::EReturnCodesPacketBuffer ret = this->Write(sampleCount, &startOfSpace);
-    deleterFunction = [&, sampleCnt = *sampleCount, startOfSpace = startOfSpace](void*)
+    bufferReturnCodes::ReturnCodesPacketBuffer ret = this->Write(sampleCount, &startOfSpace);
+    deleterFunction = [&, sampleCnt = *sampleCount, startOfSpace = startOfSpace, rawSizeOfSample = rawSampleSize](void*)
          {
-             Read(startOfSpace, sampleCnt);
+             Read(startOfSpace, sampleCnt, rawSizeOfSample);
          };
     auto deleter = daq::Deleter(std::move(deleterFunction));
     
-    if (ret < bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory)
+    if (ret < bufferReturnCodes::ReturnCodesPacketBuffer::OutOfMemory)
     {
-        if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::AdjustedSize)
+        if (ret == bufferReturnCodes::ReturnCodesPacketBuffer::AdjustedSize)
         {
             LOG_W("The size of the packet is smaller than requested. It's so JOEVER")
         }
@@ -305,7 +253,7 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
     }
     else
     {
-        if (ret == bufferReturnCodes::EReturnCodesPacketBuffer::OutOfMemory)
+        if (ret == bufferReturnCodes::ReturnCodesPacketBuffer::OutOfMemory)
         {
             LOG_E("We ran out of memory...")
         }
@@ -319,6 +267,9 @@ DataPacketPtr PacketBuffer::createPacket(size_t* sampleCount, daq::DataDescripto
 
 int PacketBuffer::reset()
 {
+    // When reset is invoked the WriteSample functionality should be locked,
+    // we must not lock the entire PacketBuffer itself
+
     std::unique_lock<std::mutex> lock(mxFlip);
     bUnderReset = true;
     this->cv.wait(lock, [&]
@@ -337,7 +288,6 @@ void PacketBuffer::resize(const PacketBufferInit& instructions)
 {
     // If I were to give a new PacketBufferInit into here then a new malloc could be called
     // similarly to the way buffer gets created in the constructor, we can create a new version in this function
-    // 
 
     reset();
 
@@ -345,9 +295,9 @@ void PacketBuffer::resize(const PacketBufferInit& instructions)
     if (!this->isEmpty())
         DAQ_THROW_EXCEPTION(InvalidStateException, "Reset procedure has failed.");
 
-    sizeOfSample = instructions.desc.getRawSampleSize();
+    rawSampleSize = instructions.descriptor.getRawSampleSize();
     sizeOfMem = instructions.sampleCount;
-    data = std::vector<uint8_t> (sizeOfMem * sizeOfSample);
+    data = std::vector<uint8_t> (sizeOfMem * rawSampleSize);
     writePos = &data;
     readPos = &data;
     bIsFull = false;

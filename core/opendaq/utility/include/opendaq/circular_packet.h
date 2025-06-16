@@ -16,121 +16,125 @@
 
 #pragma once
 
-#include <opendaq/sample_type.h>
 #include <opendaq/data_packet_ptr.h>
-#include <opendaq/packet_factory.h>
-#include <opendaq/deleter_factory.h>
-#include <opendaq/deleter_impl.h>
 #include <opendaq/context_ptr.h>
-#include <iostream>
-#include <any>
 #include <mutex>
 #include <condition_variable>
 #include <vector>
 #include <queue>
-#include <memory>
+#include <chrono>
+#include <iostream>
 #include <functional>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/logger_factory.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/deleter_factory.h>
+#include <opendaq/packet_factory.h>
 
+BEGIN_NAMESPACE_OPENDAQ
+
+// Should be in namespace "buffer"!
+// Namespaces should be as short as possible
+// Namespaces form groupings for commonly used names
 namespace bufferReturnCodes
 {
-    enum class EReturnCodesPacketBuffer : daq::EnumType
+    enum class ReturnCodesPacketBuffer : EnumType
     {
         Ok = 0,
         AdjustedSize = 1,
         OutOfMemory = 2,
         Failure = 3
     };
-
 }
 
-BEGIN_NAMESPACE_OPENDAQ
-
+// COMMENT: Init should be the only used param for  constructor. The contents should be described in comments.
+// Structs have the benefit of being extendable in the future; putting all params in the constructor defeats the purpose of the struct.
 struct PacketBufferInit
 {
+    /*??*/ PUBLIC_EXPORT PacketBufferInit(size_t memSize, const ContextPtr& context);
+    PUBLIC_EXPORT PacketBufferInit(size_t sampleSize, size_t sampleSizeInMilliseconds, const ContextPtr& context);
+    PUBLIC_EXPORT PacketBufferInit(size_t sampleSize, std::chrono::milliseconds duration, const ContextPtr& context);
 
-    PUBLIC_EXPORT PacketBufferInit(const daq::DataDescriptorPtr& description, size_t sampleAmount = 0, ContextPtr ctx = nullptr);
+    PUBLIC_EXPORT PacketBufferInit(const DataDescriptorPtr& descriptor, const ContextPtr& context);
 
-    daq::DataDescriptorPtr desc;
+private:
+    friend class PacketBuffer;
+
+    DataDescriptorPtr descriptor;
+    ContextPtr context;
     size_t sampleCount;
-    LoggerPtr logger;
-
 };
 
+
+// COMMENT: Testing methods belong in test suite
 // This is a Testing Mock Packet, it is not intended for actual use
 class Packet;
 
 class PacketBuffer
 {
-    // When reset is invoked the WriteSample functionality should be locked,
-    // we must not lock the entire PacketBuffer itself
+    // Dangling comment?
+    
 
 public:
-
-    PUBLIC_EXPORT PacketBuffer(size_t sampleSize, size_t memSize, ContextPtr ctx);
 
     PUBLIC_EXPORT PacketBuffer(const PacketBufferInit& instructions);
 
     PUBLIC_EXPORT ~PacketBuffer();
 
-    // When callling resize, reset gets called internally
+    // When calling resize, reset gets called internally
+    // COMMENT: Is this really resize? It accepts a whole new instruction set.
     PUBLIC_EXPORT void resize(const PacketBufferInit& instructions);
 
     // int => return code
-
+    // COMMENT: Explain what this does at edge conditions.
     PUBLIC_EXPORT size_t getAvailableSampleCount() const;
 
-    PUBLIC_EXPORT daq::DataPacketPtr createPacket(size_t* sampleCount,
-                                                 daq::DataDescriptorPtr dataDescriptor,
-                                                 daq::DataPacketPtr& domainPacket);
-
+    // Do we need the data descriptor here?
+    // const& params
+    PUBLIC_EXPORT DataPacketPtr createPacket(size_t* sampleCount,
+                                             DataDescriptorPtr dataDescriptor,
+                                             DataPacketPtr& domainPacket);
     bool isEmpty() const;
 
     int reset();
 
 protected:
+    // COMMENT: Testing methods belong in test suite
     // This is a test function, it has no intended use outside of unit tests for internal logic of the buffer
-    Packet createPacket(size_t* sampleCount, size_t dataDescriptor);
+    //Packet createPacket(size_t* sampleCount, size_t dataDescriptor);
 
-    bufferReturnCodes::EReturnCodesPacketBuffer Write(size_t* sampleCount, void** memPos);
+    bufferReturnCodes::ReturnCodesPacketBuffer Write(size_t* sampleCount, void** memPos);
 
-    bufferReturnCodes::EReturnCodesPacketBuffer Read(void* beginningOfDelegatedSpace, size_t sampleCount);
-
-    // Testing methods
-    void setWritePos(size_t offset);
-    void setReadPos(size_t offset);
-
-    void* getWritePos() const;
-    void* getReadPos() const;
-
-    void setIsFull(bool bState);
-    bool getIsFull() const;
-
-    size_t getAdjustedSize() const;
+    bufferReturnCodes::ReturnCodesPacketBuffer Read(void* beginningOfDelegatedSpace, size_t sampleCount, size_t rawSize);
 
     std::mutex mxFlip;
     std::condition_variable cv;
-
-    bool bIsFull;
-    bool bUnderReset;
-    size_t sizeOfMem;
-    size_t sizeOfSample;
+    
     std::vector<uint8_t> data;
     void* writePos;
     void* readPos;
-    // Out-of-scope packets (oos abbreviation)
-    std::priority_queue<std::pair<void*, size_t>, std::vector<std::pair<void*, size_t>>, std::greater<std::pair<void*, size_t>>> oos_packets;
-    //std::vector<std::weak_ptr<daq::DataPacketPtr>> dd; // This is one of the ways
-    std::function<void(void*)> deleterFunction;
 
-    daq::LoggerPtr logger;
-    daq::LoggerComponentPtr loggerComponent;
+    // COMMENT: Naming? 
+    size_t sizeOfMem;       // This is not appearent what the name is (torej kaj naj bi to predstavljalo)
+    size_t rawSampleSize;
+    
+    // COMMENT: Vars should be renamed to be consistent
+    bool bIsFull;
+    bool bUnderReset;
+
+    // COMMENT: Naming? Are both needed?
     // This is a temporary solution for
-    // situation of the sampleCount being to big to fit
+    // situation of the sampleCount being too big to fit
     size_t sizeAdjusted;
     bool bAdjustedSize;
+
+    // Out-of-scope packets (oos abbreviation)
+    std::priority_queue<std::pair<void*, size_t>, std::vector<std::pair<void*, size_t>>, std::greater<std::pair<void*, size_t>>> oos_packets; // COMMENT: snake_case?
+    std::function<void(void*)> deleterFunction;
+
+    LoggerPtr logger;
+    LoggerComponentPtr loggerComponent;
+    ContextPtr context;
 };
 
 

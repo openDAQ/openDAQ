@@ -840,8 +840,13 @@ void RendererFbImpl::startRendererWindow()
     }
     else 
     {
-        LOG_D("Using separate thread for rendering")
-        renderThread = std::thread{ &RendererFbImpl::renderLoop, this };
+        LOGP_D("Using separate thread for rendering")
+        (void)(window->setActive(false));
+        renderThread = std::thread([this] 
+        {
+            (void)(window->setActive(true));
+            renderLoop();
+        });
     }
 }
 

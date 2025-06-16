@@ -38,8 +38,8 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx,
     rendererUsesMainLoop = true;
 #else
     if (config.assigned() 
-        && config.hasProperty("useMainLoopForRenderer") 
-        && config.getPropertyValue("useMainLoopForRenderer"))
+        && config.hasProperty("UseMainLoopForRenderer") 
+        && config.getPropertyValue("UseMainLoopForRenderer"))
         rendererUsesMainLoop = true;
 #endif
 
@@ -71,7 +71,7 @@ FunctionBlockTypePtr RendererFbImpl::CreateType()
 {
     auto defaultConfig = PropertyObject();
 #ifndef __APPLE__
-    defaultConfig.addProperty(BoolProperty("useMainLoopForRenderer", false));
+    defaultConfig.addProperty(BoolProperty("UseMainLoopForRenderer", false));
 #endif
 
     return FunctionBlockType(

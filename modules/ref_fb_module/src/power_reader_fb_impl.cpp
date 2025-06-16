@@ -1,12 +1,10 @@
 #include <ref_fb_module/power_reader_fb_impl.h>
 #include <opendaq/function_block_ptr.h>
-#include <opendaq/input_port_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
 
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/signal_factory.h>
 
-#include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
 
 #include <coreobjects/unit_factory.h>
@@ -16,7 +14,6 @@
 #include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reader_factory.h>
-#include <iostream>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -260,8 +257,8 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         else
             powerRange = getValueRange(this->voltageDescriptor, this->currentDescriptor);
 
-        powerDataDescriptor = powerDataDescriptorBuilder.setValueRange(powerRange).setName("Power").build();
-        powerDomainDataDescriptor = DataDescriptorBuilderCopy(this->domainDescriptor).setName("Power domain").build();
+        powerDataDescriptor = powerDataDescriptorBuilder.setValueRange(powerRange).build();
+        powerDomainDataDescriptor = this->domainDescriptor;
 
         reader.setActive(True);
 
@@ -280,8 +277,8 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
 
 void PowerReaderFbImpl::createInputPorts()
 {
-    voltageInputPort = createAndAddInputPort("voltage", PacketReadyNotification::Scheduler, nullptr, true);
-    currentInputPort = createAndAddInputPort("current", PacketReadyNotification::Scheduler, nullptr, true);
+    voltageInputPort = createAndAddInputPort("Voltage", PacketReadyNotification::Scheduler, nullptr, true);
+    currentInputPort = createAndAddInputPort("Current", PacketReadyNotification::Scheduler, nullptr, true);
 }
 
 void PowerReaderFbImpl::createReader()
@@ -311,13 +308,12 @@ void PowerReaderFbImpl::createReader()
 
 void PowerReaderFbImpl::createSignals()
 {
-    powerSignal = createAndAddSignal("power");
+    powerSignal = createAndAddSignal("Power");
     powerSignal.setName("Power");
-    powerDomainSignal = createAndAddSignal("power_domain", nullptr, false);
+    powerDomainSignal = createAndAddSignal("PowerDomain", nullptr, false);
     powerDomainSignal.setName("PowerDomain");
     powerSignal.setDomainSignal(powerDomainSignal);
 }
-
 }
 
 END_NAMESPACE_REF_FB_MODULE

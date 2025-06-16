@@ -17,8 +17,8 @@ namespace detail
 // PermissionManagerImpl
 
 PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
-    : permissions(detail::DefaultPermissions)
-    , localPermissions(detail::DefaultPermissions)
+    : permissions(PermissionsBuilder().inherit(true).build())
+    , localPermissions(PermissionsBuilder().inherit(true).build())
 {
     if (parent.assigned())
         setParent(parent);

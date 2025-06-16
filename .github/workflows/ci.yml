@@ -287,8 +287,8 @@ jobs:
 
       - name: Install additional dependencies
         run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test \
-            sudo apt-get update \
+          add-apt-repository ppa:ubuntu-toolchain-r/test \
+            apt-get update \
             apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
             awscli unzip \
             lld ninja-build curl \

@@ -274,13 +274,17 @@ jobs:
         linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
 
     steps:
+      - name: Add Toolchain PPA for GCC 7
+        run: |
+          apt-get update
+          apt-get install -y software-properties-common lsb-release gnupg
+          apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F
+          add-apt-repository -y ppa:ubuntu-toolchain-r/test
+
       - name: Install basic dependencies
         run: |
           apt-get update
           apt-get install -y git openssh-client
-          apt-get install -y software-properties-common
-          add-apt-repository ppa:ubuntu-toolchain-r/test
-          apt-get update
 
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'

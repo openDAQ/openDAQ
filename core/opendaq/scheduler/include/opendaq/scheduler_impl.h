@@ -48,6 +48,8 @@ public:
 private:
     class WorkWrapper;
 
+    void runIteration(std::unique_lock<std::mutex>& lock);
+
     mutable std::mutex mutex;
     std::condition_variable cv;
     std::list<WorkWrapper> workQueue;

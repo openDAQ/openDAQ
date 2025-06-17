@@ -1029,11 +1029,6 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
         {
             for (auto& signal : signals)
             {
-                if (signal.connection.hasEventPacket())
-                {
-                    signal.skipUntilLastEventPacket();
-                }
-
                 signal.port.setActive(isActive);
             }
 
@@ -1066,10 +1061,7 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
             if (portsConnected)
             {
                 portsConnected = false;
-                for (auto& signal : signals)
-                {
-                    signal.port.setActive(false);
-                }
+                setPortsActiveState(false);
             }
         }
 
@@ -1110,6 +1102,14 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 
     if (!portsConnected)
     {
+        for (auto& signal : signals)
+        {
+            if (signal.port == inputPort)
+            {
+                signal.skipUntilLastEventPacket();
+            }
+        }
+
         return OPENDAQ_SUCCESS;    
     }
 
@@ -1119,8 +1119,7 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
         {
             if (signal.port == inputPort)
             {
-                signal.skipUntilLastEventPacket();
-                nextPacketIsEvent = signal.isFirstPacketEvent();
+                nextPacketIsEvent = signal.skipUntilLastEventPacket();
                 break;
             }
         }

@@ -354,12 +354,12 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     return packetToReturn;
 }
 
-void SignalReader::skipUntilLastEventPacket()
+bool SignalReader::skipUntilLastEventPacket()
 {
     info.reset();
 
     if (!connection.assigned())
-        return;
+        return false;
 
     bool hasEventPacket = false;
     while (connection.hasEventPacket())
@@ -386,6 +386,8 @@ void SignalReader::skipUntilLastEventPacket()
 
     if (!hasEventPacket)
         connection.dequeueAll();
+
+    return hasEventPacket;
 }
 
 bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp)

@@ -65,9 +65,9 @@ void defineICoreEventArgs(pybind11::module_ m, PyDaqIntf<daq::ICoreEventArgs, da
         return daq::CoreEventArgsTypeRemoved_Create(getVariantValue<daq::IString*>(typeName));
     }, py::arg("type_name"));
 
-    // m.def("CoreEventArgsPropertyOrderChanged", [](daq::IPropertyObject* propOwner, std::variant<daq::IList*, py::list, daq::IEvalValue*>& propertyOrder, std::variant<daq::IString*, py::str, daq::IEvalValue*>& path){
-        // return daq::CoreEventArgsPropertyOrderChanged_Create(propOwner, getVariantValue<daq::IList*>(propertyOrder), getVariantValue<daq::IString*>(path));
-    // }, py::arg("prop_owner"), py::arg("property_order"), py::arg("path"));
+     m.def("CoreEventArgsPropertyOrderChanged", [](daq::IPropertyObject* propOwner, std::variant<daq::IList*, py::list, daq::IEvalValue*>& propertyOrder, std::variant<daq::IString*, py::str, daq::IEvalValue*>& path){
+         return daq::CoreEventArgsPropertyOrderChanged_Create(propOwner, getVariantValue<daq::IList*>(propertyOrder), getVariantValue<daq::IString*>(path));
+     }, py::arg("prop_owner"), py::arg("property_order"), py::arg("path"));
 
 
     cls.def_property_readonly("parameters",

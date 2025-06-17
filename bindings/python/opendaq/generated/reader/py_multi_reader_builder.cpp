@@ -59,6 +59,15 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
         },
         py::arg("signal"),
         "Adds the signal to list in multi reader");
+    cls.def("add_signals",
+        [](daq::IMultiReaderBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& signals)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+            objectPtr.addSignals(getVariantValue<daq::IList*>(signals));
+        },
+        py::arg("signals"),
+        "");
     cls.def("add_input_port",
         [](daq::IMultiReaderBuilder *object, daq::IInputPort* port)
         {
@@ -68,6 +77,15 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
         },
         py::arg("port"),
         "Adds the input port to list in multi reader");
+    cls.def("add_input_ports",
+        [](daq::IMultiReaderBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& inputPorts)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+            objectPtr.addInputPorts(getVariantValue<daq::IList*>(inputPorts));
+        },
+        py::arg("input_ports"),
+        "");
     cls.def_property_readonly("source_components",
         [](daq::IMultiReaderBuilder *object)
         {
@@ -190,4 +208,32 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
         },
         py::return_value_policy::take_ownership,
         "Get maximum distance between signals in fractions of domain unit / Set maximum distance between signals in fractions of domain unit");
+    cls.def_property("allow_different_sampling_rates",
+        [](daq::IMultiReaderBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+            return objectPtr.getAllowDifferentSamplingRates();
+        },
+        [](daq::IMultiReaderBuilder *object, const bool allowDifferentRates)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+            objectPtr.setAllowDifferentSamplingRates(allowDifferentRates);
+        },
+        "");
+    cls.def_property("input_port_notification_method",
+        [](daq::IMultiReaderBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+            return objectPtr.getInputPortNotificationMethod();
+        },
+        [](daq::IMultiReaderBuilder *object, daq::PacketReadyNotification notificationMethod)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+            objectPtr.setInputPortNotificationMethod(notificationMethod);
+        },
+        "If \"None\", uses Scheduler for multi reader with signals, and keeps the mode of the input port");
 }

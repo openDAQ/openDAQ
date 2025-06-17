@@ -52,14 +52,19 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
 
 
     cls.def_property("notification_method",
-        nullptr,
+        [](daq::IInputPortConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
+            return objectPtr.getNotificationMethod();
+        },
         [](daq::IInputPortConfig *object, daq::PacketReadyNotification method)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
             objectPtr.setNotificationMethod(method);
         },
-        "Sets the input-ports response to the packet enqueued notification.");
+        "Gets the input-ports response to the packet enqueued notification. / Sets the input-ports response to the packet enqueued notification.");
     cls.def("notify_packet_enqueued",
         [](daq::IInputPortConfig *object, const bool queueWasEmpty)
         {
@@ -118,4 +123,12 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
             return objectPtr.getGapCheckingEnabled();
         },
         "Returns the state of gap checking requested by the input port.");
+    cls.def("notify_packet_enqueued_with_scheduler",
+        [](daq::IInputPortConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
+            objectPtr.notifyPacketEnqueuedWithScheduler();
+        },
+        "Gets called when a packet was enqueued in a connection.");
 }

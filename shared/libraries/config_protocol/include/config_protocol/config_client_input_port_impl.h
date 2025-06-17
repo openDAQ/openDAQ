@@ -37,6 +37,7 @@ public:
                               const StringPtr& className = nullptr);
 
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
+    ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
 
     ErrCode INTERFACE_FUNC assignSignal(ISignal* signal) override;
@@ -109,6 +110,11 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
 
             return Super::connect(signal);
         });
+}
+
+inline ErrCode ConfigClientInputPortImpl::connectSignalSchedulerNotification(ISignal* signal)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 inline ErrCode ConfigClientInputPortImpl::disconnect()

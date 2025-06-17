@@ -98,11 +98,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
+      - name: Set up Python
         uses: actions/setup-python@v5
-        id: cp313
         with:
-          python-version: "3.13"
+          python-version: |
+              3.8
+              3.9
+              3.10
+              3.11
+              3.12
+              3.13
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
@@ -227,14 +232,14 @@ jobs:
           #   cc: gcc-12
           #   cxx: g++-12
           #   cpack: DEB
-          - name: Ubuntu 22.04 gcc-7 Release
+          - name: Ubuntu 22.04 gcc-9 Release
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-            apt_packages: g++-7
-            cc: gcc-7
-            cxx: g++-7
+            apt_packages: g++-9
+            cc: gcc-9
+            cxx: g++-9
           - name: Ubuntu 22.04 clang-14 Release
             image: ubuntu:22.04
             cmake_generator: Ninja
@@ -663,11 +668,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
+      - name: Set up Python
         uses: actions/setup-python@v5
-        id: cp313
         with:
-          python-version: "3.13"
+          python-version: |
+              3.8
+              3.9
+              3.10
+              3.11
+              3.12
+              3.13
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'

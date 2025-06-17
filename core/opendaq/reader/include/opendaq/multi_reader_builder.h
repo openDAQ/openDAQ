@@ -18,10 +18,10 @@
 #include <coretypes/baseobject.h>
 #include <opendaq/multi_reader.h>
 #include <opendaq/input_port.h>
-
-#include "opendaq/input_port_config.h"
+#include <opendaq/input_port_config.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 /*!
  * @ingroup opendaq_readers
  * @addtogroup opendaq_multi_reader Multi reader builder

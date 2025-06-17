@@ -49,9 +49,14 @@ void ErrorInfoHolder::setScopeEntry(ErrorGuardImpl* entry)
     if (scopeEntry != nullptr && scopeEntry->prevScopeEntry == entry)
     {
         auto list = getList();
-        IErrorInfo* errorInfo = list->back().borrow();
-        while (errorInfo != scopeEntry->errorMark && !list->empty())
+        while (!list->empty())
+        {
+            IErrorInfo* errorInfo = list->back().borrow();
+            if (errorInfo == scopeEntry->errorMark)
+                break;
+
             list->pop_back();
+        }
     }
     else if (entry != nullptr)
     {
@@ -67,25 +72,32 @@ void ErrorInfoHolder::setScopeEntry(ErrorGuardImpl* entry)
 
 void ErrorInfoHolder::setErrorInfo(IErrorInfo* errorInfo)
 {
-    if (errorInfo == nullptr)
+    if (errorInfo)
     {
-        if (!errorInfoList)
-            return;
-
-        if (!errorInfoList->empty())
-        {
-            if (scopeEntry && scopeEntry->errorMark == errorInfoList->back().borrow())
-                return;
-
-            errorInfoList->pop_back();
-        }
-
-        if (errorInfoList->empty())
-            errorInfoList.reset();
+        getList()->emplace_back(errorInfo);
         return;
     }
 
-    getList()->emplace_back(errorInfo);
+    if (!errorInfoList)
+        return;
+
+    Bool causedByPrevious = True;
+    IErrorInfo* errorMark = scopeEntry ? scopeEntry->errorMark : nullptr;
+    while (!errorInfoList->empty())
+    {
+        if (!causedByPrevious)
+            break;
+
+        IErrorInfo* errorInfo = errorInfoList->back().borrow();
+        if (errorInfo == errorMark)
+            break;
+
+        errorInfo->getCausedByPrevious(&causedByPrevious);
+        errorInfoList->pop_back();
+    }
+
+    if (!scopeEntry && errorInfoList->empty())
+        errorInfoList.reset();
 }
 
 IErrorInfo* ErrorInfoHolder::getErrorInfo() const
@@ -195,6 +207,7 @@ ErrorInfoImpl::ErrorInfoImpl()
     , fileName(nullptr)
     , fileLine(-1)
     , frozen(False)
+    , causedByPrevious(False)
 {
 }
 
@@ -271,7 +284,6 @@ ErrCode ErrorInfoImpl::setFileLine(Int line)
         return OPENDAQ_ERR_FROZEN;
 
     this->fileLine = line;
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -281,7 +293,6 @@ ErrCode ErrorInfoImpl::getFileLine(Int* line)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     *line = this->fileLine;
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -297,12 +308,33 @@ ErrCode ErrorInfoImpl::setSource(IString* source)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ErrorInfoImpl::setCausedByPrevious(Bool caused)
+{
+    if (frozen)
+        return OPENDAQ_ERR_FROZEN;
+
+    this->causedByPrevious = caused;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ErrorInfoImpl::getCausedByPrevious(Bool* caused)
+{
+    if (caused == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *caused = this->causedByPrevious;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
 {
     if (message == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     std::ostringstream ss;
+
+    if (this->causedByPrevious)
+        ss << "Caused by: ";
 
     if (this->message)
     {
@@ -333,7 +365,6 @@ ErrCode ErrorInfoImpl::isFrozen(Bool* frozen) const
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
     *frozen = this->frozen;
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -343,7 +374,6 @@ ErrCode ErrorInfoImpl::freeze()
         return OPENDAQ_IGNORED;
 
     this->frozen = true;
-
     return OPENDAQ_SUCCESS;
 }
 

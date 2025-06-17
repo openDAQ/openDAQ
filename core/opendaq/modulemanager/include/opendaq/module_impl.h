@@ -123,6 +123,7 @@ public:
 
         DevicePtr createdDevice;
         errCode = wrapHandlerReturn(this, &Module::onCreateDevice, createdDevice, connectionString, parent, mergeConfig(config, deviceType));
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (createdDevice.assigned())
             createdDevice.getInfo();

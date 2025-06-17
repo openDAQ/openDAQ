@@ -203,7 +203,7 @@ template <typename... Params>
 void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Params... params)
 {
     IErrorInfo* errorInfo = nullptr;
-    auto err = createErrorInfoObjectWithSource(&errorInfo, source, message, std::forward<Params>(params)...);
+    const ErrCode err = createErrorInfoObjectWithSource(&errorInfo, source, message, std::forward<Params>(params)...);
     if (OPENDAQ_FAILED(err))
         return;
 
@@ -216,7 +216,7 @@ void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Par
     void setErrorInfoWithSource(ConstCharPtr fileName, Int fileLine, IBaseObject* source, const std::string& message, Params... params)
     {
         IErrorInfo* errorInfo;
-        auto err = createErrorInfoObjectWithSource(&errorInfo, fileName, fileLine, source, message, std::forward<Params>(params)...);
+        const ErrCode err = createErrorInfoObjectWithSource(&errorInfo, fileName, fileLine, source, message, std::forward<Params>(params)...);
         if (OPENDAQ_FAILED(err))
             return;
 
@@ -268,7 +268,15 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     inline ErrCode extendErrorInfo(ErrCode errCode, const std::string& message, Params... params)
     {
-       return makeErrorInfo(errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
+        IErrorInfo* errorInfo = nullptr;
+        auto err = createErrorInfoObjectWithSource(&errorInfo, nullptr, message, std::forward<Params>(params)...);
+        if (OPENDAQ_FAILED(err))
+            return errCode;
+        errorInfo->setCausedByPrevious(True);
+
+        daqSetErrorInfo(errorInfo);
+        errorInfo->releaseRef();
+        return errCode;
     }
 
     template <typename... Params>
@@ -280,7 +288,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     inline ErrCode extendErrorInfo(ErrCode /* oldErrCode */, ErrCode errCode, const std::string& message, Params... params)
     {
-        return makeErrorInfo(errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
+        return extendErrorInfo(errCode, message, std::forward<Params>(params)...);
     }
 
     template <typename... Params>
@@ -297,7 +305,15 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& message, Params... params)
     {
-        return makeErrorInfo(fileName, fileLine, errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
+        IErrorInfo* errorInfo = nullptr;
+        auto err = createErrorInfoObjectWithSource(&errorInfo, fileName, fileLine, nullptr, message, std::forward<Params>(params)...);
+        if (OPENDAQ_FAILED(err))
+            return errCode;
+        errorInfo->setCausedByPrevious(True);
+
+        daqSetErrorInfo(errorInfo);
+        errorInfo->releaseRef();
+        return errCode;
     }
 
     template <typename... Params>
@@ -309,7 +325,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     ErrCode extendErrorInfo(ConstCharPtr fileName, Int fileLine, ErrCode /* oldErrCode */, ErrCode errCode, const std::string& message, Params... params)
     {
-        return makeErrorInfo(fileName, fileLine, errCode, nullptr, " - Cause by: " + message, std::forward<Params>(params)...);
+        return extendErrorInfo(fileName, fileLine, errCode, nullptr, message, std::forward<Params>(params)...);
     }
 
     template <typename... Params>

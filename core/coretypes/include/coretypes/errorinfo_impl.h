@@ -40,8 +40,13 @@ public:
     ErrCode INTERFACE_FUNC setFileLine(Int line) override;
     ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
 
+    ErrCode INTERFACE_FUNC setCausedByPrevious(Bool caused) override;
+    ErrCode INTERFACE_FUNC getCausedByPrevious(Bool* caused) override;
+
+
     ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
     
+    // IFreezable interface
     ErrCode INTERFACE_FUNC freeze() override;
     ErrCode INTERFACE_FUNC isFrozen(Bool* frozen) const override;
 
@@ -51,6 +56,7 @@ private:
     CharPtr fileName;
     Int fileLine;
     Bool frozen;
+    Bool causedByPrevious;
 };
 
 class ErrorInfoWrapper

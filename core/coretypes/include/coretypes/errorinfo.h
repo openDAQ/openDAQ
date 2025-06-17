@@ -106,6 +106,23 @@ DECLARE_OPENDAQ_INTERFACE(IErrorInfo, IBaseObject)
      * @param message A pointer to store the formatted error message.
      */
     virtual ErrCode INTERFACE_FUNC getFormatMessage(IString** message) = 0;
+
+    /*!
+     * @brief Indicates whether this error was caused by a previous error.
+     * @param caused True if the error was caused by a previous one; false otherwise.
+     *
+     * This flag can be set to true when the current error is a direct consequence
+     * of a previously encountered error. This helps in tracing the propagation 
+     * of errors through multiple layers of the system.
+     */
+    virtual ErrCode INTERFACE_FUNC setCausedByPrevious(Bool caused) = 0;
+
+    /*!
+     * @brief Checks whether this error was caused by a previous error.
+     * @param caused Pointer to a Bool that will receive the result.
+     *               True if the error was caused by a previous one; false otherwise.
+     */
+    virtual ErrCode INTERFACE_FUNC getCausedByPrevious(Bool* caused) = 0;
 };
 
 /*!@}*/

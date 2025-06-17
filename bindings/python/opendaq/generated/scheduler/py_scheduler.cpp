@@ -94,13 +94,14 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
         },
         "Returns whether more than one worker thread is used.");
     cls.def("run_main_loop",
-        [](daq::IScheduler *object)
+        [](daq::IScheduler *object, const size_t loopTime)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::SchedulerPtr::Borrow(object);
-            objectPtr.runMainLoop();
+            objectPtr.runMainLoop(loopTime);
         },
-        "");
+        py::arg("loop_time") = 1,
+        "Starts and blocks the main event loop, executing scheduled tasks.");
     cls.def("stop_main_loop",
         [](daq::IScheduler *object)
         {
@@ -108,7 +109,7 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
             const auto objectPtr = daq::SchedulerPtr::Borrow(object);
             objectPtr.stopMainLoop();
         },
-        "");
+        "Signals the main loop to stop processing and return from @ref runMainLoop.");
     cls.def("run_main_loop_iteration",
         [](daq::IScheduler *object)
         {
@@ -116,7 +117,7 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
             const auto objectPtr = daq::SchedulerPtr::Borrow(object);
             objectPtr.runMainLoopIteration();
         },
-        "");
+        "Executes a single iteration of the main loop, processing scheduled tasks.");
     cls.def("schedule_work_on_main_loop",
         [](daq::IScheduler *object, daq::IWork* work)
         {
@@ -125,5 +126,5 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
             objectPtr.scheduleWorkOnMainLoop(work);
         },
         py::arg("work"),
-        "");
+        "Schedules a task to be executed by the main loop.");
 }

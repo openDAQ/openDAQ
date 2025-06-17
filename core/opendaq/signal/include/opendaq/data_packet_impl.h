@@ -222,12 +222,12 @@ public:
 
     explicit DataPacketImpl(IDataDescriptor* descriptor, SizeT sampleCount, INumber* offset);
 
-    explicit DataPacketImpl(const DataPacketPtr& domainPacket,
-                            const DataDescriptorPtr& descriptor,
+    explicit DataPacketImpl(IDataPacket* domainPacket,
+                            IDataDescriptor* descriptor,
                             SizeT sampleCount,
-                            const NumberPtr& offset,
+                            INumber* offset,
                             void* externalMemory,
-                            const DeleterPtr& deleter,
+                            IDeleter* deleter,
                             SizeT bufferSize = std::numeric_limits<SizeT>::max());
 
     explicit DataPacketImpl(const DataPacketPtr& domainPacket,
@@ -261,7 +261,8 @@ public:
                                  Bool canReallocMemory,
                                  Bool* success) override;
 
-private:
+protected:
+    void internalDispose([[maybe_unused]] bool disposing) override;
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
     void freeMemory();
     void freeScaledData();
@@ -341,12 +342,12 @@ DataPacketImpl<TInterface>::DataPacketImpl(IDataPacket* domainPacket,
 }
 
 template <typename TInterface>
-DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
-                                           const DataDescriptorPtr& descriptor,
+DataPacketImpl<TInterface>::DataPacketImpl(IDataPacket* domainPacket,
+                                           IDataDescriptor* descriptor,
                                            SizeT sampleCount,
-                                           const NumberPtr& offset,
+                                           INumber* offset,
                                            void* externalMemory,
-                                           const DeleterPtr& deleter,
+                                           IDeleter* deleter,
                                            SizeT bufferSize)
     : Super(domainPacket)
     , deleter(deleter)
@@ -362,14 +363,12 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     scaledData = nullptr;
     data = nullptr;
 
-    if (!descriptor.assigned())
+    if (!this->descriptor.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException, "Data descriptor in packet is null.");
 
-    if (!deleter.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException, "Deleter must be assigned.");
 
-    sampleSize = descriptor.getSampleSize();
-    rawSampleSize = descriptor.getRawSampleSize();
+    sampleSize = this->descriptor.getSampleSize();
+    rawSampleSize = this->descriptor.getRawSampleSize();
     dataSize = sampleCount * sampleSize;
 
     if (bufferSize == std::numeric_limits<SizeT>::max())
@@ -736,6 +735,15 @@ ErrCode DataPacketImpl<TInterface>::reuse(IDataDescriptor* newDescriptor,
 }
 
 template <typename TInterface>
+void DataPacketImpl<TInterface>::internalDispose(bool disposing)
+{
+    Super::internalDispose(disposing);
+
+    descriptor.release();
+    offset.release();
+}
+
+template <typename TInterface>
 void DataPacketImpl<TInterface>::freeScaledData()
 {
     std::free(scaledData);
@@ -746,7 +754,8 @@ void DataPacketImpl<TInterface>::freeMemory()
 {
     if (externalMemory)
     {
-        deleter.deleteMemory(data);
+        if (deleter.assigned())
+            deleter.deleteMemory(data);
     }
     else
     {

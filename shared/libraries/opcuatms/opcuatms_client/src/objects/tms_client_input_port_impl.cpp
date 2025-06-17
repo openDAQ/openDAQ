@@ -87,6 +87,11 @@ ErrCode TmsClientInputPortImpl::connect(ISignal* signal)
     });
 }
 
+ErrCode TmsClientInputPortImpl::connectSignalSchedulerNotification(ISignal* signal)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
+}
+
 ErrCode TmsClientInputPortImpl::disconnect()
 {
     return daqTry([&]()

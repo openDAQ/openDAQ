@@ -139,6 +139,11 @@ public:
         *remote = False;
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC enqueueWithScheduler(IPacket* packet) override
+    {
+        return OPENDAQ_SUCCESS;
+    }
 };
 
 class PacketMockImpl : public ImplementationOf<IPacket>

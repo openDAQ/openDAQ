@@ -227,14 +227,14 @@ jobs:
           #   cc: gcc-12
           #   cxx: g++-12
           #   cpack: DEB
-          - name: Ubuntu 22.04 gcc-7 Release
+          - name: Ubuntu 22.04 gcc-9 Release
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-            apt_packages: g++-7
-            cc: gcc-7
-            cxx: g++-7
+            apt_packages: g++-9
+            cc: gcc-9
+            cxx: g++-9
           - name: Ubuntu 22.04 clang-14 Release
             image: ubuntu:22.04
             cmake_generator: Ninja

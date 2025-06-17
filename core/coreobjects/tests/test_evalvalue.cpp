@@ -21,7 +21,7 @@ TEST_F(EvalValueTest, Create)
 
 TEST_F(EvalValueTest, ParseFailed)
 {
-    ASSERT_THROW_MSG(EvalValue(u8"1+1+\u20AC"), ParseFailedException, "syntax error");
+    ASSERT_THROW_MSG(EvalValue("1+1+\u20AC"), ParseFailedException, "syntax error");
     ASSERT_THROW_MSG(EvalValue("1+1+b"), ParseFailedException, "invalid identifier");
     ASSERT_THROW_MSG(EvalValue("(1, 2)"), ParseFailedException, "syntax error");
 }

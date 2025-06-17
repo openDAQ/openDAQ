@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <coretypes/common.h>
 
+#include <coretypes/ctutils.h>
+
 using TypeNameTest = testing::Test;
 
 using namespace daq;
@@ -163,4 +165,16 @@ TEST_F(TypeNameTest, UInt16)
 {
     constexpr auto uint16Type = typeName<uint16_t>();
     ASSERT_EQ(uint16Type, "uint16");
+}
+
+TEST_F(TypeNameTest, ValidateTypeName)
+{
+    ASSERT_TRUE(validateTypeName("aB0_"));
+    ASSERT_TRUE(validateTypeName("_B0"));
+    ASSERT_TRUE(validateTypeName("gB0_"));
+
+    ASSERT_FALSE(validateTypeName("0BA_"));
+    ASSERT_FALSE(validateTypeName("A*B"));
+    ASSERT_FALSE(validateTypeName(""));
+    ASSERT_FALSE(validateTypeName(nullptr));
 }

@@ -7,3 +7,7 @@ endif()
 if (OPENDAQ_GENERATE_CSHARP_BINDINGS)
     add_subdirectory(dotnet)
 endif()
+
+if (OPENDAQ_GENERATE_C_BINDINGS)
+    add_subdirectory(c)
+endif()

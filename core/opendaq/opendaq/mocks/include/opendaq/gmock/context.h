@@ -32,7 +32,6 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
 
     MOCK_METHOD(daq::ErrCode, getScheduler, (daq::IScheduler** scheduler), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getLogger, (daq::ILogger** logger), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, getModuleManager, (daq::IBaseObject** manager), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getTypeManager, (daq::ITypeManager** manager), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getAuthenticationProvider, (daq::IAuthenticationProvider** authenticationProvider), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getOnCoreEvent, (daq::IEvent** event), (override MOCK_CALL));
@@ -40,6 +39,12 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
     MOCK_METHOD(daq::ErrCode, getOptions, (daq::IDict** options), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getModuleOptions, (daq::IString* moduleId, daq::IDict** options), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getDiscoveryServers, (daq::IDict** services), (override MOCK_CALL));
+
+    daq::ErrCode INTERFACE_FUNC getModuleManager(daq::IBaseObject** manager) override
+    {
+        *manager = moduleManager.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
 
     daq::SchedulerPtr scheduler;
     daq::LoggerPtr logger;
@@ -72,11 +77,6 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
             .Times(AnyNumber())
             .WillRepeatedly(DoAll(Invoke([&](daq::IAuthenticationProvider** authenticationProviderOut)
                                          { *authenticationProviderOut = authenticationProvider.addRefAndReturn(); }),
-                                  Return(OPENDAQ_SUCCESS)));
-
-        EXPECT_CALL(*this, getModuleManager)
-            .Times(AnyNumber())
-            .WillRepeatedly(DoAll(Invoke([&](daq::IBaseObject** moduleManagerOut) { *moduleManagerOut = moduleManager.addRefAndReturn(); }),
                                   Return(OPENDAQ_SUCCESS)));
 
         EXPECT_CALL(*this, getOnCoreEvent)

@@ -23,7 +23,7 @@ FetchContent_Declare(daqspec
 FetchContent_GetProperties(daqspec)
 if(NOT daqspec_POPULATED)
     message(STATUS "Fetching daq specification ${daq_spec_REQUIREDVERSION}...")
-    FetchContent_Populate(daqspec)
+    FetchContent_MakeAvailable(daqspec)
     set(COMPANION_SPECIFICATIONS_DIRPREFIX "${daqspec_SOURCE_DIR}/opendaq")
 endif()
 

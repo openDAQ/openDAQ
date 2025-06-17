@@ -1401,13 +1401,16 @@ template <class U, class V, std::enable_if_t<std::is_base_of_v<IBaseObject, U>, 
 typename InterfaceToSmartPtr<V>::SmartPtr ObjectPtr<T>::Borrow(U*& obj)
 {
     typename InterfaceToSmartPtr<V>::SmartPtr objPtr;
+    objPtr.borrowed = true;
+
+    if (obj == nullptr)
+        return objPtr;
 
     T* intf;
     auto res = obj->borrowInterface(T::Id, reinterpret_cast<void**>(&intf));
     checkErrorInfo(res);
 
     objPtr.object = intf;
-    objPtr.borrowed = true;
     return objPtr;
 }
 

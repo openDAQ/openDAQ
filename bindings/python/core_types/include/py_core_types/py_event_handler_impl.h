@@ -39,9 +39,10 @@ public:
     {
         try
         {
-            if(sender) sender->addRef();
-            if(eventArgs) eventArgs->addRef();
-
+            if(sender)
+                sender->addRef();
+            if(eventArgs)
+                eventArgs->addRef();
             subscription(sender, eventArgs);
         }
         catch (const DaqException& e)

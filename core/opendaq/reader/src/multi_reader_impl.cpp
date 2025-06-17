@@ -357,7 +357,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::createOrAdoptPorts(const ListPtr<ICom
     return portList;
 }
 
-bool MultiReaderImpl::checkConnections() const
+bool MultiReaderImpl::allPortsConnected() const
 {
     return std::all_of(signals.cbegin(),
                        signals.cend(),
@@ -392,7 +392,11 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
         signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
     }
 
-    portsConnected = checkConnections();
+    portsConnected = allPortsConnected();
+    if (!portsConnected)
+    {
+        setPortsActiveState(false);
+    }
 }
 
 void MultiReaderImpl::updateCommonSampleRateAndDividers()
@@ -420,12 +424,12 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
                 sameSampleRates = false;
                 if (!allowDifferentRates)
                 {
-                    LOG_W("Signal sample rates differ. AllowDifferentSamplingRates must be set to True to allow such configurations.")
+                    LOG_D("Signal sample rates differ. AllowDifferentSamplingRates must be set to True to allow such configurations.")
                     invalid = true;
                     return;
                 }
 
-                LOG_W("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
+                LOG_D("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
             }
         }
     }
@@ -435,7 +439,7 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
         signal.setCommonSampleRate(commonSampleRate);
         if (signal.invalid)
         {
-            LOG_W("Signal sample rates differ. Signal sample rate does not match required common sample rate.")
+            LOG_D("Signal sample rates differ. Signal sample rate does not match required common sample rate.")
             invalid = true;
             return;
         }
@@ -594,17 +598,20 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMul
 
     std::scoped_lock lock(mutex);
 
-    // Read event packet if in queue
-    if (invalid)
+    MultiReaderStatusPtr earlyReturnStatus;
+    if (nextPacketIsEvent)
     {
-        MultiReaderStatusPtr statusPtr;
-        if (eventInQueue)
-            statusPtr = readPackets();
-        else
-            statusPtr = createReaderStatus();
+        earlyReturnStatus = readPackets();
+    }
+    else if (invalid)
+    {
+        earlyReturnStatus = createReaderStatus();
+    }
 
+    if (earlyReturnStatus.assigned())
+    {
         if (status)
-            *status = statusPtr.detach();
+            *status = earlyReturnStatus.detach();
 
         *count = 0;
         return OPENDAQ_SUCCESS;
@@ -636,16 +643,21 @@ ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* coun
 
     std::scoped_lock lock(mutex);
 
+    MultiReaderStatusPtr earlyReturnStatus;
+    if (nextPacketIsEvent)
+    {
+        earlyReturnStatus = readPackets();
+    }
+
     if (invalid)
     {
-        MultiReaderStatusPtr statusPtr;
-        if (eventInQueue)
-            statusPtr = readPackets();
-        else
-            statusPtr = createReaderStatus();
+        earlyReturnStatus = createReaderStatus();
+    }
 
+    if (earlyReturnStatus.assigned())
+    {
         if (status)
-            *status = statusPtr.detach();
+            *status = earlyReturnStatus.detach();
 
         *count = 0;
         return OPENDAQ_SUCCESS;
@@ -746,7 +758,7 @@ SyncStatus MultiReaderImpl::getSyncStatus() const
     return status;
 }
 
-DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacket()
+DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacketAndGetEvents()
 {
     auto packets = Dict<IString, EventPacketPtr>();
 
@@ -823,16 +835,77 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
     return OPENDAQ_SUCCESS;
 }
 
-bool MultiReaderImpl::hasEventOrGapInQueue()
+bool MultiReaderImpl::eventOrGapInQueue() const
 {
-    auto it = signals.begin();
-    for (; it != signals.end(); ++it)
+    return std::any_of(signals.cbegin(),
+                   signals.cend(),
+                   [](const SignalReader& signal)
+                   {
+                       return signal.connection.hasEventPacket() || signal.connection.hasGapPacket();
+                   });
+}
+
+bool MultiReaderImpl::dataPacketsOrEventReady() 
+{
+    bool hasEventPacket = false;
+    bool hasDataPacket = true;
+
+    for (auto& signal : signals)
     {
-        if (it->connection.hasEventPacket() || it->connection.hasGapPacket())
-            break;
+        if (signal.isFirstPacketEvent())
+        {
+            return true;
+        }
+
+        hasDataPacket &= (signal.getAvailable(true) != 0);
     }
 
-    return it != signals.end();
+    return hasEventPacket || hasDataPacket;
+}
+
+NumberPtr MultiReaderImpl::calculateOffset() const
+{
+    auto domainPacket = signals[0].info.dataPacket.getDomainPacket();
+    if (domainPacket.assigned() && domainPacket.getOffset().assigned())
+    {
+        Int delta = signals[0].packetDelta;
+        return domainPacket.getOffset().getIntValue() + (signals[0].info.prevSampleIndex * delta);
+    }
+
+    return 0;
+}
+
+MultiReaderStatusPtr MultiReaderImpl::readAndSynchronize(bool zeroDataRead, SizeT& availableSamples, SyncStatus& syncStatus)
+{
+    auto eventPackets = readUntilFirstDataPacketAndGetEvents();
+    if (eventPackets.getCount() != 0)
+    {
+        updateCommonSampleRateAndDividers();
+    }
+
+    ErrCode errCode = synchronize(availableSamples, syncStatus);
+    if (OPENDAQ_FAILED(errCode) || eventPackets.getCount() != 0)
+    {
+        return createReaderStatus(eventPackets);
+    }
+
+    if (syncStatus == SyncStatus::SynchronizationFailed)
+    {
+        return createReaderStatus();
+    }
+
+    if (zeroDataRead)
+    {
+        if (availableSamples < minReadCount && eventOrGapInQueue())
+        {
+            // skip remaining samples
+            readSamples(availableSamples);
+        }
+
+        return createReaderStatus();
+    }
+
+    return nullptr;
 }
 
 MultiReaderStatusPtr MultiReaderImpl::readPackets()
@@ -845,60 +918,22 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
     if (timeout.count() > 0)
     {
         MultiReaderStatusPtr status;
-        auto condition = [this, &status, &availableSamples, &syncStatus]
+        auto condition = [this, zeroDataRead, &status, &availableSamples, &syncStatus]
         {
-            //-----------------
-            bool hasEventPacket = false;
-            bool hasDataPacket = true;
-
-            for (auto& signal : signals)
+            if (!portsConnected || !dataPacketsOrEventReady())
             {
-                if (signal.isFirstPacketEvent())
-                {
-                    hasEventPacket = true;
-                    break;
-                }
-                hasDataPacket &= (signal.getAvailable(true) != 0);
-            }
-
-            auto packetReady = (hasEventPacket || hasDataPacket) && portsConnected;
-            if (!packetReady)
                 return false;
-            //-----------------
+            }
 
-            if (auto eventPackets = readUntilFirstDataPacket(); eventPackets.getCount() != 0)
+            status = readAndSynchronize(zeroDataRead, availableSamples, syncStatus);
+            if (status.assigned())
             {
-                updateCommonSampleRateAndDividers();
-                status = createReaderStatus(eventPackets);
                 return true;
             }
 
-            ErrCode errCode = synchronize(availableSamples, syncStatus);
-            if (OPENDAQ_FAILED(errCode))
+            if (syncStatus == SyncStatus::Synchronized && availableSamples >= remainingSamplesToRead)
             {
-                status = createReaderStatus();
                 return true;
-            }
-
-            if (syncStatus == SyncStatus::SynchronizationFailed)
-            {
-                status = createReaderStatus();
-                return true;
-            }
-
-            if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)
-            {
-                if (availableSamples >= remainingSamplesToRead)
-                {
-                    return true;
-                }
-                for (auto& signal : signals)
-                {
-                    if (signal.connection.hasEventPacket())
-                    {
-                        return true;
-                    }
-                }
             }
 
             return false;
@@ -919,65 +954,22 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
 
     if (syncStatus != SyncStatus::Synchronized)
     {
-        auto eventPackets = readUntilFirstDataPacket();
-
-        if (eventPackets.getCount() != 0)
-        {
-            updateCommonSampleRateAndDividers();
-        }
-
-        ErrCode errCode = synchronize(availableSamples, syncStatus);
-        if (OPENDAQ_FAILED(errCode) || eventPackets.getCount() != 0)
-        {
-            return createReaderStatus(eventPackets);
-        }
-
-        if (syncStatus == SyncStatus::SynchronizationFailed)
-        {
-            return createReaderStatus();
-        }
-
-        if (remainingSamplesToRead == 0)
-        {
-            if (zeroDataRead && (availableSamples < minReadCount) && hasEventOrGapInQueue())
-            {
-                // skip remaining samples
-                readSamples(availableSamples);
-            }
-
-            return createReaderStatus();
-        }
+        auto status = readAndSynchronize(zeroDataRead, availableSamples, syncStatus);
+        if (status.assigned())
+            return status;
     }
-
-    //////
 
     NumberPtr offset = 0;
     if (syncStatus == SyncStatus::Synchronized && availableSamples > 0u)
     {
-        if (remainingSamplesToRead == 0)
-        {
-            if (zeroDataRead && (availableSamples < minReadCount) && hasEventOrGapInQueue())
-            {
-                // skip remaining samples
-                readSamples(availableSamples);
-            }
-
-            return createReaderStatus();
-        }
-
-        auto domainPacket = signals[0].info.dataPacket.getDomainPacket();
-        if (domainPacket.assigned() && domainPacket.getOffset().assigned())
-        {
-            Int delta = signals[0].packetDelta;
-            offset = domainPacket.getOffset().getIntValue() + (signals[0].info.prevSampleIndex * delta);
-        }
-
+        offset = calculateOffset();
         SizeT toRead = std::min(remainingSamplesToRead, availableSamples);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         SizeT samplesToRead = remainingSamplesToRead;
         auto start = std::chrono::steady_clock::now();
 #endif
+
         readSamplesAndSetRemainingSamples(toRead);
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
@@ -1032,11 +1024,16 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
             }
         }
 
-        portsConnected = checkConnections();
+        portsConnected = allPortsConnected();
         if (portsConnected)
         {
             for (auto& signal : signals)
             {
+                if (signal.connection.hasEventPacket())
+                {
+                    signal.skipUntilLastEventPacket();
+                }
+
                 signal.port.setActive(isActive);
             }
 
@@ -1108,43 +1105,28 @@ ErrCode MultiReaderImpl::getEmpty(Bool* empty)
 
 ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 {
-    // data are ready
-    // if any of signals has event packet
-    // or all signals have data packet
-    bool hasEventPacket = false;
-    bool hasDataPacket = true;
-
     std::scoped_lock lockPacketReceived(packetReceivedMutex);
     std::unique_lock lock(notify.mutex);
+
     if (!portsConnected)
     {
-        return OPENDAQ_SUCCESS;
+        return OPENDAQ_SUCCESS;    
     }
 
     if (invalid)
     {
         for (auto& signal : signals)
         {
-            signal.skipUntilLastEventPacket();
-            hasEventPacket |= signal.isFirstPacketEvent();
-        }
-        eventInQueue = hasEventPacket;
-    }
-    else
-    {
-        for (auto& signal : signals)
-        {
-            if (signal.isFirstPacketEvent())
+            if (signal.port == inputPort)
             {
-                hasEventPacket = true;
+                signal.skipUntilLastEventPacket();
+                nextPacketIsEvent = signal.isFirstPacketEvent();
                 break;
             }
-            hasDataPacket &= (signal.getAvailable(true) != 0);
         }
     }
 
-
-    if (hasEventPacket || hasDataPacket)
+    if (nextPacketIsEvent || dataPacketsOrEventReady())
     {
         ProcedurePtr callback = readCallback;
         lock.unlock();
@@ -1218,7 +1200,6 @@ void MultiReaderImpl::readSamples(SizeT samples)
 void MultiReaderImpl::readSamplesAndSetRemainingSamples(SizeT samples)
 {
     readSamples(samples);
-
     remainingSamplesToRead -= samples;
 }
 
@@ -1231,11 +1212,7 @@ void MultiReaderImpl::readDomainStart()
     for (auto& signal : signals)
     {
         auto sigStart = signal.readStartDomain();
-        if (!commonStart)
-        {
-            commonStart = std::move(sigStart);
-        }
-        else if (*commonStart < *sigStart)
+        if (!commonStart || *commonStart < *sigStart)
         {
             commonStart = std::move(sigStart);
         }
@@ -1417,18 +1394,22 @@ ErrCode MultiReaderImpl::markAsInvalid()
 
 void MultiReaderImpl::setActiveInternal(Bool isActive)
 {
-    bool modified = this->isActive != static_cast<bool>(isActive);
+    setPortsActiveState(isActive);
     this->isActive = isActive;
+}
 
+void MultiReaderImpl::setPortsActiveState(Bool active)
+{
+    bool modified = this->isActive != static_cast<bool>(active);
     for (auto& signalReader : signals)
     {
         if (modified)
             signalReader.synced = SyncStatus::Unsynchronized;
 
         if (signalReader.port.assigned())
-            signalReader.port.setActive(this->isActive);
+            signalReader.port.setActive(active);
 
-        if (modified && !this->isActive)
+        if (modified && !active)
             signalReader.skipUntilLastEventPacket();
     }
 }

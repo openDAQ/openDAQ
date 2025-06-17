@@ -88,7 +88,7 @@ private:
     // Checks for list size > 0, caches context of 1st component
     void checkListSizeAndCacheContext(const ListPtr<IComponent>& list);
     // Returns true if all ports are connected
-    bool checkConnections() const;
+    bool allPortsConnected() const;
     // Sets up port notifications and binds ports
     void configureAndStorePorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     // Returns list of ports used by reader; Creates ports when reader is created with signals;
@@ -103,8 +103,8 @@ private:
 
     void setStartInfo();
 
-
-    bool hasEventOrGapInQueue();
+    bool eventOrGapInQueue() const;
+    bool dataPacketsOrEventReady();
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
     
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
@@ -113,8 +113,12 @@ private:
 
     void readSamples(SizeT samples);
     void readSamplesAndSetRemainingSamples(SizeT samples);
+    NumberPtr calculateOffset() const;
+
+    // Check for event packets; Synchronize; Skip if event/packet in queue and available samples < minReadCount
+    MultiReaderStatusPtr readAndSynchronize(bool zeroDataRead, SizeT& availableSamples, SyncStatus& syncStatus);
     MultiReaderStatusPtr readPackets();
-    DictPtr<IString, IEventPacket> readUntilFirstDataPacket();
+    DictPtr<IString, IEventPacket> readUntilFirstDataPacketAndGetEvents();
     void updateCommonSampleRateAndDividers();
 
     void prepare(void** outValues, SizeT count, std::chrono::milliseconds timeoutTime);
@@ -124,13 +128,15 @@ private:
 
     void readDomainStart();
     void setActiveInternal(Bool isActive);
+    void setPortsActiveState(Bool active);
 
     MultiReaderStatusPtr createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, const NumberPtr& offset = nullptr) const;
 
     std::mutex mutex;
     std::mutex packetReceivedMutex;
     bool invalid{false};
-    bool eventInQueue{false};
+    // TODO: Rename this
+    bool nextPacketIsEvent{false};
     std::string errorMessage;
 
     SizeT remainingSamplesToRead{};

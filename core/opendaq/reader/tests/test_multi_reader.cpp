@@ -2432,7 +2432,6 @@ TEST_F(MultiReaderTest, ReadWhenOnePortIsNotConnected)
 
     // connect signal to the port
     portList[2].connect(sig2.signal);
-    sig2.signal.getContext().getScheduler().waitAll();
     sig2.createAndSendPacket(0);
 
     // first packet on sig2 will be the event packet
@@ -2444,7 +2443,15 @@ TEST_F(MultiReaderTest, ReadWhenOnePortIsNotConnected)
     count = SAMPLES;
     status = multi.read(valuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 0u);
+    
+    count = SAMPLES;
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    status = multi.read(valuesPerSignal, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
     ASSERT_EQ(count, 10u);
+    
 }
 
 TEST_F(MultiReaderTest, NotifyPortIsConnected)

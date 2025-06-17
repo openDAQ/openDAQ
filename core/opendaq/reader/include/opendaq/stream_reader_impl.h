@@ -104,9 +104,8 @@ private:
     void readDescriptorFromPort();
     void connectInputPort(const InputPortConfigPtr& port);
     void connectSignal(const SignalPtr& signal);
-    void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const;
+    static void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader);
 
-    EventPacketPtr createInitDataDescriptorChangedEventPacket();
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
 
     [[nodiscard]]

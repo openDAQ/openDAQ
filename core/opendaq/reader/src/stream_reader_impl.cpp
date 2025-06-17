@@ -387,7 +387,7 @@ ErrCode StreamReaderImpl::markAsInvalid()
     return OPENDAQ_SUCCESS;
 }
 
-void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const
+void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader)
 {
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
 }

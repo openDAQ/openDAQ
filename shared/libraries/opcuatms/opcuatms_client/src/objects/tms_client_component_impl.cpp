@@ -210,13 +210,13 @@ bool TmsClientComponentBaseImpl<Impl>::isChildComponent(const ComponentPtr& comp
 template <class Impl>
 PropertyObjectPtr TmsClientComponentBaseImpl<Impl>::findAndCreateComponentConfig()
 {
-    PropertyObjectPtr componentConfig;
-    if (const auto& objIt = this->objectTypeIdMap.find("ComponentConfig"); objIt != this->objectTypeIdMap.cend())
-    {
-        componentConfig = TmsClientPropertyObject(this->daqContext, this->clientContext, objIt->second);
-        this->objectTypeIdMap.erase(objIt);
-    }
-    return componentConfig;
+
+    std::string referenceName = "ComponentConfig";
+    if (!this->hasReference(referenceName))
+        return nullptr;
+
+    auto refNodeId = this->getNodeId(referenceName);
+    return TmsClientPropertyObject(this->daqContext, this->clientContext, refNodeId);
 }
 
 template class TmsClientComponentBaseImpl<ComponentImpl<IComponent, ITmsClientComponent>>;

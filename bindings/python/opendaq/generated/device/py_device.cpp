@@ -386,7 +386,12 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         py::return_value_policy::take_ownership,
         "Gets a list of available operation modes for the device.");
     cls.def_property("operation_mode",
-        nullptr,
+        [](daq::IDevice *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getOperationMode();
+        },
         [](daq::IDevice *object, daq::OperationModeType modeType)
         {
             py::gil_scoped_release release;

@@ -86,16 +86,23 @@ void MainThreadEventLoop::runIteration()
     }
 }
 
-void MainThreadEventLoop::run()
+void MainThreadEventLoop::run(SizeT loopTime)
 {
+    if (loopTime == 0)
+        loopTime = 1;
+
     std::unique_lock<std::mutex> lock(mutex);
-    running = true;
+    this->running = true;
+    const auto waitTime = std::chrono::milliseconds(loopTime);
+    auto waitUntil = std::chrono::steady_clock::now() + waitTime;
 
     while (true)
     {
-        cv.wait(lock, [this] { return !workQueue.empty() || !running; });
-        if (!running)
-            return;
+        cv.wait_until(lock, waitUntil, [this] { return !this->running; });
+        if (!this->running)
+            break;
+
+        waitUntil += waitTime;
 
         lock.unlock();
         runIteration();
@@ -240,9 +247,9 @@ std::size_t SchedulerImpl::getWorkerCount() const
     return executor->num_workers();
 }
 
-ErrCode SchedulerImpl::runMainLoop()
+ErrCode SchedulerImpl::runMainLoop(SizeT loopTime)
 {    
-    mainThreadWorker->run();
+    mainThreadWorker->run(loopTime);
     return OPENDAQ_SUCCESS;
 }
 

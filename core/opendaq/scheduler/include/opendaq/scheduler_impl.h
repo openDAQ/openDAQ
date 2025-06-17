@@ -38,7 +38,7 @@ public:
 
     void stop();
     void runIteration();
-    void run();
+    void run(SizeT loopTime);
     bool isRunning() const;
     ErrCode execute(IWork* work);
 
@@ -68,7 +68,7 @@ public:
     ErrCode INTERFACE_FUNC stop() override;
     ErrCode INTERFACE_FUNC waitAll() override;
 
-    ErrCode INTERFACE_FUNC runMainLoop() override;
+    ErrCode INTERFACE_FUNC runMainLoop(SizeT loopTime) override;
     ErrCode INTERFACE_FUNC stopMainLoop() override;
     ErrCode INTERFACE_FUNC runMainLoopIteration() override;
     ErrCode INTERFACE_FUNC scheduleWorkOnMainLoop(IWork* work) override;

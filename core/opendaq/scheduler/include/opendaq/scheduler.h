@@ -88,11 +88,12 @@ DECLARE_OPENDAQ_INTERFACE(IScheduler, IBaseObject)
 
     /*!
      * @brief Starts and blocks the main event loop, executing scheduled tasks.
+     * @param loopTime The maximum time to block the loop, in milliseconds.
      *
      * This method runs the main loop, processing all enqueued work (including repetitive tasks)
      * until @ref stopMainLoop is called. Typically executed on the main thread or in a dedicated loop thread.
      */
-    virtual ErrCode INTERFACE_FUNC runMainLoop() = 0;
+    virtual ErrCode INTERFACE_FUNC runMainLoop(SizeT loopTime = 1) = 0;
 
     /*!
      * @brief Signals the main loop to stop processing and return from @ref runMainLoop.

@@ -154,3 +154,22 @@ TEST_F(SchedulerTestCommon, StartsAndStopsFromWork)
     scheduler.runMainLoop();
     ASSERT_TRUE(called);
 }
+
+TEST_F(SchedulerTestCommon, ExecutesOneTimeWorkWithTimeLoop)
+{
+    auto scheduler = Scheduler(Logger(), 1);
+
+    bool called = false;
+    auto work = WorkRepetitive([&] 
+    {
+        called = true;
+        scheduler.stopMainLoop();
+    });
+    scheduler.scheduleWorkOnMainLoop(work);
+
+    SizeT loopTime = 10; // milliseconds
+    auto begin = std::chrono::steady_clock::now();
+    scheduler.runMainLoop(loopTime);
+    auto end = std::chrono::steady_clock::now();
+    ASSERT_TRUE(end - begin >= std::chrono::milliseconds(loopTime));
+}

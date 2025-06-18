@@ -85,6 +85,45 @@ DECLARE_OPENDAQ_INTERFACE(IScheduler, IBaseObject)
      * @param[out] multiThreaded Returns @c true if more that one worker thread is used by the scheduler.
      */
     virtual ErrCode INTERFACE_FUNC isMultiThreaded(Bool* multiThreaded) = 0;
+
+    /*!
+     * @brief Starts and blocks the main event loop, executing scheduled tasks.
+     * @param loopTime The maximum time to block the loop, in milliseconds.
+     *
+     * This method runs the main loop, processing all enqueued work (including repetitive tasks)
+     * until @ref stopMainLoop is called. Typically executed on the main thread or in a dedicated loop thread.
+     */
+    virtual ErrCode INTERFACE_FUNC runMainLoop(SizeT loopTime = 1) = 0;
+
+    /*!
+     * @brief Signals the main loop to stop processing and return from @ref runMainLoop.
+     * 
+     * This method unblocks the loop and requests graceful shutdown. It is typically called
+     * from another thread or in response to an application shutdown signal.
+     * Has no effect if the loop is not currently running.
+     */
+    virtual ErrCode INTERFACE_FUNC stopMainLoop() = 0;
+
+    /*!
+     * @brief Executes a single iteration of the main loop, processing scheduled tasks.
+     *
+     * This non-blocking method runs one iteration of the main loop, executing one-time tasks
+     * and advancing any repetitive tasks. Intended for cases where the main loop is polled manually,
+     * such as in GUI frameworks or embedded systems.
+     */
+    virtual ErrCode INTERFACE_FUNC runMainLoopIteration() = 0;
+
+    /*!
+     * @brief Schedules a task to be executed by the main loop.
+     *
+     * The provided work object is queued for execution during a call to either
+     * @ref runMainLoop or @ref runMainLoopIteration. This mechanism is commonly used
+     * to marshal tasks from background threads to the main loop thread.
+     *
+     * @param work A lightweight, non-blocking task object to be scheduled.
+     */
+    virtual ErrCode INTERFACE_FUNC scheduleWorkOnMainLoop(IWork* work) = 0;
+
 };
 /*!@}*/
 

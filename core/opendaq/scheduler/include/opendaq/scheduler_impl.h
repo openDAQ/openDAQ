@@ -23,8 +23,38 @@
 #include <opendaq/awaitable_ptr.h>
 
 #include <opendaq/task_flow.h>
+#include <opendaq/work_ptr.h>
+#include <opendaq/work_repetitive.h>
+#include <opendaq/scheduler_errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+
+class MainThreadEventLoop
+{
+public:
+    MainThreadEventLoop() = default;
+    ~MainThreadEventLoop();
+
+    void stop();
+    void runIteration();
+    void run(SizeT loopTime);
+    bool isRunning() const;
+    ErrCode execute(IWork* work);
+
+    MainThreadEventLoop(const MainThreadEventLoop&) = delete;
+    MainThreadEventLoop& operator=(const MainThreadEventLoop&) = delete;
+
+private:
+    class WorkWrapper;
+
+    void runIteration(std::unique_lock<std::mutex>& lock);
+
+    mutable std::mutex mutex;
+    std::condition_variable cv;
+    std::list<WorkWrapper> workQueue;
+    bool running{ false };
+};
 
 class SchedulerImpl final : public ImplementationOf<IScheduler>
 {
@@ -40,6 +70,11 @@ public:
     ErrCode INTERFACE_FUNC stop() override;
     ErrCode INTERFACE_FUNC waitAll() override;
 
+    ErrCode INTERFACE_FUNC runMainLoop(SizeT loopTime) override;
+    ErrCode INTERFACE_FUNC stopMainLoop() override;
+    ErrCode INTERFACE_FUNC runMainLoopIteration() override;
+    ErrCode INTERFACE_FUNC scheduleWorkOnMainLoop(IWork* work) override;
+
     [[nodiscard]] std::size_t getWorkerCount() const;
 
 private:
@@ -50,6 +85,8 @@ private:
     LoggerComponentPtr loggerComponent;
 
     std::unique_ptr<tf::Executor> executor;
+
+    std::unique_ptr<MainThreadEventLoop> mainThreadWorker;
 };
 
 END_NAMESPACE_OPENDAQ

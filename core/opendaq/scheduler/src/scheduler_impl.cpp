@@ -28,6 +28,106 @@ public:
 
 BEGIN_NAMESPACE_OPENDAQ
 
+class MainThreadEventLoop::WorkWrapper
+{
+public:
+    explicit WorkWrapper(WorkPtr work)
+        : work(std::move(work))
+        , isRepetitive(this->work.supportsInterface<IWorkRepetitive>())
+    {}
+
+    bool execute() const
+    {
+        if (isRepetitive)
+            return work->execute() != OPENDAQ_ERR_REPETITIVE_TASK_STOPPED;
+
+        work->execute();
+        return false;
+    }
+
+private:
+    const WorkPtr work;
+    const bool isRepetitive;
+};
+
+MainThreadEventLoop::~MainThreadEventLoop()
+{
+    stop();
+}
+
+void MainThreadEventLoop::stop()
+{
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        running = false;
+    }
+    cv.notify_all();
+}
+
+void MainThreadEventLoop::runIteration(std::unique_lock<std::mutex>& lock)
+{
+    std::list<WorkWrapper> currentWork;
+    currentWork.swap(workQueue);
+    lock.unlock();
+
+    for (auto it = currentWork.begin(); it != currentWork.end();)
+    {
+        if (it->execute())
+            ++it;
+        else
+            it = currentWork.erase(it);
+    }
+
+    lock.lock();
+    workQueue.splice(workQueue.end(), currentWork);
+}
+
+void MainThreadEventLoop::runIteration()
+{
+    std::unique_lock<std::mutex> lock(mutex);
+    runIteration(lock);
+}
+
+void MainThreadEventLoop::run(SizeT loopTime)
+{
+    if (loopTime == 0)
+        loopTime = 1;
+
+    std::unique_lock<std::mutex> lock(mutex);
+    this->running = true;
+    const auto waitTime = std::chrono::milliseconds(loopTime);
+    auto waitUntil = std::chrono::steady_clock::now() + waitTime;
+
+    while (true)
+    {
+        cv.wait_until(lock, waitUntil, [this] { return !this->running; });
+        if (!this->running)
+            break;
+
+        waitUntil += waitTime;
+        runIteration(lock);
+    }
+}
+
+bool MainThreadEventLoop::isRunning() const
+{
+    std::lock_guard<std::mutex> lock(mutex);
+    return running;
+}
+
+ErrCode MainThreadEventLoop::execute(IWork* work)
+{
+    OPENDAQ_PARAM_NOT_NULL(work);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        workQueue.emplace_back(work);
+    }
+
+    cv.notify_one();
+    return OPENDAQ_SUCCESS;
+}
+
 SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers)
     : stopped(false)
     , logger(std::move(logger))
@@ -36,6 +136,7 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers)
                           : throw ArgumentNullException("Logger must not be null"))
     , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers,
                std::make_shared<CustomWorkerInterface>()))
+    , mainThreadWorker(std::make_unique<MainThreadEventLoop>())
 {
     LOG_D("Starting scheduler with {} workers.", executor->num_workers())
 }
@@ -62,6 +163,9 @@ ErrCode SchedulerImpl::stop()
 
     LOGP_T("Stopping scheduler")
     executor.reset();
+
+    LOGP_T("Stopping main thread worker")
+    mainThreadWorker.reset();
 
     LOGP_T("Stopped")
     return OPENDAQ_SUCCESS;
@@ -103,9 +207,9 @@ ErrCode SchedulerImpl::scheduleWork(IWork* work)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SCHEDULER_STOPPED);
 
     executor->silent_async([work = WorkPtr(work)]()
-        {
-            work->execute();
-        });
+    {
+        work->execute();
+    });
 
     return OPENDAQ_SUCCESS;
 }
@@ -140,6 +244,30 @@ ErrCode SchedulerImpl::isMultiThreaded(Bool* multiThreaded)
 std::size_t SchedulerImpl::getWorkerCount() const
 {
     return executor->num_workers();
+}
+
+ErrCode SchedulerImpl::runMainLoop(SizeT loopTime)
+{    
+    mainThreadWorker->run(loopTime);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode SchedulerImpl::stopMainLoop()
+{    
+    mainThreadWorker->stop();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode SchedulerImpl::runMainLoopIteration()
+{
+    mainThreadWorker->runIteration();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode SchedulerImpl::scheduleWorkOnMainLoop(IWork* work)
+{
+    OPENDAQ_PARAM_NOT_NULL(work);
+    return mainThreadWorker->execute(work);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

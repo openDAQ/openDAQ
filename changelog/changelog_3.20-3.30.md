@@ -1,7 +1,7 @@
 # Changes from 3.20 to 3.30
 
 ## Features
-
+- [#837](https://github.com/openDAQ/openDAQ/pull/837) Add main thread event loop, SFML 3.0 migration, and renderer window control
 - [#810](https://github.com/openDAQ/openDAQ/pull/810) Load individual modules.
 - [#788](https://github.com/openDAQ/openDAQ/pull/788) Component property search.
 

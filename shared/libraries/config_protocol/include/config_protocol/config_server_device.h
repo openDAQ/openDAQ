@@ -35,6 +35,7 @@ public:
     static BaseObjectPtr forceUnlock(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getAvailableDevices(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr addDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
+    static BaseObjectPtr addDevices(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr removeDevice(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getAvailableDeviceTypes(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
     static BaseObjectPtr getLogFileInfos(const RpcContext& context, const DevicePtr& device, const ParamsDictPtr& params);
@@ -140,6 +141,70 @@ inline BaseObjectPtr ConfigServerDevice::addDevice(const RpcContext& context,
 
     const auto dev = device.addDevice(connectionString, config);
     return ComponentHolder(dev);
+}
+
+inline BaseObjectPtr ConfigServerDevice::addDevices(const RpcContext& context,
+                                                    const DevicePtr& device,
+                                                    const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(device);
+    ConfigServerAccessControl::protectObject(device, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const DictPtr<IString, IPropertyObject> connectionArgs = params.get("ConnectionArgs");
+    const Bool doGetErrCodes = params.get("DoGetErrCodes").asPtr<IBoolean>(true);
+    const Bool doGetErrorInfos = params.get("DoGetErrorInfos").asPtr<IBoolean>(true);
+    auto resultObject = Dict<IString, IBaseObject>();
+
+    try
+    {
+        DictPtr<IString, IDevice> devices;
+        DictPtr<IString, IInteger> errCodes = doGetErrCodes ? Dict<IString, IInteger>() : nullptr;
+        DictPtr<IString, IErrorInfo> errorInfos = doGetErrorInfos ? Dict<IString, IErrorInfo>() : nullptr;
+        ErrCode errorCode = device->addDevices(&devices, connectionArgs, errCodes, errorInfos);
+        if (errCodes.assigned())
+        {
+            DictPtr<IString, IInteger> errCodesCompressed = Dict<IString, IInteger>();
+            for (const auto& [connStr, errCode] : errCodes)
+                if (errCode != OPENDAQ_SUCCESS)
+                    errCodesCompressed[connStr] = errCode;
+            if (errCodesCompressed.getCount() > 0)
+                resultObject.set("ErrorCodes", errCodesCompressed);
+        }
+        if (errorInfos.assigned())
+        {
+            DictPtr<IString, IErrorInfo> errorInfosCompressed = Dict<IString, IErrorInfo>();
+            for (const auto& [connStr, errorInfo] : errorInfos)
+                if (errorInfo.assigned())
+                    errorInfosCompressed[connStr] = errorInfo;
+            if (errorInfosCompressed.getCount() > 0)
+                resultObject.set("ErrorInfos", errorInfosCompressed);
+        }
+        checkErrorInfo(errorCode);
+
+        // expected errorCode is OPENDAQ_SUCCESS or OPENDAQ_PARTIAL_SUCCESS
+        resultObject.set("ErrorCode", Integer(errorCode));
+        if (!devices.assigned())
+            return resultObject;
+
+        DictPtr<IString, IComponentHolder> devHolders = Dict<IString, IComponentHolder>();
+        for (const auto& [connStr, dev] : devices)
+            if (dev.assigned())
+                devHolders[connStr] = ComponentHolder(dev);
+        resultObject.set("AddedDevices", devHolders);
+    }
+    catch (const DaqException& e)
+    {
+        resultObject.set("ErrorCode", e.getErrCode());
+        resultObject.set("ErrorMessage", e.what());
+    }
+    catch (const std::exception& e)
+    {
+        resultObject.set("ErrorCode", OPENDAQ_ERR_GENERALERROR);
+        resultObject.set("ErrorMessage", e.what());
+    }
+
+    return resultObject;
 }
 
 inline BaseObjectPtr ConfigServerDevice::removeDevice(const RpcContext& context,

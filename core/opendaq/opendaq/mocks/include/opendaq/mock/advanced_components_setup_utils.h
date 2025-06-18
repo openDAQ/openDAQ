@@ -131,19 +131,49 @@ namespace daq::test_utils
             return availableDevices;
         }
 
+        DictPtr<IString, IDevice> onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                               DictPtr<IString, IInteger> errCodes,
+                                               DictPtr<IString, IErrorInfo> errorInfos) override
+        {
+            auto addedDevices = Dict<IString, IDevice>();
+            for (const auto& [connectionString, _] : connectionArgs)
+            {
+                if (connectionString == "mock://test")
+                {
+                    auto dev = createTestSubDevice();
+                    this->devices.addItem(dev);
+                    addedDevices[connectionString] = dev;
+                    if (errCodes.assigned())
+                        errCodes[connectionString] = OPENDAQ_SUCCESS;
+                    if (errorInfos.assigned())
+                        errorInfos[connectionString] = nullptr;
+                }
+                else
+                {
+                    addedDevices[connectionString] = nullptr;
+                    ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+                    ObjectPtr<IErrorInfo> errorInfo;
+                    daqGetErrorInfo(&errorInfo);
+                    daqClearErrorInfo();
+
+                    if (errCodes.assigned())
+                        errCodes[connectionString] = errCode;
+                    if (errorInfos.assigned())
+                        errorInfos[connectionString] = errorInfo;
+                }
+            }
+            return addedDevices;
+        }
+
         DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/ = nullptr) override
         {
             if (connectionString == "mock://test")
             {
-                auto dev = createWithImplementation<IDevice, MockDevice2Impl>(this->context, this->devices, "newDevice");
-
-                dev.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(dev.getSignalsRecursive()[0]);
-
+                auto dev = createTestSubDevice();
                 this->devices.addItem(dev);
-
                 return dev;
             }
-            return nullptr;
+            throw NotFoundException();
         }
 
         void onRemoveDevice(const DevicePtr& device) override
@@ -151,6 +181,13 @@ namespace daq::test_utils
             devices.removeItem(device);
         }
 
+    private:
+        DevicePtr createTestSubDevice()
+        {
+            auto dev = createWithImplementation<IDevice, MockDevice2Impl>(this->context, this->devices, "newDevice");
+            dev.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(dev.getSignalsRecursive()[0]);
+            return dev;
+        }
     };
 
     class MockSrvImpl final : public Server

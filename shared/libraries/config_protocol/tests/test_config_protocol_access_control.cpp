@@ -562,3 +562,24 @@ TEST_F(ConfigProtocolAccessControlTest, Recorder)
         ASSERT_FALSE(recorderPtr.getIsRecording());
     }
 }
+
+TEST_F(ConfigProtocolAccessControlTest, AddDevices)
+{
+    auto device = createDevice();
+
+    auto connectionArgs =
+        Dict<IString, IPropertyObject>(
+            {
+                {"unknown://unknown1", nullptr},
+                {"unknown://unknown2", nullptr}
+            }
+        );
+
+    setupServerAndClient(device, UserRegular);
+
+    {
+        const auto clientSubDevice = clientDevice.getDevices()[0];
+        ASSERT_THROW(clientSubDevice.addDevices(connectionArgs), AccessDeniedException);
+        ASSERT_THROW(clientSubDevice.addDevice("unknown://unknown"), AccessDeniedException);
+    }
+}

@@ -67,11 +67,8 @@ void MainThreadEventLoop::stop()
 void MainThreadEventLoop::runIteration(std::unique_lock<std::mutex>& lock)
 {
     std::list<WorkWrapper> currentWork;
-    {
-        lock.lock();
-        currentWork.swap(workQueue);
-        lock.unlock();
-    }
+    currentWork.swap(workQueue);
+    lock.unlock();
 
     for (auto it = currentWork.begin(); it != currentWork.end();)
     {
@@ -81,11 +78,8 @@ void MainThreadEventLoop::runIteration(std::unique_lock<std::mutex>& lock)
             it = currentWork.erase(it);
     }
 
-    {
-        lock.lock();
-        workQueue.splice(workQueue.end(), currentWork);
-        lock.unlock();
-    }
+    lock.lock();
+    workQueue.splice(workQueue.end(), currentWork);
 }
 
 void MainThreadEventLoop::runIteration()
@@ -111,10 +105,7 @@ void MainThreadEventLoop::run(SizeT loopTime)
             break;
 
         waitUntil += waitTime;
-
-        lock.unlock();
         runIteration(lock);
-        lock.lock();
     }
 }
 

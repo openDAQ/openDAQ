@@ -3546,18 +3546,23 @@ TEST_F(NativeDeviceModulesTest, AddDevicesParallelSuccess)
     const auto server = CreateServerInstance();
     const auto client = Instance();
 
+    const auto config = client.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
+    nativeDeviceConfig.setPropertyValue("Port", 7420);
+
     auto connectionArgs =
         Dict<IString, IPropertyObject>(
             {
-                {"daq.nd://127.0.0.1", nullptr},
-                {"daq.ns://127.0.0.1", nullptr}
+                {"daq.nd://127.0.0.1", config},
+                {"daqref://device1", nullptr}
             }
         );
 
     auto devices = client.addDevices(connectionArgs);
     ASSERT_EQ(devices.getCount(), 2u);
     ASSERT_EQ(devices.get("daq.nd://127.0.0.1").getInfo().getConnectionString(), "daq.nd://127.0.0.1");
-    ASSERT_EQ(devices.get("daq.ns://127.0.0.1").getInfo().getConnectionString(), "daq.ns://127.0.0.1");
+    ASSERT_EQ(devices.get("daqref://device1").getInfo().getConnectionString(), "daqref://device1");
 
     ASSERT_EQ(client.getDevices().getCount(), 2u);
 }
@@ -3566,19 +3571,29 @@ TEST_F(NativeDeviceModulesTest, AddDevicesParallelPartialSuccess)
 {
     const auto server = CreateServerInstance();
     const auto client = Instance();
+    ASSERT_NO_THROW(client.addDevice("daq.nd://127.0.0.1"));
 
     auto connectionArgs =
         Dict<IString, IPropertyObject>(
             {
                 {"daq.nd://127.0.0.1", nullptr},
-                {"daq.nd://127.0.0.1:7420", nullptr}
+                {"daqref://device1", nullptr}
             }
         );
 
-    auto devices = client.addDevices(connectionArgs);
+    auto errCodes = Dict<IString, IInteger>();
+    auto errorInfos = Dict<IString, IErrorInfo>();
+    auto devices = client.addDevices(connectionArgs, errCodes, errorInfos);
     ASSERT_EQ(devices.getCount(), 2u);
-    ASSERT_TRUE(devices.get("daq.nd://127.0.0.1").assigned());
-    ASSERT_FALSE(devices.get("daq.nd://127.0.0.1:7420").assigned());
 
-    ASSERT_EQ(client.getDevices().getCount(), 1u);
+    ASSERT_FALSE(devices.get("daq.nd://127.0.0.1").assigned());
+    ASSERT_TRUE(devices.get("daqref://device1").assigned());
+
+    ASSERT_TRUE(errorInfos.get("daq.nd://127.0.0.1").assigned());
+    ASSERT_FALSE(errorInfos.get("daqref://device1").assigned());
+
+    ASSERT_EQ(errCodes.get("daq.nd://127.0.0.1"), OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_EQ(errCodes.get("daqref://device1"), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(client.getDevices().getCount(), 2u);
 }

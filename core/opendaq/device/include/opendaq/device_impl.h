@@ -1320,7 +1320,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::addDevices(IDict** devices, ID
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (!devicesDictPtr.assigned())
-        return OPENDAQ_SUCCESS;
+        return OPENDAQ_IGNORED;
 
     SizeT addedDevicesCount = 0;
     for (const auto& [_, device] : devicesDictPtr)
@@ -1425,7 +1425,20 @@ DictPtr<IString, IDevice> GenericDevice<TInterface, Interfaces...>::onAddDevices
                                                                                  DictPtr<IString, IErrorInfo> errorInfos)
 {
     if (!allowAddDevicesFromModules())
+    {
+        for (const auto& [connectionString, _] : connectionArgs)
+        {
+            ObjectPtr<IErrorInfo> errorInfo;
+            ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Addition devices from modules not supported.");
+            daqGetErrorInfo(&errorInfo);
+            daqClearErrorInfo();
+            if (errCodes.assigned())
+                errCodes[connectionString] = errCode;
+            if (errorInfos.assigned())
+                errorInfos[connectionString] = errorInfo;
+        }
         return nullptr;
+    }
 
     auto lock = this->getRecursiveConfigLock();
 

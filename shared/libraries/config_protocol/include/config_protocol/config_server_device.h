@@ -182,7 +182,7 @@ inline BaseObjectPtr ConfigServerDevice::addDevices(const RpcContext& context,
         }
         checkErrorInfo(errorCode);
 
-        // expected errorCode is OPENDAQ_SUCCESS or OPENDAQ_PARTIAL_SUCCESS
+        // expected errorCode is OPENDAQ_SUCCESS, OPENDAQ_IGNORED or OPENDAQ_PARTIAL_SUCCESS
         resultObject.set("ErrorCode", Integer(errorCode));
         if (!devices.assigned())
             return resultObject;

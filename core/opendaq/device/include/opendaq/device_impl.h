@@ -244,7 +244,7 @@ private:
     ErrCode lockInternal(IUser* user);
     ErrCode unlockInternal(IUser* user);
     ErrCode forceUnlockInternal();
-    ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
+    ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool>& targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Idle};
@@ -373,9 +373,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
-            if (OPENDAQ_FAILED(revertStatus))
-                return DAQ_MAKE_ERROR_INFO(revertStatus);
-            OPENDAQ_RETURN_IF_FAILED(status);
+            OPENDAQ_RETURN_IF_FAILED(revertStatus);
+            DAQ_EXTEND_ERROR_INFO(status);
         }
     }
 
@@ -412,9 +411,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, true);
-            if (OPENDAQ_FAILED(revertStatus))
-                return DAQ_MAKE_ERROR_INFO(revertStatus);
-            return DAQ_MAKE_ERROR_INFO(status);
+            OPENDAQ_RETURN_IF_FAILED(revertStatus);
+            DAQ_EXTEND_ERROR_INFO(status);
         }
     }
 
@@ -1466,11 +1464,6 @@ ListPtr<IDevice> GenericDevice<TInterface, Interfaces...>::getDevicesRecursive(c
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::lockInternal(IUser* user)
 {
-    UserPtr userPtr = UserPtr::Borrow(user);
-
-    if (userPtr.assigned() && userPtr.asPtr<IUserInternal>().isAnonymous())
-        userPtr = nullptr;
-
     return userLock->lock(user);
 }
 
@@ -1499,7 +1492,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlockInternal()
 
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
-    ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock)
+    ListPtr<IDevice> devices, const std::vector<bool>& targetLockStatuses, size_t deviceCount, IUser* user, bool doLock)
 {
     ErrCode status = OPENDAQ_SUCCESS;
 
@@ -1509,9 +1502,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
             continue;
 
         if (doLock)
-            status = devices[i].asPtr<IDevicePrivate>()->lock(user);
+            status = devices[i].asPtr<IDevicePrivate>(true)->lock(user);
         else
-            status = devices[i].asPtr<IDevicePrivate>()->unlock(user);
+            status = devices[i].asPtr<IDevicePrivate>(true)->unlock(user);
 
         OPENDAQ_RETURN_IF_FAILED(status);
     }

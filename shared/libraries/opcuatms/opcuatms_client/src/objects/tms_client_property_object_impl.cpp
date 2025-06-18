@@ -34,34 +34,33 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
         LOG_W("Failed to set value for property with nullptr name on OpcUA client property object");
         return OPENDAQ_SUCCESS;
     }
+    
+    auto errorGuard = DAQ_ERROR_GUARD();
+    
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
-
-    if (this->isChildProperty(propertyNamePtr))
-    {
-        PropertyPtr prop;
-        ErrCode err = getProperty(propertyNamePtr, &prop);
-        OPENDAQ_RETURN_IF_FAILED(err);
-
-        if (!prop.assigned())
-            throw NotFoundException(R"(Child property "{}" not found)", propertyNamePtr);
-        if (protectedWrite)
-            return prop.asPtr<IPropertyInternal>()->setValueProtected(value);
-        return prop->setValue(value);
-    }
-
-    StringPtr lastProcessDescription = "";
     ErrCode errCode = daqTry([&]
     {
+        if (this->isChildProperty(propertyNamePtr))
+        {
+            PropertyPtr prop;
+            const ErrCode errCode = getProperty(propertyNamePtr, &prop);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+
+            if (!prop.assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Child property "{}" not found)", propertyNamePtr));
+            if (protectedWrite)
+                return prop.asPtr<IPropertyInternal>(true)->setValueProtected(value);
+            return prop->setValue(value);
+        }
+
         if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
         {
             PropertyPtr prop;
-            checkErrorInfo(getProperty(propertyName, &prop));
-            if (!protectedWrite)
-            {
-                lastProcessDescription = "Checking existing property is read-only";
-                if (prop.getReadOnly())
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
-            }
+            const ErrCode errCode = getProperty(propertyName, &prop);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        
+            if (!protectedWrite && prop.getReadOnly())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, fmt::format("Property \"{}\" is read-only", propertyNamePtr));
 
             BaseObjectPtr valuePtr = value;
             const auto ct = prop.getValueType();
@@ -69,7 +68,6 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
             if (ct != valueCt)
                 valuePtr = valuePtr.convertTo(ct);
 
-            lastProcessDescription = "Writing property value";
             const auto variant = VariantConverter<IBaseObject>::ToVariant(valuePtr, nullptr, daqContext);
             client->writeValue(it->second, variant);
             return OPENDAQ_SUCCESS;
@@ -77,29 +75,25 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
 
         if (const auto& it = referenceVariableIdMap.find(propertyNamePtr); it != referenceVariableIdMap.cend())
         {
-            lastProcessDescription = "Setting property value";
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
-            return setPropertyValue(refProp.getName(), value);
+            const ErrCode errCode = setPropertyValue(refProp.getName(), value);
+            OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to set value for referenced property \"{}\"", propertyNamePtr));
         }
 
         if (const auto& it = objectTypeIdMap.find((propertyNamePtr)); it != objectTypeIdMap.cend())
-        {
-            lastProcessDescription = "Object type properties cannot be set over OpcUA";
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-        }
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Object type properties cannot be set over OpcUA");
 
-        lastProcessDescription = "Property not found";
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format("Property \"{}\" not found", propertyNamePtr));    
     });
 
+    StringPtr errorMessage;
+    errorGuard->getFormatMessage(&errorMessage);
+    errorGuard.release();
+
     if (OPENDAQ_FAILED(errCode))
-        LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProcessDescription);
-
+        LOG_W("Failed to set property value on OpcUA client {}", errorMessage);
     if (errCode == OPENDAQ_ERR_NOTFOUND || errCode == OPENDAQ_ERR_ACCESSDENIED)
-        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format("Property \"{}\" not found or access denied", propertyNamePtr));
-    else if (OPENDAQ_FAILED(errCode))
-        daqClearErrorInfo();
-
+        return DAQ_MAKE_ERROR_INFO(errorMessage);
     return OPENDAQ_SUCCESS;
 }
 

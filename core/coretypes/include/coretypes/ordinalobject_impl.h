@@ -203,11 +203,11 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::compareTo(IBaseObject* obj)
     }
 
     if (value > otherValue)
-        return  OPENDAQ_GREATER;
+        return OPENDAQ_GREATER;
     else if (value < otherValue)
-        return  OPENDAQ_LOWER;
+        return OPENDAQ_LOWER;
     else
-        return  OPENDAQ_EQUAL;
+        return OPENDAQ_EQUAL;
 }
 
 template <class V, class Intf, class ... Intfs>

@@ -2028,7 +2028,6 @@ Ptr ObjectPtr<T>::asPtrOrNull(bool borrow) const
     }
 
     res = object->queryInterface(U::Id, reinterpret_cast<void**>(&intf));
-
     if (OPENDAQ_SUCCEEDED(res))
         return Ptr(std::move(intf));
 

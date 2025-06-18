@@ -285,7 +285,7 @@ ErrCode DictImpl::getCoreType(CoreType* coreType)
 ErrCode DictImpl::freeze()
 {
     if (frozen)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     frozen = true;
 

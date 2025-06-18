@@ -71,12 +71,30 @@ private:
     IErrorInfo* errorInfo;
 };
 
-class ErrorGuardImpl;
+class ErrorGuardImpl : public ImplementationOf<IErrorGuard>
+{
+public:
+    ErrorGuardImpl(ConstCharPtr filename, int fileLine);
+    ~ErrorGuardImpl();
+
+    ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) override;
+    ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
+
+    void setErrorInfo(IErrorInfo* errorInfo);
+    IErrorInfo* getErrorInfo() const;
+    void clearLastErrorInfo();
+    bool empty() const;
+
+private:
+    ConstCharPtr filename;
+    int fileLine;
+
+    std::list<ErrorInfoWrapper> errorInfoList;
+};
 
 class ErrorInfoHolder
 {
 public:
-    using ContainerT = std::list<ErrorInfoWrapper>;
     
     ErrorInfoHolder() = default;
 
@@ -87,30 +105,13 @@ public:
     IString* getFormatMessage() const;
 
     void setScopeEntry(ErrorGuardImpl* entry);
+    void removeScopeEntry(ErrorGuardImpl* entry);
 
 private:
-    ContainerT* getList();
+    using ContainerT = std::list<ErrorGuardImpl*>;
+    ContainerT* getOrCreateList();
 
-    std::unique_ptr<ContainerT> errorInfoList;
-    ErrorGuardImpl* scopeEntry = nullptr;
-};
-
-class ErrorGuardImpl : public ImplementationOf<IErrorGuard>
-{
-public:
-    ErrorGuardImpl(ConstCharPtr filename, int fileLine);
-    ~ErrorGuardImpl();
-
-private:
-    friend class ErrorInfoHolder;
-
-    ConstCharPtr filename;
-    int fileLine;
-
-    std::thread::id threadId;
-    ErrorGuardImpl* prevScopeEntry;
-    IErrorInfo* errorMark;
-    ErrorInfoHolder* holder;
+    std::unique_ptr<ContainerT> errorScopeList;
 };
 
 END_NAMESPACE_OPENDAQ

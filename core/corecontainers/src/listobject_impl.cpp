@@ -413,7 +413,7 @@ void ListImpl::internalDispose(bool)
 ErrCode ListImpl::freeze()
 {
     if (frozen)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     frozen = true;
 

@@ -196,7 +196,21 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
 }
 inline void checkErrorInfo(ErrCode errCode)
 {
-    daqCheckErrorGuard(errCode);
+    if (OPENDAQ_SUCCEEDED(errCode))
+        return;
+
+    std::string message;
+    daq::IString* errorMessage = nullptr;
+    daqGetErrorInfoMessage(&errorMessage);
+    if (errorMessage)
+    {
+        daq::ConstCharPtr msgCharPtr = nullptr;
+        errorMessage->getCharPtr(&msgCharPtr);
+        message = msgCharPtr;
+        errorMessage->releaseRef();
+    }
+
+    daq::throwExceptionFromErrorCode(errCode, message);
 }
 
 template <typename... Params>

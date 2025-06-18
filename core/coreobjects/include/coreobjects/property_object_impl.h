@@ -1649,12 +1649,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
         res = readLocalValue(propName, value);
     }
 
-    if (res != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(res))
-    {
-        return DAQ_MAKE_ERROR_INFO(res);
-    }
-    daqClearErrorInfo();
-
+    OPENDAQ_RETURN_IF_FAILED_EXCEPT(res, OPENDAQ_ERR_NOTFOUND);
     if (res == OPENDAQ_ERR_NOTFOUND)
     {
         this->clearErrorInfo();
@@ -3248,8 +3243,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
         splitOnLastDot(propName, propName, childStr);
 
         ErrCode err = getPropertyValue(propName, &val);
-        if (OPENDAQ_FAILED(err))
-            return DAQ_MAKE_ERROR_INFO(err, fmt::format(R"(Failed to retrieve child object with name {})", propName));
+        OPENDAQ_RETURN_IF_FAILED(err, fmt::format(R"(Failed to retrieve property value for "{}")", propName));
 
         PropertyObjectPtr obj = val.asPtrOrNull<IPropertyObject>(true);
         if (!obj.assigned())

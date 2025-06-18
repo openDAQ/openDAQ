@@ -176,7 +176,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * @param[in,out] errorInfos An optional dictionary to populate error info details for failed connections.
      * For each failed connection, the key is the connection string, and the value contains error info object.
      *
-     * @return OPENDAQ_INCOMPLETE_SUCCESS if at least one device was successfully created,
+     * @return OPENDAQ_PARTIAL_SUCCESS if at least one device was successfully created,
      *         OPENDAQ_ERR_GENERALERROR if no devices were created.
      */
     virtual ErrCode INTERFACE_FUNC createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) = 0;

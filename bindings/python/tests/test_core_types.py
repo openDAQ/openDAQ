@@ -360,6 +360,31 @@ class TestDict(opendaq_test.TestCase):
         for key, value in dict.items():
             self.assertEqual(key.upper(), value)
 
+    def test_iter_pairs(self):
+        """Test the iter_pairs() method for destructuring assignment"""
+        dict = daq.Dict()
+        dict['a'] = daq.String('A')
+        dict['b'] = daq.String('B')
+        dict['c'] = daq.String('C')
+
+        # Test iter_pairs() method for destructuring assignment
+        results = []
+        for [key, value] in dict.iter_pairs():
+            results.append((key, value))
+        
+        self.assertEqual(len(results), 3)
+        for key, value in results:
+            self.assertEqual(key.upper(), value)
+
+        # Test with different variable names
+        results2 = []
+        for [id_, type_] in dict.iter_pairs():
+            results2.append((id_, type_))
+        
+        self.assertEqual(len(results2), 3)
+        for id_, type_ in results2:
+            self.assertEqual(id_.upper(), type_)
+
 class TestLeaks(opendaq_test.TestCase):
 
     def test_leak1(self):

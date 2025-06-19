@@ -84,19 +84,9 @@ ErrCode PacketReaderImpl::setOnDataAvailable(IProcedure* callback)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketReaderImpl::setOnConnected(IProcedure* callback)
+ErrCode PacketReaderImpl::setExternalListener(IInputPortNotifications* listener)
 {
-    std::scoped_lock lock(mutex);
-
-    connectedCallback = callback;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PacketReaderImpl::setOnDisconnected(IProcedure* callback)
-{
-    std::scoped_lock lock(mutex);
-
-    disconnectedCallback = callback;
+    this->externalListener = listener;
     return OPENDAQ_SUCCESS;
 }
 
@@ -141,6 +131,9 @@ ErrCode PacketReaderImpl::readAll(IList** allPackets)
 ErrCode PacketReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
 {
     OPENDAQ_PARAM_NOT_NULL(accept);
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->acceptsSignal(port, signal, accept);
 
     *accept = true;
     return OPENDAQ_SUCCESS;
@@ -152,10 +145,10 @@ ErrCode PacketReaderImpl::connected(IInputPort* port)
 
     // TODO: Thread safety
     port->getConnection(&connection);
-    ProcedurePtr callback = connectedCallback;
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->connected(port);
 
-    if (callback.assigned())
-        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
     return OPENDAQ_SUCCESS;
 }
 
@@ -167,12 +160,11 @@ ErrCode PacketReaderImpl::disconnected(IInputPort* port)
     {
         std::scoped_lock lock(mutex);
         connection = nullptr;
-
-        callback = disconnectedCallback;
     }
 
-    if (callback.assigned())
-        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->disconnected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -187,7 +179,10 @@ ErrCode PacketReaderImpl::packetReceived(IInputPort* port)
     }
     
     if (callback.assigned())
-        return wrapHandler(callback);
+        OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
+
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->disconnected(port);
 
     return OPENDAQ_SUCCESS;
 }

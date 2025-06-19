@@ -119,6 +119,9 @@ public:
         OPENDAQ_PARAM_NOT_NULL(inputPort);
         OPENDAQ_PARAM_NOT_NULL(signal);
         OPENDAQ_PARAM_NOT_NULL(accept);
+        
+        if (externalListener.assigned() && externalListener.getRef().assigned())
+            return externalListener.getRef()->acceptsSignal(port, signal, accept);
 
         *accept = true;
         return OPENDAQ_SUCCESS;
@@ -134,10 +137,10 @@ public:
 
         // TODO: Thread safety
         inputPort->getConnection(&connection);
-        ProcedurePtr callback = connectedCallback;
+            
+        if (externalListener.assigned() && externalListener.getRef().assigned())
+            return externalListener.getRef()->connected(port);
 
-        if (callback.assigned())
-            return wrapHandler<InputPortPtr>(callback, InputPortPtr(inputPort));
         return OPENDAQ_SUCCESS;
     }
 
@@ -148,17 +151,16 @@ public:
     virtual ErrCode INTERFACE_FUNC disconnected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
-        ProcedurePtr callback;
 
         {
             std::scoped_lock lock(mutex);
             connection = nullptr;
-
-            callback = disconnectedCallback;
         }
+        
 
-        if (callback.assigned())
-            return wrapHandler<InputPortPtr>(callback, InputPortPtr(inputPort));
+        if (externalListener.assigned() && externalListener.getRef().assigned())
+            return externalListener.getRef()->disconnected(port);
+
         return OPENDAQ_SUCCESS;
     }
 
@@ -170,18 +172,9 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC setOnConnected(IProcedure* callback) override
+    ErrCode INTERFACE_FUNC setExternalListener(IInputPortNotifications* listener) override
     {
-        std::scoped_lock lock(mutex);
-
-        connectedCallback = callback;
-        return OPENDAQ_SUCCESS;
-    }
-
-    ErrCode INTERFACE_FUNC setOnDisconnected(IProcedure* callback) override
-    {        std::scoped_lock lock(mutex);
-
-        disconnectedCallback = callback;
+        externalListener = listener;
         return OPENDAQ_SUCCESS;
     }
 
@@ -199,8 +192,15 @@ public:
             callback = readCallback;
         }
 
+        ErrCode err;
         if (callback.assigned())
-            return wrapHandler(callback);
+            err = wrapHandler(callback);
+
+        OPENDAQ_RETURN_IF_FAILED(err);
+            
+        if (externalListener.assigned() && externalListener.getRef().assigned())
+            return externalListener.getRef()->disconnected(port);
+
         return OPENDAQ_SUCCESS;
     }
 
@@ -556,9 +556,8 @@ protected:
     PropertyObjectPtr portBinder;
     ConnectionPtr connection;
     ProcedurePtr readCallback;
-    ProcedurePtr connectedCallback;
-    ProcedurePtr disconnectedCallback;
     ReadTimeoutType timeoutType;
+    WeakRefPtr<IInputPortNotifications> externalListener;
 
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;

@@ -230,41 +230,41 @@ ErrCode StreamReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool*
     OPENDAQ_PARAM_NOT_NULL(port);
     OPENDAQ_PARAM_NOT_NULL(signal);
     OPENDAQ_PARAM_NOT_NULL(accept);
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->acceptsSignal(port, signal, accept);
 
-    *accept = True;
+    *accept = true;
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    ProcedurePtr callback;
 
     {
         std::scoped_lock lock(notify.mutex);
         port->getConnection(&connection);
-        callback = connectedCallback;
     }
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->connected(port);
 
-    if (callback.assigned())
-        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    ProcedurePtr callback;
 
     {
         std::scoped_lock lock(notify.mutex);
         connection = nullptr;
-
-        callback = disconnectedCallback;
     }
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->disconnected(port);
 
-    if (callback.assigned())
-        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
     return OPENDAQ_SUCCESS;
 }
 
@@ -278,8 +278,13 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
     }
 
     notify.condition.notify_one();
+
     if (callback.assigned())
-        return wrapHandler(callback);
+        OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
+
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->connected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -716,19 +721,9 @@ ErrCode StreamReaderImpl::setOnDataAvailable(IProcedure* callback)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode StreamReaderImpl::setOnConnected(IProcedure* callback)
+ErrCode StreamReaderImpl::setExternalListener(IInputPortNotifications* listener)
 {
-    std::scoped_lock lock(mutex);
-
-    connectedCallback = callback;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode StreamReaderImpl::setOnDisconnected(IProcedure* callback)
-{
-    std::scoped_lock lock(mutex);
-
-    disconnectedCallback = callback;
+    this->externalListener = listener;
     return OPENDAQ_SUCCESS;
 }
 

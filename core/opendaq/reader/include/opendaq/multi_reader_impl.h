@@ -44,8 +44,7 @@ public:
     ~MultiReaderImpl() override;
 
     ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
-    ErrCode INTERFACE_FUNC setOnConnected(IProcedure* callback) override;
-    ErrCode INTERFACE_FUNC setOnDisconnected(IProcedure* callback) override;
+    ErrCode INTERFACE_FUNC setExternalListener(IInputPortNotifications* listener) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC getDomainReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC setValueTransformFunction(IFunction* transform) override;
@@ -160,8 +159,7 @@ private:
     std::vector<SignalReader> signals;
     PropertyObjectPtr portBinder;
     ProcedurePtr readCallback;
-    ProcedurePtr connectedCallback;
-    ProcedurePtr disconnectedCallback;
+    WeakRefPtr<IInputPortNotifications> externalListener;
 
     LoggerComponentPtr loggerComponent;
 

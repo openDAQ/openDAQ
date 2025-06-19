@@ -30,8 +30,7 @@ public:
 
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
-    ErrCode INTERFACE_FUNC setOnConnected(IProcedure* callback) override;
-    ErrCode INTERFACE_FUNC setOnDisconnected(IProcedure* callback) override;
+    ErrCode INTERFACE_FUNC setExternalListener(IInputPortNotifications* listener) override;
 
     ErrCode INTERFACE_FUNC read(IPacket** packet) override;
     ErrCode INTERFACE_FUNC readAll(IList** allPackets) override;
@@ -49,8 +48,7 @@ private:
     PropertyObjectPtr portBinder;
     ConnectionPtr connection;
     ProcedurePtr readCallback;
-    ProcedurePtr connectedCallback;
-    ProcedurePtr disconnectedCallback;
+    WeakRefPtr<IInputPortNotifications> externalListener;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -42,31 +42,38 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Adds the signal to list in multi reader
-     * @param signal The signal which will be handled in multi reader
+     * @brief Adds a signal that will be read by the multi reader
+     * @param signal The signal that will be read by the multi reader
      */
     virtual ErrCode INTERFACE_FUNC addSignal(ISignal* signal) = 0;
-    // [elementType(signals, ISignal)]
-    // [returnSelf]
+    
+    // [elementType(signals, ISignal), returnSelf]
+    /*!
+     * @brief Adds signals that will be read by the multi reader
+     * @param signals The signals that will be read by the multi reader
+     */
     virtual ErrCode INTERFACE_FUNC addSignals(IList* signals) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Adds the input port to list in multi reader
-     * @param port The input port which will be handled in multi reader
+     * @brief Adds a port that will be read from by the multi reader
+     * @param port The port that will be read by the multi reader
      */
     virtual ErrCode INTERFACE_FUNC addInputPort(IInputPort* port) = 0;
-
-    // [elementType(inputPorts, IInputPort)]
-    // [returnSelf]
-    virtual ErrCode INTERFACE_FUNC addInputPorts(IList* inputPorts) = 0;
-
-    // [templateType(ports, IComponent)]
+    
+    // [elementType(ports, IInputPort), returnSelf]
     /*!
-     * @brief Gets the list of input ports
-     * @param[out] ports The list of input ports
+     * @brief Adds ports that will be read from by the multi reader
+     * @param ports The ports that will be read by the multi reader
      */
-    virtual ErrCode INTERFACE_FUNC getSourceComponents(IList** ports) = 0;
+    virtual ErrCode INTERFACE_FUNC addInputPorts(IList* ports) = 0;
+
+    // [templateType(components, IComponent)]
+    /*!
+     * @brief Gets the list of read components (signals or ports)
+     * @param[out] components The list of read components
+     */
+    virtual ErrCode INTERFACE_FUNC getSourceComponents(IList** components) = 0;
    
     // [returnSelf]
     /*!
@@ -113,6 +120,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * @param type The timeout mode. 
      * if "Any" returns immediately if there is available data otherwise time-out is exceeded.
      * if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
+     *
+     * NOTE: THIS IS CURRENTLY IGNORED AND IS ALWAYS SET TO ReadTimeoutType::All
      */
     virtual ErrCode INTERFACE_FUNC setReadTimeoutType(ReadTimeoutType type) = 0;
 
@@ -185,18 +194,34 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getTickOffsetTolerance(IRatio** offsetTolerance) = 0;
     
     // [returnSelf]
+    /*!
+     * @brief Sets the "AllowDifferentSamplingRates" multi reader parameter.
+     * @param allowDifferentRates If set to `false`, the multi reader will only accept signals with the same sampling rate.
+     */
     virtual ErrCode INTERFACE_FUNC setAllowDifferentSamplingRates(Bool allowDifferentRates) = 0;
+    
+    /*!
+     * @brief Gets the "AllowDifferentSamplingRates" multi reader parameter.
+     * @param allowDifferentRates If set to `false`, the multi reader will only accept signals with the same sampling rate.
+     */
     virtual ErrCode INTERFACE_FUNC getAllowDifferentSamplingRates(Bool* allowDifferentRates) = 0;
     
     // [returnSelf]
     /*!
-     * @brief If "None", uses Scheduler for multi reader with signals, and keeps the mode of the input port
+     * @brief Sets the notification method of ports created/owned by the multi reader
+     * @param notificationMethod The notification method to be used. If "None", uses Scheduler for multi reader with signals, and keeps the mode of the input port.
      */
     virtual ErrCode INTERFACE_FUNC setInputPortNotificationMethod(PacketReadyNotification notificationMethod) = 0;
+
+    /*!
+     * @brief Gets the notification method of ports created/owned by the multi reader
+     * @param notificationMethod The notification method to be used. If "None", uses Scheduler for multi reader with signals, and keeps the mode of the input port.
+     */
     virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethod(PacketReadyNotification* notificationMethod) = 0;
 };
 
+/*!@}*/
+
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, MultiReaderBuilder, IMultiReaderBuilder)
 
-/*!@}*/
 END_NAMESPACE_OPENDAQ

@@ -10,6 +10,7 @@
 #include <opendaq/reader_utils.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/tags_private_ptr.h>
+#include <opendaq/input_port_private_ptr.h>
 
 #include <fmt/ostream.h>
 #include <set>
@@ -382,6 +383,7 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
                 portBinder = PropertyObject();
             port.asPtr<IOwnable>().setOwner(portBinder);
         }
+
         port.setListener(listener);
 
         if (notificationMethod != PacketReadyNotification::None)
@@ -496,19 +498,9 @@ ErrCode MultiReaderImpl::setOnDataAvailable(IProcedure* callback)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReaderImpl::setOnConnected(IProcedure* callback)
+ErrCode MultiReaderImpl::setExternalListener(IInputPortNotifications* listener)
 {
-    std::scoped_lock lock(mutex);
-
-    connectedCallback = callback;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MultiReaderImpl::setOnDisconnected(IProcedure* callback)
-{
-    std::scoped_lock lock(mutex);
-
-    disconnectedCallback = callback;
+    this->externalListener = listener;
     return OPENDAQ_SUCCESS;
 }
 
@@ -993,6 +985,9 @@ ErrCode MultiReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* 
     OPENDAQ_PARAM_NOT_NULL(signal);
     OPENDAQ_PARAM_NOT_NULL(accept);
 
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->acceptsSignal(port, signal, accept);
+
     *accept = true;
     return OPENDAQ_SUCCESS;
 }
@@ -1002,7 +997,6 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
     OPENDAQ_PARAM_NOT_NULL(port);
 
     auto findSigByPort = [port](const SignalReader& signal) { return signal.port == port; };
-    ProcedurePtr callback;
 
     {
         std::scoped_lock lock(notify.mutex);
@@ -1032,13 +1026,11 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
                 signal.port.setActive(isActive);
             }
 
-            callback = connectedCallback;
         }
     }
 
-    if (callback.assigned())
-        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
-
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->connected(port);
     return OPENDAQ_SUCCESS;
 }
 
@@ -1046,7 +1038,6 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
     auto findSigByPort = [port](const SignalReader& signal) { return signal.port == port; };
-    ProcedurePtr callback;
 
     {
         std::scoped_lock lock(notify.mutex);
@@ -1065,12 +1056,10 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
             }
         }
 
-        callback = connectedCallback;
     }
-
-    if (callback.assigned())
-        return wrapHandler<InputPortPtr>(callback, InputPortPtr(port));
-
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->disconnected(port);
     return OPENDAQ_SUCCESS;
 }
 
@@ -1130,13 +1119,13 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
         ProcedurePtr callback = readCallback;
         lock.unlock();
         notify.condition.notify_one();
-
+        
         if (callback.assigned())
-        {
-            return wrapHandler(callback);
-        }
+            OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
     }
-
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->packetReceived(inputPort);
     return OPENDAQ_SUCCESS;
 }
 

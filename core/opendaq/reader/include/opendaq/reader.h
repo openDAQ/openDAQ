@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coretypes/procedure.h>
+#include <opendaq/input_port_notifications.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -54,14 +55,20 @@ DECLARE_OPENDAQ_INTERFACE(IReader, IBaseObject)
 
     /*!
      * @brief Sets the specified callback function to be called when there is available data in the reader.
-     * Pass @c nullptr to unset the callback. The callback should take no arguments.
      * @param callback The callback function to be set or @c nullptr to unset it.
+     *
+     * Pass @c nullptr to unset the callback. The callback should take no arguments.
      */
     virtual ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) = 0;
 
-    virtual ErrCode INTERFACE_FUNC setOnConnected(IProcedure* callback) = 0;
-
-    virtual ErrCode INTERFACE_FUNC setOnDisconnected(IProcedure* callback) = 0;
+    /*!
+     * @brief Sets an external listener to the reader.
+     * @param listener The external listener.
+     *
+     * When an external listener is set, after the reader is done processing the input port notification methods,
+     * it also calls the methods of the external listener.
+     */
+    virtual ErrCode INTERFACE_FUNC setExternalListener(IInputPortNotifications* listener) = 0;
 
     /*!
      * @brief Checks if there is data to read. 

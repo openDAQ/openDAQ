@@ -97,6 +97,7 @@ class ErrorInfoHolder
 public:
     
     ErrorInfoHolder() = default;
+    ~ErrorInfoHolder();
 
     void setErrorInfo(IErrorInfo* errorInfo);
     IErrorInfo* getErrorInfo() const;

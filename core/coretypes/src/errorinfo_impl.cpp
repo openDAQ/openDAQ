@@ -38,6 +38,12 @@ IErrorInfo* ErrorInfoWrapper::borrow() const
 
 // ErrorInfoHolder
 
+ErrorInfoHolder::~ErrorInfoHolder()
+{
+    if (errorScopeList && !errorScopeList->empty())
+        errorScopeList->front()->releaseRef();
+}
+
 ErrorInfoHolder::ContainerT* ErrorInfoHolder::getOrCreateList()
 {
     if (!errorScopeList)
@@ -45,21 +51,14 @@ ErrorInfoHolder::ContainerT* ErrorInfoHolder::getOrCreateList()
         errorScopeList = std::make_unique<ContainerT>();
         auto entry = new ErrorGuardImpl(nullptr, -1);
         entry->addRef();
-        errorScopeList->emplace_back(entry);
     }
     return errorScopeList.get();
 }
 
-
 void ErrorInfoHolder::setErrorInfo(IErrorInfo* errorInfo)
 {
-    if (!errorInfo && errorScopeList)
-    {
-        errorScopeList->back()->setErrorInfo(nullptr);
-        if (errorScopeList->size() == 1 && errorScopeList->back()->empty())
-            errorScopeList->back()->releaseRef();
+    if (!errorInfo && !errorScopeList)
         return;
-    }
     getOrCreateList()->back()->setErrorInfo(errorInfo);
 }
 
@@ -80,6 +79,8 @@ IList* ErrorInfoHolder::getErrorInfoList()
     const ErrCode errCode = errorScopeList->back()->getErrorInfos(&list);
     if (OPENDAQ_FAILED(errCode))
         throw std::runtime_error("Failed to get error info list");
+    if (errorScopeList->size() == 1)
+        errorScopeList->back()->releaseRef();
     return list;
 }
 
@@ -378,7 +379,7 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
     std::ostringstream ss;
 
     if (this->causedByPrevious)
-        ss << "Caused by: ";
+        ss << " - Cause by: ";
 
     if (this->message)
     {
@@ -386,13 +387,13 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
         this->message->getCharPtr(&msgCharPtr);
 
         if (msgCharPtr != nullptr)
-            ss << msgCharPtr;
+            ss << msgCharPtr << " ";
     }
 
 #ifndef NDEBUG
     if (this->fileName)
     {
-        ss << " [ " << this->fileName;
+        ss << "[ " << this->fileName;
         if (this->fileLine != -1)
             ss << ":" << this->fileLine;
         ss << " ]";

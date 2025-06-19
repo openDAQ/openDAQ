@@ -2072,17 +2072,12 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
 {
     ErrCode errCode = Super::disableCoreEventTrigger();
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    if (this->deviceInfo.assigned())
+        return deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
     
-    DeviceInfoPtr deviceInfo;
-    errCode = this->getInfo(&deviceInfo);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-    if (!deviceInfo.assigned())
-        return errCode;
-    
-    return deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>

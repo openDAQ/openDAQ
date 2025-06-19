@@ -194,6 +194,7 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
     ss << "Error code: 0x" << std::hex << std::uppercase << errCode;
     return ss.str();
 }
+
 inline void checkErrorInfo(ErrCode errCode)
 {
     if (OPENDAQ_SUCCEEDED(errCode))
@@ -372,12 +373,11 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
 
 inline ErrCode errorFromException(const DaqException& e, IBaseObject* source = nullptr)
 {
-    makeErrorInfo(e.getErrCode(), source, e.what());
-#ifndef NDEBUG
-    if (e.getFileName())
-        return extendErrorInfo(e.getFileName(), e.getFileLine(), e.getErrCode());
+#ifdef NDEBUG
+    return makeErrorInfo(e.getErrCode(), source, e.what());
+#else
+    return makeErrorInfo(e.getFileName(), e.getFileLine(), e.getErrCode(), source, e.what());
 #endif
-    return e.getErrCode();
 }
 
 inline ErrCode errorFromException(const std::exception& e, IBaseObject* source = nullptr, ErrCode errCode = OPENDAQ_ERR_GENERALERROR)

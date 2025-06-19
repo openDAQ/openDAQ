@@ -151,8 +151,8 @@ namespace daq::test_utils
                 else
                 {
                     addedDevices[connectionString] = nullptr;
-                    ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
                     ObjectPtr<IErrorInfo> errorInfo;
+                    ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
                     daqGetErrorInfo(&errorInfo);
                     daqClearErrorInfo();
 

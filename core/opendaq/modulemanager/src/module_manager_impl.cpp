@@ -724,11 +724,14 @@ ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs,
     std::vector<std::pair<AsyncDeviceCreationResult, StringPtr>> deviceCreationResults;
     auto devicesDictPtr = Dict<IString, IDevice>();
 
+    // init error infos
+    for (const auto& [connectionString, _] : connectionArgsDictPtr)
+        if (errorInfosDictPtr.assigned())
+            errorInfosDictPtr[connectionString] = nullptr;
+
     for (const auto& [connectionString, config] : connectionArgsDictPtr)
     {
         devicesDictPtr[connectionString] = nullptr;
-        if (errorInfosDictPtr.assigned())
-            errorInfosDictPtr[connectionString] = nullptr;
         try
         {
             // Parallelize the process of each device creation as it may be time-consuming

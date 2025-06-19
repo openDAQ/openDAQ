@@ -333,6 +333,7 @@ TEST_F(ModuleManagerTest, ParallelDeviceCreationFailure)
     ObjectPtr<IErrorInfo> errorInfo = errorInfos.get("daqmock://general_error");
     ASSERT_EQ(errCodes.get("daqmock://general_error"), OPENDAQ_ERR_GENERALERROR);
     ASSERT_TRUE(errorInfo.assigned());
+    // TODO search for substring within the backtrace information
 //    StringPtr message;
 //    errorInfo->getMessage(&message);
 //    ASSERT_TRUE(message.toStdString().find("abc123") != std::string::npos);

@@ -399,8 +399,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param[in,out] errorInfos An optional dictionary used to populate detailed error info for failed connection or addition attempts.
      * For each failed attempt, the key is the connection string, and the value contains the error info object.
      *
-     * @return OPENDAQ_PARTIAL_SUCCESS if at least one device was successfully created and added,
-     *         OPENDAQ_ERR_GENERALERROR if no devices were created or added,
+     * @return OPENDAQ_PARTIAL_SUCCESS if at least one device was successfully created and added, but not all of them;
+     *         OPENDAQ_ERR_GENERALERROR if no devices were created or added;
      *         OPENDAQ_IGNORED if adding the devices from modules is not allowed within the device.
      */
     virtual ErrCode INTERFACE_FUNC addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) = 0;

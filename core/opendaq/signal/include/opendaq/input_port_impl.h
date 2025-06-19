@@ -209,7 +209,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
             if (OPENDAQ_FAILED(err))
             {
                 connectionRef.release();
-                return DAQ_MAKE_ERROR_INFO(err);
+                return DAQ_EXTEND_ERROR_INFO(err);
             }
         }
 

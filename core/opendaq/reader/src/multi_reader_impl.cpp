@@ -853,6 +853,7 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
             ErrCode errCode = synchronize(availableSamples, syncStatus);
             if (OPENDAQ_FAILED(errCode))
             {
+                daqClearErrorInfo();
                 status = createReaderStatus();
                 return true;
             }
@@ -912,6 +913,7 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         ErrCode errCode = synchronize(availableSamples, syncStatus);
         if (OPENDAQ_FAILED(errCode) || eventPackets.getCount() != 0)
         {
+            daqClearErrorInfo();
             return createReaderStatus(eventPackets);
         }
 

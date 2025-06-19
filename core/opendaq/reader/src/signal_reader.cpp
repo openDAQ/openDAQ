@@ -476,7 +476,7 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
                 {
                     invalid = true;
 
-                    return DAQ_MAKE_ERROR_INFO(
+                    return DAQ_EXTEND_ERROR_INFO(
                         OPENDAQ_ERR_INVALID_DATA,
                         "Exception occurred while processing a signal descriptor change"
                     );

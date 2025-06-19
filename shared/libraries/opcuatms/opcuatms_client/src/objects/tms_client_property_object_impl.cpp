@@ -137,8 +137,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
         OPENDAQ_RETURN_IF_FAILED(err);
 
         if (!prop.assigned())
-            throw NotFoundException(R"(Child property "{}" not found)", propertyNamePtr);
-
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Child property "{}" not found)", propertyNamePtr));
         return prop->getValue(value);
     }
 
@@ -149,14 +148,13 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
         {
             const auto variant = client->readValue(introIt->second);
             const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-            Impl::setProtectedPropertyValue(propertyName, object);
+            return Impl::setProtectedPropertyValue(propertyName, object);
         }
         else if (referenceVariableIdMap.count(propertyNamePtr))
         {
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
             return getPropertyValue(refProp.getName(), value);
         }
-
         return Impl::getPropertyValue(propertyName, value);
     });
     if (OPENDAQ_FAILED(errCode))

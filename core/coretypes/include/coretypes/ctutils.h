@@ -229,7 +229,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     template <typename... Params>
     ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source)
     {
-        return makeErrorInfo(errCode, source, msg);
+        return makeErrorInfo(errCode, source, std::string());
     }
 
     #define DAQ_MAKE_ERROR_INFO(errCode, ...) \

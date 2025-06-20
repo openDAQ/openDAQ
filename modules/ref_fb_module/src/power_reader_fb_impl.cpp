@@ -305,7 +305,7 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
 void PowerReaderFbImpl::createInputPorts()
 {
     voltageInputPort = createAndAddInputPort("Voltage", PacketReadyNotification::Scheduler, nullptr, true);
-    currentInputPort = createAndAddInputPort("Current", PacketReadyNotification::Scheduler, nullptr, true);
+    currentInputPort = createAndAddInputPort("Current", PacketReadyNotification::None, nullptr, true);
     
     setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Port {} is not connected!", voltageInputPort.getLocalId()));
 }
@@ -324,6 +324,7 @@ void PowerReaderFbImpl::createReader()
         .setValueReadType(SampleType::Float64)
         .setTickOffsetTolerance(tolerance)
         .setAllowDifferentSamplingRates(false)
+        .setInputPortNotificationMethod(PacketReadyNotification::Unspecified)
         .build();
 
     reader.setExternalListener(this->objPtr);

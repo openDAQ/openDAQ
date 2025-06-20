@@ -144,7 +144,7 @@ DECLARE_OPENDAQ_INTERFACE(IStreamReaderBuilder, IBaseObject)
 
     /*!
      * @brief Gets the notification method of port created/owned stream reader. The default notification method is SameThread.
-     * @param notificationMethod The notification method to be used. If "None", uses Scheduler for stream reader with signal, and keeps the mode of the input port..
+     * @param notificationMethod The notification method to be used. If "None", uses Scheduler for stream reader with signal, and keeps the mode of the input port.
      */
     virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethod(PacketReadyNotification* notificationMethod) = 0;
 };

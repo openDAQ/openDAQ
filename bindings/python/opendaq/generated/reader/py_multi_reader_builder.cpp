@@ -240,5 +240,20 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
             const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
             objectPtr.setInputPortNotificationMethod(notificationMethod);
         },
-        "Gets the notification method of ports created/owned by the multi reader. The default notification method is SameThread. / Sets the notification method of ports created/owned by the multi reader. The default notification method is SameThread.");
+        "Gets the notification method of ports created/owned by the multi reader. The default notification method is SameThread. / Sets the notification method of ports created/owned by the multi reader. The default notification method is Unspecified.");
+    cls.def_property("input_port_notification_methods",
+        [](daq::IMultiReaderBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+            return objectPtr.getInputPortNotificationMethods().detach();
+        },
+        [](daq::IMultiReaderBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& notificationMethods)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+            objectPtr.setInputPortNotificationMethods(getVariantValue<daq::IList*>(notificationMethods));
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the notification methods of ports created/owned by the multi reader. The default notification method is Unspecified. / Sets the notification methods of ports created/owned by the multi reader. The default notification method is Unspecified.");
 }

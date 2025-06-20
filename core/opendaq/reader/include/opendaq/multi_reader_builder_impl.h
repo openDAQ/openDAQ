@@ -64,6 +64,9 @@ public:
     ErrCode INTERFACE_FUNC setInputPortNotificationMethod(PacketReadyNotification notificationMethod) override;
     ErrCode INTERFACE_FUNC getInputPortNotificationMethod(PacketReadyNotification* notificationMethod) override;
 
+    ErrCode INTERFACE_FUNC setInputPortNotificationMethods(IList* notificationMethods) override;
+    ErrCode INTERFACE_FUNC getInputPortNotificationMethods(IList** notificationMethods) override;
+
 private:
     ListPtr<IComponent> sources;
     SampleType valueReadType;
@@ -76,6 +79,7 @@ private:
     RatioPtr offsetTolerance;
     Bool allowDifferentRates;
     PacketReadyNotification notificationMethod;
+    ListPtr<PacketReadyNotification> notificationMethodsList;
 };
 
 END_NAMESPACE_OPENDAQ

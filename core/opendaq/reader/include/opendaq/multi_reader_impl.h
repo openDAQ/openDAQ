@@ -177,6 +177,7 @@ private:
 
     SizeT minReadCount;
     PacketReadyNotification notificationMethod;
+    ListPtr<PacketReadyNotification> notificationMethodsList;
 };
 
 END_NAMESPACE_OPENDAQ

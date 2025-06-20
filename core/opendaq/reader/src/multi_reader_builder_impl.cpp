@@ -17,6 +17,7 @@ MultiReaderBuilderImpl::MultiReaderBuilderImpl()
     , offsetTolerance(nullptr)
     , allowDifferentRates(true)
     , notificationMethod(PacketReadyNotification::SameThread)
+    , notificationMethodsList(List<PacketReadyNotification>())
 {
 }
 
@@ -216,6 +217,22 @@ ErrCode MultiReaderBuilderImpl::getInputPortNotificationMethod(PacketReadyNotifi
 {
     OPENDAQ_PARAM_NOT_NULL(notificationMethod);
     *notificationMethod = this->notificationMethod;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::setInputPortNotificationMethods(IList* notificationMethods)
+{
+    OPENDAQ_PARAM_NOT_NULL(notificationMethods);
+
+    this->notificationMethodsList = notificationMethods;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::getInputPortNotificationMethods(IList** notificationMethods)
+{
+    OPENDAQ_PARAM_NOT_NULL(notificationMethods);
+
+    *notificationMethods = this->notificationMethodsList.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -60,17 +60,18 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
     , minReadCount(minReadCount)
     , notificationMethod(PacketReadyNotification::None)
+    , notificationMethodsList(List<PacketReadyNotification>())
 {
     this->internalAddRef();
     try
     {
         checkListSizeAndCacheContext(list);
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
-        auto ports = createOrAdoptPorts(list);
         notificationMethod = list[0].supportsInterface(ISignal::Id)
                                  ? PacketReadyNotification::SameThread
                                  : PacketReadyNotification::Scheduler;
 
+        auto ports = createOrAdoptPorts(list);
         configureAndStorePorts(ports, valueReadType, domainReadType, mode);
         checkErrorInfo(isDomainValid(ports));
     }
@@ -98,6 +99,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     mainDomainDescriptor = old->mainDomainDescriptor;
     allowDifferentRates = old->allowDifferentRates;
     notificationMethod = old->notificationMethod;
+    notificationMethodsList = old->notificationMethodsList;
     context = old->context;
     portsConnected = old->portsConnected;
     
@@ -128,6 +130,7 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     , startOnFullUnitOfDomain(builder.getStartOnFullUnitOfDomain())
     , minReadCount(builder.getMinReadCount())
     , notificationMethod(builder.getInputPortNotificationMethod())
+    , notificationMethodsList(builder.getInputPortNotificationMethods())
 {
     internalAddRef();
     try
@@ -135,6 +138,10 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
 
         auto sourceComponents = builder.getSourceComponents();
         checkListSizeAndCacheContext(sourceComponents);
+
+        if (notificationMethodsList.getCount() > 0 && sourceComponents.getCount() != notificationMethodsList.getCount())
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "The list of source components is not of same size than the list of notification methods.");
+
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
 
         auto ports = createOrAdoptPorts(sourceComponents);
@@ -327,10 +334,17 @@ ErrCode MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) co
 
 ListPtr<IInputPortConfig> MultiReaderImpl::createOrAdoptPorts(const ListPtr<IComponent>& list) const
 {
+    if (list[0].supportsInterface(IList::Id) && notificationMethodsList.getCount() > 0)
+    {
+        if (notificationMethod == PacketReadyNotification::Unspecified)
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Multi reader created from signals cannot have an unspecified input port notification method.");
+    }
+    
     bool hasInputPorts = false;
     bool hasSignals = false;
 
     auto portList = List<IInputPortConfig>();
+    size_t cnt = 0;
     for (const auto& el : list)
     {
         if (auto signal = el.asPtrOrNull<ISignal>(); signal.assigned())
@@ -338,9 +352,8 @@ ListPtr<IInputPortConfig> MultiReaderImpl::createOrAdoptPorts(const ListPtr<ICom
             if (hasInputPorts)
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
 
-            if (notificationMethod == PacketReadyNotification::Unspecified)
-                DAQ_THROW_EXCEPTION(InvalidParameterException,
-                                    "Multi reader created from signals cannot have an unspecified input port notification method.");
+            if (notificationMethodsList.getCount() > 0 && notificationMethodsList[cnt] == PacketReadyNotification::Unspecified)
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "Multi reader created from signals cannot have an unspecified input port notification method.");
 
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
             port.getTags().asPtr<ITagsPrivate>().add("MultiReaderInternalPort");
@@ -361,6 +374,8 @@ ListPtr<IInputPortConfig> MultiReaderImpl::createOrAdoptPorts(const ListPtr<ICom
         {
             DAQ_THROW_EXCEPTION(InvalidParameterException, "One of the elements of input list is not signal or input port");
         }
+
+        cnt++;
     }
 
     return portList;
@@ -383,6 +398,7 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
 {
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
+    size_t cnt = 0;
     for (const auto& port : inputPorts)
     {
         if (!port.getTags().contains("MultiReaderInternalPort"))
@@ -393,11 +409,13 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
         }
 
         port.setListener(listener);
+        auto portNotificationMethod = notificationMethodsList.getCount() > 0 ? notificationMethodsList[cnt] : notificationMethod;
 
-        if (notificationMethod != PacketReadyNotification::Unspecified)
-            port.setNotificationMethod(notificationMethod);
+        if (portNotificationMethod != PacketReadyNotification::Unspecified)
+            port.setNotificationMethod(portNotificationMethod);
 
         signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
+        cnt++;
     }
 
     portsConnected = allPortsConnected();

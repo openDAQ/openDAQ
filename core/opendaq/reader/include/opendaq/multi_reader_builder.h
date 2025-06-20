@@ -208,16 +208,40 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
     
     // [returnSelf]
     /*!
-     * @brief Sets the notification method of ports created/owned by the multi reader. The default notification method is SameThread.
-     * @param notificationMethod The notification method to be used. If "None", uses Scheduler for multi reader with signals, and keeps the mode of the input port.
+     * @brief Sets the notification method of ports created/owned by the multi reader. The default notification method is Unspecified.
+     * @param notificationMethod The notification method to be used.
+     *
+     * If "Unspecified", the reader keeps the mode of the input port. When building with signals, "Unspecified" is an invalid configuration.
      */
     virtual ErrCode INTERFACE_FUNC setInputPortNotificationMethod(PacketReadyNotification notificationMethod) = 0;
 
     /*!
      * @brief Gets the notification method of ports created/owned by the multi reader. The default notification method is SameThread.
-     * @param notificationMethod The notification method to be used. If "None", uses Scheduler for multi reader with signals, and keeps the mode of the input port.
+     * @param notificationMethod The notification method to be used.
+     *
+     * If "Unspecified", the reader keeps the mode of the input port. When building with signals, "Unspecified" is an invalid configuration.
      */
     virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethod(PacketReadyNotification* notificationMethod) = 0;
+
+    // [elementType(notificationMethods, PacketReadyNotification), returnSelf]
+    /*!
+     * @brief Sets the notification methods of ports created/owned by the multi reader. The default notification method is Unspecified.
+     * @param notificationMethods The notification methods to be used.
+     *
+     * The list of methods corresponds to the list of reader components (signals, input ports). Both the size and order of both must match if configured.
+     * If a method is set to "Unspecified", the reader keeps the mode of the input port. When building with signals, "Unspecified" is an invalid configuration.
+     */
+    virtual ErrCode INTERFACE_FUNC setInputPortNotificationMethods(IList* notificationMethods) = 0;
+
+    // [elementType(notificationMethods, PacketReadyNotification)]
+    /*!
+     * @brief Gets the notification methods of ports created/owned by the multi reader. The default notification method is Unspecified.
+     * @param notificationMethods The notification methods to be used.
+     *
+     * The list of methods corresponds to the list of reader components (signals, input ports). Both the size and order of both must match if configured.
+     * If a method is set to "Unspecified", the reader keeps the mode of the input port. When building with signals, "Unspecified" is an invalid configuration.
+     */
+    virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethods(IList** notificationMethods) = 0;
 };
 
 /*!@}*/

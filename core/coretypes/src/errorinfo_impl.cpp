@@ -278,8 +278,9 @@ ErrorInfoImpl::ErrorInfoImpl()
     , source(nullptr)
     , fileName(nullptr)
     , fileLine(-1)
-    , frozen(False)
+    , errorCode(OPENDAQ_ERR_GENERALERROR)
     , prevErrCode(OPENDAQ_SUCCESS)
+    , frozen(False)
 {
 }
 

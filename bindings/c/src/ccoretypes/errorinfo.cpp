@@ -37,12 +37,12 @@ daqErrCode daqErrorInfo_getSource(daqErrorInfo* self, daqString** source)
     return reinterpret_cast<daq::IErrorInfo*>(self)->getSource(reinterpret_cast<daq::IString**>(source));
 }
 
-daqErrCode daqErrorInfo_setFileName(daqErrorInfo* self, daqConstCharPtr fileName)
+daqErrCode daqErrorInfo_setFileName(daqErrorInfo* self, daqCharPtr fileName)
 {
     return reinterpret_cast<daq::IErrorInfo*>(self)->setFileName(static_cast<daq::ConstCharPtr>(fileName));
 }
 
-daqErrCode daqErrorInfo_getFileName(daqErrorInfo* self, daqConstCharPtr* fileName)
+daqErrCode daqErrorInfo_getFileName(daqErrorInfo* self, daqCharPtr* fileName)
 {
     return reinterpret_cast<daq::IErrorInfo*>(self)->getFileName(reinterpret_cast<daq::ConstCharPtr*>(fileName));
 }

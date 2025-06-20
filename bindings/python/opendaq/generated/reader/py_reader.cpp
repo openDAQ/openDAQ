@@ -60,25 +60,16 @@ void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject
             const auto objectPtr = daq::ReaderPtr::Borrow(object);
             objectPtr.setOnDataAvailable(callback);
         },
-        "Sets the specified callback function to be called when there is available data in the reader. Pass @c nullptr to unset the callback. The callback should take no arguments.");
-    cls.def_property("on_connected",
+        "Sets the specified callback function to be called when there is available data in the reader.");
+    cls.def_property("external_listener",
         nullptr,
-        [](daq::IReader *object, daq::IProcedure* callback)
+        [](daq::IReader *object, daq::IInputPortNotifications* listener)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ReaderPtr::Borrow(object);
-            objectPtr.setOnConnected(callback);
+            objectPtr.setExternalListener(listener);
         },
-        "");
-    cls.def_property("on_disconnected",
-        nullptr,
-        [](daq::IReader *object, daq::IProcedure* callback)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ReaderPtr::Borrow(object);
-            objectPtr.setOnDisconnected(callback);
-        },
-        "");
+        "Sets an external listener to the reader.");
     cls.def_property_readonly("empty",
         [](daq::IReader *object)
         {

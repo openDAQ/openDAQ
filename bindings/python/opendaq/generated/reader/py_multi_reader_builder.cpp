@@ -63,7 +63,7 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
             objectPtr.addSignal(signal);
         },
         py::arg("signal"),
-        "Adds the signal to list in multi reader");
+        "Adds a signal that will be read by the multi reader");
     cls.def("add_signals",
         [](daq::IMultiReaderBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& signals)
         {
@@ -72,7 +72,7 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
             objectPtr.addSignals(getVariantValue<daq::IList*>(signals));
         },
         py::arg("signals"),
-        "");
+        "Adds signals that will be read by the multi reader");
     cls.def("add_input_port",
         [](daq::IMultiReaderBuilder *object, daq::IInputPort* port)
         {
@@ -81,16 +81,16 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
             objectPtr.addInputPort(port);
         },
         py::arg("port"),
-        "Adds the input port to list in multi reader");
+        "Adds a port that will be read from by the multi reader");
     cls.def("add_input_ports",
-        [](daq::IMultiReaderBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& inputPorts)
+        [](daq::IMultiReaderBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& ports)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
-            objectPtr.addInputPorts(getVariantValue<daq::IList*>(inputPorts));
+            objectPtr.addInputPorts(getVariantValue<daq::IList*>(ports));
         },
-        py::arg("input_ports"),
-        "");
+        py::arg("ports"),
+        "Adds ports that will be read from by the multi reader");
     cls.def_property_readonly("source_components",
         [](daq::IMultiReaderBuilder *object)
         {
@@ -99,7 +99,7 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
             return objectPtr.getSourceComponents().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the list of input ports");
+        "Gets the list of read components (signals or ports)");
     cls.def_property("value_read_type",
         [](daq::IMultiReaderBuilder *object)
         {
@@ -226,7 +226,7 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
             const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
             objectPtr.setAllowDifferentSamplingRates(allowDifferentRates);
         },
-        "");
+        "Gets the \"AllowDifferentSamplingRates\" multi reader parameter. / Sets the \"AllowDifferentSamplingRates\" multi reader parameter.");
     cls.def_property("input_port_notification_method",
         [](daq::IMultiReaderBuilder *object)
         {
@@ -240,5 +240,5 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
             const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
             objectPtr.setInputPortNotificationMethod(notificationMethod);
         },
-        "If \"None\", uses Scheduler for multi reader with signals, and keeps the mode of the input port");
+        "Gets the notification method of ports created/owned by the multi reader / Sets the notification method of ports created/owned by the multi reader");
 }

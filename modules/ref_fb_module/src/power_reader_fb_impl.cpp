@@ -14,6 +14,7 @@
 #include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/reader_config_ptr.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -194,7 +195,33 @@ void PowerReaderFbImpl::onDataReceived()
     }
 }
 
-RangePtr PowerReaderFbImpl::getValueRange(DataDescriptorPtr voltageDataDescriptor, DataDescriptorPtr currentDataDescriptor)
+void PowerReaderFbImpl::checkPortConnections() const
+{
+    for (const auto& port : reader.asPtr<IReaderConfig>().getInputPorts())
+    {
+        if (!port.getConnection().assigned())
+        {
+            setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Port {} is not connected!", port.getLocalId()));
+            return;
+        }
+    }
+    
+    setComponentStatus(ComponentStatus::Ok);
+}
+
+void PowerReaderFbImpl::onConnected(const InputPortPtr& inputPort)
+{
+    LOG_D("Power Reader FB: Input port {} connected", inputPort.getLocalId())
+    checkPortConnections();
+}
+
+void PowerReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
+{
+    LOG_D("Power Reader FB: Input port {} disconnected", inputPort.getLocalId())
+    checkPortConnections();
+}
+
+RangePtr PowerReaderFbImpl::getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor)
 {
     const auto voltageRange = voltageDataDescriptor.getValueRange();
     const auto currentRange = currentDataDescriptor.getValueRange();
@@ -279,6 +306,8 @@ void PowerReaderFbImpl::createInputPorts()
 {
     voltageInputPort = createAndAddInputPort("Voltage", PacketReadyNotification::Scheduler, nullptr, true);
     currentInputPort = createAndAddInputPort("Current", PacketReadyNotification::Scheduler, nullptr, true);
+    
+    setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Port {} is not connected!", voltageInputPort.getLocalId()));
 }
 
 void PowerReaderFbImpl::createReader()
@@ -297,6 +326,7 @@ void PowerReaderFbImpl::createReader()
         .setAllowDifferentSamplingRates(false)
         .build();
 
+    reader.setExternalListener(this->objPtr);
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
     reader.setOnDataAvailable([this, thisWeakRef = std::move(thisWeakRef)]
     {

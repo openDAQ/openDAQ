@@ -71,8 +71,12 @@ private:
     void createInputPorts();
     void createReader();
     void createSignals();
-    static RangePtr getValueRange(DataDescriptorPtr voltageDataDescriptor, DataDescriptorPtr currentDataDescriptor);
+    static RangePtr getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor);
     void onDataReceived();
+
+    void checkPortConnections() const;
+    void onConnected(const InputPortPtr& inputPort) override;
+    void onDisconnected(const InputPortPtr& inputPort) override;
 
     void configure(const DataDescriptorPtr& domainDescriptor,
                    const DataDescriptorPtr& voltageDescriptor,

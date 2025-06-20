@@ -192,12 +192,9 @@ public:
             callback = readCallback;
         }
 
-        ErrCode err;
         if (callback.assigned())
-            err = wrapHandler(callback);
+            OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
 
-        OPENDAQ_RETURN_IF_FAILED(err);
-            
         if (externalListener.assigned() && externalListener.getRef().assigned())
             return externalListener.getRef()->disconnected(port);
 

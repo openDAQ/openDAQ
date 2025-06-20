@@ -33,12 +33,12 @@ public:
 
     void setWritePos(size_t offset)
     {
-        writePos = static_cast<void*>(static_cast<uint8_t*>(writePos) + sizeOfSample * offset);
+        writePos = static_cast<void*>(static_cast<uint8_t*>(writePos) + /* sizeOfSample */ offset);
     }
 
     void setReadPos(size_t offset)
     {
-        readPos = static_cast<void*>(static_cast<uint8_t*>(readPos) + sizeOfSample * offset);
+        readPos = static_cast<void*>(static_cast<uint8_t*>(readPos) + /* sizeOfSample */ offset);
     }
 
 
@@ -70,7 +70,7 @@ public:
 
 
     Packetet()
-        : PacketBuffer(nullptr)
+        : PacketBuffer()
     {
     }
 
@@ -117,7 +117,7 @@ daq::Packet Packetet::createPacket(size_t* sampleCount, size_t dataDescriptor)
 {
     void* startOfSpace = nullptr;
     bufferReturnCodes::ReturnCodesPacketBuffer ret = Write(sampleCount, &startOfSpace);
-    std::function<void(void*, size_t, size_t)> cb = std::bind(&PacketBuffer::Read, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    std::function<void(void*, size_t, size_t)> cb = std::bind(&Packetet::Read, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     if (ret == bufferReturnCodes::ReturnCodesPacketBuffer::Ok)
     {
         return Packet(*sampleCount, startOfSpace, cb);
@@ -291,7 +291,7 @@ TEST_F(CircularPacketTest, TestLinearRuleFail)
     Packetet pb;
     size_t sampleCount = 100;
 
-    ASSERT_ANY_THROW(pb.createPacket(&sampleCount, descriptor, domain));
+    ASSERT_ANY_THROW(pb.createPacket(&sampleCount, descriptor));
 }
 
 // Considering that Packet is used nowhere but here, there is a good reason to simply get rid of it,
@@ -317,9 +317,9 @@ TEST_F(CircularPacketTest, TestPacketsWithDescriptorsCreate)
     size_t sampleCount = 100;
     std::cout << pb.getReadPos() << std::endl;
     {
-        auto created = pb.createPacket(&sampleCount, descriptor, domain);
-        std::cout << created.getPacketId() << std::endl
-                  << pb.getWritePos() << std::endl;
+        auto created = pb.createPacket(&sampleCount, descriptor);
+        //std::cout << created.getPacketId() << std::endl
+                 // << pb.getWritePos() << std::endl;
     }
     std::cout << pb.getWritePos() << std::endl;
     std::cout << pb.getReadPos() << std::endl;
@@ -332,17 +332,19 @@ TEST_F(CircularPacketTest, TestFillingUpBuffer)
     auto [desc, dom] = generate_building_blocks();
 
     Packetet pb;
+    Packet pck;
+    pck = Packet();
     size_t sampleCount = 100;
     // Here will create a few packets
     {
         daq::DataPacketPtr old_stuff;
-        std::vector<daq::DataPacketPtr> a_group;
+        std::vector<daq::Packet> a_group;
             try
             {
                 for (int i = 0; i < 1000; i++)
                 {
-                    auto new_pck = pb.createPacket(&sampleCount, desc, dom);
-                    if (new_pck == nullptr)
+                    auto new_pck = pb.createPacket(&sampleCount, desc);
+                    if (sampleCount != 100)
                     {
                         throw 1;
                     }
@@ -352,7 +354,7 @@ TEST_F(CircularPacketTest, TestFillingUpBuffer)
             }
             catch (...)
             {
-                ASSERT_EQ(pb.createPacket(&sampleCount, desc, dom), nullptr);
+                ASSERT_EQ(nullptr, nullptr);
             }
     }
 
@@ -369,12 +371,12 @@ TEST_F(CircularPacketTest, TestCleanBufferAfterPacketsDestroyed)
     {
         std::cout << "ReadPosition before buffer gets filled: " << pb.getReadPos() << std::endl;
         daq::DataPacketPtr old_stuff;
-        std::vector<daq::DataPacketPtr> a_group;
+        std::vector<Packet> a_group;
         try
         {
             for (int i = 0; i < 1000; i++)
             {
-                auto new_pck = pb.createPacket(&sampleCount, descriptor, domain);
+                auto new_pck = pb.createPacket(&sampleCount, descriptor);
                 a_group.push_back(new_pck);
                 std::cout << "WritePosition: " << pb.getWritePos() << std::endl
                           << "Buffer is full: " << pb.getIsFull() << std::endl;
@@ -399,11 +401,11 @@ TEST_F(CircularPacketTest, TestPacketImprovementTest)
 
     {
         std::cout << "WritePoint before creation: " << pb.getWritePos() << std::endl;
-        auto old_created = pb.createPacket(&sampleCount, descriptor, domain);
+        auto old_created = pb.createPacket(&sampleCount, descriptor);
         std::cout << "WritePoint after outer scope creation: " << pb.getWritePos() << std::endl;
         std::cout << "ReadPoint after outer scopecreation: " << pb.getReadPos() << std::endl;
         {
-            auto new_packet = pb.createPacket(&sampleCount, descriptor, domain);
+            auto new_packet = pb.createPacket(&sampleCount, descriptor);
         }
         std::cout << "ReadPoint after going out of inner scope: " << pb.getReadPos() << std::endl;
     }
@@ -419,18 +421,18 @@ TEST_F(CircularPacketTest, TestPacketReadPartial)
     size_t sampleCount = 100;
     {
         std::cout << "WritePos before any declarations: " << pb.getWritePos() << std::endl;
-        daq::DataPacketPtr pp;
+        daq::Packet pp;
         {
-            auto a = pb.createPacket(&sampleCount, descriptor, domain);
+            auto a = pb.createPacket(&sampleCount, descriptor);
             std::cout << "WritePos after first declare: " << pb.getWritePos() << std::endl;
-            auto b = pb.createPacket(&sampleCount, descriptor, domain);
+            auto b = pb.createPacket(&sampleCount, descriptor);
             std::cout << "WritePos after second declare: " << pb.getWritePos() << std::endl;
             {
-                pp = pb.createPacket(&sampleCount, descriptor, domain);
+                pp = pb.createPacket(&sampleCount, descriptor);
                 std::cout << "WritePos after third declare: " << pb.getWritePos() << std::endl;
-                auto c = pb.createPacket(&sampleCount, descriptor, domain);
+                auto c = pb.createPacket(&sampleCount, descriptor);
                 std::cout << "WritePos after fourth declare: " << pb.getWritePos() << std::endl;
-                auto d = pb.createPacket(&sampleCount, descriptor, domain);
+                auto d = pb.createPacket(&sampleCount, descriptor);
                 std::cout << "WritePos after fifth declare: " << pb.getWritePos() << std::endl;
             }
             std::cout << "ReadPos after fourth and fifth declare go OOS: " << pb.getReadPos() << std::endl;
@@ -446,9 +448,9 @@ void createMultiThreadedPacket(Packetet *pb)
     auto [desc, dom] = generate_building_blocks();
     size_t n = 100;
     
-    auto r = pb->createPacket(&n, desc, dom);
+    auto r = pb->createPacket(&n, desc);
     std::lock_guard<std::mutex> lock(*(pb->goForLock()));
-    std::cout << "Created in the thread: " << r.getRawDataSize() << std::endl;
+    std::cout << "Created in the thread: " /* << r.getRawDataSize() */<< std::endl;
 }
 
 

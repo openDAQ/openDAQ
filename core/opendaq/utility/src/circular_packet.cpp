@@ -58,6 +58,10 @@ PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
     readPos = &data;
 }
 
+PacketBuffer::PacketBuffer()
+{
+}
+
 
 bufferReturnCodes::ReturnCodesPacketBuffer PacketBuffer::Write(size_t* sampleCount, void** memPos)
 {
@@ -138,18 +142,21 @@ bufferReturnCodes::ReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOfD
             bool scenario = beginningOfDelegatedSpace < readPos;
             if (scenario)
                 oos_packets.push(
-                    std::make_pair(((uint8_t*) &data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) &data), sampleCount));
+                    std::make_pair(((uint8_t*) &data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) &data), sampleCount * rawSize));
 
-            oos_packets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount));
+            oos_packets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount * rawSize));
             return bufferReturnCodes::ReturnCodesPacketBuffer::Ok;
         }
         else
         {
             // Here we just add to sampleCount until we hit either writePos
             // or simulatedWritePos
+            sampleCount *= rawSize;
+            auto mm = static_cast<void*>(static_cast<uint8_t*>(beginningOfDelegatedSpace) + sampleCount);
+
             while (!oos_packets.empty())
             {
-                auto mm = static_cast<void*>(static_cast<uint8_t*>(beginningOfDelegatedSpace) + rawSize * sampleCount);
+                mm = static_cast<void*>(static_cast<uint8_t*>(beginningOfDelegatedSpace) + sampleCount);
                 if (oos_packets.top().first == mm)
                 {
                     sampleCount += oos_packets.top().second;
@@ -196,21 +203,22 @@ bufferReturnCodes::ReturnCodesPacketBuffer PacketBuffer::Read(void* beginningOfD
 
 size_t PacketBuffer::getAvailableSampleCount() const
 {
-    auto ff_g = (uint8_t*) &data + sizeOfMem * rawSampleSize;
+    auto ff_g = (uint8_t*) &data + sizeOfMem * rawSampleSize;    // All samples (wrong calculation (works only under the assumption that rawSampleSize does not change))
 
     if (writePos == readPos)
     {
         if (bIsFull)
-            return 0;
-        return (uint8_t*)&data - (uint8_t*)readPos;
+            return 0;                                           // Buffer is full
+        return (uint8_t*)&data - (uint8_t*)readPos;             // Rpos and Wpos are allined, but buffer is empty
+                                                                // this needs to check if the area b4 or after the allignment is bigger
     }
     else
     {
-        if (writePos > readPos)
-            return ff_g - (uint8_t*)writePos;
-        return (uint8_t*)readPos - (uint8_t*)writePos;
+        if (writePos > readPos)                                 // |_____Rpos_____Wpos|__this_space__|
+            return ff_g - (uint8_t*)writePos;                   // All minus the Wpos
+        return (uint8_t*)readPos - (uint8_t*)writePos;          // |_____Wpos|__this_space__|Rpos___|
     }
-    
+        
     // This is the recommended way of doing this from the code review     
     // return (((uint8_t*)data + rawSampleSize * sizeOfMem) - (uint8_t*)writePos);
 
@@ -305,4 +313,9 @@ void PacketBuffer::resize(const PacketBufferInit& instructions)
     bAdjustedSize = false;
     sizeAdjusted = 0;
 
+}
+
+bool PacketBuffer::isEmpty() const
+{
+    return ((readPos == writePos) && !bIsFull);
 }

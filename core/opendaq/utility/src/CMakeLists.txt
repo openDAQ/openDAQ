@@ -1,27 +1,27 @@
 set(BASE_NAME utility)
 
 function(rtgen_component_${BASE_NAME})
-    rtgen(SRC_packet_buffer packet_buffer.h
+    rtgen(SRC_PacketBuffer packet_buffer.h
     )
 
-    rtgen(SRC_packet_buffer_builder packet_buffer_builder.h
+    rtgen(SRC_PacketBufferBuilder packet_buffer_builder.h
     )
 
-    set(SRC_PublicHeader_Packet_Buffer_Generated
+    set(SRC_PublicHeader_PacketBuffer_Generated
 	${SRC_PacketBuffer_PublicHeaders}
 	${SRC_PacketBufferBuilder_PublicHeaders}
 	PARENT_SCOPE
     )
 
-    set(SRC_PrivateHeader_Packet_Buffer_Generated
-	${SRC_Packet_Buffer_PrivateHeaders}
-	${SRC_Packet_Buffer_Builder_PrivateHeaders}
+    set(SRC_PrivateHeader_PacketBuffer_Generated
+	${SRC_PacketBuffer_PrivateHeaders}
+	${SRC_PacketBufferBuilder_PrivateHeaders}
 	PARENT_SCOPE
     )
 
     set(SRC_Cpp_Packet_BufferGenerated
-	${SRC_Packet_Buffer_Cpp}
-	${SRC_Packet_Buffer_Builder_Cpp}
+	${SRC_PacketBuffer_Cpp}
+	${SRC_PacketBufferBuilder_Cpp}
 	PARENT_SCOPE
     )
 

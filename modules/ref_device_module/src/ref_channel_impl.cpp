@@ -57,7 +57,7 @@ void RefChannelImpl::packetBufferSetup()
 {
     std::cout << (globalSampleRate) << std::endl;
     if (bUseOfBuffer)
-        pb = std::make_unique<daq::PacketBuffer>((size_t) packetSize, (size_t)16384, nullptr);
+        pb = std::make_unique<daq::PacketBuffer>();
 }
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)

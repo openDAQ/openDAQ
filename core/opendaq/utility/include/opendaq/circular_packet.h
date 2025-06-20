@@ -78,6 +78,7 @@ class PacketBuffer
 public:
 
     PUBLIC_EXPORT PacketBuffer(const PacketBufferInit& instructions);
+    PUBLIC_EXPORT PacketBuffer();
 
     PUBLIC_EXPORT ~PacketBuffer();
 

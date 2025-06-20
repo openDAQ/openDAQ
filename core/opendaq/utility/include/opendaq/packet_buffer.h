@@ -17,9 +17,8 @@
 #pragma once
 #include <coretypes/function.h>
 #include <coretypes/listobject.h>
+#include <opendaq/opendaq.h>
 #include <coretypes/stringobject.h>
-//#include <opendaq/data_desctiptor_ptr.h>
-#include <opendaq/packet_buffer_builder.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,10 +26,10 @@ struct IPacketBufferBuilder;
 
 DECLARE_OPENDAQ_INTERFACE(IPacketBuffer, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC createPacket(SizeT SampleCount, IDataDescriptor* desc, IPacket* domainPacket, IPacket** packet) = 0;
+    virtual ErrCode INTERFACE_FUNC createPacket(SizeT SampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet) = 0;
     virtual ErrCode INTERFACE_FUNC getAvailableMemory(SizeT* count) = 0;
-    virtual ErrCode INTERFACE_FUNC getAvailableSampleCount(SizeT* count) = 0;
-    virtual ErrCode INTERFACE_FUNC resize(IPacketBufferBuilder* builder) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableSampleCount(IDataDescriptor* desc, SizeT* count) = 0;
+    virtual ErrCode INTERFACE_FUNC resize(SizeT sizeInBytes) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, PacketBuffer, IPacketBufferBuilder*, builder)

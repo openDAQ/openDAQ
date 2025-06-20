@@ -1,62 +1,53 @@
 #include <opendaq/packet_buffer_builder_impl.h>
+#include <opendaq/packet_buffer_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-PacketBufferBuilderImpl::PacketBufferBuilderImpl(SizeT sampleSize, SizeT sampleSizeInMilliseconds, ContextPtr* context)
-    : sampleSize(sampleSize)
-    , sizeInMilliseconds(sampleSizeInMilliseconds)
-    , context(*context)
+PacketBufferBuilderImpl::PacketBufferBuilderImpl()
+    : sampleCount(100)
+    , sampleSize(8)
+    , sizeInMilliseconds(10)
 {
 }
 
-ErrCode PacketBufferBuilderImpl::getSampleSize(SizeT* sampleSize)
+ErrCode PacketBufferBuilderImpl::getContext(IContext** context)
 {
+    *context = this->context.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketBufferBuilderImpl::setSampleSize(SizeT sampleSize)
+ErrCode PacketBufferBuilderImpl::setContext(IContext* context)
 {
+    OPENDAQ_PARAM_NOT_NULL(context);
+    this->context = context;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketBufferBuilderImpl::getSampleSizeInMilliseconds(SizeT* sizeInMilliseconds)
+ErrCode PacketBufferBuilderImpl::getSizeInBytes(SizeT* sampleCount)
 {
+    *sampleCount = this->sampleCount;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketBufferBuilderImpl::setSampleSizeInMilliseconds(SizeT sizeInMilliseconds)
+ErrCode PacketBufferBuilderImpl::setSizeInBytes(SizeT sampleCount)
 {
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PacketBufferBuilderImpl::getContext(ContextPtr** context)
-{
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PacketBufferBuilderImpl::setContext(ContextPtr* context)
-{
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PacketBufferBuilderImpl::getDescription(DataDescriptorPtr** descriptor)
-{
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PacketBufferBuilderImpl::setDescription(DataDescriptorPtr* descriptor)
-{
+    this->sampleCount = sampleCount;
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode PacketBufferBuilderImpl::build(IPacketBuffer** buffer)
 {
-    return OPENDAQ_SUCCESS;
+    OPENDAQ_PARAM_NOT_NULL(buffer);
+    const auto builder = this->borrowPtr<PacketBufferBuilderPtr>();
+
+    return daqTry(
+        [&]()
+        {
+            *buffer = PacketBuffer(builder).detach();
+            return OPENDAQ_SUCCESS;
+        });
 }
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, PacketBufferBuilder, IPacketBufferBuilder*)
-
-
-
+OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PacketBufferBuilder)
 
 END_NAMESPACE_OPENDAQ

@@ -219,7 +219,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON
+            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             apt_packages: g++-12
             cc: gcc-12
             cxx: g++-12
@@ -244,6 +244,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             apt_packages: clang++-14
             cc: clang-14
             cxx: clang++-14
@@ -260,6 +261,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev
             cc: gcc
             cxx: g++
@@ -460,6 +462,7 @@ jobs:
             image: quay.io/pypa/manylinux_2_28_x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             additional_packages:
             cc: gcc
             cxx: g++
@@ -501,7 +504,7 @@ jobs:
           last_version="3.7"
           for version in ${{ env.python_versions }}; do
               echo "Building for Python $version"
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ..
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate

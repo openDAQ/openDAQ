@@ -8,11 +8,13 @@ set(TEST_HEADERS
 )
 
 set(TEST_SOURCES
+    test_app.cpp
+    test_ids_parser.cpp
+    test_mem_pool_allocator.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                        SOURCES
-                           test_app.cpp
                            ${TEST_SOURCES}
                            ${TEST_HEADERS}
 )
@@ -41,11 +43,6 @@ opendaq_prepare_internal_runner(TEST_APP_INTERNAL FOR ${MODULE_NAME}
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
-)
-
-add_test(NAME ${TEST_APP_INTERNAL}
-        COMMAND $<TARGET_FILE_NAME:${TEST_APP_INTERNAL}>
-        WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP_INTERNAL}>
 )
 
 if (OPENDAQ_ENABLE_COVERAGE)

@@ -60,7 +60,7 @@ ErrCode CustomProcedureImpl<F>::toString(CharPtr* str)
 }
 
 template <typename F>
-ErrCode CustomProcedureImpl<F>::dispatch(IBaseObject* params)
+ErrCode CustomProcedureImpl<F>::dispatch(daq::IBaseObject* params)
 {
     if constexpr (!std::is_same_v<F, std::nullptr_t>)
     {

@@ -46,6 +46,7 @@ enum class CoreEventId : EnumType
     DeviceLockStateChanged = 160,
     ConnectionStatusChanged = 170,
     DeviceOperationModeChanged = 180,
+    PropertyOrderChanged = 190,
 };
 
 /*!@}*/

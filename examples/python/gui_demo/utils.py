@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+import enum
 from tkinter import ttk
 from tkinter import messagebox
 from datetime import datetime, timedelta
@@ -15,6 +16,13 @@ yes_no_inv = {
     'yes': True
 }
 
+class StatusColor(enum.Enum):
+    OK = 'olive drab'
+    WARNING = 'orange'
+    ERROR = 'red'
+    NOT_SET = 'light blue'
+    def __str__(self):
+        return self.value
 
 def find_component(id, parent=None, convert_id=True):
     if convert_id:

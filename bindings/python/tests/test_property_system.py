@@ -602,7 +602,47 @@ class TestPropertySystem(opendaq_test.TestCase):
         property_object.get_on_property_value_write('property').clear()
         self.assertEqual(property_object.get_on_property_value_write(
             'property').subscriber_count, 0)
+        
+    def test_complex_events(self):
+        property_object = opendaq.PropertyObject()
+        property_object.add_property(opendaq.StringProperty('property1', 'defaultValue', True))
+        property_object.add_property(opendaq.StringProperty('property2', 'defaultValue', True))
+        
+        def on_write_handler(sender, args):
+            property_owner = opendaq.IPropertyObject.cast_from(sender)
+            property_args = opendaq.IPropertyValueEventArgs.cast_from(args)
+            property_owner.set_property_value('property2', property_args.value)
 
+        on_write_function = opendaq.EventHandler(on_write_handler)
+        property_object.get_on_property_value_write('property1') + on_write_function
+        
+        property_object.set_property_value('property1', 'newValue')
+        
+        self.assertEqual(property_object.get_property_value('property1'), 'newValue')
+        self.assertEqual(property_object.get_property_value('property2'), 'newValue')  
+
+    def test_complex_queue_events(self):
+        property_object = opendaq.PropertyObject()
+        property_object.add_property(opendaq.StringProperty('property1', 'defaultValue', True))
+        property_object.add_property(opendaq.StringProperty('property2', 'defaultValue', True))
+        
+        def on_write_handler(sender, args):
+            property_args = opendaq.IPropertyValueEventArgs.cast_from(args)
+            # will not make affect to the property1, 
+            # as set_property_value has finished before the event is processed
+            # but will change property2
+            property_args.value = 'newValue2'  
+            sender.set_property_value('property2', property_args.value)
+
+        on_write_function = opendaq.QueuedEventHandler(on_write_handler)
+        property_object.get_on_property_value_write('property1') + on_write_function
+        
+        property_object.set_property_value('property1', 'newValue')
+        
+        opendaq.event_queue.process_events()
+        
+        self.assertEqual(property_object.get_property_value('property1'), 'newValue')
+        self.assertEqual(property_object.get_property_value('property2'), 'newValue2')
 
 if __name__ == '__main__':
     unittest.main()

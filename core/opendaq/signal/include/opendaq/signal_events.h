@@ -35,6 +35,9 @@ DECLARE_OPENDAQ_INTERFACE(ISignalEvents, IBaseObject)
     /*!
      * @brief Notifies the signal that it has been connected to an input port forming a new connection.
      * @param connection The formed connection.
+     *
+     * The data descriptor of the signal is enqueued on the connection, triggering the `onPacketReceived` 
+     * callback on the same thread.
      */
     virtual ErrCode INTERFACE_FUNC listenerConnected(IConnection* connection) = 0;
 
@@ -57,6 +60,15 @@ DECLARE_OPENDAQ_INTERFACE(ISignalEvents, IBaseObject)
      * @param signal The callee signal on which the domain signal reference has been removed.
      */
     virtual ErrCode INTERFACE_FUNC domainSignalReferenceRemoved(ISignal* signal) = 0;
+
+    /*!
+     * @brief Notifies the signal that it has been connected to an input port forming a new connection.
+     * @param connection The formed connection.
+     *
+     * The data descriptor of the signal is enqueued on the connection, scheduling the `onPacketReceived` 
+     * callback.
+     */
+    virtual ErrCode INTERFACE_FUNC listenerConnectedScheduled(IConnection* connection) = 0;
 };
 /*!@}*/
 

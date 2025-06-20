@@ -8,14 +8,21 @@
 
 ## Python
 
+- [#841](https://github.com/openDAQ/openDAQ/pull/841) Fix Python GUI app crash for Python versions below 3.11 by mimicking `enum.StrEnum` functionality via `enum.Enum`.
+- [#811](https://github.com/openDAQ/openDAQ/pull/811) Add color coding and message display for Component statuses in Python GUI demo application.
 - [#807](https://github.com/openDAQ/openDAQ/pull/807) Enable Device operation mode switching in Python GUI Demo Application.
 
+
 ## Bug fixes
+
+- [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active
 - [#808](https://github.com/openDAQ/openDAQ/pull/808) Fix examples CMake when downloaded as solo archive via https://docs.opendaq.com/ or https://docs-dev.opendaq.com/ (when not part of whole openDAQ project).
 - [#781](https://github.com/openDAQ/openDAQ/pull/781) Fix how Lists are interpreted for Function Property in Python.
 
 ## Misc
 
+- [#835](https://github.com/openDAQ/openDAQ/pull/835) Removes the opendaq_dev target.
+- [#829](https://github.com/openDAQ/openDAQ/pull/829) Add search functionality to Antora documentation to significantly improve user experience. 
 
 
 ## Required application changes

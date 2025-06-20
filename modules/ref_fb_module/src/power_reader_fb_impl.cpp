@@ -167,6 +167,11 @@ void PowerReaderFbImpl::onDataReceived()
                 configure(domainDescriptor, voltageDescriptor, currentDescriptor);
         }
     }
+
+    if (!status.getValid())
+    {
+        reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+    }
 }
 
 RangePtr PowerReaderFbImpl::getValueRange(DataDescriptorPtr voltageDataDescriptor, DataDescriptorPtr currentDataDescriptor)
@@ -241,6 +246,7 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
 
         setComponentStatus(ComponentStatus::Ok);
+        reader.setActive(True);
     }
     catch (const std::exception& e)
     {
@@ -272,11 +278,11 @@ void PowerReaderFbImpl::createReader()
 
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
     reader.setOnDataAvailable([this, thisWeakRef = std::move(thisWeakRef)]
-        {
-            const auto thisFb = thisWeakRef.getRef();
-            if (thisFb.assigned())
-                this->onDataReceived();
-        });
+    {
+        const auto thisFb = thisWeakRef.getRef();
+        if (thisFb.assigned())
+            this->onDataReceived();
+    });
 }
 
 void PowerReaderFbImpl::createSignals()

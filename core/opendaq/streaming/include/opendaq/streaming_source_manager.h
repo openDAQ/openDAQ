@@ -231,13 +231,13 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
             {
                 LOG_D("Signal \"{}\" added to streaming \"{}\"", signal.getGlobalId(), streaming.getConnectionString());
             }
-            else if (errCode != OPENDAQ_ERR_DUPLICATEITEM)
+            else if (errCode == OPENDAQ_ERR_DUPLICATEITEM)
             {
-                checkErrorInfo(errCode);
+                daqClearErrorInfo(errCode);
             }
             else
             {
-                daqClearErrorInfo();
+                checkErrorInfo(errCode);
             }
         }
         auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();

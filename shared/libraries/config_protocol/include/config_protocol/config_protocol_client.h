@@ -356,11 +356,9 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
             const ErrCode errCode = localTypeManager->addType(type);
             if (OPENDAQ_FAILED(errCode))
             {
-                ObjectPtr<IErrorInfo> errorInfo;
-                daqGetErrorInfo(&errorInfo);
                 StringPtr message;
-                if (errorInfo.assigned())
-                    errorInfo->getMessage(&message);
+                daqGetErrorInfoMessage(&message);
+                daqClearErrorInfo(errCode);
 
                 const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
                 LOG_W("Couldn't add type {} to local type manager: {}", type.getName(), message.assigned() ? message: "Unknown error");

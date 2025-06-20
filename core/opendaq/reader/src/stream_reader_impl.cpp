@@ -476,7 +476,7 @@ ErrCode StreamReaderImpl::readPacketData()
             {
                 return errCode;
             }
-            daqClearErrorInfo();
+            daqClearErrorInfo(errCode);
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         }
 
@@ -561,7 +561,7 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
                 ErrCode errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
                 if (OPENDAQ_FAILED(errCode))
                 {
-                    daqClearErrorInfo();
+                    daqClearErrorInfo(errCode);
                     invalid = true;
                 }
             } 

@@ -141,7 +141,6 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
         return prop->getValue(value);
     }
 
-    StringPtr lastProccessDescription = "";
     ErrCode errCode = daqTry([&]
     {
         if (const auto& introIt = introspectionVariableIdMap.find(propertyNamePtr); introIt != introspectionVariableIdMap.cend())
@@ -159,7 +158,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     });
     if (OPENDAQ_FAILED(errCode))
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(errCode);
         LOG_W("Failed to get value for property \"{}\" on OpcUA client property object", propertyNamePtr);
     }
     return OPENDAQ_SUCCESS;

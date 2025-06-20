@@ -111,12 +111,12 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
 {
     ListPtr<ISignal> signalsPtr;
     ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetRelatedSignals, signalsPtr);
-    *signals = signalsPtr.detach();
     if (OPENDAQ_FAILED(errCode))
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(errCode);
         LOG_W("Failed to get related signals on OpcUA client signal \"{}\"", this->globalId);
     }
+    *signals = signalsPtr.detach();
     return OPENDAQ_SUCCESS;
 }
 

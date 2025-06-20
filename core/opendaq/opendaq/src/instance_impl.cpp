@@ -576,15 +576,10 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
     {
         auto serializer = JsonSerializer(True);
 
-        auto errorGuard = DAQ_ERROR_GUARD();
-        checkErrorInfo(this->serializeForUpdate(serializer));
-        errorGuard.release();
+        const ErrCode errCode = this->serializeForUpdate(serializer);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        auto str = serializer.getOutput();
-
-        *configuration = str.detach();
-
-        return OPENDAQ_SUCCESS;
+        return serializer->getOutput(configuration);
     });
 }
 

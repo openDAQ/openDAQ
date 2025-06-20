@@ -1167,7 +1167,7 @@ ComponentPtr ComponentImpl<Intf, Intfs...>::findComponentInternal(const Componen
     }
     else if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(errCode);
     }
     else
         checkErrorInfo(errCode);

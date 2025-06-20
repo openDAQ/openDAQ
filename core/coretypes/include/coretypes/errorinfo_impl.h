@@ -21,7 +21,6 @@
 #include <coretypes/listobject.h>
 #include <coretypes/intfs.h>
 #include <list>
-#include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -39,8 +38,10 @@ public:
     ErrCode INTERFACE_FUNC getFileName(CharPtr* fileName) override;
     ErrCode INTERFACE_FUNC setFileLine(Int line) override;
     ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
+    ErrCode INTERFACE_FUNC setErrorCode(ErrCode errorCode) override;
+    ErrCode INTERFACE_FUNC getErrorCode(ErrCode* errorCode) override;
 
-    ErrCode INTERFACE_FUNC setCausedByPrevious(Bool caused) override;
+    ErrCode INTERFACE_FUNC setCausedByPrevious(ErrCode prevErrCode) override;
     ErrCode INTERFACE_FUNC getCausedByPrevious(Bool* caused) override;
 
 
@@ -55,8 +56,10 @@ private:
     IString* source;
     CharPtr fileName;
     Int fileLine;
+    ErrCode errorCode;
+    ErrCode prevErrCode;
+
     Bool frozen;
-    Bool causedByPrevious;
 };
 
 class ErrorInfoWrapper
@@ -81,8 +84,9 @@ public:
     ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
 
     void setErrorInfo(IErrorInfo* errorInfo);
+    void extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode);
     IErrorInfo* getErrorInfo() const;
-    void clearLastErrorInfo();
+    void clearLastErrorInfo(ErrCode errCode);
     bool empty() const;
 
 private:
@@ -100,6 +104,8 @@ public:
     ~ErrorInfoHolder();
 
     void setErrorInfo(IErrorInfo* errorInfo);
+    void extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode);
+    void clearErrorInfo(ErrCode errorCode);
     IErrorInfo* getErrorInfo() const;
 
     IList* getErrorInfoList();

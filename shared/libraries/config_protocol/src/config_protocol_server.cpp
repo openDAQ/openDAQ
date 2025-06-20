@@ -40,7 +40,7 @@ ComponentPtr ComponentFinderRootDevice::findComponentInternal(const ComponentPtr
     }
     else if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(errCode);
     }
     else
         checkErrorInfo(errCode);

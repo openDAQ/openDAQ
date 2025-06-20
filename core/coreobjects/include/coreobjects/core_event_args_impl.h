@@ -171,14 +171,9 @@ inline ErrCode CoreEventArgsImpl::Deserialize(ISerializedObject* ser, IBaseObjec
 
     StringPtr name;
     errCode = ser->readString("name"_daq, &name);
+    OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
-    {
-        daqClearErrorInfo();
         name = core_event_args_impl::getCoreEventName((CoreEventId) id);
-        errCode = OPENDAQ_SUCCESS;
-    }
-
-    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr params;
     errCode = ser->readObject("params"_daq, context, factoryCallback, &params);

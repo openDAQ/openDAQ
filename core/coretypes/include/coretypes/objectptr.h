@@ -757,7 +757,7 @@ static T baseObjectToValue(IBaseObject* obj)
     ErrCode err = obj->borrowInterface(Intf::Id, reinterpret_cast<void**>(&typeObj));
     if (OPENDAQ_FAILED(err))
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(err);
         value = getValueFromConvertible<T>(obj);
     }
     else

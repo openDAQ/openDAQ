@@ -600,15 +600,11 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         PropertyObjectPtr addDeviceConfig;
         const bool inputIsDefaultAddDeviceConfig = isDefaultAddDeviceConfig(inputConfig);
 
-        {
-            auto errorGuard = DAQ_ERROR_GUARD();
-            if (inputIsDefaultAddDeviceConfig)
-                checkErrorInfo(inputConfig.asPtr<IPropertyObjectInternal>()->clone(&addDeviceConfig));
-            else
-                checkErrorInfo(createDefaultAddDeviceConfig(&addDeviceConfig));
-        }
-
-
+        if (inputIsDefaultAddDeviceConfig)
+            checkErrorInfo(inputConfig.asPtr<IPropertyObjectInternal>(true)->clone(&addDeviceConfig));
+        else
+            checkErrorInfo(createDefaultAddDeviceConfig(&addDeviceConfig));
+        
         PropertyObjectPtr generalConfig =
             inputIsDefaultAddDeviceConfig
                 ? addDeviceConfig.getPropertyValue("General").asPtr<IPropertyObject>()
@@ -650,10 +646,8 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
-            auto errorGuard = DAQ_ERROR_GUARD();
             const auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
             checkErrorInfo(err);
-            errorGuard.release();
 
             const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned())
@@ -1118,11 +1112,11 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
     const std::string prefix = getPrefixFromConnectionString(connectionString);
 
     DictPtr<IString, IDeviceType> types;
-    auto errorGuard = DAQ_ERROR_GUARD();
     const ErrCode err = module->getAvailableDeviceTypes(&types);
-    if (err != OPENDAQ_ERR_NOTIMPLEMENTED && OPENDAQ_FAILED(err))
+    if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
+        daqClearErrorInfo(err);
+    else
         checkErrorInfo(err);
-    errorGuard.release();
 
     if (!types.assigned())
         return nullptr;
@@ -1157,10 +1151,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     StreamingPtr streaming = nullptr;
     PropertyObjectPtr inputConfig;
     if (config.assigned())
-    {
-        auto errorGuard = DAQ_ERROR_GUARD();
         checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
-    }
 
     for (const auto& library : libraries)
     {

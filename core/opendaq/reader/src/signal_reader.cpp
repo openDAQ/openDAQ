@@ -570,7 +570,7 @@ ErrCode SignalReader::readPacketData()
             {
                 return errCode;
             }
-            daqClearErrorInfo();
+            daqClearErrorInfo(errCode);
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         }
 

@@ -6,7 +6,6 @@
 
         $ReturnTypeIntf$ $ReturnArgName$;
 
-        auto errorGuard = DAQ_ERROR_GUARD();
         auto errCode = this->object->$NameInInterface$($ArgumentNames$);
         daq::checkErrorInfo(errCode);
 

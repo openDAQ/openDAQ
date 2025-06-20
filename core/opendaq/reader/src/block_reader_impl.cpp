@@ -254,7 +254,7 @@ ErrCode BlockReaderImpl::readPacketData()
             {
                 return errCode;
             }
-            daqClearErrorInfo();
+            daqClearErrorInfo(errCode);
             errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
         }
 
@@ -366,7 +366,7 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
             ErrCode errCode = readPacketData();
             if (OPENDAQ_FAILED(errCode))
             {
-                daqClearErrorInfo();
+                daqClearErrorInfo(errCode);
                 auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
                 return BlockReaderStatus(nullptr, true, offset, writtenSamplesCount);
             }

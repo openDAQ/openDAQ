@@ -76,13 +76,11 @@ public:
     template <typename V, std::enable_if_t<std::is_convertible_v<V, TValuePtr>, int> = 0>
     ListObjectPtr(const std::vector<V>& vector)
     {
-        ErrCode err = createListWithElementType(&this->object, TValuePtr::DeclaredInterface::Id);
+        const ErrCode err = createListWithElementType(&this->object, TValuePtr::DeclaredInterface::Id);
         checkErrorInfo(err);
 
         for (auto& element : vector)
-        {
             this->pushBack(element);
-        }
     }
 
     template <
@@ -95,38 +93,32 @@ public:
     >
     ListObjectPtr(IteratorBeg first, IteratorEnd last)
     {
-        ErrCode err = createListWithElementType(&this->object, TValuePtr::DeclaredInterface::Id);
+        const ErrCode err = createListWithElementType(&this->object, TValuePtr::DeclaredInterface::Id);
         checkErrorInfo(err);
 
         for (; first != last; ++first)
-        {
             this->pushBack(*first);
-        }
     }
 
     template <typename V, std::enable_if_t<std::is_convertible_v<V, TValuePtr>, int> = 0>
     ListObjectPtr(const std::initializer_list<V>& list)
     {
-        ErrCode err = createListWithElementType(&this->object, TValuePtr::DeclaredInterface::Id);
+        const ErrCode err = createListWithElementType(&this->object, TValuePtr::DeclaredInterface::Id);
         checkErrorInfo(err);
 
         for (auto& element : list)
-        {
             this->pushBack(element);
-        }
     }
 
     template <typename V, std::enable_if_t<std::is_convertible_v<V, TValuePtr>, int> = 0>
     static ListObjectPtr FromVector(const std::vector<V>& vector)
     {
         ListObjectPtr ptr;
-        ErrCode err = createListWithElementType(&ptr, TValuePtr::DeclaredInterface::Id);
+        const ErrCode err = createListWithElementType(&ptr, TValuePtr::DeclaredInterface::Id);
         checkErrorInfo(err);
 
         for (auto& element : vector)
-        {
             ptr.pushBack(element);
-        }
 
         return ptr;
     }
@@ -158,7 +150,7 @@ public:
         ListObjectPtr<T, V, typename InterfaceToSmartPtr<V>::SmartPtr> objPtr;
 
         T* intf;
-        auto res = obj->borrowInterface(T::Id, reinterpret_cast<void**>(&intf));
+        const ErrCode res = obj->borrowInterface(T::Id, reinterpret_cast<void**>(&intf));
         checkErrorInfo(res);
 
         objPtr.object = intf;
@@ -303,8 +295,7 @@ V ListObjectPtr<T, U, V>::getItemAt(size_t index) const
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IBaseObject* obj;
-    ErrCode errCode = this->object->getItemAt(index, &obj);
-    checkErrorInfo(errCode);
+    checkErrorInfo(this->object->getItemAt(index, &obj));
 
     return V(std::move(obj));
 }
@@ -344,8 +335,7 @@ void ListObjectPtr<T, U, V>::setItemAt(size_t index, const V& obj)
     if (!ObjectPtr<T>::object)
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
-    ErrCode errCode = this->object->setItemAt(index, obj);
-    checkErrorInfo(errCode);
+    checkErrorInfo(this->object->setItemAt(index, obj));
 }
 
 template <class T, class U, class V>
@@ -406,8 +396,7 @@ V ListObjectPtr<T, U, V>::popFront()
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IBaseObject* obj;
-    ErrCode errCode = this->object->popFront(&obj);
-    checkErrorInfo(errCode);
+    checkErrorInfo(this->object->popFront(&obj));
 
     return V(std::move(obj));
 }
@@ -419,8 +408,7 @@ V ListObjectPtr<T, U, V>::popBack()
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IBaseObject* obj;
-    ErrCode errCode = this->object->popBack(&obj);
-    checkErrorInfo(errCode);
+    checkErrorInfo(this->object->popBack(&obj));
 
     return V(std::move(obj));
 }
@@ -431,8 +419,7 @@ void ListObjectPtr<T, U, V>::insertAt(size_t index, const V& obj)
     if (!ObjectPtr<T>::object)
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
-    ErrCode errCode = this->object->insertAt(index, obj);
-    checkErrorInfo(errCode);
+    checkErrorInfo(this->object->insertAt(index, obj));
 }
 
 template <class T, class U, class V>
@@ -442,8 +429,7 @@ V ListObjectPtr<T, U, V>::removeAt(size_t index)
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     IBaseObject* obj;
-    ErrCode errCode = this->object->removeAt(index, &obj);
-    checkErrorInfo(errCode);
+    checkErrorInfo(this->object->removeAt(index, &obj));
 
     return V(std::move(obj));
 }
@@ -454,8 +440,7 @@ void ListObjectPtr<T, U, V>::deleteAt(size_t index)
     if (!ObjectPtr<T>::object)
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
-    ErrCode errCode = this->object->deleteAt(index);
-    checkErrorInfo(errCode);
+    checkErrorInfo(this->object->deleteAt(index));
 }
 
 template <class T, class U, class V>
@@ -513,10 +498,7 @@ IntfID ListObjectPtr<T, TValueInterface, TValuePtr>::getElementInterfaceId() con
 
     IntfID id{};
     if (elementType.assigned())
-    {
-        ErrCode errCode = elementType->getElementInterfaceId(&id);
-        checkErrorInfo(errCode);
-    }
+        checkErrorInfo(elementType->getElementInterfaceId(&id));
 
     return id;
 }

@@ -770,7 +770,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     ErrCode errCode = readLocalValue(name, oldValue);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(errCode);
         oldValue = defaultValue;
     }
     errCode = OPENDAQ_SUCCESS;
@@ -1394,7 +1394,7 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUnbou
     const auto errCode = objectClass->getProperty(name, &property);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        this->clearErrorInfo();
+        daqClearErrorInfo(errCode);
         return nullptr;
     }
 
@@ -1652,14 +1652,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
     OPENDAQ_RETURN_IF_FAILED_EXCEPT(res, OPENDAQ_ERR_NOTFOUND);
     if (res == OPENDAQ_ERR_NOTFOUND)
     {
-        this->clearErrorInfo();
+        daqClearErrorInfo(res);
         const auto propInternal = property.asPtr<IPropertyInternal>();
         res = propInternal->getDefaultValueNoLock(&value);
 
         if (OPENDAQ_FAILED(res) || !value.assigned())
         {
             value = nullptr;
-            daqClearErrorInfo();
+            daqClearErrorInfo(res);
             return OPENDAQ_SUCCESS;
         }
 
@@ -1758,7 +1758,12 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
             {
                 BaseObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
-                if (OPENDAQ_FAILED(err) || !obj.assigned())
+                if (OPENDAQ_FAILED(err))
+                {
+                    daqClearErrorInfo(err);
+                    continue;
+                }
+                if (!obj.assigned())
                     continue;
 
                 this->propValues.insert(std::make_pair(val.first, obj));
@@ -1770,7 +1775,12 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
             {
                 PropertyObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
-                if (OPENDAQ_FAILED(err) || !obj.assigned())
+                if (OPENDAQ_FAILED(err))
+                {
+                    daqClearErrorInfo(err);
+                    continue;
+                }
+                if (!obj.assigned())
                     continue;
 
                 auto it = this->propValues.find(val.first);
@@ -2876,7 +2886,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            daqClearErrorInfo();
+            daqClearErrorInfo(errCode);
             return OPENDAQ_SUCCESS;
         }
 

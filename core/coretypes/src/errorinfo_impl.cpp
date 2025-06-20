@@ -57,17 +57,27 @@ ErrorInfoHolder::ContainerT* ErrorInfoHolder::getOrCreateList()
 
 void ErrorInfoHolder::setErrorInfo(IErrorInfo* errorInfo)
 {
-    if (!errorInfo && !errorScopeList)
-        return;
-    getOrCreateList()->back()->setErrorInfo(errorInfo);
+    if (errorInfo)
+        getOrCreateList()->back()->setErrorInfo(errorInfo);
+}
+
+void ErrorInfoHolder::extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode)
+{
+    if (errorInfo)
+        getOrCreateList()->back()->extendErrorInfo(errorInfo, prevErrCode);
+}
+
+void ErrorInfoHolder::clearErrorInfo(ErrCode errorCode)
+{
+    if (errorScopeList)
+        errorScopeList->back()->clearLastErrorInfo(errorCode);
 }
 
 IErrorInfo* ErrorInfoHolder::getErrorInfo() const
 {
-    if (!errorScopeList)
-        return nullptr;
-
-    return errorScopeList->back()->getErrorInfo();
+    if (errorScopeList)
+        return errorScopeList->back()->getErrorInfo();
+    return nullptr;
 }
 
 IList* ErrorInfoHolder::getErrorInfoList()
@@ -164,12 +174,8 @@ ErrCode ErrorGuardImpl::getErrorInfos(IList** errorInfos)
         return errCode;
 
     for (const auto& errorInfo : errorInfoList)
-    {
-        IBaseObject* errorInfoObject = nullptr;
-        errorInfo.borrow()->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(&errorInfoObject));
-        if (errorInfoObject != nullptr)
-            list->moveBack(errorInfoObject);
-    }
+        list->pushBack(errorInfo.borrow());
+
     *errorInfos = list;
     return OPENDAQ_SUCCESS;
 }
@@ -214,20 +220,41 @@ void ErrorGuardImpl::setErrorInfo(IErrorInfo* errorInfo)
 {
     if (errorInfo)
         errorInfoList.emplace_back(errorInfo);
-    else
-        clearLastErrorInfo();
+}
+
+void ErrorGuardImpl::extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode)
+{
+    if (errorInfo == nullptr)
+        return;
+
+    if (!errorInfoList.empty())
+    {
+        ErrCode prevErrorInfoCode;
+        errorInfoList.back().borrow()->getErrorCode(&prevErrorInfoCode);
+        if (prevErrorInfoCode == prevErrCode)
+            errorInfo->setCausedByPrevious(prevErrCode);
+    }
+
+    errorInfoList.emplace_back(errorInfo);
 }
 
 IErrorInfo* ErrorGuardImpl::getErrorInfo() const
 {
-    if (errorInfoList.empty())
-        return nullptr;
+    if (!errorInfoList.empty())
+        return errorInfoList.back().get();
 
-    return errorInfoList.back().get();
+   return nullptr;
 }
 
-void ErrorGuardImpl::clearLastErrorInfo()
+void ErrorGuardImpl::clearLastErrorInfo(ErrCode errCode)
 {
+    if (errCode != OPENDAQ_SUCCESS && !errorInfoList.empty())
+    {
+        ErrCode prevErrorInfoCode;
+        errorInfoList.back().borrow()->getErrorCode(&prevErrorInfoCode);
+        if (errCode != prevErrorInfoCode)
+            return;
+    }
     while (!errorInfoList.empty())
     {
         Bool causedByPrevious = False;
@@ -239,7 +266,7 @@ void ErrorGuardImpl::clearLastErrorInfo()
     }
 }
 
-bool ErrorGuardImpl::empty() const
+inline bool ErrorGuardImpl::empty() const
 {
     return errorInfoList.empty();
 }
@@ -252,7 +279,7 @@ ErrorInfoImpl::ErrorInfoImpl()
     , fileName(nullptr)
     , fileLine(-1)
     , frozen(False)
-    , causedByPrevious(False)
+    , prevErrCode(OPENDAQ_SUCCESS)
 {
 }
 
@@ -267,6 +294,18 @@ ErrorInfoImpl::~ErrorInfoImpl()
     }
 }
 
+ErrCode ErrorInfoImpl::setMessage(IString* message)
+{
+    if (frozen)
+        return OPENDAQ_ERR_FROZEN;
+
+    releaseRefIfNotNull(this->message);
+    this->message = message;
+    addRefIfNotNull(this->message);
+
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode ErrorInfoImpl::getMessage(IString** message)
 {
     if (message == nullptr)
@@ -278,14 +317,14 @@ ErrCode ErrorInfoImpl::getMessage(IString** message)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ErrorInfoImpl::setMessage(IString* message)
+ErrCode ErrorInfoImpl::setSource(IString* source)
 {
     if (frozen)
         return OPENDAQ_ERR_FROZEN;
 
-    releaseRefIfNotNull(this->message);
-    this->message = message;
-    addRefIfNotNull(this->message);
+    releaseRefIfNotNull(this->source);
+    this->source = source;
+    addRefIfNotNull(this->source);
 
     return OPENDAQ_SUCCESS;
 }
@@ -341,24 +380,30 @@ ErrCode ErrorInfoImpl::getFileLine(Int* line)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ErrorInfoImpl::setSource(IString* source)
+ErrCode ErrorInfoImpl::setErrorCode(ErrCode errorCode)
 {
     if (frozen)
         return OPENDAQ_ERR_FROZEN;
 
-    releaseRefIfNotNull(this->source);
-    this->source = source;
-    addRefIfNotNull(this->source);
-
+    this->errorCode = errorCode;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ErrorInfoImpl::setCausedByPrevious(Bool caused)
+ErrCode ErrorInfoImpl::getErrorCode(ErrCode* errorCode)
+{
+    if (errorCode == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
+
+    *errorCode = this->errorCode;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ErrorInfoImpl::setCausedByPrevious(ErrCode prevErrCode)
 {
     if (frozen)
         return OPENDAQ_ERR_FROZEN;
 
-    this->causedByPrevious = caused;
+    this->prevErrCode = prevErrCode;
     return OPENDAQ_SUCCESS;
 }
 
@@ -367,7 +412,7 @@ ErrCode ErrorInfoImpl::getCausedByPrevious(Bool* caused)
     if (caused == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *caused = this->causedByPrevious;
+    *caused = this->prevErrCode != OPENDAQ_SUCCESS;
     return OPENDAQ_SUCCESS;
 }
 
@@ -378,7 +423,7 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
 
     std::ostringstream ss;
 
-    if (this->causedByPrevious)
+    if (this->prevErrCode != OPENDAQ_SUCCESS)
         ss << " - Cause by: ";
 
     if (this->message)
@@ -388,6 +433,10 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
 
         if (msgCharPtr != nullptr)
             ss << msgCharPtr << " ";
+    }
+    else if (this->prevErrCode != this->errorCode)
+    {
+        ss << ErrorCodeMessage(this->errorCode) << " ";
     }
 
 #ifndef NDEBUG
@@ -433,13 +482,25 @@ END_NAMESPACE_OPENDAQ
 extern "C"
 void PUBLIC_EXPORT daqSetErrorInfo(daq::IErrorInfo* errorInfo)
 {
-    if (errorInfo != nullptr)
-    {
-        daq::IFreezable* freezable;
-        if (OPENDAQ_SUCCEEDED(errorInfo->borrowInterface(daq::IFreezable::Id, reinterpret_cast<void**>(&freezable))))
-            freezable->freeze();
-    }
+    if (errorInfo == nullptr)
+        return;
+
     daq::errorInfoHolder.setErrorInfo(errorInfo);
+    daq::IFreezable* freezable;
+    if (OPENDAQ_SUCCEEDED(errorInfo->borrowInterface(daq::IFreezable::Id, reinterpret_cast<void**>(&freezable))))
+        freezable->freeze();
+}
+
+extern "C"
+void PUBLIC_EXPORT daqExtendErrorInfo(daq::IErrorInfo* errorInfo, daq::ErrCode prevErrCode)
+{
+    if (errorInfo == nullptr)
+        return;
+
+    daq::errorInfoHolder.extendErrorInfo(errorInfo, prevErrCode);
+    daq::IFreezable* freezable;
+    if (OPENDAQ_SUCCEEDED(errorInfo->borrowInterface(daq::IFreezable::Id, reinterpret_cast<void**>(&freezable))))
+        freezable->freeze();
 }
 
 extern "C"
@@ -464,7 +525,7 @@ void PUBLIC_EXPORT daqGetErrorInfoMessage(daq::IString** errorMessage)
 }
 
 extern "C"
-void PUBLIC_EXPORT daqClearErrorInfo()
+void PUBLIC_EXPORT daqClearErrorInfo(daq::ErrCode errCode)
 {
-    daq::errorInfoHolder.setErrorInfo(nullptr);
+    daq::errorInfoHolder.clearErrorInfo(errCode);
 }

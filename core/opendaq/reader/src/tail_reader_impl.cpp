@@ -137,7 +137,7 @@ ErrCode TailReaderImpl::readPacket(TailReaderInfo& info, const DataPacketPtr& da
             {
                 return errCode;
             }
-            daqClearErrorInfo();
+            daqClearErrorInfo(errCode);
             errCode = domainReader->readData(domainPacket.getData(), info.offset, &info.domainValues, toRead);
         }
 

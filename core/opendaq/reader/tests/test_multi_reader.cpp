@@ -4,6 +4,7 @@
 #include <opendaq/reader_exceptions.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/time_reader.h>
+#include <opendaq/reader_config_ptr.h>
 #include "reader_common.h"
 
 #include <gmock/gmock-matchers.h>
@@ -4857,4 +4858,64 @@ TEST_F(MultiReaderTest, TestTickOffsetExceededByOffset)
         std::free(domainBuffers[i]);
         std::free(dataBuffers[i]);
     }
+}
+
+TEST_F(MultiReaderTest, BuilderNotificationMethodsUnspecified)
+{
+    ListPtr<IInputPort> ports = List<IInputPort>();
+    ListPtr<PacketReadyNotification> notifications = List<PacketReadyNotification>();
+    for (int i = 0; i < 10; ++i)
+    {
+        auto port = InputPort(context, nullptr, "ip");
+        port.setNotificationMethod(PacketReadyNotification::SameThread);
+        ports.pushBack(port);
+
+        notifications.pushBack(static_cast<int>(PacketReadyNotification::Unspecified));
+    }
+
+    auto builder = MultiReaderBuilder().setInputPortNotificationMethods(notifications).addInputPorts(ports);
+
+    ReaderConfigPtr reader = builder.build();
+
+    for (const auto& port : reader.getInputPorts())
+        ASSERT_EQ(port.getNotificationMethod(), PacketReadyNotification::SameThread);
+}
+
+TEST_F(MultiReaderTest, BuilderNotificationMethodDefault)
+{
+    ListPtr<IInputPort> ports = List<IInputPort>();
+    for (int i = 0; i < 10; ++i)
+    {
+        auto port = InputPort(context, nullptr, "ip");
+        ports.pushBack(port);
+    }
+
+    auto builder = MultiReaderBuilder().addInputPorts(ports);
+
+    ReaderConfigPtr reader = builder.build();
+
+    for (const auto& port : reader.getInputPorts())
+        ASSERT_EQ(port.getNotificationMethod(), PacketReadyNotification::SameThread);
+}
+
+
+TEST_F(MultiReaderTest, BuilderNotificationMethodsOverride)
+{
+    ListPtr<IInputPort> ports = List<IInputPort>();
+    ListPtr<PacketReadyNotification> notifications = List<PacketReadyNotification>();
+    for (int i = 0; i < 10; ++i)
+    {
+        auto port = InputPort(context, nullptr, "ip");
+        port.setNotificationMethod(PacketReadyNotification::SameThread);
+        ports.pushBack(port);
+
+        notifications.pushBack(static_cast<int>(PacketReadyNotification::Scheduler));
+    }
+
+    auto builder = MultiReaderBuilder().setInputPortNotificationMethods(notifications).addInputPorts(ports);
+
+    ReaderConfigPtr reader = builder.build();
+
+    for (const auto& port : reader.getInputPorts())
+        ASSERT_EQ(port.getNotificationMethod(), PacketReadyNotification::Scheduler);
 }

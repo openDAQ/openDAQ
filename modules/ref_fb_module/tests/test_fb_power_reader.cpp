@@ -682,7 +682,6 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusOk2)
     ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
 }
 
-
 TEST_F(PowerReaderTestStatus, StatisticsStatusException1)
 {
     // Create signal with descriptor
@@ -710,4 +709,25 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusException1)
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
               Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
     ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Failed to set descriptor for power signal: Invalid voltage signal unit");
+}
+
+TEST_F(PowerReaderTest, StatisticsStatusConnectedSignals)
+{
+    const auto ctx = createContext();
+    const auto module = createModule(ctx);
+
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
+    ASSERT_TRUE(fb.assigned());
+
+    createSignals(ctx);
+
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    fb.getInputPorts()[0].connect(voltageSignal);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    fb.getInputPorts()[1].connect(currentSignal);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    fb.getInputPorts()[0].disconnect();
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    fb.getInputPorts()[0].connect(voltageSignal);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
 }

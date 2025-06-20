@@ -30,11 +30,11 @@ struct IInputPortNotifications;
  */
 enum class PacketReadyNotification : EnumType
 {
-    None,                   ///< Ignore the notification.
-    SameThread,             ///< Call the listener in the same thread the notification was received.
-    Scheduler,              ///< Call the listener asynchronously or in another thread.
-    SchedulerQueueWasEmpty, ///< Call the listener asynchronously or in another thread only if connection packet queue was empty
-    Unspecified = 99        ///< Invalid state for ports, used by readers when asked to preserve port notification mechanism
+    None = 0,                   ///< Ignore the notification.
+    SameThread,                 ///< Call the listener in the same thread the notification was received.
+    Scheduler,                  ///< Call the listener asynchronously or in another thread.
+    SchedulerQueueWasEmpty,     ///< Call the listener asynchronously or in another thread only if connection packet queue was empty
+    Unspecified = 99            ///< Invalid state for ports, used by readers when asked to preserve port notification mechanism
 };
 
  /*!

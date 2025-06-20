@@ -39,12 +39,12 @@ daqErrCode daqErrorInfo_getSource(daqErrorInfo* self, daqString** source)
 
 daqErrCode daqErrorInfo_setFileName(daqErrorInfo* self, daqCharPtr fileName)
 {
-    return reinterpret_cast<daq::IErrorInfo*>(self)->setFileName(static_cast<daq::ConstCharPtr>(fileName));
+    return reinterpret_cast<daq::IErrorInfo*>(self)->setFileName(static_cast<daq::CharPtr>(fileName));
 }
 
 daqErrCode daqErrorInfo_getFileName(daqErrorInfo* self, daqCharPtr* fileName)
 {
-    return reinterpret_cast<daq::IErrorInfo*>(self)->getFileName(reinterpret_cast<daq::ConstCharPtr*>(fileName));
+    return reinterpret_cast<daq::IErrorInfo*>(self)->getFileName(reinterpret_cast<daq::CharPtr*>(fileName));
 }
 
 daqErrCode daqErrorInfo_setFileLine(daqErrorInfo* self, daqInt fileLine)

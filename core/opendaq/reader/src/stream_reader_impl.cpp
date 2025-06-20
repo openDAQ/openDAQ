@@ -69,38 +69,6 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
     }
 }
 
-StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
-                                   SampleType valueReadType,
-                                   SampleType domainReadType,
-                                   ReadMode mode)
-    : readMode(mode)
-{
-    if (!readerConfig.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException, "Existing reader must not be null");
-
-    readerConfig.markAsInvalid();
-
-    timeoutType = readerConfig.getReadTimeoutType();
-    inputPort = readerConfig.getInputPorts()[0];
-
-    valueReader = createReaderForType(valueReadType, readerConfig.getValueTransformFunction());
-    domainReader = createReaderForType(domainReadType, readerConfig.getDomainTransformFunction());
-
-    connection = inputPort.getConnection();
-
-    this->internalAddRef();
-    try
-    {
-        if (connection.assigned())
-            readDescriptorFromPort();
-    }
-    catch (...)
-    {
-        this->releaseWeakRefOnException();
-        throw;
-    }
-}
-
 StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
                                    SampleType valueReadType,
                                    SampleType domainReadType)
@@ -158,13 +126,19 @@ StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
     this->internalAddRef();
     try
     {
+        auto notificationMethod = builder.getInputPortNotificationMethod();
+
         if (auto port = builder.getInputPort(); port.assigned())
         {
-            connectInputPort(port);
+            connectInputPort(port, notificationMethod);
         }
         else if (auto signal = builder.getSignal(); signal.assigned())
         {
-            connectSignal(builder.getSignal());
+            if (notificationMethod == PacketReadyNotification::Unspecified)
+                DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                    "Stream reader created from a signal cannot have an unspecified input port notification method.");
+
+            connectSignal(builder.getSignal(), notificationMethod);
         }
         else 
         {
@@ -199,21 +173,20 @@ void StreamReaderImpl::readDescriptorFromPort()
         if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
         {
             handleDescriptorChanged(connection.dequeue());
-            return;
         }
     }
 }
 
-void StreamReaderImpl::connectSignal(const SignalPtr& signal)
+void StreamReaderImpl::connectSignal(const SignalPtr& signal, PacketReadyNotification notification)
 {
     inputPort = InputPort(signal.getContext(), nullptr, "readsig", true);
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
+    inputPort.setNotificationMethod(notification);
 
     inputPort.connect(signal);
 }
 
-void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port)
+void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port, PacketReadyNotification notification)
 {
     inputPort = port;
 
@@ -221,7 +194,7 @@ void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port)
     inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
+    inputPort.setNotificationMethod(notification);
     connection = inputPort.getConnection();
 }
 
@@ -789,9 +762,12 @@ struct ObjectCreator<IStreamReader>
         auto old = ReaderConfigPtr::Borrow(toCopy);
         auto impl = dynamic_cast<StreamReaderImpl*>(old.getObject());
 
-        return impl != nullptr
-            ? createObject<IStreamReader, StreamReaderImpl>(out, impl, valueReadType, domainReadType)
-            : createObject<IStreamReader, StreamReaderImpl>(out, old, valueReadType, domainReadType, mode);
+        if (impl == nullptr)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "StreamReader from existing can only be used with the base stream reader implementation");
+        }
+
+        return createObject<IStreamReader, StreamReaderImpl>(out, impl, valueReadType, domainReadType);
     }
 };
 

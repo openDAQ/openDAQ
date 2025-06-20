@@ -240,5 +240,5 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
             const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
             objectPtr.setInputPortNotificationMethod(notificationMethod);
         },
-        "Gets the notification method of ports created/owned by the multi reader / Sets the notification method of ports created/owned by the multi reader");
+        "Gets the notification method of ports created/owned by the multi reader. The default notification method is SameThread. / Sets the notification method of ports created/owned by the multi reader. The default notification method is SameThread.");
 }

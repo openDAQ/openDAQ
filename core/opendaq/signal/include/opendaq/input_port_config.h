@@ -28,12 +28,13 @@ struct IInputPortNotifications;
 /*!
  * @brief Represents how the input port should handle the packet-enqueued notification.
  */
-enum class PacketReadyNotification
+enum class PacketReadyNotification : EnumType
 {
     None,                   ///< Ignore the notification.
     SameThread,             ///< Call the listener in the same thread the notification was received.
     Scheduler,              ///< Call the listener asynchronously or in another thread.
-    SchedulerQueueWasEmpty  ///< Call the listener asynchronously or in another thread only if connection packet queue was empty
+    SchedulerQueueWasEmpty, ///< Call the listener asynchronously or in another thread only if connection packet queue was empty
+    Unspecified = 99        ///< Invalid state for ports, used by readers when asked to preserve port notification mechanism
 };
 
  /*!

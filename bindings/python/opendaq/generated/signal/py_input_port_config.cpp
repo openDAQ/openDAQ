@@ -37,7 +37,8 @@ PyDaqIntf<daq::IInputPortConfig, daq::IInputPort> declareIInputPortConfig(pybind
         .value("None", daq::PacketReadyNotification::None)
         .value("SameThread", daq::PacketReadyNotification::SameThread)
         .value("Scheduler", daq::PacketReadyNotification::Scheduler)
-        .value("SchedulerQueueWasEmpty", daq::PacketReadyNotification::SchedulerQueueWasEmpty);
+        .value("SchedulerQueueWasEmpty", daq::PacketReadyNotification::SchedulerQueueWasEmpty)
+        .value("Unspecified", daq::PacketReadyNotification::Unspecified);
 
     return wrapInterface<daq::IInputPortConfig, daq::IInputPort>(m, "IInputPortConfig");
 }

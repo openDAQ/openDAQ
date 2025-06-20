@@ -16,7 +16,7 @@ MultiReaderBuilderImpl::MultiReaderBuilderImpl()
     , minReadCount(1)
     , offsetTolerance(nullptr)
     , allowDifferentRates(true)
-    , notificationMethod(PacketReadyNotification::None)
+    , notificationMethod(PacketReadyNotification::SameThread)
 {
 }
 

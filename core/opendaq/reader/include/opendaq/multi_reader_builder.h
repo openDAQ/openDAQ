@@ -208,13 +208,13 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
     
     // [returnSelf]
     /*!
-     * @brief Sets the notification method of ports created/owned by the multi reader
+     * @brief Sets the notification method of ports created/owned by the multi reader. The default notification method is SameThread.
      * @param notificationMethod The notification method to be used. If "None", uses Scheduler for multi reader with signals, and keeps the mode of the input port.
      */
     virtual ErrCode INTERFACE_FUNC setInputPortNotificationMethod(PacketReadyNotification notificationMethod) = 0;
 
     /*!
-     * @brief Gets the notification method of ports created/owned by the multi reader
+     * @brief Gets the notification method of ports created/owned by the multi reader. The default notification method is SameThread.
      * @param notificationMethod The notification method to be used. If "None", uses Scheduler for multi reader with signals, and keeps the mode of the input port.
      */
     virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethod(PacketReadyNotification* notificationMethod) = 0;

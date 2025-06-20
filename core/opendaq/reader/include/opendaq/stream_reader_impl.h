@@ -47,11 +47,6 @@ public:
                               ReadMode mode,
                               ReadTimeoutType timeoutType);
 
-    explicit StreamReaderImpl(const ReaderConfigPtr& readerConfig,
-                              SampleType valueReadType,
-                              SampleType domainReadType,
-                              ReadMode readMode);
-
     explicit StreamReaderImpl(StreamReaderImpl* old,
                               SampleType valueReadType,
                               SampleType domainReadType);
@@ -101,8 +96,8 @@ public:
 
 private:
     void readDescriptorFromPort();
-    void connectInputPort(const InputPortConfigPtr& port);
-    void connectSignal(const SignalPtr& signal);
+    void connectInputPort(const InputPortConfigPtr& port, PacketReadyNotification notification = PacketReadyNotification::Scheduler);
+    void connectSignal(const SignalPtr& signal, PacketReadyNotification notification = PacketReadyNotification::SameThread);
     static void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader);
 
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);

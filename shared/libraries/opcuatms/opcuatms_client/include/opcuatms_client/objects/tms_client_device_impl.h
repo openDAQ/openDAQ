@@ -42,6 +42,9 @@ public:
 protected:
     void findAndCreateSubdevices();
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    DictPtr<IString, IDevice> onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                           DictPtr<IString, IInteger> errCodes,
+                                           DictPtr<IString, IErrorInfo> errorInfos) override;
     void onRemoveDevice(const DevicePtr& device) override;
     DeviceInfoPtr onGetInfo() override;
     uint64_t onGetTicksSinceOrigin() override;

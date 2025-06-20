@@ -137,7 +137,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 15);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 16);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -3539,4 +3539,61 @@ TEST_F(NativeDeviceModulesTest, TestPropertyOrderOnClient)
         for (SizeT i = 0; i < propertyOrder.getCount(); ++i)
             ASSERT_EQ(propertyOrder[i], props[i].getName());
     }
+}
+
+TEST_F(NativeDeviceModulesTest, AddDevicesParallelSuccess)
+{
+    const auto server = CreateServerInstance();
+    const auto client = Instance();
+
+    const auto config = client.createDefaultAddDeviceConfig();
+    const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+    const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
+    nativeDeviceConfig.setPropertyValue("Port", 7420);
+
+    auto connectionArgs =
+        Dict<IString, IPropertyObject>(
+            {
+                {"daq.nd://127.0.0.1", config},
+                {"daqref://device1", nullptr}
+            }
+        );
+
+    auto devices = client.addDevices(connectionArgs);
+    ASSERT_EQ(devices.getCount(), 2u);
+    ASSERT_EQ(devices.get("daq.nd://127.0.0.1").getInfo().getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_EQ(devices.get("daqref://device1").getInfo().getConnectionString(), "daqref://device1");
+
+    ASSERT_EQ(client.getDevices().getCount(), 2u);
+}
+
+TEST_F(NativeDeviceModulesTest, AddDevicesParallelPartialSuccess)
+{
+    const auto server = CreateServerInstance();
+    const auto client = Instance();
+    ASSERT_NO_THROW(client.addDevice("daq.nd://127.0.0.1"));
+
+    auto connectionArgs =
+        Dict<IString, IPropertyObject>(
+            {
+                {"daq.nd://127.0.0.1", nullptr},
+                {"daqref://device1", nullptr}
+            }
+        );
+
+    auto errCodes = Dict<IString, IInteger>();
+    auto errorInfos = Dict<IString, IErrorInfo>();
+    auto devices = client.addDevices(connectionArgs, errCodes, errorInfos);
+    ASSERT_EQ(devices.getCount(), 2u);
+
+    ASSERT_FALSE(devices.get("daq.nd://127.0.0.1").assigned());
+    ASSERT_TRUE(devices.get("daqref://device1").assigned());
+
+    ASSERT_TRUE(errorInfos.get("daq.nd://127.0.0.1").assigned());
+    ASSERT_FALSE(errorInfos.get("daqref://device1").assigned());
+
+    ASSERT_EQ(errCodes.get("daq.nd://127.0.0.1"), OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_EQ(errCodes.get("daqref://device1"), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(client.getDevices().getCount(), 2u);
 }

@@ -53,6 +53,9 @@ public:
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    DictPtr<IString, IDevice> onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                           DictPtr<IString, IInteger> errCodes,
+                                           DictPtr<IString, IErrorInfo> errorInfos) override;
     void onRemoveDevice(const DevicePtr& device) override;
     PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
 
@@ -166,6 +169,71 @@ DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPt
         return dev;
     }
     return this->devices.getItem(dev.getLocalId());
+}
+
+template <class TDeviceBase>
+DictPtr<IString, IDevice> GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                                                                   DictPtr<IString, IInteger> errCodes,
+                                                                                   DictPtr<IString, IErrorInfo> errorInfos)
+{
+    const DictPtr<IString, IBaseObject> reply =
+        this->clientComm->addDevices(this->remoteGlobalId, connectionArgs, errCodes.assigned(), errorInfos.assigned(), this->devices);
+
+    if (!reply.hasKey("ErrorCode"))
+        throw ConfigProtocolException("Invalid reply: \"ErrorCode\" is missing");
+
+    if (errCodes.assigned())
+    {
+        const DictPtr<IString, IInteger> remoteErrCodes = reply.getOrDefault("ErrorCodes", Dict<IString, IInteger>());
+        for (const auto& [connectionString, _] : connectionArgs)
+            errCodes[connectionString] = remoteErrCodes.getOrDefault(connectionString, OPENDAQ_SUCCESS);
+    }
+    if (errorInfos.assigned())
+    {
+        const DictPtr<IString, IErrorInfo> remoteErrorInfos = reply.getOrDefault("ErrorInfos", Dict<IString, IErrorInfo>());
+        for (const auto& [connectionString, _] : connectionArgs)
+            errorInfos[connectionString] = remoteErrorInfos.getOrDefault(connectionString, nullptr);
+    }
+
+    const ErrCode errCode = reply["ErrorCode"];
+    if (OPENDAQ_FAILED(errCode))
+    {
+        std::string msg = reply.getOrDefault("ErrorMessage", "");
+        throwExceptionFromErrorCode(errCode, msg);
+    }
+
+    if (!reply.hasKey("AddedDevices"))
+        throw ConfigProtocolException("Invalid reply: \"AddedDevices\" key is missing");
+    const DictPtr<IString, IComponentHolder> devHolders = reply["AddedDevices"];
+    DictPtr<IString, IDevice> devices = Dict<IString, IDevice>();
+
+    for (const auto& [connectionString, _] : connectionArgs)
+    {
+        devices[connectionString] = nullptr;
+        ComponentHolderPtr devHolder = devHolders.getOrDefault(connectionString, nullptr);
+        if (!devHolder.assigned())
+        {
+            DAQLOGF_E(this->loggerComponent,
+                      "The subdevice with specified connection string \"{}\" was not added within remote device.",
+                      connectionString);
+        }
+        DevicePtr dev = devHolder.assigned() ? devHolder.getComponent() : nullptr;
+        if (dev.assigned())
+        {
+            if (!this->devices.hasItem(dev.getLocalId()))
+            {
+                this->clientComm->connectDomainSignals(dev);
+                this->devices.addItem(dev);
+                this->clientComm->connectInputPorts(dev);
+                devices[connectionString] = dev;
+            }
+            else
+            {
+                devices[connectionString] = this->devices.getItem(dev.getLocalId());
+            }
+        }
+    }
+    return devices;
 }
 
 template <class TDeviceBase>

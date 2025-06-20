@@ -620,13 +620,16 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
-        // Scan for devices if not yet done so, or timeout is exceeded
-        auto currentTime = std::chrono::steady_clock::now();
-        if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
         {
-            const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
-            if (OPENDAQ_FAILED(errCode))
-                return DAQ_MAKE_ERROR_INFO(errCode, "Failed getting available devices");
+            auto lock = std::lock_guard(availableDevicesSearchSync);
+            // Scan for devices if not yet done so, or timeout is exceeded
+            auto currentTime = std::chrono::steady_clock::now();
+            if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
+            {
+                const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
+                if (OPENDAQ_FAILED(errCode))
+                    return DAQ_MAKE_ERROR_INFO(errCode, "Failed getting available devices");
+            }
         }
 
         // Connection strings with the "daq" prefix automatically choose the best method of connection
@@ -681,6 +684,98 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     );
 }
 
+ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes, IDict* errorInfos)
+{
+    OPENDAQ_PARAM_NOT_NULL(devices);
+    OPENDAQ_PARAM_NOT_NULL(connectionArgs);
+
+    DictPtr<IString, IPropertyObject> connectionArgsDictPtr = DictPtr<IString, IPropertyObject>::Borrow(connectionArgs);
+    DictPtr<IString, IInteger> errCodesDictPtr = DictPtr<IString, IInteger>::Borrow(errCodes);
+    DictPtr<IString, IErrorInfo> errorInfosDictPtr = DictPtr<IString, IErrorInfo>::Borrow(errorInfos);
+
+    std::atomic<SizeT> createdDevicesCount = 0;
+    std::mutex errorResultSync;
+
+    if (connectionArgsDictPtr.getCount() == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "None connection arguments provided");
+
+    auto saveErrCode = [&errCodesDictPtr, &errorResultSync](const StringPtr& connectionString, ErrCode errCode)
+    {
+        if (errCodesDictPtr.assigned())
+        {
+            std::scoped_lock lock(errorResultSync);
+            errCodesDictPtr[connectionString] = errCode;
+        }
+    };
+    auto saveErrorInfo = [&errorInfosDictPtr, &errorResultSync](const StringPtr& connectionString)
+    {
+        if (errorInfosDictPtr.assigned())
+        {
+            ObjectPtr<IErrorInfo> errorInfo;
+            daqGetErrorInfo(&errorInfo);
+
+            std::scoped_lock lock(errorResultSync);
+            errorInfosDictPtr[connectionString] = errorInfo;
+        }
+        daqClearErrorInfo();
+    };
+
+    using AsyncDeviceCreationResult = std::future<DevicePtr>;
+    std::vector<std::pair<AsyncDeviceCreationResult, StringPtr>> deviceCreationResults;
+    auto devicesDictPtr = Dict<IString, IDevice>();
+
+    // init error infos
+    for (const auto& [connectionString, _] : connectionArgsDictPtr)
+        if (errorInfosDictPtr.assigned())
+            errorInfosDictPtr[connectionString] = nullptr;
+
+    for (const auto& [connectionString, config] : connectionArgsDictPtr)
+    {
+        devicesDictPtr[connectionString] = nullptr;
+        try
+        {
+            // Parallelize the process of each device creation as it may be time-consuming
+            AsyncDeviceCreationResult deviceObjFuture =
+                std::async([&, this, connectionString = connectionString, config = config]()
+                           {
+                               DevicePtr device;
+                               LOG_D("Run create device \"{}\" asynchronously", connectionString)
+                               ErrCode errCode = this->createDevice(&device, connectionString, parent, config);
+
+                               // Preserve error information before making any smart pointer calls that will overwrite it
+                               if (OPENDAQ_FAILED(errCode))
+                                   saveErrorInfo(connectionString);
+                               else
+                                   ++createdDevicesCount;
+                               saveErrCode(connectionString, errCode);
+
+                               return device;
+                           });
+            deviceCreationResults.emplace_back(std::move(deviceObjFuture), connectionString);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_E("Failed to run create device \"{}\" asynchronously: {}", connectionString, e.what())
+            ErrCode errCode = DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+            saveErrorInfo(connectionString);
+            saveErrCode(connectionString, errCode);
+        }
+    }
+
+    for (auto& [futureResult, connectionString] : deviceCreationResults)
+    {
+        LOG_D("Getting async create device \"{}\" result ...", connectionString);
+        devicesDictPtr[connectionString] = futureResult.get();
+    }
+    *devices = devicesDictPtr.detach();
+
+    if (createdDevicesCount == connectionArgsDictPtr.getCount())
+        return OPENDAQ_SUCCESS;
+    else if (createdDevicesCount == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "No devices were created");
+    else
+        return OPENDAQ_PARTIAL_SUCCESS;
+}
 
 ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {

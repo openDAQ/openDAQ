@@ -231,6 +231,13 @@ DevicePtr TmsClientDeviceImpl::onAddDevice(const StringPtr& /*connectionString*/
     throw OpcUaClientCallNotAvailableException();
 }
 
+DictPtr<IString, IDevice> TmsClientDeviceImpl::onAddDevices(const DictPtr<IString, IPropertyObject>& /*connectionArgs*/,
+                                                            DictPtr<IString, IInteger> /*errCodes*/,
+                                                            DictPtr<IString, IErrorInfo> /*errorInfos*/)
+{
+    throw OpcUaClientCallNotAvailableException();
+}
+
 void TmsClientDeviceImpl::onRemoveDevice(const DevicePtr& /*device*/)
 {
     throw OpcUaClientCallNotAvailableException();

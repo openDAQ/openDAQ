@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:20.
+//     RTGen (CGenerator v0.7.0) on 15.06.2025 20:21:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -75,4 +75,9 @@ daqErrCode daqModuleManagerUtils_requestIpConfig(daqModuleManagerUtils* self, da
 daqErrCode daqModuleManagerUtils_completeDeviceCapabilities(daqModuleManagerUtils* self, daqDevice* device)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->completeDeviceCapabilities(reinterpret_cast<daq::IDevice*>(device));
+}
+
+daqErrCode daqModuleManagerUtils_createDevices(daqModuleManagerUtils* self, daqDict** devices, daqDict* connectionArgs, daqComponent* parent, daqDict* errCodes, daqDict* errorInfos)
+{
+    return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createDevices(reinterpret_cast<daq::IDict**>(devices), reinterpret_cast<daq::IDict*>(connectionArgs), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IDict*>(errCodes), reinterpret_cast<daq::IDict*>(errorInfos));
 }

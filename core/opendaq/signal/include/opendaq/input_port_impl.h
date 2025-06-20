@@ -349,6 +349,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueued(Bool queueWasE
                     break;
                 }
                 case PacketReadyNotification::None:
+                case PacketReadyNotification::Unspecified:
                     break;
             }
         });
@@ -368,6 +369,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedOnThisThread()
                     notifyPacketEnqueuedSameThread();
 
                 case PacketReadyNotification::None:
+                case PacketReadyNotification::Unspecified:
                     break;
             }
         });
@@ -386,6 +388,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedWithScheduler()
                 case PacketReadyNotification::SchedulerQueueWasEmpty:
                     notifyPacketEnqueuedScheduler();
                 case PacketReadyNotification::None:
+                case PacketReadyNotification::Unspecified:
                     break;
             }
         });

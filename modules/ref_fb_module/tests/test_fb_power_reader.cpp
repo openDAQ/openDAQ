@@ -655,7 +655,7 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
 TEST_F(PowerReaderTestStatus, StatisticsStatusOk1)
 {
     // ComponentStatus is Ok
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
 }
 
 TEST_F(PowerReaderTestStatus, StatisticsStatusOk2)

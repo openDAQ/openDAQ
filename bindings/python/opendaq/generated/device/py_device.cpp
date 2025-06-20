@@ -398,7 +398,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             objectPtr.setOperationMode(modeType);
         },
-        "Gets the operation mode of the device subtree excluding the sub-devices. / Sets the operation mode of the device subtree excluding the sub-devices.");
+        "Sets the operation mode of the device subtree excluding the sub-devices.");
     cls.def_property("operation_mode_recursive",
         nullptr,
         [](daq::IDevice *object, daq::OperationModeType modeType)

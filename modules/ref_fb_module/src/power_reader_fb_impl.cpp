@@ -1,12 +1,10 @@
 #include <ref_fb_module/power_reader_fb_impl.h>
 #include <opendaq/function_block_ptr.h>
-#include <opendaq/input_port_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
 
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/signal_factory.h>
 
-#include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
 
 #include <coreobjects/unit_factory.h>
@@ -16,6 +14,7 @@
 #include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/reader_config_ptr.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -102,6 +101,20 @@ FunctionBlockTypePtr PowerReaderFbImpl::CreateType()
     return FunctionBlockType("RefFBModulePowerReader", "Power with reader", "Calculates power using multi reader");
 }
 
+bool PowerReaderFbImpl::descriptorNotNull(const DataDescriptorPtr& descriptor)
+{
+    return descriptor.assigned() && descriptor != NullDataDescriptor();
+}
+
+void PowerReaderFbImpl::getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc)
+{
+    if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+    {
+        valueDesc = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+        domainDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+    }
+}
+
 bool PowerReaderFbImpl::getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc)
 {
     if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
@@ -155,26 +168,60 @@ void PowerReaderFbImpl::onDataReceived()
             DataDescriptorPtr voltageDescriptor;
             DataDescriptorPtr currentDescriptor;
 
+            bool domainChanged = false;
             if (eventPackets.hasKey(voltageInputPort.getGlobalId()))
-                getDataDescriptor(eventPackets.get(voltageInputPort.getGlobalId()), voltageDescriptor);
+            {
+                getDataDescriptors(eventPackets.get(voltageInputPort.getGlobalId()), voltageDescriptor, domainDescriptor);
+                domainChanged = descriptorNotNull(domainDescriptor);
+            }
+
 
             if (eventPackets.hasKey(currentInputPort.getGlobalId()))
-                getDataDescriptor(eventPackets.get(currentInputPort.getGlobalId()), currentDescriptor);
-
+            {
+                getDataDescriptors(eventPackets.get(currentInputPort.getGlobalId()), currentDescriptor, domainDescriptor);
+                domainChanged |= descriptorNotNull(domainDescriptor);
+            }
+                
             getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
 
-            if (voltageDescriptor.assigned() || currentDescriptor.assigned())
+            if (voltageDescriptor.assigned() || currentDescriptor.assigned() || domainChanged)
                 configure(domainDescriptor, voltageDescriptor, currentDescriptor);
         }
-    }
 
-    if (!status.getValid())
-    {
-        reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+        if (!status.getValid())
+        {
+            reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+        }
     }
 }
 
-RangePtr PowerReaderFbImpl::getValueRange(DataDescriptorPtr voltageDataDescriptor, DataDescriptorPtr currentDataDescriptor)
+void PowerReaderFbImpl::checkPortConnections() const
+{
+    for (const auto& port : reader.asPtr<IReaderConfig>().getInputPorts())
+    {
+        if (!port.getConnection().assigned())
+        {
+            setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Port {} is not connected!", port.getLocalId()));
+            return;
+        }
+    }
+    
+    setComponentStatus(ComponentStatus::Ok);
+}
+
+void PowerReaderFbImpl::onConnected(const InputPortPtr& inputPort)
+{
+    LOG_D("Power Reader FB: Input port {} connected", inputPort.getLocalId())
+    checkPortConnections();
+}
+
+void PowerReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
+{
+    LOG_D("Power Reader FB: Input port {} disconnected", inputPort.getLocalId())
+    checkPortConnections();
+}
+
+RangePtr PowerReaderFbImpl::getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor)
 {
     const auto voltageRange = voltageDataDescriptor.getValueRange();
     const auto currentRange = currentDataDescriptor.getValueRange();
@@ -237,8 +284,8 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         else
             powerRange = getValueRange(this->voltageDescriptor, this->currentDescriptor);
 
-        powerDataDescriptor = powerDataDescriptorBuilder.setValueRange(powerRange).setName("Power").build();
-        powerDomainDataDescriptor = DataDescriptorBuilderCopy(this->domainDescriptor).setName("Power domain").build();
+        powerDataDescriptor = powerDataDescriptorBuilder.setValueRange(powerRange).build();
+        powerDomainDataDescriptor = this->domainDescriptor;
 
         reader.setActive(True);
 
@@ -257,8 +304,10 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
 
 void PowerReaderFbImpl::createInputPorts()
 {
-    voltageInputPort = createAndAddInputPort("voltage", PacketReadyNotification::Scheduler, nullptr, true);
-    currentInputPort = createAndAddInputPort("current", PacketReadyNotification::Scheduler, nullptr, true);
+    voltageInputPort = createAndAddInputPort("Voltage", PacketReadyNotification::Scheduler, nullptr, true);
+    currentInputPort = createAndAddInputPort("Current", PacketReadyNotification::Scheduler, nullptr, true);
+    
+    setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Port {} is not connected!", voltageInputPort.getLocalId()));
 }
 
 void PowerReaderFbImpl::createReader()
@@ -274,8 +323,11 @@ void PowerReaderFbImpl::createReader()
         .setDomainReadType(SampleType::Int64)
         .setValueReadType(SampleType::Float64)
         .setTickOffsetTolerance(tolerance)
+        .setAllowDifferentSamplingRates(false)
+        .setInputPortNotificationMethod(PacketReadyNotification::Unspecified)
         .build();
 
+    reader.setExternalListener(this->objPtr);
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
     reader.setOnDataAvailable([this, thisWeakRef = std::move(thisWeakRef)]
     {
@@ -287,13 +339,12 @@ void PowerReaderFbImpl::createReader()
 
 void PowerReaderFbImpl::createSignals()
 {
-    powerSignal = createAndAddSignal("power");
+    powerSignal = createAndAddSignal("Power");
     powerSignal.setName("Power");
-    powerDomainSignal = createAndAddSignal("power_domain", nullptr, false);
+    powerDomainSignal = createAndAddSignal("PowerDomain", nullptr, false);
     powerDomainSignal.setName("PowerDomain");
     powerSignal.setDomainSignal(powerDomainSignal);
 }
-
 }
 
 END_NAMESPACE_REF_FB_MODULE

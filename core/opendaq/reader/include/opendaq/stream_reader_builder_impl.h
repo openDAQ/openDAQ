@@ -48,6 +48,9 @@ public:
     ErrCode INTERFACE_FUNC setSkipEvents(Bool skipEvents) override;
     ErrCode INTERFACE_FUNC getSkipEvents(Bool* skipEvents) override;
 
+    ErrCode INTERFACE_FUNC setInputPortNotificationMethod(PacketReadyNotification notificationMethod) override;
+    ErrCode INTERFACE_FUNC getInputPortNotificationMethod(PacketReadyNotification* notificationMethod) override;
+
 private:
     SampleType valueReadType;
     SampleType domainReadType;
@@ -57,6 +60,7 @@ private:
     ReadTimeoutType readTimeoutType;
     bool used;
     bool skipEvents;
+    PacketReadyNotification notificationMethod;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -150,4 +150,18 @@ void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReade
             objectPtr.setSkipEvents(skipEvents);
         },
         "Gets the skip events / Sets the skip events");
+    cls.def_property("input_port_notification_method",
+        [](daq::IStreamReaderBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
+            return objectPtr.getInputPortNotificationMethod();
+        },
+        [](daq::IStreamReaderBuilder *object, daq::PacketReadyNotification notificationMethod)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamReaderBuilderPtr::Borrow(object);
+            objectPtr.setInputPortNotificationMethod(notificationMethod);
+        },
+        "Gets the notification method of port created/owned stream reader. The default notification method is SameThread. / Sets the notification method of port created/owned stream reader. The default notification method is SameThread.");
 }

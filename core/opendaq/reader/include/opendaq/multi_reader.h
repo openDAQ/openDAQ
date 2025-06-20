@@ -15,9 +15,7 @@
  */
 #pragma once
 #include <opendaq/sample_reader.h>
-#include <opendaq/signal.h>
 #include <opendaq/multi_reader_status.h>
-#include <opendaq/event_packet.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

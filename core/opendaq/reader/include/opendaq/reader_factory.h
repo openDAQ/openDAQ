@@ -84,7 +84,7 @@ inline PacketReaderPtr PacketReader(SignalPtr signal)
 
 /*!
  * @brief Creates a reader that eases reading packets from the port.
- * @param input The input port to read the packets from.
+ * @param port The input port to read the packets from.
  */
 inline PacketReaderPtr PacketReaderFromPort(InputPortConfigPtr port)
 {

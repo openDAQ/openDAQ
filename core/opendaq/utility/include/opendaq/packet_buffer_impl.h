@@ -16,6 +16,7 @@
 
 #pragma once
 #include <queue>
+#include <condition_variable>
 #include <coretypes/deserializer.h>
 #include <coreobjects/core_event_args_impl.h>
 #include <coreobjects/eval_value_factory.h>

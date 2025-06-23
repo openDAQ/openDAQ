@@ -36,9 +36,9 @@ public:
     MainThreadEventLoop() = default;
     ~MainThreadEventLoop();
 
-    void stop();
-    void runIteration();
-    void run(SizeT loopTime);
+    ErrCode stop();
+    ErrCode runIteration();
+    ErrCode run(SizeT loopTime);
     bool isRunning() const;
     ErrCode execute(IWork* work);
 
@@ -59,7 +59,7 @@ private:
 class SchedulerImpl final : public ImplementationOf<IScheduler>
 {
 public:
-    explicit SchedulerImpl(LoggerPtr logger, SizeT numWorkers);
+    explicit SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoop);
     ~SchedulerImpl() override;
 
     ErrCode INTERFACE_FUNC scheduleFunction(IFunction* function, IAwaitable** awaitable) override;
@@ -71,6 +71,7 @@ public:
     ErrCode INTERFACE_FUNC waitAll() override;
 
     ErrCode INTERFACE_FUNC runMainLoop(SizeT loopTime) override;
+    ErrCode INTERFACE_FUNC isMainLoopSet(Bool* isSet) override;
     ErrCode INTERFACE_FUNC stopMainLoop() override;
     ErrCode INTERFACE_FUNC runMainLoopIteration() override;
     ErrCode INTERFACE_FUNC scheduleWorkOnMainLoop(IWork* work) override;

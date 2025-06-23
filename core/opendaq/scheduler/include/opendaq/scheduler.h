@@ -96,6 +96,14 @@ DECLARE_OPENDAQ_INTERFACE(IScheduler, IBaseObject)
     virtual ErrCode INTERFACE_FUNC runMainLoop(SizeT loopTime = 1) = 0;
 
     /*!
+     * @brief Checks if the main loop is currently set.
+     * @param[out] isSet Returns @c true if the main loop is set and running.
+     * 
+     * This method does not gauarantee that the main loop is currently running, only that it has been set up.
+     */
+    virtual ErrCode INTERFACE_FUNC isMainLoopSet(Bool* isSet) = 0;
+
+    /*!
      * @brief Signals the main loop to stop processing and return from @ref runMainLoop.
      * 
      * This method unblocks the loop and requests graceful shutdown. It is typically called
@@ -130,7 +138,8 @@ DECLARE_OPENDAQ_INTERFACE(IScheduler, IBaseObject)
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, Scheduler,
     ILogger*, logger,
-    SizeT, numWorkers
+    SizeT, numWorkers,
+    Bool, useMainLoop
 )
 
 END_NAMESPACE_OPENDAQ

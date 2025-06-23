@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <thread>
+#include <future>
 #include <opendaq/work_factory.h>
 
 #include <opendaq/logger_factory.h>
@@ -72,7 +73,7 @@ TEST_F(SchedulerTestCommon, ImplicitTask)
 
 TEST_F(SchedulerTestCommon, ExecutesOneTimeWork)
 {
-    auto scheduler = Scheduler(Logger(), 1);
+    auto scheduler = Scheduler(Logger(), 1, true);
     bool called = false;
 
     auto work = WorkRepetitive([&called] 
@@ -85,12 +86,51 @@ TEST_F(SchedulerTestCommon, ExecutesOneTimeWork)
     ASSERT_TRUE(called);
 }
 
+TEST_F(SchedulerTestCommon, ScheduleWorkOnMainLoopThrowsIfMainLoopNotSet)
+{
+    auto scheduler = Scheduler(Logger(), 1, false);
+    auto work = WorkRepetitive([]() -> void {});
+    ASSERT_THROW(scheduler.scheduleWorkOnMainLoop(work), NotSupportedException);
+}
+
+TEST_F(SchedulerTestCommon, RunMainLoopIterationThrowsIfMainLoopNotSet)
+{
+    auto scheduler = Scheduler(Logger(), 1, false);
+    ASSERT_THROW(scheduler.runMainLoopIteration(), NotSupportedException);
+}
+
+TEST_F(SchedulerTestCommon, RunMainLoopThrowsIfMainLoopNotSet)
+{
+    auto scheduler = Scheduler(Logger(), 1, false);
+    ASSERT_THROW(scheduler.runMainLoop(), NotSupportedException);
+}
+
+TEST_F(SchedulerTestCommon, RunMainLoopTwice)
+{
+    auto scheduler = Scheduler(Logger(), 1, true);
+
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    auto thread = std::thread([&]() -> void
+    {
+        promise.set_value();
+        scheduler.runMainLoop();
+    });
+
+    future.wait();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    ASSERT_THROW(scheduler.runMainLoop(), daq::InvalidOperationException);
+    scheduler.stopMainLoop();
+    thread.join();
+}
+
 TEST_F(SchedulerTestCommon, ExecutesRepetitiveWork)
 {
-    auto scheduler = Scheduler(Logger(), 1);
+    auto scheduler = Scheduler(Logger(), 1, true);
     int counter = 0;
 
-    auto work = WorkRepetitive([&counter]() -> bool {
+    auto work = WorkRepetitive([&counter]() -> bool
+    {
         return ++counter < 3;
     });
     scheduler.scheduleWorkOnMainLoop(work);
@@ -103,10 +143,11 @@ TEST_F(SchedulerTestCommon, ExecutesRepetitiveWork)
 
 TEST_F(SchedulerTestCommon, RepetitiveVoidWorkExecutesOnce)
 {
-    auto scheduler = Scheduler(Logger(), 1);
+    auto scheduler = Scheduler(Logger(), 1, true);
     int counter = 0;
 
-    auto work = WorkRepetitive([&counter]() {
+    auto work = WorkRepetitive([&counter]() -> void 
+    {
         ++counter;
     });
 
@@ -119,14 +160,15 @@ TEST_F(SchedulerTestCommon, RepetitiveVoidWorkExecutesOnce)
 
 TEST_F(SchedulerTestCommon, StartsAndStops)
 {
-    auto scheduler = Scheduler(Logger(), 1);
+    auto scheduler = Scheduler(Logger(), 1, true);
 
-    std::thread loopThread([&]() {
+    std::thread loopThread([&]()
+    {
         scheduler.runMainLoop();
     });
 
     bool called = false;
-    auto work = WorkRepetitive([&called] 
+    auto work = WorkRepetitive([&called]() -> void 
     {
         called = true;
     });
@@ -142,10 +184,10 @@ TEST_F(SchedulerTestCommon, StartsAndStops)
 
 TEST_F(SchedulerTestCommon, StartsAndStopsFromWork)
 {
-    auto scheduler = Scheduler(Logger(), 1);
+    auto scheduler = Scheduler(Logger(), 1, true);
 
     bool called = false;
-    auto work = WorkRepetitive([&] 
+    auto work = WorkRepetitive([&]() -> void 
     {
         called = true;
         scheduler.stopMainLoop();
@@ -157,10 +199,10 @@ TEST_F(SchedulerTestCommon, StartsAndStopsFromWork)
 
 TEST_F(SchedulerTestCommon, ExecutesOneTimeWorkWithTimeLoop)
 {
-    auto scheduler = Scheduler(Logger(), 1);
+    auto scheduler = Scheduler(Logger(), 1, true);
 
     bool called = false;
-    auto work = WorkRepetitive([&] 
+    auto work = WorkRepetitive([&]() -> void 
     {
         called = true;
         scheduler.stopMainLoop();

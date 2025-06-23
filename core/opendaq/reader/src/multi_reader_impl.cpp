@@ -334,7 +334,7 @@ ErrCode MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) co
 
 ListPtr<IInputPortConfig> MultiReaderImpl::createOrAdoptPorts(const ListPtr<IComponent>& list) const
 {
-    if (list[0].supportsInterface(IList::Id) && notificationMethodsList.getCount() > 0)
+    if (list[0].supportsInterface(IInputPort::Id) && notificationMethodsList.getCount() > 0)
     {
         if (notificationMethod == PacketReadyNotification::Unspecified)
             DAQ_THROW_EXCEPTION(InvalidParameterException, "Multi reader created from signals cannot have an unspecified input port notification method.");

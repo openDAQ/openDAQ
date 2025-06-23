@@ -44,15 +44,15 @@ PacketBuffer::~PacketBuffer()
 }
 
 PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
-    : bIsFull(false)
-    , bUnderReset(false)
+    : data(std::vector<uint8_t>(sizeOfMem * rawSampleSize))
     , sizeOfMem(instructions.sampleCount) // Is this actually just sample count? memSize is the norm usually.
     , rawSampleSize(instructions.descriptor.getRawSampleSize()) // Why not rawSampleSize
-    , data(std::vector<uint8_t>(sizeOfMem * rawSampleSize))
-    , logger(instructions.context.getLogger())
-    , context(instructions.context)
+    , bIsFull(false)
+    , bUnderReset(false)
     , sizeAdjusted(0)
     , bAdjustedSize(false)
+    , logger(instructions.context.getLogger())
+    , context(instructions.context)
 {
     writePos = &data;
     readPos = &data;

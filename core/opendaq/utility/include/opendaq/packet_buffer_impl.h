@@ -24,8 +24,18 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/packet_buffer.h>
 #include <opendaq/packet_buffer_builder.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/deleter_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+enum class PacketCreateStatus
+{
+    Ok = 0,
+    Failed,
+    Resetting,
+    OutOfMemory,
+};
 
 class PacketBufferImpl : public ImplementationOf<IPacketBuffer>
 {
@@ -97,7 +107,7 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
     auto writePosVirtuallyAdjusted = (static_cast<uint8_t*>(writePos) + rawSampleSize * *sampleCount);
     auto endOfBuffer = (reinterpret_cast<uint8_t*>(&data) + rawSampleSize * sizeOfMem);
     auto readPosWritePosDiff = (static_cast<uint8_t*>(writePos) - static_cast<uint8_t*>(readPos)) / static_cast<uint8_t>(rawSampleSize);
-    auto writePosEndBufferDiff = (endOfBuffer - static_cast<uint8_t*>(writePos)) / static_cast<uint8_t>(rawSampleSize);
+    //auto writePosEndBufferDiff = (endOfBuffer - static_cast<uint8_t*>(writePos)) / static_cast<uint8_t>(rawSampleSize);
     size_t availableSamples;
 
     bool sizeAdjusted = false;
@@ -218,6 +228,7 @@ inline ErrCode PacketBufferImpl::createPacket(SizeT SampleCount, IDataDescriptor
         // Here there should be a reintroduction of Logging stuff
         
         *packet =  daq::DataPacketPtr();
+        return OPENDAQ_SUCCESS; // This maybe needs to be changed to reflect that a packet was trying to be created 
     }
     desc->getRawSampleSize(&rawSampleSize);
     void* startOfSpace = nullptr;
@@ -230,6 +241,8 @@ inline ErrCode PacketBufferImpl::createPacket(SizeT SampleCount, IDataDescriptor
     auto deleter = daq::Deleter(std::move(deleterFunction));
 
     *packet = daq::DataPacketWithExternalMemory(domainPacket, desc, sampleCount, startOfSpace, deleter);
+
+    return OPENDAQ_SUCCESS;
 }
 
 inline ErrCode PacketBufferImpl::getAvailableMemory(SizeT* count)
@@ -276,15 +289,17 @@ inline ErrCode PacketBufferImpl::resize(SizeT sizeInBytes)
 {
     std::unique_lock<std::mutex> lock(mxFlip);
     underReset = true;
+
     this->cv.wait(lock, [&]
         {
             return ((readPos == writePos) && (!isFull));
         });
-    underReset = false;
-    cv.notify_all();
 
+    underReset = false;
     data = std::vector<uint8_t>(sizeInBytes);
     sizeOfMem = sizeInBytes;
+
+    cv.notify_all();
     return OPENDAQ_SUCCESS;
 }
 

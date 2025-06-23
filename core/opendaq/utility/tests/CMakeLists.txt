@@ -20,24 +20,6 @@ opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
 )
 
 ##############################
-# LIB test
-
-set(TEST_HEADERS_INTERNAL
-)
-
-set(TEST_SOURCES_INTERNAL test_ids_parser.cpp
-			  test_circular_packet.cpp
-                 test_mem_pool_allocator.cpp
-)
-
-opendaq_prepare_internal_runner(TEST_APP_INTERNAL FOR ${MODULE_NAME}
-                       SOURCES
-                           test_app.cpp
-                           ${TEST_SOURCES_INTERNAL}
-                           ${TEST_HEADERS_INTERNAL}
-)
-
-##############################
 # CTest setup
 
 add_test(NAME ${TEST_APP}

@@ -15,10 +15,8 @@
  */
 
 #pragma once
-#include <coretypes/function.h>
-#include <coretypes/listobject.h>
-#include <opendaq/opendaq.h>
-#include <coretypes/stringobject.h>
+#include <opendaq/data_descriptor.h>
+#include <opendaq/data_packet.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

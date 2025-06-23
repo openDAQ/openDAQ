@@ -16,6 +16,8 @@
 
 #pragma once
 #include <opendaq/packet_buffer_builder.h>
+#include <opendaq/context_ptr.h>
+#include <opendaq/data_descriptor_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

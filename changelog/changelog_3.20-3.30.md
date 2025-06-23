@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#838](https://github.com/openDAQ/openDAQ/pull/838) Set of multi reader improvements.
 - [#828](https://github.com/openDAQ/openDAQ/pull/828) Parallel device connection.
 - [#810](https://github.com/openDAQ/openDAQ/pull/810) Load individual modules.
 - [#788](https://github.com/openDAQ/openDAQ/pull/788) Component property search.

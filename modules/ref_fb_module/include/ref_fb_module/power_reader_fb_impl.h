@@ -35,6 +35,8 @@ public:
     ~PowerReaderFbImpl() override = default;
 
     static FunctionBlockTypePtr CreateType();
+    static bool descriptorNotNull(const DataDescriptorPtr& descriptor);
+    static void getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc);
     static bool getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc);
     static bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);
 
@@ -69,14 +71,17 @@ private:
     void createInputPorts();
     void createReader();
     void createSignals();
-    static RangePtr getValueRange(DataDescriptorPtr voltageDataDescriptor, DataDescriptorPtr currentDataDescriptor);
+    static RangePtr getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor);
     void onDataReceived();
+
+    void checkPortConnections() const;
+    void onConnected(const InputPortPtr& inputPort) override;
+    void onDisconnected(const InputPortPtr& inputPort) override;
 
     void configure(const DataDescriptorPtr& domainDescriptor,
                    const DataDescriptorPtr& voltageDescriptor,
                    const DataDescriptorPtr& currentDescriptor);
 
-    void processPacket();
     void initProperties();
     void propertyChanged(bool configure);
     void readProperties();

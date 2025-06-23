@@ -119,6 +119,9 @@ public:
         OPENDAQ_PARAM_NOT_NULL(inputPort);
         OPENDAQ_PARAM_NOT_NULL(signal);
         OPENDAQ_PARAM_NOT_NULL(accept);
+        
+        if (externalListener.assigned() && externalListener.getRef().assigned())
+            return externalListener.getRef()->acceptsSignal(port, signal, accept);
 
         *accept = true;
         return OPENDAQ_SUCCESS;
@@ -131,7 +134,13 @@ public:
     virtual ErrCode INTERFACE_FUNC connected(IInputPort* inputPort) override
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
+
+        // TODO: Thread safety
         inputPort->getConnection(&connection);
+            
+        if (externalListener.assigned() && externalListener.getRef().assigned())
+            return externalListener.getRef()->connected(port);
+
         return OPENDAQ_SUCCESS;
     }
 
@@ -143,8 +152,15 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(inputPort);
 
-        std::scoped_lock lock(mutex);
-        connection = nullptr;
+        {
+            std::scoped_lock lock(mutex);
+            connection = nullptr;
+        }
+        
+
+        if (externalListener.assigned() && externalListener.getRef().assigned())
+            return externalListener.getRef()->disconnected(port);
+
         return OPENDAQ_SUCCESS;
     }
 
@@ -153,6 +169,12 @@ public:
         std::scoped_lock lock(mutex);
 
         readCallback = callback;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC setExternalListener(IInputPortNotifications* listener) override
+    {
+        externalListener = listener;
         return OPENDAQ_SUCCESS;
     }
 
@@ -171,7 +193,11 @@ public:
         }
 
         if (callback.assigned())
-            return wrapHandler(callback);
+            OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
+
+        if (externalListener.assigned() && externalListener.getRef().assigned())
+            return externalListener.getRef()->disconnected(port);
+
         return OPENDAQ_SUCCESS;
     }
 
@@ -528,6 +554,7 @@ protected:
     ConnectionPtr connection;
     ProcedurePtr readCallback;
     ReadTimeoutType timeoutType;
+    WeakRefPtr<IInputPortNotifications> externalListener;
 
     std::unique_ptr<Reader> valueReader;
     std::unique_ptr<Reader> domainReader;

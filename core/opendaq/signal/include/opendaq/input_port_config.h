@@ -28,12 +28,13 @@ struct IInputPortNotifications;
 /*!
  * @brief Represents how the input port should handle the packet-enqueued notification.
  */
-enum class PacketReadyNotification
+enum class PacketReadyNotification : EnumType
 {
-    None,                   ///< Ignore the notification.
-    SameThread,             ///< Call the listener in the same thread the notification was received.
-    Scheduler,              ///< Call the listener asynchronously or in another thread.
-    SchedulerQueueWasEmpty  ///< Call the listener asynchronously or in another thread only if connection packet queue was empty
+    None = 0,                   ///< Ignore the notification.
+    SameThread,                 ///< Call the listener in the same thread the notification was received.
+    Scheduler,                  ///< Call the listener asynchronously or in another thread.
+    SchedulerQueueWasEmpty,     ///< Call the listener asynchronously or in another thread only if connection packet queue was empty
+    Unspecified = 99            ///< Invalid state for ports, used by readers when asked to preserve port notification mechanism
 };
 
  /*!
@@ -56,6 +57,11 @@ DECLARE_OPENDAQ_INTERFACE(IInputPortConfig, IInputPort)
      * @brief Sets the input-ports response to the packet enqueued notification.
      */
     virtual ErrCode INTERFACE_FUNC setNotificationMethod(PacketReadyNotification method) = 0;
+    
+    /*!
+     * @brief Gets the input-ports response to the packet enqueued notification.
+     */
+    virtual ErrCode INTERFACE_FUNC getNotificationMethod(PacketReadyNotification* method) = 0;
 
     /*!
      * @brief Gets called when a packet was enqueued in a connection.

@@ -13,7 +13,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Find and connect to a simulator device
     const auto availableDevices = instance.getAvailableDevices();
-    daq::DevicePtr device = instance.addDevice("daq.nd://127.0.0.1");
+    daq::DevicePtr device;
     for (const auto& deviceInfo : availableDevices)
     {
         if (deviceInfo.getName() == "Reference device simulator")

@@ -1759,10 +1759,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                 BaseObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
                 if (OPENDAQ_FAILED(err))
-                {
                     daqClearErrorInfo(err);
-                    continue;
-                }
                 if (!obj.assigned())
                     continue;
 
@@ -1776,10 +1773,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                 PropertyObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
                 if (OPENDAQ_FAILED(err))
-                {
                     daqClearErrorInfo(err);
-                    continue;
-                }
                 if (!obj.assigned())
                     continue;
 
@@ -3253,7 +3247,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
         splitOnLastDot(propName, propName, childStr);
 
         ErrCode err = getPropertyValue(propName, &val);
-        OPENDAQ_RETURN_IF_FAILED(err, fmt::format(R"(Failed to retrieve property value for "{}")", propName));
+        OPENDAQ_RETURN_IF_FAILED(err, fmt::format(R"(Failed to retrieve child object with name {})", propName));
 
         PropertyObjectPtr obj = val.asPtrOrNull<IPropertyObject>(true);
         if (!obj.assigned())

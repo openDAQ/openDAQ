@@ -6,8 +6,8 @@
 #include <coretypes/objectptr.h>
 #include <coretypes/inspectable_ptr.h>
 #include <coretypes/validation.h>
-#include "coretypes/ctutils.h"
-#include "coretypes/errors.h"
+#include <coretypes/ctutils.h>
+#include <coretypes/errors.h>
 
 using namespace daq;
 

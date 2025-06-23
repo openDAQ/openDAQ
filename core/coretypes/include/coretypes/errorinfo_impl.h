@@ -44,7 +44,6 @@ public:
     ErrCode INTERFACE_FUNC setCausedByPrevious(ErrCode prevErrCode) override;
     ErrCode INTERFACE_FUNC getCausedByPrevious(Bool* caused) override;
 
-
     ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
     
     // IFreezable interface

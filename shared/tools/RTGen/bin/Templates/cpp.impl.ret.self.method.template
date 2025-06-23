@@ -6,6 +6,5 @@
 
         auto errCode = this->object->$NameInInterface$($ArgumentNames$);
         daq::checkErrorInfo(errCode);
-
         return this->addRefAndReturn();
     }

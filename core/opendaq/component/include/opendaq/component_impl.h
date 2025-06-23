@@ -26,7 +26,6 @@
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
 #include <opendaq/folder_ptr.h>
-#include <mutex>
 #include <opendaq/component_keys.h>
 #include <tsl/ordered_set.h>
 #include <opendaq/custom_log.h>
@@ -1166,9 +1165,7 @@ ComponentPtr ComponentImpl<Intf, Intfs...>::findComponentInternal(const Componen
             return findComponentInternal(subComponent, restStr);
     }
     else if (errCode == OPENDAQ_ERR_NOTFOUND)
-    {
         daqClearErrorInfo(errCode);
-    }
     else
         checkErrorInfo(errCode);
 

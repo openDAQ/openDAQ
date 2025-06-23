@@ -110,7 +110,7 @@ ErrCode TmsClientSignalImpl::setDomainSignal(ISignal* signal)
 ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
 {
     ListPtr<ISignal> signalsPtr;
-    ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetRelatedSignals, signalsPtr);
+    const ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetRelatedSignals, signalsPtr);
     if (OPENDAQ_FAILED(errCode))
     {
         daqClearErrorInfo(errCode);

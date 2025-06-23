@@ -82,6 +82,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
             const ErrCode errCode = setPropertyValue(refProp.getName(), value);
             OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to set value for referenced property \"{}\"", propertyNamePtr));
+            return errCode;
         }
 
         if (const auto& it = objectTypeIdMap.find((propertyNamePtr)); it != objectTypeIdMap.cend())
@@ -154,12 +155,15 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
         {
             const auto variant = client->readValue(introIt->second);
             const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-            return Impl::setProtectedPropertyValue(propertyName, object);
+            const ErrCode errCode = Impl::setProtectedPropertyValue(propertyName, object);
+            OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to get value for introspection property \"{}\"", propertyNamePtr));
         }
         else if (referenceVariableIdMap.count(propertyNamePtr))
         {
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
-            return getPropertyValue(refProp.getName(), value);
+            const ErrCode errCode = getPropertyValue(refProp.getName(), value);
+            OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to get value for referenced property \"{}\"", propertyNamePtr));
+            return errCode;
         }
         return Impl::getPropertyValue(propertyName, value);
     });

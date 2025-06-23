@@ -54,12 +54,15 @@ PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
     , logger(instructions.context.getLogger())
     , context(instructions.context)
 {
+    logger.addComponent("CircularBuffer");
     writePos = &data;
     readPos = &data;
 }
 
 PacketBuffer::PacketBuffer()
+    : logger(Logger())
 {
+    logger.addComponent("CircularBuffer");
 }
 
 

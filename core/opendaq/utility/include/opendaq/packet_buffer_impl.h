@@ -203,6 +203,7 @@ ErrCode PacketBufferImpl::Read(void* beginningOfDelegatedSpace, size_t sampleCou
         if (readPos == writePos && !isFull)
         {
             // Return error codes
+            DAQ_THROW_EXCEPTION(InvalidStateException);
         }
 
         readPos = static_cast<void*>(static_cast<uint8_t*>(readPos) + rawSize * sampleCount);
@@ -227,9 +228,9 @@ inline ErrCode PacketBufferImpl::createPacket(SizeT SampleCount, IDataDescriptor
     if (underReset)
     {
         // Here there should be a reintroduction of Logging stuff
-        
-        *packet =  daq::DataPacketPtr();
-        return OPENDAQ_SUCCESS; // This maybe needs to be changed to reflect that a packet was trying to be created 
+        DAQ_THROW_EXCEPTION(InvalidStateException); // Aka you should not create packets under reset
+        //*packet =  daq::DataPacketPtr();
+        //return OPENDAQ_SUCCESS; // This maybe needs to be changed to reflect that a packet was trying to be created 
     }
     desc->getRawSampleSize(&rawSampleSize);
     void* startOfSpace = nullptr;

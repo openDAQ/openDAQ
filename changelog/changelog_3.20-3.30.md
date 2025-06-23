@@ -3,14 +3,17 @@
 ## Features
 
 - [#838](https://github.com/openDAQ/openDAQ/pull/838) Set of multi reader improvements.
+- [#828](https://github.com/openDAQ/openDAQ/pull/828) Parallel device connection.
 - [#810](https://github.com/openDAQ/openDAQ/pull/810) Load individual modules.
 - [#788](https://github.com/openDAQ/openDAQ/pull/788) Component property search.
 
 
 ## Python
 
+- [#841](https://github.com/openDAQ/openDAQ/pull/841) Fix Python GUI app crash for Python versions below 3.11 by mimicking `enum.StrEnum` functionality via `enum.Enum`.
 - [#811](https://github.com/openDAQ/openDAQ/pull/811) Add color coding and message display for Component statuses in Python GUI demo application.
 - [#807](https://github.com/openDAQ/openDAQ/pull/807) Enable Device operation mode switching in Python GUI Demo Application.
+
 
 ## Bug fixes
 
@@ -20,6 +23,7 @@
 
 ## Misc
 
+- [#835](https://github.com/openDAQ/openDAQ/pull/835) Removes the opendaq_dev target.
 - [#829](https://github.com/openDAQ/openDAQ/pull/829) Add search functionality to Antora documentation to significantly improve user experience. 
 
 

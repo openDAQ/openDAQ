@@ -44,7 +44,7 @@ PacketBuffer::~PacketBuffer()
 }
 
 PacketBuffer::PacketBuffer(const PacketBufferInit& instructions)
-    : data(std::vector<uint8_t>(sizeOfMem * rawSampleSize))
+    : data(std::vector<uint8_t>(instructions.sampleCount * instructions.descriptor.getRawSampleSize()))
     , sizeOfMem(instructions.sampleCount) // Is this actually just sample count? memSize is the norm usually.
     , rawSampleSize(instructions.descriptor.getRawSampleSize()) // Why not rawSampleSize
     , bIsFull(false)

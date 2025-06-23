@@ -427,7 +427,7 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
     if (this->prevErrCode != OPENDAQ_SUCCESS)
         ss << " - Cause by: ";
 
-    bool needSpace = true;
+    [[maybe_unused]] bool needSpace = true;
     if (this->message)
     {
         ConstCharPtr msgCharPtr;

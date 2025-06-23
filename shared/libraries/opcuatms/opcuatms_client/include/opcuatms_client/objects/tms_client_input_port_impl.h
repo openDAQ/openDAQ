@@ -31,6 +31,7 @@ public:
 
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
+    ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
     ErrCode INTERFACE_FUNC getConnection(IConnection** connection) override;

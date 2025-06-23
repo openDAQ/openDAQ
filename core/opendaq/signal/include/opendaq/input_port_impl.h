@@ -59,6 +59,7 @@ public:
     ErrCode INTERFACE_FUNC setNotificationMethod(PacketReadyNotification method) override;
     ErrCode INTERFACE_FUNC notifyPacketEnqueued(Bool queueWasEmpty) override;
     ErrCode INTERFACE_FUNC notifyPacketEnqueuedOnThisThread() override;
+    ErrCode INTERFACE_FUNC notifyPacketEnqueuedWithScheduler() override;
     ErrCode INTERFACE_FUNC setListener(IInputPortNotifications* port) override;
 
     ErrCode INTERFACE_FUNC getCustomData(IBaseObject** data) override;
@@ -69,6 +70,7 @@ public:
 
     // IInputPortPrivate
     ErrCode INTERFACE_FUNC disconnectWithoutSignalNotification() override;
+    ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
 
     // IOwnable
     ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;
@@ -83,6 +85,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
+    ErrCode connectInternal(ISignal* signal, bool scheduled);
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
 
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
@@ -95,7 +98,6 @@ protected:
                                        const FunctionPtr& factoryCallback) override;
 
     virtual ConnectionPtr createConnection(const SignalPtr& signal);
-
     ConnectionPtr getConnectionNoLock();
     void removed() override;
     
@@ -175,86 +177,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::canConnectSignal(ISignal* signal) c
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
 {
-    OPENDAQ_PARAM_NOT_NULL(signal);
-
-    try
-    {
-        auto err = canConnectSignal(signal);
-        OPENDAQ_RETURN_IF_FAILED(err);
-
-        auto signalPtr = SignalPtr::Borrow(signal);
-
-        const auto connection = createConnection(signalPtr);
-
-        InputPortNotificationsPtr inputPortListener;
-        {
-            auto lock = this->getRecursiveConfigLock();
-            if (this->isComponentRemoved)
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
-
-            {
-                ConnectionPtr oldConnection = connectionRef.assigned() ? connectionRef.getRef() : nullptr;
-                connectionRef.release();
-                disconnectSignalInternal(std::move(oldConnection), false, true, false);
-            }
-            connectionRef = connection;
-
-            if (listenerRef.assigned())
-                inputPortListener = listenerRef.getRef();
-        }
-
-        if (inputPortListener.assigned())
-        {
-            err = inputPortListener->connected(Super::template borrowInterface<IInputPort>());
-            if (OPENDAQ_FAILED(err))
-            {
-                connectionRef.release();
-                return DAQ_EXTEND_ERROR_INFO(err);
-            }
-        }
-
-        const auto events = signalPtr.asPtrOrNull<ISignalEvents>(true);
-        if (events.assigned())
-        {
-            // NORRIS/TODO: what's the correct behavior if this fails? what about when the error is OPENDAQ_ERR_NOTIMPLEMENTED?
-            // - behavior before my change is to propagate the error up to the caller even in the latter case, which seems wrong
-            // - behavior now is that OPENDAQ_ERR_NOTIMPLEMENTED is ignored but other errors are propagated
-            // - do we have (and if not, do we want) helper methods for exception handling like this? something like:
-            //       ignoreErrors([]() { events.listenerConnected(connection); }, OPENDAQ_ERR_HARMLESS1, OPENDAQ_ERR_HARMLESS2);
-
-            try
-            {
-                events.listenerConnected(connection);
-            }
-            catch (const DaqException& e)
-            {
-                if (e.getErrCode() != OPENDAQ_ERR_NOTIMPLEMENTED)
-                    throw;
-            }
-        }
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
-
-    if (!this->coreEventMuted && this->coreEvent.assigned())
-    {
-        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::SignalConnected,
-                                                                                      Dict<IString, IBaseObject>({{"Signal", signal}}));
-
-        this->triggerCoreEvent(args);
-    }
-
-    return OPENDAQ_SUCCESS;
+    return connectInternal(signal, false);
 }
 
 template <class... Interfaces>
@@ -440,6 +363,24 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedOnThisThread()
         });
 }
 
+template <class ... Interfaces>
+ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedWithScheduler()
+{
+    return wrapHandler(
+        [this]
+        {
+            switch (notifyMethod)
+            {
+                case PacketReadyNotification::SameThread:
+                case PacketReadyNotification::Scheduler:
+                case PacketReadyNotification::SchedulerQueueWasEmpty:
+                    notifyPacketEnqueuedScheduler();
+                case PacketReadyNotification::None:
+                    break;
+            }
+        });
+}
+
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications* port)
 {
@@ -515,6 +456,12 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification
             disconnectSignalInternal(std::move(connection), true, false, true);
             return OPENDAQ_SUCCESS;
         });
+}
+
+template <class ... Interfaces>
+ErrCode GenericInputPortImpl<Interfaces...>::connectSignalSchedulerNotification(ISignal* signal)
+{
+    return connectInternal(signal, true);
 }
 
 template <class... Interfaces>
@@ -604,6 +551,94 @@ ErrCode GenericInputPortImpl<Interfaces...>::Deserialize(ISerializedObject* seri
                        })
                        .detach();
         });
+}
+
+template <class ... Interfaces>
+ErrCode GenericInputPortImpl<Interfaces...>::connectInternal(ISignal* signal, bool scheduled)
+{
+    OPENDAQ_PARAM_NOT_NULL(signal);
+
+    try
+    {
+        auto err = canConnectSignal(signal);
+        OPENDAQ_RETURN_IF_FAILED(err);
+
+        auto signalPtr = SignalPtr::Borrow(signal);
+
+        const auto connection = createConnection(signalPtr);
+
+        InputPortNotificationsPtr inputPortListener;
+        {
+            auto lock = this->getRecursiveConfigLock();
+            if (this->isComponentRemoved)
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
+
+            {
+                ConnectionPtr oldConnection = connectionRef.assigned() ? connectionRef.getRef() : nullptr;
+                connectionRef.release();
+                disconnectSignalInternal(std::move(oldConnection), false, true, false);
+            }
+            connectionRef = connection;
+
+            if (listenerRef.assigned())
+                inputPortListener = listenerRef.getRef();
+        }
+
+        if (inputPortListener.assigned())
+        {
+            err = inputPortListener->connected(Super::template borrowInterface<IInputPort>());
+            if (OPENDAQ_FAILED(err))
+            {
+                connectionRef.release();
+                return DAQ_MAKE_ERROR_INFO(err);
+            }
+        }
+
+        const auto events = signalPtr.asPtrOrNull<ISignalEvents>(true);
+        if (events.assigned())
+        {
+            // NORRIS/TODO: what's the correct behavior if this fails? what about when the error is OPENDAQ_ERR_NOTIMPLEMENTED?
+            // - behavior before my change is to propagate the error up to the caller even in the latter case, which seems wrong
+            // - behavior now is that OPENDAQ_ERR_NOTIMPLEMENTED is ignored but other errors are propagated
+            // - do we have (and if not, do we want) helper methods for exception handling like this? something like:
+            //       ignoreErrors([]() { events.listenerConnected(connection); }, OPENDAQ_ERR_HARMLESS1, OPENDAQ_ERR_HARMLESS2);
+
+            try
+            {
+                if (!scheduled)
+                    events.listenerConnected(connection);
+                else
+                    events.listenerConnectedScheduled(connection);
+            }
+            catch (const DaqException& e)
+            {
+                if (e.getErrCode() != OPENDAQ_ERR_NOTIMPLEMENTED)
+                    throw;
+            }
+        }
+    }
+    catch (const DaqException& e)
+    {
+        return errorFromException(e, this->getThisAsBaseObject());
+    }
+    catch (const std::exception& e)
+    {
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
+    }
+    catch (...)
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::SignalConnected,
+                                                                                      Dict<IString, IBaseObject>({{"Signal", signal}}));
+
+        this->triggerCoreEvent(args);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class... Interfaces>

@@ -206,10 +206,10 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message)
 
     if (filename)
     {
-        ss << " - Caused by: [" << filename;
+        ss << " - Caused by: [ " << filename;
         if (fileLine != -1)
             ss << ":" << fileLine;
-        ss << "]\n";
+        ss << " ]\n";
     }
 
     auto str = ss.str();
@@ -427,23 +427,28 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
     if (this->prevErrCode != OPENDAQ_SUCCESS)
         ss << " - Cause by: ";
 
+    bool needSpace = true;
     if (this->message)
     {
         ConstCharPtr msgCharPtr;
         this->message->getCharPtr(&msgCharPtr);
 
         if (msgCharPtr != nullptr)
-            ss << msgCharPtr << " ";
+            ss << msgCharPtr;
     }
     else if (this->prevErrCode != this->errorCode)
     {
-        ss << ErrorCodeMessage(this->errorCode) << " ";
+        ss << ErrorCodeMessage(this->errorCode);
+    }
+    else 
+    {
+        needSpace = false;
     }
 
 #ifndef NDEBUG
     if (this->fileName)
     {
-        ss << "[ " << this->fileName;
+        ss << (needSpace ? " " : "") << "[ " << this->fileName;
         if (this->fileLine != -1)
             ss << ":" << this->fileLine;
         ss << " ]";

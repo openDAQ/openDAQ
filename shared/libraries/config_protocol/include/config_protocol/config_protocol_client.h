@@ -357,7 +357,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
             if (OPENDAQ_FAILED(errCode))
             {
                 StringPtr message;
-                daqGetErrorInfoMessage(&message);
+                daqGetErrorInfoMessage(&message, errCode);
                 daqClearErrorInfo(errCode);
 
                 const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");

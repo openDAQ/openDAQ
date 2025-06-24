@@ -240,11 +240,14 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(
 
             if (selectedSource == idx)
             {
-                setSelectedSource(0);
+                const ErrCode errCode = setSelectedSource(0);
+                OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND); // the list is empty
             }
             else if (selectedSource > idx)
             {
-                setSelectedSource(selectedSource - 1);
+                const ErrCode errCode = setSelectedSource(selectedSource - 1);
+                if (OPENDAQ_FAILED(errCode))
+                    daqClearErrorInfo(errCode);
             }
             break;
         }

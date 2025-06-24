@@ -1656,12 +1656,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
         const auto propInternal = property.asPtr<IPropertyInternal>();
         res = propInternal->getDefaultValueNoLock(&value);
 
-        if (OPENDAQ_FAILED(res) || !value.assigned())
-        {
-            value = nullptr;
+        if (OPENDAQ_FAILED(res))
             daqClearErrorInfo(res);
+
+        if (!value.assigned())
             return OPENDAQ_SUCCESS;
-        }
 
         CoreType coreType = value.getCoreType();
         if (coreType == ctList && bracket != nullptr)
@@ -1960,7 +1959,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
         BaseObjectPtr valuePtr;
         ErrCode err;
 
-
         if (isChildProperty(propName))
         {
             StringPtr subName;
@@ -1972,10 +1970,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
             PropertyPtr prop;
             err = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
         }
+        OPENDAQ_RETURN_IF_FAILED(err);
 
-        if (OPENDAQ_SUCCEEDED(err))
-            *value = valuePtr.detach();
-
+        *value = valuePtr.detach();
         return err;
     }
     catch (const DaqException& e)
@@ -2000,38 +1997,32 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
 
         if (isChildProperty(propName))
         {
-            getProperty(propName, &prop);
-            if (!prop.assigned())
-                DAQ_THROW_EXCEPTION(NotFoundException, R"(Selection property "{}" not found)", propName);
-
+            const ErrCode errCode = getProperty(propName, &prop);
+            OPENDAQ_RETURN_IF_FAILED(errCode, OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Selection property "{}" not found)", propName));
             valuePtr = prop.getValue();
         }
         else
         {
-            getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
-            if (!prop.assigned())
-                DAQ_THROW_EXCEPTION(NotFoundException, R"(Selection property "{}" not found)", propName);
+            const ErrCode errCode = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+            OPENDAQ_RETURN_IF_FAILED(errCode, OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Selection property "{}" not found)", propName));
         }
 
-        const auto propInternal = prop.asPtr<IPropertyInternal>();
+        const auto propInternal = prop.asPtr<IPropertyInternal>(true);
         auto values = propInternal.getSelectionValuesNoLock();
         if (!values.assigned())
             DAQ_THROW_EXCEPTION(InvalidPropertyException, R"(Selection property "{}" has no selection values assigned)", propName);
 
-        auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true);
-        if (!valuesList.assigned())
+        if (auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true); valuesList.assigned())
         {
-            auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true);
-            if (!valuesDict.assigned())
-            {
-                DAQ_THROW_EXCEPTION(InvalidPropertyException, R"(Selection property "{}" values is not a list or dictionary)", propName);
-            }
-
+            valuePtr = valuesList.getItemAt(valuePtr);
+        }
+        else if (auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true); valuesDict.assigned())
+        {
             valuePtr = valuesDict.get(valuePtr);
         }
         else
         {
-            valuePtr = valuesList.getItemAt(valuePtr);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" values is not a list or dictionary)", propName));
         }
 
         if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())
@@ -2052,7 +2043,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "An unknown error occurred while getting property selection value.");
     }
 }
 
@@ -2699,7 +2690,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "An unknown error occurred while checking for property references.");
     }
 
     return OPENDAQ_SUCCESS;
@@ -3396,20 +3387,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
         if (!serializedProps.assigned() || !serializedProps.hasKey(propName))
         {
             const auto err = propObj.as<IPropertyObjectProtected>(true)->clearProtectedPropertyValue(propName);
-            if (!OPENDAQ_SUCCEEDED(err) && err != OPENDAQ_ERR_INVALID_OPERATION)
-            {
-                return err;
-            }
-
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_INVALID_OPERATION);
             continue;
         }
 
         const auto err = setPropertyFromSerialized(propName, propObj, serializedProps);
-
-        if (!OPENDAQ_SUCCEEDED(err))
-        {
-            return err;
-        }
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return OPENDAQ_SUCCESS;
@@ -3466,7 +3449,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateIntern
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "An unknown error occurred while updating the property object.");
     }
 }
 

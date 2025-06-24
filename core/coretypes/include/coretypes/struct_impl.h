@@ -403,12 +403,14 @@ template <class StructInterface, class... Interfaces>
 ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(
     ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
+    OPENDAQ_PARAM_NOT_NULL(context);
+
     TypeManagerPtr typeManager;
-    if (context == nullptr || OPENDAQ_FAILED(context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager))))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_TYPE_MANAGER, "Type manager is required for deserialization of Struct");
+    ErrCode errCode = context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to query TypeManager from context for Struct deserialization");
 
     StringPtr typeName;
-    ErrCode errCode = ser->readString("typeName"_daq, &typeName);
+    errCode = ser->readString("typeName"_daq, &typeName);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     BaseObjectPtr fields;
@@ -418,16 +420,17 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(
     try
     {
         StructPtr structPtr;
-        createStruct(&structPtr, typeName, fields.asPtr<IDict>(), typeManager);
+        errCode = createStruct(&structPtr, typeName, fields.asPtr<IDict>(), typeManager);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
         *obj = structPtr.detach();
     }
     catch(const DaqException& e)
     {
-        return e.getErrCode();
+        return errorFromException(e);
     }
     catch(...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to deserialize Struct object");
     }
 
     return OPENDAQ_SUCCESS;

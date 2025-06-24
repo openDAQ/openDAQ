@@ -219,7 +219,7 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to deserialize StructType.");
     }
 
     return OPENDAQ_SUCCESS;

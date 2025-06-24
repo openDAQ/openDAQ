@@ -42,9 +42,9 @@ template <typename T>
 ErrCode read(ISerializedObject* serializedObj, const StringPtr& key, T& valueOut)
 {
     Int outInt;
-    ErrCode status = serializedObj->readInt(key, &outInt);
-    if (OPENDAQ_SUCCEEDED(status))
-        valueOut = T(outInt);
+    const ErrCode status = serializedObj->readInt(key, &outInt);
+    OPENDAQ_RETURN_IF_FAILED(status);
+    valueOut = T(outInt);
     return status;
 }
 
@@ -60,12 +60,13 @@ inline ErrCode read<Float>(ISerializedObject* serializedObj, const StringPtr& ke
     ErrCode status = serializedObj->readFloat(key, &valueOut);
     if (OPENDAQ_SUCCEEDED(status))
         return status;
+    daqClearErrorInfo(status);
 
     Int intOut;
     status = serializedObj->readInt(key, &intOut);
-    if (OPENDAQ_SUCCEEDED(status))
-        valueOut = Float(intOut);
+    OPENDAQ_RETURN_IF_FAILED(status);
 
+    valueOut = Float(intOut);
     return status;
 }
 
@@ -100,10 +101,10 @@ inline ErrCode read<ComplexFloat64>(ISerializedObject* serializedObj, const Stri
 {
     SerializedObjectPtr obj;
     ErrCode status = serializedObj->readSerializedObject(key, &obj);
+    OPENDAQ_RETURN_IF_FAILED(status);
 
-    if (OPENDAQ_SUCCEEDED(status))
-        status = read<ComplexFloat64>(obj, valueOut);
-
+    status = read<ComplexFloat64>(obj, valueOut);
+    OPENDAQ_RETURN_IF_FAILED(status);
     return status;
 }
 
@@ -118,6 +119,8 @@ inline ErrCode read<ComplexFloat32>(ISerializedObject* serializedObj, const Stri
 {
     ComplexFloat64 tmpOut;
     ErrCode status = read<ComplexFloat64>(serializedObj, key, tmpOut);
+    OPENDAQ_RETURN_IF_FAILED(status);
+
     valueOut.real = (float) tmpOut.real;
     valueOut.imaginary = (float) tmpOut.imaginary;
     return status;
@@ -134,8 +137,9 @@ inline ErrCode read<ConstCharPtr>(ISerializedObject* serializedObj, const String
 {
     StringPtr str;
     ErrCode status = serializedObj->readString(key, &str);
-    if (OPENDAQ_SUCCEEDED(status))
-        valueOut = str.getCharPtr();
+    OPENDAQ_RETURN_IF_FAILED(status);
+
+    valueOut = str.getCharPtr();
     return status;
 }
 

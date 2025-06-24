@@ -191,7 +191,7 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to deserialize TypeManager.");
     }
 
     return OPENDAQ_SUCCESS;

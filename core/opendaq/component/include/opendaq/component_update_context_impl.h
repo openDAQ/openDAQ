@@ -131,8 +131,7 @@ inline ErrCode ComponentUpdateContextImpl::removeInputPortConnection(IString* pa
 {
     OPENDAQ_PARAM_NOT_NULL(parentId);
 
-    connections->deleteItem(parentId);
-    return OPENDAQ_SUCCESS;
+    return connections->deleteItem(parentId);
 }
 
 inline ErrCode ComponentUpdateContextImpl::getRootComponent(IComponent** rootComponent)

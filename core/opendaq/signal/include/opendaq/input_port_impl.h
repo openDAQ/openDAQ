@@ -627,7 +627,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connectInternal(ISignal* signal, bo
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to connect signal to input port");
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())

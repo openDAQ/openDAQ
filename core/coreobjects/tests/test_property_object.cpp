@@ -113,8 +113,10 @@ protected:
         objManager.removeType("BaseClass");
         objManager.removeType("Test");
 
-        objManager->removeType(String("Parent"));
-        objManager->removeType(String("Base"));
+        if (objManager.hasType("Parent"))
+            objManager.removeType(String("Parent"));
+        if (objManager.hasType("Base"))
+            objManager.removeType(String("Base"));
 
         propValue.release();
         propName.release();
@@ -438,6 +440,7 @@ TEST_F(PropertyObjectTest, EnumVisiblePropertyListNull)
     ErrCode errCode = propObj->getVisibleProperties(nullptr);
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo(errCode);
 }
 
 TEST_F(PropertyObjectTest, EnumVisiblePropertyWhenClassNull)
@@ -1397,6 +1400,7 @@ TEST_F(PropertyObjectTest, PropertyValidateFailedEvalValue)
     
     ErrCode err = obj->setPropertyValue(String(propertyName), Floating(10.2));
     ASSERT_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+    daqClearErrorInfo(err);
 
     ASSERT_THROW(obj.setPropertyValue(propertyName, 10.2), ValidateFailedException);
 }
@@ -1428,6 +1432,7 @@ TEST_F(PropertyObjectTest, PropertyWriteValidateEvalValueMultipleTimes)
 
     err = obj->setPropertyValue(String(propertyName), Floating(5.0));
     ASSERT_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+    daqClearErrorInfo(err);
     ASSERT_THROW(obj.setPropertyValue(propertyName, 5), ValidateFailedException);
 }
 

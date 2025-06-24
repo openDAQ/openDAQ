@@ -845,9 +845,9 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config));
     ErrCode errCode = updateInternal(obj, context);
     if (OPENDAQ_SUCCEEDED(errCode))
-    {
         errCode = this->updateEnded(context);
-    }
+    else
+        errCode = DAQ_MAKE_ERROR_INFO(errCode, "Component update failed");
 
     if (!muted && this->coreEvent.assigned())
     {

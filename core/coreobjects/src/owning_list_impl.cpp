@@ -12,39 +12,29 @@ OwningListImpl::OwningListImpl(IPropertyObject* owner, StringPtr ref)
 ErrCode OwningListImpl::removeOwner(IBaseObject* value) const
 {
     if (value == nullptr)
-    {
         return OPENDAQ_SUCCESS;
-    }
 
     auto ownable = BaseObjectPtr::Borrow(value).asPtrOrNull<IOwnable>();
-    if (ownable.assigned())
-    {
-        return ownable->setOwner(nullptr);
-    }
-    return OPENDAQ_SUCCESS;
+    if (!ownable.assigned())
+        return OPENDAQ_SUCCESS;
+
+    return ownable->setOwner(nullptr);
 }
 
 ErrCode OwningListImpl::setOwner(IBaseObject* value) const
 {
     if (value == nullptr)
-    {
         return OPENDAQ_SUCCESS;
-    }
 
-    ErrCode err = OPENDAQ_SUCCESS;
+    auto ownable = BaseObjectPtr::Borrow(value).asPtrOrNull<IOwnable>(true);
+    if (!ownable.assigned())
+        return OPENDAQ_SUCCESS;
 
-    auto ownable = BaseObjectPtr::Borrow(value).asPtrOrNull<IOwnable>();
-    if (ownable.assigned())
-    {
-        GenericPropertyObjectPtr lock;
-        err = owner->getRefAs(IPropertyObject::Id, reinterpret_cast<void**>(&lock));
+    GenericPropertyObjectPtr lock;
+    const ErrCode errCode = owner->getRefAs(IPropertyObject::Id, reinterpret_cast<void**>(&lock));
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        if (OPENDAQ_SUCCEEDED(err))
-        {
-            return ownable->setOwner(lock);
-        }
-    }
-    return err;
+    return ownable->setOwner(lock);
 }
 
 ErrCode OwningListImpl::setItemAt(SizeT index, IBaseObject* obj)

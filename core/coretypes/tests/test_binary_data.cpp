@@ -34,7 +34,9 @@ TEST_F(BinaryDataTest, NullParameter)
     auto binObj = BinaryData(5);
 
     ASSERT_EQ(binObj->getSize(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL);
     ASSERT_EQ(binObj->getAddress(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(BinaryDataTest, WriteReadBufferSomeData)

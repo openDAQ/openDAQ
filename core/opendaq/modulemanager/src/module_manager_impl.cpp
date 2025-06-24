@@ -670,7 +670,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to create device from connection string");
     }
 
     return DAQ_MAKE_ERROR_INFO(
@@ -1159,7 +1159,9 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     
         const std::string prefix = getPrefixFromConnectionString(connectionString);
         DictPtr<IString, IStreamingType> types;
-        module->getAvailableStreamingTypes(&types);
+        const ErrCode errCode = module->getAvailableStreamingTypes(&types);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo(errCode);
         if (!types.assigned())
             continue;
 
@@ -1705,7 +1707,10 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         ErrCode errCode = checkDeps(&errMsg);
         if (OPENDAQ_FAILED(errCode))
         {
-            LOG_T("Failed to check dependencies for \"{}\".", relativePath);
+            StringPtr detailedMsg;
+            daqGetErrorInfoMessage(&detailedMsg, errCode);
+            daqClearErrorInfo(errCode);
+            LOG_T("Failed to check dependencies for \"{}\". {}", relativePath, detailedMsg.assigned() ? detailedMsg.toStdString());
 
             DAQ_THROW_EXCEPTION(ModuleIncompatibleDependenciesException,
                                 "Module \"{}\" failed dependencies check. Error: 0x{:x} [{}]",
@@ -1732,7 +1737,10 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
     ErrCode errCode = factory(&module, context);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_T("Failed creating module from \"{}\".", relativePath);
+        StringPtr detailedMsg;
+        daqGetErrorInfoMessage(&detailedMsg, errCode);
+        daqClearErrorInfo(errCode);
+        LOG_T("Failed creating module from \"{}\". {}", relativePath, detailedMsg.assigned() ? detailedMsg.toStdString());
 
         DAQ_THROW_EXCEPTION(ModuleEntryPointFailedException, "Library \"{}\" failed to create a Module.", relativePath);
     }

@@ -326,6 +326,7 @@ TEST_F(JsonSerializerTest, objectNullKeyInterface)
     ErrCode errCode = serializer->keyStr(static_cast<IString*>(nullptr));
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo(errCode);
 }
 
 TEST_F(JsonSerializerTest, objectNullKeyPtrInterface)
@@ -334,6 +335,7 @@ TEST_F(JsonSerializerTest, objectNullKeyPtrInterface)
     ErrCode errCode = serializer->key(static_cast<ConstCharPtr>(nullptr));
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo(errCode);
 }
 
 TEST_F(JsonSerializerTest, objectZeroLengthKeyInterface)
@@ -342,6 +344,7 @@ TEST_F(JsonSerializerTest, objectZeroLengthKeyInterface)
     ErrCode errCode = serializer->keyRaw("", 0);
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_INVALIDPARAMETER);
+    daqClearErrorInfo(errCode);
 }
 
 TEST_F(JsonSerializerTest, objectKeyNullSizeInterface)
@@ -350,6 +353,7 @@ TEST_F(JsonSerializerTest, objectKeyNullSizeInterface)
     ErrCode errCode = serializer->keyRaw(nullptr, 0);
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo(errCode);
 }
 
 TEST_F(JsonSerializerTest, createToNull)
@@ -357,6 +361,7 @@ TEST_F(JsonSerializerTest, createToNull)
     ErrCode errCode = createJsonSerializer(nullptr);
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo(errCode);
 }
 
 TEST_F(JsonSerializerTest, Inspectable)

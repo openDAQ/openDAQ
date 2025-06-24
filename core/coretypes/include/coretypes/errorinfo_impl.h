@@ -79,12 +79,12 @@ public:
     ErrorGuardImpl(ConstCharPtr filename, int fileLine);
     ~ErrorGuardImpl();
 
-    ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) override;
-    ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
+    ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) const override;
+    ErrCode INTERFACE_FUNC getFormatMessage(IString** message, ErrCode errCode) const override;
 
     void setErrorInfo(IErrorInfo* errorInfo);
     void extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode);
-    IErrorInfo* getErrorInfo() const;
+    IErrorInfo* getErrorInfo(ErrCode errCode) const;
     void clearLastErrorInfo(ErrCode errCode);
     bool empty() const;
 
@@ -105,10 +105,10 @@ public:
     void setErrorInfo(IErrorInfo* errorInfo);
     void extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode);
     void clearErrorInfo(ErrCode errorCode);
-    IErrorInfo* getErrorInfo() const;
+    IErrorInfo* getErrorInfo(ErrCode errCode) const;
 
     IList* getErrorInfoList();
-    IString* getFormatMessage() const;
+    IString* getFormatMessage(ErrCode errCode) const;
 
     void setScopeEntry(ErrorGuardImpl* entry);
     void removeScopeEntry(ErrorGuardImpl* entry);

@@ -8,6 +8,7 @@
 #include <coretypes/validation.h>
 #include <coretypes/ctutils.h>
 #include <coretypes/errors.h>
+#include <coretypes/listobject_factory.h>
 
 using namespace daq;
 
@@ -127,75 +128,35 @@ TEST_F(ErrorInfoTest, MultipleMessages)
     DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error0");
     DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error1");
 
-    IErrorInfo* lastError;
+    ObjectPtr<IErrorInfo> lastError;
     daqGetErrorInfo(&lastError);
+    ASSERT_TRUE(lastError.assigned());
 
-    ASSERT_TRUE(lastError != nullptr);
-    Finally finally([&]
-    {
-        if (lastError != nullptr)
-            lastError->releaseRef();
-        daqClearErrorInfo();
-    });
-
-    IList* errorInfoList;
+    ListPtr<IErrorInfo> errorInfoList;
     daqGetErrorInfoList(&errorInfoList);
+    ASSERT_TRUE(errorInfoList.assigned());
+    ASSERT_EQ(errorInfoList.getCount(), 2);
 
-    ASSERT_TRUE(errorInfoList != nullptr);
-    Finally finally3([&]
+    for (SizeT i = 0; i < errorInfoList.getCount(); ++i)
     {
-        if (errorInfoList != nullptr)
-            errorInfoList->releaseRef();
-    });
+        auto errorInfoObject = errorInfoList[i];
+        ASSERT_TRUE(errorInfoObject.assigned());
 
-    SizeT count = 0;
-    errorInfoList->getCount(&count);
-    ASSERT_EQ(count, 2);
-
-    for (SizeT i = 0; i < count; ++i)
-    {
-        IBaseObject* errorInfoObject;
-        errorInfoList->getItemAt(i, &errorInfoObject);
-
-        ASSERT_TRUE(errorInfoObject != nullptr);
-        Finally finally4([&]
-        {
-            if (errorInfoObject != nullptr)
-                errorInfoObject->releaseRef();
-        });
-
-        IErrorInfo* errorInfo;
-        errorInfoObject->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
-
-        if (i == count -1)
-        {
-            ASSERT_EQ(errorInfo, lastError);
-        }
-
-        IString* message;
-        errorInfo->getMessage(&message);
-
-        ASSERT_TRUE(message != nullptr);
-        Finally finally5([&]
-        {
-            if (message != nullptr)
-                message->releaseRef();
-        });
-
-        ConstCharPtr msgCharPtr;
-        message->getCharPtr(&msgCharPtr);
+        StringPtr message;
+        errorInfoObject->getMessage(&message);
+        ASSERT_TRUE(message.assigned());
 
         std::string expectedMsg = "General error" + std::to_string(i);
-        ASSERT_STREQ(msgCharPtr, expectedMsg.c_str());
+        ASSERT_STREQ(message.getCharPtr(), expectedMsg.c_str());
 
 #ifndef NDEBUG
         CharPtr fileName;
-        errorInfo->getFileName(&fileName);
+        errorInfoObject->getFileName(&fileName);
         ASSERT_TRUE(fileName != nullptr);
         daqFreeMemory(fileName);
 
         Int line;
-        errorInfo->getFileLine(&line);
+        errorInfoObject->getFileLine(&line);
         ASSERT_NE(line, -1);
 #endif
     }
@@ -210,12 +171,11 @@ std::string getErrorPostfix([[maybe_unused]] Int fileLine)
 #endif
 }
 
-
 TEST_F(ErrorInfoTest, ErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(44);
+    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(45);
     ASSERT_THROW_MSG(checkErrorInfo(obj->newMakeErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -223,8 +183,8 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(44) + "\n";
-    expected += " - Cause by: multipleErrorInfoTest failed twice" + getErrorPostfix(50) + "\n";
+    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(45) + "\n";
+    expected += " - Cause by: multipleErrorInfoTest failed twice" + getErrorPostfix(51) + "\n";
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -235,7 +195,7 @@ TEST_F(ErrorInfoTest, ArgumentNotNull)
 #ifdef NDEBUG
     std::string expected = "Parameter obj must not be null in the function \"";
 #else
-    std::string expected = "Parameter obj must not be null" + getErrorPostfix(57);
+    std::string expected = "Parameter obj must not be null" + getErrorPostfix(58);
 #endif
     ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), ArgumentNullException, expected);
 }
@@ -244,6 +204,6 @@ TEST_F(ErrorInfoTest, ThrowExceptionInDaqTry)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "Test failed" + getErrorPostfix(65);
+    std::string expected = "Test failed" + getErrorPostfix(66);
     ASSERT_THROW_MSG(checkErrorInfo(obj->throwExceptionTest()), GeneralErrorException, expected);
 }

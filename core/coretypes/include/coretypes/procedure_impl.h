@@ -240,7 +240,7 @@ ErrCode createProcedureWrapper(IProcedure** obj, [[maybe_unused]] TFunctor proc)
     }
     catch (const std::exception&)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to create procedure wrapper for lambda");
     }
 
     (*obj)->addRef();
@@ -269,7 +269,7 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor proc)
     }
     catch (const std::exception&)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to create procedure wrapper for std::bind");
     }
 
     (*obj)->addRef();
@@ -298,7 +298,7 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor* proc)
     }
     catch (const std::exception&)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to create procedure wrapper for function pointer");
     }
 
     (*obj)->addRef();

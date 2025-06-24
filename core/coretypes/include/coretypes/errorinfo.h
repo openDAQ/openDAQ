@@ -145,7 +145,7 @@ END_NAMESPACE_OPENDAQ
 
 extern "C" void PUBLIC_EXPORT daqSetErrorInfo(daq::IErrorInfo* errorInfo);
 extern "C" void PUBLIC_EXPORT daqExtendErrorInfo(daq::IErrorInfo* errorInfo, daq::ErrCode prevErrCode);
-extern "C" void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo);
+extern "C" void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo, daq::ErrCode errCode = OPENDAQ_SUCCESS);
 extern "C" void PUBLIC_EXPORT daqGetErrorInfoList(daq::IList** errorInfoList);
-extern "C" void PUBLIC_EXPORT daqGetErrorInfoMessage(daq::IString** errorMessage);
+extern "C" void PUBLIC_EXPORT daqGetErrorInfoMessage(daq::IString** errorMessage, daq::ErrCode errCode = OPENDAQ_SUCCESS);
 extern "C" void PUBLIC_EXPORT daqClearErrorInfo(daq::ErrCode errCode = OPENDAQ_SUCCESS);

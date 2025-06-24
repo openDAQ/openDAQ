@@ -795,7 +795,7 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
         }
         catch (...)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to synchronize MultiReader");
         }
     }
     return OPENDAQ_SUCCESS;

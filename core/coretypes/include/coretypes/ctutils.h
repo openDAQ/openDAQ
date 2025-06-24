@@ -84,7 +84,10 @@ inline std::string objectToString(IBaseObject* object)
             daqFreeMemory(s);
         }
         else
+        {
+            daqClearErrorInfo(errCode);
             stream << "Unknown";
+        }
     }
     return stream.str();
 }
@@ -183,7 +186,7 @@ inline void checkErrorInfo(ErrCode errCode)
 
     std::string message;
     daq::IString* errorMessage = nullptr;
-    daqGetErrorInfoMessage(&errorMessage);
+    daqGetErrorInfoMessage(&errorMessage, errCode);
     if (errorMessage)
     {
         daq::ConstCharPtr msgCharPtr = nullptr;

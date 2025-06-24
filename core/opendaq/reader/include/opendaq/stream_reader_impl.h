@@ -108,7 +108,7 @@ private:
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
 
     [[nodiscard]]
-    bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);
+    bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode);
 
     void* getValuePacketData(const DataPacketPtr& packet) const;
     ReaderStatusPtr readPackets();

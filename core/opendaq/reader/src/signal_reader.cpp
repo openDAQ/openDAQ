@@ -567,10 +567,8 @@ ErrCode SignalReader::readPacketData()
         ErrCode errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
-            if (!trySetDomainSampleType(domainPacket))
-            {
+            if (!trySetDomainSampleType(domainPacket, errCode))
                 return errCode;
-            }
             daqClearErrorInfo(errCode);
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         }
@@ -593,19 +591,18 @@ ErrCode SignalReader::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const
+bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode) const
 {
     ObjectPtr<IErrorInfo> errInfo;
-    daqGetErrorInfo(&errInfo);
-    daqClearErrorInfo();
+    daqGetErrorInfo(&errInfo, errCode);
+    daqClearErrorInfo(errCode);
 
     auto dataDescriptor = domainPacket.getDataDescriptor();
-    if (!domainReader->handleDescriptorChanged(dataDescriptor, readMode))
-    {
-        daqSetErrorInfo(errInfo);
-        return false;
-    }
-    return true;
+    if (domainReader->handleDescriptorChanged(dataDescriptor, readMode))
+        return true;
+
+    daqSetErrorInfo(errInfo);
+    return false;
 }
 
 END_NAMESPACE_OPENDAQ

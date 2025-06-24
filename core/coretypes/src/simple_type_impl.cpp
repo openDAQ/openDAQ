@@ -65,7 +65,7 @@ ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     }
     catch (...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to deserialize SimpleType.");
     }
     
     return OPENDAQ_SUCCESS;

@@ -368,12 +368,18 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
 
     for (SizeT i = 0; i < devices.getCount(); i++)
     {
-        status = devices[i].asPtr<IDevicePrivate>()->lock(user);
+        status = devices[i].asPtr<IDevicePrivate>(true)->lock(user);
 
         if (OPENDAQ_FAILED(status))
         {
+            ObjectPtr<IErrorInfo> errorInfo;
+            daqGetErrorInfo(&errorInfo);
+            daqClearErrorInfo();
+            
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
             OPENDAQ_RETURN_IF_FAILED(revertStatus);
+            
+            daqSetErrorInfo(errorInfo);
             return DAQ_EXTEND_ERROR_INFO(status);
         }
     }
@@ -410,8 +416,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
 
         if (OPENDAQ_FAILED(status))
         {
+            ObjectPtr<IErrorInfo> errorInfo;
+            daqGetErrorInfo(&errorInfo);
+            daqClearErrorInfo();
+
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, true);
             OPENDAQ_RETURN_IF_FAILED(revertStatus);
+
+            daqSetErrorInfo(errorInfo);
             return DAQ_EXTEND_ERROR_INFO(status);
         }
     }
@@ -1136,9 +1148,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeNoCoreEvent(OperationModeType modeType)
 {
     const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
-    if (OPENDAQ_SUCCEEDED(errCode))
-        this->operationMode = modeType;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    this->operationMode = modeType;
     return errCode;
 }
 
@@ -1146,11 +1158,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(OperationModeType modeType)
 {
     const ErrCode errCode = this->updateOperationModeNoCoreEvent(modeType);
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        if (!this->coreEventMuted && this->coreEvent.assigned())
-            this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+        this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
     return errCode;
 }
 
@@ -1707,6 +1717,10 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             {
                 serializer.key("OperationMode");
                 serializer.writeInt(static_cast<Int>(mode));
+            }
+            else 
+            {
+                daqClearErrorInfo(errCode);
             }
         }
     }

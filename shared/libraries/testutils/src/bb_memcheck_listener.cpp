@@ -1,6 +1,7 @@
 #include <testutils/bb_memcheck_listener.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
+#include <coretypes/list_factory.h>
 
 using namespace daq;
 
@@ -15,14 +16,20 @@ void DaqMemCheckListener::OnTestStart(const testing::TestInfo& info)
 
 void DaqMemCheckListener::OnTestEnd(const testing::TestInfo& info)
 {
-    // daq::StringPtr errorMessage;
-    // daqGetErrorInfoMessage(&errorMessage);
-    daq::IList *errorInfoList = nullptr;
+    daq::ListPtr<daq::IErrorInfo> errorInfoList = nullptr;
     daqGetErrorInfoList(&errorInfoList);
-    if (errorInfoList != nullptr)
+    if (errorInfoList.assigned() && errorInfoList.getCount() > 0)
     {
-        errorInfoList->releaseRef();
-        // FAIL() << "Some errors was handled during the test: " << (errorMessage.assigned() ? errorMessage : "unknown error");
+        ::testing::Message failMessage;
+        failMessage << "Unresolved errors during the test: \n";
+        for (const auto& errorInfo : errorInfoList)
+        {
+            StringPtr message;
+            errorInfo->getFormatMessage(&message);
+            if (message.assigned())
+                failMessage << message << "\n";
+        }
+        FAIL() << failMessage;
     }
 
     if (!info.result()->Failed())

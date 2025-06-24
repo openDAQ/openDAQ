@@ -416,7 +416,7 @@ public:
         }
         catch (...)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to get item type of property");
         }
     }
 

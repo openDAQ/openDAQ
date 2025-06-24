@@ -2460,10 +2460,9 @@ ErrCode createObjectFrozen(Interface** intf, Params... params)
 
     auto freezable = ptr.template asOrNull<IFreezable>(true);
     errCode = freezable->freeze();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    if (OPENDAQ_SUCCEEDED(errCode))
-        *intf = ptr.detach();
-
+    *intf = ptr.detach();
     return errCode;
 }
 

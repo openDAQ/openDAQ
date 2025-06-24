@@ -266,7 +266,7 @@ ErrCode createFunctionWrapper(IFunction** obj, [[maybe_unused]] TFunctor func)
     }
     catch (const std::exception&)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to create function wrapper for lamdbda");
     }
 
     (*obj)->addRef();
@@ -295,7 +295,7 @@ ErrCode createFunctionWrapper(IFunction** obj, TFunctor func)
     }
     catch (const std::exception&)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to create function wrapper for std::bind");
     }
 
     (*obj)->addRef();
@@ -324,7 +324,7 @@ ErrCode createFunctionWrapper(IFunction** obj, TFunctor* func)
     }
     catch (const std::exception&)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to create function wrapper for function pointer");
     }
 
     (*obj)->addRef();

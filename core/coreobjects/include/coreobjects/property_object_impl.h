@@ -2945,7 +2945,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
         for (const auto& prop : localProperties)
         {
 #ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
-            bool isObjectProp = prop.second.asPtr<IPropertyInternal>().getValueTypeUnresolved() == ctObject;
+            bool isObjectProp = prop.second.template asPtr<IPropertyInternal>().getValueTypeUnresolved() == ctObject;
             if (isObjectProp && !hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
                 continue;
 #endif

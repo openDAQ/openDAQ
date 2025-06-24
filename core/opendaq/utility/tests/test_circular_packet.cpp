@@ -13,6 +13,7 @@
 using namespace daq;
 
 // Name?
+// Maybe TestPacket
 class Packetet : public daq::PacketBuffer
 {
 public:
@@ -318,8 +319,6 @@ TEST_F(CircularPacketTest, TestPacketsWithDescriptorsCreate)
     std::cout << pb.getReadPos() << std::endl;
     {
         auto created = pb.createPacket(&sampleCount, descriptor);
-        //std::cout << created.getPacketId() << std::endl
-                 // << pb.getWritePos() << std::endl;
     }
     std::cout << pb.getWritePos() << std::endl;
     std::cout << pb.getReadPos() << std::endl;
@@ -341,7 +340,7 @@ TEST_F(CircularPacketTest, TestFillingUpBuffer)
         std::vector<daq::Packet> a_group;
             try
             {
-                for (int i = 0; i < 1000; i++)
+                for (int i = 0; i < 1000 /*a few*/; i++)
                 {
                     auto new_pck = pb.createPacket(&sampleCount, desc);
                     if (sampleCount != 100)
@@ -374,7 +373,7 @@ TEST_F(CircularPacketTest, TestCleanBufferAfterPacketsDestroyed)
         std::vector<Packet> a_group;
         try
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 1000 /*again, a few*/; i++)
             {
                 auto new_pck = pb.createPacket(&sampleCount, descriptor);
                 a_group.push_back(new_pck);

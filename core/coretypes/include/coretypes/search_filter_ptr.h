@@ -96,7 +96,7 @@ public:
     Bool acceptsObject(const BaseObjectPtr& obj) const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Bool accepts;
         auto errCode = this->object->acceptsObject(obj, &accepts);
@@ -113,7 +113,7 @@ public:
     Bool visitChildren(const BaseObjectPtr& obj) const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Bool visit;
         auto errCode = this->object->visitChildren(obj, &visit);

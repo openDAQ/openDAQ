@@ -576,7 +576,7 @@ PropertyObjectPtr TmsClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyObjec
             return TmsClientPropertyObject(daqContext, clientContext, objIt->second);
         }
         
-        throw NotFoundException{"Object property with name {} not found", propName};
+        DAQ_THROW_EXCEPTION(NotFoundException, "Object property with name {} not found", propName);
     }
 
     return nullptr;

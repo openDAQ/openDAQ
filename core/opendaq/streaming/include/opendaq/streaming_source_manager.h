@@ -458,7 +458,9 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
                                   streaming = managerUtils.createStreaming(connectionString, deviceConfig);
                                   return OPENDAQ_SUCCESS;
                               });
-        if (OPENDAQ_FAILED(errCode) || !streaming.assigned())
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo(errCode);
+        if (!streaming.assigned())
             continue;
 
         const SizeT protocolPriority = protocolIt->second;

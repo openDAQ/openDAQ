@@ -373,8 +373,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             ObjectPtr<IErrorInfo> errorInfo;
-            daqGetErrorInfo(&errorInfo);
-            daqClearErrorInfo();
+            daqGetErrorInfo(&errorInfo, status);
+            daqClearErrorInfo(status);
             
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
             OPENDAQ_RETURN_IF_FAILED(revertStatus);
@@ -417,8 +417,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             ObjectPtr<IErrorInfo> errorInfo;
-            daqGetErrorInfo(&errorInfo);
-            daqClearErrorInfo();
+            daqGetErrorInfo(&errorInfo, status);
+            daqClearErrorInfo(status);
 
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, true);
             OPENDAQ_RETURN_IF_FAILED(revertStatus);

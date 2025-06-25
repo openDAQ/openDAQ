@@ -595,7 +595,7 @@ private:
             case daq::SampleType::ComplexFloat64:
             case daq::SampleType::String:
             default:
-                throw daq::InvalidParameterException("Unsupported sample type: " + convertSampleTypeToString(type));
+                DAQ_THROW_EXCEPTION(daq::InvalidParameterException, "Unsupported sample type: " + convertSampleTypeToString(type));
         }
     }
 
@@ -701,7 +701,7 @@ private:
             case daq::SampleType::RangeInt64:
             case daq::SampleType::Binary:
             default:
-                throw daq::InvalidParameterException("Invalid sample type");
+                DAQ_THROW_EXCEPTION(daq::InvalidParameterException("Invalid sample type"));
         }
     }
 };

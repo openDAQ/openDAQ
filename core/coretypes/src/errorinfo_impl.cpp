@@ -267,20 +267,16 @@ IErrorInfo* ErrorGuardImpl::getErrorInfo(ErrCode errCode) const
         return nullptr;
 
     auto lastErrorInfo = errorInfoList.back().borrow();
+    ErrCode lastErrorInfoCode;
+    lastErrorInfo->getErrorCode(&lastErrorInfoCode);
 
-    if (errCode != OPENDAQ_SUCCESS)
-    {
-        ErrCode lastErrorInfoCode;
-        lastErrorInfo->getErrorCode(&lastErrorInfoCode);
-        if (errCode != lastErrorInfoCode)
-            return nullptr;
-    }
+    if (errCode != OPENDAQ_SUCCESS && errCode != lastErrorInfoCode)
+        return nullptr;
 
     Bool causedByPrevious = False;
     lastErrorInfo->getCausedByPrevious(&causedByPrevious);
     if (!causedByPrevious)
         return errorInfoList.back().get();
-
 
     IString* message = nullptr;
     ErrCode err = this->getFormatMessage(&message, errCode);
@@ -292,7 +288,7 @@ IErrorInfo* ErrorGuardImpl::getErrorInfo(ErrCode errCode) const
     if (OPENDAQ_FAILED(err))
         return nullptr;
 
-    errorInfo->setErrorCode(errCode);
+    errorInfo->setErrorCode(lastErrorInfoCode);
     errorInfo->setMessage(message);
     releaseRefIfNotNull(message);
 

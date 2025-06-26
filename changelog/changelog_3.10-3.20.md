@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#842](https://github.com/openDAQ/openDAQ/pull/846) Do not bind properties on serialize. Prevents crashes when serializing property object classes.
 - [#842](https://github.com/openDAQ/openDAQ/pull/842) Exclude ComponentConfig from OPC UA Component Properties
 - [#833](https://github.com/openDAQ/openDAQ/pull/833) Fix Invalid MultiReader in PowerReaderFb on Sample Rate Change
 - [#831](https://github.com/openDAQ/openDAQ/pull/831) Uses newly added sendPacketRecursiveLock method to send descriptor changed events on value signals that use the signal of which descriptor was changed as their domain signal.

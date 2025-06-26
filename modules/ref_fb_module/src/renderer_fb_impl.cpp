@@ -33,14 +33,13 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx,
     , futureComponentStatus(ComponentStatus::Ok)
     , futureComponentMessage("")
 {
+    if (context.getScheduler().isMainLoopSet())
+        if (config.assigned() && config.hasProperty("UseMainLoopForRenderer"))
+            rendererUsesMainLoop = config.getPropertyValue("UseMainLoopForRenderer");
 
 #ifdef __APPLE__
-    rendererUsesMainLoop = true;
-#else
-    if (config.assigned() 
-        && config.hasProperty("UseMainLoopForRenderer") 
-        && config.getPropertyValue("UseMainLoopForRenderer"))
-        rendererUsesMainLoop = true;
+    if (!rendererUsesMainLoop)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Renderer function block requires the main loop to be set on scheduler for macOS.");
 #endif
 
     initComponentStatus();
@@ -70,7 +69,9 @@ RendererFbImpl::~RendererFbImpl()
 FunctionBlockTypePtr RendererFbImpl::CreateType()
 {
     auto defaultConfig = PropertyObject();
-#ifndef __APPLE__
+#ifdef __APPLE__
+    defaultConfig.addProperty(BoolProperty("UseMainLoopForRenderer", true));
+#else
     defaultConfig.addProperty(BoolProperty("UseMainLoopForRenderer", false));
 #endif
 

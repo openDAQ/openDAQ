@@ -32,6 +32,7 @@ class AppContext(object):
         # daq
         builder = daq.InstanceBuilder()
         builder.scheduler_worker_num = 0
+        builder.scheduler_main_loop = True
         
         try:
             daq.OPENDAQ_MODULES_DIR

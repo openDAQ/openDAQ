@@ -10,7 +10,9 @@ using namespace date;
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
-    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+    daq::InstancePtr instance = daq::InstanceBuilder().setModulePath(MODULE_PATH)
+                                                      .setUsingSchedulerMainLoop(true)
+                                                      .build();   
 
     // Find and connect to a simulator device
     const auto availableDevices = instance.getAvailableDevices();
@@ -99,7 +101,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Create an instance of the renderer function block
-    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
+    daq::PropertyObjectPtr rendererConfig = daq::PropertyObject();
+    rendererConfig.addProperty(daq::BoolProperty("UseMainLoopForRenderer", true));
+    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer", rendererConfig);
 
     // Connect the first output signal of the device to the renderer
     renderer.getInputPorts()[0].connect(signal);
@@ -142,6 +146,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
         return true; // Keep the work running
     }));
+
     scheduler.runMainLoop();
     return 0;
 }

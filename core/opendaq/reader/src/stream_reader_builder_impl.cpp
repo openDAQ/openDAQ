@@ -16,6 +16,7 @@ StreamReaderBuilderImpl::StreamReaderBuilderImpl()
     , readTimeoutType(ReadTimeoutType::All)
     , used(false)
     , skipEvents(false)
+    , notificationMethod(PacketReadyNotification::SameThread)
 {
 }
 
@@ -118,6 +119,19 @@ ErrCode StreamReaderBuilderImpl::getSkipEvents(Bool* skipEvents)
 {
     OPENDAQ_PARAM_NOT_NULL(skipEvents);
     *skipEvents = this->skipEvents;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode StreamReaderBuilderImpl::setInputPortNotificationMethod(PacketReadyNotification notificationMethod)
+{
+    this->notificationMethod = notificationMethod;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode StreamReaderBuilderImpl::getInputPortNotificationMethod(PacketReadyNotification* notificationMethod)
+{
+    OPENDAQ_PARAM_NOT_NULL(notificationMethod);
+    *notificationMethod = this->notificationMethod;
     return OPENDAQ_SUCCESS;
 }
 

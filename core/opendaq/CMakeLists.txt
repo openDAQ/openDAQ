@@ -1,7 +1,6 @@
 set(MAIN_TARGET opendaq)
 set_cmake_folder_context(TARGET_FOLDER_NAME)
 
-include(DaqComponents)
 set(RTGEN_LIBRARY_NAME ${SDK_NAME})
 project(${SDK_NAME} VERSION ${OPENDAQ_CORE_VERSION} LANGUAGES C CXX)
 
@@ -82,11 +81,17 @@ foreach(DAQ_COMPONENT ${DAQ_COMPONENTS})
     list(APPEND SRC_Cpp ${SRC_Cpp_Component_Generated})
 endforeach()
 
-opendaq_add_library(${MAIN_TARGET} SHARED
-        ${SRC_Cpp}
-        ${SRC_PrivateHeaders}
-        ${SRC_PublicHeaders}
+add_library(${MAIN_TARGET} SHARED
+            ${SRC_Cpp}
+            ${SRC_PrivateHeaders}
+            ${SRC_PublicHeaders}
 )
+
+set(MAIN_TARGET_ALIAS1 ${SDK_TARGET_NAMESPACE}_${MAIN_TARGET})
+set(MAIN_TARGET_ALIAS2 ${SDK_TARGET_NAMESPACE}::${MAIN_TARGET})
+
+add_library(${MAIN_TARGET_ALIAS1} ALIAS ${MAIN_TARGET})
+add_library(${MAIN_TARGET_ALIAS2} ALIAS ${MAIN_TARGET})
 
 foreach(DAQ_COMPONENT ${DAQ_COMPONENTS})
     install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${DAQ_COMPONENT}/bindings/"
@@ -105,7 +110,7 @@ rtgen_config(${PROJECT_NAME}
              ${PROJECT_VERSION_PATCH}
 )
 
-opendaq_target_link_libraries(${MAIN_TARGET}
+target_link_libraries(${MAIN_TARGET}
     PUBLIC
         daq::coreobjects
         ${SRC_PublicLinkLibraries}
@@ -113,7 +118,7 @@ opendaq_target_link_libraries(${MAIN_TARGET}
         ${SRC_PrivateLinkLibraries}
 )
 
-opendaq_target_compile_definitions(${MAIN_TARGET}
+target_compile_definitions(${MAIN_TARGET}
     PUBLIC
         ${SRC_PublicCompileDefinitions}
     PRIVATE
@@ -123,7 +128,7 @@ opendaq_target_compile_definitions(${MAIN_TARGET}
         OPENDAQ_LINKS_OPENDAQ
 )
 
-opendaq_target_include_directories(${MAIN_TARGET}
+target_include_directories(${MAIN_TARGET}
     PUBLIC
         ${SRC_PublicIncludeDirectories}
         $<INSTALL_INTERFACE:include>
@@ -138,11 +143,12 @@ endif()
 if (MSVC)
     set(MSVC_PRIVATE_COMPILE_OPTIONS
         /wd4324
+        /wd4100
         /bigobj
     )
 endif()
 
-opendaq_target_compile_options(${MAIN_TARGET}
+target_compile_options(${MAIN_TARGET}
     PUBLIC
         ${SRC_PublicCompileOptions}
     PRIVATE
@@ -150,7 +156,25 @@ opendaq_target_compile_options(${MAIN_TARGET}
         ${MSVC_PRIVATE_COMPILE_OPTIONS}
 )
 
+opendaq_set_output_lib_name(${MAIN_TARGET} ${PROJECT_VERSION_MAJOR})
 create_version_header(${MAIN_TARGET} ONLY_RC)
+
+install(TARGETS ${MAIN_TARGET}
+        EXPORT ${SDK_NAME}
+        RUNTIME
+            DESTINATION ${CMAKE_INSTALL_BINDIR}
+            COMPONENT ${SDK_NAME}_${BASE_NAME}_Runtime
+        LIBRARY
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            COMPONENT          ${SDK_NAME}_${BASE_NAME}_Runtime
+            NAMELINK_COMPONENT ${SDK_NAME}_${BASE_NAME}_Development
+        ARCHIVE
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            COMPONENT ${SDK_NAME}_${BASE_NAME}_Development
+        PUBLIC_HEADER
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${BASE_NAME}
+            COMPONENT ${SDK_NAME}_${BASE_NAME}_Development
+)
 
 if(OPENDAQ_ENABLE_TESTS)
     add_subdirectory(opendaq/mocks)

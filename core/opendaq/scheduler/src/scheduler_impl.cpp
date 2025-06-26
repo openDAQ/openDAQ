@@ -40,7 +40,7 @@ public:
         Bool repeatAfter = False;
         ErrCode errCode;
         
-        if (auto workPtr = work.asPtrOrNull<IWorkRepetitive>(true); workPtr.assigned())
+        if (auto workPtr = work.asOrNull<IWorkRepetitive>(true); workPtr != nullptr)
             errCode = workPtr->executeRepetitively(&repeatAfter);
         else
             errCode = work->execute();
@@ -92,6 +92,7 @@ ErrCode MainThreadEventLoop::runIteration()
     std::unique_lock<std::mutex> lock(mutex);
     if (this->running)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Main thread event loop is already running");
+
     this->running = true;
     runIteration(lock);
     this->running = false;
@@ -106,6 +107,7 @@ ErrCode MainThreadEventLoop::run(SizeT loopTime)
     std::unique_lock<std::mutex> lock(mutex);
     if (this->running)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Main thread event loop is already running");
+
     this->running = true;
     const auto waitTime = std::chrono::milliseconds(loopTime);
     auto waitUntil = std::chrono::steady_clock::now() + waitTime;
@@ -116,6 +118,7 @@ ErrCode MainThreadEventLoop::run(SizeT loopTime)
         waitUntil += waitTime;
         runIteration(lock);
     }
+
     this->running = false;
     return OPENDAQ_SUCCESS;
 }
@@ -251,11 +254,6 @@ ErrCode SchedulerImpl::isMultiThreaded(Bool* multiThreaded)
 
     *multiThreaded = executor->num_workers() > 1;
     return OPENDAQ_SUCCESS;
-}
-
-std::size_t SchedulerImpl::getWorkerCount() const
-{
-    return executor->num_workers();
 }
 
 ErrCode SchedulerImpl::runMainLoop(SizeT loopTime)

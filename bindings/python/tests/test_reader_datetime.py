@@ -416,7 +416,10 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sigs.append(sig1.signal)
         sigs.append(sig2.signal)
 
-        reader = opendaq.MultiReader(sigs)
+        builder = opendaq.MultiReaderBuilder()
+        builder.input_port_notification_method = opendaq.PacketReadyNotification.SameThread
+        builder.add_signals(sigs)
+        reader = builder.build()
         reader.read(0)
 
         nparray = numpy.arange(10)
@@ -449,8 +452,13 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig1 = opendaq.MockSignal('sig1', epoch)
         sig2 = opendaq.MockSignal('sig2', epoch)
 
-        reader = opendaq.MultiReader(
-            [sig1.signal, sig2.signal], value_type=opendaq.SampleType.Int64)
+        builder = opendaq.MultiReaderBuilder()
+        builder.input_port_notification_method = opendaq.PacketReadyNotification.SameThread
+        builder.add_signal(sig1.signal)
+        builder.add_signal(sig2.signal)
+        builder.value_read_type = opendaq.SampleType.Int64
+        reader = builder.build()
+
         reader.read(0)
 
         nparray = numpy.arange(10)
@@ -474,8 +482,12 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig2 = opendaq.MockSignal('sig2', epoch)
 
         with self.assertRaises(RuntimeError):
-            opendaq.MultiReader([sig1.signal, sig2.signal],
-                                value_type=opendaq.SampleType.RangeInt64)
+            builder = opendaq.MultiReaderBuilder()
+            builder.input_port_notification_method = opendaq.PacketReadyNotification.SameThread
+            builder.add_signal(sig1.signal)
+            builder.add_signal(sig2.signal)
+            builder.value_read_type = opendaq.SampleType.RangeInt64
+            reader = builder.build()
 
     def test_multireader_unsupported_domain_type(self):
         epoch = opendaq.MockSignal.current_epoch()
@@ -484,8 +496,12 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig2 = opendaq.MockSignal('sig2', epoch)
 
         with self.assertRaises(RuntimeError):
-            opendaq.MultiReader([sig1.signal, sig2.signal],
-                                domain_type=opendaq.SampleType.Undefined)
+            builder = opendaq.MultiReaderBuilder()
+            builder.input_port_notification_method = opendaq.PacketReadyNotification.SameThread 
+            builder.add_signal(sig1.signal)
+            builder.add_signal(sig2.signal)
+            builder.domain_read_type = opendaq.SampleType.Undefined
+            reader = builder.build()
 
     def test_multireader_read_with_domain(self):
         epoch = opendaq.MockSignal.current_epoch()
@@ -493,7 +509,12 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig1 = opendaq.MockSignal('sig1', epoch)
         sig2 = opendaq.MockSignal('sig2', epoch)
 
-        reader = opendaq.MultiReader([sig1.signal, sig2.signal])
+        builder = opendaq.MultiReaderBuilder()
+        builder.input_port_notification_method = opendaq.PacketReadyNotification.SameThread
+        builder.add_signal(sig1.signal)
+        builder.add_signal(sig2.signal)
+        reader = builder.build()
+
         reader.read(0)
 
         nparray = numpy.arange(10)
@@ -517,7 +538,12 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig1 = opendaq.MockSignal('sig1', epoch)
         sig2 = opendaq.MockSignal('sig2', epoch)
 
-        reader = opendaq.MultiReader([sig1.signal, sig2.signal])
+        builder = opendaq.MultiReaderBuilder()
+        builder.input_port_notification_method = opendaq.PacketReadyNotification.SameThread
+        builder.add_signal(sig1.signal)
+        builder.add_signal(sig2.signal)
+        reader = builder.build()
+
         reader.read(0)
         timed = opendaq.TimeMultiReader(reader)
 
@@ -542,8 +568,13 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig1 = opendaq.MockSignal('sig1', epoch)
         sig2 = opendaq.MockSignal('sig2', epoch)
 
-        reader = opendaq.MultiReader(
-            [sig1.signal, sig2.signal], value_type=opendaq.SampleType.Undefined)
+        builder = opendaq.MultiReaderBuilder()
+        builder.input_port_notification_method = opendaq.PacketReadyNotification.SameThread
+        builder.add_signal(sig1.signal)
+        builder.add_signal(sig2.signal)
+        builder.value_read_type = opendaq.SampleType.Undefined
+        reader = builder.build()
+
         values, domain, status = reader.read_with_domain(0, return_status=True)
         self.assertTrue(status.read_status == opendaq.ReadStatus.Event)
         self.assertEqual(
@@ -577,6 +608,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
                           "third": [{"first": 3.5}], "fourth": [0, 1]})
 
         builder = opendaq.MultiReaderBuilder()
+        builder.input_port_notification_method = opendaq.PacketReadyNotification.SameThread
         builder.add_signal(sig1.signal)
         builder.add_signal(sig2.signal)
         builder.value_read_type = opendaq.SampleType.Struct
@@ -627,6 +659,7 @@ class TestReaderDateTime(opendaq_test.TestCase):
         sig2 = opendaq.MockSignal('sig2', epoch)
 
         builder = opendaq.MultiReaderBuilder()
+        builder.input_port_notification_method = opendaq.PacketReadyNotification.SameThread
         builder.add_signal(sig1.signal)
         builder.add_signal(sig2.signal)
         builder.value_read_type = opendaq.SampleType.Int64

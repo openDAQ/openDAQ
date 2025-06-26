@@ -21,7 +21,6 @@
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/awaitable_ptr.h>
-
 #include <opendaq/task_flow.h>
 #include <opendaq/work_ptr.h>
 #include <opendaq/work_repetitive.h>
@@ -89,5 +88,11 @@ private:
 
     std::unique_ptr<MainThreadEventLoop> mainThreadWorker;
 };
+
+
+inline std::size_t SchedulerImpl::getWorkerCount() const
+{
+    return executor->num_workers();
+}
 
 END_NAMESPACE_OPENDAQ

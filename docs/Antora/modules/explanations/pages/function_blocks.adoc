@@ -83,7 +83,7 @@ Cpp::
 +
 [source,cpp]
 ----
-daq::FunctionBlockPtr fb = instance.addFunctionBlock("fft_fb");
+daq::FunctionBlockPtr fb = instance.addFunctionBlock("RefFBModuleFFT");
 // Function Block appears under FunctionBlocks of the instance
 daq::ListPtr<IFunctionBlock> fbs = instance.getFunctionBlocks();
 daq::FunctionBlockPtr fb1 = fbs[fbs.getCount() - 1];
@@ -93,7 +93,7 @@ Python::
 +
 [source,python]
 ----
-fb = instance.add_function_block("fft_fb")
+fb = instance.add_function_block("RefFBModuleFFT")
 # Function Block appears under FunctionBlocks of the instance
 fbs = instance.function_blocks
 fb1 = fbs[-1]
@@ -103,7 +103,7 @@ C#::
 +
 [source,csharp]
 ----
-FunctionBlock fb = instance.AddFunctionBlock("fft_fb");
+FunctionBlock fb = instance.AddFunctionBlock("RefFBModuleFFT");
 // Function Block appears under FunctionBlocks of the instance
 IListObject<FunctionBlock> fbs = instance.GetFunctionBlocks();
 FunctionBlock fb1 = fbs[fbs.Count - 1];

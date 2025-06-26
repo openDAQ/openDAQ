@@ -22,12 +22,8 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/awaitable_ptr.h>
 #include <opendaq/task_flow.h>
-#include <opendaq/work_ptr.h>
-#include <opendaq/work_repetitive.h>
-#include <opendaq/scheduler_errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 
 class MainThreadEventLoop
 {

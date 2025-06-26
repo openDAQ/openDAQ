@@ -19,7 +19,6 @@
 #include <opendaq/work_repetitive.h>
 #include <coretypes/intfs.h>
 #include <coretypes/validation.h>
-#include <opendaq/scheduler_errors.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

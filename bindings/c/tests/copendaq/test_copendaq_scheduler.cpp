@@ -42,7 +42,7 @@ TEST_F(COpendaqSchedulerTest, Scheduler)
     daqLogger_createLogger(&logger, sinks, daqLogLevel::daqLogLevelDebug);
 
     daqScheduler* scheduler = nullptr;
-    daqScheduler_createScheduler(&scheduler, logger, 1);
+    daqScheduler_createScheduler(&scheduler, logger, 1, False);
     ASSERT_NE(scheduler, nullptr);
 
     daqProcedure* procGraph = nullptr;

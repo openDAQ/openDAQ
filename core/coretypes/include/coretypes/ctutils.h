@@ -120,14 +120,15 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
     if (OPENDAQ_FAILED(err))
         return err;
 
-    if constexpr (sizeof...(params) == 0)
+    if (!message.empty())
     {
-        err = createString(&msg, message.c_str());
-    }
-    else
-    {
-        if (!message.empty())
+        if constexpr (sizeof...(params) == 0)
         {
+            err = createString(&msg, message.c_str());
+        }
+        else
+        {
+        
             char errorMsg[1024];
 #if defined(__STDC_SECURE_LIB__) || defined(__STDC_LIB_EXT1__)
             sprintf_s(errorMsg, sizeof(errorMsg) / sizeof(char), message.c_str(), params...);
@@ -199,6 +200,16 @@ inline void checkErrorInfo(ErrCode errCode)
     daq::throwExceptionFromErrorCode(errCode, message);
 }
 
+inline void checkErrorInfoExcept(ErrCode errCode, ErrCode exceptErrCode)
+{
+    if (errCode == exceptErrCode)
+    {
+        daqClearErrorInfo(errCode);
+        return;
+    }
+
+    checkErrorInfo(errCode);
+}
 
 template <typename... Params>
 [[deprecated("This function will be deprecated in release 3.30.")]]

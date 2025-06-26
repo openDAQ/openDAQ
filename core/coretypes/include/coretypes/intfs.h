@@ -390,9 +390,9 @@ protected:
         return errCode;
     }
 
-    void clearErrorInfo() const
+    void clearErrorInfo(ErrCode errCode = OPENDAQ_LAST_ERROR_INFO) const
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(errCode);
     }
 
     template <template <typename> typename T, typename Interface>

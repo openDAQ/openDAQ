@@ -144,6 +144,8 @@ DEFINE_EXCEPTION(NoData, OPENDAQ_ERR_NO_DATA, "No data")
 DEFINE_EXCEPTION(ReservedTypeName, OPENDAQ_ERR_RESERVED_TYPE_NAME, "Type name is reserved and can not be used")
 
 extern void checkErrorInfo(ErrCode errCode);
+extern void checkErrorInfoExcept(ErrCode errCode, ErrCode exceptErrCode);
+
 
 [[noreturn]] inline void throwExceptionFromErrorCode(ErrCode errCode, const std::string& msg = "")
 {

@@ -701,7 +701,7 @@ private:
             case daq::SampleType::RangeInt64:
             case daq::SampleType::Binary:
             default:
-                DAQ_THROW_EXCEPTION(daq::InvalidParameterException("Invalid sample type"));
+                DAQ_THROW_EXCEPTION(daq::InvalidParameterException, "Invalid sample type");
         }
     }
 };

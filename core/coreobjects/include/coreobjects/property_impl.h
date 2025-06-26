@@ -791,18 +791,25 @@ public:
 	    OPENDAQ_PARAM_NOT_NULL(structType);
 
 	    return daqTry([&]()
+        {
+            BaseObjectPtr defaultStruct;
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
             {
-                BaseObjectPtr defaultStruct;
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
-                else if (lock)
-                    checkErrorInfo(this->getDefaultValue(&defaultStruct));
-                else
-                    checkErrorInfo(this->getDefaultValueNoLock(&defaultStruct));
-
-                *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
-		        return OPENDAQ_SUCCESS;
-	        });
+                defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
+            }
+            else if (lock)
+            {
+                const ErrCode errCode = this->getDefaultValue(&defaultStruct);
+                OPENDAQ_RETURN_IF_FAILED(errCode);
+            }
+            else
+            {
+                const ErrCode errCode = this->getDefaultValueNoLock(&defaultStruct);
+                OPENDAQ_RETURN_IF_FAILED(errCode);
+            }
+            *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
+            return OPENDAQ_SUCCESS;
+        });
     }
     
     ErrCode INTERFACE_FUNC overrideDefaultValue(IBaseObject* newDefaultValue)  override

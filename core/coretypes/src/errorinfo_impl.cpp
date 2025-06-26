@@ -189,7 +189,7 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) con
     if (errorInfoList.empty())
         return OPENDAQ_SUCCESS;
 
-    if (errCode != OPENDAQ_SUCCESS)
+    if (errCode != OPENDAQ_LAST_ERROR_INFO)
     {
         IErrorInfo* lastErrorInfo = errorInfoList.back().borrow();
         ErrCode lastErrorInfoCode;
@@ -270,7 +270,7 @@ IErrorInfo* ErrorGuardImpl::getErrorInfo(ErrCode errCode) const
     ErrCode lastErrorInfoCode;
     lastErrorInfo->getErrorCode(&lastErrorInfoCode);
 
-    if (errCode != OPENDAQ_SUCCESS && errCode != lastErrorInfoCode)
+    if (errCode != OPENDAQ_LAST_ERROR_INFO && errCode != lastErrorInfoCode)
         return nullptr;
 
     Bool causedByPrevious = False;
@@ -299,13 +299,15 @@ void ErrorGuardImpl::clearLastErrorInfo(ErrCode errCode)
 {
     if (errorInfoList.empty())
         return;
-    if (errCode != OPENDAQ_SUCCESS)
+
+    if (errCode != OPENDAQ_LAST_ERROR_INFO)
     {
         ErrCode prevErrorInfoCode;
         errorInfoList.back().borrow()->getErrorCode(&prevErrorInfoCode);
         if (errCode != prevErrorInfoCode)
             return;
     }
+
     while (!errorInfoList.empty())
     {
         Bool causedByPrevious = False;

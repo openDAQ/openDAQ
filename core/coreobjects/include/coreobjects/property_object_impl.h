@@ -2399,14 +2399,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdate
     for (const auto& item : propValues)
     {
         const auto value = item.second;
-        if (value.assigned())
-        {
-            const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
-            if (propObj.assigned())
-            {
-                propObj.beginUpdate();
-            }
-        }
+        const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
+        if (propObj.assigned())
+            propObj.beginUpdate();
     }
 }
 
@@ -2416,14 +2411,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callEndUpdateOn
     for (const auto& item : propValues)
     {
         const auto value = item.second;
-        if (value.assigned())
-        {
-            const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
-            if (propObj.assigned())
-            {
-                propObj.endUpdate();
-            }
-        }
+        const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
+        if (propObj.assigned())
+            propObj.endUpdate();
     }
 }
 
@@ -2460,7 +2450,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdateInt
 
     if (newUpdateCount == 0)
     {
-        const auto errCode = daqTry([this] {
+        const auto errCode = daqTry([this]
+        {
             beginApplyUpdate();
             return OPENDAQ_SUCCESS;
         });
@@ -2470,7 +2461,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdateInt
 
     if (deep)
     {
-        const auto errCode = daqTry([this] {
+        const auto errCode = daqTry([this]
+        {
             callEndUpdateOnChildren();
         });
 
@@ -2479,7 +2471,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdateInt
 
     if (newUpdateCount == 0)
     {
-        return daqTry([this] {
+        return daqTry([this] 
+        {
             endApplyUpdate();
             return OPENDAQ_SUCCESS;
         });
@@ -2519,6 +2512,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
         {
             err = clearPropertyValueInternal(name, item.second.protectedAccess, false, true);
         }
+        checkErrorInfo(err);
 
         if (err == OPENDAQ_IGNORED)
         {
@@ -2529,8 +2523,6 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
             PropertyPtr prop;
             getPropertyAndValueInternal(name, item.second.value, prop);
         }
-
-        checkErrorInfo(err);
     }
 
     for (const auto& propName : ignoredProps)
@@ -2554,12 +2546,9 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isParentUpdatin
 {
     bool parentUpdating;
     const auto parent = getPropertyObjectParent();
-    if (parent.assigned())
-        parentUpdating = parent.template asPtr<IPropertyObjectInternal>(true).isUpdating();
-    else
-        parentUpdating = false;
-
-    return parentUpdating;
+    if (!parent.assigned())
+        return false;
+    return parentUpdating = parent.template asPtr<IPropertyObjectInternal>(true).isUpdating();
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2604,54 +2593,53 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperti
 {
     OPENDAQ_PARAM_NOT_NULL(properties);
 
-    if (propertyFilter)
+    // If no filter is provided, only visible properties directly belonging to the current object are returned.
+    if (!propertyFilter)
+        return getPropertiesInternal(false, true, properties);
+
+    return daqTry([&]
     {
-        return daqTry([&]
+        auto filterPtr = SearchFilterPtr::Borrow(propertyFilter);
+        ListPtr<IProperty> allProperties;
+        auto foundProperties = List<IProperty>();
+
+        ErrCode errCode = getPropertiesInternal(true, true, &allProperties);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        for (const auto& property : allProperties)
         {
-            auto filterPtr = SearchFilterPtr::Borrow(propertyFilter);
-            ListPtr<IProperty> allProperties;
-            auto foundProperties = List<IProperty>();
+            if (filterPtr.acceptsObject(property))
+                foundProperties.pushBack(property);
 
-            ErrCode errCode = getPropertiesInternal(true, true, &allProperties);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
-
-            for (const auto& property : allProperties)
+            if (checkIsChildObjectProperty(property))
             {
-                if (filterPtr.acceptsObject(property))
-                    foundProperties.pushBack(property);
-
-                if (checkIsChildObjectProperty(property))
+                if (auto childPropertyObject = property.getValue().asPtrOrNull<IPropertyObject>();
+                            childPropertyObject.assigned() && filterPtr.supportsInterface<IRecursiveSearch>())
                 {
-                    if (auto childPropertyObject = property.getValue().asPtrOrNull<IPropertyObject>();
-                             childPropertyObject.assigned() && filterPtr.supportsInterface<IRecursiveSearch>())
-                    {
-                        for (const auto& foundChildProperty : childPropertyObject.findProperties(filterPtr))
-                            foundProperties.pushBack(foundChildProperty);
-                    }
+                    for (const auto& foundChildProperty : childPropertyObject.findProperties(filterPtr))
+                        foundProperties.pushBack(foundChildProperty);
                 }
             }
+        }
 
-            *properties = foundProperties.detach();
-            return OPENDAQ_SUCCESS;
-        });
-    }
-
-    // If no filter is provided, only visible properties directly belonging to the current object are returned.
-    return getPropertiesInternal(false, true, properties);
+        *properties = foundProperties.detach();
+        return OPENDAQ_SUCCESS;
+    });    
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 Bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkIsReferenced(const StringPtr& referencedPropName,
                                                                                    const PropertyInternalPtr& prop)
 {
-    if (const auto refProp = prop.getReferencedPropertyUnresolved(); refProp.assigned())
+    const auto refProp = prop.getReferencedPropertyUnresolved();
+    if (!refProp.assigned())
+        return false;
+    
+    for (auto propName : refProp.getPropertyReferences())
     {
-        for (auto propName : refProp.getPropertyReferences())
+        if (propName == referencedPropName)
         {
-            if (propName == referencedPropName)
-            {
-                return true;
-            }
+            return true;
         }
     }
 
@@ -2900,8 +2888,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 {
     return daqTry([&property, &serializer]
     {
-        property.serialize(serializer);
-        return OPENDAQ_SUCCESS;
+        ISerializable* serializable = property.as<ISerializable>(true);
+        return serializable->serialize(serializer);
     });
 }
 
@@ -2980,7 +2968,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
             if (!hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
                 continue;
 
-            checkErrorInfo(serializeProperty(prop.second, serializer));
+            const ErrCode errCode = serializeProperty(prop.second, serializer);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
         serializerPtr.endList();
 

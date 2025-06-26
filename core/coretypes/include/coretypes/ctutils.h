@@ -570,7 +570,6 @@ ErrCode daqTry(const IBaseObject* context, F&& func)
         {
             return func();            
         }
-
     }
     catch (const DaqException& e)
     {

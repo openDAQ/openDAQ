@@ -59,6 +59,7 @@ private:
     ErrCode prevErrCode;
 
     Bool frozen;
+    IString* cachedMessage;
 };
 
 class ErrorInfoWrapper
@@ -67,7 +68,7 @@ public:
     ErrorInfoWrapper(IErrorInfo*);
     ~ErrorInfoWrapper();
 
-    IErrorInfo* get() const;
+    IErrorInfo* getAddRef() const;
     IErrorInfo* borrow() const;
 private:
     IErrorInfo* errorInfo;
@@ -82,13 +83,14 @@ public:
     ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) const override;
     ErrCode INTERFACE_FUNC getFormatMessage(IString** message, ErrCode errCode) const override;
 
+    virtual bool isInitial() const { return false; }
     void setErrorInfo(IErrorInfo* errorInfo);
     void extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode);
     IErrorInfo* getErrorInfo(ErrCode errCode) const;
     void clearLastErrorInfo(ErrCode errCode);
     bool empty() const;
 
-private:
+protected:
     ConstCharPtr filename;
     int fileLine;
 
@@ -98,7 +100,6 @@ private:
 class ErrorInfoHolder
 {
 public:
-    
     ErrorInfoHolder() = default;
     ~ErrorInfoHolder();
 

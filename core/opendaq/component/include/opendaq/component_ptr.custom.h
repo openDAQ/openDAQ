@@ -29,9 +29,11 @@ void remove() const
     IRemovable* removable;
     auto errCode = this->object->borrowInterface(IRemovable::Id, reinterpret_cast<void**>(&removable));
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
+    {
         daqClearErrorInfo(errCode);
-    else
-        daq::checkErrorInfo(errCode);
+        return;
+    }
+    daq::checkErrorInfo(errCode);
 
     errCode = removable->remove();
     daq::checkErrorInfo(errCode);

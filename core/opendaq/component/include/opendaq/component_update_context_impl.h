@@ -63,9 +63,9 @@ private:
 inline ComponentPtr ComponentUpdateContextImpl::GetRootComponent(const ComponentPtr& curComponent)
 {
     const auto parent = curComponent.getParent();
-    if (!parent.assigned())
-        return curComponent;
-    return GetRootComponent(parent);
+    if (parent.assigned())
+        return GetRootComponent(parent);
+    return curComponent;
 }
 
 inline DevicePtr ComponentUpdateContextImpl::GetDevice(const StringPtr& id, const DevicePtr& parentDevice)

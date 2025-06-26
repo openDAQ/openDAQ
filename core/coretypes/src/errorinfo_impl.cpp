@@ -1,16 +1,31 @@
+#include <coretypes/common.h>
 #include <coretypes/errorinfo_impl.h>
-#include <coretypes/impl.h>
+#include <coretypes/errors.h>
 #include <coretypes/freezable.h>
+#include <coretypes/impl.h>
+#include <coretypes/string_ptr.h>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
-#include <coretypes/common.h>
-#include <coretypes/errors.h>
-#include <coretypes/string_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 thread_local ErrorInfoHolder errorInfoHolder;
+
+// InitialErrorGuard
+class InitialErrorGuard : public ErrorGuardImpl
+{
+public:
+    InitialErrorGuard()
+        : ErrorGuardImpl(nullptr, -1)
+    {
+    }
+
+    bool isInitial() const override
+    {
+        return true;
+    }
+};
 
 // ErrorInfoWrapper
 
@@ -25,7 +40,7 @@ ErrorInfoWrapper::~ErrorInfoWrapper()
     releaseRefIfNotNull(errorInfo);
 }
 
-IErrorInfo* ErrorInfoWrapper::get() const
+IErrorInfo* ErrorInfoWrapper::getAddRef() const
 {
     addRefIfNotNull(errorInfo);
     return errorInfo;
@@ -40,8 +55,17 @@ IErrorInfo* ErrorInfoWrapper::borrow() const
 
 ErrorInfoHolder::~ErrorInfoHolder()
 {
-    if (errorScopeList && !errorScopeList->empty())
-        errorScopeList->front()->releaseRef();
+    if (!errorScopeList || errorScopeList->empty())
+        return;
+
+    for (auto& scope : *errorScopeList)
+    {
+        if (scope->isInitial())
+        {
+            scope->releaseRef();  // only dummy
+            return;
+        }
+    }
 }
 
 ErrorInfoHolder::ContainerT* ErrorInfoHolder::getOrCreateList()
@@ -49,7 +73,7 @@ ErrorInfoHolder::ContainerT* ErrorInfoHolder::getOrCreateList()
     if (!errorScopeList)
     {
         errorScopeList = std::make_unique<ContainerT>();
-        auto entry = new ErrorGuardImpl(nullptr, -1);
+        auto entry = new InitialErrorGuard();
         entry->addRef();
     }
     return errorScopeList.get();
@@ -84,13 +108,14 @@ IList* ErrorInfoHolder::getErrorInfoList()
 {
     if (!errorScopeList)
         return nullptr;
-        
+
+    auto backEntry = errorScopeList->back();
     IList* list = nullptr;
-    const ErrCode errCode = errorScopeList->back()->getErrorInfos(&list);
+    const ErrCode errCode = backEntry->getErrorInfos(&list);
     if (OPENDAQ_FAILED(errCode))
         throw std::runtime_error("Failed to get error info list");
-    if (errorScopeList->size() == 1)
-        errorScopeList->back()->releaseRef();
+    if (backEntry->isInitial())
+        backEntry->releaseRef();
     return list;
 }
 
@@ -128,10 +153,10 @@ void ErrorInfoHolder::removeScopeEntry(ErrorGuardImpl* entry)
         return;
     }
 
-    auto last = errorScopeList->back();
-    if (last != entry)
+    auto backEntry = errorScopeList->back();
+    if (backEntry != entry)
     {
-        std::cerr << "ErrorGuardImpl scope entry mismatch. Expected: " << last << ", got: " << entry << std::endl;
+        std::cerr << "ErrorGuardImpl scope entry mismatch. Expected: " << backEntry << ", got: " << entry << std::endl;
         auto it = std::find(errorScopeList->begin(), errorScopeList->end(), entry);
         if (it != errorScopeList->end())
             errorScopeList->erase(it);
@@ -145,7 +170,7 @@ void ErrorInfoHolder::removeScopeEntry(ErrorGuardImpl* entry)
         errorScopeList.reset();
 }
 
-// ErrorScope
+// ErrorGuardImpl
 
 ErrorGuardImpl::ErrorGuardImpl(ConstCharPtr filename, int fileLine)
     : filename(filename)
@@ -198,11 +223,12 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) con
             return OPENDAQ_SUCCESS;
     }
 
-    std::list<IErrorInfo*> errorList;
+    std::vector<IErrorInfo*> errorList;
+    errorList.reserve(errorInfoList.size());
     for (auto it = errorInfoList.rbegin(); it != errorInfoList.rend(); ++it)
     {
-        errorList.push_front(it->borrow());
-        
+        errorList.push_back(it->borrow());
+
         Bool causedByPrevious = False;
         it->borrow()->getCausedByPrevious(&causedByPrevious);
         if (!causedByPrevious)
@@ -213,8 +239,10 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) con
         return OPENDAQ_SUCCESS;
 
     std::ostringstream ss;
-    for (const auto& errorInfo : errorList)
+    bool firstMessage = true;
+    for (auto it = errorList.rbegin(); it != errorList.rend(); ++it)
     {
+        IErrorInfo* errorInfo = *it;
         IString* message = nullptr;
         errorInfo->getFormatMessage(&message);
         if (message == nullptr)
@@ -223,16 +251,19 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) con
         ConstCharPtr messagePtr;
         message->getCharPtr(&messagePtr);
         if (messagePtr != nullptr)
-            ss << messagePtr << "\n";
+        {
+            ss << (firstMessage ? "" : "\n") << messagePtr;
+            firstMessage = false;
+        }
         message->releaseRef();
     }
 
     if (filename)
     {
-        ss << " - Caused by: [ " << filename;
+        ss << (firstMessage ? "" : "\n") << " - Caused by: [ " << filename;
         if (fileLine != -1)
             ss << ":" << fileLine;
-        ss << " ]\n";
+        ss << " ]";
     }
 
     auto str = ss.str();
@@ -276,13 +307,13 @@ IErrorInfo* ErrorGuardImpl::getErrorInfo(ErrCode errCode) const
     Bool causedByPrevious = False;
     lastErrorInfo->getCausedByPrevious(&causedByPrevious);
     if (!causedByPrevious)
-        return errorInfoList.back().get();
+        return errorInfoList.back().getAddRef();
 
     IString* message = nullptr;
     ErrCode err = this->getFormatMessage(&message, errCode);
     if (OPENDAQ_FAILED(err))
         return nullptr;
-    
+
     IErrorInfo* errorInfo;
     err = createErrorInfo(&errorInfo);
     if (OPENDAQ_FAILED(err))
@@ -334,6 +365,7 @@ ErrorInfoImpl::ErrorInfoImpl()
     , errorCode(OPENDAQ_ERR_GENERALERROR)
     , prevErrCode(OPENDAQ_SUCCESS)
     , frozen(False)
+    , cachedMessage(nullptr)
 {
 }
 
@@ -341,6 +373,7 @@ ErrorInfoImpl::~ErrorInfoImpl()
 {
     releaseRefIfNotNull(message);
     releaseRefIfNotNull(source);
+    releaseRefIfNotNull(cachedMessage);
     if (fileName)
     {
         daqFreeMemory(fileName);
@@ -475,6 +508,13 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
     if (message == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
+    if (this->cachedMessage)
+    {
+        *message = this->cachedMessage;
+        addRefIfNotNull(*message);
+        return OPENDAQ_SUCCESS;
+    }
+
     std::ostringstream ss;
 
     if (this->prevErrCode != OPENDAQ_SUCCESS)
@@ -493,7 +533,7 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
     {
         ss << ErrorCodeMessage(this->errorCode);
     }
-    else 
+    else
     {
         needSpace = false;
     }
@@ -501,7 +541,7 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
 #ifndef NDEBUG
     if (this->fileName)
     {
-        ss << (needSpace ? " " : "") << "[ " << this->fileName;
+        ss << (needSpace ? " [ " : "[ ") << this->fileName;
         if (this->fileLine != -1)
             ss << ":" << this->fileLine;
         ss << " ]";
@@ -509,7 +549,13 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
 #endif
 
     auto str = ss.str();
-    return createString(message, str.c_str());
+    const ErrCode errCode = createString(message, str.c_str());
+    if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        this->cachedMessage = *message;
+        addRefIfNotNull(this->cachedMessage);
+    }
+    return errCode;
 }
 
 ErrCode ErrorInfoImpl::isFrozen(Bool* frozen) const
@@ -569,14 +615,14 @@ void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo, daq::ErrCode err
         *errorInfo = daq::errorInfoHolder.getErrorInfo(errCode);
 }
 
-extern "C" 
+extern "C"
 void PUBLIC_EXPORT daqGetErrorInfoList(daq::IList** errorInfoList)
 {
     if (errorInfoList)
         *errorInfoList = daq::errorInfoHolder.getErrorInfoList();
 }
 
-extern "C" 
+extern "C"
 void PUBLIC_EXPORT daqGetErrorInfoMessage(daq::IString** errorMessage, daq::ErrCode errCode)
 {
     if (errorMessage)

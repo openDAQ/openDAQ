@@ -60,7 +60,6 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleErrors)
         fmt::format(R"(The openDAQ module file must have an extention "{}")", OPENDAQ_MODULE_SUFFIX)
     );
 
-
     fs::path modulePath = GetMockModulePath(fmt::format(R"(/doesNotExist{})", OPENDAQ_MODULE_SUFFIX));
     LOG_I("Load module: \"{}\"", modulePath.string());
     ASSERT_THROW_MSG(

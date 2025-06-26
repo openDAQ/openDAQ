@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <opendaq/work.h>
+#include <coretypes/baseobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -25,19 +25,18 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-/*#
- * [interfaceSmartPtr(IWork, GenericWorkPtr)]
- */
-
 /*!
- * @brief The interface inherited from IWork. And used for repetitive work that needs to be executed in the main loop.
+ * @brief The interface used for repetitive work that needs to be executed in the main loop.
  * The callback is expected to return a boolean value indicating whether the work should be repeated.
  * If the callback does return nothing, it is assumed that the work should not be repeated.
- *
- * @note if the callback should not be repeated, the method execute() should return OPENDAQ_ERR_REPETITIVE_TASK_STOPPED.
  */
-DECLARE_OPENDAQ_INTERFACE(IWorkRepetitive, IWork)
+DECLARE_OPENDAQ_INTERFACE(IWorkRepetitive, IBaseObject)
 {
+    /*!
+     * @brief Executes the repetitive task logic and determines whether it should be repeated.
+     * @param[out] repeatAfter Set to `true` to continue repeating the task, or `false` to stop.
+     */
+    virtual ErrCode INTERFACE_FUNC executeRepetitively(Bool* repeatAfter) = 0;
 };
 
 /*!@}*/

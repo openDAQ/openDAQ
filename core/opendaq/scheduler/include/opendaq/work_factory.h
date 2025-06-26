@@ -40,9 +40,9 @@ WorkPtr Work(Callback&& callback)
  *  @brief creates a work object, a lightweight implementation of callback used in scheduler for worker tasks.
  */
 template <class Callback>
-WorkRepetitivePtr WorkRepetitive(Callback&& callback)
+WorkPtr WorkRepetitive(Callback&& callback)
 {
-    return createWithImplementation<IWorkRepetitive, WorkRepetitiveImpl<Callback>>(std::forward<Callback>(callback));
+    return createWithImplementation<IWork, WorkRepetitiveImpl<Callback>>(std::forward<Callback>(callback));
 }
 
 /*!@}*/

@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <opendaq/work.h>
 #include <opendaq/work_repetitive.h>
 #include <coretypes/intfs.h>
 #include <coretypes/validation.h>
@@ -54,12 +55,13 @@ ErrCode INTERFACE_FUNC WorkImpl<Callback>::execute()
 }
 
 template <class Callback>
-class WorkRepetitiveImpl: public ImplementationOf<IWorkRepetitive>
+class WorkRepetitiveImpl: public ImplementationOf<IWork, IWorkRepetitive>
 {
 public:
     explicit WorkRepetitiveImpl(const Callback& callback);
     explicit WorkRepetitiveImpl(Callback&& callback);
 
+    ErrCode INTERFACE_FUNC executeRepetitively(Bool* repeatAfter) override;
     ErrCode INTERFACE_FUNC execute() override;
 
 private:
@@ -79,23 +81,27 @@ WorkRepetitiveImpl<Callback>::WorkRepetitiveImpl(Callback&& callback)
 }
 
 template <class Callback>
-ErrCode INTERFACE_FUNC WorkRepetitiveImpl<Callback>::execute()
+ErrCode INTERFACE_FUNC WorkRepetitiveImpl<Callback>::executeRepetitively(Bool* repeatAfter)
 {
+    OPENDAQ_PARAM_NOT_NULL(repeatAfter);
+    *repeatAfter = False;
+
     using ReturnType = std::invoke_result_t<Callback>;
     if constexpr (std::is_same_v<ReturnType, bool> || std::is_same_v<ReturnType, Bool>)
     {
-        return daqTry([this] 
-        { 
-            if (!callback())
-                return OPENDAQ_ERR_REPETITIVE_TASK_STOPPED;
-            return OPENDAQ_SUCCESS;
-        });
+        return daqTry([this, repeatAfter] { *repeatAfter = callback(); });
     }
     else
     {
-        daqTry([this] { callback();});
-        return OPENDAQ_ERR_REPETITIVE_TASK_STOPPED;
+        return daqTry([this] { callback(); });
     }
+}
+
+template <class Callback>
+ErrCode INTERFACE_FUNC WorkRepetitiveImpl<Callback>::execute()
+{
+    Bool repeatAfter;
+    return this->executeRepetitively(&repeatAfter);
 }
 
 END_NAMESPACE_OPENDAQ

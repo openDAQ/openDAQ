@@ -33,21 +33,26 @@ class MainThreadEventLoop::WorkWrapper
 public:
     explicit WorkWrapper(WorkPtr work)
         : work(std::move(work))
-        , isRepetitive(this->work.supportsInterface<IWorkRepetitive>())
     {}
 
     bool execute() const
     {
-        if (isRepetitive)
-            return work->execute() != OPENDAQ_ERR_REPETITIVE_TASK_STOPPED;
-
-        work->execute();
-        return false;
+        Bool repeatAfter = False;
+        ErrCode errCode;
+        
+        if (auto workPtr = work.asPtrOrNull<IWorkRepetitive>(true); workPtr.assigned())
+            errCode = workPtr->executeRepetitively(&repeatAfter);
+        else
+            errCode = work->execute();
+        
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
+        
+        return repeatAfter; 
     }
 
 private:
     const WorkPtr work;
-    const bool isRepetitive;
 };
 
 MainThreadEventLoop::~MainThreadEventLoop()

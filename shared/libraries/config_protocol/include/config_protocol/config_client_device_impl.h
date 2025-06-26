@@ -319,7 +319,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
     return daqTry([this, availableOpModes] 
     {
         const auto protocolVersion = this->clientComm->getProtocolVersion();
-        if (protocolVersion >= 9 && protocolVersion < 12)
+        if (protocolVersion > 8 && protocolVersion < 12)
             *availableOpModes = this->clientComm->getAvailableOperationModes(this->remoteGlobalId).detach();
         else
             checkErrorInfo(Super::getAvailableOperationModes(availableOpModes));   

@@ -22,7 +22,7 @@ PacketBufferImpl::PacketBufferImpl(IPacketBufferBuilder* builder)
 ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
 {
     auto writePosVirtuallyAdjusted = (static_cast<uint8_t*>(writePos) + rawSampleSize * *sampleCount);
-    auto endOfBuffer = (reinterpret_cast<uint8_t*>(&data) + rawSampleSize * sizeOfMem);
+    auto endOfBuffer = (reinterpret_cast<uint8_t*>(data.data()) + rawSampleSize * sizeOfMem);
     auto readPosWritePosDiff = (static_cast<uint8_t*>(writePos) - static_cast<uint8_t*>(readPos)) / static_cast<uint8_t>(rawSampleSize);
     size_t availableSamples;
 
@@ -39,7 +39,15 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
             DAQ_THROW_EXCEPTION(InvalidStateException);
             // Return problem
         }
-        availableSamples = static_cast<size_t>(readPosWritePosDiff);
+        else if (!isFull && readPosWritePosDiff == 0)
+        {
+            availableSamples = static_cast<size_t>(endOfBuffer - static_cast<uint8_t*>(writePos))/ static_cast<size_t>(rawSampleSize);
+        }
+        else
+        {
+            availableSamples = static_cast<size_t>(readPosWritePosDiff);
+        }
+
     }
 
     if (availableSamples < *sampleCount)
@@ -47,10 +55,20 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
         auto beginningReadPosDiff = (static_cast<uint8_t*>(readPos) - data.data());
         if (static_cast<long long>(*sampleCount) <= beginningReadPosDiff)
         {
-            // I need to create an empty packet that will fill up the last part of the buffer,
-            // and then create the requested size of packet at the beginning of the buffer
+            // Dummy packet
+            oos_packets.push(std::make_pair(writePos , (static_cast<uint8_t*>(data.data()) + sizeOfMem) - static_cast<uint8_t*>(writePos)));
+
+            // The main packet at the beginning
+            *memPos = data.data();
+            writePos = static_cast<void*>(data.data() + *sampleCount); 
+            if (writePos == readPos)
+            {
+                isFull = true;
+                return OPENDAQ_SUCCESS;
+            }
+            return OPENDAQ_SUCCESS;
         }
-        // Check if at the end of the buffer for write ahead (so write at the beginning of the buffer if the wated size does not fit)
+        DAQ_THROW_EXCEPTION(InvalidParameterException);     // This exception can be replaced with a custom one that will be defined specifically for packet buffers
     }
     else
     {
@@ -87,7 +105,7 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
 ErrCode PacketBufferImpl::Read(void* beginningOfDelegatedSpace, size_t sampleCount, size_t rawSize)
 {
     {
-        std::lock_guard<std::mutex> lock(mxFlip);
+        std::unique_lock<std::mutex> lock(mxFlip);
         if (beginningOfDelegatedSpace != readPos)
         {
             bool scenario = beginningOfDelegatedSpace < readPos;
@@ -96,7 +114,11 @@ ErrCode PacketBufferImpl::Read(void* beginningOfDelegatedSpace, size_t sampleCou
                 oos_packets.push(std::make_pair(((uint8_t*) &data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) &data),
                                                 sampleCount * rawSize));
             }
-            oos_packets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount * rawSize));
+            else
+            {
+                oos_packets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount * rawSize));
+            }
+            lock.unlock();
             return OPENDAQ_SUCCESS;
         }
         else
@@ -120,6 +142,7 @@ ErrCode PacketBufferImpl::Read(void* beginningOfDelegatedSpace, size_t sampleCou
         }
         if (readPos == writePos && !isFull)
         {
+            lock.unlock();
             // Return error codes
             DAQ_THROW_EXCEPTION(InvalidStateException);
         }
@@ -130,12 +153,13 @@ ErrCode PacketBufferImpl::Read(void* beginningOfDelegatedSpace, size_t sampleCou
             readPos = static_cast<void*>(static_cast<uint8_t*>(readPos) - (rawSize * sizeOfMem));
 
         isFull = false;
+        lock.unlock();
     }
     cv.notify_all();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketBufferImpl::createPacket(SizeT SampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet)
+ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet)
 {
     daq::DataRulePtr rule;
     desc->getRule(&rule);
@@ -153,12 +177,15 @@ ErrCode PacketBufferImpl::createPacket(SizeT SampleCount, IDataDescriptor* desc,
     void* startOfSpace = nullptr;
 
     this->Write(&sampleCount, &startOfSpace);
-    deleterFunction = [&, sampleCnt = sampleCount, startOfSpace = startOfSpace, rawSizeOfSample = rawSampleSize](void*)
-    { Read(startOfSpace, sampleCnt, rawSizeOfSample); };
-    auto deleter = daq::Deleter(std::move(deleterFunction));
+    // deleterFunction = [&, sampleCnt = sampleCount, startOfSpace = startOfSpace, rawSizeOfSample = rawSampleSize](void*)
+    // { Read(startOfSpace, sampleCnt, rawSizeOfSample); };
+    auto deleter = daq::Deleter([this, sampleCnt = sampleCount, startOfSpace = startOfSpace, rawSizeOfSample = rawSampleSize](void*)mutable
+                                {
+                                    Read(startOfSpace, sampleCnt, rawSizeOfSample);
+                                });
 
-    *packet = daq::DataPacketWithExternalMemory(domainPacket, desc, sampleCount, startOfSpace, deleter);
-
+    *packet = daq::DataPacketWithExternalMemory(domainPacket, desc, sampleCount, startOfSpace, deleter).detach();
+    lock.unlock();
     return OPENDAQ_SUCCESS;
 }
 

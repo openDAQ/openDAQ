@@ -77,10 +77,6 @@ protected:
 
     std::function<void(void*)> deleterFunction;
 
-    // size_t sizeOfMem, size_t rawSampleSize, bool isFull, bool underReset
-
-    // priority_queue, callback function
-
     DataDescriptorPtr descriptor;
     ContextPtr context;
     size_t sampleCount;

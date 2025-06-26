@@ -204,7 +204,7 @@ BaseObjectPtr ConstNode<T, CT>::getResult()
 }
 
 template <class T, CoreType CT>
-std::unique_ptr<BaseNode> ConstNode<T, CT>::clone(GetReferenceEvent refCall)
+std::unique_ptr<BaseNode> ConstNode<T, CT>::clone(GetReferenceEvent /* refCall */)
 {
     return std::make_unique<ConstNode<T, CT>>(value);
 }

@@ -102,6 +102,14 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
         },
         py::arg("loop_time") = 1,
         "Starts and blocks the main event loop, executing scheduled tasks.");
+    cls.def_property_readonly("main_loop_set",
+        [](daq::IScheduler *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SchedulerPtr::Borrow(object);
+            return objectPtr.isMainLoopSet();
+        },
+        "Checks if the main loop is currently set.");
     cls.def("stop_main_loop",
         [](daq::IScheduler *object)
         {

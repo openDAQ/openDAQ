@@ -398,7 +398,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             objectPtr.setOperationMode(modeType);
         },
-        "Gets the operation mode of the device subtree excluding the sub-devices. / Sets the operation mode of the device subtree excluding the sub-devices.");
+        "Sets the operation mode of the device subtree excluding the sub-devices.");
     cls.def_property("operation_mode_recursive",
         nullptr,
         [](daq::IDevice *object, daq::OperationModeType modeType)
@@ -408,4 +408,13 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             objectPtr.setOperationModeRecursive(modeType);
         },
         "Sets the operation mode of the device subtree including the sub-devices.");
+    cls.def("add_devices",
+        [](daq::IDevice *object, std::variant<daq::IDict*, py::dict>& connectionArgs, std::variant<daq::IDict*, py::dict>& errCodes, std::variant<daq::IDict*, py::dict>& errorInfos)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.addDevices(getVariantValue<daq::IDict*>(connectionArgs), getVariantValue<daq::IDict*>(errCodes), getVariantValue<daq::IDict*>(errorInfos)).detach();
+        },
+        py::arg("connection_args"), py::arg("err_codes") = nullptr, py::arg("error_infos") = nullptr,
+        "Connects to multiple devices in parallel using the provided connection strings and returns the connected devices. Each connection is established concurrently to improve performance when handling multiple devices.");
 }

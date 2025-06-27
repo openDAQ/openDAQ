@@ -176,7 +176,7 @@ TEST_F(ErrorInfoTest, ErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(45);
+    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(47);
     ASSERT_THROW_MSG(checkErrorInfo(obj->newMakeErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -184,8 +184,8 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(45) + "\n";
-    expected += " - Cause by: multipleErrorInfoTest failed twice" + getErrorPostfix(51);
+    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(47) + "\n";
+    expected += " - Cause by: multipleErrorInfoTest failed twice" + getErrorPostfix(53);
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -196,7 +196,7 @@ TEST_F(ErrorInfoTest, ArgumentNotNull)
 #ifdef NDEBUG
     std::string expected = "Parameter obj must not be null in the function \"";
 #else
-    std::string expected = "Parameter obj must not be null" + getErrorPostfix(58);
+    std::string expected = "Parameter obj must not be null" + getErrorPostfix(60);
 #endif
     ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), ArgumentNullException, expected);
 }
@@ -205,7 +205,7 @@ TEST_F(ErrorInfoTest, ThrowExceptionInDaqTry)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "Test failed" + getErrorPostfix(66);
+    std::string expected = "Test failed" + getErrorPostfix(68);
     ASSERT_THROW_MSG(checkErrorInfo(obj->throwExceptionTest()), GeneralErrorException, expected);
 }
 

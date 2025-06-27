@@ -493,9 +493,9 @@ ErrCode wrapHandler(Handler handler, Params&& ... params)
     static_assert(std::is_same_v<ResultType, void> || std::is_same_v<ResultType, ErrCode>, "Return type must be void or daq::ErrCode");
 
     IErrorGuard* errorGuard = ErrorGuard_Create(nullptr, -1);
-    ErrCode errCode = OPENDAQ_SUCCESS;
     try
     {
+        ErrCode errCode = OPENDAQ_SUCCESS;
         if constexpr (std::is_same_v<ResultType, void>)
         {
             (handler)(std::forward<Params>(params)...);
@@ -505,47 +505,51 @@ ErrCode wrapHandler(Handler handler, Params&& ... params)
             errCode = (handler)(std::forward<Params>(params)...);
         }
         checkErrorGuard(errorGuard);
+        errorGuard->releaseRef();
+        return errCode;
     }
     catch (const DaqException& e)
     {
-        errCode = errorFromException(e);
+        errorGuard->releaseRef();
+        return errorFromException(e);
     }
     catch (const std::exception& e)
     {
-        errCode = DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
+        errorGuard->releaseRef();
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
-        errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
+        errorGuard->releaseRef();
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
-    errorGuard->releaseRef();
-    return errCode;
 }
 
 template <typename Handler, typename TReturn, typename... Params>
 ErrCode wrapHandlerReturn(Handler handler, TReturn& output, Params&& ... params)
 {
     IErrorGuard* errorGuard = ErrorGuard_Create(nullptr, -1);
-    ErrCode errCode = OPENDAQ_SUCCESS;
     try
     {
         output = (handler) (std::forward<Params>(params)...);
         checkErrorGuard(errorGuard);
+        return OPENDAQ_SUCCESS;
     }
     catch (const DaqException& e)
     {
-        errCode = errorFromException(e);
+        errorGuard->releaseRef();
+        return errorFromException(e);
     }
     catch (const std::exception& e)
     {
-        errCode = DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
+        errorGuard->releaseRef();
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
-        errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
+        errorGuard->releaseRef();
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
-    errorGuard->releaseRef();
-    return errCode;
 }
 
 template <typename Object, typename Handler, typename... Params>
@@ -554,9 +558,9 @@ ErrCode wrapHandler(Object* object, Handler handler, Params&& ... params)
     using ResultType = decltype((object->*handler)(std::forward<Params>(params)...));
     static_assert(std::is_same_v<ResultType, void> || std::is_same_v<ResultType, ErrCode>, "Return type must be void or daq::ErrCode");
     IErrorGuard* errorGuard = ErrorGuard_Create("nullptr", -1);
-    ErrCode errCode = OPENDAQ_SUCCESS;
     try
     {
+        ErrCode errCode = OPENDAQ_SUCCESS;
         if constexpr (std::is_same_v<ResultType, void>)
         {
             (object->*handler)(std::forward<Params>(params)...);
@@ -566,56 +570,61 @@ ErrCode wrapHandler(Object* object, Handler handler, Params&& ... params)
             errCode = (object->*handler)(std::forward<Params>(params)...);
         }
         checkErrorGuard(errorGuard);
+        errorGuard->releaseRef();
+        return errCode;
     }
     catch (const DaqException& e)
     {
-        errCode = errorFromException(e);
+        errorGuard->releaseRef();
+        return errorFromException(e);
     }
     catch (const std::exception& e)
     {
-        errCode = DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
+        errorGuard->releaseRef();
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
-        errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
+        errorGuard->releaseRef();
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
-    errorGuard->releaseRef();
-    return errCode;
 }
 
 template <typename Object, typename Handler, typename TReturn, typename... Params>
 ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Params&&... params)
 {
     IErrorGuard* errorGuard = ErrorGuard_Create(nullptr, -1);
-    ErrCode errCode = OPENDAQ_SUCCESS;
     try
     {
         output = (object->*handler)(std::forward<Params>(params)...);
         checkErrorGuard(errorGuard);
+        errorGuard->releaseRef();
+        return OPENDAQ_SUCCESS;
     }
     catch (const DaqException& e)
     {
-        errCode = errorFromException(e);
+        errorGuard->releaseRef();
+        return errorFromException(e);
     }
     catch (const std::exception& e)
     {
-        errCode = DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
+        errorGuard->releaseRef();
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
-        errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
+        errorGuard->releaseRef();
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
-    errorGuard->releaseRef();
-    return errCode;
 }
 
 template <class F>
 ErrCode daqTry(const IBaseObject* context, F&& func)
 {
     IErrorGuard* errorGuard = ErrorGuard_Create(nullptr, -1);
-    ErrCode errCode = OPENDAQ_SUCCESS;
     try
     {
+        ErrCode errCode = OPENDAQ_SUCCESS;
         if constexpr (std::is_same_v<std::invoke_result_t<F>, void>)
         {
             func();
@@ -625,21 +634,24 @@ ErrCode daqTry(const IBaseObject* context, F&& func)
             errCode = func();            
         }
         checkErrorGuard(errorGuard);
+        errorGuard->releaseRef();
+        return errCode;
     }
     catch (const DaqException& e)
     {
-        errCode = errorFromException(e);
+        errorGuard->releaseRef();
+        return errorFromException(e);
     }
     catch (const std::exception& e)
     {
-        errCode = DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
+        errorGuard->releaseRef();
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
-        errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
+        errorGuard->releaseRef();
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
-    errorGuard->releaseRef();
-    return errCode;
 }
 
 template <typename Interface>

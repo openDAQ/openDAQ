@@ -371,19 +371,21 @@ public:
             err = lock ? this->getSelectionValues(&selVal) : this->getSelectionValuesNoLock(&selVal);
             OPENDAQ_RETURN_IF_FAILED(err);
 
-            BaseObjectPtr value = defVal.assigned() ? defVal : nullptr;
+            BaseObjectPtr value = defVal;
             value = selVal.assigned() ? selVal : value;
             if (!value.assigned())
                 return err;
 
-            const auto dictElementType = value.asPtrOrNull<IDictElementType>();
-            if (dictElementType.assigned())
+            if (const auto dictElementType = value.asPtrOrNull<IDictElementType>(true); dictElementType.assigned())
+            {
                 err = dictElementType->getValueInterfaceId(&intfID);
-
-            const auto listElementType = value.asPtrOrNull<IListElementType>();
-            if (listElementType.assigned())
+                OPENDAQ_RETURN_IF_FAILED(err);
+            }
+            else if (const auto listElementType = value.asPtrOrNull<IListElementType>(true); listElementType.assigned())
+            {
                 err = listElementType->getElementInterfaceId(&intfID);
-
+                OPENDAQ_RETURN_IF_FAILED(err);
+            }
             auto coreType = details::intfIdToCoreType(intfID);
 
             // TODO: Workaround if item type of dict/list is undefined
@@ -400,6 +402,8 @@ public:
                     err = OPENDAQ_SUCCESS;
                 }
             }
+
+            *type = coreType;
             return err;
         });
         OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get item type of property");

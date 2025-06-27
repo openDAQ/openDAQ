@@ -519,9 +519,11 @@ TEST_F(CCoreobjectsTest, PropertyObjectProtected)
 
     err = daqPropertyObject_setPropertyValue(propObj, name, value);
     ASSERT_NE(err, 0);
+    daqClearErrorInfo(err);
 
     err = daqPropertyObjectProtected_setProtectedPropertyValue(propObjProtected, name, value);
     ASSERT_EQ(err, 0);
+    daqClearErrorInfo(err);
     daqInteger* valueOut = nullptr;
     daqPropertyObject_getPropertyValue(propObj, name, (daqBaseObject**) &valueOut);
     ASSERT_NE(valueOut, nullptr);

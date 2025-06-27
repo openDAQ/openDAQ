@@ -323,6 +323,7 @@ TEST_F(ModuleManagerTest, ParallelDeviceCreationFailure)
     auto errorInfos = Dict<IString, IErrorInfo>();
 
     ASSERT_EQ(utils->createDevices(&devices, connectionArgs, nullptr, errCodes, errorInfos), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
     ASSERT_EQ(devices.getCount(), 1u);
     ASSERT_EQ(errCodes.getCount(), 1u);
     ASSERT_EQ(errorInfos.getCount(), 1u);

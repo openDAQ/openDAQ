@@ -524,7 +524,6 @@ TEST_F(CCoreobjectsTest, PropertyObjectProtected)
 
     err = daqPropertyObjectProtected_setProtectedPropertyValue(propObjProtected, name, value);
     ASSERT_EQ(err, 0);
-    daqClearErrorInfo(err);
     daqInteger* valueOut = nullptr;
     daqPropertyObject_getPropertyValue(propObj, name, (daqBaseObject**) &valueOut);
     ASSERT_NE(valueOut, nullptr);
@@ -674,6 +673,7 @@ TEST_F(CCoreobjectsTest, Validator)
     daqInteger_createInteger(&invalidValue, 3);
     err = daqValidator_validate(validator, nullptr, invalidValue);
     ASSERT_NE(err, 0);
+    daqClearErrorInfo(err);
 
     daqBaseObject_releaseRef(value);
     daqBaseObject_releaseRef(invalidValue);

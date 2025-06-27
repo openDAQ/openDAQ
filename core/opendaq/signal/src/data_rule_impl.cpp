@@ -175,16 +175,8 @@ ErrCode DataRuleImpl::verifyParametersInternal()
         }
     }
 
-    try
-    {
-        if (params.assigned() && !params.isFrozen())
-            params.freeze();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-
+    if (params.assigned())
+        params.freeze();
     return OPENDAQ_SUCCESS;
 }
 

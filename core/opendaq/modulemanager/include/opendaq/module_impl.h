@@ -461,12 +461,12 @@ private:
 
     PropertyObjectPtr mergeConfig(const PropertyObjectPtr& userConfig, const ComponentTypePtr& type) const
     {
-        
         PropertyObjectPtr configIn = userConfig.assigned() ? userConfig : PropertyObject();
         PropertyObjectPtr configOut;
 
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             configOut = type.assigned() ? type.createDefaultConfig() : PropertyObject();
             populateDefaultConfig(configOut, configIn);
         }

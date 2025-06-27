@@ -595,15 +595,15 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     *device = nullptr;
 
     PropertyObjectPtr inputConfig = PropertyObjectPtr::Borrow(config);
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         PropertyObjectPtr addDeviceConfig;
         const bool inputIsDefaultAddDeviceConfig = isDefaultAddDeviceConfig(inputConfig);
 
         if (inputIsDefaultAddDeviceConfig)
-            checkErrorInfo(inputConfig.asPtr<IPropertyObjectInternal>(true)->clone(&addDeviceConfig));
+            OPENDAQ_RETURN_IF_FAILED(inputConfig.asPtr<IPropertyObjectInternal>(true)->clone(&addDeviceConfig));
         else
-            checkErrorInfo(createDefaultAddDeviceConfig(&addDeviceConfig));
+            OPENDAQ_RETURN_IF_FAILED(createDefaultAddDeviceConfig(&addDeviceConfig));
         
         PropertyObjectPtr generalConfig =
             inputIsDefaultAddDeviceConfig
@@ -647,7 +647,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
             const auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
-            checkErrorInfo(err);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned())
@@ -659,24 +659,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
             return err;
         }
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to create device from connection string");
-    }
-
-    return DAQ_MAKE_ERROR_INFO(
-        OPENDAQ_ERR_NOTFOUND,
-        fmt::format("Device with given connection string and config is not available [{}]", StringPtr::Borrow(connectionString))
-    );
+        return DAQ_MAKE_ERROR_INFO(
+            OPENDAQ_ERR_NOTFOUND,
+            fmt::format("Device with given connection string and config is not available [{}]", StringPtr::Borrow(connectionString)));
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create device from connection string and config");
+    return errCode;
 }
 
 

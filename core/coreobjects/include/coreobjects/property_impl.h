@@ -32,7 +32,6 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <coretypes/validation.h>
-#include <iostream>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
@@ -359,8 +358,7 @@ public:
     ErrCode INTERFACE_FUNC getItemTypeInternal(CoreType* type, bool lock)
     {
         OPENDAQ_PARAM_NOT_NULL(type);
-
-        try
+        const ErrCode errCode = daqTry([&]()
         {
             IntfID intfID = IUnknown::Id;
             *type = ctUndefined;
@@ -402,22 +400,10 @@ public:
                     err = OPENDAQ_SUCCESS;
                 }
             }
-
-            *type = coreType;
             return err;
-        }
-        catch (const DaqException& e)
-        {
-            return errorFromException(e, this->getThisAsBaseObject());
-        }
-        catch (const std::exception& e)
-        {
-            return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-        }
-        catch (...)
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to get item type of property");
-        }
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get item type of property");
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getName(IString** name) override

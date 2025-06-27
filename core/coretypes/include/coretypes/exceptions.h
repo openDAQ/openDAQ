@@ -144,6 +144,9 @@ DEFINE_EXCEPTION(NoData, OPENDAQ_ERR_NO_DATA, "No data")
 DEFINE_EXCEPTION(ReservedTypeName, OPENDAQ_ERR_RESERVED_TYPE_NAME, "Type name is reserved and can not be used")
 
 extern void checkErrorInfo(ErrCode errCode);
+
+class IErrorGuard;
+extern void checkErrorGuard(IErrorGuard* errorGuard);
 extern void checkErrorInfoExcept(ErrCode errCode, ErrCode exceptErrCode);
 
 

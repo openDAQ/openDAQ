@@ -13,7 +13,6 @@
 #include <fmt/ostream.h>
 #include <set>
 #include <chrono>
-#include <thread>
 #include <optional>
 
 using namespace std::chrono;
@@ -757,48 +756,31 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
     min = getMinSamplesAvailable();
     syncStatus = getSyncStatus();
 
-    if ((min != 0) && (syncStatus != SyncStatus::Synchronized))
+    if (min == 0 || syncStatus == SyncStatus::Synchronized)
+        return OPENDAQ_SUCCESS;
+
+    const ErrCode errCode = daqTry([&]()
     {
-        try
-        {
-            // set info data packet
-            for (auto& signal : signals)
-            {
-                signal.isFirstPacketEvent();
-            }
+        // set info data packet
+        for (auto& signal : signals)
+            signal.isFirstPacketEvent();
 
-            if (syncStatus != SyncStatus::Synchronizing)
-            {
-                setStartInfo();
-                readDomainStart();
-            }
+        if (syncStatus != SyncStatus::Synchronizing)
+        {
+            setStartInfo();
+            readDomainStart();
+        }
 
-            sync();
+        sync();
 
-            syncStatus = getSyncStatus();
-            if (syncStatus == SyncStatus::Synchronized)
-            {
-                min = getMinSamplesAvailable();
-            }
-            if (syncStatus == SyncStatus::SynchronizationFailed)
-            {
-                setActiveInternal(false);
-            }
-        }
-        catch (const DaqException& e)
-        {
-            return errorFromException(e, this->getThisAsBaseObject());
-        }
-        catch (const std::exception& e)
-        {
-            return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-        }
-        catch (...)
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to synchronize MultiReader");
-        }
-    }
-    return OPENDAQ_SUCCESS;
+        syncStatus = getSyncStatus();
+        if (syncStatus == SyncStatus::Synchronized)
+            min = getMinSamplesAvailable();
+        if (syncStatus == SyncStatus::SynchronizationFailed)
+            setActiveInternal(false);
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to synchronize MultiReaderImpl");
+    return errCode;
 }
 
 bool MultiReaderImpl::hasEventOrGapInQueue()

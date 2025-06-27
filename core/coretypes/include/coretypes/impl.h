@@ -51,36 +51,21 @@ template <class Interface, class Impl, class... Params>
 ErrCode createObjectForwarding(Interface** intf, Params... params)
 {
     OPENDAQ_PARAM_NOT_NULL(intf);
-
     Impl* impl;
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         impl = new Impl(std::forward<Params>(params)...);
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::bad_alloc&)
-    {
-        return OPENDAQ_ERR_NOMEMORY;
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
-    }
-
-    ErrCode errCode;
-    if (impl->getRefAdded())
-        errCode = impl->borrowInterface(Interface::Id, reinterpret_cast<void**>(intf));
-    else
-        errCode = impl->queryInterface(Interface::Id, reinterpret_cast<void**>(intf));
+        if (impl->getRefAdded())
+            return impl->borrowInterface(Interface::Id, reinterpret_cast<void**>(intf));
+        else
+            return impl->queryInterface(Interface::Id, reinterpret_cast<void**>(intf));
+    });
 
     if (OPENDAQ_FAILED(errCode))
     {
         delete impl;
+        DAQ_EXTEND_ERROR_INFO(errCode, "Failed to create object");
     }
-
     return errCode;
 }
 
@@ -90,32 +75,18 @@ ErrCode createObject(Interface** intf, Params... params)
     OPENDAQ_PARAM_NOT_NULL(intf);
 
     Impl* impl;
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         impl = new Impl(params...);
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::bad_alloc&)
-    {
-        return OPENDAQ_ERR_NOMEMORY;
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
-    }
-
-    ErrCode errCode;
-    if (impl->getRefAdded())
-        errCode = impl->borrowInterface(Interface::Id, reinterpret_cast<void**>(intf));
-    else
-        errCode = impl->queryInterface(Interface::Id, reinterpret_cast<void**>(intf));
-
+        if (impl->getRefAdded())
+            return impl->borrowInterface(Interface::Id, reinterpret_cast<void**>(intf));
+        else
+            return impl->queryInterface(Interface::Id, reinterpret_cast<void**>(intf));
+    });
     if (OPENDAQ_FAILED(errCode))
     {
         delete impl;
+        DAQ_EXTEND_ERROR_INFO(errCode, "Failed to create object");
     }
     return errCode;
 }

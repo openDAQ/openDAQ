@@ -42,23 +42,15 @@ ProcedurePtr Procedure(TFunctor* value)
 template <typename... Params>
 ErrCode wrapHandler(ProcedurePtr handler, Params... params)
 {
-    try
+    if (!handler.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL);
+
+    const ErrCode errCode = daqTry([&]()
     {
         (handler)(params...);
-        return OPENDAQ_SUCCESS;
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while calling the procedure handler.");
-    }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to wrap handler call for procedure");
+    return errCode;
 }
 
 END_NAMESPACE_OPENDAQ

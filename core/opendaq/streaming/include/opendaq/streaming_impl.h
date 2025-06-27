@@ -170,6 +170,7 @@ StreamingImpl<Interfaces...>::~StreamingImpl()
 {
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         ErrCode errCode = removeStreamingSourceForAllSignals();
         removeAllSignalsInternal();
         checkErrorInfo(errCode);

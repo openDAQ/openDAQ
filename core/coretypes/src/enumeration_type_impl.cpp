@@ -147,7 +147,7 @@ ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* co
     errCode = ser->readObject("enumerators"_daq, context, factoryCallback, &enumerators);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    try
+    errCode = daqTry([&]()
     {
         TypeManagerPtr typeManager;
         if (context)
@@ -169,17 +169,9 @@ ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* co
         }
 
         *obj = enumerationType.detach();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to deserialize EnumerationType.");
-    }
-
-    return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to deserialize EnumerationType");
+    return errCode;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

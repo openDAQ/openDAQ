@@ -169,7 +169,7 @@ ConstCharPtr TypeManagerImpl::SerializeId()
 
 ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*context*/, IFunction* factoryCallback, IBaseObject** obj)
 {
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         TypeManagerPtr typeManagerPtr;
         createTypeManager(&typeManagerPtr);
@@ -184,17 +184,10 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
             OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_ALREADYEXISTS);
         }
         *obj = typeManagerPtr.detach();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to deserialize TypeManager.");
-    }
-
-    return OPENDAQ_SUCCESS;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to deserialize TypeManager.");
+    return errCode;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, TypeManager)

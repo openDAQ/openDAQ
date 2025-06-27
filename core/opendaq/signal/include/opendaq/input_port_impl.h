@@ -558,7 +558,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connectInternal(ISignal* signal, bo
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         auto err = canConnectSignal(signal);
         OPENDAQ_RETURN_IF_FAILED(err);
@@ -603,32 +603,16 @@ ErrCode GenericInputPortImpl<Interfaces...>::connectInternal(ISignal* signal, bo
             // - do we have (and if not, do we want) helper methods for exception handling like this? something like:
             //       ignoreErrors([]() { events.listenerConnected(connection); }, OPENDAQ_ERR_HARMLESS1, OPENDAQ_ERR_HARMLESS2);
 
-            try
-            {
-                if (!scheduled)
-                    events.listenerConnected(connection);
-                else
-                    events.listenerConnectedScheduled(connection);
-            }
-            catch (const DaqException& e)
-            {
-                if (e.getErrCode() != OPENDAQ_ERR_NOTIMPLEMENTED)
-                    throw;
-            }
+            ErrCode errCode;
+            if (!scheduled)
+                errCode = events->listenerConnected(connection);
+            else
+                errCode = events->listenerConnectedScheduled(connection);
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED, "Failed to notify signal connection");
         }
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to connect signal to input port");
-    }
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to connect signal");
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
@@ -638,7 +622,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connectInternal(ISignal* signal, bo
         this->triggerCoreEvent(args);
     }
 
-    return OPENDAQ_SUCCESS;
+    return errCode;
 }
 
 template <class... Interfaces>
@@ -689,6 +673,7 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
     {
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             const auto thisPtr = this->template borrowPtr<InputPortPtr>();
             thisPtr.connect(signal);
             finishUpdate();

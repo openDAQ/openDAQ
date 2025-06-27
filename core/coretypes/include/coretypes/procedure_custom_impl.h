@@ -65,27 +65,16 @@ ErrCode CustomProcedureImpl<F>::dispatch(daq::IBaseObject* params)
     if constexpr (!std::is_same_v<F, std::nullptr_t>)
     {
         if (!this->proc)
-        {
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED);
-        }
 
-        try
+        const ErrCode errCode = daqTry([&]()
         {
             return this->proc(params);
-        }
-        catch (const DaqException& e)
-        {
-            return errorFromException(e, this->getThisAsBaseObject());
-        }
-        catch (...)
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED);
-        }
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
-    else
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED);
-    }
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED);
 }
 
 END_NAMESPACE_OPENDAQ

@@ -4,6 +4,7 @@
 #include <coretypes/dict_ptr.h>
 #include <coretypes/dictobject_iterable_impl.h>
 #include <coretypes/validation.h>
+#include <coretypes/errorinfo_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -357,9 +358,7 @@ ErrCode DictImpl::clone(IBaseObject** cloned)
 ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
-    }
 
     *equal = false;
     if (!other)
@@ -374,6 +373,7 @@ ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         for (const auto& [key, value] : dict)
         {
             if (!this->hashTable.contains(key))

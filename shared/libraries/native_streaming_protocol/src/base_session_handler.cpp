@@ -87,6 +87,7 @@ ReadTask BaseSessionHandler::readConfigurationPacket(const void* data, size_t si
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         decltype(config_protocol::PacketHeader::headerSize) headerSize;
 
         // Get packet buffer header size from received buffer
@@ -285,6 +286,7 @@ ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         decltype(GenericPacketHeader::size) headerSize;
 
         // Get packet buffer header size from received buffer

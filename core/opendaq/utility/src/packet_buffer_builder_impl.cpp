@@ -25,13 +25,25 @@ ErrCode PacketBufferBuilderImpl::setContext(IContext* context)
 
 ErrCode PacketBufferBuilderImpl::getSizeInBytes(SizeT* sampleCount)
 {
-    *sampleCount = this->sampleCount;
+    *sampleCount = this->sampleCount * this->sampleSize;
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode PacketBufferBuilderImpl::setSizeInBytes(SizeT sampleCount)
 {
     this->sampleCount = sampleCount;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketBufferBuilderImpl::getRawSampleSize(SizeT* rawSampleSize)
+{
+    *rawSampleSize = this->sampleSize;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketBufferBuilderImpl::setRawSampleSize(SizeT rawSampleSize)
+{
+    this->sampleSize = rawSampleSize;
     return OPENDAQ_SUCCESS;
 }
 

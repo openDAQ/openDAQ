@@ -14,7 +14,7 @@ PacketBufferImpl::PacketBufferImpl(IPacketBufferBuilder* builder)
     writePos = data.data();
     isFull = false;
     underReset = false;
-    rawSampleSize = 1;
+    builder->getRawSampleSize(&rawSampleSize);
     sampleCount = stuff;
     builder->getContext(&context);
 }
@@ -22,7 +22,7 @@ PacketBufferImpl::PacketBufferImpl(IPacketBufferBuilder* builder)
 ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
 {
     auto writePosVirtuallyAdjusted = (static_cast<uint8_t*>(writePos) + rawSampleSize * *sampleCount);
-    auto endOfBuffer = (reinterpret_cast<uint8_t*>(data.data()) + rawSampleSize * sizeOfMem);
+    auto endOfBuffer = (reinterpret_cast<uint8_t*>(data.data()) + sizeOfMem);
     auto readPosWritePosDiff = (static_cast<uint8_t*>(writePos) - static_cast<uint8_t*>(readPos)) / static_cast<uint8_t>(rawSampleSize);
     size_t availableSamples;
 
@@ -36,7 +36,7 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
     {
         if (isFull && readPosWritePosDiff == 0)
         {
-            DAQ_THROW_EXCEPTION(InvalidStateException);
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
             // Return problem
         }
         else if (!isFull && readPosWritePosDiff == 0)
@@ -87,7 +87,7 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
     }
     if (writePos == (void*) endOfBuffer)
     {
-        writePos = &data;
+        writePos = data.data();
         if (readPos == writePos)
         {
             isFull = true;
@@ -190,10 +190,14 @@ ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc,
 
 ErrCode PacketBufferImpl::getAvailableMemory(SizeT* count)
 {
-    *count = ((static_cast<uint8_t*>(writePos) - static_cast<uint8_t*>(data.data())) <=
-              (static_cast<uint8_t*>(data.data()) + sizeOfMem - static_cast<uint8_t*>(readPos)))
-                 ? (static_cast<uint8_t*>(data.data()) + sizeOfMem - static_cast<uint8_t*>(readPos))
-                 : (static_cast<uint8_t*>(writePos) - static_cast<uint8_t*>(data.data()));
+    SizeT check1 = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
+    SizeT check2 = (data.data() + sizeOfMem) - static_cast<uint8_t*>(writePos);
+
+    if (!(writePos == readPos && isFull))
+        *count = (check1 <= check2) ? check2 : check1;
+    else
+        *count = 0;
+
     return OPENDAQ_SUCCESS;
 }
 

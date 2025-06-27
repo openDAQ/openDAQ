@@ -38,7 +38,7 @@ TEST_F(PacketBufferTest, SanityCheck)
 
     buffer->getAvailableMemory(&mem);
     
-    ASSERT_TRUE(mem == 100);
+    ASSERT_TRUE(mem == 800);
 }
 
 TEST_F(PacketBufferTest, makeAPacket)
@@ -65,20 +65,39 @@ TEST_F(PacketBufferTest, fullRange)
 
     auto [desc, domain] = generate_building_blocks();
 
-    SizeT mem = 1000;
+    SizeT mem = 800;
 
     DataPacketPtr destination[2];
 
     buffer->createPacket(mem, desc, domain, &destination[0]);
 
-    //auto errCode2 = buffer->createPacket(10000, desc, domain, &destination[1]);
-
-    ASSERT_THROW(buffer->createPacket(100000, desc, domain, &destination[1]), InvalidParameterException);
+    ASSERT_THROW(buffer->createPacket(100000, desc, domain, &destination[1]),daq::InvalidParameterException);
 }
 
-TEST_F(PacketBufferTest, writeAhead)
+TEST_F(PacketBufferTest, bufferFillUp)
 {
+    auto builder = PacketBufferBuilder();
+    auto buffer = PacketBuffer(builder);
 
+    auto [desc, domain] = generate_building_blocks();
+
+    SizeT check;
+    buffer->getAvailableMemory(&check);
+    std::cout << check << std::endl;
+
+
+    SizeT mem = 10;
+
+    std::vector<DataPacketPtr> destination;
+    DataPacketPtr middle;
+    for (int i = 0; i < 8; i++) {
+        buffer->createPacket(mem, desc, domain, &middle);
+        buffer->getAvailableMemory(&check);
+        std::cout << check << std::endl;
+        destination.push_back(middle.detach());
+    }
+    buffer->getAvailableMemory(&mem);
+    std::cout << mem << std::endl;
 }
 
 TEST_F(PacketBufferTest, emptyPacket)
@@ -95,9 +114,14 @@ TEST_F(PacketBufferTest, emptyPacket)
     ASSERT_NO_THROW(buffer->createPacket(mem, desc, domain, &destination));
 }
 
-TEST_F(PacketBufferTest, emptyPacketRead)
+TEST_F(PacketBufferTest, writeAhead)
 {
-    // Might be redundant
+    
+}
+
+TEST_F(PacketBufferTest, readAhead)
+{
+
 }
 
 TEST_F(PacketBufferTest, fullBufferRead)
@@ -131,7 +155,7 @@ TEST_F(PacketBufferTest, linearRuleFail)
 
     DataPacketPtr destination;
 
-    ASSERT_THROW(buffer->createPacket(mem, descriptor, domain, &destination), InvalidParameterException);
+    ASSERT_THROW(buffer->createPacket(mem, descriptor, domain, &destination), daq::InvalidParameterException);
 }
 
 TEST_F(PacketBufferTest, dynamicPacketDestruction)

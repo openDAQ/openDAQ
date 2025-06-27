@@ -33,6 +33,9 @@ public:
     ErrCode INTERFACE_FUNC getSizeInBytes(SizeT* sampleCount) override;
     ErrCode INTERFACE_FUNC setSizeInBytes(SizeT sampleCount) override;
 
+    ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSize) override;
+    ErrCode INTERFACE_FUNC setRawSampleSize(SizeT rawSampleSize) override;
+
     ErrCode INTERFACE_FUNC build(IPacketBuffer** buffer) override;
 
 private:

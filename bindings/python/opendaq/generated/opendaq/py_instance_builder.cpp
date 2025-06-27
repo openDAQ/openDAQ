@@ -330,4 +330,18 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
         },
         py::arg("server_name"),
         "Adds a discovery server to the context");
+    cls.def_property("using_scheduler_main_loop",
+        [](daq::IInstanceBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            return objectPtr.getUsingSchedulerMainLoop();
+        },
+        [](daq::IInstanceBuilder *object, const bool useMainLoop)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.setUsingSchedulerMainLoop(useMainLoop);
+        },
+        "Checks whether the scheduler will be created with main loop support. / Enables or disables usage of the scheduler's main loop.");
 }

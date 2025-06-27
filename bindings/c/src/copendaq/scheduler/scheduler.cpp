@@ -47,10 +47,10 @@ daqErrCode daqScheduler_isMultiThreaded(daqScheduler* self, daqBool* multiThread
     return reinterpret_cast<daq::IScheduler*>(self)->isMultiThreaded(multiThreaded);
 }
 
-daqErrCode daqScheduler_createScheduler(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers)
+daqErrCode daqScheduler_createScheduler(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers, daqBool useMainLoop)
 {
     daq::IScheduler* ptr = nullptr;
-    daqErrCode err = daq::createScheduler(&ptr, reinterpret_cast<daq::ILogger*>(logger), numWorkers);
+    daqErrCode err = daq::createScheduler(&ptr, reinterpret_cast<daq::ILogger*>(logger), numWorkers, useMainLoop);
     *obj = reinterpret_cast<daqScheduler*>(ptr);
     return err;
 }

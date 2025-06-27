@@ -7,7 +7,7 @@
 
 #include <opendaq/task_internal.h>
 #include <opendaq/task_ptr.h>
-#include <opendaq/work_ptr.h>
+#include <opendaq/work_factory.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/validation.h>
 #include <utility>
@@ -28,7 +28,121 @@ public:
 
 BEGIN_NAMESPACE_OPENDAQ
 
-SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers)
+class MainThreadEventLoop::WorkWrapper
+{
+public:
+    explicit WorkWrapper(WorkPtr work)
+        : work(std::move(work))
+    {}
+
+    bool execute() const
+    {
+        Bool repeatAfter = False;
+        ErrCode errCode;
+        
+        if (auto workPtr = work.asOrNull<IWorkRepetitive>(true); workPtr != nullptr)
+            errCode = workPtr->executeRepetitively(&repeatAfter);
+        else
+            errCode = work->execute();
+        
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
+        
+        return repeatAfter; 
+    }
+
+private:
+    const WorkPtr work;
+};
+
+MainThreadEventLoop::~MainThreadEventLoop()
+{
+    stop();
+}
+
+ErrCode MainThreadEventLoop::stop()
+{
+    return this->execute(Work([this]
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        this->running = false;
+    }));
+}
+
+void MainThreadEventLoop::runIteration(std::unique_lock<std::mutex>& lock)
+{
+    std::list<WorkWrapper> currentWork;
+    currentWork.swap(workQueue);
+    lock.unlock();
+
+    for (auto it = currentWork.begin(); it != currentWork.end();)
+    {
+        if (it->execute())
+            ++it;
+        else
+            it = currentWork.erase(it);
+    }
+
+    lock.lock();
+    workQueue.splice(workQueue.end(), currentWork);
+}
+
+ErrCode MainThreadEventLoop::runIteration()
+{
+    std::unique_lock<std::mutex> lock(mutex);
+    if (this->running)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Main thread event loop is already running");
+
+    this->running = true;
+    runIteration(lock);
+    this->running = false;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MainThreadEventLoop::run(SizeT loopTime)
+{
+    if (loopTime == 0)
+        loopTime = 1;
+
+    std::unique_lock<std::mutex> lock(mutex);
+    if (this->running)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Main thread event loop is already running");
+
+    this->running = true;
+    const auto waitTime = std::chrono::milliseconds(loopTime);
+    auto waitUntil = std::chrono::steady_clock::now() + waitTime;
+
+    while (this->running)
+    {
+        cv.wait_until(lock, waitUntil, [] { return false; });
+        waitUntil += waitTime;
+        runIteration(lock);
+    }
+
+    this->running = false;
+    return OPENDAQ_SUCCESS;
+}
+
+bool MainThreadEventLoop::isRunning() const
+{
+    std::lock_guard<std::mutex> lock(mutex);
+    return running;
+}
+
+ErrCode MainThreadEventLoop::execute(IWork* work)
+{
+    OPENDAQ_PARAM_NOT_NULL(work);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        workQueue.emplace_back(work);
+    }
+
+    cv.notify_one();
+    return OPENDAQ_SUCCESS;
+}
+
+SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoop)
     : stopped(false)
     , logger(std::move(logger))
     , loggerComponent( this->logger.assigned()
@@ -37,6 +151,8 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers)
     , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers,
                std::make_shared<CustomWorkerInterface>()))
 {
+    if (useMainLoop)
+        mainThreadWorker = std::make_unique<MainThreadEventLoop>();
     LOG_D("Starting scheduler with {} workers.", executor->num_workers())
 }
 
@@ -62,6 +178,9 @@ ErrCode SchedulerImpl::stop()
 
     LOGP_T("Stopping scheduler")
     executor.reset();
+
+    LOGP_T("Stopping main thread worker")
+    mainThreadWorker.reset();
 
     LOGP_T("Stopped")
     return OPENDAQ_SUCCESS;
@@ -103,9 +222,9 @@ ErrCode SchedulerImpl::scheduleWork(IWork* work)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SCHEDULER_STOPPED);
 
     executor->silent_async([work = WorkPtr(work)]()
-        {
-            work->execute();
-        });
+    {
+        work->execute();
+    });
 
     return OPENDAQ_SUCCESS;
 }
@@ -137,10 +256,50 @@ ErrCode SchedulerImpl::isMultiThreaded(Bool* multiThreaded)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode SchedulerImpl::runMainLoop(SizeT loopTime)
+{
+    if (!mainThreadWorker)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Main thread worker is not set");
+    
+    return mainThreadWorker->run(loopTime);
+}
+
+ErrCode SchedulerImpl::isMainLoopSet(Bool* isSet)
+{
+    OPENDAQ_PARAM_NOT_NULL(isSet);
+    *isSet = mainThreadWorker != nullptr;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode SchedulerImpl::stopMainLoop()
+{
+    if (!mainThreadWorker)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Main thread worker is not set");
+    
+    return mainThreadWorker->stop();
+}
+
+ErrCode SchedulerImpl::runMainLoopIteration()
+{
+    if (!mainThreadWorker)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Main thread worker is not set");
+    
+    return mainThreadWorker->runIteration();
+}
+
+ErrCode SchedulerImpl::scheduleWorkOnMainLoop(IWork* work)
+{
+    OPENDAQ_PARAM_NOT_NULL(work);
+    if (!mainThreadWorker)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Main thread worker is not set");
+    return mainThreadWorker->execute(work);
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY, Scheduler,
     ILogger*, logger,
-    SizeT, numWorkers
+    SizeT, numWorkers,
+    Bool, useMainLoop
 )
 
 END_NAMESPACE_OPENDAQ

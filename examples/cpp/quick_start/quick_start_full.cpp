@@ -1,4 +1,5 @@
 #include <opendaq/opendaq.h>
+#include <opendaq/work_factory.h>
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -9,7 +10,9 @@ using namespace date;
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
-    daq::InstancePtr instance = daq::Instance(MODULE_PATH);
+    daq::InstancePtr instance = daq::InstanceBuilder().setModulePath(MODULE_PATH)
+                                                      .setUsingSchedulerMainLoop(true)
+                                                      .build();   
 
     // Find and connect to a simulator device
     const auto availableDevices = instance.getAvailableDevices();
@@ -98,7 +101,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Create an instance of the renderer function block
-    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
+    daq::PropertyObjectPtr rendererConfig = daq::PropertyObject();
+    rendererConfig.addProperty(daq::BoolProperty("UseMainLoopForRenderer", true));
+    daq::FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer", rendererConfig);
 
     // Connect the first output signal of the device to the renderer
     renderer.getInputPorts()[0].connect(signal);
@@ -123,14 +128,25 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Modulate the signal amplitude by a step of 0.1 every 25ms.
     double amplStep = 0.1;
-    for (int i = 0; i < 200; ++i)
+    auto scheduler = instance.getContext().getScheduler();
+
+    auto defaultWaitTime = std::chrono::milliseconds(25);
+    auto waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
+
+    scheduler.scheduleWorkOnMainLoop(daq::WorkRepetitive([&]
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        if (std::chrono::steady_clock::now() < waitTime)
+            return true;
+        waitTime = waitTime + defaultWaitTime;
+
         const double ampl = channel.getPropertyValue("Amplitude");
         if (9.95 < ampl || ampl < 1.05)
             amplStep *= -1;
         channel.setPropertyValue("Amplitude", ampl + amplStep);
-    }
 
+        return true; // Keep the work running
+    }));
+
+    scheduler.runMainLoop();
     return 0;
 }

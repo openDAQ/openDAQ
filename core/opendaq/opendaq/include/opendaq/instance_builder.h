@@ -341,6 +341,23 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * openDAQ supports the "mdns" server by default, but must be added to the instance builder to be enabled.
      */
     virtual ErrCode INTERFACE_FUNC addDiscoveryServer(IString* serverName) = 0;
+
+    // [returnSelf]
+    /*!
+    * @brief Enables or disables usage of the scheduler's main loop.
+    * @param useMainLoop Whether to construct the scheduler with main loop support.
+    * 
+    * If enabled, the scheduler will be constructed with the main worker, allowing use of the main loop. 
+    * Note that enabling this does not automatically start the main loop. To start it, you must call 
+    * `IScheduler::runMainLoop()` or `IScheduler::runMainLoopIteration()`.
+    */
+    virtual ErrCode INTERFACE_FUNC setUsingSchedulerMainLoop(Bool useMainLoop) = 0;
+
+    /*!
+    * @brief Checks whether the scheduler will be created with main loop support.
+    * @param[out] useMainLoop True if the scheduler will be configured with main loop support; otherwise, false.
+    */
+    virtual ErrCode INTERFACE_FUNC getUsingSchedulerMainLoop(Bool* useMainLoop) = 0;
 };
 /*!@}*/
 

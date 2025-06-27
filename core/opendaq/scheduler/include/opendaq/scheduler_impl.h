@@ -25,10 +25,36 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+class MainThreadEventLoop
+{
+public:
+    MainThreadEventLoop() = default;
+    ~MainThreadEventLoop();
+
+    ErrCode stop();
+    ErrCode runIteration();
+    ErrCode run(SizeT loopTime);
+    bool isRunning() const;
+    ErrCode execute(IWork* work);
+
+    MainThreadEventLoop(const MainThreadEventLoop&) = delete;
+    MainThreadEventLoop& operator=(const MainThreadEventLoop&) = delete;
+
+private:
+    class WorkWrapper;
+
+    void runIteration(std::unique_lock<std::mutex>& lock);
+
+    mutable std::mutex mutex;
+    std::condition_variable cv;
+    std::list<WorkWrapper> workQueue;
+    bool running{ false };
+};
+
 class SchedulerImpl final : public ImplementationOf<IScheduler>
 {
 public:
-    explicit SchedulerImpl(LoggerPtr logger, SizeT numWorkers);
+    explicit SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoop);
     ~SchedulerImpl() override;
 
     ErrCode INTERFACE_FUNC scheduleFunction(IFunction* function, IAwaitable** awaitable) override;
@@ -38,6 +64,12 @@ public:
 
     ErrCode INTERFACE_FUNC stop() override;
     ErrCode INTERFACE_FUNC waitAll() override;
+
+    ErrCode INTERFACE_FUNC runMainLoop(SizeT loopTime) override;
+    ErrCode INTERFACE_FUNC isMainLoopSet(Bool* isSet) override;
+    ErrCode INTERFACE_FUNC stopMainLoop() override;
+    ErrCode INTERFACE_FUNC runMainLoopIteration() override;
+    ErrCode INTERFACE_FUNC scheduleWorkOnMainLoop(IWork* work) override;
 
     [[nodiscard]] std::size_t getWorkerCount() const;
 
@@ -49,6 +81,8 @@ private:
     LoggerComponentPtr loggerComponent;
 
     std::unique_ptr<tf::Executor> executor;
+
+    std::unique_ptr<MainThreadEventLoop> mainThreadWorker;
 };
 
 

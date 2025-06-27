@@ -345,7 +345,9 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     {
         synced = SyncStatus::Unsynchronized;
         bool firstData {false};
-        handlePacket(packetToReturn, firstData);
+        const ErrCode errCode = handlePacket(packetToReturn, firstData);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo(errCode);
     }
 
     return packetToReturn;
@@ -514,7 +516,10 @@ ErrCode SignalReader::readPackets()
         }
 
         if (packet.assigned())
+        {
             errCode = handlePacket(packet, firstData);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
     }
 
     return errCode;

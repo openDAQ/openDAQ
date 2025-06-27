@@ -184,7 +184,7 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
     auto obj = CreateTestObject();
 
     std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(45) + "\n";
-    expected += " - Cause by: multipleErrorInfoTest failed twice" + getErrorPostfix(51) + "\n";
+    expected += " - Cause by: multipleErrorInfoTest failed twice" + getErrorPostfix(51);
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 

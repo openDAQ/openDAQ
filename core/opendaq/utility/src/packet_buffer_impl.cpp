@@ -166,7 +166,7 @@ ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc,
     if (rule.getType() == daq::DataRuleType::Linear)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Packet Buffer does not support Linear Data Rule Type packets.");
 
-    std::unique_lock<std::mutex> lock(mxFlip);
+    std::lock_guard<std::mutex> lock(mxFlip);
     if (underReset)
     {
         // Here there should be a reintroduction of Logging stuff
@@ -185,7 +185,6 @@ ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc,
                                 });
 
     *packet = daq::DataPacketWithExternalMemory(domainPacket, desc, sampleCount, startOfSpace, deleter).detach();
-    lock.unlock();
     return OPENDAQ_SUCCESS;
 }
 

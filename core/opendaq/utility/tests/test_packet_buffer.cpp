@@ -73,7 +73,7 @@ TEST_F(PacketBufferTest, fullRange)
 
     //auto errCode2 = buffer->createPacket(10000, desc, domain, &destination[1]);
 
-    ASSERT_THROW(buffer->createPacket(10000, desc, domain, &destination[1]), InvalidParameterException);
+    ASSERT_THROW(buffer->createPacket(100000, desc, domain, &destination[1]), InvalidParameterException);
 }
 
 TEST_F(PacketBufferTest, writeAhead)

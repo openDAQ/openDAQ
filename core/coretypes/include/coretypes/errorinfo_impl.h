@@ -38,7 +38,7 @@ public:
     ErrCode INTERFACE_FUNC setSource(IString* source) override;
     ErrCode INTERFACE_FUNC getSource(IString** source) override;
     ErrCode INTERFACE_FUNC setFileName(ConstCharPtr fileName) override;
-    ErrCode INTERFACE_FUNC getFileName(CharPtr* fileName) override;
+    ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) override;
     ErrCode INTERFACE_FUNC setFileLine(Int line) override;
     ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
     ErrCode INTERFACE_FUNC setErrorCode(ErrCode errorCode) override;

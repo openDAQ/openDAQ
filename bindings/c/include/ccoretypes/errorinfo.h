@@ -44,7 +44,7 @@ extern "C"
     daqErrCode EXPORTED daqErrorInfo_setSource(daqErrorInfo* self, daqString* source);
     daqErrCode EXPORTED daqErrorInfo_getSource(daqErrorInfo* self, daqString** source);
     daqErrCode EXPORTED daqErrorInfo_setFileName(daqErrorInfo* self, daqCharPtr fileName);
-    daqErrCode EXPORTED daqErrorInfo_getFileName(daqErrorInfo* self, daqCharPtr* fileName);
+    daqErrCode EXPORTED daqErrorInfo_getFileName(daqErrorInfo* self, daqConstCharPtr* fileName);
     daqErrCode EXPORTED daqErrorInfo_setFileLine(daqErrorInfo* self, daqInt fileLine);
     daqErrCode EXPORTED daqErrorInfo_getFileLine(daqErrorInfo* self, daqInt* fileLine);
     daqErrCode EXPORTED daqErrorInfo_createErrorInfo(daqErrorInfo** obj);

@@ -449,12 +449,12 @@ ErrCode ErrorInfoImpl::setFileName(ConstCharPtr fileName)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ErrorInfoImpl::getFileName(CharPtr* fileName)
+ErrCode ErrorInfoImpl::getFileName(ConstCharPtr* fileName)
 {
     if (fileName == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    daqDuplicateCharPtr(this->fileName, fileName);
+    *fileName = this->fileName;
 
     return OPENDAQ_SUCCESS;
 }

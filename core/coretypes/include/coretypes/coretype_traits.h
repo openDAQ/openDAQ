@@ -237,8 +237,7 @@ struct CoreTypeHelper<std::wstring>
             SizeT maxLen;
 
             ErrCode err = convObj->toString(nullptr, &maxLen);
-            if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_SIZETOOSMALL)
-                return err;
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_SIZETOOSMALL);
 
             CharPtr s = new (std::nothrow) char[maxLen + 1];
             if (s == nullptr)
@@ -348,8 +347,7 @@ struct CoreTypeHelper<std::string>
             SizeT maxLen;
 
             ErrCode err = convObj->toString(nullptr, &maxLen);
-            if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_SIZETOOSMALL)
-                return err;
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_SIZETOOSMALL);
 
             CharPtr s = new (std::nothrow) char[maxLen + 1];
             if (s == nullptr)

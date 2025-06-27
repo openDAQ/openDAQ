@@ -21,16 +21,15 @@ private:
     const IntfID& valueId;
 };
 
-ListImpl::ListImpl()
-    : iid(IUnknown::Id)
-{
-    list.reserve(16);
-}
-
 ListImpl::ListImpl(IntfID id)
     : iid(id)
 {
     list.reserve(16);
+}
+
+ListImpl::ListImpl()
+    : ListImpl(IUnknown::Id)
+{
 }
 
 ErrCode ListImpl::getElementInterfaceId(IntfID* id)
@@ -414,7 +413,7 @@ void ListImpl::internalDispose(bool)
 ErrCode ListImpl::freeze()
 {
     if (frozen)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     frozen = true;
 
@@ -466,7 +465,7 @@ ErrCode ListImpl::serialize(ISerializer* serializer)
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+            return DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_NOT_SERIALIZABLE);
         }
 
         OPENDAQ_RETURN_IF_FAILED(errCode);

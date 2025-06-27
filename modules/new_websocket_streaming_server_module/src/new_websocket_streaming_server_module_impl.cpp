@@ -30,7 +30,7 @@ ServerPtr NewWebsocketStreamingServerModule::onCreateServer(const StringPtr& ser
                                                             const DevicePtr& rootDevice)
 {
     if (!context.assigned())
-        throw InvalidParameterException{"Context parameter cannot be null."};
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Context parameter cannot be null.");
 
     auto wsConfig = serverConfig;
     if (!wsConfig.assigned())

@@ -309,6 +309,7 @@ TEST_F(ListObjectTest, PushBackWhenFrozen)
     ErrCode errCode = list->pushBack(obj);
 
     ASSERT_EQ(errCode, OPENDAQ_ERR_FROZEN);
+    daqClearErrorInfo(errCode);
 }
 
 TEST_F(ListObjectTest, PushBackRValueWhenFrozen)

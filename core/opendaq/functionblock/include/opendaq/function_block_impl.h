@@ -327,7 +327,11 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const Ba
             break;
     }
 
-    contextPtr.removeInputPortConnection(inputPorts.getGlobalId());
+    const ErrCode errCode = contextPtr->removeInputPortConnection(inputPorts.getGlobalId());
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+        daqClearErrorInfo(errCode);
+    else
+        checkErrorInfo(errCode);
     Super::onUpdatableUpdateEnd(context);
 }
 

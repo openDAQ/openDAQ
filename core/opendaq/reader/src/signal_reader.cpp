@@ -348,7 +348,9 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     {
         synced = SyncStatus::Unsynchronized;
         bool firstData {false};
-        handlePacket(packetToReturn, firstData);
+        const ErrCode errCode = handlePacket(packetToReturn, firstData);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo(errCode);
     }
 
     return packetToReturn;
@@ -481,7 +483,8 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
                 {
                     invalid = true;
 
-                    return DAQ_MAKE_ERROR_INFO(
+                    return DAQ_EXTEND_ERROR_INFO(
+                        errCode,
                         OPENDAQ_ERR_INVALID_DATA,
                         "Exception occurred while processing a signal descriptor change"
                     );
@@ -518,7 +521,10 @@ ErrCode SignalReader::readPackets()
         }
 
         if (packet.assigned())
+        {
             errCode = handlePacket(packet, firstData);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
     }
 
     return errCode;
@@ -571,11 +577,9 @@ ErrCode SignalReader::readPacketData()
         ErrCode errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
-            if (!trySetDomainSampleType(domainPacket))
-            {
+            if (!trySetDomainSampleType(domainPacket, errCode))
                 return errCode;
-            }
-            daqClearErrorInfo();
+            daqClearErrorInfo(errCode);
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         }
 
@@ -597,19 +601,18 @@ ErrCode SignalReader::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const
+bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode) const
 {
     ObjectPtr<IErrorInfo> errInfo;
-    daqGetErrorInfo(&errInfo);
-    daqClearErrorInfo();
+    daqGetErrorInfo(&errInfo, errCode);
+    daqClearErrorInfo(errCode);
 
     auto dataDescriptor = domainPacket.getDataDescriptor();
-    if (!domainReader->handleDescriptorChanged(dataDescriptor, readMode))
-    {
-        daqSetErrorInfo(errInfo);
-        return false;
-    }
-    return true;
+    if (domainReader->handleDescriptorChanged(dataDescriptor, readMode))
+        return true;
+
+    daqSetErrorInfo(errInfo);
+    return false;
 }
 
 END_NAMESPACE_OPENDAQ

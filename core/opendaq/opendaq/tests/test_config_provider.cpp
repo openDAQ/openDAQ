@@ -1,8 +1,6 @@
 #include <opendaq/config_provider_factory.h>
-#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
-#include <set>
 #include <opendaq/instance_factory.h>
 #include "test_config_provider.h"
 

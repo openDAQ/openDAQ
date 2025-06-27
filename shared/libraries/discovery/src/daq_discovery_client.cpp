@@ -125,23 +125,19 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
     TxtProperties responseProperties;
     auto errCode =
         mdnsClient->requestCurrentIpConfiguration(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties, responseProperties);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    if (OPENDAQ_SUCCEEDED(errCode))
+    return daqTry([&]()
     {
-        errCode = daqTry([&]()
+        if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
+            responseProperties["serialNumber"] != serialNumber.toStdString() ||
+            responseProperties["ifaceName"] != ifaceName.toStdString())
         {
-            if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
-                responseProperties["serialNumber"] != serialNumber.toStdString() ||
-                responseProperties["ifaceName"] != ifaceName.toStdString())
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response");
-            }
-            config = IpModificationUtils::populateIpConfigProperties(responseProperties);
-            return OPENDAQ_SUCCESS;
-        });
-    }
-
-    return errCode;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response");
+        }
+        config = IpModificationUtils::populateIpConfigProperties(responseProperties);
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 bool DiscoveryClient::verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const

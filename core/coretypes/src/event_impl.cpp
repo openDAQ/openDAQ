@@ -118,7 +118,7 @@ ErrCode EventImpl::freeze()
     std::scoped_lock lock(sync);
 
     if (frozen)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     frozen = true;
     return OPENDAQ_SUCCESS;

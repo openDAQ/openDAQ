@@ -39,7 +39,7 @@ static const char *to_string(DataRuleType type)
             return "linear";
 
         default:
-            throw NotSupportedException("unsupported data rule " + std::to_string(static_cast<unsigned>(type)));
+            DAQ_THROW_EXCEPTION(NotSupportedException, "unsupported data rule " + std::to_string(static_cast<unsigned>(type)));
     }
 }
 
@@ -67,7 +67,7 @@ static const char *to_string(DimensionRuleType type)
             return "logarithmic";
 
         default:
-            throw NotSupportedException("unsupported dimension rule " + std::to_string(static_cast<unsigned>(type)));
+            DAQ_THROW_EXCEPTION(NotSupportedException, "unsupported dimension rule " + std::to_string(static_cast<unsigned>(type)));
     }
 }
 
@@ -102,7 +102,7 @@ static nlohmann::json describe(SampleType type)
         case SampleType::Struct: return "struct";
 
         default:
-            throw NotSupportedException("unsupported sample type " + std::to_string(static_cast<unsigned>(type)));
+            DAQ_THROW_EXCEPTION(NotSupportedException, "unsupported sample type " + std::to_string(static_cast<unsigned>(type)));
     }
 }
 
@@ -124,7 +124,7 @@ static nlohmann::json describe(const BaseObjectPtr& obj)
             break;
     }
 
-    throw NotSupportedException("unsupported raw BaseObject type " + std::to_string(static_cast<unsigned>(obj.getCoreType())));
+    DAQ_THROW_EXCEPTION(NotSupportedException, "unsupported raw BaseObject type " + std::to_string(static_cast<unsigned>(obj.getCoreType())));
 }
 
 static nlohmann::json describe(const DataRulePtr& rule)

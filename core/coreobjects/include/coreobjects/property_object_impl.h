@@ -770,7 +770,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     ErrCode errCode = readLocalValue(name, oldValue);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(errCode);
         oldValue = defaultValue;
     }
     errCode = OPENDAQ_SUCCESS;
@@ -1114,7 +1114,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
     if (frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         auto propName = StringPtr::Borrow(name);
         auto valuePtr = BaseObjectPtr::Borrow(value);
@@ -1239,11 +1239,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
         }
 
         return OPENDAQ_SUCCESS;
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set property value");
+    return errCode;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1254,11 +1252,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
         return OPENDAQ_SUCCESS;
 
     if (value.supportsInterface<IEvalValue>())
-    {
         return OPENDAQ_SUCCESS;
-    }
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         const auto propInternal = prop.asPtr<IPropertyInternal>();
         const auto propCoreType = propInternal.getValueTypeNoLock();
@@ -1280,13 +1276,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
             else
                 value = value.convertTo(propCoreType);
         }
-    }
-    catch (const DaqException& e)
-    {
-        return DAQ_MAKE_ERROR_INFO(e.getErrCode(), "Value type is different than Property type and conversion failed");
-    }
-
-    return OPENDAQ_SUCCESS;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Value type is different than Property type and conversion failed");
+    return errCode;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1353,14 +1346,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwnerToPrope
     auto ownablePtr = value.asPtrOrNull<IOwnable>(true);
     if (ownablePtr.assigned())
     {
-        try
+        const ErrCode errCode = ownablePtr->setOwner(this->template borrowThis<GenericPropertyObjectPtr, IPropertyObject>());
+        if (OPENDAQ_FAILED(errCode))
         {
-            ownablePtr.setOwner(this->template borrowThis<GenericPropertyObjectPtr, IPropertyObject>());
-        }
-        catch (const DaqException& e)
-        {
-            DAQ_MAKE_ERROR_INFO(e.getErrCode(), "Failed to set owner to property value");
-            throw;
+            DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set owner to property value");
+            checkErrorInfo(errCode);
         }
     }
 }
@@ -1394,7 +1384,7 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUnbou
     const auto errCode = objectClass->getProperty(name, &property);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        this->clearErrorInfo();
+        daqClearErrorInfo(errCode);
         return nullptr;
     }
 
@@ -1649,24 +1639,18 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
         res = readLocalValue(propName, value);
     }
 
-    if (res != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(res))
-    {
-        return DAQ_MAKE_ERROR_INFO(res);
-    }
-    daqClearErrorInfo();
-
+    OPENDAQ_RETURN_IF_FAILED_EXCEPT(res, OPENDAQ_ERR_NOTFOUND);
     if (res == OPENDAQ_ERR_NOTFOUND)
     {
-        this->clearErrorInfo();
+        daqClearErrorInfo(res);
         const auto propInternal = property.asPtr<IPropertyInternal>();
         res = propInternal->getDefaultValueNoLock(&value);
 
-        if (OPENDAQ_FAILED(res) || !value.assigned())
-        {
-            value = nullptr;
-            daqClearErrorInfo();
+        if (OPENDAQ_FAILED(res))
+            daqClearErrorInfo(res);
+
+        if (!value.assigned())
             return OPENDAQ_SUCCESS;
-        }
 
         CoreType coreType = value.getCoreType();
         if (coreType == ctList && bracket != nullptr)
@@ -1763,7 +1747,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
             {
                 BaseObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
-                if (OPENDAQ_FAILED(err) || !obj.assigned())
+                if (OPENDAQ_FAILED(err))
+                    daqClearErrorInfo(err);
+                if (!obj.assigned())
                     continue;
 
                 this->propValues.insert(std::make_pair(val.first, obj));
@@ -1775,7 +1761,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
             {
                 PropertyObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
-                if (OPENDAQ_FAILED(err) || !obj.assigned())
+                if (OPENDAQ_FAILED(err))
+                    daqClearErrorInfo(err);
+                if (!obj.assigned())
                     continue;
 
                 auto it = this->propValues.find(val.first);
@@ -1837,7 +1825,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
     if (frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         auto propName = StringPtr::Borrow(name);
 
@@ -1938,15 +1926,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
                 if (!isUpdating)
                     triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, newVal, path));
             }
-
         }
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-
-    return OPENDAQ_SUCCESS;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to clear property value");
+    return errCode;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1955,12 +1939,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         auto propName = StringPtr::Borrow(propertyName);
         BaseObjectPtr valuePtr;
         ErrCode err;
-
 
         if (isChildProperty(propName))
         {
@@ -1973,16 +1956,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
             PropertyPtr prop;
             err = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
         }
+        OPENDAQ_RETURN_IF_FAILED(err);
 
-        if (OPENDAQ_SUCCEEDED(err))
-            *value = valuePtr.detach();
-
+        *value = valuePtr.detach();
         return err;
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get property value");
+    return errCode;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1993,7 +1973,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         const auto propName = StringPtr::Borrow(propertyName);
         BaseObjectPtr valuePtr;
@@ -2001,38 +1981,32 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
 
         if (isChildProperty(propName))
         {
-            getProperty(propName, &prop);
-            if (!prop.assigned())
-                DAQ_THROW_EXCEPTION(NotFoundException, R"(Selection property "{}" not found)", propName);
-
+            const ErrCode errCode = getProperty(propName, &prop);
+            OPENDAQ_RETURN_IF_FAILED(errCode, OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Selection property "{}" not found)", propName));
             valuePtr = prop.getValue();
         }
         else
         {
-            getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
-            if (!prop.assigned())
-                DAQ_THROW_EXCEPTION(NotFoundException, R"(Selection property "{}" not found)", propName);
+            const ErrCode errCode = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+            OPENDAQ_RETURN_IF_FAILED(errCode, OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Selection property "{}" not found)", propName));
         }
 
-        const auto propInternal = prop.asPtr<IPropertyInternal>();
+        const auto propInternal = prop.asPtr<IPropertyInternal>(true);
         auto values = propInternal.getSelectionValuesNoLock();
         if (!values.assigned())
             DAQ_THROW_EXCEPTION(InvalidPropertyException, R"(Selection property "{}" has no selection values assigned)", propName);
 
-        auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true);
-        if (!valuesList.assigned())
+        if (auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true); valuesList.assigned())
         {
-            auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true);
-            if (!valuesDict.assigned())
-            {
-                DAQ_THROW_EXCEPTION(InvalidPropertyException, R"(Selection property "{}" values is not a list or dictionary)", propName);
-            }
-
+            valuePtr = valuesList.getItemAt(valuePtr);
+        }
+        else if (auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true); valuesDict.assigned())
+        {
             valuePtr = valuesDict.get(valuePtr);
         }
         else
         {
-            valuePtr = valuesList.getItemAt(valuePtr);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" values is not a list or dictionary)", propName));
         }
 
         if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())
@@ -2042,19 +2016,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
 
         *value = valuePtr.detach();
         return OPENDAQ_SUCCESS;
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get property selection value");
+    return errCode;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -2409,14 +2373,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdate
     for (const auto& item : propValues)
     {
         const auto value = item.second;
-        if (value.assigned())
-        {
-            const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
-            if (propObj.assigned())
-            {
-                propObj.beginUpdate();
-            }
-        }
+        const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
+        if (propObj.assigned())
+            propObj.beginUpdate();
     }
 }
 
@@ -2426,14 +2385,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callEndUpdateOn
     for (const auto& item : propValues)
     {
         const auto value = item.second;
-        if (value.assigned())
-        {
-            const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
-            if (propObj.assigned())
-            {
-                propObj.endUpdate();
-            }
-        }
+        const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
+        if (propObj.assigned())
+            propObj.endUpdate();
     }
 }
 
@@ -2470,7 +2424,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdateInt
 
     if (newUpdateCount == 0)
     {
-        const auto errCode = daqTry([this] {
+        const auto errCode = daqTry([this]
+        {
             beginApplyUpdate();
             return OPENDAQ_SUCCESS;
         });
@@ -2480,7 +2435,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdateInt
 
     if (deep)
     {
-        const auto errCode = daqTry([this] {
+        const auto errCode = daqTry([this]
+        {
             callEndUpdateOnChildren();
         });
 
@@ -2489,7 +2445,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdateInt
 
     if (newUpdateCount == 0)
     {
-        return daqTry([this] {
+        return daqTry([this] 
+        {
             endApplyUpdate();
             return OPENDAQ_SUCCESS;
         });
@@ -2529,6 +2486,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
         {
             err = clearPropertyValueInternal(name, item.second.protectedAccess, false, true);
         }
+        checkErrorInfo(err);
 
         if (err == OPENDAQ_IGNORED)
         {
@@ -2539,8 +2497,6 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
             PropertyPtr prop;
             getPropertyAndValueInternal(name, item.second.value, prop);
         }
-
-        checkErrorInfo(err);
     }
 
     for (const auto& propName : ignoredProps)
@@ -2564,12 +2520,9 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isParentUpdatin
 {
     bool parentUpdating;
     const auto parent = getPropertyObjectParent();
-    if (parent.assigned())
-        parentUpdating = parent.template asPtr<IPropertyObjectInternal>(true).isUpdating();
-    else
-        parentUpdating = false;
-
-    return parentUpdating;
+    if (!parent.assigned())
+        return false;
+    return parentUpdating = parent.template asPtr<IPropertyObjectInternal>(true).isUpdating();
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2614,54 +2567,53 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperti
 {
     OPENDAQ_PARAM_NOT_NULL(properties);
 
-    if (propertyFilter)
+    // If no filter is provided, only visible properties directly belonging to the current object are returned.
+    if (!propertyFilter)
+        return getPropertiesInternal(false, true, properties);
+
+    return daqTry([&]
     {
-        return daqTry([&]
+        auto filterPtr = SearchFilterPtr::Borrow(propertyFilter);
+        ListPtr<IProperty> allProperties;
+        auto foundProperties = List<IProperty>();
+
+        ErrCode errCode = getPropertiesInternal(true, true, &allProperties);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        for (const auto& property : allProperties)
         {
-            auto filterPtr = SearchFilterPtr::Borrow(propertyFilter);
-            ListPtr<IProperty> allProperties;
-            auto foundProperties = List<IProperty>();
+            if (filterPtr.acceptsObject(property))
+                foundProperties.pushBack(property);
 
-            ErrCode errCode = getPropertiesInternal(true, true, &allProperties);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
-
-            for (const auto& property : allProperties)
+            if (checkIsChildObjectProperty(property))
             {
-                if (filterPtr.acceptsObject(property))
-                    foundProperties.pushBack(property);
-
-                if (checkIsChildObjectProperty(property))
+                if (auto childPropertyObject = property.getValue().asPtrOrNull<IPropertyObject>();
+                            childPropertyObject.assigned() && filterPtr.supportsInterface<IRecursiveSearch>())
                 {
-                    if (auto childPropertyObject = property.getValue().asPtrOrNull<IPropertyObject>();
-                             childPropertyObject.assigned() && filterPtr.supportsInterface<IRecursiveSearch>())
-                    {
-                        for (const auto& foundChildProperty : childPropertyObject.findProperties(filterPtr))
-                            foundProperties.pushBack(foundChildProperty);
-                    }
+                    for (const auto& foundChildProperty : childPropertyObject.findProperties(filterPtr))
+                        foundProperties.pushBack(foundChildProperty);
                 }
             }
+        }
 
-            *properties = foundProperties.detach();
-            return OPENDAQ_SUCCESS;
-        });
-    }
-
-    // If no filter is provided, only visible properties directly belonging to the current object are returned.
-    return getPropertiesInternal(false, true, properties);
+        *properties = foundProperties.detach();
+        return OPENDAQ_SUCCESS;
+    });    
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 Bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkIsReferenced(const StringPtr& referencedPropName,
                                                                                    const PropertyInternalPtr& prop)
 {
-    if (const auto refProp = prop.getReferencedPropertyUnresolved(); refProp.assigned())
+    const auto refProp = prop.getReferencedPropertyUnresolved();
+    if (!refProp.assigned())
+        return false;
+    
+    for (auto propName : refProp.getPropertyReferences())
     {
-        for (auto propName : refProp.getPropertyReferences())
+        if (propName == referencedPropName)
         {
-            if (propName == referencedPropName)
-            {
-                return true;
-            }
+            return true;
         }
     }
 
@@ -2674,7 +2626,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
     OPENDAQ_PARAM_NOT_NULL(isReferenced);
     *isReferenced = false;
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         const auto propPtr = PropertyPtr::Borrow(property);
         const auto name = propPtr.getName();
@@ -2693,17 +2645,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
             if (*isReferenced = checkIsReferenced(name, prop.second); *isReferenced)
                 return OPENDAQ_SUCCESS;
         }
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
-
-    return OPENDAQ_SUCCESS;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to check for references");
+    return errCode;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2881,7 +2826,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            daqClearErrorInfo();
+            daqClearErrorInfo(errCode);
             return OPENDAQ_SUCCESS;
         }
 
@@ -2910,8 +2855,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 {
     return daqTry([&property, &serializer]
     {
-        property.serialize(serializer);
-        return OPENDAQ_SUCCESS;
+        ISerializable* serializable = property.as<ISerializable>(true);
+        return serializable->serialize(serializer);
     });
 }
 
@@ -2990,7 +2935,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
             if (!hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
                 continue;
 
-            checkErrorInfo(serializeProperty(prop.second, serializer));
+            const ErrCode errCode = serializeProperty(prop.second, serializer);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
         serializerPtr.endList();
 
@@ -3248,8 +3194,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
         splitOnLastDot(propName, propName, childStr);
 
         ErrCode err = getPropertyValue(propName, &val);
-        if (OPENDAQ_FAILED(err))
-            return DAQ_MAKE_ERROR_INFO(err, fmt::format(R"(Failed to retrieve child object with name {})", propName));
+        OPENDAQ_RETURN_IF_FAILED(err, fmt::format(R"(Failed to retrieve child object with name {})", propName));
 
         PropertyObjectPtr obj = val.asPtrOrNull<IPropertyObject>(true);
         if (!obj.assigned())
@@ -3398,20 +3343,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
         if (!serializedProps.assigned() || !serializedProps.hasKey(propName))
         {
             const auto err = propObj.as<IPropertyObjectProtected>(true)->clearProtectedPropertyValue(propName);
-            if (!OPENDAQ_SUCCEEDED(err) && err != OPENDAQ_ERR_INVALID_OPERATION)
-            {
-                return err;
-            }
-
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_INVALID_OPERATION);
             continue;
         }
 
         const auto err = setPropertyFromSerialized(propName, propObj, serializedProps);
-
-        if (!OPENDAQ_SUCCEEDED(err))
-        {
-            return err;
-        }
+        OPENDAQ_RETURN_IF_FAILED(err);
     }
 
     return OPENDAQ_SUCCESS;
@@ -3451,25 +3388,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateIntern
 
     const auto serialized = SerializedObjectPtr::Borrow(obj);
 
-    try
-    {
-        ListPtr<IProperty> allProps;
-        checkErrorInfo(getPropertiesInternal(True, False, &allProps));
+    ListPtr<IProperty> allProps;
+    ErrCode errCode = getPropertiesInternal(True, False, &allProps);
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get properties");
 
-        return updateObjectProperties(this->thisInterface(), serialized, allProps);
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
+    errCode = updateObjectProperties(this->thisInterface(), serialized, allProps);
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to update object properties");
+    return errCode;
 }
 
 template <class PropObjInterface, typename... Interfaces>

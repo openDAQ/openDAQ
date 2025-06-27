@@ -595,17 +595,16 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     *device = nullptr;
 
     PropertyObjectPtr inputConfig = PropertyObjectPtr::Borrow(config);
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         PropertyObjectPtr addDeviceConfig;
         const bool inputIsDefaultAddDeviceConfig = isDefaultAddDeviceConfig(inputConfig);
 
         if (inputIsDefaultAddDeviceConfig)
-            checkErrorInfo(inputConfig.asPtr<IPropertyObjectInternal>()->clone(&addDeviceConfig));
+            OPENDAQ_RETURN_IF_FAILED(inputConfig.asPtr<IPropertyObjectInternal>(true)->clone(&addDeviceConfig));
         else
-            checkErrorInfo(createDefaultAddDeviceConfig(&addDeviceConfig));
-
-
+            OPENDAQ_RETURN_IF_FAILED(createDefaultAddDeviceConfig(&addDeviceConfig));
+        
         PropertyObjectPtr generalConfig =
             inputIsDefaultAddDeviceConfig
                 ? addDeviceConfig.getPropertyValue("General").asPtr<IPropertyObject>()
@@ -627,8 +626,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
             {
                 const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
-                if (OPENDAQ_FAILED(errCode))
-                    return DAQ_MAKE_ERROR_INFO(errCode, "Failed getting available devices");
+                OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
             }
         }
 
@@ -652,7 +650,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
             const auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
-            checkErrorInfo(err);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned())
@@ -664,24 +662,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
             return err;
         }
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
-
-    return DAQ_MAKE_ERROR_INFO(
-        OPENDAQ_ERR_NOTFOUND,
-        fmt::format("Device with given connection string and config is not available [{}]", StringPtr::Borrow(connectionString))
-    );
+        return DAQ_MAKE_ERROR_INFO(
+            OPENDAQ_ERR_NOTFOUND,
+            fmt::format("Device with given connection string and config is not available [{}]", StringPtr::Borrow(connectionString)));
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create device from connection string and config");
+    return errCode;
 }
 
 ErrCode ModuleManagerImpl::createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes, IDict* errorInfos)
@@ -1210,8 +1196,10 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
 
     DictPtr<IString, IDeviceType> types;
     const ErrCode err = module->getAvailableDeviceTypes(&types);
-    if (err != OPENDAQ_ERR_NOTIMPLEMENTED && OPENDAQ_FAILED(err))
-        throwExceptionFromErrorCode(err);
+    if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
+        daqClearErrorInfo(err);
+    else
+        checkErrorInfo(err);
 
     if (!types.assigned())
         return nullptr;
@@ -1245,7 +1233,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
 {
     StreamingPtr streaming = nullptr;
     PropertyObjectPtr inputConfig;
-    if(config.assigned())
+    if (config.assigned())
         checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
 
     for (const auto& library : libraries)
@@ -1254,7 +1242,9 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     
         const std::string prefix = getPrefixFromConnectionString(connectionString);
         DictPtr<IString, IStreamingType> types;
-        module->getAvailableStreamingTypes(&types);
+        const ErrCode errCode = module->getAvailableStreamingTypes(&types);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo(errCode);
         if (!types.assigned())
             continue;
 
@@ -1800,7 +1790,10 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         ErrCode errCode = checkDeps(&errMsg);
         if (OPENDAQ_FAILED(errCode))
         {
-            LOG_T("Failed to check dependencies for \"{}\".", relativePath);
+            StringPtr detailedMsg;
+            daqGetErrorInfoMessage(&detailedMsg, errCode);
+            daqClearErrorInfo(errCode);
+            LOG_T("Failed to check dependencies for \"{}\". {}", relativePath, detailedMsg.assigned() ? detailedMsg.toStdString());
 
             DAQ_THROW_EXCEPTION(ModuleIncompatibleDependenciesException,
                                 "Module \"{}\" failed dependencies check. Error: 0x{:x} [{}]",
@@ -1827,7 +1820,10 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
     ErrCode errCode = factory(&module, context);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_T("Failed creating module from \"{}\".", relativePath);
+        StringPtr detailedMsg;
+        daqGetErrorInfoMessage(&detailedMsg, errCode);
+        daqClearErrorInfo(errCode);
+        LOG_T("Failed creating module from \"{}\". {}", relativePath, detailedMsg.assigned() ? detailedMsg.toStdString());
 
         DAQ_THROW_EXCEPTION(ModuleEntryPointFailedException, "Library \"{}\" failed to create a Module.", relativePath);
     }

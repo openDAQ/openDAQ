@@ -72,17 +72,12 @@ public:
 
     EventHandlerPtr& operator=(const EventHandlerPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         ObjectPtr<IEventHandler>::operator =(other);
         return *this;
     }
 
     EventHandlerPtr& operator=(EventHandlerPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-            return *this;
         ObjectPtr<IEventHandler>::operator =(std::move(other));
         return *this;
     }

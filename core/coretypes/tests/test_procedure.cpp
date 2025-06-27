@@ -203,6 +203,7 @@ TEST_F(ProcedureTest, AutoUnpackThrowExceptionCheckCode)
         });
     auto errCode = proc->dispatch(nullptr);
     ASSERT_EQ(errCode, OPENDAQ_ERR_INVALIDSTATE);
+    daqClearErrorInfo(errCode);
     ASSERT_TRUE(called);
 }
 
@@ -283,6 +284,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrLambdaRawThrow)
     };
     ASSERT_THROW(ptr(), GeneralErrorException);
     ASSERT_EQ(ptr->dispatch(nullptr), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(ProcedureTest, ImplicitSmartPtrLambdaZeroParam)
@@ -313,6 +315,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrLambdaZeroParamThrow)
 
     called = false;
     ASSERT_EQ(ptr->dispatch(nullptr), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
     ASSERT_TRUE(called);
 }
 
@@ -342,6 +345,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrLambdaOneParamThrow)
 
     ObjectPtr<IInteger> intA = Integer_Create(5);
     ASSERT_EQ(ptr->dispatch(intA), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(ProcedureTest, ImplicitSmartPtrLambdaTwoParam)
@@ -370,6 +374,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrLambdaTwoThrow)
 
     auto params = List<Int>(5, 3);
     ASSERT_EQ(ptr->dispatch(params), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
 }
 
 static Int globalValue{0};
@@ -472,6 +477,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrFreeFuncRawThrow)
     ProcedurePtr ptr = testingRawE;
     ASSERT_THROW(ptr(), GeneralErrorException);
     ASSERT_EQ(ptr->dispatch(nullptr), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(ProcedureTest, ImplicitSmartPtrFreeFuncZeroParam)
@@ -493,6 +499,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrFreeFuncZeroParamThrow)
     ASSERT_THROW(ptr(), GeneralErrorException);
 
     ASSERT_EQ(ptr->dispatch(nullptr), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(ProcedureTest, ImplicitSmartPtrFreeFuncOneParam)
@@ -516,6 +523,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrFreeFuncOneParamThrow)
 
     ObjectPtr<IInteger> intA = Integer_Create(5);
     ASSERT_EQ(ptr->dispatch(intA), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(ProcedureTest, ImplicitSmartPtrFreeFuncTwoParam)
@@ -539,6 +547,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrFreeFuncTwoThrow)
 
     auto params = List<Int>(5, 3);
     ASSERT_EQ(ptr->dispatch(params), OPENDAQ_ERR_GENERALERROR);
+    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(ProcedureTest, Inspectable)

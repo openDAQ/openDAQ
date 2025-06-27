@@ -211,8 +211,11 @@ public:
         , disposeCalled(false)
     {
 #ifndef NDEBUG
-        const auto thisBaseObject = getThisAsBaseObject();
-        daqTrackObject(thisBaseObject);
+        if (this->isTrackable())
+        {
+            const auto thisBaseObject = getThisAsBaseObject();
+            daqTrackObject(thisBaseObject);
+        }
 #endif
 #ifdef OPENDAQ_TRACK_SHARED_LIB_OBJECT_COUNT
         std::atomic_fetch_add_explicit(&daqSharedLibObjectCount, std::size_t{1}, std::memory_order_relaxed);
@@ -222,8 +225,11 @@ public:
     virtual ~GenericObjInstance()
     {
 #ifndef NDEBUG
-        const auto thisBaseObject = getThisAsBaseObject();
-        daqUntrackObject(thisBaseObject);
+        if (this->isTrackable())
+        {
+            const auto thisBaseObject = getThisAsBaseObject();
+            daqUntrackObject(thisBaseObject);
+        }
 #endif
 #ifdef OPENDAQ_TRACK_SHARED_LIB_OBJECT_COUNT
         std::atomic_fetch_sub_explicit(&daqSharedLibObjectCount, std::size_t{1}, std::memory_order_acq_rel);
@@ -365,6 +371,11 @@ protected:
         return static_cast<IBaseObject*>(static_cast<MainInterface*>(this));
     }
 
+    inline virtual bool isTrackable() const
+    {
+        return true;
+    }
+
     IBaseObject* getThisAsBaseObject() const
     {
         return const_cast<IBaseObject*>(static_cast<const IBaseObject*>(static_cast<const MainInterface*>(this)));
@@ -379,17 +390,20 @@ protected:
     template <typename... Params>
     ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, Params... params) const
     {
-        IBaseObject* thisBaseObject;
-        ErrCode err = this->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&thisBaseObject));
-        OPENDAQ_RETURN_IF_FAILED(err);
-
-        setErrorInfoWithSource(thisBaseObject, message, std::forward<Params>(params)...);
+        IErrorInfo* errorInfo = nullptr;
+        const ErrCode err = createErrorInfoObjectWithSource(&errorInfo, getThisAsBaseObject(), message, std::forward<Params>(params)...);
+        if (OPENDAQ_SUCCEEDED(err))
+        {
+            errorInfo->setErrorCode(errCode);
+            daqSetErrorInfo(errorInfo);
+            errorInfo->releaseRef();
+        }
         return errCode;
     }
 
-    void clearErrorInfo() const
+    void clearErrorInfo(ErrCode errCode = OPENDAQ_LAST_ERROR_INFO) const
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(errCode);
     }
 
     template <template <typename> typename T, typename Interface>

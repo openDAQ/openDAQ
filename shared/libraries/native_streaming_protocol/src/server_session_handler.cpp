@@ -132,6 +132,7 @@ ReadTask ServerSessionHandler::readSignalSubscribe(const void* data, size_t size
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         // Get signal numeric ID from received buffer
         copyData(&signalNumericId, data, sizeof(signalNumericId), bytesDone, size);
         LOG_T("Received signal numeric ID: {}", signalNumericId);
@@ -150,6 +151,7 @@ ReadTask ServerSessionHandler::readSignalSubscribe(const void* data, size_t size
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         const auto signal = findSignalHandler(signalIdString);
         const auto hasAccess = hasUserAccessToSignal(signal);
 
@@ -173,6 +175,7 @@ ReadTask ServerSessionHandler::readSignalUnsubscribe(const void* data, size_t si
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         // Get signal numeric ID from received buffer
         copyData(&signalNumericId, data, sizeof(signalNumericId), bytesDone, size);
         LOG_T("Received signal numeric ID: {}", signalNumericId);
@@ -191,6 +194,7 @@ ReadTask ServerSessionHandler::readSignalUnsubscribe(const void* data, size_t si
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         const auto signal = findSignalHandler(signalIdString);
         const auto hasAccess = hasUserAccessToSignal(signal);
 

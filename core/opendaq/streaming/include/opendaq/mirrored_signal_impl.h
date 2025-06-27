@@ -167,9 +167,9 @@ ErrCode MirroredSignalBase<Interfaces...>::getRemoteId(IString** id) const
 
     StringPtr signalRemoteId;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *id = signalRemoteId.detach();
-
     return errCode;
 }
 
@@ -182,7 +182,11 @@ void MirroredSignalBase<Interfaces...>::removed()
 
     StringPtr signalRemoteId;
     ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
-    if (OPENDAQ_SUCCEEDED(errCode) && signalRemoteId.assigned())
+    if (OPENDAQ_FAILED(errCode))
+    {
+        daqClearErrorInfo(errCode);
+    }
+    else if (signalRemoteId.assigned())
     {
         for (const auto& [_, streamingRef] : streamingSourcesRefs)
         {

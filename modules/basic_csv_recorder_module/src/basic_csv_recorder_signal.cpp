@@ -272,7 +272,7 @@ void BasicCsvRecorderSignal::onDataPacketReceived(DataPacketPtr packet)
 void BasicCsvRecorderSignal::tryWriteHeaders(const DataDescriptorPtr& descriptor, const DataDescriptorPtr& domainDescriptor)
 {
     if (headersWritten)
-        throw daq::InvalidOperationException();
+        DAQ_THROW_EXCEPTION(daq::InvalidOperationException);
 
     writer.headers(
         getDomainName(domainDescriptor).c_str(),

@@ -168,7 +168,7 @@ inline ErrCode ComponentStatusContainerImpl::addStatusWithMessage(IString* name,
         // Rollback
         statuses.remove(name);
         // Return error
-        return DAQ_MAKE_ERROR_INFO(errCode);
+        return DAQ_EXTEND_ERROR_INFO(errCode);
     }
 
     return OPENDAQ_SUCCESS;
@@ -228,7 +228,7 @@ inline ErrCode ComponentStatusContainerImpl::setStatusWithMessage(IString* name,
                 // Rollback
                 statuses.set(name, oldStatus);
                 // Return error
-                return DAQ_MAKE_ERROR_INFO(errCode);
+                return DAQ_EXTEND_ERROR_INFO(errCode);
             }
         }
     }

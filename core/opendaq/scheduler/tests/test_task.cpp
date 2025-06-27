@@ -40,6 +40,7 @@ TEST_F(TaskTest, RootTaskThenSelf)
 {
     auto root = TaskGraph(testTask, "Root");
     ASSERT_EQ(root->then(root.getObject()), OPENDAQ_ERR_NOT_SUPPORTED);
+    daqClearErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED);
 }
 
 TEST_F(TaskTest, RootTaskThenRootTask)
@@ -48,6 +49,7 @@ TEST_F(TaskTest, RootTaskThenRootTask)
     auto root2 = TaskGraph(testTask, "2");
 
     ASSERT_EQ(root1->then(root2.getObject()), OPENDAQ_ERR_NOT_SUPPORTED);
+    daqClearErrorInfo(OPENDAQ_ERR_NOT_SUPPORTED);
 }
 
 TEST_F(TaskTest, CircularReference)

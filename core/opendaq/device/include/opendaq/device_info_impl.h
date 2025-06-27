@@ -1211,16 +1211,16 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
 
     return daqTry([&]
     {
-        this->beginUpdate();
-        Finally finally([this] { this->endUpdate(); });
-
+        checkErrorInfo(this->beginUpdate());
+        
         Super::DeserializeLocalProperties(serializedPtr, context, nullptr, this->objPtr);
 
         if (serializedPtr.hasKey("propValues"))
         {
             const auto propValues = serializedPtr.readSerializedObject("propValues");
 
-            std::set<StringPtr> propsToIgnore = {
+            std::set<StringPtr> propsToIgnore =
+            {
                 "connectionString",
                 "sdkVersion",
                 "serverCapabilities",
@@ -1238,6 +1238,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
                 checkErrorInfo(this->setProtectedPropertyValue(key, propValue));
             }
         }
+        checkErrorInfo(this->endUpdate());
     });
 }
 

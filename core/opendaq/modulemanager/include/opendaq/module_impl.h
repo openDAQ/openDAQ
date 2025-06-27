@@ -123,6 +123,7 @@ public:
 
         DevicePtr createdDevice;
         errCode = wrapHandlerReturn(this, &Module::onCreateDevice, createdDevice, connectionString, parent, mergeConfig(config, deviceType));
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (createdDevice.assigned())
             createdDevice.getInfo();
@@ -460,12 +461,12 @@ private:
 
     PropertyObjectPtr mergeConfig(const PropertyObjectPtr& userConfig, const ComponentTypePtr& type) const
     {
-        
         PropertyObjectPtr configIn = userConfig.assigned() ? userConfig : PropertyObject();
         PropertyObjectPtr configOut;
 
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             configOut = type.assigned() ? type.createDefaultConfig() : PropertyObject();
             populateDefaultConfig(configOut, configIn);
         }

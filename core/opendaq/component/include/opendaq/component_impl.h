@@ -26,7 +26,6 @@
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
 #include <opendaq/folder_ptr.h>
-#include <mutex>
 #include <opendaq/component_keys.h>
 #include <tsl/ordered_set.h>
 #include <opendaq/custom_log.h>
@@ -846,9 +845,9 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config));
     ErrCode errCode = updateInternal(obj, context);
     if (OPENDAQ_SUCCEEDED(errCode))
-    {
         errCode = this->updateEnded(context);
-    }
+    else
+        errCode = DAQ_MAKE_ERROR_INFO(errCode, "Component update failed");
 
     if (!muted && this->coreEvent.assigned())
     {
@@ -1166,9 +1165,7 @@ ComponentPtr ComponentImpl<Intf, Intfs...>::findComponentInternal(const Componen
             return findComponentInternal(subComponent, restStr);
     }
     else if (errCode == OPENDAQ_ERR_NOTFOUND)
-    {
-        daqClearErrorInfo();
-    }
+        daqClearErrorInfo(errCode);
     else
         checkErrorInfo(errCode);
 

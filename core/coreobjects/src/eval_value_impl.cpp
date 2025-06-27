@@ -536,16 +536,14 @@ ErrCode EvalValueImpl::createStartIterator(IIterator** iterator)
 
     ListPtr<IBaseObject> list;
 
-    try
+    errCode = daqTry([&]()
     {
         list = node->getResult();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = list->createStartIterator(iterator);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return errCode;
 }

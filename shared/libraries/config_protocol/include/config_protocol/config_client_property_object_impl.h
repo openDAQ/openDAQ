@@ -494,10 +494,14 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
     const auto hasKey = serObj.hasKey(keyStr);
     const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
 
-    if (!IsTrue(hasKey))
+    if (IsFalse(hasKey))
     {
         for (const auto& prop : thisPtr.getAllProperties())
-            Impl::removeProperty(prop.getName());
+        {
+            const ErrCode errCode = Impl::removeProperty(prop.getName());
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo(errCode);
+        }
         return;
     }
     
@@ -520,7 +524,11 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
     {
         const auto propName = prop.getName();
         if (!serializedProps.count(propName))
-            Impl::removeProperty(propName);
+        {
+            const ErrCode errCode = Impl::removeProperty(propName);
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo(errCode);
+        }
     }
 }
 

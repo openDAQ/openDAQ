@@ -93,23 +93,13 @@ public:
     
     EnumerationPtr& operator=(const EnumerationPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         ObjectPtr<IEnumeration>::operator =(other);
-
         return *this;
     }
 
     EnumerationPtr& operator=(EnumerationPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
         ObjectPtr<IEnumeration>::operator =(std::move(other));
-
         return *this;
     }
 

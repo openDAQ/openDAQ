@@ -409,24 +409,21 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     }
 }
 
-bool StreamReaderImpl::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
+bool StreamReaderImpl::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode)
 {
     ObjectPtr<IErrorInfo> errInfo;
-    daqGetErrorInfo(&errInfo);
-    daqClearErrorInfo();
+    daqGetErrorInfo(&errInfo, errCode);
+    daqClearErrorInfo(errCode);
 
     auto dataDescriptor = domainPacket.getDataDescriptor();
     if (domainReader->isUndefined())
-    {
         inferReaderReadType(dataDescriptor, domainReader);
-    }
 
-    if (!domainReader->handleDescriptorChanged(dataDescriptor, readMode))
-    {
-        daqSetErrorInfo(errInfo);
-        return false;
-    }
-    return true;
+    if (domainReader->handleDescriptorChanged(dataDescriptor, readMode))
+        return true;
+
+    daqSetErrorInfo(errInfo);
+    return false;    
 }
 
 void* StreamReaderImpl::getValuePacketData(const DataPacketPtr& packet) const
@@ -466,11 +463,11 @@ ErrCode StreamReaderImpl::readPacketData()
         ErrCode errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
-            if (!trySetDomainSampleType(domainPacket))
+            if (!trySetDomainSampleType(domainPacket, errCode))
             {
                 return errCode;
             }
-            daqClearErrorInfo();
+            daqClearErrorInfo(errCode);
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         }
 
@@ -555,7 +552,7 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
                 ErrCode errCode = wrapHandler(this, &StreamReaderImpl::handleDescriptorChanged, eventPacket);
                 if (OPENDAQ_FAILED(errCode))
                 {
-                    daqClearErrorInfo();
+                    daqClearErrorInfo(errCode);
                     invalid = true;
                 }
             } 

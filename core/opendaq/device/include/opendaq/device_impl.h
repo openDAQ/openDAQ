@@ -248,7 +248,7 @@ private:
     ErrCode lockInternal(IUser* user);
     ErrCode unlockInternal(IUser* user);
     ErrCode forceUnlockInternal();
-    ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
+    ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool>& targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Idle};
@@ -372,14 +372,19 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
 
     for (SizeT i = 0; i < devices.getCount(); i++)
     {
-        status = devices[i].asPtr<IDevicePrivate>()->lock(user);
+        status = devices[i].asPtr<IDevicePrivate>(true)->lock(user);
 
         if (OPENDAQ_FAILED(status))
         {
+            ObjectPtr<IErrorInfo> errorInfo;
+            daqGetErrorInfo(&errorInfo, status);
+            daqClearErrorInfo(status);
+            
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
-            if (OPENDAQ_FAILED(revertStatus))
-                return DAQ_MAKE_ERROR_INFO(revertStatus);
-            OPENDAQ_RETURN_IF_FAILED(status);
+            OPENDAQ_RETURN_IF_FAILED(revertStatus);
+            
+            daqSetErrorInfo(errorInfo);
+            return DAQ_EXTEND_ERROR_INFO(status);
         }
     }
 
@@ -415,10 +420,15 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
 
         if (OPENDAQ_FAILED(status))
         {
+            ObjectPtr<IErrorInfo> errorInfo;
+            daqGetErrorInfo(&errorInfo, status);
+            daqClearErrorInfo(status);
+
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, true);
-            if (OPENDAQ_FAILED(revertStatus))
-                return DAQ_MAKE_ERROR_INFO(revertStatus);
-            return DAQ_MAKE_ERROR_INFO(status);
+            OPENDAQ_RETURN_IF_FAILED(revertStatus);
+
+            daqSetErrorInfo(errorInfo);
+            return DAQ_EXTEND_ERROR_INFO(status);
         }
     }
 
@@ -1142,9 +1152,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeNoCoreEvent(OperationModeType modeType)
 {
     const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
-    if (OPENDAQ_SUCCEEDED(errCode))
-        this->operationMode = modeType;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    this->operationMode = modeType;
     return errCode;
 }
 
@@ -1152,11 +1162,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(OperationModeType modeType)
 {
     const ErrCode errCode = this->updateOperationModeNoCoreEvent(modeType);
-    if (OPENDAQ_SUCCEEDED(errCode))
-    {
-        if (!this->coreEventMuted && this->coreEvent.assigned())
-            this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+        this->triggerCoreEvent(CoreEventArgsDeviceOperationModeChanged(static_cast<Int>(modeType)));
     return errCode;
 }
 
@@ -1570,11 +1578,6 @@ ListPtr<IDevice> GenericDevice<TInterface, Interfaces...>::getDevicesRecursive(c
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::lockInternal(IUser* user)
 {
-    UserPtr userPtr = UserPtr::Borrow(user);
-
-    if (userPtr.assigned() && userPtr.asPtr<IUserInternal>().isAnonymous())
-        userPtr = nullptr;
-
     return userLock->lock(user);
 }
 
@@ -1603,7 +1606,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlockInternal()
 
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
-    ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock)
+    ListPtr<IDevice> devices, const std::vector<bool>& targetLockStatuses, size_t deviceCount, IUser* user, bool doLock)
 {
     ErrCode status = OPENDAQ_SUCCESS;
 
@@ -1613,9 +1616,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
             continue;
 
         if (doLock)
-            status = devices[i].asPtr<IDevicePrivate>()->lock(user);
+            status = devices[i].asPtr<IDevicePrivate>(true)->lock(user);
         else
-            status = devices[i].asPtr<IDevicePrivate>()->unlock(user);
+            status = devices[i].asPtr<IDevicePrivate>(true)->unlock(user);
 
         OPENDAQ_RETURN_IF_FAILED(status);
     }
@@ -1650,14 +1653,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
     return daqTry([this, &configuration]
     {
         auto serializer = JsonSerializer(True);
+        const ErrCode errCode = this->serialize(serializer);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        checkErrorInfo(this->serialize(serializer));
-
-        auto str = serializer.getOutput();
-
-        *configuration = str.detach();
-
-        return OPENDAQ_SUCCESS;
+        return serializer->getOutput(configuration);
     });
 }
 
@@ -1823,6 +1822,10 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             {
                 serializer.key("OperationMode");
                 serializer.writeInt(static_cast<Int>(mode));
+            }
+            else 
+            {
+                daqClearErrorInfo(errCode);
             }
         }
     }
@@ -2161,34 +2164,28 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
 {
     ErrCode errCode = Super::enableCoreEventTrigger();
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     
     DeviceInfoPtr deviceInfo;
     errCode = this->getInfo(&deviceInfo);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-    if (!deviceInfo.assigned())
-        return errCode;
-    
-    return deviceInfo.asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    if (deviceInfo.assigned())
+        return deviceInfo.asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
+
+    return errCode;
 }
 
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
 {
     ErrCode errCode = Super::disableCoreEventTrigger();
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    if (this->deviceInfo.assigned())
+        return deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
     
-    DeviceInfoPtr deviceInfo;
-    errCode = this->getInfo(&deviceInfo);
-    if (OPENDAQ_FAILED(errCode))
-        return errCode;
-    if (!deviceInfo.assigned())
-        return errCode;
-    
-    return deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>

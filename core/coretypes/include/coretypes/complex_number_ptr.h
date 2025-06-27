@@ -78,18 +78,12 @@ public:
 
     ComplexNumberPtr& operator=(const ComplexNumberPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         daq::ObjectPtr<IComplexNumber>::operator=(other);
         return *this;
     }
 
     ComplexNumberPtr& operator=(ComplexNumberPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-            return *this;
-
         daq::ObjectPtr<IComplexNumber>::operator=(std::move(other));
         return *this;
     }

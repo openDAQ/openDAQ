@@ -32,7 +32,6 @@
 #include <coretypes/coretypes.h>
 #include <coretypes/exceptions.h>
 #include <coretypes/validation.h>
-#include <iostream>
 #include <coreobjects/permission_manager_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
@@ -129,8 +128,7 @@ public:
         this->valueType = ctBool;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // IntProperty()
@@ -140,8 +138,7 @@ public:
         this->valueType = ctInt;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // FloatProperty()
@@ -151,8 +148,7 @@ public:
         this->valueType = ctFloat;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // StringProperty()
@@ -162,8 +158,7 @@ public:
         this->valueType = ctString;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // ListProperty()
@@ -173,8 +168,7 @@ public:
         this->valueType = ctList;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // DictProperty()
@@ -184,8 +178,7 @@ public:
         this->valueType = ctDict;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // RatioProperty()
@@ -195,8 +188,7 @@ public:
         this->valueType = ctRatio;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // ObjectProperty()
@@ -209,8 +201,7 @@ public:
             this->defaultValue = PropertyObject().detach();
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // FunctionProperty()
@@ -232,8 +223,7 @@ public:
         }
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // ReferenceProperty()
@@ -243,8 +233,7 @@ public:
         this->refProp = referencedProperty;
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // SelectionProperty()
@@ -255,8 +244,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // SparseSelectionProperty()
@@ -267,8 +255,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // StructProperty()
@@ -279,8 +266,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     // EnumerationProperty()
@@ -291,8 +277,7 @@ public:
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
-        if (err != OPENDAQ_SUCCESS)
-            throwExceptionFromErrorCode(err);
+        checkErrorInfo(err);
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
@@ -310,14 +295,14 @@ public:
         OPENDAQ_PARAM_NOT_NULL(type);
 
 	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *type = lock ? prop.getValueType() : prop.asPtr<IPropertyInternal>().getValueTypeNoLock();
-		        else
-			        *type = this->valueType;
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *type = lock ? prop.getValueType() : prop.asPtr<IPropertyInternal>().getValueTypeNoLock();
+            else
+                *type = this->valueType;
+                
+            return OPENDAQ_SUCCESS;
+        });
     }
     
     ErrCode INTERFACE_FUNC getKeyType(CoreType* type) override
@@ -373,8 +358,7 @@ public:
     ErrCode INTERFACE_FUNC getItemTypeInternal(CoreType* type, bool lock)
     {
         OPENDAQ_PARAM_NOT_NULL(type);
-
-        try
+        const ErrCode errCode = daqTry([&]()
         {
             IntfID intfID = IUnknown::Id;
             *type = ctUndefined;
@@ -387,19 +371,21 @@ public:
             err = lock ? this->getSelectionValues(&selVal) : this->getSelectionValuesNoLock(&selVal);
             OPENDAQ_RETURN_IF_FAILED(err);
 
-            BaseObjectPtr value = defVal.assigned() ? defVal : nullptr;
+            BaseObjectPtr value = defVal;
             value = selVal.assigned() ? selVal : value;
             if (!value.assigned())
                 return err;
 
-            const auto dictElementType = value.asPtrOrNull<IDictElementType>();
-            if (dictElementType.assigned())
+            if (const auto dictElementType = value.asPtrOrNull<IDictElementType>(true); dictElementType.assigned())
+            {
                 err = dictElementType->getValueInterfaceId(&intfID);
-
-            const auto listElementType = value.asPtrOrNull<IListElementType>();
-            if (listElementType.assigned())
+                OPENDAQ_RETURN_IF_FAILED(err);
+            }
+            else if (const auto listElementType = value.asPtrOrNull<IListElementType>(true); listElementType.assigned())
+            {
                 err = listElementType->getElementInterfaceId(&intfID);
-
+                OPENDAQ_RETURN_IF_FAILED(err);
+            }
             auto coreType = details::intfIdToCoreType(intfID);
 
             // TODO: Workaround if item type of dict/list is undefined
@@ -419,19 +405,9 @@ public:
 
             *type = coreType;
             return err;
-        }
-        catch (const DaqException& e)
-        {
-            return errorFromException(e, this->getThisAsBaseObject());
-        }
-        catch (const std::exception& e)
-        {
-            return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-        }
-        catch (...)
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-        }
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get item type of property");
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getName(IString** name) override
@@ -805,18 +781,25 @@ public:
 	    OPENDAQ_PARAM_NOT_NULL(structType);
 
 	    return daqTry([&]()
+        {
+            BaseObjectPtr defaultStruct;
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
             {
-                BaseObjectPtr defaultStruct;
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
-                else if (lock)
-                    checkErrorInfo(this->getDefaultValue(&defaultStruct));
-                else
-                    checkErrorInfo(this->getDefaultValueNoLock(&defaultStruct));
-
-                *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
-		        return OPENDAQ_SUCCESS;
-	        });
+                defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
+            }
+            else if (lock)
+            {
+                const ErrCode errCode = this->getDefaultValue(&defaultStruct);
+                OPENDAQ_RETURN_IF_FAILED(errCode);
+            }
+            else
+            {
+                const ErrCode errCode = this->getDefaultValueNoLock(&defaultStruct);
+                OPENDAQ_RETURN_IF_FAILED(errCode);
+            }
+            *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
+            return OPENDAQ_SUCCESS;
+        });
     }
     
     ErrCode INTERFACE_FUNC overrideDefaultValue(IBaseObject* newDefaultValue)  override

@@ -235,7 +235,7 @@ void ContextImpl::registerOpenDaqTypes()
                                     .addProperty(DictProperty("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}}), false))
                                     .addProperty(SelectionProperty("Mode", EvalValue("$ModeOptions"), 3))
                                     .build();
-    typeManager->addType(syncInterfaceBase);
+    checkErrorInfoExcept(typeManager->addType(syncInterfaceBase), OPENDAQ_ERR_ALREADYEXISTS);
 
     // Declaration of the InterfaceClockSync class
     PropertyObjectPtr interfaceClockSyncStatusProperty = PropertyObject();
@@ -246,7 +246,7 @@ void ContextImpl::registerOpenDaqTypes()
                                     .setParentName("SyncInterfaceBase")
                                     .addProperty(ObjectProperty("Status", interfaceClockSyncStatusProperty))
                                     .build();
-    typeManager->addType(interfaceClockSync);
+    checkErrorInfoExcept(typeManager->addType(interfaceClockSync), OPENDAQ_ERR_ALREADYEXISTS);
 
     // Declaration of the PtpSyncInterface class
     PropertyObjectPtr PtpSyncInterfaceStatus = PropertyObject();
@@ -265,11 +265,11 @@ void ContextImpl::registerOpenDaqTypes()
     const auto enumProfiles = EnumerationType(
         "PtpProfileEnumeration", List<IString>("I558", "802_1AS"));
 
-    typeManager->addType(enumClockType);
-    typeManager->addType(enumStepFlag);
-    typeManager->addType(enumTransportProtocol);
-    typeManager->addType(enumDelayMechanism);
-    typeManager->addType(enumProfiles);
+    checkErrorInfoExcept(typeManager->addType(enumClockType), OPENDAQ_ERR_ALREADYEXISTS);
+    checkErrorInfoExcept(typeManager->addType(enumStepFlag), OPENDAQ_ERR_ALREADYEXISTS);
+    checkErrorInfoExcept(typeManager->addType(enumTransportProtocol), OPENDAQ_ERR_ALREADYEXISTS);
+    checkErrorInfoExcept(typeManager->addType(enumDelayMechanism), OPENDAQ_ERR_ALREADYEXISTS);
+    checkErrorInfoExcept(typeManager->addType(enumProfiles), OPENDAQ_ERR_ALREADYEXISTS);
 
     PropertyObjectPtr parameters = PropertyObject();
     parameters.addProperty(StructProperty("PtpConfigurationStructure",
@@ -294,14 +294,14 @@ void ContextImpl::registerOpenDaqTypes()
                                     .addProperty(ObjectProperty("Parameters", parameters))
                                     .build();
 
-    typeManager->addType(ptpSyncInterface);
+    checkErrorInfoExcept(typeManager->addType(ptpSyncInterface), OPENDAQ_ERR_ALREADYEXISTS);
 
     // Add component status types to the type manager
     const auto componentStatusType = EnumerationType("ComponentStatusType", List<IString>("Ok", "Warning", "Error"));
-    typeManager->addType(componentStatusType);
+    checkErrorInfoExcept(typeManager->addType(componentStatusType), OPENDAQ_ERR_ALREADYEXISTS);
 
     const auto connectionStatusType = EnumerationType("ConnectionStatusType", List<IString>("Connected", "Reconnecting", "Unrecoverable", "Removed"));
-    typeManager.addType(connectionStatusType);
+    checkErrorInfoExcept(typeManager->addType(connectionStatusType), OPENDAQ_ERR_ALREADYEXISTS);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

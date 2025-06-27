@@ -763,7 +763,10 @@ TEST_F(STGAmplifierTest, Deserialize)
     auto deserializer = JsonDeserializer();
 
     BaseObjectPtr deserialized;
-    deserializer->deserialize(str, objManager, nullptr, &deserialized);
+    // TODO: should add comparing of Itype
+    ErrCode errCode = deserializer->deserialize(str, objManager, nullptr, &deserialized);
+    ASSERT_TRUE(OPENDAQ_FAILED(errCode));
+    daqClearErrorInfo(errCode);
 
     /*    ASSERT_FALSE(OPENDAQ_FAILED(errCode));
 

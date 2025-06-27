@@ -318,7 +318,8 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
     OPENDAQ_PARAM_NOT_NULL(availableOpModes);
     return daqTry([this, availableOpModes] 
     {
-        if (this->clientComm->getProtocolVersion() < 12)
+        const auto protocolVersion = this->clientComm->getProtocolVersion();
+        if (protocolVersion > 8 && protocolVersion < 12)
             *availableOpModes = this->clientComm->getAvailableOperationModes(this->remoteGlobalId).detach();
         else
             checkErrorInfo(Super::getAvailableOperationModes(availableOpModes));   
@@ -333,7 +334,6 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(Oper
         this->clientComm->setOperationMode(this->remoteGlobalId, OperationModeTypeToString(modeType));
     });
 }
-
 
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecursive(OperationModeType modeType)
@@ -350,7 +350,8 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
     OPENDAQ_PARAM_NOT_NULL(modeType);
     return daqTry([this, modeType] 
     { 
-        if (this->clientComm->getProtocolVersion() < 12)
+        const auto protocolVersion = this->clientComm->getProtocolVersion();
+        if (protocolVersion >= 9 && protocolVersion < 12)
             *modeType = OperationModeTypeFromString(this->clientComm->getOperationMode(this->remoteGlobalId)); 
         else
             checkErrorInfo(Super::getOperationMode(modeType));   

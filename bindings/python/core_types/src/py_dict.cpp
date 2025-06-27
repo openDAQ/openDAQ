@@ -77,6 +77,22 @@ void defineIDict(pybind11::module_ m, PyDaqIntf<daq::IDict> cls)
             auto dictPtr = daq::DictPtr<daq::IBaseObject, daq::IBaseObject>::Borrow(dict);
             dictPtr.clear();
         });
+    cls.def("iter_pairs",
+        [](daq::IDict* dict)
+        {
+            const auto dictPtr = daq::DictPtr<daq::IBaseObject, daq::IBaseObject>::Borrow(dict);
+            
+            py::list list;
+
+            for (const auto& elem: dictPtr)
+            {
+                auto item = py::make_tuple(baseObjectToPyObject(elem.first, dictPtr.getKeyInterfaceId()),
+                                           baseObjectToPyObject(elem.second, dictPtr.getValueInterfaceId()));
+                list.append(item);
+            }
+
+            return list;
+        });
     cls.def("__len__",
         [](daq::IDict* dict)
         {
@@ -87,13 +103,10 @@ void defineIDict(pybind11::module_ m, PyDaqIntf<daq::IDict> cls)
         [](daq::IDict* dict)
         {
             const auto dictPtr = daq::DictPtr<daq::IBaseObject, daq::IBaseObject>::Borrow(dict);
-            const auto iterablePtr = dictPtr.getKeys();
-
+            auto keysIterable = dictPtr.getKeys();
+            const auto iterablePtr = daq::ObjectPtr<daq::IIterable>::Borrow(keysIterable);
             daq::ObjectPtr<daq::IIterator> it;
             daq::checkErrorInfo(iterablePtr->createStartIterator(&it));
-
-            auto pythonIterator = baseObjectToPyObjectUsingType<daq::IIterator>(it);
-
-            return pythonIterator;
+            return baseObjectToPyObjectUsingType<daq::IIterator>(it);
         });
 }

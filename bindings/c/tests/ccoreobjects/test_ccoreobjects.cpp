@@ -1,4 +1,5 @@
 #include <copendaq.h>
+#include <coretypes/errorinfo.h>
 
 #include <gtest/gtest.h>
 

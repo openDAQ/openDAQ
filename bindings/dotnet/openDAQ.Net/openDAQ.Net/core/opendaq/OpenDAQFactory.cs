@@ -489,11 +489,9 @@ public static partial class OpenDAQFactory
     /// <summary>Creates an instance of a Scheduler with the specified amount of <paramref name="numWorkers"/> threads.</summary>
     /// <param name="logger">The logger instance.</param>
     /// <param name="numWorkers">The amount of worker threads. If <c>0</c> then maximum number of concurrent threads supported by the implementation is used.</param>
-    /// <param name="useMainLoop">Whether to create a worker for the main loop.</param>
     /// <returns>A Scheduler instance with the specified amount of worker threads.</returns>
     public static Scheduler Scheduler(Logger logger,
-                                      nuint numWorkers = 0,
-                                      bool useMainLoop = false)
+                                      nuint numWorkers = 0)
     {
         /*
             inline SchedulerPtr Scheduler(LoggerPtr logger, SizeT numWorkers = 0)
@@ -503,7 +501,7 @@ public static partial class OpenDAQFactory
             }
         */
 
-        return CreateScheduler(logger, numWorkers, useMainLoop);
+        return CreateScheduler(logger, numWorkers);
     }
 
     #region AuthenticationProvider

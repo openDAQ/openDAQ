@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:04.
+//     RTGen (CGenerator v0.7.0) on 15.06.2025 20:20:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -190,4 +190,9 @@ daqErrCode daqDevice_setOperationMode(daqDevice* self, daqOperationModeType mode
 daqErrCode daqDevice_setOperationModeRecursive(daqDevice* self, daqOperationModeType modeType)
 {
     return reinterpret_cast<daq::IDevice*>(self)->setOperationModeRecursive(static_cast<daq::OperationModeType>(modeType));
+}
+
+daqErrCode daqDevice_addDevices(daqDevice* self, daqDict** devices, daqDict* connectionArgs, daqDict* errCodes, daqDict* errorInfos)
+{
+    return reinterpret_cast<daq::IDevice*>(self)->addDevices(reinterpret_cast<daq::IDict**>(devices), reinterpret_cast<daq::IDict*>(connectionArgs), reinterpret_cast<daq::IDict*>(errCodes), reinterpret_cast<daq::IDict*>(errorInfos));
 }

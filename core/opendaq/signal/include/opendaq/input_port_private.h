@@ -17,6 +17,8 @@
 #pragma once
 
 #include <coretypes/baseobject.h>
+#include <opendaq/signal.h>
+#include <opendaq/input_port_notifications.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

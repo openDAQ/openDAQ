@@ -41,6 +41,12 @@ class TestBaseObject(opendaq_test.TestCase):
         obj2 = daq.BaseObject()
         self.assertTrue(obj1 == obj1)
         self.assertTrue(obj1 != obj2)
+        
+    def test_raw_interface(self):
+        obj1 = daq.BaseObject()        
+        raw_interface = obj1.get_raw_interface()
+        obj2 = daq.IBaseObject.from_raw_interface(raw_interface)
+        self.assertTrue(obj1 == obj1)
 
 class TestBoolean(opendaq_test.TestCase):
     def test_create(self):
@@ -75,6 +81,12 @@ class TestBoolean(opendaq_test.TestCase):
 
     def test_can_cast_from(self):
         self.assertTrue(daq.IBaseObject.can_cast_from(daq.Boolean(True)))
+
+    def test_raw_interface(self):
+        obj1 = daq.Boolean(True)        
+        raw_interface = obj1.get_raw_interface()
+        obj2 = daq.IBoolean.from_raw_interface(raw_interface)
+        self.assertTrue(obj1 == obj1)
 
 class TestNumObjectWrapper:
     class TestNumObject(opendaq_test.TestCase):
@@ -122,6 +134,12 @@ class TestInteger(TestNumObjectWrapper.TestNumObject):
 
     def test_can_cast_from(self):
         self.assertTrue(daq.IBaseObject.can_cast_from(daq.Integer(2)))
+        
+    def test_to_py_object(self):
+        obj = daq.Integer(2)
+        py_obj = obj.to_native_object()
+        self.assertFalse(isinstance(obj, int))
+        self.assertTrue(isinstance(py_obj, int))
 
 class TestFloat(TestNumObjectWrapper.TestNumObject):
     def createObject(self, num):

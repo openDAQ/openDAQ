@@ -21,15 +21,18 @@
 #include <coretypes/listobject.h>
 #include <coretypes/intfs.h>
 #include <list>
+#include <coretypes/serializable.h>
+#include <coretypes/deserializer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ErrorInfoImpl : public ImplementationOf<IErrorInfo, IFreezable>
+class ErrorInfoImpl : public ImplementationOf<IErrorInfo, IFreezable, ISerializable>
 {
 public:
     ErrorInfoImpl();
     ~ErrorInfoImpl() override;
 
+    // IErrorInfo
     ErrCode INTERFACE_FUNC setMessage(IString* message) override;
     ErrCode INTERFACE_FUNC getMessage(IString** message) override;
     ErrCode INTERFACE_FUNC setSource(IString* source) override;
@@ -50,6 +53,13 @@ public:
     ErrCode INTERFACE_FUNC freeze() override;
     ErrCode INTERFACE_FUNC isFrozen(Bool* frozen) const override;
 
+    // ISerializable
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 protected:
     bool isTrackable() const override;
 
@@ -63,6 +73,9 @@ private:
 
     Bool frozen;
     IString* cachedMessage;
+    IString* fileNameObject;
+
+    void setFileNameObject(IString* fileNameObj);
 };
 
 class ErrorInfoWrapper

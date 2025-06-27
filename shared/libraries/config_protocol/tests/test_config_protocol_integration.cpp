@@ -757,19 +757,51 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     ASSERT_EQ(c.getManufacturer(), s.getManufacturer());
 }
 
-void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
+void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice, bool testAddDevicesMethod = false)
 {
     ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
     ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
 
     DevicePtr dev;
-    ASSERT_NO_THROW(dev = clientDevice.addDevice("mock://test"));
+    if (testAddDevicesMethod)
+    {
+        auto connectionArgs =
+            Dict<IString, IPropertyObject>(
+                {
+                    {"mock://test", nullptr},
+                    {"unknown://unknown", nullptr}
+                }
+            );
+        auto errCodes = Dict<IString, IInteger>();
+        auto errorInfos = Dict<IString, IErrorInfo>();
+        DictPtr<IString, IDevice> devices;
+        ASSERT_EQ(clientDevice->addDevices(&devices, connectionArgs, errCodes, errorInfos),
+                  OPENDAQ_PARTIAL_SUCCESS);
+
+        ASSERT_EQ(devices.getCount(), 2u);
+        ASSERT_EQ(errCodes.getCount(), 2u);
+        ASSERT_EQ(errorInfos.getCount(), 2u);
+
+        dev = devices.get("mock://test");
+        ASSERT_EQ(errCodes.get("mock://test"), OPENDAQ_SUCCESS);
+        ASSERT_FALSE(errorInfos.get("mock://test").assigned());
+
+        ASSERT_FALSE(devices.get("unknown://unknown").assigned());
+        ASSERT_EQ(errCodes.get("unknown://unknown"), OPENDAQ_ERR_NOTFOUND);
+        ASSERT_TRUE(errorInfos.get("unknown://unknown").assigned());
+    }
+    else
+    {
+        ASSERT_NO_THROW(dev = clientDevice.addDevice("mock://test"));
+    }
+
     ASSERT_NE(dev, nullptr);
 
     ASSERT_EQ(clientDevice.getDevices().getCount(), 3);
     ASSERT_EQ(serverDevice.getDevices().getCount(), 3);
 
     auto newDevCli = clientDevice.getDevices()[2];
+    ASSERT_EQ(dev, newDevCli);
     auto newDevSer = serverDevice.getDevices()[2];
 
     ASSERT_EQ(newDevCli.getGlobalId(), "/root_dev/Dev/newDevice");
@@ -801,6 +833,17 @@ TEST_F(ConfigProtocolIntegrationTest, AddDeviceDisableCoreEventTrigger)
 TEST_F(ConfigProtocolIntegrationTest, AddDeviceCoreEventTrigger)
 {
     addDeviceTest(clientDevice, serverDevice);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDevicesDisableCoreEventTrigger)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    addDeviceTest(clientDevice, serverDevice, true);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDevicesCoreEventTrigger)
+{
+    addDeviceTest(clientDevice, serverDevice, true);
 }
 
 void removeDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)

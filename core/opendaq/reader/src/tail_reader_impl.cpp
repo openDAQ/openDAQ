@@ -258,7 +258,7 @@ ErrCode TailReaderImpl::readWithDomain(void* values, void* domain, SizeT* count,
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
+ErrCode TailReaderImpl::packetReceived(IInputPort* port)
 {
     std::unique_lock lock(mutex);
     bool hasEventPacket = false;
@@ -321,11 +321,14 @@ ErrCode TailReaderImpl::packetReceived(IInputPort* /*port*/)
     }
 
     auto callback = readCallback;
+    lock.unlock();
+
     if (callback.assigned() && (hasEventPacket || (cachedSamples >= historySize)))
-    {
-        lock.unlock();
-        return wrapHandler(callback);
-    }
+        OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
+
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->packetReceived(port);
+
     return OPENDAQ_SUCCESS;
 }
 

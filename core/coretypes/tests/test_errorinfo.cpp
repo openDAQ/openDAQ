@@ -9,6 +9,8 @@
 #include <coretypes/ctutils.h>
 #include <coretypes/errors.h>
 #include <coretypes/listobject_factory.h>
+#include <coretypes/json_serializer_factory.h>
+#include <coretypes/json_deserializer_factory.h>
 
 using namespace daq;
 
@@ -150,10 +152,9 @@ TEST_F(ErrorInfoTest, MultipleMessages)
         ASSERT_STREQ(message.getCharPtr(), expectedMsg.c_str());
 
 #ifndef NDEBUG
-        CharPtr fileName;
+        ConstCharPtr fileName;
         errorInfoObject->getFileName(&fileName);
         ASSERT_TRUE(fileName != nullptr);
-        daqFreeMemory(fileName);
 
         Int line;
         errorInfoObject->getFileLine(&line);
@@ -206,4 +207,70 @@ TEST_F(ErrorInfoTest, ThrowExceptionInDaqTry)
 
     std::string expected = "Test failed" + getErrorPostfix(66);
     ASSERT_THROW_MSG(checkErrorInfo(obj->throwExceptionTest()), GeneralErrorException, expected);
+}
+
+TEST_F(ErrorInfoTest, SerializeDeserializeEmpty)
+{
+    ObjectPtr<IErrorInfo> errorInfo;
+    ASSERT_EQ(createErrorInfo(&errorInfo), OPENDAQ_SUCCESS);
+    ASSERT_TRUE(errorInfo.assigned());
+
+    const auto serializer = JsonSerializer();
+    errorInfo.serialize(serializer);
+    const auto jsonStr = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+    const ObjectPtr<IErrorInfo> newErrorInfo = deserializer.deserialize(jsonStr);
+    ASSERT_TRUE(newErrorInfo.assigned());
+
+    serializer.reset();
+    newErrorInfo.serialize(serializer);
+    const auto jsonStrNew = serializer.getOutput();
+
+    ASSERT_EQ(jsonStr, jsonStrNew);
+}
+
+TEST_F(ErrorInfoTest, SerializeDeserialize)
+{
+    const auto serializer = JsonSerializer();
+    {
+        ObjectPtr<IErrorInfo> errorInfo;
+        ASSERT_EQ(createErrorInfo(&errorInfo), OPENDAQ_SUCCESS);
+        ASSERT_TRUE(errorInfo.assigned());
+
+        ASSERT_EQ(errorInfo->setMessage(String("Error info message")), OPENDAQ_SUCCESS);
+        ASSERT_EQ(errorInfo->setSource(String("Error info source")), OPENDAQ_SUCCESS);
+        ASSERT_EQ(errorInfo->setFileName("filepath/filename.cpp"), OPENDAQ_SUCCESS);
+        ASSERT_EQ(errorInfo->setFileLine(1234), OPENDAQ_SUCCESS);
+
+        errorInfo.serialize(serializer);
+    }
+    const auto jsonStr = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+    const ObjectPtr<IErrorInfo> newErrorInfo = deserializer.deserialize(jsonStr);
+    ASSERT_TRUE(newErrorInfo.assigned());
+
+    StringPtr message;
+    newErrorInfo->getMessage(&message);
+    ASSERT_EQ(message, "Error info message");
+
+    StringPtr source;
+    newErrorInfo->getSource(&source);
+    ASSERT_EQ(source, "Error info source");
+
+    ConstCharPtr fileName;
+    newErrorInfo->getFileName(&fileName);
+    ASSERT_TRUE(fileName != nullptr);
+    ASSERT_STREQ(fileName, "filepath/filename.cpp");
+
+    Int fileLine;
+    newErrorInfo->getFileLine(&fileLine);
+    ASSERT_EQ(fileLine, 1234);
+
+    serializer.reset();
+    newErrorInfo.serialize(serializer);
+    const auto jsonStrNew = serializer.getOutput();
+
+    ASSERT_EQ(jsonStr, jsonStrNew);
 }

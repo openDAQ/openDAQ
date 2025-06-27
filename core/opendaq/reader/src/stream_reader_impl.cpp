@@ -69,38 +69,6 @@ StreamReaderImpl::StreamReaderImpl(IInputPortConfig* port,
     }
 }
 
-StreamReaderImpl::StreamReaderImpl(const ReaderConfigPtr& readerConfig,
-                                   SampleType valueReadType,
-                                   SampleType domainReadType,
-                                   ReadMode mode)
-    : readMode(mode)
-{
-    if (!readerConfig.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException, "Existing reader must not be null");
-
-    readerConfig.markAsInvalid();
-
-    timeoutType = readerConfig.getReadTimeoutType();
-    inputPort = readerConfig.getInputPorts()[0];
-
-    valueReader = createReaderForType(valueReadType, readerConfig.getValueTransformFunction());
-    domainReader = createReaderForType(domainReadType, readerConfig.getDomainTransformFunction());
-
-    connection = inputPort.getConnection();
-
-    this->internalAddRef();
-    try
-    {
-        if (connection.assigned())
-            readDescriptorFromPort();
-    }
-    catch (...)
-    {
-        this->releaseWeakRefOnException();
-        throw;
-    }
-}
-
 StreamReaderImpl::StreamReaderImpl(StreamReaderImpl* old,
                                    SampleType valueReadType,
                                    SampleType domainReadType)
@@ -158,13 +126,19 @@ StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
     this->internalAddRef();
     try
     {
+        auto notificationMethod = builder.getInputPortNotificationMethod();
+
         if (auto port = builder.getInputPort(); port.assigned())
         {
-            connectInputPort(port);
+            connectInputPort(port, notificationMethod);
         }
         else if (auto signal = builder.getSignal(); signal.assigned())
         {
-            connectSignal(builder.getSignal());
+            if (notificationMethod == PacketReadyNotification::Unspecified)
+                DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                    "Stream reader created from a signal cannot have an unspecified input port notification method.");
+
+            connectSignal(builder.getSignal(), notificationMethod);
         }
         else 
         {
@@ -199,21 +173,20 @@ void StreamReaderImpl::readDescriptorFromPort()
         if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
         {
             handleDescriptorChanged(connection.dequeue());
-            return;
         }
     }
 }
 
-void StreamReaderImpl::connectSignal(const SignalPtr& signal)
+void StreamReaderImpl::connectSignal(const SignalPtr& signal, PacketReadyNotification notification)
 {
     inputPort = InputPort(signal.getContext(), nullptr, "readsig", true);
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
+    inputPort.setNotificationMethod(notification);
 
     inputPort.connect(signal);
 }
 
-void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port)
+void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port, PacketReadyNotification notification)
 {
     inputPort = port;
 
@@ -221,7 +194,7 @@ void StreamReaderImpl::connectInputPort(const InputPortConfigPtr& port)
     inputPort.asPtr<IOwnable>().setOwner(portBinder);
 
     inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    inputPort.setNotificationMethod(PacketReadyNotification::Scheduler);
+    inputPort.setNotificationMethod(notification);
     connection = inputPort.getConnection();
 }
 
@@ -230,8 +203,11 @@ ErrCode StreamReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool*
     OPENDAQ_PARAM_NOT_NULL(port);
     OPENDAQ_PARAM_NOT_NULL(signal);
     OPENDAQ_PARAM_NOT_NULL(accept);
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->acceptsSignal(port, signal, accept);
 
-    *accept = True;
+    *accept = true;
     return OPENDAQ_SUCCESS;
 }
 
@@ -239,8 +215,14 @@ ErrCode StreamReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    std::scoped_lock lock(notify.mutex);
-    port->getConnection(&connection);
+    {
+        std::scoped_lock lock(notify.mutex);
+        port->getConnection(&connection);
+    }
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->connected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -248,8 +230,14 @@ ErrCode StreamReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    std::scoped_lock lock(notify.mutex);
-    connection = nullptr;
+    {
+        std::scoped_lock lock(notify.mutex);
+        connection = nullptr;
+    }
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->disconnected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -261,9 +249,15 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
         std::scoped_lock lock(notify.mutex);
         callback = readCallback;
     }
+
     notify.condition.notify_one();
+
     if (callback.assigned())
-        return wrapHandler(callback);
+        OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
+
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->connected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -371,7 +365,7 @@ ErrCode StreamReaderImpl::markAsInvalid()
     return OPENDAQ_SUCCESS;
 }
 
-void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const
+void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader)
 {
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());
 }
@@ -697,6 +691,12 @@ ErrCode StreamReaderImpl::setOnDataAvailable(IProcedure* callback)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode StreamReaderImpl::setExternalListener(IInputPortNotifications* listener)
+{
+    this->externalListener = listener;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode StreamReaderImpl::getValueTransformFunction(IFunction** transform)
 {
     std::scoped_lock lock(mutex);
@@ -759,9 +759,12 @@ struct ObjectCreator<IStreamReader>
         auto old = ReaderConfigPtr::Borrow(toCopy);
         auto impl = dynamic_cast<StreamReaderImpl*>(old.getObject());
 
-        return impl != nullptr
-            ? createObject<IStreamReader, StreamReaderImpl>(out, impl, valueReadType, domainReadType)
-            : createObject<IStreamReader, StreamReaderImpl>(out, old, valueReadType, domainReadType, mode);
+        if (impl == nullptr)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "StreamReader from existing can only be used with the base stream reader implementation");
+        }
+
+        return createObject<IStreamReader, StreamReaderImpl>(out, impl, valueReadType, domainReadType);
     }
 };
 

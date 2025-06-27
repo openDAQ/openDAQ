@@ -76,4 +76,13 @@ void defineISignalEvents(pybind11::module_ m, PyDaqIntf<daq::ISignalEvents, daq:
         },
         py::arg("signal"),
         "Notifies the signal that it is no longer being used as a domain signal by the signal passed as the function argument.");
+    cls.def("listener_connected_scheduled",
+        [](daq::ISignalEvents *object, daq::IConnection* connection)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SignalEventsPtr::Borrow(object);
+            objectPtr.listenerConnectedScheduled(connection);
+        },
+        py::arg("connection"),
+        "Notifies the signal that it has been connected to an input port forming a new connection.");
 }

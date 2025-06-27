@@ -36,6 +36,7 @@ struct MockDevice : MockGenericSignalContainer<MockDevice, IDevice>
     MOCK_METHOD(ErrCode, getAvailableDevices, (IList**), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getAvailableDeviceTypes, (IDict**), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, addDevice, (IDevice**, IString*, IPropertyObject*), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, addDevices, (IDict**, IDict*, IDict*, IDict*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, removeDevice, (IDevice*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getFunctionBlocks, (IList**, ISearchFilter*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getAvailableFunctionBlockTypes, (IDict**), (override MOCK_CALL));

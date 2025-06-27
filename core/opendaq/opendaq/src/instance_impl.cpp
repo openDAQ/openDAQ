@@ -513,6 +513,11 @@ ErrCode InstanceImpl::addDevice(IDevice** device, IString* connectionString, IPr
     return rootDevice->addDevice(device, connectionString, config);
 }
 
+ErrCode InstanceImpl::addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes, IDict* errorInfos)
+{
+    return rootDevice->addDevices(devices, connectionArgs, errCodes, errorInfos);
+}
+
 ErrCode InstanceImpl::removeDevice(IDevice* device)
 {
     return rootDevice->removeDevice(device);

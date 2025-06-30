@@ -18,7 +18,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb4.beginUpdate();
 
     // Print before modifications
-    std::cout << "\nFB4 before modifications/update:\n";
+    std::cout << "\nBefore modifications/update:\n";
     print(fb4);
 
     // Property visibility depending on another Property
@@ -64,14 +64,14 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Print after modifications
-    std::cout << "\nFB4 after modifications:\n";
+    std::cout << "\nAfter modifications:\n";
     print(fb4);
 
     // Modify
     modify(fb4, instance.getContext().getTypeManager());
 
     // Print after modifications
-    std::cout << "\nFB4 after second round of modifications:\n";
+    std::cout << "\nAfter second round of modifications:\n";
     print(fb4);
 
     // Gracefully exit

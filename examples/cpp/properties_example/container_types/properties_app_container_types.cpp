@@ -15,7 +15,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto fb = instance.addFunctionBlock("ExampleFBPropertyContainerTypes");
 
     // Print before modifications
-    std::cout << "\nFB2 before modifications:\n";
+    std::cout << "\nBefore modifications:\n";
     print(fb);
 
     // List
@@ -52,14 +52,14 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("Sparse", 2);
 
     // Print after modifications
-    std::cout << "\nFB2 after modifications:\n";
+    std::cout << "\nAfter modifications:\n";
     print(fb);
 
     // Modify
     modify(fb, instance.getContext().getTypeManager());
 
     // Print after modifications
-    std::cout << "\nFB2 after second round of modifications:\n";
+    std::cout << "\nAfter second round of modifications:\n";
     print(fb);
 
     // Gracefully exit

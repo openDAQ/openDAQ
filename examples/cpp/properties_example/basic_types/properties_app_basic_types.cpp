@@ -15,7 +15,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto fb = instance.addFunctionBlock("ExampleFBPropertyBasicTypes");
 
     // Print before modifications
-    std::cout << "\nFB1 before modifications:\n";
+    std::cout << "\nBefore modifications:\n";
     print(fb);
 
     // Bool
@@ -47,14 +47,14 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("StubbornInt", 41);  // Will be forced to 43
 
     // Print after modifications
-    std::cout << "\nFB1 after modifications:\n";
+    std::cout << "\nAfter modifications:\n";
     print(fb);
 
     // Modify
     modify(fb, instance.getContext().getTypeManager());
 
     // Print after modifications
-    std::cout << "\nFB1 after second round of modifications:\n";
+    std::cout << "\nAfter second round of modifications:\n";
     print(fb);
 
     // Gracefully exit

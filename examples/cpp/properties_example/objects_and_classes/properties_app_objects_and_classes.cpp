@@ -16,7 +16,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         instance.addFunctionBlock("ExampleFBPropertyObjectsAndClasses");
 
     // Print before modifications
-    std::cout << "\nFB3 before modifications:\n";
+    std::cout << "\nBefore modifications:\n";
     print(fb);
 
     // Object
@@ -53,14 +53,14 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("ClassObject.Integer", 5);
 
     // Print after modifications
-    std::cout << "\nFB3 after modifications:\n";
+    std::cout << "\nAfter modifications:\n";
     print(fb);
 
     // Modify
     modify(fb, instance.getContext().getTypeManager());
 
     // Print after modifications
-    std::cout << "\nFB3 after second round of modifications:\n";
+    std::cout << "\nAfter second round of modifications:\n";
     print(fb);
 
     // Gracefully exit

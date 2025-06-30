@@ -1,6 +1,4 @@
-/**
- * properties_app_4
- * (demos using properties_fb_4)
+/*
  * Advanced features like references, validation, coercion, and conditional visibility
  */
 
@@ -14,7 +12,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance();
 
     // Add Function Block by type ID
-    auto fb4 = instance.addFunctionBlock("PropertiesFb4");
+    auto fb4 = instance.addFunctionBlock("ExampleFBPropertyReferenceProperties");
 
     // Apply changes in one sweep later
     fb4.beginUpdate();

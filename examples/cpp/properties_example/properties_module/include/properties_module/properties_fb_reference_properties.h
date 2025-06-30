@@ -21,11 +21,11 @@
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-class PropertiesFb1 final : public FunctionBlock
+class PropertiesFbReferencesValidationCoertionConditional final : public FunctionBlock
 {
 public:
-    explicit PropertiesFb1(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId);
-    ~PropertiesFb1() override = default;
+    explicit PropertiesFbReferencesValidationCoertionConditional(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId);
+    ~PropertiesFbReferencesValidationCoertionConditional() override = default;
 
     static FunctionBlockTypePtr CreateType();
 

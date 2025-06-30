@@ -1,9 +1,9 @@
 #include <coretypes/version_info_factory.h>
 #include <opendaq/custom_log.h>
-#include <properties_module/properties_fb_1.h>
-#include <properties_module/properties_fb_2.h>
-#include <properties_module/properties_fb_3.h>
-#include <properties_module/properties_fb_4.h>
+#include <properties_module/properties_fb_basic_types.h>
+#include <properties_module/properties_fb_container_types.h>
+#include <properties_module/properties_fb_objects_and_classes.h>
+#include <properties_module/properties_fb_reference_properties.h>
 #include <properties_module/properties_module.h>
 #include <properties_module/version.h>
 
@@ -21,17 +21,17 @@ DictPtr<IString, IFunctionBlockType> PropertiesModule::onGetAvailableFunctionBlo
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
-    const auto propertiesType1 = PropertiesFb1::CreateType();
-    types.set(propertiesType1.getId(), propertiesType1);
+    const auto basicTypes = PropertiesFbBasicAndCallback::CreateType();
+    types.set(basicTypes.getId(), basicTypes);
 
-    const auto propertiesType2 = PropertiesFb2::CreateType();
-    types.set(propertiesType2.getId(), propertiesType2);
+    const auto containerTypes = PropertiesFbContainerTypesAndSelection::CreateType();
+    types.set(containerTypes.getId(), containerTypes);
 
-    const auto propertiesType3 = PropertiesFb3::CreateType();
-    types.set(propertiesType3.getId(), propertiesType3);
+    const auto objectsAndClasses = PropertiesFbObjectPropProceduresFunctionsInheritance::CreateType();
+    types.set(objectsAndClasses.getId(), objectsAndClasses);
 
-    const auto propertiesType4 = PropertiesFb4::CreateType();
-    types.set(propertiesType4.getId(), propertiesType4);
+    const auto referenceProperties = PropertiesFbReferencesValidationCoertionConditional::CreateType();
+    types.set(referenceProperties.getId(), referenceProperties);
 
     return types;
 }
@@ -41,24 +41,26 @@ FunctionBlockPtr PropertiesModule::onCreateFunctionBlock(const StringPtr& id,
                                                          const StringPtr& localId,
                                                          const PropertyObjectPtr& /*config*/)
 {
-    if (id == PropertiesFb1::CreateType().getId())
+    if (id == PropertiesFbBasicAndCallback::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb1>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFbBasicAndCallback>(context, parent, localId);
         return fb;
     }
-    if (id == PropertiesFb2::CreateType().getId())
+    if (id == PropertiesFbContainerTypesAndSelection::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb2>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFbContainerTypesAndSelection>(context, parent, localId);
         return fb;
     }
-    if (id == PropertiesFb3::CreateType().getId())
+    if (id == PropertiesFbObjectPropProceduresFunctionsInheritance::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb3>(context, parent, localId);
+        FunctionBlockPtr fb =
+            createWithImplementation<IFunctionBlock, PropertiesFbObjectPropProceduresFunctionsInheritance>(context, parent, localId);
         return fb;
     }
-    if (id == PropertiesFb4::CreateType().getId())
+    if (id == PropertiesFbReferencesValidationCoertionConditional::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFb4>(context, parent, localId);
+        FunctionBlockPtr fb =
+            createWithImplementation<IFunctionBlock, PropertiesFbReferencesValidationCoertionConditional>(context, parent, localId);
         return fb;
     }
 

@@ -1,14 +1,14 @@
-#include <properties_module/properties_fb_1.h>
+#include <properties_module/properties_fb_basic_types.h>
 #include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
-PropertiesFb1::PropertiesFb1(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+PropertiesFbBasicAndCallback::PropertiesFbBasicAndCallback(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
 }
 
-void PropertiesFb1::initProperties()
+void PropertiesFbBasicAndCallback::initProperties()
 {
     // Bool - used for properties with two states, like on/off, true/false, etc.
     auto boolProp = BoolPropertyBuilder("Bool", False)
@@ -57,9 +57,9 @@ void PropertiesFb1::initProperties()
     };
 }
 
-FunctionBlockTypePtr PropertiesFb1::CreateType()
+FunctionBlockTypePtr PropertiesFbBasicAndCallback::CreateType()
 {
-    return FunctionBlockType("PropertiesFb1", "Properties1", "Function Block focused on Properties 1");
+    return FunctionBlockType("ExampleFBPropertyBasicTypes", "ExampleFBPropertyBasicTypes", "Function Block focused on basic Property types.");
 }
 
 END_NAMESPACE_PROPERTIES_MODULE

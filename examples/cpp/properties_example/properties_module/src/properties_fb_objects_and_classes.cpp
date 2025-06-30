@@ -1,16 +1,16 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
-#include <properties_module/properties_fb_3.h>
+#include <properties_module/properties_fb_objects_and_classes.h>
 #include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
-PropertiesFb3::PropertiesFb3(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+PropertiesFbObjectPropProceduresFunctionsInheritance::PropertiesFbObjectPropProceduresFunctionsInheritance(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
 }
 
-void PropertiesFb3::initProperties()
+void PropertiesFbObjectPropProceduresFunctionsInheritance::initProperties()
 {
     // Object - used for grouping multiple properties of different types, including nested objects
     auto innerObj = PropertyObject();
@@ -72,9 +72,9 @@ void PropertiesFb3::initProperties()
     objPtr.addProperty(classProp);
 }
 
-FunctionBlockTypePtr PropertiesFb3::CreateType()
+FunctionBlockTypePtr PropertiesFbObjectPropProceduresFunctionsInheritance::CreateType()
 {
-    return FunctionBlockType("PropertiesFb3", "Properties3", "Function Block focused on Properties 3");
+    return FunctionBlockType("ExampleFBPropertyObjectsAndClasses", "ExampleFBPropertyObjectsAndClasses", "Function Block focused on objects and classes");
 }
 
 END_NAMESPACE_PROPERTIES_MODULE

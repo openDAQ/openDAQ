@@ -1,15 +1,15 @@
 #include <coreobjects/argument_info_factory.h>
-#include <properties_module/properties_fb_2.h>
+#include <properties_module/properties_fb_container_types.h>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-PropertiesFb2::PropertiesFb2(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+PropertiesFbContainerTypesAndSelection::PropertiesFbContainerTypesAndSelection(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
 }
 
-void PropertiesFb2::initProperties()
+void PropertiesFbContainerTypesAndSelection::initProperties()
 {
     // List (may contain other types) - used for storing multiple values of the same type
     auto list = List<IInteger>();
@@ -54,9 +54,9 @@ void PropertiesFb2::initProperties()
     objPtr.addProperty(sparseProp);
 }
 
-FunctionBlockTypePtr PropertiesFb2::CreateType()
+FunctionBlockTypePtr PropertiesFbContainerTypesAndSelection::CreateType()
 {
-    return FunctionBlockType("PropertiesFb2", "Properties2", "Function Block focused on Properties 2");
+    return FunctionBlockType("ExampleFBPropertyContainerTypes", "ExampleFBPropertyContainerTypes", "Function Block focused on container Property types");
 }
 
 END_NAMESPACE_PROPERTIES_MODULE

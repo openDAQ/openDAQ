@@ -1,14 +1,14 @@
-#include <properties_module/properties_fb_4.h>
+#include <properties_module/properties_fb_reference_properties.h>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-PropertiesFb4::PropertiesFb4(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+PropertiesFbReferencesValidationCoertionConditional::PropertiesFbReferencesValidationCoertionConditional(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
 }
 
-void PropertiesFb4::initProperties()
+void PropertiesFbReferencesValidationCoertionConditional::initProperties()
 {
     // Referenced Bool - used for demo purposes fo referencing another Property
     auto referencedProp = BoolProperty("Referenced", False);
@@ -56,9 +56,9 @@ void PropertiesFb4::initProperties()
     objPtr.setPropertyOrder(customOrder);
 }
 
-FunctionBlockTypePtr PropertiesFb4::CreateType()
+FunctionBlockTypePtr PropertiesFbReferencesValidationCoertionConditional::CreateType()
 {
-    return FunctionBlockType("PropertiesFb4", "Properties4", "Function Block focused on Properties 4");
+    return FunctionBlockType("ExampleFBPropertyReferenceProperties", "ExampleFBPropertyReferenceProperties", "Function Block focused on reference Properties");
 }
 
 END_NAMESPACE_PROPERTIES_MODULE

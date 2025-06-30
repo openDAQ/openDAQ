@@ -492,7 +492,7 @@ ErrCode wrapHandler(Handler handler, Params&& ... params)
     using ResultType = std::invoke_result_t<Handler, Params&& ...>;
     static_assert(std::is_same_v<ResultType, void> || std::is_same_v<ResultType, ErrCode>, "Return type must be void or daq::ErrCode");
 
-    IErrorGuard* errorGuard = ErrorGuard_Create(nullptr, -1);
+    IErrorGuard* errorGuard = ErrorGuard_Create(__func__, -1);
     try
     {
         ErrCode errCode = OPENDAQ_SUCCESS;
@@ -528,11 +528,12 @@ ErrCode wrapHandler(Handler handler, Params&& ... params)
 template <typename Handler, typename TReturn, typename... Params>
 ErrCode wrapHandlerReturn(Handler handler, TReturn& output, Params&& ... params)
 {
-    IErrorGuard* errorGuard = ErrorGuard_Create(nullptr, -1);
+    IErrorGuard* errorGuard = ErrorGuard_Create(__func__, -1);
     try
     {
         output = (handler) (std::forward<Params>(params)...);
         checkErrorGuard(errorGuard);
+        errorGuard->releaseRef();
         return OPENDAQ_SUCCESS;
     }
     catch (const DaqException& e)
@@ -557,7 +558,7 @@ ErrCode wrapHandler(Object* object, Handler handler, Params&& ... params)
 {
     using ResultType = decltype((object->*handler)(std::forward<Params>(params)...));
     static_assert(std::is_same_v<ResultType, void> || std::is_same_v<ResultType, ErrCode>, "Return type must be void or daq::ErrCode");
-    IErrorGuard* errorGuard = ErrorGuard_Create("nullptr", -1);
+    IErrorGuard* errorGuard = ErrorGuard_Create(__func__, -1);
     try
     {
         ErrCode errCode = OPENDAQ_SUCCESS;
@@ -593,7 +594,7 @@ ErrCode wrapHandler(Object* object, Handler handler, Params&& ... params)
 template <typename Object, typename Handler, typename TReturn, typename... Params>
 ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Params&&... params)
 {
-    IErrorGuard* errorGuard = ErrorGuard_Create(nullptr, -1);
+    IErrorGuard* errorGuard = ErrorGuard_Create(__func__, -1);
     try
     {
         output = (object->*handler)(std::forward<Params>(params)...);
@@ -621,7 +622,7 @@ ErrCode wrapHandlerReturn(Object* object, Handler handler, TReturn& output, Para
 template <class F>
 ErrCode daqTry(const IBaseObject* context, F&& func)
 {
-    IErrorGuard* errorGuard = ErrorGuard_Create(nullptr, -1);
+    IErrorGuard* errorGuard = ErrorGuard_Create(__func__, -1);
     try
     {
         ErrCode errCode = OPENDAQ_SUCCESS;

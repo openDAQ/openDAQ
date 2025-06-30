@@ -7,6 +7,7 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -17,7 +18,7 @@ class InitialErrorGuard : public ErrorGuardImpl
 {
 public:
     InitialErrorGuard()
-        : ErrorGuardImpl(nullptr, -1)
+        : ErrorGuardImpl("Initial", -1)
     {
     }
 
@@ -171,7 +172,15 @@ void ErrorInfoHolder::removeScopeEntry(ErrorGuardImpl* entry)
     }
 
     if (errorScopeList->empty())
+    {
         errorScopeList.reset();
+    }
+    else
+    {
+        backEntry = errorScopeList->back();
+        if (backEntry->isInitial() && backEntry->empty())
+            backEntry->releaseRef();  // only dummy
+    }
 }
 
 // ErrorGuardImpl
@@ -271,6 +280,15 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) con
 
     auto str = ss.str();
     return createString(message, str.c_str());
+}
+
+ErrCode ErrorGuardImpl::toString(CharPtr* str)
+{
+    std::ostringstream stream;
+    stream << "ErrorGuard";
+    if (filename)
+        stream << " [ " << filename << ":" << fileLine << " ]";
+    return daqDuplicateCharPtr(stream.str().c_str(), str);
 }
 
 ErrCode ErrorGuardImpl::getLastErrorInfo(IErrorInfo** errorInfo, ErrCode errCode) const

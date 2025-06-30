@@ -99,6 +99,7 @@ public:
     ErrCode INTERFACE_FUNC getLastErrorInfo(IErrorInfo** errorInfo, ErrCode errCode = OPENDAQ_LAST_ERROR_INFO) const override;
     ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) const override;
     ErrCode INTERFACE_FUNC getFormatMessage(IString** message, ErrCode errCode) const override;
+    ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
 
     virtual bool isInitial() const { return false; }
     void setErrorInfo(IErrorInfo* errorInfo);

@@ -4,13 +4,13 @@
 #include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
-PropertiesFbObjectPropProceduresFunctionsInheritance::PropertiesFbObjectPropProceduresFunctionsInheritance(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+ExampleFBPropertyObjectsAndClasses::ExampleFBPropertyObjectsAndClasses(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
 }
 
-void PropertiesFbObjectPropProceduresFunctionsInheritance::initProperties()
+void ExampleFBPropertyObjectsAndClasses::initProperties()
 {
     // Object - used for grouping multiple properties of different types, including nested objects
     auto innerObj = PropertyObject();
@@ -72,7 +72,7 @@ void PropertiesFbObjectPropProceduresFunctionsInheritance::initProperties()
     objPtr.addProperty(classProp);
 }
 
-FunctionBlockTypePtr PropertiesFbObjectPropProceduresFunctionsInheritance::CreateType()
+FunctionBlockTypePtr ExampleFBPropertyObjectsAndClasses::CreateType()
 {
     return FunctionBlockType("ExampleFBPropertyObjectsAndClasses", "ExampleFBPropertyObjectsAndClasses", "Function Block focused on objects and classes");
 }

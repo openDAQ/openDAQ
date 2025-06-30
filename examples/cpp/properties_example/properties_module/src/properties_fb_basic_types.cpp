@@ -2,13 +2,13 @@
 #include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
-PropertiesFbBasicAndCallback::PropertiesFbBasicAndCallback(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+ExampleFBPropertyBasicTypes::ExampleFBPropertyBasicTypes(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
 }
 
-void PropertiesFbBasicAndCallback::initProperties()
+void ExampleFBPropertyBasicTypes::initProperties()
 {
     // Bool - used for properties with two states, like on/off, true/false, etc.
     auto boolProp = BoolPropertyBuilder("Bool", False)
@@ -57,7 +57,7 @@ void PropertiesFbBasicAndCallback::initProperties()
     };
 }
 
-FunctionBlockTypePtr PropertiesFbBasicAndCallback::CreateType()
+FunctionBlockTypePtr ExampleFBPropertyBasicTypes::CreateType()
 {
     return FunctionBlockType("ExampleFBPropertyBasicTypes", "ExampleFBPropertyBasicTypes", "Function Block focused on basic Property types.");
 }

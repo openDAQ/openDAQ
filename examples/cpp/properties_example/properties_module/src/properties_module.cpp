@@ -21,16 +21,16 @@ DictPtr<IString, IFunctionBlockType> PropertiesModule::onGetAvailableFunctionBlo
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
-    const auto basicTypes = PropertiesFbBasicAndCallback::CreateType();
+    const auto basicTypes = ExampleFBPropertyBasicTypes::CreateType();
     types.set(basicTypes.getId(), basicTypes);
 
-    const auto containerTypes = PropertiesFbContainerTypesAndSelection::CreateType();
+    const auto containerTypes = ExampleFBPropertyContainerTypes::CreateType();
     types.set(containerTypes.getId(), containerTypes);
 
-    const auto objectsAndClasses = PropertiesFbObjectPropProceduresFunctionsInheritance::CreateType();
+    const auto objectsAndClasses = ExampleFBPropertyObjectsAndClasses::CreateType();
     types.set(objectsAndClasses.getId(), objectsAndClasses);
 
-    const auto referenceProperties = PropertiesFbReferencesValidationCoertionConditional::CreateType();
+    const auto referenceProperties = ExampleFBPropertyReferenceProperties::CreateType();
     types.set(referenceProperties.getId(), referenceProperties);
 
     return types;
@@ -41,26 +41,26 @@ FunctionBlockPtr PropertiesModule::onCreateFunctionBlock(const StringPtr& id,
                                                          const StringPtr& localId,
                                                          const PropertyObjectPtr& /*config*/)
 {
-    if (id == PropertiesFbBasicAndCallback::CreateType().getId())
+    if (id == ExampleFBPropertyBasicTypes::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFbBasicAndCallback>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, ExampleFBPropertyBasicTypes>(context, parent, localId);
         return fb;
     }
-    if (id == PropertiesFbContainerTypesAndSelection::CreateType().getId())
+    if (id == ExampleFBPropertyContainerTypes::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PropertiesFbContainerTypesAndSelection>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, ExampleFBPropertyContainerTypes>(context, parent, localId);
         return fb;
     }
-    if (id == PropertiesFbObjectPropProceduresFunctionsInheritance::CreateType().getId())
+    if (id == ExampleFBPropertyObjectsAndClasses::CreateType().getId())
     {
         FunctionBlockPtr fb =
-            createWithImplementation<IFunctionBlock, PropertiesFbObjectPropProceduresFunctionsInheritance>(context, parent, localId);
+            createWithImplementation<IFunctionBlock, ExampleFBPropertyObjectsAndClasses>(context, parent, localId);
         return fb;
     }
-    if (id == PropertiesFbReferencesValidationCoertionConditional::CreateType().getId())
+    if (id == ExampleFBPropertyReferenceProperties::CreateType().getId())
     {
         FunctionBlockPtr fb =
-            createWithImplementation<IFunctionBlock, PropertiesFbReferencesValidationCoertionConditional>(context, parent, localId);
+            createWithImplementation<IFunctionBlock, ExampleFBPropertyReferenceProperties>(context, parent, localId);
         return fb;
     }
 

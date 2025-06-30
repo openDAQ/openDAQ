@@ -21,11 +21,11 @@
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-class PropertiesFbBasicAndCallback final : public FunctionBlock
+class ExampleFBPropertyBasicTypes final : public FunctionBlock
 {
 public:
-    explicit PropertiesFbBasicAndCallback(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId);
-    ~PropertiesFbBasicAndCallback() override = default;
+    explicit ExampleFBPropertyBasicTypes(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId);
+    ~ExampleFBPropertyBasicTypes() override = default;
 
     static FunctionBlockTypePtr CreateType();
 

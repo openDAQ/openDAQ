@@ -21,11 +21,11 @@
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-class PropertiesFbObjectPropProceduresFunctionsInheritance final : public FunctionBlock
+class ExampleFBPropertyObjectsAndClasses final : public FunctionBlock
 {
 public:
-    explicit PropertiesFbObjectPropProceduresFunctionsInheritance(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId);
-    ~PropertiesFbObjectPropProceduresFunctionsInheritance() override = default;
+    explicit ExampleFBPropertyObjectsAndClasses(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId);
+    ~ExampleFBPropertyObjectsAndClasses() override = default;
 
     static FunctionBlockTypePtr CreateType();
 

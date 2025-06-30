@@ -2,13 +2,13 @@
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-PropertiesFbReferencesValidationCoertionConditional::PropertiesFbReferencesValidationCoertionConditional(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+ExampleFBPropertyReferenceProperties::ExampleFBPropertyReferenceProperties(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
 }
 
-void PropertiesFbReferencesValidationCoertionConditional::initProperties()
+void ExampleFBPropertyReferenceProperties::initProperties()
 {
     // Referenced Bool - used for demo purposes fo referencing another Property
     auto referencedProp = BoolProperty("Referenced", False);
@@ -56,7 +56,7 @@ void PropertiesFbReferencesValidationCoertionConditional::initProperties()
     objPtr.setPropertyOrder(customOrder);
 }
 
-FunctionBlockTypePtr PropertiesFbReferencesValidationCoertionConditional::CreateType()
+FunctionBlockTypePtr ExampleFBPropertyReferenceProperties::CreateType()
 {
     return FunctionBlockType("ExampleFBPropertyReferenceProperties", "ExampleFBPropertyReferenceProperties", "Function Block focused on reference Properties");
 }

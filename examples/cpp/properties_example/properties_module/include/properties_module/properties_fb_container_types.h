@@ -21,11 +21,11 @@
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-class PropertiesFbContainerTypesAndSelection final : public FunctionBlock
+class ExampleFBPropertyContainerTypes final : public FunctionBlock
 {
 public:
-    explicit PropertiesFbContainerTypesAndSelection(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId);
-    ~PropertiesFbContainerTypesAndSelection() override = default;
+    explicit ExampleFBPropertyContainerTypes(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId);
+    ~ExampleFBPropertyContainerTypes() override = default;
 
     static FunctionBlockTypePtr CreateType();
 

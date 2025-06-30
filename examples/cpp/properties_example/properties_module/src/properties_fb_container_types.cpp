@@ -3,13 +3,13 @@
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-PropertiesFbContainerTypesAndSelection::PropertiesFbContainerTypesAndSelection(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+ExampleFBPropertyContainerTypes::ExampleFBPropertyContainerTypes(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
 }
 
-void PropertiesFbContainerTypesAndSelection::initProperties()
+void ExampleFBPropertyContainerTypes::initProperties()
 {
     // List (may contain other types) - used for storing multiple values of the same type
     auto list = List<IInteger>();
@@ -54,7 +54,7 @@ void PropertiesFbContainerTypesAndSelection::initProperties()
     objPtr.addProperty(sparseProp);
 }
 
-FunctionBlockTypePtr PropertiesFbContainerTypesAndSelection::CreateType()
+FunctionBlockTypePtr ExampleFBPropertyContainerTypes::CreateType()
 {
     return FunctionBlockType("ExampleFBPropertyContainerTypes", "ExampleFBPropertyContainerTypes", "Function Block focused on container Property types");
 }

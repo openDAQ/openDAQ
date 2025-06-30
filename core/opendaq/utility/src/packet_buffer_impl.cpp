@@ -2,27 +2,25 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-PacketBufferImpl::PacketBufferImpl(IPacketBufferBuilder* builder)
+PacketBufferImpl::PacketBufferImpl(const PacketBufferBuilderPtr& builder)
 {
     // Here comes the init of the buffer (that means the fresh std::vector gets called here)
     // also looks into the builder for the class
-    SizeT stuff;
-    builder->getSizeInBytes(&stuff);
-    data = std::vector<uint8_t>(stuff);
-    sizeOfMem = stuff;
+    sizeInBytes = builder.getSizeInBytes();
+    context = builder.getContext();
+
+    data = std::vector<uint8_t>(sizeInBytes);
     readPos = data.data();
     writePos = data.data();
     isFull = false;
     underReset = false;
-    builder->getRawSampleSize(&rawSampleSize);
-    sampleCount = stuff;
-    builder->getContext(&context);
 }
 
-ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
+
+ErrCode PacketBufferImpl::Write(size_t sampleCount, size_t rawSampleSize, void** memPos)
 {
-    auto writePosVirtuallyAdjusted = (static_cast<uint8_t*>(writePos) + rawSampleSize * *sampleCount);
-    auto endOfBuffer = (reinterpret_cast<uint8_t*>(data.data()) + sizeOfMem);
+    auto writePosVirtuallyAdjusted = (static_cast<uint8_t*>(writePos) + rawSampleSize * sampleCount);
+    auto endOfBuffer = (reinterpret_cast<uint8_t*>(data.data()) + sizeInBytes);
     auto readPosWritePosDiff = (static_cast<uint8_t*>(writePos) - static_cast<uint8_t*>(readPos)) / static_cast<uint8_t>(rawSampleSize);
     size_t availableSamples;
 
@@ -36,7 +34,8 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
     {
         if (isFull && readPosWritePosDiff == 0)
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException);
+            
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_BUFFERFULL, "The packet buffer is full");
             // Return problem
         }
         else if (!isFull && readPosWritePosDiff == 0)
@@ -50,17 +49,17 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
 
     }
 
-    if (availableSamples < *sampleCount)
+    if (availableSamples < sampleCount)
     {
         auto beginningReadPosDiff = (static_cast<uint8_t*>(readPos) - data.data());
-        if (static_cast<long long>(*sampleCount) <= beginningReadPosDiff)
+        if (static_cast<long long>(sampleCount) <= beginningReadPosDiff)
         {
             // Dummy packet
-            oos_packets.push(std::make_pair(writePos , (static_cast<uint8_t*>(data.data()) + sizeOfMem) - static_cast<uint8_t*>(writePos)));
+            oosPackets.push(std::make_pair(writePos , (static_cast<uint8_t*>(data.data()) + sizeInBytes) - static_cast<uint8_t*>(writePos)));
 
             // The main packet at the beginning
             *memPos = data.data();
-            writePos = static_cast<void*>(data.data() + *sampleCount); 
+            writePos = static_cast<void*>(data.data() + sampleCount); 
             if (writePos == readPos)
             {
                 isFull = true;
@@ -68,10 +67,12 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
             }
             return OPENDAQ_SUCCESS;
         }
-        DAQ_THROW_EXCEPTION(InvalidParameterException);     // This exception can be replaced with a custom one that will be defined specifically for packet buffers
+
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The requested packet size is no longer available.");
     }
     else
     {
+        *memPos = writePos;
         *memPos = writePos;
         writePos = writePosVirtuallyAdjusted;
     }
@@ -81,7 +82,7 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
         isFull = true;
         if (sizeAdjusted)
         {
-            // Is this endpoint still necessary
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The size of the requested packet has been adjusted.");
         }
         return OPENDAQ_SUCCESS;
     }
@@ -94,7 +95,7 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
         }
         if (sizeAdjusted)
         {
-            // This endpoint might also be redundant
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The size of the requested packet has been adjusted.");
         }
         return OPENDAQ_SUCCESS;
     }
@@ -105,18 +106,18 @@ ErrCode PacketBufferImpl::Write(size_t* sampleCount, void** memPos)
 ErrCode PacketBufferImpl::Read(void* beginningOfDelegatedSpace, size_t sampleCount, size_t rawSize)
 {
     {
-        std::unique_lock<std::mutex> lock(mxFlip);
+        std::unique_lock<std::mutex> lock(readWriteMutex);
         if (beginningOfDelegatedSpace != readPos)
         {
             bool scenario = beginningOfDelegatedSpace < readPos;
             if (scenario)
             {
-                oos_packets.push(std::make_pair(((uint8_t*) &data + sizeOfMem) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) &data),
+                oosPackets.push(std::make_pair(((uint8_t*) &data + sizeInBytes) + ((uint8_t*) beginningOfDelegatedSpace - (uint8_t*) &data),
                                                 sampleCount * rawSize));
             }
             else
             {
-                oos_packets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount * rawSize));
+                oosPackets.push(std::make_pair(beginningOfDelegatedSpace, sampleCount * rawSize));
             }
             lock.unlock();
             return OPENDAQ_SUCCESS;
@@ -126,13 +127,13 @@ ErrCode PacketBufferImpl::Read(void* beginningOfDelegatedSpace, size_t sampleCou
             sampleCount *= rawSize;
             auto mm = static_cast<void*>(static_cast<uint8_t*>(beginningOfDelegatedSpace) + sampleCount);
 
-            while (!oos_packets.empty())
+            while (!oosPackets.empty())
             {
                 mm = static_cast<void*>(static_cast<uint8_t*>(beginningOfDelegatedSpace) + sampleCount);
-                if (oos_packets.top().first == mm)
+                if (oosPackets.top().first == mm)
                 {
-                    sampleCount += oos_packets.top().second;
-                    oos_packets.pop();
+                    sampleCount += oosPackets.top().second;
+                    oosPackets.pop();
                 }
                 else
                 {
@@ -143,42 +144,49 @@ ErrCode PacketBufferImpl::Read(void* beginningOfDelegatedSpace, size_t sampleCou
         if (readPos == writePos && !isFull)
         {
             lock.unlock();
-            // Return error codes
-            DAQ_THROW_EXCEPTION(InvalidStateException);
+            
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "You are trying to empty an already empty buffer.");
         }
 
         readPos = static_cast<void*>(static_cast<uint8_t*>(readPos) + rawSize * sampleCount);
 
-        if (static_cast<uint8_t*>(readPos) >= static_cast<uint8_t*>(data.data()) + rawSize * sizeOfMem)
-            readPos = static_cast<void*>(static_cast<uint8_t*>(readPos) - (rawSize * sizeOfMem));
+        if (static_cast<uint8_t*>(readPos) >= static_cast<uint8_t*>(data.data()) + rawSize * sizeInBytes)
+            readPos = static_cast<void*>(static_cast<uint8_t*>(readPos) - (rawSize * sizeInBytes));
 
         isFull = false;
         lock.unlock();
     }
-    cv.notify_all();
+    resizeSync.notify_all();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet)
 {
     daq::DataRulePtr rule;
-    desc->getRule(&rule);
-    if (rule.getType() == daq::DataRuleType::Linear)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Packet Buffer does not support Linear Data Rule Type packets.");
+    ErrCode err = desc->getRule(&rule);
+    OPENDAQ_RETURN_IF_FAILED(err);
 
-    std::lock_guard<std::mutex> lock(mxFlip);
+    DataRuleType type;
+    err = rule->getType(&type);
+    if (type == daq::DataRuleType::Linear)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Packet Buffer does not support Linear Data Rule Type packets.");
+
+    std::lock_guard<std::mutex> lock(readWriteMutex);
     if (underReset)
     {
         // Here there should be a reintroduction of Logging stuff
-        DAQ_THROW_EXCEPTION(InvalidStateException);  // Aka you should not create packets under reset
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Trying to create packets while the reset procedure is underway.");
+        //DAQ_THROW_EXCEPTION(InvalidStateException);  // Aka you should not create packets under reset
         // This maybe needs to be changed to reflect that a packet was trying to be created
     }
-    desc->getRawSampleSize(&rawSampleSize);
+
+    size_t rawSampleSize;
+    err = desc->getRawSampleSize(&rawSampleSize);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
     void* startOfSpace = nullptr;
 
-    this->Write(&sampleCount, &startOfSpace);
-    // deleterFunction = [&, sampleCnt = sampleCount, startOfSpace = startOfSpace, rawSizeOfSample = rawSampleSize](void*)
-    // { Read(startOfSpace, sampleCnt, rawSizeOfSample); };
+    this->Write(sampleCount, rawSampleSize, &startOfSpace);
     auto deleter = daq::Deleter([this, sampleCnt = sampleCount, startOfSpace = startOfSpace, rawSizeOfSample = rawSampleSize](void*)mutable
                                 {
                                     Read(startOfSpace, sampleCnt, rawSizeOfSample);
@@ -191,9 +199,9 @@ ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc,
 ErrCode PacketBufferImpl::getAvailableMemory(SizeT* count)
 {
     SizeT check1 = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
-    SizeT check2 = (data.data() + sizeOfMem) - static_cast<uint8_t*>(writePos);
+    SizeT check2 = (data.data() + sizeInBytes) - static_cast<uint8_t*>(writePos);
 
-    if (!(writePos == readPos && isFull))
+    if (!((writePos == readPos) && isFull))
         *count = (check1 <= check2) ? check2 : check1;
     else
         *count = 0;
@@ -203,7 +211,10 @@ ErrCode PacketBufferImpl::getAvailableMemory(SizeT* count)
 
 ErrCode PacketBufferImpl::getAvailableSampleCount(IDataDescriptor* desc, SizeT* count)
 {
-    auto allAvailableSamples = static_cast<uint8_t*>(data.data()) + sizeOfMem;  // End of buffer
+    OPENDAQ_PARAM_NOT_NULL(desc);
+    OPENDAQ_PARAM_NOT_NULL(count);
+
+    auto allAvailableSamples = static_cast<uint8_t*>(data.data()) + sizeInBytes;  // End of buffer
 
     if (writePos == readPos)
     {
@@ -232,16 +243,117 @@ ErrCode PacketBufferImpl::getAvailableSampleCount(IDataDescriptor* desc, SizeT* 
 
 ErrCode PacketBufferImpl::resize(SizeT sizeInBytes)
 {
-    std::unique_lock<std::mutex> lock(mxFlip);
+    std::unique_lock<std::mutex> lock(readWriteMutex);
     underReset = true;
 
-    this->cv.wait(lock, [&] { return ((readPos == writePos) && (!isFull)); });
+    this->resizeSync.wait(lock, [&] { return ((readPos == writePos) && (!isFull)); });
 
     underReset = false;
     data = std::vector<uint8_t>(sizeInBytes);
-    sizeOfMem = sizeInBytes;
+    sizeInBytes = sizeInBytes;
 
-    cv.notify_all();
+    resizeSync.notify_all();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketBufferImpl::getMaxAvailableContinousSampleCount(IDataDescriptor* desc, SizeT* count)
+{
+    OPENDAQ_PARAM_NOT_NULL(desc);
+    OPENDAQ_PARAM_NOT_NULL(count);
+
+    auto allAvailableSamples = static_cast<uint8_t*>(data.data()) + sizeInBytes;  // End of buffer
+
+    SizeT rawSampleSize;
+    desc->getRawSampleSize(&rawSampleSize);
+
+    if (writePos == readPos)
+    {
+        if (isFull)
+        {
+            *count = 0;
+        }
+        auto fromEndToPos = allAvailableSamples - static_cast<uint8_t*>(readPos);
+        auto fromStartToPos = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
+
+        *count = (fromStartToPos <= fromEndToPos) ? (fromEndToPos/rawSampleSize) : (fromStartToPos/rawSampleSize);
+    }
+    else
+    {
+        if (writePos > readPos)
+        {
+            auto fromEndToPos = allAvailableSamples - static_cast<uint8_t*>(writePos);
+            auto fromStartToPos = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
+
+
+            *count = (fromStartToPos <= fromEndToPos) ? (fromEndToPos/rawSampleSize) : (fromStartToPos/rawSampleSize);
+        }
+        *count = (static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(writePos))/rawSampleSize;
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketBufferImpl::getAvailableContinousSampleLeft(IDataDescriptor* desc, SizeT* count)
+{
+    OPENDAQ_PARAM_NOT_NULL(desc);
+    OPENDAQ_PARAM_NOT_NULL(count);
+
+    SizeT rawSampleSize;
+    desc->getRawSampleSize(&rawSampleSize);
+
+    auto allAvailableSamples = static_cast<uint8_t*>(data.data()) + sizeInBytes;
+
+    if (writePos == readPos)
+    {
+        if (isFull)
+        {
+            *count = 0;
+        }
+        auto fromEndToPos = allAvailableSamples - static_cast<uint8_t*>(readPos);
+        *count = fromEndToPos/rawSampleSize;
+    }
+    else
+    {
+        if (writePos > readPos)
+        {
+            auto fromEndToPos = allAvailableSamples - static_cast<uint8_t*>(writePos);
+
+            *count = fromEndToPos/rawSampleSize;
+        }
+        *count = (static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(writePos)) / rawSampleSize;
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PacketBufferImpl::getAvailableContinousSampleRight(IDataDescriptor* desc, SizeT* count)
+{
+    OPENDAQ_PARAM_NOT_NULL(desc);
+    OPENDAQ_PARAM_NOT_NULL(count);
+
+    SizeT rawSampleSize;
+    desc->getRawSampleSize(&rawSampleSize);
+
+    if (writePos == readPos)
+    {
+        if (isFull)
+        {
+            *count = 0;
+        }
+        auto fromStartToPos = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
+        *count = fromStartToPos / rawSampleSize;
+    }
+    else
+    {
+        if (writePos > readPos)
+        {
+            auto fromStartToPos = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
+
+            *count = fromStartToPos / rawSampleSize;
+        }
+        *count = (static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(writePos)) / rawSampleSize;
+    }
+
     return OPENDAQ_SUCCESS;
 }
 

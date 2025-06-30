@@ -33,11 +33,12 @@ std::tuple<daq::DataDescriptorPtr, daq::DataPacketPtr> generate_building_blocks(
 TEST_F(PacketBufferTest, SanityCheck)
 {
     PacketBufferBuilderPtr builder = PacketBufferBuilder();
+    builder->setSizeInBytes(800);
     PacketBufferPtr buffer = PacketBuffer(builder);
     SizeT mem;
 
     buffer->getAvailableMemory(&mem);
-    
+
     ASSERT_TRUE(mem == 800);
 }
 
@@ -71,19 +72,19 @@ TEST_F(PacketBufferTest, fullRange)
 
     buffer->createPacket(mem, desc, domain, &destination[0]);
 
-    ASSERT_THROW(buffer->createPacket(100000, desc, domain, &destination[1]),daq::InvalidParameterException);
+    ASSERT_EQ(buffer->createPacket(100000, desc, domain, &destination[1]), 0);
 }
 
 TEST_F(PacketBufferTest, bufferFillUp)
 {
     auto builder = PacketBufferBuilder();
+    builder->setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
     auto [desc, domain] = generate_building_blocks();
 
     SizeT check;
     buffer->getAvailableMemory(&check);
-    std::cout << check << std::endl;
 
 
     SizeT mem = 10;
@@ -93,16 +94,15 @@ TEST_F(PacketBufferTest, bufferFillUp)
     for (int i = 0; i < 8; i++) {
         buffer->createPacket(mem, desc, domain, &middle);
         buffer->getAvailableMemory(&check);
-        std::cout << check << std::endl;
         destination.push_back(middle.detach());
     }
     buffer->getAvailableMemory(&mem);
-    std::cout << mem << std::endl;
 }
 
 TEST_F(PacketBufferTest, emptyPacket)
 {
     auto builder = PacketBufferBuilder();
+    builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
     auto [desc, domain] = generate_building_blocks();
@@ -116,7 +116,8 @@ TEST_F(PacketBufferTest, emptyPacket)
 
 TEST_F(PacketBufferTest, writeAhead)
 {
-    
+    auto builder = PacketBufferBuilder();
+    auto buffer = PacketBuffer(builder);
 }
 
 TEST_F(PacketBufferTest, readAhead)
@@ -136,6 +137,7 @@ TEST_F(PacketBufferTest, dynamicWorkflowSimulation)
 TEST_F(PacketBufferTest, linearRuleFail)
 {
     auto builder = PacketBufferBuilder();
+    builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
     auto dimensions = daq::List<daq::IDimension>();
@@ -155,7 +157,7 @@ TEST_F(PacketBufferTest, linearRuleFail)
 
     DataPacketPtr destination;
 
-    ASSERT_THROW(buffer->createPacket(mem, descriptor, domain, &destination), daq::InvalidParameterException);
+    ASSERT_EQ(buffer->createPacket(mem, descriptor, domain, &destination), 2147483649);
 }
 
 TEST_F(PacketBufferTest, dynamicPacketDestruction)

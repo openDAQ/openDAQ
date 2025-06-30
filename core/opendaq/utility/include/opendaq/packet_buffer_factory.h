@@ -20,7 +20,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline PacketBufferPtr PacketBuffer(const PacketBufferBuilderPtr builder)
+inline PacketBufferPtr PacketBuffer(const PacketBufferBuilderPtr& builder)
 {
     return PacketBufferPtr(PacketBuffer_Create(builder));
 }

@@ -30,21 +30,16 @@ public:
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC setContext(IContext* context) override;
 
-    ErrCode INTERFACE_FUNC getSizeInBytes(SizeT* sampleCount) override;
-    ErrCode INTERFACE_FUNC setSizeInBytes(SizeT sampleCount) override;
-
-    ErrCode INTERFACE_FUNC getRawSampleSize(SizeT* rawSampleSize) override;
-    ErrCode INTERFACE_FUNC setRawSampleSize(SizeT rawSampleSize) override;
+    // Also change variable name in impl
+    ErrCode INTERFACE_FUNC getSizeInBytes(SizeT* sizeInBytes) override;
+    ErrCode INTERFACE_FUNC setSizeInBytes(SizeT sizeInBytes) override;
 
     ErrCode INTERFACE_FUNC build(IPacketBuffer** buffer) override;
 
 private:
 
-    SizeT sampleCount;
-    SizeT sampleSize;
-    SizeT sizeInMilliseconds;
+    SizeT sizeInBytes;
     ContextPtr context;
-    DataDescriptorPtr descriptor;
 };
 
 END_NAMESPACE_OPENDAQ

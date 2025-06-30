@@ -24,35 +24,30 @@
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/packet_buffer.h>
-#include <opendaq/packet_buffer_builder.h>
+#include <opendaq/packet_buffer_builder_ptr.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/deleter_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-enum class PacketCreateStatus
-{
-    Ok = 0,
-    Failed,
-    Resetting,
-    OutOfMemory,
-};
-
 class PacketBufferImpl : public ImplementationOf<IPacketBuffer>
 {
 public:
 
-    PacketBufferImpl(IPacketBufferBuilder* builder);
+    PacketBufferImpl(const PacketBufferBuilderPtr& builder);
 
-    ErrCode INTERFACE_FUNC createPacket(SizeT SampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet) override;
+    ErrCode INTERFACE_FUNC createPacket(SizeT sampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet) override;
     ErrCode INTERFACE_FUNC getAvailableMemory(SizeT* count) override;
     ErrCode INTERFACE_FUNC getAvailableSampleCount(IDataDescriptor* desc, SizeT* count) override;
     ErrCode INTERFACE_FUNC resize(SizeT sizeInBytes) override;
 
+    ErrCode INTERFACE_FUNC getMaxAvailableContinousSampleCount(IDataDescriptor* desc, SizeT* count) override;
+    ErrCode INTERFACE_FUNC getAvailableContinousSampleLeft(IDataDescriptor* desc, SizeT* count) override;
+    ErrCode INTERFACE_FUNC getAvailableContinousSampleRight(IDataDescriptor* desc, SizeT* count) override;
+
 protected:
 
-
-    ErrCode Write(size_t* sampleCount, void** memPos);
+    ErrCode Write(size_t sampleCount, size_t rawSampleSize, void** memPos);
 
     ErrCode Read(void* beginningOfDelegatedSpace, size_t sampleCount, size_t rawSize);
 
@@ -60,26 +55,21 @@ protected:
 
     // and other storage stuff...
 
+    std::vector<uint8_t> data;
     void* readPos;
     void* writePos;
-    std::vector<uint8_t> data;
     bool isFull;
     bool underReset;
 
-    size_t sizeOfMem;
-    size_t rawSampleSize;
+    size_t sizeInBytes;
 
-    std::mutex mxFlip;
-    std::condition_variable cv;
+    std::mutex readWriteMutex;
+    std::condition_variable resizeSync;
 
     std::priority_queue<std::pair<void*, size_t>, std::vector<std::pair<void*, size_t>>, std::greater<std::pair<void*, size_t>>>
-        oos_packets;
+        oosPackets;
 
-    std::function<void(void*)> deleterFunction;
-
-    DataDescriptorPtr descriptor;
     ContextPtr context;
-    size_t sampleCount;
 };
 
 END_NAMESPACE_OPENDAQ

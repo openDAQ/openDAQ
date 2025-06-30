@@ -27,11 +27,8 @@ DECLARE_OPENDAQ_INTERFACE(IPacketBufferBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getContext(IContext** context) = 0;
     virtual ErrCode INTERFACE_FUNC setContext(IContext* context) = 0;
 
-    virtual ErrCode INTERFACE_FUNC getSizeInBytes(SizeT* sampleCount) = 0;
-    virtual ErrCode INTERFACE_FUNC setSizeInBytes(SizeT sampleCount) = 0;
-
-    virtual ErrCode INTERFACE_FUNC getRawSampleSize(SizeT * rawSampleSize) = 0;
-    virtual ErrCode INTERFACE_FUNC setRawSampleSize(SizeT rawSampleSize)  = 0;
+    virtual ErrCode INTERFACE_FUNC getSizeInBytes(SizeT* sizeInBytes) = 0;
+    virtual ErrCode INTERFACE_FUNC setSizeInBytes(SizeT sizeInBytes) = 0;
 
     virtual ErrCode INTERFACE_FUNC build(IPacketBuffer** buffer) = 0;
 };

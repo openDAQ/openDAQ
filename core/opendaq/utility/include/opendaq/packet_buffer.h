@@ -24,8 +24,19 @@ struct IPacketBufferBuilder;
 
 DECLARE_OPENDAQ_INTERFACE(IPacketBuffer, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC createPacket(SizeT SampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet) = 0;
+    // SampleCount should be an in-out parameter
+    virtual ErrCode INTERFACE_FUNC createPacket(SizeT sampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet) = 0;
+
+    // What does this return? Consecutive available memory, or total available memory including wraparound?
+    // Not really needed, not useful in end-user examples
     virtual ErrCode INTERFACE_FUNC getAvailableMemory(SizeT* count) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getMaxAvailableContinousSampleCount(IDataDescriptor * desc, SizeT * count) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableContinousSampleLeft(IDataDescriptor * desc, SizeT * count) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableContinousSampleRight(IDataDescriptor * desc, SizeT * count) = 0;
+
+
+    // getMaxLinearAvailableSampleCount // getMaxAvailableContionousSampleCount
     virtual ErrCode INTERFACE_FUNC getAvailableSampleCount(IDataDescriptor* desc, SizeT* count) = 0;
     virtual ErrCode INTERFACE_FUNC resize(SizeT sizeInBytes) = 0;
 };

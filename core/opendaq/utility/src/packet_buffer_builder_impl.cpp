@@ -4,46 +4,35 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 PacketBufferBuilderImpl::PacketBufferBuilderImpl()
-    : sampleCount(100)
-    , sampleSize(8)
-    , sizeInMilliseconds(10)
+    : sizeInBytes(0)
 {
 }
 
 ErrCode PacketBufferBuilderImpl::getContext(IContext** context)
 {
+    OPENDAQ_PARAM_NOT_NULL(context);
+
     *context = this->context.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode PacketBufferBuilderImpl::setContext(IContext* context)
 {
-    OPENDAQ_PARAM_NOT_NULL(context);
     this->context = context;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketBufferBuilderImpl::getSizeInBytes(SizeT* sampleCount)
+ErrCode PacketBufferBuilderImpl::getSizeInBytes(SizeT* sizeInBytes)
 {
-    *sampleCount = this->sampleCount * this->sampleSize;
+    OPENDAQ_PARAM_NOT_NULL(sizeInBytes);
+
+    *sizeInBytes = this->sizeInBytes;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketBufferBuilderImpl::setSizeInBytes(SizeT sampleCount)
+ErrCode PacketBufferBuilderImpl::setSizeInBytes(SizeT sizeInBytes)
 {
-    this->sampleCount = sampleCount;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PacketBufferBuilderImpl::getRawSampleSize(SizeT* rawSampleSize)
-{
-    *rawSampleSize = this->sampleSize;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PacketBufferBuilderImpl::setRawSampleSize(SizeT rawSampleSize)
-{
-    this->sampleSize = rawSampleSize;
+    this->sizeInBytes = sizeInBytes;
     return OPENDAQ_SUCCESS;
 }
 
@@ -51,6 +40,9 @@ ErrCode PacketBufferBuilderImpl::build(IPacketBuffer** buffer)
 {
     OPENDAQ_PARAM_NOT_NULL(buffer);
     const auto builder = this->borrowPtr<PacketBufferBuilderPtr>();
+
+    if (sizeInBytes == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Buffer SizeInBytes parameter must be greater than 0.");
 
     return daqTry(
         [&]()

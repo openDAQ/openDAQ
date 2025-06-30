@@ -12,40 +12,40 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance();
 
     // Add Function Block by type ID
-    auto fb4 = instance.addFunctionBlock("ExampleFBPropertyReferenceProperties");
+    auto fb = instance.addFunctionBlock("ExampleFBPropertyReferenceProperties");
 
     // Apply changes in one sweep later
-    fb4.beginUpdate();
+    fb.beginUpdate();
 
     // Print before modifications
     std::cout << "\nBefore modifications/update:\n";
-    print(fb4);
+    print(fb);
 
     // Property visibility depending on another Property
-    fb4.setPropertyValue("SometimesVisible", 2);
+    fb.setPropertyValue("SometimesVisible", 2);
 
     // Referenced and reference Bool
-    fb4.setPropertyValue("Reference", True);
+    fb.setPropertyValue("Reference", True);
 
     // Check if Properties are referenced
-    std::cout << "Referenced is referenced: " << Boolean(fb4.getProperty("Referenced").getIsReferenced()) << "\n";
-    std::cout << "Reference is referenced: " << Boolean(fb4.getProperty("Reference").getIsReferenced()) << "\n";
+    std::cout << "Referenced is referenced: " << Boolean(fb.getProperty("Referenced").getIsReferenced()) << "\n";
+    std::cout << "Reference is referenced: " << Boolean(fb.getProperty("Reference").getIsReferenced()) << "\n";
 
     // Coerced Int
-    fb4.setPropertyValue("CoercedProp", 4);    // No coercion
-    fb4.setPropertyValue("CoercedProp", 142);  // Coerced to 10
+    fb.setPropertyValue("CoercedProp", 4);    // No coercion
+    fb.setPropertyValue("CoercedProp", 142);  // Coerced to 10
 
     // Print after calling set but before modifications are applied via endUpdate
     std::cout << "\nFB4 after calling set but before modifications are applied (should be the same as before):\n";
-    print(fb4);
+    print(fb);
 
     // Apply changes in one sweep
-    fb4.endUpdate();
+    fb.endUpdate();
 
     // Read-only Int
     try
     {
-        fb4.setPropertyValue("ReadOnlyInt", 42);
+        fb.setPropertyValue("ReadOnlyInt", 42);
     }
     catch (const std::exception& e)
     {
@@ -53,10 +53,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Validated Int
-    fb4.setPropertyValue("ValidatedProp", 43);  // Valid
+    fb.setPropertyValue("ValidatedProp", 43);  // Valid
     try
     {
-        fb4.setPropertyValue("ValidatedProp", 1000);  // Fails validation
+        fb.setPropertyValue("ValidatedProp", 1000);  // Fails validation
     }
     catch (const std::exception& e)
     {
@@ -65,14 +65,14 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Print after modifications
     std::cout << "\nAfter modifications:\n";
-    print(fb4);
+    print(fb);
 
     // Modify
-    modify(fb4, instance.getContext().getTypeManager());
+    modify(fb, instance.getContext().getTypeManager());
 
     // Print after modifications
     std::cout << "\nAfter second round of modifications:\n";
-    print(fb4);
+    print(fb);
 
     // Gracefully exit
     std::cout << "Press \"enter\" to exit the application...\n";

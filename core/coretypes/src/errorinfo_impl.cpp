@@ -163,7 +163,7 @@ void ErrorInfoHolder::removeScopeEntry(ErrorGuardImpl* entry)
     auto backEntry = errorScopeList->back();
     if (backEntry != entry)
     {
-        std::cerr << "ErrorGuardImpl scope entry mismatch. Expected: " << backEntry << ", got: " << entry << std::endl;
+        std::cerr << "ErrorGuard scope entry mismatch. Expected: " << backEntry << ", got: " << entry << std::endl;
         auto it = std::find(errorScopeList->begin(), errorScopeList->end(), entry);
         if (it != errorScopeList->end())
             errorScopeList->erase(it);
@@ -272,9 +272,9 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) con
         errorMessage->releaseRef();
     }
 
-    if (filename)
+    if (filename && !firstMessage)
     {
-        ss << (firstMessage ? "" : "\n") << " - Caused by: [ " << filename;
+        ss << "\n - Caused by: [ " << filename;
         if (fileLine != -1)
             ss << ":" << fileLine;
         ss << " ]";
@@ -289,7 +289,12 @@ ErrCode ErrorGuardImpl::toString(CharPtr* str)
     std::ostringstream stream;
     stream << "ErrorGuard";
     if (filename)
-        stream << " [ " << filename << ":" << fileLine << " ]";
+    {
+        stream << " [ " << filename;
+        if (fileLine != -1)
+            stream << ":" << fileLine;
+        stream << " ]";
+    }
     return daqDuplicateCharPtr(stream.str().c_str(), str);
 }
 

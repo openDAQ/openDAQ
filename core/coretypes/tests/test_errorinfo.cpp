@@ -7,7 +7,7 @@
 #include <coretypes/inspectable_ptr.h>
 #include <coretypes/validation.h>
 #include <coretypes/ctutils.h>
-#include <coretypes/errors.h>
+#include <coretypes/errorinfo_factory.h>
 #include <coretypes/listobject_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
@@ -273,4 +273,34 @@ TEST_F(ErrorInfoTest, SerializeDeserialize)
     const auto jsonStrNew = serializer.getOutput();
 
     ASSERT_EQ(jsonStr, jsonStrNew);
+}
+
+TEST_F(ErrorInfoTest, errorGuardClearing)
+{
+    const auto trackedObjectCount = daqGetTrackedObjectCount();
+    // create error scope and error here
+    {
+        auto errorGuard = DAQ_ERROR_GUARD();
+        {
+            auto errorGuard2 = DAQ_ERROR_GUARD();
+            DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Error in error guard2");
+
+            ListPtr<IErrorInfo> errorInfoList;
+            errorGuard2->getErrorInfos(&errorInfoList);
+            ASSERT_TRUE(errorInfoList.assigned());
+            ASSERT_EQ(errorInfoList.getCount(), 1);
+        }
+
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Error in error guard");
+        ListPtr<IErrorInfo> errorInfoList;
+        errorGuard->getErrorInfos(&errorInfoList);
+        ASSERT_TRUE(errorInfoList.assigned());
+        ASSERT_EQ(errorInfoList.getCount(), 1);
+    }
+    // scope is cleared, error info should be cleared as well
+    ObjectPtr<IErrorInfo> lastError;
+    daqGetErrorInfo(&lastError, OPENDAQ_ERR_GENERALERROR);
+    ASSERT_FALSE(lastError.assigned());
+
+    ASSERT_EQ(daqGetTrackedObjectCount(), trackedObjectCount);
 }

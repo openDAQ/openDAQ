@@ -5,9 +5,9 @@
 #include <opendaq/dimension_factory.h>
 #include <opendaq/data_rule_calc_private.h>
 #include <opendaq/packet_factory.h>
-#include <thread>
 #include <opendaq/reusable_data_packet_ptr.h>
 #include <opendaq/sample_type_traits.h>
+#include <thread>
 #include <iostream>
 
 using namespace daq;

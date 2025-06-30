@@ -66,7 +66,7 @@ protected:
     std::mutex readWriteMutex;
     std::condition_variable resizeSync;
 
-    std::priority_queue<std::pair<void*, size_t>, std::vector<std::pair<void*, size_t>>, std::greater<std::pair<void*, size_t>>>
+    std::priority_queue<std::pair<uint8_t*, size_t>, std::vector<std::pair<uint8_t*, size_t>>, std::greater<std::pair<uint8_t*, size_t>>>
         oosPackets;
 
     ContextPtr context;

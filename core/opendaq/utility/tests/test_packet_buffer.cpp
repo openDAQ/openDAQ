@@ -66,7 +66,7 @@ TEST_F(PacketBufferTest, fullRange)
 
     auto [desc, domain] = generate_building_blocks();
 
-    SizeT mem = 800;
+    SizeT mem = 80;
 
     DataPacketPtr destination[2];
 
@@ -111,18 +111,63 @@ TEST_F(PacketBufferTest, emptyPacket)
 
     DataPacketPtr destination;
 
-    ASSERT_NO_THROW(buffer->createPacket(mem, desc, domain, &destination));
+    ASSERT_EQ(buffer->createPacket(mem, desc, domain, &destination), 0);
 }
 
 TEST_F(PacketBufferTest, writeAhead)
 {
     auto builder = PacketBufferBuilder();
+    builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
+
+    auto [desc, domain] = generate_building_blocks();
+
+    SizeT mem = 20;
+
+    {
+        DataPacketPtr destination;
+        buffer->createPacket(mem, desc, domain, &destination);
+    }
+    DataPacketPtr destination, destination2;
+
+    mem = 70;
+    buffer->createPacket(mem, desc, domain, &destination);
+
+    mem = 20;
+    ASSERT_EQ(buffer->createPacket(mem, desc, domain, &destination2), 0);
 }
 
 TEST_F(PacketBufferTest, readAhead)
 {
+    auto builder = PacketBufferBuilder();
+    builder.setSizeInBytes(800);
+    auto buffer = PacketBuffer(builder);
 
+    auto [desc, domain] = generate_building_blocks();
+
+    SizeT mem = 20;
+
+    {
+        DataPacketPtr destination;
+        buffer->createPacket(mem, desc, domain, &destination);
+    }
+    auto check = buffer.getAvailableContinousSampleLeft(desc);
+    std::cout << check << std::endl;
+
+    {
+        DataPacketPtr destination, destination2;
+
+        mem = 50;
+        buffer->createPacket(mem, desc, domain, &destination);
+
+        mem = 20;
+        buffer->createPacket(mem, desc, domain, &destination2);
+    }
+    auto left = buffer.getAvailableContinousSampleLeft(desc);
+    std::cout << left << std::endl;
+    auto right = buffer.getAvailableContinousSampleRight(desc);
+    std::cout << right << std::endl;
+    ASSERT_TRUE(right > left);
 }
 
 TEST_F(PacketBufferTest, fullBufferRead)
@@ -157,11 +202,17 @@ TEST_F(PacketBufferTest, linearRuleFail)
 
     DataPacketPtr destination;
 
+    // Somewhat of a magic number here
     ASSERT_EQ(buffer->createPacket(mem, descriptor, domain, &destination), 2147483649);
+    // The important thing in this return is that it need to be different to 0
 }
 
 TEST_F(PacketBufferTest, dynamicPacketDestruction)
 {
+    auto builder = PacketBufferBuilder();
+    builder.setSizeInBytes(800);
+    auto buffer = PacketBuffer(builder);
+
 
 }
 

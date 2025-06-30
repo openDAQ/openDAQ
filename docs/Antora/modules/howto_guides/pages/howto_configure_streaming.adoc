@@ -62,6 +62,30 @@ int main()
     return 0;
 }
 ----
+C#::
++
+[source,csharp]
+----
+using Daq.Core.OpenDAQ;
+
+// Create an openDAQ(TM) Instance
+Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+// Add simulated device
+instance.SetRootDevice("daqref://device1");
+
+// Creates and registers a Server capability with the ID `OpenDAQLTStreaming` and the default port number 7414
+instance.AddServer("OpenDAQLTStreaming", null);
+
+// Creates and registers a Server capability with the ID `OpenDAQNativeStreaming` and the default port number 7420
+instance.AddServer("OpenDAQNativeStreaming", null);
+
+// As the Streaming servers were added first, the registered Server capabilities are published over OPC UA
+instance.AddServer("OpenDAQOPCUA", null);
+
+while (true)
+    Thread.Sleep(100);
+----
 ====
 
 [#streaming_autoconfig_per_device]
@@ -154,7 +178,57 @@ int main()
 
     return 0;
 }
+----
+C#::
++
+[source,csharp]
+----
+using Daq.Core.Types;
+using Daq.Core.Objects;
+using Daq.Core.OpenDAQ;
 
+// Create a new Instance that we will use for all the interactions with the SDK
+Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+// Create an empty Property object
+PropertyObject deviceConfig = CoreObjectsFactory.CreatePropertyObject();
+
+// Add property to allow multiple Streaming protocols with native protocol having the first priority
+var prioritizedStreamingProtocols =
+        CoreTypesFactory.CreateList<BaseObject>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
+deviceConfig.AddProperty(PropertyFactory.ListProperty("PrioritizedStreamingProtocols",
+                                                      prioritizedStreamingProtocols));
+
+// Set property to disregard direct Streaming connections for nested Devices,
+// and establish the minimum number of streaming connections possible.
+var streamingConnectionHeuristicProp =
+        PropertyFactory.SelectionProperty("StreamingConnectionHeuristic",
+                                          CoreTypesFactory.CreateList<BaseObject>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                          0);
+deviceConfig.AddProperty(streamingConnectionHeuristicProp);
+
+// Find and connect to a Device hosting an OPC UA TMS server
+var availableDevices = instance.AvailableDevices;
+Device device = null;
+foreach (var deviceInfo in availableDevices)
+{
+    foreach (var capability in deviceInfo.ServerCapabilities)
+    {
+        if (capability.ProtocolName == "OpenDAQOPCUA")
+        {
+            device = instance.AddDevice(capability.ConnectionString, deviceConfig);
+            break;
+        }
+    }
+}
+
+if (device == null)
+    Console.WriteLine("No relevant Device found!");
+else
+    // Output the name of the added Device
+    Console.WriteLine(device.Info.Name);
 ----
 ====
 
@@ -216,7 +290,52 @@ int main()
 
     return 0;
 }
+----
+C#::
++
+[source,csharp]
+----
+using Daq.Core.Types;
+using Daq.Core.Objects;
+using Daq.Core.OpenDAQ;
 
+// Create a new Instance that we will use for all the interactions with the SDK
+Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
+
+// Create an empty Property object
+PropertyObject deviceConfig = CoreObjectsFactory.CreatePropertyObject();
+
+// Set property to disable automatic Streaming connection
+var streamingConnectionHeuristicProp =
+        PropertyFactory.SelectionProperty("StreamingConnectionHeuristic",
+                                          CoreTypesFactory.CreateList<BaseObject>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "NotConnected"),
+                                          2);
+deviceConfig.AddProperty(streamingConnectionHeuristicProp);
+
+// Connect to a Device hosting an OPC UA TMS server using connection string
+Device device = instance.AddDevice("daq.opcua://127.0.0.1", deviceConfig);
+
+if (device == null)
+{
+    Console.WriteLine("No relevant Device found!");
+    return;
+}
+else
+{
+    // Output the name of the added Device
+    Console.WriteLine(device.Info.Name);
+}
+
+// Connect to a Native Streaming protocol using connection string
+Streaming streaming = device.AddStreaming("daq.ns://127.0.0.1");
+
+// Get all Device's Signals recursively
+var deviceSignals = device.GetSignals(SearchFactory.Recursive(SearchFactory.Any()));
+
+// Associate Device's Signals with Streaming
+streaming.AddSignals(deviceSignals);
 ----
 ====
 
@@ -277,7 +396,39 @@ int main()
 
     return 0;
 }
+----
+C#::
++
+[source,csharp]
+----
+// Create a new Instance that we will use for all the interactions with the SDK
+Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
+// Find and connect to a Device hosting an Native Streaming server
+var availableDevices = instance.AvailableDevices;
+Device device = null;
+foreach (var deviceInfo in availableDevices)
+{
+    foreach (var capability in deviceInfo.ServerCapabilities)
+    {
+        if (capability.ProtocolName == "OpenDAQNativeStreaming")
+        {
+            device = instance.AddDevice(capability.ConnectionString);
+            break;
+        }
+    }
+}
+
+if (device == null)
+{
+    Console.WriteLine("No relevant Device found!");
+    return;
+}
+else
+{
+    // Output the name of the added Device
+    Console.WriteLine(device.Info.Name);
+}
 ----
 ====
 
@@ -343,6 +494,38 @@ int main()
     std::cin.get();
     return 0;
 }
+----
+C#::
++
+[source,csharp]
+----
+// ...
+
+// Get the first Signal of connected Device
+// (e.g. running "Reference device simulator" from examples\dotnet\howto_guides\howto_guides_simulator.cs)
+MirroredSignalConfig signal = device.GetSignalsRecursive()[0].Cast<MirroredSignalConfig>();
+
+// Find and output the Streaming sources available for Signal
+string nativeStreamingSource = null;
+string websocketStreamingSource = null;
+Console.WriteLine($"Signal supports {signal.StreamingSources.Count} streaming sources:");
+foreach (string source in signal.StreamingSources)
+{
+    Console.WriteLine(source);
+    if (source.StartsWith("daq.ns://"))
+        nativeStreamingSource = source;
+    if (source.StartsWith("daq.lt://"))
+        websocketStreamingSource = source;
+}
+
+// Output the active Streaming source of Signal
+Console.WriteLine("Active streaming source of signal: " + signal.ActiveStreamingSource);
+
+// Output the Streaming status for the Signal to verify that streaming is enabled
+Console.WriteLine("Streaming enabled status for signal is: " + (signal.Streamed ? "true" : "false"));
+
+// Change the active Streaming source of Signal
+signal.ActiveStreamingSource = nativeStreamingSource;
 ----
 ====
 
@@ -494,6 +677,149 @@ int main(int /*argc*/, const char* /*argv*/[])
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();
     return 0;
+}
+----
+C#::
++
+[source,csharp]
+----
+using Daq.Core.Types;
+using Daq.Core.Objects;
+using Daq.Core.OpenDAQ;
+
+// Create a new Instance that we will use for all the interactions with the SDK
+Instance instance = OpenDAQFactory.Instance();
+
+// Create an empty Property object
+PropertyObject deviceConfig = CoreObjectsFactory.CreatePropertyObject();
+
+// Add property to allow multiple Streaming protocols with native protocol having the first priority
+var prioritizedStreamingProtocols =
+        CoreTypesFactory.CreateList<BaseObject>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
+deviceConfig.AddProperty(PropertyFactory.ListProperty("PrioritizedStreamingProtocols",
+                                                      prioritizedStreamingProtocols));
+
+// Set property to disregard direct Streaming connections for nested Devices,
+// and establish the minimum number of streaming connections possible.
+var streamingConnectionHeuristicProp =
+        PropertyFactory.SelectionProperty("StreamingConnectionHeuristic",
+                                          CoreTypesFactory.CreateList<BaseObject>("MinConnections",
+                                                                                  "MinHops",
+                                                                                  "Fallbacks",
+                                                                                  "NotConnected"),
+                                          0);
+deviceConfig.AddProperty(streamingConnectionHeuristicProp);
+
+// Find and connect to a Device using the device info connection string
+var availableDevices = instance.AvailableDevices;
+Device device = null;
+foreach (var deviceInfo in availableDevices)
+{
+    if (deviceInfo.ConnectionString.StartsWith("daq://"))
+    {
+        device = instance.AddDevice(deviceInfo.ConnectionString, deviceConfig);
+        break;
+    }
+}
+
+// Exit if no Device is found
+if (device == null)
+{
+    Console.WriteLine("*** No relevant Device found!");
+    return 1;
+}
+
+// Output the name of the added Device
+Console.WriteLine(device.Info.Name);
+
+// Find the AI Signal
+var signals = device.GetSignalsRecursive();
+
+Channel channel = null;
+MirroredSignalConfig signal = null;
+foreach (var sig in signals)
+{
+    var name = sig.Descriptor.Name;
+
+    if (name.StartsWith("AI"))
+    {
+        signal = sig.Cast<MirroredSignalConfig>();
+        channel = signal.Parent.Parent.Cast<Channel>();
+        break;
+    }
+}
+
+if (signal == null)
+{
+    Console.WriteLine("*** No AI signal found!");
+    return 1;
+}
+
+// Find and output the Streaming sources of Signal
+string nativeStreamingSource = null;
+string websocketStreamingSource = null;
+Console.WriteLine($"AI signal has {signal.StreamingSources.Count} Streaming sources:");
+foreach (string source in signal.StreamingSources)
+{
+    Console.WriteLine(source);
+    if (source.StartsWith("daq.ns://"))
+        nativeStreamingSource = source;
+    if (source.StartsWith("daq.lt://"))
+        websocketStreamingSource = source;
+}
+
+// Check the active Streaming source of Signal
+if (signal.ActiveStreamingSource != websocketStreamingSource)
+{
+    Console.WriteLine("*** Wrong active Streaming source of AI signal");
+    return 1;
+}
+// Output samples using Reader with Streaming LT
+ReadSamples(signal);
+
+// Change the active Streaming source of Signal
+signal.ActiveStreamingSource = nativeStreamingSource;
+// Output samples using Reader with native Streaming
+ReadSamples(signal);
+
+Console.WriteLine();
+Console.Write("Press a key to exit the application ...");
+//Console.ReadKey(intercept: true);
+Console.WriteLine();
+return 0;
+
+
+
+// Function to read samples from the signal
+void ReadSamples(MirroredSignalConfig signal)
+{
+    var reader = OpenDAQFactory.CreateStreamReader<double, long>(signal);
+
+    // Get the resolution and origin
+    DataDescriptor descriptor = signal.DomainSignal.Descriptor;
+    Ratio resolution = descriptor.TickResolution;
+    string origin = descriptor.Origin;
+    string unitSymbol = descriptor.Unit.Symbol;
+
+    Console.WriteLine($"\nReading signal: {signal.Name}; active Streaming source: {signal.ActiveStreamingSource}");
+    Console.WriteLine("Origin: " + origin);
+
+    // Allocate buffer for reading double samples
+    double[] samples = new double[100];
+    long[] domainSamples = new long[100];
+    for (int i = 0; i < 40; ++i)
+    {
+        Thread.Sleep(25);
+
+        // Read up to 100 samples every 25 ms, storing the amount read into `count`
+        nuint count = 100;
+        reader.ReadWithDomain(samples, domainSamples, ref count);
+        if (count > 0)
+        {
+            double domainValue = (long)domainSamples[count - 1] * resolution;
+            Console.WriteLine("Value: " + samples[count - 1] + ", Domain: " + domainValue + unitSymbol);
+        }
+    }
 }
 ----
 ====

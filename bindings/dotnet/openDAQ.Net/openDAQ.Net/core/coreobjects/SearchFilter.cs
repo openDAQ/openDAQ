@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
+
 using Daq.Core.Types;
+
 
 namespace Daq.Core.Objects;
 
-#region Class Factory
 
-// Factory functions of the &apos;CoreObjects&apos; library.
+// SearchFilter factory functions of the &apos;CoreObjects&apos; library.
 public static partial class CoreObjectsFactory
 {
     //ErrorCode createVisiblePropertyFilter(daq.ISearchFilter** obj); cdecl;
@@ -146,7 +147,7 @@ public static partial class CoreObjectsFactory
 
     /// <summary>Creates a search filter that accepts properties whose names match the specified pattern.</summary>
     /// <returns>The &apos;SearchFilter&apos; object.</returns>
-    /// <param name="name">A regular expression pattern used to match property names.</param>
+    /// <param name="regex">A regular expression pattern used to match property names.</param>
     public static SearchFilter CreateNamePropertyFilter(string regex)
     {
         //native output argument
@@ -167,5 +168,3 @@ public static partial class CoreObjectsFactory
         return new SearchFilter(objPtr, incrementReference: false);
     }
 }
-
-#endregion Class Factory

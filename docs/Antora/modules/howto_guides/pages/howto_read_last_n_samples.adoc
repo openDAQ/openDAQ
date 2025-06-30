@@ -138,6 +138,26 @@ reader.read(values, &count); // count = 3, values = { 1, 2, 3, 0, 0 }
 count = 5;
 reader.read(values, &count); // count = 5, values = { 2, 3, 4, 5, 6 }
 ----
+C#::
++
+[source,csharp]
+----
+//Hint: TailReaderBuilder not yet available in .NET Bindings (no "SkipEvents" possible)
+//var reader = OpenDAQFactory.TailReaderBuilder().SetSignal(signal).SetHistorySize(5).SetSkipEvents(true).Build();
+var reader = OpenDAQFactory.CreateTailReader(signal, 5);
+
+// The Signal produces 3 samples: 1, 2, 3
+
+nuint count = 5;
+double[] values = new double[5];
+
+reader.Read(values, ref count); // count = 3, values = { 1, 2, 3, 0, 0 }
+
+// The Signal produces 3 samples: 4, 5, 6
+
+count = 5;
+reader.Read(values, ref count); // count = 5, values = { 2, 3, 4, 5, 6 }
+----
 ====
 
 As the reader is unable to keep an indefinite number of xref:explanations:glossary.adoc#data_packet[Packet]s for an indefinite amount of time, when enough samples are produced to get above the *history size*, the Reader will start replacing old xref:explanations:glossary.adoc#data_packet[Packet]s with new ones when it is able to still stay above the requested limit. The consequence of this is that requesting more samples than *history size* will result in an error unless the number of samples in the cached xref:explanations:glossary.adoc#data_packet[Packet]s happens to be more than required due to having to hold on to a larger xref:explanations:glossary.adoc#data_packet[Packet] in order to stay above the limit.
@@ -199,24 +219,25 @@ C#::
 var reader = OpenDAQFactory.CreateTailReader(signal, 5);
 
 /*
- * The Signal produces 3 Packets
- * [Packet 1]: 4 samples
- * [Packet 2]: 3 samples
- * [Packet 3]: 1 sample
- * -------------------------------
- *      Total: 8 samples
- */
+    * The Signal produces 3 Packets
+    * [Packet 1]: 4 samples
+    * [Packet 2]: 3 samples
+    * [Packet 3]: 1 sample
+    * -------------------------------
+    *      Total: 8 samples
+    */
 
 nuint count = 10;
 double[] values = new double[10];
 
-// Will throw a SizeTooLargeException
-reader.read(values, ref count);
+// Will return status.ReadStatus == ReadStatus.Fail and count == 0
+var status = reader.Read(values, ref count);
 
 // Will succeed as [Packet 3] and [Packet 2] together are less than 5 samples
 // and we still need to keep the [Packet 1] around to satisfy the minimum of 5 samples
 count = 8;
-reader.read(values, ref count);
+status = reader.Read(values, ref count); //returns status.ReadStatus == ReadStatus.Event and count == 0
+status = reader.Read(values, ref count); //returns status.ReadStatus == ReadStatus.Ok and count == 8
 ----
 ====
 
@@ -441,4 +462,8 @@ DataPacketPtr createPacketForSignal(const SignalPtr& signal, SizeT numSamples, I
     return DataPacketWithDomain(domainPacket, signal.getDescriptor(), numSamples);
 }
 ----
+C#::
++
+[NOTE]
+Since there are several features not available for the .NET Bindings, there is no full listing for this language. Please refer to the specific sections above for the examples.
 ====

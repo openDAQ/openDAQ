@@ -66,7 +66,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         // Get the list of available devices
         var deviceInfos = daqInstance.AvailableDevices;
 
-        Assert.That(deviceInfos.Count, Is.GreaterThan(0));
+        Assert.That(deviceInfos, Has.Count.GreaterThan(0));
 
         foreach (var deviceInfo in deviceInfos)
         {
@@ -347,7 +347,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         var obj = CoreTypesFactory.CreateBaseObject();
 
         Assert.That(list.IsDisposed, Is.False);
-        Assert.That(list.Count, Is.EqualTo(0));
+        Assert.That(list, Has.Count.EqualTo(0));
         Assert.That(obj.IsDisposed, Is.False);
 
         ((ListObject<BaseObject>)list).PrintReferenceCount();
@@ -355,7 +355,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         Console.WriteLine("> adding to list...");
         list.Add(obj);
-        Assert.That(list.Count, Is.EqualTo(1));
+        Assert.That(list, Has.Count.EqualTo(1));
 
         ((ListObject<BaseObject>)list).PrintReferenceCount();
         obj.PrintReferenceCount();
@@ -400,7 +400,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             var list = CoreTypesFactory.CreateList<StringObject>("item 1", "item 2", "item 3", "item 4");
 
             Assert.That(list, Is.Not.Null);
-            Assert.That(list.Count, Is.EqualTo(4));
+            Assert.That(list, Has.Count.EqualTo(4));
             Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
             Assert.Multiple(() =>
             {
@@ -423,7 +423,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         Assert.That(errorcode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
         Assert.That(list, Is.Not.Null);
-        Assert.That(list.Count, Is.EqualTo(4));
+        Assert.That(list, Has.Count.EqualTo(4));
         Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
         Assert.Multiple(() =>
         {
@@ -448,7 +448,34 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             var list = CoreTypesFactory.CreateList(items);
 
             Assert.That(list, Is.Not.Null);
-            Assert.That(list.Count, Is.EqualTo(4));
+            Assert.That(list, Has.Count.EqualTo(4));
+            Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That((string)list[0], Is.EqualTo("item 1"));
+                Assert.That((string)list[1], Is.EqualTo("item 2"));
+                Assert.That((string)list[2], Is.EqualTo("item 3"));
+                Assert.That((string)list[3], Is.EqualTo("item 4"));
+            });
+        });
+    }
+
+    [Test]
+    public void Test_0005_ListObjectWithDiscreteAddingTest()
+    {
+        Console.WriteLine("> creating string-list with discrete adding");
+
+        Assert.DoesNotThrow(() =>
+        {
+            var list = CoreTypesFactory.CreateList<StringObject>();
+
+            list.Add("item 1");
+            list.Add("item 2");
+            list.Add("item 3");
+            list.Add("item 4");
+
+            Assert.That(list, Is.Not.Null);
+            Assert.That(list, Has.Count.EqualTo(4));
             Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
             Assert.Multiple(() =>
             {
@@ -670,7 +697,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.Multiple(() =>
         {
             Assert.That(availableFunctionBlockInfos, Is.Not.Null);
-            Assert.That(availableFunctionBlockInfos.Count, Is.GreaterThanOrEqualTo(1));
+            Assert.That(availableFunctionBlockInfos, Has.Count.GreaterThanOrEqualTo(1));
         });
 
         Console.WriteLine($"  {availableFunctionBlockInfos.Count} function blocks available");
@@ -967,9 +994,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(signalCount, Is.GreaterThanOrEqualTo(2));
 
         //take the first two signals
-        using var signalList = CoreTypesFactory.CreateList<Signal>();
-        signalList.Add(signals[0]);
-        signalList.Add(signals[1]);
+        using var signalList = CoreTypesFactory.CreateList(signals[0], signals[1]);
 
         Console.WriteLine($"  using signal 0 '{signals[0].Name}'");
         Console.WriteLine($"  using signal 1 '{signals[1].Name}'");
@@ -1244,9 +1269,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(signalCount, Is.GreaterThanOrEqualTo(2));
 
         //take the first two signals
-        using var signalList = CoreTypesFactory.CreateList<Signal>();
-        signalList.Add(signals[0]);
-        signalList.Add(signals[1]);
+        using var signalList = CoreTypesFactory.CreateList(signals[0], signals[1]);
 
         Console.WriteLine($"  using signal 0 '{signals[0].Name}'");
         Console.WriteLine($"  using signal 1 '{signals[1].Name}'");
@@ -1551,11 +1574,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         var procedure = CoreTypesFactory.CreateProcedure(MyStringListCallbackProcedure);
 
         Console.WriteLine("CreateList");
-        var stringList = CoreTypesFactory.CreateList<StringObject>();
-
-        stringList.Add("string 1");
-        stringList.Add("string 2");
-        stringList.Add("string 3");
+        var stringList = CoreTypesFactory.CreateList<StringObject>("string 1", "string 2", "string 3");
 
         Console.WriteLine("Dispatch(stringList)");
         procedure.Dispatch((ListObject<StringObject>)stringList);
@@ -1615,12 +1634,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         var function = CoreTypesFactory.CreateFunction(MyIntegerToStringListCallbackFunction);
 
         Console.WriteLine("CreateList");
-        var integerList = CoreTypesFactory.CreateList<IntegerObject>();
-
-        integerList.Add(1);
-        integerList.Add(2);
-        integerList.Add(3);
-        integerList.Add(4);
+        var integerList = CoreTypesFactory.CreateList<IntegerObject>(1, 2, 3, 4);
 
         Console.WriteLine("Call(integerList)");
         var result = function.Call((ListObject<IntegerObject>)integerList)?.CastList<StringObject>();
@@ -1660,10 +1674,10 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         using var device = ConnectFirstDaqRefDevice(daqInstance);
         Assert.That(device, Is.Not.Null);
 
-        using var componentFilter = CoreTypesFactory.CreateRecursiveSearchFilter(OpenDAQFactory.CreateLocalIdSearchFilter("RefCh0"));
+        using var componentFilter = SearchFactory.Recursive(SearchFactory.LocalId("RefCh0"));
         Assert.That(componentFilter, Is.Not.Null);
 
-        using var propertyFilter = CoreObjectsFactory.CreateNamePropertyFilter("^Amplitude$");
+        using var propertyFilter = SearchFactory.NameProperty("^Amplitude$");
         Assert.That(propertyFilter, Is.Not.Null);
 
         var properties = device.FindProperties(propertyFilter, componentFilter);

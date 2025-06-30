@@ -2,6 +2,7 @@
 #include <coretypes/list_element_type.h>
 #include <coretypes/cloneable.h>
 #include <gtest/gtest.h>
+#include <algorithm>
 
 using namespace daq;
 

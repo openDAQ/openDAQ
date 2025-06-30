@@ -216,7 +216,7 @@ inline void checkErrorGuard(IErrorGuard* errorGuard)
         return;
 
     IList* errorList = nullptr;
-    ErrCode errCode = errorGuard->getErrorInfos(&errorList);
+    errorGuard->getErrorInfos(&errorList);
     if (errorList == nullptr)
         return;
     
@@ -640,18 +640,30 @@ ErrCode daqTry(const IBaseObject* context, F&& func)
     catch (const DaqException& e)
     {
         errorGuard->releaseRef();
-        return errorFromException(e);
+        IBaseObject* baseObject = nullptr;
+        if (context)
+            context->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
+        return errorFromException(e, baseObject);
     }
     catch (const std::exception& e)
     {
         errorGuard->releaseRef();
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
+        IBaseObject* baseObject = nullptr;
+        if (context)
+            context->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject));
+        return DAQ_ERROR_FROM_STD_EXCEPTION(e, baseObject, OPENDAQ_ERR_GENERALERROR);
     }
     catch (...)
     {
         errorGuard->releaseRef();
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while executing handler");
     }
+}
+
+template <class F>
+ErrCode daqTry(F&& func)
+{
+    return daqTry(nullptr, std::forward<F>(func));
 }
 
 template <typename Interface>
@@ -663,25 +675,11 @@ inline std::string daqInterfaceIdString()
     return iid;
 }
 
-template <class F>
-ErrCode daqTry(const F& func)
-{
-    return daqTry(nullptr, func);
-}
-
-template <class F>
-ErrCode daqTry(F&& func)
-{
-    return daqTry(nullptr, std::move(func));
-}
-
 template <typename TPtr, typename TFunc>
-TPtr callNotNull(TPtr ptr, TFunc func)
+TPtr callNotNull(TPtr ptr, TFunc&& func)
 {
     if (!ptr.assigned())
-    {
         return ptr;
-    }
 
     return std::invoke(func, std::forward<TPtr>(ptr));
 }

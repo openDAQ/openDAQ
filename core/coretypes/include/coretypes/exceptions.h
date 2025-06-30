@@ -145,7 +145,7 @@ DEFINE_EXCEPTION(ReservedTypeName, OPENDAQ_ERR_RESERVED_TYPE_NAME, "Type name is
 
 extern void checkErrorInfo(ErrCode errCode);
 
-class IErrorGuard;
+struct IErrorGuard;
 extern void checkErrorGuard(IErrorGuard* errorGuard);
 extern void checkErrorInfoExcept(ErrCode errCode, ErrCode exceptErrCode);
 

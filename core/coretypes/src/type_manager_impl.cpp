@@ -4,6 +4,7 @@
 #include <coretypes/type_manager_ptr.h>
 #include <coretypes/type_ptr.h>
 #include <cctype>
+#include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -169,13 +170,14 @@ ConstCharPtr TypeManagerImpl::SerializeId()
 
 ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*context*/, IFunction* factoryCallback, IBaseObject** obj)
 {
-    const ErrCode errCode = daqTry([&]()
+    ErrCode result = daqTry([&ser, &factoryCallback, &obj]() -> ErrCode
     {
         TypeManagerPtr typeManagerPtr;
-        createTypeManager(&typeManagerPtr);
+        ErrCode errCode = createTypeManager(&typeManagerPtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         BaseObjectPtr types;
-        ErrCode errCode = ser->readObject("types"_daq, typeManagerPtr.asPtr<IBaseObject>(), factoryCallback, &types);
+        errCode = ser->readObject("types"_daq, typeManagerPtr.asPtr<IBaseObject>(), factoryCallback, &types);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types.asPtr<IDict>().getValues())
@@ -186,8 +188,8 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
         *obj = typeManagerPtr.detach();
         return OPENDAQ_SUCCESS;
     });
-    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to deserialize TypeManager.");
-    return errCode;
+    OPENDAQ_RETURN_IF_FAILED(result, "Failed to deserialize TypeManager.");
+    return result;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, TypeManager)

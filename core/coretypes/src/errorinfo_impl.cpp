@@ -246,19 +246,19 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) con
     for (auto it = errorList.rbegin(); it != errorList.rend(); ++it)
     {
         IErrorInfo* errorInfo = *it;
-        IString* message = nullptr;
-        errorInfo->getFormatMessage(&message);
-        if (message == nullptr)
+        IString* errorMessage = nullptr;
+        errorInfo->getFormatMessage(&errorMessage);
+        if (errorMessage == nullptr)
             continue;
 
         ConstCharPtr messagePtr;
-        message->getCharPtr(&messagePtr);
+        errorMessage->getCharPtr(&messagePtr);
         if (messagePtr != nullptr)
         {
             ss << (firstMessage ? "" : "\n") << messagePtr;
             firstMessage = false;
         }
-        message->releaseRef();
+        errorMessage->releaseRef();
     }
 
     if (filename)

@@ -1,4 +1,4 @@
-add_subdirectory(properties_module)
+add_subdirectory(property_system_example_module)
 add_subdirectory(basic_types)
 add_subdirectory(container_types)
 add_subdirectory(objects_and_classes)

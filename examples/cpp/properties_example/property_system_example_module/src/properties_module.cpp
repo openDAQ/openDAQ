@@ -9,15 +9,15 @@
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-PropertiesModule::PropertiesModule(ContextPtr ctx)
-    : Module("PropertiesModule",
+PropertySystemExampleModule::PropertySystemExampleModule(ContextPtr ctx)
+    : Module("PropertySystemExampleModule",
              VersionInfo(PROPERTIES_MODULE_MAJOR_VERSION, PROPERTIES_MODULE_MINOR_VERSION, PROPERTIES_MODULE_PATCH_VERSION),
              std::move(ctx),
-             "PropertiesModule")
+             "PropertySystemExampleModule")
 {
 }
 
-DictPtr<IString, IFunctionBlockType> PropertiesModule::onGetAvailableFunctionBlockTypes()
+DictPtr<IString, IFunctionBlockType> PropertySystemExampleModule::onGetAvailableFunctionBlockTypes()
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
@@ -36,7 +36,7 @@ DictPtr<IString, IFunctionBlockType> PropertiesModule::onGetAvailableFunctionBlo
     return types;
 }
 
-FunctionBlockPtr PropertiesModule::onCreateFunctionBlock(const StringPtr& id,
+FunctionBlockPtr PropertySystemExampleModule::onCreateFunctionBlock(const StringPtr& id,
                                                          const ComponentPtr& parent,
                                                          const StringPtr& localId,
                                                          const PropertyObjectPtr& /*config*/)

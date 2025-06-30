@@ -20,10 +20,10 @@
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-class PropertiesModule final : public Module
+class PropertySystemExampleModule final : public Module
 {
 public:
-    explicit PropertiesModule(ContextPtr ctx);
+    explicit PropertySystemExampleModule(ContextPtr ctx);
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id,

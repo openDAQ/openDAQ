@@ -3,7 +3,7 @@ set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 
 set(SRC_Include common.h
                 module_dll.h
-                properties_module.h
+                property_system_example_module.h
                 properties_fb_basic_types.h
                 properties_fb_container_types.h
                 properties_fb_objects_and_classes.h
@@ -11,7 +11,7 @@ set(SRC_Include common.h
 )
 
 set(SRC_Srcs module_dll.cpp
-             properties_module.cpp
+             property_system_example_module.cpp
              properties_fb_basic_types.cpp
              properties_fb_container_types.cpp
              properties_fb_objects_and_classes.cpp
@@ -21,14 +21,14 @@ set(SRC_Srcs module_dll.cpp
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
 source_group("module" FILES ${MODULE_HEADERS_DIR}/common.h
-                            ${MODULE_HEADERS_DIR}/properties_module.h
+                            ${MODULE_HEADERS_DIR}/property_system_example_module.h
                             ${MODULE_HEADERS_DIR}/properties_fb_basic_types.h
                             ${MODULE_HEADERS_DIR}/properties_fb_container_types.h
                             ${MODULE_HEADERS_DIR}/properties_fb_objects_and_classes.h
                             ${MODULE_HEADERS_DIR}/properties_fb_reference_properties.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             module_dll.cpp
-                            properties_module.cpp
+                            property_system_example_module.cpp
                             properties_fb_basic_types.cpp
                             properties_fb_container_types.cpp
                             properties_fb_objects_and_classes.cpp

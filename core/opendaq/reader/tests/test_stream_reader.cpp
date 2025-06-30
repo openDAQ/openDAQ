@@ -1573,7 +1573,7 @@ TYPED_TEST(StreamReaderTest, ReadWhilePortIsNotConnected)
 {
     auto port = InputPort(this->signal.getContext(), nullptr, "readsig");
     auto reader = daq::StreamReaderFromPort(port, SampleType::Float64, SampleType::RangeInt64);
-
+    
     ReaderStatusPtr status;
     auto future = std::async(std::launch::async, [&] {
         SizeT count{0};

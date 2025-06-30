@@ -179,7 +179,16 @@ daq::ObjectPtr<std::remove_pointer_t<DaqType>> getVariantValue(Variant& v)
     }
     if constexpr (std::is_same_v<DaqType, daq::INumber*> && is_variant_member_v<double, Variant> && is_variant_member_v<int64_t, Variant>)
     {
+        if constexpr (is_variant_member_v<daq::INumber*, Variant>)
+        {
+            if (auto number = std::get_if<daq::INumber*>(&v))
+            {
+                return daq::NumberPtr(*number);
+            }
+        }
+
         variant_full_t variant;
+
         if (auto doublePtr = std::get_if<double>(&v))
         {
             variant = *doublePtr;
@@ -188,6 +197,7 @@ daq::ObjectPtr<std::remove_pointer_t<DaqType>> getVariantValue(Variant& v)
         {
             variant = *intPtr;
         }
+
         return getVariantValueInternal(variant);
     }
     if (auto daq = std::get_if<DaqType>(&v))

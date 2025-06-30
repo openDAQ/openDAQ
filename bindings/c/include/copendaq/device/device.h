@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:03.
+//     RTGen (CGenerator v0.7.0) on 19.06.2025 16:41:51.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -87,6 +87,7 @@ extern "C"
     daqErrCode EXPORTED daqDevice_getAvailableOperationModes(daqDevice* self, daqList** availableOpModes);
     daqErrCode EXPORTED daqDevice_setOperationMode(daqDevice* self, daqOperationModeType modeType);
     daqErrCode EXPORTED daqDevice_setOperationModeRecursive(daqDevice* self, daqOperationModeType modeType);
+    daqErrCode EXPORTED daqDevice_addDevices(daqDevice* self, daqDict** devices, daqDict* connectionArgs, daqDict* errCodes, daqDict* errorInfos);
 
 #ifdef __cplusplus
 }

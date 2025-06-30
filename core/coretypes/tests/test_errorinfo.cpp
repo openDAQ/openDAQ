@@ -281,6 +281,7 @@ TEST_F(ErrorInfoTest, errorGuardClearing)
     // create error scope and error here
     {
         auto errorGuard = DAQ_ERROR_GUARD();
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Error in error guard");
         {
             auto errorGuard2 = DAQ_ERROR_GUARD();
             DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Error in error guard2");
@@ -290,12 +291,12 @@ TEST_F(ErrorInfoTest, errorGuardClearing)
             ASSERT_TRUE(errorInfoList.assigned());
             ASSERT_EQ(errorInfoList.getCount(), 1);
         }
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "One more error in error guard");
 
-        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Error in error guard");
         ListPtr<IErrorInfo> errorInfoList;
         errorGuard->getErrorInfos(&errorInfoList);
         ASSERT_TRUE(errorInfoList.assigned());
-        ASSERT_EQ(errorInfoList.getCount(), 1);
+        ASSERT_EQ(errorInfoList.getCount(), 2);
     }
     // scope is cleared, error info should be cleared as well
     ObjectPtr<IErrorInfo> lastError;

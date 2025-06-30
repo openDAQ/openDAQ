@@ -568,13 +568,38 @@ TEST_F(ClientToDeviceStreamingTest, NoneSignalsConnected)
     EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 0u);
 }
 
-TEST_F(ClientToDeviceStreamingTest, ConnectExternalSignalFailure)
+TEST_F(ClientToDeviceStreamingTest, ConnectExternalSignalOutsideOfInstance)
 {
-    SignalPtr localRootSigClient1 = client1RootDevice.getSignals()[0];
     SignalPtr localRootSigClient2 = client2RootDevice.getSignals()[0];
 
-    EXPECT_ANY_THROW(chIpClient2.connect(localRootSigClient1));
-    EXPECT_ANY_THROW(chIpClient1.connect(localRootSigClient2));
+    resetPortConnectionExpectations();
+    EXPECT_NO_THROW(chIpClient1.connect(localRootSigClient2));
+    ASSERT_TRUE(waitForPortsConnection());
+    // one external signal connected - no domain signal - one mirrored signal created
+    EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);
+    EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
+    EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 1u);
+    // verify connected signals
+    EXPECT_EQ(chIpClient1.getSignal(), localRootSigClient2);
+    EXPECT_EQ(remoteId(chIpServer.getSignal()), localRootSigClient2.getGlobalId());
+    EXPECT_EQ(remoteId(chIpClient2.getSignal()), chIpServer.getSignal().getGlobalId());
+}
+
+TEST_F(ClientToDeviceStreamingTest, ConnectExternalParentlessSignal)
+{
+    SignalPtr parentlessSignal = Signal(NullContext(), nullptr, "signal_with_no_parent");
+
+    resetPortConnectionExpectations();
+    EXPECT_NO_THROW(chIpClient2.connect(parentlessSignal));
+    ASSERT_TRUE(waitForPortsConnection());
+    // one external signal connected - no domain signal - one mirrored signal created
+    EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);
+    EXPECT_EQ(client1ExtSigFolder.getItems().getCount(), 0u);
+    EXPECT_EQ(client2ExtSigFolder.getItems().getCount(), 1u);
+    // verify connected signals
+    EXPECT_EQ(chIpClient1.getSignal(), parentlessSignal);
+    EXPECT_EQ(remoteId(chIpServer.getSignal()), parentlessSignal.getGlobalId());
+    EXPECT_EQ(remoteId(chIpClient2.getSignal()), chIpServer.getSignal().getGlobalId());
 }
 
 TEST_F(ClientToDeviceStreamingTest, SignalWithoutDomainConnectOnly)

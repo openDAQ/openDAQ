@@ -53,6 +53,7 @@ protected:
     ConnectionPtr createConnection(const SignalPtr& signal) override;
     SignalPtr getConnectedSignal();
 
+    [[maybe_unused]]
     bool isSignalFromTheSameComponentTree(const SignalPtr& signal);
 
     void removed() override;
@@ -78,8 +79,6 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             if (!this->deserializationComplete)
                 return Super::connect(signal);
             const auto signalPtr = SignalPtr::Borrow(signal);
-            if (!isSignalFromTheSameComponentTree(signalPtr))
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED);
             {
                 auto lock = this->getRecursiveConfigLock();
 
@@ -154,9 +153,6 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
 
             const auto signalPtr = SignalPtr::Borrow(signal);
-            if (!isSignalFromTheSameComponentTree(signalPtr))
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "Signal is not from the same component tree");
-
             const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
             if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
             {

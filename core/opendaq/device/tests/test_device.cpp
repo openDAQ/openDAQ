@@ -291,6 +291,10 @@ TEST_F(DeviceTest, Remove)
     ASSERT_TRUE(device.isRemoved());
 
     ASSERT_THROW(device.addDevice("DeviceConnectionString"), daq::ComponentRemovedException);
+    ASSERT_THROW(
+        device.addDevices(daq::Dict<daq::IString, daq::IPropertyObject>({{"DeviceConnectionString", nullptr}})),
+        daq::ComponentRemovedException
+    );
     ASSERT_THROW(device.addFunctionBlock("FbTypeId"), daq::ComponentRemovedException);
     ASSERT_THROW(device.addStreaming("StreamingConnectionString"), daq::ComponentRemovedException);
 

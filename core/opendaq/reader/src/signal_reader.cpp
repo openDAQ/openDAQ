@@ -253,18 +253,21 @@ bool SignalReader::isFirstPacketEvent()
     {
         if (packet.getType() == PacketType::Data)
         {
-            connection.dequeue();
-            info.dataPacket = packet;
+            info.dataPacket = connection.dequeue();
             info.prevSampleIndex = 0;
             return false;
         }
-        else if (packet.getType() == PacketType::Event)
+
+        if (packet.getType() == PacketType::Event)
         {
             return true;
         }
+
+        // For undefined packet types
         connection.dequeue();
         packet = connection.peek();
     }
+
     return false;
 }
 
@@ -351,12 +354,12 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     return packetToReturn;
 }
 
-void SignalReader::skipUntilLastEventPacket()
+bool SignalReader::skipUntilLastEventPacket()
 {
     info.reset();
 
     if (!connection.assigned())
-        return;
+        return false;
 
     bool hasEventPacket = false;
     while (connection.hasEventPacket())
@@ -383,6 +386,8 @@ void SignalReader::skipUntilLastEventPacket()
 
     if (!hasEventPacket)
         connection.dequeueAll();
+
+    return hasEventPacket;
 }
 
 bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp)

@@ -25,7 +25,7 @@
 
 - [#835](https://github.com/openDAQ/openDAQ/pull/835) Removes the opendaq_dev target.
 - [#829](https://github.com/openDAQ/openDAQ/pull/829) Add search functionality to Antora documentation to significantly improve user experience. 
-- [#804](https://github.com/openDAQ/openDAQ/pull/804) Add Properties example.
+- [#804](https://github.com/openDAQ/openDAQ/pull/804) Add Properties examples.
 
 
 ## Required application changes

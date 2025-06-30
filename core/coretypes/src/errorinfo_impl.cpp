@@ -141,7 +141,9 @@ void ErrorInfoHolder::setScopeEntry(ErrorGuardImpl* entry)
     if (!entry)
         throw std::invalid_argument("ErrorGuardImpl entry must not be null");
 
-    getOrCreateList()->push_back(entry);
+    if (!errorScopeList)
+        errorScopeList = std::make_unique<ContainerT>();
+    errorScopeList->push_back(entry);
 }
 
 void ErrorInfoHolder::removeScopeEntry(ErrorGuardImpl* entry)
@@ -681,24 +683,16 @@ ErrCode ErrorInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /
     IString* fileNameKey = nullptr;
     IString* fileLineKey = nullptr;
     Finally final([&errorInfo, &message, &source, &fileName, &messageKey, &sourceKey, &fileNameKey, &fileLineKey]
-                  {
-                      if (errorInfo != nullptr)
-                          errorInfo->releaseRef();
-                      if (message != nullptr)
-                          message->releaseRef();
-                      if (source != nullptr)
-                          source->releaseRef();
-                      if (fileName != nullptr)
-                          fileName->releaseRef();
-                      if (messageKey != nullptr)
-                          messageKey->releaseRef();
-                      if (sourceKey != nullptr)
-                          sourceKey->releaseRef();
-                      if (fileNameKey != nullptr)
-                          fileNameKey->releaseRef();
-                      if (fileLineKey != nullptr)
-                          fileLineKey->releaseRef();
-                  });
+    {
+        releaseRefIfNotNull(errorInfo);
+        releaseRefIfNotNull(message);
+        releaseRefIfNotNull(source);
+        releaseRefIfNotNull(fileName);
+        releaseRefIfNotNull(messageKey);
+        releaseRefIfNotNull(sourceKey);
+        releaseRefIfNotNull(fileNameKey);
+        releaseRefIfNotNull(fileLineKey);
+    });
 
     ErrCode errCode = createErrorInfo(&errorInfo);
     OPENDAQ_RETURN_IF_FAILED(errCode);

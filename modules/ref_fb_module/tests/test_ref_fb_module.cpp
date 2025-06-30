@@ -230,11 +230,10 @@ TEST_F(RefFbModuleTest, FunctionBlockRendererDefaultConfig)
     ASSERT_TRUE(fbType.assigned());
 
     auto config = fbType.createDefaultConfig();
-
-#ifdef __APPLE__
-    ASSERT_FALSE(config.hasProperty("UseMainLoopForRenderer"));
-#else
     ASSERT_TRUE(config.hasProperty("UseMainLoopForRenderer"));
+#ifdef __APPLE__
+    ASSERT_TRUE(config.getPropertyValue("UseMainLoopForRenderer"));
+#else
     ASSERT_FALSE(config.getPropertyValue("UseMainLoopForRenderer"));
 #endif
 }

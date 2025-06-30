@@ -2987,8 +2987,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
         serializerPtr.startList();
         for (const auto& prop : localProperties)
         {
-            if (!hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+            bool isObjectProp = prop.second.template asPtr<IPropertyInternal>().getValueTypeUnresolved() == ctObject;
+            if (isObjectProp && !hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
                 continue;
+#endif
 
             checkErrorInfo(serializeProperty(prop.second, serializer));
         }

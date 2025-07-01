@@ -167,6 +167,7 @@ ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc,
     err = rule->getType(&type);
     OPENDAQ_RETURN_IF_FAILED(err);
 
+
     if (type == daq::DataRuleType::Linear)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Packet Buffer does not support Linear Data Rule Type packets.");
 

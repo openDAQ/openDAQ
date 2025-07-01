@@ -22,39 +22,42 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/awaitable_ptr.h>
 #include <opendaq/task_flow.h>
+#include <opendaq/work_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class MainThreadEventLoop
+class MainThreadLoop
 {
 public:
-    MainThreadEventLoop() = default;
-    ~MainThreadEventLoop();
+    MainThreadLoop(const LoggerPtr& logger);
+    ~MainThreadLoop();
 
     ErrCode stop();
     ErrCode runIteration();
     ErrCode run(SizeT loopTime);
     bool isRunning() const;
-    ErrCode execute(IWork* work);
+    ErrCode scheduleTask(IWork* work);
 
-    MainThreadEventLoop(const MainThreadEventLoop&) = delete;
-    MainThreadEventLoop& operator=(const MainThreadEventLoop&) = delete;
+    MainThreadLoop(const MainThreadLoop&) = delete;
+    MainThreadLoop& operator=(const MainThreadLoop&) = delete;
 
 private:
-    class WorkWrapper;
+    bool executeWork(const WorkPtr& work);
 
     void runIteration(std::unique_lock<std::mutex>& lock);
 
+    LoggerComponentPtr loggerComponent;
+
     mutable std::mutex mutex;
     std::condition_variable cv;
-    std::list<WorkWrapper> workQueue;
+    std::list<WorkPtr> workQueue;
     bool running{ false };
 };
 
 class SchedulerImpl final : public ImplementationOf<IScheduler>
 {
 public:
-    explicit SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoop);
+    explicit SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoop = false);
     ~SchedulerImpl() override;
 
     ErrCode INTERFACE_FUNC scheduleFunction(IFunction* function, IAwaitable** awaitable) override;
@@ -82,7 +85,7 @@ private:
 
     std::unique_ptr<tf::Executor> executor;
 
-    std::unique_ptr<MainThreadEventLoop> mainThreadWorker;
+    std::unique_ptr<MainThreadLoop> mainThreadWorker;
 };
 
 

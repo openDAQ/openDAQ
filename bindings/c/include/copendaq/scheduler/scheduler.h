@@ -49,7 +49,7 @@ extern "C"
     daqErrCode EXPORTED daqScheduler_stop(daqScheduler* self);
     daqErrCode EXPORTED daqScheduler_waitAll(daqScheduler* self);
     daqErrCode EXPORTED daqScheduler_isMultiThreaded(daqScheduler* self, daqBool* multiThreaded);
-    daqErrCode EXPORTED daqScheduler_createScheduler(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers, daqBool useMainLoop);
+    daqErrCode EXPORTED daqScheduler_createScheduler(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers);
 
 #ifdef __cplusplus
 }

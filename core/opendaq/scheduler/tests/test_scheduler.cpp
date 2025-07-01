@@ -73,7 +73,7 @@ TEST_F(SchedulerTestCommon, ImplicitTask)
 
 TEST_F(SchedulerTestCommon, ExecutesOneTimeWork)
 {
-    auto scheduler = Scheduler(Logger(), 1, true);
+    auto scheduler = SchedulerWithMainLoop(Logger(), 1);
     bool called = false;
 
     auto work = WorkRepetitive([&called] 
@@ -88,26 +88,26 @@ TEST_F(SchedulerTestCommon, ExecutesOneTimeWork)
 
 TEST_F(SchedulerTestCommon, ScheduleWorkOnMainLoopThrowsIfMainLoopNotSet)
 {
-    auto scheduler = Scheduler(Logger(), 1, false);
+    auto scheduler = Scheduler(Logger(), 1);
     auto work = WorkRepetitive([]() -> void {});
     ASSERT_THROW(scheduler.scheduleWorkOnMainLoop(work), NotSupportedException);
 }
 
 TEST_F(SchedulerTestCommon, RunMainLoopIterationThrowsIfMainLoopNotSet)
 {
-    auto scheduler = Scheduler(Logger(), 1, false);
+    auto scheduler = Scheduler(Logger(), 1);
     ASSERT_THROW(scheduler.runMainLoopIteration(), NotSupportedException);
 }
 
 TEST_F(SchedulerTestCommon, RunMainLoopThrowsIfMainLoopNotSet)
 {
-    auto scheduler = Scheduler(Logger(), 1, false);
+    auto scheduler = Scheduler(Logger(), 1);
     ASSERT_THROW(scheduler.runMainLoop(), NotSupportedException);
 }
 
 TEST_F(SchedulerTestCommon, RunMainLoopTwice)
 {
-    auto scheduler = Scheduler(Logger(), 1, true);
+    auto scheduler = SchedulerWithMainLoop(Logger(), 1);
 
     std::promise<void> promise;
     std::future<void> future = promise.get_future();
@@ -126,7 +126,7 @@ TEST_F(SchedulerTestCommon, RunMainLoopTwice)
 
 TEST_F(SchedulerTestCommon, ExecutesRepetitiveWork)
 {
-    auto scheduler = Scheduler(Logger(), 1, true);
+    auto scheduler = SchedulerWithMainLoop(Logger(), 1);
     int counter = 0;
 
     auto work = WorkRepetitive([&counter]() -> bool
@@ -143,7 +143,7 @@ TEST_F(SchedulerTestCommon, ExecutesRepetitiveWork)
 
 TEST_F(SchedulerTestCommon, RepetitiveVoidWorkExecutesOnce)
 {
-    auto scheduler = Scheduler(Logger(), 1, true);
+    auto scheduler = SchedulerWithMainLoop(Logger(), 1);
     int counter = 0;
 
     auto work = WorkRepetitive([&counter]() -> void 
@@ -160,7 +160,7 @@ TEST_F(SchedulerTestCommon, RepetitiveVoidWorkExecutesOnce)
 
 TEST_F(SchedulerTestCommon, StartsAndStops)
 {
-    auto scheduler = Scheduler(Logger(), 1, true);
+    auto scheduler = SchedulerWithMainLoop(Logger(), 1);
 
     std::thread loopThread([&]()
     {
@@ -184,7 +184,7 @@ TEST_F(SchedulerTestCommon, StartsAndStops)
 
 TEST_F(SchedulerTestCommon, StartsAndStopsFromWork)
 {
-    auto scheduler = Scheduler(Logger(), 1, true);
+    auto scheduler = SchedulerWithMainLoop(Logger(), 1);
 
     bool called = false;
     auto work = WorkRepetitive([&]() -> void 
@@ -199,7 +199,7 @@ TEST_F(SchedulerTestCommon, StartsAndStopsFromWork)
 
 TEST_F(SchedulerTestCommon, ExecutesOneTimeWorkWithTimeLoop)
 {
-    auto scheduler = Scheduler(Logger(), 1, true);
+    auto scheduler = SchedulerWithMainLoop(Logger(), 1);
 
     bool called = false;
     auto work = WorkRepetitive([&]() -> void 

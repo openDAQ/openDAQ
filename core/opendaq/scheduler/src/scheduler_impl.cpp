@@ -27,57 +27,86 @@ public:
 };
 
 BEGIN_NAMESPACE_OPENDAQ
-
-class MainThreadEventLoop::WorkWrapper
+MainThreadLoop::MainThreadLoop(const LoggerPtr& logger)
 {
-public:
-    explicit WorkWrapper(WorkPtr work)
-        : work(std::move(work))
-    {}
+    this->loggerComponent = logger.getOrAddComponent("MainThreadLoop");
+}
 
-    bool execute() const
-    {
-        Bool repeatAfter = False;
-        ErrCode errCode;
-        
-        if (auto workPtr = work.asOrNull<IWorkRepetitive>(true); workPtr != nullptr)
-            errCode = workPtr->executeRepetitively(&repeatAfter);
-        else
-            errCode = work->execute();
-        
-        if (OPENDAQ_FAILED(errCode))
-            daqClearErrorInfo();
-        
-        return repeatAfter; 
-    }
-
-private:
-    const WorkPtr work;
-};
-
-MainThreadEventLoop::~MainThreadEventLoop()
+MainThreadLoop::~MainThreadLoop()
 {
     stop();
 }
 
-ErrCode MainThreadEventLoop::stop()
+ErrCode MainThreadLoop::stop()
 {
-    return this->execute(Work([this]
+    return this->scheduleTask(Work([this]
     {
         std::lock_guard<std::mutex> lock(mutex);
         this->running = false;
     }));
 }
 
-void MainThreadEventLoop::runIteration(std::unique_lock<std::mutex>& lock)
+bool MainThreadLoop::executeWork(const WorkPtr& work)
 {
-    std::list<WorkWrapper> currentWork;
+    Bool repeatAfter = False;
+    ErrCode errCode;
+    
+    if (auto workPtr = work.asPtrOrNull<IWorkRepetitive>(true); workPtr.assigned())
+        errCode = workPtr->executeRepetitively(&repeatAfter);
+    else
+        errCode = work->execute();
+    
+    if (OPENDAQ_FAILED(errCode))
+    {
+        ListPtr<IErrorInfo> errorInfos;
+        daqGetErrorInfoList(&errorInfos);
+        if (errorInfos.assigned())
+        {
+            std::ostringstream errorStream;
+            bool firstMessage = true;
+            for (const auto& errorInfo : errorInfos)
+            {
+                StringPtr message;
+                errCode = errorInfo->getMessage(&message);
+                if (OPENDAQ_FAILED(errCode))
+                    continue;
+
+                if (message.assigned())
+                {
+                    errorStream << (firstMessage ? "" : "\n") << message;
+                    firstMessage = false;
+                }
+
+                #ifndef NDEBUG
+                    ConstCharPtr fileName = nullptr;
+                    Int fileLine = -1;
+
+                    errorInfo->getFileName(&fileName);
+                    errorInfo->getFileLine(&fileLine);
+                    if (fileName != nullptr)
+                    {
+                        errorStream << " [ File " << fileName;
+                        if (fileLine != -1)
+                            errorStream << ":" << fileLine;
+                        errorStream << " ]";
+                    }
+                #endif                        
+            }
+            LOG_W("Error executing work: {}", errorStream.str());
+        }
+    }
+    return repeatAfter; 
+}
+
+void MainThreadLoop::runIteration(std::unique_lock<std::mutex>& lock)
+{
+    std::list<WorkPtr> currentWork;
     currentWork.swap(workQueue);
     lock.unlock();
 
     for (auto it = currentWork.begin(); it != currentWork.end();)
     {
-        if (it->execute())
+        if (executeWork(*it))
             ++it;
         else
             it = currentWork.erase(it);
@@ -87,7 +116,7 @@ void MainThreadEventLoop::runIteration(std::unique_lock<std::mutex>& lock)
     workQueue.splice(workQueue.end(), currentWork);
 }
 
-ErrCode MainThreadEventLoop::runIteration()
+ErrCode MainThreadLoop::runIteration()
 {
     std::unique_lock<std::mutex> lock(mutex);
     if (this->running)
@@ -99,7 +128,7 @@ ErrCode MainThreadEventLoop::runIteration()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MainThreadEventLoop::run(SizeT loopTime)
+ErrCode MainThreadLoop::run(SizeT loopTime)
 {
     if (loopTime == 0)
         loopTime = 1;
@@ -123,13 +152,13 @@ ErrCode MainThreadEventLoop::run(SizeT loopTime)
     return OPENDAQ_SUCCESS;
 }
 
-bool MainThreadEventLoop::isRunning() const
+bool MainThreadLoop::isRunning() const
 {
     std::lock_guard<std::mutex> lock(mutex);
     return running;
 }
 
-ErrCode MainThreadEventLoop::execute(IWork* work)
+ErrCode MainThreadLoop::scheduleTask(IWork* work)
 {
     OPENDAQ_PARAM_NOT_NULL(work);
 
@@ -152,7 +181,7 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoo
                std::make_shared<CustomWorkerInterface>()))
 {
     if (useMainLoop)
-        mainThreadWorker = std::make_unique<MainThreadEventLoop>();
+        mainThreadWorker = std::make_unique<MainThreadLoop>(this->logger);
     LOG_D("Starting scheduler with {} workers.", executor->num_workers())
 }
 
@@ -292,11 +321,18 @@ ErrCode SchedulerImpl::scheduleWorkOnMainLoop(IWork* work)
     OPENDAQ_PARAM_NOT_NULL(work);
     if (!mainThreadWorker)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Main thread worker is not set");
-    return mainThreadWorker->execute(work);
+    return mainThreadWorker->scheduleTask(work);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY, Scheduler,
+    ILogger*, logger,
+    SizeT, numWorkers
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, Scheduler,
+    IScheduler, createSchedulerWithMainLoop,
     ILogger*, logger,
     SizeT, numWorkers,
     Bool, useMainLoop

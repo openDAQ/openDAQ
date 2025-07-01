@@ -41,6 +41,7 @@ void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBase
     cls.doc() = "A thread-pool scheduler that supports scheduling one-off functions as well as dependency graphs.";
 
     m.def("Scheduler", &daq::Scheduler_Create);
+    m.def("SchedulerWithMainLoop", &daq::SchedulerWithMainLoop_Create);
 
     cls.def("schedule_function",
         [](daq::IScheduler *object, daq::IFunction* function)

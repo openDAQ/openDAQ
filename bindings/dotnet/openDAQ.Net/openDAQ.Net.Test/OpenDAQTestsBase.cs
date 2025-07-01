@@ -19,6 +19,11 @@ public class OpenDAQTestsBase
     private bool _doCheckAliveObjectCount;
     private bool _doWarn;
 
+    public OpenDAQTestsBase()
+    {
+        Console.WriteLine("OpenDAQTestsBase constructor");
+    }
+
     /// <summary>
     /// Set the TearDown function to not to collect and finalize managed objects which would be the default behavior.
     /// </summary>
@@ -104,7 +109,7 @@ public class OpenDAQTestsBase
         {
             ulong trackedObjectCount = CoreTypes.GetTrackedObjectCount();
             aliveCount = (trackedObjectCount >= _trackedObjectCountOnSetup) ? trackedObjectCount - _trackedObjectCountOnSetup : 0ul;
-            Console.WriteLine($"{aliveCount} objects still alive");
+            Console.WriteLine($"{aliveCount} openDAQ objects still alive");
         }
 
         if (_doCollectAndFinalize)
@@ -138,6 +143,7 @@ public class OpenDAQTestsBase
             CollectAndFinalize();
         }
 
+        Console.WriteLine($"-> overall {CoreTypes.GetTrackedObjectCount()} openDAQ objects still alive");
         Console.WriteLine("-----------------------------------");
     }
 

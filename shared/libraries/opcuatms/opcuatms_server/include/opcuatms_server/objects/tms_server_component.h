@@ -235,8 +235,6 @@ void TmsServerComponent<Ptr>::addChildNodes()
     
     this->server->addVariableNode(params);
 
-    // this property will be added manually
-    tmsPropertyObject->ignoredProps.emplace("ComponentConfig");
     tmsPropertyObject->registerToExistingOpcUaNode(this->nodeId);
     if (tmsComponentConfig)
         tmsComponentConfig->registerOpcUaNode(this->nodeId);

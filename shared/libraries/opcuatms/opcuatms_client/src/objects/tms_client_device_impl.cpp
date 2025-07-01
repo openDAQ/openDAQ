@@ -138,7 +138,10 @@ ErrCode TmsClientDeviceImpl::getAvailableOperationModes(IList** availableOpModes
     OPENDAQ_PARAM_NOT_NULL(availableOpModes); 
     
     if (!this->hasReference("OperationModeOptions"))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+    {
+        LOG_D("OperationModes are not supported by the server")
+        return Super::getAvailableOperationModes(availableOpModes);
+    }
 
     const auto nodeId = getNodeId("OperationModeOptions");
     auto opModesNodeStrList = VariantConverter<IString>::ToDaqList(client->readValue(nodeId));
@@ -184,7 +187,10 @@ ErrCode TmsClientDeviceImpl::getOperationMode(OperationModeType* modeType)
     OPENDAQ_PARAM_NOT_NULL(modeType);
 
     if (!this->hasReference("OperationMode"))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+    {
+        LOG_D("OperationModes are not supported by the server")
+        return Super::getOperationMode(modeType);
+    }
     
     const auto nodeId = getNodeId("OperationMode");
     const auto variant = client->readValue(nodeId);

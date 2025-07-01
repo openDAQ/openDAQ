@@ -377,8 +377,8 @@ public static partial class OpenDAQFactory
     /// If localId is empty, the local id will be set to the OPENDAQ_INSTANCE_ID environment variable if available.
     /// Otherwise a random UUID will be generated for the local id.
     /// </remarks>
-    public static Instance Instance(string modulePath = null,
-                                    string localId = null)
+    public static Instance Instance(string modulePath = ".",
+                                    string localId = "")
     {
         /*
             inline InstancePtr Instance(const std::string& modulePath = "", const std::string& localId = "")
@@ -398,17 +398,26 @@ public static partial class OpenDAQFactory
             }
         */
 
-        using var logger        = Logger();
-        using var scheduler     = Scheduler(logger, 0);
-        using var moduleManager = ModuleManager(modulePath);
-        using var typeManager   = TypeManager();
-        using var authenticationProvider = AuthenticationProvider();
-        using var context       = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        //using var logger                 = Logger();
+        //using var scheduler              = Scheduler(logger, 0);
+        //using var moduleManager          = ModuleManager(modulePath);
+        //using var typeManager            = TypeManager();
+        //using var authenticationProvider = AuthenticationProvider();
+        //using var context                = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
-        //instantiate default parameters if null
-        using StringObject localIdStr = localId ?? string.Empty;
+        ////instantiate default parameters if null
+        //using StringObject localIdStr = localId ?? string.Empty;
 
-        return CreateInstance(context, localIdStr);
+        //return CreateInstance(context, localIdStr);
+
+        //C++ uses InstanceBuilder since 2024-02-08 and different defaults (null seems to be no longer allowed)
+        var builder = InstanceBuilder();
+
+        builder.DefaultRootDeviceLocalId = localId ?? string.Empty;
+        builder.Logger                   = Logger();
+        builder.ModulePath               = string.IsNullOrWhiteSpace(modulePath) ? "." : modulePath;
+
+        return InstanceFromBuilder(builder);
     }
 
     /// <summary>Creates a Logger object with a given log severity level and default set of sinks.</summary>
@@ -465,7 +474,7 @@ public static partial class OpenDAQFactory
             }
         */
 
-        using StringObject searchPathStr = searchPath ?? ".";
+        using StringObject searchPathStr = string.IsNullOrWhiteSpace(searchPath) ? "." : searchPath;
 
         return CreateModuleManager(searchPathStr);
     }
@@ -617,12 +626,22 @@ public static partial class OpenDAQFactory
     #region InstanceBuilder
 
     /// <summary>
-    /// Creates a InstanceBuilder with no parameters configured.
+    /// Creates a Instance with Builder.
     /// </summary>
     /// <returns>The <see cref="InstanceBuilder"/>.</returns>
     public static InstanceBuilder InstanceBuilder()
     {
         InstanceBuilder obj = OpenDAQFactory.CreateInstanceBuilder();
+        return obj;
+    }
+
+    /// <summary>
+    /// Creates a InstanceBuilder with no parameters configured.
+    /// </summary>
+    /// <returns>The <see cref="InstanceBuilder"/>.</returns>
+    public static Instance InstanceFromBuilder(InstanceBuilder builder)
+    {
+        Instance obj = OpenDAQFactory.CreateInstanceFromBuilder(builder);
         return obj;
     }
 

@@ -15,7 +15,6 @@
  */
 
 
-using Daq.Core.Objects;
 
 namespace Daq.Core.Types;
 
@@ -257,4 +256,66 @@ public static partial class CoreTypesFactory
     }
 
     #endregion ListObject
+
+    #region DictObject
+
+    /// <summary>
+    /// Creates a dictionary with elements of <typeparamref name="TValue"/> and initializes it with the given key-value pairs (tuple).
+    /// </summary>
+    /// <remarks>
+    /// Example:<br/>
+    /// <c>var errorCode = CoreTypesFactory.CreateDict(out IDictObject&lt;IntegerObject, StringObject&gt; stringDict, (1, "1"), (2, "2"));</c>
+    /// </remarks>
+    /// <typeparam name="TKey">The type of the dictionary item key.</typeparam>
+    /// <typeparam name="TValue">The type of the dictionary item value.</typeparam>
+    /// <param name="obj">The dictionary object.</param>
+    /// <param name="keyValuePairs">The key-value pairs (tuple).</param>
+    /// <returns><c>ErrorCode.OPENDAQ_SUCCESS</c> when successfully created.</returns>
+    public static ErrorCode CreateDict<TKey, TValue>(out IDictObject<TKey, TValue> obj, params (TKey, TValue)[] keyValuePairs)
+        where TKey : BaseObject
+        where TValue : BaseObject
+    {
+        ErrorCode errorCode = CreateDict(out IDictObject<TKey, TValue> dict);
+
+        if (errorCode != ErrorCode.OPENDAQ_SUCCESS)
+        {
+            obj = default;
+            return errorCode;
+        }
+
+        foreach (var (key, value) in keyValuePairs)
+        {
+            dict.Add(key, value);
+        }
+
+        obj = dict;
+        return errorCode;
+    }
+
+    /// <summary>
+    /// Creates a dictionary with elements of <typeparamref name="TValue"/> and initializes it with the given key-value pairs (tuple).
+    /// </summary>
+    /// <remarks>
+    /// Example:<br/>
+    /// <c>var stringDict = CreateDict&lt;IntegerObject, StringObject&gt;((1, "1"), (2, "2"));</c>
+    /// </remarks>
+    /// <typeparam name="TKey">The type of the dictionary item key.</typeparam>
+    /// <typeparam name="TValue">The type of the dictionary item value.</typeparam>
+    /// <param name="keyValuePairs">The key-value pairs (tuple).</param>
+    /// <returns>The dictionary object.</returns>
+    public static IDictObject<TKey, TValue> CreateDict<TKey, TValue>(params (TKey, TValue)[] keyValuePairs)
+        where TKey : BaseObject
+        where TValue : BaseObject
+    {
+        var dict = CreateDict<TKey, TValue>();
+
+        foreach (var (key, value) in keyValuePairs)
+        {
+            dict.Add(key, value);
+        }
+
+        return dict;
+    }
+
+    #endregion DictObject
 }

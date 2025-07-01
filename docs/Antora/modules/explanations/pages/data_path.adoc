@@ -48,6 +48,14 @@ input_port.connect(signal)
 # connection object is now accessible on input_port
 connection = input_port.connection
 ----
+C#::
++
+[source,csharp]
+----
+inputPort.Connect(signal);
+// connection object is now accessible on inputPort
+Connection connection = inputPort.Connection;
+----
 ====
 
 [#input_port]
@@ -80,6 +88,14 @@ Python::
 packet = input_port.connection.dequeue()
 # process packet, i.e. read samples from the packet
 process_packet(packet)
+----
+C#::
++
+[source,csharp]
+----
+Packet packet = inputPort.Connection.Dequeue();
+// process packet, i.e. read samples from the packet
+ProcessPacket(packet);
 ----
 ====
 

@@ -15,16 +15,14 @@ using namespace daq;
 
 static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authenticationProvider)
 {
-    auto logger = Logger();
-    auto scheduler = Scheduler(logger);
-    auto moduleManager = ModuleManager("");
-    auto typeManager = TypeManager();
-    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
-
-    auto instance = InstanceCustom(context, "local");
-
+    auto instance = InstanceBuilder().setDefaultRootDeviceLocalId("local")
+                                                       .setAuthenticationProvider(authenticationProvider)
+                                                       .build();
+    auto context = instance.getContext();
+                    
     const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
-    const auto refDevice = instance.addDevice("daqref://device1");
+    const auto refDeviceConfig = instance.getAvailableDeviceTypes().get("daqref").createDefaultConfig();
+    const auto refDevice = instance.addDevice("daqref://device1", refDeviceConfig);
     statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
@@ -422,6 +420,28 @@ TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(channels.getCount(), 2u);
 }
 
+void comparePropertyObjects(const PropertyObjectPtr& obj1, const PropertyObjectPtr& obj2)
+{
+    ASSERT_FALSE(obj1.assigned() ^ obj2.assigned()) << "One of the property objects is not assigned";
+    if (!obj1.assigned())
+        return;
+
+    auto props1 = obj1.getAllProperties();
+    auto props2 = obj2.getAllProperties();
+    ASSERT_EQ(props1.getCount(), props2.getCount()) << "Property counts do not match";
+
+    for (const auto& prop : props1)
+    {
+        ASSERT_TRUE(obj2.hasProperty(prop.getName())) << "Property " << prop.getName() << " not found in second object";
+        auto value1 = prop.getValue();
+        auto value2 = obj2.getPropertyValue(prop.getName());
+        if (value1.supportsInterface<IPropertyObject>() && value2.supportsInterface<IPropertyObject>())
+            comparePropertyObjects(value1, value2);
+        else 
+            ASSERT_EQ(value1, value2) << "Property value for " << prop.getName() << " does not match";
+    }
+}
+
 TEST_F(OpcuaDeviceModulesTest, DeviceComponentConfig)
 {
     auto server = CreateServerInstance();
@@ -429,13 +449,20 @@ TEST_F(OpcuaDeviceModulesTest, DeviceComponentConfig)
 
     auto localOpcuaDevice = client.getDevices()[0];
     auto nestedOpcuaDevice = localOpcuaDevice.getDevices()[0];
+    auto serverDevice = server.getDevices()[0];
 
-    // config automatically set by local ModuleManager when device created
+    // check that the config is not part of the device properties
+    ASSERT_FALSE(localOpcuaDevice.hasProperty("ComponentConfig"));
+    ASSERT_FALSE(nestedOpcuaDevice.hasProperty("ComponentConfig"));
+
+    // config automatically set by local ModuleManager when device created (will have local config)
     ASSERT_TRUE(localOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
     ASSERT_THROW(localOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), AlreadyExistsException);
 
-    // for nested device config cannot be overriden locally
-    ASSERT_TRUE(nestedOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
+    // nestead remote component config will store the server config
+    auto clientConfig = nestedOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig();
+    auto serverConfig = serverDevice.asPtr<IComponentPrivate>().getComponentConfig();
+    comparePropertyObjects(clientConfig, serverConfig);
     ASSERT_THROW(nestedOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), InvalidOperationException);
 }
 

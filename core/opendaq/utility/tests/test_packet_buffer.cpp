@@ -151,8 +151,6 @@ TEST_F(PacketBufferTest, readAhead)
         DataPacketPtr destination;
         buffer->createPacket(mem, desc, domain, &destination);
     }
-    auto check = buffer.getAvailableContinousSampleLeft(desc);
-    std::cout << check << std::endl;
 
     {
         DataPacketPtr destination, destination2;
@@ -164,9 +162,7 @@ TEST_F(PacketBufferTest, readAhead)
         buffer->createPacket(mem, desc, domain, &destination2);
     }
     auto left = buffer.getAvailableContinousSampleLeft(desc);
-    std::cout << left << std::endl;
     auto right = buffer.getAvailableContinousSampleRight(desc);
-    std::cout << right << std::endl;
     ASSERT_TRUE(right > left);
 }
 

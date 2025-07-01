@@ -20,6 +20,11 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*!
+* @ingroup opendaq_packet_buffers
+* @addtogroup opendaq_packet_buffer_factories Factories
+*/
+
 inline PacketBufferPtr PacketBuffer(const PacketBufferBuilderPtr& builder)
 {
     return PacketBufferPtr(PacketBuffer_Create(builder));

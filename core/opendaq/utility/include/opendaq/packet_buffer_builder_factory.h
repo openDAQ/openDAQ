@@ -16,13 +16,23 @@
 
 #pragma once
 #include <opendaq/packet_buffer_builder.h>
-//#include <opendaq/packet_buffer_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*!
+ * @ingroup opendaq_packet_buffer_builders
+ * @addtogroup opendaq_packet_buffer_builder_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief 
+ */
 inline PacketBufferBuilderPtr PacketBufferBuilder()
 {
-	return PacketBufferBuilderPtr(PacketBufferBuilder_Create());
+    return PacketBufferBuilderPtr(PacketBufferBuilder_Create());
 }
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

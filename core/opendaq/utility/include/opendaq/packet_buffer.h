@@ -22,25 +22,70 @@ BEGIN_NAMESPACE_OPENDAQ
 
 struct IPacketBufferBuilder;
 
+/*!
+ * @ingroup opendaq_packet_buffers
+ * @addgroup opendaq_packet_buffer PacketBuffer
+ * @{
+ */
+
+/*!
+ * @brief Represents an openDAQ packet buffer
+ */
 DECLARE_OPENDAQ_INTERFACE(IPacketBuffer, IBaseObject)
 {
-    // SampleCount should be an in-out parameter
+    /*!
+     * @brief Creates a Data Packet with external memory, whose
+     * @param sampleCount Lskjbv
+     * @param desc Ajlkajbv
+     * @param domainPacket Djkjlkj
+     * @param[out] packet The returned packet
+     */
     virtual ErrCode INTERFACE_FUNC createPacket(SizeT sampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet) = 0;
 
-    // What does this return? Consecutive available memory, or total available memory including wraparound?
-    // Not really needed, not useful in end-user examples
     virtual ErrCode INTERFACE_FUNC getAvailableMemory(SizeT* count) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableSampleCount(IDataDescriptor* desc, SizeT* count) = 0;
 
+    /*!
+     * @brief Blah blah
+     * @param desc Stuff written here
+     * @param[out] count Check...
+     */
     virtual ErrCode INTERFACE_FUNC getMaxAvailableContinousSampleCount(IDataDescriptor * desc, SizeT * count) = 0;
+
+    /*!
+     * @brief Another block of stuff
+     * @param desc Something that goes in
+     * @param[out] count Something that goes out
+     */
     virtual ErrCode INTERFACE_FUNC getAvailableContinousSampleLeft(IDataDescriptor * desc, SizeT * count) = 0;
+
+    /*!
+     * @brief Here more written stuff
+     * @param desc Out here
+     * @param[out] count In there
+     */
     virtual ErrCode INTERFACE_FUNC getAvailableContinousSampleRight(IDataDescriptor * desc, SizeT * count) = 0;
 
-
-    // getMaxLinearAvailableSampleCount // getMaxAvailableContionousSampleCount
-    virtual ErrCode INTERFACE_FUNC getAvailableSampleCount(IDataDescriptor* desc, SizeT* count) = 0;
+    /*!
+     * @brief Write something interesting
+     * @param sizeInBytes Sufff
+     */
     virtual ErrCode INTERFACE_FUNC resize(SizeT sizeInBytes) = 0;
 };
 
+/*!@}*/
+
+/*!
+ * @addtogroup opendaq_packet_buffer_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Creates a Packet Buffer with the given builder specifics
+ * @param builder The builder that describes the specifics of the current implementation
+ */
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, PacketBuffer, IPacketBufferBuilder*, builder)
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

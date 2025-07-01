@@ -35,9 +35,7 @@ ErrCode PacketBufferImpl::Write(size_t sampleCount, size_t rawSampleSize, void**
     {
         if (isFull && readPosWritePosDiff == 0)
         {
-            
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_BUFFERFULL, "The packet buffer is full");
-            // Return problem
         }
         else if (readPosWritePosDiff == 0)
         {
@@ -47,7 +45,6 @@ ErrCode PacketBufferImpl::Write(size_t sampleCount, size_t rawSampleSize, void**
         {
             availableSamples = static_cast<size_t>(endOfBuffer - static_cast<uint8_t*>(writePos)) / static_cast<size_t>(rawSampleSize);
         }
-
     }
 
     if (availableSamples < sampleCount)
@@ -60,7 +57,7 @@ ErrCode PacketBufferImpl::Write(size_t sampleCount, size_t rawSampleSize, void**
 
             // The main packet at the beginning
             *memPos = data.data();
-            writePos = static_cast<void*>(data.data() + sampleCount * rawSampleSize); 
+            writePos = static_cast<void*>(data.data() + sampleCount * rawSampleSize);
             if (writePos == readPos)
             {
                 isFull = true;
@@ -168,6 +165,8 @@ ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc,
 
     DataRuleType type;
     err = rule->getType(&type);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
     if (type == daq::DataRuleType::Linear)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Packet Buffer does not support Linear Data Rule Type packets.");
 

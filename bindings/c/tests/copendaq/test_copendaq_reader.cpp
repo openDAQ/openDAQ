@@ -106,7 +106,7 @@ protected:
         daqTypeManager_createTypeManager(&typeManager);
 
         daqScheduler* scheduler = nullptr;
-        daqScheduler_createScheduler(&scheduler, logger, 1);
+        daqScheduler_createScheduler(&scheduler, logger);
 
         daqDict *options = nullptr, *discoveryServers = nullptr;
         daqDict_createDict(&options);

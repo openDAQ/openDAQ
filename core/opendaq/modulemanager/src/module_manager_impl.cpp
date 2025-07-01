@@ -21,7 +21,6 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
-#include <optional>
 #include <map>
 #include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>

@@ -40,7 +40,6 @@
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/component_update_context_ptr.h>
 #include <set>
-#include <optional>
 #include <coreobjects/user_internal_ptr.h>
 #include <opendaq/device_private_ptr.h>
 #include <opendaq/user_lock_factory.h>

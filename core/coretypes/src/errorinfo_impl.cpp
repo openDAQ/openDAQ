@@ -17,9 +17,26 @@ thread_local ErrorInfoHolder errorInfoHolder;
 class InitialErrorGuard : public ErrorGuardImpl
 {
 public:
+    using Super = ErrorGuardImpl;
+
     InitialErrorGuard()
-        : ErrorGuardImpl("Initial", -1)
+        : ErrorGuardImpl(nullptr, -1)
     {
+    }
+
+    ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) override
+    {
+        const ErrCode errCode = Super::getErrorInfos(errorInfos);
+        if (this->empty())
+            this->releaseRef();
+        return errCode;
+    }
+
+    void clearLastErrorInfo(ErrCode errCode) override
+    {
+        Super::clearLastErrorInfo(errCode);
+        if (this->empty())
+            this->releaseRef();
     }
 
     bool isInitial() const override
@@ -114,13 +131,10 @@ IList* ErrorInfoHolder::getErrorInfoList()
     if (!errorScopeList)
         return nullptr;
 
-    auto backEntry = errorScopeList->back();
     IList* list = nullptr;
-    const ErrCode errCode = backEntry->getErrorInfos(&list);
+    const ErrCode errCode = errorScopeList->back()->getErrorInfos(&list);
     if (OPENDAQ_FAILED(errCode))
         throw std::runtime_error("Failed to get error info list");
-    if (backEntry->isInitial())
-        backEntry->releaseRef();
     return list;
 }
 
@@ -174,15 +188,7 @@ void ErrorInfoHolder::removeScopeEntry(ErrorGuardImpl* entry)
     }
 
     if (errorScopeList->empty())
-    {
         errorScopeList.reset();
-    }
-    else
-    {
-        backEntry = errorScopeList->back();
-        if (backEntry->isInitial() && backEntry->empty())
-            backEntry->releaseRef();  // only dummy
-    }
 }
 
 // ErrorGuardImpl
@@ -199,7 +205,7 @@ ErrorGuardImpl::~ErrorGuardImpl()
     errorInfoHolder.removeScopeEntry(this);
 }
 
-ErrCode ErrorGuardImpl::getErrorInfos(IList** errorInfos) const
+ErrCode ErrorGuardImpl::getErrorInfos(IList** errorInfos)
 {
     if (errorInfos == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;

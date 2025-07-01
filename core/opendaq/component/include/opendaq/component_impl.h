@@ -1125,7 +1125,11 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
     {
         PropertyObjectPtr componentConfig = this->componentConfig;
         if (!componentConfig.assigned())
-            this->getComponentConfig(&componentConfig);
+        {
+            const ErrCode errCode = this->getComponentConfig(&componentConfig);
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo(errCode);
+        }
 
         if (componentConfig.assigned())
         {

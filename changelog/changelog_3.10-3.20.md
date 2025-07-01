@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#850](https://github.com/openDAQ/openDAQ/pull/850) Ignore server notifications unless native device is connected.
 - [#842](https://github.com/openDAQ/openDAQ/pull/846) Do not bind properties on serialize. Prevents crashes when serializing property object classes.
 - [#842](https://github.com/openDAQ/openDAQ/pull/842) Exclude ComponentConfig from OPC UA Component Properties
 - [#833](https://github.com/openDAQ/openDAQ/pull/833) Fix Invalid MultiReader in PowerReaderFb on Sample Rate Change

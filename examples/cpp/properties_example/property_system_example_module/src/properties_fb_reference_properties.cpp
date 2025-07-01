@@ -1,4 +1,4 @@
-#include <properties_module/properties_fb_reference_properties.h>
+#include <property_system_example_module/properties_fb_reference_properties.h>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 

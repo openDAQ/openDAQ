@@ -1,4 +1,4 @@
-set(LIB_NAME properties_module)
+set(LIB_NAME property_system_example_module)
 set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 
 set(SRC_Include common.h

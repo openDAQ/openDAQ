@@ -16,7 +16,7 @@
 
 #pragma once
 #include <opendaq/module_impl.h>
-#include <properties_module/common.h>
+#include <property_system_example_module/common.h>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 

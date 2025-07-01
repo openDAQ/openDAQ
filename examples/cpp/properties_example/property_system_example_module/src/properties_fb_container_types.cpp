@@ -1,5 +1,5 @@
 #include <coreobjects/argument_info_factory.h>
-#include <properties_module/properties_fb_container_types.h>
+#include <property_system_example_module/properties_fb_container_types.h>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 

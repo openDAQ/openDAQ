@@ -1,6 +1,6 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/callable_info_factory.h>
-#include <properties_module/properties_fb_objects_and_classes.h>
+#include <property_system_example_module/properties_fb_objects_and_classes.h>
 #include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE

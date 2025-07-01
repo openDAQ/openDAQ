@@ -1,5 +1,5 @@
-#include <properties_module/module_dll.h>
-#include <properties_module/properties_module.h>
+#include <property_system_example_module/module_dll.h>
+#include <property_system_example_module/property_system_example_module.h>
 
 #include <opendaq/module_factory.h>
 

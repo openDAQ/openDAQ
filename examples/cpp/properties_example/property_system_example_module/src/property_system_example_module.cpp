@@ -1,17 +1,19 @@
 #include <coretypes/version_info_factory.h>
 #include <opendaq/custom_log.h>
-#include <properties_module/properties_fb_basic_types.h>
-#include <properties_module/properties_fb_container_types.h>
-#include <properties_module/properties_fb_objects_and_classes.h>
-#include <properties_module/properties_fb_reference_properties.h>
-#include <properties_module/properties_module.h>
-#include <properties_module/version.h>
+#include <property_system_example_module/properties_fb_basic_types.h>
+#include <property_system_example_module/properties_fb_container_types.h>
+#include <property_system_example_module/properties_fb_objects_and_classes.h>
+#include <property_system_example_module/properties_fb_reference_properties.h>
+#include <property_system_example_module/property_system_example_module.h>
+#include <property_system_example_module/version.h>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
 PropertySystemExampleModule::PropertySystemExampleModule(ContextPtr ctx)
     : Module("PropertySystemExampleModule",
-             VersionInfo(PROPERTIES_MODULE_MAJOR_VERSION, PROPERTIES_MODULE_MINOR_VERSION, PROPERTIES_MODULE_PATCH_VERSION),
+             VersionInfo(PROPERTY_SYSTEM_EXAMPLE_MODULE_MAJOR_VERSION,
+                         PROPERTY_SYSTEM_EXAMPLE_MODULE_MINOR_VERSION,
+                         PROPERTY_SYSTEM_EXAMPLE_MODULE_PATCH_VERSION),
              std::move(ctx),
              "PropertySystemExampleModule")
 {
@@ -37,9 +39,9 @@ DictPtr<IString, IFunctionBlockType> PropertySystemExampleModule::onGetAvailable
 }
 
 FunctionBlockPtr PropertySystemExampleModule::onCreateFunctionBlock(const StringPtr& id,
-                                                         const ComponentPtr& parent,
-                                                         const StringPtr& localId,
-                                                         const PropertyObjectPtr& /*config*/)
+                                                                    const ComponentPtr& parent,
+                                                                    const StringPtr& localId,
+                                                                    const PropertyObjectPtr& /*config*/)
 {
     if (id == ExampleFBPropertyBasicTypes::CreateType().getId())
     {
@@ -53,14 +55,12 @@ FunctionBlockPtr PropertySystemExampleModule::onCreateFunctionBlock(const String
     }
     if (id == ExampleFBPropertyObjectsAndClasses::CreateType().getId())
     {
-        FunctionBlockPtr fb =
-            createWithImplementation<IFunctionBlock, ExampleFBPropertyObjectsAndClasses>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, ExampleFBPropertyObjectsAndClasses>(context, parent, localId);
         return fb;
     }
     if (id == ExampleFBPropertyReferenceProperties::CreateType().getId())
     {
-        FunctionBlockPtr fb =
-            createWithImplementation<IFunctionBlock, ExampleFBPropertyReferenceProperties>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, ExampleFBPropertyReferenceProperties>(context, parent, localId);
         return fb;
     }
 

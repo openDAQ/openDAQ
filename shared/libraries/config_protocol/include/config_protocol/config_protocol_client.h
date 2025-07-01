@@ -29,6 +29,7 @@
 #include <opendaq/custom_log.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <coreobjects/property_object_class_internal_ptr.h>
+#include <algorithm>
 
 namespace daq::config_protocol
 {

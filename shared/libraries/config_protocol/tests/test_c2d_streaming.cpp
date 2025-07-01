@@ -590,7 +590,7 @@ TEST_F(ClientToDeviceStreamingTest, ConnectExternalParentlessSignal)
     SignalPtr parentlessSignal = Signal(NullContext(), nullptr, "signal_with_no_parent");
 
     resetPortConnectionExpectations();
-    EXPECT_NO_THROW(chIpClient2.connect(parentlessSignal));
+    EXPECT_NO_THROW(chIpClient1.connect(parentlessSignal));
     ASSERT_TRUE(waitForPortsConnection());
     // one external signal connected - no domain signal - one mirrored signal created
     EXPECT_EQ(serverExtSigFolder.getItems().getCount(), 1u);

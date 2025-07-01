@@ -79,6 +79,14 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             if (!this->deserializationComplete)
                 return Super::connect(signal);
             const auto signalPtr = SignalPtr::Borrow(signal);
+            if (!isSignalFromTheSameComponentTree(signalPtr))
+            {
+                const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
+                LOG_W("InputPort \"{}\": connecting to signal \"{}\" from another openDAQ instance — "
+                      "may cause unsafe loopbacks or undefined behavior.",
+                      this->globalId,
+                      signalPtr.getGlobalId());
+            }
             {
                 auto lock = this->getRecursiveConfigLock();
 
@@ -162,7 +170,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
                 *accepts = acceptsPtr.getValue(False);
                 return OPENDAQ_SUCCESS;
             }
-            *accepts = False;
+            *accepts = True;
             return OPENDAQ_SUCCESS;
         });
 }

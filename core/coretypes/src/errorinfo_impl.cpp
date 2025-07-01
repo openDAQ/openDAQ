@@ -27,8 +27,7 @@ public:
     ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) override
     {
         const ErrCode errCode = Super::getErrorInfos(errorInfos);
-        if (this->empty())
-            this->releaseRef();
+        this->releaseRef();
         return errCode;
     }
 

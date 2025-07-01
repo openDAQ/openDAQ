@@ -31,6 +31,7 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/connection_status_container_private_ptr.h>
+#include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
 

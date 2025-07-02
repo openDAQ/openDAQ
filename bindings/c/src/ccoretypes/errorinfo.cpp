@@ -37,9 +37,9 @@ daqErrCode daqErrorInfo_getSource(daqErrorInfo* self, daqString** source)
     return reinterpret_cast<daq::IErrorInfo*>(self)->getSource(reinterpret_cast<daq::IString**>(source));
 }
 
-daqErrCode daqErrorInfo_setFileName(daqErrorInfo* self, daqCharPtr fileName)
+daqErrCode daqErrorInfo_setFileName(daqErrorInfo* self, daqConstCharPtr fileName)
 {
-    return reinterpret_cast<daq::IErrorInfo*>(self)->setFileName(static_cast<daq::CharPtr>(fileName));
+    return reinterpret_cast<daq::IErrorInfo*>(self)->setFileName(static_cast<daq::ConstCharPtr>(fileName));
 }
 
 daqErrCode daqErrorInfo_getFileName(daqErrorInfo* self, daqConstCharPtr* fileName)

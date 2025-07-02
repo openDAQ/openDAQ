@@ -83,6 +83,7 @@
 
 ## Misc
 
+- [#851](https://github.com/openDAQ/openDAQ/pull/851) Allow parentless signals connection within client-to-device streaming
 - [#758](https://github.com/openDAQ/openDAQ/pull/758) General update of the quick-start documentation for usage of .NET on Windows and Linux.
 - [#742](https://github.com/openDAQ/openDAQ/pull/742) Assign a name to the scheduler, logger, and discovery threads.
 - [#747](https://github.com/openDAQ/openDAQ/pull/747) Fixes CMake 4.0.0 compatibility, fixes ctutils library compilation yielding a Warning for lack of nullptr initialization, adds a CMake option to disable access control at compile time

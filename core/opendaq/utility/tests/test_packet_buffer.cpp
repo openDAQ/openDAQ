@@ -279,7 +279,25 @@ TEST_F(PacketBufferTest, multithreadBasicFunctionallity)
 
     auto [desc, domain] = generate_building_blocks();
 
+    auto check = [buffer, desc, domain](SizeT t, DataPacketPtr& destination)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            destination = buffer.createPacket(t, desc, domain);
+        };
 
+    std::thread t1, t2;
+
+    DataPacketPtr r1, r2;
+
+    t1 = std::thread(check, 20, std::ref(r1));
+    t2 = std::thread(check, 50, std::ref(r2));
+
+    t1.join();
+    t2.join();
+
+    SizeT out = buffer.getMaxAvailableContinousSampleCount(desc);
+
+    ASSERT_EQ(out, 10);
 }
 
 TEST_F(PacketBufferTest, resetTest)

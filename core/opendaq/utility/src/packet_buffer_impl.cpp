@@ -271,6 +271,7 @@ ErrCode PacketBufferImpl::getMaxAvailableContinousSampleCount(IDataDescriptor* d
         if (isFull)
         {
             *count = 0;
+            return OPENDAQ_SUCCESS;
         }
         auto fromEndToPos = allAvailableSamples - static_cast<uint8_t*>(readPos);
         auto fromStartToPos = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
@@ -286,6 +287,7 @@ ErrCode PacketBufferImpl::getMaxAvailableContinousSampleCount(IDataDescriptor* d
 
 
             *count = (fromStartToPos <= fromEndToPos) ? (fromEndToPos/rawSampleSize) : (fromStartToPos/rawSampleSize);
+            return OPENDAQ_SUCCESS;
         }
         *count = (static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(writePos))/rawSampleSize;
     }

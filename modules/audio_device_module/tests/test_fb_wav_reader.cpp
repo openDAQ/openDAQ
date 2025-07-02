@@ -63,6 +63,7 @@ protected:
 TEST_F(AudioDeviceModuleTest, TestFilesExist)
 {
     ASSERT_NO_THROW(resolvePath("resources\\quack_mono_16bit_44kHz.wav"));
+    ASSERT_NO_THROW(resolvePath("resources\\quack_mono_16bit_44kHz_cut.wav"));
     ASSERT_NO_THROW(resolvePath("resources\\quack_mono_32bit_48kHz.wav"));
     ASSERT_NO_THROW(resolvePath("resources\\quack_stereo_16bit_44kHz.wav"));
 }

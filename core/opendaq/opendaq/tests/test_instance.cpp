@@ -423,7 +423,7 @@ TEST_F(InstanceTest, Serialize)
     instance.serialize(serializer);
 
     auto str = serializer.getOutput();
-    ASSERT_GT(str, 0); // Ensure that the configuration is not empty
+    ASSERT_GT(str.getLength(), 0); // Ensure that the configuration is not empty
 }
 
 TEST_F(InstanceTest, InstanceBuilderSetGet)

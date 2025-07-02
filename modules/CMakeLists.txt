@@ -77,6 +77,10 @@ if (DAQMODULES_BASIC_CSV_RECORDER_MODULE)
     add_subdirectory(basic_csv_recorder_module)
 endif()
 
+
+add_subdirectory(parquet_recorder_module)
+
+
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)
 endif()

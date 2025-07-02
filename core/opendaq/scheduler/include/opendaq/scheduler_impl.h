@@ -22,13 +22,42 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/awaitable_ptr.h>
 #include <opendaq/task_flow.h>
+#include <opendaq/work_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+class MainThreadLoop
+{
+public:
+    MainThreadLoop(const LoggerPtr& logger);
+    ~MainThreadLoop();
+
+    ErrCode stop();
+    ErrCode runIteration();
+    ErrCode run(SizeT loopTime);
+    bool isRunning() const;
+    ErrCode scheduleTask(IWork* work);
+
+    MainThreadLoop(const MainThreadLoop&) = delete;
+    MainThreadLoop& operator=(const MainThreadLoop&) = delete;
+
+private:
+    bool executeWork(const WorkPtr& work);
+
+    void runIteration(std::unique_lock<std::mutex>& lock);
+
+    LoggerComponentPtr loggerComponent;
+
+    mutable std::mutex mutex;
+    std::condition_variable cv;
+    std::list<WorkPtr> workQueue;
+    bool running{ false };
+};
 
 class SchedulerImpl final : public ImplementationOf<IScheduler>
 {
 public:
-    explicit SchedulerImpl(LoggerPtr logger, SizeT numWorkers);
+    explicit SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoop = false);
     ~SchedulerImpl() override;
 
     ErrCode INTERFACE_FUNC scheduleFunction(IFunction* function, IAwaitable** awaitable) override;
@@ -38,6 +67,12 @@ public:
 
     ErrCode INTERFACE_FUNC stop() override;
     ErrCode INTERFACE_FUNC waitAll() override;
+
+    ErrCode INTERFACE_FUNC runMainLoop(SizeT loopTime) override;
+    ErrCode INTERFACE_FUNC isMainLoopSet(Bool* isSet) override;
+    ErrCode INTERFACE_FUNC stopMainLoop() override;
+    ErrCode INTERFACE_FUNC runMainLoopIteration() override;
+    ErrCode INTERFACE_FUNC scheduleWorkOnMainLoop(IWork* work) override;
 
     [[nodiscard]] std::size_t getWorkerCount() const;
 
@@ -49,6 +84,8 @@ private:
     LoggerComponentPtr loggerComponent;
 
     std::unique_ptr<tf::Executor> executor;
+
+    std::unique_ptr<MainThreadLoop> mainThreadWorker;
 };
 
 

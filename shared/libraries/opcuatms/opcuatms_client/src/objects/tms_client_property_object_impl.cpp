@@ -23,7 +23,10 @@ using namespace opcua;
 
 namespace detail
 {
-    std::unordered_set<std::string> ignoredPropertyNames{"ServerCapabilities", "OperationMode", "OperationModeOptions"};
+    std::unordered_set<std::string> ignoredPropertyNames{"ServerCapabilities",
+                                                         "OperationMode",
+                                                         "OperationModeOptions",
+                                                         "ComponentConfig"};
 }
 
 template <class Impl>

@@ -3,6 +3,7 @@ set(TEST_APP test_${MODULE_NAME})
 
 set(TEST_SOURCES test_audio_device_module.cpp
                  test_fb_wav_reader.cpp
+                 test_fb_wav_writer.cpp
                  test_app.cpp
 )
 

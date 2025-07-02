@@ -1,3 +1,4 @@
+#include <testutils/testutils.h>
 #include <testutils/bb_memcheck_listener.h>
 #include <coretypes/baseobject.h>
 #include <coretypes/mem.h>
@@ -31,8 +32,7 @@ TEST_F(BaseObjectTest, CreatePtr)
 TEST_F(BaseObjectTest, CreateNullParam)
 {
     ErrCode res = createBaseObject(nullptr);
-    ASSERT_EQ(res, OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(res);
+    ASSERT_ERROR_CODE_EQ(res, OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IBaseObject", "daq");
@@ -139,8 +139,8 @@ TEST_F(BaseObjectTest, ToString)
     daqFreeMemory(str);
 
     ErrCode res = baseObject->toString(nullptr);
-    ASSERT_EQ(res, OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(res);
+    ASSERT_ERROR_CODE_EQ(res, OPENDAQ_ERR_ARGUMENT_NULL);
+
     ASSERT_EQ(baseObject->releaseRef(), 0);
 }
 
@@ -163,8 +163,7 @@ TEST_F(BaseObjectTest, QueryInterface)
     createBaseObject(&baseObject1);
 
     ErrCode res = baseObject1->queryInterface(IBaseObject::Id, nullptr);
-    ASSERT_EQ(res, OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(res);
+    ASSERT_ERROR_CODE_EQ(res, OPENDAQ_ERR_ARGUMENT_NULL);
 
     IBaseObject* baseObject2;
     ASSERT_EQ(baseObject1->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject2)), OPENDAQ_SUCCESS);
@@ -177,8 +176,8 @@ TEST_F(BaseObjectTest, QueryInterface)
 
     IBaseObject* baseObject3;
     res = baseObject1->queryInterface(TestGuid, reinterpret_cast<void**>(&baseObject3));
-    ASSERT_EQ(res, OPENDAQ_ERR_NOINTERFACE);    
-    daqClearErrorInfo(res);
+    ASSERT_ERROR_CODE_EQ(res, OPENDAQ_ERR_NOINTERFACE);
+
     ASSERT_EQ(baseObject1->releaseRef(), 1);
     ASSERT_EQ(baseObject2->releaseRef(), 0);
 }
@@ -188,9 +187,8 @@ TEST_F(BaseObjectTest, BorrowInterface)
     IBaseObject* baseObject1;
     createBaseObject(&baseObject1);
 
-    ASSERT_EQ(baseObject1->borrowInterface(IBaseObject::Id, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL);
-
+    ASSERT_ERROR_CODE_EQ(baseObject1->borrowInterface(IBaseObject::Id, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    
     IBaseObject* baseObject2;
     ASSERT_EQ(baseObject1->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&baseObject2)), OPENDAQ_SUCCESS);
 
@@ -201,8 +199,7 @@ TEST_F(BaseObjectTest, BorrowInterface)
     static const IntfID TestGuid = { 0x11111111, 0x1111, 0x1111, { { 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11 } } };
 
     IBaseObject* baseObject3;
-    ASSERT_EQ(baseObject1->borrowInterface(TestGuid, reinterpret_cast<void**>(&baseObject3)), OPENDAQ_ERR_NOINTERFACE);
-    daqClearErrorInfo(OPENDAQ_ERR_NOINTERFACE);
+    ASSERT_ERROR_CODE_EQ(baseObject1->borrowInterface(TestGuid, reinterpret_cast<void**>(&baseObject3)), OPENDAQ_ERR_NOINTERFACE);
 
     ASSERT_EQ(baseObject1->releaseRef(), 0);
 }

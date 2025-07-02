@@ -1,7 +1,7 @@
+#include <testutils/testutils.h>
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
 #include <opendaq/context_factory.h>
-#include <gtest/gtest.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <coreobjects/property_factory.h>
@@ -38,8 +38,7 @@ TEST_F(SyncComponentTest, testAddInterface)
     SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
 
     PropertyObjectPtr interface = PropertyObject();
-    ASSERT_EQ(syncComponentPrivate->addInterface(interface), OPENDAQ_ERR_INVALID_ARGUMENT);
-    daqClearErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_ERROR_CODE_EQ(syncComponentPrivate->addInterface(interface), OPENDAQ_ERR_INVALID_ARGUMENT);
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "InterfaceClockSync");
     ASSERT_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_SUCCESS);
@@ -53,14 +52,12 @@ TEST_F(SyncComponentTest, testRemoveInterface)
     SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
 
     PropertyObjectPtr interface1 = PropertyObject(typeManager, "SyncInterfaceBase");
-    ASSERT_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
-    daqClearErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_ERROR_CODE_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
 
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "InterfaceClockSync");
     ASSERT_EQ(syncComponentPrivate->addInterface(interface2), OPENDAQ_SUCCESS);
 
-    ASSERT_EQ(syncComponentPrivate->removeInterface(String("SyncInterfaceBase")), OPENDAQ_ERR_NOTFOUND);
-    daqClearErrorInfo(OPENDAQ_ERR_NOTFOUND);
+    ASSERT_ERROR_CODE_EQ(syncComponentPrivate->removeInterface(String("SyncInterfaceBase")), OPENDAQ_ERR_NOTFOUND);
     ASSERT_EQ(syncComponentPrivate->removeInterface(String("InterfaceClockSync")), OPENDAQ_SUCCESS);
 }
 
@@ -76,24 +73,19 @@ TEST_F(SyncComponentTest, testAddInhertiedInterfaces)
     PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
 
     //Assert that an interfaces with valid base class can be added
-    ASSERT_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
-    daqClearErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_ERROR_CODE_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
     ASSERT_EQ(syncComponentPrivate->addInterface(interface2), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponentPrivate->addInterface(interface3), OPENDAQ_SUCCESS);
 
-    ASSERT_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
-    daqClearErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT);
-    ASSERT_EQ(syncComponentPrivate->addInterface(interface2), OPENDAQ_ERR_ALREADYEXISTS);
-    daqClearErrorInfo(OPENDAQ_ERR_ALREADYEXISTS);
-    ASSERT_EQ(syncComponentPrivate->addInterface(interface3), OPENDAQ_ERR_ALREADYEXISTS);
-    daqClearErrorInfo(OPENDAQ_ERR_ALREADYEXISTS);
+    ASSERT_ERROR_CODE_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_ERROR_CODE_EQ(syncComponentPrivate->addInterface(interface2), OPENDAQ_ERR_ALREADYEXISTS);
+    ASSERT_ERROR_CODE_EQ(syncComponentPrivate->addInterface(interface3), OPENDAQ_ERR_ALREADYEXISTS);
 
     //Assert that an interfaces with invalid base class cannot be added
     auto propClass = PropertyObjectClassBuilder("prop").build();
     typeManager.addType(propClass);
     PropertyObjectPtr interface4 = PropertyObject(typeManager, "prop");
-    ASSERT_EQ(syncComponentPrivate->addInterface(interface4), OPENDAQ_ERR_INVALID_ARGUMENT);
-    daqClearErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_ERROR_CODE_EQ(syncComponentPrivate->addInterface(interface4), OPENDAQ_ERR_INVALID_ARGUMENT);
 }
 
 TEST_F(SyncComponentTest, testSetSelectedSource)
@@ -108,8 +100,7 @@ TEST_F(SyncComponentTest, testSetSelectedSource)
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
     PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
 
-    ASSERT_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
-    daqClearErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_ERROR_CODE_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
     ASSERT_EQ(syncComponentPrivate->addInterface(interface2), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponentPrivate->addInterface(interface3), OPENDAQ_SUCCESS);
 
@@ -135,8 +126,7 @@ TEST_F(SyncComponentTest, testSelectedSourceListChanged)
     PropertyObjectPtr interface2 = PropertyObject(typeManager, "PtpSyncInterface");
     PropertyObjectPtr interface3 = PropertyObject(typeManager, "InterfaceClockSync");
 
-    ASSERT_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
-    daqClearErrorInfo(OPENDAQ_ERR_INVALID_ARGUMENT);
+    ASSERT_ERROR_CODE_EQ(syncComponentPrivate->addInterface(interface1), OPENDAQ_ERR_INVALID_ARGUMENT);
     ASSERT_EQ(syncComponentPrivate->addInterface(interface2), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponentPrivate->addInterface(interface3), OPENDAQ_SUCCESS);
 

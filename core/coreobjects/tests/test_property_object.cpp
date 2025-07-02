@@ -1,7 +1,6 @@
 #include <property_value_event_args_ptr.h>
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include <testutils/testutils.h>
+#include <gmock/gmock.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_class_ptr.h>
 #include <coretypes/type_manager_factory.h>
@@ -439,8 +438,7 @@ TEST_F(PropertyObjectTest, EnumVisiblePropertyListNull)
     auto propObj = PropertyObject(objManager, "Test");
     ErrCode errCode = propObj->getVisibleProperties(nullptr);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(errCode);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(PropertyObjectTest, EnumVisiblePropertyWhenClassNull)
@@ -1399,8 +1397,7 @@ TEST_F(PropertyObjectTest, PropertyValidateFailedEvalValue)
     obj.addProperty(ptr);
     
     ErrCode err = obj->setPropertyValue(String(propertyName), Floating(10.2));
-    ASSERT_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
-    daqClearErrorInfo(err);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
 
     ASSERT_THROW(obj.setPropertyValue(propertyName, 10.2), ValidateFailedException);
 }
@@ -1431,8 +1428,8 @@ TEST_F(PropertyObjectTest, PropertyWriteValidateEvalValueMultipleTimes)
     ASSERT_NO_THROW(obj.setPropertyValue(propertyName, 12.2));
 
     err = obj->setPropertyValue(String(propertyName), Floating(5.0));
-    ASSERT_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
-    daqClearErrorInfo(err);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+
     ASSERT_THROW(obj.setPropertyValue(propertyName, 5), ValidateFailedException);
 }
 

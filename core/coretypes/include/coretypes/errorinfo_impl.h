@@ -60,9 +60,6 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-protected:
-    bool isTrackable() const override;
-
 private:
     IString* message;
     IString* source;

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/mock/mock_streaming_factory.h>
 #include <opendaq/signal_impl.h>
@@ -76,8 +76,7 @@ TEST_F(MirroredSignalTest, AddSourceTwice)
     auto signal = createMirroredSignal("signal");
     auto streaming = MockStreaming(connStr, NullContext());
     ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_SUCCESS);
-    ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_ERR_DUPLICATEITEM);
-    daqClearErrorInfo(OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_ERROR_CODE_EQ(signal.template asPtr<IMirroredSignalPrivate>()->addStreamingSource(streaming), OPENDAQ_ERR_DUPLICATEITEM);
 }
 
 TEST_F(MirroredSignalTest, AddGetSources)
@@ -110,8 +109,7 @@ TEST_F(MirroredSignalTest, RemoveSourceNotAdded)
 {
     auto signal = createMirroredSignal("signal");
     auto streaming = MockStreaming(connStr, NullContext());
-    ASSERT_EQ(signal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connStr), OPENDAQ_ERR_NOTFOUND);
-    daqClearErrorInfo(OPENDAQ_ERR_NOTFOUND);
+    ASSERT_ERROR_CODE_EQ(signal.template asPtr<IMirroredSignalPrivate>()->removeStreamingSource(connStr), OPENDAQ_ERR_NOTFOUND);
 }
 
 TEST_F(MirroredSignalTest, AddRemoveSource)

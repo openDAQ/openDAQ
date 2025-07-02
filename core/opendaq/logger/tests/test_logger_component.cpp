@@ -4,7 +4,7 @@
 
 #define OPENDAQ_LOG_LEVEL OPENDAQ_LOG_LEVEL_TRACE
 
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <opendaq/logger_sink_factory.h>
 #include <opendaq/logger_component_factory.h>
 #include <opendaq/logger_thread_pool_factory.h>
@@ -95,8 +95,7 @@ TEST_F(LoggerComponentTest, GetName)
 TEST_F(LoggerComponentTest, GetNameNull)
 {
     auto testLoggerComponent = LoggerComponent("test");
-    ASSERT_EQ(testLoggerComponent->getName(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(testLoggerComponent->getName(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(LoggerComponentTest, SetPattern)
@@ -108,8 +107,7 @@ TEST_F(LoggerComponentTest, SetPattern)
 TEST_F(LoggerComponentTest, SetPatternNull)
 {
     auto loggerComponent = LoggerComponent("test");
-    ASSERT_EQ(loggerComponent->setPattern(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(loggerComponent->setPattern(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(LoggerComponentTest, SimpleLog)
@@ -202,8 +200,7 @@ TEST_F(LoggerComponentTest, GetLevelNull)
 {
     auto loggerComponent = LoggerComponent("test");
 
-    ASSERT_EQ(loggerComponent->getLevel(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(loggerComponent->getLevel(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(LoggerComponentTest, SetLevel)
@@ -246,8 +243,7 @@ TEST_F(LoggerComponentTest, ShouldLogNullOutput)
     auto loggerComponent = LoggerComponent("test");
     ErrCode err = loggerComponent->shouldLog(LogLevel::Critical, nullptr);
 
-    ASSERT_EQ(err, OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 // Log levels tests

@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <coretypes/type_manager_factory.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/eval_value_factory.h>
 #include <coreobjects/property_factory.h>
 
-#include "coreobjects/callable_info_factory.h"
-#include "coreobjects/unit_factory.h"
+#include <coreobjects/callable_info_factory.h>
+#include <coreobjects/unit_factory.h>
 
 // OPENDAQ_TODO: null object in eval value
 // OPENDAQ_TODO: enum value string reference
@@ -765,8 +765,7 @@ TEST_F(STGAmplifierTest, Deserialize)
     BaseObjectPtr deserialized;
     // TODO: should add comparing of Itype
     ErrCode errCode = deserializer->deserialize(str, objManager, nullptr, &deserialized);
-    ASSERT_TRUE(OPENDAQ_FAILED(errCode));
-    daqClearErrorInfo(errCode);
+    ASSERT_ERROR_CODE_FAILED(errCode);
 
     /*    ASSERT_FALSE(OPENDAQ_FAILED(errCode));
 

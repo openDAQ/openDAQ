@@ -607,11 +607,6 @@ ErrCode ErrorInfoImpl::isFrozen(Bool* frozen) const
     return OPENDAQ_SUCCESS;
 }
 
-inline bool ErrorInfoImpl::isTrackable() const
-{
-    return false;
-}
-
 ErrCode ErrorInfoImpl::freeze()
 {
     if (frozen)

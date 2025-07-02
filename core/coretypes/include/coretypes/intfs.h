@@ -211,25 +211,18 @@ public:
         , disposeCalled(false)
     {
 #ifndef NDEBUG
-        if (this->isTrackable())
-        {
-            const auto thisBaseObject = getThisAsBaseObject();
-            daqTrackObject(thisBaseObject);
-        }
+        const auto thisBaseObject = getThisAsBaseObject();
+        daqTrackObject(thisBaseObject);
 #endif
 #ifdef OPENDAQ_TRACK_SHARED_LIB_OBJECT_COUNT
         std::atomic_fetch_add_explicit(&daqSharedLibObjectCount, std::size_t{1}, std::memory_order_relaxed);
 #endif
     }
-
     virtual ~GenericObjInstance()
     {
 #ifndef NDEBUG
-        if (this->isTrackable())
-        {
-            const auto thisBaseObject = getThisAsBaseObject();
-            daqUntrackObject(thisBaseObject);
-        }
+        const auto thisBaseObject = getThisAsBaseObject();
+        daqUntrackObject(thisBaseObject);
 #endif
 #ifdef OPENDAQ_TRACK_SHARED_LIB_OBJECT_COUNT
         std::atomic_fetch_sub_explicit(&daqSharedLibObjectCount, std::size_t{1}, std::memory_order_acq_rel);
@@ -369,11 +362,6 @@ protected:
     IBaseObject* getThisAsBaseObject()
     {
         return static_cast<IBaseObject*>(static_cast<MainInterface*>(this));
-    }
-
-    inline virtual bool isTrackable() const
-    {
-        return true;
     }
 
     IBaseObject* getThisAsBaseObject() const

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/function_factory.h>
 #include <coretypes/list_factory.h>
@@ -18,8 +18,7 @@ TEST_F(FunctionTest, Basic)
     });
 
     ErrCode err = funcObj->call(nullptr, nullptr);
-    ASSERT_EQ(err, OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(err);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_ARGUMENT_NULL);
 
     IBaseObject* result;
     err = funcObj->call(nullptr, &result);
@@ -97,8 +96,7 @@ TEST_F(FunctionTest, NullFuncExecuteErrorCode)
 
     ObjectPtr<IBaseObject> result;
     ErrCode err = nullFunc->call(nullptr, &result);
-    ASSERT_EQ(err, OPENDAQ_ERR_NOTASSIGNED);
-    daqClearErrorInfo(err);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_NOTASSIGNED);
 }
 
 TEST_F(FunctionTest, NullFuncExecuteThrows)
@@ -252,8 +250,7 @@ TEST_F(FunctionTest, AutoUnpackThrowExceptionCheckCode)
 
     BaseObjectPtr result;
     auto errCode = func->call(nullptr, &result);
-    ASSERT_EQ(errCode, OPENDAQ_ERR_INVALIDSTATE);
-    daqClearErrorInfo(errCode);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_INVALIDSTATE);
     ASSERT_TRUE(called);
 }
 
@@ -358,8 +355,7 @@ TEST_F(FunctionTest, ImplicitSmartPtrLambdaRawThrow)
     ASSERT_THROW(ptr(), GeneralErrorException);
 
     BaseObjectPtr result;
-    ASSERT_EQ(ptr->call(nullptr, &result), OPENDAQ_ERR_GENERALERROR);
-    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
+    ASSERT_ERROR_CODE_EQ(ptr->call(nullptr, &result), OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(FunctionTest, ImplicitSmartPtrLambdaZeroParam)
@@ -388,8 +384,7 @@ TEST_F(FunctionTest, ImplicitSmartPtrLambdaZeroParamThrow)
 
     called = false;
     BaseObjectPtr result;
-    ASSERT_EQ(ptr->call(nullptr, &result), OPENDAQ_ERR_GENERALERROR);
-    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
+    ASSERT_ERROR_CODE_EQ(ptr->call(nullptr, &result), OPENDAQ_ERR_GENERALERROR);
     ASSERT_TRUE(called);
 }
 
@@ -417,8 +412,7 @@ TEST_F(FunctionTest, ImplicitSmartPtrLambdaOneParamThrow)
 
     BaseObjectPtr result;
     ObjectPtr<IInteger> intA = Integer_Create(5);
-    ASSERT_EQ(ptr->call(intA, &result), OPENDAQ_ERR_GENERALERROR);
-    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
+    ASSERT_ERROR_CODE_EQ(ptr->call(intA, &result), OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(FunctionTest, ImplicitSmartPtrLambdaTwoParam)
@@ -445,8 +439,7 @@ TEST_F(FunctionTest, ImplicitSmartPtrLambdaTwoThrow)
 
     BaseObjectPtr result;
     auto params = List<Int>(5, 3);
-    ASSERT_EQ(ptr->call(params, &result), OPENDAQ_ERR_GENERALERROR);
-    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
+    ASSERT_ERROR_CODE_EQ(ptr->call(params, &result), OPENDAQ_ERR_GENERALERROR);
 }
 
 static Int testing0()
@@ -569,8 +562,7 @@ TEST_F(FunctionTest, ImplicitSmartPtrFreeFuncRawThrow)
     ASSERT_THROW(ptr(), GeneralErrorException);
 
     BaseObjectPtr result;
-    ASSERT_EQ(ptr->call(nullptr, &result), OPENDAQ_ERR_GENERALERROR);
-    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
+    ASSERT_ERROR_CODE_EQ(ptr->call(nullptr, &result), OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(FunctionTest, ImplicitSmartPtrFreeFuncOneParam)
@@ -591,8 +583,7 @@ TEST_F(FunctionTest, ImplicitSmartPtrFreeFuncOneParamThrow)
 
     BaseObjectPtr result;
     ObjectPtr<IInteger> intA = Integer_Create(5);
-    ASSERT_EQ(ptr->call(intA, &result), OPENDAQ_ERR_GENERALERROR);
-    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
+    ASSERT_ERROR_CODE_EQ(ptr->call(intA, &result), OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(FunctionTest, ImplicitSmartPtrFreeFuncTwoParam)
@@ -613,8 +604,7 @@ TEST_F(FunctionTest, ImplicitSmartPtrFreeFuncTwoThrow)
 
     BaseObjectPtr result;
     auto params = List<Int>(5, 3);
-    ASSERT_EQ(ptr->call(params, &result), OPENDAQ_ERR_GENERALERROR);
-    daqClearErrorInfo(OPENDAQ_ERR_GENERALERROR);
+    ASSERT_ERROR_CODE_EQ(ptr->call(params, &result), OPENDAQ_ERR_GENERALERROR);
 }
 
 TEST_F(FunctionTest, Inspectable)

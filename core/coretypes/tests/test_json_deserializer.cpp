@@ -1,4 +1,3 @@
-#include <gtest/gtest.h>
 #include <testutils/testutils.h>
 #include <limits>
 #include <cmath>
@@ -333,8 +332,7 @@ TEST_F(JsonDeserializerTest, unknownObjectType)
     IBaseObject* obj;
     ErrCode errCode = deserializer->deserialize(String(json.data()), nullptr, nullptr, &obj);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
-    daqClearErrorInfo(errCode);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
 }
 
 TEST_F(JsonDeserializerTest, objectTypeTagNotInt)
@@ -342,8 +340,7 @@ TEST_F(JsonDeserializerTest, objectTypeTagNotInt)
     IBaseObject* obj;
     ErrCode errCode = deserializer->deserialize(String(R"({"__type":0.0})"), nullptr, nullptr, &obj);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE);
-    daqClearErrorInfo(errCode);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE);
 }
 
 TEST_F(JsonDeserializerTest, noObjectType)
@@ -351,8 +348,7 @@ TEST_F(JsonDeserializerTest, noObjectType)
     IBaseObject* obj;
     ErrCode errCode = deserializer->deserialize(String(R"({"test":0})"), nullptr, nullptr, &obj);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_DESERIALIZE_NO_TYPE);
-    daqClearErrorInfo(errCode);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_DESERIALIZE_NO_TYPE);
 }
 
 TEST_F(JsonDeserializerTest, deserializeNullString)
@@ -422,8 +418,7 @@ TEST_F(JsonDeserializerTest, createToNull)
 {
     ErrCode errCode = createJsonDeserializer(nullptr);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo(errCode);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(JsonDeserializerTest, deserializerGuid)

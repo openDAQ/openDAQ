@@ -538,7 +538,7 @@ TEST_F(RefModulesTest, SerializeDevicePower)
     powerFb.getInputPorts()[1].connect(device1Signal);
 
     const auto configuration = instance.saveConfiguration();
-    std::cout << configuration << std::endl;
+    ASSERT_GT(configuration.size(), 0); // Ensure that the configuration is not empty
 }
 
 TEST_F(RefModulesTest, UpdateDevicePower)
@@ -591,7 +591,7 @@ TEST_F(RefModulesTest, UpdateDevicePower)
     device1Signal.release();
 //    rendererFb.release();
 
-    std::cout << configuration << std::endl;
+    ASSERT_GT(configuration.size(), 0); // Ensure that the configuration is not empty
 
     instance = Instance();
 

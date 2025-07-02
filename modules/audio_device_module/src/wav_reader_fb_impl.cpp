@@ -51,6 +51,7 @@ void WAVReaderFbImpl::sendPacket(DataPacketPtr packet)
 WAVReaderFbImpl::WAVReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(CreateType(), ctx, parent, localId)
     , filePath("")
+    , decoderInitialized(false)
     , reading(false)
     , framesAvailable(false)
     , logger(ctx.getLogger())
@@ -114,13 +115,19 @@ bool WAVReaderFbImpl::initializeDecoder()
     objPtr.setPropertyValue("EOF", false);
     setComponentStatusWithMessage(ComponentStatus::Ok, "File ready.");
 
+    decoderInitialized = true;
+
     return true;
 }
 
 bool WAVReaderFbImpl::uninitializeDecoder()
 {
-    ma_device_uninit(&device);
-    ma_decoder_uninit(&decoder);
+    if (decoderInitialized)
+    {
+        ma_device_uninit(&device);
+        ma_decoder_uninit(&decoder);
+        decoderInitialized = false;
+    }
 
     return true;
 }
@@ -242,7 +249,7 @@ void WAVReaderFbImpl::initProperties()
     objPtr.addProperty(StringProperty("FilePath", ""));
     objPtr.getOnPropertyValueWrite("FilePath") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args)
         {
-            setRead(false);
+            objPtr.setPropertyValue("Reading", false);
             if (!updateFilePath(static_cast<std::string>(args.getValue())))
             {
                 args.setValue("");

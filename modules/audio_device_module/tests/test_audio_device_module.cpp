@@ -111,6 +111,8 @@ TEST_F(AudioDeviceModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ(functionBlockTypes.getCount(), 2u);
     ASSERT_TRUE(functionBlockTypes.hasKey("AudioDeviceModuleWavWriter"));
     ASSERT_EQ(functionBlockTypes.get("AudioDeviceModuleWavWriter").getId(), "AudioDeviceModuleWavWriter");
+    ASSERT_TRUE(functionBlockTypes.hasKey("AudioDeviceModuleWavReader"));
+    ASSERT_EQ(functionBlockTypes.get("AudioDeviceModuleWavReader").getId(), "AudioDeviceModuleWavReader");
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());

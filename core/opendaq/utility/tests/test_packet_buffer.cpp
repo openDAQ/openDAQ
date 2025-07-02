@@ -168,11 +168,24 @@ TEST_F(PacketBufferTest, readAhead)
 
 TEST_F(PacketBufferTest, fullBufferRead)
 {
+    auto builder = PacketBufferBuilder();
+    builder.setSizeInBytes(800);
+    auto buffer = PacketBuffer(builder);
 
-}
+    auto [desc, domain] = generate_building_blocks();
 
-TEST_F(PacketBufferTest, dynamicWorkflowSimulation)
-{
+    SizeT mem = 20;
+
+    {
+        DataPacketPtr destination, destination2, destination3, destination4;
+        destination = buffer.createPacket(mem, desc, domain);
+
+        destination2 = buffer.createPacket(mem, desc, domain);
+        destination3 = buffer.createPacket(mem, desc, domain);
+        destination4 = buffer.createPacket(mem, desc, domain);
+    }
+
+    ASSERT_EQ(buffer.getAvailableContinousSampleRight(desc), 80);
 }
 
 TEST_F(PacketBufferTest, linearRuleFail)
@@ -209,20 +222,80 @@ TEST_F(PacketBufferTest, dynamicPacketDestruction)
     builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
+    auto [desc, domain] = generate_building_blocks();
 
+    SizeT mem = 10;
+
+    {
+        // Create one
+        DataPacketPtr c1;
+        c1 = buffer.createPacket(mem, desc, domain);
+        {
+            // Create one
+            DataPacketPtr c2;
+            c2 = buffer.createPacket(mem, desc, domain);
+        }
+        {
+            // Create one
+            DataPacketPtr c3;
+            c3 = buffer.createPacket(mem, desc, domain);
+            {
+                // Create one
+                DataPacketPtr c4;
+                c4 = buffer.createPacket(mem, desc, domain);
+                {
+                    // Create one
+                    DataPacketPtr c5;
+                    c5 = buffer.createPacket(mem, desc, domain);
+                }
+            }
+        }
+        {
+            // Create one
+            DataPacketPtr c6;
+            c6 = buffer.createPacket(mem, desc, domain);
+            {
+                // Create one
+                DataPacketPtr c7;
+                c7 = buffer.createPacket(mem, desc, domain);
+            }
+        }
+        {
+            // Create one
+            DataPacketPtr c8;
+            c8 = buffer.createPacket(mem, desc, domain);
+        }
+    }
+
+    // The buffer should be empty (left + right should be full buffer)
+    ASSERT_EQ((buffer.getAvailableContinousSampleLeft(desc) + buffer.getAvailableContinousSampleRight(desc)), 80);
 }
 
 TEST_F(PacketBufferTest, multithreadBasicFunctionallity)
 {
+    auto builder = PacketBufferBuilder();
+    builder.setSizeInBytes(800);
+    auto buffer = PacketBuffer(builder);
+
+    auto [desc, domain] = generate_building_blocks();
+
 
 }
 
 TEST_F(PacketBufferTest, resetTest)
 {
+    auto builder = PacketBufferBuilder();
+    builder.setSizeInBytes(800);
+    auto buffer = PacketBuffer(builder);
 
+    auto [desc, domain] = generate_building_blocks();
 }
 
 TEST_F(PacketBufferTest, fullDynamicFunctionallityWorkflow)
 {
+    auto builder = PacketBufferBuilder();
+    builder.setSizeInBytes(800);
+    auto buffer = PacketBuffer(builder);
 
+    auto [desc, domain] = generate_building_blocks();
 }

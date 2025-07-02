@@ -51,6 +51,7 @@ private:
 
     Int samplesCaptured;
 
+    bool decoderInitialized;
     bool reading;
     std::atomic<bool> framesAvailable;
 

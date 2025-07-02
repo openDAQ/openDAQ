@@ -21,10 +21,11 @@
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/stream_reader_ptr.h>
 #include <miniaudio/miniaudio.h>
+#include <opendaq/reader_status_ptr.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
-class WAVWriterFbImpl final : public FunctionBlock
+class WAVWriterFbImpl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
 {
 public:
     explicit WAVWriterFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
@@ -34,12 +35,32 @@ public:
 private:
     InputPortConfigPtr inputPort;
     std::string fileName;
-    bool storing;
+    bool recording;
     ma_encoder encoder;
     DataDescriptorPtr inputValueDataDescriptor;
     DataDescriptorPtr inputTimeDataDescriptor;
     StreamReaderPtr reader;
-    bool selfChange;
+
+    /*!
+     * @brief Starts the recording, if it was not already started.
+     * @return OPENDAQ_SUCCESS.
+     */
+    ErrCode INTERFACE_FUNC startRecording() override;
+
+    /*!
+     * @brief Stops the recording, if it was started.
+     * @return OPENDAQ_SUCCESS.
+     */
+    ErrCode INTERFACE_FUNC stopRecording() override;
+
+    /*!
+     * @brief Checks whether data from connected signals is currently being recorded to the
+     *     persistent storage medium.
+     * @param isRecording A pointer to a boolean which is populated with the recording state.
+     * @retval OPENDAQ_SUCCESS if the recording state was successfully stored.
+     * @retval OPENDAQ_ERR_ARGUMENT_NULL if @p isRecording is `nullptr`.
+     */
+    ErrCode INTERFACE_FUNC getIsRecording(Bool* isRecording) override;
 
     bool validateDataDescriptor() const;
     bool validateDomainDescriptor() const;
@@ -49,12 +70,9 @@ private:
     void createInputPort();
 
     void fileNameChanged();
-    void storingChanged(bool store);
-    void startStore();
-    void stopStore();
-    void stopStoreInternal();
+
     void processEventPacket(const EventPacketPtr& packet);
-    void calculate();
+    void processInputData();
 };
 
 END_NAMESPACE_AUDIO_DEVICE_MODULE

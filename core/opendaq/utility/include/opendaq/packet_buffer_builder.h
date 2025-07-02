@@ -45,20 +45,20 @@ DECLARE_OPENDAQ_INTERFACE(IPacketBufferBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setContext(IContext* context) = 0;
 
     /*!
-     * @brief Gets the SizeT sizeInBytes
+     * @brief Gets the size of the underlying buffer in bytes
      * @param[out] sizeInBytes Value of this variable will contain the size of the buffer in bytes
      */
     virtual ErrCode INTERFACE_FUNC getSizeInBytes(SizeT* sizeInBytes) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets the SizeT sizeInBytes
+     * @brief Sets the size of the underlying buffer in bytes
      * @param sizeInBytes Sets the size of the buffer in bytes
      */
     virtual ErrCode INTERFACE_FUNC setSizeInBytes(SizeT sizeInBytes) = 0;
 
     /*!
-     * @brief Builds the Packet Buffer
+     * @brief Builds the Packet Buffer with the internally specified size and context
      * @param[out] buffer Returns the newly created buffer
      */
     virtual ErrCode INTERFACE_FUNC build(IPacketBuffer** buffer) = 0;

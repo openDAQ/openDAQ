@@ -35,9 +35,9 @@ DECLARE_OPENDAQ_INTERFACE(IPacketBuffer, IBaseObject)
 {
     /*!
      * @brief Creates a Data Packet with external memory, whose
-     * @param sampleCount Lskjbv
-     * @param desc Ajlkajbv
-     * @param domainPacket Djkjlkj
+     * @param sampleCount The amount of samples in the packet
+     * @param desc Description of the samples
+     * @param domainPacket A packet containing domain information
      * @param[out] packet The returned packet
      */
     virtual ErrCode INTERFACE_FUNC createPacket(SizeT sampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet) = 0;
@@ -46,29 +46,29 @@ DECLARE_OPENDAQ_INTERFACE(IPacketBuffer, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getAvailableSampleCount(IDataDescriptor* desc, SizeT* count) = 0;
 
     /*!
-     * @brief Blah blah
-     * @param desc Stuff written here
-     * @param[out] count Check...
+     * @brief Returns the maximum continous amount of samples either at the beginning or the end of the buffer
+     * @param desc Description that contains the information about raw sample size
+     * @param[out] count Returns the amount of samples that can be fitted into the space available
      */
     virtual ErrCode INTERFACE_FUNC getMaxAvailableContinousSampleCount(IDataDescriptor * desc, SizeT * count) = 0;
 
     /*!
-     * @brief Another block of stuff
-     * @param desc Something that goes in
-     * @param[out] count Something that goes out
+     * @brief Returns the amount of samples (whoose raw size is gained from desc) at the end of the buffer
+     * @param desc Description that contains the infomation about raw sample size
+     * @param[out] count The available amount
      */
     virtual ErrCode INTERFACE_FUNC getAvailableContinousSampleLeft(IDataDescriptor * desc, SizeT * count) = 0;
 
     /*!
-     * @brief Here more written stuff
-     * @param desc Out here
-     * @param[out] count In there
+     * @brief Returns the amount of samples (whoose raw size is gained from desc) at the end of the buffer
+     * @param desc Description that contains the information about raw sample size
+     * @param[out] count The available amount
      */
     virtual ErrCode INTERFACE_FUNC getAvailableContinousSampleRight(IDataDescriptor * desc, SizeT * count) = 0;
 
     /*!
-     * @brief Write something interesting
-     * @param sizeInBytes Sufff
+     * @brief Reallocates the underlying std::vector so that it size matches the new given size
+     * @param sizeInBytes The requested size of the new buffer in bytes
      */
     virtual ErrCode INTERFACE_FUNC resize(SizeT sizeInBytes) = 0;
 };

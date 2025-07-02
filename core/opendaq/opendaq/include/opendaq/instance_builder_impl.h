@@ -57,11 +57,14 @@ public:
     ErrCode INTERFACE_FUNC setAuthenticationProvider(IAuthenticationProvider* authenticationProvider) override;
     ErrCode INTERFACE_FUNC getAuthenticationProvider(IAuthenticationProvider** authenticationProvider) override;
 
+    ErrCode INTERFACE_FUNC setScheduler(IScheduler* scheduler) override;
+    ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler) override;
+
     ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers) override;
     ErrCode INTERFACE_FUNC getSchedulerWorkerNum(SizeT* numWorkers) override;
 
-    ErrCode INTERFACE_FUNC setScheduler(IScheduler* scheduler) override;
-    ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler) override;
+    ErrCode INTERFACE_FUNC setUsingSchedulerMainLoop(Bool useMainLoop) override;
+    ErrCode INTERFACE_FUNC getUsingSchedulerMainLoop(Bool* useMainLoop) override;
 
     ErrCode INTERFACE_FUNC setDefaultRootDeviceLocalId(IString* localId) override;
     ErrCode INTERFACE_FUNC getDefaultRootDeviceLocalId(IString** localId) override;

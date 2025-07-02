@@ -172,8 +172,13 @@ class App(tk.Tk):
         except Exception as e:
             print("Callback processing error:", e)
 
+        try:
+            self.context.instance.context.scheduler.run_main_loop_iteration()
+        except Exception as e:
+            print("Scheduler processing error:", e)
+
         # Re-schedule after 50 ms
-        self.after(50, self.poll_opendaq_events)
+        self.after(20, self.poll_opendaq_events)
 
     def init_opendaq(self):
 

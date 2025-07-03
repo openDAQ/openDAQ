@@ -1,3 +1,10 @@
+##
+# Each component in openDAQ has 0 to n tags that can be used to group and filter components
+# The tags can be accessed via the `component.tags` attribute.
+#
+# This example showcases how we can query for the existence of a given tag.
+##
+
 import opendaq as daq
 import sys
 sys.path.append("..")

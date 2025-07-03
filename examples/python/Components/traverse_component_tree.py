@@ -1,3 +1,21 @@
+##
+# openDAQ features a tree structure of components. The tree always starts with a device at its root.
+# Each object is either a folder (has children components) or a component (can not have child components -
+# is a leaf node of the tree). This example showcases how we can traverse the openDAQ component tree.
+#
+# Each folder type in openDAQ follows a set of modelling rules enforced by default subfolders present below
+# every component. In example, a Function block, by default, has 3 folders below it at all times: "FB", "IP",
+# "Sig". The "FB" folder can only have other function blocks, "IP" input ports, and "Sig" signals.
+#
+# The other modelling rules are as follows (enforced by the default-created folders):
+# Device (Dev) folders: "Sig", "Dev", "FB", "IO"
+# Function Block (FB) folder: "Sig", "FB", "IP"
+# Inputs-Outputs (IO) folder: "IO", "Ch"
+# Channel (Ch) folders: "Sig", "FB", "IP"
+#
+# Signals and Input Ports are leaf components.
+##
+
 import opendaq as daq
 import sys
 sys.path.append("..")

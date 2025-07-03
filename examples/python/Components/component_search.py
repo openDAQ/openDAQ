@@ -1,7 +1,15 @@
+##
+# Showcases the openDAQ search filters. Search filters can be used in tree traversal methods such as
+# `folder.getItems` to filter out any results that do not match the filter criteria. This example
+# uses them to traverse the openDAQ simulator.
+##
+
 # TODO: aliases for search filters, eg. daq.Any()
-import opendaq as daq
+
 import sys
 sys.path.append("..")
+
+import opendaq as daq
 import daq_utils
 
 def print_component_list(list_):
@@ -33,8 +41,7 @@ if __name__ == "__main__":
     print_component_list(items)
 
     # Find all components with the tag "DeviceDomain"
-    tags = daq.List() # TODO: Check why this can't be a Python list
-    tags.push_back('DeviceDomain')
+    tags = ['DeviceDomain']
     items = simulator.get_items(daq.RecursiveSearchFilter(daq.RequiredTagsSearchFilter(tags)))
     print('\nAll items with the tag \"DeviceDomain\":')
     print_component_list(items)

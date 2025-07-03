@@ -1,3 +1,11 @@
+##
+# openDAQ component statuses represent the current state of any component. They are set up by the module that
+# implements each component and aim to provide information to the user of the component state and instructions
+# on how to resolve any misconfigurations.
+#
+# This example uses teh scaling function block's statuses as an example to showcase the system.
+##
+
 import opendaq as daq
 import sys
 sys.path.append("..")

@@ -2389,7 +2389,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callEndUpdateOn
     {
         const auto propObj = propValue.template asPtrOrNull<IPropertyObject>(true);
         if (propObj.assigned() && !propObj.isFrozen())
-            propObj.assigned();
+            propObj.endUpdate();
     }
 }
 

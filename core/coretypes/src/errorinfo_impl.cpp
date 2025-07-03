@@ -279,7 +279,7 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) con
 
     if (filename && !firstMessage)
     {
-        ss << "\n - Caused by: [ " << filename;
+        ss << "\n - Cause by: [ " << filename;
         if (fileLine != -1)
             ss << ":" << fileLine;
         ss << " ]";

@@ -279,7 +279,7 @@ TEST_F(PacketBufferTest, multithreadBasicFunctionallity)
 
     auto [desc, domain] = generate_building_blocks();
 
-    auto check = [buffer, desc, domain](SizeT t, DataPacketPtr& destination)
+    auto check = [buffer = buffer, desc = desc, domain = domain](SizeT t, DataPacketPtr& destination)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             destination = buffer.createPacket(t, desc, domain);
@@ -307,6 +307,8 @@ TEST_F(PacketBufferTest, resetTest)
     auto buffer = PacketBuffer(builder);
 
     auto [desc, domain] = generate_building_blocks();
+
+
 }
 
 TEST_F(PacketBufferTest, fullDynamicFunctionallityWorkflow)

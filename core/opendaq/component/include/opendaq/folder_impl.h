@@ -532,7 +532,8 @@ void FolderImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
 
     for (const auto& [_, item] : items)
     {
-        item.beginUpdate();
+        if (!item.isFrozen())
+            item.beginUpdate();
     }
 }
 
@@ -543,7 +544,8 @@ void FolderImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 
     for (const auto& [_, item] : items)
     {
-        item.endUpdate();
+        if (!item.isFrozen())
+            item.endUpdate();
     }
 }
 

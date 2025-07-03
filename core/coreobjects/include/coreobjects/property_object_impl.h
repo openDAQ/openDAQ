@@ -2374,11 +2374,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdate(
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdateOnChildren()
 {
-    for (const auto& item : propValues)
+    for (const auto& [_, propValue] : propValues)
     {
-        const auto value = item.second;
-        const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
-        if (propObj.assigned())
+        const auto propObj = propValue.template asPtrOrNull<IPropertyObject>(true);
+        if (propObj.assigned() && !propObj.isFrozen())
             propObj.beginUpdate();
     }
 }
@@ -2386,12 +2385,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdate
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callEndUpdateOnChildren()
 {
-    for (const auto& item : propValues)
+    for (const auto& [_, propValue] : propValues)
     {
-        const auto value = item.second;
-        const auto propObj = value.template asPtrOrNull<IPropertyObject>(true);
-        if (propObj.assigned())
-            propObj.endUpdate();
+        const auto propObj = propValue.template asPtrOrNull<IPropertyObject>(true);
+        if (propObj.assigned() && !propObj.isFrozen())
+            propObj.assigned();
     }
 }
 

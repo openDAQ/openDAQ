@@ -2242,10 +2242,11 @@ Bool ObjectPtr<T>::isFrozen() const
     if (!object)
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
-    auto freezableObj = asPtr<IFreezable>(true);
+    auto freezableObj = asPtrOrNull<IFreezable>(true);
 
-    Bool frozen;
-    checkErrorInfo(freezableObj->isFrozen(&frozen));
+    Bool frozen {False};
+    if (freezableObj.assigned())
+        checkErrorInfo(freezableObj->isFrozen(&frozen));
 
     return frozen;
 }

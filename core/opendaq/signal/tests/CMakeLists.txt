@@ -31,6 +31,7 @@ set(TEST_SOURCES
     test_gap_checks.cpp
     test_reference_domain_info.cpp
     test_bulk_data_packet.cpp
+    test_wrapped_data_packet.cpp
 )
 
 if (OPENDAQ_MIMALLOC_SUPPORT)

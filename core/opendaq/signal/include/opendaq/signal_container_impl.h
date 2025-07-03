@@ -648,7 +648,10 @@ void GenericSignalContainerImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
     Super::callBeginUpdateOnChildren();
 
     for (const auto& comp : components)
-        comp.beginUpdate();
+    {
+        if (!comp.isFrozen())
+            comp.beginUpdate();
+    }
 }
 
 template <class Intf, class... Intfs>
@@ -656,7 +659,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 {
     for (const auto& comp : components)
     {
-        comp.endUpdate();
+        if (!comp.isFrozen())
+            comp.endUpdate();
     }
 
     Super::callEndUpdateOnChildren();

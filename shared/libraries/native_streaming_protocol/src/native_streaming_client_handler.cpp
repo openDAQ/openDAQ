@@ -302,7 +302,10 @@ void NativeStreamingClientImpl::onPacketBufferReceived(const packet_streaming::P
         auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
         while (packet.assigned())
         {
-            packetHandler(signalIds.at(signalNumericId), packet);
+            // Due to server-side optimizations, it’s possible to receive a packet for a signal that has just been removed.
+            // Therefore, we cautiously check whether the signal ID is still registered on the client side before processing.
+            if (const auto it = signalIds.find(signalNumericId); it != signalIds.end())
+                packetHandler(it->second, packet);
             std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
         }
     }
@@ -344,7 +347,8 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
         [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId, bool subscribed)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
-            thisPtr->signalSubscriptionAckCallback(thisPtr->signalIds.at(signalNumericId), subscribed);
+            if (const auto it = thisPtr->signalIds.find(signalNumericId); it != thisPtr->signalIds.end())
+                thisPtr->signalSubscriptionAckCallback(it->second, subscribed);
     };
 
     sessionHandler = std::make_shared<ClientSessionHandler>(context,

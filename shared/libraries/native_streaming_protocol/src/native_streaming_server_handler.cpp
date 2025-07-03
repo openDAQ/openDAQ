@@ -127,8 +127,12 @@ void NativeStreamingServerHandler::removeComponentSignals(const StringPtr& compo
         // removed component is a signal, or signal is a descendant of removed component
         if (signalStringId == removedComponentId || IdsParser::isNestedComponentId(removedComponentId, signalStringId))
         {
-            if (streamingManager.removeSignal(signalPtr))
+            // unsubscribe signal
+            if (streamingManager.isSignalSubscribed(signalPtr))
                 signalUnsubscribedHandler(signalPtr);
+
+            // unregister signal
+            streamingManager.removeSignal(signalPtr);
 
             auto streamingClientsIds = streamingManager.getRegisteredClientsIds();
             for (const auto& clientId : streamingClientsIds)

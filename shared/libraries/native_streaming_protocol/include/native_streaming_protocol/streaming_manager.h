@@ -87,9 +87,14 @@ public:
 
     /// Removes a registered signal, usually when the signal is being removed from a device.
     /// @param signal The openDAQ signal to unregister.
-    /// @return true if the removed signal was subscribed, false otherwise.
     /// @throw NativeStreamingProtocolException if the signal is not registered
-    bool removeSignal(const SignalPtr& signal);
+    void removeSignal(const SignalPtr& signal);
+
+    /// Check if a registered signal is subscribed.
+    /// @param signal The openDAQ signal to check.
+    /// @return true if the signal is subscribed, false otherwise.
+    /// @throw NativeStreamingProtocolException if the signal is not registered
+    bool isSignalSubscribed(const SignalPtr& signal);
 
     /// Registers a connected client as a streaming client.
     /// @param clientId The unique string ID provided by the client or automatically assigned by the server.

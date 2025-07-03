@@ -8,7 +8,6 @@
 - [#810](https://github.com/openDAQ/openDAQ/pull/810) Load individual modules.
 - [#788](https://github.com/openDAQ/openDAQ/pull/788) Component property search.
 
-
 ## Python
 
 - [#841](https://github.com/openDAQ/openDAQ/pull/841) Fix Python GUI app crash for Python versions below 3.11 by mimicking `enum.StrEnum` functionality via `enum.Enum`.
@@ -27,6 +26,7 @@
 
 - [#835](https://github.com/openDAQ/openDAQ/pull/835) Removes the opendaq_dev target.
 - [#829](https://github.com/openDAQ/openDAQ/pull/829) Add search functionality to Antora documentation to significantly improve user experience. 
+- [#804](https://github.com/openDAQ/openDAQ/pull/804) Add Properties examples.
 
 
 ## Required application changes

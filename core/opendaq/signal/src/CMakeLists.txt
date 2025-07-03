@@ -207,6 +207,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/generic_data_packet_impl.cpp
         ${SDK_SRC_DIR}/event_packet_impl.cpp
         ${SDK_SRC_DIR}/binary_data_packet_impl.cpp
+        ${SDK_SRC_DIR}/bulk_data_packet_impl.cpp
     )
     
     source_group("signal//input_port" FILES 
@@ -333,6 +334,8 @@ set(SRC_PublicHeaders_Component
     packet_destruct_callback_factory.h
     signal_impl.h
     reference_domain_info_factory.h
+    bulk_data_packet.h
+    bulk_data_packet_factory.h
     ${SRC_Mimalloc_PublicHeaders}
     PARENT_SCOPE
 )
@@ -393,6 +396,7 @@ set(SRC_Cpp_Component
     signal.natvis
     reference_domain_info_impl.cpp
     reference_domain_info_builder_impl.cpp
+    bulk_data_packet.cpp
     ${SRC_Mimalloc_Cpp}
     PARENT_SCOPE
 )

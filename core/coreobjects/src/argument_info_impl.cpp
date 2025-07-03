@@ -36,7 +36,7 @@ ErrCode ArgumentInfoImpl::getType(CoreType* type)
 
 ErrCode ArgumentInfoImpl::equals(IBaseObject* other, Bool* equal) const
 {
-    return daqTry([this, &other, &equal]() {
+    const ErrCode errCode = daqTry([this, &other, &equal]() {
         if (equal == nullptr)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
@@ -57,6 +57,8 @@ ErrCode ArgumentInfoImpl::equals(IBaseObject* other, Bool* equal) const
         *equal = true;
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ArgumentInfoImpl::serialize(ISerializer* serializer)
@@ -97,13 +99,15 @@ ErrCode ArgumentInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject
 
     const SerializedObjectPtr serializedObj = SerializedObjectPtr::Borrow(serialized);
 
-    return daqTry([&serializedObj, &obj]
+    const ErrCode errCode = daqTry([&serializedObj, &obj]
     {
         const auto name = serializedObj.readString("name");
         const auto argType = static_cast<CoreType>(serializedObj.readInt("type"));
 
         *obj = createWithImplementation<IArgumentInfo, ArgumentInfoImpl>(name, argType).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

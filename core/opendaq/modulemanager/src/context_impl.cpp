@@ -98,18 +98,20 @@ ErrCode ContextImpl::getModuleManager(IBaseObject** manager)
 {
     OPENDAQ_PARAM_NOT_NULL(manager);
 
-    return daqTry([&]()
+    const ErrCode errCode = daqTry([&]()
+    {
+        if (this->moduleManagerWeakRef.assigned())
         {
-            if (this->moduleManagerWeakRef.assigned())
-            {
-                *manager = moduleManagerWeakRef.getRef().asPtr<IBaseObject>().detach();
-            }
-            else
-            {
-                *manager = nullptr;
-            }
-            return OPENDAQ_SUCCESS;
-        });
+            *manager = moduleManagerWeakRef.getRef().asPtr<IBaseObject>().detach();
+        }
+        else
+        {
+            *manager = nullptr;
+        }
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ContextImpl::getTypeManager(ITypeManager** manager)

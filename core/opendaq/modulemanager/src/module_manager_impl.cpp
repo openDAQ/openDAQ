@@ -960,9 +960,9 @@ ErrCode ModuleManagerImpl::createStreaming(IStreaming** streaming, IString* conn
 
     StreamingPtr streamingPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &ModuleManagerImpl::onCreateStreaming, streamingPtr, connectionString, config);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *streaming = streamingPtr.detach();
-
     return errCode;
 }
 
@@ -1095,6 +1095,7 @@ ErrCode ModuleManagerImpl::completeDeviceCapabilities(IDevice* device)
     DevicePtr devicePtr = DevicePtr::Borrow(device);
 
     const ErrCode errCode = wrapHandler(this, &ModuleManagerImpl::onCompleteCapabilities, device, nullptr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
 

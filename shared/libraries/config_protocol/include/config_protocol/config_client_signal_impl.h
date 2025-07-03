@@ -89,11 +89,12 @@ inline ErrCode ConfigClientSignalImpl::Deserialize(ISerializedObject* serialized
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeConfigComponent<ISignal, ConfigClientSignalImpl>(serialized, context, factoryCallback).detach();
-        });
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = DeserializeConfigComponent<ISignal, ConfigClientSignalImpl>(serialized, context, factoryCallback).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline void ConfigClientSignalImpl::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)

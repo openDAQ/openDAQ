@@ -118,9 +118,9 @@ ErrCode BlockReaderImpl::getAvailableCount(SizeT* count)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
 
-    SizeT available{};
-    ErrCode errCode = wrapHandlerReturn(this, &BlockReaderImpl::getAvailable, available);
-    *count = available;
+    ErrCode errCode = wrapHandlerReturn(this, &BlockReaderImpl::getAvailable, *count);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     return errCode;
 }
 

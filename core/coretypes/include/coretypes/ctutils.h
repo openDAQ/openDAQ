@@ -402,7 +402,6 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
         daq::extendErrorInfo(__FILE__, __LINE__, errCode, ##__VA_ARGS__)
 #endif
 
-
 #define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode, ...)                  \
     do                                                                                  \
     {                                                                                   \

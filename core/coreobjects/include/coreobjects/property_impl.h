@@ -294,15 +294,15 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(type);
 
-	    return daqTry([&]()
+	    const ErrCode errCode = daqTry([&]()
         {
             if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
                 *type = lock ? prop.getValueType() : prop.asPtr<IPropertyInternal>().getValueTypeNoLock();
             else
                 *type = this->valueType;
-                
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get value type of property");
+        return errCode;
     }
     
     ErrCode INTERFACE_FUNC getKeyType(CoreType* type) override
@@ -432,15 +432,15 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(description);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *description = lock ? prop.getDescription().detach() : prop.asPtr<IPropertyInternal>().getDescriptionNoLock().detach();
-		        else
-			        *description = bindAndGet<StringPtr>(this->description, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *description = lock ? prop.getDescription().detach() : prop.asPtr<IPropertyInternal>().getDescriptionNoLock().detach();
+            else
+                *description = bindAndGet<StringPtr>(this->description, lock).detach();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getUnit(IUnit** unit) override
@@ -457,15 +457,15 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(unit);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *unit = lock ? prop.getUnit().detach() : prop.asPtr<IPropertyInternal>().getUnitNoLock().detach();
-		        else
-			        *unit = bindAndGet<UnitPtr>(this->unit, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *unit = lock ? prop.getUnit().detach() : prop.asPtr<IPropertyInternal>().getUnitNoLock().detach();
+            else
+                *unit = bindAndGet<UnitPtr>(this->unit, lock).detach();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getMinValue(INumber** min) override
@@ -482,15 +482,15 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(min);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *min = lock ? prop.getMinValue().detach() : prop.asPtr<IPropertyInternal>().getMinValueNoLock().detach();
-		        else
-			        *min = bindAndGet<NumberPtr>(this->minValue, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *min = lock ? prop.getMinValue().detach() : prop.asPtr<IPropertyInternal>().getMinValueNoLock().detach();
+            else
+                *min = bindAndGet<NumberPtr>(this->minValue, lock).detach();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getMaxValue(INumber** max) override
@@ -507,15 +507,15 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(max);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *max = lock ? prop.getMaxValue().detach() : prop.asPtr<IPropertyInternal>().getMaxValueNoLock().detach();
-		        else
-			        *max = bindAndGet<NumberPtr>(this->maxValue, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *max = lock ? prop.getMaxValue().detach() : prop.asPtr<IPropertyInternal>().getMaxValueNoLock().detach();
+            else
+                *max = bindAndGet<NumberPtr>(this->maxValue, lock).detach();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
     
     ErrCode INTERFACE_FUNC getDefaultValue(IBaseObject** value) override
@@ -532,15 +532,15 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(value);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *value = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
-		        else
-			        *value = bindAndGet<BaseObjectPtr>(this->defaultValue, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *value = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
+            else
+                *value = bindAndGet<BaseObjectPtr>(this->defaultValue, lock).detach();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
         
     ErrCode INTERFACE_FUNC getSuggestedValues(IList** values) override
@@ -557,15 +557,15 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(values);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *values = lock ? prop.getSuggestedValues().detach() : prop.asPtr<IPropertyInternal>().getSuggestedValuesNoLock().detach();
-		        else
-			        *values = bindAndGet<ListPtr<IBaseObject>>(this->suggestedValues, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *values = lock ? prop.getSuggestedValues().detach() : prop.asPtr<IPropertyInternal>().getSuggestedValuesNoLock().detach();
+            else
+                *values = bindAndGet<ListPtr<IBaseObject>>(this->suggestedValues, lock).detach();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
             
     ErrCode INTERFACE_FUNC getVisible(Bool* visible) override
@@ -582,16 +582,16 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(visible);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *visible = lock ? prop.getVisible() : prop.asPtr<IPropertyInternal>().getVisibleNoLock();
-		        else
-			        *visible = bindAndGet<BooleanPtr>(this->visible, lock);
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
-    }
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *visible = lock ? prop.getVisible() : prop.asPtr<IPropertyInternal>().getVisibleNoLock();
+            else
+                *visible = bindAndGet<BooleanPtr>(this->visible, lock);
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
+}
     
     ErrCode INTERFACE_FUNC getReadOnly(Bool* readOnly) override
     {
@@ -607,15 +607,15 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(readOnly);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *readOnly = lock ? prop.getReadOnly() : prop.asPtr<IPropertyInternal>().getReadOnlyNoLock();
-		        else
-			        *readOnly = bindAndGet<BooleanPtr>(this->readOnly, lock);
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *readOnly = lock ? prop.getReadOnly() : prop.asPtr<IPropertyInternal>().getReadOnlyNoLock();
+            else
+                *readOnly = bindAndGet<BooleanPtr>(this->readOnly, lock);
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getSelectionValues(IBaseObject** values) override
@@ -632,15 +632,15 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(values);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *values = lock ? prop.getSelectionValues().detach() : prop.asPtr<IPropertyInternal>().getSelectionValuesNoLock().detach();
-		        else
-			        *values = bindAndGet<BaseObjectPtr>(this->selectionValues, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *values = lock ? prop.getSelectionValues().detach() : prop.asPtr<IPropertyInternal>().getSelectionValuesNoLock().detach();
+            else
+                *values = bindAndGet<BaseObjectPtr>(this->selectionValues, lock).detach();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
     
     ErrCode INTERFACE_FUNC getReferencedProperty(IProperty** property) override
@@ -657,11 +657,12 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(property);
 
-	    return daqTry([&]()
-            {
-	            *property = bindAndGet<PropertyPtr>(this->refProp, lock).detach();
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            *property = bindAndGet<PropertyPtr>(this->refProp, lock).detach();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getIsReferenced(Bool* isReferenced) override
@@ -678,7 +679,7 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(isReferenced);
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             *isReferenced = false;
             if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
@@ -686,9 +687,9 @@ public:
                 const auto ownerInternal = ownerPtr.asPtr<IPropertyObjectInternal>();
                 *isReferenced = lock ? ownerInternal.checkForReferences(propPtr) : ownerInternal.checkForReferencesNoLock(propPtr);
             }
-
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
         
     ErrCode INTERFACE_FUNC getValidator(IValidator** validator) override
@@ -705,15 +706,15 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(validator);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *validator = lock ? prop.getValidator().detach() : prop.asPtr<IPropertyInternal>().getValidatorNoLock().detach();
-		        else
-			        *validator = this->validator.addRefAndReturn();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *validator = lock ? prop.getValidator().detach() : prop.asPtr<IPropertyInternal>().getValidatorNoLock().detach();
+            else
+                *validator = this->validator.addRefAndReturn();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
             
     ErrCode INTERFACE_FUNC getCoercer(ICoercer** coercer) override
@@ -730,15 +731,15 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(coercer);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *coercer = lock ? prop.getCoercer().detach() : prop.asPtr<IPropertyInternal>().getCoercerNoLock().detach();
-		        else
-			        *coercer = this->coercer.addRefAndReturn();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *coercer = lock ? prop.getCoercer().detach() : prop.asPtr<IPropertyInternal>().getCoercerNoLock().detach();
+            else
+                *coercer = this->coercer.addRefAndReturn();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
            
     ErrCode INTERFACE_FUNC getCallableInfo(ICallableInfo** callableInfo) override
@@ -755,15 +756,15 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(callableInfo);
 
-	    return daqTry([&]()
-            {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *callableInfo = lock ? prop.getCallableInfo().detach() : prop.asPtr<IPropertyInternal>().getCallableInfoNoLock().detach();
-		        else
-			        *callableInfo = this->callableInfo.addRefAndReturn();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+	    const ErrCode errCode = daqTry([&]()
+        {
+            if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *callableInfo = lock ? prop.getCallableInfo().detach() : prop.asPtr<IPropertyInternal>().getCallableInfoNoLock().detach();
+            else
+                *callableInfo = this->callableInfo.addRefAndReturn();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getStructType(IStructType** structType) override
@@ -780,7 +781,7 @@ public:
     {
 	    OPENDAQ_PARAM_NOT_NULL(structType);
 
-	    return daqTry([&]()
+	    const ErrCode errCode = daqTry([&]()
         {
             BaseObjectPtr defaultStruct;
             if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
@@ -800,6 +801,8 @@ public:
             *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
             return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
     
     ErrCode INTERFACE_FUNC overrideDefaultValue(IBaseObject* newDefaultValue)  override
@@ -1180,16 +1183,13 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(clonedProperty);
         
-        return daqTry([&]
+        const ErrCode errCode = daqTry([&]
         {
             auto defaultValueObj = defaultValue;
 
-            if (defaultValueObj.assigned())
-            {
-                auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
-                if (cloneableDefaultValue.assigned())
-                    defaultValueObj = cloneableDefaultValue.clone();
-            }
+            auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
+            if (cloneableDefaultValue.assigned())
+                defaultValueObj = cloneableDefaultValue.clone();
 
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)
@@ -1210,8 +1210,9 @@ public:
                         .setOnPropertyValueWrite(onValueWrite).build();
 
             *clonedProperty = prop.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC cloneWithOwner(IPropertyObject* owner, IProperty** clonedProperty) override
@@ -1229,36 +1230,39 @@ public:
         ErrCode err = clone(&prop);
         OPENDAQ_RETURN_IF_FAILED(err);
 
-        return daqTry([&] {
+        err = daqTry([&] {
             prop.asPtr<IOwnable>().setOwner(owner);
 
             *clonedProperty = prop.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(err);
+        return err;
     }
 
     ErrCode INTERFACE_FUNC getDescriptionUnresolved(IString** description) override
     {
         OPENDAQ_PARAM_NOT_NULL(description);
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             StringPtr descriptionPtr = getUnresolved(this->description);
             *description = descriptionPtr.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getUnitUnresolved(IBaseObject** unit) override
     {
         OPENDAQ_PARAM_NOT_NULL(unit);
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             BaseObjectPtr unitPtr = getUnresolved(this->unit);
             *unit = unitPtr.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getMinValueUnresolved(INumber** min) override
@@ -1271,96 +1275,104 @@ public:
             return OPENDAQ_SUCCESS;
         }
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             NumberPtr minPtr = getUnresolved(this->minValue);
             *min = minPtr.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getMaxValueUnresolved(INumber** max) override
     {
         OPENDAQ_PARAM_NOT_NULL(max);
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             NumberPtr maxPtr = getUnresolved(this->maxValue);
             *max = maxPtr.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getDefaultValueUnresolved(IBaseObject** value) override
     {
         OPENDAQ_PARAM_NOT_NULL(value);
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             BaseObjectPtr defaultValuePtr = getUnresolved(this->defaultValue);
             *value = defaultValuePtr.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getSuggestedValuesUnresolved(IList** values) override
     {
         OPENDAQ_PARAM_NOT_NULL(values);
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             ListPtr<IBaseObject> suggestedValuesPtr = getUnresolved(this->suggestedValues);
             *values = suggestedValuesPtr.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getVisibleUnresolved(IBoolean** visible) override
     {
         OPENDAQ_PARAM_NOT_NULL(visible);
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             BoolPtr visiblePtr = getUnresolved(this->visible);
             *visible = visiblePtr.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getReadOnlyUnresolved(IBoolean** readOnly) override
     {
         OPENDAQ_PARAM_NOT_NULL(readOnly);
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             BoolPtr readOnlyPtr = getUnresolved(this->readOnly);
             *readOnly = readOnlyPtr.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getSelectionValuesUnresolved(IBaseObject** values) override
     {
         OPENDAQ_PARAM_NOT_NULL(values);
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             BaseObjectPtr selectionValuesPtr = getUnresolved(this->selectionValues);
             *values = selectionValuesPtr.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getReferencedPropertyUnresolved(IEvalValue** propertyEval) override
     {
         OPENDAQ_PARAM_NOT_NULL(propertyEval);
 
-        return daqTry([&]()
+        const ErrCode errCode = daqTry([&]()
         {
             EvalValuePtr propertyEvalPtr = getUnresolved(this->refProp);
             *propertyEval = propertyEvalPtr.detach();
-            return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getValueTypeUnresolved(CoreType* coreType) override

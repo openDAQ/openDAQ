@@ -222,19 +222,20 @@ void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::disconnect()
 {
-    return daqTry(
-        [this]() -> auto
+    const ErrCode errCode = daqTry([this]()
+    {
+        ConnectionPtr connection;
         {
-            ConnectionPtr connection;
-            {
-                auto lock = this->getRecursiveConfigLock();
-                connection = getConnectionNoLock();
-                connectionRef.release();
-            }
+            auto lock = this->getRecursiveConfigLock();
+            connection = getConnectionNoLock();
+            connectionRef.release();
+        }
 
-            disconnectSignalInternal(std::move(connection), true, true, true);
-            return OPENDAQ_SUCCESS;
-        });
+        disconnectSignalInternal(std::move(connection), true, true, true);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class... Interfaces>
@@ -266,7 +267,9 @@ ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connect
 
     auto lock = this->getRecursiveConfigLock();
 
-    return daqTry([this, &connection] { *connection = getConnectionNoLock().detach(); });
+    const ErrCode errCode = daqTry([this, &connection] { *connection = getConnectionNoLock().detach(); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class... Interfaces>
@@ -325,73 +328,76 @@ void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedScheduler()
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueued(Bool queueWasEmpty)
 {
-    return wrapHandler(
-        [this, &queueWasEmpty]
+    const ErrCode errCode = daqTry([this, &queueWasEmpty]
+    {
+        switch (notifyMethod)
         {
-            switch (notifyMethod)
+            case PacketReadyNotification::SameThread:
             {
-                case PacketReadyNotification::SameThread:
-                {
-                    notifyPacketEnqueuedSameThread();
-                    break;
-                }
-                case PacketReadyNotification::Scheduler:
-                {
-                    notifyPacketEnqueuedScheduler();
-                    break;
-                }
-                case PacketReadyNotification::SchedulerQueueWasEmpty:
-                {
-                    if (!queueWasEmpty)
-                        break;
-
-                    notifyPacketEnqueuedScheduler();
-                    break;
-                }
-                case PacketReadyNotification::None:
-                case PacketReadyNotification::Unspecified:
-                    break;
+                notifyPacketEnqueuedSameThread();
+                break;
             }
-        });
+            case PacketReadyNotification::Scheduler:
+            {
+                notifyPacketEnqueuedScheduler();
+                break;
+            }
+            case PacketReadyNotification::SchedulerQueueWasEmpty:
+            {
+                if (!queueWasEmpty)
+                    break;
+
+                notifyPacketEnqueuedScheduler();
+                break;
+            }
+            case PacketReadyNotification::None:
+            case PacketReadyNotification::Unspecified:
+                break;
+        }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to notify packet enqueued");
+    return errCode;
 }
 
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedOnThisThread()
 {
-    return wrapHandler(
-        [this]
+    const ErrCode errCode = daqTry([this]
+    {
+        switch (notifyMethod)
         {
-            switch (notifyMethod)
-            {
-                case PacketReadyNotification::SameThread:
-                case PacketReadyNotification::Scheduler:
-                case PacketReadyNotification::SchedulerQueueWasEmpty:
-                    notifyPacketEnqueuedSameThread();
+            case PacketReadyNotification::SameThread:
+            case PacketReadyNotification::Scheduler:
+            case PacketReadyNotification::SchedulerQueueWasEmpty:
+                notifyPacketEnqueuedSameThread();
 
-                case PacketReadyNotification::None:
-                case PacketReadyNotification::Unspecified:
-                    break;
-            }
-        });
+            case PacketReadyNotification::None:
+            case PacketReadyNotification::Unspecified:
+                break;
+        }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to notify packet enqueued on this thread");
+    return errCode;
 }
 
 template <class ... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedWithScheduler()
 {
-    return wrapHandler(
-        [this]
+    const ErrCode errCode = daqTry([this]
+    {
+        switch (notifyMethod)
         {
-            switch (notifyMethod)
-            {
-                case PacketReadyNotification::SameThread:
-                case PacketReadyNotification::Scheduler:
-                case PacketReadyNotification::SchedulerQueueWasEmpty:
-                    notifyPacketEnqueuedScheduler();
-                case PacketReadyNotification::None:
-                case PacketReadyNotification::Unspecified:
-                    break;
-            }
-        });
+            case PacketReadyNotification::SameThread:
+            case PacketReadyNotification::Scheduler:
+            case PacketReadyNotification::SchedulerQueueWasEmpty:
+                notifyPacketEnqueuedScheduler();
+            case PacketReadyNotification::None:
+            case PacketReadyNotification::Unspecified:
+                break;
+        }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to notify packet enqueued with scheduler");
+    return errCode;
 }
 
 template <class... Interfaces>
@@ -455,20 +461,21 @@ ErrCode GenericInputPortImpl<Interfaces...>::setCustomData(IBaseObject* data)
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification()
 {
-    return daqTry(
-        [this]() -> auto
+    const ErrCode errCode = daqTry([this]() -> auto
+    {
+        ConnectionPtr connection;
         {
-            ConnectionPtr connection;
-            {
-                auto lock = this->getRecursiveConfigLock();
-                connection = getConnectionNoLock();
-                connectionRef.release();
-            }
+            auto lock = this->getRecursiveConfigLock();
+            connection = getConnectionNoLock();
+            connectionRef.release();
+        }
 
-            // disconnectWithoutSignalNotification is meant to be called from signal, so don't notify it
-            disconnectSignalInternal(std::move(connection), true, false, true);
-            return OPENDAQ_SUCCESS;
-        });
+        // disconnectWithoutSignalNotification is meant to be called from signal, so don't notify it
+        disconnectSignalInternal(std::move(connection), true, false, true);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class ... Interfaces>
@@ -548,22 +555,23 @@ ErrCode GenericInputPortImpl<Interfaces...>::Deserialize(ISerializedObject* seri
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializeComponent(
-                       serialized,
-                       context,
-                       factoryCallback,
-                       [](const SerializedObjectPtr&,
-                          const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr&)
-                       {
-                           return createWithImplementation<IInputPort, InputPortImpl>(
-                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
-                       })
-                       .detach();
-        });
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = Super::DeserializeComponent(
+                    serialized,
+                    context,
+                    factoryCallback,
+                    [](const SerializedObjectPtr&,
+                        const ComponentDeserializeContextPtr& deserializeContext,
+                        const StringPtr&)
+                    {
+                        return createWithImplementation<IInputPort, InputPortImpl>(
+                            deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
+                    })
+                    .detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class ... Interfaces>

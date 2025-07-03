@@ -87,10 +87,12 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
     if (this->coreEventMuted)
         return Impl::setActive(active);
 
-    return daqTry([this, &active]
+    const ErrCode errCode = daqTry([this, &active]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); 
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -108,10 +110,12 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getName(IString** name)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setName(IString* name)
 {
-    return daqTry([this, &name]
+    const ErrCode errCode = daqTry([this, &name]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Name", name); 
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -123,10 +127,12 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getDescription(IString** descriptio
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setDescription(IString* description)
 {
-    return daqTry([this, &description]
+    const ErrCode errCode = daqTry([this, &description]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Description", description); 
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -138,10 +144,12 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::updateOperationMode(OperationModeTy
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::getComponentConfig(IPropertyObject** config)
 {
-    return daqTry([this, &config]
+    const ErrCode errCode = daqTry([this, &config]
     {
         *config = this->clientComm->getComponentConfig(this->remoteGlobalId).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -152,10 +160,12 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::Deserialize(ISerializedObject* seri
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
         *obj = DeserializeConfigComponent<IComponent, ConfigClientComponentImpl>(serialized, context, factoryCallback).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>

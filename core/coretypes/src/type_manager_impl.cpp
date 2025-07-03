@@ -58,12 +58,14 @@ ErrCode TypeManagerImpl::addType(IType* type)
         OPENDAQ_RETURN_IF_FAILED(err);
     }
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         if (coreEventCallback.assigned())
             coreEventCallback(typePtr);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode TypeManagerImpl::removeType(IString* name)
@@ -81,12 +83,14 @@ ErrCode TypeManagerImpl::removeType(IString* name)
         OPENDAQ_RETURN_IF_FAILED(err);
     }
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         if (coreEventCallback.assigned())
             coreEventCallback(name);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode TypeManagerImpl::getType(IString* name, IType** type)

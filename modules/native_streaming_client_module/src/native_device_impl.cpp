@@ -417,10 +417,12 @@ ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]()
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
     {
         *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 void NativeDeviceImpl::removed()

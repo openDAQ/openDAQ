@@ -77,7 +77,6 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
     return daqTry([&]()
     {
         *instance = InstanceFromBuilder(builderPtr).detach();
-        return OPENDAQ_SUCCESS;
     });
 }
 

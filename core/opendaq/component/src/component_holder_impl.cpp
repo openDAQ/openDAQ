@@ -53,23 +53,24 @@ ErrCode ComponentHolderImpl::serialize(ISerializer* serializer)
 
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-    return daqTry(
-        [this, &serializerPtr]
+    const ErrCode errCode = daqTry([this, &serializerPtr]
+    {
+        serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
         {
-            serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
+            serializerPtr.key(localId);
+            component.serialize(serializerPtr);
+
+            if (parentId.assigned())
             {
-                serializerPtr.key(localId);
-                component.serialize(serializerPtr);
-
-                if (parentId.assigned())
-                {
-                    serializerPtr.key("parentGlobalId");
-                    serializerPtr.writeString(parentId);
-                }
+                serializerPtr.key("parentGlobalId");
+                serializerPtr.writeString(parentId);
             }
+        }
 
-            serializerPtr.endObject();
-        });
+        serializerPtr.endObject();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ComponentHolderImpl::getSerializeId(ConstCharPtr* id) const
@@ -96,38 +97,39 @@ ErrCode ComponentHolderImpl::Deserialize(ISerializedObject* serialized, IBaseObj
     const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 
     if (!contextPtr.supportsInterface<IComponentDeserializeContext>())
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid context");
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Invalid context");
 
     ComponentDeserializeContextPtr deserializeContextPtr = contextPtr;
 
-    return daqTry(
-        [&serializedObj, &deserializeContextPtr, &factoryCallbackPtr, &obj]
+    const ErrCode errCode = daqTry([&serializedObj, &deserializeContextPtr, &factoryCallbackPtr, &obj]
+    {
+        const auto keys = serializedObj.getKeys();
+        if (keys.getCount() < 2)
+            DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid structure of component holder");
+
+        if (keys[0] != "__type")
+            DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid structure of component holder");
+
+        const auto rootKey = keys[1];
+        auto parent = deserializeContextPtr.getParent();
+        auto root = deserializeContextPtr.getRoot();
+        if (!parent.assigned() && root.assigned() && serializedObj.hasKey("parentGlobalId"))
         {
-            const auto keys = serializedObj.getKeys();
-            if (keys.getCount() < 2)
-                DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid structure of component holder");
+            std::string globalId = serializedObj.readString("parentGlobalId");
+            globalId.erase(globalId.begin(), globalId.begin() + root.getLocalId().getLength() + 1);
+            if (globalId.find_first_of('/') == 0)
+                globalId.erase(globalId.begin(), globalId.begin() + 1);
 
-            if (keys[0] != "__type")
-                DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid structure of component holder");
+            parent = root.findComponent(globalId);
+        }
 
-            const auto rootKey = keys[1];
-            auto parent = deserializeContextPtr.getParent();
-            auto root = deserializeContextPtr.getRoot();
-            if (!parent.assigned() && root.assigned() && serializedObj.hasKey("parentGlobalId"))
-            {
-                std::string globalId = serializedObj.readString("parentGlobalId");
-                globalId.erase(globalId.begin(), globalId.begin() + root.getLocalId().getLength() + 1);
-                if (globalId.find_first_of('/') == 0)
-                    globalId.erase(globalId.begin(), globalId.begin() + 1);
+        const ComponentDeserializeContextPtr newDeserializeContextPtr = deserializeContextPtr.clone(parent, rootKey, nullptr);
+        const ComponentPtr comp = serializedObj.readObject(rootKey, newDeserializeContextPtr, factoryCallbackPtr);
 
-                parent = root.findComponent(globalId);
-            }
-
-            const ComponentDeserializeContextPtr newDeserializeContextPtr = deserializeContextPtr.clone(parent, rootKey, nullptr);
-            const ComponentPtr comp = serializedObj.readObject(rootKey, newDeserializeContextPtr, factoryCallbackPtr);
-
-            *obj = createWithImplementation<IComponentHolder, ComponentHolderImpl>(rootKey, "", comp).detach();
-        });
+        *obj = createWithImplementation<IComponentHolder, ComponentHolderImpl>(rootKey, "", comp).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 StringPtr ComponentHolderImpl::getParentIdOrNull(const ComponentPtr& component)

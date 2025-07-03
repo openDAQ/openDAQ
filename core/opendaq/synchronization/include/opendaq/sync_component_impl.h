@@ -278,7 +278,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
         *obj = Super::DeserializeComponent(
             serialized,
@@ -293,6 +293,8 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
                     className);
             }).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 

@@ -732,12 +732,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
     err = getPropertyValueInternal(name, &childProp);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    return daqTry([&]() -> auto
+    err = daqTry([&]() -> auto
     {
         const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
         value = childPropAsPropertyObject.getPropertyValue(subName);
-        return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(err);
+    return err;
 }
 
 #if defined(__GNUC__) && __GNUC__ >= 12
@@ -2027,9 +2028,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getProperty(
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(property);
 
-    return daqTry([&]() -> auto
+    const ErrCode errCode = daqTry([&]() -> auto
     {
-
         StringPtr propName = propertyName;
         PropertyPtr prop;
 
@@ -2060,6 +2060,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getProperty(
         *property = prop.detach();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -2070,7 +2072,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
     if (frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
-    return daqTry([&]() -> auto {
+    const ErrCode errCode = daqTry([&]() -> auto {
         const PropertyPtr propPtr = property;
         StringPtr propName = propPtr.getName();
         if (!propName.assigned())
@@ -2121,6 +2123,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
 
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2408,10 +2412,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdateI
 
     updateCount++;
 
-    if (deep)
-        return daqTry([this] { callBeginUpdateOnChildren(); });
+    if (!deep)
+        return OPENDAQ_SUCCESS;
 
-    return OPENDAQ_SUCCESS;
+    const ErrCode errCode = daqTry([this] { callBeginUpdateOnChildren(); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2445,11 +2451,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdateInt
 
     if (newUpdateCount == 0)
     {
-        return daqTry([this] 
+        const ErrCode errCode = daqTry([this] 
         {
             endApplyUpdate();
             return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     return OPENDAQ_SUCCESS;
@@ -2571,7 +2579,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperti
     if (!propertyFilter)
         return getPropertiesInternal(false, true, properties);
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         auto filterPtr = SearchFilterPtr::Borrow(propertyFilter);
         ListPtr<IProperty> allProperties;
@@ -2598,7 +2606,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperti
 
         *properties = foundProperties.detach();
         return OPENDAQ_SUCCESS;
-    });    
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2742,7 +2752,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
     const auto managerRef = manager.assigned() ? manager.getRef() : nullptr;
     PropertyObjectPtr obj = createWithImplementation<IPropertyObject, PropertyObjectImpl>(managerRef, this->className);
 
-    return daqTry([this, &obj, &cloned]()
+    const ErrCode errCode = daqTry([this, &obj, &cloned]()
     {
         auto implPtr = static_cast<PropertyObjectImpl*>(obj.getObject());
         implPtr->configureClonedMembers(valueWriteEvents,
@@ -2757,6 +2767,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2853,11 +2865,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeProperty(const PropertyPtr& property, ISerializer* serializer)
 {
-    return daqTry([&property, &serializer]
+    const ErrCode errCode = daqTry([&property, &serializer]
     {
         ISerializable* serializable = property.as<ISerializable>(true);
         return serializable->serialize(serializer);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -2912,7 +2926,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLocalProperties(ISerializer* serializer)
 {
-    return daqTry([&serializer, this]
+    const ErrCode errCode = daqTry([&serializer, this]
     {
         if (localProperties.size() == 0)
             return OPENDAQ_NOTFOUND;
@@ -2945,6 +2959,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
 
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -3022,7 +3038,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(
     OPENDAQ_PARAM_NOT_NULL(serialized);
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([&serialized, &context, &factoryCallback, &obj]
+    const ErrCode errCode = daqTry([&serialized, &context, &factoryCallback, &obj]
     {
         *obj = DeserializePropertyObject(serialized,
                                          context,
@@ -3035,6 +3051,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::Deserialize(
                                                 return PropertyObject();
                                             }).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -3433,7 +3451,9 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateEnded(IBaseObject* context)
 {
     auto contextPtr = BaseObjectPtr::Borrow(context);
-    return daqTry([this, &contextPtr] { onUpdatableUpdateEnd(contextPtr); });
+    const ErrCode errCode = daqTry([this, &contextPtr] { onUpdatableUpdateEnd(contextPtr); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(PropertyObjectImpl)

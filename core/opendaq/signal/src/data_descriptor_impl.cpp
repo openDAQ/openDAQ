@@ -293,7 +293,8 @@ ErrCode DataDescriptorImpl::validate()
 
 ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equals) const
 {
-    return daqTry([this, &other, &equals]() {
+    const ErrCode errCode = daqTry([this, &other, &equals]()
+    {
         if (equals == nullptr)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
@@ -337,6 +338,8 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equa
         *equals = true;
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 // IScalingCalcPrivate

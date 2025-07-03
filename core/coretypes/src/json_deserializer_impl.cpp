@@ -257,11 +257,13 @@ ErrCode JsonDeserializerImpl::callCustomProc(IProcedure* customDeserialize, IStr
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     const ProcedurePtr proc = ProcedurePtr::Borrow(customDeserialize);
-    return daqTry([&]
+    errCode = daqTry([&]
     {
         proc(jsonSerObj);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode JsonDeserializerImpl::toString(CharPtr* str)

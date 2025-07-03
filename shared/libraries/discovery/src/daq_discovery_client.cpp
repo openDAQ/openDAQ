@@ -123,11 +123,11 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
     requestProperties["ifaceName"] = ifaceName.toStdString();
 
     TxtProperties responseProperties;
-    auto errCode =
+    ErrCode errCode =
         mdnsClient->requestCurrentIpConfiguration(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties, responseProperties);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    return daqTry([&]()
+    errCode = daqTry([&]()
     {
         if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
             responseProperties["serialNumber"] != serialNumber.toStdString() ||
@@ -138,6 +138,8 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
         config = IpModificationUtils::populateIpConfigProperties(responseProperties);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 bool DiscoveryClient::verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const

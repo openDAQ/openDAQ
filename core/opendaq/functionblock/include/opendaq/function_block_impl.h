@@ -160,11 +160,13 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getSignals(IList** signals
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
-        return daqTry([&]
+        const ErrCode errCode = daqTry([&]
         {
             *signals = getSignalsRecursiveInternal(searchFilter).detach();
             return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     return this->signals->getItems(signals, searchFilter);
@@ -174,7 +176,7 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getSignalsRecursive(IList** signals, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         SearchFilterPtr filter;
         if (!searchFilter)
@@ -185,6 +187,8 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getSignalsRecursive(IList*
         *signals = getSignalsRecursiveInternal(filter).detach();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -218,11 +222,13 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getInputPorts(IList** port
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
-        return daqTry([&]
+        const ErrCode errCode = daqTry([&]
         {
             *ports = getInputPortsRecursiveInternal(searchFilter).detach();
             return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     return this->inputPorts->getItems(ports, searchFilter);
@@ -255,9 +261,9 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getStatusSignal(ISignal** 
 
     SignalPtr statusSig;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetStatusSignal, statusSig);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *statusSignal = statusSig.detach();
-
     return errCode;
 }
 
@@ -386,11 +392,13 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlocks(IList** 
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
-        return daqTry([&]
+        const ErrCode errCode = daqTry([&]
         {
             *functionBlocks = getFunctionBlocksRecursiveInternal(searchFilter).detach();
             return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     return this->functionBlocks->getItems(functionBlocks, searchFilter);
@@ -423,6 +431,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockT
 
     DictPtr<IString, IFunctionBlockType> dict;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableFunctionBlockTypes, dict);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *functionBlockTypes = dict.detach();
     return errCode;
@@ -444,6 +453,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunction
     const auto typeIdPtr = StringPtr::Borrow(typeId);
     const auto PropertyObjectPtr = PropertyObjectPtr::Borrow(config);
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeIdPtr, PropertyObjectPtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *functionBlock = functionBlockPtr.detach();
     return errCode;
@@ -462,7 +472,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunct
 
     const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
-
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
 
@@ -480,9 +490,9 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::acceptsSignal(IInputPort* 
 
     Bool accepted;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAcceptsSignal, accepted, port, signal);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *accept = accepted;
-
     return errCode;
 }
 
@@ -496,6 +506,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::connected(IInputPort* port)
 {
     const ErrCode errCode = wrapHandler(this, &Self::onConnected, port);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
 
@@ -507,7 +518,9 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onConnected(const InputPortPt
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::disconnected(IInputPort* port)
 {
-    return wrapHandler(this, &Self::onDisconnected, port);
+    const ErrCode errCode = wrapHandler(this, &Self::onDisconnected, port);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -586,7 +599,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::packetReceived(IInputPort* port)
 {
     const auto portPtr = InputPortPtr::Borrow(port);
-    return wrapHandler(this, &Self::onPacketReceived, portPtr);
+    const ErrCode errCode = wrapHandler(this, &Self::onPacketReceived, portPtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -648,10 +663,12 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObj
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
         *obj = DeserializeFunctionBlock<FunctionBlock>(serialized, context, factoryCallback).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlock)

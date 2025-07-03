@@ -114,13 +114,13 @@ ErrCode PropertyObjectClassImpl::getInheritedProperties(ListPtr<IProperty>& prop
         ErrCode err = getManager(managerPtr);
         OPENDAQ_RETURN_IF_FAILED(err);
 
-        const auto getParentProps = [&]()
+        err = daqTry([&]()
         {
             const auto parentClass = managerPtr.getType(parent).asPtr<IPropertyObjectClass>();
             properties = parentClass.getProperties(True);
-        };
-
-        return wrapHandler(getParentProps);
+        });
+        OPENDAQ_RETURN_IF_FAILED(err, "Failed to get inherited properties.");
+        return err;
     }
 
     properties = List<IProperty>();        
@@ -330,43 +330,44 @@ ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized,
                                              IFunction* factoryCallback,
                                              IBaseObject** obj)
 {
-    return daqTry(
-        [&serialized, &context, &factoryCallback, &obj]
+    const ErrCode errCode = daqTry([&serialized, &context, &factoryCallback, &obj]
+    {
+        TypeManagerPtr typeManager;
+        if (context)
         {
-            TypeManagerPtr typeManager;
-            if (context)
-            {
-                context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
-            }
+            context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
+        }
 
-            const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
+        const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
 
-            const auto name = serializedPtr.readString("name");
-            PropertyObjectClassBuilderPtr builder = PropertyObjectClassBuilder(typeManager, name);
+        const auto name = serializedPtr.readString("name");
+        PropertyObjectClassBuilderPtr builder = PropertyObjectClassBuilder(typeManager, name);
 
-            if (serializedPtr.hasKey("parent"))
-            {
-                const auto parent = serializedPtr.readString("parent");
-                builder.setParentName(parent);
-            }
+        if (serializedPtr.hasKey("parent"))
+        {
+            const auto parent = serializedPtr.readString("parent");
+            builder.setParentName(parent);
+        }
 
-            const auto properties = serializedPtr.readSerializedObject("properties");
-            const auto keys = properties.getKeys();
+        const auto properties = serializedPtr.readSerializedObject("properties");
+        const auto keys = properties.getKeys();
 
-            for (const auto& key : keys)
-            {
-                const PropertyPtr prop = properties.readObject(key, context);
-                builder.addProperty(prop);
-            }
+        for (const auto& key : keys)
+        {
+            const PropertyPtr prop = properties.readObject(key, context);
+            builder.addProperty(prop);
+        }
 
-            PropertyObjectClassPtr serilizedObj = builder.build();
+        PropertyObjectClassPtr serilizedObj = builder.build();
 
-            if (typeManager.assigned())
-            {
-                typeManager.addType(serilizedObj);
-            }
-            *obj = serilizedObj.detach();
-        });
+        if (typeManager.assigned())
+        {
+            typeManager.addType(serilizedObj);
+        }
+        *obj = serilizedObj.detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode PropertyObjectClassImpl::getSerializeId(ConstCharPtr* id) const
@@ -390,7 +391,7 @@ ErrCode PropertyObjectClassImpl::clone(IPropertyObjectClass** cloned, ITypeManag
 {
     OPENDAQ_PARAM_NOT_NULL(cloned);
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         TypeManagerPtr managerPtr(typeManager);
         if (!managerPtr.assigned())
@@ -407,6 +408,8 @@ ErrCode PropertyObjectClassImpl::clone(IPropertyObjectClass** cloned, ITypeManag
         PropertyObjectClassPtr clonedObj = builder.build();
         *cloned = clonedObj.detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

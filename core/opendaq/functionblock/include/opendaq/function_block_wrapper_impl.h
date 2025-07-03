@@ -123,25 +123,26 @@ ErrCode FunctionBlockWrapperImpl::setOverridenObject(
 {
     auto lock = this->getRecursiveConfigLock();
 
-    return wrapHandler(
-        [this, &propertyName, &objects, &object]()
-        {
-            auto propertyNameStr = StringPtr::Borrow(propertyName);
+    const ErrCode errCode = daqTry([this, &propertyName, &objects, &object]()
+    {
+        auto propertyNameStr = StringPtr::Borrow(propertyName);
 
-            if (!isPropertyVisible(propertyNameStr))
-                DAQ_THROW_EXCEPTION(NotFoundException);
+        if (!isPropertyVisible(propertyNameStr))
+            DAQ_THROW_EXCEPTION(NotFoundException);
 
-            if (!functionBlock.hasProperty(propertyNameStr))
-                DAQ_THROW_EXCEPTION(NotFoundException);
+        if (!functionBlock.hasProperty(propertyNameStr))
+            DAQ_THROW_EXCEPTION(NotFoundException);
 
-            auto objectPtr = TSmartPtr::Borrow(object);
+        auto objectPtr = TSmartPtr::Borrow(object);
 
-            if (objectPtr.assigned())
-                objects.insert_or_assign(propertyNameStr, objectPtr);
-            else
-                objects.erase(propertyNameStr);
+        if (objectPtr.assigned())
+            objects.insert_or_assign(propertyNameStr, objectPtr);
+        else
+            objects.erase(propertyNameStr);
 
-        });
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set overridden object");
+    return errCode;
 }
 
 

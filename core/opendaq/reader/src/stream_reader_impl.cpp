@@ -287,7 +287,7 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
 
     std::scoped_lock lock(this->mutex);
 
-    return wrapHandler([count, this]
+    const ErrCode errCode = wrapHandler([count, this]
     {
         *count = 0;
         if (info.dataPacket.assigned())
@@ -301,6 +301,8 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
                 : connection.getSamplesUntilNextEventPacket();
         }
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode StreamReaderImpl::getEmpty(Bool* empty)

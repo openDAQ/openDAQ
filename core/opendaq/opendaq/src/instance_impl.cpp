@@ -582,7 +582,7 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
 
-    return daqTry([this, &configuration]()
+    const ErrCode errCode = daqTry([this, &configuration]()
     {
         auto serializer = JsonSerializer(True);
 
@@ -591,6 +591,8 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
 
         return serializer->getOutput(configuration);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode InstanceImpl::loadConfiguration(IString* configuration, IUpdateParameters* config)
@@ -598,7 +600,7 @@ ErrCode InstanceImpl::loadConfiguration(IString* configuration, IUpdateParameter
     OPENDAQ_PARAM_NOT_NULL(configuration);
     auto configPtr = BaseObjectPtr(config);
 
-    return daqTry([this, &configuration, &configPtr]
+    const ErrCode errCode = daqTry([this, &configuration, &configPtr]
     {
         const auto deserializer = JsonDeserializer();
 
@@ -608,6 +610,8 @@ ErrCode InstanceImpl::loadConfiguration(IString* configuration, IUpdateParameter
 
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 // IPropertyObject
@@ -719,10 +723,12 @@ ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)
 
 ErrCode InstanceImpl::serialize(ISerializer* serializer)
 {
-    return daqTry([this, &serializer] 
+    const ErrCode errCode = daqTry([this, &serializer] 
     {
         return rootDevice.asPtr<ISerializable>(true)->serialize(serializer);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode InstanceImpl::getSerializeId(ConstCharPtr* id) const
@@ -756,7 +762,7 @@ ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
 
-    return daqTry([&objPtr, &config, this]
+    const ErrCode errCode = daqTry([&objPtr, &config, this]
     {
         objPtr.checkObjectType("Instance");
 
@@ -773,6 +779,8 @@ ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
 
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode InstanceImpl::updateEnded(IBaseObject* /* context */)

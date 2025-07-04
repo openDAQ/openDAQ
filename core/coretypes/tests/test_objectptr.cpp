@@ -434,8 +434,7 @@ TEST_F(ObjectPtrTest, IsFrozenNotIFreezable)
 {
     auto intObj = Integer(1);
 
-    ASSERT_NO_THROW(intObj.isFrozen());
-    ASSERT_FALSE(intObj.isFrozen());
+    ASSERT_ANY_THROW(intObj.isFrozen());
 }
 
 TEST_F(ObjectPtrTest, ConvertToCoreType)

@@ -2377,7 +2377,15 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdate
     for (const auto& [_, propValue] : propValues)
     {
         const auto propObj = propValue.template asPtrOrNull<IPropertyObject>(true);
-        if (propObj.assigned() && !propObj.isFrozen())
+        if (!propObj.assigned())
+            continue;
+
+        Bool isFrozen {false};
+        auto freezable = propObj.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned())
+            isFrozen = freezable.isFrozen();
+        
+        if (!isFrozen)
             propObj.beginUpdate();
     }
 }
@@ -2388,7 +2396,15 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callEndUpdateOn
     for (const auto& [_, propValue] : propValues)
     {
         const auto propObj = propValue.template asPtrOrNull<IPropertyObject>(true);
-        if (propObj.assigned() && !propObj.isFrozen())
+        if (!propObj.assigned())
+            continue;
+
+        Bool isFrozen {false};
+        auto freezable = propObj.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned())
+            isFrozen = freezable.isFrozen();
+        
+        if (!isFrozen)
             propObj.endUpdate();
     }
 }

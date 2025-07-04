@@ -1,9 +1,10 @@
 #include <audio_device_module/wav_reader_fb_impl.h>
 #include <opendaq/packet_factory.h>
+#include <filesystem>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
-static void miniaudioDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
+void WAVReaderFbImpl::miniaudioDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
     auto this_ = static_cast<WAVReaderFbImpl*>(pDevice->pUserData);
     ma_decoder_read_pcm_frames(&(this_->decoder), pOutput, frameCount, NULL);
@@ -30,7 +31,7 @@ DataPacketPtr WAVReaderFbImpl::buildPacket(const void* data, size_t sampleCount)
         if (frames == 0 && framesAvailable == true)
         {
             setComponentStatusWithMessage(ComponentStatus::Warning, "End of file reached.");
-            objPtr.setPropertyValue("EOF", true);
+            objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("EOF", true);
             framesAvailable = false;
         }
 
@@ -64,6 +65,7 @@ WAVReaderFbImpl::WAVReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& pare
 
     initComponentStatus();
     initProperties();
+    setComponentStatusWithMessage(ComponentStatus::Warning, "No file path!");
 }
 
 WAVReaderFbImpl::~WAVReaderFbImpl()
@@ -87,7 +89,7 @@ bool WAVReaderFbImpl::initializeDecoder()
     result = ma_decoder_init_file(filePath.c_str(), NULL, &decoder);
     if (result != MA_SUCCESS)
     {
-        setComponentStatusWithMessage(ComponentStatus::Error, "Could not load file!");
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Could not load file!");
         return false;
     }
 
@@ -100,19 +102,14 @@ bool WAVReaderFbImpl::initializeDecoder()
     
     if (ma_device_init(NULL, &deviceConfig, &device) != MA_SUCCESS)
     {
-        setComponentStatusWithMessage(ComponentStatus::Error, "Failed to initialize miniaudio playback device.");
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Failed to initialize miniaudio playback device.");
         ma_decoder_uninit(&decoder);
-        return false;
-    }
-
-    if (!initializeSignal())
-    {
         return false;
     }
 
     samplesCaptured = 0;
     framesAvailable = true;
-    objPtr.setPropertyValue("EOF", false);
+    objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("EOF", false);
     setComponentStatusWithMessage(ComponentStatus::Ok, "File ready.");
 
     decoderInitialized = true;
@@ -146,7 +143,7 @@ void WAVReaderFbImpl::startRead()
 {
     if (ma_device_start(&device) != MA_SUCCESS)
     {
-        setComponentStatusWithMessage(ComponentStatus::Error, "Failed to start playback device.\n");
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Failed to start playback device.\n");
         ma_device_uninit(&device);
         ma_decoder_uninit(&decoder);
     }
@@ -156,7 +153,7 @@ void WAVReaderFbImpl::stopRead()
 {
     if (ma_device_stop(&device) != MA_SUCCESS)
     {
-        setComponentStatusWithMessage(ComponentStatus::Error, "Failed to stop playback device.\n");
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Failed to stop playback device.\n");
         ma_device_uninit(&device);
         ma_decoder_uninit(&decoder);
     }
@@ -164,30 +161,18 @@ void WAVReaderFbImpl::stopRead()
 
 bool WAVReaderFbImpl::updateFilePath(const std::string& newPath)
 {
-    if (newPath == filePath || newPath == "")
+    if (!std::filesystem::exists(newPath))
     {
-        return true;
+        return false;
     }
 
     filePath = newPath;
 
-    if (initializeDecoder())
-    {
-        return true;
-    }
-    else
-    {
-        filePath = "";
-        return false;
-    }
+    return true;
 }
 
 void WAVReaderFbImpl::setRead(bool read)
 {
-    if (reading == read)
-    {
-        return;
-    }
     if (read)
     {
         startRead();
@@ -211,7 +196,7 @@ bool WAVReaderFbImpl::initializeSignal()
             sampleFormat = SampleType::Int16;
             break;
         case ma_format::ma_format_s24:
-            setComponentStatusWithMessage(ComponentStatus::Error, "Unsupported sample type Int24");
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Unsupported sample type Int24");
             return false;
         case ma_format::ma_format_s32:
             sampleFormat = SampleType::Int32;
@@ -220,7 +205,7 @@ bool WAVReaderFbImpl::initializeSignal()
             sampleFormat = SampleType::Float32;
             break;
         default:
-            setComponentStatusWithMessage(ComponentStatus::Error, "Unknown audio sample type");
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Unknown audio sample type");
             return false;
     }
 
@@ -250,10 +235,20 @@ void WAVReaderFbImpl::initProperties()
     objPtr.getOnPropertyValueWrite("FilePath") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args)
         {
             objPtr.setPropertyValue("Reading", false);
-            if (!updateFilePath(static_cast<std::string>(args.getValue())))
+            std::string path = static_cast<std::string>(args.getValue());
+
+            if (!updateFilePath(path))
+            {
+                setComponentStatusWithMessage(ComponentStatus::Warning, "Invalid file path!");
+            }
+            if (!initializeDecoder())
             {
                 args.setValue("");
-                setComponentStatusWithMessage(ComponentStatus::Error, "Invalid file path!");
+            }
+            if (!initializeSignal())
+            {
+                args.setValue("");
+                uninitializeDecoder();
             }
         };
 
@@ -270,14 +265,14 @@ void WAVReaderFbImpl::initProperties()
                 if (!decoderReady())
                 {
                     args.setValue(false);
-                    setComponentStatusWithMessage(ComponentStatus::Error, "Cannot set Reading to true, no valid file!");
+                    setComponentStatusWithMessage(ComponentStatus::Warning, "Cannot set Reading to true, no valid file!");
                     return;
                 }
             }
             setRead(read);
         };
 
-    objPtr.addProperty(BoolProperty("EOF", false));
+    objPtr.addProperty(BoolPropertyBuilder("EOF", false).setReadOnly(true).build());
 }
 
 

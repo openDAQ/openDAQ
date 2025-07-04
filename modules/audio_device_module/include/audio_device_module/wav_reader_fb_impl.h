@@ -17,8 +17,6 @@ public:
 
     static FunctionBlockTypePtr CreateType();
 
-    DataPacketPtr buildPacket(const void* data, size_t sampleCount);
-    void sendPacket(DataPacketPtr packet);
 
 private:
     bool initializeDecoder();
@@ -34,6 +32,11 @@ private:
 
     void startRead();
     void stopRead();
+
+    DataPacketPtr buildPacket(const void* data, size_t sampleCount);
+    void sendPacket(DataPacketPtr packet);
+
+    static void miniaudioDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);
 
 public:
     ma_decoder decoder;

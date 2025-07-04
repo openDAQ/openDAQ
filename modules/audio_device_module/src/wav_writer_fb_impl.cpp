@@ -1,12 +1,6 @@
 #include <audio_device_module/wav_writer_fb_impl.h>
-#include <opendaq/event_packet_ids.h>
-#include <opendaq/event_packet_ptr.h>
-#include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/event_packet_utils.h>
-#include <opendaq/sample_type_traits.h>
-#include <opendaq/custom_log.h>
 #include <opendaq/reader_factory.h>
-#include <opendaq/function_block_type_factory.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
@@ -29,6 +23,8 @@ FunctionBlockTypePtr WAVWriterFbImpl::CreateType()
 
 ErrCode WAVWriterFbImpl::startRecording()
 {
+    auto lock = this->getRecursiveConfigLock();
+
     assert(!recording);
 
     if (!inputValueDataDescriptor.assigned() && !inputTimeDataDescriptor.assigned())
@@ -51,18 +47,18 @@ ErrCode WAVWriterFbImpl::startRecording()
 
 ErrCode WAVWriterFbImpl::stopRecording()
 {
-    if (!recording)
-        return OPENDAQ_FAILED(OPENDAQ_ERR_INVALIDSTATE);
+    auto lock = this->getRecursiveConfigLock();
 
-    ma_encoder_uninit(&encoder);
-    recording = false;
-    LOG_I("Recording stopped")
+    if (!stopRecordingInternal())
+        return OPENDAQ_FAILED(OPENDAQ_ERR_INVALIDSTATE);
 
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode WAVWriterFbImpl::getIsRecording(Bool* isRecording)
 {
+    auto lock = this->getRecursiveConfigLock();
+
     if (!isRecording)
     {
         return OPENDAQ_FAILED(OPENDAQ_ERR_INVALIDPARAMETER);
@@ -71,6 +67,18 @@ ErrCode WAVWriterFbImpl::getIsRecording(Bool* isRecording)
     *isRecording = recording;
 
     return OPENDAQ_SUCCESS;
+}
+
+bool WAVWriterFbImpl::stopRecordingInternal()
+{
+    if(!recording)
+        return false;
+
+    ma_encoder_uninit(&encoder);
+    recording = false;
+    LOG_I("Recording stopped")
+
+    return true;
 }
 
 WAVWriterFbImpl::~WAVWriterFbImpl()
@@ -182,9 +190,9 @@ void WAVWriterFbImpl::processInputData()
 
     const auto status = reader.read(inputData.data(), &availableData);
 
-    if (status.getReadStatus() == ReadStatus::Event && status.getEventPacket().getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+    if (status.getReadStatus() == ReadStatus::Event)
     {
-        stopRecording();
+        stopRecordingInternal();
 
         processEventPacket(status.getEventPacket());
     }

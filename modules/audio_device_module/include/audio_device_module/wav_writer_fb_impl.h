@@ -62,6 +62,8 @@ private:
      */
     ErrCode INTERFACE_FUNC getIsRecording(Bool* isRecording) override;
 
+    bool stopRecordingInternal();
+
     bool validateDataDescriptor() const;
     bool validateDomainDescriptor() const;
     bool initializeEncoder();

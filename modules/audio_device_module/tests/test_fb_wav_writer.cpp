@@ -1,10 +1,5 @@
 #include <testutils/testutils.h>
 #include <audio_device_module/module_dll.h>
-#include <audio_device_module/version.h>
-#include <gmock/gmock.h>
-#include <opendaq/module_ptr.h>
-#include <opendaq/device_ptr.h>
-#include <coretypes/common.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/module_manager_factory.h>
@@ -12,13 +7,14 @@
 #include <opendaq/reader_factory.h>
 #include <opendaq/recorder_ptr.h>
 #include <filesystem>
-#include <iostream>
-
+#include <thread>
+#include <string>
 
 using AudioDeviceModuleTest = testing::Test;
 
 namespace fs = std::filesystem;
 using namespace daq;
+std::string wavWriterResourcePath = TEST_RESOURCE_PATH;
 
 inline std::string resolvePath(const std::string& relPath)
 {
@@ -68,7 +64,7 @@ protected:
 
 TEST_F(WavWriterTest, ValidWriteToFile)
 {
-    reader.setPropertyValue("FilePath", "resources\\quack_mono_16bit_44kHz_cut.wav");
+    reader.setPropertyValue("FilePath", wavWriterResourcePath + "\\quack_mono_16bit_44kHz_cut.wav");
 
     ASSERT_EQ(reader.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
 

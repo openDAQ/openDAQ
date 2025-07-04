@@ -1,6 +1,7 @@
 #include <audio_device_module/audio_device_module_impl.h>
 #include <audio_device_module/audio_device_impl.h>
 #include <audio_device_module/wav_writer_fb_impl.h>
+#include <audio_device_module/wav_reader_fb_impl.h>
 #include <audio_device_module/version.h>
 #include <coretypes/version_info_factory.h>
 #include <miniaudio/miniaudio.h>
@@ -84,8 +85,11 @@ DictPtr<IString, IFunctionBlockType> AudioDeviceModule::onGetAvailableFunctionBl
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
-    auto type = WAVWriterFbImpl::CreateType();
-    types.set(type.getId(), type);
+    auto typeWriter = WAVWriterFbImpl::CreateType();
+    auto typeReader = WAVReaderFbImpl::CreateType();
+
+    types.set(typeWriter.getId(), typeWriter);
+    types.set(typeReader.getId(), typeReader);
 
     return types;
 }
@@ -95,6 +99,11 @@ FunctionBlockPtr AudioDeviceModule::onCreateFunctionBlock(const StringPtr& id, c
     if (id == WAVWriterFbImpl::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, WAVWriterFbImpl>(context, parent, localId);
+        return fb;
+    }
+    if (id == WAVReaderFbImpl::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, WAVReaderFbImpl>(context, parent, localId);
         return fb;
     }
 

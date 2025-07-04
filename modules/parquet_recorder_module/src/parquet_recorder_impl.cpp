@@ -4,8 +4,7 @@
 #include <string>
 
 #include <coreobjects/callable_info_factory.h>
-#include <opendaq/opendaq.h>
-#include <opendaq/work_factory.h>
+
 #include <parquet_recorder_module/common.h>
 #include <parquet_recorder_module/parquet_writer.h>
 
@@ -13,7 +12,7 @@ BEGIN_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE
 
 FunctionBlockTypePtr ParquetRecorderImpl::createType()
 {
-    return FunctionBlockType(TYPE_ID, "ParquetRecorder", "Parquet recording functionality", PropertyObject());
+    return FunctionBlockType(TypeId, "ParquetRecorder", "Parquet recording functionality", PropertyObject());
 }
 
 ParquetRecorderImpl::ParquetRecorderImpl(const ContextPtr& context,
@@ -22,7 +21,7 @@ ParquetRecorderImpl::ParquetRecorderImpl(const ContextPtr& context,
                                          const PropertyObjectPtr& config)
     : FunctionBlockImpl<IFunctionBlock, IRecorder>(createType(), context, parent, localId, nullptr)
 {
-    tags.add(Tags::RECORDER);
+    tags.add(Tags::Recorder);
     scheduler = context.getScheduler();
 
     if (loggerComponent.assigned())
@@ -30,7 +29,7 @@ ParquetRecorderImpl::ParquetRecorderImpl(const ContextPtr& context,
 
     if (!scheduler.assigned())
     {
-        throw InvalidParameterException("ParquetRecorderImpl::ParquetRecorderImpl: Scheduler must be assigned for recording to work.");
+        throw InvalidParameterException("ParquetRecorderImpl: Scheduler must be assigned for recording to work");
     }
 
     addInputPort();
@@ -111,54 +110,31 @@ void ParquetRecorderImpl::activeChanged()
 
 void ParquetRecorderImpl::onPacketReceived(const InputPortPtr& port)
 {
+    if (!active || !recording.load(std::memory_order_relaxed))
+        return;
+
     auto writer = findWriterForSignal(port);
     auto list = port.getConnection().dequeueAll();
 
     if (!writer || !list.assigned())
-    {
         return;
-    }
 
-    auto closing = writer->getClosing();
-
-    if (closing)
-    {
-        LOG_W("ParquetRecorderImpl::onPacketReceived: Writer is closing, skipping packet list processing.");
-        return;   
-    }
-
-    auto ptr = borrowPtr<FunctionBlockPtr>();
-
-    scheduler.scheduleWork(Work(
-        [ writer, list, this]()
-        {
-            try
-            {
-                auto taskId = 0; //implement task ID logic later
-                writer->setHasRunningTask(true);
-                writer->onPacketList(list, active, recording, taskId);
-            }
-            catch (const std::exception& e)
-            {
-                LOG_E("ParquetRecorderImpl::onPacketReceived: Exception while processing packet list: {}", e.what());
-            }
-            writer->setHasRunningTask(false);
-        }));
+    writer->enqueuePacketList(list);
 }
 
 void ParquetRecorderImpl::addProperties()
 {
-    objPtr.addProperty(StringProperty(Props::PATH, ""));
+    objPtr.addProperty(StringProperty(Props::Path, ""));
 
-    objPtr.getOnPropertyValueWrite(Props::PATH) += std::bind(&ParquetRecorderImpl::reconfigure, this);
+    objPtr.getOnPropertyValueWrite(Props::Path) += std::bind(&ParquetRecorderImpl::reconfigure, this);
 
-    const auto startRecordingProp = FunctionProperty("StartRecording", ProcedureInfo());
+    const auto startRecordingProp = FunctionProperty(Props::StartRecording, ProcedureInfo());
     objPtr.addProperty(startRecordingProp);
-    objPtr.setPropertyValue("StartRecording", Procedure([this] { this->startRecording(); }));
+    objPtr.setPropertyValue(Props::StartRecording, Procedure([this] { this->startRecording(); }));
 
-    const auto stopRecordingProp = FunctionProperty("StopRecording", ProcedureInfo());
+    const auto stopRecordingProp = FunctionProperty(Props::StopRecording, ProcedureInfo());
     objPtr.addProperty(stopRecordingProp);
-    objPtr.setPropertyValue("StopRecording", Procedure([this] { this->stopRecording(); }));
+    objPtr.setPropertyValue(Props::StopRecording, Procedure([this] { this->stopRecording(); }));
 }
 
 void ParquetRecorderImpl::addInputPort()
@@ -172,7 +148,7 @@ void ParquetRecorderImpl::reconfigure()
 {
     LOG_D("ParquetRecorderImpl::reconfigure: Reconfiguring ParquetRecorder...");
     auto lock = getRecursiveConfigLock();
-    fs::path path = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
+    fs::path path = static_cast<std::string>(objPtr.getPropertyValue(Props::Path));
 
     std::unordered_set<IInputPort*> ports;
 
@@ -197,32 +173,15 @@ void ParquetRecorderImpl::reconfigure()
     while (it != writers.end())
     {
         if (ports.find(it->first) == ports.end())
-        {
             it = writers.erase(it);
-        }
         else
-        {
             ++it;
-        }
     }
 }
 
 void ParquetRecorderImpl::clearWriters()
 {
     LOG_D("ParquetRecorderImpl::clearWriters: Clearing all Parquet writers...");
-
-    for (auto& writer : writers)
-    {
-        if (writer.second)
-            writer.second->setClosing(true);
-    }
-
-    for (auto& writer : writers)
-    {
-        if (writer.second)
-            writer.second->waitForNoRunningTask();
-    }
-
     writers.clear();
 }
 

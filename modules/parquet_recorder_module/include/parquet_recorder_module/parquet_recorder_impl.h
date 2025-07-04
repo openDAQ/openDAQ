@@ -30,19 +30,14 @@ BEGIN_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE
 class ParquetWriter;
 
 /*!
- * @brief A recorder function block which records data from its input signals into a Parquet
+ * @brief A function block recording data from its input signals into a Parquet
  *     file.
  *
  * A separate Parquet file is created for each recorded signal, in a directory specified by the user
  * via a property. Recording can be started and stopped by calling member functions or by setting
- * a property. Signals can be dynamically connected and disconnected. Initially, the function
- * block has a single input port named "Value1"; additional input ports "Value2" etc. are created
- * so that at least one unconnected input port is always available. Signals can be connected or
- * disconnected while the recording is active. Doing so does not disturb ongoing recording of
- * other signals.
+ * a property. Signals can be dynamically connected and disconnected.
  *
- * Packet handling takes place in scheduled tasks to avoid
- * blocking the acquisition thread.
+ * Packet handling takes place in scheduled tasks.
  */
 class ParquetRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
 {
@@ -79,8 +74,7 @@ public:
     ErrCode INTERFACE_FUNC stopRecording() override;
 
     /*!
-     * @brief Checks whether data from connected signals is currently being recorded to the
-     *     persistent storage medium.
+     * @brief Retrieves the current recording state.
      * @param isRecording A pointer to a boolean which is populated with the recording state.
      * @retval OPENDAQ_SUCCESS if the recording state was successfully stored.
      * @retval OPENDAQ_ERR_ARGUMENT_NULL if @p isRecording is `nullptr`.
@@ -88,17 +82,13 @@ public:
     ErrCode INTERFACE_FUNC getIsRecording(Bool* isRecording) override;
 
     /*!
-     * @brief When a signal is connected to an input port, a new input port is dynamically
-     *     added so that one is always available to be connected.
+     * @brief Called when a new signal is connected to the input port.
      * @param port The input port that was connected.
      */
     void onConnected(const InputPortPtr& port) override;
 
     /*!
-     * @brief When a signal is disconnected from the second-to-last input port, the last input
-     *     port is removed, so that only one unconnected port is always present at the end (it
-     *     is however possible for additional ports to be disconnected if there are still
-     *     higher-numbered ports in use).
+     * @brief Called when a signal is disconnected from the input port.
      * @param port The input port that was disconnected.
      */
     void onDisconnected(const InputPortPtr& port) override;

@@ -4,14 +4,13 @@
 
 #include <opendaq/custom_log.h>
 #include <opendaq/event_packet_params.h>
+#include <opendaq/work_factory.h>
 
 #include <arrow/api.h>
 #include <arrow/io/file.h>
 #include <parquet/arrow/writer.h>
 
 #include <parquet_recorder_module/type_resolver.h>
-
-using namespace std::chrono_literals;
 
 BEGIN_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE
 
@@ -24,13 +23,11 @@ static inline std::string sequencePostfix(unsigned sequence, unsigned width = 4)
 
 static std::string getFilename(const fs::path& path, const SignalPtr& signal)
 {
-    std::string id = signal.getGlobalId();
-
-    std::transform(id.begin(), id.end(), id.begin(), [](auto c) { return std::isalnum(c) ? c : '_'; });
-
-    boost::trim_if(id, boost::is_any_of("_ "));
-
     constexpr const char* extension = ".parquet";
+
+    std::string id = signal.getGlobalId();
+    std::transform(id.begin(), id.end(), id.begin(), [](auto c) { return std::isalnum(c) ? c : '_'; });
+    boost::trim_if(id, boost::is_any_of("_ "));
 
     std::string name;
     unsigned sequence = 0;
@@ -51,30 +48,16 @@ ParquetWriter::ParquetWriter(fs::path path, SignalPtr signal, daq::LoggerCompone
     , scheduler(std::move(scheduler))
     , filename(getFilename(this->path, this->signal))
 {
+    packetBuffer.reserve(PACKET_BUFFER_SIZE_TO_WRITE);
 }
 
 ParquetWriter::~ParquetWriter()
 {
-    setClosing(true);
-    waitForNoRunningTask();
-    // waitForFinalTask();
-    // waitForNoListsToWrite();
+    std::lock_guard lock(mutex);
     closeFile();
 }
 
-void ParquetWriter::onPacketList(const ListPtr<PacketPtr>& packets, bool active, bool recording, uint64_t taskId)
-{
-    LOG_I("ParquetWriter::onPacketList: Processing packet list with {} packets, active: {}, recording: {}",
-          packets.getCount(),
-          active,
-          recording);
-    for (const auto& packet : packets)
-    {
-        onPacket(packet, active, recording, taskId);
-    }
-}
-
-void ParquetWriter::onPacket(const PacketPtr& packet, bool active, bool recording, uint64_t taskId)
+void ParquetWriter::onPacket(const PacketPtr& packet)
 {
     if (!packet.assigned())
         return;
@@ -82,11 +65,10 @@ void ParquetWriter::onPacket(const PacketPtr& packet, bool active, bool recordin
     switch (packet.getType())
     {
         case PacketType::Data:
-            if (active && recording)
-                onDataPacket(packet, taskId);
+            onDataPacket(packet);
             break;
         case PacketType::Event:
-            onEventPacket(packet, taskId);
+            onEventPacket(packet);
             break;
         case PacketType::None:
         default:
@@ -94,56 +76,54 @@ void ParquetWriter::onPacket(const PacketPtr& packet, bool active, bool recordin
     }
 }
 
-void ParquetWriter::onDataPacket(const DataPacketPtr& packet, uint64_t taskId)
+void ParquetWriter::onDataPacket(const DataPacketPtr& packet)
 {
     auto domainPacket = packet.getDomainPacket();
-    if (auto ulock = std::unique_lock(dataMutex); !schema)
+    if (!schema)
     {
-        ulock.unlock();
         DataDescriptorPtr dataDescriptor = packet.getDataDescriptor();
         DataDescriptorPtr domainDescriptor = domainPacket.getDataDescriptor();
-        reconfigure(dataDescriptor, domainDescriptor, taskId);
+        reconfigure(dataDescriptor, domainDescriptor);
     }
 
-    writePackets(packet, domainPacket, taskId);
+    writePackets(packet, domainPacket);
 }
 
-void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr& domain, uint64_t taskId)
+void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr& domain)
 {
     SampleType dataType = !currentDataDescriptor.assigned() ? SampleType::Null : currentDataDescriptor.getSampleType();
-    SampleType domainType = !currentDomainDescriptor.assigned() ? SampleType::Null : currentDomainDescriptor.getSampleType();
 
     switch (dataType)
     {
         case SampleType::Float32:
-            writePackets<SampleTypeToType<SampleType::Float32>::Type>(data, domain, taskId);
+            writePackets<SampleTypeToType<SampleType::Float32>::Type>(data, domain);
             break;
         case SampleType::Float64:
-            writePackets<SampleTypeToType<SampleType::Float64>::Type>(data, domain, taskId);
+            writePackets<SampleTypeToType<SampleType::Float64>::Type>(data, domain);
             break;
         case SampleType::UInt8:
-            writePackets<SampleTypeToType<SampleType::UInt8>::Type>(data, domain, taskId);
+            writePackets<SampleTypeToType<SampleType::UInt8>::Type>(data, domain);
             break;
         case SampleType::Int8:
-            writePackets<SampleTypeToType<SampleType::Int8>::Type>(data, domain, taskId);
+            writePackets<SampleTypeToType<SampleType::Int8>::Type>(data, domain);
             break;
         case SampleType::UInt16:
-            writePackets<SampleTypeToType<SampleType::UInt16>::Type>(data, domain, taskId);
+            writePackets<SampleTypeToType<SampleType::UInt16>::Type>(data, domain);
             break;
         case SampleType::Int16:
-            writePackets<SampleTypeToType<SampleType::Int16>::Type>(data, domain, taskId);
+            writePackets<SampleTypeToType<SampleType::Int16>::Type>(data, domain);
             break;
         case SampleType::UInt32:
-            writePackets<SampleTypeToType<SampleType::UInt32>::Type>(data, domain, taskId);
+            writePackets<SampleTypeToType<SampleType::UInt32>::Type>(data, domain);
             break;
         case SampleType::Int32:
-            writePackets<SampleTypeToType<SampleType::Int32>::Type>(data, domain, taskId);
+            writePackets<SampleTypeToType<SampleType::Int32>::Type>(data, domain);
             break;
         case SampleType::UInt64:
-            writePackets<SampleTypeToType<SampleType::UInt64>::Type>(data, domain, taskId);
+            writePackets<SampleTypeToType<SampleType::UInt64>::Type>(data, domain);
             break;
         case SampleType::Int64:
-            writePackets<SampleTypeToType<SampleType::Int64>::Type>(data, domain, taskId);
+            writePackets<SampleTypeToType<SampleType::Int64>::Type>(data, domain);
             break;
         case SampleType::String:
         case SampleType::Binary:
@@ -161,43 +141,42 @@ void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr&
     }
 }
 
-template <typename DataType>
-void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr& domain, uint64_t taskId)
+template <typename TDataType>
+void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr& domain)
 {
-    SampleType dataType = !currentDataDescriptor.assigned() ? SampleType::Null : currentDataDescriptor.getSampleType();
     SampleType domainType = !currentDomainDescriptor.assigned() ? SampleType::Null : currentDomainDescriptor.getSampleType();
 
     switch (domainType)
     {
         case SampleType::Float32:
-            writePackets<DataType, SampleTypeToType<SampleType::Float32>::Type>(data, domain, taskId);
+            writePackets<TDataType, SampleTypeToType<SampleType::Float32>::Type>(data, domain);
             break;
         case SampleType::Float64:
-            writePackets<DataType, SampleTypeToType<SampleType::Float64>::Type>(data, domain, taskId);
+            writePackets<TDataType, SampleTypeToType<SampleType::Float64>::Type>(data, domain);
             break;
         case SampleType::UInt8:
-            writePackets<DataType, SampleTypeToType<SampleType::UInt8>::Type>(data, domain, taskId);
+            writePackets<TDataType, SampleTypeToType<SampleType::UInt8>::Type>(data, domain);
             break;
         case SampleType::Int8:
-            writePackets<DataType, SampleTypeToType<SampleType::Int8>::Type>(data, domain, taskId);
+            writePackets<TDataType, SampleTypeToType<SampleType::Int8>::Type>(data, domain);
             break;
         case SampleType::UInt16:
-            writePackets<DataType, SampleTypeToType<SampleType::UInt16>::Type>(data, domain, taskId);
+            writePackets<TDataType, SampleTypeToType<SampleType::UInt16>::Type>(data, domain);
             break;
         case SampleType::Int16:
-            writePackets<DataType, SampleTypeToType<SampleType::Int16>::Type>(data, domain, taskId);
+            writePackets<TDataType, SampleTypeToType<SampleType::Int16>::Type>(data, domain);
             break;
         case SampleType::UInt32:
-            writePackets<DataType, SampleTypeToType<SampleType::UInt32>::Type>(data, domain, taskId);
+            writePackets<TDataType, SampleTypeToType<SampleType::UInt32>::Type>(data, domain);
             break;
         case SampleType::Int32:
-            writePackets<DataType, SampleTypeToType<SampleType::Int32>::Type>(data, domain, taskId);
+            writePackets<TDataType, SampleTypeToType<SampleType::Int32>::Type>(data, domain);
             break;
         case SampleType::UInt64:
-            writePackets<DataType, SampleTypeToType<SampleType::UInt64>::Type>(data, domain, taskId);
+            writePackets<TDataType, SampleTypeToType<SampleType::UInt64>::Type>(data, domain);
             break;
         case SampleType::Int64:
-            writePackets<DataType, SampleTypeToType<SampleType::Int64>::Type>(data, domain, taskId);
+            writePackets<TDataType, SampleTypeToType<SampleType::Int64>::Type>(data, domain);
             break;
         case SampleType::String:
         case SampleType::Binary:
@@ -205,23 +184,21 @@ void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr&
         case SampleType::ComplexFloat32:
         case SampleType::RangeInt64:
         case SampleType::Struct:
-            LOG_W("ParquetWriter::writePackets<{}>: Unsupported data type: {}, skipping write operation",
-                  typeid(DataType).name(),
-                  convertSampleTypeToString(dataType));
+            LOG_W("ParquetWriter::writePackets<{}>: Unsupported data type, skipping write operation", typeid(TDataType).name());
             break;
         case SampleType::Undefined:
         case SampleType::Null:
         default:
-            LOG_W("ParquetWriter::writePackets<{}>: Undefined or null data type, skipping write operation", typeid(DataType).name());
+            LOG_W("ParquetWriter::writePackets<{}>: Undefined or null data type, skipping write operation", typeid(TDataType).name());
             break;
     }
 }
 
-template <typename DataType, typename DomainType>
-void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr& domain, uint64_t taskId)
+template <typename TDataType, typename TDomainType>
+void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr& domain)
 {
-    typename ArrowTypeResolver<DataType>::BuilderType sampleBuilder;
-    typename ArrowTypeResolver<DomainType>::BuilderType domainBuilder;
+    typename ArrowTypeResolver<TDataType>::BuilderType sampleBuilder;
+    typename ArrowTypeResolver<TDomainType>::BuilderType domainBuilder;
 
     if (!data.assigned())
     {
@@ -229,11 +206,11 @@ void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr&
         return;
     }
 
-    auto status = sampleBuilder.AppendValues(static_cast<DataType*>(data.getData()), data.getSampleCount());
+    auto status = sampleBuilder.AppendValues(static_cast<TDataType*>(data.getData()), data.getSampleCount());
 
     if (domain.assigned())
     {
-        status = domainBuilder.AppendValues(static_cast<DomainType*>(domain.getData()), domain.getSampleCount());
+        status = domainBuilder.AppendValues(static_cast<TDomainType*>(domain.getData()), domain.getSampleCount());
     }
 
     const auto sampleCount = data.getSampleCount();
@@ -268,32 +245,25 @@ void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr&
         return;
     }
 
+    status = writer->WriteRecordBatch(*batch);
+    if (!status.ok())
     {
-        std::unique_lock lock(dataMutex);
-        // if(!tryWaitSequence(lock, packetId)) {
-        //     LOG_W("Packet could be written out of sequence, packet ID: {}, expected packet ID: {}",
-        //           packetId,
-        //           nextPacketId.load(std::memory_order_relaxed));
-        // }
-        status = writer->WriteRecordBatch(*batch);
-        if (!status.ok())
-        {
-            LOG_E("Failed to write record batch to Parquet file: {}", status.ToString());
-        } else 
-        {
-            LOG_I("ParquetWriter::writePackets: Successfully wrote record batch with ID: {} and sample count: {}", packetId, sampleCount);
-        }
+        LOG_E("Failed to write record batch to Parquet file: {}", status.ToString());
+    }
+    else
+    {
+        LOG_I("ParquetWriter::writePackets: Successfully wrote record batch with ID: {} and sample count: {}", packetId, sampleCount);
     }
 }
 
-void ParquetWriter::onEventPacket(const EventPacketPtr& packet, uint64_t taskId)
+void ParquetWriter::onEventPacket(const EventPacketPtr& packet)
 {
     LOG_I("ParquetWriter::onEventPacket: Processing event packet with ID: {}", packet.getEventId());
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
         DataDescriptorPtr dataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
         DataDescriptorPtr domainDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        reconfigure(dataDescriptor, domainDescriptor, taskId);
+        reconfigure(dataDescriptor, domainDescriptor);
     }
 }
 
@@ -378,7 +348,6 @@ void ParquetWriter::openFile()
 void ParquetWriter::closeFile()
 {
     LOG_I("ParquetWriter::closeFile: Closing Parquet file and writer");
-    std::lock_guard<std::mutex> lock(dataMutex);
     if (writer)
     {
         auto status = writer->Close();
@@ -402,12 +371,11 @@ void ParquetWriter::closeFile()
 void ParquetWriter::configure(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor)
 {
     LOG_I("ParquetWriter::configure: Configuring ParquetWriter with data and domain descriptors");
-    auto lock = std::lock_guard(dataMutex);
     generateMetadata(dataDescriptor, domainDescriptor);
     openFile();
 }
 
-void ParquetWriter::reconfigure(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor, uint64_t taskId)
+void ParquetWriter::reconfigure(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor)
 {
     LOG_I("ParquetWriter::reconfigure: Reconfiguring ParquetWriter with new data and domain descriptors");
     if (!dataDescriptor.assigned() || !domainDescriptor.assigned())
@@ -416,62 +384,60 @@ void ParquetWriter::reconfigure(const DataDescriptorPtr& dataDescriptor, const D
         return;
     }
 
-    if (auto lock = std::lock_guard(dataMutex); dataDescriptor == currentDataDescriptor && domainDescriptor == currentDomainDescriptor)
+    if (dataDescriptor == currentDataDescriptor && domainDescriptor == currentDomainDescriptor)
     {
         LOG_I("ParquetWriter::reconfigure: No changes in data or domain descriptor, skipping reconfiguration.");
         return;
     }
 
-    if (getClosing())
-    {
-        LOG_W("ParquetWriter::reconfigure: Writer is closing, skipping reconfiguration.");
-        return;
-    }
-
-    setClosing(true);
     closeFile();
-    setClosing(false);
-
     configure(dataDescriptor, domainDescriptor);
 }
 
-void ParquetWriter::setClosing(bool value)
+void ParquetWriter::enqueuePacketList(ListPtr<IPacket>& packets)
 {
-    closing.store(value, std::memory_order_relaxed);
-}
-
-bool ParquetWriter::getClosing() const
-{
-    return closing.load(std::memory_order_relaxed);
-}
-
-bool ParquetWriter::getHasRunningTask() const
-{
-    return hasRunningTask.load(std::memory_order_relaxed);
-}
-
-void ParquetWriter::setHasRunningTask(bool value)
-{
-    hasRunningTask.store(value, std::memory_order_relaxed);
-    if (!value)
+    std::lock_guard lock(packetBufferMutex);
+    for (auto&& packet : packets)
     {
-        noRunningTaskCondition.notify_all();
+        packetBuffer.push_back(packet);
+    }
+
+    if (packetBuffer.size() >= PACKET_BUFFER_SIZE_TO_WRITE)
+    {
+        scheduler.scheduleWork(Work(  // main processing task
+            [this]()
+            {
+                std::lock_guard lock(mutex);
+                try
+                {
+                    auto packets = dequeuePacketList();
+                    processPacketList(packets);
+                }
+                catch (const std::exception& e)
+                {
+                    LOG_E("ParquetWriter::enqueuePacketList: Exception while processing packet list: {}", e.what());
+                }
+            }));
     }
 }
 
-void ParquetWriter::waitForNoRunningTask()
+std::vector<PacketPtr> ParquetWriter::dequeuePacketList()
 {
-    std::unique_lock lock(closingMutex);
-    if (getHasRunningTask())
-    {
-        LOG_I("ParquetWriter::waitForNoRunningTask: Waiting for no running tasks");
-        noRunningTaskCondition.wait(lock, [this] { return !getHasRunningTask(); });
-    }
-    else
-    {
-        LOG_I("ParquetWriter::waitForNoRunningTask: No need to wait");
-    }
+    std::lock_guard lock(packetBufferMutex);
+    std::vector<PacketPtr> packets;
+    std::swap(packetBuffer, packets);
+    return packets;
 }
 
+void ParquetWriter::processPacketList(const std::vector<PacketPtr>& packets)
+{
+    auto active = true;
+    auto recording = true;
+    auto taskId = 0;
+    for (const auto& packet : packets)
+    {
+        onPacket(packet);
+    }
+}
 
 END_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE

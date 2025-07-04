@@ -16,12 +16,6 @@
 
 #pragma once
 
-#include <atomic>
-#include <cstdint>
-#include <memory>
-#include <mutex>
-#include <condition_variable>
-
 #include <opendaq/opendaq.h>
 #include <coretypes/filesystem.h>
 
@@ -44,60 +38,53 @@ namespace arrow
     }
 }
 
-using namespace std::chrono_literals;
-
 BEGIN_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE
 
 class ParquetWriter
 {
 public:
+    static constexpr const size_t PACKET_BUFFER_SIZE_TO_WRITE = 10;
+
     ParquetWriter(fs::path path, SignalPtr signal, daq::LoggerComponentPtr logger_component, daq::SchedulerPtr scheduler);
     ~ParquetWriter();
 
-    void onPacketList(const ListPtr<PacketPtr>& packets, bool active, bool recording, uint64_t taskId);
-    void onPacket(const PacketPtr& packet, bool active, bool recording, uint64_t taskId);
-    void setClosing(bool value);
-    bool getClosing() const;
-    bool getHasRunningTask() const;
-    void setHasRunningTask(bool value);
-    void waitForNoRunningTask();
+    void enqueuePacketList(ListPtr<IPacket>& packets);
 
 private:
     fs::path path;
     SignalPtr signal;
     daq::LoggerComponentPtr loggerComponent;
     daq::SchedulerPtr scheduler;
-
     std::string filename;
 
+    std::mutex mutex;
     std::shared_ptr<arrow::Schema> schema;
     std::shared_ptr<arrow::io::FileOutputStream> outfile;
     std::unique_ptr<parquet::arrow::FileWriter> writer;
-
     DataDescriptorPtr currentDataDescriptor;
     DataDescriptorPtr currentDomainDescriptor;
 
-    std::mutex dataMutex;
+    std::vector<PacketPtr> packetBuffer;
+    std::mutex packetBufferMutex;
 
-    std::atomic_bool closing = false;
+    std::vector<PacketPtr> dequeuePacketList();
+    void processPacketList(const std::vector<PacketPtr>& packets);
 
-    std::mutex closingMutex;
+    void onPacket(const PacketPtr& packet);
+    void onDataPacket(const DataPacketPtr& packet);
+    void onEventPacket(const EventPacketPtr& packet);
 
-    std::atomic_bool hasRunningTask = false;
-    std::condition_variable noRunningTaskCondition;
-
-    void onDataPacket(const DataPacketPtr& packet, uint64_t taskId);
-    void onEventPacket(const EventPacketPtr& packet, uint64_t taskId);
+    void configure(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor);
+    void reconfigure(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor);
     void generateMetadata(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor);
     void openFile();
     void closeFile();
-    void configure(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor);
-    void reconfigure(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor, uint64_t taskId = 0);
-    template <typename DataType, typename DomainType>
-    void writePackets(const DataPacketPtr& data, const DataPacketPtr& domain, uint64_t taskId);
-    template <typename DataType>
-    void writePackets(const DataPacketPtr& data, const DataPacketPtr& domain, uint64_t taskId);
-    void writePackets(const DataPacketPtr& data, const DataPacketPtr& domain, uint64_t taskId);
+
+    template <typename TDataType, typename TDomainType>
+    void writePackets(const DataPacketPtr& data, const DataPacketPtr& domain);
+    template <typename TDataType>
+    void writePackets(const DataPacketPtr& data, const DataPacketPtr& domain);
+    void writePackets(const DataPacketPtr& data, const DataPacketPtr& domain);
 };
 
 END_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE

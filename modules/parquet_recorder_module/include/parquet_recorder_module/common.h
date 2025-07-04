@@ -18,14 +18,15 @@
 
 #include <coretypes/common.h>
 
-#define BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE BEGIN_NAMESPACE_OPENDAQ_MODULE(basic_csv_recorder_module)
-#define END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE END_NAMESPACE_OPENDAQ_MODULE
+#define BEGIN_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE BEGIN_NAMESPACE_OPENDAQ_MODULE(parquet_recorder_module)
+#define END_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE END_NAMESPACE_OPENDAQ_MODULE
 
-BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
+BEGIN_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE
+
 /*!
  * @brief The type ID of this function block.
  */
-static constexpr const char* TYPE_ID = "BasicCsvRecorder";
+static constexpr const char* TypeId = "ParquetRecorder";
 
 /*!
  * @brief Contains constants for the names of tags assigned to this function block.
@@ -35,7 +36,7 @@ struct Tags
     /*!
      * @brief A tag identifying this function block as a recorder.
      */
-    static constexpr const char* RECORDER = "Recorder";
+    static constexpr const char* Recorder = "Recorder";
 };
 
 /*!
@@ -44,28 +45,25 @@ struct Tags
 struct Props
 {
     /*!
-     * @brief The absolute path to the directory where CSV files should be written.
+     * @brief The absolute path to the directory where Parquet files should be written.
      *
-     * A separate CSV file is written for each recorded signal. The current implementation
+     * A separate Parquet file is written for each recorded signal. The current implementation
      * interprets relative paths with respect to the current working directory of the
      * process, but this behavior is not guaranteed.
      */
-    static constexpr const char* PATH = "Path";
+    static constexpr const char* Path = "Path";
     /*!
-     * @brief The format in which the recorded data should be written.
+     * @brief The name of the property that controls whether recording is active.
+     *
+     * This property can be set to `true` to start recording and `false` to stop it.
      */
-    static constexpr const char* FORMAT = "Format";
-
-    struct Format
-    {
-        /*!
-         * @brief The format in which the recorded data should be written.
-         *
-         * The default value is "CSV". If the value is set to "Parquet", the data will be
-         * written in Apache Parquet format instead of CSV.
-         */
-        static constexpr const char* FORMAT_CSV = "CSV";
-        static constexpr const char* FORMAT_PARQUET = "Parquet";
-    };
+    static constexpr const char* StartRecording = "StartRecording";
+    /*!
+     * @brief The name of the property that controls whether recording is stopped.
+     *
+     * This property can be set to `true` to stop recording and `false` to keep it active.
+     */
+    static constexpr const char* StopRecording = "StopRecording";
 };
-END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
+
+END_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE

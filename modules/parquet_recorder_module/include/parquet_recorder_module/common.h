@@ -22,10 +22,11 @@
 #define END_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE END_NAMESPACE_OPENDAQ_MODULE
 
 BEGIN_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE
+
 /*!
  * @brief The type ID of this function block.
  */
-static constexpr const char* TYPE_ID = "ParquetRecorder";
+static constexpr const char* TypeId = "ParquetRecorder";
 
 /*!
  * @brief Contains constants for the names of tags assigned to this function block.
@@ -35,7 +36,7 @@ struct Tags
     /*!
      * @brief A tag identifying this function block as a recorder.
      */
-    static constexpr const char* RECORDER = "Recorder";
+    static constexpr const char* Recorder = "Recorder";
 };
 
 /*!
@@ -50,6 +51,19 @@ struct Props
      * interprets relative paths with respect to the current working directory of the
      * process, but this behavior is not guaranteed.
      */
-    static constexpr const char* PATH = "Path";
+    static constexpr const char* Path = "Path";
+    /*!
+     * @brief The name of the property that controls whether recording is active.
+     *
+     * This property can be set to `true` to start recording and `false` to stop it.
+     */
+    static constexpr const char* StartRecording = "StartRecording";
+    /*!
+     * @brief The name of the property that controls whether recording is stopped.
+     *
+     * This property can be set to `true` to stop recording and `false` to keep it active.
+     */
+    static constexpr const char* StopRecording = "StopRecording";
 };
+
 END_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE

@@ -18,5 +18,5 @@ int main(int argc, char** args)
 
     auto res = RUN_ALL_TESTS();
 
-    return  res;
+    return res;
 }

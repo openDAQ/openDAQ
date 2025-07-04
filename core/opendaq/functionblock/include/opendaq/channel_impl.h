@@ -85,13 +85,15 @@ ErrCode ChannelImpl<Interfaces...>::Deserialize(ISerializedObject* serialized,
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super:: template DeserializeFunctionBlock<Channel>(serialized,
-                                                            context,
-                                                            factoryCallback).detach();
-        });
+    const ErrCode errCode = daqTry(
+    [&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = Super:: template DeserializeFunctionBlock<Channel>(serialized,
+                                                        context,
+                                                        factoryCallback).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename... Interfaces>

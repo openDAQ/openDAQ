@@ -28,7 +28,7 @@ else()
     add_library(GTest::GTest ALIAS gtest)
     add_library(GTest::Main ALIAS gtest_main)
 
-    # GMock shomehow doesn't have proper include paths set for GTest dependency
+    # GMock somehow doesn't have proper include paths set for GTest dependency
     get_target_property(GTEST_INCLUDE_DIRS gtest INTERFACE_INCLUDE_DIRECTORIES)
     target_include_directories(gmock PRIVATE ${GTEST_INCLUDE_DIRS})
     target_include_directories(gmock_main PRIVATE ${GTEST_INCLUDE_DIRS})

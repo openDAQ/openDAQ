@@ -1,5 +1,4 @@
 #include <opcuaclient/cached_reference_browser.h>
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 

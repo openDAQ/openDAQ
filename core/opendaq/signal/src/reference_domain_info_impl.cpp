@@ -70,32 +70,33 @@ ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getUsesOffset(UsesOffset* usesOf
 
 ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::equals(IBaseObject* other, Bool* equals) const
 {
-    return daqTry(
-        [this, &other, &equals]()
-        {
-            if (equals == nullptr)
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+    const ErrCode errCode = daqTry([this, &other, &equals]()
+    {
+        if (equals == nullptr)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
-            *equals = false;
-            if (!other)
-                return OPENDAQ_SUCCESS;
-
-            ReferenceDomainInfoPtr info = BaseObjectPtr::Borrow(other).asPtrOrNull<IReferenceDomainInfo>();
-            if (info == nullptr)
-                return OPENDAQ_SUCCESS;
-
-            if (!BaseObjectPtr::Equals(referenceDomainId, info.getReferenceDomainId()))
-                return OPENDAQ_SUCCESS;
-            if (!BaseObjectPtr::Equals(referenceDomainOffset, info.getReferenceDomainOffset()))
-                return OPENDAQ_SUCCESS;
-            if (referenceTimeSource != info.getReferenceTimeSource())
-                return OPENDAQ_SUCCESS;
-            if (usesOffset != info.getUsesOffset())
-                return OPENDAQ_SUCCESS;
-
-            *equals = true;
+        *equals = false;
+        if (!other)
             return OPENDAQ_SUCCESS;
-        });
+
+        ReferenceDomainInfoPtr info = BaseObjectPtr::Borrow(other).asPtrOrNull<IReferenceDomainInfo>();
+        if (info == nullptr)
+            return OPENDAQ_SUCCESS;
+
+        if (!BaseObjectPtr::Equals(referenceDomainId, info.getReferenceDomainId()))
+            return OPENDAQ_SUCCESS;
+        if (!BaseObjectPtr::Equals(referenceDomainOffset, info.getReferenceDomainOffset()))
+            return OPENDAQ_SUCCESS;
+        if (referenceTimeSource != info.getReferenceTimeSource())
+            return OPENDAQ_SUCCESS;
+        if (usesOffset != info.getUsesOffset())
+            return OPENDAQ_SUCCESS;
+
+        *equals = true;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ReferenceDomainInfoImpl::serialize(ISerializer* serializer)

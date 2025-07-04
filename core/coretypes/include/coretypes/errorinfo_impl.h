@@ -16,9 +16,11 @@
 
 #pragma once
 #include <coretypes/errorinfo.h>
+#include <coretypes/error_guard.h>
 #include <coretypes/freezable.h>
 #include <coretypes/listobject.h>
 #include <coretypes/intfs.h>
+#include <list>
 #include <coretypes/serializable.h>
 #include <coretypes/deserializer.h>
 
@@ -39,8 +41,15 @@ public:
     ErrCode INTERFACE_FUNC getFileName(ConstCharPtr* fileName) override;
     ErrCode INTERFACE_FUNC setFileLine(Int line) override;
     ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
+    ErrCode INTERFACE_FUNC setErrorCode(ErrCode errorCode) override;
+    ErrCode INTERFACE_FUNC getErrorCode(ErrCode* errorCode) override;
+
+    ErrCode INTERFACE_FUNC setCausedByPrevious(ErrCode prevErrCode) override;
+    ErrCode INTERFACE_FUNC getCausedByPrevious(Bool* caused) override;
+
+    ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
     
-    // IFreezable
+    // IFreezable interface
     ErrCode INTERFACE_FUNC freeze() override;
     ErrCode INTERFACE_FUNC isFrozen(Bool* frozen) const override;
 
@@ -54,27 +63,76 @@ public:
 private:
     IString* message;
     IString* source;
-    ConstCharPtr fileName;
-    Int line;
+    CharPtr fileName;
+    Int fileLine;
+    ErrCode errorCode;
+    ErrCode prevErrCode;
+
     Bool frozen;
+    IString* cachedMessage;
     IString* fileNameObject;
 
     void setFileNameObject(IString* fileNameObj);
+};
+
+class ErrorInfoWrapper
+{
+public:
+    ErrorInfoWrapper(IErrorInfo*);
+    ~ErrorInfoWrapper();
+
+    IErrorInfo* getAddRef() const;
+    IErrorInfo* borrow() const;
+private:
+    IErrorInfo* errorInfo;
+};
+
+class ErrorGuardImpl : public ImplementationOf<IErrorGuard>
+{
+public:
+    ErrorGuardImpl(ConstCharPtr filename, int fileLine);
+    ~ErrorGuardImpl();
+
+    ErrCode INTERFACE_FUNC getLastErrorInfo(IErrorInfo** errorInfo, ErrCode errCode = OPENDAQ_LAST_ERROR_INFO) const override;
+    ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) override;
+    ErrCode INTERFACE_FUNC getFormatMessage(IString** message, ErrCode errCode) const override;
+    ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
+
+    virtual bool isInitial() const { return false; }
+    void setErrorInfo(IErrorInfo* errorInfo);
+    void extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode);
+    virtual void clearLastErrorInfo(ErrCode errCode);
+    bool empty() const;
+
+protected:
+    ConstCharPtr filename;
+    int fileLine;
+
+    std::list<ErrorInfoWrapper> errorInfoList;
 };
 
 class ErrorInfoHolder
 {
 public:
     ErrorInfoHolder() = default;
-#ifndef __MINGW32__
     ~ErrorInfoHolder();
-#endif
 
     void setErrorInfo(IErrorInfo* errorInfo);
-    IErrorInfo* getErrorInfo() const;
+    void extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode);
+    void clearErrorInfo(ErrCode errorCode);
+    IErrorInfo* getErrorInfo(ErrCode errCode) const;
+
     IList* getErrorInfoList();
+    IString* getFormatMessage(ErrCode errCode) const;
+
+    void setScopeEntry(ErrorGuardImpl* entry);
+    void removeScopeEntry(ErrorGuardImpl* entry);
+
 private:
-    IList* errorInfoList;
+    using ContainerT = std::list<ErrorGuardImpl*>;
+    ContainerT* getOrCreateList();
+
+    std::unique_ptr<ContainerT> errorScopeList;
 };
 
 END_NAMESPACE_OPENDAQ

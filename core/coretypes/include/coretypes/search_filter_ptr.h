@@ -78,18 +78,12 @@ public:
     
     SearchFilterPtr& operator=(const SearchFilterPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         ObjectPtr<ISearchFilter>::operator =(other);
         return *this;
     }
 
     SearchFilterPtr& operator=(SearchFilterPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-            return *this;
-
         ObjectPtr<ISearchFilter>::operator =(std::move(other));
         return *this;
     }
@@ -102,7 +96,7 @@ public:
     Bool acceptsObject(const BaseObjectPtr& obj) const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Bool accepts;
         auto errCode = this->object->acceptsObject(obj, &accepts);
@@ -119,7 +113,7 @@ public:
     Bool visitChildren(const BaseObjectPtr& obj) const
     {
         if (this->object == nullptr)
-            throw InvalidParameterException();
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
 
         Bool visit;
         auto errCode = this->object->visitChildren(obj, &visit);

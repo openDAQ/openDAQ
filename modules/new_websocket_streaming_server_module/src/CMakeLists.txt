@@ -28,6 +28,10 @@ if (TARGET Boost::endian)
     target_link_libraries(${LIB_NAME} PRIVATE Boost::endian)
 endif ()
 
+if(MSVC)
+    target_compile_options(${LIB_NAME} PRIVATE /bigobj)
+endif()
+
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include/base64>
                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include/streaming>

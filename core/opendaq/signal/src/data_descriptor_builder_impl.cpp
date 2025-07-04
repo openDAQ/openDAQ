@@ -49,7 +49,6 @@ ErrCode DataDescriptorBuilderImpl::build(IDataDescriptor** dataDescriptor)
     return daqTry([&]()
     {
         *dataDescriptor = DataDescriptorFromBuilder(builder).detach();
-        return OPENDAQ_SUCCESS;
     });
 }
 

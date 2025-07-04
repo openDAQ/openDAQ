@@ -48,7 +48,7 @@ ErrCode INTERFACE_FUNC CallableInfoImpl::isConst(Bool* constFlag)
 
 ErrCode CallableInfoImpl::equals(IBaseObject* other, Bool* equal) const
 {
-    return daqTry([this, &other, &equal]() {
+    const ErrCode errCode = daqTry([this, &other, &equal]() {
         if (equal == nullptr)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
@@ -72,6 +72,8 @@ ErrCode CallableInfoImpl::equals(IBaseObject* other, Bool* equal) const
         *equal = true;
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode CallableInfoImpl::serialize(ISerializer* serializer)
@@ -80,25 +82,27 @@ ErrCode CallableInfoImpl::serialize(ISerializer* serializer)
 
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-    return daqTry(
-        [this, &serializerPtr] {
-            serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
+    const ErrCode errCode = daqTry([this, &serializerPtr] 
+{
+        serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
+        {
+            if (arguments.assigned() && !arguments.empty())
             {
-                if (arguments.assigned() && !arguments.empty())
-                {
-                    serializerPtr.key("arguments");
-                    arguments.serialize(serializerPtr);
-                }
-
-                serializerPtr.key("returnType");
-                serializerPtr.writeInt(static_cast<Int>(returnType));
-
-                serializerPtr.key("const");
-                serializerPtr.writeBool(static_cast<Bool>(constFlag));
+                serializerPtr.key("arguments");
+                arguments.serialize(serializerPtr);
             }
 
-            serializerPtr.endObject();
-        });
+            serializerPtr.key("returnType");
+            serializerPtr.writeInt(static_cast<Int>(returnType));
+
+            serializerPtr.key("const");
+            serializerPtr.writeBool(static_cast<Bool>(constFlag));
+        }
+
+        serializerPtr.endObject();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode CallableInfoImpl::getSerializeId(ConstCharPtr* id) const
@@ -123,21 +127,22 @@ ErrCode CallableInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject
     const auto contextPtr = BaseObjectPtr::Borrow(context);
     const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 
-    return daqTry(
-        [&serializedObj, &contextPtr, factoryCallbackPtr, &obj]
-        {
-            ListPtr<IArgumentInfo> arguments;
-            if(serializedObj.hasKey("arguments"))
-                arguments = serializedObj.readObject("arguments", contextPtr, factoryCallbackPtr);
+    const ErrCode errCode = daqTry([&serializedObj, &contextPtr, factoryCallbackPtr, &obj]
+    {
+        ListPtr<IArgumentInfo> arguments;
+        if(serializedObj.hasKey("arguments"))
+            arguments = serializedObj.readObject("arguments", contextPtr, factoryCallbackPtr);
 
-            const auto returnType = static_cast<CoreType>(serializedObj.readInt("returnType"));
+        const auto returnType = static_cast<CoreType>(serializedObj.readInt("returnType"));
 
-            bool isConst = false;
-            if (serializedObj.hasKey("const"))
-                isConst = static_cast<Bool>(serializedObj.readBool("const"));
+        bool isConst = false;
+        if (serializedObj.hasKey("const"))
+            isConst = static_cast<Bool>(serializedObj.readBool("const"));
 
-            *obj = createWithImplementation<ICallableInfo, CallableInfoImpl>(arguments, returnType, isConst).detach();
-        });
+        *obj = createWithImplementation<ICallableInfo, CallableInfoImpl>(arguments, returnType, isConst).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

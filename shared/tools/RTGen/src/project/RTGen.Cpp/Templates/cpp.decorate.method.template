@@ -1,7 +1,7 @@
 ﻿    virtual daq::ErrCode INTERFACE_FUNC $Name$($Arguments$) override
     {
         if (this->object == nullptr)
-            throw daq::InvalidParameterException();
+            DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
         return this->object->$Name$($ArgumentNames$);
     }

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <coretypes/coretypes.h>
 
 using namespace daq;
@@ -100,8 +100,8 @@ TEST_F(StringObjectTest, Conversion)
     ASSERT_EQ(valFloat, 1);
 
     auto conv1 = PTR_CAST(String("a"), IConvertible);
-    ASSERT_EQ(conv1->toInt(&valInt), OPENDAQ_ERR_CONVERSIONFAILED);
-    ASSERT_EQ(conv1->toFloat(&valFloat), OPENDAQ_ERR_CONVERSIONFAILED);
+    ASSERT_ERROR_CODE_EQ(conv1->toInt(&valInt), OPENDAQ_ERR_CONVERSIONFAILED);
+    ASSERT_ERROR_CODE_EQ(conv1->toFloat(&valFloat), OPENDAQ_ERR_CONVERSIONFAILED);
 }
 
 TEST_F(StringObjectTest, BoolConversion)

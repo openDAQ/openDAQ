@@ -30,11 +30,13 @@ ErrCode UnitBuilderImpl::build(IUnit** unit)
 
     const auto builderPtr = this->borrowPtr<UnitBuilderPtr>();
 
-    return daqTry([&]()
+    const ErrCode errCode = daqTry([&]()
     {
         *unit = UnitFromBuilder(builderPtr).detach();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode UnitBuilderImpl::setId(Int id)

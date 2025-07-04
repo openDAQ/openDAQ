@@ -606,6 +606,7 @@ void StreamingServer::handleDataDescriptorChanges(OutputSignalBasePtr& outputSig
         {
             try
             {
+                auto errorGuard = DAQ_ERROR_GUARD();
                 outputSignal->writeValueDescriptorChanges(newValueDescriptor);
             }
             catch (const DaqException& e)
@@ -627,6 +628,7 @@ void StreamingServer::handleDataDescriptorChanges(OutputSignalBasePtr& outputSig
             {
                 try
                 {
+                    auto errorGuard = DAQ_ERROR_GUARD();
                     outputSignal->writeDomainDescriptorChanges(newDomainDescriptor);
                 }
                 catch (const DaqException& e)
@@ -658,6 +660,7 @@ void StreamingServer::updateOutputPlaceholderSignal(OutputSignalBasePtr& outputS
     LOG_I("Parameters of unsupported signal {} has been changed, check if it is supported now ...", daqSignal.getGlobalId());
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         addToOutputSignals(daqSignal, outputSignals, writer);
         outputSignal = outputSignals.at(signalId);
         outputSignal->setSubscribed(subscribed);
@@ -683,6 +686,7 @@ void StreamingServer::publishSignalsToClient(const StreamWriterPtr& writer,
 
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             addToOutputSignals(daqSignal, outputSignals, writer);
         }
         catch (const DaqException& e)

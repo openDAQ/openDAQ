@@ -1,5 +1,4 @@
 #include "test_helpers/test_helpers.h"
-#include <iostream>
 #include <opendaq/device_info_internal_ptr.h>
 #include <coreobjects/authentication_provider_factory.h>
 

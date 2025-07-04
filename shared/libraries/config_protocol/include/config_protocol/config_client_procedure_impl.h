@@ -53,13 +53,15 @@ inline ConfigClientProcedureImpl::ConfigClientProcedureImpl(
 
 inline ErrCode ConfigClientProcedureImpl::dispatch(IBaseObject* args)
 {
-    return daqTry([this, &args]
+    const ErrCode errCode = daqTry([this, &args]
     {
         auto propName = name.toStdString();
         if (path.assigned() && path != "")
             propName = path.toStdString() + "." + propName;
         clientComm->callProperty(globalId, propName, args);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode ConfigClientProcedureImpl::getCoreType(CoreType* coreType)

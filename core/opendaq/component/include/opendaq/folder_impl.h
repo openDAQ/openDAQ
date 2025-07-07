@@ -526,8 +526,11 @@ void FolderImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
 
     for (const auto& [_, item] : items)
     {
-        if (!item.isFrozen())
-            item.beginUpdate();
+        auto freezable = item.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned() && freezable.isFrozen())
+            continue;
+
+        item.beginUpdate();
     }
 }
 
@@ -538,8 +541,11 @@ void FolderImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 
     for (const auto& [_, item] : items)
     {
-        if (!item.isFrozen())
-            item.endUpdate();
+        auto freezable = item.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned() && freezable.isFrozen())
+            continue;
+
+        item.endUpdate();
     }
 }
 

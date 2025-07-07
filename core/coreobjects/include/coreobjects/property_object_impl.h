@@ -2404,22 +2404,34 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdate(
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdateOnChildren()
 {
-    for (const auto& [propName, propValue] : propValues)
+    for (const auto& [_, propValue] : propValues)
     {
         const auto propObj = propValue.template asPtrOrNull<IPropertyObject>(true);
-        if (propObj.assigned() && !propObj.isFrozen())
-            propObj.beginUpdate();
+        if (!propObj.assigned())
+            continue;
+
+        auto freezable = propObj.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned() && freezable.isFrozen())
+            continue;
+
+        propObj.beginUpdate();
     }
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callEndUpdateOnChildren()
 {
-    for (const auto& [propName, propValue] : propValues)
+    for (const auto& [_, propValue] : propValues)
     {
         const auto propObj = propValue.template asPtrOrNull<IPropertyObject>(true);
-        if (propObj.assigned() && !propObj.isFrozen())
-            propObj.endUpdate();
+        if (!propObj.assigned())
+            continue;
+
+        auto freezable = propObj.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned() && freezable.isFrozen())
+            continue;
+
+        propObj.endUpdate();
     }
 }
 

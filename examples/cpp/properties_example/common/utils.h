@@ -22,6 +22,27 @@
 #include <opendaq/opendaq.h>
 #include <iostream>
 
+enum PropertyType
+{
+    ptObject,
+    ptDict,
+    ptBinaryData,
+    ptBool,
+    ptComplexNumber,
+    ptEnumeration,
+    ptFloat,
+    ptInt,
+    ptSelection,
+    ptSparseSelection,
+    ptList,
+    ptProcedure,
+    ptFunc,
+    ptRatio,
+    ptString,
+    ptStruct,
+    ptUnknown
+};
+
 inline daq::StringPtr coreTypeToString(const daq::CoreType& coreType)
 {
     switch (coreType)
@@ -104,7 +125,7 @@ inline void printProperty(const daq::PropertyPtr& property, size_t indent = 0)
     }
 }
 
-inline void print(const daq::FunctionBlockPtr& fb)
+inline void printFBProperties(const daq::FunctionBlockPtr& fb)
 {
     std::cout << "\nFunction Block: " << fb.getName() << "\n";
     for (const auto& prop : fb.getAllProperties())
@@ -114,202 +135,59 @@ inline void print(const daq::FunctionBlockPtr& fb)
     std::cout << "\n";
 }
 
-inline void modifyProperty(const daq::PropertyPtr& property, const daq::TypeManagerPtr typeManager)
+inline PropertyType getPropertyType(const daq::PropertyPtr& property)
 {
-    auto value = property.getValue();
-    switch (value.getCoreType())
+    // Determine the type of the property based on its core type
+    switch (property.getValue().getCoreType())
     {
         case daq::CoreType::ctObject:
-        {
-            auto objPtr = value.asPtrOrNull<daq::IPropertyObject>();
-            if (objPtr.assigned())
-            {
-                for (const auto& prop : objPtr.getAllProperties())
-                {
-                    modifyProperty(prop, typeManager);
-                }
-            }
-            break;
-        }
+            return ptObject;
         case daq::CoreType::ctDict:
-        {
-            auto dictPtr = value.asPtrOrNull<daq::IDict>();
-            if (dictPtr.assigned())
-            {
-                auto newDict = daq::Dict<daq::IString, daq::IString>();
-                newDict.set("Key1", "Milk");
-                newDict.set("Key2", "Cow");
-                property.setValue(newDict);
-            }
-            break;
-        }
+            return ptDict;
         case daq::CoreType::ctBinaryData:
-        {
-            // Example: Create a new binary data with a simple byte array
-            auto newBinaryData = daq::BinaryData(42);
-            property.setValue(newBinaryData);
-            break;
-        }
+            return ptBinaryData;
         case daq::CoreType::ctBool:
-        {
-            property.setValue(!value);
-            break;
-        }
+            return ptBool;
         case daq::CoreType::ctComplexNumber:
-        {
-            auto complex = value.asPtrOrNull<daq::IComplexNumber>();
-            if (complex.assigned())
-            {
-                property.setValue(daq::ComplexNumber(complex.getImaginary(), complex.getReal()));
-            }
-            break;
-        }
+            return ptComplexNumber;
         case daq::CoreType::ctEnumeration:
-        {
-            auto enu = Enumeration("Enum", "Second", typeManager);
-            property.setValue(enu);
-            break;
-        }
+            return ptEnumeration;
         case daq::CoreType::ctFloat:
-        {
-            property.setValue(value + 1.5);
-            break;
-        }
+            return ptFloat;
         case daq::CoreType::ctInt:
         {
-            // Handle selection and sparse selection properties
+            // Check if the property has selection values
             auto vals = property.getSelectionValues();
-            if (vals.assigned() && (vals.getCoreType() == daq::CoreType::ctList || vals.getCoreType() == daq::CoreType::ctDict))
+            if (vals.assigned())
             {
-                property.setValue(0);  // Select first item as an example
+                // If it does have selection values, determine the type based on the core type of those values
+                if (vals.getCoreType() == daq::CoreType::ctList)
+                {
+                    // If the selection values are a list, return Selection
+                    return ptSelection;
+                }
+                if (vals.getCoreType() == daq::CoreType::ctDict)
+                {
+                    // If the selection values are a dictionary, return SparseSelection
+                    return ptSparseSelection;
+                }
             }
-            else
-            {
-                if (!property.getReadOnly())  // Only modify if not read-only
-                    property.setValue(42);    // Set to a specific integer value
-            }
-            break;
+            // If no selection values, return Int
+            return ptInt;
         }
         case daq::CoreType::ctList:
-        {
-            auto list = daq::List<daq::IntegerPtr>();
-            list.pushBack(33);
-            list.pushBack(44);
-            list.pushBack(55);
-            property.setValue(list);
-            break;
-        }
+            return ptList;
         case daq::CoreType::ctProc:
-        {
-            auto newProc = daq::Procedure([](daq::IntegerPtr a) { std::cout << "Newest procedure called with: " << a << "\n"; });
-            property.setValue(newProc);
-            break;
-        }
+            return ptProcedure;
         case daq::CoreType::ctFunc:
-        {
-            auto newFunc = daq::Function(
-                [](const daq::IntegerPtr& a, const daq::IntegerPtr& b) -> daq::IntegerPtr
-                {
-                    std::cout << "Newest function called with: " << a << " and " << b << "\n";
-                    return daq::Integer(10) * a + b;
-                });
-            property.setValue(newFunc);
-            break;
-        }
+            return ptFunc;
         case daq::CoreType::ctRatio:
-        {
-            auto ratio = value.asPtrOrNull<daq::IRatio>();
-            if (ratio.assigned())
-            {
-                property.setValue(daq::Ratio(ratio.getDenominator(), ratio.getNumerator()));
-            }
-            break;
-        }
+            return ptRatio;
         case daq::CoreType::ctString:
-        {
-            property.setValue(daq::String("Modified String"));
-            break;
-        }
+            return ptString;
         case daq::CoreType::ctStruct:
-        {
-            auto structType = property.getStructType();
-            if (structType.assigned())
-            {
-                // Create a new Struct instance using the struct type
-                auto newStruct = StructBuilder(property.getValue());
-                auto fieldNames = structType.getFieldNames();
-                auto fieldTypes = structType.getFieldTypes();
-                auto nameIt = fieldNames.begin();
-                auto typeIt = fieldTypes.begin();
-                for (; nameIt != fieldNames.end() && typeIt != fieldTypes.end(); ++nameIt, ++typeIt)
-                {
-                    if ((*typeIt).getCoreType() == daq::CoreType::ctString)
-                    {
-                        newStruct.set(*nameIt, daq::String("Twice modified"));
-                    };
-                    // Handle other types of fields if necessary, using *typeIt
-                    switch ((*typeIt).getCoreType())
-                    {
-                        case daq::CoreType::ctInt:
-                            newStruct.set(*nameIt, 123);
-                            break;
-                        case daq::CoreType::ctFloat:
-                            newStruct.set(*nameIt, 3.14);
-                            break;
-                        case daq::CoreType::ctBool:
-                            newStruct.set(*nameIt, true);
-                            break;
-                        case daq::CoreType::ctList:
-                        {
-                            auto list = daq::List<daq::IntegerPtr>();
-                            list.pushBack(1);
-                            list.pushBack(2);
-                            newStruct.set(*nameIt, list);
-                            break;
-                        }
-                        case daq::CoreType::ctDict:
-                        {
-                            auto dict = daq::Dict<daq::IString, daq::IString>();
-                            dict.set("A", "Alpha");
-                            dict.set("B", "Beta");
-                            newStruct.set(*nameIt, dict);
-                            break;
-                        }
-                        // TODO: Add more cases as needed for other types
-                        default:
-                            // Leave field unchanged for unhandled types
-                            break;
-                    }
-                }
-                property.setValue(newStruct.build());
-            }
-            break;
-        }
+            return ptStruct;
         default:
-            std::cout << "Unhandled property type: " << coreTypeToString(value.getCoreType()) << "\n";
-            break;
-    }
-}
-
-inline void modify(const daq::PropertyObjectPtr& propertyObject, daq::TypeManagerPtr typeManager)
-{
-    for (const auto& property : propertyObject.getAllProperties())
-    {
-        auto value = property.getValue();
-        if (value.getCoreType() == daq::CoreType::ctObject)
-        {
-            auto objPtr = value.asPtrOrNull<daq::IPropertyObject>();
-            if (objPtr.assigned())
-            {
-                for (const auto& innerProperty : objPtr.getAllProperties())
-                {
-                    modifyProperty(innerProperty, typeManager);
-                }
-            }
-        }
-        else
-        {
-            modifyProperty(property, typeManager);
-        }
+            return ptUnknown;
     }
 }

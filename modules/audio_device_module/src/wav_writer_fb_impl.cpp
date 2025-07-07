@@ -27,7 +27,7 @@ ErrCode WAVWriterFbImpl::startRecording()
 
     assert(!recording);
 
-    if (!inputValueDataDescriptor.assigned() && !inputTimeDataDescriptor.assigned())
+    if (!inputValueDataDescriptor.assigned() || !inputTimeDataDescriptor.assigned())
     {
         LOG_W("Incomplete input signal descriptors")
         return OPENDAQ_FAILED(OPENDAQ_ERR_VALIDATE_FAILED);

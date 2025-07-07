@@ -1,5 +1,6 @@
 /*
- * Advanced features like references, validation, coercion, and conditional visibility
+ * Properties Application: Reference Properties
+ * Demonstrates advanced features like references, validation, coercion, and conditional visibility
  */
 
 #include <utils.h>
@@ -19,7 +20,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Print before modifications
     std::cout << "\nBefore modifications/update:\n";
-    print(fb);
+    printFBProperties(fb);
 
     // Property visibility depending on another Property
     fb.setPropertyValue("SometimesVisible", 2);
@@ -36,8 +37,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     fb.setPropertyValue("CoercedProp", 142);  // Coerced to 10
 
     // Print after calling set but before modifications are applied via endUpdate
-    std::cout << "\nFB4 after calling set but before modifications are applied (should be the same as before):\n";
-    print(fb);
+    std::cout << "\nFB after calling set but before modifications are applied (should be the same as before):\n";
+    printFBProperties(fb);
 
     // Apply changes in one sweep
     fb.endUpdate();
@@ -62,17 +63,6 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         std::cout << "Exception: " << e.what() << "\n";
     }
-
-    // Print after modifications
-    std::cout << "\nAfter modifications:\n";
-    print(fb);
-
-    // Modify
-    modify(fb, instance.getContext().getTypeManager());
-
-    // Print after modifications
-    std::cout << "\nAfter second round of modifications:\n";
-    print(fb);
 
     // Gracefully exit
     std::cout << "Press \"enter\" to exit the application...\n";

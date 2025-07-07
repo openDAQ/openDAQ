@@ -1,5 +1,6 @@
 /*
- * Object properties, procedures, functions, and inheritance
+ * Properties Application: Objects and Classes
+ * Demonstrates features like Object properties, procedures, functions, and inheritance
  */
 
 #include <utils.h>
@@ -12,12 +13,11 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance();
 
     // Add Function Block by type ID
-    auto fb =
-        instance.addFunctionBlock("ExampleFBPropertyObjectsAndClasses");
+    auto fb = instance.addFunctionBlock("ExampleFBPropertyObjectsAndClasses");
 
     // Print before modifications
     std::cout << "\nBefore modifications:\n";
-    print(fb);
+    printFBProperties(fb);
 
     // Object
     fb.setPropertyValue("Object.InnerObject.Bool", True);
@@ -51,17 +51,6 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Object class
     fb.setPropertyValue("ClassObject.Foo", "BarBar");
     fb.setPropertyValue("ClassObject.Integer", 5);
-
-    // Print after modifications
-    std::cout << "\nAfter modifications:\n";
-    print(fb);
-
-    // Modify
-    modify(fb, instance.getContext().getTypeManager());
-
-    // Print after modifications
-    std::cout << "\nAfter second round of modifications:\n";
-    print(fb);
 
     // Gracefully exit
     std::cout << "Press \"enter\" to exit the application...\n";

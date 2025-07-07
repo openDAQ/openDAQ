@@ -123,6 +123,8 @@ inline void printProperty(const daq::PropertyPtr& property, size_t indent = 0)
     {
         std::cout << std::string(indent * 2, ' ') << "  Value: " << value << "\n";
     }
+
+    std::cout << "\n";
 }
 
 inline void printFBProperties(const daq::FunctionBlockPtr& fb)
@@ -132,7 +134,7 @@ inline void printFBProperties(const daq::FunctionBlockPtr& fb)
     {
         printProperty(prop);
     }
-    std::cout << "\n";
+    std::cout << "\n\n";
 }
 
 inline PropertyType getPropertyType(const daq::PropertyPtr& property)

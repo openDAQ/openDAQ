@@ -1,5 +1,6 @@
 /*
- * Basic property types and callbacks
+ * Properties Application: Basic Property types and callbacks
+ * Demonstrates basic Property features
  */
 
 #include <utils.h>
@@ -13,10 +14,6 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Add Function Block by type ID
     auto fb = instance.addFunctionBlock("ExampleFBPropertyBasicTypes");
-
-    // Print before modifications
-    std::cout << "\nBefore modifications:\n";
-    print(fb);
 
     // Bool
     fb.setPropertyValue("Bool", true);
@@ -45,17 +42,6 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Stubborn Int
     fb.setPropertyValue("StubbornInt", 41);  // Will be forced to 43
-
-    // Print after modifications
-    std::cout << "\nAfter modifications:\n";
-    print(fb);
-
-    // Modify
-    modify(fb, instance.getContext().getTypeManager());
-
-    // Print after modifications
-    std::cout << "\nAfter second round of modifications:\n";
-    print(fb);
 
     // Gracefully exit
     std::cout << "Press \"enter\" to exit the application...\n";

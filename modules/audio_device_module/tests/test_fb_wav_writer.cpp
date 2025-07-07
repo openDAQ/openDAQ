@@ -64,7 +64,7 @@ protected:
 
 TEST_F(WavWriterTest, ValidWriteToFile)
 {
-    reader.setPropertyValue("FilePath", wavWriterResourcePath + "\\quack_mono_16bit_44kHz_cut.wav");
+    reader.setPropertyValue("FilePath", wavWriterResourcePath + "/quack_mono_16bit_44kHz_cut.wav");
 
     ASSERT_EQ(reader.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
 

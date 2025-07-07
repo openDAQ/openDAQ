@@ -74,7 +74,7 @@ TEST_F(WavReaderTest, OpenValidFile)
 {
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
 
-    fb.setPropertyValue("FilePath", wavReaderResourcePath + "\\quack_mono_16bit_44kHz.wav");
+    fb.setPropertyValue("FilePath", wavReaderResourcePath + "/quack_mono_16bit_44kHz.wav");
 
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
 }
@@ -83,14 +83,14 @@ TEST_F(WavReaderTest, OpenInvalidFile)
 {
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
 
-    fb.setPropertyValue("FilePath", wavReaderResourcePath + "\\fake_quack.wav");
+    fb.setPropertyValue("FilePath", wavReaderResourcePath + "/fake_quack.wav");
 
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
 }
 
 TEST_F(WavReaderTest, CheckSignalSampleType)
 {
-    fb.setPropertyValue("FilePath", wavReaderResourcePath + "\\quack_mono_16bit_44kHz.wav");
+    fb.setPropertyValue("FilePath", wavReaderResourcePath + "/quack_mono_16bit_44kHz.wav");
 
     auto descriptor = fb.getSignals()[0].getDescriptor();
     daq::SampleType sampleType;
@@ -98,7 +98,7 @@ TEST_F(WavReaderTest, CheckSignalSampleType)
 
     ASSERT_EQ(sampleType, SampleType::Int16);
 
-    fb.setPropertyValue("FilePath", wavReaderResourcePath + "\\quack_mono_32bit_48kHz.wav");
+    fb.setPropertyValue("FilePath", wavReaderResourcePath + "/quack_mono_32bit_48kHz.wav");
 
     descriptor = fb.getSignals()[0].getDescriptor();
     descriptor->getSampleType(&sampleType);
@@ -108,14 +108,14 @@ TEST_F(WavReaderTest, CheckSignalSampleType)
 
 TEST_F(WavReaderTest, DISABLED_OpenStereo)
 {
-    fb.setPropertyValue("FilePath", wavReaderResourcePath + "\\quack_stereo_16bit_44kHz.wav");
+    fb.setPropertyValue("FilePath", wavReaderResourcePath + "/quack_stereo_16bit_44kHz.wav");
 
     //TODO: when stereo is supported check if both signals are correct
 }
 
 TEST_F(WavReaderTest, ReadFile)
 {
-    fb.setPropertyValue("FilePath", wavReaderResourcePath + "\\quack_mono_16bit_44kHz_cut.wav");
+    fb.setPropertyValue("FilePath", wavReaderResourcePath + "/quack_mono_16bit_44kHz_cut.wav");
 
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
     bool reading = fb.getPropertyValue("Reading");
@@ -157,7 +157,7 @@ TEST_F(WavReaderTest, ReadFile)
     ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "End of file reached.");
 
     // Open "new" file.
-    fb.setPropertyValue("FilePath", wavReaderResourcePath + "\\quack_mono_16bit_44kHz.wav");
+    fb.setPropertyValue("FilePath", wavReaderResourcePath + "/quack_mono_16bit_44kHz.wav");
 
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
     eof = fb.getPropertyValue("EOF");

@@ -1,26 +1,39 @@
-import opendaq
+
+import sys
+sys.path.append("..")
+
+import opendaq as daq
+import daq_utils
 import time
 
-instance = opendaq.Instance()
-device = instance.add_device('daqref://device0')
-signal = device.signals_recursive[0]
+if __name__ == "__main__":
+    # Setup simulator and get 1st simulated analog input signal
+    device = daq_utils.setup_simulator()
+    signal = device.get_signals_recursive(daq.LocalIdSearchFilter("AI1"))[0]
 
-reader = opendaq.StreamReader(signal)
+    # Create stream reader object used to read data
+    reader = daq.StreamReader(signal)
 
-# Output 10 samples using reader
-for i in range(10):
+    # Read 100 samples every 0.125 seconds. The default Sample rate of the simulator is 1000Hz
+    for i in range(10):
+        time.sleep(0.125)
+        samples = reader.read(125)
+
+        # Print last sample
+        if len(samples) > 0:
+            print(samples[-1])
+
+    # Create stream reader that converts read data to the Int64 type
+    reader = daq.StreamReader(signal, value_type=daq.SampleType.Int64)
+
+    # Read and print 10 values
     time.sleep(0.5)
-    samples = reader.read(100)
-    if len(samples) > 0:
-        print(samples[-1])
+    int_values = reader.read(500)
+    print(int_values[-10:])
 
-# Output 10 samples with forced type
-reader = opendaq.StreamReader(signal, value_type=opendaq.SampleType.Int64)
-time.sleep(0.5)
-for overriden_type_value in reader.read(10):
-    print(overriden_type_value)
-
-# Output 10 timestamped samples with forced type
-values, timestamps = opendaq.TimeStreamReader(reader).read_with_timestamps(10)
-for value, timestamp in zip(values, timestamps):
-    print(timestamp, value)
+    # Read and print 10 timestamped samples
+    # The TimeStreamReader is a reader wrapper that outputs timestamps in the datetime format
+    time_reader = daq.TimeStreamReader(reader)
+    time.sleep(0.5)
+    int_values, timestamps = time_reader.read_with_timestamps(500)
+    print(list(zip(int_values[-10:], timestamps[-10:])))

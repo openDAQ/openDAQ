@@ -27,12 +27,12 @@ class RecorderView(ttk.Frame):
         header_frame.pack(fill=tk.X)
 
     def toggleRecording(self):
-        if self.node.is_recording():
-            self.node.stop()
+        if self.node.is_recording:
+            self.node.stop_recording()
         else:
-            self.node.start()
+            self.node.start_recording()
 
-        if self.node.is_recording():
+        if self.node.is_recording:
             self.pb.start()
         else:
             self.pb.stop()

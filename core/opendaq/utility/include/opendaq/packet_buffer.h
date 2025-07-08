@@ -57,14 +57,14 @@ DECLARE_OPENDAQ_INTERFACE(IPacketBuffer, IBaseObject)
      * @param desc Description that contains the infomation about raw sample size
      * @param[out] count The available amount
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableContinousSampleLeft(IDataDescriptor * desc, SizeT * count) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableSampleLeft(IDataDescriptor * desc, SizeT * count) = 0;
 
     /*!
      * @brief Returns the amount of samples (whoose raw size is gained from desc) at the end of the buffer
      * @param desc Description that contains the information about raw sample size
      * @param[out] count The available amount
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableContinousSampleRight(IDataDescriptor * desc, SizeT * count) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableSampleRight(IDataDescriptor * desc, SizeT * count) = 0;
 
     /*!
      * @brief Reallocates the underlying std::vector so that it size matches the new given size

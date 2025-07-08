@@ -36,7 +36,8 @@ public:
 
 private:
     bool initializeDecoder();
-    bool uninitializeDecoder();
+    bool reinitializeDecoder();
+    void uninitializeDecoder();
     bool decoderReady();
     bool decoderReading();
 

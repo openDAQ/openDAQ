@@ -117,7 +117,13 @@ bool WAVReaderFbImpl::initializeDecoder()
     return true;
 }
 
-bool WAVReaderFbImpl::uninitializeDecoder()
+bool WAVReaderFbImpl::reinitializeDecoder()
+{
+    uninitializeDecoder();
+    return initializeDecoder();
+}
+
+void WAVReaderFbImpl::uninitializeDecoder()
 {
     if (decoderInitialized)
     {
@@ -125,8 +131,6 @@ bool WAVReaderFbImpl::uninitializeDecoder()
         ma_decoder_uninit(&decoder);
         decoderInitialized = false;
     }
-
-    return true;
 }
 
 bool WAVReaderFbImpl::decoderReady()
@@ -241,7 +245,7 @@ void WAVReaderFbImpl::initProperties()
             {
                 setComponentStatusWithMessage(ComponentStatus::Warning, "Invalid file path!");
             }
-            if (!initializeDecoder())
+            if (!reinitializeDecoder())
             {
                 args.setValue("");
             }

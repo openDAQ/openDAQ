@@ -313,14 +313,7 @@ TEST_F(PacketBufferTest, resetTest)
 
     auto check = [buffer = buffer, desc = desc, domain = domain](SizeT t, DataPacketPtr& destination)
     {
-        try
-        {
-            destination = buffer.createPacket(t, desc, domain);
-        }
-        catch (InvalidStateException ex)
-        {
-            std::cout << "Exception caught." << std::endl;
-        }
+        destination = buffer.createPacket(t, desc, domain);
     };
 
     auto reset = [buffer = buffer](SizeT t)
@@ -360,6 +353,5 @@ TEST_F(PacketBufferTest, fullDynamicFunctionallityWorkflow)
     std::thread t1;
     std::thread t2;
     std::thread t3;
-
 
 }

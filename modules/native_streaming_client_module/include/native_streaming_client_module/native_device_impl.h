@@ -76,6 +76,8 @@ private:
     void setSignalActiveStreamingSource(const SignalPtr& signal, const StreamingPtr& streaming);
     void updateConnectionStatus(opendaq_native_streaming_protocol::ClientConnectionStatus status);
     void tryConfigProtocolReconnect();
+    void startAcceptNotificationPackets();
+    void stopAcceptNotificationPackets();
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
@@ -88,10 +90,12 @@ private:
     WeakRefPtr<IDevice> deviceRef;
     opendaq_native_streaming_protocol::ClientConnectionStatus connectionStatus;
     bool acceptNotificationPackets;
+    bool subscribedToCoreEvent;
     std::chrono::milliseconds configProtocolRequestTimeout;
     Bool restoreClientConfigOnReconnect;
     const StringPtr connectionString;
-    std::mutex sync;
+    std::mutex requestReplySync;
+    std::mutex flagsSync;
 
     std::shared_ptr<boost::asio::steady_timer> configProtocolReconnectionRetryTimer;
     std::chrono::milliseconds reconnectionPeriod;
@@ -131,6 +135,7 @@ protected:
 private:
     void initStatuses();
     void attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper);
+    void disconnectAndCleanUp();
 
     std::shared_ptr<NativeDeviceHelper> deviceHelper;
 };

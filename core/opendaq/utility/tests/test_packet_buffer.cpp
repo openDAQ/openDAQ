@@ -162,8 +162,8 @@ TEST_F(PacketBufferTest, readAhead)
         mem = 20;
         buffer->createPacket(mem, desc, domain, &destination2);
     }
-    auto left = buffer.getAvailableContinousSampleLeft(desc);
-    auto right = buffer.getAvailableContinousSampleRight(desc);
+    auto left = buffer.getAvailableSampleLeft(desc);
+    auto right = buffer.getAvailableSampleRight(desc);
     ASSERT_TRUE(right > left);
 }
 
@@ -186,7 +186,7 @@ TEST_F(PacketBufferTest, fullBufferRead)
         destination4 = buffer.createPacket(mem, desc, domain);
     }
 
-    ASSERT_EQ(buffer.getAvailableContinousSampleRight(desc), 80);
+    ASSERT_EQ(buffer.getAvailableSampleRight(desc), 80);
 }
 
 TEST_F(PacketBufferTest, linearRuleFail)
@@ -269,7 +269,7 @@ TEST_F(PacketBufferTest, dynamicPacketDestruction)
     }
 
     // The buffer should be empty (left + right should be full buffer)
-    ASSERT_EQ((buffer.getAvailableContinousSampleLeft(desc) + buffer.getAvailableContinousSampleRight(desc)), 80);
+    ASSERT_EQ((buffer.getAvailableSampleLeft(desc) + buffer.getAvailableSampleRight(desc)), 80);
 }
 
 TEST_F(PacketBufferTest, multithreadBasicFunctionallity)
@@ -346,7 +346,7 @@ TEST_F(PacketBufferTest, resetTest)
     }
     t2.join();
 
-    ASSERT_EQ(buffer.getAvailableContinousSampleRight(desc), 100);
+    ASSERT_EQ(buffer.getAvailableSampleRight(desc), 100);
 }
 
 TEST_F(PacketBufferTest, fullDynamicFunctionallityWorkflow)

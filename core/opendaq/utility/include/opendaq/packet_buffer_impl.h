@@ -47,13 +47,11 @@ public:
 
 protected:
 
-    ErrCode Write(size_t sampleCount, size_t rawSampleSize, void** memPos);
+    ErrCode Write(size_t sizeOfPackets, void** memPos);
 
-    ErrCode Read(void* beginningOfDelegatedSpace, size_t sampleCount, size_t rawSize);
+    ErrCode Read(void* beginningOfDelegatedSpace, size_t sizeOfPackets);
 
-    // Is this the place for concurency variables storage (mutex mxFlip, condition_variable cv, ...)
-
-    // and other storage stuff...
+    ErrCode CleanOosPackets();
 
     std::vector<uint8_t> data;
     void* readPos;

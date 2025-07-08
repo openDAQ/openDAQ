@@ -18,6 +18,8 @@
 #include <ref_device_module/common.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/signal_config_ptr.h>
+#include <opendaq/packet_buffer_ptr.h>
+#include <opendaq/packet_buffer_builder_ptr.h>
 
 #include <opendaq/circular_packet.h>
 #include <opendaq/ids_parser.h>
@@ -42,6 +44,7 @@ struct RefChannelInit
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
     StringPtr referenceDomainId;
+    bool usePacketBuffer;
 };
 
 class RefChannelImpl final : public ChannelImpl<IRefChannel>
@@ -89,9 +92,9 @@ private:
     bool fixedPacketSize;
     uint64_t packetSize;
     StringPtr referenceDomainId;
-    std::unique_ptr<daq::PacketBuffer> pb;
-    bool bUseOfBuffer = false;
+    PacketBufferPtr packetBuffer;
     daq::IdsParser* idp;
+    bool acqActive;
 
     void packetBufferSetup();
 

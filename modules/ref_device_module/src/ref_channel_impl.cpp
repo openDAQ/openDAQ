@@ -13,6 +13,7 @@
 #include <opendaq/range_factory.h>
 #include <opendaq/scaling_factory.h>
 #include <opendaq/signal_factory.h>
+#include <opendaq/packet_buffer_builder_factory.h>
 #include <ref_device_module/ref_channel_impl.h>
 #include <date/date.h>
 
@@ -42,6 +43,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
     , referenceDomainId(init.referenceDomainId)
+    , acqActive(true)
 {
     initProperties();
     waveformChangedInternal();
@@ -50,14 +52,18 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     resetCounter();
     createSignals();
     buildSignalDescriptors();
-    packetBufferSetup();
+    initComponentStatus();
+    if (init.usePacketBuffer)
+        packetBufferSetup();
 }
 
 void RefChannelImpl::packetBufferSetup()
 {
-    std::cout << (globalSampleRate) << std::endl;
-    if (bUseOfBuffer)
-        pb = std::make_unique<daq::PacketBuffer>();
+    auto size = valueSignal.getDescriptor().getRawSampleSize() * 2 * sampleRate;
+    if (!packetBuffer.assigned())
+        packetBuffer = PacketBufferBuilder().setSizeInBytes(size).setContext(this->context).build();
+    else
+        packetBuffer.resize(size);
 }
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
@@ -246,6 +252,8 @@ void RefChannelImpl::signalTypeChanged()
 {
     signalTypeChangedInternal();
     buildSignalDescriptors();
+    if (packetBuffer.assigned())
+        packetBufferSetup();
     updateSamplesGenerated();
 }
 
@@ -293,6 +301,9 @@ uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) co
 void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
     auto lock = this->getAcquisitionLock();
+    if (!acqActive)
+        return;
+
     const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
     auto newSamples = samplesSinceStart - samplesGenerated;
 
@@ -304,6 +315,8 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
             {
                 const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
                 auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
+                if (!acqActive)
+                    return;
 
                 timeSignal.sendPacket(std::move(domainPacket));
                 valueSignal.sendPacket(std::move(dataPacket));
@@ -321,6 +334,9 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
                 {
                     const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
                     auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, packetSize);
+                    if (!acqActive)
+                        return;
+
                     packets.pushBack(std::move(dataPacket));
                     domainPackets.pushBack(std::move(domainPacket));
                 }
@@ -344,22 +360,31 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
 {
     auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
     DataPacketPtr dataPacket;
+    auto valueDescriptor = valueSignal.getDescriptor();
     if (waveformType == WaveformType::ConstantValue)
     {
-        dataPacket = ConstantDataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples, constantValue);
+        dataPacket = ConstantDataPacketWithDomain(domainPacket, valueDescriptor, newSamples, constantValue);
     }
     else
     {
-        if (bUseOfBuffer) // Here I need to create a PacketBufferInit that will allow to correctly toggle
+        if (packetBuffer.assigned())
         {
-            dataPacket = pb->createPacket((size_t*) &newSamples, valueSignal.getDescriptor(), domainPacket);
+            auto space = packetBuffer.getMaxAvailableContinousSampleCount(valueDescriptor);
+            if (space < newSamples)
+            {
+                setComponentStatusWithMessage(ComponentStatus::Error, "Circular Buffer full, acquisition stopped.");
+                acqActive = false;
+                return {nullptr, nullptr};
+            }
+
+            dataPacket = packetBuffer.createPacket(newSamples, valueDescriptor, domainPacket);
         }
         else
         {
-            dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+            dataPacket = DataPacketWithDomain(domainPacket, valueDescriptor, newSamples);
         }
 
-        if (dataPacket == nullptr)
+        if (!dataPacket.assigned())
         {
             DAQ_THROW_EXCEPTION(InvalidParameterException, "We have created an empty packet, OH NO");
         }
@@ -367,9 +392,7 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
         double* buffer;
 
         if (clientSideScaling)
-        {
             buffer = static_cast<double*>(std::malloc(newSamples * sizeof(double)));
-        }
         else
             buffer = static_cast<double*>(dataPacket.getRawData());
 

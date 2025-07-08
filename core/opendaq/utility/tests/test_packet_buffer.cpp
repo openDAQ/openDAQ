@@ -286,9 +286,11 @@ TEST_F(PacketBufferTest, multithreadBasicFunctionallity)
             destination = buffer.createPacket(t, desc, domain);
         };
 
-    std::thread t1, t2;
+    std::thread t1;
+    std::thread t2;
 
-    DataPacketPtr r1, r2;
+    DataPacketPtr r1;
+    DataPacketPtr r2;
 
     t1 = std::thread(check, 20, std::ref(r1));
     t2 = std::thread(check, 50, std::ref(r2));
@@ -309,14 +311,55 @@ TEST_F(PacketBufferTest, resetTest)
 
     auto [desc, domain] = generate_building_blocks();
 
+    auto check = [buffer = buffer, desc = desc, domain = domain](SizeT t, DataPacketPtr& destination)
+    {
+        try
+        {
+            destination = buffer.createPacket(t, desc, domain);
+        }
+        catch (InvalidStateException ex)
+        {
+            std::cout << "Exception caught." << std::endl;
+        }
+    };
 
+    auto reset = [buffer = buffer](SizeT t)
+    {
+        std::this_thread::sleep_for(std::chrono::microseconds(20));
+        buffer.resize(t);
+    };
+
+    std::thread t1;
+    std::thread t2;
+    std::thread t3;
+
+    {
+        DataPacketPtr r1;
+        t1 = std::thread(check, 20, std::ref(r1));
+        t1.join();
+    }
+    t2 = std::thread(reset, 1000);
+    {
+        DataPacketPtr r2;
+        t3 = std::thread(check, 20, std::ref(r2));
+        t3.join();
+    }
+    t2.join();
+
+    ASSERT_EQ(buffer.getAvailableContinousSampleRight(desc), 100);
 }
 
 TEST_F(PacketBufferTest, fullDynamicFunctionallityWorkflow)
 {
     auto builder = PacketBufferBuilder();
     builder.setSizeInBytes(800);
-    auto buffer = PacketBuffer(builder);
+    auto buffer = builder.build();
 
     auto [desc, domain] = generate_building_blocks();
+
+    std::thread t1;
+    std::thread t2;
+    std::thread t3;
+
+
 }

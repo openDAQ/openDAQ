@@ -30,7 +30,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
     , transportClientHandler(transportProtocolClient)
     , connectionStatus(ClientConnectionStatus::Connected)
-    , acceptNotificationPackets(true)
+    , acceptNotificationPackets(false)
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
     , connectionString(connectionString)
@@ -48,6 +48,7 @@ NativeDeviceHelper::~NativeDeviceHelper()
 DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent, uint16_t protocolVersion)
 {
     auto device = configProtocolClient->connect(parent, protocolVersion);
+    acceptNotificationPackets = true;
     deviceRef = device;
     return device;
 }
@@ -69,6 +70,7 @@ void NativeDeviceHelper::unsubscribeFromCoreEvent(const ContextPtr& context)
 
 void NativeDeviceHelper::closeConnectionOnRemoval()
 {
+    acceptNotificationPackets = false;
     configProtocolReconnectionRetryTimer->cancel();
 
     if (transportClientHandler)

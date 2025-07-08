@@ -37,7 +37,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
     , transportClientHandler(transportProtocolClient)
     , connectionStatus(Enumeration("ConnectionStatusType", "Connected", context.getTypeManager()))
-    , acceptNotificationPackets(true)
+    , acceptNotificationPackets(false) // ignore notification packets by default until the device is connected
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
     , connectionString(connectionString)
@@ -48,20 +48,16 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
 
 NativeDeviceHelper::~NativeDeviceHelper()
 {
-    configProtocolReconnectionRetryTimer->cancel();
     closeConnectionOnRemoval();
 }
 
-DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent, uint16_t protocolVersion)
+DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent, uint16_t& protocolVersion)
 {
     auto device = configProtocolClient->connect(parent, protocolVersion);
+    protocolVersion = configProtocolClient->getProtocolVersion();
+    startAcceptNotificationPackets();
     deviceRef = device;
     return device;
-}
-
-uint16_t NativeDeviceHelper::getProtocolVersion() const
-{
-    return configProtocolClient->getProtocolVersion();
 }
 
 void NativeDeviceHelper::subscribeToCoreEvent(const ContextPtr& context)
@@ -76,18 +72,26 @@ void NativeDeviceHelper::unsubscribeFromCoreEvent(const ContextPtr& context)
 
 void NativeDeviceHelper::closeConnectionOnRemoval()
 {
+    // Stop handling any further incoming notifications
+    stopAcceptNotificationPackets();
+
+    // Cancel ongoing reconnection attempt, if still pending
     configProtocolReconnectionRetryTimer->cancel();
 
+    // Replace existing handlers with no-op stubs
+    // This detaches the callbacks associated with the removed device from the transport layer client
     if (transportClientHandler)
     {
         transportClientHandler->resetConfigHandlers();
     }
 
+    // Gracefully stop the thread that processes incoming config protocol packets
     if (!processingIOContextPtr->stopped())
     {
         processingIOContextPtr->stop();
     }
 
+    // Gracefully stop the thread responsible for handling reconnection
     if (!reconnectionProcessingIOContextPtr->stopped())
     {
         reconnectionProcessingIOContextPtr->stop();
@@ -96,9 +100,12 @@ void NativeDeviceHelper::closeConnectionOnRemoval()
     {
         std::scoped_lock lock(sync);
         configProtocolClient.reset();
+        // Release the transport layer client - this also automatically closes the connection if it wasn't shared
+        // i.e., if it was used exclusively for config protocol communication (which is typically the case)
         transportClientHandler.reset();
     }
 
+    // Immediately fail all pending async config requests with an exception
     cancelPendingConfigRequests(ComponentRemovedException());
 }
 
@@ -140,7 +147,7 @@ void NativeDeviceHelper::transportConnectionStatusChangedHandler(const Enumerati
     else
     {
         configProtocolReconnectionRetryTimer->cancel();
-        acceptNotificationPackets = false;
+        stopAcceptNotificationPackets();
         cancelPendingConfigRequests(ConnectionLostException());
         configProtocolClient->disconnectExternalSignals();
 
@@ -152,12 +159,12 @@ void NativeDeviceHelper::tryConfigProtocolReconnect()
 {
     try
     {
-        acceptNotificationPackets = true;
+        startAcceptNotificationPackets();
         configProtocolClient->reconnect(restoreClientConfigOnReconnect);
     }
     catch(const std::exception& e)
     {
-        acceptNotificationPackets = false;
+        stopAcceptNotificationPackets();
         const auto statusMessage = String(fmt::format("Configuration protocol reconnection failed: {}.", e.what()));
         LOG_E("{}", statusMessage);
 
@@ -180,6 +187,16 @@ void NativeDeviceHelper::tryConfigProtocolReconnect()
     auto tmpStatusValue = connectionStatus;
     tmpStatusValue = "Connected";
     updateConnectionStatus(tmpStatusValue, "");
+}
+
+void NativeDeviceHelper::startAcceptNotificationPackets()
+{
+    acceptNotificationPackets = true;
+}
+
+void NativeDeviceHelper::stopAcceptNotificationPackets()
+{
+    acceptNotificationPackets = false;
 }
 
 void NativeDeviceHelper::updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)

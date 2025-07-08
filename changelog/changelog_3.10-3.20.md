@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#850](https://github.com/openDAQ/openDAQ/pull/850) Ignore server notifications unless native device is connected.
 - [#856](https://github.com/openDAQ/openDAQ/pull/856) Fix race condition in native streaming caused by signal removal.
 - [#846](https://github.com/openDAQ/openDAQ/pull/846) Do not bind properties on serialize. Prevents crashes when serializing property object classes.
 - [#842](https://github.com/openDAQ/openDAQ/pull/842) Exclude ComponentConfig from OPC UA Component Properties

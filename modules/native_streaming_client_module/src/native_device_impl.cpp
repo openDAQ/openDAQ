@@ -298,16 +298,16 @@ void NativeDeviceHelper::tryConfigProtocolReconnect()
 
         configProtocolReconnectionRetryTimer->expires_from_now(reconnectionPeriod);
         configProtocolReconnectionRetryTimer->async_wait(
-            [weak_self = weak_from_this()](const boost::system::error_code& ec)
+            [deviceHelperWeak = weak_from_this()](const boost::system::error_code& ec)
             {
                 if (ec)
                     return;
-                if (auto shared_self = weak_self.lock())
+                if (auto deviceHelperSelf = deviceHelperWeak.lock())
                 {
-                    auto device = shared_self->deviceRef.assigned() ? shared_self->deviceRef.getRef() : nullptr;
+                    auto device = deviceHelperSelf->deviceRef.assigned() ? deviceHelperSelf->deviceRef.getRef() : nullptr;
                     // retry if device is still alive
                     if (device.assigned())
-                        shared_self->tryConfigProtocolReconnect();
+                        deviceHelperSelf->tryConfigProtocolReconnect();
                 }
             }
         );
@@ -374,15 +374,15 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
         auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
         boost::asio::dispatch(
             *processingIOContextPtr,
-            [packetBufferPtr, weak_self = weak_from_this()]()
+            [packetBufferPtr, deviceHelperWeak = weak_from_this()]()
             {
-                if (auto shared_self = weak_self.lock())
+                if (auto deviceHelperSelf = deviceHelperWeak.lock())
                 {
-                    auto device = shared_self->deviceRef.assigned() ? shared_self->deviceRef.getRef() : nullptr;
+                    auto device = deviceHelperSelf->deviceRef.assigned() ? deviceHelperSelf->deviceRef.getRef() : nullptr;
                     // process incoming config protocol packets if the device connection is not completed yet
                     // or completed and device is still alive
-                    if (!shared_self->deviceRef.assigned() || device.assigned())
-                        shared_self->processConfigPacket(std::move(*packetBufferPtr));
+                    if (!deviceHelperSelf->deviceRef.assigned() || device.assigned())
+                        deviceHelperSelf->processConfigPacket(std::move(*packetBufferPtr));
                 }
             }
         );
@@ -393,13 +393,13 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
     {
         boost::asio::dispatch(
             *reconnectionProcessingIOContextPtr,
-            [status, weak_self = weak_from_this()]()
+            [status, deviceHelperWeak = weak_from_this()]()
             {
-                if (auto shared_self = weak_self.lock())
+                if (auto deviceHelperSelf = deviceHelperWeak.lock())
                 {
-                    auto device = shared_self->deviceRef.assigned() ? shared_self->deviceRef.getRef() : nullptr;
+                    auto device = deviceHelperSelf->deviceRef.assigned() ? deviceHelperSelf->deviceRef.getRef() : nullptr;
                     if (device.assigned())
-                        shared_self->connectionStatusChangedHandler(status);
+                        deviceHelperSelf->connectionStatusChangedHandler(status);
                 }
             }
         );

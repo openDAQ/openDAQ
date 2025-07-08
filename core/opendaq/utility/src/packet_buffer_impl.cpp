@@ -1,4 +1,5 @@
 #include <opendaq/packet_buffer_impl.h>
+#include <thread>
 #include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -99,7 +100,6 @@ ErrCode PacketBufferImpl::Write(size_t sizeOfPackets, void** memPos)
     return OPENDAQ_SUCCESS;
 }
 
-// TODO: Names of input arguments don't match the ones used to call the method. Should probably just be called startMemPos
 ErrCode PacketBufferImpl::Read(void* startMemPos, size_t sizeOfPackets)
 {
     {
@@ -189,7 +189,7 @@ ErrCode PacketBufferImpl::getAvailableSampleCount(IDataDescriptor* desc, SizeT* 
         *count = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(writePos);
 
     if (isFull && (writePos == readPos))
-            *count = 0;
+        *count = 0;
 
     return OPENDAQ_SUCCESS;
 }
@@ -241,7 +241,7 @@ ErrCode PacketBufferImpl::getMaxAvailableContinousSampleCount(IDataDescriptor* d
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketBufferImpl::getAvailableContinousSampleRight(IDataDescriptor* desc, SizeT* count)
+ErrCode PacketBufferImpl::getAvailableSampleRight(IDataDescriptor* desc, SizeT* count)
 {
     OPENDAQ_PARAM_NOT_NULL(desc);
     OPENDAQ_PARAM_NOT_NULL(count);
@@ -264,7 +264,7 @@ ErrCode PacketBufferImpl::getAvailableContinousSampleRight(IDataDescriptor* desc
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketBufferImpl::getAvailableContinousSampleLeft(IDataDescriptor* desc, SizeT* count)
+ErrCode PacketBufferImpl::getAvailableSampleLeft(IDataDescriptor* desc, SizeT* count)
 {
     OPENDAQ_PARAM_NOT_NULL(desc);
     OPENDAQ_PARAM_NOT_NULL(count);

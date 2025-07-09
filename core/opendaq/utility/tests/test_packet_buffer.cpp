@@ -97,10 +97,12 @@ TEST_F(PacketBufferTest, bufferFillUp)
     DataPacketPtr middle;
     for (int i = 0; i < 8; i++) {
         buffer->createPacket(mem, desc, domain, &middle);
-        check =buffer.getMaxAvailableContinousSampleCount(desc);
+        check = buffer.getMaxAvailableContinousSampleCount(desc);
         destination.push_back(middle.detach());
     }
     mem = buffer.getAvailableSampleCount(desc);
+
+    ASSERT_EQ(check, mem);
 }
 
 TEST_F(PacketBufferTest, emptyPacket)

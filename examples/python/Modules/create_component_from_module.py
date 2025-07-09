@@ -1,4 +1,8 @@
-## Advanced
+##
+# Advanced example that showcases how components are created using modules. These methods are usually not called
+# by end-users, as they instead use the requisite device methods (eg. `add_function_block` or `add_device`) that
+# in turn call the correct module methods. How said module methods are used is shown in this example.
+##
 
 import opendaq as daq
 import sys

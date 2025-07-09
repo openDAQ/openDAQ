@@ -1,9 +1,14 @@
-import opendaq
+##
+# Simple example that prints out the names and values of all properties of a reference device (simulator) channel
+##
 
-instance = opendaq.Instance()
-device = instance.add_device('daqref://device0')
-channel = device.channels[0]
+import sys
+sys.path.append("..")
+import daq_utils
 
-channel_properties = channel.visible_properties
-for property in channel_properties:
-    print(property.name)
+if __name__ == "__main__":
+    simulator = daq_utils.setup_simulator()
+    channel = simulator.channels[0]
+
+    for prop_ in channel.visible_properties:
+        print(prop_.name, prop_.value)

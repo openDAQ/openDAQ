@@ -1,3 +1,14 @@
+##
+# Starts an openDAQ simulator. The simulator uses the reference device as its root and
+# starts up the OPC UA and Native servers with "mdns" discovery enabled. The serial number
+# and local ID of the reference device are overridden to "sim01" and "RefDevSimulator"
+# respectively.
+#
+# IMPORTANT: Only 1 simulator should be active at any given time to avoid serial number
+# clashes during discovery and connection! openDAQ devices should generally have a globally
+# unique combination of manufacturer + serial number, and a globally unique local ID.
+##
+
 import opendaq
 
 config = opendaq.PropertyObject()

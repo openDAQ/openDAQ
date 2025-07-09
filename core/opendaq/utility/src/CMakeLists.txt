@@ -88,7 +88,7 @@ set(SRC_PublicHeaders_Component
     mem_pool_allocator.h
     thread_name.h
     PARENT_SCOPE
-)s
+)
 
 set(SRC_PrivateLinkLibraries_Component
     $<BUILD_INTERFACE:Boost::algorithm>

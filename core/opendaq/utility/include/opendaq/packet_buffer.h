@@ -48,15 +48,13 @@ DECLARE_OPENDAQ_INTERFACE(IPacketBuffer, IBaseObject)
      * @param[out] count Returns the amount of samples that can be fitted into the space available
      */
     virtual ErrCode INTERFACE_FUNC getMaxAvailableContinousSampleCount(IDataDescriptor * desc, SizeT * count) = 0;
-    // Rename to getMaxAvailableSamples
 
     /*!
      * @brief Returns the amount of samples (whoose raw size is gained from desc) at the end of the buffer
      * @param desc Description that contains the information about raw sample size
      * @param[out] count The available amount
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableSampleRight(IDataDescriptor * desc, SizeT * count) = 0;
-    // Rename to getAvailableSampleCount
+    virtual ErrCode INTERFACE_FUNC getAvailableSampleCount(IDataDescriptor * desc, SizeT * count) = 0;
 
     /*!
      * @brief Reallocates the underlying std::vector so that it size matches the new given size

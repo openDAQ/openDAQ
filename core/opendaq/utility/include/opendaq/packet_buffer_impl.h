@@ -40,7 +40,7 @@ public:
     ErrCode INTERFACE_FUNC resize(SizeT sizeInBytes) override;
 
     ErrCode INTERFACE_FUNC getMaxAvailableContinousSampleCount(IDataDescriptor* desc, SizeT* count) override;
-    ErrCode INTERFACE_FUNC getAvailableSampleRight(IDataDescriptor* desc, SizeT* count) override;
+    ErrCode INTERFACE_FUNC getAvailableSampleCount(IDataDescriptor* desc, SizeT* count) override;
 
 protected:
 

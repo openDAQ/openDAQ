@@ -207,7 +207,7 @@ ErrCode PacketBufferImpl::getMaxAvailableContinousSampleCount(IDataDescriptor* d
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketBufferImpl::getAvailableSampleRight(IDataDescriptor* desc, SizeT* count)
+ErrCode PacketBufferImpl::getAvailableSampleCount(IDataDescriptor* desc, SizeT* count)
 {
     OPENDAQ_PARAM_NOT_NULL(desc);
     OPENDAQ_PARAM_NOT_NULL(count);

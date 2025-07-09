@@ -86,7 +86,8 @@ TEST_F(PacketBufferTest, bufferFillUp)
 
     auto [desc, domain] = generate_building_blocks();
 
-    SizeT check;
+    SizeT check = 0;
+
     check = buffer.getMaxAvailableContinousSampleCount(desc);
 
 

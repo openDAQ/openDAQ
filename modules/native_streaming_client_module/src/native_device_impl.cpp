@@ -599,7 +599,7 @@ void NativeDeviceImpl::removed()
 
 void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)
 {
-    this->deviceHelper = std::move(deviceHelper);
+    this->deviceHelper = deviceHelper;
 }
 
 void NativeDeviceImpl::disconnectAndCleanUp()

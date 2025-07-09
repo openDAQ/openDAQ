@@ -160,40 +160,6 @@ ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc,
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PacketBufferImpl::getAvailableMemory(SizeT* count)
-{
-    SizeT check1 = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
-    SizeT check2 = (data.data() + sizeInBytes) - static_cast<uint8_t*>(writePos);
-
-    if (!((writePos == readPos) && isFull))
-        *count = (check1 <= check2) ? check2 : check1;
-    else
-        *count = 0;
-
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PacketBufferImpl::getAvailableSampleCount(IDataDescriptor* desc, SizeT* count)
-{
-    OPENDAQ_PARAM_NOT_NULL(desc);
-    OPENDAQ_PARAM_NOT_NULL(count);
-
-    auto allAvailableSamples = static_cast<uint8_t*>(data.data()) + sizeInBytes;  // End of buffer
-
-    auto fromEndToPos = allAvailableSamples - static_cast<uint8_t*>(writePos);
-    auto fromStartToPos = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
-
-    *count = (fromStartToPos <= fromEndToPos) ? fromEndToPos : fromStartToPos;
-
-    if (writePos < readPos)
-        *count = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(writePos);
-
-    if (isFull && (writePos == readPos))
-        *count = 0;
-
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode PacketBufferImpl::resize(SizeT sizeInBytes)
 {
     std::unique_lock<std::mutex> lock(readWriteMutex);
@@ -254,28 +220,6 @@ ErrCode PacketBufferImpl::getAvailableSampleRight(IDataDescriptor* desc, SizeT* 
     auto fromEndToPos = allAvailableSamples - static_cast<uint8_t*>(readPos);
 
     *count = fromEndToPos/rawSampleSize;
-
-    if (writePos == readPos && isFull)
-        *count = 0;
-
-    if (writePos < readPos)
-        *count = (static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(writePos)) / rawSampleSize;
-
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PacketBufferImpl::getAvailableSampleLeft(IDataDescriptor* desc, SizeT* count)
-{
-    OPENDAQ_PARAM_NOT_NULL(desc);
-    OPENDAQ_PARAM_NOT_NULL(count);
-
-    SizeT rawSampleSize;
-    ErrCode err = desc->getRawSampleSize(&rawSampleSize);
-    OPENDAQ_RETURN_IF_FAILED(err);
-
-    auto fromStartToPos = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
-
-    *count = fromStartToPos / rawSampleSize;
 
     if (writePos == readPos && isFull)
         *count = 0;

@@ -42,22 +42,13 @@ DECLARE_OPENDAQ_INTERFACE(IPacketBuffer, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC createPacket(SizeT sampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet) = 0;
 
-    virtual ErrCode INTERFACE_FUNC getAvailableMemory(SizeT* count) = 0;
-    virtual ErrCode INTERFACE_FUNC getAvailableSampleCount(IDataDescriptor* desc, SizeT* count) = 0;
-
     /*!
      * @brief Returns the maximum continous amount of samples either at the beginning or the end of the buffer
      * @param desc Description that contains the information about raw sample size
      * @param[out] count Returns the amount of samples that can be fitted into the space available
      */
     virtual ErrCode INTERFACE_FUNC getMaxAvailableContinousSampleCount(IDataDescriptor * desc, SizeT * count) = 0;
-
-    /*!
-     * @brief Returns the amount of samples (whoose raw size is gained from desc) at the end of the buffer
-     * @param desc Description that contains the infomation about raw sample size
-     * @param[out] count The available amount
-     */
-    virtual ErrCode INTERFACE_FUNC getAvailableSampleLeft(IDataDescriptor * desc, SizeT * count) = 0;
+    // Rename to getMaxAvailableSamples
 
     /*!
      * @brief Returns the amount of samples (whoose raw size is gained from desc) at the end of the buffer
@@ -65,6 +56,7 @@ DECLARE_OPENDAQ_INTERFACE(IPacketBuffer, IBaseObject)
      * @param[out] count The available amount
      */
     virtual ErrCode INTERFACE_FUNC getAvailableSampleRight(IDataDescriptor * desc, SizeT * count) = 0;
+    // Rename to getAvailableSampleCount
 
     /*!
      * @brief Reallocates the underlying std::vector so that it size matches the new given size

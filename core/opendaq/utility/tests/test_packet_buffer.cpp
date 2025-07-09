@@ -38,9 +38,11 @@ TEST_F(PacketBufferTest, SanityCheck)
     PacketBufferPtr buffer = PacketBuffer(builder);
     SizeT mem;
 
-    buffer->getAvailableMemory(&mem);
+    auto [desc, domain] = generate_building_blocks();
 
-    ASSERT_TRUE(mem == 800);
+    mem = buffer.getMaxAvailableContinousSampleCount(desc);
+
+    ASSERT_TRUE(mem == 80);
 }
 
 TEST_F(PacketBufferTest, makeAPacket)
@@ -85,7 +87,7 @@ TEST_F(PacketBufferTest, bufferFillUp)
     auto [desc, domain] = generate_building_blocks();
 
     SizeT check;
-    buffer->getAvailableMemory(&check);
+    check = buffer.getMaxAvailableContinousSampleCount(desc);
 
 
     SizeT mem = 10;
@@ -94,10 +96,10 @@ TEST_F(PacketBufferTest, bufferFillUp)
     DataPacketPtr middle;
     for (int i = 0; i < 8; i++) {
         buffer->createPacket(mem, desc, domain, &middle);
-        buffer->getAvailableMemory(&check);
+        check =buffer.getMaxAvailableContinousSampleCount(desc);
         destination.push_back(middle.detach());
     }
-    buffer->getAvailableMemory(&mem);
+    mem = buffer.getAvailableSampleRight(desc);
 }
 
 TEST_F(PacketBufferTest, emptyPacket)
@@ -162,9 +164,8 @@ TEST_F(PacketBufferTest, readAhead)
         mem = 20;
         buffer->createPacket(mem, desc, domain, &destination2);
     }
-    auto left = buffer.getAvailableSampleLeft(desc);
     auto right = buffer.getAvailableSampleRight(desc);
-    ASSERT_TRUE(right > left);
+    ASSERT_TRUE(right > 20);
 }
 
 TEST_F(PacketBufferTest, fullBufferRead)
@@ -269,7 +270,7 @@ TEST_F(PacketBufferTest, dynamicPacketDestruction)
     }
 
     // The buffer should be empty (left + right should be full buffer)
-    ASSERT_EQ((buffer.getAvailableSampleLeft(desc) + buffer.getAvailableSampleRight(desc)), 80);
+    ASSERT_EQ((buffer.getAvailableSampleRight(desc)), 80);
 }
 
 TEST_F(PacketBufferTest, multithreadBasicFunctionallity)
@@ -350,8 +351,28 @@ TEST_F(PacketBufferTest, fullDynamicFunctionallityWorkflow)
 
     auto [desc, domain] = generate_building_blocks();
 
+    auto check = [buffer = buffer, desc = desc, domain = domain](SizeT t, DataPacketPtr& destination)
+        {
+            destination = buffer.createPacket(t, desc, domain);
+        };
+
     std::thread t1;
     std::thread t2;
     std::thread t3;
 
+    {
+        DataPacketPtr r1;
+        t1 = std::thread(check, 20, std::ref(r1));
+        t1.join();
+    }
+    {
+        DataPacketPtr r2, r3;
+        t2 = std::thread(check, 20, std::ref(r2));
+
+        t3 = std::thread(check, 40, std::ref(r3));
+        t2.join();
+        t3.join();
+    }
+
+    ASSERT_EQ(buffer.getMaxAvailableContinousSampleCount(desc), 80);
 }

@@ -37,12 +37,9 @@ public:
     PacketBufferImpl(const PacketBufferBuilderPtr& builder);
 
     ErrCode INTERFACE_FUNC createPacket(SizeT sampleCount, IDataDescriptor* desc, IPacket* domainPacket, IDataPacket** packet) override;
-    ErrCode INTERFACE_FUNC getAvailableMemory(SizeT* count) override;
-    ErrCode INTERFACE_FUNC getAvailableSampleCount(IDataDescriptor* desc, SizeT* count) override;
     ErrCode INTERFACE_FUNC resize(SizeT sizeInBytes) override;
 
     ErrCode INTERFACE_FUNC getMaxAvailableContinousSampleCount(IDataDescriptor* desc, SizeT* count) override;
-    ErrCode INTERFACE_FUNC getAvailableSampleLeft(IDataDescriptor* desc, SizeT* count) override;
     ErrCode INTERFACE_FUNC getAvailableSampleRight(IDataDescriptor* desc, SizeT* count) override;
 
 protected:

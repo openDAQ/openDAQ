@@ -642,8 +642,15 @@ void ConfigProtocolClientComm::sendNoReplyCommand(const ClientCommand& command, 
 {
     requireMinServerVersion(command);
 
-    auto sendNoReplyCommandRpcRequestPacketBuffer = createNoReplyRpcRequestPacketBuffer(command.getName(), params);
-    sendNoReplyRequestCallback(sendNoReplyCommandRpcRequestPacketBuffer);
+    try
+    {
+        auto sendNoReplyCommandRpcRequestPacketBuffer = createNoReplyRpcRequestPacketBuffer(command.getName(), params);
+        sendNoReplyRequestCallback(sendNoReplyCommandRpcRequestPacketBuffer);
+    }
+    catch (const std::exception& e)
+    {
+        LOG_W("Cannot send no reply command {}: {}", command.getName(), e.what());
+    }
 }
 
 void ConfigProtocolClientComm::setRootDevice(const DevicePtr& rootDevice)

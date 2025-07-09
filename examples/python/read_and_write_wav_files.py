@@ -2,7 +2,7 @@ import numpy as np
 import opendaq
 import time
 
-input_file = "C:/Users/jakob/OneDrive/Desktop/example.wav"
+input_file = "path/to/file"
 
 # Create an openDAQ instace.
 instance = opendaq.Instance()

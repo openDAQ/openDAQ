@@ -10,7 +10,7 @@ using namespace daq;
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Set your wav file destination here
-    std::string filePath = "C:/Users/jakob/OneDrive/Desktop/example.wav";
+    std::string filePath = "path/to/file";
 
     // Create an Instance, loading modules at MODULE_PATH
     const InstancePtr instance = Instance(MODULE_PATH);

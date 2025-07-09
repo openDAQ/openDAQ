@@ -36,10 +36,10 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/ids_parser.cpp
     )
 
-    source_group("utility//circular_packet" FILES
-        ${SDK_HEADERS_DIR}/circular_packet.h
-        ${SDK_SRC_DIR}/circular_packet.cpp
-    )
+    #source_group("utility//circular_packet" FILES
+    #    ${SDK_HEADERS_DIR}/circular_packet.h
+    #    ${SDK_SRC_DIR}/circular_packet.cpp
+    #)
 
     source_group("utility//packet_buffer" FILES
 	#${SDK_HEADERS_DIR}/circular_packet.h
@@ -68,7 +68,7 @@ set(SRC_Cpp_Component
     #packet_buffer.cpp
     packet_buffer_impl.cpp
     packet_buffer_builder_impl.cpp
-    circular_packet.cpp
+    #circular_packet.cpp
     thread_name.cpp
     utility.natvis
     PARENT_SCOPE
@@ -78,7 +78,7 @@ set(SRC_PublicHeaders_Component
     utility_errors.h
     utility_exceptions.h
     ids_parser.h
-    circular_packet.h
+    #circular_packet.h
     packet_buffer.h
     packet_buffer_impl.h
     packet_buffer_factory.h
@@ -88,7 +88,7 @@ set(SRC_PublicHeaders_Component
     mem_pool_allocator.h
     thread_name.h
     PARENT_SCOPE
-)
+)s
 
 set(SRC_PrivateLinkLibraries_Component
     $<BUILD_INTERFACE:Boost::algorithm>

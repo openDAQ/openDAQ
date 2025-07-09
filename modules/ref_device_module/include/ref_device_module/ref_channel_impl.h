@@ -21,7 +21,6 @@
 #include <opendaq/packet_buffer_ptr.h>
 #include <opendaq/packet_buffer_builder_ptr.h>
 
-#include <opendaq/circular_packet.h>
 #include <opendaq/ids_parser.h>
 
 #include <optional>

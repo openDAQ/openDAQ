@@ -1,3 +1,11 @@
+##
+# This example showcases how the openDAQ stream reader can be used to read signal data. It
+# transforms the queue of packets that's received by an input port into a stream of data.
+# Here we read the data in three ways:
+# 1. Without timestamps, as floating point values
+# 2. Without timestamps, as integer values
+# 3. With timestamps, as integer values.
+##
 
 import sys
 sys.path.append("..")

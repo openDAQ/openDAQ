@@ -11,6 +11,9 @@ import daq_utils
 import time
 import matplotlib.pyplot as plt
 
+def close_event():
+    plt.close()
+
 if __name__ == "__main__":
     device = daq_utils.setup_simulator()
 
@@ -23,6 +26,12 @@ if __name__ == "__main__":
     # Wait 1s for data, then read up to 1000 samples
     time.sleep(1)
     samples = reader.read(1000)
+
+    # Create a timer object and close the plot after 5s
+    fig = plt.figure()
+    timer = fig.canvas.new_timer(interval=5000)
+    timer.add_callback(close_event)
+    timer.start()
 
     plt.plot(samples)
     plt.show()

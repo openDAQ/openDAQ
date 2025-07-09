@@ -127,7 +127,12 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 
     // Configure scheduler
     if (!scheduler.assigned())
-        scheduler = Scheduler(logger, builderPtr.getSchedulerWorkerNum());
+    {
+        if (builderPtr.getUsingSchedulerMainLoop())
+            scheduler = SchedulerWithMainLoop(logger, builderPtr.getSchedulerWorkerNum());
+        else
+            scheduler = Scheduler(logger, builderPtr.getSchedulerWorkerNum());
+    }
 
     // Configure moduleManager
     if (!moduleManager.assigned())

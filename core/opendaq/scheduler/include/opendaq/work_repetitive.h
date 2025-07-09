@@ -21,24 +21,22 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_scheduler_components
- * @addtogroup opendaq_work Work
+ * @addtogroup opendaq_work RepetitiveWork
  * @{
  */
 
-/*#
- * [templated(defaultAliasName: WorkPtr)]
- * [interfaceSmartPtr(IWork, GenericWorkPtr)]
- */
-
 /*!
- *  @brief A lightweight implementation of callback used in scheduler for worker tasks.
+ * @brief The interface used for repetitive work that needs to be executed in the main loop.
+ * The callback is expected to return a boolean value indicating whether the work should be repeated.
+ * If the callback does return nothing, it is assumed that the work should not be repeated.
  */
-DECLARE_OPENDAQ_INTERFACE(IWork, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IWorkRepetitive, IBaseObject)
 {
     /*!
-     * @brief Executes the callback.
+     * @brief Executes the repetitive task logic and determines whether it should be repeated.
+     * @param[out] repeatAfter Set to `true` to continue repeating the task, or `false` to stop.
      */
-    virtual ErrCode INTERFACE_FUNC execute() = 0;
+    virtual ErrCode INTERFACE_FUNC executeRepetitively(Bool* repeatAfter) = 0;
 };
 
 /*!@}*/

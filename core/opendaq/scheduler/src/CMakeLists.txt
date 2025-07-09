@@ -7,6 +7,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_Task task.h)
     rtgen(SRC_GraphVisualization graph_visualization.h)
     rtgen(SRC_Work work.h)
+    rtgen(SRC_Work_Repetitive work_repetitive.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Scheduler_PublicHeaders}
@@ -16,6 +17,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_TaskGraph_PublicHeaders}
         ${SRC_GraphVisualization_PublicHeaders}
         ${SRC_Work_PublicHeaders}
+        ${SRC_Work_Repetitive_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -27,6 +29,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_TaskGraph_PrivateHeaders}
         ${SRC_GraphVisualization_PrivateHeaders}
         ${SRC_Work_PrivateHeaders}
+        ${SRC_Work_Repetitive_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -38,6 +41,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_TaskGraph_Cpp}
         ${SRC_GraphVisualization_Cpp}
         ${SRC_Work_Cpp}
+        ${SRC_Work_Repetitive_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -71,6 +75,7 @@ function(create_component_source_groups_${BASE_NAME})
     
     source_group("scheduler//work" FILES 
         ${SDK_HEADERS_DIR}/work.h
+        ${SDK_HEADERS_DIR}/work_repetitive.h
         ${SDK_HEADERS_DIR}/work_impl.h
         ${SDK_HEADERS_DIR}/work_factory.h
     )

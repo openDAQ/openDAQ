@@ -22,6 +22,7 @@ namespace Daq.Core.Objects;
 
 
 /// <summary>Factory functions of the &apos;CoreObjects&apos; library.</summary>
+/// <remarks>All functions are <c>static</c> so that you can import them directly by using the statement <c>using static Daq.Core.Objects.CoreObjectsFactory;</c></remarks>
 public static partial class CoreObjectsFactory
 {
     /// <summary>

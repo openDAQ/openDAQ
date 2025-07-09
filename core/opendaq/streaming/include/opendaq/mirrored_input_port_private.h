@@ -16,14 +16,15 @@
 
 #pragma once
 #include <coretypes/baseobject.h>
+#include <coretypes/stringobject.h>
+#include <opendaq/streaming_to_device.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-DECLARE_OPENDAQ_INTERFACE(IMirroredInputPrivate, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IMirroredInputPortPrivate, IBaseObject)
 {
-//    ErrCode addStreamingSource(IStreaming* streaming) = 0;
-//    // ? ErrCode addStreamingSource(IStreamingToDevice* streaming) = 0;
-//    ErrCode removeStreamingSource(IString* streamingConnectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC addStreamingSource(IStreamingToDevice* streaming) = 0;
+    virtual ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

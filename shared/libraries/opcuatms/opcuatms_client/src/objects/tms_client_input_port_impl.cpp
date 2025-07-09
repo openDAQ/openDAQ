@@ -15,6 +15,7 @@ TmsClientInputPortImpl::TmsClientInputPortImpl(const ContextPtr& ctx,
                                                const opcua::OpcUaNodeId& nodeId)
     : TmsClientComponentBaseImpl(ctx, parent, localId, tmsCtx, nodeId)
 {
+    remoteInputPortId = nodeId.getIdentifier();
 }
 
 ErrCode TmsClientInputPortImpl::getRequiresSignal(Bool* value)
@@ -138,6 +139,11 @@ SignalPtr TmsClientInputPortImpl::onGetSignal()
     }
 
     return nullptr;
+}
+
+StringPtr TmsClientInputPortImpl::onGetRemoteId() const
+{
+    return String(remoteInputPortId);
 }
 
 ErrCode TmsClientInputPortImpl::getConnection(IConnection** connection)

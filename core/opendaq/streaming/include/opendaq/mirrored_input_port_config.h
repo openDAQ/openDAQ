@@ -21,16 +21,19 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
- * [interfaceSmartPtr(IInputPortConfig, GenericInputPortConfigPtr, "<opendaq/input_port_config_ptr.h>")]
+ * [interfaceSmartPtr(IInputPortConfig, GenericInputPortPtr, "<opendaq/input_port_config_ptr.h>")]
  */
 
 DECLARE_OPENDAQ_INTERFACE(IMirroredInputPortConfig, IInputPortConfig)
 {
-//    // ? ErrCode getRemoteId(IString** id) const = 0;
-//    ErrCode getStreamingSources(IList** streamingConnectionStrings) = 0;
-//    ErrCode setActiveStreamingSource(IString* streamingConnectionString) = 0;
-//    ErrCode getActiveStreamingSource(IString** streamingConnectionString) = 0;
-//    ErrCode deactivateStreaming() = 0;
+    virtual ErrCode INTERFACE_FUNC getRemoteId(IString** id) const = 0;
+
+    // [elementType(streamingConnectionStrings, IString)]
+    virtual ErrCode INTERFACE_FUNC getStreamingSources(IList** streamingConnectionStrings) = 0;
+
+    virtual ErrCode INTERFACE_FUNC setActiveStreamingSource(IString* streamingConnectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC getActiveStreamingSource(IString** streamingConnectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC deactivateStreaming() = 0;
 };
 
 END_NAMESPACE_OPENDAQ

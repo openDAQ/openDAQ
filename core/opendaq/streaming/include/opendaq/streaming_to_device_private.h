@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coretypes/baseobject.h>
+#include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -26,6 +27,8 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingToDevicePrivate, IBaseObject)
 
 //    ErrCode subscribeConnectedSignal(ISignal* signal, IMirroredInputPortConfig* port) = 0;
 //    ErrCode unsubscribeConnectedSignal(ISignal* signal, IMirroredInputPortConfig* port) = 0;
+
+    virtual ErrCode INTERFACE_FUNC detachRemovedInputPort(IString* signalRemoteId) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

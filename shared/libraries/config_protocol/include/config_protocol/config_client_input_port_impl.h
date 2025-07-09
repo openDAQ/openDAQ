@@ -16,7 +16,7 @@
 
 #pragma once
 #include <config_protocol/config_client_component_impl.h>
-#include <opendaq/input_port_impl.h>
+#include <opendaq/mirrored_input_port_impl.h>
 #include <config_protocol/config_client_connection_impl.h>
 #include <config_protocol/config_client_input_port.h>
 #include <opendaq/errors.h>
@@ -24,10 +24,10 @@
 namespace daq::config_protocol
 {
 
-class ConfigClientInputPortImpl : public ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject, IConfigClientInputPort>>
+class ConfigClientInputPortImpl : public ConfigClientComponentBaseImpl<MirroredInputPortBase<IConfigClientObject, IConfigClientInputPort>>
 {
 public:
-    using Super = ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject, IConfigClientInputPort>>;
+    using Super = ConfigClientComponentBaseImpl<MirroredInputPortBase<IConfigClientObject, IConfigClientInputPort>>;
 
     ConfigClientInputPortImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                               const std::string& remoteGlobalId,
@@ -45,6 +45,8 @@ public:
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+    StringPtr onGetRemoteId() const override; // fixme - protected
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
@@ -64,7 +66,7 @@ inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocol
                                                             const ComponentPtr& parent,
                                                             const StringPtr& localId,
                                                             const StringPtr&)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, false)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
 {
 }
 
@@ -245,6 +247,11 @@ inline ConnectionPtr ConfigClientInputPortImpl::createConnection(const SignalPtr
 {
     const auto connection = createWithImplementation<IConnection, ConfigClientConnectionImpl>(this->template thisPtr<InputPortPtr>(), signal, this->context);
     return connection;
+}
+
+inline StringPtr ConfigClientInputPortImpl::onGetRemoteId() const
+{
+    return String(remoteGlobalId).detach();
 }
 
 inline bool ConfigClientInputPortImpl::isSignalFromTheSameComponentTree(const SignalPtr& signal)

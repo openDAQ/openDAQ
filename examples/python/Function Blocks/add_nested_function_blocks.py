@@ -1,3 +1,13 @@
+##
+# Function blocks are components that allow can process, generate, or consume signal data. They are bundled in
+# openDAQ modules (plugins) where each module can give users access to 0 or more function blocks.
+#
+# A function block can have the following child component types: Input Ports, Signals, Function Blocks.
+# A function block that's a child of another is called a "nested function block". These can be added/removed
+# in a manner similar to how this would be done with devices. This example showcases how a trigger function
+# block is added and removed from the statistics function block.
+##
+
 import opendaq as daq
 import sys
 sys.path.append("..")

@@ -1,3 +1,10 @@
+##
+# Function blocks are components that allow can process, generate, or consume signal data. They are bundled in
+# openDAQ modules (plugins) where each module can give users access to 0 or more function blocks.
+#
+# This example prints what function blocks are available within the loaded modules and adds all of them.
+##
+
 import opendaq as daq
 import sys
 sys.path.append("..")

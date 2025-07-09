@@ -1,3 +1,15 @@
+##
+# To use an added function block, users must configure it to match their desired use case. Generally,
+# this entails:
+#  - Adding any nested FBs when applicable
+#  - Connecting signals to the FBs input ports
+#  - Connecting the FBs output signals to other input ports (or readers)
+#  - Modifying the function block's properties
+#
+# This example uses the reference function blocks Renderer and Scaling to showcase how signals are
+# connected and properties of function blocks modified.
+##
+
 # TODO: use `ip.requiresSignal` and `ip.accepts_signal`
 
 import opendaq as daq

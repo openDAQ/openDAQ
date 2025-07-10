@@ -25,6 +25,9 @@ BEGIN_NAMESPACE_OPENDAQ
 * @addtogroup opendaq_packet_buffer_factories Factories
 */
 
+/*!
+ * @brief Wrapper pointer for PacketBuffer
+ */
 inline PacketBufferPtr PacketBuffer(const PacketBufferBuilderPtr& builder)
 {
     return PacketBufferPtr(PacketBuffer_Create(builder));

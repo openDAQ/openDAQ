@@ -152,7 +152,7 @@ TEST_F(SignalGeneratorTest, ChangeFunction)
     ASSERT_TRUE(compareSamples(expectedSamples2.data(), packet2.getData(), packetSize));
 }
 
-TEST_F(SignalGeneratorTest, SignalGeneratorBufferCHeck)
+TEST_F(SignalGeneratorTest, SignalGeneratorCountCheck)
 {
     const size_t packetSize= 100;
     auto expectedSamples1 = calculateExpectedSamples(0, packetSize, stepFunction10);

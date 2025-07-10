@@ -14,7 +14,7 @@ using namespace daq;
 
 using PacketBufferTest = testing::Test;
 
-std::tuple<daq::DataDescriptorPtr, daq::DataPacketPtr> generate_building_blocks()
+std::tuple<daq::DataDescriptorPtr, daq::DataPacketPtr> generateBuildingBlocks()
 {
     auto dimensions = daq::List<daq::IDimension>();
     dimensions.pushBack(daq::Dimension(daq::LinearDimensionRule(10, 10, 10)));
@@ -34,23 +34,23 @@ std::tuple<daq::DataDescriptorPtr, daq::DataPacketPtr> generate_building_blocks(
 TEST_F(PacketBufferTest, SanityCheck)
 {
     PacketBufferBuilderPtr builder = PacketBufferBuilder();
-    builder->setSizeInBytes(800);
+    builder.setSizeInBytes(800);
     PacketBufferPtr buffer = PacketBuffer(builder);
     SizeT mem;
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     mem = buffer.getMaxAvailableContinousSampleCount(desc);
 
     ASSERT_TRUE(mem == 80);
 }
 
-TEST_F(PacketBufferTest, makeAPacket)
+TEST_F(PacketBufferTest, MakeAPacket)
 {
     auto builder = PacketBufferBuilder();
     auto buffer = PacketBuffer(builder);
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
     
     SizeT mem = 10;
 
@@ -61,30 +61,30 @@ TEST_F(PacketBufferTest, makeAPacket)
     ASSERT_TRUE(OPENDAQ_SUCCEEDED(errCode));
 }
 
-TEST_F(PacketBufferTest, fullRange)
+TEST_F(PacketBufferTest, FullRange)
 {
     auto builder = PacketBufferBuilder();
-    builder->setSizeInBytes(1000);
+    builder.setSizeInBytes(1000);
     auto buffer = PacketBuffer(builder);
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     SizeT mem = 80;
 
     DataPacketPtr destination[2];
 
-    buffer->createPacket(mem, desc, domain, &destination[0]);
+    destination[0] = buffer.createPacket(mem, desc, domain);
 
-    ASSERT_EQ(buffer->createPacket(100000, desc, domain, &destination[1]), 0);
+    ASSERT_NO_THROW(destination[1] = buffer.createPacket(100000, desc, domain));
 }
 
-TEST_F(PacketBufferTest, bufferFillUp)
+TEST_F(PacketBufferTest, BufferFillUp)
 {
     auto builder = PacketBufferBuilder();
-    builder->setSizeInBytes(800);
+    builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     SizeT check = 0;
 
@@ -96,7 +96,7 @@ TEST_F(PacketBufferTest, bufferFillUp)
     std::vector<DataPacketPtr> destination;
     DataPacketPtr middle;
     for (int i = 0; i < 8; i++) {
-        buffer->createPacket(mem, desc, domain, &middle);
+        middle = buffer.createPacket(mem, desc, domain);
         check = buffer.getMaxAvailableContinousSampleCount(desc);
         destination.push_back(middle.detach());
     }
@@ -105,79 +105,79 @@ TEST_F(PacketBufferTest, bufferFillUp)
     ASSERT_EQ(check, mem);
 }
 
-TEST_F(PacketBufferTest, emptyPacket)
+TEST_F(PacketBufferTest, EmptyPacket)
 {
     auto builder = PacketBufferBuilder();
     builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     SizeT mem = 0;
 
     DataPacketPtr destination;
 
-    ASSERT_EQ(buffer->createPacket(mem, desc, domain, &destination), 0);
+    ASSERT_NO_THROW(destination = buffer.createPacket(mem, desc, domain));
 }
 
-TEST_F(PacketBufferTest, writeAhead)
+TEST_F(PacketBufferTest, WriteAhead)
 {
     auto builder = PacketBufferBuilder();
     builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     SizeT mem = 20;
 
     {
         DataPacketPtr destination;
-        buffer->createPacket(mem, desc, domain, &destination);
+        destination = buffer.createPacket(mem, desc, domain);
     }
     DataPacketPtr destination, destination2;
 
     mem = 70;
-    buffer->createPacket(mem, desc, domain, &destination);
+    destination = buffer.createPacket(mem, desc, domain);
 
     mem = 20;
-    ASSERT_EQ(buffer->createPacket(mem, desc, domain, &destination2), 0);
+    ASSERT_NO_THROW(destination2 = buffer.createPacket(mem, desc, domain));
 }
 
-TEST_F(PacketBufferTest, readAhead)
+TEST_F(PacketBufferTest, ReadAhead)
 {
     auto builder = PacketBufferBuilder();
     builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     SizeT mem = 20;
 
     {
         DataPacketPtr destination;
-        buffer->createPacket(mem, desc, domain, &destination);
+        destination = buffer.createPacket(mem, desc, domain);
     }
 
     {
         DataPacketPtr destination, destination2;
 
         mem = 50;
-        buffer->createPacket(mem, desc, domain, &destination);
+        destination = buffer.createPacket(mem, desc, domain);
 
         mem = 20;
-        buffer->createPacket(mem, desc, domain, &destination2);
+        destination2 = buffer.createPacket(mem, desc, domain);
     }
     auto right = buffer.getAvailableSampleCount(desc);
     ASSERT_TRUE(right > 20);
 }
 
-TEST_F(PacketBufferTest, fullBufferRead)
+TEST_F(PacketBufferTest, FullBufferRead)
 {
     auto builder = PacketBufferBuilder();
     builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     SizeT mem = 20;
 
@@ -193,7 +193,7 @@ TEST_F(PacketBufferTest, fullBufferRead)
     ASSERT_EQ(buffer.getAvailableSampleCount(desc), 80);
 }
 
-TEST_F(PacketBufferTest, linearRuleFail)
+TEST_F(PacketBufferTest, LinearRuleFail)
 {
     auto builder = PacketBufferBuilder();
     builder.setSizeInBytes(800);
@@ -217,17 +217,17 @@ TEST_F(PacketBufferTest, linearRuleFail)
     DataPacketPtr destination;
 
     // Somewhat of a magic number here
-    ASSERT_EQ(buffer->createPacket(mem, descriptor, domain, &destination), 2147483649);
+    ASSERT_ANY_THROW(destination = buffer.createPacket(mem, descriptor, domain));
     // The important thing in this return is that it need to be different to 0
 }
 
-TEST_F(PacketBufferTest, dynamicPacketDestruction)
+TEST_F(PacketBufferTest, DynamicPacketDestruction)
 {
     auto builder = PacketBufferBuilder();
     builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     SizeT mem = 10;
 
@@ -276,13 +276,13 @@ TEST_F(PacketBufferTest, dynamicPacketDestruction)
     ASSERT_EQ((buffer.getAvailableSampleCount(desc)), 80);
 }
 
-TEST_F(PacketBufferTest, multithreadBasicFunctionallity)
+TEST_F(PacketBufferTest, MultithreadBasicFunctionallity)
 {
     auto builder = PacketBufferBuilder();
     builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     auto check = [buffer = buffer, desc = desc, domain = domain](SizeT t, DataPacketPtr& destination)
         {
@@ -307,13 +307,13 @@ TEST_F(PacketBufferTest, multithreadBasicFunctionallity)
     ASSERT_EQ(out, 10);
 }
 
-TEST_F(PacketBufferTest, resetTest)
+TEST_F(PacketBufferTest, ResetTest)
 {
     auto builder = PacketBufferBuilder();
     builder.setSizeInBytes(800);
     auto buffer = PacketBuffer(builder);
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     auto check = [buffer = buffer, desc = desc, domain = domain](SizeT t, DataPacketPtr& destination)
     {
@@ -346,13 +346,13 @@ TEST_F(PacketBufferTest, resetTest)
     ASSERT_EQ(buffer.getAvailableSampleCount(desc), 100);
 }
 
-TEST_F(PacketBufferTest, fullDynamicFunctionallityWorkflow)
+TEST_F(PacketBufferTest, FullDynamicFunctionallityWorkflow)
 {
     auto builder = PacketBufferBuilder();
     builder.setSizeInBytes(800);
     auto buffer = builder.build();
 
-    auto [desc, domain] = generate_building_blocks();
+    auto [desc, domain] = generateBuildingBlocks();
 
     auto check = [buffer = buffer, desc = desc, domain = domain](SizeT t, DataPacketPtr& destination)
         {

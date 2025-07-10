@@ -30,7 +30,6 @@ public:
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC setContext(IContext* context) override;
 
-    // Also change variable name in impl
     ErrCode INTERFACE_FUNC getSizeInBytes(SizeT* sizeInBytes) override;
     ErrCode INTERFACE_FUNC setSizeInBytes(SizeT sizeInBytes) override;
 

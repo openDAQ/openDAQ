@@ -26,7 +26,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief 
+ * @brief Wrapper pointer for PacketBufferBuilder
  */
 inline PacketBufferBuilderPtr PacketBufferBuilder()
 {

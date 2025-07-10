@@ -138,24 +138,22 @@ ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc,
 
     std::lock_guard<std::mutex> lock(readWriteMutex);
     if (underReset)
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Trying to create packets while the reset procedure is underway.");
-    }
 
     size_t rawSampleSize;
     err = desc->getRawSampleSize(&rawSampleSize);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    void* startOfSpace = nullptr;
+    void* startMemPos = nullptr;
 
-    this->Write(sampleCount * rawSampleSize, &startOfSpace);
+    this->Write(sampleCount * rawSampleSize, &startMemPos);
     DeleterPtr deleter;
 
-    deleter = daq::Deleter([this, sampleCnt = (sampleCount * rawSampleSize), startMemPos = startOfSpace](void*) mutable
+    deleter = daq::Deleter([this, sampleCnt = (sampleCount * rawSampleSize), startMemPos = startMemPos](void*) mutable
                            {
                                 Read(startMemPos, sampleCnt);
                             });
-    *packet = daq::DataPacketWithExternalMemory(domainPacket, desc, sampleCount, startOfSpace, deleter).detach();
+    *packet = daq::DataPacketWithExternalMemory(domainPacket, desc, sampleCount, startMemPos, deleter).detach();
 
     return OPENDAQ_SUCCESS;
 }

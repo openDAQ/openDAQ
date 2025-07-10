@@ -49,8 +49,7 @@ void SignalGenerator::generatePacket(uint64_t startTick, size_t sampleCount)
     auto dataDescriptor = signal.getDescriptor();
     auto domainDescriptor = signal.getDomainSignal().getDescriptor();
     auto domainPacket = DataPacket(domainDescriptor, sampleCount, (Int) packetOffset);
-    daq::DataPacketPtr dataPacket;
-    dataPacket = DataPacketWithDomain(domainPacket, dataDescriptor, sampleCount);
+    daq::DataPacketPtr dataPacket = DataPacketWithDomain(domainPacket, dataDescriptor, sampleCount);
 
 
     uint8_t* currentSample = (uint8_t*) dataPacket.getRawData();

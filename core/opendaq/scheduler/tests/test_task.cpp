@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <opendaq/task_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/logger_factory.h>
@@ -39,7 +39,7 @@ TEST_F(TaskTest, NameSubTask)
 TEST_F(TaskTest, RootTaskThenSelf)
 {
     auto root = TaskGraph(testTask, "Root");
-    ASSERT_EQ(root->then(root.getObject()), OPENDAQ_ERR_NOT_SUPPORTED);
+    ASSERT_ERROR_CODE_EQ(root->then(root.getObject()), OPENDAQ_ERR_NOT_SUPPORTED);
 }
 
 TEST_F(TaskTest, RootTaskThenRootTask)
@@ -47,7 +47,7 @@ TEST_F(TaskTest, RootTaskThenRootTask)
     auto root1 = TaskGraph(testTask, "1");
     auto root2 = TaskGraph(testTask, "2");
 
-    ASSERT_EQ(root1->then(root2.getObject()), OPENDAQ_ERR_NOT_SUPPORTED);
+    ASSERT_ERROR_CODE_EQ(root1->then(root2.getObject()), OPENDAQ_ERR_NOT_SUPPORTED);
 }
 
 TEST_F(TaskTest, CircularReference)

@@ -84,18 +84,12 @@ public:
     
     TypeManagerPtr& operator=(const TypeManagerPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         ObjectPtr::operator =(other);
         return *this;
     }
 
     TypeManagerPtr& operator=(TypeManagerPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-            return *this;
-
         ObjectPtr::operator =(std::move(other));
         return *this;
     }

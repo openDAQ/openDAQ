@@ -79,11 +79,7 @@ inline ErrCode deserializeMember(ISerializedObject* serialized,
         static_assert(DependentFalse<ParamType>::value, "Not implemented for this type.");
     }
 
-    if (errCode != OPENDAQ_ERR_NOTFOUND && OPENDAQ_FAILED(errCode))
-    {
-        return DAQ_MAKE_ERROR_INFO(errCode);
-    }
-
+    OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
     if (errCode != OPENDAQ_ERR_NOTFOUND)
     {
         return (info->*functor)(CastType(memberValue));
@@ -123,7 +119,7 @@ inline ErrCode serializeMember(ISerializer* serializer, const char* name, const 
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+            return DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_NOT_SERIALIZABLE);
         }
 
         OPENDAQ_RETURN_IF_FAILED(errCode);

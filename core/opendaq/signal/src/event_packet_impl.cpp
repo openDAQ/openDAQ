@@ -42,28 +42,29 @@ ErrCode EventPacketImpl::equals(IBaseObject* other, Bool* equals) const
     if (other == nullptr)
         return OPENDAQ_SUCCESS;
 
-    return daqTry(
-        [this, &other, &equals]()
-        {
-            const ErrCode errCode = Super::equals(other, equals);
-            checkErrorInfo(errCode);
+    const ErrCode errCode = daqTry([this, &other, &equals]()
+    {
+        const ErrCode errCode = Super::equals(other, equals);
+        checkErrorInfo(errCode);
 
-            if (!(*equals))
-                return errCode;
-
-            *equals = false;
-            const EventPacketPtr packetOther = BaseObjectPtr::Borrow(other).asPtrOrNull<IEventPacket>();
-            if (packetOther == nullptr)
-                return errCode;
-
-            if (!BaseObjectPtr::Equals(this->eventId, packetOther.getEventId()))
-                return errCode;
-            if (!BaseObjectPtr::Equals(this->parameters, packetOther.getParameters()))
-                return errCode;
-
-            *equals = true;
+        if (!(*equals))
             return errCode;
-        });
+
+        *equals = false;
+        const EventPacketPtr packetOther = BaseObjectPtr::Borrow(other).asPtrOrNull<IEventPacket>();
+        if (packetOther == nullptr)
+            return errCode;
+
+        if (!BaseObjectPtr::Equals(this->eventId, packetOther.getEventId()))
+            return errCode;
+        if (!BaseObjectPtr::Equals(this->parameters, packetOther.getParameters()))
+            return errCode;
+
+        *equals = true;
+        return errCode;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode EventPacketImpl::serialize(ISerializer* serializer)

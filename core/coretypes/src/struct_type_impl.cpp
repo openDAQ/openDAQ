@@ -121,7 +121,7 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
     ErrCode errCode = this->names->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+        return DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_NOT_SERIALIZABLE);
 
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
@@ -135,7 +135,7 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
         errCode = this->defaultValues->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+            return DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_NOT_SERIALIZABLE);
 
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
@@ -148,7 +148,7 @@ ErrCode StructTypeImpl::serialize(ISerializer* serializer)
     errCode = this->types->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
 
     if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+        return DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_NOT_SERIALIZABLE);
 
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
@@ -193,7 +193,7 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     errCode = ser->readObject("names"_daq, context, factoryCallback, &names);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    try
+    errCode = daqTry([&]()
     {
         StructTypePtr structType;
         if (defaultValues.assigned())
@@ -212,17 +212,10 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
             OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_RESERVED_TYPE_NAME);
         }
         *obj = structType.detach();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
-
-    return OPENDAQ_SUCCESS;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to deserialize StructType.");
+    return errCode;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, StructType, IString*, name, IList*, fieldNames, IList*, defaultValues, IList*, fieldTypes)

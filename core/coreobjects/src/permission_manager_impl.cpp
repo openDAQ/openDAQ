@@ -5,7 +5,6 @@
 #include <coretypes/validation.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_manager_factory.h>
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ
 

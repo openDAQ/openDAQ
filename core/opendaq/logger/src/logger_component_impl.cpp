@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <utility>
+#include <algorithm>
 
 #include <spdlog/async.h>
 #include <spdlog/spdlog.h>

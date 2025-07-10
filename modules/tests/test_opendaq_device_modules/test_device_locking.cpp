@@ -31,7 +31,7 @@ public:
 
         auto instance = InstanceCustom(context, "clientInstance");
         instance.addDevice("daqmock://phys_device");
-        instance.addStandardServers();
+        instance.addServer("OpenDAQNativeStreaming", nullptr);
 
         return instance;
     }

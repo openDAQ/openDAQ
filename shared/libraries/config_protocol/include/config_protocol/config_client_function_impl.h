@@ -54,14 +54,16 @@ inline ErrCode ConfigClientFunctionImpl::call(IBaseObject* args, IBaseObject** r
 {
     OPENDAQ_PARAM_NOT_NULL(result);
 
-    return daqTry([this, &args, &result]
-        {
-            auto propName = name.toStdString();
-            if (path.assigned() && path != "")
-                propName = path.toStdString() + "." + propName;
+    const ErrCode errCode = daqTry([this, &args, &result]
+    {
+        auto propName = name.toStdString();
+        if (path.assigned() && path != "")
+            propName = path.toStdString() + "." + propName;
 
-            *result = clientComm->callProperty(globalId, propName, args).detach();
-        });
+        *result = clientComm->callProperty(globalId, propName, args).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode ConfigClientFunctionImpl::getCoreType(CoreType* coreType)

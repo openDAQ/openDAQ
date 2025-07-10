@@ -14,7 +14,7 @@ ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
 
 ErrCode ComponentTypeBuilderImpl::build(IComponentType** componentType)
 {
-    return daqTry([&componentType, this]
+    const ErrCode errCode = daqTry([&componentType, this]
     {
         const auto builderPtr = this->borrowPtr<ComponentTypeBuilderPtr>();
         switch (sort)
@@ -37,6 +37,8 @@ ErrCode ComponentTypeBuilderImpl::build(IComponentType** componentType)
 
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ComponentTypeBuilderImpl::setId(IString* id)

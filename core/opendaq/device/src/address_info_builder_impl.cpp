@@ -18,7 +18,6 @@ ErrCode AddressInfoBuilderImpl::build(IAddressInfo** address)
     return daqTry([&]()
     {
         *address = createWithImplementation<IAddressInfo, AddressInfoImpl>(builderPtr).detach();
-        return OPENDAQ_SUCCESS;
     });
 }
 

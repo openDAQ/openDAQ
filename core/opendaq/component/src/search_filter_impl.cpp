@@ -21,11 +21,13 @@ ErrCode VisibleSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    return daqTry(
-        [&]{
-            const auto& componentPtr = ComponentPtr::Borrow(obj);
-            *accepts = componentPtr.getVisible();
-        });
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto& componentPtr = ComponentPtr::Borrow(obj);
+        *accepts = componentPtr.getVisible();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode VisibleSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
@@ -34,11 +36,13 @@ ErrCode VisibleSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    return daqTry(
-        [&]{
-            const auto& componentPtr = ComponentPtr::Borrow(obj);
-            *visit = componentPtr.getVisible();
-        });
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto& componentPtr = ComponentPtr::Borrow(obj);
+        *visit = componentPtr.getVisible();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 RequiredTagsSearchFilterImpl::RequiredTagsSearchFilterImpl(const ListPtr<IString>& requiredTags)
@@ -53,22 +57,24 @@ ErrCode RequiredTagsSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* acce
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    return daqTry(
-        [&]{
-            const auto& componentPtr = ComponentPtr::Borrow(obj);
-            TagsPtr tags = componentPtr.getTags();
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto& componentPtr = ComponentPtr::Borrow(obj);
+        TagsPtr tags = componentPtr.getTags();
 
-            *accepts = true;
-            for (const auto& requiredTag : requiredTags)
+        *accepts = true;
+        for (const auto& requiredTag : requiredTags)
+        {
+            if (!tags.contains(requiredTag))
             {
-                if (!tags.contains(requiredTag))
-                {
-                    *accepts = false;
-                    break;
-                }
+                *accepts = false;
+                break;
             }
-            return OPENDAQ_SUCCESS;
-        });
+        }
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode RequiredTagsSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
@@ -93,22 +99,24 @@ ErrCode ExcludedTagsSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* acce
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    return daqTry(
-        [&]{
-            const auto& componentPtr = ComponentPtr::Borrow(obj);
-            TagsPtr tags = componentPtr.getTags();
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto& componentPtr = ComponentPtr::Borrow(obj);
+        TagsPtr tags = componentPtr.getTags();
 
-            *accepts = true;
-            for (const auto& tag : tags.getList())
+        *accepts = true;
+        for (const auto& tag : tags.getList())
+        {
+            if (excludedTags.count(tag))
             {
-                if (excludedTags.count(tag))
-                {
-                    *accepts = false;
-                    break;
-                }
+                *accepts = false;
+                break;
             }
-            return OPENDAQ_SUCCESS;
-        });
+        }
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ExcludedTagsSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
@@ -132,15 +140,17 @@ ErrCode InterfaceIdSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* accep
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    return daqTry(
-        [&]{
-            const auto& componentPtr = ComponentPtr::Borrow(obj);
-            *accepts = true;
-            if (!componentPtr.supportsInterface(intfId))
-                *accepts = false;
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto& componentPtr = ComponentPtr::Borrow(obj);
+        *accepts = true;
+        if (!componentPtr.supportsInterface(intfId))
+            *accepts = false;
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode InterfaceIdSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
@@ -164,13 +174,15 @@ ErrCode LocalIdSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    return daqTry(
-        [&]{
-            const auto& componentPtr = ComponentPtr::Borrow(obj);
-            *accepts = componentPtr.getLocalId() == localId ? True : False;
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto& componentPtr = ComponentPtr::Borrow(obj);
+        *accepts = componentPtr.getLocalId() == localId ? True : False;
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode LocalIdSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)

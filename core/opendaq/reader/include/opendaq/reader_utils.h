@@ -157,24 +157,6 @@ namespace reader
         return static_cast<int64_t>(sampleRate);
     }
 
-    inline std::string getErrorMessage()
-    {
-        std::string errorMessage;
-
-        ErrorInfoPtr errorInfo;
-        daqGetErrorInfo(&errorInfo);
-        if (errorInfo.assigned())
-        {
-            StringPtr message;
-            errorInfo->getMessage(&message);
-
-            if (message.assigned())
-                errorMessage = message.toStdString();
-        }
-
-        return errorMessage;
-    }
-
     inline int setEnvironmentVariable(const std::string& variable)
     {
 #if defined(_MSC_VER)

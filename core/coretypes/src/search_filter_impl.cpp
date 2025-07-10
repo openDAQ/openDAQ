@@ -100,13 +100,14 @@ ErrCode CustomSearchFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
     OPENDAQ_PARAM_NOT_NULL(accepts);
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&]()
-        {
-            auto objPtr = BaseObjectPtr::Borrow(obj);
-            *accepts = acceptsFunc(objPtr);
-            return OPENDAQ_SUCCESS;
-        });
+    const ErrCode errCode = daqTry([&]()
+    {
+        auto objPtr = BaseObjectPtr::Borrow(obj);
+        *accepts = acceptsFunc(objPtr);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode CustomSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
@@ -120,13 +121,14 @@ ErrCode CustomSearchFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
         return OPENDAQ_SUCCESS;
     }
 
-    return daqTry(
-        [&]()
-        {
-            auto objPtr = BaseObjectPtr::Borrow(obj);
-            *visit = visitFunc(objPtr);
-            return OPENDAQ_SUCCESS;
-        });
+    const ErrCode errCode = daqTry([&]()
+    {
+        auto objPtr = BaseObjectPtr::Borrow(obj);
+        *visit = visitFunc(objPtr);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 RecursiveSearchFilterImpl::RecursiveSearchFilterImpl(const SearchFilterPtr& filter)

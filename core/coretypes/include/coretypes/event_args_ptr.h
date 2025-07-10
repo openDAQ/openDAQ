@@ -69,20 +69,12 @@ public:
 
     EventArgsPtr& operator=(const EventArgsPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         ObjectPtr<Interface>::operator=(other);
         return *this;
     }
 
     EventArgsPtr& operator=(EventArgsPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
         ObjectPtr<Interface>::operator=(std::move(other));
         return *this;
     }

@@ -30,7 +30,6 @@ ErrCode MultiReaderBuilderImpl::build(IMultiReader** multiReader)
     return daqTry([&]()
     {
         *multiReader = MultiReaderFromBuilder(builderPtr).detach();
-        return OPENDAQ_SUCCESS;
     });
 }
 

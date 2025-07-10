@@ -206,6 +206,7 @@ bool OpcUaServer::isUsernameIdentityTokenValid(const UA_UserNameIdentityToken* t
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         authenticationProvider.authenticate(username, password);
     }
     catch (const DaqException&)

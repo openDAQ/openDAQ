@@ -1,3 +1,15 @@
+##
+# Example that creates mock signals with a predetermined packet sequence and uses the openDAQ multi reader
+# to read the signal data.
+#
+# The multi reader aligns the data of multiple signals, allowing users to read multiple signals without
+# having to manually align samples.
+#
+# NOTE: This example is a synthetic representation of how packets that are compatible with the multi reader
+# are created and later read. A description of the multi reader behaviour can be found in the following
+# article: https://opendaq.github.io/opendaq/dev/explanations/multireader_spec.html
+##
+
 import opendaq as daq
 import numpy as np
 

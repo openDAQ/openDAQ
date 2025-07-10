@@ -4,6 +4,30 @@
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
+WAVReaderFbImpl::WAVReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+    : FunctionBlock(CreateType(), ctx, parent, localId)
+    , filePath("")
+    , decoderInitialized(false)
+    , reading(false)
+    , framesAvailable(false)
+    , logger(ctx.getLogger())
+    , loggerComponent(this->logger.assigned() ? this->logger.getOrAddComponent("AudioDeviceModule")
+                                              : throw ArgumentNullException("Logger must not be null"))
+{
+    timeSignal = createAndAddSignal("Time", nullptr, false);
+    outputSignal = createAndAddSignal("Audio");
+    outputSignal.setDomainSignal(timeSignal);
+
+    initComponentStatus();
+    initProperties();
+    setComponentStatusWithMessage(ComponentStatus::Warning, "No file path!");
+}
+
+WAVReaderFbImpl::~WAVReaderFbImpl()
+{
+    uninitializeDecoder();
+}
+
 void WAVReaderFbImpl::miniaudioDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
     auto this_ = static_cast<WAVReaderFbImpl*>(pDevice->pUserData);
@@ -49,30 +73,6 @@ void WAVReaderFbImpl::sendPacket(DataPacketPtr packet)
     outputSignal.sendPacket(packet);
 }
 
-WAVReaderFbImpl::WAVReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
-    , filePath("")
-    , decoderInitialized(false)
-    , reading(false)
-    , framesAvailable(false)
-    , logger(ctx.getLogger())
-    , loggerComponent(this->logger.assigned() ? this->logger.getOrAddComponent("AudioDeviceModule")
-                                              : throw ArgumentNullException("Logger must not be null"))
-{
-    timeSignal = createAndAddSignal("Time", nullptr, false);
-    outputSignal = createAndAddSignal("Audio");
-    outputSignal.setDomainSignal(timeSignal);
-
-    initComponentStatus();
-    initProperties();
-    setComponentStatusWithMessage(ComponentStatus::Warning, "No file path!");
-}
-
-WAVReaderFbImpl::~WAVReaderFbImpl()
-{
-    uninitializeDecoder();
-}
-
 FunctionBlockTypePtr WAVReaderFbImpl::CreateType()
 {
     return FunctionBlockType(
@@ -110,7 +110,6 @@ bool WAVReaderFbImpl::initializeDecoder()
     samplesCaptured = 0;
     framesAvailable = true;
     objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("EOF", false);
-    setComponentStatusWithMessage(ComponentStatus::Ok, "File ready.");
 
     decoderInitialized = true;
 
@@ -244,16 +243,18 @@ void WAVReaderFbImpl::initProperties()
             if (!updateFilePath(path))
             {
                 setComponentStatusWithMessage(ComponentStatus::Warning, "Invalid file path!");
+                return;
             }
             if (!reinitializeDecoder())
             {
-                args.setValue("");
+                return;
             }
             if (!initializeSignal())
             {
-                args.setValue("");
                 uninitializeDecoder();
+                return;
             }
+            setComponentStatusWithMessage(ComponentStatus::Ok, "File ready.");
         };
 
     objPtr.addProperty(BoolProperty("Reading", false));
@@ -269,7 +270,6 @@ void WAVReaderFbImpl::initProperties()
                 if (!decoderReady())
                 {
                     args.setValue(false);
-                    setComponentStatusWithMessage(ComponentStatus::Warning, "Cannot set Reading to true, no valid file!");
                     return;
                 }
             }

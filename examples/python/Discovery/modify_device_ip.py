@@ -1,3 +1,12 @@
+##
+# openDAQ devices can allow users to configure their network settings by submitting a mDNS query for the specific
+# targeting a specific device. Not all openDAQ devices support this feature - it must be enabled by the vendor.
+#
+# The openDAQ simulator image provides a device that enables network configuration. The ".ova" image can be found
+# on the Downloads page and can be used to create a virtual machine using VirtualBox. A running simulator is required
+# to run this example.
+##
+
 import sys
 import opendaq
 import time

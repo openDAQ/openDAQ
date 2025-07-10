@@ -1,3 +1,11 @@
+if(MSVC)
+    remove_definitions(-D_UNICODE -DUNICODE)
+    include_directories($<TARGET_PROPERTY:Boost::multiprecision,INTERFACE_INCLUDE_DIRECTORIES>)
+    include_directories($<TARGET_PROPERTY:Boost::predef,INTERFACE_INCLUDE_DIRECTORIES>)
+    include_directories($<TARGET_PROPERTY:Boost::scope_exit,INTERFACE_INCLUDE_DIRECTORIES>)
+    include_directories($<TARGET_PROPERTY:Boost::typeof,INTERFACE_INCLUDE_DIRECTORIES>)
+endif()
+
 set(ARROW_MIMALLOC OFF CACHE BOOL "")
 set(ARROW_WITH_RE2 OFF CACHE BOOL "")
 set(ARROW_WITH_UTF8PROC OFF CACHE BOOL "")

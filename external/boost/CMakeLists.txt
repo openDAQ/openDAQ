@@ -46,7 +46,17 @@ if (NOT BOOST_INCLUDE_LIBRARIES)
                          uuid
                          locale
                          align
+
     )
+
+    if(MSVC)
+        list(APPEND NEEDED_LIBRARIES
+                         multiprecision
+                         predef
+                         scope_exit
+                         typeof
+        )
+    endif()
 
     set(BOOST_INCLUDE_LIBRARIES "${NEEDED_LIBRARIES}"
         CACHE STRING
@@ -105,12 +115,22 @@ if (Boost_FETCHED)
         mp11
     )
 
+    if(MSVC)
+        list(APPEND boost_libs
+                multiprecision
+                predef
+                scope_exit
+                typeof
+        
+        )
+    endif()
+
     add_library(daq::boost_headers INTERFACE IMPORTED GLOBAL)
 
     foreach(boost_lib ${boost_libs})
         if (TARGET Boost::${boost_lib})
-            message("Adding Boost::${boost_lib} include directories")
             get_target_property(include_dirs Boost::${boost_lib} INTERFACE_INCLUDE_DIRECTORIES)
+            message(STATUS "Adding Boost::${boost_lib} include directories: ${include_dirs}")
             target_include_directories(daq::boost_headers INTERFACE "${include_dirs}")
         endif()
     endforeach()

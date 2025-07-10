@@ -1,3 +1,9 @@
+##
+# Basic CSV writer example that stores the data of all discovered device signals into
+# a CSV file. The example requires that all the device's signals are of the same sampling
+# rate and have a domain signal with a linear data rule.
+##
+
 import numpy as np
 import opendaq
 import time

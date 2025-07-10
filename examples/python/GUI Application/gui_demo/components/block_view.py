@@ -144,7 +144,6 @@ class BlockView(ttk.Frame):
             
             elif daq.IFunctionBlock.can_cast_from(self.node):
                 if daq.IRecorder.can_cast_from(self.node):
-                    print("Recorder")
                     self.node = daq.IRecorder.cast_from(self.node)
                     self.recoder = RecorderView(self.expanded_frame, self.node, self.context)
                 self.node = daq.IFunctionBlock.cast_from(self.node)

@@ -87,6 +87,8 @@ void AudioDeviceImpl::addData(const void* data, size_t sampleCount)
     try
     {
         auto domainPacket = DataPacket(timeSignal.getDescriptor(), sampleCount, samplesCaptured);
+        timeSignal.sendPacket(domainPacket);
+
         channel.asPtr<IAudioChannel>()->addData(domainPacket, data, sampleCount);
         samplesCaptured += sampleCount;
     }

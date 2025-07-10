@@ -20,7 +20,7 @@
 #include <opendaq/opendaq.h>
 
 #include <basic_csv_recorder_module/common.h>
-#include <basic_csv_recorder_module/csv_writer.h>
+#include <basic_csv_recorder_module/generic_writer.h>
 
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
@@ -46,6 +46,7 @@ class BasicCsvRecorderSignal
          */
         BasicCsvRecorderSignal(
             fs::path path,
+            const std::string& format,
             const SignalPtr& signal);
 
         /*!
@@ -131,7 +132,7 @@ class BasicCsvRecorderSignal
          */
         std::string getDomainMetadataLine(const DataDescriptorPtr& domainDescriptor);
 
-        CsvWriter writer;
+        Writer writer;
         bool headersWritten = false;
 };
 

@@ -1,24 +1,31 @@
-set(LIB_NAME basic_csv_recorder_module)
+set(LIB_NAME parquet_recorder_module)
 set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 
 set(SRC_Include module_dll.h
                 common.h
-                basic_csv_recorder_impl.h
-                basic_csv_recorder_module_impl.h
-                basic_csv_recorder_signal.h
-                basic_csv_recorder_thread.h
+                # basic_csv_recorder_impl.h
+                # basic_csv_recorder_module_impl.h
+                # basic_csv_recorder_signal.h
+                # basic_csv_recorder_thread.h
+                parquet_recorder_module_impl.h
+                parquet_recorder_impl.h
+                parquet_writer.h
+                type_resolver.h
 )
 
 set(SRC_Srcs module_dll.cpp
-             basic_csv_recorder_impl.cpp
-             basic_csv_recorder_module_impl.cpp
-             basic_csv_recorder_signal.cpp
-             basic_csv_recorder_thread.cpp
+            #  basic_csv_recorder_impl.cpp
+            #  basic_csv_recorder_module_impl.cpp
+            #  basic_csv_recorder_signal.cpp
+            #  basic_csv_recorder_thread.cpp
+             parquet_recorder_module_impl.cpp
+             parquet_recorder_impl.cpp
+             parquet_writer.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
-source_group("module" FILES ${MODULE_HEADERS_DIR}/basic_csv_recorder_module_impl.h
+source_group("module" FILES ${MODULE_HEADERS_DIR}/parquet_recorder_module_impl.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             ${SRC_Srcs}
 )

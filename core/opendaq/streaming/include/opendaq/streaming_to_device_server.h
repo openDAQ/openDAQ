@@ -16,14 +16,20 @@
 
 #pragma once
 #include <coretypes/common.h>
-#include <coretypes/baseobject.h>
+#include <opendaq/streaming_server.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-DECLARE_OPENDAQ_INTERFACE(IStreamingToDeviceServer, IBaseObject)
+/*#
+ * [interfaceSmartPtr(IStreamingServer, GenericStreamingServerPtr, "<opendaq/streaming_server_ptr.h>")]
+ * [templated(defaultAliasName: StreamingToDeviceServerPtr)]
+ * [interfaceSmartPtr(IStreamingToDeviceServer, GenericStreamingToDeviceServerPtr)]
+ */
+
+DECLARE_OPENDAQ_INTERFACE(IStreamingToDeviceServer, IStreamingServer)
 {
-//    ErrCode attachConnectedSignal(IMirroredSignalConfig* signal, IInputPort* port) = 0;
-//    ErrCode detachConnectedSignal(IMirroredSignalConfig* signal, IInputPort* port) = 0;
+//    virtual ErrCode INTERFACE_FUNC attachConnectedSignal(IMirroredSignalConfig* signal, IInputPort* port) = 0;
+//    virtual ErrCode INTERFACE_FUNC detachConnectedSignal(IMirroredSignalConfig* signal, IInputPort* port) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -16,11 +16,17 @@
 
 #pragma once
 #include <coretypes/common.h>
-#include <coretypes/baseobject.h>
+#include <opendaq/server.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-DECLARE_OPENDAQ_INTERFACE(IStreamingServer, IBaseObject)
+/*#
+ * [interfaceSmartPtr(IServer, GenericServerPtr, "<opendaq/server_ptr.h>")]
+ * [templated(defaultAliasName: StreamingServerPtr)]
+ * [interfaceSmartPtr(IStreamingServer, GenericStreamingServerPtr)]
+ */
+
+DECLARE_OPENDAQ_INTERFACE(IStreamingServer, IServer)
 {
 };
 

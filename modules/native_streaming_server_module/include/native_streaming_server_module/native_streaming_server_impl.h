@@ -25,25 +25,26 @@
 #include <opendaq/connection_internal.h>
 #include <tsl/ordered_map.h>
 
+#include <config_protocol/config_protocol_server.h>
+#include <opendaq/streaming_to_device_server_impl.h>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
-class NativeStreamingServerImpl : public daq::Server
+class NativeStreamingServerBaseImpl
 {
 public:
-    explicit NativeStreamingServerImpl(const DevicePtr& rootDevice,
-                                       const PropertyObjectPtr& config,
-                                       const ContextPtr& context);
-    ~NativeStreamingServerImpl() override;
+    explicit NativeStreamingServerBaseImpl(const DevicePtr& rootDevice,
+                                           const PropertyObjectPtr& config,
+                                           const ContextPtr& context);
+    ~NativeStreamingServerBaseImpl();
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
     static ServerTypePtr createType(const ContextPtr& context);
     static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);
 
 protected:
-    PropertyObjectPtr getDiscoveryConfig() override;
-    void onStopServer() override;
+    PropertyObjectPtr onGetDiscoveryConfig();
+    void doStopServer();
     void prepareServerHandler();
-
-    std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler> serverHandler;
 
     void startReading();
     void stopReading();
@@ -68,6 +69,16 @@ protected:
 
     static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
 
+    // TODO refactoring duplicating code
+    virtual std::shared_ptr<config_protocol::ConfigProtocolServer> createConfigProtocolServer(config_protocol::NotificationReadyCallback sendConfigPacketCb,
+                                                                                              const UserPtr& user,
+                                                                                              ClientType connectionType);
+    StringPtr id;
+    PropertyObjectPtr config;
+    WeakRefPtr<IDevice> rootDeviceRef;
+    ContextPtr context;
+
+    std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler> serverHandler;
     std::thread readThread;
     std::atomic<bool> readThreadActive;
     std::chrono::milliseconds readThreadSleepTime;
@@ -94,8 +105,47 @@ protected:
     std::unordered_map<std::string, SizeT> disconnectedClientIds;
 };
 
+class NativeStreamingToDeviceServerImpl final : public daq::StreamingToDeviceServer, public NativeStreamingServerBaseImpl
+{
+public:
+    NativeStreamingToDeviceServerImpl(const DevicePtr& rootDevice,
+                                      const PropertyObjectPtr& config,
+                                      const ContextPtr& context);
+
+protected:
+    PropertyObjectPtr getDiscoveryConfig() override;
+    void onStopServer() override;
+
+    std::shared_ptr<config_protocol::ConfigProtocolServer> createConfigProtocolServer(config_protocol::NotificationReadyCallback sendConfigPacketCb,
+                                                                                      const UserPtr& user,
+                                                                                      ClientType connectionType) override;
+};
+
+class NativeStreamingServerSimpleImpl final : public daq::StreamingServer, public NativeStreamingServerBaseImpl
+{
+public:
+    NativeStreamingServerSimpleImpl(const DevicePtr& rootDevice,
+                                    const PropertyObjectPtr& config,
+                                    const ContextPtr& context);
+
+protected:
+    PropertyObjectPtr getDiscoveryConfig() override;
+    void onStopServer() override;
+
+    std::shared_ptr<config_protocol::ConfigProtocolServer> createConfigProtocolServer(config_protocol::NotificationReadyCallback sendConfigPacketCb,
+                                                                                      const UserPtr& user,
+                                                                                      ClientType connectionType) override;
+};
+
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY, NativeStreamingServer, daq::IServer,
+    INTERNAL_FACTORY, NativeStreamingServerSimple, daq::IStreamingServer,
+    DevicePtr, rootDevice,
+    PropertyObjectPtr, config,
+    const ContextPtr&, context
+)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    INTERNAL_FACTORY, NativeStreamingToDeviceServer, daq::IStreamingToDeviceServer,
     DevicePtr, rootDevice,
     PropertyObjectPtr, config,
     const ContextPtr&, context

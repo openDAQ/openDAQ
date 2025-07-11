@@ -31,7 +31,6 @@ ErrCode PacketBufferImpl::CleanOosPackets()
         oosPackets.pop();
     }
 
-    //auto bufSize = static_cast<uint8_t*>(endPos);
     if (readPos >= static_cast<uint8_t*>(endPos))
     {
         auto delta = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(endPos);
@@ -188,7 +187,6 @@ ErrCode PacketBufferImpl::getMaxAvailableContinousSampleCount(IDataDescriptor* d
     OPENDAQ_PARAM_NOT_NULL(desc);
     OPENDAQ_PARAM_NOT_NULL(count);
 
-    //auto allAvailableSamples = static_cast<uint8_t*>(endPos);  // End of buffer
     auto fromEndToPos = static_cast<uint8_t*>(endPos) - static_cast<uint8_t*>(writePos);
     auto fromStartToPos = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
 
@@ -216,7 +214,6 @@ ErrCode PacketBufferImpl::getAvailableSampleCount(IDataDescriptor* desc, SizeT* 
     ErrCode err = desc->getRawSampleSize(&rawSampleSize);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    //auto allAvailableSamples = static_cast<uint8_t*>(endPos);
     auto fromEndToPos = static_cast<uint8_t*>(endPos) - static_cast<uint8_t*>(readPos);
 
     *count = fromEndToPos/rawSampleSize;

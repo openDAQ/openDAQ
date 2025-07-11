@@ -16,6 +16,7 @@ PacketBufferImpl::PacketBufferImpl(const PacketBufferBuilderPtr& builder)
     writePos = data.data();
     isFull = false;
     underReset = false;
+    endPos = static_cast<uint8_t*>(data.data()) + sizeInBytes;
 }
 
 ErrCode PacketBufferImpl::CleanOosPackets()
@@ -30,10 +31,10 @@ ErrCode PacketBufferImpl::CleanOosPackets()
         oosPackets.pop();
     }
 
-    auto bufSize = static_cast<uint8_t*>(data.data()) + sizeInBytes;
-    if (readPos >= bufSize)
+    //auto bufSize = static_cast<uint8_t*>(endPos);
+    if (readPos >= static_cast<uint8_t*>(endPos))
     {
-        auto delta = static_cast<uint8_t*>(readPos) - bufSize;
+        auto delta = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(endPos);
         readPos = data.data() + delta;
     }
 
@@ -43,7 +44,7 @@ ErrCode PacketBufferImpl::CleanOosPackets()
 
 ErrCode PacketBufferImpl::Write(size_t sizeOfPackets, void** memPos)
 {
-    auto endOfBuffer = (reinterpret_cast<uint8_t*>(data.data()) + sizeInBytes);
+    auto endOfBuffer = (reinterpret_cast<uint8_t*>(endPos));
     size_t availableSamples;
 
     // Check whether R>W; 
@@ -174,6 +175,7 @@ ErrCode PacketBufferImpl::resize(SizeT sizeInBytes)
     this->sizeInBytes = sizeInBytes;
     readPos = data.data();
     writePos = data.data();
+    endPos = static_cast<uint8_t*>(data.data()) + sizeInBytes;
 
     resizeSync.notify_all();
     underReset = false;
@@ -186,8 +188,8 @@ ErrCode PacketBufferImpl::getMaxAvailableContinousSampleCount(IDataDescriptor* d
     OPENDAQ_PARAM_NOT_NULL(desc);
     OPENDAQ_PARAM_NOT_NULL(count);
 
-    auto allAvailableSamples = static_cast<uint8_t*>(data.data()) + sizeInBytes;  // End of buffer
-    auto fromEndToPos = allAvailableSamples - static_cast<uint8_t*>(writePos);
+    //auto allAvailableSamples = static_cast<uint8_t*>(endPos);  // End of buffer
+    auto fromEndToPos = static_cast<uint8_t*>(endPos) - static_cast<uint8_t*>(writePos);
     auto fromStartToPos = static_cast<uint8_t*>(readPos) - static_cast<uint8_t*>(data.data());
 
     SizeT rawSampleSize;
@@ -214,8 +216,8 @@ ErrCode PacketBufferImpl::getAvailableSampleCount(IDataDescriptor* desc, SizeT* 
     ErrCode err = desc->getRawSampleSize(&rawSampleSize);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    auto allAvailableSamples = static_cast<uint8_t*>(data.data()) + sizeInBytes;
-    auto fromEndToPos = allAvailableSamples - static_cast<uint8_t*>(readPos);
+    //auto allAvailableSamples = static_cast<uint8_t*>(endPos);
+    auto fromEndToPos = static_cast<uint8_t*>(endPos) - static_cast<uint8_t*>(readPos);
 
     *count = fromEndToPos/rawSampleSize;
 

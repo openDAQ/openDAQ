@@ -58,6 +58,8 @@ protected:
 
     size_t sizeInBytes;
 
+    void* endPos;
+
     std::mutex readWriteMutex;
     std::condition_variable resizeSync;
 

@@ -858,8 +858,11 @@ void RendererFbImpl::renderLoop()
     auto lock = getUniqueLock();
     while (!rendererStopRequested && window)
     {
-        if (cv.wait_until(lock, waitTime, [this] { return rendererStopRequested || !window; }))
+        cv.wait_until(lock, waitTime);
+        if (rendererStopRequested || !window)
             continue;
+
+        waitTime += defaultWaitTime;
 
         if (resolutionChangedFlag)
         {

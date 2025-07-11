@@ -757,19 +757,19 @@ void RendererFbImpl::renderLoop()
         
 
     auto lock = getUniqueLock();
-    const auto defaultWaitTime = std::chrono::milliseconds(20);
-    auto waitTime = defaultWaitTime;
-    while (!stopRender && window.isOpen())
+    while (!rendererStopRequested && window)
     {
-        cv.wait_for(lock, waitTime);
-        auto t1 = std::chrono::steady_clock::now();
-        if (!stopRender && window.isOpen())
+        cv.wait_until(lock, waitTime);
+        if (rendererStopRequested || !window)
+            continue;
+
+        waitTime += defaultWaitTime;
+
+        if (resolutionChangedFlag)
         {
-            if (resChanged)
-            {
-                resChanged = false;
-                resize(window);
-            }
+            resolutionChangedFlag = false;
+            resize(*window);
+        }
 
             sf::Event event{};
             while (window.pollEvent(event))

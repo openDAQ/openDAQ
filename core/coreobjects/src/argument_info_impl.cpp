@@ -10,12 +10,15 @@ namespace detail
     static const StructTypePtr argumentInfoStructType = ArgumentInfoStructType();
 }
 
-ArgumentInfoImpl::ArgumentInfoImpl(StringPtr name, CoreType type)
-    : GenericStructImpl<daq::IArgumentInfo, daq::IStruct>(detail::argumentInfoStructType,
-                                                          Dict<IString, IBaseObject>({{"Name", name}, {"Type", static_cast<Int>(type)}}))
+ArgumentInfoImpl::ArgumentInfoImpl(const StringPtr& name, CoreType type, const ListPtr<IArgumentInfo>& containerArgumentInfo)
+    : GenericStructImpl(detail::argumentInfoStructType,
+                        Dict<IString, IBaseObject>({
+                            {"Name", name}, {"Type", static_cast<Int>(type)},
+                            {"ContainerArgumentInfo", containerArgumentInfo}}))
 {
     this->name = fields.get("Name");
     this->argType = fields.get("Type");
+    this->containerArgumentInfo = fields.get("ContainerArgumentInfo");
 }
 
 ErrCode ArgumentInfoImpl::getName(IString** argName)
@@ -31,6 +34,14 @@ ErrCode ArgumentInfoImpl::getType(CoreType* type)
     OPENDAQ_PARAM_NOT_NULL(type);
 
     *type = argType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ArgumentInfoImpl::getContainerArgumentInfo(IList** containerArgumentInfo)
+{
+    OPENDAQ_PARAM_NOT_NULL(containerArgumentInfo);
+
+    *containerArgumentInfo = this->containerArgumentInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -54,6 +65,9 @@ ErrCode ArgumentInfoImpl::equals(IBaseObject* other, Bool* equal) const
         if (argType != argInfo.getType())
             return OPENDAQ_SUCCESS;
 
+        if (containerArgumentInfo != argInfo.getContainerArgumentInfo())
+            return OPENDAQ_SUCCESS;
+
         *equal = true;
         return OPENDAQ_SUCCESS;
     });
@@ -70,7 +84,13 @@ ErrCode ArgumentInfoImpl::serialize(ISerializer* serializer)
         }
 
         serializer->key("type");
-        serializer->writeInt(static_cast<Int>(argType));
+        serializer->writeInt(argType);
+
+        if (containerArgumentInfo.assigned() && containerArgumentInfo.getCount())
+        {
+            serializer->key("containerArgumentInfo");
+            containerArgumentInfo.serialize(serializer);
+        }
     }
 
     serializer->endObject();
@@ -99,20 +119,38 @@ ErrCode ArgumentInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject
 
     return daqTry([&serializedObj, &obj]
     {
-        const auto name = serializedObj.readString("name");
+        StringPtr name;
+        if (serializedObj.hasKey("name"))
+            name = serializedObj.readString("name");
+
         const auto argType = static_cast<CoreType>(serializedObj.readInt("type"));
 
-        *obj = createWithImplementation<IArgumentInfo, ArgumentInfoImpl>(name, argType).detach();
+        auto containerArgumentInfo = List<IArgumentInfo>();
+        if (serializedObj.hasKey("containerArgumentInfo"))
+            containerArgumentInfo = serializedObj.readObject("containerArgumentInfo");
+
+        *obj = createWithImplementation<IArgumentInfo, ArgumentInfoImpl>(name, argType, containerArgumentInfo).detach();
     });
 }
 
-OPENDAQ_DEFINE_CLASS_FACTORY(
-    LIBRARY_FACTORY,
-    ArgumentInfo,
-    IString*,
-    name,
-    CoreType,
-    type
-    );
+extern "C"
+ErrCode PUBLIC_EXPORT createArgumentInfo(IArgumentInfo** objTmp,
+                                         IString* name,
+                                         CoreType type)
+{
+    return daq::createObject<IArgumentInfo, ArgumentInfoImpl>(objTmp, name, type, List<IArgumentInfo>());
+}
+
+extern "C"
+ErrCode PUBLIC_EXPORT createContainerArgumentInfo(IArgumentInfo** objTmp,
+                                                  IString* name,
+                                                  CoreType type,
+                                                  IList* containerArgumentInfo)
+{
+    if (type != ctList && type != ctDict)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Container-type argument info must have type ctList or ctDict");
+
+    return daq::createObject<IArgumentInfo, ArgumentInfoImpl>(objTmp, name, type, containerArgumentInfo);
+}
 
 END_NAMESPACE_OPENDAQ

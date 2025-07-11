@@ -30,6 +30,10 @@ OpcUaObject<UA_Argument> StructConverter<IArgumentInfo, UA_Argument>::ToTmsType(
     OpcUaObject<UA_Argument> uaArg;
     uaArg->description = UA_LOCALIZEDTEXT_ALLOC("", "");
     uaArg->name = UA_STRING_ALLOC(object.getName().getCharPtr());
+
+    auto type = object.getType();
+    if (type == ctList || type == ctDict)
+        throw InvalidTypeException{"The OPC UA server does not yet support list or dictionary type arguments."};
     uaArg->dataType = CoreTypeToUANodeID(object.getType()).getDetachedValue();
 
     // TODO: handle list and dict

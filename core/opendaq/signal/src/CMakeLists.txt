@@ -31,6 +31,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_Allocator allocator.h)
     rtgen(SRC_ReferenceDomainInfo reference_domain_info.h)
     rtgen(SRC_ReferenceDomainInfoBuilder reference_domain_info_builder.h)
+    rtgen(SRC_WrappedDataPacket wrapped_data_packet.h)
     
     set(SRC_PublicHeaders_Component_Generated 
         ${SRC_Connection_PublicHeaders}
@@ -62,6 +63,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_SignalPrivate_PublicHeaders}
         ${SRC_ReferenceDomainInfo_PublicHeaders}
         ${SRC_ReferenceDomainInfoBuilder_PublicHeaders}
+        ${SRC_WrappedDataPacket_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -97,6 +99,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_Allocator_PrivateHeaders}
         ${SRC_ReferenceDomainInfo_PrivateHeaders}
         ${SRC_ReferenceDomainInfoBuilder_PrivateHeaders}
+        ${SRC_WrappedDataPacket_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -125,6 +128,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_Allocator_Cpp}
         ${SRC_ReferenceDomainInfo_Cpp}
         ${SRC_ReferenceDomainInfoBuilder_Cpp}
+        ${SRC_WrappedDataPacket_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -188,6 +192,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/reusable_data_packet.h
         ${SDK_HEADERS_DIR}/generic_data_packet_impl.h
         ${SDK_HEADERS_DIR}/data_packet_impl.h
+        ${SDK_HEADERS_DIR}/wrapped_data_packet_impl.h
         ${SDK_HEADERS_DIR}/event_packet.h
         ${SDK_HEADERS_DIR}/event_packet_impl.h
         ${SDK_HEADERS_DIR}/event_packet_ids.h
@@ -203,11 +208,18 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/packet_destruct_callback_factory.h
         ${SDK_HEADERS_DIR}/packet_destruct_callback_impl.h
         ${SDK_HEADERS_DIR}/reference_domain_offset_adder.h
+        ${SDK_HEADERS_DIR}/bulk_data_packet.h
+        ${SDK_HEADERS_DIR}/bulk_data_packet_ptr.h
+        ${SDK_HEADERS_DIR}/wrapped_packet_factory.h
+        ${SDK_HEADERS_DIR}/wrapped_packet.h
+        ${SDK_HEADERS_DIR}/wrapped_data_packet.h
+        ${SDK_HEADERS_DIR}/wrapped_data_packet_factory.h
         ${SDK_SRC_DIR}/data_packet_impl.cpp
         ${SDK_SRC_DIR}/generic_data_packet_impl.cpp
         ${SDK_SRC_DIR}/event_packet_impl.cpp
         ${SDK_SRC_DIR}/binary_data_packet_impl.cpp
         ${SDK_SRC_DIR}/bulk_data_packet_impl.cpp
+        ${SDK_SRC_DIR}/wrapped_data_packet_impl.cpp
     )
     
     source_group("signal//input_port" FILES 
@@ -336,6 +348,7 @@ set(SRC_PublicHeaders_Component
     reference_domain_info_factory.h
     bulk_data_packet.h
     bulk_data_packet_factory.h
+    wrapped_data_packet_factory.h
     ${SRC_Mimalloc_PublicHeaders}
     PARENT_SCOPE
 )
@@ -351,6 +364,7 @@ set(SRC_PrivateHeaders_Component
     packet_impl.h
     generic_data_packet_impl.h
     data_packet_impl.h
+    wrapped_data_packet_impl.h
     event_packet_impl.h
     scaling_impl.h
     scaling_builder_impl.h
@@ -379,6 +393,7 @@ set(SRC_Cpp_Component
     range_impl.cpp
     signal_impl.cpp
     data_packet_impl.cpp
+    wrapped_data_packet_impl.cpp
     generic_data_packet_impl.cpp
     event_packet_impl.cpp
     dimension_rule_impl.cpp

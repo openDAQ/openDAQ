@@ -74,3 +74,64 @@ TEST_F(ArgumentInfoTest, SerializeDeserialize)
     ASSERT_EQ(argInfo.getName(), argInfo1.getName());
     ASSERT_EQ(argInfo.getType(), argInfo1.getType());
 }
+
+TEST_F(ArgumentInfoTest, SerializeDeserializeList)
+{
+    auto argInfo1 = ArgumentInfo("Int", ctInt);
+    auto argInfo2 = ArgumentInfo("Float", ctFloat);
+    const auto argInfoList = ContainerArgumentInfo("Name", CoreType::ctList, List<IArgumentInfo>(argInfo1, argInfo2));
+
+    const auto serializer = JsonSerializer();
+    argInfoList.serialize(serializer);
+
+    const auto jsonStr = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const ArgumentInfoPtr argInfo = deserializer.deserialize(jsonStr);
+    ASSERT_EQ(argInfo.getName(), argInfoList.getName());
+    ASSERT_EQ(argInfo.getType(), argInfoList.getType());
+    ASSERT_EQ(argInfo.getContainerArgumentInfo(), argInfoList.getContainerArgumentInfo());
+}
+
+TEST_F(ArgumentInfoTest, SerializeDeserializeDict)
+{
+    auto argInfo1 = ArgumentInfo("Int", ctInt);
+    auto argInfo2 = ArgumentInfo("Float", ctFloat);
+    const auto argInfoDict = ContainerArgumentInfo("Name", CoreType::ctDict, List<IArgumentInfo>(argInfo1, argInfo2));
+
+    const auto serializer = JsonSerializer();
+    argInfoDict.serialize(serializer);
+
+    const auto jsonStr = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const ArgumentInfoPtr argInfo = deserializer.deserialize(jsonStr);
+    ASSERT_EQ(argInfo.getName(), argInfoDict.getName());
+    ASSERT_EQ(argInfo.getType(), argInfoDict.getType());
+    ASSERT_EQ(argInfo.getContainerArgumentInfo(), argInfoDict.getContainerArgumentInfo());
+}
+
+TEST_F(ArgumentInfoTest, SerializeDeserializeListNested)
+{
+    auto argInfo1 = ArgumentInfo("Int", ctInt);
+
+    auto argInfoInner1 = ArgumentInfo("Enum", ctEnumeration);
+    auto argInfoInner2 = ArgumentInfo("Float", ctFloat);
+    auto argInfo2 = ContainerArgumentInfo("Float", ctList, List<IArgumentInfo>(argInfoInner1, argInfoInner2));
+
+    const auto argInfoList = ContainerArgumentInfo("Name", CoreType::ctList, List<IArgumentInfo>(argInfo1, argInfo2));
+
+    const auto serializer = JsonSerializer();
+    argInfoList.serialize(serializer);
+
+    const auto jsonStr = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const ArgumentInfoPtr argInfo = deserializer.deserialize(jsonStr);
+    ASSERT_EQ(argInfo.getName(), argInfoList.getName());
+    ASSERT_EQ(argInfo.getType(), argInfoList.getType());
+    ASSERT_EQ(argInfo.getContainerArgumentInfo(), argInfoList.getContainerArgumentInfo());
+}

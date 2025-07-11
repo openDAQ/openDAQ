@@ -20,16 +20,18 @@
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/struct_impl.h>
+#include <coreobjects/argument_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 class ArgumentInfoImpl : public GenericStructImpl<IArgumentInfo, IStruct>
 {
 public:
-    ArgumentInfoImpl(StringPtr name, CoreType type);
+    ArgumentInfoImpl(const StringPtr& name, CoreType type, const ListPtr<IArgumentInfo>& containerArgumentInfo);
 
     ErrCode INTERFACE_FUNC getName(IString** argName) override;
     ErrCode INTERFACE_FUNC getType(CoreType* type) override;
+    ErrCode INTERFACE_FUNC getContainerArgumentInfo(IList** containerArgumentInfo) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
@@ -43,6 +45,7 @@ public:
 private:
     StringPtr name;
     CoreType argType;
+    ListPtr<IArgumentInfo> containerArgumentInfo;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ArgumentInfoImpl)

@@ -18,6 +18,7 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
 #include <coretypes/coretype.h>
+#include <coretypes/listobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -51,6 +52,21 @@ DECLARE_OPENDAQ_INTERFACE(IArgumentInfo, IBaseObject)
      * of the function/procedure.
      */
     virtual ErrCode INTERFACE_FUNC getType(CoreType* type) = 0;
+
+    // [elementType(containerArgumentInfo, IArgumentInfo)]
+    /*!
+     * @brief Gets a list of Argument Info objects that denotes what key/item types are expected in a
+     * list/dictionary-type argument
+     * @param[out] containerArgumentInfo List of Argument Info objects
+     *
+     * In list-type Argument Info, the type of each item of the Container Argument Info list corresponds
+     * to the expected argument type of the function.
+     *
+     * In dictionary-type Argument Info, the name of the argument corresponds to the string key of the
+     * dictionary, while the type corresponds to the expected argument type. Do note that dictionary
+     * entries with non-string keys can not be represented by Argument Info objects.
+     */
+    virtual ErrCode INTERFACE_FUNC getContainerArgumentInfo(IList** containerArgumentInfo) = 0;
 };
 
 /*!@}*/
@@ -69,6 +85,28 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, ArgumentInfo,
     IString*, name,
     CoreType, type
+);
+
+/*!
+ * @brief Creates an Argument info object with the specified name, type, and container argument info.
+ * The type must be either List or Dictionary.
+ * @param name The name of the argument.
+ * @param type The type expected of the argument. Must be ctList or ctDict.
+ * @param[out] containerArgumentInfo List of Argument Info objects that convey the expected member types of the list/dictionary argument.
+ *
+ * In list-type Argument Info, the type of each item of the Container Argument Info list corresponds
+ * to the expected argument type of the function.
+ *
+ * In dictionary-type Argument Info, the name of the argument corresponds to the string key of the
+ * dictionary, while the type corresponds to the expected argument type. Do note that dictionary
+ * entries with non-string keys can not be represented by Argument Info objects.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY,
+    ContainerArgumentInfo, IArgumentInfo,
+    IString*, name,
+    CoreType, type,
+    IList*, containerArgumentInfo
 );
 
 /*!@}*/

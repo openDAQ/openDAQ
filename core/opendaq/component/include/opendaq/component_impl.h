@@ -855,7 +855,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     if (OPENDAQ_SUCCEEDED(errCode))
         errCode = this->updateEnded(context);
     else
-        errCode = DAQ_MAKE_ERROR_INFO(errCode, "Component update failed");
+        errCode = DAQ_EXTEND_ERROR_INFO(errCode, "Component update failed");
 
     if (!muted && this->coreEvent.assigned())
     {

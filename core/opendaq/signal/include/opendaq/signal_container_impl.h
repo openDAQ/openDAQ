@@ -652,7 +652,15 @@ void GenericSignalContainerImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
     Super::callBeginUpdateOnChildren();
 
     for (const auto& comp : components)
-        comp.beginUpdate();
+    {
+        Bool isFrozen {false};
+        auto freezable = comp.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned())
+            isFrozen = freezable.isFrozen();
+        
+        if (!isFrozen)
+            comp.beginUpdate();
+    }
 }
 
 template <class Intf, class... Intfs>
@@ -660,7 +668,13 @@ void GenericSignalContainerImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 {
     for (const auto& comp : components)
     {
-        comp.endUpdate();
+        Bool isFrozen {false};
+        auto freezable = comp.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned())
+            isFrozen = freezable.isFrozen();
+        
+        if (!isFrozen)
+            comp.endUpdate();
     }
 
     Super::callEndUpdateOnChildren();

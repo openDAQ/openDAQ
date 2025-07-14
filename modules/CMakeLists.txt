@@ -62,6 +62,11 @@ if (DAQMODULES_REF_DEVICE_MODULE)
     add_subdirectory(ref_device_module)
 endif()
 
+if (DAQMODULES_REF_TEMPLATE_DEVICE_MODULE AND OPENDAQ_ENABLE_MODULE_TEMPLATES)
+    message(STATUS "Reference device module created from template")
+    add_subdirectory(template_modules/ref_template_device_module)
+endif()
+
 if (DAQMODULES_REF_FB_MODULE)
     message(STATUS "Reference function block module")
     add_subdirectory(ref_fb_module)

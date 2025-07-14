@@ -77,8 +77,13 @@ if (DAQMODULES_BASIC_CSV_RECORDER_MODULE)
     add_subdirectory(basic_csv_recorder_module)
 endif()
 
-
-add_subdirectory(parquet_recorder_module)
+if (DAQMODULES_PARQUET_RECORDER_MODULE)
+    message(STATUS "Parquet recorder module")
+    if (CMAKE_VERSION VERSION_LESS "4.0.0")
+        message(FATAL_ERROR "Parquet recorder module requires CMake 4.0.0 or higher.")
+    endif()
+    add_subdirectory(parquet_recorder_module)
+endif()
 
 
 if (OPENDAQ_ENABLE_TESTS)

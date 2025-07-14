@@ -44,6 +44,10 @@ void defineIArgumentInfo(pybind11::module_ m, PyDaqIntf<daq::IArgumentInfo, daq:
         return daq::ArgumentInfo_Create(getVariantValue<daq::IString*>(name), type);
     }, py::arg("name"), py::arg("type"));
 
+    m.def("ContainerArgumentInfo", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::CoreType type, std::variant<daq::IList*, py::list, daq::IEvalValue*>& containerArgumentInfo){
+        return daq::ContainerArgumentInfo_Create(getVariantValue<daq::IString*>(name), type, getVariantValue<daq::IList*>(containerArgumentInfo));
+    }, py::arg("name"), py::arg("type"), py::arg("container_argument_info"));
+
 
     cls.def_property_readonly("name",
         [](daq::IArgumentInfo *object)
@@ -61,4 +65,13 @@ void defineIArgumentInfo(pybind11::module_ m, PyDaqIntf<daq::IArgumentInfo, daq:
             return objectPtr.getType();
         },
         "Gets the core type of the argument.");
+    cls.def_property_readonly("container_argument_info",
+        [](daq::IArgumentInfo *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ArgumentInfoPtr::Borrow(object);
+            return objectPtr.getContainerArgumentInfo().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets a list of Argument Info objects that denotes what key/item types are expected in a list/dictionary-type argument");
 }

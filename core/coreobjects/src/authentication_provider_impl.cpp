@@ -6,6 +6,7 @@
 #include <coreobjects/user_factory.h>
 #include <bcrypt/BCrypt.hpp>
 #include <coretypes/validation.h>
+#include <regex>
 
 BEGIN_NAMESPACE_OPENDAQ
 

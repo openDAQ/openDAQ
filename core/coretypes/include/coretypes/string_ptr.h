@@ -44,7 +44,7 @@ struct InterfaceToSmartPtr<IString>
  * StringPtr String(ConstCharPtr str)
  * StringPtr String(ConstCharPtr str, SizeT length)
  * StringPtr String(const std::string& str)
- * StringPtr operator"" _daq(const char* str)
+ * StringPtr operator""_daq(const char* str)
  * @endcode
  */
 
@@ -89,20 +89,12 @@ public:
 
     StringPtr& operator=(const StringPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         ObjectPtr<IString>::operator=(other);
         return *this;
     }
 
     StringPtr& operator=(StringPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
         ObjectPtr<IString>::operator=(std::move(other));
         return *this;
     }

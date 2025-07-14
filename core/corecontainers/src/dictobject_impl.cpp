@@ -4,6 +4,7 @@
 #include <coretypes/dict_ptr.h>
 #include <coretypes/dictobject_iterable_impl.h>
 #include <coretypes/validation.h>
+#include <coretypes/errorinfo_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -285,7 +286,7 @@ ErrCode DictImpl::getCoreType(CoreType* coreType)
 ErrCode DictImpl::freeze()
 {
     if (frozen)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     frozen = true;
 
@@ -357,9 +358,7 @@ ErrCode DictImpl::clone(IBaseObject** cloned)
 ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equal output parameter must not be null.");
-    }
 
     *equal = false;
     if (!other)
@@ -374,6 +373,7 @@ ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         for (const auto& [key, value] : dict)
         {
             if (!this->hashTable.contains(key))
@@ -439,7 +439,7 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+            return DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_NOT_SERIALIZABLE);
         }
 
         OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -458,7 +458,7 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
 
             if (errCode == OPENDAQ_ERR_NOINTERFACE)
             {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+                return DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_NOT_SERIALIZABLE);
             }
 
             OPENDAQ_RETURN_IF_FAILED(errCode);

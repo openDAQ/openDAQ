@@ -39,7 +39,7 @@ ErrCode TmsClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 
-    //return daqTry([&]()
+    //const ErrCode errCode = daqTry([&]()
     //{
     //    OpcUaNodeId methodId(NAMESPACE_DAQBSP, UA_DAQBSPID_INPUTPORTTYPE_ACCEPTSSIGNAL);
 
@@ -57,11 +57,13 @@ ErrCode TmsClientInputPortImpl::acceptsSignal(ISignal* signal, Bool* accepts)
     //    return OPENDAQ_SUCCESS;
     //    
     //});
+    //OPENDAQ_RETURN_IF_FAILED(errCode);
+    //return errCode;
 }
 
 ErrCode TmsClientInputPortImpl::connect(ISignal* signal)
 {
-    return daqTry([&]()
+    const ErrCode errCode = daqTry([&]()
     {
         if (!isChildComponent(signal))
             DAQ_THROW_EXCEPTION(NotFoundException);
@@ -85,6 +87,8 @@ ErrCode TmsClientInputPortImpl::connect(ISignal* signal)
         if (response->statusCode != UA_STATUSCODE_GOOD)
             throw OpcUaGeneralException();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode TmsClientInputPortImpl::connectSignalSchedulerNotification(ISignal* signal)
@@ -94,7 +98,7 @@ ErrCode TmsClientInputPortImpl::connectSignalSchedulerNotification(ISignal* sign
 
 ErrCode TmsClientInputPortImpl::disconnect()
 {
-    return daqTry([&]()
+    const ErrCode errCode = daqTry([&]()
     {
         const auto methodNodeId = getNodeId("Disconnect");
 
@@ -108,12 +112,15 @@ ErrCode TmsClientInputPortImpl::disconnect()
         if (response->statusCode != UA_STATUSCODE_GOOD)
             throw OpcUaGeneralException();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode TmsClientInputPortImpl::getSignal(ISignal** signal)
 {
     SignalPtr signalPtr;
-    ErrCode errCode = wrapHandlerReturn(this, &TmsClientInputPortImpl::onGetSignal, signalPtr);
+    const ErrCode errCode = wrapHandlerReturn(this, &TmsClientInputPortImpl::onGetSignal, signalPtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *signal = signalPtr.detach();
     return errCode;
@@ -142,11 +149,7 @@ SignalPtr TmsClientInputPortImpl::onGetSignal()
 
 ErrCode TmsClientInputPortImpl::getConnection(IConnection** connection)
 {
-    return daqTry([&]()
-    {
-        // TODO: Implement. Awaits support to implement
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-    });
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

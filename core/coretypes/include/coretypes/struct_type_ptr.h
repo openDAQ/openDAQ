@@ -86,18 +86,12 @@ public:
     
     StructTypePtr& operator=(const StructTypePtr& other)
     {
-        if (this == &other)
-            return *this;
-
         GenericTypePtr::operator =(other);
         return *this;
     }
 
     StructTypePtr& operator=(StructTypePtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-            return *this;
-
         GenericTypePtr::operator =(std::move(other));
         return *this;
     }

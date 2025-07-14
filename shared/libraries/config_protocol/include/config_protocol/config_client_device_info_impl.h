@@ -63,7 +63,7 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setPropertyValue(IString* property
     const ErrCode errCode = Super::setPropertyValue(propertyName, value);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(errCode);
         return Impl::setPropertyValue(propertyName, value);
     }
     return errCode;
@@ -120,10 +120,12 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::Deserialize(ISerializedObject* ser
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context]
     {
         *obj = DeserializeDeviceInfo<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(serialized, context).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>

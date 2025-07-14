@@ -423,7 +423,7 @@ TEST_F(InstanceTest, Serialize)
     instance.serialize(serializer);
 
     auto str = serializer.getOutput();
-    std::cout << str << std::endl;
+    ASSERT_GT(str.getLength(), 0); // Ensure that the configuration is not empty
 }
 
 TEST_F(InstanceTest, InstanceBuilderSetGet)

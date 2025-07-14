@@ -2,7 +2,6 @@
 #include <opendaq/reader_factory.h>
 #include <opcuatms_server/tms_server.h>
 #include <open62541/di_nodeids.h>
-#include <iostream>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <coreobjects/property_factory.h>

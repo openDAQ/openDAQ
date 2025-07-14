@@ -147,10 +147,10 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::compareTo(IBaseObject* other)
     this->getValue(&otherValue);
 
     if (value > otherValue)
-        return  OPENDAQ_GREATER;
+        return OPENDAQ_GREATER;
     if (value < otherValue)
-        return  OPENDAQ_LOWER;
-    return  OPENDAQ_EQUAL;
+        return OPENDAQ_LOWER;
+    return OPENDAQ_EQUAL;
 }
 
 // ISerializable

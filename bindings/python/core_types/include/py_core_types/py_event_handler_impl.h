@@ -37,24 +37,16 @@ public:
 
     ErrCode INTERFACE_FUNC handleEvent(IBaseObject* sender, IEventArgs* eventArgs) override
     {
-        try
+        const ErrCode errCode = daqTry([&]()
         {
             if(sender)
                 sender->addRef();
             if(eventArgs)
                 eventArgs->addRef();
             subscription(sender, eventArgs);
-        }
-        catch (const DaqException& e)
-        {
-            return errorFromException(e);
-        }
-        catch (const std::exception& e)
-        {
-            return DAQ_ERROR_FROM_STD_EXCEPTION(e, nullptr, OPENDAQ_ERR_GENERALERROR);
-        }
-
-        return OPENDAQ_SUCCESS;
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to handle event in PyEventHandlerImpl");
+        return errCode;
     }
 
 private:

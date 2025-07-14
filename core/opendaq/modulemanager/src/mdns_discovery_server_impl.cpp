@@ -34,7 +34,7 @@ std::string GetPropertyValueOrDefault(const daq::PropertyObjectPtr& propObj, con
     auto errCode = propObj->getPropertyValue(key, &value);
     if (OPENDAQ_FAILED(errCode))
     {
-        daqClearErrorInfo();
+        daqClearErrorInfo(errCode);
         return defaultValue;
     }
     return std::string(value);
@@ -105,16 +105,18 @@ ErrCode MdnsDiscoveryServerImpl::setRootDevice(IDevice* device)
 {
     DevicePtr devicePtr = DevicePtr::Borrow(device);
 
-    return daqTry([&]()
-        {
-            using namespace discovery_common;
-            if (discoveryServer.isServiceRegistered(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID))
-                discoveryServer.unregisterIpModificationService();
+    const ErrCode errCode = daqTry([&]()
+    {
+        using namespace discovery_common;
+        if (discoveryServer.isServiceRegistered(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID))
+            discoveryServer.unregisterIpModificationService();
 
-            if (devicePtr.assigned() && devicePtr.asPtr<IDeviceNetworkConfig>().getNetworkConfigurationEnabled())
-                registerIpModificationService(devicePtr);
-            return OPENDAQ_SUCCESS;
-        });
+        if (devicePtr.assigned() && devicePtr.asPtr<IDeviceNetworkConfig>().getNetworkConfigurationEnabled())
+            registerIpModificationService(devicePtr);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& rootDevice)

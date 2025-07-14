@@ -97,11 +97,13 @@ ErrCode ConfigClientBaseFolderImpl<Impl>::Deserialize(ISerializedObject* seriali
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeConfigFolder<IFolder, ConfigClientFolderImpl>(serialized, context, factoryCallback).detach();
-        });
+    const ErrCode errCode = daqTry(
+    [&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = DeserializeConfigFolder<IFolder, ConfigClientFolderImpl>(serialized, context, factoryCallback).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>

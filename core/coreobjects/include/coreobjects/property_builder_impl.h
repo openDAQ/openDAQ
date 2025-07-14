@@ -181,8 +181,7 @@ public:
 
         return daqTry([&]()
         {
-            *property = PropertyFromBuilder(propertyBuilderPtr).detach(); 
-            return OPENDAQ_SUCCESS;
+            *property = PropertyFromBuilder(propertyBuilderPtr).detach();
         });
     }
 

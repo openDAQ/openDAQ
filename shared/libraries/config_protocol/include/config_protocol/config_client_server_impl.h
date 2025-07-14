@@ -71,42 +71,44 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializeComponent(
-                       serialized,
-                       context,
-                       factoryCallback,
-                       [](const SerializedObjectPtr& serialized,
-                          const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr& /*className*/)
-                       {
-                           const auto configDeserializeContext = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+    const ErrCode errCode = daqTry(
+    [&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = Super::DeserializeComponent(
+                    serialized,
+                    context,
+                    factoryCallback,
+                    [](const SerializedObjectPtr& serialized,
+                        const ComponentDeserializeContextPtr& deserializeContext,
+                        const StringPtr& /*className*/)
+                    {
+                        const auto configDeserializeContext = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
 
-                           const auto id = serialized.readString("id");
-                           DevicePtr parentDevice;
+                        const auto id = serialized.readString("id");
+                        DevicePtr parentDevice;
 
-                           const auto parentFolder = deserializeContext.getParent();
-                           if (parentFolder.assigned())
-                           {
-                               if (parentFolder.getLocalId() == "Srv" &&
-                                   parentFolder.getParent().supportsInterface<IDevice>())
-                                   parentDevice = parentFolder.getParent().asPtr<IDevice>();
-                               else
-                                   DAQ_THROW_EXCEPTION(GeneralErrorException, "The server-component can be placed only under device's servers folder");
-                           }
+                        const auto parentFolder = deserializeContext.getParent();
+                        if (parentFolder.assigned())
+                        {
+                            if (parentFolder.getLocalId() == "Srv" &&
+                                parentFolder.getParent().supportsInterface<IDevice>())
+                                parentDevice = parentFolder.getParent().asPtr<IDevice>();
+                            else
+                                DAQ_THROW_EXCEPTION(GeneralErrorException, "The server-component can be placed only under device's servers folder");
+                        }
 
-                           return createWithImplementation<IServer, ConfigClientServerImpl>(
-                               configDeserializeContext->getClientComm(),
-                               configDeserializeContext->getRemoteGlobalId(),
-                               id,
-                               parentDevice,
-                               deserializeContext.getContext(),
-                               parentFolder);
-                       })
-                       .detach();
-        });
+                        return createWithImplementation<IServer, ConfigClientServerImpl>(
+                            configDeserializeContext->getClientComm(),
+                            configDeserializeContext->getRemoteGlobalId(),
+                            id,
+                            parentDevice,
+                            deserializeContext.getContext(),
+                            parentFolder);
+                    })
+                    .detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline void ConfigClientServerImpl::removed()

@@ -65,20 +65,12 @@ public:
 
     UpdatablePtr& operator=(const UpdatablePtr& other)
     {
-        if (this == &other)
-            return *this;
-
         daq::ObjectPtr<IUpdatable>::operator=(other);
         return *this;
     }
 
     UpdatablePtr& operator=(UpdatablePtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
         daq::ObjectPtr<IUpdatable>::operator=(std::move(other));
         return *this;
     }

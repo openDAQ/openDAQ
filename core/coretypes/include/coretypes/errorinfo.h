@@ -100,6 +100,41 @@ DECLARE_OPENDAQ_INTERFACE(IErrorInfo, IBaseObject)
      * @param fileLine Line number.
      */
     virtual ErrCode INTERFACE_FUNC getFileLine(Int* fileLine) = 0;
+
+    /*!
+     * @brief Sets the error code.
+     * @param errorCode Error code.
+     */
+    virtual ErrCode INTERFACE_FUNC setErrorCode(ErrCode errorCode) = 0;
+
+    /*!
+     * @brief Gets the error code.
+     * @param errorCode A pointer to store the error code.
+     */
+    virtual ErrCode INTERFACE_FUNC getErrorCode(ErrCode* errorCode) = 0;
+
+    /*!
+     * @brief Gets a formatted error message containing the error description, file name, and line number.
+     * @param message A pointer to store the formatted error message.
+     */
+    virtual ErrCode INTERFACE_FUNC getFormatMessage(IString** message) = 0;
+
+    /*!
+     * @brief Indicates whether this error was caused by a previous error.
+     * @param prevErrCode The error code of the previous error.
+     *
+     * This flag can be set to true when the current error is a direct consequence
+     * of a previously encountered error. This helps in tracing the propagation 
+     * of errors through multiple layers of the system.
+     */
+    virtual ErrCode INTERFACE_FUNC setCausedByPrevious(ErrCode prevErrCode) = 0;
+
+    /*!
+     * @brief Checks whether this error was caused by a previous error.
+     * @param caused Pointer to a Bool that will receive the result.
+     *               True if the error was caused by a previous one; false otherwise.
+     */
+    virtual ErrCode INTERFACE_FUNC getCausedByPrevious(Bool* caused) = 0;
 };
 
 /*!@}*/
@@ -109,6 +144,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, ErrorInfo)
 END_NAMESPACE_OPENDAQ
 
 extern "C" void PUBLIC_EXPORT daqSetErrorInfo(daq::IErrorInfo* errorInfo);
-extern "C" void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo);
+extern "C" void PUBLIC_EXPORT daqExtendErrorInfo(daq::IErrorInfo* errorInfo, daq::ErrCode prevErrCode);
+extern "C" void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo, daq::ErrCode errCode = OPENDAQ_LAST_ERROR_INFO);
 extern "C" void PUBLIC_EXPORT daqGetErrorInfoList(daq::IList** errorInfoList);
-extern "C" void PUBLIC_EXPORT daqClearErrorInfo();
+extern "C" void PUBLIC_EXPORT daqGetErrorInfoMessage(daq::IString** errorMessage, daq::ErrCode errCode = OPENDAQ_LAST_ERROR_INFO);
+extern "C" void PUBLIC_EXPORT daqClearErrorInfo(daq::ErrCode errCode = OPENDAQ_LAST_ERROR_INFO);

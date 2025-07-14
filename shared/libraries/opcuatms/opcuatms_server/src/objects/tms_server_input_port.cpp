@@ -1,4 +1,3 @@
-#include <iostream>
 #include <opcuatms_server/objects/tms_server_input_port.h>
 #include <opcuatms/converters/variant_converter.h>
 #include <open62541/statuscodes.h>

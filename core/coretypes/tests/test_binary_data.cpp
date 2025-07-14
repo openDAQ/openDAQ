@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <coretypes/boolean_factory.h>
 #include <coretypes/binarydata_factory.h>
 #include <coretypes/inspectable_ptr.h>
@@ -33,8 +33,8 @@ TEST_F(BinaryDataTest, NullParameter)
 {
     auto binObj = BinaryData(5);
 
-    ASSERT_EQ(binObj->getSize(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    ASSERT_EQ(binObj->getAddress(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(binObj->getSize(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(binObj->getAddress(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(BinaryDataTest, WriteReadBufferSomeData)

@@ -101,6 +101,7 @@ ReadTask ClientSessionHandler::readSignalAvailable(const void* data, size_t size
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         // Get signal numeric ID from received buffer
         copyData(&signalNumericId, data, sizeof(signalNumericId), bytesDone, size);
         LOG_T("Received signal numeric ID: {}", signalNumericId);
@@ -140,6 +141,7 @@ ReadTask ClientSessionHandler::readSignalUnavailable(const void *data, size_t si
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         // Get signal numeric ID from received buffer
         copyData(&signalNumericId, data, sizeof(signalNumericId), bytesDone, size);
         LOG_T("Received signal numeric ID: {}", signalNumericId);
@@ -166,6 +168,7 @@ ReadTask ClientSessionHandler::readSignalSubscribedAck(const void *data, size_t 
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         // Get signal numeric ID from received buffer
         copyData(&signalNumericId, data, sizeof(signalNumericId), 0, size);
         LOG_T("Received signal numeric ID: {}", signalNumericId);
@@ -187,6 +190,7 @@ ReadTask ClientSessionHandler::readSignalUnsubscribedAck(const void *data, size_
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         // Get signal numeric ID from received buffer
         copyData(&signalNumericId, data, sizeof(signalNumericId), 0, size);
         LOG_T("Received signal numeric ID: {}", signalNumericId);

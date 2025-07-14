@@ -92,10 +92,12 @@ ErrCode IoFolderImpl<Intfs...>::Deserialize(ISerializedObject* serialized,
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]()
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
     {
         *obj = Super::template DeserializeFolder<IIoFolderConfig, IoFolderImpl>(serialized, context, factoryCallback).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class... Intfs>

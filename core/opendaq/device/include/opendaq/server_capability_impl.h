@@ -169,8 +169,8 @@ inline ErrCode ServerCapabilityConfigImpl::setConnectionString(IString* connecti
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     return daqTry([&]
     {
-        checkErrorInfo(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
-        checkErrorInfo(addConnectionString(connectionString));
+        OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
+        OPENDAQ_RETURN_IF_FAILED(addConnectionString(connectionString));
         return OPENDAQ_SUCCESS;
     });
 }
@@ -191,10 +191,10 @@ inline ErrCode ServerCapabilityConfigImpl::addConnectionString(IString* connecti
     {
         ListPtr<IString> connectionStrings = getTypedProperty<IList>(ConnectionStrings);
         connectionStrings.pushBack(connectionString);
-        checkErrorInfo(Super::setPropertyValue(String(ConnectionStrings), connectionStrings));
+        OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(ConnectionStrings), connectionStrings));
 
         if (connectionStrings.getCount() == 1)
-            checkErrorInfo(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
+            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
 
         return OPENDAQ_SUCCESS;
     });
@@ -365,8 +365,7 @@ inline ErrCode ServerCapabilityConfigImpl::Deserialize(ISerializedObject* serial
                 factoryCallback,
                     [](const SerializedObjectPtr& /*serialized*/, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
                     {
-                        const auto cap = createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
-                        return cap;
+                        return createWithImplementation<IServerCapability, ServerCapabilityConfigImpl>("", "", ProtocolType::Unknown);
                     }).detach();
     });
 }

@@ -1,7 +1,4 @@
 #include <opcuaclient/attribute_reader.h>
-#include <iostream>
-#include <cmath>
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 

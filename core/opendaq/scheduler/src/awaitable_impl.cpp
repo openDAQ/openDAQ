@@ -23,7 +23,7 @@ ErrCode AwaitableImpl<TReturn>::wait()
 {
     if (completed)
     {
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
     }
 
     if (!future.valid())

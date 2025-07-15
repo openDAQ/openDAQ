@@ -170,7 +170,7 @@ ErrCode PacketBufferImpl::resize(SizeT sizeInBytes)
                             return ((readPos == writePos) && (!isFull));
                           });
 
-    data = std::vector<uint8_t>(sizeInBytes);
+    data.resize(sizeInBytes);
     this->sizeInBytes = sizeInBytes;
     readPos = data.data();
     writePos = data.data();

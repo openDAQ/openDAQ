@@ -49,7 +49,7 @@ if (NOT BOOST_INCLUDE_LIBRARIES)
 
     )
 
-    if(MSVC)
+    if(DAQMODULES_PARQUET_RECORDER_MODULE AND MSVC)
         list(APPEND NEEDED_LIBRARIES
                          multiprecision
                          predef
@@ -91,49 +91,51 @@ if (Boost_FETCHED)
         endif()
     endforeach()
 
-    set(boost_libs 
-        config
-        algorithm 
-        assert 
-        bind 
-        concept_check 
-        core 
-        detail 
-        function
-        iterator 
-        locale 
-        mpl 
-        numeric_conversion 
-        preprocessor 
-        range 
-        smart_ptr
-        static_assert 
-        throw_exception 
-        tokenizer 
-        type_traits 
-        utility 
-        mp11
-    )
-
-    if(MSVC)
-        list(APPEND boost_libs
-                multiprecision
-                predef
-                scope_exit
-                typeof
-        
+    if(DAQMODULES_PARQUET_RECORDER_MODULE)
+        set(boost_libs 
+            config
+            algorithm 
+            assert 
+            bind 
+            concept_check 
+            core 
+            detail 
+            function
+            iterator 
+            locale 
+            mpl 
+            numeric_conversion 
+            preprocessor 
+            range 
+            smart_ptr
+            static_assert 
+            throw_exception 
+            tokenizer 
+            type_traits 
+            utility 
+            mp11
         )
-    endif()
 
-    add_library(daq::boost_headers INTERFACE IMPORTED GLOBAL)
-
-    foreach(boost_lib ${boost_libs})
-        if (TARGET Boost::${boost_lib})
-            get_target_property(include_dirs Boost::${boost_lib} INTERFACE_INCLUDE_DIRECTORIES)
-            message(STATUS "Adding Boost::${boost_lib} include directories: ${include_dirs}")
-            target_include_directories(daq::boost_headers INTERFACE "${include_dirs}")
+        if(MSVC)
+            list(APPEND boost_libs
+                    multiprecision
+                    predef
+                    scope_exit
+                    typeof
+            
+            )
         endif()
-    endforeach()
+
+        add_library(daq::boost_headers INTERFACE IMPORTED GLOBAL)
+
+        foreach(boost_lib ${boost_libs})
+            if (TARGET Boost::${boost_lib})
+                get_target_property(include_dirs Boost::${boost_lib} INTERFACE_INCLUDE_DIRECTORIES)
+                message(STATUS "Adding Boost::${boost_lib} include directories: ${include_dirs}")
+                target_include_directories(daq::boost_headers INTERFACE "${include_dirs}")
+            endif()
+        endforeach()
+    endif()
 endif()
 
 if (Boost_FOUND)

@@ -38,22 +38,26 @@ inline ArgumentInfoPtr ArgumentInfo(const StringPtr& name, CoreType type)
 }
 
 /*!
- * @brief Creates an Argument info object with the specified name, type, and container argument info.
- * The type must be either List or Dictionary.
+ * @brief Creates a list-type Argument info object with the specified name and item type.
+ *
  * @param name The name of the argument.
- * @param type The type expected of the argument. Must be ctList or ctDict.
- * @param containerArgumentInfo List of Argument Info objects that convey the expected member types of the list/dictionary argument.
- *
- * In list-type Argument Info, the type of each item of the Container Argument Info list corresponds
- * to the expected argument type of the function.
- *
- * In dictionary-type Argument Info, the name of the argument corresponds to the string key of the
- * dictionary, while the type corresponds to the expected argument type. Do note that dictionary
- * entries with non-string keys can not be represented by Argument Info objects.
+ * @param itemType Corresponds to the expected type of items in the list argument.
  */
-inline ArgumentInfoPtr ContainerArgumentInfo(const StringPtr& name, CoreType type, const ListPtr<IArgumentInfo>& containerArgumentInfo)
+inline ArgumentInfoPtr ListArgumentInfo(const StringPtr& name, CoreType itemType)
 {
-    return ArgumentInfoPtr::Adopt(ContainerArgumentInfo_Create(name, type, containerArgumentInfo));
+    return ArgumentInfoPtr::Adopt(ListArgumentInfo_Create(name, itemType));
+}
+
+/*!
+ * @brief Creates a dict-type Argument info object with the specified name, key type and item type.
+ *
+ * @param name The name of the argument.
+ * @param keyType Corresponds to the expected type of key in the dictionary argument.
+ * @param itemType Corresponds to the expected type of items in the dictionary argument.
+ */
+inline ArgumentInfoPtr DictArgumentInfo(const StringPtr& name, CoreType keyType, CoreType itemType)
+{
+    return ArgumentInfoPtr::Adopt(DictArgumentInfo_Create(name, keyType, itemType));
 }
 
 /*!
@@ -62,9 +66,9 @@ inline ArgumentInfoPtr ContainerArgumentInfo(const StringPtr& name, CoreType typ
 inline StructTypePtr ArgumentInfoStructType()
 {
     return StructType("ArgumentInfo",
-                      List<IString>("Name", "Type", "ContainerArgumentInfo"),
-                      List<IBaseObject>("", static_cast<Int>(ctUndefined), List<IArgumentInfo>()),
-                      List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctList)));
+                      List<IString>("Name", "Type", "KeyType", "ItemType"),
+                      List<IBaseObject>("", static_cast<Int>(ctUndefined), static_cast<Int>(ctUndefined), static_cast<Int>(ctUndefined)),
+                      List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctInt), SimpleType(ctInt)));
 }
 
 /*!@}*/

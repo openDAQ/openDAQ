@@ -53,20 +53,25 @@ DECLARE_OPENDAQ_INTERFACE(IArgumentInfo, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getType(CoreType* type) = 0;
 
-    // [elementType(containerArgumentInfo, IArgumentInfo)]
     /*!
-     * @brief Gets a list of Argument Info objects that denotes what key/item types are expected in a
-     * list/dictionary-type argument
-     * @param[out] containerArgumentInfo List of Argument Info objects
+     * @brief Gets the item type of list/dict-type Argument Info objects. The item type specifies the
+     * type of values in the list or dictionary arguments.
+     * @param[out] itemType The item type of the list/dictionary argument.
      *
-     * In list-type Argument Info, the type of each item of the Container Argument Info list corresponds
-     * to the expected argument type of the function.
+     * In list-type Argument Info, the type of each item corresponds to the item type.
      *
-     * In dictionary-type Argument Info, the name of the argument corresponds to the string key of the
-     * dictionary, while the type corresponds to the expected argument type. Do note that dictionary
-     * entries with non-string keys can not be represented by Argument Info objects.
+     * In dict-type Argument Info, the type of each value in the <key, value> pairing corresponds to the
+     * item type.
      */
-    virtual ErrCode INTERFACE_FUNC getContainerArgumentInfo(IList** containerArgumentInfo) = 0;
+    virtual ErrCode INTERFACE_FUNC getItemType(CoreType* itemType) = 0;
+
+    /*!
+     * @brief Gets the key type of dict-type Argument Info objects. The item type specifies the type of
+     * keys in dictionary arguments.
+     *
+     * @param[out] keyType The key type of the dictionary argument.
+     */
+    virtual ErrCode INTERFACE_FUNC getKeyType(CoreType* keyType) = 0;
 };
 
 /*!@}*/
@@ -88,25 +93,31 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
 );
 
 /*!
- * @brief Creates an Argument info object with the specified name, type, and container argument info.
- * The type must be either List or Dictionary.
+ * @brief Creates a list-type Argument info object with the specified name and item type.
+ *
  * @param name The name of the argument.
- * @param type The type expected of the argument. Must be ctList or ctDict.
- * @param[out] containerArgumentInfo List of Argument Info objects that convey the expected member types of the list/dictionary argument.
- *
- * In list-type Argument Info, the type of each item of the Container Argument Info list corresponds
- * to the expected argument type of the function.
- *
- * In dictionary-type Argument Info, the name of the argument corresponds to the string key of the
- * dictionary, while the type corresponds to the expected argument type. Do note that dictionary
- * entries with non-string keys can not be represented by Argument Info objects.
+ * @param itemType Corresponds to the expected type of items in the list argument.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY,
-    ContainerArgumentInfo, IArgumentInfo,
+    ListArgumentInfo, IArgumentInfo,
     IString*, name,
-    CoreType, type,
-    IList*, containerArgumentInfo
+    CoreType, itemType
+);
+
+/*!
+ * @brief Creates a dict-type Argument info object with the specified name, key type and item type.
+ *
+ * @param name The name of the argument.
+ * @param keyType Corresponds to the expected type of key in the dictionary argument.
+ * @param itemType Corresponds to the expected type of items in the dictionary argument.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY,
+    DictArgumentInfo, IArgumentInfo,
+    IString*, name,
+    CoreType, keyType,
+    CoreType, itemType
 );
 
 /*!@}*/

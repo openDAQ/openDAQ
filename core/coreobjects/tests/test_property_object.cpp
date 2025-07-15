@@ -2189,70 +2189,61 @@ TEST_F(PropertyObjectTest, DotAccessSelectionValue)
     ASSERT_EQ(parent.getPropertySelectionValue("child.child.foo"), "b");
 }
 
-TEST_F(PropertyObjectTest, ProcedurePropWithListArg)
+TEST_F(PropertyObjectTest, FunctionPropWithListArg)
 {
     auto obj = PropertyObject();
 
-    auto argInfo1 = ArgumentInfo("Int", ctInt);
+    auto argInfo = ListArgumentInfo("List", ctInt);
 
-    auto argInfoInner1 = ArgumentInfo("Int", ctInt);
-    auto argInfoInner2 = ArgumentInfo("Float", ctFloat);
-    auto argInfo2 = ContainerArgumentInfo("List", ctList, List<IArgumentInfo>(argInfoInner1, argInfoInner2));
-
-    const auto argInfoList = ContainerArgumentInfo("List", CoreType::ctList, List<IArgumentInfo>(argInfo1, argInfo2));
-
-    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfoList)));
+    auto prop = FunctionProperty("SumList", FunctionInfo(ctInt,List<IArgumentInfo>(argInfo)));
     obj.addProperty(prop);
-    auto proc = Procedure(
+    auto func = Function(
         [](const ListPtr<IBaseObject>& list)
         {
-            ASSERT_EQ(list[0].getCoreType(), ctInt);
-            ASSERT_EQ(list[1].getCoreType(), ctList);
-            ListPtr<IBaseObject> listInner = list[1];
-            ASSERT_EQ(listInner[0].getCoreType(), ctInt);
-            ASSERT_EQ(listInner[1].getCoreType(), ctFloat);
-    });
+            Int sum = 0;
+            for (const auto& val : list)
+                sum += static_cast<Int>(val);
+            return sum;
+        });
 
-    obj.setPropertyValue("ProcedureProp", proc);
-    proc = obj.getPropertyValue("ProcedureProp");
+    obj.setPropertyValue("SumList", func);
+    func = obj.getPropertyValue("SumList");
 
-    ASSERT_EQ(obj.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfoList);
+    ASSERT_EQ(obj.getProperty("SumList").getCallableInfo().getArguments()[0], argInfo);
 
-    auto listArg = List<IBaseObject>(Integer(1), List<IBaseObject>(Integer(2), Floating(2.5)));
-    proc(listArg);
+    auto listArg = List<IInteger>(1, 1, 2, 3, 5, 8);
+    ASSERT_EQ(func(listArg), 20);
 }
 
-TEST_F(PropertyObjectTest, ProcedurePropWithDictArg)
+TEST_F(PropertyObjectTest, FunctionPropWithDictArg)
 {
     auto obj = PropertyObject();
 
-    auto argInfo1 = ArgumentInfo("Int", ctInt);
+    auto argInfo = DictArgumentInfo("Dict", ctInt, ctString);
 
-    auto argInfoInner1 = ArgumentInfo("Int", ctInt);
-    auto argInfoInner2 = ArgumentInfo("Float", ctFloat);
-    auto argInfo2 = ContainerArgumentInfo("List", ctList, List<IArgumentInfo>(argInfoInner1, argInfoInner2));
-
-    const auto argInfoList = ContainerArgumentInfo("Dict", CoreType::ctDict, List<IArgumentInfo>(argInfo1, argInfo2));
-
-    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfoList)));
+    auto prop = FunctionProperty("SortDictValues", FunctionInfo(ctList, List<IArgumentInfo>(argInfo)));
     obj.addProperty(prop);
-    auto proc = Procedure(
-        [](const DictPtr<IString, IBaseObject>& dict)
+    auto func = Function(
+        [](const DictPtr<IInteger, IString>& dict)
         {
-            ASSERT_TRUE(dict.hasKey("Int"));
-            ASSERT_TRUE(dict.hasKey("List"));
-            ASSERT_EQ(dict.get("Int").getCoreType(), ctInt);
-            ASSERT_EQ(dict.get("List").getCoreType(), ctList);
-            ListPtr<IBaseObject> listInner = dict.get("List");
-            ASSERT_EQ(listInner[0].getCoreType(), ctInt);
-            ASSERT_EQ(listInner[1].getCoreType(), ctFloat);
-    });
+            auto sortedItems = List<IString>();
 
-    obj.setPropertyValue("ProcedureProp", proc);
-    proc = obj.getPropertyValue("ProcedureProp");
+            std::list<int> keys;
+            for (int key : dict.getKeyList())
+                keys.push_back(key);
 
-    ASSERT_EQ(obj.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfoList);
+            keys.sort();
+            for (const auto& key : keys)
+                sortedItems.pushBack(dict.get(key));
+            
+            return sortedItems;
+        });
 
-    auto dictArg = Dict<IString, IBaseObject>({{"Int", Integer(0)}, {"List", List<IBaseObject>(Integer(2), Floating(2.5))}});
-    proc(dictArg);
+    obj.setPropertyValue("SortDictValues", func);
+    func = obj.getPropertyValue("SortDictValues");
+
+    ASSERT_EQ(obj.getProperty("SortDictValues").getCallableInfo().getArguments()[0], argInfo);
+
+    auto dictArg = Dict<IInteger, IString>({{5, "blueberry"}, {2, "banana"}, {8, "pear"}, {1, "apple"}});
+    ASSERT_EQ(func(dictArg), List<IString>("apple", "banana", "blueberry", "pear"));
 }

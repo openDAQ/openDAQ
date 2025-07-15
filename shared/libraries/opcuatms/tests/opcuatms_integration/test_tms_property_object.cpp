@@ -356,76 +356,59 @@ TEST_F(TmsPropertyObjectTest, DotAccessClientServerChange)
 TEST_F(TmsPropertyObjectTest, ProcedurePropWithListArg)
 {
     PropertyObjectPtr obj = PropertyObject();
-    auto argInfo1 = ArgumentInfo("Int", ctInt);
+    auto argInfo = ListArgumentInfo("Int", ctInt);
 
-    auto argInfoInner1 = ArgumentInfo("Int", ctInt);
-    auto argInfoInner2 = ArgumentInfo("Float", ctFloat);
-    auto argInfo2 = ContainerArgumentInfo("List", ctList, List<IArgumentInfo>(argInfoInner1, argInfoInner2));
-
-    const auto argInfoList = ContainerArgumentInfo("List", CoreType::ctList, List<IArgumentInfo>(argInfo1, argInfo2));
-
-    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfoList)));
-
+    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfo)));
     obj.addProperty(prop);
-
     auto proc = Procedure(
         [](const ListPtr<IBaseObject>& list)
         {
-            ASSERT_EQ(list[0].getCoreType(), ctInt);
-            ASSERT_EQ(list[1].getCoreType(), ctList);
-            ListPtr<IBaseObject> listInner = list[1];
-            ASSERT_EQ(listInner[0].getCoreType(), ctInt);
-            ASSERT_EQ(listInner[1].getCoreType(), ctFloat);
+            for (const auto& val : list)
+                ASSERT_EQ(val.getCoreType(), ctInt);
     });
 
     obj.setPropertyValue("ProcedureProp", proc);
-    
     auto [serverObj, clientObj] = registerPropertyObject(obj);
     
     ASSERT_FALSE(clientObj.hasProperty("ProcedureProp"));
     
     // TODO: Procedure/Function properties with list/dictionary types are not yet supported over OPC UA!
     //proc = clientObj.getPropertyValue("ProcedureProp");
-    //ASSERT_EQ(clientObj.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfoList);
 
-    //auto listArg = List<IBaseObject>(Integer(1), List<IBaseObject>(Integer(2), Floating(2.5)));
+    //ASSERT_EQ(clientObj.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfo);
+
+    //auto listArg = List<IBaseObject>(Integer(1), Integer(2));
     //proc(listArg);
 }
 TEST_F(TmsPropertyObjectTest, ProcedurePropWithDictArg)
 {
     PropertyObjectPtr obj = PropertyObject();
-    auto argInfo1 = ArgumentInfo("Int", ctInt);
+    auto argInfo = DictArgumentInfo("Int", ctInt, ctString);
 
-    auto argInfoInner1 = ArgumentInfo("Int", ctInt);
-    auto argInfoInner2 = ArgumentInfo("Float", ctFloat);
-    auto argInfo2 = ContainerArgumentInfo("List", ctList, List<IArgumentInfo>(argInfoInner1, argInfoInner2));
-
-    const auto argInfoList = ContainerArgumentInfo("Dict", CoreType::ctDict, List<IArgumentInfo>(argInfo1, argInfo2));
-
-    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfoList)));
+    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfo)));
     obj.addProperty(prop);
-
     auto proc = Procedure(
-        [](const DictPtr<IString, IBaseObject>& dict)
+        [](const DictPtr<IInteger, IString>& dict)
         {
-            ASSERT_TRUE(dict.hasKey("Int"));
-            ASSERT_TRUE(dict.hasKey("List"));
-            ASSERT_EQ(dict.get("Int").getCoreType(), ctInt);
-            ASSERT_EQ(dict.get("List").getCoreType(), ctList);
-            ListPtr<IBaseObject> listInner = dict.get("List");
-            ASSERT_EQ(listInner[0].getCoreType(), ctInt);
-            ASSERT_EQ(listInner[1].getCoreType(), ctFloat);
-    });
+            for (const auto& [key, val] : dict)
+            {
+                ASSERT_EQ(key.getCoreType(), ctInt);
+                ASSERT_EQ(val.getCoreType(), ctString);
+            }
+        });
 
     obj.setPropertyValue("ProcedureProp", proc);
-    auto [serverObj, clientObj] = registerPropertyObject(obj);
 
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+    
     ASSERT_FALSE(clientObj.hasProperty("ProcedureProp"));
 
     // TODO: Procedure/Function properties with list/dictionary types are not yet supported over OPC UA!
-    //ASSERT_EQ(clientObj.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfoList);
+    //proc = clientObj.getPropertyValue("ProcedureProp");
 
-    //auto dictArg = Dict<IString, IBaseObject>({{"Int", Integer(0)}, {"List", List<IBaseObject>(Integer(2), Floating(2.5))}});
+    //ASSERT_EQ(clientObj.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfo);
+
+    //auto dictArg = Dict<IInteger, IString>({{0, "foo"}, {1, "bar"}});
     //proc(dictArg);
 }
 

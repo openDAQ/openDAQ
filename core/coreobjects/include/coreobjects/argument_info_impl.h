@@ -27,11 +27,12 @@ BEGIN_NAMESPACE_OPENDAQ
 class ArgumentInfoImpl : public GenericStructImpl<IArgumentInfo, IStruct>
 {
 public:
-    ArgumentInfoImpl(const StringPtr& name, CoreType type, const ListPtr<IArgumentInfo>& containerArgumentInfo);
+    ArgumentInfoImpl(const StringPtr& name, CoreType type, CoreType keyType, CoreType itemType);
 
     ErrCode INTERFACE_FUNC getName(IString** argName) override;
     ErrCode INTERFACE_FUNC getType(CoreType* type) override;
-    ErrCode INTERFACE_FUNC getContainerArgumentInfo(IList** containerArgumentInfo) override;
+    ErrCode INTERFACE_FUNC getItemType(CoreType* itemType) override;
+    ErrCode INTERFACE_FUNC getKeyType(CoreType* keyType) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
 
@@ -45,7 +46,8 @@ public:
 private:
     StringPtr name;
     CoreType argType;
-    ListPtr<IArgumentInfo> containerArgumentInfo;
+    CoreType keyType;
+    CoreType itemType;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ArgumentInfoImpl)

@@ -34,6 +34,11 @@ set(Thrift_SOURCE AUTO CACHE STRING "")
 set(Thrift_VERSION 0.20.0 CACHE STRING "")
 set(ARROW_OPTIONAL_INSTALL OFF CACHE BOOL "")
 
+if(UNIX AND NOT APPLE)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE BOOL "")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+endif()
+
 opendaq_dependency(
     NAME                Arrow
     REQUIRED_VERSION    20.0.0

@@ -39,7 +39,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     name: ${{ matrix.name }}
     # ${{ }} expression syntax because of leading '!'
-    if: ${{ ! github.event.pull_request.draft }}
+    # if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -76,13 +76,13 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: Win32
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             cpack: NSIS
           - name: Windows Clang Release
             runner: windows-2022
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             cpack: NSIS
 
     outputs:
@@ -103,6 +103,11 @@ jobs:
         id: cp313
         with:
           python-version: "3.13"
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
@@ -200,7 +205,7 @@ jobs:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
     # ${{ }} expression syntax because of leading '!'
-    if: ${{ ! github.event.pull_request.draft }}
+    # if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -239,6 +244,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             apt_packages: clang++-14
             cc: clang-14
             cxx: clang++-14
@@ -646,7 +652,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     name: ${{ matrix.name }}
     # ${{ }} expression syntax because of leading '!'
-    if: ${{ ! github.event.pull_request.draft }}
+    # if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -662,7 +668,7 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             cpack: NSIS
             cmake_preset: package
 
@@ -675,6 +681,11 @@ jobs:
         id: cp313
         with:
           python-version: "3.13"
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'

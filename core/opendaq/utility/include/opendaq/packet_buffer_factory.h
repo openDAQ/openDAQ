@@ -33,4 +33,18 @@ inline PacketBufferPtr PacketBuffer(const PacketBufferBuilderPtr& builder)
     return PacketBufferPtr(PacketBuffer_Create(builder));
 }
 
+/*!
+ * @ingroup opendaq_packet_buffer_builders
+ * @addtogroup opendaq_packet_buffer_builder_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Wrapper pointer for PacketBufferBuilder
+ */
+inline PacketBufferBuilderPtr PacketBufferBuilder()
+{
+    return PacketBufferBuilderPtr(PacketBufferBuilder_Create());
+}
+
 END_NAMESPACE_OPENDAQ

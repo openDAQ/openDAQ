@@ -12,7 +12,7 @@
 #include <opendaq/range_factory.h>
 #include <opendaq/scaling_factory.h>
 #include <opendaq/signal_factory.h>
-#include <opendaq/packet_buffer_builder_factory.h>
+#include <opendaq/packet_buffer_factory.h>
 #include <ref_device_module/ref_channel_impl.h>
 #include <date/date.h>
 

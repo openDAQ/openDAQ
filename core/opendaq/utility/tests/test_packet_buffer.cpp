@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <thread>
 #include <opendaq/packet_buffer_factory.h>
-#include <opendaq/packet_buffer_builder_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/dimension_factory.h>

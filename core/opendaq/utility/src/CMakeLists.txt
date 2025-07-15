@@ -42,7 +42,6 @@ function(create_component_source_groups_${BASE_NAME})
 	${SDK_HEADERS_DIR}/packet_buffer_factory.h
 	${SDK_HEADERS_DIR}/packet_buffer_builder.h
 	${SDK_HEADERS_DIR}/packet_buffer_builder_impl.h
-	${SDK_HEADERS_DIR}/packet_buffer_builder_factory.h
 	${SDK_SRC_DIR}/packet_buffer_impl.cpp
     )
     
@@ -73,7 +72,6 @@ set(SRC_PublicHeaders_Component
     packet_buffer_factory.h
     packet_buffer_builder.h
     packet_buffer_builder_impl.h
-    packet_buffer_builder_factory.h
     mem_pool_allocator.h
     thread_name.h
     PARENT_SCOPE

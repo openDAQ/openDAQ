@@ -77,7 +77,7 @@ TmsServerComponent<Ptr>::TmsServerComponent(const ComponentPtr& object, const Op
             tmsComponentConfig = std::make_unique<TmsServerPropertyObject>(componentConfig, this->server, this->daqContext, this->tmsContext, "ComponentConfig");
     }
     
-    this->loggerComponent = this->daqContext.getLogger().getOrAddComponent("OPCUAServer_" + object.getGlobalId());
+    this->loggerComponent = this->daqContext.getLogger().getOrAddComponent("OPCUAServerComponent");
 }
 
 template <typename Ptr>

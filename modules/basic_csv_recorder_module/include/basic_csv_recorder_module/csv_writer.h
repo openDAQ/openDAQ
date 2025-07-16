@@ -56,7 +56,7 @@ class CsvWriter
         CsvWriter(const fs::path& filename)
         {
             if (filename.has_parent_path())
-                fs::create_directories(filename.parent_path());
+            fs::create_directories(filename.parent_path());
 
             file.exceptions(std::ios::failbit | std::ios::badbit);
             file.open(filename);

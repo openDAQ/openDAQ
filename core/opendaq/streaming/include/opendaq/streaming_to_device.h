@@ -26,6 +26,7 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingToDevice, IBaseObject)
 //    ErrCode addInputPorts(IList* inputPorts) = 0;
 //    ErrCode removeInputPorts(IList* inputPorts) = 0;
 //    ErrCode removeAllInputPorts() = 0;
+    virtual ErrCode INTERFACE_FUNC test() = 0;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -578,16 +578,29 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
                                                                 NativeStreamingClientHandlerPtr transportClientHandler,
                                                                 Int streamingInitTimeout)
 {
-    StreamingPtr nativeStreaming = createWithImplementation<IStreaming, NativeStreamingImpl>(
-        connectionString,
-        context,
-        transportClientHandler,
-        addStreamingProcessingContext(connectionString),
-        streamingInitTimeout,
-        nullptr,
-        nullptr,
-        nullptr
-    );
+    StreamingPtr nativeStreaming;
+    if (transportClientHandler->supportsToDeviceStreaming())
+        nativeStreaming = createWithImplementation<IStreaming, NativeStreamingToDeviceImpl>(
+            connectionString,
+            context,
+            transportClientHandler,
+            addStreamingProcessingContext(connectionString),
+            streamingInitTimeout,
+            nullptr,
+            nullptr,
+            nullptr
+        );
+    else
+        nativeStreaming = createWithImplementation<IStreaming, NativeStreamingBasicImpl>(
+            connectionString,
+            context,
+            transportClientHandler,
+            addStreamingProcessingContext(connectionString),
+            streamingInitTimeout,
+            nullptr,
+            nullptr,
+            nullptr
+        );
     nativeStreaming.asPtr<INativeStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
     return nativeStreaming;
 }

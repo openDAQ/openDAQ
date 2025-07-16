@@ -183,6 +183,8 @@ public:
     void setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
                            const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
+    bool supportsToDeviceStreaming();
+
 protected:
     void startTransportOperations();
     void stopTransportOperations();
@@ -191,6 +193,7 @@ protected:
     std::thread ioThread;
     LoggerComponentPtr loggerComponent;
     std::shared_ptr<NativeStreamingClientImpl> clientHandlerPtr;
+    bool toDeviceStreamingEnabled;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

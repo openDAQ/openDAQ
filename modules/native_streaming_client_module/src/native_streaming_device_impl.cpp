@@ -75,14 +75,14 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
         };
 
     nativeStreaming =
-        createWithImplementation<IStreaming, NativeStreamingImpl>(connectionString,
-                                                                  context,
-                                                                  transportProtocolClient,
-                                                                  processingIOContextPtr,
-                                                                  initTimeout,
-                                                                  onSignalAvailableCallback,
-                                                                  onSignalUnavailableCallback,
-                                                                  onConnectionStatusChangedCallback);
+        createWithImplementation<IStreaming, NativeStreamingBasicImpl>(connectionString,
+                                                                       context,
+                                                                       transportProtocolClient,
+                                                                       processingIOContextPtr,
+                                                                       initTimeout,
+                                                                       onSignalAvailableCallback,
+                                                                       onSignalUnavailableCallback,
+                                                                       onConnectionStatusChangedCallback);
     nativeStreaming.asPtr<INativeStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
 }
 

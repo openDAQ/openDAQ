@@ -503,6 +503,7 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
     : ioContextPtr(std::make_shared<boost::asio::io_context>())
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
     , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, authenticationObject, ioContextPtr))
+    , toDeviceStreamingEnabled(false)
 {
     startTransportOperations();
 }
@@ -577,6 +578,11 @@ void NativeStreamingClientHandler::setConfigHandlers(const ProcessConfigProtocol
                                                      const OnConnectionStatusChangedCallback& connectionStatusChangedCb)
 {
     clientHandlerPtr->setConfigHandlers(configPacketHandler, connectionStatusChangedCb);
+}
+
+bool NativeStreamingClientHandler::supportsToDeviceStreaming()
+{
+   return toDeviceStreamingEnabled;
 }
 
 void NativeStreamingClientHandler::startTransportOperations()

@@ -56,7 +56,6 @@ class BasicCsvRecorderThread
          */
         BasicCsvRecorderThread(
             fs::path path,
-            const std::string& format,
             const SignalPtr& signal,
             const LoggerComponentPtr& loggerComponent);
 

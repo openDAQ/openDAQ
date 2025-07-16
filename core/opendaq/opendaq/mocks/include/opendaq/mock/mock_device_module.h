@@ -41,6 +41,15 @@ public:
 
     daq::ErrCode INTERFACE_FUNC completeServerCapability(daq::Bool* succeeded, daq::IServerCapability* source, daq::IServerCapabilityConfig* target) override;
 
+    daq::ErrCode INTERFACE_FUNC authenticate(daq::Bool* succeeded, daq::IPropertyObject* authenticationConfig) override;
+    daq::ErrCode INTERFACE_FUNC getAuthenticationConfig(daq::IPropertyObject** authenticationConfig) override;
+    daq::ErrCode INTERFACE_FUNC isAuthenticated(daq::Bool* authenticated) override;
+
+    daq::ErrCode INTERFACE_FUNC loadLicense(daq::Bool* succeeded, daq::IPropertyObject* licenseConfig) override;
+    daq::ErrCode INTERFACE_FUNC getLicenseConfig(daq::IPropertyObject** licenseConfig) override;
+    daq::ErrCode INTERFACE_FUNC licenseValid(daq::Bool* valid) override;
+    daq::ErrCode INTERFACE_FUNC getLicenseChecker(daq::ILicenseChecker** licenseChecker) override;
+
 private:
     daq::ContextPtr ctx;
     size_t cnt = 0;

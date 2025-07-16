@@ -151,4 +151,39 @@ ErrCode MockDeviceModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamin
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
+ErrCode MockDeviceModuleImpl::authenticate(daq::Bool* /*succeeded*/, daq::IPropertyObject* /*authenticationConfig*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockDeviceModuleImpl::getAuthenticationConfig(daq::IPropertyObject** /*authenticationConfig*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockDeviceModuleImpl::isAuthenticated(daq::Bool* /*authenticated*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockDeviceModuleImpl::loadLicense(daq::Bool* /*succeeded*/, daq::IPropertyObject* /*licenseConfig*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockDeviceModuleImpl::getLicenseConfig(daq::IPropertyObject** /*licenseConfig*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockDeviceModuleImpl::licenseValid(daq::Bool* /*valid*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockDeviceModuleImpl::getLicenseChecker(daq::ILicenseChecker** /*licenseChecker*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockDeviceModule, IModule, IContext*, ctx)

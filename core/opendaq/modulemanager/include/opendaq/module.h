@@ -24,8 +24,10 @@
 #include <coretypes/stringobject.h>
 #include <opendaq/server_capability_config.h>
 #include <opendaq/module_info.h>
+#include <opendaq/license_checker.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
@@ -121,11 +123,20 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
     virtual ErrCode INTERFACE_FUNC completeServerCapability(Bool* succeeded, IServerCapability* source, IServerCapabilityConfig* target) = 0;
 
     /*!
-     * @brief Returns a dictionary of known and available streaming types that this module (client) can create.
+     * @brief Returns a dictionary of known and available streaming types that this module (client) can create.T
      * @param[out] streamingTypes The dictionary of known streaming types.
      */
     // [templateType(streamingTypes, IString, IStreamingType)]
     virtual ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) = 0;
+
+    virtual ErrCode INTERFACE_FUNC authenticate(Bool * succeeded, IPropertyObject * authenticationConfig) = 0;
+    virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IPropertyObject * *authenticationConfig) = 0;
+    virtual ErrCode INTERFACE_FUNC isAuthenticated(Bool * authenticated) = 0;
+
+    virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeeded, IPropertyObject * licenseConfig) = 0;
+    virtual ErrCode INTERFACE_FUNC getLicenseConfig(IPropertyObject * *licenseConfig) = 0;
+    virtual ErrCode INTERFACE_FUNC licenseValid(Bool * valid) = 0;
+    virtual ErrCode INTERFACE_FUNC getLicenseChecker(ILicenseChecker** licenseChecker) = 0;
 };
 /*!@}*/
 

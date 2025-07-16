@@ -35,6 +35,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <opendaq/license_checker_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class Module : public ImplementationOf<IModule>
@@ -382,6 +383,121 @@ public:
     virtual Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
     {
         return false;
+    }
+
+    virtual ErrCode authenticate(Bool* succeeded, IPropertyObject* authenticationConfig)
+    {
+        OPENDAQ_PARAM_NOT_NULL(succeeded);
+        OPENDAQ_PARAM_NOT_NULL(authenticationConfig);
+
+        Bool authenticated;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onAuthenticate, authenticated, authenticationConfig);
+
+        *succeeded = authenticated;
+        return errCode;
+    }
+
+    // Decide here what you want the default value to be..
+    virtual Bool onAuthenticate(IPropertyObject* authenticationConfig)
+    {
+        return false;
+    }
+
+    virtual ErrCode getAuthenticationConfig(IPropertyObject** authenticationConfig)
+    {
+        OPENDAQ_PARAM_NOT_NULL(authenticationConfig);
+
+        PropertyObjectPtr ptr;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAuthenticationConfig, ptr);
+
+        *authenticationConfig = ptr.detach();
+        return errCode;
+    }
+
+    virtual PropertyObjectPtr onGetAuthenticationConfig()
+    {
+        return nullptr;
+    }
+
+    virtual ErrCode isAuthenticated(Bool* authenticated)
+    {
+        OPENDAQ_PARAM_NOT_NULL(authenticated);
+
+        Bool isAuthenticated;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onIsAuthenticated, isAuthenticated);
+
+        *authenticated = isAuthenticated;
+        return errCode;
+    }
+
+    virtual Bool onIsAuthenticated()
+    {
+        return false;
+    }
+
+    virtual ErrCode loadLicense(Bool* succeded, IPropertyObject* licenseConfig)
+    {
+        OPENDAQ_PARAM_NOT_NULL(succeded);
+        OPENDAQ_PARAM_NOT_NULL(licenseConfig);
+
+        Bool loadedLicense;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onLoadLicense, loadedLicense, licenseConfig);
+
+        *succeded = loadedLicense;
+        return errCode;
+    }
+
+    virtual Bool onLoadLicense(IPropertyObject* licenseConfig)
+    {
+        return false;
+    }
+
+    virtual ErrCode getLicenseConfig(IPropertyObject** licenseConfig)
+    {
+        OPENDAQ_PARAM_NOT_NULL(licenseConfig);
+
+        PropertyObjectPtr licenseConfigLocal;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetLicenseConfig, licenseConfigLocal);
+
+        *licenseConfig = licenseConfigLocal.detach();
+        return errCode;
+    }
+
+    virtual PropertyObjectPtr onGetLicenseConfig()
+    {
+        return nullptr;
+    }
+
+    virtual ErrCode licenseValid(Bool* valid)
+    {
+        OPENDAQ_PARAM_NOT_NULL(valid);
+
+        Bool validLocal;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onLicenseValid, validLocal);
+
+        *valid = validLocal;
+        return errCode;
+    }
+
+    virtual Bool onLicenseValid()
+    {
+        return false;
+    }
+
+    virtual ErrCode getLicenseChecker(ILicenseChecker** licenseChecker)
+    {
+        OPENDAQ_PARAM_NOT_NULL(licenseChecker);
+
+        LicenseCheckerPtr ptr;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetLicenseChecker, ptr);
+
+        *licenseChecker = ptr.detach();
+        return errCode;
+    }
+
+    virtual LicenseCheckerPtr onGetLicenseChecker()
+    {
+        return nullptr;
     }
 
 protected:

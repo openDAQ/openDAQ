@@ -131,4 +131,40 @@ daq::ErrCode MockFunctionBlockModuleImpl::getAvailableStreamingTypes(daq::IDict*
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
+daq::ErrCode MockFunctionBlockModuleImpl::authenticate(Bool* succeeded, IPropertyObject* authenticationConfig)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+daq::ErrCode MockFunctionBlockModuleImpl::getAuthenticationConfig(IPropertyObject** authenticationConfig)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+daq::ErrCode MockFunctionBlockModuleImpl::isAuthenticated(Bool* authenticated)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+daq::ErrCode MockFunctionBlockModuleImpl::loadLicense(Bool* succeeded, IPropertyObject* licenseConfig)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+daq::ErrCode MockFunctionBlockModuleImpl::getLicenseConfig(IPropertyObject** licenseConfig)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+daq::ErrCode MockFunctionBlockModuleImpl::licenseValid(Bool* valid)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+daq::ErrCode MockFunctionBlockModuleImpl::getLicenseChecker(ILicenseChecker** licenseChecker)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockFunctionBlockModule, IModule, IContext*, ctx)

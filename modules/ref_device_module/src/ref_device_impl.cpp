@@ -158,17 +158,29 @@ std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
 
 PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
 {
-    const auto func = Function([](Int a, Int b) { return a + b; });
-
-    const auto funcProp =
+    const auto sumFunc = Function([](Int a, Int b) { return a + b; });
+    const auto sumProp =
         FunctionPropertyBuilder("Sum", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
             .setReadOnly(false)
             .build();
 
+    const auto sumListProp = FunctionProperty("SumList", FunctionInfo(ctInt,List<IArgumentInfo>(ListArgumentInfo("List", ctInt))));
+    const auto sumListFunc = Function(
+        [](const ListPtr<IBaseObject>& list)
+        {
+            Int sum = 0;
+            for (const auto& val : list)
+                sum += static_cast<Int>(val);
+            return sum;
+        });
+
     auto protectedObject = PropertyObject();
     protectedObject.addProperty(StringProperty("Owner", "openDAQ TM"));
-    protectedObject.addProperty(funcProp);
-    protectedObject.setPropertyValue("Sum", func);
+    protectedObject.addProperty(sumProp);
+    protectedObject.setPropertyValue("Sum", sumFunc);
+
+    protectedObject.addProperty(sumListProp);
+    protectedObject.setPropertyValue("SumList", sumListFunc);
 
     // group "everyone" has a read-only access to the protected object
     // group "admin" can change the protected object and call methods on it

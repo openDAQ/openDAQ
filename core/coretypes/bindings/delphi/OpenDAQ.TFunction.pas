@@ -14,8 +14,8 @@ type
     function Call(Args: IBaseObject): IObjectPtr; overload;
     function Call(Args: ISmartPtr): IObjectPtr; overload;
     function Call(Args: string): IObjectPtr; overload;
-    function Call(Args: RtInt): IObjectPtr; overload;
-    function Call(Args: RtFloat): IObjectPtr; overload;
+    function Call(Args: DaqInt): IObjectPtr; overload;
+    function Call(Args: DaqFloat): IObjectPtr; overload;
   end;
 
   TFunctionPtr = class(TObjectPtr<IFunction>, IFunctionPtr, IFunction)
@@ -27,8 +27,8 @@ type
     function Call(Args: IBaseObject): IObjectPtr; overload;
     function Call(Args: ISmartPtr): IObjectPtr; overload;
     function Call(Args: string): IObjectPtr; overload;
-    function Call(Args: RtInt): IObjectPtr; overload;
-    function Call(Args: RtFloat): IObjectPtr; overload;
+    function Call(Args: DaqInt): IObjectPtr; overload;
+    function Call(Args: DaqFloat): IObjectPtr; overload;
   private
     function IFunction.Call = Interface_Call;
 
@@ -38,7 +38,7 @@ type
 implementation
 uses
   OpenDAQ.Exceptions,
-  OpenDAQ.CoreTypes.Errors,
+
   OpenDAQ.SmartPtrRegistry;
 
 constructor TFunctionPtr.Create(Obj: IFunction);
@@ -60,7 +60,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Call(nil, AResult);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TObjectPtr<IBaseObject>.Create(AResult);
 end;
@@ -74,7 +74,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Call(Args, AResult);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TObjectPtr<IBaseObject>.Create(AResult);
 end;
@@ -94,7 +94,7 @@ begin
     Param := nil;
 
   Err := FObject.Call(Param, AResult);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TObjectPtr<IBaseObject>.Create(AResult);
 end;
@@ -109,15 +109,15 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := CreateStringFromDelphiString(StrObj, Args);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Err := FObject.Call(StrObj, AResult);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TObjectPtr<IBaseObject>.Create(AResult);
 end;
 
-function TFunctionPtr.Call(Args: RtFloat): IObjectPtr;
+function TFunctionPtr.Call(Args: DaqFloat): IObjectPtr;
 var
   Err : ErrCode;
   FloatObj: IFloat;
@@ -127,15 +127,15 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := CreateFloat(FloatObj, Args);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Err := FObject.Call(FloatObj, AResult);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TObjectPtr<IBaseObject>.Create(AResult);
 end;
 
-function TFunctionPtr.Call(Args: RtInt): IObjectPtr;
+function TFunctionPtr.Call(Args: DaqInt): IObjectPtr;
 var
   Err : ErrCode;
   IntObj: IInteger;
@@ -145,10 +145,10 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := CreateInteger(IntObj, Args);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Err := FObject.Call(IntObj, AResult);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TObjectPtr<IBaseObject>.Create(AResult);
 end;

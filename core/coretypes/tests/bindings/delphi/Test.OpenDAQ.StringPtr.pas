@@ -135,7 +135,7 @@ end;
 procedure TTest_StringPtr.CastInt();
 var
   StringObj1, StringObj2: IStringPtr;
-  Int: RtInt;
+  Int: DaqInt;
   TempMethod: TTestLocalMethod;
 begin
   StringObj1 := TStringPtr.Create('1');
@@ -148,7 +148,7 @@ begin
       BaseObjectToInt(StringObj2);
     end;
 
-  Assert.WillRaise(TempMethod, EConvertError);
+  Assert.WillRaise(TempMethod, ERTCoversionFailedException);
 end;
 
 procedure TTest_StringPtr.CastFloat();

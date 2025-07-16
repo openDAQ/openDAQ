@@ -105,7 +105,7 @@ var
   Err: ErrCode;
 begin
   Err := OpenDAQ.StructType.CreateStructType(RawInterface, Name, Names, DefaultValues, Types);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(RawInterface);
 end;
@@ -116,7 +116,7 @@ var
   Err: ErrCode;
 begin
   Err := OpenDAQ.StructType.CreateStructTypeNoDefaults(RawInterface, Name, Names, Types);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(RawInterface);
 end;
@@ -127,7 +127,7 @@ var
   Err: ErrCode;
 begin
   Err := OpenDAQ.StructType.CreateStructType(RawInterface, CreateStringFromDelphiString(Name), Names, DefaultValues, Types);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(RawInterface);
 end;
@@ -138,7 +138,7 @@ var
   Err: ErrCode;
 begin
   Err := OpenDAQ.StructType.CreateStructTypeNoDefaults(RawInterface, CreateStringFromDelphiString(Name), Names, Types);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(RawInterface);
 end;
@@ -152,7 +152,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetFieldNames(Names);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TListPtr<IString>.Create(Names);
 end;
@@ -166,7 +166,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetFieldDefaultValues(DefaultValues);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TListPtr<IBaseObject>.Create(DefaultValues);
 end;
@@ -180,7 +180,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetFieldTypes(Types);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TListPtr<IType>.Create(Types);
 end;

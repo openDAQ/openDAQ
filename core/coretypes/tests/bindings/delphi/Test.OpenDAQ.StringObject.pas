@@ -40,7 +40,7 @@ type
 implementation
 uses
   DS.UT.DSUnitTestEngineUnit, WinApi.Windows, OpenDAQ.CoreTypes.Errors, SysUtils,
-  OpenDAQ.TString;
+  OpenDAQ.TString, OpenDAQ.Exceptions;
 
 { TTest_StringObject }
 
@@ -146,7 +146,7 @@ begin
     BaseObjectToInt(StringObj2);
   end;;
 
-  Assert.WillRaise(TempMethod, EConvertError);
+  Assert.WillRaise(TempMethod, ERTCoversionFailedException);
 end;
 
 procedure TTest_StringObject.CastFloat;

@@ -355,7 +355,7 @@ namespace RTGen.Delphi.Parser
             private readonly Dictionary<string, string> _nameMapping = new Dictionary<string, string>
             {
                 { "Boolean", "daq::Bool" },
-                { "RtInt", "daq::Int" },
+                { "DaqInt", "daq::Int" },
                 { "Cardinal", "uint32_t" },
                 { "SizeT", "daq::SizeT" },
                 { "ErrCode", "daq::ErrCode"}

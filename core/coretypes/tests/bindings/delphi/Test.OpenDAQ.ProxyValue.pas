@@ -69,14 +69,14 @@ procedure TTest_ProxyValue.ConvertToInteger();
 var
   IntObj : IInteger;
   Proxy : TProxyValue<IInteger>;
-  IntValue : RtInt;
+  IntValue : DaqInt;
 begin
   CreateInteger(IntObj, 5);
 
   Proxy := TProxyValue<IInteger>.Create(IntObj);
   IntValue := Proxy;
 
-  Assert.AreEqual<RtInt>(IntValue, 5);
+  Assert.AreEqual<DaqInt>(IntValue, 5);
 end;
 
 procedure TTest_ProxyValue.ConvertToIntegerInterface;
@@ -138,7 +138,7 @@ end;
 procedure TTest_ProxyValue.TestGetPtr();
 var
   IntPtr : IIntegerPtr;
-  IntVal : RtInt;
+  IntVal : DaqInt;
   Proxy : TProxyValue<IInteger>;
 begin
   Proxy := 5;
@@ -147,14 +147,14 @@ begin
   if Assigned(IntPtr) then
   begin
     IntVal := IntPtr.GetValue();
-    Assert.AreEqual<RtInt>(IntVal, 5);
+    Assert.AreEqual<DaqInt>(IntVal, 5);
   end;
 end;
 
 procedure TTest_ProxyValue.CreateFloatFromInt();
 var
   FloatPtr: IFloatPtr;
-  FloatVal : RtFloat;
+  FloatVal : DaqFloat;
   Proxy : TProxyValue<IFloat>;
 begin
   Proxy := 5;
@@ -163,34 +163,34 @@ begin
   if Assigned(FloatPtr) then
   begin
     FloatVal := FloatPtr.GetValue();
-    Assert.AreEqual<RtFloat>(FloatVal, 5);
+    Assert.AreEqual<DaqFloat>(FloatVal, 5);
   end;
 end;
 
 procedure TTest_ProxyValue.CreateFloatFromConvertible();
 var
   Ratio: IRatio;
-  FloatVal : RtFloat;
+  FloatVal : DaqFloat;
   Proxy : TProxyValue;
 begin
   CreateRatio(Ratio, 1, 5);
   Proxy := Ratio;
   FloatVal := Proxy;
 
-  Assert.AreEqual<RtFloat>(FloatVal, 0.2);
+  Assert.AreEqual<DaqFloat>(FloatVal, 0.2);
 end;
 
 procedure TTest_ProxyValue.CreateIntFromConvertible();
 var
   Ratio: IRatio;
-  IntVal : RtInt;
+  IntVal : DaqInt;
   Proxy : TProxyValue;
 begin
   CreateRatio(Ratio, 6, 2);
   Proxy := Ratio;
   IntVal := Proxy;
 
-  Assert.AreEqual<RtInt>(IntVal, 3);
+  Assert.AreEqual<DaqInt>(IntVal, 3);
 end;
 
 procedure TTest_ProxyValue.TestGetInterface();
@@ -212,7 +212,7 @@ end;
 procedure TTest_ProxyValue.ConvertToSmartPtr();
 var
   Proxy : TProxyValue<IInteger>;
-  IntVal: RtInt;
+  IntVal: DaqInt;
   IntIntf : IInteger;
   IntPtr2 : IObjectPtr<IInteger>;
 begin
@@ -220,14 +220,14 @@ begin
   IntIntf := Proxy;
 
   IntVal := Proxy;
-  Assert.AreEqual<RtInt>(IntVal, 5);
+  Assert.AreEqual<DaqInt>(IntVal, 5);
   IntPtr2 := Proxy;
 end;
 
 procedure TTest_ProxyValue.ConvertToSmartPtr2();
 var
   Proxy : TProxyValue<IInteger>;
-  IntVal : RtInt;
+  IntVal : DaqInt;
   IntIntf : IInteger;
 begin
   Proxy := nil;
@@ -272,11 +272,11 @@ end;
 procedure TTest_ProxyValue.ConvertFromIntValue();
 var
   Proxy : TProxyValue<IInteger>;
-  IntValue : RtInt;
+  IntValue : DaqInt;
 begin
   Proxy := 5;
   IntValue := Proxy;
-  Assert.AreEqual<RtInt>(IntValue, 5);
+  Assert.AreEqual<DaqInt>(IntValue, 5);
 end;
 
 procedure TTest_ProxyValue.ConvertFromString();
@@ -292,11 +292,11 @@ end;
 procedure TTest_ProxyValue.ConvertFromFloatValue();
 var
   Proxy : TProxyValue<IFloat>;
-  FloatValue : RtFloat;
+  FloatValue : DaqFloat;
 begin
   Proxy := 5.5;
   FloatValue := Proxy;
-  Assert.AreEqual<RtFloat>(FloatValue, 5.5);
+  Assert.AreEqual<DaqFloat>(FloatValue, 5.5);
 end;
 
 procedure TTest_ProxyValue.ConvertFromBoolValueTrue();

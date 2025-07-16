@@ -18,6 +18,7 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
 #include <coretypes/coretype.h>
+#include <coretypes/listobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -51,6 +52,26 @@ DECLARE_OPENDAQ_INTERFACE(IArgumentInfo, IBaseObject)
      * of the function/procedure.
      */
     virtual ErrCode INTERFACE_FUNC getType(CoreType* type) = 0;
+
+    /*!
+     * @brief Gets the item type of list/dict-type Argument Info objects. The item type specifies the
+     * type of values in the list or dictionary arguments.
+     * @param[out] itemType The item type of the list/dictionary argument.
+     *
+     * In list-type Argument Info, the type of each item corresponds to the item type.
+     *
+     * In dict-type Argument Info, the type of each value in the <key, value> pairing corresponds to the
+     * item type.
+     */
+    virtual ErrCode INTERFACE_FUNC getItemType(CoreType* itemType) = 0;
+
+    /*!
+     * @brief Gets the key type of dict-type Argument Info objects. The item type specifies the type of
+     * keys in dictionary arguments.
+     *
+     * @param[out] keyType The key type of the dictionary argument.
+     */
+    virtual ErrCode INTERFACE_FUNC getKeyType(CoreType* keyType) = 0;
 };
 
 /*!@}*/
@@ -69,6 +90,34 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, ArgumentInfo,
     IString*, name,
     CoreType, type
+);
+
+/*!
+ * @brief Creates a list-type Argument info object with the specified name and item type.
+ *
+ * @param name The name of the argument.
+ * @param itemType Corresponds to the expected type of items in the list argument.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY,
+    ListArgumentInfo, IArgumentInfo,
+    IString*, name,
+    CoreType, itemType
+);
+
+/*!
+ * @brief Creates a dict-type Argument info object with the specified name, key type and item type.
+ *
+ * @param name The name of the argument.
+ * @param keyType Corresponds to the expected type of key in the dictionary argument.
+ * @param itemType Corresponds to the expected type of items in the dictionary argument.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY,
+    DictArgumentInfo, IArgumentInfo,
+    IString*, name,
+    CoreType, keyType,
+    CoreType, itemType
 );
 
 /*!@}*/

@@ -187,6 +187,11 @@ MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
     addedComponentPrivate.unlockAttributes(List<IString>("Visible"));
     hiddenInputPort.setVisible(false);
     addedComponentPrivate.lockAttributes(List<IString>("Visible"));
+
+    
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(StringProperty("TestProp", "TestValue"));
+    this->componentConfig = config.detach();
 }
 
 DictPtr<IString, IFunctionBlockType> MockFb1Impl::onGetAvailableFunctionBlockTypes()
@@ -384,6 +389,10 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     connectionStatusContainer.addConfigurationConnectionStatus("ConfigConnStr", connectionStatusInitValue);
 
     this->objPtr.addProperty(ObjectProperty("ObjectProperty", createMockNestedPropertyObject()));
+    
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(StringProperty("TestProp", "TestValue"));
+    this->componentConfig = config.detach();
 
     const auto srv = createWithImplementation<IServer, MockSrvImpl>(ctx, this->template borrowPtr<DevicePtr>(), "srv");
     servers.addItem(srv);

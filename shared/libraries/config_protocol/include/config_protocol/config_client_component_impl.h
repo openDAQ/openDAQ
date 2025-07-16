@@ -58,6 +58,9 @@ protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void remoteUpdateStatuses(const SerializedObjectPtr& serializedStatuses);
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 
 private:
     void componentUpdateEnd(const CoreEventArgsPtr& args);
@@ -138,10 +141,7 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::updateOperationMode(OperationModeTy
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::getComponentConfig(IPropertyObject** config)
 {
-    return daqTry([this, &config]
-    {
-        *config = this->clientComm->getComponentConfig(this->remoteGlobalId).detach();
-    });
+    return Impl::getComponentConfig(config);
 }
 
 template <class Impl>
@@ -270,6 +270,16 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
         const auto serializedStatuses = serialized.readSerializedObject("statuses");
         remoteUpdateStatuses(serializedStatuses);
     }
+}
+
+template <class Impl>
+void ConfigClientComponentBaseImpl<Impl>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                        const BaseObjectPtr& context,
+                                                                        const FunctionPtr& factoryCallback)
+{
+    Impl::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+    if (serializedObject.hasKey("ComponentConfig"))
+        this->componentConfig = serializedObject.readObject("ComponentConfig");
 }
 
 template <class Impl>

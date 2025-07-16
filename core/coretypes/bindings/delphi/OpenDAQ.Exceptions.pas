@@ -353,8 +353,8 @@ type
 implementation
 
 uses
-  DS.Utils,
-  OpenDAQ.CoreTypes.Errors;
+  OpenDAQ.CoreTypes.Errors,
+  System.StrUtils;
 
 procedure CheckDaqErrorInfo(Err: ErrCode);
 var
@@ -381,7 +381,7 @@ begin
 
   ExceptionClass := TDaqExceptionRegistry.GetExceptionClass(Err);
   if not Assigned(ExceptionClass) then
-    raise EDaqException.Create(IfThenStr(Length(Msg) = 0, 'openDAQ Exception occured', Msg), Err)
+    raise EDaqException.Create(IfThen(Length(Msg) = 0, 'openDAQ Exception occured', Msg), Err)
   else
     if Length(Msg) = 0 then
       raise ExceptionClass.Create(Err)

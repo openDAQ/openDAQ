@@ -12,8 +12,8 @@ type
     procedure Execute(Args : IBaseObject); overload;
     procedure Execute(Args : ISmartPtr); overload;
     procedure Execute(Args : string); overload;
-    procedure Execute(Args : RtInt); overload;
-    procedure Execute(Args : RtFloat); overload;
+    procedure Execute(Args : DaqInt); overload;
+    procedure Execute(Args : DaqFloat); overload;
     procedure Execute(Args : Boolean); overload;
   end;
 
@@ -26,8 +26,8 @@ type
     procedure Execute(Args : IBaseObject); overload;
     procedure Execute(Args : ISmartPtr); overload;
     procedure Execute(Args : string); overload;
-    procedure Execute(Args : RtInt); overload;
-    procedure Execute(Args : RtFloat); overload;
+    procedure Execute(Args : DaqInt); overload;
+    procedure Execute(Args : DaqFloat); overload;
     procedure Execute(Args : Boolean); overload;
 
   private
@@ -64,7 +64,7 @@ begin
   CheckDaqErrorInfo(Err);
 end;
 
-procedure TProcedurePtr.Execute(Args: RtFloat);
+procedure TProcedurePtr.Execute(Args: DaqFloat);
 var
   Err : ErrCode;
   FloatObj: IFloat;
@@ -105,7 +105,7 @@ begin
   CheckDaqErrorInfo(Err);
 end;
 
-procedure TProcedurePtr.Execute(Args: RtInt);
+procedure TProcedurePtr.Execute(Args: DaqInt);
 var
   Err : ErrCode;
   IntObj: IInteger;

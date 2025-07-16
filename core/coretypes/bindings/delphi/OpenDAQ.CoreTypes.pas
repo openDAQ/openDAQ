@@ -12,15 +12,15 @@ uses
 type
   SizeT = Nativeint;
   PSizeT = ^SizeT;
-  RtNativeHandle = NativeUInt;
+  DaqNativeHandle = NativeUInt;
   ErrCode = Cardinal;
   CoreType = Integer;
   PBoolean = ^Boolean;
-  RtInt = Int64;
-  RtUInt = UInt64;
-  PRtInt = ^RtInt;
-  RtFloat = Double;
-  PRtFloat = ^RtFloat;
+  DaqInt = Int64;
+  DaqUInt = UInt64;
+  PDaqInt = ^DaqInt;
+  DaqFloat = Double;
+  PDaqFloat = ^DaqFloat;
   TConstChar = PAnsiChar;
   TConstCharPtr = PAnsiChar;
 
@@ -91,14 +91,14 @@ type
 
   IFloat = interface(IBaseObject)
   ['{D1E14646-B7B0-5D3D-9553-BE6F1CD4F0D8}']
-    function GetValue(out Value: RtFloat): ErrCode; stdcall;
-    function EqualsValue(const Value: RtFloat; out Equal: Boolean): ErrCode stdcall;
+    function GetValue(out Value: DaqFloat): ErrCode; stdcall;
+    function EqualsValue(const Value: DaqFloat; out Equal: Boolean): ErrCode stdcall;
   end;
 
   IInteger = interface(IBaseObject)
   ['{B5C52F78-45F9-5C54-9BC1-CA65A46472CB}']
-    function GetValue(out Value: RtInt): ErrCode; stdcall;
-    function EqualsValue(const Value: RtInt; out Equal: Boolean): ErrCode stdcall;
+    function GetValue(out Value: DaqInt): ErrCode; stdcall;
+    function EqualsValue(const Value: DaqInt; out Equal: Boolean): ErrCode stdcall;
   end;
 
   IString = interface(IBaseObject)
@@ -152,8 +152,8 @@ type
 
   IConvertible = interface(IBaseObject)
   ['{D984FD0F-7980-5E7B-8EC1-75C507F302FE}']
-    function ToFloat(out Val: RtFloat): ErrCode stdcall;
-    function ToInt(out Val: RtInt): ErrCode stdcall;
+    function ToFloat(out Val: DaqFloat): ErrCode stdcall;
+    function ToInt(out Val: DaqInt): ErrCode stdcall;
     function ToBool(out Val: Boolean): ErrCode stdcall;
   end;
 
@@ -198,9 +198,9 @@ type
     function Key(const Str: PAnsiChar): ErrCode  stdcall;
     function KeyStr(Name: IString): ErrCode stdcall;
     function KeyRaw(const Str: PAnsiChar; Len: SizeT): ErrCode stdcall;
-    function WriteInt(Int: RtInt): ErrCode stdcall;
+    function WriteInt(Int: DaqInt): ErrCode stdcall;
     function WriteBool(Bool: Boolean): ErrCode stdcall;
-    function WriteFloat(Real: RtFloat): ErrCode stdcall;
+    function WriteFloat(Real: DaqFloat): ErrCode stdcall;
     function WriteString(const Str: PAnsiChar; Len: SizeT): ErrCode stdcall;
     function WriteNull(): ErrCode stdcall;
 
@@ -216,8 +216,8 @@ type
     function ReadObject(Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;
     function ReadString(out Str: IString): ErrCode stdcall;
     function ReadBool(out Bool: Boolean): ErrCode stdcall;
-    function ReadFloat(out Real: RtFloat): ErrCode stdcall;
-    function ReadInt(out Int: RtInt): ErrCode stdcall;
+    function ReadFloat(out Real: DaqFloat): ErrCode stdcall;
+    function ReadInt(out Int: DaqInt): ErrCode stdcall;
     function GetCount(out Size: SizeT): ErrCode stdcall;
     function GetCurrentItemType(out AType: TCoreType): ErrCode stdcall;
   end;
@@ -230,8 +230,8 @@ type
     function ReadObject(Key: IString; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;
     function ReadString(Key: IString; out Str: IString): ErrCode stdcall;
     function ReadBool(Key: IString; out Bool: Boolean): ErrCode stdcall;
-    function ReadFloat(Key: IString; out Real: RtFloat): ErrCode stdcall;
-    function ReadInt(Key: IString; out Int: RtInt): ErrCode stdcall;
+    function ReadFloat(Key: IString; out Real: DaqFloat): ErrCode stdcall;
+    function ReadInt(Key: IString; out Int: DaqInt): ErrCode stdcall;
     function HasKey(Key: IString; out HasKey: Boolean): ErrCode stdcall;
     function GetKeys(out List: IListObject): ErrCode stdcall;
     function GetType(Key: IString; out AType: TCoreType): ErrCode stdcall;
@@ -249,7 +249,7 @@ type
   IDeserializer = interface(IBaseObject)
   ['{66DEEEF9-2B0D-5A49-A050-2820C4738AE7}']
     function Deserialize(Serialized: IString; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;
-    function Update(Updatable: IUpdatable; Serialized: IString): ErrCode; stdcall;
+    function Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject): ErrCode; stdcall;
     function CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString): ErrCode; stdcall;
   end;
 
@@ -261,8 +261,8 @@ type
 
   IRatio = interface(IBaseObject)
   ['{08D28C13-55A6-5FE5-A0F0-19A3F8707C15}']
-    function GetNumerator(out Numerator : RtInt) : ErrCode; stdcall;
-    function GetDenominator(out Denominator : RtInt) : ErrCode; stdcall;
+    function GetNumerator(out Numerator : DaqInt) : ErrCode; stdcall;
+    function GetDenominator(out Denominator : DaqInt) : ErrCode; stdcall;
   end;
 
   IErrorInfo = interface(IBaseObject)
@@ -298,6 +298,8 @@ type
 
     function GetCoreType() : TCoreType;
     function GetInterface() : T;
+
+    function SupportsInterface(const IID: TGUID): Boolean;
   end;
 
   IFreezablePtr = interface(IObjectPtr<IFreezable>)
@@ -338,13 +340,13 @@ function IsRtSerializeFactoryRegistered(Id : string) : Boolean;
 
 function CreateBaseObject(out Obj: IBaseObject): ErrCode; cdecl;
 function CreateBoolean(out Obj: IBoolean; const Value: Boolean): ErrCode; cdecl;
-function CreateFloat(out Obj: IFloat; const Value: RtFloat): ErrCode; cdecl;
-function CreateInteger(out Obj: IInteger; const Value: RtInt): ErrCode; cdecl;
+function CreateFloat(out Obj: IFloat; const Value: DaqFloat): ErrCode; cdecl;
+function CreateInteger(out Obj: IInteger; const Value: DaqInt): ErrCode; cdecl;
 function CreateString(out Obj: IString; const Value: PAnsiChar): ErrCode; cdecl;
 function CreateStringFromDelphiString(const Value: string): IString; overload;
 function CreateStringFromDelphiString(out Obj: IString; const Value: string): ErrCode; overload;
 function CreateBinaryData(out Obj: IBinaryData; const Size: SizeT): ErrCode; cdecl;
-function CreateRatio(out Obj: IRatio; const Numerator: RtInt; const Denominator: RtInt): ErrCode; cdecl;
+function CreateRatio(out Obj: IRatio; const Numerator: DaqInt; const Denominator: DaqInt): ErrCode; cdecl;
 
 function CreateDict(out Obj: IDictObject): ErrCode; cdecl;
 function CreateList(out Obj: IListObject): ErrCode; cdecl;
@@ -355,11 +357,11 @@ procedure DaqSetErrorInfo(ErrorInfo: IErrorInfo); cdecl;
 procedure DaqGetErrorInfo(out ErrorInfo: IErrorInfo); cdecl;
 procedure DaqClearErrorInfo(); cdecl;
 
-function BaseObjectToFloat(Obj: IBaseObject): RtFloat; overload;
-function BaseObjectToFloat(Obj: ISmartPtr): RtFloat; overload;
+function BaseObjectToFloat(Obj: IBaseObject): DaqFloat; overload;
+function BaseObjectToFloat(Obj: ISmartPtr): DaqFloat; overload;
 
-function BaseObjectToInt(Obj: IBaseObject): RtInt; overload;
-function BaseObjectToInt(Obj: ISmartPtr): RtInt; overload;
+function BaseObjectToInt(Obj: IBaseObject): DaqInt; overload;
+function BaseObjectToInt(Obj: ISmartPtr): DaqInt; overload;
 
 function BaseObjectToBool(Obj: IBaseObject): Boolean; overload;
 function BaseObjectToBool(Obj: ISmartPtr): Boolean; overload;
@@ -376,8 +378,8 @@ function GetSerializableInterface(Obj: ISmartPtr): ISerializablePtr; overload;
 function RtToString(Value : IString) : string;
 
 function DaqBoxValue(Value: Boolean): IBoolean; overload;
-function DaqBoxValue(Value: RtInt): IInteger; overload;
-function DaqBoxValue(Value: RtFloat): IFloat; overload;
+function DaqBoxValue(Value: DaqInt): IInteger; overload;
+function DaqBoxValue(Value: DaqFloat): IFloat; overload;
 function DaqBoxValue(Value: string): IString; overload;
 
 implementation
@@ -480,7 +482,7 @@ begin
   CheckDaqErrorInfo(Err);
 end;
 
-function DaqBoxValue(Value: RtInt): IInteger; overload;
+function DaqBoxValue(Value: DaqInt): IInteger; overload;
 var
   Err: ErrCode;
 begin
@@ -488,7 +490,7 @@ begin
   CheckDaqErrorInfo(Err);
 end;
 
-function DaqBoxValue(Value: RtFloat): IFloat; overload;
+function DaqBoxValue(Value: DaqFloat): IFloat; overload;
 var
   Err: ErrCode;
 begin
@@ -516,7 +518,7 @@ begin
   Result := CreateString(Obj, PAnsiChar(UTF8String(Value)));
 end;
 
-function BaseObjectToFloat(Obj: IBaseObject): RtFloat;
+function BaseObjectToFloat(Obj: IBaseObject): DaqFloat;
 var
   Conv: IConvertible;
   Res: ErrCode;
@@ -528,12 +530,12 @@ begin
   CheckDaqErrorInfo(Res);
 end;
 
-function BaseObjectToFloat(Obj: ISmartPtr): RtFloat;
+function BaseObjectToFloat(Obj: ISmartPtr): DaqFloat;
 begin
   Result := BaseObjectToFloat(Obj.GetObject());
 end;
 
-function BaseObjectToInt(Obj: IBaseObject): RtInt;
+function BaseObjectToInt(Obj: IBaseObject): DaqInt;
 var
   Conv: IConvertible;
   Res: ErrCode;
@@ -545,7 +547,7 @@ begin
   CheckDaqErrorInfo(Res);
 end;
 
-function BaseObjectToInt(Obj: ISmartPtr): RtInt;
+function BaseObjectToInt(Obj: ISmartPtr): DaqInt;
 begin
   Result := BaseObjectToInt(Obj.GetObject());
 end;

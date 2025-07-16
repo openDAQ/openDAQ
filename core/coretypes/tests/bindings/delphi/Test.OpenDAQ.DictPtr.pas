@@ -447,7 +447,7 @@ procedure TTest_DictPtr.GetKeyList();
 var
   DictObj: IDictionaryPtr<IInteger, IString>;
   Keys: IListPtr<IInteger>;
-  IntVal1, IntVal2: RtInt;
+  IntVal1, IntVal2: DaqInt;
 begin
   DictObj := TDictionaryPtr<IInteger, IString>.Create();
 
@@ -491,7 +491,7 @@ var
   DictObj: IDictionaryPtr<IInteger, IString>;
   Keys: IIterablePtr<IInteger>;
   It, EndIt: IIteratorPtr<IInteger>;
-  IntVal1, IntVal2: RtInt;
+  IntVal1, IntVal2: DaqInt;
 begin
   DictObj := TDictionaryPtr<IInteger, IString>.Create();
 
@@ -557,7 +557,7 @@ procedure TTest_DictPtr.ForEachKeys;
 var
   DictObj: IDictionaryPtr<IInteger, IString>;
   Key: IInteger;
-  Sum: RtInt;
+  Sum: DaqInt;
 begin
   DictObj := TDictionaryPtr<IInteger, IString>.Create();
 
@@ -571,7 +571,7 @@ begin
   Sum := 0;
   for Key in DictObj.GetKeys do
     Sum := Sum + BaseObjectToInt(Key);
-  Assert.AreEqual<RtInt>(6, Sum);
+  Assert.AreEqual<DaqInt>(6, Sum);
 end;
 
 procedure TTest_DictPtr.ForEachValues;
@@ -579,7 +579,7 @@ var
   DictObj: IDictionaryPtr<IInteger, IString>;
   Key: IString;
   KeyStr: string;
-  Sum: RtInt;
+  Sum: DaqInt;
 begin
   DictObj := TDictionaryPtr<IInteger, IString>.Create();
 
@@ -597,7 +597,7 @@ begin
     Sum := Sum + strtoint(KeyStr);
   end;
 
-  Assert.AreEqual<RtInt>(6, Sum);
+  Assert.AreEqual<DaqInt>(6, Sum);
 end;
 
 procedure TTest_DictPtr.HasKeyTrue();

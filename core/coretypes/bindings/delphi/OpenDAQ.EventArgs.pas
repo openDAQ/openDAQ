@@ -11,13 +11,13 @@ type
 
   IEventArgs = interface(IBaseObject)
   ['{81D0979C-1FA7-51F8-80FB-44216A6F8D33}']
-    function GetEventId(out Id : RtInt) : ErrCode; stdcall;
+    function GetEventId(out Id : DaqInt) : ErrCode; stdcall;
     function GetEventName(out Name : IString) : ErrCode; stdcall;
   end;
 
   IEventArgsPtr<T : IEventArgs> = interface(IObjectPtr<T>)
   ['{2e26250c-0947-5b97-9962-b034b22f6771}']
-    function GetEventId() : RtInt;
+    function GetEventId() : DaqInt;
     function GetEventName() : IStringPtr;
   end;
 
@@ -28,13 +28,13 @@ type
     constructor Create(Obj : IBaseObject); overload; override;
     constructor Create(Obj : T); overload;
 
-    function GetEventId() : RtInt;
+    function GetEventId() : DaqInt;
     function GetEventName() : IStringPtr;
   private
     function IEventArgs.GetEventId = Interface_GetEventId;
     function IEventArgs.GetEventName = Interface_GetEventName;
 
-    function Interface_GetEventId(out Id : RtInt) : ErrCode; stdcall;
+    function Interface_GetEventId(out Id : DaqInt) : ErrCode; stdcall;
     function Interface_GetEventName(out Name : IString) : ErrCode; stdcall;
   end;
 
@@ -54,10 +54,10 @@ begin
   inherited Create(Obj);
 end;
 
-function TEventArgsPtr<T>.GetEventId() : RtInt;
+function TEventArgsPtr<T>.GetEventId() : DaqInt;
 var
   Err : ErrCode;
-  Id: RtInt;
+  Id: DaqInt;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
@@ -82,7 +82,7 @@ begin
   Result := TStringPtr.Create(Name);
 end;
 
-function TEventArgsPtr<T>.Interface_GetEventId(out Id : RtInt) : ErrCode; stdcall;
+function TEventArgsPtr<T>.Interface_GetEventId(out Id : DaqInt) : ErrCode; stdcall;
 begin
   Result := FObject.GetEventId(Id);
 end;

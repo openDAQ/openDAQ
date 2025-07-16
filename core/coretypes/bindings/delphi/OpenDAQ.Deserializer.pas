@@ -20,9 +20,9 @@ type
     function Deserialize(Serialized: string; Context: ISmartPtr; FactoryCallback: IFunctionPtr): TProxyValue; overload;
     function Deserialize(Serialized: string; Context: TProxyValue; FactoryCallback: IFunctionPtr): TProxyValue; overload;
 
-    procedure Update(Updatable: IUpdatable; Serialized: IString); overload;
-    procedure Update(Updatable: IUpdatablePtr; Serialized: IStringPtr); overload;
-    procedure Update(Updatable: IUpdatablePtr; Serialized: string); overload;
+    procedure Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject); overload;
+    procedure Update(Updatable: IUpdatablePtr; Serialized: IStringPtr; Config: TProxyValue); overload;
+    procedure Update(Updatable: IUpdatablePtr; Serialized: string; Config: TProxyValue); overload;
 
     procedure CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString); overload;
     procedure CallCustomProc(CustomDeserialize: IProcedurePtr; Serialized: IStringPtr); overload;
@@ -40,9 +40,9 @@ type
     function Deserialize(Serialized: string; Context: ISmartPtr; FactoryCallback: IFunctionPtr): TProxyValue; overload;
     function Deserialize(Serialized: string; Context: TProxyValue; FactoryCallback: IFunctionPtr): TProxyValue; overload;
 
-    procedure Update(Updatable: IUpdatable; Serialized: IString); overload;
-    procedure Update(Updatable: IUpdatablePtr; Serialized: IStringPtr); overload;
-    procedure Update(Updatable: IUpdatablePtr; Serialized: string); overload;
+    procedure Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject); overload;
+    procedure Update(Updatable: IUpdatablePtr; Serialized: IStringPtr; Config: TProxyValue); overload;
+    procedure Update(Updatable: IUpdatablePtr; Serialized: string; Config: TProxyValue); overload;
 
     procedure CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString); overload;
     procedure CallCustomProc(CustomDeserialize: IProcedurePtr; Serialized: IStringPtr); overload;
@@ -53,7 +53,7 @@ type
     function IDeserializer.CallCustomProc = Interface_CallCustomProc;
 
     function Interface_Deserialize(Serialized: IString; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;
-    function Interface_Update(Updatable: IUpdatable; Serialized: IString): ErrCode; stdcall;
+    function Interface_Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject): ErrCode; stdcall;
     function Interface_CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString): ErrCode; stdcall;
   end;
 
@@ -177,18 +177,18 @@ begin
   Result := TProxyValue.Create(Obj);
 end;
 
-procedure TDeserializerPtr.Update(Updatable: IUpdatable; Serialized: IString);
+procedure TDeserializerPtr.Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject);
 var
   Err: ErrCode;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
-  Err := FObject.Update(Updatable, Serialized);
+  Err := FObject.Update(Updatable, Serialized, Config);
   CheckDaqErrorInfo(Err);
 end;
 
-procedure TDeserializerPtr.Update(Updatable: IUpdatablePtr; Serialized: IStringPtr);
+procedure TDeserializerPtr.Update(Updatable: IUpdatablePtr; Serialized: IStringPtr; Config: TProxyValue);
 var
   Err: ErrCode;
   UpdatableIntf: IUpdatable;
@@ -207,11 +207,11 @@ begin
   else
     SerializedIntf := nil;
 
-  Err := FObject.Update(UpdatableIntf, SerializedIntf);
+  Err := FObject.Update(UpdatableIntf, SerializedIntf, Config);
   CheckDaqErrorInfo(Err);
 end;
 
-procedure TDeserializerPtr.Update(Updatable: IUpdatablePtr; Serialized: string);
+procedure TDeserializerPtr.Update(Updatable: IUpdatablePtr; Serialized: string; Config: TProxyValue);
 var
   Err: ErrCode;
   UpdatableIntf: IUpdatable;
@@ -224,7 +224,7 @@ begin
   else
     UpdatableIntf := nil;
 
-  Err := FObject.Update(UpdatableIntf, CreateStringFromDelphiString(Serialized));
+  Err := FObject.Update(UpdatableIntf, CreateStringFromDelphiString(Serialized), Config);
   CheckDaqErrorInfo(Err);
 end;
 
@@ -284,9 +284,9 @@ begin
   Result := FObject.Deserialize(Serialized, Context, FactoryCallback, Obj);
 end;
 
-function TDeserializerPtr.Interface_Update(Updatable: IUpdatable; Serialized: IString): ErrCode; stdcall;
+function TDeserializerPtr.Interface_Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject): ErrCode; stdcall;
 begin
-  Result := FObject.Update(Updatable, Serialized);
+  Result := FObject.Update(Updatable, Serialized, Config);
 end;
 
 function TDeserializerPtr.Interface_CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString): ErrCode; stdcall;

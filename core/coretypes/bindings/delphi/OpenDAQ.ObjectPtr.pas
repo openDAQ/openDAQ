@@ -23,7 +23,7 @@ type
     function ToString(): string; override;
 
     function QueryInterface(const IID: TGUID; out Obj): HResult; stdcall;
-
+    function SupportsInterface(const IID: TGUID): Boolean;
   protected
     FObject : T;
   private
@@ -49,7 +49,8 @@ uses
   System.SysUtils,
 
   OpenDAQ.Exceptions,
-  OpenDAQ.SmartPtrRegistry;
+  OpenDAQ.SmartPtrRegistry,
+  OpenDAQ.CoreTypes.Errors;
 
 { TObjectPtr<T> }
 
@@ -80,7 +81,7 @@ begin
 
   FObject := T(Obj);
 
-{$IFDEF DEBUG}
+{$IF defined(DEBUG) and not defined(UNIT_TESTING)}
   Assert(not Assigned(FObject), 'Factory constructor not overriden! Creating a BaseObject object is only usefull in tests');
 {$ENDIF}
 end;
@@ -219,6 +220,15 @@ begin
   end
   else
     Result := inherited QueryInterface(IID, Obj);
+end;
+
+function TObjectPtr<T>.SupportsInterface(const IID: TGUID): Boolean;
+var
+  Intf: Pointer;
+  Res: HRESULT;
+begin
+  Res := FObject.BorrowInterface(IID, Intf);
+  Result := Res = 0;
 end;
 
 initialization

@@ -24,8 +24,8 @@ type
     function ReadString(): string; overload;
 
     function ReadBool(): Boolean;
-    function ReadFloat(): RtFloat;
-    function ReadInt(): RtInt;
+    function ReadFloat(): DaqFloat;
+    function ReadInt(): DaqInt;
 
     function GetCount(): SizeT;
     function GetCurrentItemType(): TCoreType;
@@ -49,7 +49,7 @@ type
     function Interface_ReadString(out Str: IString): ErrCode stdcall;
     function Interface_ReadBool(out Bool: Boolean): ErrCode stdcall;
     function Interface_ReadFloat(out Real: Double): ErrCode stdcall;
-    function Interface_ReadInt(out Int: RtInt): ErrCode stdcall;
+    function Interface_ReadInt(out Int: DaqInt): ErrCode stdcall;
     function Interface_GetCount(out Size: SizeT): ErrCode stdcall;
     function Interface_GetCurrentItemType(out AType: TCoreType): ErrCode stdcall;
   end;
@@ -86,10 +86,10 @@ begin
   Result := Value;
 end;
 
-function TSerializedListPtr.ReadFloat(): RtFloat;
+function TSerializedListPtr.ReadFloat(): DaqFloat;
 var
   Err : ErrCode;
-  Value : RtFloat;
+  Value : DaqFloat;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
@@ -100,10 +100,10 @@ begin
   Result := Value;
 end;
 
-function TSerializedListPtr.ReadInt(): RtInt;
+function TSerializedListPtr.ReadInt(): DaqInt;
 var
   Err : ErrCode;
-  Value : RtInt;
+  Value : DaqInt;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
@@ -225,7 +225,7 @@ end;
 
 // Decorated methods
 
-function TSerializedListPtr.Interface_ReadInt(out Int: RtInt): ErrCode;
+function TSerializedListPtr.Interface_ReadInt(out Int: DaqInt): ErrCode;
 begin
   Result := FObject.ReadInt(Int);
 end;

@@ -8,8 +8,8 @@ uses
 type
   IConvertiblePtr = interface(IObjectPtr<IConvertible>)
   ['{5B0F0EDC-24E0-4E6B-B252-68DC9BA77A26}']
-    function ToFloat(): RtFloat;
-    function ToInt(): RtInt;
+    function ToFloat(): DaqFloat;
+    function ToInt(): DaqInt;
     function ToBool(): Boolean;
   end;
 
@@ -18,8 +18,8 @@ type
     constructor Create(Obj : IBaseObject); overload; override;
     constructor Create(Obj : IConvertible); overload;
 
-    function ToFloat(): RtFloat;
-    function ToInt(): RtInt;
+    function ToFloat(): DaqFloat;
+    function ToInt(): DaqInt;
     function ToBool(): Boolean;
 
   private
@@ -27,8 +27,8 @@ type
     function IConvertible.ToInt = Interface_ToInt;
     function IConvertible.ToBool = Interface_ToBool;
 
-    function Interface_ToFloat(out Val: RtFloat): ErrCode stdcall;
-    function Interface_ToInt(out Val: RtInt): ErrCode stdcall;
+    function Interface_ToFloat(out Val: DaqFloat): ErrCode stdcall;
+    function Interface_ToInt(out Val: DaqInt): ErrCode stdcall;
     function Interface_ToBool(out Val: Boolean): ErrCode stdcall;
   end;
 
@@ -49,10 +49,10 @@ begin
   inherited Create(Obj);
 end;
 
-function TConvertiblePtr.ToFloat() : RtFloat;
+function TConvertiblePtr.ToFloat() : DaqFloat;
 var
   Err : ErrCode;
-  FloatVal : RtFloat;
+  FloatVal : DaqFloat;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
@@ -63,10 +63,10 @@ begin
   Result := FloatVal;
 end;
 
-function TConvertiblePtr.ToInt(): RtInt;
+function TConvertiblePtr.ToInt(): DaqInt;
 var
   Err : ErrCode;
-  IntVal : RtInt;
+  IntVal : DaqInt;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
@@ -91,12 +91,12 @@ begin
   Result := BoolVal;
 end;
 
-function TConvertiblePtr.Interface_ToFloat(out Val: RtFloat): ErrCode;
+function TConvertiblePtr.Interface_ToFloat(out Val: DaqFloat): ErrCode;
 begin
   Result := FObject.ToFloat(Val);
 end;
 
-function TConvertiblePtr.Interface_ToInt(out Val: RtInt): ErrCode;
+function TConvertiblePtr.Interface_ToInt(out Val: DaqInt): ErrCode;
 begin
   Result := FObject.ToInt(Val);
 end;

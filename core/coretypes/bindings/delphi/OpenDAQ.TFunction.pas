@@ -14,8 +14,8 @@ type
     function Call(Args: IBaseObject): IObjectPtr; overload;
     function Call(Args: ISmartPtr): IObjectPtr; overload;
     function Call(Args: string): IObjectPtr; overload;
-    function Call(Args: RtInt): IObjectPtr; overload;
-    function Call(Args: RtFloat): IObjectPtr; overload;
+    function Call(Args: DaqInt): IObjectPtr; overload;
+    function Call(Args: DaqFloat): IObjectPtr; overload;
   end;
 
   TFunctionPtr = class(TObjectPtr<IFunction>, IFunctionPtr, IFunction)
@@ -27,8 +27,8 @@ type
     function Call(Args: IBaseObject): IObjectPtr; overload;
     function Call(Args: ISmartPtr): IObjectPtr; overload;
     function Call(Args: string): IObjectPtr; overload;
-    function Call(Args: RtInt): IObjectPtr; overload;
-    function Call(Args: RtFloat): IObjectPtr; overload;
+    function Call(Args: DaqInt): IObjectPtr; overload;
+    function Call(Args: DaqFloat): IObjectPtr; overload;
   private
     function IFunction.Call = Interface_Call;
 
@@ -117,7 +117,7 @@ begin
   Result := TObjectPtr<IBaseObject>.Create(AResult);
 end;
 
-function TFunctionPtr.Call(Args: RtFloat): IObjectPtr;
+function TFunctionPtr.Call(Args: DaqFloat): IObjectPtr;
 var
   Err : ErrCode;
   FloatObj: IFloat;
@@ -135,7 +135,7 @@ begin
   Result := TObjectPtr<IBaseObject>.Create(AResult);
 end;
 
-function TFunctionPtr.Call(Args: RtInt): IObjectPtr;
+function TFunctionPtr.Call(Args: DaqInt): IObjectPtr;
 var
   Err : ErrCode;
   IntObj: IInteger;

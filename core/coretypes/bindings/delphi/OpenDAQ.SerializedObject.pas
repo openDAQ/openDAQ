@@ -36,11 +36,11 @@ type
     function ReadBool(Key : IString): Boolean; overload;
     function ReadBool(Key : string): Boolean; overload;
 
-    function ReadFloat(Key : IString): RtFloat; overload;
-    function ReadFloat(Key : string): RtFloat; overload;
+    function ReadFloat(Key : IString): DaqFloat; overload;
+    function ReadFloat(Key : string): DaqFloat; overload;
 
-    function ReadInt(Key : IString): RtInt; overload;
-    function ReadInt(Key : string): RtInt; overload;
+    function ReadInt(Key : IString): DaqInt; overload;
+    function ReadInt(Key : string): DaqInt; overload;
 
     function HasKey(Key : IString): Boolean; overload;
     function HasKey(Key : string): Boolean; overload;
@@ -78,7 +78,7 @@ type
     function Interface_ReadString(Key: IString; out Str: IString): ErrCode stdcall;
     function Interface_ReadBool(Key: IString; out Bool: Boolean): ErrCode stdcall;
     function Interface_ReadFloat(Key: IString; out Real: Double): ErrCode stdcall;
-    function Interface_ReadInt(Key: IString; out Int: RtInt): ErrCode stdcall;
+    function Interface_ReadInt(Key: IString; out Int: DaqInt): ErrCode stdcall;
     function Interface_HasKey(Key: IString; out HasKey: Boolean): ErrCode stdcall;
     function Interface_GetKeys(out List: IListObject): ErrCode stdcall;
     function Interface_GetType(Key: IString; out AType: TCoreType): ErrCode stdcall;
@@ -165,10 +165,10 @@ begin
   Result := ReadBool(CreateStringFromDelphiString(Key));
 end;
 
-function TSerializedObjectPtr.ReadFloat(Key : IString): RtFloat;
+function TSerializedObjectPtr.ReadFloat(Key : IString): DaqFloat;
 var
   Err : ErrCode;
-  Value : RtFloat;
+  Value : DaqFloat;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
@@ -179,15 +179,15 @@ begin
   Result := Value;
 end;
 
-function TSerializedObjectPtr.ReadFloat(Key : string): RtFloat;
+function TSerializedObjectPtr.ReadFloat(Key : string): DaqFloat;
 begin
   Result := ReadFloat(CreateStringFromDelphiString(Key));
 end;
 
-function TSerializedObjectPtr.ReadInt(Key : IString): RtInt;
+function TSerializedObjectPtr.ReadInt(Key : IString): DaqInt;
 var
   Err : ErrCode;
-  Value : RtInt;
+  Value : DaqInt;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
@@ -198,7 +198,7 @@ begin
   Result := Value;
 end;
 
-function TSerializedObjectPtr.ReadInt(Key : string): RtInt;
+function TSerializedObjectPtr.ReadInt(Key : string): DaqInt;
 begin
   Result := ReadInt(CreateStringFromDelphiString(Key));
 end;
@@ -419,7 +419,7 @@ begin
   Result := FObject.ReadString(Key, Str);
 end;
 
-function TSerializedObjectPtr.Interface_ReadInt(Key: IString; out Int: RtInt): ErrCode;
+function TSerializedObjectPtr.Interface_ReadInt(Key: IString; out Int: DaqInt): ErrCode;
 begin
   Result := FObject.ReadInt(Key, Int);
 end;

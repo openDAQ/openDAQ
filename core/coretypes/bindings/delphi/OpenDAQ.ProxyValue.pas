@@ -11,16 +11,16 @@ type
   public
     constructor Create(Obj : T); overload;
 
-    class operator Implicit(Proxy: TProxyValue<T>): RtInt;
-    class operator Implicit(Proxy: TProxyValue<T>): RtFloat;
+    class operator Implicit(Proxy: TProxyValue<T>): DaqInt;
+    class operator Implicit(Proxy: TProxyValue<T>): DaqFloat;
     class operator Implicit(Proxy: TProxyValue<T>): Boolean;
     class operator Implicit(Proxy: TProxyValue<T>): string;
 
     class operator Implicit(Proxy: TProxyValue<T>): T;
     class operator Implicit(Proxy: TProxyValue<T>): IObjectPtr<T>;
 
-    class operator Implicit(Value : RtInt): TProxyValue<T>;
-    class operator Implicit(Value : RtFloat): TProxyValue<T>;
+    class operator Implicit(Value : DaqInt): TProxyValue<T>;
+    class operator Implicit(Value : DaqFloat): TProxyValue<T>;
     class operator Implicit(Value : Boolean): TProxyValue<T>;
     class operator Implicit(Value : string): TProxyValue<T>;
 
@@ -35,6 +35,9 @@ type
     function AsPtrOrNil<U : ISmartPtr>() : U;
 
     function IsAssigned(): Boolean;
+
+    class operator Equal(A: TProxyValue<T>; B: TProxyValue<T>): Boolean;
+    class operator NotEqual(A: TProxyValue<T>; B: TProxyValue<T>): Boolean;
   private
     FObject : T;
   end;
@@ -53,6 +56,21 @@ uses
 constructor TProxyValue<T>.Create(Obj : T);
 begin
   FObject := Obj;
+end;
+
+class operator TProxyValue<T>.Equal(A, B: TProxyValue<T>): Boolean;
+var
+  Err: ErrCode;
+  Equal: Boolean;
+begin
+  Err := A.FObject.EqualsObject(B.FObject, Equal);
+  CheckDaqErrorInfo(Err);
+  Result := Equal;
+end;
+
+class operator TProxyValue<T>.NotEqual(A, B: TProxyValue<T>): Boolean;
+begin
+  Result := not (A = B);
 end;
 
 function TProxyValue<T>.AsInterface<U>(): U;
@@ -139,10 +157,10 @@ begin
   Result := Assigned(FObject);
 end;
 
-class operator TProxyValue<T>.Implicit(Proxy: TProxyValue<T>): RtInt;
+class operator TProxyValue<T>.Implicit(Proxy: TProxyValue<T>): DaqInt;
 var
   Err : ErrCode;
-  Value : RtInt;
+  Value : DaqInt;
   Convertible: IConvertible;
 begin
   if not Assigned(Proxy.FObject) then
@@ -153,16 +171,16 @@ begin
   else if (Supports(Proxy.FObject, IConvertible, Convertible)) then
     Err := Convertible.ToInt(Value)
   else
-    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to RtInt.');
+    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to DaqInt.');
 
   CheckDaqErrorInfo(Err);
   Result := Value;
 end;
 
-class operator TProxyValue<T>.Implicit(Proxy: TProxyValue<T>): RtFloat;
+class operator TProxyValue<T>.Implicit(Proxy: TProxyValue<T>): DaqFloat;
 var
   Err : ErrCode;
-  Value : RtFloat;
+  Value : DaqFloat;
   Convertible: IConvertible;
 begin
   if not Assigned(Proxy.FObject) then
@@ -173,7 +191,7 @@ begin
   else if (Supports(Proxy.FObject, IConvertible, Convertible)) then
     Err := Convertible.ToFloat(Value)
   else
-    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to RtInt.');
+    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to DaqInt.');
 
   CheckDaqErrorInfo(Err);
   Result := Value;
@@ -193,7 +211,7 @@ begin
   else if (Supports(Proxy.FObject, IConvertible, Convertible)) then
     Err := Convertible.ToBool(Value)
   else
-    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to RtInt.');
+    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to DaqInt.');
 
   CheckDaqErrorInfo(Err);
   Result := Value;
@@ -256,7 +274,7 @@ begin
   Result := TProxyValue<T>.Create(nil);
 end;
 
-class operator TProxyValue<T>.Implicit(Value: RtFloat): TProxyValue<T>;
+class operator TProxyValue<T>.Implicit(Value: DaqFloat): TProxyValue<T>;
 var
   FloatObj : IFloat;
   Err : ErrCode;
@@ -296,7 +314,7 @@ begin
   Result := TProxyValue<T>(TProxyValue<IString>.Create(Str));
 end;
 
-class operator TProxyValue<T>.Implicit(Value: RtInt): TProxyValue<T>;
+class operator TProxyValue<T>.Implicit(Value: DaqInt): TProxyValue<T>;
 var
   IntObj : IInteger;
   FloatObj : IFloat;

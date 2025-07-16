@@ -8,24 +8,24 @@ uses
 type
   IFloatPtr = interface(IObjectPtr<IFloat>)
   ['{35DD3B60-7C68-44B8-B8E9-0017BF587623}']
-    function GetValue(): RtFloat;
-    function EqualsValue(Value: RtFloat): Boolean;
+    function GetValue(): DaqFloat;
+    function EqualsValue(Value: DaqFloat): Boolean;
   end;
 
   TFloatPtr = class(TObjectPtr<IFloat>, IFloat, IFloatPtr)
   public
     constructor Create(Obj : IBaseObject); overload; override;
     constructor Create(Obj : IFloat); overload;
-    constructor Create(Value: RtFloat); overload;
+    constructor Create(Value: DaqFloat); overload;
 
-    function GetValue(): RtFloat;
-    function EqualsValue(Value: RtFloat): Boolean;
+    function GetValue(): DaqFloat;
+    function EqualsValue(Value: DaqFloat): Boolean;
   private
     function IFloat.GetValue = Interface_GetValue;
     function IFloat.EqualsValue = Interface_EqualsValue;
 
-    function Interface_GetValue(out Value: RtFloat): ErrCode; stdcall;
-    function Interface_EqualsValue(const Value: RtFloat; out Equal: Boolean): ErrCode stdcall;
+    function Interface_GetValue(out Value: DaqFloat): ErrCode; stdcall;
+    function Interface_EqualsValue(const Value: DaqFloat; out Equal: Boolean): ErrCode stdcall;
   end;
 
 implementation
@@ -45,7 +45,7 @@ begin
   inherited Create(Obj);
 end;
 
-constructor TFloatPtr.Create(Value: RtFloat);
+constructor TFloatPtr.Create(Value: DaqFloat);
 var
   FloatObj : IFloat;
   Err : ErrCode;
@@ -56,10 +56,10 @@ begin
   inherited Create(FloatObj);
 end;
 
-function TFloatPtr.GetValue: RtFloat;
+function TFloatPtr.GetValue: DaqFloat;
 var
   Err: ErrCode;
-  Value: RtFloat;
+  Value: DaqFloat;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
@@ -70,7 +70,7 @@ begin
   Result := Value;
 end;
 
-function TFloatPtr.EqualsValue(Value: RtFloat): Boolean;
+function TFloatPtr.EqualsValue(Value: DaqFloat): Boolean;
 var
   Err: ErrCode;
 begin
@@ -81,12 +81,12 @@ begin
   CheckDaqErrorInfo(Err);
 end;
 
-function TFloatPtr.Interface_GetValue(out Value: RtFloat): ErrCode;
+function TFloatPtr.Interface_GetValue(out Value: DaqFloat): ErrCode;
 begin
   Result := FObject.GetValue(Value);
 end;
 
-function TFloatPtr.Interface_EqualsValue(const Value: RtFloat; out Equal: Boolean): ErrCode;
+function TFloatPtr.Interface_EqualsValue(const Value: DaqFloat; out Equal: Boolean): ErrCode;
 begin
   Result := FObject.EqualsValue(Value, Equal);
 end;

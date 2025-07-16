@@ -2,6 +2,7 @@ set(BASE_NAME modulemanager)
 
 function(rtgen_component_${BASE_NAME})
     rtgen(SRC_Module module.h)
+    rtgen(SRC_ModuleLicense license_checker.h)
     rtgen(SRC_ModuleManager module_manager.h)
     rtgen(SRC_ModuleManagerUtils module_manager_utils.h)
     rtgen(SRC_ContextInternal context_internal.h)
@@ -10,6 +11,7 @@ function(rtgen_component_${BASE_NAME})
 
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Module_PublicHeaders}
+		${SRC_ModuleLicense_PublicHeaders}
         ${SRC_ModuleManager_PublicHeaders}
         ${SRC_ModuleManagerUtils_PublicHeaders}
         ${SRC_ContextInternal_PublicHeaders}
@@ -45,6 +47,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/module_exports.h
         ${SDK_HEADERS_DIR}/module_factory.h
         ${SDK_HEADERS_DIR}/module_check_dependencies.h
+        ${SDK_HEADERS_DIR}/license_checker.h
         ${SDK_SRC_DIR}/module_impl.cpp
     )
     
@@ -92,7 +95,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/mdns_discovery_server_impl.h
         ${SDK_SRC_DIR}/mdns_discovery_server_impl.cpp
     )
-									   
+	
 endfunction()
 
 set(SRC_PublicHeaders_Component 

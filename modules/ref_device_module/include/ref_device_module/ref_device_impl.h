@@ -80,6 +80,7 @@ private:
 
     size_t id;
     StringPtr serialNumber;
+    bool usePacketBuffer;
 
     std::thread acqThread;
     std::condition_variable cv;

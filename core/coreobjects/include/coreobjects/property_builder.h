@@ -296,6 +296,18 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param[out] event The on-read event.
      */
     virtual ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) = 0;
+    
+    // [templateType(event, "PropertyPtr, PropertyMetadataReadArgsPtr"), returnSelf]
+    virtual ErrCode INTERFACE_FUNC setOnSuggestedValuesRead(IEvent* event) = 0;
+    
+    // [templateType(event, IProperty, IPropertyMetadataReadArgs)]
+    virtual ErrCode INTERFACE_FUNC getOnSuggestedValuesRead(IEvent** event) = 0;
+    
+    // [templateType(event, "PropertyPtr, PropertyMetadataReadArgsPtr"), returnSelf]
+    virtual ErrCode INTERFACE_FUNC setOnSelectionValuesRead(IEvent* event) = 0;
+    
+    // [templateType(event, IProperty, IPropertyMetadataReadArgs)]
+    virtual ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) = 0;
 };
 
 /*!@}*/

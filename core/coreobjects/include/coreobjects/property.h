@@ -38,6 +38,7 @@ struct IPropertyBuilder;
  * [interfaceSmartPtr(IProperty, GenericPropertyPtr)]
  * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_ptr.fwd_declare.h>")]
  * [interfaceSmartPtr(IPropertyValueEventArgs, PropertyValueEventArgsPtr, "<coretypes/event_wrapper.h>")]
+ * [interfaceSmartPtr(IPropertyMetadataReadArgs, PropertyMetadataReadArgsPtr, "<coretypes/event_wrapper.h>")]
  * [interfaceLibrary(IBoolean, CoreTypes)]
  * [interfaceLibrary(IStruct, CoreTypes)]
  * [interfaceLibrary(IStructType, CoreTypes)]
@@ -406,6 +407,12 @@ DECLARE_OPENDAQ_INTERFACE(IProperty, IBaseObject)
      * and implications of that call still apply.
      */
     virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value) = 0;
+    
+    // [templateType(event, IProperty, IPropertyMetadataReadArgs)]
+    virtual ErrCode INTERFACE_FUNC getOnSuggestedValuesRead(IEvent** event) = 0;
+
+    // [templateType(event, IProperty, IPropertyMetadataReadArgs)]
+    virtual ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) = 0;
 };
 /*!@}*/
 

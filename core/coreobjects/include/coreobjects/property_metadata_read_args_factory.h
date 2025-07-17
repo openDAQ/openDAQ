@@ -15,16 +15,14 @@
  */
 
 #pragma once
-#include <coreobjects/property_object.h>
+#include <coretypes/common.h>
+#include <coreobjects/property_metadata_read_args_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <typename InterfaceType>
-class GenericPropertyObjectPtr;
-
-using PropertyObjectPtr = GenericPropertyObjectPtr<IPropertyObject>;
-
-class PropertyValueEventArgsPtr;
-class PropertyMetadataReadArgsPtr;
+inline PropertyMetadataReadArgsPtr PropertyMetadataReadArgs(const PropertyPtr& prop)
+{
+    return PropertyMetadataReadArgsPtr(PropertyMetadataReadArgs_Create(prop));
+}
 
 END_NAMESPACE_OPENDAQ

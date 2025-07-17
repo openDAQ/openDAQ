@@ -15,16 +15,25 @@
  */
 
 #pragma once
-#include <coreobjects/property_object.h>
+#include <coretypes/common.h>
+#include <coreobjects/property_metadata_read_args.h>
+#include <coreobjects/property_ptr.h>
+#include <coretypes/event_args_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <typename InterfaceType>
-class GenericPropertyObjectPtr;
+class PropertyMetadataReadArgsImpl : public EventArgsBase<IPropertyMetadataReadArgs>
+{
+public:
+    explicit PropertyMetadataReadArgsImpl(PropertyPtr property);
 
-using PropertyObjectPtr = GenericPropertyObjectPtr<IPropertyObject>;
+    ErrCode INTERFACE_FUNC getProperty(IProperty** prop) override;
+    ErrCode INTERFACE_FUNC getValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override;
 
-class PropertyValueEventArgsPtr;
-class PropertyMetadataReadArgsPtr;
+private:
+    PropertyPtr property;
+    BaseObjectPtr value;
+};
 
 END_NAMESPACE_OPENDAQ

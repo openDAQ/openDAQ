@@ -34,11 +34,11 @@
 #include <coretypes/validation.h>
 #include <iostream>
 #include <coreobjects/permission_manager_factory.h>
-#include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/property_metadata_read_args_ptr.h>
 #include <coreobjects/permission_manager_internal_ptr.h>
 #include <coreobjects/errors.h>
-#include <coreobjects/permission_mask_builder_factory.h>
 #include <coreobjects/property_object_protected.h>
+#include <coreobjects/property_metadata_read_args_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 namespace details
@@ -108,6 +108,8 @@ public:
         this->callableInfo = propertyBuilderPtr.getCallableInfo();
         this->onValueWrite = (IEvent*) propertyBuilderPtr.getOnPropertyValueWrite();
         this->onValueRead = (IEvent*) propertyBuilderPtr.getOnPropertyValueRead();
+        this->onSuggestedValuesRead = (IEvent*) propertyBuilderPtr.getOnSuggestedValuesRead();
+        this->onSelectionValuesRead = (IEvent*) propertyBuilderPtr.getOnSelectionValuesRead();
 
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
@@ -583,7 +585,16 @@ public:
 
 	    return daqTry([&]()
             {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                if (onSuggestedValuesRead.hasListeners())
+                {
+                    // TODO: Should this lock !? If yes, what mutex !?
+                    auto args = PropertyMetadataReadArgs(propPtr);
+                    onSuggestedValuesRead(propPtr, args);
+
+                    ListPtr<IBaseObject> selectionValuesPtr = args.getValue();
+                    *values = selectionValuesPtr.detach();
+                }
+		        else if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
 			        *values = lock ? prop.getSuggestedValues().detach() : prop.asPtr<IPropertyInternal>().getSuggestedValuesNoLock().detach();
 		        else
 			        *values = bindAndGet<ListPtr<IBaseObject>>(this->suggestedValues, lock).detach();
@@ -658,7 +669,15 @@ public:
 
 	    return daqTry([&]()
             {
-		        if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+		        if (onSelectionValuesRead.hasListeners())
+                {
+                    // TODO: Should this lock !? If yes, what mutex !?
+                    auto args = PropertyMetadataReadArgs(propPtr);
+                    onSelectionValuesRead(propPtr, args);
+
+                    *values = args.getValue().detach();
+                }
+		        else if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
 			        *values = lock ? prop.getSelectionValues().detach() : prop.asPtr<IPropertyInternal>().getSelectionValuesNoLock().detach();
 		        else
 			        *values = bindAndGet<BaseObjectPtr>(this->selectionValues, lock).detach();
@@ -877,6 +896,28 @@ public:
         }
 
         *event = onValueRead.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+    
+    ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) override
+    {
+        if (event == nullptr)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
+        }
+
+        *event = onSelectionValuesRead.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+    
+    ErrCode INTERFACE_FUNC getOnSuggestedValuesRead(IEvent** event) override
+    {
+        if (event == nullptr)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
+        }
+
+        *event = onSuggestedValuesRead.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
@@ -1224,7 +1265,10 @@ public:
                         .setValidator(validator)
                         .setCallableInfo(callableInfo)
                         .setOnPropertyValueRead(onValueRead)
-                        .setOnPropertyValueWrite(onValueWrite).build();
+                        .setOnPropertyValueWrite(onValueWrite)
+                        .setOnSelectionValuesRead(onSelectionValuesRead)
+                        .setOnSuggestedValuesRead(onSuggestedValuesRead)
+                        .build();
 
             *clonedProperty = prop.detach();
             return OPENDAQ_SUCCESS;
@@ -1324,6 +1368,9 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(values);
 
+        if (onSuggestedValuesRead.hasListeners())
+            return OPENDAQ_SUCCESS;
+
         return daqTry([&]()
         {
             ListPtr<IBaseObject> suggestedValuesPtr = getUnresolved(this->suggestedValues);
@@ -1359,6 +1406,9 @@ public:
     ErrCode INTERFACE_FUNC getSelectionValuesUnresolved(IBaseObject** values) override
     {
         OPENDAQ_PARAM_NOT_NULL(values);
+
+        if (onSelectionValuesRead.hasListeners())
+            return OPENDAQ_SUCCESS;
 
         return daqTry([&]()
         {
@@ -1436,6 +1486,8 @@ protected:
     CallableInfoPtr callableInfo;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueWrite;
     EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr> onValueRead;
+    EventEmitter<PropertyPtr, PropertyMetadataReadArgsPtr> onSelectionValuesRead;
+    EventEmitter<PropertyPtr, PropertyMetadataReadArgsPtr> onSuggestedValuesRead;
 
 private:
 

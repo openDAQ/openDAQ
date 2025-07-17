@@ -15,16 +15,25 @@
  */
 
 #pragma once
-#include <coreobjects/property_object.h>
+#include <coretypes/coretypes.h>
+#include <coretypes/event_args.h>
+#include <coreobjects/property.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <typename InterfaceType>
-class GenericPropertyObjectPtr;
+/*#
+ * [interfaceSmartPtr(IEventArgs, EventArgsPtr, "<coretypes/event_args_ptr.h>")]
+ */
+DECLARE_OPENDAQ_INTERFACE(IPropertyMetadataReadArgs, IEventArgs)
+{
+    virtual ErrCode INTERFACE_FUNC getProperty(IProperty** property) = 0;
+    virtual ErrCode INTERFACE_FUNC getValue(IBaseObject** value) = 0;
+    virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value) = 0;
+};
 
-using PropertyObjectPtr = GenericPropertyObjectPtr<IPropertyObject>;
-
-class PropertyValueEventArgsPtr;
-class PropertyMetadataReadArgsPtr;
+OPENDAQ_DECLARE_CLASS_FACTORY(
+    LIBRARY_FACTORY, PropertyMetadataReadArgs,
+    IProperty*, prop
+)
 
 END_NAMESPACE_OPENDAQ

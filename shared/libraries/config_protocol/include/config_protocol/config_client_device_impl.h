@@ -67,12 +67,16 @@ public:
     ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
+    ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 
 private:
     void componentAdded(const CoreEventArgsPtr& args);
@@ -290,6 +294,18 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
 }
 
 template <class TDeviceBase>
+ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setComponentConfig(IPropertyObject* config)
+{
+    if (this->componentConfig.assigned())
+    {
+        this->componentConfig = config;
+        return OPENDAQ_SUCCESS;
+    }
+
+    return TDeviceBase::setComponentConfig(config);
+}
+
+template <class TDeviceBase>
 ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObject* serialized,
                                                                 IBaseObject* context,
                                                                 IFunction* factoryCallback,
@@ -447,6 +463,16 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         Int mode = serialized.readInt("OperationMode");
         this->updateOperationModeNoCoreEvent(static_cast<OperationModeType>(mode));
     }
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                               const BaseObjectPtr& context,
+                                                                               const FunctionPtr& factoryCallback)
+{
+    TDeviceBase::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+    if (serializedObject.hasKey("ComponentConfig"))
+        this->componentConfig = serializedObject.readObject("ComponentConfig");
 }
 
 template <class TDeviceBase>

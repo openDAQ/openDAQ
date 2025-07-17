@@ -187,6 +187,11 @@ MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
     addedComponentPrivate.unlockAttributes(List<IString>("Visible"));
     hiddenInputPort.setVisible(false);
     addedComponentPrivate.lockAttributes(List<IString>("Visible"));
+
+    
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(StringProperty("TestProp", "TestValue"));
+    this->componentConfig = config.detach();
 }
 
 DictPtr<IString, IFunctionBlockType> MockFb1Impl::onGetAvailableFunctionBlockTypes()
@@ -279,6 +284,10 @@ MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& pare
     fb.getInputPorts(search::Not(search::Visible()))[0].connect(sig);
 
     setDeviceDomain(DeviceDomain(Ratio(1, 100), "N/A" , Unit("s", -1, "second", "time")));
+
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(StringProperty("TestProp", "TestValue"));
+    this->componentConfig = config.detach();
 }
 
 DictPtr<IString, IFunctionBlockType> MockDevice1Impl::onGetAvailableFunctionBlockTypes()

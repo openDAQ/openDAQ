@@ -81,7 +81,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::move(GetSupportedConfigProtocolVersions()))
+    , supportedServerVersions(std::set<uint16_t>({15, 16}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
@@ -103,7 +103,7 @@ ConfigProtocolServer::~ConfigProtocolServer()
 template <class SmartPtr>
 void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerFunction<SmartPtr>& handler)
 {
-    auto wrappedHanler = [this, handler](const ParamsDictPtr& params)
+    auto wrappedHandler = [this, handler](const ParamsDictPtr& params)
     {
         RpcContext context;
         context.protocolVersion = this->protocolVersion;
@@ -120,7 +120,7 @@ void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerF
         return handler(context, componentPtr, params);
     };
 
-    rpcDispatch.insert({name, wrappedHanler});
+    rpcDispatch.insert({name, wrappedHandler});
 }
 
 void ConfigProtocolServer::buildRpcDispatchStructure()

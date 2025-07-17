@@ -345,8 +345,16 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std
     {
         auto typeId = serializedFunctionBlock.readString("typeId");
 
-        auto config = PropertyObject();
-        config.addProperty(StringProperty("LocalId", fbId));
+        PropertyObjectPtr config;
+        if (serializedFunctionBlock.hasKey("ComponentConfig"))
+            config = serializedFunctionBlock.readObject("ComponentConfig");
+        else
+            config = PropertyObject();
+        
+        if (!config.hasProperty("LocalId"))
+            config.addProperty(StringProperty("LocalId", fbId));
+        else
+            config.setPropertyValue("LocalId", fbId);
 
         auto fb = onAddFunctionBlock(typeId, config);
         updatableFb = fb.template asPtr<IUpdatable>(true);

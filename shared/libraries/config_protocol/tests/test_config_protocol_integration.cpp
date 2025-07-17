@@ -914,3 +914,13 @@ TEST_F(ConfigProtocolIntegrationTest, RecorderFunctionBlock)
     ASSERT_FALSE(recorderPtr.getIsRecording());
     ASSERT_THROW(recorderPtr.stopRecording(), InvalidStateException);
 }
+
+TEST_F(ConfigProtocolIntegrationTest, ComponentConfig)
+{
+    auto deviceComponentConfig = clientDevice.getDevices()[0].asPtr<IComponentPrivate>().getComponentConfig();
+    auto fbComponentConfig = clientDevice.getDevices()[0].getFunctionBlocks()[0].asPtr<IComponentPrivate>().getComponentConfig();
+    ASSERT_TRUE(deviceComponentConfig.assigned());
+    ASSERT_TRUE(fbComponentConfig.assigned());
+    ASSERT_TRUE(deviceComponentConfig.hasProperty("TestProp"));
+    ASSERT_TRUE(fbComponentConfig.hasProperty("TestProp"));
+}

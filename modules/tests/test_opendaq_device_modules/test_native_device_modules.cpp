@@ -150,94 +150,6 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
     server.detach();
 }
 
-TEST_F(NativeDeviceModulesTest, UseOldProtocolVersion)
-{
-    SKIP_TEST_MAC_CI;
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance(0);
-
-    auto info = client.getDevices()[0].getInfo();
-    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 0);
-
-    // because info holds a client device as owner, it has to be removed before module manager is destroyed
-    // otherwise module of native client device would not be removed
-    info.release();
-
-    client->releaseRef();
-    server->releaseRef();
-    client.detach();
-    server.detach();
-}
-
-TEST_F(NativeDeviceModulesTest, UseOldProtocolVersionLocationUsername)
-{
-    SKIP_TEST_MAC_CI;
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance(0);
-
-    auto serverDev = server.getDevices()[0];
-    auto serverInfo = serverDev.getInfo();
-    ASSERT_TRUE(serverDev.hasProperty("userName"));
-    ASSERT_TRUE(serverDev.hasProperty("location"));
-
-    auto dev = client.getDevices()[0].getDevices()[0];
-    auto info = dev.getInfo();
-    ASSERT_FALSE(info.getProperty("userName").getReadOnly());
-    ASSERT_FALSE(info.getProperty("location").getReadOnly());
-    ASSERT_TRUE(dev.hasProperty("userName"));
-    ASSERT_TRUE(dev.hasProperty("location"));
-
-    dev.setPropertyValue("location", "foo");
-    dev.setPropertyValue("userName", "foo");
-    
-    ASSERT_EQ(dev.getPropertyValue("location"), "foo");
-    ASSERT_EQ(dev.getPropertyValue("userName"), "foo");
-    ASSERT_EQ(info.getPropertyValue("location"), "foo");
-    ASSERT_EQ(info.getPropertyValue("userName"), "foo");
-
-    ASSERT_EQ(serverDev.getPropertyValue("location"), "foo");
-    ASSERT_EQ(serverDev.getPropertyValue("userName"), "foo");
-    ASSERT_EQ(serverInfo.getPropertyValue("location"), "foo");
-    ASSERT_EQ(serverInfo.getPropertyValue("userName"), "foo");
-
-    // because info holds a client device as owner, it have to be removed before module manager is destroyed
-    // otherwise module of native client device would not be removed
-    
-    serverInfo.release();
-    info.release();
-    serverDev.release();
-    dev.release();
-
-    client->releaseRef();
-    server->releaseRef();
-    client.detach();
-    server.detach();
-}
-
-TEST_F(NativeDeviceModulesTest, ServerVersionTooLow)
-{
-    SKIP_TEST_MAC_CI;
-
-    // connect to server with protocol version 2
-
-    const uint16_t negotiateVersion = 2;
-
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance(negotiateVersion);
-
-    const auto info = client.getDevices()[0].getInfo();
-    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), negotiateVersion);
-
-    // call some methods which require protocol version 3 or higher
-
-    ASSERT_THROW(client.lock(), ServerVersionTooLowException);
-    ASSERT_THROW(client.unlock(), ServerVersionTooLowException);
-    ASSERT_THROW(client.getDevices()[0].getAvailableDevices(), ServerVersionTooLowException);
-    ASSERT_THROW(client.getDevices()[0].getAvailableDeviceTypes(), ServerVersionTooLowException);
-}
-
 TEST_F(NativeDeviceModulesTest, FailedToSetAsRoot)
 {
     auto server = CreateServerInstance();
@@ -430,24 +342,6 @@ TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
 
     clientSideClientsInfo = newClient.getDevices()[0].getInfo().getConnectedClientsInfo();
     ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
-}
-
-TEST_F(NativeDeviceModulesTest, UseOldProtocolVersionConnectedClientsInfo)
-{
-    auto server = CreateServerInstance();
-    auto client = CreateClientInstance(10);
-
-    ASSERT_EQ(server.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
-
-    // connected clients info is not propagated via older protocol version
-    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
-
-    auto newClient = CreateClientInstance();
-    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
-    ASSERT_EQ(newClient.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 4u);
-
-    newClient.release();
-    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
 }
 
 TEST_F(NativeDeviceModulesTest, ClientTypeExclusiveControlTwice)
@@ -1030,6 +924,43 @@ DevicePtr FindNativeDeviceByPath(const InstancePtr& instance, const std::string&
     return DevicePtr();
 }
 
+TEST_F(NativeDeviceModulesTest, TestProtocolVersion)
+{
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    auto path = "/test/native_configurator/test_protocol_version/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+
+    auto client = Instance();
+    DevicePtr device = FindNativeDeviceByPath(client, path);
+
+    ASSERT_TRUE(device.assigned());
+
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 2u);
+
+    for (const auto& capability : caps)
+    {
+        if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+        {
+            auto serverVersion = capability.getProtocolVersion();
+            ASSERT_EQ(serverVersion, device.getInfo().getConfigurationConnectionInfo().getProtocolVersion());
+            int version = std::atoi(serverVersion.getCharPtr());
+            ASSERT_GT(version, 3);
+        }
+        else if (capability.getProtocolName() == "OpenDAQNativeStreaming")
+        {
+            ASSERT_EQ(capability.getProtocolVersion(), "");
+        }
+        else
+        {
+            ASSERT_TRUE(false) << "Unexpected protocol name" << capability.getProtocolName();
+        }
+    }      
+}
+
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
     if (test_helpers::Ipv6IsDisabled())
@@ -1078,82 +1009,6 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         }
     }
     ASSERT_TRUE(false) << "Device not found";
-}
-
-TEST_F(NativeDeviceModulesTest, TestProtocolVersion)
-{
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
-    auto path = "/test/native_configurator/test_protocol_version/";
-    serverConfig.setPropertyValue("Path", path);
-
-    instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
-
-    auto client = Instance();
-    DevicePtr device = FindNativeDeviceByPath(client, path);
-
-    ASSERT_TRUE(device.assigned());
-
-    const auto caps = device.getInfo().getServerCapabilities();
-    ASSERT_EQ(caps.getCount(), 2u);
-
-    for (const auto& capability : caps)
-    {
-        if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-        {
-            auto serverVersion = capability.getProtocolVersion();
-            ASSERT_EQ(serverVersion, device.getInfo().getConfigurationConnectionInfo().getProtocolVersion());
-            int version = std::atoi(serverVersion.getCharPtr());
-            ASSERT_GT(version, 3);
-        }
-        else if (capability.getProtocolName() == "OpenDAQNativeStreaming")
-        {
-            ASSERT_EQ(capability.getProtocolVersion(), "");
-        }
-        else
-        {
-            ASSERT_TRUE(false) << "Unexpected protocol name" << capability.getProtocolName();
-        }
-    }      
-}
-
-TEST_F(NativeDeviceModulesTest, TestProtocolVersionClientIsOlder)
-{
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
-    auto path = "/test/native_configurator/test_protocol_version_client_is_older/";
-    serverConfig.setPropertyValue("Path", path);
-
-    instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
-
-    auto clientConfig = PropertyObject();
-    clientConfig.addProperty(IntProperty("ProtocolVersion", 3));
-
-    auto client = Instance();
-    DevicePtr device = FindNativeDeviceByPath(client, path, clientConfig);
-
-    ASSERT_TRUE(device.assigned());
-
-    const auto caps = device.getInfo().getServerCapabilities();
-    ASSERT_EQ(caps.getCount(), 2u);
-
-    for (const auto& capability : caps)
-    {
-        if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-        {
-            int version = std::atoi(capability.getProtocolVersion().getCharPtr());
-            ASSERT_GT(version, 3);
-            ASSERT_EQ(device.getInfo().getConfigurationConnectionInfo().getProtocolVersion(), "3");
-        }
-        else if (capability.getProtocolName() == "OpenDAQNativeStreaming")
-        {
-            ASSERT_EQ(capability.getProtocolVersion(), "");
-        }
-        else
-        {
-            ASSERT_TRUE(false) << "Unexpected protocol name" << capability.getProtocolName();
-        }
-    }      
 }
 
 TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
@@ -3145,9 +3000,155 @@ TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)
     ASSERT_EQ(serverInfo.getPropertyValue("location"), "location2");
 }
 
+// Set of disabled tests as we no longer allow old clients to connect to all new servers.
+TEST_F(NativeDeviceModulesTest, DISABLED_ServerVersionTooLow)
+{
+    SKIP_TEST_MAC_CI;
+
+    // connect to server with protocol version 2
+
+    const uint16_t negotiateVersion = 2;
+
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(negotiateVersion);
+
+    const auto info = client.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), negotiateVersion);
+
+    // call some methods which require protocol version 3 or higher
+
+    ASSERT_THROW(client.lock(), ServerVersionTooLowException);
+    ASSERT_THROW(client.unlock(), ServerVersionTooLowException);
+    ASSERT_THROW(client.getDevices()[0].getAvailableDevices(), ServerVersionTooLowException);
+    ASSERT_THROW(client.getDevices()[0].getAvailableDeviceTypes(), ServerVersionTooLowException);
+}
+
+TEST_F(NativeDeviceModulesTest, DISABLED_UseOldProtocolVersionConnectedClientsInfo)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(10);
+
+    ASSERT_EQ(server.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
+
+    // connected clients info is not propagated via older protocol version
+    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
+
+    auto newClient = CreateClientInstance();
+    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
+    ASSERT_EQ(newClient.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 4u);
+
+    newClient.release();
+    ASSERT_EQ(client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount(), 0u);
+}
+
+TEST_F(NativeDeviceModulesTest, DISABLED_TestProtocolVersionClientIsOlder)
+{
+    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    auto path = "/test/native_configurator/test_protocol_version_client_is_older/";
+    serverConfig.setPropertyValue("Path", path);
+
+    instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+
+    auto clientConfig = PropertyObject();
+    clientConfig.addProperty(IntProperty("ProtocolVersion", 3));
+
+    auto client = Instance();
+    DevicePtr device = FindNativeDeviceByPath(client, path, clientConfig);
+
+    ASSERT_TRUE(device.assigned());
+
+    const auto caps = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(caps.getCount(), 2u);
+
+    for (const auto& capability : caps)
+    {
+        if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+        {
+            int version = std::atoi(capability.getProtocolVersion().getCharPtr());
+            ASSERT_GT(version, 3);
+            ASSERT_EQ(device.getInfo().getConfigurationConnectionInfo().getProtocolVersion(), "3");
+        }
+        else if (capability.getProtocolName() == "OpenDAQNativeStreaming")
+        {
+            ASSERT_EQ(capability.getProtocolVersion(), "");
+        }
+        else
+        {
+            ASSERT_TRUE(false) << "Unexpected protocol name" << capability.getProtocolName();
+        }
+    }      
+}
+
+TEST_F(NativeDeviceModulesTest, DISABLED_UseOldProtocolVersion)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(0);
+
+    auto info = client.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 0);
+
+    // because info holds a client device as owner, it has to be removed before module manager is destroyed
+    // otherwise module of native client device would not be removed
+    info.release();
+
+    client->releaseRef();
+    server->releaseRef();
+    client.detach();
+    server.detach();
+}
+
+TEST_F(NativeDeviceModulesTest, DISABLED_UseOldProtocolVersionLocationUsername)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(0);
+
+    auto serverDev = server.getDevices()[0];
+    auto serverInfo = serverDev.getInfo();
+    ASSERT_TRUE(serverDev.hasProperty("userName"));
+    ASSERT_TRUE(serverDev.hasProperty("location"));
+
+    auto dev = client.getDevices()[0].getDevices()[0];
+    auto info = dev.getInfo();
+    ASSERT_FALSE(info.getProperty("userName").getReadOnly());
+    ASSERT_FALSE(info.getProperty("location").getReadOnly());
+    ASSERT_TRUE(dev.hasProperty("userName"));
+    ASSERT_TRUE(dev.hasProperty("location"));
+
+    dev.setPropertyValue("location", "foo");
+    dev.setPropertyValue("userName", "foo");
+    
+    ASSERT_EQ(dev.getPropertyValue("location"), "foo");
+    ASSERT_EQ(dev.getPropertyValue("userName"), "foo");
+    ASSERT_EQ(info.getPropertyValue("location"), "foo");
+    ASSERT_EQ(info.getPropertyValue("userName"), "foo");
+
+    ASSERT_EQ(serverDev.getPropertyValue("location"), "foo");
+    ASSERT_EQ(serverDev.getPropertyValue("userName"), "foo");
+    ASSERT_EQ(serverInfo.getPropertyValue("location"), "foo");
+    ASSERT_EQ(serverInfo.getPropertyValue("userName"), "foo");
+
+    // because info holds a client device as owner, it have to be removed before module manager is destroyed
+    // otherwise module of native client device would not be removed
+    
+    serverInfo.release();
+    info.release();
+    serverDev.release();
+    dev.release();
+
+    client->releaseRef();
+    server->releaseRef();
+    client.detach();
+    server.detach();
+}
+
 using NativeC2DStreamingTest = testing::Test;
 
-TEST_F(NativeC2DStreamingTest, ConnectSignalWithOldProtocolVersion)
+TEST_F(NativeC2DStreamingTest, DISABLED_ConnectSignalWithOldProtocolVersion)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();

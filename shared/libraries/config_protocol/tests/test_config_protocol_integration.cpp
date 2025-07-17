@@ -917,7 +917,7 @@ TEST_F(ConfigProtocolIntegrationTest, RecorderFunctionBlock)
 
 TEST_F(ConfigProtocolIntegrationTest, ComponentConfig)
 {
-    auto deviceComponentConfig = clientDevice.asPtr<IComponentPrivate>().getComponentConfig();
+    auto deviceComponentConfig = clientDevice.getDevices()[0].asPtr<IComponentPrivate>().getComponentConfig();
     auto fbComponentConfig = clientDevice.getDevices()[0].getFunctionBlocks()[0].asPtr<IComponentPrivate>().getComponentConfig();
     ASSERT_TRUE(deviceComponentConfig.assigned());
     ASSERT_TRUE(fbComponentConfig.assigned());

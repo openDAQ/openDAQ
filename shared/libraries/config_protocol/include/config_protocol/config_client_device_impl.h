@@ -67,7 +67,6 @@ public:
     ErrCode INTERFACE_FUNC setOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
-    ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -291,18 +290,6 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
         else
             checkErrorInfo(Super::getOperationMode(modeType));   
     });
-}
-
-template <class TDeviceBase>
-ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setComponentConfig(IPropertyObject* config)
-{
-    if (this->componentConfig.assigned())
-    {
-        this->componentConfig = config;
-        return OPENDAQ_SUCCESS;
-    }
-
-    return TDeviceBase::setComponentConfig(config);
 }
 
 template <class TDeviceBase>

@@ -678,9 +678,6 @@ ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType mod
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setComponentConfig(IPropertyObject* config)
 {
-    if (componentConfig.assigned())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Component config already set");
-
     componentConfig = config;
     return OPENDAQ_SUCCESS;
 }

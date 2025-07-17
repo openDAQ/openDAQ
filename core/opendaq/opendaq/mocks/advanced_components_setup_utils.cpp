@@ -284,6 +284,10 @@ MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& pare
     fb.getInputPorts(search::Not(search::Visible()))[0].connect(sig);
 
     setDeviceDomain(DeviceDomain(Ratio(1, 100), "N/A" , Unit("s", -1, "second", "time")));
+
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(StringProperty("TestProp", "TestValue"));
+    this->componentConfig = config.detach();
 }
 
 DictPtr<IString, IFunctionBlockType> MockDevice1Impl::onGetAvailableFunctionBlockTypes()
@@ -389,10 +393,6 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     connectionStatusContainer.addConfigurationConnectionStatus("ConfigConnStr", connectionStatusInitValue);
 
     this->objPtr.addProperty(ObjectProperty("ObjectProperty", createMockNestedPropertyObject()));
-    
-    PropertyObjectPtr config = PropertyObject();
-    config.addProperty(StringProperty("TestProp", "TestValue"));
-    this->componentConfig = config.detach();
 
     const auto srv = createWithImplementation<IServer, MockSrvImpl>(ctx, this->template borrowPtr<DevicePtr>(), "srv");
     servers.addItem(srv);

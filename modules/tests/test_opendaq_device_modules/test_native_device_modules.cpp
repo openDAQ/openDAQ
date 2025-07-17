@@ -1042,11 +1042,11 @@ TEST_F(NativeDeviceModulesTest, DeviceComponentConfig)
 
     // config automatically set by local ModuleManager when device created
     ASSERT_TRUE(localNativeDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
-    ASSERT_THROW(localNativeDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), AlreadyExistsException);
+    ASSERT_NO_THROW(localNativeDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()));
 
     // for nested device config cannot be overriden locally
     ASSERT_TRUE(nestedDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
-    ASSERT_THROW(nestedDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), InvalidOperationException);
+    ASSERT_NO_THROW(nestedDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()));
 }
 
 TEST_F(NativeDeviceModulesTest, GetStatuses)

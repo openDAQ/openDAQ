@@ -73,11 +73,11 @@ void ConfigProtocolStreamingProducer::addConnection(const SignalPtr& signal, con
     addStreamingTrigger(signal, inputPortRemoteGlobalId);
 }
 
-void ConfigProtocolStreamingProducer::removeConnection(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId, std::vector<SignalNumericIdType>& unusedSignlasIds)
+void ConfigProtocolStreamingProducer::removeConnection(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId, std::vector<SignalNumericIdType>& unusedSignalsIds)
 {
     std::scoped_lock lock(sync);
     LOG_D("Signal \"{}\" disconnected from \"{}\" input port", signal.getGlobalId(), inputPortRemoteGlobalId);
-    removeStreamingTrigger(signal, inputPortRemoteGlobalId, unusedSignlasIds);
+    removeStreamingTrigger(signal, inputPortRemoteGlobalId, unusedSignalsIds);
 
     if (!hasSignalToRead() && readThreadRunning)
         stopReadThread();

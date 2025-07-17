@@ -175,7 +175,8 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
     addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
-    addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));
+    addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignalWithNumericId, this, _1, _2, _3));
+    addHandler<InputPortPtr>("ConnectExternalSignalGeneralized", std::bind(&ConfigProtocolServer::connectExternalSignalWithNumericId, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
     addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
 
@@ -411,11 +412,39 @@ BaseObjectPtr ConfigProtocolServer::connectSignal(const RpcContext& context, con
     return ConfigServerInputPort::connect(context, inputPort, signal, params);
 }
 
-BaseObjectPtr ConfigProtocolServer::connectExternalSignal(const RpcContext& context,
-                                                          const InputPortPtr& inputPort,
-                                                          const ParamsDictPtr& params)
+BaseObjectPtr ConfigProtocolServer::connectExternalSignalWithNumericId(const RpcContext& context,
+                                                                       const InputPortPtr& inputPort,
+                                                                       const ParamsDictPtr& params)
 {
-    const SignalPtr signal = streamingConsumer.getOrAddExternalSignal(params);
+    const SignalPtr signal = streamingConsumer.getOrAddExternalSignalWithNumericId(params);
+    return ConfigServerInputPort::connect(context, inputPort, signal, params);
+}
+
+BaseObjectPtr ConfigProtocolServer::connectExternalSignalGeneralized(const RpcContext& context,
+                                                                     const InputPortPtr& inputPort,
+                                                                     const ParamsDictPtr& params)
+{
+    const SignalPtr signal = streamingConsumer.getOrAddExternalSignalGeneralized(params);
+
+    const StringPtr streamingProtocolId = params.get("StreamingProtocolId");
+    const StringPtr streamingSourceDeviceId = params.get("StreamingSourceDeviceId");
+
+    for (const auto& server : rootDevice.getServers())
+    {
+        if (auto serverStreaming = server.asPtrOrNull<IStreaming>(); serverStreaming.assigned())
+        {
+            serverStreaming.addSignals({signal});
+            if (streamingProtocolId.assigned())
+            {
+                if (server.getId() == streamingProtocolId)
+                {
+                    assert(streamingSourceDeviceId.assigned());
+                }
+            }
+        }
+    }
+
+    // while connect is perfmormed the subscribe is done
     return ConfigServerInputPort::connect(context, inputPort, signal, params);
 }
 
@@ -424,7 +453,7 @@ BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& p
     ConfigServerAccessControl::protectLockedComponent(rootDevice);
     ConfigServerAccessControl::protectViewOnlyConnection(connectionType);
 
-    streamingConsumer.removeExternalSignals(params);
+    streamingConsumer.removeExternalSignalsByNumericId(params);
     return nullptr;
 }
 

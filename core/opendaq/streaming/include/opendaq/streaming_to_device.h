@@ -15,18 +15,24 @@
  */
 
 #pragma once
-#include <coretypes/common.h>
-#include <coretypes/baseobject.h>
+#include <opendaq/streaming.h>
+#include <opendaq/mirrored_device.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// ? DECLARE_OPENDAQ_INTERFACE(IStreamingToDevice, IStreaming)
-DECLARE_OPENDAQ_INTERFACE(IStreamingToDevice, IBaseObject)
+/*#
+ * [interfaceSmartPtr(IStreaming, GenericStreamingPtr, "<opendaq/streaming_ptr.h>")]
+ * [templated(defaultAliasName: StreamingToDevicePtr)]
+ * [interfaceSmartPtr(IStreamingToDevice, GenericStreamingToDevicePtr)]
+ */
+
+DECLARE_OPENDAQ_INTERFACE(IStreamingToDevice, IStreaming)
 {
 //    ErrCode addInputPorts(IList* inputPorts) = 0;
 //    ErrCode removeInputPorts(IList* inputPorts) = 0;
 //    ErrCode removeAllInputPorts() = 0;
-    virtual ErrCode INTERFACE_FUNC test() = 0;
+    virtual ErrCode INTERFACE_FUNC getOwnerDevice(IMirroredDevice** device) const = 0;
+    virtual ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) const = 0;
 };
 
 END_NAMESPACE_OPENDAQ

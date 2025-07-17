@@ -34,17 +34,17 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <typename... Interfaces>
+template <typename TInterface, typename... Interfaces>
 class StreamingImpl;
 
-using Streaming = StreamingImpl<>;
+using Streaming = StreamingImpl<IStreaming>;
 
-template <typename... Interfaces>
-class StreamingImpl : public ImplementationOfWeak<IStreaming, IStreamingPrivate, Interfaces...>
+template <typename TInterface, typename... Interfaces>
+class StreamingImpl : public ImplementationOfWeak<TInterface, IStreamingPrivate, Interfaces...>
 {
 public:
-    using Super = ImplementationOfWeak<IStreaming, IStreamingPrivate, Interfaces...>;
-    using Self = StreamingImpl<Interfaces...>;
+    using Super = ImplementationOfWeak<TInterface, IStreamingPrivate, Interfaces...>;
+    using Self = StreamingImpl<TInterface, Interfaces...>;
 
     explicit StreamingImpl(const StringPtr& connectionString, ContextPtr context, bool skipDomainSignalSubscribe);
 
@@ -155,8 +155,8 @@ private:
     std::unordered_set<StringPtr, StringHash, StringEqualTo> availableSignalIds;
 };
 
-template <typename... Interfaces>
-StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString, ContextPtr context, bool skipDomainSignalSubscribe)
+template <typename TInterface, typename... Interfaces>
+StreamingImpl<TInterface, Interfaces...>::StreamingImpl(const StringPtr& connectionString, ContextPtr context, bool skipDomainSignalSubscribe)
     : connectionString(connectionString)
     , context(std::move(context))
     , loggerComponent(this->context.getLogger().getOrAddComponent(fmt::format("Streaming({})", connectionString)))
@@ -165,8 +165,8 @@ StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString, C
 {
 }
 
-template <typename... Interfaces>
-StreamingImpl<Interfaces...>::~StreamingImpl()
+template <typename TInterface, typename... Interfaces>
+StreamingImpl<TInterface, Interfaces...>::~StreamingImpl()
 {
     try
     {
@@ -180,8 +180,8 @@ StreamingImpl<Interfaces...>::~StreamingImpl()
     }
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::getActive(Bool* active)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
@@ -191,8 +191,8 @@ ErrCode StreamingImpl<Interfaces...>::getActive(Bool* active)
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::setActive(Bool active)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::setActive(Bool active)
 {
     if (static_cast<bool>(active) == this->isActive)
         return OPENDAQ_IGNORED;
@@ -206,8 +206,8 @@ ErrCode StreamingImpl<Interfaces...>::setActive(Bool active)
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::addSignals(IList* signals)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
 
@@ -274,8 +274,8 @@ ErrCode StreamingImpl<Interfaces...>::addSignals(IList* signals)
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::removeSignals(IList* signals)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
 
@@ -340,8 +340,8 @@ ErrCode StreamingImpl<Interfaces...>::removeSignals(IList* signals)
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::removeAllSignals()
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::removeAllSignals()
 {
     ErrCode errCode = removeStreamingSourceForAllSignals();
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -361,8 +361,8 @@ ErrCode StreamingImpl<Interfaces...>::removeAllSignals()
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::getConnectionString(IString** connectionString) const
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::getConnectionString(IString** connectionString) const
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
 
@@ -370,8 +370,8 @@ ErrCode StreamingImpl<Interfaces...>::getConnectionString(IString** connectionSt
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::getConnectionStatus(IEnumeration** connectionStatus)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::getConnectionStatus(IEnumeration** connectionStatus)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionStatus);
 
@@ -381,8 +381,8 @@ ErrCode StreamingImpl<Interfaces...>::getConnectionStatus(IEnumeration** connect
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::doSubscribeSignal(const StringPtr& signalRemoteId)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::doSubscribeSignal(const StringPtr& signalRemoteId)
 {
     std::scoped_lock lock(sync);
 
@@ -425,8 +425,8 @@ ErrCode StreamingImpl<Interfaces...>::doSubscribeSignal(const StringPtr& signalR
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId)
 {
     if (!signalRemoteId.assigned())
     {
@@ -460,8 +460,8 @@ ErrCode StreamingImpl<Interfaces...>::subscribeSignal(const StringPtr& signalRem
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::doUnsubscribeSignal(const StringPtr& signalRemoteId)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::doUnsubscribeSignal(const StringPtr& signalRemoteId)
 {
     std::scoped_lock lock(sync);
 
@@ -514,8 +514,8 @@ ErrCode StreamingImpl<Interfaces...>::doUnsubscribeSignal(const StringPtr& signa
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId)
 {
     if (!signalRemoteId.assigned())
     {
@@ -549,8 +549,8 @@ ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const StringPtr& signalR
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::resubscribeAvailableSignal(const StringPtr& signalStreamingId)
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::resubscribeAvailableSignal(const StringPtr& signalStreamingId)
 {
     if (const auto it = streamingSignalsItems.find(signalStreamingId); it != streamingSignalsItems.end())
     {
@@ -566,8 +566,8 @@ void StreamingImpl<Interfaces...>::resubscribeAvailableSignal(const StringPtr& s
     // else - corresponding signal was not added, no actions required
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::detachRemovedSignal(const StringPtr& signalRemoteId)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::detachRemovedSignal(const StringPtr& signalRemoteId)
 {
     std::scoped_lock lock(sync);
 
@@ -596,8 +596,8 @@ ErrCode StreamingImpl<Interfaces...>::detachRemovedSignal(const StringPtr& signa
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::setOwnerDevice(const DevicePtr& device)
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::setOwnerDevice(const DevicePtr& device)
 {
     std::scoped_lock lock(sync);
 
@@ -605,8 +605,8 @@ ErrCode StreamingImpl<Interfaces...>::setOwnerDevice(const DevicePtr& device)
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-ErrCode StreamingImpl<Interfaces...>::removeStreamingSourceForAllSignals()
+template <typename TInterface, typename... Interfaces>
+ErrCode StreamingImpl<TInterface, Interfaces...>::removeStreamingSourceForAllSignals()
 {
     auto allSignals = List<IMirroredSignalConfig>();
 
@@ -632,14 +632,14 @@ ErrCode StreamingImpl<Interfaces...>::removeStreamingSourceForAllSignals()
     return OPENDAQ_SUCCESS;
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::removeAllSignalsInternal()
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::removeAllSignalsInternal()
 {
     streamingSignalsItems.clear();
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::onPacket(const StringPtr& signalId, const PacketPtr& packet)
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::onPacket(const StringPtr& signalId, const PacketPtr& packet)
 {
     MirroredSignalConfigPtr signal;
     {
@@ -666,16 +666,16 @@ void StreamingImpl<Interfaces...>::onPacket(const StringPtr& signalId, const Pac
     }
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket)
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket)
 {
     Bool forwardPacket = signal.template asPtr<IMirroredSignalPrivate>().triggerEvent(eventPacket);
     if (forwardPacket)
         signal.sendPacket(eventPacket);
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::triggerSubscribeAck(const StringPtr& signalStreamingId, bool subscribed)
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::triggerSubscribeAck(const StringPtr& signalStreamingId, bool subscribed)
 {
     MirroredSignalConfigPtr signal;
     {
@@ -696,8 +696,8 @@ void StreamingImpl<Interfaces...>::triggerSubscribeAck(const StringPtr& signalSt
     }
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
     std::scoped_lock lock(sync);
 
@@ -720,8 +720,8 @@ void StreamingImpl<Interfaces...>::updateConnectionStatus(const EnumerationPtr& 
     }
 }
 
-template <typename... Interfaces>
-StringPtr StreamingImpl<Interfaces...>::getSignalStreamingId(const StringPtr& signalRemoteId)
+template <typename TInterface, typename... Interfaces>
+StringPtr StreamingImpl<TInterface, Interfaces...>::getSignalStreamingId(const StringPtr& signalRemoteId)
 {
     const auto it = std::find_if(
         this->availableSignalIds.begin(),
@@ -738,8 +738,8 @@ StringPtr StreamingImpl<Interfaces...>::getSignalStreamingId(const StringPtr& si
         return nullptr;
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::addToAvailableSignals(const StringPtr& signalStreamingId)
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::addToAvailableSignals(const StringPtr& signalStreamingId)
 {
     std::scoped_lock lock(sync);
 
@@ -759,8 +759,8 @@ void StreamingImpl<Interfaces...>::addToAvailableSignals(const StringPtr& signal
     }
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::removeFromAvailableSignals(const StringPtr& signalStreamingId)
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::removeFromAvailableSignals(const StringPtr& signalStreamingId)
 {
     std::scoped_lock lock(sync);
 
@@ -779,8 +779,8 @@ void StreamingImpl<Interfaces...>::removeFromAvailableSignals(const StringPtr& s
     }
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::remapAvailableSignal(const StringPtr& signalStreamingId)
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::remapAvailableSignal(const StringPtr& signalStreamingId)
 {
     // search for added signal with matching remote Id
     const auto it = std::find_if(
@@ -811,8 +811,8 @@ void StreamingImpl<Interfaces...>::remapAvailableSignal(const StringPtr& signalS
     // else - corresponding signal was not added, no actions required
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::remapUnavailableSignal(const StringPtr& signalStreamingId)
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::remapUnavailableSignal(const StringPtr& signalStreamingId)
 {
     if (auto it = streamingSignalsItems.find(signalStreamingId); it != streamingSignalsItems.end())
     {
@@ -835,8 +835,8 @@ void StreamingImpl<Interfaces...>::remapUnavailableSignal(const StringPtr& signa
     // else - corresponding signal was not added, no actions required
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::startReconnection()
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::startReconnection()
 {
     // consider all signals as unavailable
     for (const auto& signalStreamingId : availableSignalIds)
@@ -846,8 +846,8 @@ void StreamingImpl<Interfaces...>::startReconnection()
     isReconnecting = true;
 }
 
-template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::completeReconnection()
+template <typename TInterface, typename... Interfaces>
+void StreamingImpl<TInterface, Interfaces...>::completeReconnection()
 {
     if (!isReconnecting)
         DAQ_THROW_EXCEPTION(InvalidStateException, "Fail to complete reconnection - reconnection was not started");

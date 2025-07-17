@@ -34,7 +34,8 @@ public:
             serverDevice,
             std::bind(&ConfigProtocolDeviceLockingTest::serverNotificationReady, this, std::placeholders::_1),
             user,
-            ClientType::Control);
+            ClientType::Control,
+            test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
         auto clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(

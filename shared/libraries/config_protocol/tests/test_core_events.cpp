@@ -38,7 +38,8 @@ public:
             std::make_unique<ConfigProtocolServer>(serverDevice,
                                                    std::bind(&ConfigCoreEventTest::serverNotificationReady, this, std::placeholders::_1),
                                                    anonymousUser,
-                                                   ClientType::Control);
+                                                   ClientType::Control,
+                                                   test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
         clientContext = NullContext();
         client =

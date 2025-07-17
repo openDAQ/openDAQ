@@ -25,6 +25,7 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredInputPortPrivate, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC addStreamingSource(IStreamingToDevice* streaming) = 0;
     virtual ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC getActiveStreamingSourceObject(IStreamingToDevice** streaming) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

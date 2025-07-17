@@ -21,8 +21,6 @@ TmsClientSignalImpl::TmsClientSignalImpl(
 )
     : TmsClientComponentBaseImpl(ctx, parent, localId, clientContext, nodeId)
 {
-    deviceSignalId = nodeId.getIdentifier();
-
     if (hasReference("Value"))
     {
         const auto valueNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "Value");
@@ -168,7 +166,7 @@ Bool TmsClientSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)
 
 StringPtr TmsClientSignalImpl::onGetRemoteId() const
 {
-    return String(deviceSignalId);
+    return String(remoteComponentId).detach();
 }
 
 ErrCode TmsClientSignalImpl::getLastValue(IBaseObject** value)

@@ -26,6 +26,7 @@ namespace daq::test_utils
     DevicePtr createTestDevice(const std::string& localId = "root_dev");
     ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     PropertyObjectPtr createMockNestedPropertyObject();
+    FolderPtr dummyExtSigFolder(const ContextPtr& ctx);
 
     class MockFb1Impl final : public FunctionBlock
     {

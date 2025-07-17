@@ -30,7 +30,7 @@ DECLARE_OPENDAQ_INTERFACE(IMockStreaming, daq::IBaseObject)
     virtual void triggerReconnectionCompletion() = 0;
 };
 
-struct MockStreaming : daq::StreamingImpl<IMockStreaming>
+struct MockStreaming : daq::StreamingImpl<daq::IStreaming, IMockStreaming>
 {
     typedef MockPtr<
         daq::IStreaming,
@@ -61,7 +61,7 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
     daq::MirroredSignalConfigPtr signal;
 
     MockStreaming(const daq::StringPtr& connectionString, const daq::ContextPtr& context)
-        : daq::StreamingImpl<IMockStreaming>(connectionString, context, false)
+        : daq::StreamingImpl<daq::IStreaming, IMockStreaming>(connectionString, context, false)
     {
         using namespace testing;
 

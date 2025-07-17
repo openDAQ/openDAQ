@@ -40,7 +40,7 @@ public:
     SignalNumericIdType registerOrUpdateSignal(const SignalPtr& signal);
     SignalPtr findRegisteredSignal(const StringPtr& signalId);
     void addConnection(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
-    void removeConnection(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId, std::vector<SignalNumericIdType>& unusedSignlasIds);
+    void removeConnection(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId, std::vector<SignalNumericIdType>& unusedSignalsIds);
 
 private:
     struct StreamedSignal

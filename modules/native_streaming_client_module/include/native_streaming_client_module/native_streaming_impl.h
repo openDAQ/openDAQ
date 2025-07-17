@@ -36,6 +36,7 @@ template <typename Impl>
 class NativeStreamingBaseImpl : public Impl
 {
 public:
+    template <class ... Args>
     explicit NativeStreamingBaseImpl(const StringPtr& connectionString,
                                      const ContextPtr& context,
                                      opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
@@ -43,8 +44,9 @@ public:
                                      Int streamingInitTimeout,
                                      const ProcedurePtr& onDeviceSignalAvailableCallback,
                                      const ProcedurePtr& onDeviceSignalUnavailableCallback,
-                                     opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb)
-        : Impl(connectionString, context, false)
+                                     opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb,
+                                     const Args& ... args)
+        : Impl(connectionString, context, false, args ...)
         , transportClientHandler(transportClientHandler)
         , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
         , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
@@ -393,7 +395,7 @@ public:
     {}
 };
 
-using NativeStreamingBasicImpl = NativeStreamingImpl<StreamingImpl<INativeStreamingPrivate>>;
+using NativeStreamingBasicImpl = NativeStreamingImpl<StreamingImpl<IStreaming, INativeStreamingPrivate>>;
 
 template <>
 class NativeStreamingImpl<StreamingToDeviceImpl<INativeStreamingPrivate>>
@@ -409,7 +411,8 @@ public:
                         Int streamingInitTimeout,
                         const ProcedurePtr& onDeviceSignalAvailableCallback,
                         const ProcedurePtr& onDeviceSignalUnavailableCallback,
-                        opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb)
+                        opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb,
+                        const StringPtr& protocolId)
         : Super(connectionString,
                 context,
                 transportClientHandler,
@@ -417,14 +420,9 @@ public:
                 streamingInitTimeout,
                 nullptr,
                 nullptr,
-                nullptr)
+                nullptr,
+                protocolId)
     {}
-
-protected:
-    void onTest() override
-    {
-
-    }
 };
 
 using NativeStreamingToDeviceImpl = NativeStreamingImpl<StreamingToDeviceImpl<INativeStreamingPrivate>>;

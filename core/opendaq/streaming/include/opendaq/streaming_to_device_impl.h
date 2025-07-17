@@ -48,22 +48,28 @@ public:
     using Super = StreamingImpl<IStreamingToDevice, Interfaces...>;
     using Self = StreamingToDeviceImpl<Interfaces...>;
 
-    explicit StreamingToDeviceImpl(const StringPtr& connectionString, const ContextPtr& context, bool skipDomainSignalSubscribe);
+    explicit StreamingToDeviceImpl(const StringPtr& connectionString,
+                                   const ContextPtr& context,
+                                   bool skipDomainSignalSubscribe,
+                                   const StringPtr& protocolId);
 
     ~StreamingToDeviceImpl() override;
 
     // IStreamingToDevice
-    ErrCode INTERFACE_FUNC test() override;
+    ErrCode INTERFACE_FUNC getOwnerDevice(IMirroredDevice** device) const override;
+    ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) const override;
 
 protected:
-    virtual void onTest() = 0;
+    StringPtr protocolId;
 };
 
 template<typename... Interfaces>
 StreamingToDeviceImpl<Interfaces...>::StreamingToDeviceImpl(const StringPtr& connectionString,
                                                             const ContextPtr& context,
-                                                            bool skipDomainSignalSubscribe)
+                                                            bool skipDomainSignalSubscribe,
+                                                            const StringPtr& protocolId)
     : Super(connectionString, context, skipDomainSignalSubscribe)
+    , protocolId(protocolId)
 {
 }
 
@@ -73,9 +79,17 @@ StreamingToDeviceImpl<Interfaces...>::~StreamingToDeviceImpl()
 }
 
 template<typename... Interfaces>
-ErrCode StreamingToDeviceImpl<Interfaces...>::test()
+ErrCode StreamingToDeviceImpl<Interfaces...>::getOwnerDevice(IMirroredDevice** device) const
 {
-    onTest();
+    return OPENDAQ_SUCCESS;
+}
+
+template<typename... Interfaces>
+ErrCode StreamingToDeviceImpl<Interfaces...>::getProtocolId(IString** protocolId) const
+{
+    OPENDAQ_PARAM_NOT_NULL(protocolId);
+
+    *protocolId = this->protocolId;
     return OPENDAQ_SUCCESS;
 }
 

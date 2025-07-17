@@ -42,8 +42,6 @@ public:
 
 protected:
     SignalPtr onGetSignal();
-
-    std::string remoteInputPortId;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

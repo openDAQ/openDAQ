@@ -20,6 +20,7 @@
 #include <config_protocol/config_client_connection_impl.h>
 #include <config_protocol/config_client_input_port.h>
 #include <opendaq/errors.h>
+#include <opendaq/mirrored_input_port_config_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -101,13 +102,41 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             }
             else
             {
-                if (clientComm->getProtocolVersion() >= 2)
-                    clientComm->connectExternalSignalToServerInputPort(signalPtr, remoteGlobalId);
+                const auto inputPortSelf = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+                if (clientComm->getProtocolVersion() >= 17)
+                {
+                    const auto activeSource = inputPortSelf.getActiveStreamingSourceObject();
+                    StringPtr streamingProtocolId = activeSource.assigned() ? activeSource.getProtocolId() : nullptr;
+                    MirroredDevicePtr streamingSourceDevice = activeSource.assigned() ? activeSource.getOwnerDevice() : nullptr;
+                    StringPtr streamingSourceDeviceId;
+                    if (activeSource.assigned())
+                    {
+                        if (!streamingSourceDevice.assigned())
+                        {
+                            return DAQ_MAKE_ERROR_INFO(
+                                OPENDAQ_ERR_INVALIDSTATE,
+                                "The source device for the input port’s active streaming source is unknown"
+                            );
+                        }
+                        else
+                        {
+                            streamingSourceDeviceId = streamingSourceDevice.getRemoteId();
+                        }
+                    }
+
+                    clientComm->connectExternalSignalToServerInputPortGeneralized(signalPtr, remoteGlobalId, streamingProtocolId, streamingSourceDeviceId);
+                }
+                else if (clientComm->getProtocolVersion() >= 2)
+                {
+                    clientComm->connectExternalSignalToServerInputPortBasic(signalPtr, remoteGlobalId);
+                }
                 else
+                {
                     return DAQ_MAKE_ERROR_INFO(
                         OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
                         "Client-to-device streaming operations are not supported by the protocol version currently in use"
                     );
+                }
             }
 
             return Super::connect(signal);

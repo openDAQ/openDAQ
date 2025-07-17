@@ -76,6 +76,7 @@ public:
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    StringPtr onGetRemoteId() const override;
 
 private:
     void componentAdded(const CoreEventArgsPtr& args);
@@ -515,6 +516,12 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         Int mode = serialized.readInt("OperationMode");
         this->updateOperationModeNoCoreEvent(static_cast<OperationModeType>(mode));
     }
+}
+
+template <class TDeviceBase>
+StringPtr GenericConfigClientDeviceImpl<TDeviceBase>::onGetRemoteId() const
+{
+    return String(this->remoteGlobalId).detach();
 }
 
 template <class TDeviceBase>

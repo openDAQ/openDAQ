@@ -6,7 +6,7 @@ namespace daq::config_protocol
 ConfigMirroredExternalSignalImpl::ConfigMirroredExternalSignalImpl(const ContextPtr& ctx,
                                                                    const ComponentPtr& parent,
                                                                    const StringPtr& remoteGlobalId)
-    : MirroredSignalBase(ctx, parent, createLocalId(remoteGlobalId), nullptr)
+    : MirroredSignalBase(ctx, parent, getLocalId(remoteGlobalId), nullptr)
     , remoteGlobalId(remoteGlobalId)
 {
 }
@@ -16,7 +16,7 @@ StringPtr ConfigMirroredExternalSignalImpl::onGetRemoteId() const
     return remoteGlobalId;
 }
 
-StringPtr ConfigMirroredExternalSignalImpl::createLocalId(const StringPtr& remoteGlobalId)
+StringPtr ConfigMirroredExternalSignalImpl::getLocalId(const StringPtr& remoteGlobalId)
 {
     static constexpr char delimeter = '*';
     std::string localId = remoteGlobalId;

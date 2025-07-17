@@ -31,8 +31,11 @@ public:
     ConfigProtocolStreamingConsumer(const ContextPtr& daqContext, const FolderConfigPtr& externalSignalsFolder);
     ~ConfigProtocolStreamingConsumer();
 
-    MirroredSignalConfigPtr getOrAddExternalSignal(const ParamsDictPtr& params);
-    void removeExternalSignals(const ParamsDictPtr& params);
+    MirroredSignalConfigPtr getOrAddExternalSignalWithNumericId(const ParamsDictPtr& params);
+    void removeExternalSignalsByNumericId(const ParamsDictPtr& params);
+
+    MirroredSignalConfigPtr getOrAddExternalSignalGeneralized(const ParamsDictPtr& params);
+    void removeExternalSignalsGeneralized(const ParamsDictPtr& params);
 
     bool isExternalSignal(const SignalPtr& signal);
 
@@ -40,12 +43,17 @@ public:
     bool isForwardedCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& eventArgs);
 
 private:
-    MirroredSignalConfigPtr createMirroredExternalSignal(const StringPtr& signalStringId,
-                                                         const StringPtr& serializedSignal,
-                                                         SignalNumericIdType signalNumericId);
+    MirroredSignalConfigPtr createMirroredExternalSignal(const StringPtr& signalStringId, const StringPtr& serializedSignal);
 
-    void addExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
-    void removeExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
+    void addExternalSignalWithNumericId(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
+    void removeExternalSignalByNumbericId(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
+
+    void addExternalSignal(const MirroredSignalConfigPtr& signal);
+    void removeExternalSignal(const MirroredSignalConfigPtr& signal);
+
+    bool isSignalOfConnectedClient(const StringPtr& signalId);
+
+    MirroredSignalConfigPtr getExternalSignal(const StringPtr& signalId);
 
     ContextPtr daqContext;
     LoggerComponentPtr loggerComponent;

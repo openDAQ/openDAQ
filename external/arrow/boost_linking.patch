@@ -1,0 +1,13 @@
+diff --git a/cpp/cmake_modules/ThirdpartyToolchain.cmake b/cpp/cmake_modules/ThirdpartyToolchain.cmake
+index 63bdd4ab7..6d1355dd0 100644
+--- a/cpp/cmake_modules/ThirdpartyToolchain.cmake
++++ b/cpp/cmake_modules/ThirdpartyToolchain.cmake
+@@ -1311,7 +1311,7 @@ if(ARROW_USE_BOOST)
+     if(NOT TARGET ${BOOST_LIBRARY})
+       continue()
+     endif()
+-    target_link_libraries(${BOOST_LIBRARY} INTERFACE Boost::disable_autolinking)
++    # target_link_libraries(${BOOST_LIBRARY} INTERFACE Boost::disable_autolinking)
+     if(ARROW_BOOST_USE_SHARED)
+       target_link_libraries(${BOOST_LIBRARY} INTERFACE Boost::dynamic_linking)
+     endif()

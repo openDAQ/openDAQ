@@ -96,6 +96,11 @@ public:
                                  const StringPtr& connectionString,
                                  const PropertyObjectPtr& config,
                                  const ComponentPtr& parentComponent);
+    DictPtr<IString, IComponentHolder> addDevices(const std::string& globalId,
+                                                  const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                                  Bool doGetErrCodes,
+                                                  Bool doGetErrorInfos,
+                                                  const ComponentPtr& parentComponent);
     void removeDevice(const std::string& globalId, const StringPtr& deviceLocalId);
     void connectSignal(const std::string& globalId, const std::string& globaSignallId);
     void disconnectSignal(const std::string& globalId);

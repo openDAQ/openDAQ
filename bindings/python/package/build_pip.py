@@ -173,8 +173,8 @@ for module in modules.modules:
     shutil.copy(os.path.join(build_bin_dir, module),
                 os.path.join(path_stage_package, 'modules'))
 shutil.copy(os.path.join(build_bin_dir, modules.opendaq), path_stage_package)
-shutil.copy(os.path.join(examples_dir, 'gui_demo.py'), os.path.join(path_stage_package, '__main__.py'))
-shutil.copytree(os.path.join(examples_dir, 'gui_demo'), os.path.join(path_stage_package, 'gui_demo'))
+shutil.copy(os.path.join(examples_dir, 'GUI Application/gui_demo.py'), os.path.join(path_stage_package, '__main__.py'))
+shutil.copytree(os.path.join(examples_dir, 'GUI Application/gui_demo'), os.path.join(path_stage_package, 'gui_demo'))
 
 # an empty file signalling to python that auto-complete should be enabled
 pathlib.Path(os.path.join(path_stage_package, 'py.typed')).touch()

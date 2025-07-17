@@ -93,7 +93,7 @@ On Ubuntu and Debian distributions we can run the following terminal commands to
 ----
 sudo apt-get update
 sudo apt-get install -y git build-essential lld cmake ninja-build mono-complete python3
-sudo apt-get install -y libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+sudo apt-get install -y libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 ----
 
 **2. Clone the openDAQ(TM) repository**

@@ -32,9 +32,32 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param name The name of the argument.
  * @param type The type expected of the argument.
  */
-inline ArgumentInfoPtr ArgumentInfo(StringPtr name, CoreType type)
+inline ArgumentInfoPtr ArgumentInfo(const StringPtr& name, CoreType type)
 {
     return ArgumentInfoPtr::Adopt(ArgumentInfo_Create(name, type));
+}
+
+/*!
+ * @brief Creates a list-type Argument info object with the specified name and item type.
+ *
+ * @param name The name of the argument.
+ * @param itemType Corresponds to the expected type of items in the list argument.
+ */
+inline ArgumentInfoPtr ListArgumentInfo(const StringPtr& name, CoreType itemType)
+{
+    return ArgumentInfoPtr::Adopt(ListArgumentInfo_Create(name, itemType));
+}
+
+/*!
+ * @brief Creates a dict-type Argument info object with the specified name, key type and item type.
+ *
+ * @param name The name of the argument.
+ * @param keyType Corresponds to the expected type of key in the dictionary argument.
+ * @param itemType Corresponds to the expected type of items in the dictionary argument.
+ */
+inline ArgumentInfoPtr DictArgumentInfo(const StringPtr& name, CoreType keyType, CoreType itemType)
+{
+    return ArgumentInfoPtr::Adopt(DictArgumentInfo_Create(name, keyType, itemType));
 }
 
 /*!
@@ -43,9 +66,9 @@ inline ArgumentInfoPtr ArgumentInfo(StringPtr name, CoreType type)
 inline StructTypePtr ArgumentInfoStructType()
 {
     return StructType("ArgumentInfo",
-                      List<IString>("Name", "Type"),
-                      List<IBaseObject>("", static_cast<Int>(ctUndefined)),
-                      List<IType>(SimpleType(ctString), SimpleType(ctInt)));
+                      List<IString>("Name", "Type", "KeyType", "ItemType"),
+                      List<IBaseObject>("", static_cast<Int>(ctUndefined), static_cast<Int>(ctUndefined), static_cast<Int>(ctUndefined)),
+                      List<IType>(SimpleType(ctString), SimpleType(ctInt), SimpleType(ctInt), SimpleType(ctInt)));
 }
 
 /*!@}*/

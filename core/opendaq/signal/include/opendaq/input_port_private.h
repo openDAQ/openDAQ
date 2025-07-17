@@ -17,6 +17,8 @@
 #pragma once
 
 #include <coretypes/baseobject.h>
+#include <opendaq/signal.h>
+#include <opendaq/input_port_notifications.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,6 +38,15 @@ DECLARE_OPENDAQ_INTERFACE(IInputPortPrivate, IBaseObject)
      * @brief Disconnects the signal without notification to the signal.
      */
     virtual ErrCode INTERFACE_FUNC disconnectWithoutSignalNotification() = 0;
+
+    /*!
+     * @brief Connects the signal to the input port, forming a Connection.
+     * @param signal The signal to be connected to the input port.
+     *
+     * On connect, an event packet is enqueued in the connection. This method schedules the
+     * `onPacketReceived` notification instead of invoking it on the same thread.
+     */
+    virtual ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) = 0;
 };
 /*!@}*/
 

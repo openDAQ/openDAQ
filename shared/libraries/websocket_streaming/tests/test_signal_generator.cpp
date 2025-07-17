@@ -151,3 +151,24 @@ TEST_F(SignalGeneratorTest, ChangeFunction)
     ASSERT_EQ(packet2.getSampleCount(), packetSize);
     ASSERT_TRUE(compareSamples(expectedSamples2.data(), packet2.getData(), packetSize));
 }
+
+TEST_F(SignalGeneratorTest, SignalGeneratorCountCheck)
+{
+    const size_t packetSize= 100;
+    auto expectedSamples1 = calculateExpectedSamples(0, packetSize, stepFunction10);
+
+    auto reader = PacketReader(signal);
+    
+    auto generator = SignalGenerator(signal, std::chrono::system_clock::now());
+    generator.setFunction(stepFunction10);
+    generator.generateSamplesTo(std::chrono::milliseconds(packetSize));
+    generator.generateSamplesTo(std::chrono::milliseconds(packetSize * 2));
+    generator.generateSamplesTo(std::chrono::milliseconds(packetSize * 3));
+
+    auto packets = reader.readAll();
+    ASSERT_EQ(packets.getCount(), 4u);
+    auto packet1 = packets[1].asPtr<IDataPacket>();
+    ASSERT_EQ(packet1.getSampleCount(), packetSize);
+    auto packet2 = packets[2].asPtr<IDataPacket>();
+    ASSERT_EQ(packet2.getSampleCount(), packetSize);
+}

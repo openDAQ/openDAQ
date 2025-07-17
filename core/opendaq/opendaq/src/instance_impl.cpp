@@ -127,7 +127,12 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 
     // Configure scheduler
     if (!scheduler.assigned())
-        scheduler = Scheduler(logger, builderPtr.getSchedulerWorkerNum());
+    {
+        if (builderPtr.getUsingSchedulerMainLoop())
+            scheduler = SchedulerWithMainLoop(logger, builderPtr.getSchedulerWorkerNum());
+        else
+            scheduler = Scheduler(logger, builderPtr.getSchedulerWorkerNum());
+    }
 
     // Configure moduleManager
     if (!moduleManager.assigned())
@@ -539,6 +544,11 @@ ErrCode InstanceImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 ErrCode InstanceImpl::addDevice(IDevice** device, IString* connectionString, IPropertyObject* config)
 {
     return rootDevice->addDevice(device, connectionString, config);
+}
+
+ErrCode InstanceImpl::addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes, IDict* errorInfos)
+{
+    return rootDevice->addDevices(devices, connectionArgs, errCodes, errorInfos);
 }
 
 ErrCode InstanceImpl::removeDevice(IDevice* device)

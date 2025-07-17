@@ -38,7 +38,7 @@ PyDaqIntf<daq::IAuthenticationProvider, daq::IBaseObject> declareIAuthentication
 
 void defineIAuthenticationProvider(pybind11::module_ m, PyDaqIntf<daq::IAuthenticationProvider, daq::IBaseObject> cls)
 {
-    cls.doc() = "A class which is responsible for authenticating a user. The authentication is usually done by verifying the username and password. An authenticator implementation might use external services for achieving that. It might make a call to an external databse, do a lookup to a json file with defined users or it might simply check the password against a hardcoded one.";
+    cls.doc() = "A class which is responsible for authenticating a user. The authentication is usually done by verifying the username and password. An authenticator implementation might use external services for achieving that. It might make a call to an external database, do a lookup to a json file with defined users or it might simply check the password against a hardcoded one.";
 
     m.def("AuthenticationProvider", &daq::AuthenticationProvider_Create);
     m.def("StaticAuthenticationProvider", [](const bool allowAnonymous, std::variant<daq::IList*, py::list, daq::IEvalValue*>& userList){

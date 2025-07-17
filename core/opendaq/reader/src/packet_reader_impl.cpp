@@ -84,6 +84,12 @@ ErrCode PacketReaderImpl::setOnDataAvailable(IProcedure* callback)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode PacketReaderImpl::setExternalListener(IInputPortNotifications* listener)
+{
+    this->externalListener = listener;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode PacketReaderImpl::read(IPacket** packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
@@ -125,6 +131,9 @@ ErrCode PacketReaderImpl::readAll(IList** allPackets)
 ErrCode PacketReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept)
 {
     OPENDAQ_PARAM_NOT_NULL(accept);
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->acceptsSignal(port, signal, accept);
 
     *accept = true;
     return OPENDAQ_SUCCESS;
@@ -133,18 +142,29 @@ ErrCode PacketReaderImpl::acceptsSignal(IInputPort* port, ISignal* signal, Bool*
 ErrCode PacketReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    
-    std::scoped_lock lock(mutex);
+
+    // TODO: Thread safety
     port->getConnection(&connection);
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->connected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode PacketReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
+    ProcedurePtr callback;
 
-    std::scoped_lock lock(mutex);
-    connection = nullptr;
+    {
+        std::scoped_lock lock(mutex);
+        connection = nullptr;
+    }
+
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->disconnected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -159,7 +179,10 @@ ErrCode PacketReaderImpl::packetReceived(IInputPort* port)
     }
     
     if (callback.assigned())
-        return wrapHandler(callback);
+        OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
+
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->disconnected(port);
 
     return OPENDAQ_SUCCESS;
 }

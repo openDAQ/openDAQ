@@ -14,6 +14,8 @@
 
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/context_factory.h>
+#include <coreobjects/argument_info_factory.h>
+#include <coreobjects/callable_info_factory.h>
 
 using namespace daq;
 using namespace opcua::tms;
@@ -349,6 +351,65 @@ TEST_F(TmsPropertyObjectTest, DotAccessClientServerChange)
     ASSERT_NO_THROW(serverProp.setValue("bar"));
     ASSERT_EQ(clientObj.getPropertyValue("child.child.foo"), "bar");
     ASSERT_EQ(prop.getValue(), "bar");
+}
+
+TEST_F(TmsPropertyObjectTest, ProcedurePropWithListArg)
+{
+    PropertyObjectPtr obj = PropertyObject();
+    auto argInfo = ListArgumentInfo("Int", ctInt);
+
+    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfo)));
+    obj.addProperty(prop);
+    auto proc = Procedure(
+        [](const ListPtr<IBaseObject>& list)
+        {
+            for (const auto& val : list)
+                ASSERT_EQ(val.getCoreType(), ctInt);
+    });
+
+    obj.setPropertyValue("ProcedureProp", proc);
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+    
+    ASSERT_FALSE(clientObj.hasProperty("ProcedureProp"));
+    
+    // TODO: Procedure/Function properties with list/dictionary types are not yet supported over OPC UA!
+    //proc = clientObj.getPropertyValue("ProcedureProp");
+
+    //ASSERT_EQ(clientObj.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfo);
+
+    //auto listArg = List<IBaseObject>(Integer(1), Integer(2));
+    //proc(listArg);
+}
+TEST_F(TmsPropertyObjectTest, ProcedurePropWithDictArg)
+{
+    PropertyObjectPtr obj = PropertyObject();
+    auto argInfo = DictArgumentInfo("Int", ctInt, ctString);
+
+    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfo)));
+    obj.addProperty(prop);
+    auto proc = Procedure(
+        [](const DictPtr<IInteger, IString>& dict)
+        {
+            for (const auto& [key, val] : dict)
+            {
+                ASSERT_EQ(key.getCoreType(), ctInt);
+                ASSERT_EQ(val.getCoreType(), ctString);
+            }
+        });
+
+    obj.setPropertyValue("ProcedureProp", proc);
+
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+    
+    ASSERT_FALSE(clientObj.hasProperty("ProcedureProp"));
+
+    // TODO: Procedure/Function properties with list/dictionary types are not yet supported over OPC UA!
+    //proc = clientObj.getPropertyValue("ProcedureProp");
+
+    //ASSERT_EQ(clientObj.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfo);
+
+    //auto dictArg = Dict<IInteger, IString>({{0, "foo"}, {1, "bar"}});
+    //proc(dictArg);
 }
 
 class TmsNestedPropertyObjectTest : public TmsObjectIntegrationTest

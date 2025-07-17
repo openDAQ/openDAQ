@@ -121,7 +121,7 @@ struct SignalContext
 class RendererFbImpl final : public FunctionBlock
 {
 public:
-    explicit RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
     ~RendererFbImpl() override;
 
     void onConnected(const InputPortPtr& port) override;
@@ -133,11 +133,17 @@ protected:
     void removed() override;
 
 private:
+    bool rendererUsesMainLoop {false};
+    std::unique_ptr<sf::RenderWindow> window;
+    std::unique_ptr<sf::Font> renderFont;
+    std::chrono::milliseconds defaultWaitTime;
+    std::chrono::steady_clock::time_point waitTime;
+
     std::vector<SignalContext> signalContexts;
     std::thread renderThread;
     std::condition_variable cv;
-    bool stopRender;
-    bool resChanged;
+    bool rendererStopRequested;
+    bool resolutionChangedFlag;
     float lineThickness;
     double duration;
     bool singleXAxis;
@@ -175,12 +181,12 @@ private:
     void logAndSetFutureComponentStatus(ComponentStatus status, StringPtr message);
 
     void updateInputPorts();
-    void renderSignals(sf::RenderTarget& renderTarget, const sf::Font& font);
+    void renderSignals(sf::RenderTarget& renderTarget, const sf::Font& renderFont);
     static sf::Color getColor(const SignalContext& signalContext);
     void getWidthAndHeight(unsigned int& width, unsigned int& height);
 
     template <SampleType DST>
-    void renderSignal(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& font);
+    void renderSignal(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& renderFont);
 
 /* void renderSignalExplicitRange(SignalContext& signalContext, sf::RenderTarget& renderTarget) const;
     void renderSignalExplicit(SignalContext& signalContext, sf::RenderTarget& renderTarget) const;
@@ -189,7 +195,7 @@ private:
     template <SampleType DST>
     void renderPacket(SignalContext& signalContext,
                       sf::RenderTarget& renderTarget,
-                      const sf::Font& font,
+                      const sf::Font& renderFont,
                       const DataPacketPtr& packet,
                       bool& havePrevPacket,
                       typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type& nextExpectedDomainPacketValue,
@@ -201,7 +207,7 @@ private:
         SignalContext& signalContext,
         DataRuleType domainRuleType,
         sf::RenderTarget& renderTarget,
-        const  sf::Font& font,
+        const  sf::Font& renderFont,
         const DataPacketPtr& packet,
         bool& havePrevPacket,
         typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type& nextExpectedDomainPacketValue,
@@ -213,7 +219,7 @@ private:
         SignalContext& signalContext,
         DataRuleType domainRuleType,
         sf::RenderTarget& renderTarget,
-        const  sf::Font& font,
+        const  sf::Font& renderFont,
         const DataPacketPtr& packet,
         bool& havePrevPacket,
         typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type& nextExpectedDomainPacketValue,
@@ -228,9 +234,9 @@ private:
     void setSingleXAxis(SignalContext& signalContext, std::chrono::system_clock::time_point lastTimeValue, Float lastDomainValue);
     void getYMinMax(const SignalContext& signalContext, double& yMax, double& yMin);
 
-    void renderAxes(sf::RenderTarget& renderTarget, const sf::Font& font);
-    void renderAxis(sf::RenderTarget& renderTarget, SignalContext& signalContext, const sf::Font& font, bool drawXAxisLabels, bool drawTitle);
-    void renderMultiTitle(sf::RenderTarget& renderTarget, const sf::Font& font);
+    void renderAxes(sf::RenderTarget& renderTarget, const sf::Font& renderFont);
+    void renderAxis(sf::RenderTarget& renderTarget, SignalContext& signalContext, const sf::Font& renderFont, bool drawXAxisLabels, bool drawTitle);
+    void renderMultiTitle(sf::RenderTarget& renderTarget, const sf::Font& renderFont);
     void processSignalContext(SignalContext& signalContetx);
     void processSignalDescriptorChanged(SignalContext& signalContext,
                                         const DataDescriptorPtr& valueSignalDescriptor,
@@ -264,16 +270,20 @@ private:
 
     template <typename Iter, typename Cont>
     bool isLastIter(Iter iter, const Cont& cont);
-    void stopRendering();
+    void rendererStopRequesteding();
 
     void updateSingleXAxis();
+
+    void startRendererWindow();
+    void initializeRenderer();
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     INTERNAL_FACTORY, RendererFb, IFunctionBlock,
     IContext*, context,
     IString*, parentGlobalId,
-    IString*, localId
+    IString*, localId,
+    IPropertyObject*, config
     );
 
 }

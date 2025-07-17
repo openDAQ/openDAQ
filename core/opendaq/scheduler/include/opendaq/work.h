@@ -25,6 +25,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
+/*#
+ * [templated(defaultAliasName: WorkPtr)]
+ * [interfaceSmartPtr(IWork, GenericWorkPtr)]
+ */
+
 /*!
  *  @brief A lightweight implementation of callback used in scheduler for worker tasks.
  */

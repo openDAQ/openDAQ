@@ -177,3 +177,8 @@
  * @defgroup types_search Search
  * @brief Core types search filter objects and utilities
  */
+
+/*!
+ * @ingroup coretypes
+ * @defgroup types_inspectable Types Inspectable
+ */

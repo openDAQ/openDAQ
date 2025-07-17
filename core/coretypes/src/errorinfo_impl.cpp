@@ -68,6 +68,7 @@ ErrorInfoImpl::ErrorInfoImpl()
     , fileName(nullptr)
     , line(-1)
     , frozen(False)
+    , fileNameObject(nullptr)
 {
 }
 
@@ -75,6 +76,7 @@ ErrorInfoImpl::~ErrorInfoImpl()
 {
     releaseRefIfNotNull(message);
     releaseRefIfNotNull(source);
+    releaseRefIfNotNull(fileNameObject);
 }
 
 ErrCode ErrorInfoImpl::getMessage(IString** message)
@@ -183,6 +185,176 @@ ErrCode ErrorInfoImpl::freeze()
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ErrorInfoImpl::serialize(ISerializer* serializer)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    serializer->startTaggedObject(this);
+    if (message)
+    {
+        ConstCharPtr messageCharPtr;
+        SizeT messageLenght;
+        ErrCode errCode = message->getCharPtr(&messageCharPtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        OPENDAQ_PARAM_NOT_NULL(messageCharPtr);
+        errCode = message->getLength(&messageLenght);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        serializer->key("message");
+        serializer->writeString(messageCharPtr, messageLenght);
+    }
+    if (source)
+    {
+        ConstCharPtr sourceCharPtr;
+        SizeT sourceLenght;
+        ErrCode errCode = source->getCharPtr(&sourceCharPtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        OPENDAQ_PARAM_NOT_NULL(sourceCharPtr);
+        errCode = source->getLength(&sourceLenght);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        serializer->key("source");
+        serializer->writeString(sourceCharPtr, sourceLenght);
+    }
+    if (fileName && std::strlen(fileName))
+    {
+        serializer->key("fileName");
+        serializer->writeString(fileName, std::strlen(fileName));
+    }
+    if (line != -1)
+    {
+        serializer->key("fileLine");
+        serializer->writeInt(line);
+    }
+    serializer->endObject();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ErrorInfoImpl::getSerializeId(ConstCharPtr* id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr ErrorInfoImpl::SerializeId()
+{
+    return "ErrorInfo";
+}
+
+ErrCode ErrorInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject* /*context*/, IFunction* /* factoryCallback*/, IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(serialized);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    IErrorInfo* errorInfo = nullptr;
+    IString* message = nullptr;
+    IString* source = nullptr;
+    IString* fileName = nullptr;
+    IString* messageKey = nullptr;
+    IString* sourceKey = nullptr;
+    IString* fileNameKey = nullptr;
+    IString* fileLineKey = nullptr;
+    Finally final([&errorInfo, &message, &source, &fileName, &messageKey, &sourceKey, &fileNameKey, &fileLineKey]
+                  {
+                      if (errorInfo != nullptr)
+                          errorInfo->releaseRef();
+                      if (message != nullptr)
+                          message->releaseRef();
+                      if (source != nullptr)
+                          source->releaseRef();
+                      if (fileName != nullptr)
+                          fileName->releaseRef();
+                      if (messageKey != nullptr)
+                          messageKey->releaseRef();
+                      if (sourceKey != nullptr)
+                          sourceKey->releaseRef();
+                      if (fileNameKey != nullptr)
+                          fileNameKey->releaseRef();
+                      if (fileLineKey != nullptr)
+                          fileLineKey->releaseRef();
+                  });
+
+    ErrCode errCode = createErrorInfo(&errorInfo);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    OPENDAQ_PARAM_NOT_NULL(errorInfo);
+
+    Bool hasKey = False;
+
+    errCode = createString(&messageKey, "message");
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    OPENDAQ_PARAM_NOT_NULL(messageKey);
+    errCode = serialized->hasKey(messageKey, &hasKey);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (hasKey)
+    {
+        errCode = serialized->readString(messageKey, &message);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        errCode = errorInfo->setMessage(message);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+    }
+
+    errCode = createString(&sourceKey, "source");
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    OPENDAQ_PARAM_NOT_NULL(sourceKey);
+    errCode = serialized->hasKey(sourceKey, &hasKey);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (hasKey)
+    {
+        errCode = serialized->readString(sourceKey, &source);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        errCode = errorInfo->setSource(source);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+    }
+
+    errCode = createString(&fileNameKey, "fileName");
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    OPENDAQ_PARAM_NOT_NULL(fileNameKey);
+    errCode = serialized->hasKey(fileNameKey, &hasKey);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (hasKey)
+    {
+        errCode = serialized->readString(fileNameKey, &fileName);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        OPENDAQ_PARAM_NOT_NULL(fileName);
+        ConstCharPtr fileNameCharPtr;
+        errCode = fileName->getCharPtr(&fileNameCharPtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        errCode = errorInfo->setFileName(fileNameCharPtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        auto implPtr = static_cast<ErrorInfoImpl*>(errorInfo);
+        implPtr->setFileNameObject(fileName);
+    }
+
+    errCode = createString(&fileLineKey, "fileLine");
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    OPENDAQ_PARAM_NOT_NULL(fileLineKey);
+    errCode = serialized->hasKey(fileLineKey, &hasKey);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (hasKey)
+    {
+        Int fileLine;
+        errCode = serialized->readInt(fileLineKey, &fileLine);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        errCode = errorInfo->setFileLine(fileLine);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+    }
+
+    errorInfo->addRef();
+    *obj = errorInfo;
+
+    return OPENDAQ_SUCCESS;
+}
+
+void ErrorInfoImpl::setFileNameObject(IString* fileNameObj)
+{
+    releaseRefIfNotNull(this->fileNameObject);
+    this->fileNameObject = fileNameObj;
+    addRefIfNotNull(this->fileNameObject);
+}
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ErrorInfoImpl)
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, ErrorInfo)
 
 END_NAMESPACE_OPENDAQ

@@ -12,62 +12,80 @@
 #include <opendaq/thread_name.h>
 #include <date/date.h>
 #include <iomanip>
-
+#include <opendaq/work_factory.h>
+#include <coreobjects/callable_info_factory.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Renderer
 {
 
-RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, 
+                               const ComponentPtr& parent, 
+                               const StringPtr& localId,
+                               const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
-    , stopRender(false)
-    , resChanged(false)
+    , rendererStopRequested(false)
+    , resolutionChangedFlag(false)
     , signalContextIndex(0)
     , inputPortCount(0)
     , axisColor(150, 150, 150)
     , futureComponentStatus(ComponentStatus::Ok)
     , futureComponentMessage("")
 {
+    if (context.getScheduler().isMainLoopSet())
+        if (config.assigned() && config.hasProperty("UseMainLoopForRenderer"))
+            rendererUsesMainLoop = config.getPropertyValue("UseMainLoopForRenderer");
+
+#ifdef __APPLE__
+    if (!rendererUsesMainLoop)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Renderer function block requires the main loop to be set on scheduler for macOS.");
+#endif
+
     initComponentStatus();
-    futureComponentStatus = ComponentStatus::Ok;
-    futureComponentMessage = "";
     initProperties();
     updateInputPorts();
-
-    LOGP_D("Starting render thread")
-    renderThread = std::thread{ &RendererFbImpl::renderLoop, this };
+    initializeRenderer();
 }
 
-void RendererFbImpl::stopRendering()
+void RendererFbImpl::rendererStopRequesteding()
 {
-    if (!stopRender)
+    if (!rendererStopRequested)
     {
-        stopRender = true;
+        rendererStopRequested = true;
         cv.notify_one();
     }
 }
 
 RendererFbImpl::~RendererFbImpl()
 {
-    stopRendering();
+    rendererStopRequesteding();
 
-    renderThread.join();
+    if (renderThread.joinable())
+        renderThread.join();
     LOGP_D("Render thread stopped")
 }
 
 FunctionBlockTypePtr RendererFbImpl::CreateType()
 {
+    auto defaultConfig = PropertyObject();
+#ifdef __APPLE__
+    defaultConfig.addProperty(BoolProperty("UseMainLoopForRenderer", true));
+#else
+    defaultConfig.addProperty(BoolProperty("UseMainLoopForRenderer", false));
+#endif
+
     return FunctionBlockType(
         "RefFBModuleRenderer",
         "Renderer",
-        "Signal visualization"
+        "Signal visualization",
+        defaultConfig
     );
 }
 
 void RendererFbImpl::removed()
 {
-    stopRendering();
+    rendererStopRequesteding();
 
     FunctionBlockImpl::removed();
 }
@@ -132,6 +150,12 @@ void RendererFbImpl::initProperties()
     objPtr.addProperty(custom2dMaxRangeProp);
     objPtr.getOnPropertyValueWrite("Custom2dMaxRange") += onPropertyValueWrite;
 
+    objPtr.addProperty(FunctionPropertyBuilder("OpenWindow", ProcedureInfo()).setReadOnly(true).build());
+    objPtr.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("OpenWindow", Procedure([this]
+    {
+        startRendererWindow();
+    }));
+
     readProperties();
     readResolutionProperty();
 }
@@ -144,7 +168,7 @@ void RendererFbImpl::propertyChanged()
 void RendererFbImpl::resolutionChanged()
 {
     readResolutionProperty();
-    resChanged = true;
+    resolutionChangedFlag = true;
 }
 
 void RendererFbImpl::readProperties()
@@ -232,12 +256,12 @@ void RendererFbImpl::updateInputPorts()
         signalContexts[i].index = i;
 }
 
-void RendererFbImpl::renderSignals(sf::RenderTarget& renderTarget, const sf::Font& font)
+void RendererFbImpl::renderSignals(sf::RenderTarget& renderTarget, const sf::Font& renderFont)
 {
     for (auto& sigCtx : signalContexts)
     {
         if (sigCtx.valid)
-            SAMPLE_TYPE_DISPATCH(sigCtx.domainSampleType, renderSignal, sigCtx, renderTarget, font);
+            SAMPLE_TYPE_DISPATCH(sigCtx.domainSampleType, renderSignal, sigCtx, renderTarget, renderFont);
     }
 }
 
@@ -337,7 +361,7 @@ template <SampleType DST>
 void RendererFbImpl::renderPacket(
     SignalContext& signalContext,
     sf::RenderTarget& renderTarget,
-    const sf::Font& font,
+    const sf::Font& renderFont,
     const DataPacketPtr& packet,
     bool& havePrevPacket,
     typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type& nextExpectedDomainPacketValue,
@@ -353,9 +377,9 @@ void RendererFbImpl::renderPacket(
     size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
     
     if (signalDimension == 1)
-        renderArrayPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
+        renderArrayPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, renderFont, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
     else
-        renderPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
+        renderPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, renderFont, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
 }
 
 template <SampleType DST>
@@ -363,7 +387,7 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
     SignalContext& signalContext,
     DataRuleType domainRuleType,
     sf::RenderTarget& renderTarget,
-    const sf::Font& font,
+    const sf::Font& renderFont,
     const DataPacketPtr& packet,
     bool& havePrevPacket,
     typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type& nextExpectedDomainPacketValue,
@@ -518,7 +542,7 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
     SignalContext& signalContext,
     DataRuleType domainRuleType,
     sf::RenderTarget& renderTarget,
-    const sf::Font& font,
+    const sf::Font& renderFont,
     const DataPacketPtr& packet,
     bool& havePrevPacket,
     typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type& nextExpectedDomainPacketValue,
@@ -613,7 +637,7 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
 }
 
 template <SampleType DST>
-void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& font)
+void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& renderFont)
 {
     signalContext.lastValueSet = false;
     if (signalContext.dataPackets.empty())
@@ -631,7 +655,7 @@ void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget
     auto packetIt = signalContext.dataPackets.begin();
     for (; packetIt != signalContext.dataPackets.end(); ++packetIt)
     {
-        renderPacket<DST>(signalContext, renderTarget, font, *packetIt, havePrevPacket, nextExpectedDomainPacketValue, line, end);
+        renderPacket<DST>(signalContext, renderTarget, renderFont, *packetIt, havePrevPacket, nextExpectedDomainPacketValue, line, end);
 
         if (end)
             break;
@@ -649,8 +673,7 @@ void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget
 
     if (signalContext.lastValueSet && showLastValue)
     {
-        sf::Text lastValueText;
-        lastValueText.setFont(font);
+        sf::Text lastValueText(renderFont);
         lastValueText.setFillColor(axisColor);
         lastValueText.setCharacterSize(16);
         std::ostringstream valueStr;
@@ -661,11 +684,11 @@ void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget
         valueStr << " = " << std::fixed << std::showpoint << std::setprecision(3) << signalContext.lastValue;
         lastValueText.setString(valueStr.str());
         const auto valueBounds = lastValueText.getGlobalBounds();
-        float top = signalContext.topLeft.y - valueBounds.height * 2.0f;
+        float top = signalContext.topLeft.y - valueBounds.size.y * 2.0f;
         if (singleXAxis && singleYAxis)
-            top += signalContext.index * valueBounds.height * 2.0f;
+            top += signalContext.index * valueBounds.size.y * 2.0f;
 
-        lastValueText.setPosition({signalContext.bottomRight.x - valueBounds.width, top});
+        lastValueText.setPosition({signalContext.bottomRight.x - valueBounds.size.x, top});
 
         renderTarget.draw(lastValueText);
     }
@@ -737,73 +760,144 @@ void RendererFbImpl::updateSingleXAxis() {
     }
 }
 
-void RendererFbImpl::renderLoop()
+void RendererFbImpl::initializeRenderer()
 {
-    daqNameThread("Renderer");
+    renderFont = std::make_unique<sf::Font>();
+    if (!renderFont->openFromMemory(ARIAL_TTF, sizeof(ARIAL_TTF)))
+    {
+        setComponentStatusWithMessage(ComponentStatus::Error, "Failed to load renderFont");
+        throw std::runtime_error("Failed to load renderFont");
+    }
+
+    defaultWaitTime = std::chrono::milliseconds(20);
+    startRendererWindow();
+}
+
+void RendererFbImpl::startRendererWindow()
+{
+    if (window)
+        return;
 
     unsigned int width;
     unsigned int height;
     getWidthAndHeight(width, height);
-    sf::RenderWindow window{sf::VideoMode({width, height}), "Renderer", sf::Style::Close | sf::Style::Titlebar};
+    window = std::make_unique<sf::RenderWindow>(sf::VideoMode({width, height}), "Renderer", sf::Style::Close | sf::Style::Titlebar);
     topLeft = sf::Vector2(0.0f, 0.0f);
     bottomRight = sf::Vector2f(width, height);
 
-    sf::Font font;
-    if (!font.loadFromMemory(ARIAL_TTF, sizeof(ARIAL_TTF)))
+    waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
+    
+    if (rendererUsesMainLoop)
     {
-        setComponentStatusWithMessage(ComponentStatus::Error, "Failed to load font");
-        throw std::runtime_error("Failed to load font");
-    }
-        
-
-    auto lock = getUniqueLock();
-    const auto defaultWaitTime = std::chrono::milliseconds(20);
-    auto waitTime = defaultWaitTime;
-    while (!stopRender && window.isOpen())
-    {
-        cv.wait_for(lock, waitTime);
-        auto t1 = std::chrono::steady_clock::now();
-        if (!stopRender && window.isOpen())
+        LOGP_D("Using main thread for rendering")
+        auto scheduler = context.getScheduler();
+        auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
+        scheduler.scheduleWorkOnMainLoop(WorkRepetitive([this, thisWeakRef = std::move(thisWeakRef)]
         {
-            if (resChanged)
+            const auto thisFb = thisWeakRef.getRef();
+            if (!thisFb.assigned())
+                return false;
+
+            if (rendererStopRequested || !window)
+                return false;
+
+            if (std::chrono::steady_clock::now() < waitTime)
+                return true;
+            waitTime += defaultWaitTime;
+
+            if (resolutionChangedFlag)
             {
-                resChanged = false;
-                resize(window);
+                resolutionChangedFlag = false;
+                resize(*window);
             }
 
-            sf::Event event{};
-            while (window.pollEvent(event))
+            while (auto event = window->pollEvent())
             {
-                if (event.type == sf::Event::Closed)
-                    window.close();
+                if (event->is<sf::Event::Closed>())
+                {
+                    window.reset();
+                    return false;
+                }
             }
 
             processSignalContexts();
 
-            window.clear();
+            window->clear();
 
             updateSingleXAxis();
 
             if (singleXAxis)
                 prepareSingleXAxis();
-            renderAxes(window, font);
-            renderSignals(window, font);
+            renderAxes(*window, *renderFont);
+            renderSignals(*window, *renderFont);
 
-            window.display();
+            window->display();
 
             setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
             futureComponentStatus = ComponentStatus::Ok;
             futureComponentMessage = "";
-        }
-        auto t2 = std::chrono::steady_clock::now();
+            return true;
+        }));
+    }
+    else 
+    {
+        LOGP_D("Using separate thread for rendering")
+        (void)(window->setActive(false));
+        renderThread = std::thread([this] 
+        {
+            (void)(window->setActive(true));
+            renderLoop();
+        });
+    }
+}
 
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
-        waitTime = defaultWaitTime - duration;
-        if (waitTime < std::chrono::milliseconds(1))
-            waitTime = std::chrono::milliseconds(1);
+void RendererFbImpl::renderLoop()
+{
+    daqNameThread("Renderer");
+
+    auto lock = getUniqueLock();
+    while (!rendererStopRequested && window)
+    {
+        cv.wait_until(lock, waitTime);
+        if (rendererStopRequested || !window)
+            continue;
+
+        waitTime += defaultWaitTime;
+
+        if (resolutionChangedFlag)
+        {
+            resolutionChangedFlag = false;
+            resize(*window);
+        }
+
+        while (auto event = window->pollEvent())
+        {
+            if (event->is<sf::Event::Closed>())
+            {
+                window.reset();
+                break;
+            }
+        }
+
+        processSignalContexts();
+
+        window->clear();
+
+        updateSingleXAxis();
+
+        if (singleXAxis)
+            prepareSingleXAxis();
+        renderAxes(*window, *renderFont);
+        renderSignals(*window, *renderFont);
+
+        window->display();
+
+        setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
+        futureComponentStatus = ComponentStatus::Ok;
+        futureComponentMessage = "";
     }
 
-    resChanged = false;
+    resolutionChangedFlag = false;
 }
 
 void RendererFbImpl::resize(sf::RenderWindow& window)
@@ -821,7 +915,7 @@ void RendererFbImpl::resize(sf::RenderWindow& window)
     }
 
     window.setSize(sf::Vector2u(width, height));
-    sf::FloatRect viewRect(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
+    sf::FloatRect viewRect({0.0f, 0.0f}, {static_cast<float>(width), static_cast<float>(height)});
     window.setView(sf::View(viewRect));
 }
 
@@ -837,7 +931,7 @@ bool RendererFbImpl::isLastIter(Iter iter, const Cont& cont)
     return (iter != cont.end()) && (std::next(iter) != cont.end()) && (std::next(iter, 2) == cont.end());
 }
 
-void RendererFbImpl::renderAxes(sf::RenderTarget& renderTarget, const sf::Font& font)
+void RendererFbImpl::renderAxes(sf::RenderTarget& renderTarget, const sf::Font& renderFont)
 {
     const float xAxisLabelHeight = 40.0f;
 
@@ -858,9 +952,9 @@ void RendererFbImpl::renderAxes(sf::RenderTarget& renderTarget, const sf::Font& 
                 yMaxValue = sigIt->max;
 
             if (isLastIter(sigIt, signalContexts))
-                renderAxis(renderTarget, *sigIt, font, true, false);
+                renderAxis(renderTarget, *sigIt, renderFont, true, false);
         }
-        renderMultiTitle(renderTarget, font);
+        renderMultiTitle(renderTarget, renderFont);
     }
     else
     {
@@ -883,7 +977,7 @@ void RendererFbImpl::renderAxes(sf::RenderTarget& renderTarget, const sf::Font& 
                 bottom -= xAxisLabelHeight;
             sigIt->bottomRight = sf::Vector2f(static_cast<float>(width) - 25.0f, bottom);
             const auto drawXAxisLabels = !singleXAxis || isLastIter(sigIt, signalContexts);
-            renderAxis(renderTarget, *sigIt, font, drawXAxisLabels, true);
+            renderAxis(renderTarget, *sigIt, renderFont, drawXAxisLabels, true);
         }
     }
 }
@@ -1012,7 +1106,7 @@ void RendererFbImpl::getYMinMax(const SignalContext& signalContext, double& yMax
     }
 }
 
-void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& signalContext, const sf::Font& font, bool drawXAxisLabels, bool drawTitle)
+void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& signalContext, const sf::Font& renderFont, bool drawXAxisLabels, bool drawTitle)
 {
     size_t yTickCount = 5;
 
@@ -1118,8 +1212,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
     {
         const float yPos = signalContext.bottomRight.y - (1.0f * static_cast<float>(i) * ySize / static_cast<float>(yTickCount - 1));
 
-        sf::Text valueText;
-        valueText.setFont(font);
+        sf::Text valueText(renderFont);
         valueText.setFillColor(axisColor);
         valueText.setCharacterSize(16);
         std::ostringstream valueStr;
@@ -1132,7 +1225,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         valueText.setString(valueStr.str());
         const auto valueBounds = valueText.getGlobalBounds();
         const auto d = valueText.getCharacterSize() / 2.0f;
-        valueText.setPosition({signalContext.topLeft.x - valueBounds.width - d, yPos - valueBounds.height / 2.0f - 5.0f});
+        valueText.setPosition({signalContext.topLeft.x - valueBounds.size.x - d, yPos - valueBounds.size.y / 2.0f - 5.0f});
 
         renderTarget.draw(valueText);
     }
@@ -1148,8 +1241,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
 
         const float xPos = signalContext.topLeft.x + (1.0f * static_cast<float>(i) * xSize / static_cast<float>(xTickCount - 1));
 
-        sf::Text domainText;
-        domainText.setFont(font);
+        sf::Text domainText(renderFont);
         domainText.setFillColor(axisColor);
         domainText.setCharacterSize(16);
         std::ostringstream domainStr;
@@ -1169,19 +1261,18 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         if (i == 0)
             xOffset = 0;
         else if (i == xTickCount - 1)
-            xOffset = domainBounds.width;
+            xOffset = domainBounds.size.x;
         else
-            xOffset = domainBounds.width / 2.0f;
+            xOffset = domainBounds.size.x / 2.0f;
 
-        domainText.setPosition({xPos - xOffset, signalContext.bottomRight.y + domainBounds.height - 5.0f});
+        domainText.setPosition({xPos - xOffset, signalContext.bottomRight.y + domainBounds.size.y - 5.0f});
 
         renderTarget.draw(domainText);
     }
 
     if (drawTitle)
     {
-        sf::Text signalText;
-        signalText.setFont(font);
+        sf::Text signalText(renderFont);
         signalText.setStyle(sf::Text::Style::Bold);
         signalText.setFillColor(getColor(signalContext));
         signalText.setCharacterSize(16);
@@ -1189,26 +1280,25 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         const auto valueBounds = signalText.getGlobalBounds();
         const auto d = signalText.getCharacterSize();
         signalText.setPosition(
-            {(signalContext.topLeft.x + signalContext.bottomRight.x - valueBounds.width) / 2, signalContext.topLeft.y - d * 1.5f});
+            {(signalContext.topLeft.x + signalContext.bottomRight.x - valueBounds.size.x) / 2, signalContext.topLeft.y - d * 1.5f});
 
         renderTarget.draw(signalText);
     }
 }
 
-void RendererFbImpl::renderMultiTitle(sf::RenderTarget& renderTarget, const sf::Font& font)
+void RendererFbImpl::renderMultiTitle(sf::RenderTarget& renderTarget, const sf::Font& renderFont)
 {
     std::vector<std::pair<sf::Text, sf::FloatRect>> list;
     float totalWidth = 0.0;
     for (auto sigIt = signalContexts.begin(); sigIt != signalContexts.end() - 1; ++sigIt)
     {
-        sf::Text signalText;
-        signalText.setFont(font);
+        sf::Text signalText(renderFont);
         signalText.setStyle(sf::Text::Style::Bold);
         signalText.setFillColor(getColor(*sigIt));
         signalText.setCharacterSize(16);
         signalText.setString(sigIt->caption + " ");
         sf::FloatRect valueBounds = signalText.getGlobalBounds();
-        totalWidth += valueBounds.width;
+        totalWidth += valueBounds.size.x;
 
         list.push_back({std::move(signalText), std::move(valueBounds)});
     }
@@ -1217,7 +1307,7 @@ void RendererFbImpl::renderMultiTitle(sf::RenderTarget& renderTarget, const sf::
     for (auto& [text, bounds]: list)
     {
         text.setPosition({xPos, topLeft.y});
-        xPos += bounds.width;
+        xPos += bounds.size.x;
         renderTarget.draw(text);
     }
 }

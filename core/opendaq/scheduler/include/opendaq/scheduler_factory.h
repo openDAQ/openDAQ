@@ -36,6 +36,12 @@ inline SchedulerPtr Scheduler(LoggerPtr logger, SizeT numWorkers = 0)
     return obj;
 }
 
+inline SchedulerPtr SchedulerWithMainLoop(LoggerPtr logger, SizeT numWorkers = 0)
+{
+    SchedulerPtr obj(SchedulerWithMainLoop_Create(logger, numWorkers, True));
+    return obj;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

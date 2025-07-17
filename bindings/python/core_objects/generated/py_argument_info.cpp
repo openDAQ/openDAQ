@@ -44,6 +44,14 @@ void defineIArgumentInfo(pybind11::module_ m, PyDaqIntf<daq::IArgumentInfo, daq:
         return daq::ArgumentInfo_Create(getVariantValue<daq::IString*>(name), type);
     }, py::arg("name"), py::arg("type"));
 
+    m.def("ListArgumentInfo", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::CoreType itemType){
+        return daq::ListArgumentInfo_Create(getVariantValue<daq::IString*>(name), itemType);
+    }, py::arg("name"), py::arg("item_type"));
+
+    m.def("DictArgumentInfo", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::CoreType keyType, daq::CoreType itemType){
+        return daq::DictArgumentInfo_Create(getVariantValue<daq::IString*>(name), keyType, itemType);
+    }, py::arg("name"), py::arg("key_type"), py::arg("item_type"));
+
 
     cls.def_property_readonly("name",
         [](daq::IArgumentInfo *object)
@@ -61,4 +69,20 @@ void defineIArgumentInfo(pybind11::module_ m, PyDaqIntf<daq::IArgumentInfo, daq:
             return objectPtr.getType();
         },
         "Gets the core type of the argument.");
+    cls.def_property_readonly("item_type",
+        [](daq::IArgumentInfo *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ArgumentInfoPtr::Borrow(object);
+            return objectPtr.getItemType();
+        },
+        "Gets the item type of list/dict-type Argument Info objects. The item type specifies the type of values in the list or dictionary arguments.");
+    cls.def_property_readonly("key_type",
+        [](daq::IArgumentInfo *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ArgumentInfoPtr::Borrow(object);
+            return objectPtr.getKeyType();
+        },
+        "Gets the key type of dict-type Argument Info objects. The item type specifies the type of keys in dictionary arguments.");
 }

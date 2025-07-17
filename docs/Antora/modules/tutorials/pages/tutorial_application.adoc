@@ -61,7 +61,7 @@ cd Release
 Python::
 +
 --
-To create an application that simulates an openDAQ(TM) Device, navigate to `python/guide` and run the `simulator.py` script:
+To create an application that simulates an openDAQ(TM) Device, navigate to `python/Integration Examples` and run the `simulator.py` script:
 
 [source,bash]
 ----

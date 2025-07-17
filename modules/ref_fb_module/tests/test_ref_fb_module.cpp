@@ -222,6 +222,24 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
     ASSERT_THROW(module.createFunctionBlock("test", nullptr, "Id"), NotFoundException);
 }
 
+TEST_F(RefFbModuleTest, FunctionBlockRendererDefaultConfig)
+{
+#ifndef __APPLE__
+    const auto module = CreateModule();
+
+    auto fbType = module.getAvailableFunctionBlockTypes().get("RefFBModuleRenderer");
+    ASSERT_TRUE(fbType.assigned());
+
+    auto config = fbType.createDefaultConfig();
+    ASSERT_TRUE(config.hasProperty("UseMainLoopForRenderer"));
+
+    // For macOS, the renderer should always use the main loop
+    // ASSERT_TRUE(config.getPropertyValue("UseMainLoopForRenderer"));
+
+    ASSERT_FALSE(config.getPropertyValue("UseMainLoopForRenderer"));
+#endif
+}
+
 TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
 {
     MemCheckListener::expectMemoryLeak = true;

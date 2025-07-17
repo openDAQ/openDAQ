@@ -13,7 +13,7 @@ By the end of this guide, learners will be able to:
 
 OpenDAQ devices, channels, signals, and other components are property objects. Each property object includes a permission manager
 that can be used to grant or restrict access to that object based on user group membership. In this section, we will demonstrate how to add
-a protected object to the reference device module implementation. The implementation is available in the openDAQ repository, in the 
+a protected object to the reference device module implementation. The implementation is available in the openDAQ repository, in the
 "modules/ref_device_module" folder.
 
 We can now examine the `RefDeviceImpl::createProtectedObject()` method in the reference device implementation. This method is responsible for
@@ -54,14 +54,81 @@ PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
     // group "admin" can change the protected object and call methods on it
 
     auto permissions = PermissionsBuilder()
-                           .inherit(false)
-                           .assign("everyone", PermissionMaskBuilder().read())
-                           .assign("admin", PermissionMaskBuilder().read().write().execute())
-                           .build();
+                       .inherit(false)
+                       .assign("everyone", PermissionMaskBuilder().read())
+                       .assign("admin", PermissionMaskBuilder().read().write().execute())
+                       .build();
 
     protectedObject.getPermissionManager().setPermissions(permissions);
 
     return protectedObject;
+}
+----
+C#::
++
+[source,csharp]
+----
+PropertyObject createProtectedObject()
+{
+    var func = CoreTypesFactory.CreateFunction(SumLongs);
+
+    var argumentInfos =
+            CoreTypesFactory.CreateList<BaseObject>(CoreObjectsFactory.CreateArgumentInfo("A", CoreType.ctInt),
+                                                    CoreObjectsFactory.CreateArgumentInfo("B", CoreType.ctInt));
+
+    CallableInfo functionInfo = CoreObjectsFactory.CreateCallableInfo(argumentInfos, CoreType.ctInt, true);
+
+    var funcPropBuilder = CoreObjectsFactory.CreateFunctionPropertyBuilder("Sum", functionInfo);
+    funcPropBuilder.ReadOnly = false;
+    var funcProp = funcPropBuilder.Build();
+    var stringProp = CoreObjectsFactory.StringProperty("Owner", "openDAQ TM");
+
+    var protectedObject = CoreObjectsFactory.CreatePropertyObject();
+    protectedObject.AddProperty(stringProp);
+    protectedObject.AddProperty(funcProp);
+    protectedObject.SetPropertyValue("Sum", func);
+
+    var maskR = CoreObjectsFactory.CreatePermissionMaskBuilder();
+    maskR.Read();
+
+    var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
+    maskRwx.Read();
+    maskRwx.Write();
+    maskRwx.Execute();
+
+    // group "everyone" has a read-only access to the protected object
+    // group "admin" can change the protected object and call methods on it
+
+    var permissionsBuilder = CoreObjectsFactory.CreatePermissionsBuilder();
+    permissionsBuilder.Inherit(false);
+    permissionsBuilder.Assign("everyone", maskR);
+    permissionsBuilder.Assign("admin", maskRwx);
+    var permissions = permissionsBuilder.Build();
+
+    protectedObject.PermissionManager.SetPermissions(permissions);
+
+    return protectedObject;
+}
+
+//implement a FuncCallDelegate function
+ErrorCode SumLongs(BaseObject? parameters, out BaseObject? result)
+{
+    //initialize output
+    result = null;
+
+    //expecting two long parameters
+    using var paramsList = parameters?.CastList<IntegerObject>();
+    if ((paramsList == null) || (paramsList.Count != 2))
+    {
+        //tell API that it was not OK
+        return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+    }
+
+    //returning the given boolean parameter as result
+    result = (long)paramsList[0] + (long)paramsList[1];
+
+    //tell API that everything was OK
+    return ErrorCode.OPENDAQ_SUCCESS;
 }
 ----
 ====
@@ -75,7 +142,7 @@ a parent object. Therefore, the `inherit` flag is enabled unless stated otherwis
 === Allow
 
 The `allow()` method grants permissions for a specified group on the target object. Any permissions already granted to that group on the parent
-object will also be present on the target object. In the example below, any user in the group `everyone` has read, write, and 
+object will also be present on the target object. In the example below, any user in the group `everyone` has read, write, and
 execute permissions. The read and write permissions are inherited, while we explicitly grant the execute permission.
 
 .Method allow()
@@ -131,7 +198,7 @@ C#::
 ----
 var targetObject = CoreObjectsFactory.CreatePropertyObject();
 var parentObject = CoreObjectsFactory.CreatePropertyObject();
-parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+parentObject.AddProperty(PropertyFactory.ObjectProperty("TargetObject", targetObject));
 
 var maskRw = CoreObjectsFactory.CreatePermissionMaskBuilder();
 maskRw.Read();
@@ -216,7 +283,7 @@ C#::
 ----
 var targetObject = CoreObjectsFactory.CreatePropertyObject();
 var parentObject = CoreObjectsFactory.CreatePropertyObject();
-parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+parentObject.AddProperty(PropertyFactory.ObjectProperty("TargetObject", targetObject));
 
 var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
 maskRwx.Read();
@@ -259,9 +326,9 @@ auto parentObject = PropertyObject();
 parentObject.addProperty(ObjectProperty("TargetObject", targetObject));
 
 auto parentPermissions = PermissionsBuilder()
-							 .assign("everyone", PermissionMaskBuilder().read().write().execute())
-							 .assign("guest", PermissionMaskBuilder().read())
-							 .build();
+                         .assign("everyone", PermissionMaskBuilder().read().write().execute())
+                         .assign("guest", PermissionMaskBuilder().read())
+                         .build();
 parentObject.getPermissionManager().setPermissions(parentPermissions);
 
 auto permissions = PermissionsBuilder().inherit(true).assign("everyone", PermissionMaskBuilder().read()).build();
@@ -307,7 +374,7 @@ C#::
 ----
 var targetObject = CoreObjectsFactory.CreatePropertyObject();
 var parentObject = CoreObjectsFactory.CreatePropertyObject();
-parentObject.AddProperty(CoreObjectsFactory.CreateObjectProperty("TargetObject", targetObject));
+parentObject.AddProperty(PropertyFactory.ObjectProperty("TargetObject", targetObject));
 
 var maskRwx = CoreObjectsFactory.CreatePermissionMaskBuilder();
 maskRwx.Read();

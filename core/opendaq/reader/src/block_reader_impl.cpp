@@ -155,8 +155,14 @@ ErrCode BlockReaderImpl::connected(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
 
-    std::scoped_lock lock(notify.mutex);
-    inputPort->getConnection(&connection);
+    {
+        std::scoped_lock lock(notify.mutex);
+        port->getConnection(&connection);
+    }
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->connected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -164,8 +170,14 @@ ErrCode BlockReaderImpl::disconnected(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
 
-    std::scoped_lock lock(notify.mutex);
-    connection = nullptr;
+    {
+        std::scoped_lock lock(notify.mutex);
+        connection = nullptr;
+    }
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->disconnected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -194,11 +206,12 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     }
    
     notify.condition.notify_one();
-
+    
     if (callback.assigned())
-    {
-        return wrapHandler(callback);
-    }
+        OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
+
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->disconnected(port);
 
     return OPENDAQ_SUCCESS;
 }

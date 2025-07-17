@@ -84,6 +84,15 @@ ErrCode INTERFACE_FUNC ConnectionImpl::enqueueOnThisThread(IPacket* packet)
     return enqueueInternal(packetPtr, [this](bool) { port.notifyPacketEnqueuedOnThisThread(); });
 }
 
+ErrCode ConnectionImpl::enqueueWithScheduler(IPacket* packet)
+{
+    OPENDAQ_PARAM_NOT_NULL(packet);
+
+    const auto packetPtr = PacketPtr::Borrow(packet);
+
+    return enqueueInternal(packetPtr, [this](bool) { port.notifyPacketEnqueuedWithScheduler(); });
+}
+
 #if _MSC_VER < 1920
 
 ErrCode ConnectionImpl::enqueueMultipleInternal(const ListPtr<IPacket>& packets)

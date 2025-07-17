@@ -254,6 +254,18 @@ ComponentHolderPtr ConfigProtocolClientComm::addDevice(const std::string& global
     return sendComponentCommand(globalId, ClientCommand("AddDevice", 4), params, parentComponent);
 }
 
+DictPtr<IString, IComponentHolder> ConfigProtocolClientComm::addDevices(const std::string& globalId,
+                                                                        const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                                                        Bool doGetErrCodes,
+                                                                        Bool doGetErrorInfos,
+                                                                        const ComponentPtr& parentComponent)
+{
+    auto params = Dict<IString, IBaseObject>({{"ConnectionArgs", connectionArgs},
+                                              {"DoGetErrCodes", Boolean(doGetErrCodes)},
+                                              {"DoGetErrorInfos", Boolean(doGetErrorInfos)}});
+    return sendComponentCommand(globalId, ClientCommand("AddDevices", 16), params, parentComponent);
+}
+
 void ConfigProtocolClientComm::removeDevice(const std::string& globalId, const StringPtr& deviceLocalId)
 {    auto params = Dict<IString, IBaseObject>({{"LocalId", deviceLocalId}});
     sendComponentCommand(globalId, ClientCommand("RemoveDevice", 4), params);

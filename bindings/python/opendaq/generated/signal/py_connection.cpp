@@ -175,4 +175,13 @@ void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBa
             return objectPtr.hasGapPacket();
         },
         "Queries if the connection has a gap packet.");
+    cls.def("enqueue_with_scheduler",
+        [](daq::IConnection *object, daq::IPacket* packet)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ConnectionPtr::Borrow(object);
+            objectPtr.enqueueWithScheduler(packet);
+        },
+        py::arg("packet"),
+        "Places a packet at the back of the queue.");
 }

@@ -9,20 +9,28 @@
 BEGIN_NAMESPACE_OPENDAQ
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 {
-    return Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({
-                                            {"ModulesPaths", List<IString>("")}, {"AddDeviceRescanTimer", 5000}
-                                        })},
-                                       {"Scheduler", Dict<IString, IBaseObject>({
-                                            {"WorkersNum", 0}
-                                        })},
-                                       {"Logging", Dict<IString, IBaseObject>({
-                                            {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
-                                        })},
-                                       {"RootDevice", Dict<IString, IBaseObject>({
-                                            {"DefaultLocalId", ""},
-                                            {"ConnectionString", ""}
-                                        })},
-                                       {"Modules", Dict<IString, IBaseObject>()}
+    return Dict<IString, IBaseObject>(
+    {
+        {"ModuleManager", Dict<IString, IBaseObject>(
+        {
+            {"ModulesPaths", List<IString>("")}, 
+            {"AddDeviceRescanTimer", 5000}
+        })},
+        {"Scheduler", Dict<IString, IBaseObject>(
+        {
+            {"WorkersNum", 0},
+            {"UseMainLoop", False}
+        })},
+        {"Logging", Dict<IString, IBaseObject>(
+        {
+            {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
+        })},
+        {"RootDevice", Dict<IString, IBaseObject>({
+            {"DefaultLocalId", ""},
+            {"ConnectionString", ""}
+        })},
+        {"Modules", Dict<IString, IBaseObject>(
+        )}
     });
 }
 
@@ -254,20 +262,6 @@ ErrCode INTERFACE_FUNC InstanceBuilderImpl::getAuthenticationProvider(IAuthentic
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::setSchedulerWorkerNum(SizeT numWorkers)
-{
-    getSchedulerOptions().set("WorkersNum", numWorkers);
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode InstanceBuilderImpl::getSchedulerWorkerNum(SizeT* numWorkers)
-{
-    OPENDAQ_PARAM_NOT_NULL(numWorkers);
-
-    *numWorkers = getSchedulerOptions()["WorkersNum"];
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode InstanceBuilderImpl::setScheduler(IScheduler* scheduler)
 {
     OPENDAQ_PARAM_NOT_NULL(scheduler);
@@ -282,6 +276,32 @@ ErrCode InstanceBuilderImpl::getScheduler(IScheduler** scheduler)
     
     *scheduler = this->scheduler.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setSchedulerWorkerNum(SizeT numWorkers)
+{
+    getSchedulerOptions().set("WorkersNum", numWorkers);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getSchedulerWorkerNum(SizeT* numWorkers)
+{
+    OPENDAQ_PARAM_NOT_NULL(numWorkers);
+
+    *numWorkers = getSchedulerOptions()["WorkersNum"];
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setUsingSchedulerMainLoop(Bool useMainLoop)
+{
+    getSchedulerOptions().set("UseMainLoop", useMainLoop);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getUsingSchedulerMainLoop(Bool* useMainLoop)
+{
+    OPENDAQ_PARAM_NOT_NULL(useMainLoop);
+    return getSchedulerOptions().get("UseMainLoop").asPtr<IBoolean>(true)->getValue(useMainLoop);
 }
 
 ErrCode InstanceBuilderImpl::setDefaultRootDeviceLocalId(IString* localId)

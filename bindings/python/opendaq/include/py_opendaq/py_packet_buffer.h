@@ -59,16 +59,12 @@ public:
     static void wrap(pybind11::module_ m)
     {
         py::class_<Buffer> cls(m, Buffer::getName().c_str(), py::buffer_protocol());
-        cls.def(py::init([](daq::IBaseObject* owner, void* mem, size_t size)
-            {
-                return std::make_unique<Buffer>(owner, mem, size);
-            }));
 
         cls.def_buffer([](Buffer& buffer)
             {
                 return py::buffer_info(buffer.getMem(), 1, py::format_descriptor<uint8_t>::format(), buffer.getSize());
             });
-    }
+    } 
 
 private:
     daq::BaseObjectPtr owner;

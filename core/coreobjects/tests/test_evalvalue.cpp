@@ -528,6 +528,98 @@ TEST_F(EvalValueTest, UnaryMinusListItem)
     ASSERT_EQ(-321.8, result);
 }
 
+TEST_F(EvalValueTest, NestedProperties)
+{
+    GenericPropertyObjectPtr a = PropertyObject();
+    a.addProperty(StringProperty("WhoAmI", "A"));
+
+    GenericPropertyObjectPtr b = PropertyObject();
+    b.addProperty(StringProperty("WhoAmI", "B"));
+    a.addProperty(ObjectProperty("B", b));
+
+    GenericPropertyObjectPtr c = PropertyObject();
+    c.addProperty(StringProperty("WhoAmI", "C"));
+    b.addProperty(ObjectProperty("C", c));
+
+    {
+        auto e = EvalValue("$WhoAmI");
+        e.asPtr<IOwnable>().setOwner(a);
+        std::string result = e.getResult();
+        ASSERT_EQ(result, "A");
+    }
+    {
+        auto e = EvalValue("$B.WhoAmI");
+        e.asPtr<IOwnable>().setOwner(a);
+        std::string result = e.getResult();
+        ASSERT_EQ(result, "B");
+    }
+    {
+        auto e = EvalValue("$B.C.WhoAmI");
+        e.asPtr<IOwnable>().setOwner(a);
+        std::string result = e.getResult();
+        ASSERT_EQ(result, "C");
+    }
+}
+
+TEST_F(EvalValueTest, ParentProperties)
+{
+    // Dots work the same as relative Python imports; single dot is the same as
+    // no dot, double dot is parent, triple dot is grandparent, etc.
+    GenericPropertyObjectPtr a = PropertyObject();
+    a.addProperty(StringProperty("WhoAmI", "A"));
+
+    GenericPropertyObjectPtr b = PropertyObject();
+    b.addProperty(StringProperty("WhoAmI", "B"));
+    a.addProperty(ObjectProperty("B", b));
+
+    GenericPropertyObjectPtr c = PropertyObject();
+    c.addProperty(StringProperty("WhoAmI", "C"));
+    b.addProperty(ObjectProperty("C", c));
+
+    {
+        auto e = EvalValue("$WhoAmI");
+        e.asPtr<IOwnable>().setOwner(b);
+        std::string result = e.getResult();
+        ASSERT_EQ(result, "B");
+    }
+    {
+        auto e = EvalValue("$WhoAmI");
+        e.asPtr<IOwnable>().setOwner(c);
+        std::string result = e.getResult();
+        ASSERT_EQ(result, "C");
+    }
+    {
+        auto e = EvalValue("$.WhoAmI");
+        e.asPtr<IOwnable>().setOwner(b);
+        std::string result = e.getResult();
+        ASSERT_EQ(result, "B");
+    }
+    {
+        auto e = EvalValue("$..WhoAmI");
+        e.asPtr<IOwnable>().setOwner(b);
+        std::string result = e.getResult();
+        ASSERT_EQ(result, "A");
+    }
+    {
+        auto e = EvalValue("$...WhoAmI");
+        e.asPtr<IOwnable>().setOwner(c);
+        std::string result = e.getResult();
+        ASSERT_EQ(result, "A");
+    }
+    {
+        auto e = EvalValue("$...B.WhoAmI");
+        e.asPtr<IOwnable>().setOwner(c);
+        std::string result = e.getResult();
+        ASSERT_EQ(result, "B");
+    }
+    {
+        auto e = EvalValue("$...B.C.WhoAmI");
+        e.asPtr<IOwnable>().setOwner(c);
+        std::string result = e.getResult();
+        ASSERT_EQ(result, "C");
+    }
+}
+
 TEST_F(EvalValueTest, FuncOneTag)
 {
     auto hasTagFunc = Function([](const BaseObjectPtr& tag)

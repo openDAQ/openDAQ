@@ -359,7 +359,7 @@ ErrCode ErrorGuardImpl::clearLastErrorInfo()
     if (errorInfoList.empty())
         return OPENDAQ_SUCCESS;
 
-    ErrCode lastErrorCode;
+    ErrCode lastErrorCode = OPENDAQ_SUCCESS;
     while (!errorInfoList.empty())
     {
         lastErrorCode = OPENDAQ_SUCCESS;

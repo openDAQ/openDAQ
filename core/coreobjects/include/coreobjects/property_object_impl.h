@@ -422,6 +422,8 @@ protected:
 
     // Child property handling - Used when a property is queried in the "parent.child" format
     bool isChildProperty(const StringPtr& name) const;
+    bool isParentProperty(const StringPtr& name) const;
+    int getParentLevels(const StringPtr& name) const;
     void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
     void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
 
@@ -540,6 +542,7 @@ private:
 
     // Child property handling - Used when a property is queried in the "parent.child" format
     ErrCode getChildPropertyValue(const StringPtr& childName, const StringPtr& subName, BaseObjectPtr& value);
+    ErrCode getParentPropertyValue(const StringPtr& parentPath, BaseObjectPtr& value);
 
     PropertyPtr checkForRefPropAndGetBoundProp(PropertyPtr& prop, bool* isReferenced = nullptr) const;
 
@@ -668,8 +671,30 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getClassName
 template <class PropObjInterface, class... Interfaces>
 bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty(const StringPtr& name) const
 {
+    // if it's a parent property, the parent functions will handle the child access after processing the parent
+    if (isParentProperty(name))
+        return false;
+
     auto chr = strchr(name.getCharPtr(), '.');
     return chr != nullptr;
+}
+
+template <class PropObjInterface, class... Interfaces>
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isParentProperty(const StringPtr& name) const
+{
+    return name.getLength() > 0 && name[0] == '.';
+}
+
+template <class PropObjInterface, class... Interfaces>
+int GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getParentLevels(const StringPtr& name) const
+{
+    if (!isParentProperty(name))
+        return 0;
+
+    size_t level = 1;
+    while (level < name.getLength() && name[level] == '.')
+        level++;
+    return static_cast<int>(level) - 1;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -736,6 +761,33 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
     {
         const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
         value = childPropAsPropertyObject.getPropertyValue(subName);
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getParentPropertyValue(const StringPtr& parentPath, BaseObjectPtr& value)
+{
+    return daqTry([&]() -> auto
+    {
+        const std::string pathStr = parentPath;
+        int levels = getParentLevels(parentPath);
+        std::string propertyPathFromParent = pathStr.substr(levels + 1);
+        if (propertyPathFromParent.empty())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Property path cannot be empty");
+
+        PropertyObjectPtr parentProperty = objPtr;
+        for (int i = 0; i < levels; i++)
+        {
+            const auto parentPropertyImpl = static_cast<GenericPropertyObjectImpl*>(parentProperty.getObject());
+            if (!parentPropertyImpl->getOwner().assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND,
+                    fmt::format("Cannot navigate to parent level {}. Parent does not exist.", i + 1));
+
+            parentProperty = parentPropertyImpl->getOwner().getRef();
+        }
+
+        value = parentProperty.getPropertyValue(propertyPathFromParent);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -1123,6 +1175,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
         {
             updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr}));
             return OPENDAQ_SUCCESS;
+        }
+
+        if (isParentProperty(propName))
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Cannot set property values on parent objects");
         }
 
         StringPtr subName;
@@ -1847,6 +1904,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             return OPENDAQ_SUCCESS;
         }
 
+        if (isParentProperty(propName))
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Cannot clear property values on parent objects");
+        }
+
         StringPtr subName;
         const auto isChildProp = isChildProperty(propName);
         if (isChildProp)
@@ -1958,11 +2020,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
     try
     {
         auto propName = StringPtr::Borrow(propertyName);
+
         BaseObjectPtr valuePtr;
         ErrCode err;
 
 
-        if (isChildProperty(propName))
+        if (isParentProperty(propName))
+        {
+            err = getParentPropertyValue(propName, valuePtr);
+        }
+        else if (isChildProperty(propName))
         {
             StringPtr subName;
             splitOnFirstDot(propName, propName, subName);
@@ -3244,7 +3311,21 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
 
     auto propName = StringPtr::Borrow(propertyName);
 
-    if (isChildProperty(propName))
+    if (isParentProperty(propName))
+    {
+        try
+        {
+            BaseObjectPtr val;
+            ErrCode err = getParentPropertyValue(propName, val);
+            *hasProperty = OPENDAQ_SUCCEEDED(err);
+        }
+        catch (...)
+        {
+            *hasProperty = false;
+        }
+        return OPENDAQ_SUCCESS;
+    }
+    else if (isChildProperty(propName))
     {
         BaseObjectPtr val;
         StringPtr childStr;

@@ -255,8 +255,20 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::valref()
     // just somehow use the fact that we already parsed the
     // refvar token into individual components and fill that
     // into daq::RefNode instead.
-    assertIsAt(TokenType::Identifier);
-    std::string str = std::get<std::string>(advance().value);
+    if (!isAt(TokenType::Identifier) && !isAt(TokenType::Dot))
+        DAQ_THROW_EXCEPTION(daq::ParseFailedException, "syntax error");
+
+    std::string str;
+    while (isAt(TokenType::Identifier) || isAt(TokenType::Dot))
+    {
+        if (isAt(TokenType::Dot))
+        {
+            str += ".";
+            advance();
+        }
+        else
+            str += std::get<std::string>(advance().value);
+    }
 
     if (isAt(TokenType::OpenBracket))
     {
@@ -272,8 +284,20 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::valref()
 
 std::unique_ptr<daq::BaseNode> EvalValueParser::propref()
 {
-    assertIsAt(TokenType::Identifier);
-    std::string str = std::get<std::string>(advance().value);
+    if (!isAt(TokenType::Identifier) && !isAt(TokenType::Dot))
+        DAQ_THROW_EXCEPTION(daq::ParseFailedException, "syntax error");
+
+    std::string str;
+    while (isAt(TokenType::Identifier) || isAt(TokenType::Dot))
+    {
+        if (isAt(TokenType::Dot))
+        {
+            str += ".";
+            advance();
+        }
+        else
+            str += std::get<std::string>(advance().value);
+    }
     auto refType = daq::RefType::Property;
     if (isAt(TokenType::Colon))
     {

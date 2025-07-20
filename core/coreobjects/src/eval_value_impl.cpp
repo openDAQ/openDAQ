@@ -166,7 +166,7 @@ BaseObjectPtr EvalValueImpl::getReferenceFromPrefix(const PropertyObjectPtr& pro
         }
         value = propNames;
     }
-    
+
     return value;
 }
 

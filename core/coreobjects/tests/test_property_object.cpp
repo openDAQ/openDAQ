@@ -749,6 +749,9 @@ TEST_F(PropertyObjectTest, NestedChildPropSet)
     ASSERT_EQ(childObj1.getPropertyValue("IntProperty"), 1);
     ASSERT_EQ(childObj2.getPropertyValue("IntProperty"), 2);
     ASSERT_EQ(childObj3.getPropertyValue("IntProperty"), 3);
+
+    ASSERT_THROW(childObj3.setPropertyValue("..IntProperty", 12), AccessDeniedException);
+    ASSERT_THROW(childObj3.setPropertyValue("...IntProperty", 12), AccessDeniedException);
 }
 
 TEST_F(PropertyObjectTest, NestedChildPropHasProperty)
@@ -779,6 +782,12 @@ TEST_F(PropertyObjectTest, NestedChildPropHasProperty)
 
     ASSERT_TRUE(childObj2.hasProperty("IntProperty"));
     ASSERT_TRUE(childObj2.hasProperty("Child.IntProperty"));
+
+    ASSERT_TRUE(childObj2.hasProperty("...IntProperty"));
+    ASSERT_TRUE(childObj2.hasProperty(".IntProperty"));
+    ASSERT_FALSE(childObj2.hasProperty("...NonExistentProperty"));
+    ASSERT_FALSE(childObj2.hasProperty("....IntProperty"));
+    ASSERT_FALSE(childObj2.hasProperty(".......IntProperty"));
 }
 
 TEST_F(PropertyObjectTest, ChildPropGet)
@@ -793,6 +802,8 @@ TEST_F(PropertyObjectTest, ChildPropGet)
     propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Child", childObj);
 
     ASSERT_EQ(propObj.getPropertyValue("Child.IntProperty"), 2);
+    ASSERT_EQ(childObj.getPropertyValue(".IntProperty"), 2);
+    ASSERT_EQ(childObj.getPropertyValue("..IntProperty"), 10);
 }
 
 TEST_F(PropertyObjectTest, ChildPropClear)
@@ -803,10 +814,11 @@ TEST_F(PropertyObjectTest, ChildPropClear)
     defaultObj.setPropertyValue("IntProperty", 2);
     const auto childProp = ObjectProperty("Child", defaultObj);
     propObj.addProperty(childProp);
-    
+
     const PropertyObjectPtr childObj = propObj.getPropertyValue("Child");
     ASSERT_NO_THROW(propObj.clearPropertyValue("Child.IntProperty"));
     ASSERT_EQ(childObj.getPropertyValue("IntProperty"), 10);
+    ASSERT_THROW(childObj.clearPropertyValue("..IntProperty"), AccessDeniedException);
 }
 
 TEST_F(PropertyObjectTest, NestedChildPropGet)
@@ -832,6 +844,13 @@ TEST_F(PropertyObjectTest, NestedChildPropGet)
     ASSERT_EQ(propObj.getPropertyValue("Child.IntProperty"), 1);
     ASSERT_EQ(propObj.getPropertyValue("Child.Child.IntProperty"), 2);
     ASSERT_EQ(propObj.getPropertyValue("Child.Child.Child.IntProperty"), 3);
+
+    ASSERT_EQ(childObj3.getPropertyValue("IntProperty"), 3);
+    ASSERT_EQ(childObj3.getPropertyValue(".IntProperty"), 3);
+    ASSERT_EQ(childObj3.getPropertyValue("..IntProperty"), 2);
+    ASSERT_EQ(childObj3.getPropertyValue("...IntProperty"), 1);
+    ASSERT_EQ(childObj3.getPropertyValue("...Child.IntProperty"), 2);
+    ASSERT_EQ(childObj3.getPropertyValue("...Child.Child.IntProperty"), 3);
 }
 
 TEST_F(PropertyObjectTest, NestedChildPropClear)

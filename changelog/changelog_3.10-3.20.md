@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#863](https://github.com/openDAQ/openDAQ/pull/863) Deserialize component config on native client instead of invoking RPC.
 - [#859](https://github.com/openDAQ/openDAQ/pull/859) Fix and stabilize native device removal and disposal flow.
 - [#850](https://github.com/openDAQ/openDAQ/pull/850) Ignore server notifications unless native device is connected.
 - [#856](https://github.com/openDAQ/openDAQ/pull/856) Fix race condition in native streaming caused by signal removal.

@@ -16,6 +16,7 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/listobject_factory.h>
+#include <list>
 #include <thread>
 
 using namespace daq;
@@ -2189,4 +2190,63 @@ TEST_F(PropertyObjectTest, DotAccessSelectionValue)
     ASSERT_EQ(parent.getPropertySelectionValue("child.child.foo"), "a");
     parent.setPropertyValue("child.child.foo", 1);
     ASSERT_EQ(parent.getPropertySelectionValue("child.child.foo"), "b");
+}
+
+TEST_F(PropertyObjectTest, FunctionPropWithListArg)
+{
+    auto obj = PropertyObject();
+
+    auto argInfo = ListArgumentInfo("List", ctInt);
+
+    auto prop = FunctionProperty("SumList", FunctionInfo(ctInt,List<IArgumentInfo>(argInfo)));
+    obj.addProperty(prop);
+    auto func = Function(
+        [](const ListPtr<IBaseObject>& list)
+        {
+            Int sum = 0;
+            for (const auto& val : list)
+                sum += static_cast<Int>(val);
+            return sum;
+        });
+
+    obj.setPropertyValue("SumList", func);
+    func = obj.getPropertyValue("SumList");
+
+    ASSERT_EQ(obj.getProperty("SumList").getCallableInfo().getArguments()[0], argInfo);
+
+    auto listArg = List<IInteger>(1, 1, 2, 3, 5, 8);
+    ASSERT_EQ(func(listArg), 20);
+}
+
+TEST_F(PropertyObjectTest, FunctionPropWithDictArg)
+{
+    auto obj = PropertyObject();
+
+    auto argInfo = DictArgumentInfo("Dict", ctInt, ctString);
+
+    auto prop = FunctionProperty("SortDictValues", FunctionInfo(ctList, List<IArgumentInfo>(argInfo)));
+    obj.addProperty(prop);
+    auto func = Function(
+        [](const DictPtr<IInteger, IString>& dict)
+        {
+            auto sortedItems = List<IString>();
+
+            std::list<int> keys;
+            for (int key : dict.getKeyList())
+                keys.push_back(key);
+
+            keys.sort();
+            for (const auto& key : keys)
+                sortedItems.pushBack(dict.get(key));
+            
+            return sortedItems;
+        });
+
+    obj.setPropertyValue("SortDictValues", func);
+    func = obj.getPropertyValue("SortDictValues");
+
+    ASSERT_EQ(obj.getProperty("SortDictValues").getCallableInfo().getArguments()[0], argInfo);
+
+    auto dictArg = Dict<IInteger, IString>({{5, "blueberry"}, {2, "banana"}, {8, "pear"}, {1, "apple"}});
+    ASSERT_EQ(func(dictArg), List<IString>("apple", "banana", "blueberry", "pear"));
 }

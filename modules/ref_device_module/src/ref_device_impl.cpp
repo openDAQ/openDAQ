@@ -28,6 +28,7 @@
 #endif
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
+
 StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
 
 RefDeviceImpl::RefDeviceImpl(size_t id,
@@ -39,6 +40,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id,
     : GenericDevice<>(ctx, parent, localId, nullptr, name)
     , id(id)
     , serialNumber(fmt::format("DevSer{}", id))
+    , usePacketBuffer(false)
     , microSecondsFromEpochToDeviceStart(0)
     , acqLoopTime(0)
     , stopAcq(false)
@@ -53,6 +55,9 @@ RefDeviceImpl::RefDeviceImpl(size_t id,
         const StringPtr serialTemp = config.getPropertyValue("SerialNumber");
         serialNumber = serialTemp.getLength() ? serialTemp : serialNumber;
     }
+
+    if (config.assigned() && config.hasProperty("UsePacketBuffer"))
+        usePacketBuffer = config.getPropertyValue("UsePacketBuffer");
 
     if (const auto options = this->context.getModuleOptions(REF_MODULE_NAME); options.assigned())
     {
@@ -113,6 +118,7 @@ DeviceTypePtr RefDeviceImpl::CreateType()
     defaultConfig.addProperty(BoolProperty("EnableLogging", False));
     defaultConfig.addProperty(StringProperty("LoggingPath", "ref_device_simulator.log"));
     defaultConfig.addProperty(StringProperty("Name", ""));
+    defaultConfig.addProperty(BoolProperty("UsePacketBuffer", False));
 
     return DeviceType("daqref",
                       "Reference device",
@@ -152,17 +158,29 @@ std::chrono::microseconds RefDeviceImpl::getMicroSecondsSinceDeviceStart() const
 
 PropertyObjectPtr RefDeviceImpl::createProtectedObject() const
 {
-    const auto func = Function([](Int a, Int b) { return a + b; });
-
-    const auto funcProp =
+    const auto sumFunc = Function([](Int a, Int b) { return a + b; });
+    const auto sumProp =
         FunctionPropertyBuilder("Sum", FunctionInfo(ctInt, List<IArgumentInfo>(ArgumentInfo("A", ctInt), ArgumentInfo("B", ctInt))))
             .setReadOnly(false)
             .build();
 
+    const auto sumListProp = FunctionProperty("SumList", FunctionInfo(ctInt,List<IArgumentInfo>(ListArgumentInfo("List", ctInt))));
+    const auto sumListFunc = Function(
+        [](const ListPtr<IBaseObject>& list)
+        {
+            Int sum = 0;
+            for (const auto& val : list)
+                sum += static_cast<Int>(val);
+            return sum;
+        });
+
     auto protectedObject = PropertyObject();
     protectedObject.addProperty(StringProperty("Owner", "openDAQ TM"));
-    protectedObject.addProperty(funcProp);
-    protectedObject.setPropertyValue("Sum", func);
+    protectedObject.addProperty(sumProp);
+    protectedObject.setPropertyValue("Sum", sumFunc);
+
+    protectedObject.addProperty(sumListProp);
+    protectedObject.setPropertyValue("SumList", sumListFunc);
 
     // group "everyone" has a read-only access to the protected object
     // group "admin" can change the protected object and call methods on it
@@ -377,7 +395,7 @@ void RefDeviceImpl::updateNumberOfChannels()
     auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
     for (auto i = channels.size(); i < num; i++)
     {
-        RefChannelInit init{i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId};
+        RefChannelInit init{i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId, usePacketBuffer};
         auto chLocalId = fmt::format("RefCh{}", i);
         auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init);
         channels.push_back(std::move(ch));
@@ -420,7 +438,7 @@ void RefDeviceImpl::enableProtectedChannel()
         auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
         size_t index = channels.size();
 
-        RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId};
+        RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId, usePacketBuffer};
         const auto channelLocalId = "ProtectedChannel";
 
         auto permissions = PermissionsBuilder()

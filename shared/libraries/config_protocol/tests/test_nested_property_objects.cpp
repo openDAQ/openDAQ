@@ -17,11 +17,13 @@
 #include <opendaq/sync_component_ptr.h>
 #include <opendaq/sync_component_private_ptr.h>
 #include <opendaq/mock/advanced_components_setup_utils.h>
-#include "config_protocol/config_protocol_server.h"
-#include "config_protocol/config_protocol_client.h"
-#include "config_protocol/config_client_device_impl.h"
+#include <config_protocol/config_protocol_server.h>
+#include <config_protocol/config_protocol_client.h>
+#include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <coreobjects/user_factory.h>
+#include <coreobjects/callable_info_factory.h>
+#include <coreobjects/argument_info_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -788,4 +790,51 @@ TEST_F(ConfigNestedPropertyObjectTest, ThrowExeptionRestoringValuePartialy)
     ASSERT_THROW(clientDevice.setPropertyValue("param1", -1), OutOfRangeException);
     ASSERT_EQ(clientDevice.getPropertyValue("param1"), 0);
     ASSERT_EQ(clientDevice.getPropertyValue("param2"), -1);
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, ProcedurePropWithListArg)
+{
+    auto argInfo = ListArgumentInfo("Int", ctInt);
+
+    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfo)));
+    serverDevice.addProperty(prop);
+    auto proc = Procedure(
+        [](const ListPtr<IBaseObject>& list)
+        {
+            for (const auto& val : list)
+                ASSERT_EQ(val.getCoreType(), ctInt);
+    });
+
+    serverDevice.setPropertyValue("ProcedureProp", proc);
+    proc = clientDevice.getPropertyValue("ProcedureProp");
+
+    ASSERT_EQ(clientDevice.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfo);
+
+    auto listArg = List<IBaseObject>(Integer(1), Integer(2));
+    proc(listArg);
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, ProcedurePropWithDictArg)
+{
+    auto argInfo = DictArgumentInfo("Int", ctInt, ctString);
+
+    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfo)));
+    serverDevice.addProperty(prop);
+    auto proc = Procedure(
+        [](const DictPtr<IInteger, IString>& dict)
+        {
+            for (const auto& [key, val] : dict)
+            {
+                ASSERT_EQ(key.getCoreType(), ctInt);
+                ASSERT_EQ(val.getCoreType(), ctString);
+            }
+        });
+
+    serverDevice.setPropertyValue("ProcedureProp", proc);
+    proc = clientDevice.getPropertyValue("ProcedureProp");
+
+    ASSERT_EQ(clientDevice.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfo);
+
+    auto dictArg = Dict<IInteger, IString>({{0, "foo"}, {1, "bar"}});
+    proc(dictArg);
 }

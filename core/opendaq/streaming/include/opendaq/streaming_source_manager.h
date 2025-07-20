@@ -233,7 +233,7 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
             }
             else if (errCode == OPENDAQ_ERR_DUPLICATEITEM)
             {
-                daqClearErrorInfo(errCode);
+                daqClearErrorInfo();
             }
             else
             {
@@ -459,7 +459,7 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
                                   return OPENDAQ_SUCCESS;
                               });
         if (OPENDAQ_FAILED(errCode))
-            daqClearErrorInfo(errCode);
+            daqClearErrorInfo();
         if (!streaming.assigned())
             continue;
 

@@ -152,7 +152,7 @@ TSmartPtr WeakRefPtr<TInterface, TSmartPtr>::getRef() const
     ErrCode errCode = object->getRefAs(TInterface::Id, reinterpret_cast<void**>(&intf));
 
     if (errCode == OPENDAQ_ERR_NOTASSIGNED)
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
     else
         checkErrorInfo(errCode);
 

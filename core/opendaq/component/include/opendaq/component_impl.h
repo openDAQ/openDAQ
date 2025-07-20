@@ -1144,7 +1144,7 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         {
             const ErrCode errCode = this->getComponentConfig(&componentConfig);
             if (OPENDAQ_FAILED(errCode))
-                daqClearErrorInfo(errCode);
+                daqClearErrorInfo();
         }
 
         if (componentConfig.assigned())
@@ -1185,7 +1185,7 @@ ComponentPtr ComponentImpl<Intf, Intfs...>::findComponentInternal(const Componen
             return findComponentInternal(subComponent, restStr);
     }
     else if (errCode == OPENDAQ_ERR_NOTFOUND)
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
     else
         checkErrorInfo(errCode);
 

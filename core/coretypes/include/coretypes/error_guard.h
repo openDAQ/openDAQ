@@ -25,9 +25,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IErrorGuard, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC getFormatMessage(IString** message, ErrCode errCode) const = 0;
-    virtual ErrCode INTERFACE_FUNC getLastErrorInfo(IErrorInfo** errorInfo, ErrCode errCode = OPENDAQ_LAST_ERROR_INFO) const = 0;
-    virtual ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) = 0;
+    virtual ErrCode INTERFACE_FUNC getFormattedMessage(IString** message) const = 0;
+    virtual ErrCode INTERFACE_FUNC getLastErrorInfo(IErrorInfo** errorInfo) const = 0;
+    virtual ErrCode INTERFACE_FUNC getErrorInfoList(IList** errorInfos) = 0;
 };
 
 /*!@}*/

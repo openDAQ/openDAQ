@@ -85,7 +85,7 @@ inline std::string objectToString(IBaseObject* object)
         }
         else
         {
-            daqClearErrorInfo(errCode);
+            daqClearErrorInfo();
             stream << "Unknown";
         }
     }
@@ -186,16 +186,19 @@ inline void checkErrorInfo(ErrCode errCode)
 
     std::string message;
     daq::IString* errorMessage = nullptr;
-    daqGetErrorInfoMessage(&errorMessage, errCode);
+    ErrCode err = daqGetErrorInfoMessage(&errorMessage);
     if (errorMessage)
     {
-        daq::ConstCharPtr msgCharPtr = nullptr;
-        errorMessage->getCharPtr(&msgCharPtr);
-        message = msgCharPtr;
+        if (err == errCode)
+        {
+            daq::ConstCharPtr msgCharPtr = nullptr;
+            errorMessage->getCharPtr(&msgCharPtr);
+            message = msgCharPtr;
+            daqClearErrorInfo();
+        }
         errorMessage->releaseRef();
     }
 
-    daqClearErrorInfo(errCode);
     daq::throwExceptionFromErrorCode(errCode, message);
 }
 
@@ -203,7 +206,7 @@ inline void checkErrorInfoExcept(ErrCode errCode, ErrCode exceptErrCode)
 {
     if (errCode == exceptErrCode)
     {
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
         return;
     }
 
@@ -216,7 +219,7 @@ inline void checkErrorGuard(IErrorGuard* errorGuard)
         return;
 
     IList* errorList = nullptr;
-    errorGuard->getErrorInfos(&errorList);
+    errorGuard->getErrorInfoList(&errorList);
     if (errorList == nullptr)
         return;
     
@@ -240,7 +243,7 @@ inline void checkErrorGuard(IErrorGuard* errorGuard)
             errorInfo->getErrorCode(&lastErrorCode);
 
             IString* message = nullptr;
-            errorInfo->getFormatMessage(&message);
+            errorInfo->getFormattedMessage(&message);
             if (message)
             {
                 ConstCharPtr msgCharPtr = nullptr;
@@ -336,7 +339,8 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
         if (OPENDAQ_SUCCEEDED(err))
         {
             errorInfo->setErrorCode(errCode);
-            daqExtendErrorInfo(errorInfo, prevErrCode);
+            errorInfo->setPreviousErrorCode(prevErrCode);
+            daqExtendErrorInfo(errorInfo);
             errorInfo->releaseRef();
         }
         return errCode;
@@ -374,7 +378,8 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
             errorInfo->setFileName(fileName);
             errorInfo->setFileLine(fileLine);
             errorInfo->setErrorCode(errCode);
-            daqExtendErrorInfo(errorInfo, prevErrCode);
+            errorInfo->setPreviousErrorCode(prevErrCode);
+            daqExtendErrorInfo(errorInfo);
             errorInfo->releaseRef();
         }
         return errCode;
@@ -407,7 +412,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
     {                                                                                   \
         const ErrCode errCode_ = (errCode);                                             \
         if ((errCode_) == (expectedErrCode))                                            \
-            daqClearErrorInfo(errCode);                                                 \
+            daqClearErrorInfo();                                                        \
         else if (OPENDAQ_FAILED(errCode_))                                              \
             return DAQ_EXTEND_ERROR_INFO(errCode_, ##__VA_ARGS__);                      \
     } while (0)
@@ -437,7 +442,7 @@ inline ErrCode errorFromException(const std::exception& e, IBaseObject* source =
 #ifdef NDEBUG
     #define DAQ_ERROR_FROM_STD_EXCEPTION(e, source, errCode) daq::errorFromException(e, source, errCode)
 #else
-    inline ErrCode errorFromException(ConstCharPtr fileName, Int fileLine, const std::exception& e, IBaseObject* source = nullptr, ErrCode errCode = OPENDAQ_ERR_GENERALERROR)
+    inline ErrCode errorFromException(daq::ConstCharPtr fileName, Int fileLine, const std::exception& e, IBaseObject* source = nullptr, ErrCode errCode = OPENDAQ_ERR_GENERALERROR)
     {
         return makeErrorInfo(fileName, fileLine, errCode, source, e.what());
     }

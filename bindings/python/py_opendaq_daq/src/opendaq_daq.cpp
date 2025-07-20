@@ -17,10 +17,6 @@ PYBIND11_MODULE(opendaq, m)
     m.def("get_tracked_object_count", &daqGetTrackedObjectCount);
     m.def("print_tracked_objects", &daqPrintTrackedObjects);
     m.def("clear_tracked_objects", &daqClearTrackedObjects);
-    m.def("clear_error_info",
-        [](daq::ErrCode errCode) { daqClearErrorInfo(errCode); },
-        py::arg("errCode") = OPENDAQ_SUCCESS
-    );
     m.def("get_unresolved_errors", 
         []() -> std::string 
         {
@@ -33,7 +29,7 @@ PYBIND11_MODULE(opendaq, m)
             for (const auto& errorInfo : errorInfoList)
             {
                 daq::StringPtr message;
-                errorInfo->getFormatMessage(&message);
+                errorInfo->getFormattedMessage(&message);
                 if (message.assigned())
                     oss << message << "\n";
             }

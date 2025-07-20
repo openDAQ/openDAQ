@@ -54,7 +54,7 @@ ErrCode TmsClientProcedureImpl::dispatch(IBaseObject* args)
     });
     if (OPENDAQ_FAILED(errCode))
     {
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
         if (this->daqContext.getLogger().assigned())
         {
             auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpcUaClientProcudure");

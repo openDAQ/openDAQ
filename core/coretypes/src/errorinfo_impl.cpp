@@ -24,18 +24,19 @@ public:
     {
     }
 
-    ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) override
+    ErrCode INTERFACE_FUNC getErrorInfoList(IList** errorInfos) override
     {
-        const ErrCode errCode = Super::getErrorInfos(errorInfos);
+        const ErrCode errCode = Super::getErrorInfoList(errorInfos);
         this->releaseRef();
         return errCode;
     }
 
-    void clearLastErrorInfo(ErrCode errCode) override
+    ErrCode clearLastErrorInfo() override
     {
-        Super::clearLastErrorInfo(errCode);
+        ErrCode errCode = Super::clearLastErrorInfo();
         if (this->empty())
             this->releaseRef();
+        return errCode;
     }
 
     bool isInitial() const override
@@ -102,27 +103,25 @@ void ErrorInfoHolder::setErrorInfo(IErrorInfo* errorInfo)
         getOrCreateList()->back()->setErrorInfo(errorInfo);
 }
 
-void ErrorInfoHolder::extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode)
+void ErrorInfoHolder::extendErrorInfo(IErrorInfo* errorInfo)
 {
     if (errorInfo)
-        getOrCreateList()->back()->extendErrorInfo(errorInfo, prevErrCode);
+        getOrCreateList()->back()->extendErrorInfo(errorInfo);
 }
 
-void ErrorInfoHolder::clearErrorInfo(ErrCode errorCode)
+ErrCode ErrorInfoHolder::clearErrorInfo()
 {
     if (errorScopeList)
-        errorScopeList->back()->clearLastErrorInfo(errorCode);
+        return errorScopeList->back()->clearLastErrorInfo();
+    return OPENDAQ_SUCCESS;
 }
 
-IErrorInfo* ErrorInfoHolder::getErrorInfo(ErrCode errCode) const
+ErrCode ErrorInfoHolder::getErrorInfo(IErrorInfo** errorInfo) const
 {
     if (errorScopeList)
-    {
-        IErrorInfo* errorInfo = nullptr;
-        errorScopeList->back()->getLastErrorInfo(&errorInfo, errCode);
-        return errorInfo;
-    }
-    return nullptr;
+        return errorScopeList->back()->getLastErrorInfo(errorInfo);
+
+    return OPENDAQ_SUCCESS;
 }
 
 IList* ErrorInfoHolder::getErrorInfoList()
@@ -131,22 +130,20 @@ IList* ErrorInfoHolder::getErrorInfoList()
         return nullptr;
 
     IList* list = nullptr;
-    const ErrCode errCode = errorScopeList->back()->getErrorInfos(&list);
+    const ErrCode errCode = errorScopeList->back()->getErrorInfoList(&list);
     if (OPENDAQ_FAILED(errCode))
         throw std::runtime_error("Failed to get error info list");
     return list;
 }
 
-IString* ErrorInfoHolder::getFormatMessage(ErrCode errCode) const
+ErrCode ErrorInfoHolder::getFormattedMessage(IString** message) const
 {
+    if (message == nullptr)
+        return OPENDAQ_IGNORED;
     if (!errorScopeList)
-        return nullptr;
+        return OPENDAQ_SUCCESS;
 
-    IString* message = nullptr;
-    const ErrCode err = errorScopeList->back()->getFormatMessage(&message, errCode);
-    if (OPENDAQ_FAILED(err))
-        throw std::runtime_error("Failed to get format message");
-    return message;
+    return errorScopeList->back()->getFormattedMessage(message);
 }
 
 void ErrorInfoHolder::setScopeEntry(ErrorGuardImpl* entry)
@@ -204,7 +201,7 @@ ErrorGuardImpl::~ErrorGuardImpl()
     errorInfoHolder.removeScopeEntry(this);
 }
 
-ErrCode ErrorGuardImpl::getErrorInfos(IList** errorInfos)
+ErrCode ErrorGuardImpl::getErrorInfoList(IList** errorInfos)
 {
     if (errorInfos == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
@@ -225,37 +222,29 @@ ErrCode ErrorGuardImpl::getErrorInfos(IList** errorInfos)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) const
+ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
 {
     if (message == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+        return OPENDAQ_IGNORED;
 
     *message = nullptr;
     if (errorInfoList.empty())
         return OPENDAQ_SUCCESS;
 
-    if (errCode != OPENDAQ_LAST_ERROR_INFO)
-    {
-        IErrorInfo* lastErrorInfo = errorInfoList.back().borrow();
-        ErrCode lastErrorInfoCode;
-        lastErrorInfo->getErrorCode(&lastErrorInfoCode);
-        if (errCode != lastErrorInfoCode)
-            return OPENDAQ_SUCCESS;
-    }
-
+    ErrCode errCode = OPENDAQ_SUCCESS;
     std::vector<IErrorInfo*> errorList;
     errorList.reserve(errorInfoList.size());
     for (auto it = errorInfoList.rbegin(); it != errorInfoList.rend(); ++it)
     {
         errorList.push_back(it->borrow());
-        Bool causedByPrevious = False;
-        it->borrow()->getCausedByPrevious(&causedByPrevious);
-        if (!causedByPrevious)
+        ErrCode prevErrCode = OPENDAQ_SUCCESS;
+        it->borrow()->getPreviousErrorCode(&prevErrCode);
+        if (prevErrCode == OPENDAQ_SUCCESS)
+        {
+            it->borrow()->getErrorCode(&errCode);
             break;
+        }
     }
-
-    if (errorList.empty())
-        return OPENDAQ_SUCCESS;
 
     std::ostringstream ss;
     bool firstMessage = true;
@@ -263,13 +252,13 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) con
     {
         IErrorInfo* errorInfo = *it;
         IString* errorMessage = nullptr;
-        errorInfo->getFormatMessage(&errorMessage);
+        errorInfo->getFormattedMessage(&errorMessage);
         if (errorMessage == nullptr)
             continue;
 
         ConstCharPtr messagePtr;
         errorMessage->getCharPtr(&messagePtr);
-        if (messagePtr != nullptr)
+        if (messagePtr)
         {
             ss << (firstMessage ? "" : "\n") << messagePtr;
             firstMessage = false;
@@ -279,14 +268,15 @@ ErrCode ErrorGuardImpl::getFormatMessage(IString** message, ErrCode errCode) con
 
     if (filename && !firstMessage)
     {
-        ss << "\n - Cause by: [ " << filename;
+        ss << "\n - Caused by: [ " << filename;
         if (fileLine != -1)
             ss << ":" << fileLine;
         ss << " ]";
     }
 
     auto str = ss.str();
-    return createString(message, str.c_str());
+    createString(message, str.c_str());
+    return errCode;
 }
 
 ErrCode ErrorGuardImpl::toString(CharPtr* str)
@@ -303,43 +293,40 @@ ErrCode ErrorGuardImpl::toString(CharPtr* str)
     return daqDuplicateCharPtr(stream.str().c_str(), str);
 }
 
-ErrCode ErrorGuardImpl::getLastErrorInfo(IErrorInfo** errorInfo, ErrCode errCode) const
+ErrCode ErrorGuardImpl::getLastErrorInfo(IErrorInfo** errorInfo) const
 {
     if (errorInfo == nullptr)
-        return OPENDAQ_ERR_ARGUMENT_NULL;
+        return OPENDAQ_IGNORED;
     *errorInfo = nullptr;
 
     if (errorInfoList.empty())
         return OPENDAQ_SUCCESS;
 
     auto lastErrorInfo = errorInfoList.back().borrow();
-    ErrCode lastErrorInfoCode;
-    lastErrorInfo->getErrorCode(&lastErrorInfoCode);
-
-    if (errCode != lastErrorInfoCode && errCode != OPENDAQ_LAST_ERROR_INFO)
-        return OPENDAQ_NOTFOUND;
-
-    Bool causedByPrevious = False;
-    lastErrorInfo->getCausedByPrevious(&causedByPrevious);
-    if (!causedByPrevious)
+    ErrCode lastErrorCode = OPENDAQ_SUCCESS;
+    lastErrorInfo->getErrorCode(&lastErrorCode);
+    ErrCode prevErrorCode = OPENDAQ_SUCCESS;
+    lastErrorInfo->getPreviousErrorCode(&prevErrorCode);
+    if (prevErrorCode == OPENDAQ_SUCCESS)
     {
         *errorInfo = errorInfoList.back().getAddRef();
-        return OPENDAQ_SUCCESS;
+        return lastErrorCode;
     }
 
     IString* message = nullptr;
-    ErrCode err = this->getFormatMessage(&message, errCode);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    ErrCode errCode = this->getFormattedMessage(&message);
+    if (message == nullptr)
+        return lastErrorCode;
 
-    err = createErrorInfo(errorInfo);
-    if (OPENDAQ_FAILED(err))
-        return err;
+    errCode = createErrorInfo(errorInfo);
+    if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        (*errorInfo)->setErrorCode(lastErrorCode);
+        (*errorInfo)->setMessage(message);
+    }
 
-    (*errorInfo)->setErrorCode(lastErrorInfoCode);
-    (*errorInfo)->setMessage(message);
     releaseRefIfNotNull(message);
-    return OPENDAQ_SUCCESS;
+    return lastErrorCode;
 }
 
 void ErrorGuardImpl::setErrorInfo(IErrorInfo* errorInfo)
@@ -348,44 +335,43 @@ void ErrorGuardImpl::setErrorInfo(IErrorInfo* errorInfo)
         errorInfoList.emplace_back(errorInfo);
 }
 
-void ErrorGuardImpl::extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode)
+void ErrorGuardImpl::extendErrorInfo(IErrorInfo* errorInfo)
 {
     if (errorInfo == nullptr)
         return;
 
-    if (!errorInfoList.empty())
-    {
-        ErrCode prevErrorInfoCode;
-        errorInfoList.back().borrow()->getErrorCode(&prevErrorInfoCode);
-        if (prevErrorInfoCode == prevErrCode)
-            errorInfo->setCausedByPrevious(prevErrCode);
-    }
+    if (errorInfoList.empty())
+        throw std::runtime_error("ErrorGuardImpl: Cannot extend error info without a previous error info.");
+
+    ErrCode prevErrCode = OPENDAQ_SUCCESS;
+    errorInfo->getPreviousErrorCode(&prevErrCode);
+
+    ErrCode prevErrorInfoCode;
+    errorInfoList.back().borrow()->getErrorCode(&prevErrorInfoCode);
+    if (prevErrorInfoCode != prevErrCode)
+        throw std::runtime_error("ErrorGuardImpl: Cannot extend error info with a different previous error code.");
 
     errorInfoList.emplace_back(errorInfo);
 }
 
-void ErrorGuardImpl::clearLastErrorInfo(ErrCode errCode)
+ErrCode ErrorGuardImpl::clearLastErrorInfo()
 {
     if (errorInfoList.empty())
-        return;
+        return OPENDAQ_SUCCESS;
 
-    if (errCode != OPENDAQ_LAST_ERROR_INFO)
-    {
-        ErrCode prevErrorInfoCode;
-        errorInfoList.back().borrow()->getErrorCode(&prevErrorInfoCode);
-        if (errCode != prevErrorInfoCode)
-            return;
-    }
-
+    ErrCode lastErrorCode;
     while (!errorInfoList.empty())
     {
-        Bool causedByPrevious = False;
-        errorInfoList.back().borrow()->getCausedByPrevious(&causedByPrevious);
+        lastErrorCode = OPENDAQ_SUCCESS;
+        ErrCode prevErrCode = OPENDAQ_SUCCESS;
+        errorInfoList.back().borrow()->getPreviousErrorCode(&prevErrCode);
+        errorInfoList.back().borrow()->getErrorCode(&lastErrorCode);
         errorInfoList.pop_back();
 
-        if (!causedByPrevious)
+        if (prevErrCode == OPENDAQ_SUCCESS)
             break;
     }
+    return lastErrorCode;
 }
 
 inline bool ErrorGuardImpl::empty() const
@@ -525,7 +511,7 @@ ErrCode ErrorInfoImpl::getErrorCode(ErrCode* errorCode)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ErrorInfoImpl::setCausedByPrevious(ErrCode prevErrCode)
+ErrCode ErrorInfoImpl::setPreviousErrorCode(ErrCode prevErrCode)
 {
     if (frozen)
         return OPENDAQ_ERR_FROZEN;
@@ -534,16 +520,16 @@ ErrCode ErrorInfoImpl::setCausedByPrevious(ErrCode prevErrCode)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ErrorInfoImpl::getCausedByPrevious(Bool* caused)
+ErrCode ErrorInfoImpl::getPreviousErrorCode(ErrCode* prevErrCode)
 {
-    if (caused == nullptr)
+    if (prevErrCode == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
 
-    *caused = this->prevErrCode != OPENDAQ_SUCCESS;
+    *prevErrCode = this->prevErrCode;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
+ErrCode ErrorInfoImpl::getFormattedMessage(IString** message)
 {
     if (message == nullptr)
         return OPENDAQ_ERR_ARGUMENT_NULL;
@@ -558,7 +544,7 @@ ErrCode ErrorInfoImpl::getFormatMessage(IString** message)
     std::ostringstream ss;
 
     if (this->prevErrCode != OPENDAQ_SUCCESS)
-        ss << " - Cause by: ";
+        ss << " - Caused by: ";
 
     [[maybe_unused]] bool needSpace = true;
     if (this->message)
@@ -799,22 +785,23 @@ void PUBLIC_EXPORT daqSetErrorInfo(daq::IErrorInfo* errorInfo)
 }
 
 extern "C"
-void PUBLIC_EXPORT daqExtendErrorInfo(daq::IErrorInfo* errorInfo, daq::ErrCode prevErrCode)
+void PUBLIC_EXPORT daqExtendErrorInfo(daq::IErrorInfo* errorInfo)
 {
     if (errorInfo == nullptr)
         return;
 
-    daq::errorInfoHolder.extendErrorInfo(errorInfo, prevErrCode);
+    daq::errorInfoHolder.extendErrorInfo(errorInfo);
     daq::IFreezable* freezable;
     if (OPENDAQ_SUCCEEDED(errorInfo->borrowInterface(daq::IFreezable::Id, reinterpret_cast<void**>(&freezable))))
         freezable->freeze();
 }
 
 extern "C"
-void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo, daq::ErrCode errCode)
+daq::ErrCode PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo)
 {
     if (errorInfo)
-        *errorInfo = daq::errorInfoHolder.getErrorInfo(errCode);
+        return daq::errorInfoHolder.getErrorInfo(errorInfo);
+    return OPENDAQ_IGNORED;
 }
 
 extern "C"
@@ -825,14 +812,15 @@ void PUBLIC_EXPORT daqGetErrorInfoList(daq::IList** errorInfoList)
 }
 
 extern "C"
-void PUBLIC_EXPORT daqGetErrorInfoMessage(daq::IString** errorMessage, daq::ErrCode errCode)
+daq::ErrCode PUBLIC_EXPORT daqGetErrorInfoMessage(daq::IString** errorMessage)
 {
     if (errorMessage)
-        *errorMessage = daq::errorInfoHolder.getFormatMessage(errCode);
+        return daq::errorInfoHolder.getFormattedMessage(errorMessage);
+    return OPENDAQ_IGNORED;
 }
 
 extern "C"
-void PUBLIC_EXPORT daqClearErrorInfo(daq::ErrCode errCode)
+daq::ErrCode PUBLIC_EXPORT daqClearErrorInfo()
 {
-    daq::errorInfoHolder.clearErrorInfo(errCode);
+    return daq::errorInfoHolder.clearErrorInfo();
 }

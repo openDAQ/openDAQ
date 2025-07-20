@@ -79,7 +79,7 @@ public:
 
         if (errCode == OPENDAQ_ERR_NOTASSIGNED || errCode == OPENDAQ_ERR_NOTFOUND)
         {
-            daqClearErrorInfo(errCode);
+            daqClearErrorInfo();
             return defaultValue;
         }
         checkErrorInfo(errCode);

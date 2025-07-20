@@ -247,7 +247,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(
             {
                 const ErrCode errCode = setSelectedSource(selectedSource - 1);
                 if (OPENDAQ_FAILED(errCode))
-                    daqClearErrorInfo(errCode);
+                    daqClearErrorInfo();
             }
             break;
         }

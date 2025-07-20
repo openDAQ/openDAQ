@@ -25,13 +25,17 @@ protected:
 
     void TearDown() override
     {
-        daqUnregisterSerializerFactory(factoryId);
+        const ErrCode errCode = daqUnregisterSerializerFactory(factoryId);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
         deserializer.release();
     }
 
     void registerFactory(daqDeserializerFactory factory)
     {
-        daqRegisterSerializerFactory(factoryId, factory);
+        const ErrCode errCode = daqRegisterSerializerFactory(factoryId, factory);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
     }
 
     DeserializerPtr deserializer;
@@ -394,7 +398,7 @@ TEST_F(JsonDeserializerTest, unregisterNonExistingFactory)
 {
     ErrCode errCode = daqUnregisterSerializerFactory(factoryId);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
 }
 
 TEST_F(JsonDeserializerTest, getNonExistingFactory)
@@ -402,7 +406,7 @@ TEST_F(JsonDeserializerTest, getNonExistingFactory)
     daqDeserializerFactory factory;
     ErrCode errCode = daqGetSerializerFactory(factoryId, &factory);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
 }
 
 TEST_F(JsonDeserializerTest, factoryReturnsError)

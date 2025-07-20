@@ -184,7 +184,7 @@ void MirroredSignalBase<Interfaces...>::removed()
     ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
     if (OPENDAQ_FAILED(errCode))
     {
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
     }
     else if (signalRemoteId.assigned())
     {

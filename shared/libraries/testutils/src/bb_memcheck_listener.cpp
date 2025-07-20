@@ -25,7 +25,7 @@ void DaqMemCheckListener::OnTestEnd(const testing::TestInfo& info)
         for (const auto& errorInfo : errorInfoList)
         {
             StringPtr message;
-            errorInfo->getFormatMessage(&message);
+            errorInfo->getFormattedMessage(&message);
             if (message.assigned())
                 failMessage << message << "\n";
         }

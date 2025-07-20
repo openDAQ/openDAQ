@@ -105,7 +105,7 @@ inline testing::AssertionResult CmpErrorCodeHelperEQ(const char* lhs_expression,
     if (lhs == rhs) 
     {
         if (OPENDAQ_FAILED(lhs))
-            daqClearErrorInfo(lhs);
+            daqClearErrorInfo();
         return testing::AssertionSuccess();
     }
     return testing::internal::CmpHelperEQFailure(lhs_expression, rhs_expression, lhs, rhs);
@@ -114,12 +114,12 @@ inline testing::AssertionResult CmpErrorCodeHelperEQ(const char* lhs_expression,
 #define ASSERT_ERROR_CODE_EQ(lhs, rhs) \
     ASSERT_PRED_FORMAT2(CmpErrorCodeHelperEQ, lhs, rhs)
 
-#define ASSERT_ERROR_CODE_FAILED(errCode) \
-    do                                                                                  \
-    {                                                                                   \
-        const ErrCode errCode_ = (errCode);                                             \
+#define ASSERT_ERROR_CODE_FAILED(errCode)                                                                                 \
+    do                                                                                                                    \
+    {                                                                                                                     \
+        const ErrCode errCode_ = (errCode);                                                                               \
         ASSERT_TRUE(OPENDAQ_FAILED(errCode_)) << "Expected error code to be failed, but it was successful: " << errCode_; \
-        daqClearErrorInfo(errCode);                                                     \
+        daqClearErrorInfo();                                                                                              \
     } while (0)
 
 namespace daq

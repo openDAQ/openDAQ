@@ -175,7 +175,7 @@ ErrCode StringImpl::toBool(Bool* val)
         }
         else
         {
-            daqClearErrorInfo(errCode);
+            daqClearErrorInfo();
             *val = False;
         }
     }

@@ -771,7 +771,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     ErrCode errCode = readLocalValue(name, oldValue);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
         oldValue = defaultValue;
     }
     errCode = OPENDAQ_SUCCESS;
@@ -1385,7 +1385,7 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUnbou
     const auto errCode = objectClass->getProperty(name, &property);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
         return nullptr;
     }
 
@@ -1643,12 +1643,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
     OPENDAQ_RETURN_IF_FAILED_EXCEPT(res, OPENDAQ_ERR_NOTFOUND);
     if (res == OPENDAQ_ERR_NOTFOUND)
     {
-        daqClearErrorInfo(res);
+        daqClearErrorInfo();
         const auto propInternal = property.asPtr<IPropertyInternal>();
         res = propInternal->getDefaultValueNoLock(&value);
 
         if (OPENDAQ_FAILED(res))
-            daqClearErrorInfo(res);
+            daqClearErrorInfo();
 
         if (!value.assigned())
             return OPENDAQ_SUCCESS;
@@ -1749,7 +1749,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                 BaseObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
                 if (OPENDAQ_FAILED(err))
-                    daqClearErrorInfo(err);
+                    daqClearErrorInfo();
                 if (!obj.assigned())
                     continue;
 
@@ -1763,7 +1763,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                 PropertyObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
                 if (OPENDAQ_FAILED(err))
-                    daqClearErrorInfo(err);
+                    daqClearErrorInfo();
                 if (!obj.assigned())
                     continue;
 
@@ -2852,7 +2852,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            daqClearErrorInfo(errCode);
             return OPENDAQ_SUCCESS;
         }
 

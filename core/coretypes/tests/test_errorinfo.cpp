@@ -185,7 +185,7 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
     auto obj = CreateTestObject();
 
     std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(47) + "\n";
-    expected += " - Cause by: multipleErrorInfoTest failed twice" + getErrorPostfix(53);
+    expected += " - Caused by: multipleErrorInfoTest failed twice" + getErrorPostfix(53);
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -287,20 +287,20 @@ TEST_F(ErrorInfoTest, errorGuardClearing)
             DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Error in error guard2");
 
             ListPtr<IErrorInfo> errorInfoList;
-            errorGuard2->getErrorInfos(&errorInfoList);
+            errorGuard2->getErrorInfoList(&errorInfoList);
             ASSERT_TRUE(errorInfoList.assigned());
             ASSERT_EQ(errorInfoList.getCount(), 1);
         }
         DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "One more error in error guard");
 
         ListPtr<IErrorInfo> errorInfoList;
-        errorGuard->getErrorInfos(&errorInfoList);
+        errorGuard->getErrorInfoList(&errorInfoList);
         ASSERT_TRUE(errorInfoList.assigned());
         ASSERT_EQ(errorInfoList.getCount(), 2);
     }
     // scope is cleared, error info should be cleared as well
     ObjectPtr<IErrorInfo> lastError;
-    daqGetErrorInfo(&lastError, OPENDAQ_ERR_GENERALERROR);
+    daqGetErrorInfo(&lastError);
     ASSERT_FALSE(lastError.assigned());
 
     ASSERT_EQ(daqGetTrackedObjectCount(), trackedObjectCount);

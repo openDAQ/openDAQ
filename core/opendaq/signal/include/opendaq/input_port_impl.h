@@ -611,7 +611,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connectInternal(ISignal* signal, bo
             if (OPENDAQ_FAILED(err))
             {
                 connectionRef.release();
-                return DAQ_EXTEND_ERROR_INFO(err);
+                return DAQ_MAKE_ERROR_INFO(err);
             }
         }
 

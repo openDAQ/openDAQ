@@ -1197,7 +1197,7 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
     DictPtr<IString, IDeviceType> types;
     const ErrCode err = module->getAvailableDeviceTypes(&types);
     if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
-        daqClearErrorInfo(err);
+        daqClearErrorInfo();
     else
         checkErrorInfo(err);
 
@@ -1244,7 +1244,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         DictPtr<IString, IStreamingType> types;
         const ErrCode errCode = module->getAvailableStreamingTypes(&types);
         if (OPENDAQ_FAILED(errCode))
-            daqClearErrorInfo(errCode);
+            daqClearErrorInfo();
         if (!types.assigned())
             continue;
 
@@ -1787,12 +1787,15 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         LOG_T("Checking dependencies of \"{}\".", relativePath);
 
         StringPtr errMsg;
-        ErrCode errCode = checkDeps(&errMsg);
+        const ErrCode errCode = checkDeps(&errMsg);
         if (OPENDAQ_FAILED(errCode))
         {
             StringPtr detailedMsg;
-            daqGetErrorInfoMessage(&detailedMsg, errCode);
-            daqClearErrorInfo(errCode);
+            const ErrCode err = daqGetErrorInfoMessage(&detailedMsg);
+            if (err == errCode)
+                daqClearErrorInfo();
+            else
+                detailedMsg = nullptr;
             LOG_T("Failed to check dependencies for \"{}\". {}", relativePath, detailedMsg.assigned() ? detailedMsg.toStdString());
 
             DAQ_THROW_EXCEPTION(ModuleIncompatibleDependenciesException,
@@ -1817,12 +1820,15 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
     LOG_T("Creating module from \"{}\".", relativePath);
 
     ModulePtr module;
-    ErrCode errCode = factory(&module, context);
+    const ErrCode errCode = factory(&module, context);
     if (OPENDAQ_FAILED(errCode))
     {
         StringPtr detailedMsg;
-        daqGetErrorInfoMessage(&detailedMsg, errCode);
-        daqClearErrorInfo(errCode);
+        const ErrCode err = daqGetErrorInfoMessage(&detailedMsg);
+        if (err == errCode)
+            daqClearErrorInfo();
+        else
+            detailedMsg = nullptr;
         LOG_T("Failed creating module from \"{}\". {}", relativePath, detailedMsg.assigned() ? detailedMsg.toStdString());
 
         DAQ_THROW_EXCEPTION(ModuleEntryPointFailedException, "Library \"{}\" failed to create a Module.", relativePath);

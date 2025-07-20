@@ -113,7 +113,7 @@ ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
     const ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetRelatedSignals, signalsPtr);
     if (OPENDAQ_FAILED(errCode))
     {
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
         LOG_W("Failed to get related signals on OpcUA client signal \"{}\"", this->globalId);
     }
     *signals = signalsPtr.detach();

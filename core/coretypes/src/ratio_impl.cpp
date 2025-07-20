@@ -177,7 +177,8 @@ ErrCode RatioImpl::compareTo(IBaseObject* obj)
     Float objFloatValue;
 
     auto err = obj->borrowInterface(IConvertible::Id, reinterpret_cast<void**>(&objConvIntf));
-    OPENDAQ_RETURN_IF_FAILED(err);
+    if (OPENDAQ_FAILED(err))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE);
 
     err = objConvIntf->toFloat(&objFloatValue);
     OPENDAQ_RETURN_IF_FAILED(err);

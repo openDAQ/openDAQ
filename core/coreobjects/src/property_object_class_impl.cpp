@@ -249,9 +249,8 @@ ErrCode PropertyObjectClassImpl::serializeProperties(ISerializer* serializer)
 
             if (errCode == OPENDAQ_ERR_NOINTERFACE)
             {
-                return DAQ_EXTEND_ERROR_INFO(errCode, 
-                                    OPENDAQ_ERR_NOT_SERIALIZABLE,
-                                    std::string("Property \"" + propName + "\" does not implement ISerializable."));
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE,
+                                          std::string("Property \"" + propName + "\" does not implement ISerializable."));
             }
 
             OPENDAQ_RETURN_IF_FAILED(errCode);

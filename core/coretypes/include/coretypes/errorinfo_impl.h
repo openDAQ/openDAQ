@@ -44,10 +44,10 @@ public:
     ErrCode INTERFACE_FUNC setErrorCode(ErrCode errorCode) override;
     ErrCode INTERFACE_FUNC getErrorCode(ErrCode* errorCode) override;
 
-    ErrCode INTERFACE_FUNC setCausedByPrevious(ErrCode prevErrCode) override;
-    ErrCode INTERFACE_FUNC getCausedByPrevious(Bool* caused) override;
+    ErrCode INTERFACE_FUNC setPreviousErrorCode(ErrCode prevErrCode) override;
+    ErrCode INTERFACE_FUNC getPreviousErrorCode(ErrCode* prevErrCode) override;
 
-    ErrCode INTERFACE_FUNC getFormatMessage(IString** message) override;
+    ErrCode INTERFACE_FUNC getFormattedMessage(IString** message) override;
     
     // IFreezable interface
     ErrCode INTERFACE_FUNC freeze() override;
@@ -93,15 +93,15 @@ public:
     ErrorGuardImpl(ConstCharPtr filename, int fileLine);
     ~ErrorGuardImpl();
 
-    ErrCode INTERFACE_FUNC getLastErrorInfo(IErrorInfo** errorInfo, ErrCode errCode = OPENDAQ_LAST_ERROR_INFO) const override;
-    ErrCode INTERFACE_FUNC getErrorInfos(IList** errorInfos) override;
-    ErrCode INTERFACE_FUNC getFormatMessage(IString** message, ErrCode errCode) const override;
+    ErrCode INTERFACE_FUNC getLastErrorInfo(IErrorInfo** errorInfo) const override;
+    ErrCode INTERFACE_FUNC getErrorInfoList(IList** errorInfos) override;
+    ErrCode INTERFACE_FUNC getFormattedMessage(IString** message) const override;
     ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
 
     virtual bool isInitial() const { return false; }
     void setErrorInfo(IErrorInfo* errorInfo);
-    void extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode);
-    virtual void clearLastErrorInfo(ErrCode errCode);
+    void extendErrorInfo(IErrorInfo* errorInfo);
+    virtual ErrCode clearLastErrorInfo();
     bool empty() const;
 
 protected:
@@ -118,12 +118,12 @@ public:
     ~ErrorInfoHolder();
 
     void setErrorInfo(IErrorInfo* errorInfo);
-    void extendErrorInfo(IErrorInfo* errorInfo, ErrCode prevErrCode);
-    void clearErrorInfo(ErrCode errorCode);
-    IErrorInfo* getErrorInfo(ErrCode errCode) const;
+    void extendErrorInfo(IErrorInfo* errorInfo);
+    ErrCode clearErrorInfo();
+    ErrCode getErrorInfo(IErrorInfo** errorInfo) const;
 
     IList* getErrorInfoList();
-    IString* getFormatMessage(ErrCode errCode) const;
+    ErrCode getFormattedMessage(IString** message) const;
 
     void setScopeEntry(ErrorGuardImpl* entry);
     void removeScopeEntry(ErrorGuardImpl* entry);

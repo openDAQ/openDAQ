@@ -350,7 +350,7 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
         bool firstData {false};
         const ErrCode errCode = handlePacket(packetToReturn, firstData);
         if (OPENDAQ_FAILED(errCode))
-            daqClearErrorInfo(errCode);
+            daqClearErrorInfo();
     }
 
     return packetToReturn;
@@ -476,7 +476,7 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
                 }
                 catch (...)
                 {
-                    errCode = OPENDAQ_ERR_GENERALERROR;
+                    errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to handle descriptor change");
                 }
 
                 if (OPENDAQ_FAILED(errCode))
@@ -578,8 +578,8 @@ ErrCode SignalReader::readPacketData()
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
             if (!trySetDomainSampleType(domainPacket, errCode))
-                return errCode;
-            daqClearErrorInfo(errCode);
+                return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
+            daqClearErrorInfo();
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         }
 
@@ -604,8 +604,10 @@ ErrCode SignalReader::readPacketData()
 bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode) const
 {
     ObjectPtr<IErrorInfo> errInfo;
-    daqGetErrorInfo(&errInfo, errCode);
-    daqClearErrorInfo(errCode);
+    if (daqGetErrorInfo(&errInfo) == errCode)
+        daqClearErrorInfo();
+    else
+        errInfo = nullptr;
 
     auto dataDescriptor = domainPacket.getDataDescriptor();
     if (domainReader->handleDescriptorChanged(dataDescriptor, readMode))

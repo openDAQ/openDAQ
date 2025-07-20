@@ -375,8 +375,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             ObjectPtr<IErrorInfo> errorInfo;
-            daqGetErrorInfo(&errorInfo, status);
-            daqClearErrorInfo(status);
+            if (daqGetErrorInfo(&errorInfo) == status)
+                daqClearErrorInfo();
+            else
+                errorInfo = nullptr;
             
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
             OPENDAQ_RETURN_IF_FAILED(revertStatus);
@@ -419,8 +421,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
         if (OPENDAQ_FAILED(status))
         {
             ObjectPtr<IErrorInfo> errorInfo;
-            daqGetErrorInfo(&errorInfo, status);
-            daqClearErrorInfo(status);
+            if (daqGetErrorInfo(&errorInfo) == status)
+                daqClearErrorInfo();
+            else
+                errorInfo = nullptr;
 
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, true);
             OPENDAQ_RETURN_IF_FAILED(revertStatus);
@@ -1499,7 +1503,7 @@ DictPtr<IString, IDevice> GenericDevice<TInterface, Interfaces...>::onAddDevices
             }
             catch (...)
             {
-                errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+                errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Unknown error occurred while adding device: " + connectionString);
                 daqGetErrorInfo(&errorInfo);
                 daqClearErrorInfo();
             }
@@ -1851,7 +1855,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             }
             else 
             {
-                daqClearErrorInfo(errCode);
+                daqClearErrorInfo();
             }
         }
     }

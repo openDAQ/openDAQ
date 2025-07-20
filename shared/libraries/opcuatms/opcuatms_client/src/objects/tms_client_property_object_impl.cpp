@@ -104,7 +104,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
     if (errCode == OPENDAQ_ERR_NOTFOUND || errCode == OPENDAQ_ERR_ACCESSDENIED)
         return DAQ_EXTEND_ERROR_INFO(errCode, fmt::format("Failed to set value for property \"{}\" on OpcUA client property object", propertyNamePtr));
     else if (OPENDAQ_FAILED(errCode))
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
     return OPENDAQ_SUCCESS;
 }
 
@@ -172,7 +172,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     });
     if (OPENDAQ_FAILED(errCode))
     {
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
         LOG_W("Failed to get value for property \"{}\" on OpcUA client property object", propertyNamePtr);
     }
     return OPENDAQ_SUCCESS;

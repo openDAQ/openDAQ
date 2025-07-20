@@ -63,7 +63,7 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setPropertyValue(IString* property
     const ErrCode errCode = Super::setPropertyValue(propertyName, value);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
         return Impl::setPropertyValue(propertyName, value);
     }
     return errCode;

@@ -439,7 +439,7 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
 
         if (errCode == OPENDAQ_ERR_NOINTERFACE)
         {
-            return DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_NOT_SERIALIZABLE);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
         }
 
         OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -458,7 +458,7 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
 
             if (errCode == OPENDAQ_ERR_NOINTERFACE)
             {
-                return DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_NOT_SERIALIZABLE);
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
             }
 
             OPENDAQ_RETURN_IF_FAILED(errCode);

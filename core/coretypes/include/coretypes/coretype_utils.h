@@ -60,7 +60,7 @@ inline ErrCode read<Float>(ISerializedObject* serializedObj, const StringPtr& ke
     ErrCode status = serializedObj->readFloat(key, &valueOut);
     if (OPENDAQ_SUCCEEDED(status))
         return status;
-    daqClearErrorInfo(status);
+    daqClearErrorInfo();
 
     Int intOut;
     status = serializedObj->readInt(key, &intOut);

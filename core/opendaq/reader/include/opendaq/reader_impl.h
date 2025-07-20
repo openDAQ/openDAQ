@@ -496,8 +496,10 @@ protected:
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode)
     {
         ObjectPtr<IErrorInfo> errInfo;
-        daqGetErrorInfo(&errInfo, errCode);
-        daqClearErrorInfo(errCode);
+        if (daqGetErrorInfo(&errInfo) == errCode)
+            daqClearErrorInfo();
+        else
+            errInfo = nullptr;
 
         auto dataDescriptor = domainPacket.getDataDescriptor();
         if (domainReader->isUndefined())

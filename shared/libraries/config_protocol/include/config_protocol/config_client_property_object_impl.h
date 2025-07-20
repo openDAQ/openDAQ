@@ -518,7 +518,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
         {
             const ErrCode errCode = Impl::removeProperty(prop.getName());
             if (OPENDAQ_FAILED(errCode))
-                daqClearErrorInfo(errCode);
+                daqClearErrorInfo();
         }
         return;
     }
@@ -545,7 +545,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
         {
             const ErrCode errCode = Impl::removeProperty(propName);
             if (OPENDAQ_FAILED(errCode))
-                daqClearErrorInfo(errCode);
+                daqClearErrorInfo();
         }
     }
 }

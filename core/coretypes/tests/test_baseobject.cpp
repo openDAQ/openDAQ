@@ -176,7 +176,7 @@ TEST_F(BaseObjectTest, QueryInterface)
 
     IBaseObject* baseObject3;
     res = baseObject1->queryInterface(TestGuid, reinterpret_cast<void**>(&baseObject3));
-    ASSERT_ERROR_CODE_EQ(res, OPENDAQ_ERR_NOINTERFACE);
+    ASSERT_EQ(res, OPENDAQ_ERR_NOINTERFACE);
 
     ASSERT_EQ(baseObject1->releaseRef(), 1);
     ASSERT_EQ(baseObject2->releaseRef(), 0);
@@ -199,7 +199,7 @@ TEST_F(BaseObjectTest, BorrowInterface)
     static const IntfID TestGuid = { 0x11111111, 0x1111, 0x1111, { { 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11 } } };
 
     IBaseObject* baseObject3;
-    ASSERT_ERROR_CODE_EQ(baseObject1->borrowInterface(TestGuid, reinterpret_cast<void**>(&baseObject3)), OPENDAQ_ERR_NOINTERFACE);
+    ASSERT_EQ(baseObject1->borrowInterface(TestGuid, reinterpret_cast<void**>(&baseObject3)), OPENDAQ_ERR_NOINTERFACE);
 
     ASSERT_EQ(baseObject1->releaseRef(), 0);
 }

@@ -104,9 +104,8 @@ ErrCode IteratorBaseImpl<T, E, VS>::equals(IBaseObject* other, Bool* equal) cons
         if (err == OPENDAQ_ERR_NOINTERFACE)
             return DAQ_MAKE_ERROR_INFO(err);
 
-        return DAQ_EXTEND_ERROR_INFO(err, "Failed to borrow IIterator interface from object");
+        return DAQ_EXTEND_ERROR_INFO(err);
     }
-    OPENDAQ_RETURN_IF_FAILED(err);
 
     return compareIterators(this, itOther, equal);
 }

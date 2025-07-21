@@ -106,14 +106,14 @@ ErrCode EnumerationTypeImpl::serialize(ISerializer* serializer)
     serializer->key("enumerators");
     ISerializable* serializable;
     ErrCode errCode = this->enumerators->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
-
-    if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_NOT_SERIALIZABLE);
-
-    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+        return DAQ_EXTEND_ERROR_INFO(errCode);
+    }
 
     errCode = serializable->serialize(serializer);
-
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();

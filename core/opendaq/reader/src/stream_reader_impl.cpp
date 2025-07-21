@@ -413,11 +413,9 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
 
 bool StreamReaderImpl::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode)
 {
-    ObjectPtr<IErrorInfo> errInfo;
-    if (daqGetErrorInfo(&errInfo) == errCode)
-        daqClearErrorInfo();
-    else
-        errInfo = nullptr;
+    ObjectPtr<IErrorInfo> errorInfo;
+    daqGetErrorInfo(&errorInfo);
+    daqClearErrorInfo();
 
     auto dataDescriptor = domainPacket.getDataDescriptor();
     if (domainReader->isUndefined())
@@ -426,7 +424,7 @@ bool StreamReaderImpl::trySetDomainSampleType(const daq::DataPacketPtr& domainPa
     if (domainReader->handleDescriptorChanged(dataDescriptor, readMode))
         return true;
 
-    daqSetErrorInfo(errInfo);
+    daqSetErrorInfo(errorInfo);
     return false;    
 }
 

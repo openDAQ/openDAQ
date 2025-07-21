@@ -141,7 +141,11 @@ ErrCode INTERFACE_FUNC ComplexNumberImpl::compareTo(IBaseObject* other)
     IComplexNumber* obj = nullptr;
     ErrCode err = other->borrowInterface(IComplexNumber::Id, reinterpret_cast<void**>(&obj));
     if (OPENDAQ_FAILED(err))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE);
+    {
+        if (err == OPENDAQ_ERR_NOINTERFACE)
+            return DAQ_MAKE_ERROR_INFO(err);
+        return DAQ_EXTEND_ERROR_INFO(err);
+    }
 
     ComplexFloat64 otherValue;
     this->getValue(&otherValue);

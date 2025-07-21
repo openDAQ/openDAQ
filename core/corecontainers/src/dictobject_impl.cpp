@@ -325,8 +325,8 @@ ErrCode DictImpl::clone(IBaseObject** cloned)
         ObjectPtr<ICloneable> keyCloneable;
         IBaseObject* key = nullptr;
 
-        ErrCode err = item.first->queryInterface(ICloneable::Id, reinterpret_cast<void**>(&keyCloneable));
-        if (OPENDAQ_SUCCEEDED(err))
+        ErrCode errCode = item.first->queryInterface(ICloneable::Id, reinterpret_cast<void**>(&keyCloneable));
+        if (OPENDAQ_SUCCEEDED(errCode))
             keyCloneable->clone(&key);
         else
         {
@@ -339,8 +339,8 @@ ErrCode DictImpl::clone(IBaseObject** cloned)
 
         if (item.second)
         {
-            err = item.second->queryInterface(ICloneable::Id, reinterpret_cast<void**>(&valCloneable));
-            if (OPENDAQ_SUCCEEDED(err))
+            errCode = item.second->queryInterface(ICloneable::Id, reinterpret_cast<void**>(&valCloneable));
+            if (OPENDAQ_SUCCEEDED(errCode))
                 valCloneable->clone(&val);
             else
             {
@@ -352,7 +352,10 @@ ErrCode DictImpl::clone(IBaseObject** cloned)
         lst->hashTable.insert(std::make_pair(key, val));
     }
 
-    return lst->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(cloned));
+    ErrCode errCode = lst->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(cloned));
+    if (errCode == OPENDAQ_ERR_NOINTERFACE)
+        return DAQ_MAKE_ERROR_INFO(errCode);
+    return errCode;
 }
 
 ErrCode INTERFACE_FUNC DictImpl::equals(IBaseObject* other, Bool* equal) const
@@ -436,13 +439,13 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
 
         ISerializable* serializableKey;
         ErrCode errCode = keyValue.first->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableKey));
-
-        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+        if (OPENDAQ_FAILED(errCode))
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+            if (errCode == OPENDAQ_ERR_NOINTERFACE)
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+            return DAQ_EXTEND_ERROR_INFO(errCode);
         }
 
-        OPENDAQ_RETURN_IF_FAILED(errCode);
         serializableKey->serialize(serializer);
 
         serializer->key("value");
@@ -455,13 +458,12 @@ ErrCode DictImpl::serialize(ISerializer* serializer)
         {
             ISerializable* serializableValue;
             errCode = keyValue.second->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableValue));
-
-            if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            if (OPENDAQ_FAILED(errCode))
             {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+                if (errCode == OPENDAQ_ERR_NOINTERFACE)
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+                return DAQ_EXTEND_ERROR_INFO(errCode);
             }
-
-            OPENDAQ_RETURN_IF_FAILED(errCode);
 
             errCode = serializableValue->serialize(serializer);
             OPENDAQ_RETURN_IF_FAILED(errCode);

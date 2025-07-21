@@ -189,10 +189,17 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::compareTo(IBaseObject* obj)
     ErrCode err = obj->borrowInterface(Intf::Id, reinterpret_cast<void**>(&typeObj));
     if (OPENDAQ_FAILED(err))
     {
+        if (err != OPENDAQ_ERR_NOINTERFACE)
+            daqClearErrorInfo();
+
         IConvertible* convObj;
         err = obj->borrowInterface(IConvertible::Id, reinterpret_cast<void**>(&convObj));
         if (OPENDAQ_FAILED(err))
-            return DAQ_MAKE_ERROR_INFO(err);
+        {
+            if (err == OPENDAQ_ERR_NOINTERFACE)
+                return DAQ_MAKE_ERROR_INFO(err);
+            return DAQ_EXTEND_ERROR_INFO(err);
+        }
 
         err = CoreTypeHelper<V>::FromConvertible(otherValue, convObj);
         OPENDAQ_RETURN_IF_FAILED(err);

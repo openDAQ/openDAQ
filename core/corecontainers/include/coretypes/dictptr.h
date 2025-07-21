@@ -319,10 +319,7 @@ ValuePtr DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::getOrDefault(const Ke
 
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        if (daqClearErrorInfo() != errCode)
-        {
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Failed to clear error info");
-        }
+        daqClearErrorInfo();
         return defaultValue;
     }
 
@@ -343,10 +340,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryGet(const KeyPtr& key,
 
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        if (daqClearErrorInfo() != errCode)
-        {
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Failed to clear error info");
-        }
+        daqClearErrorInfo();
         return false;
     }
 
@@ -387,10 +381,7 @@ bool DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::tryRemove(const KeyPtr& k
 
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
-        if (daqClearErrorInfo() != errCode)
-        {
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Failed to clear error info");
-        }
+        daqClearErrorInfo();
         return false;
     }
 

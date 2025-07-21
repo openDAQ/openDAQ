@@ -338,14 +338,14 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::serialize(ISerializer
     serializer->key("fields");
     ISerializable* serializableFields;
     ErrCode errCode = this->fields->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableFields));
-
-    if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
-
-    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+        return DAQ_EXTEND_ERROR_INFO(errCode);
+    }
 
     errCode = serializableFields->serialize(serializer);
-
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();
@@ -407,7 +407,12 @@ ErrCode GenericStructImpl<StructInterface, Interfaces...>::Deserialize(
 
     TypeManagerPtr typeManager;
     ErrCode errCode = context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
-    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to query TypeManager from context for Struct deserialization");
+    if (OPENDAQ_FAILED(errCode))
+    {
+        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED, "Context does not implement ITypeManager interface for Struct deserialization");
+        return DAQ_EXTEND_ERROR_INFO(errCode);
+    }
 
     StringPtr typeName;
     errCode = ser->readString("typeName"_daq, &typeName);

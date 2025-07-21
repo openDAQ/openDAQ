@@ -246,14 +246,12 @@ ErrCode PropertyObjectClassImpl::serializeProperties(ISerializer* serializer)
         {
             ISerializable* serializableProp;
             errCode = prop->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableProp));
-
-            if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            if (OPENDAQ_FAILED(errCode))
             {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE,
-                                          std::string("Property \"" + propName + "\" does not implement ISerializable."));
+                if (errCode == OPENDAQ_ERR_NOINTERFACE)
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+                return DAQ_EXTEND_ERROR_INFO(errCode);
             }
-
-            OPENDAQ_RETURN_IF_FAILED(errCode);
 
             errCode = serializableProp->serialize(serializer);
             OPENDAQ_RETURN_IF_FAILED(errCode);

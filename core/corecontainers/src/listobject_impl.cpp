@@ -98,7 +98,10 @@ ErrCode ListImpl::clone(IBaseObject** cloned)
         }
     }
 
-    return lst->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(cloned));
+    ErrCode errCode = lst->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(cloned));
+    if (errCode == OPENDAQ_ERR_NOINTERFACE)
+        return DAQ_MAKE_ERROR_INFO(errCode);
+    return errCode;
 }
 
 ErrCode INTERFACE_FUNC ListImpl::equals(IBaseObject* other, Bool* equal) const
@@ -462,13 +465,12 @@ ErrCode ListImpl::serialize(ISerializer* serializer)
 
         ISerializable* serializableElement;
         ErrCode errCode = element->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableElement));
-
-        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+        if (OPENDAQ_FAILED(errCode))
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+            if (errCode == OPENDAQ_ERR_NOINTERFACE)
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+            return DAQ_EXTEND_ERROR_INFO(errCode);
         }
-
-        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         errCode = serializableElement->serialize(serializer);
         OPENDAQ_RETURN_IF_FAILED(errCode);

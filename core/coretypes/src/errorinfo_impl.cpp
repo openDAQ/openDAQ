@@ -797,11 +797,10 @@ void PUBLIC_EXPORT daqExtendErrorInfo(daq::IErrorInfo* errorInfo)
 }
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo)
+void PUBLIC_EXPORT daqGetErrorInfo(daq::IErrorInfo** errorInfo)
 {
     if (errorInfo)
-        return daq::errorInfoHolder.getErrorInfo(errorInfo);
-    return OPENDAQ_IGNORED;
+        daq::errorInfoHolder.getErrorInfo(errorInfo);
 }
 
 extern "C"
@@ -820,7 +819,7 @@ daq::ErrCode PUBLIC_EXPORT daqGetErrorInfoMessage(daq::IString** errorMessage)
 }
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT daqClearErrorInfo()
+void PUBLIC_EXPORT daqClearErrorInfo()
 {
-    return daq::errorInfoHolder.clearErrorInfo();
+    daq::errorInfoHolder.clearErrorInfo();
 }

@@ -204,7 +204,12 @@ ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* contex
 
     TypeManagerPtr typeManager;
     ErrCode errCode = context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
-    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to query TypeManager from context for Enumeration deserialization");
+    if (OPENDAQ_FAILED(errCode))
+    {
+        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            return DAQ_MAKE_ERROR_INFO(errCode, "Context does not implement ITypeManager interface for Enumeration deserialization");
+        return DAQ_EXTEND_ERROR_INFO(errCode);
+    }
 
     StringPtr typeName;
     errCode = ser->readString("typeName"_daq, &typeName);

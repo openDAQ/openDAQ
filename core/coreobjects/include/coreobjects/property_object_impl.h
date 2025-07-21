@@ -2849,13 +2849,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
     {
         ISerializable* serializableValue;
         ErrCode errCode = value->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableValue));
-
-        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+        if (OPENDAQ_FAILED(errCode))
         {
-            return OPENDAQ_SUCCESS;
+            if (errCode == OPENDAQ_ERR_NOINTERFACE)
+                return OPENDAQ_SUCCESS;
+            return DAQ_EXTEND_ERROR_INFO(errCode);
         }
-
-        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         errCode = serializer->keyStr(name);
         OPENDAQ_RETURN_IF_FAILED(errCode);

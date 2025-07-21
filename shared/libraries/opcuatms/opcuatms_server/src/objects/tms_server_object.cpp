@@ -16,6 +16,9 @@ TmsServerObject::TmsServerObject(const OpcUaServerPtr& server, const ContextPtr&
     , daqContext(context)
     , numberInList(0)
     , tmsContext(tmsContext)
+    , loggerComponent(daqContext.getLogger().assigned()
+                          ? daqContext.getLogger().getOrAddComponent("OPCUAServerComponent")
+                          : throw ArgumentNullException("Logger must not be null"))
 {
 }
 

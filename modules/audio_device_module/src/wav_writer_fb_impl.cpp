@@ -1,6 +1,7 @@
 #include <audio_device_module/wav_writer_fb_impl.h>
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/reader_factory.h>
+#include <cstdint>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
@@ -130,12 +131,33 @@ bool WAVWriterFbImpl::validateDomainDescriptor() const
 bool WAVWriterFbImpl::initializeEncoder()
 {
     const auto domainRuleParams = inputTimeDataDescriptor.getRule().getParameters();
+    const auto sampleType = inputValueDataDescriptor.getSampleType();
     const auto inputDeltaTicks = domainRuleParams.get("delta");
     const auto tickResolution = inputTimeDataDescriptor.getTickResolution();
-
+    ma_format maSampleType = ma_format_f32;
+    switch (sampleType)
+    {
+        case SampleType::Int16:
+            maSampleType = ma_format_s16;
+            break;
+        case SampleType::Int32:
+            maSampleType = ma_format_s32;
+            break;
+        case SampleType::Float32:
+            maSampleType = ma_format_f32;
+            break;
+        case SampleType::Float64:
+            maSampleType = ma_format_f32;
+            LOG_W("Float64 not supported by miniaudio, truncating to Float32");
+            break;
+        default:
+            maSampleType = ma_format_unknown;
+            LOG_W("Unsupported miniaudio sample type");
+            return false;
+    }
     const uint32_t sampleRate = static_cast<uint32_t>(static_cast<double>(inputDeltaTicks) / static_cast<double>(tickResolution));
 
-    const ma_encoder_config config = ma_encoder_config_init(ma_encoding_format_wav, ma_format_s16, 1, sampleRate);
+    const ma_encoder_config config = ma_encoder_config_init(ma_encoding_format_wav, maSampleType, 1, sampleRate);
     const ma_result result = ma_encoder_init_file(fileName.c_str(), &config, &encoder);
 
     if (result != MA_SUCCESS)
@@ -165,7 +187,7 @@ void WAVWriterFbImpl::fileNameChanged()
 void WAVWriterFbImpl::createInputPort()
 {
     inputPort = createAndAddInputPort("Input", PacketReadyNotification::Scheduler);
-    reader = StreamReaderFromPort(inputPort, SampleType::Int16, SampleType::UInt64);
+    reader = StreamReaderFromPort(inputPort, SampleType::Undefined, SampleType::Undefined);
     reader.setOnDataAvailable([this] { processInputData();});
 }
 
@@ -178,15 +200,45 @@ void WAVWriterFbImpl::processEventPacket(const EventPacketPtr& packet)
         inputValueDataDescriptor = valueSignalDescriptor;
     if (domainDescriptorChanged)
         inputTimeDataDescriptor = domainSignalDescriptor;
+
+    if (valueDescriptorChanged || domainDescriptorChanged)
+    {
+        if (inputValueDataDescriptor.getSampleType() == SampleType::Float64)
+        {
+            reader = StreamReaderFromExisting(reader, SampleType::Float32, inputTimeDataDescriptor.getSampleType());
+        }
+        else
+        {
+            reader = StreamReaderFromExisting(reader, inputValueDataDescriptor.getSampleType(), inputTimeDataDescriptor.getSampleType());
+        }
+    }
 }
 
 void WAVWriterFbImpl::processInputData()
 {
     auto lock = this->getAcquisitionLock();
     SizeT availableData = reader.getAvailableCount();
+    size_t dataSize = 1;
+    std::vector<unsigned char> inputData;
+    switch (reader.getValueReadType())
+    {
+        case SampleType::Int16:
+            dataSize = sizeof(short);
+            break;
+        case SampleType::Int32:
+            dataSize = sizeof(int32_t);
+            break;
+        case SampleType::Float32:
+            dataSize = sizeof(float_t);
+            break;
+        case SampleType::Float64:
+            dataSize = sizeof(float_t);
+            break;
+        default:
+            return;
+    }
 
-    std::vector<short> inputData;
-    inputData.reserve(std::max(availableData, static_cast<SizeT>(1)));
+    inputData.reserve(std::max(availableData, static_cast<SizeT>(1)) * dataSize);
 
     const auto status = reader.read(inputData.data(), &availableData);
 

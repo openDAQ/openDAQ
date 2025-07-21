@@ -30,7 +30,8 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , loggerComponent(context.getLogger().getOrAddComponent("NativeDevice"))
     , transportClientHandler(transportProtocolClient)
     , connectionStatus(ClientConnectionStatus::Connected)
-    , acceptNotificationPackets(true)
+    , acceptNotificationPackets(false)
+    , subscribedToCoreEvent(false)
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
     , connectionString(connectionString)
@@ -41,13 +42,13 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
 
 NativeDeviceHelper::~NativeDeviceHelper()
 {
-    configProtocolReconnectionRetryTimer->cancel();
     closeConnectionOnRemoval();
 }
 
 DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent, uint16_t protocolVersion)
 {
     auto device = configProtocolClient->connect(parent, protocolVersion);
+    startAcceptNotificationPackets();
     deviceRef = device;
     return device;
 }
@@ -59,16 +60,27 @@ uint16_t NativeDeviceHelper::getProtocolVersion() const
 
 void NativeDeviceHelper::subscribeToCoreEvent(const ContextPtr& context)
 {
-    context.getOnCoreEvent() += event(this, &NativeDeviceHelper::coreEventCallback);
+    std::scoped_lock lock(flagsSync);
+    if (!subscribedToCoreEvent)
+    {
+        context.getOnCoreEvent() += event(this, &NativeDeviceHelper::coreEventCallback);
+        subscribedToCoreEvent = true;
+    }
 }
 
 void NativeDeviceHelper::unsubscribeFromCoreEvent(const ContextPtr& context)
 {
-    context.getOnCoreEvent() -= event(this, &NativeDeviceHelper::coreEventCallback);
+    std::scoped_lock lock(flagsSync);
+    if (subscribedToCoreEvent)
+    {
+        context.getOnCoreEvent() -= event(this, &NativeDeviceHelper::coreEventCallback);
+        subscribedToCoreEvent = false;
+    }
 }
 
 void NativeDeviceHelper::closeConnectionOnRemoval()
 {
+    stopAcceptNotificationPackets();
     configProtocolReconnectionRetryTimer->cancel();
 
     if (transportClientHandler)
@@ -86,9 +98,7 @@ void NativeDeviceHelper::closeConnectionOnRemoval()
         reconnectionProcessingIOContextPtr->stop();
     }
 
-    configProtocolClient.reset();
     transportClientHandler.reset();
-
     cancelPendingConfigRequests(ComponentRemovedException());
 }
 
@@ -266,7 +276,7 @@ void NativeDeviceHelper::connectionStatusChangedHandler(ClientConnectionStatus s
     else
     {
         configProtocolReconnectionRetryTimer->cancel();
-        acceptNotificationPackets = false;
+        stopAcceptNotificationPackets();
         cancelPendingConfigRequests(ConnectionLostException());
         configProtocolClient->disconnectExternalSignals();
 
@@ -278,28 +288,43 @@ void NativeDeviceHelper::tryConfigProtocolReconnect()
 {
     try
     {
-        acceptNotificationPackets = true;
+        startAcceptNotificationPackets();
         configProtocolClient->reconnect(restoreClientConfigOnReconnect);
     }
     catch(const std::exception& e)
     {
-        acceptNotificationPackets = false;
+        stopAcceptNotificationPackets();
         LOG_E("Configuration protocol reconnection failed: {}.", e.what());
 
         configProtocolReconnectionRetryTimer->expires_from_now(reconnectionPeriod);
         configProtocolReconnectionRetryTimer->async_wait(
-            [this, weak_self = weak_from_this()](const boost::system::error_code& ec)
+            [deviceHelperWeak = weak_from_this()](const boost::system::error_code& ec)
             {
                 if (ec)
                     return;
-                if (auto shared_self = weak_self.lock())
-                    this->tryConfigProtocolReconnect();
+                if (auto deviceHelperSelf = deviceHelperWeak.lock())
+                {
+                    auto device = deviceHelperSelf->deviceRef.assigned() ? deviceHelperSelf->deviceRef.getRef() : nullptr;
+                    // retry if device is still alive
+                    if (device.assigned())
+                        deviceHelperSelf->tryConfigProtocolReconnect();
+                }
             }
         );
         return;
     }
 
     updateConnectionStatus(ClientConnectionStatus::Connected);
+}
+
+void NativeDeviceHelper::startAcceptNotificationPackets()
+{
+    acceptNotificationPackets = true;
+}
+
+void NativeDeviceHelper::stopAcceptNotificationPackets()
+{
+    acceptNotificationPackets = false;
 }
 
 void NativeDeviceHelper::updateConnectionStatus(ClientConnectionStatus status)
@@ -327,7 +352,12 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
     SendDaqPacketCallback sendDaqPacketCallback =
         [this](const PacketPtr& packet, uint32_t signalNumericId)
     {
-        transportClientHandler->sendStreamingPacket(signalNumericId, packet);
+        // send packet using a temporary copy of the transport client
+        // to allow safe disposal of the member variable during device removal.
+        if (auto transportClientHandlerTemp = this->transportClientHandler; transportClientHandlerTemp)
+        {
+            transportClientHandlerTemp->sendStreamingPacket(signalNumericId, packet);
+        }
     };
     configProtocolClient =
         std::make_unique<ConfigProtocolClient<NativeDeviceImpl>>(
@@ -344,10 +374,16 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
         auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
         boost::asio::dispatch(
             *processingIOContextPtr,
-            [this, packetBufferPtr, weak_self = weak_from_this()]()
+            [packetBufferPtr, deviceHelperWeak = weak_from_this()]()
             {
-                if (auto shared_self = weak_self.lock())
-                    this->processConfigPacket(std::move(*packetBufferPtr));
+                if (auto deviceHelperSelf = deviceHelperWeak.lock())
+                {
+                    auto device = deviceHelperSelf->deviceRef.assigned() ? deviceHelperSelf->deviceRef.getRef() : nullptr;
+                    // process incoming config protocol packets if the device connection is not completed yet
+                    // or completed and device is still alive
+                    if (!deviceHelperSelf->deviceRef.assigned() || device.assigned())
+                        deviceHelperSelf->processConfigPacket(std::move(*packetBufferPtr));
+                }
             }
         );
     };
@@ -357,10 +393,14 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
     {
         boost::asio::dispatch(
             *reconnectionProcessingIOContextPtr,
-            [this, status, weak_self = weak_from_this()]()
+            [status, deviceHelperWeak = weak_from_this()]()
             {
-                if (auto shared_self = weak_self.lock())
-                    this->connectionStatusChangedHandler(status);
+                if (auto deviceHelperSelf = deviceHelperWeak.lock())
+                {
+                    auto device = deviceHelperSelf->deviceRef.assigned() ? deviceHelperSelf->deviceRef.getRef() : nullptr;
+                    if (device.assigned())
+                        deviceHelperSelf->connectionStatusChangedHandler(status);
+                }
             }
         );
     };
@@ -415,20 +455,20 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
 
 std::future<PacketBuffer> NativeDeviceHelper::registerConfigRequest(uint64_t requestId)
 {
-    std::scoped_lock lock(sync);
+    std::scoped_lock lock(requestReplySync);
     replyPackets.insert({requestId, std::promise<PacketBuffer>()});
     return replyPackets.at(requestId).get_future();
 }
 
 void NativeDeviceHelper::unregisterConfigRequest(uint64_t requestId)
 {
-    std::scoped_lock lock(sync);
+    std::scoped_lock lock(requestReplySync);
     replyPackets.erase(requestId);
 }
 
 void NativeDeviceHelper::cancelPendingConfigRequests(const DaqException& e)
 {
-    std::scoped_lock lock(sync);
+    std::scoped_lock lock(requestReplySync);
     for (auto it = replyPackets.begin(); it != replyPackets.end(); )
     {
         auto& replyPromise = it->second;
@@ -443,7 +483,7 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
     if (packet.getPacketType() == ServerNotification)
     {
         // allow server notifications only if connected / reconnection started
-        if (acceptNotificationPackets)
+        if (acceptNotificationPackets && deviceRef.assigned())
         {
             configProtocolClient->triggerNotificationPacket(packet);
         }
@@ -454,7 +494,7 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
     }
     else
     {
-        std::scoped_lock lock(sync);
+        std::scoped_lock lock(requestReplySync);
         if(auto it = replyPackets.find(packet.getId()); it != replyPackets.end())
         {
             it->second.set_value(std::move(packet));
@@ -506,10 +546,7 @@ NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCo
 
 NativeDeviceImpl::~NativeDeviceImpl()
 {
-    if (this->deviceHelper)
-    {
-        this->deviceHelper->unsubscribeFromCoreEvent(this->context);
-    }
+    disconnectAndCleanUp();
 }
 
 void NativeDeviceImpl::initStatuses()
@@ -556,18 +593,22 @@ ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
 
 void NativeDeviceImpl::removed()
 {
-    if (this->deviceHelper)
-    {
-        this->deviceHelper->unsubscribeFromCoreEvent(this->context);
-        this->deviceHelper->closeConnectionOnRemoval();
-    }
-
+    disconnectAndCleanUp();
     Super::removed();
 }
 
 void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)
 {
-    this->deviceHelper = std::move(deviceHelper);
+    this->deviceHelper = deviceHelper;
+}
+
+void NativeDeviceImpl::disconnectAndCleanUp()
+{
+    if (this->deviceHelper)
+    {
+        this->deviceHelper->unsubscribeFromCoreEvent(this->context);
+        this->deviceHelper->closeConnectionOnRemoval();
+    }
 }
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)

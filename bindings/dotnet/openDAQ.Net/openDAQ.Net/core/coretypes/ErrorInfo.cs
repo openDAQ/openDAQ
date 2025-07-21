@@ -266,7 +266,7 @@ public static partial class CoreTypesFactory
         return new ErrorInfo(objPtr, incrementReference: false);
     }
 
-    public static ErrorInfo MakeErrorInfo(ErrorCode errorCode, string message = null)
+    public static ErrorCode MakeErrorInfo(ErrorCode errorCode, string message = null)
     {
         //create ErrorInfo object
         ErrorInfo errorInfo = CreateErrorInfo();
@@ -278,7 +278,7 @@ public static partial class CoreTypesFactory
         //set error code
         DaqSetErrorInfo(errorInfo);
 
-        return errorInfo;
+        return errorCode;
     }
 }
 

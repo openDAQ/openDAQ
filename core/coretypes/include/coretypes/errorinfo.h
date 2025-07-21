@@ -114,12 +114,6 @@ DECLARE_OPENDAQ_INTERFACE(IErrorInfo, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getErrorCode(ErrCode* errorCode) = 0;
 
     /*!
-     * @brief Gets a formatted error message containing the error description, file name, and line number.
-     * @param message A pointer to store the formatted error message.
-     */
-    virtual ErrCode INTERFACE_FUNC getFormattedMessage(IString** message) = 0;
-
-    /*!
      * @brief Sets whether this error was caused by a previous error.
      * @param prevErrCode The error code of the previous error.
      */
@@ -130,6 +124,12 @@ DECLARE_OPENDAQ_INTERFACE(IErrorInfo, IBaseObject)
      * @param prevErrCode The error code of the previous error. If this error was not caused by a previous error, this will be OPENDAQ_SUCCESS.
      */
     virtual ErrCode INTERFACE_FUNC getPreviousErrorCode(ErrCode* prevErrCode) = 0;
+
+    /*!
+     * @brief Gets a formatted error message containing the error description, file name, and line number.
+     * @param message A pointer to store the formatted error message.
+     */
+    virtual ErrCode INTERFACE_FUNC getFormattedMessage(IString** message) = 0;
 };
 
 /*!@}*/

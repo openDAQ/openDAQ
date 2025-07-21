@@ -41,6 +41,14 @@ internal unsafe class RawErrorInfo : RawBaseObject
     public delegate* unmanaged[Stdcall]<IntPtr, IntPtr, ErrorCode> SetSource;
     //ErrorCode getSource(daq.IString** source); stdcall;
     public delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, ErrorCode> GetSource;
+    // ErrorCode setFileName(daq.ConstCharPtr fileName); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, IntPtr, ErrorCode> SetFileName;
+    // ErrorCode getFileName(daq.ConstCharPtr* fileName); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, ErrorCode> GetFileName;
+    // ErrorCode setFileLine(int line); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, int, ErrorCode> SetFileLine;
+    // ErrorCode getFileLine(int* line); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, out int, ErrorCode> GetFileLine;
     // ErrorCode setErrorCode(ErrCode errorCode); stdcall;
     public delegate* unmanaged[Stdcall]<IntPtr, ErrorCode, ErrorCode> SetErrorCode;
     // ErrorCode GetErrorCode(ErrCode* errorCode); stdcall;
@@ -186,12 +194,12 @@ public class ErrorInfo : BaseObject
         get
         {
             //native output argument
-            ErrorCode errorCode;
+            ErrorCode errorInfoCode;
 
             unsafe //use native function pointer
             {
                 //call native function
-                errorCode = (ErrorCode)_rawErrorInfo.GetErrorCode(base.NativePointer, out errorCode);
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.GetErrorCode(base.NativePointer, out errorInfoCode);
 
                 if (Result.Failed(errorCode))
                 {
@@ -199,7 +207,7 @@ public class ErrorInfo : BaseObject
                 }
             }
 
-            return errorCode;
+            return errorInfoCode;
         }
         set
         {

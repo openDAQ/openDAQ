@@ -41,6 +41,10 @@ internal unsafe class RawErrorInfo : RawBaseObject
     public delegate* unmanaged[Stdcall]<IntPtr, IntPtr, ErrorCode> SetSource;
     //ErrorCode getSource(daq.IString** source); stdcall;
     public delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, ErrorCode> GetSource;
+    // ErrorCode setErrorCode(ErrCode errorCode); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, ErrorCode, ErrorCode> SetErrorCode;
+    // ErrorCode GetErrorCode(ErrCode* errorCode); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, out ErrorCode, ErrorCode> GetErrorCode;
 }
 
 /// <summary>Contains detailed information about error.</summary>
@@ -176,6 +180,42 @@ public class ErrorInfo : BaseObject
         }
     }
 
+    /// <summary>Sets the error code.</summary>
+    public ErrorCode ErrorCodeValue
+    {
+        get
+        {
+            //native output argument
+            ErrorCode errorCode;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                errorCode = (ErrorCode)_rawErrorInfo.GetErrorCode(base.NativePointer, out errorCode);
+
+                if (Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return errorCode;
+        }
+        set
+        {
+            unsafe //use native method pointer
+            {
+                //call native method
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetErrorCode(base.NativePointer, value);
+
+                if (Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+        }
+    }
+
     #endregion properties
 }
 
@@ -224,6 +264,21 @@ public static partial class CoreTypesFactory
 
         //create and return object
         return new ErrorInfo(objPtr, incrementReference: false);
+    }
+
+    public static ErrorInfo MakeErrorInfo(ErrorCode errorCode, string message = null)
+    {
+        //create ErrorInfo object
+        ErrorInfo errorInfo = CreateErrorInfo();
+
+        //set message and error code
+        errorInfo.Message = message;
+        errorInfo.ErrorCodeValue = errorCode;
+
+        //set error code
+        DaqSetErrorInfo(errorInfo);
+
+        return errorInfo;
     }
 }
 

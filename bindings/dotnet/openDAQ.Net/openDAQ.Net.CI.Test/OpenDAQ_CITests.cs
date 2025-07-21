@@ -112,7 +112,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got 'null'");
@@ -131,7 +131,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL);
         }
 
         //expecting one boolean parameter
@@ -141,7 +141,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not a 'BoolObject'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got {boolObj.Value}");
@@ -160,7 +160,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL);
         }
 
         //expecting one string parameter
@@ -170,7 +170,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not a 'StringObject'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got \"{stringObj.CharPtr}\"");
@@ -189,7 +189,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL);
         }
 
         //expecting one string parameter
@@ -199,7 +199,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not a 'ListObject<StringObject>'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got {stringListObj.Count} strings:");
@@ -223,7 +223,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL);
         }
 
         //expecting one boolean parameter
@@ -233,7 +233,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not a 'BoolObject'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got {boolObj.Value}");
@@ -258,7 +258,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL);
         }
 
         //expecting one string parameter
@@ -268,7 +268,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not a 'ListObject<IntegerObject>'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got {integerListObj.Count} integers:");

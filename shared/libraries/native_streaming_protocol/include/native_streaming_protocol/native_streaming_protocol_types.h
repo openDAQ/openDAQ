@@ -63,6 +63,12 @@ using ProcessConfigProtocolPacketCb = std::function<void(config_protocol::Packet
 
 using OnTrasportLayerPropertiesCallback = std::function<void(const PropertyObjectPtr& propertyObject)>;
 
+using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStringId,
+                                                     const StringPtr& serializedSignal)>;
+using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
+using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
+using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
+
 enum class PayloadType
 {
     PAYLOAD_TYPE_STREAMING_PACKET = 1,

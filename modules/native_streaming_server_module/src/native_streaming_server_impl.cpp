@@ -17,6 +17,8 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/thread_name.h>
 
+#include <native_streaming_server_module/native_server_streaming_impl.h>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
 using namespace daq;
@@ -34,7 +36,8 @@ NativeStreamingServerBaseImpl::NativeStreamingServerBaseImpl(const DevicePtr& ro
     , readThreadActive(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
     , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
-    , processingStrand(processingIOContext)
+    , processingIOContextPtr(std::make_shared<boost::asio::io_context>())
+    , processingStrand(*processingIOContextPtr)
     , rootDeviceGlobalId(rootDevice.getGlobalId().toStdString())
     , logger(context.getLogger())
     , loggerComponent(logger.getOrAddComponent(id))
@@ -192,7 +195,7 @@ void NativeStreamingServerBaseImpl::prepareServerHandler()
             {
                 auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
                 boost::asio::dispatch(
-                    processingIOContext,
+                    *processingIOContextPtr,
                     processingStrand.wrap(
                         [configServer, sendConfigPacketCb, packetBufferPtr]()
                         {
@@ -215,7 +218,7 @@ void NativeStreamingServerBaseImpl::prepareServerHandler()
                 [this, packetStreamingClient, configServer](const packet_streaming::PacketBufferPtr& packetBufferPtr)
             {
                 boost::asio::dispatch(
-                    processingIOContext,
+                    *processingIOContextPtr,
                     processingStrand.wrap(
                         [configServer, packetStreamingClient, packetBufferPtr]()
                         {
@@ -458,8 +461,8 @@ void NativeStreamingServerBaseImpl::startProcessingOperations()
             daqNameThread("NatSrvProc");
 
             using namespace boost::asio;
-            auto workGuard = make_work_guard(processingIOContext);
-            processingIOContext.run();
+            auto workGuard = make_work_guard(*processingIOContextPtr);
+            processingIOContextPtr->run();
             LOG_I("Processing thread finished");
         }
         );
@@ -467,7 +470,7 @@ void NativeStreamingServerBaseImpl::startProcessingOperations()
 
 void NativeStreamingServerBaseImpl::stopProcessingOperations()
 {
-    processingIOContext.stop();
+    processingIOContextPtr->stop();
     if (processingThread.get_id() != std::this_thread::get_id())
     {
         if (processingThread.joinable())
@@ -616,26 +619,30 @@ void NativeStreamingServerBaseImpl::populateDefaultConfigFromProvider(const Cont
 NativeStreamingToDeviceServerImpl::NativeStreamingToDeviceServerImpl(const DevicePtr& rootDevice, const PropertyObjectPtr& config, const ContextPtr& context)
     : daq::StreamingToDeviceServer("OpenDAQNativeStreaming", config, rootDevice, context, nullptr)
     , NativeStreamingServerBaseImpl(rootDevice, config, context)
-{}
+{
+    // TODO - refactor and move it to initializer list
+    this->streaming = createWithImplementation<IStreaming, NativeServerStreamingImpl>(this->serverHandler, this->processingIOContextPtr, context);
+    this->streaming.asPtr<INativeServerStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
+}
 
-NativeStreamingServerSimpleImpl::NativeStreamingServerSimpleImpl(const DevicePtr& rootDevice, const PropertyObjectPtr& config, const ContextPtr& context)
+NativeStreamingServerBasicImpl::NativeStreamingServerBasicImpl(const DevicePtr& rootDevice, const PropertyObjectPtr& config, const ContextPtr& context)
     : daq::StreamingServer("OpenDAQNativeStreaming", config, rootDevice, context)
     , NativeStreamingServerBaseImpl(rootDevice, config, context)
 {}
 
-std::shared_ptr<ConfigProtocolServer> NativeStreamingServerSimpleImpl::createConfigProtocolServer(config_protocol::NotificationReadyCallback sendConfigPacketCb, const UserPtr& user, ClientType connectionType)
+std::shared_ptr<ConfigProtocolServer> NativeStreamingServerBasicImpl::createConfigProtocolServer(config_protocol::NotificationReadyCallback sendConfigPacketCb, const UserPtr& user, ClientType connectionType)
 {
     if (const DevicePtr rootDevice = NativeStreamingServerBaseImpl::rootDeviceRef.assigned() ? NativeStreamingServerBaseImpl::rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         return std::make_shared<config_protocol::ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user, connectionType, this->signals);
     return nullptr;
 }
 
-PropertyObjectPtr NativeStreamingServerSimpleImpl::getDiscoveryConfig()
+PropertyObjectPtr NativeStreamingServerBasicImpl::getDiscoveryConfig()
 {
     return onGetDiscoveryConfig();
 }
 
-void NativeStreamingServerSimpleImpl::onStopServer()
+void NativeStreamingServerBasicImpl::onStopServer()
 {
     doStopServer();
 }
@@ -658,7 +665,7 @@ PropertyObjectPtr NativeStreamingToDeviceServerImpl::getDiscoveryConfig()
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY, NativeStreamingServerSimple, daq::IStreamingServer,
+    INTERNAL_FACTORY, NativeStreamingServerBasic, daq::IStreamingServer,
     daq::DevicePtr, rootDevice,
     PropertyObjectPtr, config,
     const ContextPtr&, context

@@ -66,7 +66,7 @@ public:
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) const override;
     ErrCode INTERFACE_FUNC getConnectionStatus(IEnumeration** connectionStatus) override;
 
-private:
+protected:
     StreamingPtr streaming;
 };
 

@@ -44,7 +44,7 @@ ServerPtr NativeStreamingServerModule::onCreateServer(const StringPtr& serverTyp
         ServerPtr server(NativeStreamingToDeviceServer_Create(rootDevice, config, context));
     }
 
-    ServerPtr server(NativeStreamingServerSimple_Create(rootDevice, config, context));
+    ServerPtr server(NativeStreamingServerBasic_Create(rootDevice, config, context));
     return server;
 }
 

@@ -7,15 +7,31 @@
 #include <opendaq/subscription_event_args_factory.h>
 
 #include <boost/asio/dispatch.hpp>
+#include <native_streaming_protocol/native_streaming_protocol_types.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
-NativeServerStreamingImpl::NativeServerStreamingImpl(TransportLevelHandlerPtr transportServerHandler, ContextPtr context)
-    : daq::Streaming("", context, false)
-{}
+using namespace opendaq_native_streaming_protocol;
+
+NativeServerStreamingImpl::NativeServerStreamingImpl(TransportServerHandlerPtr transportServerHandler,
+                                                     std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+                                                     ContextPtr context)
+    : Super("OpenDAQNativeStreaming", context, false)
+    , transportServerHandler(transportServerHandler)
+    , processingIOContextPtr(processingIOContextPtr)
+{
+    initServerHandlerCallbacks();
+}
 
 NativeServerStreamingImpl::~NativeServerStreamingImpl()
-{}
+{
+    transportServerHandler->resetStreamingToDeviceHandlers();
+}
+
+void NativeServerStreamingImpl::upgradeToSafeProcessingCallbacks()
+{
+    upgradeServerHandlerCallbacks();
+}
 
 void NativeServerStreamingImpl::onSetActive(bool active)
 {
@@ -34,12 +50,129 @@ void NativeServerStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& si
 
 void NativeServerStreamingImpl::onSubscribeSignal(const StringPtr& signalStreamingId)
 {
-
+    transportServerHandler->subscribeSignal(signalStreamingId);
 }
 
 void NativeServerStreamingImpl::onUnsubscribeSignal(const StringPtr& signalStreamingId)
 {
+    transportServerHandler->subscribeSignal(signalStreamingId);
+}
 
+void NativeServerStreamingImpl::initServerHandlerCallbacks()
+{
+    using namespace boost::asio;
+
+    OnSignalAvailableCallback signalAvailableCb =
+        [this](const StringPtr& signalStringId,
+               const StringPtr& serializedSignal)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, signalStringId, serializedSignal]()
+            {
+                this->addToAvailableSignals(signalStringId);
+            }
+            );
+    };
+    OnSignalUnavailableCallback signalUnavailableCb =
+        [this](const StringPtr& signalStringId)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, signalStringId]()
+            {
+                this->removeFromAvailableSignals(signalStringId);
+            }
+            );
+    };
+    OnPacketCallback onPacketCallback =
+        [this](const StringPtr& signalStringId, const PacketPtr& packet)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, signalStringId, packet]()
+            {
+                this->onPacket(signalStringId, packet);
+            }
+            );
+    };
+    OnSignalSubscriptionAckCallback onSignalSubscriptionAckCallback =
+        [this](const StringPtr& signalStringId, bool subscribed)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, signalStringId, subscribed]()
+            {
+                this->triggerSubscribeAck(signalStringId, subscribed);
+            }
+            );
+    };
+
+    transportServerHandler->setStreamingToDeviceHandlers(signalAvailableCb,
+                                                         signalUnavailableCb,
+                                                         onPacketCallback,
+                                                         onSignalSubscriptionAckCallback);
+}
+
+void NativeServerStreamingImpl::upgradeServerHandlerCallbacks()
+{
+    using namespace boost::asio;
+    WeakRefPtr<IStreaming> thisRef = this->template borrowPtr<StreamingPtr>();
+
+    OnSignalAvailableCallback signalAvailableCb =
+        [this, thisRef](const StringPtr& signalStringId,
+                        const StringPtr& serializedSignal)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, signalStringId, serializedSignal]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    this->addToAvailableSignals(signalStringId);
+            }
+            );
+    };
+    OnSignalUnavailableCallback signalUnavailableCb =
+        [this, thisRef](const StringPtr& signalStringId)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, signalStringId]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    this->removeFromAvailableSignals(signalStringId);
+            }
+            );
+    };
+    OnPacketCallback onPacketCallback =
+        [this, thisRef](const StringPtr& signalStringId, const PacketPtr& packet)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, signalStringId, packet]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    this->onPacket(signalStringId, packet);
+            }
+            );
+    };
+    OnSignalSubscriptionAckCallback onSignalSubscriptionAckCallback =
+        [this, thisRef](const StringPtr& signalStringId, bool subscribed)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, signalStringId, subscribed]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    this->triggerSubscribeAck(signalStringId, subscribed);
+            }
+            );
+    };
+
+    transportServerHandler->setStreamingToDeviceHandlers(signalAvailableCb,
+                                                         signalUnavailableCb,
+                                                         onPacketCallback,
+                                                         onSignalSubscriptionAckCallback);
 }
 
 

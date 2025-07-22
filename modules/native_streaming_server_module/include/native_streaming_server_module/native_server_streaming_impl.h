@@ -23,14 +23,26 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
-using TransportLevelHandlerPtr = std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler>;
+DECLARE_OPENDAQ_INTERFACE(INativeServerStreamingPrivate, IBaseObject)
+{
+    virtual void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() = 0;
+};
 
-class NativeServerStreamingImpl : public daq::Streaming
+using TransportServerHandlerPtr = std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler>;
+
+class NativeServerStreamingImpl : public daq::StreamingImpl<daq::IStreaming, INativeServerStreamingPrivate>
 {
 public:
-    explicit NativeServerStreamingImpl(TransportLevelHandlerPtr transportServerHandler, ContextPtr context);
+    using Super = daq::StreamingImpl<daq::IStreaming, INativeServerStreamingPrivate>;
+
+    explicit NativeServerStreamingImpl(TransportServerHandlerPtr transportServerHandler,
+                                       std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+                                       ContextPtr context);
 
     ~NativeServerStreamingImpl();
+
+    // INativeServerStreamingPrivate
+    void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() override;
 
 protected:
     void onSetActive(bool active) override;
@@ -39,7 +51,11 @@ protected:
     void onSubscribeSignal(const StringPtr& signalStreamingId) override;
     void onUnsubscribeSignal(const StringPtr& signalStreamingId) override;
 
-    TransportLevelHandlerPtr transportServerHandler;
+    void initServerHandlerCallbacks();
+    void upgradeServerHandlerCallbacks();
+
+    TransportServerHandlerPtr transportServerHandler;
+    std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE

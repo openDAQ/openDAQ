@@ -353,6 +353,8 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
                                                             signalReceivedHandler,
                                                             protocolInitDoneHandler,
                                                             subscriptionAckCallback,
+                                                            nullptr,
+                                                            nullptr,
                                                             errorHandler);
 
     ProcessConfigProtocolPacketCb configPacketReceivedHandler =

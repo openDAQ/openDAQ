@@ -178,7 +178,7 @@ protected:
                 *processingIOContextPtr,
                 [this, signalStringId, packet]()
                 {
-                    this->onPacket(signalStringId, packet);
+                    Impl::onPacket(signalStringId, packet);
                 }
                 );
         };
@@ -189,7 +189,7 @@ protected:
                 *processingIOContextPtr,
                 [this, signalStringId, subscribed]()
                 {
-                    this->triggerSubscribeAck(signalStringId, subscribed);
+                    Impl::triggerSubscribeAck(signalStringId, subscribed);
                 }
                 );
         };
@@ -261,7 +261,7 @@ protected:
                 [this, thisRef, signalStringId, packet]()
                 {
                     if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
-                        this->onPacket(signalStringId, packet);
+                        Impl::onPacket(signalStringId, packet);
                 }
                 );
         };
@@ -273,7 +273,7 @@ protected:
                 [this, thisRef, signalStringId, subscribed]()
                 {
                     if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
-                        this->triggerSubscribeAck(signalStringId, subscribed);
+                        Impl::triggerSubscribeAck(signalStringId, subscribed);
                 }
                 );
         };

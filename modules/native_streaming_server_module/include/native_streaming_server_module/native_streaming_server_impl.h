@@ -89,7 +89,7 @@ protected:
     std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
     std::thread transportThread;
 
-    boost::asio::io_context processingIOContext;
+    std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::thread processingThread;
     boost::asio::io_context::strand processingStrand;
 
@@ -121,10 +121,10 @@ protected:
                                                                                       ClientType connectionType) override;
 };
 
-class NativeStreamingServerSimpleImpl final : public daq::StreamingServer, public NativeStreamingServerBaseImpl
+class NativeStreamingServerBasicImpl final : public daq::StreamingServer, public NativeStreamingServerBaseImpl
 {
 public:
-    NativeStreamingServerSimpleImpl(const DevicePtr& rootDevice,
+    NativeStreamingServerBasicImpl(const DevicePtr& rootDevice,
                                     const PropertyObjectPtr& config,
                                     const ContextPtr& context);
 
@@ -138,7 +138,7 @@ protected:
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY, NativeStreamingServerSimple, daq::IStreamingServer,
+    INTERNAL_FACTORY, NativeStreamingServerBasic, daq::IStreamingServer,
     DevicePtr, rootDevice,
     PropertyObjectPtr, config,
     const ContextPtr&, context

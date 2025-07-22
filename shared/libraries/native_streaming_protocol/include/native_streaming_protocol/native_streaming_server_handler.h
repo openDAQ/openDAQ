@@ -66,6 +66,16 @@ public:
 
     static PropertyObjectPtr createDefaultConfig();
 
+    // streaming-to-device subscriptions
+    void subscribeSignal(const StringPtr& signalStringId);
+    void unsubscribeSignal(const StringPtr& signalStringId);
+
+    void resetStreamingToDeviceHandlers();
+    void setStreamingToDeviceHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
+                                      const OnSignalUnavailableCallback& signalUnavailableHandler,
+                                      const OnPacketCallback& packetHandler,
+                                      const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback);
+
 protected:
     void initSessionHandler(SessionPtr session);
     void handleTransportLayerProps(const PropertyObjectPtr& propertyObject, std::shared_ptr<ServerSessionHandler> sessionHandler);
@@ -125,6 +135,12 @@ protected:
     SizeT streamingPacketSendTimeout;
     SizeT packetStreamingReleaseThreshold;
     SizeT cacheablePacketPayloadSizeMax;
+
+    // streaming-to-device callbacks
+    OnSignalAvailableCallback signalAvailableHandler;
+    OnSignalUnavailableCallback signalUnavailableHandler;
+    OnPacketCallback packetHandler;
+    OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

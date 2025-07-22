@@ -348,6 +348,35 @@ PropertyObjectPtr NativeStreamingServerHandler::createDefaultConfig()
     return defaultConfig;
 }
 
+void NativeStreamingServerHandler::subscribeSignal(const StringPtr& signalStringId)
+{
+
+}
+
+void NativeStreamingServerHandler::unsubscribeSignal(const StringPtr& signalStringId)
+{
+
+}
+
+void NativeStreamingServerHandler::resetStreamingToDeviceHandlers()
+{
+    this->signalAvailableHandler = [](const StringPtr&, const StringPtr&) {};
+    this->signalUnavailableHandler = [](const StringPtr&) {};
+    this->packetHandler = [](const StringPtr&, const PacketPtr&) {};
+    this->signalSubscriptionAckCallback = [](const StringPtr&, bool) {};
+}
+
+void NativeStreamingServerHandler::setStreamingToDeviceHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
+                                                                const OnSignalUnavailableCallback& signalUnavailableHandler,
+                                                                const OnPacketCallback& packetHandler,
+                                                                const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback)
+{
+    this->signalSubscriptionAckCallback = signalSubscriptionAckCallback;
+    this->packetHandler = packetHandler;
+    this->signalUnavailableHandler = signalUnavailableHandler;
+    this->signalAvailableHandler = signalAvailableHandler;
+}
+
 void NativeStreamingServerHandler::releaseSessionHandler(SessionPtr session)
 {
     releaseSessionHandlerInternal(session, true);
@@ -536,9 +565,9 @@ void NativeStreamingServerHandler::setUpConfigProtocolCallbacks(std::shared_ptr<
 
     ConfigServerCallbacks configServerCallbacks = setUpConfigProtocolServerCb(sendConfigPacketCb, user, connectionType);
     ProcessConfigProtocolPacketCb receiveConfigPacketCb = configServerCallbacks.first;
-    OnPacketBufferReceivedCallback clientToDeviceStreamingCb = configServerCallbacks.second;
+    OnPacketBufferReceivedCallback basicClientToDeviceStreamingCb = configServerCallbacks.second;
     sessionHandler->setConfigPacketReceivedHandler(receiveConfigPacketCb);
-    sessionHandler->setPacketBufferReceivedHandler(clientToDeviceStreamingCb);
+    sessionHandler->setPacketBufferReceivedHandler(basicClientToDeviceStreamingCb);
 
     // handle first received config packet with instantiated callback
     if (receiveConfigPacketCb)
@@ -804,6 +833,8 @@ void NativeStreamingServerHandler::initSessionHandler(SessionPtr session)
                                                                  ioContextPtr,
                                                                  session,
                                                                  clientIdAssignedByServer,
+                                                                 nullptr,
+                                                                 nullptr,
                                                                  findSignalHandler,
                                                                  signalSubscriptionHandler,
                                                                  errorHandler,

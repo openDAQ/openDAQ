@@ -18,6 +18,7 @@
 
 #include <native_streaming_protocol/native_streaming_protocol.h>
 #include <native_streaming_protocol/client_session_handler.h>
+#include <native_streaming_protocol/native_streaming_protocol_types.h>
 
 #include <opendaq/context_ptr.h>
 #include <opendaq/logger_ptr.h>
@@ -33,12 +34,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
-
-using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStringId,
-                                                     const StringPtr& serializedSignal)>;
-using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
-using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
-using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
 using OnConnectionStatusChangedCallback = std::function<void(const EnumerationPtr& status, const StringPtr& statusMessage)>;
 
 class NativeStreamingClientHandler;

@@ -126,7 +126,7 @@ inline ErrCode ConfigClientPropertyImpl::getSuggestedValuesInternal(IList** valu
         auto ownerInternal = ownerPtr.asPtr<IPropertyObjectInternal>();
 
         auto pathPtr = ownerInternal.getPath();
-        std::string path = pathPtr.assigned() ? path : "";
+        std::string path = pathPtr.assigned() ? pathPtr : "";
         *values = this->clientComm->getSuggestedValues(this->remoteGlobalId, path, this->name);
         return OPENDAQ_SUCCESS;
     });
@@ -147,7 +147,7 @@ inline ErrCode ConfigClientPropertyImpl::getSelectionValuesInternal(IBaseObject*
         auto ownerInternal = ownerPtr.asPtr<IPropertyObjectInternal>();
 
         auto pathPtr = ownerInternal.getPath();
-        std::string path = pathPtr.assigned() ? path : "";
+        std::string path = pathPtr.assigned() ? pathPtr : "";
         *values = this->clientComm->getSelectionValues(this->remoteGlobalId, path, this->name);
         return OPENDAQ_SUCCESS;
     });

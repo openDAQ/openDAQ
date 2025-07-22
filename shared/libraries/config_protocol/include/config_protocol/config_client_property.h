@@ -179,6 +179,7 @@ inline ErrCode ConfigClientPropertyImpl::Deserialize(ISerializedObject* serializ
         PropertyPtr prop = createWithImplementation<IProperty, ConfigClientPropertyImpl>(builder, ctx->getClientComm(), ctx->getRemoteGlobalId(), params);
 
         *obj = prop.detach();
+        return OPENDAQ_SUCCESS;
     });
 }
 }

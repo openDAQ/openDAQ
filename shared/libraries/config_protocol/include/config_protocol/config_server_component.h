@@ -35,6 +35,8 @@ public:
     static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr clearPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr clearProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr getSuggestedValues(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr getSelectionValues(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr callProperty(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr beginUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr endUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
@@ -154,6 +156,33 @@ inline BaseObjectPtr ConfigServerComponent::clearProtectedPropertyValue(const Rp
     return nullptr;
 }
 
+inline BaseObjectPtr ConfigServerComponent::getSuggestedValues(const RpcContext& context,
+                                                               const ComponentPtr& component,
+                                                               const ParamsDictPtr& params)
+{
+    auto propertyPath = static_cast<std::string>(params["PropertyPath"]);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyPath);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read});
+
+    auto prop = component.getProperty(propertyPath);
+
+    return prop.getSuggestedValues();
+}
+
+inline BaseObjectPtr ConfigServerComponent::getSelectionValues(const RpcContext& context,
+                                                               const ComponentPtr& component,
+                                                               const ParamsDictPtr& params)
+{
+    const auto propertyPath = static_cast<std::string>(params["PropertyPath"]);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyPath);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read});
+
+    auto prop = component.getProperty(propertyPath);
+
+    return prop.getSelectionValues();
+}
 inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& context,
                                                          const ComponentPtr& component,
                                                          const ParamsDictPtr& params)

@@ -396,7 +396,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
         catch (...)
         {
-
         }
     }
 

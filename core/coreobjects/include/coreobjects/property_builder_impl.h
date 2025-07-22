@@ -113,10 +113,10 @@ public:
     ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event) override;
     ErrCode INTERFACE_FUNC setOnPropertyValueRead(IEvent* event) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) override;
-    ErrCode INTERFACE_FUNC setOnSuggestedValuesRead(IEvent* event)override;
-    ErrCode INTERFACE_FUNC getOnSuggestedValuesRead(IEvent** event)override;
-    ErrCode INTERFACE_FUNC setOnSelectionValuesRead(IEvent* event)override;
-    ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event)override;
+    ErrCode INTERFACE_FUNC setOnSuggestedValuesRead(IEvent* event) override;
+    ErrCode INTERFACE_FUNC getOnSuggestedValuesRead(IEvent** event) override;
+    ErrCode INTERFACE_FUNC setOnSelectionValuesRead(IEvent* event) override;
+    ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) override;
 
 private:
     CoreType valueType;

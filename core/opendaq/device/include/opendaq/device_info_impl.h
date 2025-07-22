@@ -223,13 +223,6 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("activeClientConnections", PropertyObject()).setReadOnly(true).build());
-
-    this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
-    {
-        const ComponentPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
-            value.setValue(ownerPtr.getName());
-    };
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1147,6 +1140,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
         return errCode;
 
     ComponentPtr parent = newOwner;
+
+    errCode = this->setProtectedPropertyValue(String("name"), parent.getName());
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     if (!coreEvent.assigned())
     {
         parent.getContext()->getOnCoreEvent(&coreEvent);

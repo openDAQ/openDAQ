@@ -579,7 +579,7 @@ public:
 	    return getSuggestedValuesInternal(values, false);
     }
 
-    ErrCode getSuggestedValuesInternal(IList** values, bool lock)
+    virtual ErrCode getSuggestedValuesInternal(IList** values, bool lock)
     {
 	    OPENDAQ_PARAM_NOT_NULL(values);
 
@@ -663,7 +663,7 @@ public:
 	    return getSelectionValuesInternal(values, false);
     }
 
-    ErrCode getSelectionValuesInternal(IBaseObject** values, bool lock)
+    virtual ErrCode getSelectionValuesInternal(IBaseObject** values, bool lock)
     {
 	    OPENDAQ_PARAM_NOT_NULL(values);
 
@@ -943,6 +943,31 @@ public:
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER);
     }
 
+    
+    ErrCode INTERFACE_FUNC getHasOnReadListeners(Bool* hasListeners) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(hasListeners);
+
+        *hasListeners = onValueRead.hasListeners();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getHasOnGetSuggestedValuesListeners(Bool* hasListeners) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(hasListeners);
+
+        *hasListeners = onSuggestedValuesRead.hasListeners();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getHasOnGetSelectionValuesListeners(Bool* hasListeners) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(hasListeners);
+
+        *hasListeners = onSelectionValuesRead.hasListeners();
+        return OPENDAQ_SUCCESS;
+    }
+
     ErrCode INTERFACE_FUNC validate()
     {
         if (!name.assigned() || name == "opendaq_unassigned")
@@ -1127,11 +1152,46 @@ public:
             SERIALIZE_PROP_PTR(readOnly)
             SERIALIZE_PROP_PTR(visible)
             SERIALIZE_PROP_PTR(refProp)
-            SERIALIZE_PROP_PTR(selectionValues)
+
+            Bool hasSelectionValuesListeners = false;
+            OPENDAQ_RETURN_IF_FAILED(getHasOnGetSelectionValuesListeners(&hasSelectionValuesListeners));
+
+            if (hasSelectionValuesListeners)
+            {
+                serializer->key("HasSelectionValuesListeners");
+                serializer->writeBool(true);
+            }
+            else
+            {
+                SERIALIZE_PROP_PTR(selectionValues)
+            }
+
             SERIALIZE_PROP_PTR(coercer)
             SERIALIZE_PROP_PTR(validator)
-            SERIALIZE_PROP_PTR(suggestedValues)
+                
+            Bool hasSuggestedValuesListeners = false;
+            OPENDAQ_RETURN_IF_FAILED(getHasOnGetSuggestedValuesListeners(&hasSuggestedValuesListeners));
+
+            if (hasSuggestedValuesListeners)
+            {
+                serializer->key("HasSuggestedValuesListeners");
+                serializer->writeBool(true);
+            }
+            else
+            {
+                SERIALIZE_PROP_PTR(suggestedValues)
+            }
+
             SERIALIZE_PROP_PTR(callableInfo)
+                
+            Bool hasOnReadListeners = false;
+            OPENDAQ_RETURN_IF_FAILED(getHasOnReadListeners(&hasOnReadListeners));
+
+            if (hasOnReadListeners)
+            {
+                serializer->key("HasOnReadListeners");
+                serializer->writeBool(true);
+            }
         }
         serializer->endObject();
 
@@ -1149,15 +1209,10 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    static ErrCode Deserialize(ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+    static ErrCode ReadBuilderDeserializeValues(const PropertyBuilderPtr& builder, ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback)
     {
-        StringPtr name;
-        ErrCode errCode = serializedObj->readString(String("name"), &name);
-        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
-
-        const auto propObj = PropertyBuilder(name);
-
-        errCode = deserializeMember<decltype(valueType)>(serializedObj, "valueType", propObj, context, factoryCallback, &IPropertyBuilder::setValueType);
+        auto propObj = builder;
+        ErrCode errCode = deserializeMember<decltype(valueType)>(serializedObj, "valueType", builder, context, factoryCallback, &IPropertyBuilder::setValueType);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         DESERIALIZE_MEMBER(context, factoryCallback, description, setDescription)
@@ -1166,7 +1221,7 @@ public:
         errCode = serializedObj->readObject(String("unit"), context, factoryCallback, &unit);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            propObj->setUnit(unit.asPtr<IUnit>());
+            builder->setUnit(unit.asPtr<IUnit>());
 
         DESERIALIZE_MEMBER(context, factoryCallback, defaultValue, setDefaultValue)
 
@@ -1225,6 +1280,18 @@ public:
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
             propObj->setCallableInfo(callableInfo.asPtr<ICallableInfo>());
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    static ErrCode Deserialize(ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+    {
+        StringPtr name;
+        ErrCode errCode = serializedObj->readString(String("name"), &name);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+
+        const auto propObj = PropertyBuilder(name);
+        OPENDAQ_RETURN_IF_FAILED(ReadBuilderDeserializeValues(propObj, serializedObj, context, factoryCallback));
 
         *obj = propObj.build().detach();
         return OPENDAQ_SUCCESS;
@@ -1466,6 +1533,23 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    
+    ErrCode validateDuringConstruction()
+    {
+        this->internalAddRefNoCheck();
+        const ErrCode err = validate();
+        this->internalReleaseRef();
+        return err;
+    }
+
+    
+    PropertyObjectPtr getOwner() const
+    {
+        if (owner.assigned())
+            return owner.getRef();
+        return nullptr;
+    }
+
 protected:
     PropertyPtr propPtr;
     WeakRefPtr<IPropertyObject> owner;
@@ -1490,13 +1574,6 @@ protected:
     EventEmitter<PropertyPtr, PropertyMetadataReadArgsPtr> onSuggestedValuesRead;
 
 private:
-
-    PropertyObjectPtr getOwner() const
-    {
-        if (owner.assigned())
-            return owner.getRef();
-        return nullptr;
-    }
 
     PropertyPtr bindAndGetRefProp(bool lock)
     {
@@ -1538,14 +1615,6 @@ private:
         }
 
         return localMetadata;
-    }
-
-    ErrCode validateDuringConstruction()
-    {
-        this->internalAddRefNoCheck();
-        const ErrCode err = validate();
-        this->internalReleaseRef();
-        return err;
     }
 };
 

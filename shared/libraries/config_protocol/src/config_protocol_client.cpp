@@ -10,6 +10,7 @@
 #include <config_protocol/config_client_server_impl.h>
 #include <config_protocol/config_client_device_info_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
+#include <config_protocol/config_client_property.h>
 #include <opendaq/exceptions.h>
 
 namespace daq::config_protocol
@@ -99,6 +100,32 @@ BaseObjectPtr ConfigProtocolClientComm::getPropertyValue(const std::string& glob
     dict.set("ComponentGlobalId", String(globalId));
     dict.set("PropertyName", String(propertyName));
     auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetPropertyValue", dict);
+    const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
+
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
+    return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
+}
+
+BaseObjectPtr ConfigProtocolClientComm::getSelectionValues(const std::string& globalId, const std::string& path, const std::string& propertyName)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    std::string propertyPath = path.empty() ? propertyName : path + "." + propertyName;
+    dict.set("PropertyPath", String(propertyPath));
+    auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetSelectionValues", dict);
+    const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
+
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
+    return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
+}
+
+ListPtr<IBaseObject> ConfigProtocolClientComm::getSuggestedValues(const std::string& globalId, const std::string& path, const std::string& propertyName)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    std::string propertyPath = path.empty() ? propertyName : path + "." + propertyName;
+    dict.set("PropertyPath", String(propertyPath));
+    auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetSuggestedValues", dict);
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 
     const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
@@ -586,6 +613,13 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     {
         BaseObjectPtr obj;
         checkErrorInfo(ConfigClientServerImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
+    }
+
+    if (typeId == "Property")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientPropertyImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 

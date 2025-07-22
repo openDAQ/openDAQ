@@ -223,10 +223,13 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 
     return daqTry([this, &propertyNamePtr, &value]()
     {
-        // TODO: Refactor this
+
         PropertyPtr prop;
         checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
-        if (clientComm->getConnected() && (prop.getValueType() == ctFunc || prop.getValueType() == ctProc))
+
+        auto isFunction = prop.getValueType() == ctFunc || prop.getValueType() == ctProc;
+        auto hasReadListeners = prop.asPtr<IPropertyInternal>().getHasOnReadListeners();
+        if (clientComm->getConnected() && (isFunction || hasReadListeners))
         {
             bool setValue;
             auto v = getValueFromServer(propertyNamePtr, setValue);
@@ -244,7 +247,27 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
-    return Impl::getPropertySelectionValue(propertyName, value);
+    const auto propertyNamePtr = StringPtr::Borrow(propertyName);
+
+    return daqTry([this, &propertyNamePtr, &value]()
+    {
+        PropertyPtr prop;
+        checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
+
+        auto hasReadListeners = prop.asPtr<IPropertyInternal>().getHasOnReadListeners();
+        if (clientComm->getConnected() && hasReadListeners)
+        {
+            bool setValue;
+            auto v = getValueFromServer(propertyNamePtr, setValue);
+
+            if (setValue)
+                Impl::setPropertyValue(propertyNamePtr, v);
+            *value = v.detach();
+            return OPENDAQ_SUCCESS;
+        }
+        
+        return Impl::getPropertySelectionValue(propertyNamePtr, value);
+    });
 }
 
 template <class Impl>
@@ -978,9 +1001,9 @@ inline ErrCode ConfigClientPropertyObjectImpl::getDeserializedParameter(IString*
 }
 
 inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* serialized,
-    IBaseObject* context,
-    IFunction* factoryCallback,
-    IBaseObject** obj)
+                                                           IBaseObject* context,
+                                                           IFunction* factoryCallback,
+                                                           IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 

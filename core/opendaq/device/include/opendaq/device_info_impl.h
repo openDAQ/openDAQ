@@ -777,7 +777,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
     BaseObjectPtr selValues;
     const ErrCode errCode = property->getSelectionValues(&selValues);
     if (OPENDAQ_FAILED(errCode))
-        daqClearErrorInfo(errCode);
+        daqClearErrorInfo();
     
     if (selValues.assigned())
         return DAQ_MAKE_ERROR_INFO(

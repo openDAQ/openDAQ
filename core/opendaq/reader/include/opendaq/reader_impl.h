@@ -493,24 +493,21 @@ protected:
         }
     }
 
-    bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
+    bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode)
     {
-        ObjectPtr<IErrorInfo> errInfo;
-        daqGetErrorInfo(&errInfo);
+        ObjectPtr<IErrorInfo> errorInfo;
+        daqGetErrorInfo(&errorInfo);
         daqClearErrorInfo();
 
         auto dataDescriptor = domainPacket.getDataDescriptor();
         if (domainReader->isUndefined())
-        {
             inferReaderReadType(dataDescriptor, domainReader);
-        }
 
-        if (!domainReader->handleDescriptorChanged(dataDescriptor, readMode))
-        {
-            daqSetErrorInfo(errInfo);
-            return false;
-        }
-        return true;
+        if (domainReader->handleDescriptorChanged(dataDescriptor, readMode))
+            return true;
+
+        daqSetErrorInfo(errorInfo);
+        return false;
     }
 
     void* getValuePacketData(const DataPacketPtr& packet) const

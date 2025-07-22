@@ -89,21 +89,21 @@ void MockSignal::addObjects(const py::object& objects, bool updateDescriptor)
         {
             const auto& dict = py::cast<py::dict>(objects);
             if (dict.empty())
-                throw daq::InvalidParameterException("Cannot add empty dictionary");
+                DAQ_THROW_EXCEPTION(daq::InvalidParameterException, "Cannot add empty dictionary");
             descriptor = createDataDescriptor(dict, "obj");
         }
         else if (py::isinstance<py::list>(objects))
         {
             const auto& list = py::cast<py::list>(objects);
             if (list.empty())
-                throw daq::InvalidParameterException("Cannot add empty list");
+                DAQ_THROW_EXCEPTION(daq::InvalidParameterException, "Cannot add empty list");
             descriptor = createDataDescriptor(list[0], "obj");
             size = list.size();
         }
     }
     else
     {
-        throw daq::InvalidParameterException("Unsupported type: Should be a list or a dictionary");
+        DAQ_THROW_EXCEPTION(daq::InvalidParameterException, "Unsupported type: Should be a list or a dictionary");
     }
 
     if (updateDescriptor)

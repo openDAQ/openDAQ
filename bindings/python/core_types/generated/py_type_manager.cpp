@@ -50,7 +50,8 @@ void defineITypeManager(pybind11::module_ m, PyDaqIntf<daq::ITypeManager, daq::I
 
             daq::IEnumerationType* enumType = nullptr;
             auto errCode = type->queryInterface(daq::IEnumerationType::Id, reinterpret_cast<void**>(&enumType));
-            if (OPENDAQ_SUCCEEDED(errCode)) {
+            if (OPENDAQ_SUCCEEDED(errCode))
+            {
                 auto pyObject = py::cast(InterfaceWrapper<daq::IEnumerationType>(enumType));
                 pyObject.attr("__type_manager") = object;
             }

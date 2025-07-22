@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include "should_log.h"
 #include <opendaq/logger_sink_factory.h>
 #include "invalid_logger_sink.h"
@@ -74,21 +74,21 @@ TEST_F(LoggerSinkTest, GetLevelNull)
 {
     auto sink = StdOutLoggerSink();
 
-    ASSERT_EQ(sink->getLevel(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(sink->getLevel(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(LoggerSinkTest, SetPatternNull)
 {
     auto sink = StdOutLoggerSink();
 
-    ASSERT_EQ(sink->setPattern(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(sink->setPattern(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(LoggerSinkTest, SetLogOutputNull)
 {
     auto sink = StdOutLoggerSink();
 
-    ASSERT_EQ(sink->shouldLog(LogLevel::Info, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(sink->shouldLog(LogLevel::Info, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(LoggerSinkTest, EqualsNull)

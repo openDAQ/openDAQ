@@ -80,25 +80,13 @@ public:
     
     StructBuilderPtr& operator=(const StructBuilderPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         daq::ObjectPtr<IStructBuilder>::operator =(other);
-
-
         return *this;
     }
 
     StructBuilderPtr& operator=(StructBuilderPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
-
         daq::ObjectPtr<IStructBuilder>::operator =(std::move(other));
-
         return *this;
     }
     /*!

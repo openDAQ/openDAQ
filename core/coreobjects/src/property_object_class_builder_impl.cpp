@@ -26,12 +26,13 @@ ErrCode PropertyObjectClassBuilderImpl::build(IPropertyObjectClass** propertyObj
 
     const auto builderPtr = this->borrowPtr<PropertyObjectClassBuilderPtr>();
 
-    return daqTry([&]()
+    const ErrCode errCode = daqTry([&]()
     {
         *propertyObjectClass = PropertyObjectClassFromBuilder(builderPtr).detach();
         return OPENDAQ_SUCCESS;
     });
-    return OPENDAQ_SUCCESS;
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 
@@ -67,7 +68,7 @@ ErrCode PropertyObjectClassBuilderImpl::addProperty(IProperty* property)
 {
     OPENDAQ_PARAM_NOT_NULL(property);
 
-    return wrapHandler([this, &property]()
+    const ErrCode errCode = daqTry([this, &property]()
     {
         auto p = PropertyPtr::Borrow(property);
 
@@ -87,6 +88,8 @@ ErrCode PropertyObjectClassBuilderImpl::addProperty(IProperty* property)
 
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to add property");
+    return errCode;
 }
 
 ErrCode PropertyObjectClassBuilderImpl::getProperties(IDict** properties)
@@ -101,7 +104,7 @@ ErrCode PropertyObjectClassBuilderImpl::removeProperty(IString* propertyName)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    return wrapHandler([this, &propertyName]()
+    const ErrCode errCode = wrapHandler([this, &propertyName]()
     {
         if (!props.hasKey(propertyName))
         {
@@ -111,6 +114,8 @@ ErrCode PropertyObjectClassBuilderImpl::removeProperty(IString* propertyName)
         props.remove(propertyName);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to remove property");
+    return errCode;
 }
 
 ErrCode PropertyObjectClassBuilderImpl::setPropertyOrder(IList* orderedPropertyNames)

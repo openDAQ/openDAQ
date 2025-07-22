@@ -157,9 +157,8 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::checkClassNameIs
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, "Interface name does not inherit from SyncInterfaceBase.");
 
     TypePtr type;
-    ErrCode errCode = manager->getType(className, &type);
-    if (OPENDAQ_FAILED(errCode) || type == nullptr)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not registered in type manager.", className));
+    const ErrCode errCode = manager->getType(className, &type);
+    OPENDAQ_RETURN_IF_FAILED(errCode, OPENDAQ_ERR_INVALID_ARGUMENT, fmt::format("Interface '{}' is not registered in type manager.", className));
 
     if (auto objectClass = type.asPtrOrNull<IPropertyObjectClass>(true); objectClass.assigned())
     {
@@ -241,11 +240,14 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::removeInterface(
 
             if (selectedSource == idx)
             {
-                setSelectedSource(0);
+                const ErrCode errCode = setSelectedSource(0);
+                OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND); // the list is empty
             }
             else if (selectedSource > idx)
             {
-                setSelectedSource(selectedSource - 1);
+                const ErrCode errCode = setSelectedSource(selectedSource - 1);
+                if (OPENDAQ_FAILED(errCode))
+                    daqClearErrorInfo();
             }
             break;
         }
@@ -276,7 +278,7 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
         *obj = Super::DeserializeComponent(
             serialized,
@@ -291,6 +293,8 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
                     className);
             }).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 

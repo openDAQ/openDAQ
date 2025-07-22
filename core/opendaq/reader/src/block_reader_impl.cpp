@@ -118,9 +118,9 @@ ErrCode BlockReaderImpl::getAvailableCount(SizeT* count)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
 
-    SizeT available{};
-    ErrCode errCode = wrapHandlerReturn(this, &BlockReaderImpl::getAvailable, available);
-    *count = available;
+    ErrCode errCode = wrapHandlerReturn(this, &BlockReaderImpl::getAvailable, *count);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     return errCode;
 }
 
@@ -263,10 +263,8 @@ ErrCode BlockReaderImpl::readPacketData()
         errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
-            if (!trySetDomainSampleType(domainPacket))
-            {
-                return errCode;
-            }
+            if (!trySetDomainSampleType(domainPacket, errCode))
+                return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             daqClearErrorInfo();
             errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
         }
@@ -379,6 +377,7 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
             ErrCode errCode = readPacketData();
             if (OPENDAQ_FAILED(errCode))
             {
+                daqClearErrorInfo();
                 auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
                 return BlockReaderStatus(nullptr, true, offset, writtenSamplesCount);
             }

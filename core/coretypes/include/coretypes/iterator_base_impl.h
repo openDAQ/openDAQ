@@ -99,8 +99,13 @@ ErrCode IteratorBaseImpl<T, E, VS>::equals(IBaseObject* other, Bool* equal) cons
 
     IIterator* itOther;
     ErrCode err = other->borrowInterface(IIterator::Id, reinterpret_cast<void**>(&itOther));
-    if (!OPENDAQ_SUCCEEDED(err))
-        return err;
+    if (OPENDAQ_FAILED(err))
+    {
+        if (err == OPENDAQ_ERR_NOINTERFACE)
+            return DAQ_MAKE_ERROR_INFO(err);
+
+        return DAQ_EXTEND_ERROR_INFO(err);
+    }
 
     return compareIterators(this, itOther, equal);
 }

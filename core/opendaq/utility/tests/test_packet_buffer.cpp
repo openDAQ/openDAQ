@@ -46,7 +46,7 @@ TEST_F(PacketBufferTest, SanityCheck)
 
 TEST_F(PacketBufferTest, MakeAPacket)
 {
-    auto builder = PacketBufferBuilder();
+    auto builder = PacketBufferBuilder().setSizeInBytes(100);
     auto buffer = PacketBuffer(builder);
 
     auto [desc, domain] = generateBuildingBlocks();
@@ -63,7 +63,7 @@ TEST_F(PacketBufferTest, MakeAPacket)
 TEST_F(PacketBufferTest, FullRange)
 {
     auto builder = PacketBufferBuilder();
-    builder.setSizeInBytes(1000);
+    builder.setSizeInBytes(800 + 1000000);
     auto buffer = PacketBuffer(builder);
 
     auto [desc, domain] = generateBuildingBlocks();
@@ -122,7 +122,7 @@ TEST_F(PacketBufferTest, EmptyPacket)
 TEST_F(PacketBufferTest, WriteAhead)
 {
     auto builder = PacketBufferBuilder();
-    builder.setSizeInBytes(800);
+    builder.setSizeInBytes(200 + 700 + 200);
     auto buffer = PacketBuffer(builder);
 
     auto [desc, domain] = generateBuildingBlocks();

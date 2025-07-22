@@ -35,23 +35,15 @@ public:
 
     ErrCode INTERFACE_FUNC handleEvent(IBaseObject* sender, IEventArgs* eventArgs) override
     {
-        try
+        const ErrCode errCode = daqTry([&]()
         {
             auto obj = sender != nullptr ? TSenderPtr::Borrow(sender) : TSenderPtr{};
             auto args = eventArgs != nullptr ? TEventArgsPtr::Borrow(eventArgs) : TEventArgsPtr{};
 
             subscription(obj, args);
-        }
-        catch (const DaqException& e)
-        {
-            return errorFromException(e, this->getThisAsBaseObject());
-        }
-        catch (const std::exception& e)
-        {
-            return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-        }
-
-        return OPENDAQ_SUCCESS;
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to handle event");
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getHashCode(SizeT* hashCode) override

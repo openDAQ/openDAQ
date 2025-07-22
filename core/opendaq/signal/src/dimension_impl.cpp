@@ -121,7 +121,7 @@ ErrCode DimensionImpl::getLabels(IList** labels)
     ErrCode err = rule.asPtr<IRulePrivate>()->verifyParameters();
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    try
+    err = daqTry([&]()
     {
         if (rule.getType() == DimensionRuleType::List)
             *labels = getListLabels().addRefAndReturn();
@@ -129,13 +129,9 @@ ErrCode DimensionImpl::getLabels(IList** labels)
             *labels = getLinearLabels().addRefAndReturn();
         else if (rule.getType() == DimensionRuleType::Logarithmic)
             *labels = getLogLabels().addRefAndReturn();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    
-    return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(err, "Failed to get dimension labels");
+    return err;
 }
 
 ErrCode DimensionImpl::equals(IBaseObject* other, Bool* equals) const

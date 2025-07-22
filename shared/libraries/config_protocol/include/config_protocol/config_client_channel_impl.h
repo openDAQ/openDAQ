@@ -55,34 +55,35 @@ inline ErrCode ConfigClientChannelImpl::Deserialize(ISerializedObject* serialize
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializeComponent(serialized,
-                                               context,
-                                               factoryCallback,
-                                               [](const SerializedObjectPtr& serialized,
-                                                  const ComponentDeserializeContextPtr& deserializeContext,
-                                                  const StringPtr& className)
-                                               {
-                                                   const auto configDeserializeContext =
-                                                       deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = Super::DeserializeComponent(serialized,
+                                            context,
+                                            factoryCallback,
+                                            [](const SerializedObjectPtr& serialized,
+                                                const ComponentDeserializeContextPtr& deserializeContext,
+                                                const StringPtr& className)
+                                            {
+                                                const auto configDeserializeContext =
+                                                    deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
 
-                                                   const auto typeId = serialized.readString("typeId");
+                                                const auto typeId = serialized.readString("typeId");
 
-                                                   const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
+                                                const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
 
-                                                   return createWithImplementation<IChannel, ConfigClientChannelImpl>(
-                                                       configDeserializeContext->getClientComm(),
-                                                       configDeserializeContext->getRemoteGlobalId(),
-                                                       fbType,
-                                                       deserializeContext.getContext(),
-                                                       deserializeContext.getParent(),
-                                                       deserializeContext.getLocalId(),
-                                                       className);
-                                               })
-                       .detach();
-        });
+                                                return createWithImplementation<IChannel, ConfigClientChannelImpl>(
+                                                    configDeserializeContext->getClientComm(),
+                                                    configDeserializeContext->getRemoteGlobalId(),
+                                                    fbType,
+                                                    deserializeContext.getContext(),
+                                                    deserializeContext.getParent(),
+                                                    deserializeContext.getLocalId(),
+                                                    className);
+                                            })
+                    .detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 }

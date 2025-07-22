@@ -79,7 +79,9 @@ inline ErrCode WeakRefImpl::getRefAs(IntfID intfID, void** obj)
             if (OPENDAQ_FAILED(err))
             {
                 this->object->releaseRef();
-                return DAQ_MAKE_ERROR_INFO(err);
+                if (err == OPENDAQ_ERR_NOINTERFACE)
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED);
+                return DAQ_EXTEND_ERROR_INFO(err);
             }
 
             return OPENDAQ_SUCCESS;

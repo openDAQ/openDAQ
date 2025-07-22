@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <coretypes/function_factory.h>
 #include <coretypes/baseobject_factory.h>
 #include <coretypes/listptr.h>
@@ -15,7 +15,7 @@ TEST_F(CustomFunctionTest, Basic)
         return OPENDAQ_SUCCESS;
     });
     ErrCode err = funcObj->call(nullptr, nullptr);
-    ASSERT_EQ(err, OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_ARGUMENT_NULL);
 
     IBaseObject* result;
     err = funcObj->call(nullptr, &result);
@@ -105,7 +105,7 @@ TEST_F(CustomFunctionTest, NullFuncExecuteErrorCode)
 
     ObjectPtr<IBaseObject> result;
     ErrCode err = nullFunc->call(nullptr, &result);
-    ASSERT_EQ(err, OPENDAQ_ERR_NOTASSIGNED);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_NOTASSIGNED);
 }
 
 TEST_F(CustomFunctionTest, NullFuncExecuteThrows)

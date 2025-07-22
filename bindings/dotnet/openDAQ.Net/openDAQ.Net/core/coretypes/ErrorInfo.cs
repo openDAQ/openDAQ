@@ -41,6 +41,18 @@ internal unsafe class RawErrorInfo : RawBaseObject
     public delegate* unmanaged[Stdcall]<IntPtr, IntPtr, ErrorCode> SetSource;
     //ErrorCode getSource(daq.IString** source); stdcall;
     public delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, ErrorCode> GetSource;
+    // ErrorCode setFileName(daq.ConstCharPtr fileName); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, IntPtr, ErrorCode> SetFileName;
+    // ErrorCode getFileName(daq.ConstCharPtr* fileName); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, ErrorCode> GetFileName;
+    // ErrorCode setFileLine(int line); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, int, ErrorCode> SetFileLine;
+    // ErrorCode getFileLine(int* line); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, out int, ErrorCode> GetFileLine;
+    // ErrorCode setErrorCode(ErrCode errorCode); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, ErrorCode, ErrorCode> SetErrorCode;
+    // ErrorCode GetErrorCode(ErrCode* errorCode); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, out ErrorCode, ErrorCode> GetErrorCode;
 }
 
 /// <summary>Contains detailed information about error.</summary>
@@ -176,6 +188,42 @@ public class ErrorInfo : BaseObject
         }
     }
 
+    /// <summary>Sets the error code.</summary>
+    public ErrorCode ErrorCodeValue
+    {
+        get
+        {
+            //native output argument
+            ErrorCode errorInfoCode;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.GetErrorCode(base.NativePointer, out errorInfoCode);
+
+                if (Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return errorInfoCode;
+        }
+        set
+        {
+            unsafe //use native method pointer
+            {
+                //call native method
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetErrorCode(base.NativePointer, value);
+
+                if (Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+        }
+    }
+
     #endregion properties
 }
 
@@ -224,6 +272,21 @@ public static partial class CoreTypesFactory
 
         //create and return object
         return new ErrorInfo(objPtr, incrementReference: false);
+    }
+
+    public static ErrorCode MakeErrorInfo(ErrorCode errorCode, string message = null)
+    {
+        //create ErrorInfo object
+        ErrorInfo errorInfo = CreateErrorInfo();
+
+        //set message and error code
+        errorInfo.Message = message;
+        errorInfo.ErrorCodeValue = errorCode;
+
+        //set error code
+        DaqSetErrorInfo(errorInfo);
+
+        return errorCode;
     }
 }
 

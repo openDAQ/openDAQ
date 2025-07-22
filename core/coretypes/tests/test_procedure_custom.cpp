@@ -39,7 +39,7 @@ TEST_F(CustomProcedureTest, Params)
         Int a = BaseObjectPtr::Borrow(obj);
         return a == 3
             ? OPENDAQ_SUCCESS
-            :  OPENDAQ_ERR_INVALIDPARAMETER;
+            : DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     });
     procObj.dispatch((Int) 3);
 
@@ -53,7 +53,7 @@ TEST_F(CustomProcedureTest, ParamsCallOperator)
         Int a = BaseObjectPtr::Borrow(obj);
         return a == 3
             ? OPENDAQ_SUCCESS
-            :  OPENDAQ_ERR_INVALIDPARAMETER;
+            : DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     });
     procObj((Int) 3);
 
@@ -65,7 +65,7 @@ TEST_F(CustomProcedureTest, StandardParams)
     auto procObj = CustomProcedure([](IBaseObject* obj)
     {
         Int a = BaseObjectPtr::Borrow(obj);
-        return a == 3 ? OPENDAQ_SUCCESS :  OPENDAQ_ERR_INVALIDPARAMETER;
+        return a == 3 ? OPENDAQ_SUCCESS : DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     });
 
     procObj.execute((Int) 3);
@@ -87,7 +87,7 @@ TEST_F(CustomProcedureTest, TwoStandardParams)
 
         Int a = list.getItemAt(0);
         Int b = list.getItemAt(1);
-        return a == 3 && b == 2 ? OPENDAQ_SUCCESS :  OPENDAQ_ERR_INVALIDPARAMETER;
+        return a == 3 && b == 2 ? OPENDAQ_SUCCESS : DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     });
 
     procObj.execute((Int) 3, Int(2));
@@ -102,7 +102,7 @@ TEST_F(CustomProcedureTest, NoStandardParams)
     {
         return params == nullptr
                    ? OPENDAQ_SUCCESS
-                   :  OPENDAQ_ERR_INVALIDPARAMETER;
+                   : DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     });
 
     procObj.execute();

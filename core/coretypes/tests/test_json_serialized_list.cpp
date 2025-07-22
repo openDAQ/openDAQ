@@ -17,13 +17,17 @@ protected:
 
     void TearDown() override
     {
-        daqUnregisterSerializerFactory(FactoryId.data());
+        const ErrCode errCode = daqUnregisterSerializerFactory(FactoryId.data());
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
         deserializer.release();
     }
 
     void registerFactory(daqDeserializerFactory factory)
     {
-        daqRegisterSerializerFactory(FactoryId.data(), factory);
+        const ErrCode errCode = daqRegisterSerializerFactory(FactoryId.data(), factory);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
     }
 
     DeserializerPtr deserializer;

@@ -17,7 +17,25 @@ PYBIND11_MODULE(opendaq, m)
     m.def("get_tracked_object_count", &daqGetTrackedObjectCount);
     m.def("print_tracked_objects", &daqPrintTrackedObjects);
     m.def("clear_tracked_objects", &daqClearTrackedObjects);
-    m.def("clear_error_info", &daqClearErrorInfo);
+    m.def("get_unresolved_errors", 
+        []() -> std::string 
+        {
+            daq::ListPtr<daq::IErrorInfo> errorInfoList;
+            daqGetErrorInfoList(&errorInfoList);
+            if (!errorInfoList.assigned())
+                return std::string();
+
+            std::ostringstream oss;
+            for (const auto& errorInfo : errorInfoList)
+            {
+                daq::StringPtr message;
+                errorInfo->getFormattedMessage(&message);
+                if (message.assigned())
+                    oss << message << "\n";
+            }
+            return oss.str();
+        }
+    );
 
     // wrap individual components
     

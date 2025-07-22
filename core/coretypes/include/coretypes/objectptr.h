@@ -757,7 +757,6 @@ static T baseObjectToValue(IBaseObject* obj)
     ErrCode err = obj->borrowInterface(Intf::Id, reinterpret_cast<void**>(&typeObj));
     if (OPENDAQ_FAILED(err))
     {
-        daqClearErrorInfo();
         value = getValueFromConvertible<T>(obj);
     }
     else
@@ -1483,6 +1482,9 @@ T* ObjectPtr<T>::operator->() const
 template <class T>
 ObjectPtr<T>& ObjectPtr<T>::operator=(const ObjectPtr<T>& ptr)
 {
+    if (this == &ptr)
+        return *this;
+    
     if (object && !borrowed)
         object->releaseRef();
 
@@ -1498,6 +1500,9 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(const ObjectPtr<T>& ptr)
 template <class T>
 ObjectPtr<T>& ObjectPtr<T>::operator=(ObjectPtr<T>&& ptr) noexcept
 {
+    if (this == std::addressof(ptr))
+        return *this;
+
     if (object && !borrowed)
         object->releaseRef();
 
@@ -2022,7 +2027,6 @@ Ptr ObjectPtr<T>::asPtrOrNull(bool borrow) const
     }
 
     res = object->queryInterface(U::Id, reinterpret_cast<void**>(&intf));
-
     if (OPENDAQ_SUCCEEDED(res))
         return Ptr(std::move(intf));
 
@@ -2455,10 +2459,9 @@ ErrCode createObjectFrozen(Interface** intf, Params... params)
 
     auto freezable = ptr.template asOrNull<IFreezable>(true);
     errCode = freezable->freeze();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    if (OPENDAQ_SUCCEEDED(errCode))
-        *intf = ptr.detach();
-
+    *intf = ptr.detach();
     return errCode;
 }
 

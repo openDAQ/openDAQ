@@ -54,14 +54,14 @@ public static partial class CoreTypesFactory
     #region ErrorInfo
 
     // //void daqSetErrorInfo(daq.IErrorInfo* errorInfo); cdecl;
-    // [DllImport(CoreTypesDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
-    // private static extern void daqSetErrorInfo(IntPtr errorInfo);
+    [DllImport(CoreTypesDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]
+    private static extern void daqSetErrorInfo(IntPtr errorInfo);
 
-    // public static void DaqSetErrorInfo(ErrorInfo errorInfo)
-    // {
-    //     //call native function
-    //     daqSetErrorInfo(errorInfo.NativePointer);
-    // }
+    public static void DaqSetErrorInfo(ErrorInfo errorInfo)
+    {
+        //call native function
+        daqSetErrorInfo(errorInfo.NativePointer);
+    }
 
     //void daqGetErrorInfo(daq.IErrorInfo** errorInfo); cdecl;
     [DllImport(CoreTypesDllInfo.FileName, CallingConvention = CallingConvention.Cdecl)]

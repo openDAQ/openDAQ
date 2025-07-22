@@ -36,34 +36,35 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
     {
         LOG_W("Failed to set value for property with nullptr name on OpcUA client property object");
         return OPENDAQ_SUCCESS;
-    }
+    }    
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
     if (this->isChildProperty(propertyNamePtr))
     {
         PropertyPtr prop;
-        ErrCode err = getProperty(propertyNamePtr, &prop);
-        OPENDAQ_RETURN_IF_FAILED(err);
+        const ErrCode errCode = getProperty(propertyNamePtr, &prop);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (!prop.assigned())
-            throw NotFoundException(R"(Child property "{}" not found)", propertyNamePtr);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Child property "{}" not found)", propertyNamePtr));
         if (protectedWrite)
-            return prop.asPtr<IPropertyInternal>()->setValueProtected(value);
+            return prop.asPtr<IPropertyInternal>(true)->setValueProtected(value);
         return prop->setValue(value);
     }
 
-    StringPtr lastProcessDescription = "";
+    std::string lastProcessDescription = "";
     ErrCode errCode = daqTry([&]
     {
         if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
         {
             PropertyPtr prop;
-            checkErrorInfo(getProperty(propertyName, &prop));
-            if (!protectedWrite)
+            const ErrCode errCode = getProperty(propertyName, &prop);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        
+            if (!protectedWrite && prop.getReadOnly())
             {
                 lastProcessDescription = "Checking existing property is read-only";
-                if (prop.getReadOnly())
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, fmt::format("Property \"{}\" is read-only", propertyNamePtr));
             }
 
             BaseObjectPtr valuePtr = value;
@@ -82,27 +83,28 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
         {
             lastProcessDescription = "Setting property value";
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
-            return setPropertyValue(refProp.getName(), value);
+            const ErrCode errCode = setPropertyValue(refProp.getName(), value);
+            OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to set value for referenced property \"{}\"", propertyNamePtr));
+            return errCode;
         }
 
         if (const auto& it = objectTypeIdMap.find((propertyNamePtr)); it != objectTypeIdMap.cend())
         {
             lastProcessDescription = "Object type properties cannot be set over OpcUA";
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Object type properties cannot be set over OpcUA");
         }
 
         lastProcessDescription = "Property not found";
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format("Property \"{}\" not found", propertyNamePtr));    
     });
 
     if (OPENDAQ_FAILED(errCode))
         LOG_W("Failed to set value for property \"{}\" on OpcUA client property object: {}", propertyNamePtr, lastProcessDescription);
 
     if (errCode == OPENDAQ_ERR_NOTFOUND || errCode == OPENDAQ_ERR_ACCESSDENIED)
-        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format("Property \"{}\" not found or access denied", propertyNamePtr));
+        return DAQ_EXTEND_ERROR_INFO(errCode, fmt::format("Failed to set value for property \"{}\" on OpcUA client property object", propertyNamePtr));
     else if (OPENDAQ_FAILED(errCode))
         daqClearErrorInfo();
-
     return OPENDAQ_SUCCESS;
 }
 
@@ -146,26 +148,26 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
         OPENDAQ_RETURN_IF_FAILED(err);
 
         if (!prop.assigned())
-            throw NotFoundException(R"(Child property "{}" not found)", propertyNamePtr);
-
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Child property "{}" not found)", propertyNamePtr));
         return prop->getValue(value);
     }
 
-    StringPtr lastProccessDescription = "";
     ErrCode errCode = daqTry([&]
     {
         if (const auto& introIt = introspectionVariableIdMap.find(propertyNamePtr); introIt != introspectionVariableIdMap.cend())
         {
             const auto variant = client->readValue(introIt->second);
             const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-            Impl::setProtectedPropertyValue(propertyName, object);
+            const ErrCode errCode = Impl::setProtectedPropertyValue(propertyName, object);
+            OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to get value for introspection property \"{}\"", propertyNamePtr));
         }
         else if (referenceVariableIdMap.count(propertyNamePtr))
         {
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
-            return getPropertyValue(refProp.getName(), value);
+            const ErrCode errCode = getPropertyValue(refProp.getName(), value);
+            OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to get value for referenced property \"{}\"", propertyNamePtr));
+            return errCode;
         }
-
         return Impl::getPropertyValue(propertyName, value);
     });
     if (OPENDAQ_FAILED(errCode))
@@ -577,7 +579,7 @@ PropertyObjectPtr TmsClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyObjec
             return TmsClientPropertyObject(daqContext, clientContext, objIt->second);
         }
         
-        throw NotFoundException{"Object property with name {} not found", propName};
+        DAQ_THROW_EXCEPTION(NotFoundException, "Object property with name {} not found", propName);
     }
 
     return nullptr;

@@ -1,5 +1,5 @@
 #include <coretypes/deserializer.h>
-#include <coretypes/errors.h>
+#include <coretypes/ctutils.h>
 #include <unordered_map>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -21,7 +21,7 @@ public:
         }
         catch (...)
         {
-            return OPENDAQ_ERR_FACTORY_NOT_REGISTERED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FACTORY_NOT_REGISTERED, fmt::format("Failed to register factory with id: {}", id));
         }
         return OPENDAQ_SUCCESS;
     }
@@ -34,7 +34,7 @@ public:
 
             if (iter == factories.cend())
             {
-                return OPENDAQ_ERR_FACTORY_NOT_REGISTERED;
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FACTORY_NOT_REGISTERED, fmt::format("Failed to unregister factory with id: {}", id));
             }
 
             factories.erase(iter);
@@ -53,7 +53,7 @@ public:
 
         if (iter == factories.cend())
         {
-            return OPENDAQ_ERR_FACTORY_NOT_REGISTERED;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FACTORY_NOT_REGISTERED, fmt::format("Failed to get factory with id: {}", id));
         }
 
         *factory = *iter->second;

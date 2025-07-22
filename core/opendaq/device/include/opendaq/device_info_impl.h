@@ -764,10 +764,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
 {
     OPENDAQ_PARAM_NOT_NULL(property);
     StringPtr name;
-    property->getName(&name);
+    OPENDAQ_RETURN_IF_FAILED(property->getName(&name));
 
     CoreType type;
-    property->getValueType(&type);
+    OPENDAQ_RETURN_IF_FAILED(property->getValueType(&type));
     if (static_cast<int>(type) > 3 && name != "serverCapabilities" && name != "activeClientConnections")
         return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_INVALIDPARAMETER,
@@ -775,7 +775,11 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
         );
 
     BaseObjectPtr selValues;
-    if (property->getSelectionValues(&selValues); selValues.assigned())
+    const ErrCode errCode = property->getSelectionValues(&selValues);
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo(errCode);
+    
+    if (selValues.assigned())
         return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_INVALIDPARAMETER,
             fmt::format(R"(Failed adding property {}: selection-type properties cannot be added to Device Info.)", name)

@@ -147,6 +147,7 @@ protected:
     uint32_t numberInList;
     TmsServerContextPtr tmsContext;
     std::unordered_map<std::string, opcua::OpcUaObject<UA_ReferenceDescription>> references;
+    LoggerComponentPtr loggerComponent;
 
 private:
     void bindCallbacksInternal();

@@ -220,6 +220,7 @@ void WAVWriterFbImpl::processInputData()
     SizeT availableData = reader.getAvailableCount();
     size_t dataSize = 1;
     std::vector<unsigned char> inputData;
+
     switch (reader.getValueReadType())
     {
         case SampleType::Int16:
@@ -235,11 +236,11 @@ void WAVWriterFbImpl::processInputData()
             dataSize = sizeof(float_t);
             break;
         default:
-            return;
+            dataSize = 0;
+            break;
     }
 
     inputData.reserve(std::max(availableData, static_cast<SizeT>(1)) * dataSize);
-
     const auto status = reader.read(inputData.data(), &availableData);
 
     if (status.getReadStatus() == ReadStatus::Event)

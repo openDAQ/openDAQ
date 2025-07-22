@@ -131,7 +131,7 @@ bool ConfigProtocolStreamingConsumer::isForwardedCoreEvent(const ComponentPtr& c
     return true;
 }
 
-void ConfigProtocolStreamingConsumer::removeExternalSignalsByNumericId(const ParamsDictPtr& params)
+void ConfigProtocolStreamingConsumer::removeExternalSignals(const ParamsDictPtr& params)
 {
     ListPtr<IInteger> signalNumericIdsList = params.get("SignalNumericIds");
     for (const auto& listItem : signalNumericIdsList)
@@ -140,60 +140,12 @@ void ConfigProtocolStreamingConsumer::removeExternalSignalsByNumericId(const Par
         if (const auto it = mirroredExternalSignals.find(signalNumericId); it != mirroredExternalSignals.end())
         {
             auto signal = it->second;
-            removeExternalSignalByNumbericId(signal, signalNumericId);
+            removeExternalSignal(signal, signalNumericId);
         }
     }
 }
 
-MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignalGeneralized(const ParamsDictPtr& params)
-{
-    const StringPtr domainSignalStringId = params.get("DomainSignalStringId");
-    const StringPtr domainSerializedSignal = params.get("DomainSerializedSignal");
-    const StringPtr signalStringId = params.get("SignalStringId");
-    const StringPtr serializedSignal = params.get("SerializedSignal");
-
-    MirroredSignalConfigPtr domainSignal;
-    if (domainSignalStringId.assigned())
-    {
-        if (const auto iter = mirroredExternalSignalsIds.find(domainSignalStringId); iter == mirroredExternalSignalsIds.end())
-        {
-            domainSignal = createMirroredExternalSignal(domainSignalStringId, domainSerializedSignal);
-            addExternalSignal(domainSignal);
-        }
-        else
-        {
-            domainSignal = getExternalSignal(domainSignalStringId);
-        }
-    }
-
-    MirroredSignalConfigPtr signal;
-    if (const auto iter = mirroredExternalSignalsIds.find(signalStringId); iter == mirroredExternalSignalsIds.end())
-    {
-        signal = createMirroredExternalSignal(signalStringId, serializedSignal);
-        if (domainSignal.assigned())
-            signal.asPtr<IMirroredExternalSignalPrivate>()->assignDomainSignal(domainSignal);
-        addExternalSignal(signal);
-    }
-    else
-    {
-        signal = getExternalSignal(signalStringId);
-    }
-
-    return signal;
-}
-
-void ConfigProtocolStreamingConsumer::removeExternalSignalsGeneralized(const ParamsDictPtr& params)
-{
-
-}
-
-void ConfigProtocolStreamingConsumer::addExternalSignal(const MirroredSignalConfigPtr& signal)
-{
-    if (externalSignalsFolder.assigned())
-        externalSignalsFolder.addItem(signal);
-}
-
-void ConfigProtocolStreamingConsumer::addExternalSignalWithNumericId(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId)
+void ConfigProtocolStreamingConsumer::addExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId)
 {
     {
         std::scoped_lock lock(sync);
@@ -207,20 +159,14 @@ void ConfigProtocolStreamingConsumer::addExternalSignalWithNumericId(const Mirro
               signal.getGlobalId());
     }
 
-    addExternalSignal(signal);
+    externalSignalsFolder.addItem(signal);
 }
 
-void ConfigProtocolStreamingConsumer::removeExternalSignal(const MirroredSignalConfigPtr& signal)
-{
-    if (externalSignalsFolder.assigned())
-        externalSignalsFolder.removeItem(signal);
-}
-
-void ConfigProtocolStreamingConsumer::removeExternalSignalByNumbericId(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId)
+void ConfigProtocolStreamingConsumer::removeExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId)
 {
     auto signalLocalId = signal.getLocalId();
 
-    removeExternalSignal(signal);
+    externalSignalsFolder.removeItem(signal);
 
     std::scoped_lock lock(sync);
     mirroredExternalSignals.erase(signalNumericId);
@@ -232,7 +178,7 @@ void ConfigProtocolStreamingConsumer::removeExternalSignalByNumbericId(const Mir
           signal.getGlobalId());
 }
 
-MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignalWithNumericId(const ParamsDictPtr& params)
+MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignal(const ParamsDictPtr& params)
 {
     const SignalNumericIdType domainSignalNumericId = params.get("DomainSignalNumericId");
     const StringPtr domainSignalStringId = params.get("DomainSignalStringId");
@@ -247,7 +193,7 @@ MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignalW
         if (const auto iter = mirroredExternalSignals.find(domainSignalNumericId); iter == mirroredExternalSignals.end())
         {
             domainSignal = createMirroredExternalSignal(domainSignalStringId, domainSerializedSignal);
-            addExternalSignalWithNumericId(domainSignal, domainSignalNumericId);
+            addExternalSignal(domainSignal, domainSignalNumericId);
         }
         else
         {
@@ -261,7 +207,7 @@ MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignalW
         signal = createMirroredExternalSignal(signalStringId, serializedSignal);
         if (domainSignal.assigned())
             signal.asPtr<IMirroredExternalSignalPrivate>()->assignDomainSignal(domainSignal);
-        addExternalSignalWithNumericId(signal, signalNumericId);
+        addExternalSignal(signal, signalNumericId);
     }
     else
     {

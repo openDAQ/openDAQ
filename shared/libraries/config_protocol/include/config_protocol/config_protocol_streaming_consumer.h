@@ -31,11 +31,8 @@ public:
     ConfigProtocolStreamingConsumer(const ContextPtr& daqContext, const FolderConfigPtr& externalSignalsFolder);
     ~ConfigProtocolStreamingConsumer();
 
-    MirroredSignalConfigPtr getOrAddExternalSignalWithNumericId(const ParamsDictPtr& params);
-    void removeExternalSignalsByNumericId(const ParamsDictPtr& params);
-
-    MirroredSignalConfigPtr getOrAddExternalSignalGeneralized(const ParamsDictPtr& params);
-    void removeExternalSignalsGeneralized(const ParamsDictPtr& params);
+    MirroredSignalConfigPtr getOrAddExternalSignal(const ParamsDictPtr& params);
+    void removeExternalSignals(const ParamsDictPtr& params);
 
     bool isExternalSignal(const SignalPtr& signal);
 
@@ -45,11 +42,8 @@ public:
 private:
     MirroredSignalConfigPtr createMirroredExternalSignal(const StringPtr& signalStringId, const StringPtr& serializedSignal);
 
-    void addExternalSignalWithNumericId(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
-    void removeExternalSignalByNumbericId(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
-
-    void addExternalSignal(const MirroredSignalConfigPtr& signal);
-    void removeExternalSignal(const MirroredSignalConfigPtr& signal);
+    void addExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
+    void removeExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
 
     bool isSignalOfConnectedClient(const StringPtr& signalId);
 

@@ -333,6 +333,10 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     clientComm->setProtocolVersion(protocolVersion);
     const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
     LOG_I("Config protocol version {} used", protocolVersion);
+
+    // enable signal reading within basic client-to-device streaming
+    if (protocolVersion < 17)
+        streamingProducer->enableReading();
 }
 
 template<class TRootDeviceImpl>

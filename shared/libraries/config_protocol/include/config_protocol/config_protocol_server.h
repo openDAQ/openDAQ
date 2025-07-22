@@ -117,7 +117,7 @@ private:
     BaseObjectPtr getTypeManager(const ParamsDictPtr& params) const;
     BaseObjectPtr getSerializedRootDevice(const ParamsDictPtr& params);
     BaseObjectPtr connectSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
-    BaseObjectPtr connectExternalSignalWithNumericId(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    BaseObjectPtr connectExternalSignalBasic(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr connectExternalSignalGeneralized(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr removeExternalSignals(const ParamsDictPtr& params);
     BaseObjectPtr acceptsSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);

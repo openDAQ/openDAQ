@@ -12,6 +12,7 @@ ConfigProtocolStreamingProducer::ConfigProtocolStreamingProducer(const ContextPt
     , sendPreprocessedPacketsCb(sendPreprocessedPacketsCb)
     , signalNumericIdCounter(0)
     , readThreadRunning(false)
+    , readingEnabled(false)
     , daqContext(daqContext)
     , loggerComponent(this->daqContext.getLogger().getOrAddComponent("ClientToServerStreamingProducer"))
     , readThreadSleepTime(std::chrono::milliseconds(20))
@@ -64,7 +65,7 @@ void ConfigProtocolStreamingProducer::addConnection(const SignalPtr& signal, con
     const auto signalId = signal.getGlobalId();
     LOG_D("Signal \"{}\" connected to \"{}\" input port", signalId, inputPortRemoteGlobalId);
 
-    if (!readThreadRunning)
+    if (readingEnabled && !readThreadRunning)
         startReadThread();
 
     if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
@@ -81,6 +82,13 @@ void ConfigProtocolStreamingProducer::removeConnection(const SignalPtr& signal, 
 
     if (!hasSignalToRead() && readThreadRunning)
         stopReadThread();
+}
+
+void ConfigProtocolStreamingProducer::enableReading()
+{
+    std::scoped_lock lock(sync);
+    assert(!hasSignalToRead());
+    readingEnabled = true;
 }
 
 void ConfigProtocolStreamingProducer::addStreamingTrigger(const SignalPtr& signal, const StringPtr& triggerComponentId)
@@ -130,21 +138,27 @@ void ConfigProtocolStreamingProducer::removeStreamingTrigger(const SignalPtr& si
 
 void ConfigProtocolStreamingProducer::startReadSignal(StreamedSignal& streamedSignal)
 {
-    LOG_D("Start read signal \"{}\", numeric Id \"{}\"", streamedSignal.signal.getGlobalId(), streamedSignal.signalNumericId);
-    streamedSignal.reader = PacketReader(streamedSignal.signal);
+    if (readingEnabled)
+    {
+        LOG_D("Start read signal \"{}\", numeric Id \"{}\"", streamedSignal.signal.getGlobalId(), streamedSignal.signalNumericId);
+        streamedSignal.reader = PacketReader(streamedSignal.signal);
+    }
 }
 
 void ConfigProtocolStreamingProducer::stopReadSignal(StreamedSignal& streamedSignal)
 {
-    LOG_D("Stop read signal \"{}\", numeric Id \"{}\"", streamedSignal.signal.getGlobalId(), streamedSignal.signalNumericId);
-    streamedSignal.reader.release();
+    if (readingEnabled)
+    {
+        LOG_D("Stop read signal \"{}\", numeric Id \"{}\"", streamedSignal.signal.getGlobalId(), streamedSignal.signalNumericId);
+        streamedSignal.reader.release();
+    }
     streamedSignal.signal.release();
 }
 
 void ConfigProtocolStreamingProducer::readerThreadFunc()
 {
     daqNameThread("CfgProtoStreamProd");
-    LOG_D("Streaming producer thread started")
+    LOG_D("Streaming producer read thread started")
     while (readThreadRunning)
     {
         {
@@ -173,7 +187,7 @@ void ConfigProtocolStreamingProducer::readerThreadFunc()
 
         std::this_thread::sleep_for(readThreadSleepTime);
     }
-    LOG_D("Streaming producer thread stopped");
+    LOG_D("Streaming producer read thread stopped");
 }
 
 bool ConfigProtocolStreamingProducer::hasSignalToRead()

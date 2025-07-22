@@ -19,13 +19,18 @@ class RecorderView(ttk.Frame):
         ttk.Label(header_frame, text='Recording').pack(side=tk.LEFT, padx=5, pady=5)
         self.pb = ttk.Progressbar(header_frame, mode='indeterminate', style="Striped.Horizontal.TProgressbar",maximum=10, value=0)
         self.pb.pack(side=tk.LEFT, anchor=tk.CENTER)
-        ttk.Button(header_frame, text='Start/Stop',
-                  command=self.toggleRecording
-                  ).pack(side=tk.RIGHT, anchor=tk.E)
+        self.startstop = ttk.Button(header_frame, text='Start/Stop',command=self.toggleRecording)
+        self.startstop.pack(side=tk.RIGHT, anchor=tk.E)
 
 
         header_frame.pack(fill=tk.X)
-
+        if self.node.is_recording:
+            self.pb.start()
+            self.startstop.configure(text='Stop')
+        else:
+            self.pb.stop()
+            self.startstop.configure(text='Start')
+    
     def toggleRecording(self):
         if self.node.is_recording:
             self.node.stop_recording()
@@ -34,5 +39,7 @@ class RecorderView(ttk.Frame):
 
         if self.node.is_recording:
             self.pb.start()
+            self.startstop.configure(text='Stop')
         else:
             self.pb.stop()
+            self.startstop.configure(text='Start')

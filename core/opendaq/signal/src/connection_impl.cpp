@@ -255,9 +255,9 @@ ErrCode INTERFACE_FUNC ConnectionImpl::dequeueAll(IList** packets)
     return withLock(
         [&packetsPtr, packets, this]()
         {
-            for (auto& packet : this->packets)
+            for (const auto& packet : this->packets)
             {
-                packetsPtr.pushBack(std::move(packet));
+                packetsPtr.pushBack(packet);
             }
             samplesCnt = 0;
             eventPacketsCnt = 0;

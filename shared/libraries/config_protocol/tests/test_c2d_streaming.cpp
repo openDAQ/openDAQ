@@ -113,6 +113,7 @@ TEST_F(StreamingProducerTest, ConnectDisconnectRegisteredSignal)
     };
 
     ConfigProtocolStreamingProducer streamingProducer(context, sendDaqPacketLambda, dummySendCb);
+    streamingProducer.enableReading();
     {
         std::promise<void> promise;
         std::future<void> future = promise.get_future();
@@ -174,6 +175,7 @@ TEST_F(StreamingProducerTest, SignalMultipleConnections)
     auto domainSignal = valueSignal.getDomainSignal();
 
     ConfigProtocolStreamingProducer streamingProducer(context, dummyPacketCb, dummySendCb);
+    streamingProducer.enableReading();
     auto valueSignalNumericId = streamingProducer.registerOrUpdateSignal(valueSignal);
     ASSERT_EQ(valueSignalNumericId, 1u);
     auto domainSignalNumericId = streamingProducer.registerOrUpdateSignal(domainSignal);

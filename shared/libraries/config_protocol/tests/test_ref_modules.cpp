@@ -69,7 +69,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
     const auto instance = Instance();
     // ReSharper disable once CppExpressionWithoutSideEffects
     instance.setRootDevice("daqref://device0");
-    ConfigProtocolServer server(instance, nullptr, anonymousUser, ClientType::Control, test_utils::dummyExtSigFolder(instance));
+    ConfigProtocolServer server(instance, nullptr, anonymousUser, ClientType::Control, test_utils::dummyExtSigFolder(instance.getContext()));
 
     clientContext = NullContext();
     ConfigProtocolClient<ConfigClientDeviceImpl> client(

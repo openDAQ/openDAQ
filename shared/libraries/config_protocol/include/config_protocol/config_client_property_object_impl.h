@@ -263,8 +263,6 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IStr
 
             if (setValue)
                 Impl::setPropertyValue(propertyNamePtr, v);
-            *value = v.detach();
-            return OPENDAQ_SUCCESS;
         }
         
         return Impl::getPropertySelectionValue(propertyNamePtr, value);

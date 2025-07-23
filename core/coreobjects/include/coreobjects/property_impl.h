@@ -950,9 +950,23 @@ public:
 
         auto ownerPtr = getOwner();
         if (ownerPtr.assigned())
-            *hasListeners = ownerPtr.getOnPropertyValueRead(name).getListenerCount() > 0;
+        {
+            EventPtr event;
+            ErrCode err = ownerPtr->getOnPropertyValueRead(name, &event);
+            if (OPENDAQ_FAILED(err))
+            {
+                *hasListeners = false;
+                daqClearErrorInfo();
+                return OPENDAQ_SUCCESS;
+            }
+
+            *hasListeners = event.hasListeners();
+        }
         else
+        {
             *hasListeners = onValueRead.hasListeners();
+        }
+
         return OPENDAQ_SUCCESS;
     }
 

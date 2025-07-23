@@ -460,7 +460,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
     for (const auto& id : toRemove)
         this->removeComponentById(id);
     
-    const std::set<std::string> ignoredKeys{"__type", "deviceInfo", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues"};
+    const std::set<std::string> ignoredKeys{"__type", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues"};
 
     for (const auto& key : serialized.getKeys())
     {
@@ -483,7 +483,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
             const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
                 this->clientComm, this->remoteGlobalId + "/" + key, this->context, nullptr, thisPtr, key, nullptr);
 
-            const ComponentPtr deserializedObj = this->clientComm->deserializeConfigComponent(
+            const PropertyObjectPtr deserializedObj = this->clientComm->deserializeConfigComponent(
                 type,
                 obj,
                 deserializeContext,
@@ -495,19 +495,20 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
                     return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
                 });
 
+
             if (deserializedObj.assigned())
-                this->addExistingComponent(deserializedObj);
+            {
+                if (key == "deviceInfo")
+                    this->deviceInfo = deserializedObj;
+                else
+                    this->addExistingComponent(deserializedObj);
+            }
         }
     }
 
     if (serialized.hasKey("deviceDomain"))
     {
         this->setDeviceDomainNoCoreEvent(serialized.readObject("deviceDomain"));
-    }
-
-    if (serialized.hasKey("deviceInfo"))
-    {
-        this->deviceInfo = serialized.readObject("deviceInfo");
     }
 
     if (serialized.hasKey("OperationMode"))

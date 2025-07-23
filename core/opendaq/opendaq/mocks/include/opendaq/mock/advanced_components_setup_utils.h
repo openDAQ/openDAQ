@@ -114,6 +114,20 @@ namespace daq::test_utils
         {
             auto info = DeviceInfo("", this->localId);
             info.setLocation("loc");
+            info.addProperty(StringProperty("OnReadCallback", ""));
+            info.getOnPropertyValueRead("OnReadCallback") += [this](const PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+            {
+                if (callCntDeviceInfo % 2 == 0)
+                {
+                    args.setValue("bar");
+                }
+                else
+                {
+                    args.setValue("foo");
+                }
+                callCntDeviceInfo++;
+            };
+
             return info.detach();
         }
 
@@ -190,6 +204,8 @@ namespace daq::test_utils
         }
 
         int callCnt = 0;
+        int callCntSelection = 0;
+        int callCntDeviceInfo = 0;
     };
 
     class MockSrvImpl final : public Server

@@ -939,3 +939,27 @@ TEST_F(ConfigNestedPropertyObjectTest, OnReadCallback)
         ASSERT_EQ(prop.getValue(), "foo");
     }
 }
+
+TEST_F(ConfigNestedPropertyObjectTest, OnReadCallbackSelection)
+{
+    auto prop = clientDevice.getProperty("OnReadCallbackSelection");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(clientDevice.getPropertyValue("OnReadCallbackSelection"), 0);
+        ASSERT_EQ(prop.getValue(), 1);
+        ASSERT_EQ(clientDevice.getPropertySelectionValue("OnReadCallbackSelection"), "Mango");
+    }
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, OnReadCallbackDeviceInfo)
+{
+    auto info = clientDevice.getInfo();
+    auto prop = info.getProperty("OnReadCallback");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(info.getPropertyValue("OnReadCallback"), "bar");
+        ASSERT_EQ(prop.getValue(), "foo");
+    }
+}

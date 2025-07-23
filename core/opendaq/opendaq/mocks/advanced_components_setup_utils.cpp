@@ -361,8 +361,13 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     objPtr.addProperty(StringPropertyBuilder("StrProp", "-").build());
 
     objPtr.addProperty(StringProperty("OnReadCallback", ""));
-
+    objPtr.addProperty(SelectionProperty("OnReadCallbackSelection", List<IString>("Apple", "Blueberry", "Mango"), 0));
     
+    objPtr.getOnPropertyValueRead("OnReadCallbackSelection") += [this](const PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+    {
+        args.setValue(callCntSelection++ % 3);
+    };
+
     objPtr.getOnPropertyValueRead("OnReadCallback") += [this](const PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
     {
         if (callCnt % 2 == 0)

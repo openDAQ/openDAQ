@@ -110,8 +110,8 @@ BaseObjectPtr ConfigProtocolClientComm::getSelectionValues(const std::string& gl
 {
     auto dict = Dict<IString, IBaseObject>();
     dict.set("ComponentGlobalId", String(globalId));
-    std::string propertyPath = path.empty() ? propertyName : path + "." + propertyName;
-    dict.set("PropertyPath", String(propertyPath));
+    std::string propNameFull = path.empty() ? propertyName : path + "." + propertyName;
+    dict.set("PropertyName", String(propNameFull));
     auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetSelectionValues", dict);
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 
@@ -123,8 +123,8 @@ ListPtr<IBaseObject> ConfigProtocolClientComm::getSuggestedValues(const std::str
 {
     auto dict = Dict<IString, IBaseObject>();
     dict.set("ComponentGlobalId", String(globalId));
-    std::string propertyPath = path.empty() ? propertyName : path + "." + propertyName;
-    dict.set("PropertyPath", String(propertyPath));
+    std::string propNameFull = path.empty() ? propertyName : path + "." + propertyName;
+    dict.set("PropertyName", String(propNameFull));
     auto getPropertyValueRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetSuggestedValues", dict);
     const auto getPropertyValueRpcReplyPacketBuffer = sendRequestCallback(getPropertyValueRpcRequestPacketBuffer);
 

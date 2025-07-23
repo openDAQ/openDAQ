@@ -53,6 +53,9 @@ ParquetWriter::ParquetWriter(fs::path path, SignalPtr signal, daq::LoggerCompone
 
 ParquetWriter::~ParquetWriter()
 {
+    isClosing = true;
+    scheduler.waitAll();
+    std::lock_guard bufferLock(packetBufferMutex);
     std::lock_guard lock(mutex);
     closeFile();
 }
@@ -207,14 +210,28 @@ void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr&
     }
 
     auto status = sampleBuilder.AppendValues(static_cast<TDataType*>(data.getData()), data.getSampleCount());
+    if(!status.ok()) {
+        LOG_E("Failed to append sample values: {}", status.ToString());
+        return;
+    }
 
     if (domain.assigned())
     {
         status = domainBuilder.AppendValues(static_cast<TDomainType*>(domain.getData()), domain.getSampleCount());
+        if(!status.ok()) {
+            LOG_E("Failed to append domain values: {}", status.ToString());
+            return;
+        }
+    } else {
+        status = domainBuilder.AppendNulls(data.getSampleCount());
+        if(!status.ok()) {
+            LOG_E("Failed to append null domain values: {}", status.ToString());
+            return;
+        }
     }
 
     const auto sampleCount = data.getSampleCount();
-    const auto domainCount = domain.assigned() ? domain.getSampleCount() : 0;
+    const auto domainCount = domain.assigned() ? domain.getSampleCount() : sampleCount;
     const auto packetId = data.getPacketId();
 
     if (sampleCount != domainCount)
@@ -252,13 +269,13 @@ void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr&
     }
     else
     {
-        LOG_I("ParquetWriter::writePackets: Successfully wrote record batch with ID: {} and sample count: {}", packetId, sampleCount);
+        LOG_D("ParquetWriter::writePackets: Successfully wrote record batch with ID: {} and sample count: {}", packetId, sampleCount);
     }
 }
 
 void ParquetWriter::onEventPacket(const EventPacketPtr& packet)
 {
-    LOG_I("ParquetWriter::onEventPacket: Processing event packet with ID: {}", packet.getEventId());
+    LOG_D("ParquetWriter::onEventPacket: Processing event packet with ID: {}", packet.getEventId());
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
         DataDescriptorPtr dataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
@@ -269,7 +286,7 @@ void ParquetWriter::onEventPacket(const EventPacketPtr& packet)
 
 void ParquetWriter::generateMetadata(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor)
 {
-    LOG_I("ParquetWriter::generateMetadata: Generating metadata for data and domain descriptors");
+    LOG_D("ParquetWriter::generateMetadata: Generating metadata for data and domain descriptors");
     if (!dataDescriptor.assigned() || !domainDescriptor.assigned())
     {
         LOG_E("Data or domain descriptor is null, cannot generate metadata");
@@ -292,7 +309,7 @@ void ParquetWriter::generateMetadata(const DataDescriptorPtr& dataDescriptor, co
     auto dataMetadata = getMetadata(dataDescriptor);
     auto domainMetadata = getMetadata(domainDescriptor);
 
-    LOG_I("ParquetWriter::generateMetadata: Data field '{}' of type '{}' with metadata '{}', Domain field '{}' of type '{}' with metadata "
+    LOG_D("ParquetWriter::generateMetadata: Data field '{}' of type '{}' with metadata '{}', Domain field '{}' of type '{}' with metadata "
           "'{}'",
           dataName,
           convertSampleTypeToString(dataType),
@@ -310,7 +327,7 @@ void ParquetWriter::generateMetadata(const DataDescriptorPtr& dataDescriptor, co
 
     if (schema)
     {
-        LOG_I("ParquetWriter::generateMetadata: Schema generated with data field '{}' of type '{}' and domain field '{}' of type '{}'",
+        LOG_D("ParquetWriter::generateMetadata: Schema generated with data field '{}' of type '{}' and domain field '{}' of type '{}'",
               dataName,
               convertSampleTypeToString(dataType),
               domainName,
@@ -324,7 +341,7 @@ void ParquetWriter::generateMetadata(const DataDescriptorPtr& dataDescriptor, co
 
 void ParquetWriter::openFile()
 {
-    LOG_I("ParquetWriter::openFile: Opening Parquet file for writing at path: {}", path.string());
+    LOG_D("ParquetWriter::openFile: Opening Parquet file for writing at path: {}", path.string());
 
     // Set up Parquet file output
     outfile = arrow::io::FileOutputStream::Open(getFilename(path, signal)).ValueOr(nullptr);
@@ -340,14 +357,14 @@ void ParquetWriter::openFile()
                      *schema, arrow::default_memory_pool(), outfile, writerPropertiesBuilder.build(), arrowPropertiesBuilder.build())
                      .ValueOr(nullptr);
     }
-    LOG_I("ParquetWriter::openFile: Parquet file file {} writer {}",
+    LOG_D("ParquetWriter::openFile: Parquet file file {} writer {}",
           outfile ? "opened successfully" : "failed to open",
           writer ? "created successfully" : "failed to create");
 }
 
 void ParquetWriter::closeFile()
 {
-    LOG_I("ParquetWriter::closeFile: Closing Parquet file and writer");
+    LOG_D("ParquetWriter::closeFile: Closing Parquet file and writer");
     if (writer)
     {
         auto status = writer->Close();
@@ -370,14 +387,14 @@ void ParquetWriter::closeFile()
 
 void ParquetWriter::configure(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor)
 {
-    LOG_I("ParquetWriter::configure: Configuring ParquetWriter with data and domain descriptors");
+    LOG_D("ParquetWriter::configure: Configuring ParquetWriter with data and domain descriptors");
     generateMetadata(dataDescriptor, domainDescriptor);
     openFile();
 }
 
 void ParquetWriter::reconfigure(const DataDescriptorPtr& dataDescriptor, const DataDescriptorPtr& domainDescriptor)
 {
-    LOG_I("ParquetWriter::reconfigure: Reconfiguring ParquetWriter with new data and domain descriptors");
+    LOG_D("ParquetWriter::reconfigure: Reconfiguring ParquetWriter with new data and domain descriptors");
     if (!dataDescriptor.assigned() || !domainDescriptor.assigned())
     {
         LOG_E("Data or domain descriptor is null, cannot reconfigure");
@@ -386,7 +403,7 @@ void ParquetWriter::reconfigure(const DataDescriptorPtr& dataDescriptor, const D
 
     if (dataDescriptor == currentDataDescriptor && domainDescriptor == currentDomainDescriptor)
     {
-        LOG_I("ParquetWriter::reconfigure: No changes in data or domain descriptor, skipping reconfiguration.");
+        LOG_D("ParquetWriter::reconfigure: No changes in data or domain descriptor, skipping reconfiguration.");
         return;
     }
 
@@ -397,6 +414,8 @@ void ParquetWriter::reconfigure(const DataDescriptorPtr& dataDescriptor, const D
 void ParquetWriter::enqueuePacketList(ListPtr<IPacket>& packets)
 {
     std::lock_guard lock(packetBufferMutex);
+    if (isClosing) return;
+
     for (auto&& packet : packets)
     {
         packetBuffer.push_back(packet);

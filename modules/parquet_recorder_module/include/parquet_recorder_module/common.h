@@ -45,7 +45,7 @@ struct Tags
 struct Props
 {
     /*!
-     * @brief The absolute path to the directory where Parquet files should be written.
+     * @brief The path to the directory where Parquet files should be written.
      *
      * A separate Parquet file is written for each recorded signal. The current implementation
      * interprets relative paths with respect to the current working directory of the

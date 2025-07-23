@@ -64,11 +64,11 @@ void NativeServerStreamingImpl::initServerHandlerCallbacks()
 
     OnSignalAvailableCallback signalAvailableCb =
         [this](const StringPtr& signalStringId,
-               const StringPtr& serializedSignal)
+               const StringPtr& /*serializedSignal*/)
     {
         dispatch(
             *processingIOContextPtr,
-            [this, signalStringId, serializedSignal]()
+            [this, signalStringId]()
             {
                 this->addToAvailableSignals(signalStringId);
             }
@@ -121,11 +121,11 @@ void NativeServerStreamingImpl::upgradeServerHandlerCallbacks()
 
     OnSignalAvailableCallback signalAvailableCb =
         [this, thisRef](const StringPtr& signalStringId,
-                        const StringPtr& serializedSignal)
+                        const StringPtr& /*serializedSignal*/)
     {
         dispatch(
             *processingIOContextPtr,
-            [this, thisRef, signalStringId, serializedSignal]()
+            [this, thisRef, signalStringId]()
             {
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
                     this->addToAvailableSignals(signalStringId);

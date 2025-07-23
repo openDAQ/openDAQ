@@ -16,6 +16,7 @@
 #include "opendaq/utils/thread_name.h"
 
 BEGIN_NAMESPACE_OPENDAQ
+
 LoggerImpl::LoggerImpl(const ListPtr<ILoggerSink>& sinksList, LogLevel level)
     : threadPool(LoggerThreadPool())
     , level(level)

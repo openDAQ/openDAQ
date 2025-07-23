@@ -117,6 +117,8 @@ protected:
                                         bool subscribed,
                                         const std::string& clientId);
 
+    void onPacketBufferReceived(const packet_streaming::PacketBufferPtr& packetBuffer, const std::string& clientId);
+
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     LoggerPtr logger;

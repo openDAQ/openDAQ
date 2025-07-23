@@ -186,6 +186,9 @@ public:
                                         SubscribeAckCallback cb);
 
     void doClientSignalSubscription(const std::string& signalStringId, DoSubscribeCallback cb);
+    void handleReceivedPacketBuffer(const packet_streaming::PacketBufferPtr& packetBuffer,
+                                    const std::string& clientId,
+                                    OnPacketCallback cb);
 
 private:
 

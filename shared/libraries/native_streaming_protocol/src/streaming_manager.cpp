@@ -579,6 +579,35 @@ void StreamingManager::doClientSignalSubscription(const std::string& signalStrin
     }
 }
 
+void StreamingManager::handleReceivedPacketBuffer(const packet_streaming::PacketBufferPtr& packetBuffer,
+                                                  const std::string& clientId,
+                                                  OnPacketCallback cb)
+{
+    std::scoped_lock lock(sync);
+
+    PacketStreamingClientPtr packetStreamingClientPtr;
+    if (const auto it = packetStreamingClients.find(clientId); it != packetStreamingClients.end())
+        packetStreamingClientPtr = it->second;
+    else
+        return;
+
+    packetStreamingClientPtr->addPacketBuffer(packetBuffer);
+    auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
+    while (packet.assigned())
+    {
+        auto clientAndNumericIdMatch = [&clientId, signalNumericId = signalNumericId](const std::pair<std::string, RegisteredClientSignal>& pair) {
+            return pair.second.clientId == clientId && pair.second.signalNumericId == signalNumericId;
+        };
+
+        if (auto clientSignalIter = std::find_if(registeredClientSignals.begin(), registeredClientSignals.end(), clientAndNumericIdMatch);
+            clientSignalIter != registeredClientSignals.end())
+        {
+            cb(clientSignalIter->second.signalStringId, packet);
+        }
+        std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
+    }
+}
+
 StreamingManager::RegisteredServerSignal::RegisteredServerSignal(SignalPtr daqSignal, SignalNumericIdType numericId)
     : daqSignal(daqSignal)
     , numericId(numericId)

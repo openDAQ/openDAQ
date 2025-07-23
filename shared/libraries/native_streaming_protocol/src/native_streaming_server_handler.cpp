@@ -713,6 +713,14 @@ void NativeStreamingServerHandler::setUpStreamingInitCallback(std::shared_ptr<Se
     sessionHandler->setStreamingInitHandler(streamingInitCb);
 }
 
+void NativeStreamingServerHandler::onPacketBufferReceived(const packet_streaming::PacketBufferPtr& packetBuffer,
+                                                          const std::string& clientId)
+{
+    std::scoped_lock lock(sync);
+
+    streamingManager.handleReceivedPacketBuffer(packetBuffer, clientId, packetHandler);
+}
+
 void NativeStreamingServerHandler::handleStreamingInit(std::shared_ptr<ServerSessionHandler> sessionHandler)
 {
     std::scoped_lock lock(sync);
@@ -722,6 +730,14 @@ void NativeStreamingServerHandler::handleStreamingInit(std::shared_ptr<ServerSes
                                     streamingPacketSendTimeout != UNLIMITED_PACKET_SEND_TIME,
                                     cacheablePacketPayloadSizeMax,
                                     packetStreamingReleaseThreshold);
+
+    OnPacketBufferReceivedCallback packetBufferReceivedHandler =
+        [clientId = sessionHandler->getClientId(), thisWeakPtr = this->weak_from_this()](const packet_streaming::PacketBufferPtr& packetBuffer)
+    {
+        if (const auto thisPtr = thisWeakPtr.lock())
+            thisPtr->onPacketBufferReceived(packetBuffer, clientId);
+    };
+    sessionHandler->setPacketBufferReceivedHandler(packetBufferReceivedHandler);
 
     auto registeredSignals = streamingManager.getRegisteredSignals();
     for (const auto& [signalNumericId, signalPtr] : registeredSignals)

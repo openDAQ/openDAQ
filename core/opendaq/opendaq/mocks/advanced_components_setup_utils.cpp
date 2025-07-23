@@ -359,6 +359,7 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
 	objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());
     
     objPtr.addProperty(StringPropertyBuilder("StrProp", "-").build());
+    objPtr.addProperty(StringPropertyBuilder("StringSuggestedValues", "Orange").setSuggestedValues(List<IString>("Apple", "Orange", "Mango")).build());
 
     objPtr.addProperty(StringProperty("OnReadCallback", ""));
     objPtr.addProperty(SelectionProperty("OnReadCallbackSelection", List<IString>("Apple", "Blueberry", "Mango"), 0));

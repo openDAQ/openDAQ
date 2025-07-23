@@ -1072,10 +1072,10 @@ public:
                                             name));
         }
 
-        if (suggestedValues.assigned() && (valueType != ctInt && valueType != ctFloat))
+        if (suggestedValues.assigned() && (valueType != ctInt && valueType != ctFloat && valueType != ctString))
         {
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE,
-                                       fmt::format(R"({}: Only numerical properties can have a list of suggested values)", name));
+                                       fmt::format(R"({}: Only numerical and string properties can have a list of suggested values)", name));
         }
 
         if (valueType == ctList || valueType == ctDict)

@@ -67,7 +67,8 @@ protected:
                                .addProperty(SparseSelectionProperty("SparseSelectionProp", dict, 5))
                                .addProperty(DictProperty("DictProp", dict))
                                .addProperty(ReferenceProperty("Kind", EvalValue("%Child")))
-                               .addProperty(referencedProp);
+                               .addProperty(referencedProp)
+                               .addProperty(StringPropertyBuilder("StringSuggestedValues", "Orange").setSuggestedValues(List<IString>("Apple", "Orange", "Mango")).build());
         testPropClass = testPropClassBuilder.build();
         objManager = TypeManager();
         objManager.addType(testPropClass);
@@ -2358,4 +2359,12 @@ TEST_F(PropertyObjectTest, OnGetSuggestedValues)
         ASSERT_EQ(objProp.getSuggestedValues(), List<IInteger>(0, 10, 20));
         ASSERT_EQ(cnt, 4 * (i + 1));
     }
+}
+
+TEST_F(PropertyObjectTest, StringSuggestedValues)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    ASSERT_EQ(propObj.getProperty("StringSuggestedValues").getSuggestedValues(), List<IString>("Apple", "Orange", "Mango"));
+
+    ASSERT_NO_THROW(propObj.setPropertyValue("StringSuggestedValues", "Tomato"));
 }

@@ -1027,6 +1027,13 @@ TEST_F(ConfigNestedPropertyObjectTest, OnReadCallbackDeviceInfo)
     }
 }
 
+TEST_F(ConfigNestedPropertyObjectTest, StringSuggestedValues)
+{
+    ASSERT_EQ(clientDevice.getProperty("StringSuggestedValues").getSuggestedValues(), List<IString>("Apple", "Orange", "Mango"));
+
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("StringSuggestedValues", "Tomato"));
+}
+
 TEST_F(ConfigPropertyObjectNestedDevicesTest, OnGetSelectionValuesNestedDevice)
 {
     auto selectionProp = SelectionProperty("Selection", List<IString>(), 0);

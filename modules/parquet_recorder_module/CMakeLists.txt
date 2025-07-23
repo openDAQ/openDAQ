@@ -4,6 +4,6 @@ project(ParquetRecorderModule VERSION ${OPENDAQ_PACKAGE_VERSION} LANGUAGES C CXX
 
 add_subdirectory(src)
 
-# if (OPENDAQ_ENABLE_TESTS)
-#     add_subdirectory(tests)
-# endif()
+if(OPENDAQ_ENABLE_TESTS)
+    add_subdirectory(tests)
+endif()

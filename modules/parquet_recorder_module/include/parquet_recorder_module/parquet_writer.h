@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <atomic>
+
 #include <opendaq/opendaq.h>
 #include <coretypes/filesystem.h>
 
@@ -66,6 +68,8 @@ private:
 
     std::vector<PacketPtr> packetBuffer;
     std::mutex packetBufferMutex;
+
+    std::atomic_bool isClosing = false;
 
     std::vector<PacketPtr> dequeuePacketList();
     void processPacketList(const std::vector<PacketPtr>& packets);

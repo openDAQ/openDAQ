@@ -484,7 +484,7 @@ ReadTask BaseSessionHandler::readSignalAvailable(const void* data, size_t size)
         return createReadStopTask();
     }
 
-    signalReceivedHandler(signalNumericId, signalIdString, serializedSignal, true);
+    signalReceivedHandler(signalNumericId, signalIdString, serializedSignal, true, getClientId());
     return createReadHeaderTask();
 }
 
@@ -516,7 +516,7 @@ ReadTask BaseSessionHandler::readSignalUnavailable(const void* data, size_t size
         return createReadStopTask();
     }
 
-    signalReceivedHandler(signalNumericId, signalIdString, nullptr, false);
+    signalReceivedHandler(signalNumericId, signalIdString, nullptr, false, getClientId());
     return createReadHeaderTask();
 }
 
@@ -540,7 +540,7 @@ ReadTask BaseSessionHandler::readSignalSubscribedAck(const void* data, size_t si
         return createReadStopTask();
     }
 
-    subscriptionAckHandler(signalNumericId, true);
+    subscriptionAckHandler(signalNumericId, true, getClientId());
     return createReadHeaderTask();
 }
 
@@ -564,7 +564,7 @@ ReadTask BaseSessionHandler::readSignalUnsubscribedAck(const void* data, size_t 
         return createReadStopTask();
     }
 
-    subscriptionAckHandler(signalNumericId, false);
+    subscriptionAckHandler(signalNumericId, false, getClientId());
     return createReadHeaderTask();
 }
 

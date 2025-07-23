@@ -327,7 +327,8 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
         [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId,
                                                const StringPtr& signalStringId,
                                                const StringPtr& serializedSignal,
-                                               bool available)
+                                               bool available,
+                                               const std::string& /*clientId*/)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
             thisPtr->handleSignal(signalNumericId, signalStringId, serializedSignal, available);
@@ -341,10 +342,34 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
     };
 
     OnSubscriptionAckCallback subscriptionAckCallback =
-        [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId, bool subscribed)
+        [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId,
+                                               bool subscribed,
+                                               const std::string& /*clientId*/)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
-            thisPtr->signalSubscriptionAckCallback(thisPtr->signalIds.at(signalNumericId), subscribed);
+        {
+            std::scoped_lock lock(thisPtr->registeredSignalsSync);
+            if (const auto it = thisPtr->signalIds.find(signalNumericId); it != thisPtr->signalIds.end())
+                thisPtr->signalSubscriptionAckCallback(it->second, subscribed);
+        }
+    };
+
+    OnFindSignalCallback findSignalHandler = [thisWeakPtr = this->weak_from_this()](const std::string& signalId)
+    {
+        if (const auto thisPtr = thisWeakPtr.lock())
+            return nullptr;
+        throw NativeStreamingProtocolException("Client handler object destroyed");
+    };
+
+    OnSignalSubscriptionCallback signalSubscriptionHandler =
+        [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId,
+                                               const SignalPtr& signal,
+                                               bool subscribe,
+                                               const std::string& /*clientId*/)
+    {
+        if (const auto thisPtr = thisWeakPtr.lock())
+            return true;
+        return false;
     };
 
     sessionHandler = std::make_shared<ClientSessionHandler>(context,
@@ -353,8 +378,8 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
                                                             signalReceivedHandler,
                                                             protocolInitDoneHandler,
                                                             subscriptionAckCallback,
-                                                            nullptr,
-                                                            nullptr,
+                                                            findSignalHandler,
+                                                            signalSubscriptionHandler,
                                                             errorHandler);
 
     ProcessConfigProtocolPacketCb configPacketReceivedHandler =
@@ -466,9 +491,9 @@ void NativeStreamingClientImpl::initClient(std::string host,
 }
 
 void NativeStreamingClientImpl::handleSignal(const SignalNumericIdType& signalNumericId,
-                                                const StringPtr& signalStringId,
-                                                const StringPtr& serializedSignal,
-                                                bool available)
+                                             const StringPtr& signalStringId,
+                                             const StringPtr& serializedSignal,
+                                             bool available)
 {
     {
         std::scoped_lock lock(registeredSignalsSync);
@@ -484,7 +509,7 @@ void NativeStreamingClientImpl::handleSignal(const SignalNumericIdType& signalNu
                       signalNumericId,
                       it->second,
                       signalStringId);
-                DAQ_THROW_EXCEPTION(DuplicateItemException);
+                return;
             }
         }
         else

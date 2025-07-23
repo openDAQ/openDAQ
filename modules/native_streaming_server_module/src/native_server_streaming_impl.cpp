@@ -50,12 +50,12 @@ void NativeServerStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& si
 
 void NativeServerStreamingImpl::onSubscribeSignal(const StringPtr& signalStreamingId)
 {
-    transportServerHandler->subscribeSignal(signalStreamingId);
+    transportServerHandler->doSubscribeSignal(signalStreamingId, true);
 }
 
 void NativeServerStreamingImpl::onUnsubscribeSignal(const StringPtr& signalStreamingId)
 {
-    transportServerHandler->subscribeSignal(signalStreamingId);
+    transportServerHandler->doSubscribeSignal(signalStreamingId, false);
 }
 
 void NativeServerStreamingImpl::initServerHandlerCallbacks()
@@ -72,7 +72,7 @@ void NativeServerStreamingImpl::initServerHandlerCallbacks()
             {
                 this->addToAvailableSignals(signalStringId);
             }
-            );
+        );
     };
     OnSignalUnavailableCallback signalUnavailableCb =
         [this](const StringPtr& signalStringId)
@@ -83,7 +83,7 @@ void NativeServerStreamingImpl::initServerHandlerCallbacks()
             {
                 this->removeFromAvailableSignals(signalStringId);
             }
-            );
+        );
     };
     OnPacketCallback onPacketCallback =
         [this](const StringPtr& signalStringId, const PacketPtr& packet)
@@ -94,7 +94,7 @@ void NativeServerStreamingImpl::initServerHandlerCallbacks()
             {
                 this->onPacket(signalStringId, packet);
             }
-            );
+        );
     };
     OnSignalSubscriptionAckCallback onSignalSubscriptionAckCallback =
         [this](const StringPtr& signalStringId, bool subscribed)
@@ -105,7 +105,7 @@ void NativeServerStreamingImpl::initServerHandlerCallbacks()
             {
                 this->triggerSubscribeAck(signalStringId, subscribed);
             }
-            );
+        );
     };
 
     transportServerHandler->setStreamingToDeviceHandlers(signalAvailableCb,
@@ -130,7 +130,7 @@ void NativeServerStreamingImpl::upgradeServerHandlerCallbacks()
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
                     this->addToAvailableSignals(signalStringId);
             }
-            );
+        );
     };
     OnSignalUnavailableCallback signalUnavailableCb =
         [this, thisRef](const StringPtr& signalStringId)
@@ -142,7 +142,7 @@ void NativeServerStreamingImpl::upgradeServerHandlerCallbacks()
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
                     this->removeFromAvailableSignals(signalStringId);
             }
-            );
+        );
     };
     OnPacketCallback onPacketCallback =
         [this, thisRef](const StringPtr& signalStringId, const PacketPtr& packet)
@@ -154,7 +154,7 @@ void NativeServerStreamingImpl::upgradeServerHandlerCallbacks()
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
                     this->onPacket(signalStringId, packet);
             }
-            );
+        );
     };
     OnSignalSubscriptionAckCallback onSignalSubscriptionAckCallback =
         [this, thisRef](const StringPtr& signalStringId, bool subscribed)
@@ -166,7 +166,7 @@ void NativeServerStreamingImpl::upgradeServerHandlerCallbacks()
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
                     this->triggerSubscribeAck(signalStringId, subscribed);
             }
-            );
+        );
     };
 
     transportServerHandler->setStreamingToDeviceHandlers(signalAvailableCb,

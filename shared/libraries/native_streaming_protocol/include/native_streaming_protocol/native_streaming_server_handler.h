@@ -67,8 +67,7 @@ public:
     static PropertyObjectPtr createDefaultConfig();
 
     // streaming-to-device subscriptions
-    void subscribeSignal(const StringPtr& signalStringId);
-    void unsubscribeSignal(const StringPtr& signalStringId);
+    void doSubscribeSignal(const StringPtr& signalStringId, bool subscribe);
 
     void resetStreamingToDeviceHandlers();
     void setStreamingToDeviceHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
@@ -107,6 +106,16 @@ protected:
                                                 std::vector<std::shared_ptr<ServerSessionHandler>>& releasedSessionHandlers);
     ClientType parseClientTypeProp(const PropertyObjectPtr& propertyObject);
     bool parseExclusiveControlDropOthersProp(const PropertyObjectPtr& propertyObject);
+
+    void handleClientSignal(const SignalNumericIdType& signalNumericId,
+                            const StringPtr& signalStringId,
+                            const StringPtr& serializedSignal,
+                            bool available,
+                            const std::string& clientId);
+
+    void handleClientSignalSubscribeAck(const SignalNumericIdType& signalNumericId,
+                                        bool subscribed,
+                                        const std::string& clientId);
 
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;

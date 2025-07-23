@@ -107,6 +107,12 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     add_executable(quick_start_empty cpp/quick_start/quick_start_empty.cpp)
     target_link_libraries(quick_start_empty PRIVATE daq::opendaq)
 
+    add_executable(logger_wo_sinks_example cpp/logger_example/logger_wo_sinks/logger_wo_sinks_example.cpp)
+    target_link_libraries(logger_wo_sinks_example PRIVATE daq::opendaq)
+
+    add_executable(logger_w_sinks_example cpp/logger_example/logger_w_sinks/logger_w_sinks_example.cpp)
+    target_link_libraries(logger_w_sinks_example PRIVATE daq::opendaq)
+
     if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND OPENDAQ_ENABLE_NATIVE_STREAMING)
         add_executable(client_authentication cpp/client_authentication/client_authentication.cpp)
         target_link_libraries(client_authentication PRIVATE daq::opendaq)

@@ -631,6 +631,9 @@ bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyAdded(c
     if (propObjPtr.hasProperty(prop.getName()))
         return true;
 
+    if (auto configObj = dynamic_cast<ConfigClientPropertyImpl*>(prop.getObject()); configObj)
+        configObj->setRemoteGlobalId(this->remoteGlobalId);
+
     // fixme - nested property objects of DeviceInfo do not support IConfigClientObject interface
     //ScopedRemoteUpdate update(propObjPtr);
     propObjPtr.addProperty(prop);

@@ -26,6 +26,7 @@
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
 #include <opendaq/context_factory.h>
 #include <config_protocol/errors.h>
+#include <config_protocol/config_client_property.h>
 
 namespace daq::config_protocol
 {
@@ -826,6 +827,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyAdded(const CoreEventArgs
     PropertyPtr prop = params.get("Property");
     if (obj.hasProperty(prop.getName()))
         return;
+    
+    if (auto configObj = dynamic_cast<ConfigClientPropertyImpl*>(prop.getObject()); configObj)
+        configObj->setRemoteGlobalId(this->remoteGlobalId);
 
     if (params.get("Path") != "")
     {

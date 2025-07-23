@@ -948,7 +948,11 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(hasListeners);
 
-        *hasListeners = onValueRead.hasListeners();
+        auto ownerPtr = getOwner();
+        if (ownerPtr.assigned())
+            *hasListeners = ownerPtr.getOnPropertyValueRead(name).getListenerCount() > 0;
+        else
+            *hasListeners = onValueRead.hasListeners();
         return OPENDAQ_SUCCESS;
     }
 

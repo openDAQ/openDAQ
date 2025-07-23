@@ -28,7 +28,6 @@ DevicePtr createTestDevice(const std::string& localId)
                                .addProperty(StringProperty("MockString", "String"))
                                .addProperty(ObjectProperty("MockChild", obj))
                                .build();
-
     typeManager.addType(mockClass);
 
     const auto rootDevice = createWithImplementation<IDevice, MockDevice2Impl>(context, nullptr, localId);
@@ -360,6 +359,22 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
 	objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());
     
     objPtr.addProperty(StringPropertyBuilder("StrProp", "-").build());
+
+    objPtr.addProperty(StringProperty("OnReadCallback", ""));
+
+    
+    objPtr.getOnPropertyValueRead("OnReadCallback") += [this](const PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+    {
+        if (callCnt % 2 == 0)
+        {
+            args.setValue("bar");
+        }
+        else
+        {
+            args.setValue("foo");
+        }
+        callCnt++;
+    };
 
     const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
     try

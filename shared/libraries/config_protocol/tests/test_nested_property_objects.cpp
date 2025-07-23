@@ -838,3 +838,104 @@ TEST_F(ConfigNestedPropertyObjectTest, ProcedurePropWithDictArg)
     auto dictArg = Dict<IInteger, IString>({{0, "foo"}, {1, "bar"}});
     proc(dictArg);
 }
+
+TEST_F(ConfigNestedPropertyObjectTest, OnGetSelectionValues)
+{
+    auto selectionProp = SelectionProperty("Selection", List<IString>(), 0);
+
+    int cnt = 0;
+    selectionProp.getOnSelectionValuesRead() += [&cnt](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(List<IString>("foo", "bar"));
+        else
+            args.setValue(List<IString>("apple", "pineapple", "blueberry"));
+        cnt++;
+    };
+
+    serverDevice.addProperty(selectionProp);
+
+    auto objProp = clientDevice.getProperty("Selection");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(objProp.getSelectionValues(), List<IString>("apple", "pineapple", "blueberry"));
+        ASSERT_EQ(objProp.getSelectionValues(), List<IString>("foo", "bar"));
+        ASSERT_EQ(cnt, 2 * i);
+    }
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, OnGetSparseSelectionValues)
+{
+    auto selectionProp = SparseSelectionProperty("Selection", Dict<IInteger, IString>(), 0);
+
+    auto dict1 = Dict<IInteger, IString>({{0, "foo"}, {5, "bar"}});
+    auto dict2 = Dict<IInteger, IString>({{0, "foo"}, {5, "bar"}});
+
+    int cnt = 0;
+    selectionProp.getOnSelectionValuesRead() += [&cnt, &dict1, &dict2](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(dict1);
+        else
+            args.setValue(dict2);
+        cnt++;
+    };
+
+    serverDevice.addProperty(selectionProp);
+
+    auto objProp = clientDevice.getProperty("Selection");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        DictPtr<IInteger, IString> values = objProp.getSelectionValues();
+        ASSERT_EQ(values.getKeyList(), dict2.getKeyList());
+        ASSERT_EQ(values.getValueList(), dict2.getValueList());
+
+        values = objProp.getSelectionValues();
+        ASSERT_EQ(values.getValueList(), dict1.getValueList());
+        ASSERT_EQ(values.getKeyList(), dict1.getKeyList());
+
+        ASSERT_EQ(cnt, 2 * i);
+    }
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, OnGetSuggestedValues)
+{
+    auto intProp = IntPropertyBuilder("SuggestedValues", 10).build();
+
+    int cnt = 0;
+    intProp.getOnSuggestedValuesRead() += [&cnt](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(List<IInteger>(0, 10, 20));
+        else
+            args.setValue(List<IInteger>(10, 20, 30));
+        cnt++;
+    };
+
+    serverDevice.addProperty(intProp);
+
+    auto objProp = clientDevice.getProperty("SuggestedValues");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(objProp.getSuggestedValues(), List<IInteger>(10, 20, 30));
+        ASSERT_EQ(objProp.getSuggestedValues(), List<IInteger>(0, 10, 20));
+        ASSERT_EQ(cnt, 2 * i );
+    }
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, OnReadCallback)
+{
+    auto prop = clientDevice.getProperty("OnReadCallback");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(clientDevice.getPropertyValue("OnReadCallback"), "bar");
+        ASSERT_EQ(prop.getValue(), "foo");
+    }
+}

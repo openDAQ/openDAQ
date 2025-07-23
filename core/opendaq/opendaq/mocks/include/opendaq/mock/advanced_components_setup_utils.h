@@ -188,6 +188,8 @@ namespace daq::test_utils
             dev.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(dev.getSignalsRecursive()[0]);
             return dev;
         }
+
+        int callCnt = 0;
     };
 
     class MockSrvImpl final : public Server

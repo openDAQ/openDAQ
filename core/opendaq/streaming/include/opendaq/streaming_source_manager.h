@@ -25,6 +25,9 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
 
+#include <opendaq/mirrored_input_port_config_ptr.h>
+#include <opendaq/streaming_to_device_ptr.h>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 class StreamingSourceManager;
@@ -270,6 +273,65 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
         ListPtr<ISignal> nestedSignals = addedFolder.getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
         for (const auto& nestedSignal : nestedSignals)
             setupStreamingForSignal(nestedSignal);
+    }
+
+    auto setupStreamingForInputPort = [this, &allStreamingSources](const InputPortPtr& inputPort)
+    {
+        for (const auto& streamingBase : allStreamingSources)
+        {
+            StreamingToDevicePtr streaming = streamingBase.asPtrOrNull<IStreamingToDevice>();
+            if (!streaming.assigned())
+                continue;
+            ErrCode errCode = daqTry([&]()
+                                     {
+                                         streaming.addInputPorts({inputPort});
+                                     });
+            if (OPENDAQ_SUCCEEDED(errCode))
+            {
+                LOG_I("InputPort \"{}\" added to streaming \"{}\"", inputPort.getGlobalId(), streaming.getConnectionString());
+            }
+            else if (errCode != OPENDAQ_ERR_DUPLICATEITEM)
+            {
+                checkErrorInfo(errCode);
+            }
+            else
+            {
+                daqClearErrorInfo();
+            }
+        }
+        auto mirroredInputPortConfigPtr = inputPort.template asPtr<IMirroredInputPortConfig>();
+        if (!mirroredInputPortConfigPtr.getActiveStreamingSource().assigned())
+        {
+            // streaming sources were created (by completeStreamingConnections) and ordered by priority above,
+            // set the highest-priority source as active for inputPort, if relevant
+            auto inputPortStreamingSources = mirroredInputPortConfigPtr.getStreamingSources();
+            for (const auto& streamingBase : allStreamingSources)
+            {
+                StreamingToDevicePtr streaming = streamingBase.asPtrOrNull<IStreamingToDevice>();
+                if (!streaming.assigned())
+                    continue;
+                auto connectionString = streaming.getConnectionString();
+                auto it = std::find(inputPortStreamingSources.begin(), inputPortStreamingSources.end(), connectionString);
+                if (it != inputPortStreamingSources.end())
+                {
+                    mirroredInputPortConfigPtr.setActiveStreamingSource(connectionString);
+                    LOG_I("Set active streaming source \"{}\" for inputPort \"{}\"", connectionString, inputPort.getGlobalId());
+                    break;
+                }
+            }
+        }
+    };
+
+    // setup streaming sources for all input ports of the new component
+    if (auto addedInputPort = addedComponent.asPtrOrNull<IInputPort>(); addedInputPort.assigned())
+    {
+        setupStreamingForInputPort(addedInputPort);
+    }
+    else if (auto addedFolder = addedComponent.asPtrOrNull<IFolder>(); addedFolder.assigned())
+    {
+        ListPtr<IInputPort> nestedInputPorts = addedFolder.getItems(search::Recursive(search::InterfaceId(IInputPort::Id)));
+        for (const auto& nestedInputPort : nestedInputPorts)
+            setupStreamingForInputPort(nestedInputPort);
     }
 }
 

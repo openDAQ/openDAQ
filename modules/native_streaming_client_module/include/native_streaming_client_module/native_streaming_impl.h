@@ -425,6 +425,7 @@ public:
                 protocolId)
     {
         initStreamingToDeviceCallbacks();
+        startReadThread();
     }
 
     // INativeStreamingPrivate

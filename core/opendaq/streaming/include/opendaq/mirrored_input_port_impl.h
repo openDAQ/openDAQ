@@ -135,7 +135,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::addStreamingSource(IStreamingToDev
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
-                           [&connectionString](const std::pair<StringPtr, WeakRefPtr<IStreaming>>& item)
+                           [&connectionString](const std::pair<StringPtr, WeakRefPtr<IStreamingToDevice>>& item)
                            {
                                return connectionString == item.first;
                            });
@@ -152,7 +152,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::addStreamingSource(IStreamingToDev
         );
     }
 
-    streamingSourcesRefs.push_back({connectionString, WeakRefPtr<IStreaming>(streamingPtr)});
+    streamingSourcesRefs.push_back({connectionString, WeakRefPtr<IStreamingToDevice>(streamingPtr)});
     return OPENDAQ_SUCCESS;
 }
 
@@ -167,7 +167,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::removeStreamingSource(IString* str
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
-                           [&streamingConnectionStringPtr](const std::pair<StringPtr, WeakRefPtr<IStreaming>>& item)
+                           [&streamingConnectionStringPtr](const std::pair<StringPtr, WeakRefPtr<IStreamingToDevice>>& item)
                            {
                                return streamingConnectionStringPtr == item.first;
                            });
@@ -243,7 +243,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::setActiveStreamingSource(IString* 
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
-                           [&connectionStringPtr](const std::pair<StringPtr, WeakRefPtr<IStreaming>>& item)
+                           [&connectionStringPtr](const std::pair<StringPtr, WeakRefPtr<IStreamingToDevice>>& item)
                            {
                                return connectionStringPtr == item.first;
                            });

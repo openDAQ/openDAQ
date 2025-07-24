@@ -75,13 +75,14 @@ protected:
     virtual void onUnregisterStreamedSignal(const SignalPtr& signal) = 0;
     virtual void signalReadingFunc() = 0;
 
+    void startReadThread();
+
     std::unordered_map<StringPtr, WeakRefPtr<IMirroredInputPortConfig>> streamedSignals;
 
 private:
     ErrCode removeStreamingSourceForAllInputPorts();
     void removeAllInputPortsInternal();
     void readingThreadFunc();
-    void startReadThread();
     void stopReadThread();
 
     StringPtr protocolId;
@@ -103,7 +104,6 @@ StreamingToDeviceImpl<Interfaces...>::StreamingToDeviceImpl(const StringPtr& con
     , protocolId(protocolId)
     , readThreadSleepTime(std::chrono::milliseconds(20))
 {
-    startReadThread();
 }
 
 template<typename... Interfaces>

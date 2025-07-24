@@ -3211,6 +3211,32 @@ TEST_F(NativeC2DStreamingTest, ConnectAndRead)
     }
 }
 
+TEST_F(NativeC2DStreamingTest, DISABLED_ConnectAndRender)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(17);
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+
+    auto renderer = server.addFunctionBlock("ref_fb_module_renderer");
+
+    // read output signal of function block to which external signal connected
+    auto fbSignal = server.getFunctionBlocks()[0].getSignals()[0];
+    renderer.getInputPorts()[0].connect(fbSignal);
+
+    // read mirrored external signal directly
+    auto mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+    renderer.getInputPorts()[1].connect(mirroredExternalSignal);
+
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+}
+
 TEST_F(NativeC2DStreamingTest, ServerCoreEvents)
 {
     SKIP_TEST_MAC_CI;

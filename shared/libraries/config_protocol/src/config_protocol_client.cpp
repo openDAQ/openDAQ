@@ -693,7 +693,7 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPortGeneralized
                               {"DomainSerializedSignal", serializedDomainSignal},
                               {"SignalNumericId", signalNumericId},
                               {"SignalStringId", signal.getGlobalId()},
-                              {"SerializedSignal", getSerializedSignal(signal)},
+                              {"SerializedSignal", serializedSignal},
                               {"ActiveStreamingProtocolId", streamingProtocolId},
                               {"ActiveStreamingSourceDeviceId", streamingSourceDeviceId}});
 

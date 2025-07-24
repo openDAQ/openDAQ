@@ -34,7 +34,12 @@ void WAVReaderFbImpl::miniaudioDataCallback(ma_device* pDevice, void* pOutput, c
     ma_decoder_read_pcm_frames(&(this_->decoder), pOutput, frameCount, NULL);
 
     this_->sendPacket(this_->buildPacket(pOutput, frameCount));
-    
+    int nVoids = frameCount * this_->dataDescriptor.getSampleSize();
+    unsigned char* outputBytes = static_cast<unsigned char*>(pOutput);
+    for (int i = 0; i < nVoids; i++)
+    {
+        outputBytes[i] = 0;
+    }
     (void) pInput;
 }
 

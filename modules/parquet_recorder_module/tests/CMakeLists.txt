@@ -17,6 +17,10 @@ add_test(NAME ${TEST_APP}
     WORKING_DIRECTORY bin
 )
 
+if(MSVC)
+    set_property(TARGET ${TEST_APP} APPEND_STRING PROPERTY COMPILE_FLAGS "/wd4324")
+endif()
+
 if(OPENDAQ_ENABLE_COVERAGE)
     setup_target_for_coverage(${TEST_APP}coverage ${TEST_APP} ${TEST_APP}coverage)
 endif()

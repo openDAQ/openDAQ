@@ -135,7 +135,7 @@ TEST_F(ParquetRecorderModuleTest, WriteReadCompare)
     ASSERT_NE(parquetItem, fs::end(cwd));
 
     // try to read the file
-    std::shared_ptr<arrow::io::ReadableFile> input = arrow::io::ReadableFile::Open(parquetItem->path()).ValueOrDie();
+    std::shared_ptr<arrow::io::ReadableFile> input = arrow::io::ReadableFile::Open(parquetItem->path().string()).ValueOrDie();
     std::unique_ptr<parquet::arrow::FileReader> arrow_reader = parquet::arrow::OpenFile(input, arrow::default_memory_pool()).ValueOrDie();
 
     std::shared_ptr<arrow::Table> table;

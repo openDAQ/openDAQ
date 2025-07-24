@@ -426,22 +426,29 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignalGeneralized(const RpcCo
 {
     const MirroredSignalConfigPtr signal = streamingConsumer.getOrAddExternalSignal(params);
 
-    const StringPtr streamingProtocolId = params.get("ActiveStreamingProtocolId");
-    const StringPtr streamingSourceDeviceId = params.get("ActiveStreamingSourceDeviceId");
+    const StringPtr activeStreamingProtocolId = params.get("ActiveStreamingProtocolId");
+    const StringPtr activeStreamingSourceDeviceId = params.get("ActiveStreamingSourceDeviceId");
+
+    auto signals = List<IMirroredSignalConfig>(signal);
+    if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
+        signals.pushBack(domainSignal);
 
     for (const auto& server : rootDevice.getServers())
     {
         // add-attach signals to all available streaming sources
         if (auto serverStreaming = server.asPtrOrNull<IStreaming>(); serverStreaming.assigned())
         {
-            serverStreaming.addSignals({signal});
-            if (streamingProtocolId.assigned())
+            serverStreaming.addSignals(signals);
+            if (activeStreamingProtocolId.assigned())
             {
-                if (server.getId() == streamingProtocolId)
+                if (server.getId() == activeStreamingProtocolId)
+                    assert(activeStreamingSourceDeviceId.assigned());
+
+                for (const auto& signal : signals)
                 {
-                    assert(streamingSourceDeviceId.assigned());
+                    // may change the active streaming source
+                    signal.setActiveStreamingSource(activeStreamingProtocolId);
                 }
-                signal.setActiveStreamingSource(streamingProtocolId); // may change the active streaming source
             }
         }
     }

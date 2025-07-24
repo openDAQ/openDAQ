@@ -52,6 +52,7 @@ public:
     ErrCode INTERFACE_FUNC addStreamingSource(IStreamingToDevice* streaming) override;
     ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
     ErrCode INTERFACE_FUNC getActiveStreamingSourceObject(IStreamingToDevice** streaming) override;
+    ErrCode INTERFACE_FUNC getStreamingSourceObjects(IList** objects) override;
 
     // TODO
     // IInputPortConfig
@@ -322,6 +323,26 @@ ErrCode MirroredInputPortBase<Interfaces...>::getActiveStreamingSourceObject(ISt
         *streaming = activeStreamingSource.addRefAndReturn();
     else
         *streaming = nullptr;
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode MirroredInputPortBase<Interfaces...>::getStreamingSourceObjects(IList** objects)
+{
+    OPENDAQ_PARAM_NOT_NULL(objects);
+
+    auto objectsPtr = List<IStreamingToDevice>();
+
+    auto lock = this->getRecursiveConfigLock();
+    for (const auto& [connectionString, streamingRef] : streamingSourcesRefs)
+    {
+        auto streamingSource = streamingRef.getRef();
+        if (streamingSource.assigned())
+            objectsPtr.pushBack(streamingSource);
+    }
+
+    *objects = objectsPtr.detach();
 
     return OPENDAQ_SUCCESS;
 }

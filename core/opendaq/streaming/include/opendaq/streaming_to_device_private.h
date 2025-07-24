@@ -17,18 +17,19 @@
 #pragma once
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
+#include <opendaq/signal.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IStreamingToDevicePrivate, IBaseObject)
 {
-//    ErrCode registerConnectedSignal(ISignal* signal, IMirroredInputPortConfig* port) = 0;
-//    ErrCode unregisterConnectedSignal(ISignal* signal, IMirroredInputPortConfig* port) = 0;
+    // [elementType(signals, ISignal)]
+    virtual ErrCode INTERFACE_FUNC registerStreamedSignals(IList* signals) = 0;
 
-//    ErrCode subscribeConnectedSignal(ISignal* signal, IMirroredInputPortConfig* port) = 0;
-//    ErrCode unsubscribeConnectedSignal(ISignal* signal, IMirroredInputPortConfig* port) = 0;
+    // [elementType(signals, ISignal)]
+    virtual ErrCode INTERFACE_FUNC unregisterStreamedSignals(IList* signals) = 0;
 
-    virtual ErrCode INTERFACE_FUNC detachRemovedInputPort(IString* signalRemoteId) = 0;
+    virtual ErrCode INTERFACE_FUNC detachRemovedInputPort(IString* inputPortRemoteId) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

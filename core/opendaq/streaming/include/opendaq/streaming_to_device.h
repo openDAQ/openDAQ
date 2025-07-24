@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/streaming.h>
 #include <opendaq/mirrored_device.h>
+#include <opendaq/mirrored_input_port_config.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -28,9 +29,14 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IStreamingToDevice, IStreaming)
 {
-//    ErrCode addInputPorts(IList* inputPorts) = 0;
-//    ErrCode removeInputPorts(IList* inputPorts) = 0;
-//    ErrCode removeAllInputPorts() = 0;
+    // [elementType(inputPorts, IMirroredInputPortConfig)]
+    virtual ErrCode INTERFACE_FUNC addInputPorts(IList* inputPorts) = 0;
+
+    // [elementType(inputPorts, IMirroredInputPortConfig)]
+    virtual ErrCode INTERFACE_FUNC removeInputPorts(IList* inputPorts) = 0;
+
+    virtual ErrCode INTERFACE_FUNC removeAllInputPorts() = 0;
+
     virtual ErrCode INTERFACE_FUNC getOwnerDevice(IMirroredDevice** device) const = 0;
     virtual ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) const = 0;
 };

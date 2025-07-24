@@ -21,6 +21,7 @@
 #include <config_protocol/config_client_input_port.h>
 #include <opendaq/errors.h>
 #include <opendaq/mirrored_input_port_config_ptr.h>
+#include <opendaq/streaming_to_device_private.h>
 
 namespace daq::config_protocol
 {
@@ -102,10 +103,11 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             }
             else
             {
-                const auto inputPortSelf = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+                const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+                const auto mirroredInputPort = this->template borrowPtr<MirroredInputPortConfigPtr>();
                 if (clientComm->getProtocolVersion() >= 17)
                 {
-                    const auto activeSource = inputPortSelf.getActiveStreamingSourceObject();
+                    const StreamingToDevicePtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
                     StringPtr streamingProtocolId = activeSource.assigned() ? activeSource.getProtocolId() : nullptr;
                     MirroredDevicePtr streamingSourceDevice = activeSource.assigned() ? activeSource.getOwnerDevice() : nullptr;
                     StringPtr streamingSourceDeviceId;
@@ -122,6 +124,15 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
                         {
                             streamingSourceDeviceId = streamingSourceDevice.getRemoteId();
                         }
+                    }
+
+                    auto signals = List<ISignal>(signalPtr);
+                    if (const auto domainSignal = signalPtr.getDomainSignal(); domainSignal.assigned())
+                        signals.pushBack(domainSignal);
+                    ListPtr<IStreamingToDevice> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
+                    for (const auto& streaming : streamingSources)
+                    {
+                        checkErrorInfo(streaming.asPtr<IStreamingToDevicePrivate>()->registerStreamedSignals(signals));
                     }
 
                     clientComm->connectExternalSignalToServerInputPortGeneralized(signalPtr, remoteGlobalId, streamingProtocolId, streamingSourceDeviceId);

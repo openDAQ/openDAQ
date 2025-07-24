@@ -232,7 +232,6 @@ void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr&
 
     const auto sampleCount = data.getSampleCount();
     const auto domainCount = domain.assigned() ? domain.getSampleCount() : sampleCount;
-    const auto packetId = data.getPacketId();
 
     if (sampleCount != domainCount)
     {
@@ -269,7 +268,7 @@ void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr&
     }
     else
     {
-        LOG_D("ParquetWriter::writePackets: Successfully wrote record batch with ID: {} and sample count: {}", packetId, sampleCount);
+        LOG_D("ParquetWriter::writePackets: Successfully wrote record batch with ID: {} and sample count: {}", data.getPacketId(), sampleCount);
     }
 }
 
@@ -450,9 +449,6 @@ std::vector<PacketPtr> ParquetWriter::dequeuePacketList()
 
 void ParquetWriter::processPacketList(const std::vector<PacketPtr>& packets)
 {
-    auto active = true;
-    auto recording = true;
-    auto taskId = 0;
     for (const auto& packet : packets)
     {
         onPacket(packet);

@@ -22,7 +22,6 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/parquet_recorder_module_impl.h
     ${SRC_Srcs}
 )
 
-
 add_library(${LIB_NAME} SHARED ${SRC_Include}
     ${SRC_Srcs}
 )
@@ -39,6 +38,10 @@ target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
     $<INSTALL_INTERFACE:include>
 )
+
+if(MSVC)
+    set_property(TARGET ${LIB_NAME} APPEND_STRING PROPERTY COMPILE_FLAGS "/wd4324")
+endif()
 
 opendaq_set_module_properties(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
 create_version_header(${LIB_NAME})

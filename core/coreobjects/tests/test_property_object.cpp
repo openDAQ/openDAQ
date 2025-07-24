@@ -22,8 +22,8 @@
 
 using namespace daq;
 
-static constexpr SizeT NumVisibleProperties = 12u;
-static constexpr SizeT NumAllProperties = 14u;
+static constexpr SizeT NumVisibleProperties = 13u;
+static constexpr SizeT NumAllProperties = 15u;
 
 class PropertyObjectTest : public testing::Test
 {
@@ -481,6 +481,7 @@ TEST_F(PropertyObjectTest, SelectionPropertiesInsertionOrder)
     ASSERT_EQ(props[order++].getName(), "Kind");
     // Derived class properties after base
     ASSERT_EQ(props[order++].getName(), "Referenced");
+    ASSERT_EQ(props[order++].getName(), "StringSuggestedValues");
     ASSERT_EQ(props[order++].getName(), "AdditionalProp");
 }
 

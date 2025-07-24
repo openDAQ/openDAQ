@@ -164,7 +164,7 @@ inline BaseObjectPtr ConfigServerComponent::getSuggestedValues(const RpcContext&
 
     const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
 
-    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read});
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, Permission::Read);
 
     return targetComponent.getProperty(propertyName).getSuggestedValues();
 }
@@ -179,7 +179,7 @@ inline BaseObjectPtr ConfigServerComponent::getSelectionValues(const RpcContext&
 
     const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
 
-    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read});
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, Permission::Read);
 
     return targetComponent.getProperty(propertyName).getSelectionValues();
 }

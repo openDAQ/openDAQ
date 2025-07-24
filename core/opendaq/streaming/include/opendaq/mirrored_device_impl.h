@@ -45,6 +45,7 @@ public:
 
     // IMirroredDevice
     ErrCode INTERFACE_FUNC getStreamingSources(IList** streamingSources) override;
+    ErrCode INTERFACE_FUNC getRemoteId(IString** id) const override;
 
     // IMirroredDeviceConfig
     ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streamingSource) override;
@@ -59,6 +60,7 @@ protected:
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
     virtual bool isAddedToLocalComponentTree();
+    virtual StringPtr onGetRemoteId() const = 0;
 
 private:
     std::vector<StreamingPtr> streamingSources;
@@ -96,6 +98,19 @@ ErrCode MirroredDeviceBase<Interfaces...>::getStreamingSources(IList** streaming
 
     *streamingSources = streamingSourcesPtr.detach();
     return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode MirroredDeviceBase<Interfaces...>::getRemoteId(IString** id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    StringPtr signalRemoteId;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
+
+    *id = signalRemoteId.detach();
+
+    return errCode;
 }
 
 template <typename... Interfaces>

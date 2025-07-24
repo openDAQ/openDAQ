@@ -171,6 +171,11 @@ PropertyObjectPtr createMockNestedPropertyObject()
     return parent;
 }
 
+FolderPtr dummyExtSigFolder(const ContextPtr& ctx)
+{
+    return Folder<ISignal>(ctx, nullptr, "dummy");
+}
+
 MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId, "MockClass")
 {

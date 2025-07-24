@@ -16,18 +16,20 @@
 
 #pragma once
 #include <config_protocol/config_client_component_impl.h>
-#include <opendaq/input_port_impl.h>
+#include <opendaq/mirrored_input_port_impl.h>
 #include <config_protocol/config_client_connection_impl.h>
 #include <config_protocol/config_client_input_port.h>
 #include <opendaq/errors.h>
+#include <opendaq/mirrored_input_port_config_ptr.h>
+#include <opendaq/streaming_to_device_private.h>
 
 namespace daq::config_protocol
 {
 
-class ConfigClientInputPortImpl : public ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject, IConfigClientInputPort>>
+class ConfigClientInputPortImpl : public ConfigClientComponentBaseImpl<MirroredInputPortBase<IConfigClientObject, IConfigClientInputPort>>
 {
 public:
-    using Super = ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject, IConfigClientInputPort>>;
+    using Super = ConfigClientComponentBaseImpl<MirroredInputPortBase<IConfigClientObject, IConfigClientInputPort>>;
 
     ConfigClientInputPortImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                               const std::string& remoteGlobalId,
@@ -45,6 +47,8 @@ public:
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+    StringPtr onGetRemoteId() const override; // fixme - protected
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
@@ -64,7 +68,7 @@ inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocol
                                                             const ComponentPtr& parent,
                                                             const StringPtr& localId,
                                                             const StringPtr&)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, false)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
 {
 }
 
@@ -99,13 +103,51 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             }
             else
             {
-                if (clientComm->getProtocolVersion() >= 2)
-                    clientComm->connectExternalSignalToServerInputPort(signalPtr, remoteGlobalId);
+                const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+                const auto mirroredInputPort = this->template borrowPtr<MirroredInputPortConfigPtr>();
+                if (clientComm->getProtocolVersion() >= 17)
+                {
+                    const StreamingToDevicePtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
+                    StringPtr streamingProtocolId = activeSource.assigned() ? activeSource.getProtocolId() : nullptr;
+                    MirroredDevicePtr streamingSourceDevice = activeSource.assigned() ? activeSource.getOwnerDevice() : nullptr;
+                    StringPtr streamingSourceDeviceId;
+                    if (activeSource.assigned())
+                    {
+                        if (!streamingSourceDevice.assigned())
+                        {
+                            return DAQ_MAKE_ERROR_INFO(
+                                OPENDAQ_ERR_INVALIDSTATE,
+                                "The source device for the input port’s active streaming source is unknown"
+                            );
+                        }
+                        else
+                        {
+                            streamingSourceDeviceId = streamingSourceDevice.getRemoteId();
+                        }
+                    }
+
+                    auto signals = List<ISignal>(signalPtr);
+                    if (const auto domainSignal = signalPtr.getDomainSignal(); domainSignal.assigned())
+                        signals.pushBack(domainSignal);
+                    ListPtr<IStreamingToDevice> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
+                    for (const auto& streaming : streamingSources)
+                    {
+                        checkErrorInfo(streaming.asPtr<IStreamingToDevicePrivate>()->registerStreamedSignals(signals));
+                    }
+
+                    clientComm->connectExternalSignalToServerInputPortGeneralized(signalPtr, remoteGlobalId, streamingProtocolId, streamingSourceDeviceId);
+                }
+                else if (clientComm->getProtocolVersion() >= 2)
+                {
+                    clientComm->connectExternalSignalToServerInputPortBasic(signalPtr, remoteGlobalId);
+                }
                 else
+                {
                     return DAQ_MAKE_ERROR_INFO(
                         OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
                         "Client-to-device streaming operations are not supported by the protocol version currently in use"
                     );
+                }
             }
 
             return Super::connect(signal);
@@ -245,6 +287,11 @@ inline ConnectionPtr ConfigClientInputPortImpl::createConnection(const SignalPtr
 {
     const auto connection = createWithImplementation<IConnection, ConfigClientConnectionImpl>(this->template thisPtr<InputPortPtr>(), signal, this->context);
     return connection;
+}
+
+inline StringPtr ConfigClientInputPortImpl::onGetRemoteId() const
+{
+    return String(remoteGlobalId).detach();
 }
 
 inline bool ConfigClientInputPortImpl::isSignalFromTheSameComponentTree(const SignalPtr& signal)

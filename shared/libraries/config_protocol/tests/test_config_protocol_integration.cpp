@@ -35,7 +35,8 @@ public:
             serverDevice,
             std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1),
             anonymousUser,
-            ClientType::Control);
+            ClientType::Control,
+            test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
         clientContext = NullContext();
         client =

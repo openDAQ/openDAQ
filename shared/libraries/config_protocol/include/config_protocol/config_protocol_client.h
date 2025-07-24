@@ -138,7 +138,11 @@ public:
                                              const BaseObjectPtr& context,
                                              const FunctionPtr& factoryCallback);
     bool isComponentNested(const StringPtr& componentGlobalId);
-    void connectExternalSignalToServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
+    void connectExternalSignalToServerInputPortBasic(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
+    void connectExternalSignalToServerInputPortGeneralized(const SignalPtr& signal,
+                                                           const StringPtr& inputPortRemoteGlobalId,
+                                                           const StringPtr& streamingProtocolId,
+                                                           const StringPtr& streamingSourceDeviceId);
     void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
 
     uint16_t getProtocolVersion() const;
@@ -198,6 +202,7 @@ private:
     void setProtocolVersion(uint16_t protocolVersion);
     std::tuple<uint32_t, StringPtr, StringPtr> getExternalSignalParams(const SignalPtr& signal,
                                                                        const ConfigProtocolStreamingProducerPtr& streamingProducer);
+    StringPtr getSerializedSignal(const SignalPtr& signal);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
@@ -328,6 +333,10 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     clientComm->setProtocolVersion(protocolVersion);
     const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
     LOG_I("Config protocol version {} used", protocolVersion);
+
+    // enable signal reading within basic client-to-device streaming
+    if (protocolVersion < 17)
+        streamingProducer->enableReading();
 }
 
 template<class TRootDeviceImpl>

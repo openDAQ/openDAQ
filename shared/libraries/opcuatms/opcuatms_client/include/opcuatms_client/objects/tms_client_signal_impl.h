@@ -56,7 +56,6 @@ protected:
     bool clearDescriptorOnUnsubscribe() override;
 
     std::atomic<Bool> isPublic = true;
-    std::string deviceSignalId;
 
 private:
     std::unique_ptr<opcua::OpcUaNodeId> descriptorNodeId;

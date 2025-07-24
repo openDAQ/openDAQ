@@ -24,6 +24,8 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
+ * [templated(defaultAliasName: StreamingPtr)]
+ * [interfaceSmartPtr(IStreaming, GenericStreamingPtr)]
  */
 
 /*!

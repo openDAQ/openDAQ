@@ -74,6 +74,14 @@ public:
     void setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
                            const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
+    // client-to-device streaming
+    void addClientSignal(const SignalPtr& signal);
+    void removeClientSignal(const SignalPtr& signal);
+    void sendPacket(const std::string& signalStringId, PacketPtr&& packet);
+    void resetStreamingToDeviceHandlers();
+    void setStreamingToDeviceHandlers(const OnSignalSubscribedCallback& signalSubscribedHandler,
+                                      const OnSignalUnsubscribedCallback& signalUnsubscribedHandler);
+
 protected:
     void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
@@ -102,6 +110,9 @@ protected:
     void onSessionError(const std::string& errorMessage, SessionPtr session);
     void onPacketBufferReceived(const packet_streaming::PacketBufferPtr& packetBuffer);
 
+    SignalNumericIdType registerSignal(const SignalPtr& signal);
+    SignalPtr findClientSignal(const std::string& signalStringId);
+
     ContextPtr context;
     PropertyObjectPtr transportLayerProperties;
     PropertyObjectPtr authenticationObject;
@@ -119,6 +130,10 @@ protected:
     // config callbacks
     OnConnectionStatusChangedCallback connectionStatusChangedConfigCb;
     ProcessConfigProtocolPacketCb configPacketHandler;
+
+    // client-to-device streaming callbacks
+    OnSignalSubscribedCallback signalSubscribedHandler;
+    OnSignalUnsubscribedCallback signalUnsubscribedHandler;
 
     std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;
 
@@ -142,6 +157,22 @@ protected:
     Int connectionInactivityTimeout;
     std::chrono::milliseconds connectionTimeout;
     std::chrono::milliseconds reconnectionPeriod;
+
+    struct ClientSignal
+    {
+        explicit ClientSignal(const std::string& signalStringId, SignalNumericIdType signalNumericId, const SignalPtr& signal)
+            : signalStringId(signalStringId)
+            , signalNumericId(signalNumericId)
+            , signal(signal)
+        {}
+
+        std::string signalStringId;
+        SignalNumericIdType signalNumericId;
+        SignalPtr signal;
+    };
+    // key: signal global id
+    std::unordered_map<std::string, ClientSignal> registeredSignals;
+    SignalNumericIdType signalNumericIdCounter;
 };
 
 // wraps transport IO operations' context & thread and client handler
@@ -177,6 +208,14 @@ public:
     void resetConfigHandlers();
     void setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
                            const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
+
+    // client-to-device streaming
+    void addClientSignal(const SignalPtr& signal);
+    void removeClientSignal(const SignalPtr& signal);
+    void sendPacket(const std::string& signalStringId, PacketPtr&& packet);
+    void resetStreamingToDeviceHandlers();
+    void setStreamingToDeviceHandlers(const OnSignalSubscribedCallback& signalSubscribedHandler,
+                                      const OnSignalUnsubscribedCallback& signalUnsubscribedHandler);
 
     bool supportsToDeviceStreaming();
 

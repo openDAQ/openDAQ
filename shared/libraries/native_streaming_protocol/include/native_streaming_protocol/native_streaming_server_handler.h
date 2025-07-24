@@ -31,9 +31,6 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 static const SizeT UNLIMITED_CONFIGURATION_CONNECTIONS = 0;
 
-using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
-using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
-
 using OnClientConnectedCallback = std::function<void(const std::string& clientId, const std::string& address, bool isStreamingConnection, ClientType clientType, const std::string& hostName)>;
 using OnClientDisconnectedCallback = std::function<void(const std::string& clientId)>;
 

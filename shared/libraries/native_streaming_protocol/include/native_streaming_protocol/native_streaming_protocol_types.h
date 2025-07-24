@@ -71,6 +71,9 @@ using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalSt
 using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
 using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
 
+using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
+using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
+
 enum class PayloadType
 {
     PAYLOAD_TYPE_STREAMING_PACKET = 1,

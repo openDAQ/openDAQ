@@ -32,6 +32,9 @@
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/streaming_impl.h>
 #include <opendaq/streaming_to_device.h>
+#include <opendaq/thread_name.h>
+
+#include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -67,14 +70,28 @@ public:
     virtual ErrCode INTERFACE_FUNC unregisterStreamedSignals(IList* signals) override;
     virtual ErrCode INTERFACE_FUNC detachRemovedInputPort(IString* inputPortRemoteId) override;
 
+protected:
+    virtual void onRegisterStreamedSignal(const SignalPtr& signal) = 0;
+    virtual void onUnregisterStreamedSignal(const SignalPtr& signal) = 0;
+    virtual void signalReadingFunc() = 0;
+
+    std::unordered_map<StringPtr, WeakRefPtr<IMirroredInputPortConfig>> streamedSignals;
+
 private:
     ErrCode removeStreamingSourceForAllInputPorts();
     void removeAllInputPortsInternal();
+    void readingThreadFunc();
+    void startReadThread();
+    void stopReadThread();
 
     StringPtr protocolId;
 
     using InputPortItem = WeakRefPtr<IMirroredInputPortConfig>;
     std::unordered_map<StringPtr, InputPortItem, StringHash, StringEqualTo> streamingInputPortsItems;
+
+    bool readThreadRunning;
+    std::chrono::milliseconds readThreadSleepTime;
+    std::thread readerThread;
 };
 
 template<typename... Interfaces>
@@ -84,7 +101,9 @@ StreamingToDeviceImpl<Interfaces...>::StreamingToDeviceImpl(const StringPtr& con
                                                             const StringPtr& protocolId)
     : Super(connectionString, context, skipDomainSignalSubscribe)
     , protocolId(protocolId)
+    , readThreadSleepTime(std::chrono::milliseconds(20))
 {
+    startReadThread();
 }
 
 template<typename... Interfaces>
@@ -100,6 +119,9 @@ StreamingToDeviceImpl<Interfaces...>::~StreamingToDeviceImpl()
     {
         DAQLOGF_W(this->loggerComponent, "Failed to remove signals on streaming object destruction: {}", e.what());
     }
+
+    if (readThreadRunning)
+        stopReadThread();
 }
 
 template<typename... Interfaces>
@@ -232,12 +254,48 @@ ErrCode StreamingToDeviceImpl<Interfaces...>::getProtocolId(IString** protocolId
 template<typename... Interfaces>
 ErrCode StreamingToDeviceImpl<Interfaces...>::registerStreamedSignals(IList* signals)
 {
+    OPENDAQ_PARAM_NOT_NULL(signals);
+
+    const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
+
+    std::scoped_lock lock(this->sync);
+    for (const auto& signal : signalsPtr)
+    {
+        const StringPtr signalKey = signal.getGlobalId();
+        if (const auto it = streamedSignals.find(signalKey); it == streamedSignals.end())
+        {
+            ErrCode errCode = wrapHandler(this, &Self::onRegisterStreamedSignal, signal);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+
+            streamedSignals.insert({signalKey, signal});
+        }
+    }
     return OPENDAQ_SUCCESS;
 }
 
 template<typename... Interfaces>
 ErrCode StreamingToDeviceImpl<Interfaces...>::unregisterStreamedSignals(IList* signals)
 {
+    OPENDAQ_PARAM_NOT_NULL(signals);
+
+    const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
+
+    std::scoped_lock lock(this->sync);
+    for (const auto& signal : signalsPtr)
+    {
+        const StringPtr signalKey = signal.getGlobalId();
+        if (const auto it = streamedSignals.find(signalKey); it != streamedSignals.end())
+        {
+            streamedSignals.erase(it);
+
+            ErrCode errCode = wrapHandler(this, &Self::onUnregisterStreamedSignal, signal);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+        else
+        {
+            return OPENDAQ_NOTFOUND;
+        }
+    }
     return OPENDAQ_SUCCESS;
 }
 
@@ -298,6 +356,51 @@ template<typename... Interfaces>
 void StreamingToDeviceImpl<Interfaces...>::removeAllInputPortsInternal()
 {
     streamingInputPortsItems.clear();
+}
+
+template<typename... Interfaces>
+void StreamingToDeviceImpl<Interfaces...>::readingThreadFunc()
+{
+    daqNameThread("TODO-put-some-name-here");
+    DAQLOGF_D(this->loggerComponent, "Streaming-to-device read thread started")
+    while (readThreadRunning)
+    {
+        signalReadingFunc();
+
+        std::this_thread::sleep_for(readThreadSleepTime);
+    }
+    DAQLOGF_D(this->loggerComponent, "Streaming-to-device read thread stopped");
+}
+
+template<typename... Interfaces>
+void StreamingToDeviceImpl<Interfaces...>::startReadThread()
+{
+    assert(!readThreadRunning);
+    readThreadRunning = true;
+    readerThread = std::thread(&Self::readingThreadFunc, this);
+}
+
+template<typename... Interfaces>
+void StreamingToDeviceImpl<Interfaces...>::stopReadThread()
+{
+    assert(readThreadRunning);
+    readThreadRunning = false;
+    if (readerThread.get_id() != std::this_thread::get_id())
+    {
+        if (readerThread.joinable())
+        {
+            readerThread.join();
+            DAQLOGF_D(this->loggerComponent, "Streaming-to-device read thread joined");
+        }
+        else
+        {
+            DAQLOGF_W(this->loggerComponent, "Streaming-to-device read thread is not joinable");
+        }
+    }
+    else
+    {
+        DAQLOGF_C(this->loggerComponent, "Streaming-to-device read thread cannot join itself");
+    }
 }
 
 END_NAMESPACE_OPENDAQ

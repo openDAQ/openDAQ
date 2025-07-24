@@ -43,6 +43,7 @@ set(SRC_PublicHeaders config_protocol.h
                       config_protocol_streaming_consumer.h
                       errors.h
                       config_server_recorder.h
+                      config_client_property.h
 )
 
 set(SRC_PrivateHeaders config_protocol_deserialize_context_impl.h

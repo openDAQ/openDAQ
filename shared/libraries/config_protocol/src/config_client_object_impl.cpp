@@ -9,4 +9,8 @@ ConfigClientObjectImpl::ConfigClientObjectImpl(ConfigProtocolClientCommPtr clien
 {
 }
 
+void ConfigClientObjectImpl::setRemoteGlobalId(const std::string newId)
+{
+    this->remoteGlobalId = newId;
+}
 }

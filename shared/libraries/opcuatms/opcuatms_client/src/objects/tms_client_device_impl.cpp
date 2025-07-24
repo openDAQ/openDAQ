@@ -374,6 +374,11 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
     }
 
+    deviceInfo.getOnPropertyValueRead("name") += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
+        {
+            args.setValue(this->client->readDisplayName(this->nodeId));
+        };
+
     for (const auto & entry : deviceInfoChangeableFields)
     {
         const auto& propName = entry.first;
@@ -396,7 +401,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
         catch (...)
         {
-
         }
     }
 

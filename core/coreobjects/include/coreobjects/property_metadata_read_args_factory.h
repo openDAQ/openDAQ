@@ -15,23 +15,14 @@
  */
 
 #pragma once
+#include <coretypes/common.h>
+#include <coreobjects/property_metadata_read_args_ptr.h>
 
-#include <config_protocol/config_protocol_client.h>
+BEGIN_NAMESPACE_OPENDAQ
 
-namespace daq::config_protocol
+inline PropertyMetadataReadArgsPtr PropertyMetadataReadArgs(const PropertyPtr& prop)
 {
-
-class ConfigClientObjectImpl
-{
-public:
-    ConfigClientObjectImpl(ConfigProtocolClientCommPtr clientComm, std::string remoteGlobalId);
-    virtual ~ConfigClientObjectImpl() = default;
-
-    void setRemoteGlobalId(const std::string newId);
-
-protected:
-    ConfigProtocolClientCommPtr clientComm;
-    std::string remoteGlobalId;
-};
-
+    return PropertyMetadataReadArgsPtr(PropertyMetadataReadArgs_Create(prop));
 }
+
+END_NAMESPACE_OPENDAQ

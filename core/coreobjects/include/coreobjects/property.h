@@ -38,6 +38,7 @@ struct IPropertyBuilder;
  * [interfaceSmartPtr(IProperty, GenericPropertyPtr)]
  * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_ptr.fwd_declare.h>")]
  * [interfaceSmartPtr(IPropertyValueEventArgs, PropertyValueEventArgsPtr, "<coretypes/event_wrapper.h>")]
+ * [interfaceSmartPtr(IPropertyMetadataReadArgs, PropertyMetadataReadArgsPtr, "<coretypes/event_wrapper.h>")]
  * [interfaceLibrary(IBoolean, CoreTypes)]
  * [interfaceLibrary(IStruct, CoreTypes)]
  * [interfaceLibrary(IStructType, CoreTypes)]
@@ -84,7 +85,8 @@ struct IPropertyBuilder;
  * - <b>Max value:</b> The maximum value of the Property's corresponding value. The property must be numeric for
  *                     this field to be valid.
  * - <b>Suggested values:</b> A list of suggested values for the property. The list allows a user to see what
- *                            values are expected for the Property. Those values, however, are not enforced. 
+ *                            values are expected for the Property. Those values, however, are not enforced.
+ *                            Only numerical and string-type properties can have suggested values.
  * - <b>Selection values:</b> A list or dictionary of selection values. If the Selection values field is configured,
  *                            the value of the Property must be an integer that is used to index into the
  *                            list/dictionary of selection values.
@@ -298,6 +300,8 @@ DECLARE_OPENDAQ_INTERFACE(IProperty, IBaseObject)
      * @brief Gets the list of Suggested values. Contains values that are the optimal settings for the corresponding
      * Property value. These values, however, are not enforced when setting a new Property value.
      * @param[out] values The Suggested values of the Property.
+     *
+     * Only numerical and string-type properties can have suggested values.
      */
     virtual ErrCode INTERFACE_FUNC getSuggestedValues(IList** values) = 0;
 
@@ -406,6 +410,12 @@ DECLARE_OPENDAQ_INTERFACE(IProperty, IBaseObject)
      * and implications of that call still apply.
      */
     virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value) = 0;
+    
+    // [templateType(event, IProperty, IPropertyMetadataReadArgs)]
+    virtual ErrCode INTERFACE_FUNC getOnSuggestedValuesRead(IEvent** event) = 0;
+
+    // [templateType(event, IProperty, IPropertyMetadataReadArgs)]
+    virtual ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) = 0;
 };
 /*!@}*/
 

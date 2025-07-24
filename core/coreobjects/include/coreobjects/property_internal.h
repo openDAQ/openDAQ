@@ -141,6 +141,10 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyInternal, IBaseObject)
     // Freezes default value
     virtual ErrCode INTERFACE_FUNC overrideDefaultValue(IBaseObject* newDefaultValue) = 0;
     virtual ErrCode INTERFACE_FUNC setValueProtected(IBaseObject* newValue) = 0;
+    
+    virtual ErrCode INTERFACE_FUNC getHasOnReadListeners(Bool* hasListeners) = 0;
+    virtual ErrCode INTERFACE_FUNC getHasOnGetSuggestedValuesListeners(Bool* hasListeners) = 0;
+    virtual ErrCode INTERFACE_FUNC getHasOnGetSelectionValuesListeners(Bool* hasListeners) = 0;
 };
 /*!@}*/
 

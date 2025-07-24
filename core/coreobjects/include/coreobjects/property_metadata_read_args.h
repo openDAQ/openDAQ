@@ -15,23 +15,25 @@
  */
 
 #pragma once
+#include <coretypes/coretypes.h>
+#include <coretypes/event_args.h>
+#include <coreobjects/property.h>
 
-#include <config_protocol/config_protocol_client.h>
+BEGIN_NAMESPACE_OPENDAQ
 
-namespace daq::config_protocol
+/*#
+ * [interfaceSmartPtr(IEventArgs, EventArgsPtr, "<coretypes/event_args_ptr.h>")]
+ */
+DECLARE_OPENDAQ_INTERFACE(IPropertyMetadataReadArgs, IEventArgs)
 {
-
-class ConfigClientObjectImpl
-{
-public:
-    ConfigClientObjectImpl(ConfigProtocolClientCommPtr clientComm, std::string remoteGlobalId);
-    virtual ~ConfigClientObjectImpl() = default;
-
-    void setRemoteGlobalId(const std::string newId);
-
-protected:
-    ConfigProtocolClientCommPtr clientComm;
-    std::string remoteGlobalId;
+    virtual ErrCode INTERFACE_FUNC getProperty(IProperty** property) = 0;
+    virtual ErrCode INTERFACE_FUNC getValue(IBaseObject** value) = 0;
+    virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value) = 0;
 };
 
-}
+OPENDAQ_DECLARE_CLASS_FACTORY(
+    LIBRARY_FACTORY, PropertyMetadataReadArgs,
+    IProperty*, prop
+)
+
+END_NAMESPACE_OPENDAQ

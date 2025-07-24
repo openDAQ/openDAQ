@@ -142,6 +142,8 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue);
     addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue);
     addHandler<ComponentPtr>("ClearProtectedPropertyValue", &ConfigServerComponent::clearProtectedPropertyValue);
+    addHandler<ComponentPtr>("GetSuggestedValues", &ConfigServerComponent::getSuggestedValues);
+    addHandler<ComponentPtr>("GetSelectionValues", &ConfigServerComponent::getSelectionValues);
     addHandler<ComponentPtr>("CallProperty", &ConfigServerComponent::callProperty);
     addHandler<ComponentPtr>("BeginUpdate", &ConfigServerComponent::beginUpdate);
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
@@ -182,6 +184,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<RecorderPtr>("StartRecording", &ConfigServerRecorder::startRecording);
     addHandler<RecorderPtr>("StopRecording", &ConfigServerRecorder::stopRecording);
     addHandler<RecorderPtr>("GetIsRecording", &ConfigServerRecorder::getIsRecording);
+
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)

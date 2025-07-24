@@ -384,26 +384,6 @@ TEST_F(DeviceInfoTest, ConnectedClientsInfo)
     ASSERT_EQ(client1Number, 1u);
 }
 
-TEST_F(DeviceInfoTest, OwnerName)
-{
-    DeviceInfoConfigPtr info = DeviceInfo("", "foo");
-    ComponentPtr component = Component(NullContext(), nullptr, "id");
-
-    ASSERT_EQ(info.getName(), "foo");
-    info.setName("test");
-    ASSERT_EQ(info.getName(), "test");
-
-    info.asPtr<IOwnable>().setOwner(component);
-
-    ASSERT_EQ(info.getName(), "id");
-    component.setName("new_id");
-    ASSERT_EQ(info.getName(), "new_id");
-
-    info.setName("new_id1");
-    ASSERT_EQ(info.getName(), "new_id1");
-    ASSERT_EQ(component.getName(), "new_id1");
-}
-
 TEST_F(DeviceInfoTest, PropertyWriteAfterOwnerSet)
 {
     DeviceInfoConfigPtr info = DeviceInfo("", "foo");

@@ -416,6 +416,9 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignalBasic(const RpcContext&
                                                                const InputPortPtr& inputPort,
                                                                const ParamsDictPtr& params)
 {
+    // verifies that access to input port is granted for current user before creating mirrored signals
+    ConfigServerInputPort::access(context, inputPort);
+
     const MirroredSignalConfigPtr signal = streamingConsumer.getOrAddExternalSignal(params);
     return ConfigServerInputPort::connect(context, inputPort, signal, params);
 }
@@ -424,6 +427,9 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignalGeneralized(const RpcCo
                                                                      const InputPortPtr& inputPort,
                                                                      const ParamsDictPtr& params)
 {
+    // verifies that access to input port is granted for current user before creating mirrored signals
+    ConfigServerInputPort::access(context, inputPort);
+
     const MirroredSignalConfigPtr signal = streamingConsumer.getOrAddExternalSignal(params);
 
     const StringPtr activeStreamingProtocolId = params.get("ActiveStreamingProtocolId");

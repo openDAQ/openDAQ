@@ -29,6 +29,38 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace VideoPlayer
 {
 
+template<typename T>
+class SafeDeque
+{
+public:
+    void pushBack(T&& value)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        deque.push_back(std::forward<T>(value));
+    }
+
+    bool tryPopFront(T& value)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (deque.empty())
+            return false;
+
+        value = std::move(deque.front());
+        deque.pop_front();
+        return true;
+    }
+
+    void clear()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        deque.clear();
+    }
+
+private:
+    std::deque<T> deque;
+    mutable std::mutex mutex;
+};
+
 class VideoPlayerFbImpl final : public FunctionBlock
 {
 public:
@@ -39,23 +71,23 @@ public:
 
     static FunctionBlockTypePtr CreateType();
 
-    void onDisconnected(const InputPortPtr& port) override;
-
     void onPacketReceived(const InputPortPtr& port) override;
     void handleDataPacket(const DataPacketPtr& packet);
     void handleEventPacket(const EventPacketPtr& packet);
 
 private:
+    void initProperties();
     void initInputPorts();
+    void startRender();
+
+    InputPortConfigPtr videoInputPort;
 
     std::unique_ptr<sf::RenderWindow> window;
+    sf::Image image;
+    sf::Texture texture;
+    sf::Sprite sprite;
 
-    std::deque<DataPacketPtr> dataPackets;
-    std::mutex dataMutex;
-    size_t sampleIndex {0};
-
-    unsigned int frameWidth { 0 };
-    unsigned int frameHeight { 0 };
+    SafeDeque<DataPacketPtr> dataPackets;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

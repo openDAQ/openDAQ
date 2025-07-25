@@ -198,7 +198,6 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                  reconnectionPeriod);
         deviceHelper->setupProtocolClients(context);
         auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
-        protocolVersion = deviceHelper->getProtocolVersion();
 
         deviceHelper->subscribeToCoreEvent(context);
 

@@ -726,16 +726,18 @@ TEST_F(ConfigProtocolIntegrationTest, AcceptsSignal)
                         clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(clientSignal));
     ASSERT_TRUE(clientAcceptsClientSignal);
 
-    auto serverSignal = serverDevice.getSignals()[0];
-    daq::Bool clientAcceptsServerSignal = True;
-    ASSERT_NO_THROW(clientAcceptsServerSignal =
-                        clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(serverSignal));
-    ASSERT_FALSE(clientAcceptsServerSignal);
+    auto parentlessSignal = Signal(clientSignal.getContext(), nullptr, "test");
+    daq::Bool clientAcceptsParentlessSignal = False;
+    ASSERT_NO_THROW(clientAcceptsParentlessSignal =
+                        clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(parentlessSignal));
+    ASSERT_TRUE(clientAcceptsParentlessSignal);
 
-    auto falseSignal = Signal(clientSignal.getContext(), nullptr, "test");
-    ASSERT_THROW_MSG(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(falseSignal),
-                     NativeClientCallNotAvailableException,
-                     "Signal is not from the same component tree");
+    // such connection likely creates unsafe loopback with undefined behavior, but signal is still accepted
+    auto serverSignal = serverDevice.getSignals()[0];
+    daq::Bool clientAcceptsServerSignal = False;
+    ASSERT_NO_THROW(clientAcceptsServerSignal =
+                    clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(serverSignal));
+    ASSERT_TRUE(clientAcceptsServerSignal);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
@@ -954,4 +956,14 @@ TEST_F(ConfigProtocolIntegrationTest, RecorderFunctionBlock)
     ASSERT_NO_THROW(recorderPtr.stopRecording());
     ASSERT_FALSE(recorderPtr.getIsRecording());
     ASSERT_THROW(recorderPtr.stopRecording(), InvalidStateException);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ComponentConfig)
+{
+    auto deviceComponentConfig = clientDevice.getDevices()[0].asPtr<IComponentPrivate>().getComponentConfig();
+    auto fbComponentConfig = clientDevice.getDevices()[0].getFunctionBlocks()[0].asPtr<IComponentPrivate>().getComponentConfig();
+    ASSERT_TRUE(deviceComponentConfig.assigned());
+    ASSERT_TRUE(fbComponentConfig.assigned());
+    ASSERT_TRUE(deviceComponentConfig.hasProperty("TestProp"));
+    ASSERT_TRUE(fbComponentConfig.hasProperty("TestProp"));
 }

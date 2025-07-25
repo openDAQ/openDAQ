@@ -40,7 +40,11 @@
 
 ## Bug fixes
 
-- [#842](https://github.com/openDAQ/openDAQ/pull/846) Do not bind properties on serialize. Prevents crashes when serializing property object classes.
+- [#863](https://github.com/openDAQ/openDAQ/pull/863) Deserialize component config on native client instead of invoking RPC.
+- [#859](https://github.com/openDAQ/openDAQ/pull/859) Fix and stabilize native device removal and disposal flow.
+- [#850](https://github.com/openDAQ/openDAQ/pull/850) Ignore server notifications unless native device is connected.
+- [#856](https://github.com/openDAQ/openDAQ/pull/856) Fix race condition in native streaming caused by signal removal.
+- [#846](https://github.com/openDAQ/openDAQ/pull/846) Do not bind properties on serialize. Prevents crashes when serializing property object classes.
 - [#842](https://github.com/openDAQ/openDAQ/pull/842) Exclude ComponentConfig from OPC UA Component Properties
 - [#833](https://github.com/openDAQ/openDAQ/pull/833) Fix Invalid MultiReader in PowerReaderFb on Sample Rate Change
 - [#831](https://github.com/openDAQ/openDAQ/pull/831) Uses newly added sendPacketRecursiveLock method to send descriptor changed events on value signals that use the signal of which descriptor was changed as their domain signal.
@@ -83,6 +87,7 @@
 
 ## Misc
 
+- [#851](https://github.com/openDAQ/openDAQ/pull/851) Allow parentless signals connection within client-to-device streaming
 - [#758](https://github.com/openDAQ/openDAQ/pull/758) General update of the quick-start documentation for usage of .NET on Windows and Linux.
 - [#742](https://github.com/openDAQ/openDAQ/pull/742) Assign a name to the scheduler, logger, and discovery threads.
 - [#747](https://github.com/openDAQ/openDAQ/pull/747) Fixes CMake 4.0.0 compatibility, fixes ctutils library compilation yielding a Warning for lack of nullptr initialization, adds a CMake option to disable access control at compile time

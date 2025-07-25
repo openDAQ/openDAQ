@@ -728,9 +728,6 @@ ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType mod
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setComponentConfig(IPropertyObject* config)
 {
-    if (componentConfig.assigned())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Component config already set");
-
     componentConfig = config;
     return OPENDAQ_SUCCESS;
 }
@@ -1084,7 +1081,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
+void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /*forUpdate*/)
 {
     if (!active)
     {
@@ -1122,17 +1119,10 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         statusContainer.serialize(serializer);
     }
 
-    if (forUpdate)
+    if (componentConfig.assigned())
     {
-        PropertyObjectPtr componentConfig = this->componentConfig;
-        if (!componentConfig.assigned())
-            this->getComponentConfig(&componentConfig);
-
-        if (componentConfig.assigned())
-        {
-            serializer.key("ComponentConfig");
-            componentConfig.serialize(serializer);
-        }
+        serializer.key("ComponentConfig");
+        componentConfig.serialize(serializer);
     }
 }
 
@@ -1206,8 +1196,8 @@ void ComponentImpl<Intf, Intfs...>::triggerCoreEvent(const CoreEventArgsPtr& arg
 
 template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
-                                                            const BaseObjectPtr& context,
-                                                            const FunctionPtr& /*factoryCallback*/)
+                                                                  const BaseObjectPtr& context,
+                                                                  const FunctionPtr& /*factoryCallback*/)
 {
     if (serializedObject.hasKey("active"))
         active = serializedObject.readBool("active");

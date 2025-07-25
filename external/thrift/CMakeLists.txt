@@ -11,6 +11,7 @@ set(WITH_NODEJS OFF CACHE BOOL "")
 set(WITH_PYTHON OFF CACHE BOOL "")
 set(WITH_QT5 OFF CACHE BOOL "")
 set(WITH_ZLIB OFF CACHE BOOL "")
+set(WITH_OPENSSL OFF CACHE BOOL "")
 
 opendaq_dependency(
     NAME                Thrift
@@ -23,11 +24,6 @@ opendaq_dependency(
 
 if (Thrift_FETCHED)
 
-    # target_include_directories(thrift PUBLIC INTERFACE
-    #     $<BUILD_INTERFACE:${thrift_SOURCE_DIR}/lib/cpp/src>
-    #     $<BUILD_INTERFACE:${thrift_BINARY_DIR}>
-    # )
-
     target_link_libraries(thrift PUBLIC daq::boost_headers)
 
     target_include_directories(thrift INTERFACE
@@ -35,6 +31,5 @@ if (Thrift_FETCHED)
         "$<BUILD_INTERFACE:${thrift_BINARY_DIR}>")
 
     get_target_property(thrift_include_dirs thrift INTERFACE_INCLUDE_DIRECTORIES)
-    message(STATUS "Thrift include dirs: ${thrift_include_dirs}")
 
 endif()

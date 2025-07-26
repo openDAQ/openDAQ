@@ -727,7 +727,7 @@ jobs:
               Write-Output "Installing $file"
               pip install $file
             }
-            ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} -R test_py_opendaq .
+            ctest --output-on-failure -C ${{ matrix.cmake_build_type }} -R test_py_opendaq .
             Copy-Item pip/packages/*.whl wheels
             deactivate
             Remove-Item venv -Recurse

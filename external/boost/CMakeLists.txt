@@ -46,7 +46,17 @@ if (NOT BOOST_INCLUDE_LIBRARIES)
                          uuid
                          locale
                          align
+
     )
+
+    if(DAQMODULES_PARQUET_RECORDER_MODULE AND MSVC)
+        list(APPEND NEEDED_LIBRARIES
+                         multiprecision
+                         predef
+                         scope_exit
+                         typeof
+        )
+    endif()
 
     set(BOOST_INCLUDE_LIBRARIES "${NEEDED_LIBRARIES}"
         CACHE STRING
@@ -60,6 +70,7 @@ opendaq_dependency(
     URL                 https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.tar.xz
     URL_HASH            SHA256=fd60da30be908eff945735ac7d4d9addc7f7725b1ff6fcdcaede5262d511d21e
     EXPECT_TARGET       Boost::headers
+    OVERRIDE_FIND_PACKAGE
 )
 
 if (Boost_FETCHED)
@@ -80,6 +91,50 @@ if (Boost_FETCHED)
         endif()
     endforeach()
 
+    if(DAQMODULES_PARQUET_RECORDER_MODULE)
+        set(boost_libs 
+            config
+            algorithm 
+            assert 
+            bind 
+            concept_check 
+            core 
+            detail 
+            function
+            iterator 
+            locale 
+            mpl 
+            numeric_conversion 
+            preprocessor 
+            range 
+            smart_ptr
+            static_assert 
+            throw_exception 
+            tokenizer 
+            type_traits 
+            utility 
+            mp11
+        )
+
+        if(MSVC)
+            list(APPEND boost_libs
+                    multiprecision
+                    predef
+                    scope_exit
+                    typeof
+            
+            )
+        endif()
+
+        add_library(daq::boost_headers INTERFACE IMPORTED GLOBAL)
+
+        foreach(boost_lib ${boost_libs})
+            if (TARGET Boost::${boost_lib})
+                get_target_property(include_dirs Boost::${boost_lib} INTERFACE_INCLUDE_DIRECTORIES)
+                target_include_directories(daq::boost_headers INTERFACE "${include_dirs}")
+            endif()
+        endforeach()
+    endif()
 endif()
 
 if (Boost_FOUND)

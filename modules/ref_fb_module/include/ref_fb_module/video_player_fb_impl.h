@@ -83,7 +83,6 @@ private:
     InputPortConfigPtr videoInputPort;
 
     std::unique_ptr<sf::RenderWindow> window;
-    sf::Image image;
     sf::Texture texture;
     sf::Sprite sprite;
 

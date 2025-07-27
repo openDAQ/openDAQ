@@ -138,9 +138,9 @@ void VideoPlayerFbImpl::handleEventPacket(const EventPacketPtr& packet)
     if (descriptor.getSampleType() != SampleType::Binary)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Video player requires binary data descriptor");
 
-    auto unit = descriptor.getUnit();
-    if (unit.getSymbol() != "JPEG")
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Video player requires JPEG data descriptor");
+    // auto unit = descriptor.getUnit();
+    // if (unit.getSymbol() != "JPEG")
+    //     DAQ_THROW_EXCEPTION(InvalidParameterException, "Video player requires JPEG data descriptor");
 
     auto scheduler = context.getScheduler();
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();

@@ -56,7 +56,8 @@ void ExampleFBPropertyContainerTypes::initProperties()
 
 FunctionBlockTypePtr ExampleFBPropertyContainerTypes::CreateType()
 {
-    return FunctionBlockType("ExampleFBPropertyContainerTypes", "ExampleFBPropertyContainerTypes", "Function Block focused on container Property types");
+    return FunctionBlockType(
+        "ExampleFBPropertyContainerTypes", "ExampleFBPropertyContainerTypes", "Function Block focused on container Property types");
 }
 
 END_NAMESPACE_PROPERTIES_MODULE

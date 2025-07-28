@@ -4,7 +4,9 @@
 #include <iostream>
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
-ExampleFBPropertyObjectsAndClasses::ExampleFBPropertyObjectsAndClasses(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+ExampleFBPropertyObjectsAndClasses::ExampleFBPropertyObjectsAndClasses(const ContextPtr& ctx,
+                                                                       const ComponentPtr& par,
+                                                                       const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
@@ -74,7 +76,8 @@ void ExampleFBPropertyObjectsAndClasses::initProperties()
 
 FunctionBlockTypePtr ExampleFBPropertyObjectsAndClasses::CreateType()
 {
-    return FunctionBlockType("ExampleFBPropertyObjectsAndClasses", "ExampleFBPropertyObjectsAndClasses", "Function Block focused on objects and classes");
+    return FunctionBlockType(
+        "ExampleFBPropertyObjectsAndClasses", "ExampleFBPropertyObjectsAndClasses", "Function Block focused on objects and classes");
 }
 
 END_NAMESPACE_PROPERTIES_MODULE

@@ -2,7 +2,9 @@
 
 BEGIN_NAMESPACE_PROPERTIES_MODULE
 
-ExampleFBPropertyReferenceProperties::ExampleFBPropertyReferenceProperties(const ContextPtr& ctx, const ComponentPtr& par, const StringPtr& locId)
+ExampleFBPropertyReferenceProperties::ExampleFBPropertyReferenceProperties(const ContextPtr& ctx,
+                                                                           const ComponentPtr& par,
+                                                                           const StringPtr& locId)
     : FunctionBlock(CreateType(), ctx, par, locId)
 {
     initProperties();
@@ -58,7 +60,8 @@ void ExampleFBPropertyReferenceProperties::initProperties()
 
 FunctionBlockTypePtr ExampleFBPropertyReferenceProperties::CreateType()
 {
-    return FunctionBlockType("ExampleFBPropertyReferenceProperties", "ExampleFBPropertyReferenceProperties", "Function Block focused on reference Properties");
+    return FunctionBlockType(
+        "ExampleFBPropertyReferenceProperties", "ExampleFBPropertyReferenceProperties", "Function Block focused on reference Properties");
 }
 
 END_NAMESPACE_PROPERTIES_MODULE

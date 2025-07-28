@@ -47,19 +47,21 @@ void ExampleFBPropertyBasicTypes::initProperties()
     // We can add callbacks
 
     // Read callbacks will mess with our prints in application if enabled, so we comment them out
-    // objPtr.getOnAnyPropertyValueRead() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something read\n"; };
-    // objPtr.getOnPropertyValueRead("Bool") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Bool read\n"; };
+    // objPtr.getOnAnyPropertyValueRead() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something read\n\n";
+    // }; objPtr.getOnPropertyValueRead("Bool") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Bool read\n\n";
+    // };
     objPtr.getOnAnyPropertyValueWrite() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something written\n"; };
     objPtr.getOnPropertyValueWrite("StubbornInt") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
     {
         args.setValue(43);  // Force value to 43
-        std::cout << "StubbornInt changed to: " << args.getValue() << "\n";
+        std::cout << "StubbornInt changed to: " << args.getValue() << "\n\n";
     };
 }
 
 FunctionBlockTypePtr ExampleFBPropertyBasicTypes::CreateType()
 {
-    return FunctionBlockType("ExampleFBPropertyBasicTypes", "ExampleFBPropertyBasicTypes", "Function Block focused on basic Property types.");
+    return FunctionBlockType(
+        "ExampleFBPropertyBasicTypes", "ExampleFBPropertyBasicTypes", "Function Block focused on basic Property types.");
 }
 
 END_NAMESPACE_PROPERTIES_MODULE

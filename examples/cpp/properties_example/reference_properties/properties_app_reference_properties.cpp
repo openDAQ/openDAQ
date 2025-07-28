@@ -15,38 +15,36 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Add Function Block by type ID
     auto fb = instance.addFunctionBlock("ExampleFBPropertyReferenceProperties");
 
-    // Apply changes in one sweep later
+    // Apply changes in one go, later
     fb.beginUpdate();
 
-    // Print before modifications
-    std::cout << "\nBefore modifications/update:\n";
-    printFBProperties(fb);
-
     // Property visibility depending on another Property
-    fb.setPropertyValue("SometimesVisible", 2);
+    configureBasicProperty(fb, "SometimesVisible", 2);
 
     // Referenced and reference Bool
-    fb.setPropertyValue("Reference", True);
+    configureBasicProperty(fb, "Referenced", True);
+
+    // Apply changes in one go, no actual changes to Properties were made up to this point
+    fb.endUpdate();
+
+    // Print after calling endUpdate, changes are visible
+    std::cout << "After calling endUpdate, changes are visible:" << std::endl;
+
+    printProperty(fb.getProperty("SometimesVisible"));
+    printProperty(fb.getProperty("Referenced"));
 
     // Check if Properties are referenced
     std::cout << "Referenced is referenced: " << Boolean(fb.getProperty("Referenced").getIsReferenced()) << "\n";
     std::cout << "Reference is referenced: " << Boolean(fb.getProperty("Reference").getIsReferenced()) << "\n";
 
     // Coerced Int
-    fb.setPropertyValue("CoercedProp", 4);    // No coercion
-    fb.setPropertyValue("CoercedProp", 142);  // Coerced to 10
-
-    // Print after calling set but before modifications are applied via endUpdate
-    std::cout << "\nFB after calling set but before modifications are applied (should be the same as before):\n";
-    printFBProperties(fb);
-
-    // Apply changes in one sweep
-    fb.endUpdate();
+    configureBasicProperty(fb, "CoercedProp", 4);    // No coercion
+    configureBasicProperty(fb, "CoercedProp", 142);  // Coerced to 10
 
     // Read-only Int
     try
     {
-        fb.setPropertyValue("ReadOnlyInt", 42);
+        configureBasicProperty(fb, "ReadOnlyInt", 42);
     }
     catch (const std::exception& e)
     {
@@ -54,10 +52,10 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
 
     // Validated Int
-    fb.setPropertyValue("ValidatedProp", 43);  // Valid
+    configureBasicProperty(fb, "ValidatedProp", 43);  // Valid
     try
     {
-        fb.setPropertyValue("ValidatedProp", 1000);  // Fails validation
+        configureBasicProperty(fb, "ValidatedProp", 1000);  // Fails validation
     }
     catch (const std::exception& e)
     {

@@ -47,7 +47,7 @@ void ExampleFBPropertyObjectsAndClasses::initProperties()
     objPtr.addProperty(funObjProp);
 
     // Explicit permissions for function execution - used for controlling access to the function
-    // TODO: this is not used in the example (we don't add any servers, etc.), but it can be useful for more complex scenarios
+    // Tip: this is not used in the example (we don't add any servers, etc.), but it can be useful for more complex scenarios
     auto permissions = PermissionsBuilder()
                            .inherit(false)
                            .assign("everyone", PermissionMaskBuilder().read())

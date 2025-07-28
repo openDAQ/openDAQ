@@ -313,7 +313,7 @@ inline void configureBasicProperty(const daq::PropertyObjectPtr& propObject,
     auto property = propObject.getProperty(propName);
 
     // Print old Property value
-    std::cout << "Before setting value for '" << propName << "':\n";
+    std::cout << "Before setting value of '" << propName << "':\n";
     printProperty(property);
 
     // Configure a basic Property with a new value
@@ -321,6 +321,6 @@ inline void configureBasicProperty(const daq::PropertyObjectPtr& propObject,
     property.setValue(newValue);
 
     // Print new Property value
-    std::cout << "After setting value for '" << propName << "':\n";
+    std::cout << "After setting value of '" << propName << "':\n";
     printProperty(property);
 }

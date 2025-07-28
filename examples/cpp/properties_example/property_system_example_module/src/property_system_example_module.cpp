@@ -17,6 +17,19 @@ PropertySystemExampleModule::PropertySystemExampleModule(ContextPtr ctx)
              std::move(ctx),
              "PropertySystemExampleModule")
 {
+    // Object class - used for defining a class-like structure with properties
+    auto typeManager = context.getTypeManager();
+
+    auto inheritedObjClassProp = PropertyObjectClassBuilder("InheritedClass")
+                                     .addProperty(IntProperty("Integer", 10))
+                                     .addProperty(SelectionProperty("Selection", List<IString>("Banana", "Apple", "Kiwi"), 1))
+                                     .build();
+    typeManager.addType(inheritedObjClassProp);
+
+    // Object class - can also use inheritance
+    auto objClassProp =
+        PropertyObjectClassBuilder(typeManager, "Class").addProperty(StringProperty("Foo", "Bar")).setParentName("InheritedClass").build();
+    typeManager.addType(objClassProp);
 }
 
 DictPtr<IString, IFunctionBlockType> PropertySystemExampleModule::onGetAvailableFunctionBlockTypes()

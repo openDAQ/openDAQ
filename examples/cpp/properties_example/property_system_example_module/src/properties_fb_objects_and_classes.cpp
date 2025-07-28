@@ -58,17 +58,6 @@ void ExampleFBPropertyObjectsAndClasses::initProperties()
     // Object class - used for defining a class-like structure with properties
     auto typeManager = context.getTypeManager();
 
-    auto inheritedObjClassProp = PropertyObjectClassBuilder("InheritedClass")
-                                     .addProperty(IntProperty("Integer", 10))
-                                     .addProperty(SelectionProperty("Selection", List<IString>("Banana", "Apple", "Kiwi"), 1))
-                                     .build();
-    typeManager.addType(inheritedObjClassProp);  // TODO: this should be done in the module initialization, not here?
-
-    // Object class - can also use inheritance
-    auto objClassProp =
-        PropertyObjectClassBuilder(typeManager, "Class").addProperty(StringProperty("Foo", "Bar")).setParentName("InheritedClass").build();
-    typeManager.addType(objClassProp);  // TODO: this should be done in the module initialization, not here?
-
     auto obj = PropertyObject(typeManager, "Class");
     auto classProp = ObjectProperty("ClassObject", obj);
     objPtr.addProperty(classProp);

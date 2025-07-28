@@ -18,6 +18,7 @@
 
 #include <coreobjects/callable_info_factory.h>
 #include <coretypes/coretype.h>
+#include <coretypes/coretype_utils.h>
 #include <opendaq/function_block_impl.h>
 #include <opendaq/opendaq.h>
 #include <iostream>
@@ -43,44 +44,6 @@ enum PropertyType
     ptUnknown
 };
 
-inline daq::StringPtr coreTypeToString(const daq::CoreType& coreType)
-{
-    switch (coreType)
-    {
-        case daq::CoreType::ctBool:
-            return "Bool";
-        case daq::CoreType::ctInt:
-            return "Int";
-        case daq::CoreType::ctFloat:
-            return "Float";
-        case daq::CoreType::ctString:
-            return "String";
-        case daq::CoreType::ctList:
-            return "List";
-        case daq::CoreType::ctDict:
-            return "Dict";
-        case daq::CoreType::ctRatio:
-            return "Ratio";
-        case daq::CoreType::ctProc:
-            return "Proc";
-        case daq::CoreType::ctObject:
-            return "Object";
-        case daq::CoreType::ctBinaryData:
-            return "BinaryData";
-        case daq::CoreType::ctFunc:
-            return "Func";
-        case daq::CoreType::ctComplexNumber:
-            return "ComplexNumber";
-        case daq::CoreType::ctStruct:
-            return "Struct";
-        case daq::CoreType::ctEnumeration:
-            return "Enumeration";
-        case daq::CoreType::ctUndefined:
-            return "Undefined";
-    }
-    return "Unknown";
-}
-
 inline void printMetadata(const daq::BaseObjectPtr& obj, const daq::StringPtr& name, size_t indent)
 {
     std::cout << std::string(indent * 2, ' ') << name << ": " << obj << "\n";
@@ -94,7 +57,7 @@ inline void printProperty(const daq::PropertyPtr& property, size_t indent = 0)
               << std::string(indent * 2, ' ') << "******************\n\n";
 
     printMetadata(property.getName(), "Name", indent);
-    printMetadata(coreTypeToString(property.getValueType()), "Value Type", indent + 1);
+    printMetadata(daq::coretype_utils::coreTypeToString(property.getValueType()), "Value Type", indent + 1);
     printMetadata(property.getDescription(), "Description", indent + 1);
     printMetadata(property.getDefaultValue(), "Default Value", indent + 1);
     printMetadata(daq::Boolean(property.getReadOnly()), "Read Only", indent + 1);
@@ -208,8 +171,8 @@ inline void configureListProperty(const daq::PropertyObjectPtr& propObject)
     std::cout << "Configuring List property...\n";
     auto prop = propObject.getProperty("List");
 
-    std::cout << "Property value type: " << coreTypeToString(prop.getValueType()) << "\n";
-    std::cout << "List item type: " << coreTypeToString(prop.getItemType()) << "\n";
+    std::cout << "Property value type: " << daq::coretype_utils::coreTypeToString(prop.getValueType()) << "\n";
+    std::cout << "List item type: " << daq::coretype_utils::coreTypeToString(prop.getItemType()) << "\n";
 
     daq::ListPtr<daq::IInteger> currentValues = propObject.getPropertyValue("List");
     std::cout << "Current List values: " << currentValues << "\n";
@@ -233,13 +196,13 @@ inline void configureDictProperty(const daq::PropertyObjectPtr& propObject)
     auto prop = propObject.getProperty("Dict");
 
     auto valueType = prop.getValueType();
-    std::cout << "Property value type: " << coreTypeToString(valueType) << "\n";
+    std::cout << "Property value type: " << daq::coretype_utils::coreTypeToString(valueType) << "\n";
 
     auto keyType = prop.getKeyType();
-    std::cout << "Dict key type: " << coreTypeToString(keyType) << "\n";
+    std::cout << "Dict key type: " << daq::coretype_utils::coreTypeToString(keyType) << "\n";
 
     auto itemType = prop.getItemType();
-    std::cout << "Dict item type: " << coreTypeToString(itemType) << "\n";
+    std::cout << "Dict item type: " << daq::coretype_utils::coreTypeToString(itemType) << "\n";
 
     auto currentDict = propObject.getProperty("Dict");
     std::cout << "Current Dict values:\n";

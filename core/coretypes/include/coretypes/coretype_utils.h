@@ -183,6 +183,45 @@ inline Bool isNearRelative<ComplexFloat32>(const ComplexFloat32& actual, const C
     return isNearRelative<ComplexFloat64>(actual, expected, relativeErr);
 }
 
+inline std::string coreTypeToString(CoreType coreType)
+{
+    switch (coreType)
+    {
+        case ctBool:
+            return "bool";
+        case ctInt:
+            return "int";
+        case ctFloat:
+            return "float";
+        case ctString:
+            return "string";
+        case ctList:
+            return "list";
+        case ctDict:
+            return "dict";
+        case ctRatio:
+            return "ratio";
+        case ctProc:
+            return "proc";
+        case ctObject:
+            return "object";
+        case ctBinaryData:
+            return "binaryData";
+        case ctFunc:
+            return "func";
+        case ctComplexNumber:
+            return "complexNumber";
+        case ctStruct:
+            return "struct";
+        case ctEnumeration:
+            return "enumeration";
+        case ctUndefined:
+            return "undefined";
+    }
+
+    return "undefined";
+}
+
 };  // namespace coretype_utils
 
 END_NAMESPACE_OPENDAQ

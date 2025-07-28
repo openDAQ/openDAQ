@@ -34,7 +34,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     reconfigureStructProperty(fb);
 
     // Enumeration
-    configureEnum(fb, manager);
+    configureEnumProperty(fb, manager);
 
     // Selection
     configureBasicProperty(fb, "Selection", 2);

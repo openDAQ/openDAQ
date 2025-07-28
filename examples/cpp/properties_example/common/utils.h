@@ -223,7 +223,7 @@ inline void configureListProperty(const daq::PropertyObjectPtr& propObject)
     std::cout << "Updated List values: " << propObject.getPropertyValue("List") << "\n";
 
     // List properties can also be accessed by index using the syntax "List[index]" in the property name argument
-    std::cout << "Second element in updated list: " << propObject.getPropertyValue("List[1]") << "\n";
+    std::cout << "Second element in updated list: " << propObject.getPropertyValue("List[1]") << "\n\n";
 }
 
 // Demonstrates how to configure a Dict property
@@ -280,8 +280,8 @@ inline void reconfigureStructProperty(const daq::PropertyObjectPtr& propObject)
 
     // This overload is used to modify an existing Struct property (the Type Manager is not required this time)
     auto struMod = propObject.getPropertyValue("Struct");
-    auto structBuild = StructBuilder(struMod).set("Int", 200).set("String", "openDAQ modified").build();
-    propObject.setPropertyValue("Struct", structBuild);
+    auto stru = StructBuilder(struMod).set("Int", 200).set("String", "openDAQ modified").build();
+    propObject.setPropertyValue("Struct", stru);
 
     auto newProp = propObject.getPropertyValue("Struct");
 
@@ -289,10 +289,10 @@ inline void reconfigureStructProperty(const daq::PropertyObjectPtr& propObject)
     printProperty(propObject.getProperty("Struct"));
 }
 
-inline void configureEnum(const daq::PropertyObjectPtr& propObject, const daq::TypeManagerPtr& manager)
+inline void configureEnumProperty(const daq::PropertyObjectPtr& propObject, const daq::TypeManagerPtr& manager)
 {
     std::cout << "Current Enum value: " << "\n";
-    auto value = propObject.getPropertyValue("Enum");
+    auto value = propObject.getProperty("Enum");
     printProperty(value);
 
     std::cout << "Configuring Enum property...\n";
@@ -300,7 +300,7 @@ inline void configureEnum(const daq::PropertyObjectPtr& propObject, const daq::T
     propObject.setPropertyValue("Enum", enumVal);
 
     std::cout << "New Enum value: " << "\n";
-    auto newValue = propObject.getPropertyValue("Enum").asPtr<daq::IEnumeration>();
+    auto newValue = propObject.getProperty("Enum");
     printProperty(newValue);
 }
 

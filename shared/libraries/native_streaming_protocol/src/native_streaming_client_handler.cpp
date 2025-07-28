@@ -161,6 +161,45 @@ void NativeStreamingClientImpl::removeClientSignal(const SignalPtr& signal)
     }
 }
 
+bool NativeStreamingClientImpl::handleSignalSubscription(const SignalNumericIdType& signalNumericId,
+                                                         const SignalPtr& signal,
+                                                         bool subscribe)
+{
+    std::scoped_lock lock(registeredSignalsSync);
+    const auto signalStringId = signal.getGlobalId();
+
+    if (subscribe)
+    {
+        LOG_D("Client received subscribe command for signal: {}, numeric Id {}", signalStringId, signalNumericId);
+        try
+        {
+            signalSubscribedHandler(signal);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed subscribing of signal: {}, numeric Id {}; {}",
+                  signalStringId, signalNumericId, e.what());
+            return false;
+        }
+    }
+    else
+    {
+        LOG_D("Client received unsubscribe command for signal: {}, numeric Id {}",
+              signalStringId, signalNumericId);
+        try
+        {
+            signalUnsubscribedHandler(signal);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed unsubscribing of signal: {}, numeric Id {}; {}",
+                  signalStringId, signalNumericId, e.what());
+            return false;
+        }
+    }
+    return true;
+}
+
 void NativeStreamingClientImpl::sendPacket(const std::string& signalStringId, PacketPtr&& packet)
 {
     std::scoped_lock lock(registeredSignalsSync);
@@ -444,7 +483,7 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
                                                const std::string& /*clientId*/)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
-            return true;
+            return thisPtr->handleSignalSubscription(signalNumericId, signal, subscribe);
         return false;
     };
 

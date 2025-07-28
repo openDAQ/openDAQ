@@ -77,7 +77,7 @@ protected:
 
     void startReadThread();
 
-    std::unordered_map<StringPtr, WeakRefPtr<IMirroredInputPortConfig>> streamedSignals;
+    std::unordered_map<StringPtr, WeakRefPtr<ISignal>> streamedSignals;
 
 private:
     ErrCode removeStreamingSourceForAllInputPorts();
@@ -88,7 +88,7 @@ private:
     StringPtr protocolId;
 
     using InputPortItem = WeakRefPtr<IMirroredInputPortConfig>;
-    std::unordered_map<StringPtr, InputPortItem, StringHash, StringEqualTo> streamingInputPortsItems;
+    std::unordered_map<StringPtr, InputPortItem, StringHash, StringEqualTo> inputPortsItems;
 
     bool readThreadRunning;
     std::chrono::milliseconds readThreadSleepTime;
@@ -139,8 +139,8 @@ ErrCode StreamingToDeviceImpl<Interfaces...>::addInputPorts(IList* inputPorts)
 
             StringPtr inputPortIdKey = inputPortRemoteId;
 
-            auto it = streamingInputPortsItems.find(inputPortIdKey);
-            if (it != streamingInputPortsItems.end())
+            auto it = inputPortsItems.find(inputPortIdKey);
+            if (it != inputPortsItems.end())
             {
                 return DAQ_MAKE_ERROR_INFO(
                     OPENDAQ_ERR_DUPLICATEITEM,
@@ -155,7 +155,7 @@ ErrCode StreamingToDeviceImpl<Interfaces...>::addInputPorts(IList* inputPorts)
             }
 
             auto inputPortItem = WeakRefPtr<IMirroredInputPortConfig>(mirroredInputPort);
-            streamingInputPortsItems.insert({inputPortIdKey, inputPortItem});
+            inputPortsItems.insert({inputPortIdKey, inputPortItem});
         }
 
         ErrCode errCode =
@@ -192,13 +192,13 @@ ErrCode StreamingToDeviceImpl<Interfaces...>::removeInputPorts(IList* inputPorts
 
             StringPtr inputPortIdKey = mirroredInputPortToRemove.getRemoteId();
 
-            auto it = streamingInputPortsItems.find(inputPortIdKey);
-            if (it != streamingInputPortsItems.end())
+            auto it = inputPortsItems.find(inputPortIdKey);
+            if (it != inputPortsItems.end())
             {
                 auto mirroredInputPortlRef = it->second;
                 if (auto mirroredInputPort = mirroredInputPortlRef.getRef(); mirroredInputPort.assigned())
                 {
-                    streamingInputPortsItems.erase(it);
+                    inputPortsItems.erase(it);
                 }
             }
             else
@@ -305,9 +305,9 @@ ErrCode StreamingToDeviceImpl<Interfaces...>::detachRemovedInputPort(IString* in
     std::scoped_lock lock(this->sync);
 
     StringPtr inputPortIdKey = inputPortRemoteId;
-    if (auto it = streamingInputPortsItems.find(inputPortIdKey); it != streamingInputPortsItems.end())
+    if (auto it = inputPortsItems.find(inputPortIdKey); it != inputPortsItems.end())
     {
-        streamingInputPortsItems.erase(it);
+        inputPortsItems.erase(it);
     }
     else
     {
@@ -332,7 +332,7 @@ ErrCode StreamingToDeviceImpl<Interfaces...>::removeStreamingSourceForAllInputPo
     {
         std::scoped_lock lock(this->sync);
 
-        for (const auto& [_, inputPortItem] : streamingInputPortsItems)
+        for (const auto& [_, inputPortItem] : inputPortsItems)
         {
             if (auto mirroredInputPort = inputPortItem.getRef(); mirroredInputPort.assigned())
                 allInputPorts.pushBack(mirroredInputPort);
@@ -355,7 +355,7 @@ ErrCode StreamingToDeviceImpl<Interfaces...>::removeStreamingSourceForAllInputPo
 template<typename... Interfaces>
 void StreamingToDeviceImpl<Interfaces...>::removeAllInputPortsInternal()
 {
-    streamingInputPortsItems.clear();
+    inputPortsItems.clear();
 }
 
 template<typename... Interfaces>

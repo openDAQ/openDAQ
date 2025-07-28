@@ -444,6 +444,7 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignalGeneralized(const RpcCo
         // add-attach signals to all available streaming sources
         if (auto serverStreaming = server.asPtrOrNull<IStreaming>(); serverStreaming.assigned())
         {
+            serverStreaming.setActive(true); // FIXME here is not right place to set it
             serverStreaming.addSignals(signals);
             if (activeStreamingProtocolId.assigned())
             {

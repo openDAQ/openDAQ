@@ -98,6 +98,9 @@ protected:
     void checkReconnectionResult(const boost::system::error_code& ec);
     void tryReconnect();
     void connectionStatusChanged(const EnumerationPtr& status, const StringPtr& statusMessage);
+    bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
+                                  const SignalPtr& signal,
+                                  bool subscribe);
 
     enum class ConnectionResult
     {

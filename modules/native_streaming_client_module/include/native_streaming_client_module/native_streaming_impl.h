@@ -435,7 +435,7 @@ public:
         Super::upgradeToSafeProcessingCallbacks();
     }
 
-    ~NativeStreamingImpl()
+    ~NativeStreamingImpl() override
     {
         this->transportClientHandler->resetStreamingToDeviceHandlers();
         for (const auto& [_, signalRef] : this->streamedSignals)

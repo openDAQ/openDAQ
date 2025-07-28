@@ -73,7 +73,7 @@ public:
 protected:
     virtual void onRegisterStreamedSignal(const SignalPtr& signal) = 0;
     virtual void onUnregisterStreamedSignal(const SignalPtr& signal) = 0;
-    virtual void signalReadingFunc() = 0;
+    virtual void signalReadingFunc() {} // ? FIXME - should not be virtual
 
     void startReadThread();
 

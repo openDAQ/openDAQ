@@ -1,19 +1,13 @@
 #include <audio_device_module/wav_writer_fb_impl.h>
-#include <opendaq/event_packet_ids.h>
-#include <opendaq/event_packet_ptr.h>
-#include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/event_packet_utils.h>
-#include <opendaq/sample_type_traits.h>
-#include <opendaq/custom_log.h>
 #include <opendaq/reader_factory.h>
-#include <opendaq/function_block_type_factory.h>
+#include <cstdint>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 WAVWriterFbImpl::WAVWriterFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
-    , storing(false)   
-    , selfChange(false)   
+    : FunctionBlockImpl<IFunctionBlock, IRecorder>(CreateType(), ctx, parent, localId, nullptr)
+    , recording(false)   
 {
     createInputPort();
     initProperties();
@@ -28,14 +22,79 @@ FunctionBlockTypePtr WAVWriterFbImpl::CreateType()
     );
 }
 
+ErrCode WAVWriterFbImpl::startRecording()
+{
+    auto lock = this->getRecursiveConfigLock();
+
+    assert(!recording);
+
+    if (!inputValueDataDescriptor.assigned() || !inputTimeDataDescriptor.assigned())
+    {
+        LOG_W("Incomplete input signal descriptors")
+        return OPENDAQ_FAILED(OPENDAQ_ERR_VALIDATE_FAILED);
+    }
+
+    if (!validateDataDescriptor() || !validateDomainDescriptor())
+        return OPENDAQ_FAILED(OPENDAQ_ERR_VALIDATE_FAILED);
+
+    recording = initializeEncoder();
+    if (recording)
+    {
+        LOG_I("Recording started")
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode WAVWriterFbImpl::stopRecording()
+{
+    auto lock = this->getRecursiveConfigLock();
+
+    if (!stopRecordingInternal())
+        return OPENDAQ_FAILED(OPENDAQ_ERR_INVALIDSTATE);
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode WAVWriterFbImpl::getIsRecording(Bool* isRecording)
+{
+    auto lock = this->getRecursiveConfigLock();
+
+    if (!isRecording)
+    {
+        return OPENDAQ_FAILED(OPENDAQ_ERR_INVALIDPARAMETER);
+    }
+
+    *isRecording = recording;
+
+    return OPENDAQ_SUCCESS;
+}
+
+bool WAVWriterFbImpl::stopRecordingInternal()
+{
+    if(!recording)
+        return false;
+
+    ma_encoder_uninit(&encoder);
+    recording = false;
+    LOG_I("Recording stopped")
+
+    return true;
+}
+
 WAVWriterFbImpl::~WAVWriterFbImpl()
 {
-    stopStore();
+    stopRecording();
 }
 
 bool WAVWriterFbImpl::validateDataDescriptor() const
 {
     const auto inputSampleType = inputValueDataDescriptor.getSampleType();
+    if (inputSampleType == SampleType::Int16)
+    {
+        return true;
+    }
+
     if (inputSampleType != SampleType::Float64 && inputSampleType != SampleType::Float32)
     {
         LOG_W("Value data descriptor sample type must be Float64 or Float32, but is {}", convertSampleTypeToString(inputSampleType))
@@ -72,12 +131,33 @@ bool WAVWriterFbImpl::validateDomainDescriptor() const
 bool WAVWriterFbImpl::initializeEncoder()
 {
     const auto domainRuleParams = inputTimeDataDescriptor.getRule().getParameters();
+    const auto sampleType = inputValueDataDescriptor.getSampleType();
     const auto inputDeltaTicks = domainRuleParams.get("delta");
     const auto tickResolution = inputTimeDataDescriptor.getTickResolution();
-
+    ma_format maSampleType = ma_format_f32;
+    switch (sampleType)
+    {
+        case SampleType::Int16:
+            maSampleType = ma_format_s16;
+            break;
+        case SampleType::Int32:
+            maSampleType = ma_format_s32;
+            break;
+        case SampleType::Float32:
+            maSampleType = ma_format_f32;
+            break;
+        case SampleType::Float64:
+            maSampleType = ma_format_f32;
+            LOG_W("Float64 not supported by miniaudio, truncating to Float32");
+            break;
+        default:
+            maSampleType = ma_format_unknown;
+            LOG_W("Unsupported miniaudio sample type");
+            return false;
+    }
     const uint32_t sampleRate = static_cast<uint32_t>(static_cast<double>(inputDeltaTicks) / static_cast<double>(tickResolution));
 
-    const ma_encoder_config config = ma_encoder_config_init(ma_encoding_format_wav, ma_format_f32, 1, sampleRate);
+    const ma_encoder_config config = ma_encoder_config_init(ma_encoding_format_wav, maSampleType, 1, sampleRate);
     const ma_result result = ma_encoder_init_file(fileName.c_str(), &config, &encoder);
 
     if (result != MA_SUCCESS)
@@ -94,101 +174,83 @@ void WAVWriterFbImpl::initProperties()
     objPtr.addProperty(StringProperty("FileName", "test.wav"));
     objPtr.getOnPropertyValueWrite("FileName") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& /*args*/) { fileNameChanged(); }; 
 
-    objPtr.addProperty(BoolProperty("Storing", false));
-    objPtr.getOnPropertyValueWrite("Storing") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args)
-    {
-        storingChanged(args.getValue());
-    };
-
     fileNameChanged();
 }
 
 void WAVWriterFbImpl::fileNameChanged()
 {
+    stopRecording();
     fileName = static_cast<std::string>(objPtr.getPropertyValue("FileName"));
     LOG_I("File name: {}", fileName)
-    stopStoreInternal();
-}
-
-void WAVWriterFbImpl::storingChanged(bool store)
-{
-    if (store)
-        startStore();
-    else
-        stopStore();
 }
 
 void WAVWriterFbImpl::createInputPort()
 {
     inputPort = createAndAddInputPort("Input", PacketReadyNotification::Scheduler);
-    reader = StreamReaderFromPort(inputPort, SampleType::Float32, SampleType::UInt64);
-    reader.setOnDataAvailable([this] { calculate();});
-}
-
-void WAVWriterFbImpl::startStore()
-{
-    assert(!storing);
-
-    if (!inputValueDataDescriptor.assigned() && !inputTimeDataDescriptor.assigned())
-    {
-        LOG_W("Incomplete input signal descriptors")
-        return;
-    }
-
-    if (!validateDataDescriptor() || !validateDomainDescriptor())
-        return;
-
-    storing = initializeEncoder();
-    if (storing)
-    {
-        LOG_I("Stroring started")
-    }
-}
-
-void WAVWriterFbImpl::stopStore()
-{
-    if (!storing)
-        return;
-
-    ma_encoder_uninit(&encoder);
-    storing = false;
-    LOG_I("Storing stopped")
-}
-
-void WAVWriterFbImpl::stopStoreInternal()
-{
-    selfChange = true;
-    objPtr.setPropertyValue("Storing", false);
-    selfChange = false;
+    reader = StreamReaderFromPort(inputPort, SampleType::Undefined, SampleType::Undefined);
+    reader.setOnDataAvailable([this] { processInputData();});
 }
 
 void WAVWriterFbImpl::processEventPacket(const EventPacketPtr& packet)
 {
-    if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+    const auto [valueDescriptorChanged, domainDescriptorChanged, valueSignalDescriptor, domainSignalDescriptor] =
+        parseDataDescriptorEventPacket(packet);
+
+    if (valueDescriptorChanged)
+        inputValueDataDescriptor = valueSignalDescriptor;
+    if (domainDescriptorChanged)
+        inputTimeDataDescriptor = domainSignalDescriptor;
+
+    if (valueDescriptorChanged || domainDescriptorChanged)
     {
-        stopStoreInternal();
-
-        const auto [valueDescriptorChanged, domainDescriptorChanged, valueSignalDescriptor, domainSignalDescriptor] =
-            parseDataDescriptorEventPacket(packet);
-
-        if (valueDescriptorChanged)
-            inputValueDataDescriptor = valueSignalDescriptor;
-        if (domainDescriptorChanged)
-            inputTimeDataDescriptor = domainSignalDescriptor;
+        if (inputValueDataDescriptor.getSampleType() == SampleType::Float64)
+        {
+            reader = StreamReaderFromExisting(reader, SampleType::Float32, inputTimeDataDescriptor.getSampleType());
+        }
+        else
+        {
+            reader = StreamReaderFromExisting(reader, inputValueDataDescriptor.getSampleType(), inputTimeDataDescriptor.getSampleType());
+        }
     }
 }
 
-void WAVWriterFbImpl::calculate()
+void WAVWriterFbImpl::processInputData()
 {
     auto lock = this->getAcquisitionLock();
     SizeT availableData = reader.getAvailableCount();
+    size_t dataSize = 1;
+    std::vector<unsigned char> inputData;
 
-    std::vector<float> inputData;
-    inputData.reserve(std::max(availableData, static_cast<SizeT>(1)));
+    switch (reader.getValueReadType())
+    {
+        case SampleType::Int16:
+            dataSize = sizeof(short);
+            break;
+        case SampleType::Int32:
+            dataSize = sizeof(int32_t);
+            break;
+        case SampleType::Float32:
+            dataSize = sizeof(float_t);
+            break;
+        case SampleType::Float64:
+            dataSize = sizeof(float_t);
+            break;
+        default:
+            dataSize = 0;
+            break;
+    }
 
+    inputData.reserve(std::max(availableData, static_cast<SizeT>(1)) * dataSize);
     const auto status = reader.read(inputData.data(), &availableData);
 
-    if (storing)
+    if (status.getReadStatus() == ReadStatus::Event)
+    {
+        stopRecordingInternal();
+
+        processEventPacket(status.getEventPacket());
+    }
+
+    if (recording)
     {
         ma_uint64 samplesWritten;
         ma_result result;
@@ -196,11 +258,6 @@ void WAVWriterFbImpl::calculate()
         {
             LOG_W("Miniaudio failure: {}", ma_result_description(result));
         }
-    }
-
-    if (status.getReadStatus() == ReadStatus::Event)
-    {
-        processEventPacket(status.getEventPacket());
     }
 }
 

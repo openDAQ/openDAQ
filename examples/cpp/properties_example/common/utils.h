@@ -101,10 +101,6 @@ inline void printProperty(const daq::PropertyPtr& property, const bool printFull
             }
         }
     }
-    else if (valueCoreType == daq::CoreType::ctList)
-    {
-        auto listPtr = value.asPtrOrNull<daq::IList>();
-    }
     else
     {
         std::cout << std::string(indent * 2, ' ') << "  Value: " << value << "\n";

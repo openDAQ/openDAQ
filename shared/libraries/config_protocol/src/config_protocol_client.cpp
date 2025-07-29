@@ -628,18 +628,24 @@ std::tuple<uint32_t, StringPtr, StringPtr> ConfigProtocolClientComm::getExternal
 }
 
 void ConfigProtocolClientComm::disconnectExternalSignalFromServerInputPort(const SignalPtr& signal,
-                                                                           const StringPtr& inputPortRemoteGlobalId)
+                                                                           const StringPtr& inputPortRemoteGlobalId,
+                                                                           const MirroredInputPortPrivatePtr& mirroredInputPortPrivate)
 {
     const auto streamingProducer = streamingProducerRef.lock();
     if (!streamingProducer)
         return;
 
-    std::vector<SignalNumericIdType> unusedSignals;
+    auto unusedSignals = Dict<IInteger, ISignal>();
     streamingProducer->removeConnection(signal, inputPortRemoteGlobalId, unusedSignals);
 
-    if (!unusedSignals.empty())
+    if (unusedSignals.getCount() > 0)
     {
-        auto params = ParamsDict({{"SignalNumericIds", ListPtr<IInteger>::FromVector(unusedSignals)}});
+        ListPtr<IStreamingToDevice> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
+        for (const auto& streaming : streamingSources)
+        {
+            checkErrorInfo(streaming.asPtr<IStreamingToDevicePrivate>()->unregisterStreamedSignals(unusedSignals.getValueList()));
+        }
+        auto params = ParamsDict({{"SignalNumericIds", unusedSignals.getKeyList()}});
         sendNoReplyCommand(ClientCommand("RemoveExternalSignals"), params);
     }
 }
@@ -673,12 +679,37 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPortBasic(const
 
 void ConfigProtocolClientComm::connectExternalSignalToServerInputPortGeneralized(const SignalPtr& signal,
                                                                                  const StringPtr& inputPortRemoteGlobalId,
-                                                                                 const StringPtr& streamingProtocolId,
-                                                                                 const StringPtr& streamingSourceDeviceId)
+                                                                                 const MirroredInputPortPrivatePtr& mirroredInputPortPrivate)
 {
     const auto streamingProducer = streamingProducerRef.lock();
     if (!streamingProducer)
         DAQ_THROW_EXCEPTION(NotAssignedException, "StreamingProducer is not assigned.");
+
+    const StreamingToDevicePtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
+    StringPtr streamingProtocolId = activeSource.assigned() ? activeSource.getProtocolId() : nullptr;
+    MirroredDevicePtr streamingSourceDevice = activeSource.assigned() ? activeSource.getOwnerDevice() : nullptr;
+    StringPtr streamingSourceDeviceId;
+
+    if (activeSource.assigned())
+    {
+        if (!streamingSourceDevice.assigned())
+        {
+            DAQ_THROW_EXCEPTION(InvalidStateException, "The source device for the input port’s active streaming source is unknown");
+        }
+        else
+        {
+            streamingSourceDeviceId = streamingSourceDevice.getRemoteId();
+        }
+    }
+
+    auto signals = List<ISignal>(signal);
+    if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
+        signals.pushBack(domainSignal);
+    ListPtr<IStreamingToDevice> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
+    for (const auto& streaming : streamingSources)
+    {
+        checkErrorInfo(streaming.asPtr<IStreamingToDevicePrivate>()->registerStreamedSignals(signals));
+    }
 
     auto domainSignal = signal.getDomainSignal();
     const auto [domainSignalNumericId, domainSignalGlobalId, serializedDomainSignal] =

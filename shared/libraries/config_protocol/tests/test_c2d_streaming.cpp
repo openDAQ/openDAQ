@@ -26,6 +26,7 @@ class StreamingProducerTest : public Test
 public:
     void SetUp() override
     {
+        dummyUnusedSignals = Dict<IInteger, ISignal>();
         dummyPacketCb = [](const PacketPtr&, SignalNumericIdType) {};
         context = NullContext();
         testDevice = test_utils::createTestDevice();
@@ -38,7 +39,7 @@ protected:
     ListPtr<ISignal> signals;
     HandleDaqPacketCallback dummyPacketCb;
     SendPreprocessedPacketsCallback dummySendCb;
-    std::vector<SignalNumericIdType> dummyUnusedSignals;
+    DictPtr<IInteger, ISignal> dummyUnusedSignals;
 };
 
 TEST_F(StreamingProducerTest, Instantiate)
@@ -138,7 +139,7 @@ TEST_F(StreamingProducerTest, ConnectDisconnectRegisteredSignal)
     ASSERT_EQ(std::get<0>(streamingData.at(1)), eventPacketValueSignal);
     ASSERT_EQ(std::get<0>(streamingData.at(2)), eventPacketDomainSignal);
 
-    std::vector<SignalNumericIdType> unusedSignals;
+    auto unusedSignals = Dict<IInteger, ISignal>();
     ASSERT_NO_THROW(streamingProducer.removeConnection(valueSignal, "TestInputPortId", unusedSignals));
     ASSERT_EQ(valueSignal.getConnections().getCount(), 0u);
     ASSERT_EQ(domainSignal.getConnections().getCount(), 0u);
@@ -194,27 +195,27 @@ TEST_F(StreamingProducerTest, SignalMultipleConnections)
     ASSERT_EQ(domainSignal.getConnections().getCount(), 1u);
 
     {
-        std::vector<SignalNumericIdType> unusedSignals;
+        auto unusedSignals = Dict<IInteger, ISignal>();
         ASSERT_NO_THROW(streamingProducer.removeConnection(valueSignal, "TestInputPortId1", unusedSignals));
         ASSERT_EQ(valueSignal.getConnections().getCount(), 1u); // reader still exists
         ASSERT_EQ(domainSignal.getConnections().getCount(), 1u); // reader still exists
-        ASSERT_EQ(unusedSignals.size(), 0u);
+        ASSERT_EQ(unusedSignals.getCount(), 0u);
     }
     {
-        std::vector<SignalNumericIdType> unusedSignals;
+        auto unusedSignals = Dict<IInteger, ISignal>();
         ASSERT_NO_THROW(streamingProducer.removeConnection(valueSignal, "TestInputPortId2", unusedSignals));
         ASSERT_EQ(valueSignal.getConnections().getCount(), 0u); // reader removed
         ASSERT_EQ(domainSignal.getConnections().getCount(), 1u); // reader still exists
-        ASSERT_EQ(unusedSignals.size(), 1u);
-        ASSERT_EQ(unusedSignals[0], valueSignalNumericId);
+        ASSERT_EQ(unusedSignals.getCount(), 1u);
+        ASSERT_TRUE(unusedSignals.hasKey(valueSignalNumericId));
     }
     {
-        std::vector<SignalNumericIdType> unusedSignals;
+        auto unusedSignals = Dict<IInteger, ISignal>();
         ASSERT_NO_THROW(streamingProducer.removeConnection(domainSignal, "TestInputPortId3", unusedSignals));
         ASSERT_EQ(valueSignal.getConnections().getCount(), 0u); // reader removed
         ASSERT_EQ(domainSignal.getConnections().getCount(), 0u); // reader removed
-        ASSERT_EQ(unusedSignals.size(), 1u);
-        ASSERT_EQ(unusedSignals[0], domainSignalNumericId);
+        ASSERT_EQ(unusedSignals.getCount(), 1u);
+        ASSERT_TRUE(unusedSignals.hasKey(domainSignalNumericId));
     }
 }
 

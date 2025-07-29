@@ -74,11 +74,13 @@ void ConfigProtocolStreamingProducer::addConnection(const SignalPtr& signal, con
     addStreamingTrigger(signal, inputPortRemoteGlobalId);
 }
 
-void ConfigProtocolStreamingProducer::removeConnection(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId, std::vector<SignalNumericIdType>& unusedSignalsIds)
+void ConfigProtocolStreamingProducer::removeConnection(const SignalPtr& signal,
+                                                       const StringPtr& inputPortRemoteGlobalId,
+                                                       DictPtr<IInteger, ISignal>& unusedSignals)
 {
     std::scoped_lock lock(sync);
     LOG_D("Signal \"{}\" disconnected from \"{}\" input port", signal.getGlobalId(), inputPortRemoteGlobalId);
-    removeStreamingTrigger(signal, inputPortRemoteGlobalId, unusedSignalsIds);
+    removeStreamingTrigger(signal, inputPortRemoteGlobalId, unusedSignals);
 
     if (!hasSignalToRead() && readThreadRunning)
         stopReadThread();
@@ -109,7 +111,9 @@ void ConfigProtocolStreamingProducer::addStreamingTrigger(const SignalPtr& signa
     }
 }
 
-void ConfigProtocolStreamingProducer::removeStreamingTrigger(const SignalPtr& signal, const StringPtr& triggerComponentId, std::vector<SignalNumericIdType>& unusedSignlasIds)
+void ConfigProtocolStreamingProducer::removeStreamingTrigger(const SignalPtr& signal,
+                                                             const StringPtr& triggerComponentId,
+                                                             DictPtr<IInteger, ISignal>& unusedSignals)
 {
     const auto signalId = signal.getGlobalId();
 
@@ -125,9 +129,9 @@ void ConfigProtocolStreamingProducer::removeStreamingTrigger(const SignalPtr& si
         if (streamedSignal.triggerComponents.empty())
         {
             if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
-                removeStreamingTrigger(domainSignal, signalId, unusedSignlasIds);
+                removeStreamingTrigger(domainSignal, signalId, unusedSignals);
+            unusedSignals[streamedSignal.signalNumericId] = streamedSignal.signal;
             stopReadSignal(streamedSignal);
-            unusedSignlasIds.push_back(streamedSignal.signalNumericId);
         }
     }
     else

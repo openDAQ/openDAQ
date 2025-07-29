@@ -40,7 +40,9 @@ public:
     SignalNumericIdType registerOrUpdateSignal(const SignalPtr& signal);
     SignalPtr findRegisteredSignal(const StringPtr& signalId);
     void addConnection(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
-    void removeConnection(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId, std::vector<SignalNumericIdType>& unusedSignalsIds);
+    void removeConnection(const SignalPtr& signal,
+                          const StringPtr& inputPortRemoteGlobalId,
+                          DictPtr<IInteger, ISignal>& unusedSignals);
 
     void enableReading();
 
@@ -64,7 +66,9 @@ private:
     };
 
     void addStreamingTrigger(const SignalPtr& signal, const StringPtr& triggerComponentId);
-    void removeStreamingTrigger(const SignalPtr& signal, const StringPtr& triggerComponentId, std::vector<SignalNumericIdType>& unusedSignlasIds);
+    void removeStreamingTrigger(const SignalPtr& signal,
+                                const StringPtr& triggerComponentId,
+                                DictPtr<IInteger, ISignal>& unusedSignals);
     void startReadSignal(StreamedSignal& streamedSignal);
     void stopReadSignal(StreamedSignal& streamedSignal);
 

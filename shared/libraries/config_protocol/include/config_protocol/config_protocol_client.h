@@ -29,6 +29,7 @@
 #include <opendaq/custom_log.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <coreobjects/property_object_class_internal_ptr.h>
+#include <opendaq/mirrored_input_port_private_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -141,9 +142,10 @@ public:
     void connectExternalSignalToServerInputPortBasic(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
     void connectExternalSignalToServerInputPortGeneralized(const SignalPtr& signal,
                                                            const StringPtr& inputPortRemoteGlobalId,
-                                                           const StringPtr& streamingProtocolId,
-                                                           const StringPtr& streamingSourceDeviceId);
-    void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
+                                                           const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
+    void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal,
+                                                     const StringPtr& inputPortRemoteGlobalId,
+                                                     const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
 
     uint16_t getProtocolVersion() const;
 

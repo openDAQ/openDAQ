@@ -82,6 +82,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             if (!this->deserializationComplete)
                 return Super::connect(signal);
             const auto signalPtr = SignalPtr::Borrow(signal);
+            const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
             if (!isSignalFromTheSameComponentTree(signalPtr))
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED);
             {
@@ -91,7 +92,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
                 if (connectedSignal == signalPtr)
                     return OPENDAQ_IGNORED;
                 if (connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
-                    clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
+                    clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId, mirroredInputPortPrivate);
             }
 
             const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
@@ -103,39 +104,9 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             }
             else
             {
-                const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
-                const auto mirroredInputPort = this->template borrowPtr<MirroredInputPortConfigPtr>();
                 if (clientComm->getProtocolVersion() >= 17)
                 {
-                    const StreamingToDevicePtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
-                    StringPtr streamingProtocolId = activeSource.assigned() ? activeSource.getProtocolId() : nullptr;
-                    MirroredDevicePtr streamingSourceDevice = activeSource.assigned() ? activeSource.getOwnerDevice() : nullptr;
-                    StringPtr streamingSourceDeviceId;
-                    if (activeSource.assigned())
-                    {
-                        if (!streamingSourceDevice.assigned())
-                        {
-                            return DAQ_MAKE_ERROR_INFO(
-                                OPENDAQ_ERR_INVALIDSTATE,
-                                "The source device for the input port’s active streaming source is unknown"
-                            );
-                        }
-                        else
-                        {
-                            streamingSourceDeviceId = streamingSourceDevice.getRemoteId();
-                        }
-                    }
-
-                    auto signals = List<ISignal>(signalPtr);
-                    if (const auto domainSignal = signalPtr.getDomainSignal(); domainSignal.assigned())
-                        signals.pushBack(domainSignal);
-                    ListPtr<IStreamingToDevice> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
-                    for (const auto& streaming : streamingSources)
-                    {
-                        checkErrorInfo(streaming.asPtr<IStreamingToDevicePrivate>()->registerStreamedSignals(signals));
-                    }
-
-                    clientComm->connectExternalSignalToServerInputPortGeneralized(signalPtr, remoteGlobalId, streamingProtocolId, streamingSourceDeviceId);
+                    clientComm->connectExternalSignalToServerInputPortGeneralized(signalPtr, remoteGlobalId, mirroredInputPortPrivate);
                 }
                 else if (clientComm->getProtocolVersion() >= 2)
                 {
@@ -177,7 +148,10 @@ inline ErrCode ConfigClientInputPortImpl::assignSignal(ISignal* signal)
     const auto signalPtr = SignalPtr::Borrow(signal);
 
     if (connectedSignal != signalPtr && connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
-        clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
+    {
+        const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+        clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId, mirroredInputPortPrivate);
+    }
 
     if (signal == nullptr)
         return Super::disconnect();
@@ -316,7 +290,10 @@ inline void ConfigClientInputPortImpl::removed()
     const auto connectedSignal = getConnectedSignal();
 
     if (connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
-        clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
+    {
+        const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+        clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId, mirroredInputPortPrivate);
+    }
     Super::removed();
 }
 

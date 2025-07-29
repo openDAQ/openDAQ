@@ -104,6 +104,10 @@ if (OPENDAQ_IP_MODIFICATION)
   add_subdirectory(ip_modification)
 endif()
 
+if (OPENDAQ_READ_WRITE_AUDIO)
+  add_subdirectory(read_write_audio_file_example)
+endif()
+
 if(OPENDAQ_LOGGER_USAGE)
   add_subdirectory(logger_example)
   
@@ -111,3 +115,4 @@ if (OPENDAQ_READ_WRITE_AUDIO)
   add_subdirectory(read_write_audio_file_example)
 
 endif()
+

@@ -24,16 +24,58 @@ BEGIN_NAMESPACE_OPENDAQ
 /*#
  * [interfaceSmartPtr(IEventArgs, EventArgsPtr, "<coretypes/event_args_ptr.h>")]
  */
+    
+/*!
+ * @ingroup objects_property
+ * @addtogroup objects_property_metadata_read_args PropertyMetadataReadArgs
+ * @{
+ */
+
+/*!
+ * Event arguments used in property metadata `onRead` events. Currently part
+ * of the "Suggested values" and "Selection values" read events. They allow
+ * listeners to override the read value of the metadata field.
+ *
+ * Listeners of such events are expected to always override the current value
+ * via the `setValue` method.
+ */
 DECLARE_OPENDAQ_INTERFACE(IPropertyMetadataReadArgs, IEventArgs)
 {
+    /*!
+     * @brief Gets the property that owns the metadata field.
+     * @param property The property that owns the metadata field.
+     */
     virtual ErrCode INTERFACE_FUNC getProperty(IProperty** property) = 0;
+
+    /*!
+     * @brief Gets the current value of the metadata field.
+     * @param value The value of the metadata field.
+     */
     virtual ErrCode INTERFACE_FUNC getValue(IBaseObject** value) = 0;
+    /*!
+     * @brief Sets the current value of the metadata field.
+     * @param value The value of the metadata field.
+     */
     virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value) = 0;
 };
 
+/*!@}*/
+
+/*!
+ * @ingroup objects_property
+ * @addtogroup objects_property_metadata_read_args_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Creates a new PropertyMetadataReadArgs object with a given property that owns the metadata field.
+ * @param prop The property that owns the metadata field.
+ */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, PropertyMetadataReadArgs,
     IProperty*, prop
 )
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

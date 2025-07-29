@@ -412,9 +412,25 @@ DECLARE_OPENDAQ_INTERFACE(IProperty, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value) = 0;
     
     // [templateType(event, IProperty, IPropertyMetadataReadArgs)]
+    /*!
+     * @brief Gets the event triggered when a user retrieves the suggested values field. Allows for overriding
+     * the returned value.
+     * @param[out] event The `onRead` event triggered when suggested values are read.
+     *
+     * There should at any point be a single listener that overrides the returned value. Any listeners are expected
+     * to always configure the returned value via the Property metadata read arguments object.
+     */
     virtual ErrCode INTERFACE_FUNC getOnSuggestedValuesRead(IEvent** event) = 0;
 
     // [templateType(event, IProperty, IPropertyMetadataReadArgs)]
+    /*!
+     * @brief Gets the event triggered when a user retrieves the selection values field. Allows for overriding
+     * the returned value.
+     * @param[out] event The `onRead` event triggered when suggested values are read.
+     *
+     * There should at any point be a single listener that overrides the returned value. Any listeners are expected
+     * to always configure the returned value via the Property metadata read arguments object.
+     */
     virtual ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) = 0;
 };
 /*!@}*/

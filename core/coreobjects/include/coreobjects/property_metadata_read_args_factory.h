@@ -20,9 +20,21 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+/*!
+ * @ingroup objects_property
+ * @addtogroup objects_property_metadata_read_args_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Creates a new PropertyMetadataReadArgs object with a given property that owns the metadata field.
+ * @param prop The property that owns the metadata field.
+ */
 inline PropertyMetadataReadArgsPtr PropertyMetadataReadArgs(const PropertyPtr& prop)
 {
-    return PropertyMetadataReadArgsPtr(PropertyMetadataReadArgs_Create(prop));
+    return {PropertyMetadataReadArgs_Create(prop)};
 }
+
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

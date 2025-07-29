@@ -298,15 +298,31 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event) = 0;
     
     // [templateType(event, "PropertyPtr, PropertyMetadataReadArgsPtr"), returnSelf]
+    /*!
+     * @brief Sets a custom on-suggested-values-read event. Used mostly when cloning properties.
+     * @param event The on-read event.
+     */
     virtual ErrCode INTERFACE_FUNC setOnSuggestedValuesRead(IEvent* event) = 0;
     
     // [templateType(event, IProperty, IPropertyMetadataReadArgs)]
+    /*!
+     * @brief Gets a custom on-suggested-values-read event. Used mostly when cloning properties.
+     * @param event The on-read event.
+     */
     virtual ErrCode INTERFACE_FUNC getOnSuggestedValuesRead(IEvent** event) = 0;
     
     // [templateType(event, "PropertyPtr, PropertyMetadataReadArgsPtr"), returnSelf]
+    /*!
+     * @brief Sets a custom on-selection-values-read event. Used mostly when cloning properties.
+     * @param event The on-read event.
+     */
     virtual ErrCode INTERFACE_FUNC setOnSelectionValuesRead(IEvent* event) = 0;
     
     // [templateType(event, IProperty, IPropertyMetadataReadArgs)]
+    /*!
+     * @brief Gets a custom on-selection-values-read event. Used mostly when cloning properties.
+     * @param event The on-read event.
+     */
     virtual ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) = 0;
 };
 

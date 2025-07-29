@@ -113,6 +113,5 @@ if(OPENDAQ_LOGGER_USAGE)
   
 if (OPENDAQ_READ_WRITE_AUDIO)
   add_subdirectory(read_write_audio_file_example)
-
 endif()
 

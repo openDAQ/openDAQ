@@ -27,6 +27,7 @@
 #include <coretypes/cloneable.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/component_private_ptr.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <coreobjects/property_object_class_internal_ptr.h>
 
@@ -441,6 +442,7 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
 
     const ComponentHolderPtr deviceHolder = clientComm->requestRootDevice(parent);
     auto device = deviceHolder.getComponent();
+    device.asPtr<IComponentPrivate>().setComponentConfig(nullptr);
 
     clientComm->setRootDevice(device);
     clientComm->connectDomainSignals(device);

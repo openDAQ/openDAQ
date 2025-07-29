@@ -76,6 +76,9 @@ public:
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 
 private:
     void componentAdded(const CoreEventArgsPtr& args);
@@ -460,7 +463,8 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
     for (const auto& id : toRemove)
         this->removeComponentById(id);
     
-    const std::set<std::string> ignoredKeys{"__type", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues"};
+    const std::set<std::string> ignoredKeys{
+        "__type", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues", "ComponentConfig"};
 
     for (const auto& key : serialized.getKeys())
     {
@@ -516,6 +520,16 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         Int mode = serialized.readInt("OperationMode");
         this->updateOperationModeNoCoreEvent(static_cast<OperationModeType>(mode));
     }
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                               const BaseObjectPtr& context,
+                                                                               const FunctionPtr& factoryCallback)
+{
+    TDeviceBase::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+    if (serializedObject.hasKey("ComponentConfig"))
+        this->componentConfig = serializedObject.readObject("ComponentConfig");
 }
 
 template <class TDeviceBase>

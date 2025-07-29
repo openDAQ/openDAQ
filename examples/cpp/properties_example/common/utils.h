@@ -231,8 +231,8 @@ inline void configureStructProperty(const daq::PropertyObjectPtr& propObject, co
     std::cout << "Current Struct: " << "\n";
     printProperty(property);
 
-    std::cout << "Configuring Struct property...\n";
     // New value (requires the Type Manager which stores the possible types)
+    std::cout << "Configuring Struct property...\n";
     auto stru = StructBuilder("Struct", manager).set("Int", 100).set("String", "openDAQ").build();
     property.setValue(stru);
 

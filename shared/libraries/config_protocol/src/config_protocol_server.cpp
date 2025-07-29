@@ -430,14 +430,15 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignalGeneralized(const RpcCo
     // verifies that access to input port is granted for current user before creating mirrored signals
     ConfigServerInputPort::access(context, inputPort);
 
-    const MirroredSignalConfigPtr signal = streamingConsumer.getOrAddExternalSignal(params);
+    const MirroredSignalConfigPtr externalSignal = streamingConsumer.getOrAddExternalSignal(params);
 
     const StringPtr activeStreamingProtocolId = params.get("ActiveStreamingProtocolId");
     const StringPtr activeStreamingSourceDeviceId = params.get("ActiveStreamingSourceDeviceId");
 
-    auto signals = List<IMirroredSignalConfig>(signal);
-    if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
+    auto signals = List<IMirroredSignalConfig>();
+    if (const auto domainSignal = externalSignal.getDomainSignal(); domainSignal.assigned())
         signals.pushBack(domainSignal);
+    signals.pushBack(externalSignal);
 
     for (const auto& server : rootDevice.getServers())
     {
@@ -461,7 +462,7 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignalGeneralized(const RpcCo
     }
 
     // the subscribe is automatically done while connect is perfmormed
-    return ConfigServerInputPort::connect(context, inputPort, signal, params);
+    return ConfigServerInputPort::connect(context, inputPort, externalSignal, params);
 }
 
 BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& params)

@@ -102,6 +102,7 @@ StreamingToDeviceImpl<Interfaces...>::StreamingToDeviceImpl(const StringPtr& con
                                                             const StringPtr& protocolId)
     : Super(connectionString, context, skipDomainSignalSubscribe)
     , protocolId(protocolId)
+    , readThreadRunning(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
 {
 }

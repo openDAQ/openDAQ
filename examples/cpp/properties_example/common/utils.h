@@ -66,7 +66,8 @@ inline void printProperty(const daq::PropertyPtr& property, const bool printFull
     }
 
     auto value = property.getValue();
-    if (value.getCoreType() == daq::CoreType::ctObject)
+    auto valueCoreType = value.getCoreType();
+    if (valueCoreType == daq::CoreType::ctObject)
     {
         auto objPtr = value.asPtrOrNull<daq::IPropertyObject>();
         if (objPtr.assigned())
@@ -77,16 +78,32 @@ inline void printProperty(const daq::PropertyPtr& property, const bool printFull
             }
         }
     }
-    else if (value.getCoreType() == daq::CoreType::ctDict)
+    else if (valueCoreType == daq::CoreType::ctDict)
     {
         auto dictPtr = value.asPtrOrNull<daq::IDict>();
         if (dictPtr.assigned())
         {
             for (const auto& [key, val] : dictPtr)
             {
-                std::cout << std::string(indent * 2, ' ') << "  Key: " << key << " Value: " << val << "\n";
+                std::cout << std::string(indent * 2, ' ') << "  Key: " << key << ", Value: " << val << "\n";
             }
         }
+    }
+    else if (valueCoreType == daq::CoreType::ctStruct)
+    {
+        auto structPtr = value.asPtrOrNull<daq::IStruct>();
+        if (structPtr.assigned())
+        {
+            for (const auto& [key, val] : structPtr.getAsDictionary())
+            {
+                std::cout << std::string(indent * 2, ' ') << "  Field name: " << key << ", Value: " << val
+                          << ", Value Core Type: " << daq::coretype_utils::coreTypeToString(val.getCoreType()) << "\n";
+            }
+        }
+    }
+    else if (valueCoreType == daq::CoreType::ctList)
+    {
+        auto listPtr = value.asPtrOrNull<daq::IList>();
     }
     else
     {

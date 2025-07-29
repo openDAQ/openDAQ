@@ -46,7 +46,8 @@ enum PropertyType
 
 inline void printMetadata(const daq::BaseObjectPtr& obj, const daq::StringPtr& name, size_t indent)
 {
-    std::cout << std::string(indent * 2, ' ') << name << ": " << obj << "\n";
+    if (obj.assigned())  // Leave out empty metadata
+        std::cout << std::string(indent * 2, ' ') << name << ": " << obj << "\n";
 }
 
 inline void printProperty(const daq::PropertyPtr& property, const bool printFullMetadata = false, size_t indent = 0)
@@ -229,7 +230,7 @@ inline void configureStructProperty(const daq::PropertyObjectPtr& propObject, co
 
     // Print old Property
     std::cout << "Current Struct: " << "\n";
-    printProperty(property);
+    printProperty(property, true);
 
     // New value (requires the Type Manager which stores the possible types)
     std::cout << "Configuring Struct property...\n";

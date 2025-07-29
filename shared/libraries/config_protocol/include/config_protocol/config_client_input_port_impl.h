@@ -38,17 +38,21 @@ public:
                               const StringPtr& localId,
                               const StringPtr& className = nullptr);
 
+    // IInputPort
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
-    ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
-
-    ErrCode INTERFACE_FUNC assignSignal(ISignal* signal) override;
-
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
 
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+    // IInputPortPrivate
+    ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
 
-    StringPtr onGetRemoteId() const override; // fixme - protected
+    // IConfigClientInputPort
+    ErrCode INTERFACE_FUNC assignSignal(ISignal* signal) override;
+
+    // IMirroredInputPortConfig
+    ErrCode INTERFACE_FUNC setActiveStreamingSource(IString* streamingConnectionString) override;
+
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
@@ -61,6 +65,8 @@ protected:
     bool isSignalFromTheSameComponentTree(const SignalPtr& signal);
 
     void removed() override;
+
+    StringPtr onGetRemoteId() const override;
 };
 
 inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -191,6 +197,19 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
         });
 }
 
+inline ErrCode ConfigClientInputPortImpl::setActiveStreamingSource(IString* streamingConnectionString)
+{
+    ErrCode errCode = Super::setActiveStreamingSource(streamingConnectionString);
+
+    if (errCode == OPENDAQ_SUCCESS && clientComm->getProtocolVersion() >= 17)
+    {
+        const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+        // notify server that source has been changed
+        clientComm->changeInputPortStreamingSource(remoteGlobalId, mirroredInputPortPrivate);
+    }
+
+    return errCode;
+}
 
 inline SignalPtr ConfigClientInputPortImpl::getConnectedSignal()
 {

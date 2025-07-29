@@ -733,6 +733,32 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPortGeneralized
     streamingProducer->addConnection(signal, inputPortRemoteGlobalId);
 }
 
+void ConfigProtocolClientComm::changeInputPortStreamingSource(const StringPtr& inputPortRemoteGlobalId,
+                                                              const MirroredInputPortPrivatePtr& mirroredInputPortPrivate)
+{
+    const StreamingToDevicePtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
+    StringPtr streamingProtocolId = activeSource.assigned() ? activeSource.getProtocolId() : nullptr;
+    MirroredDevicePtr streamingSourceDevice = activeSource.assigned() ? activeSource.getOwnerDevice() : nullptr;
+    StringPtr streamingSourceDeviceId;
+
+    if (activeSource.assigned())
+    {
+        if (!streamingSourceDevice.assigned())
+        {
+            DAQ_THROW_EXCEPTION(InvalidStateException, "The source device for the input port’s active streaming source is unknown");
+        }
+        else
+        {
+            streamingSourceDeviceId = streamingSourceDevice.getRemoteId();
+        }
+    }
+
+    auto params = ParamsDict({{"ActiveStreamingProtocolId", streamingProtocolId},
+                              {"ActiveStreamingSourceDeviceId", streamingSourceDeviceId}});
+
+    sendComponentCommand(inputPortRemoteGlobalId, ClientCommand("ChangeInputPortStreamingSource"), params, nullptr);
+}
+
 void ConfigProtocolClientComm::requireMinServerVersion(const ClientCommand& command)
 {
     if (protocolVersion < command.getMinServerVersion())

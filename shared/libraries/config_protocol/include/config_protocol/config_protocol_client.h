@@ -147,6 +147,8 @@ public:
     void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal,
                                                      const StringPtr& inputPortRemoteGlobalId,
                                                      const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
+    void changeInputPortStreamingSource(const StringPtr& inputPortRemoteGlobalId,
+                                        const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
 
     uint16_t getProtocolVersion() const;
 

@@ -39,14 +39,11 @@ public:
                                    const ComponentPtr& parent,
                                    const StringPtr& localId);
 
-    virtual StringPtr onGetRemoteId() const = 0;
-
     // IMirroredInputPortConfig
     ErrCode INTERFACE_FUNC getRemoteId(IString** id) const override;
     ErrCode INTERFACE_FUNC getStreamingSources(IList** streamingConnectionStrings) override;
     ErrCode INTERFACE_FUNC setActiveStreamingSource(IString* streamingConnectionString) override;
     ErrCode INTERFACE_FUNC getActiveStreamingSource(IString** streamingConnectionString) override;
-    ErrCode INTERFACE_FUNC deactivateStreaming() override;
 
     // IMirroredInputPortPrivate
     ErrCode INTERFACE_FUNC addStreamingSource(IStreamingToDevice* streaming) override;
@@ -73,6 +70,7 @@ public:
 
 protected:
     void removed() override;
+    virtual StringPtr onGetRemoteId() const = 0;
 
 private:
     // vector is used as the order of adding & accessing sources is important
@@ -273,10 +271,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::setActiveStreamingSource(IString* 
         );
     }
 
-    // TODO unsubscribe old streaming source
-
     activeStreamingSourceRef = streamingSource;
-    // TODO subscribe new streaming source
 
     return OPENDAQ_SUCCESS;
 }
@@ -292,22 +287,6 @@ ErrCode MirroredInputPortBase<Interfaces...>::getActiveStreamingSource(IString**
         *streamingConnectionString = activeStreamingSource.getConnectionString().addRefAndReturn();
     else
         *streamingConnectionString = nullptr;
-
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename... Interfaces>
-ErrCode MirroredInputPortBase<Interfaces...>::deactivateStreaming()
-{
-    auto thisPtr = this->template borrowPtr<MirroredInputPortConfigPtr>();
-
-    auto lock = this->getRecursiveConfigLock();
-
-    ErrCode errCode = OPENDAQ_SUCCESS;
-    // TODO unsubscribe streaming source
-    activeStreamingSourceRef = nullptr;
-
-    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;
 }

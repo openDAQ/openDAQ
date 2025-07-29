@@ -33,7 +33,6 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredInputPortConfig, IInputPortConfig)
 
     virtual ErrCode INTERFACE_FUNC setActiveStreamingSource(IString* streamingConnectionString) = 0;
     virtual ErrCode INTERFACE_FUNC getActiveStreamingSource(IString** streamingConnectionString) = 0;
-    virtual ErrCode INTERFACE_FUNC deactivateStreaming() = 0;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -10,6 +10,7 @@
 #include <config_protocol/config_server_access_control.h>
 #include <opendaq/custom_log.h>
 #include <config_protocol/config_server_recorder.h>
+#include <config_protocol/config_mirrored_ext_sig_impl.h>
 
 namespace daq::config_protocol
 {
@@ -177,6 +178,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignalBasic, this, _1, _2, _3));
     addHandler<InputPortPtr>("ConnectExternalSignalGeneralized", std::bind(&ConfigProtocolServer::connectExternalSignalGeneralized, this, _1, _2, _3));
+    addHandler<InputPortPtr>("ChangeInputPortStreamingSource", std::bind(&ConfigProtocolServer::changeInputPortStreamingSource, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
     addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
 
@@ -463,6 +465,32 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignalGeneralized(const RpcCo
 
     // the subscribe is automatically done while connect is perfmormed
     return ConfigServerInputPort::connect(context, inputPort, externalSignal, params);
+}
+
+BaseObjectPtr ConfigProtocolServer::changeInputPortStreamingSource(const RpcContext& context,
+                                                                   const InputPortPtr& inputPort,
+                                                                   const ParamsDictPtr& params)
+{
+    auto externalSignal = inputPort.getSignal();
+    if (externalSignal.assigned() && externalSignal.supportsInterface<IMirroredExternalSignalPrivate>())
+        return nullptr;
+
+    const StringPtr activeStreamingProtocolId = params.get("ActiveStreamingProtocolId");
+    const StringPtr activeStreamingSourceDeviceId = params.get("ActiveStreamingSourceDeviceId");
+
+    if (activeStreamingProtocolId.assigned())
+    {
+        auto signals = List<IMirroredSignalConfig>();
+        if (const auto domainSignal = externalSignal.getDomainSignal(); domainSignal.assigned())
+            signals.pushBack(domainSignal);
+        signals.pushBack(externalSignal);
+
+        for (const auto& signal : signals)
+        {
+            signal.setActiveStreamingSource(activeStreamingProtocolId);
+        }
+    }
+    return nullptr;
 }
 
 BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& params)

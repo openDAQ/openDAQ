@@ -119,6 +119,7 @@ private:
     BaseObjectPtr connectSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr connectExternalSignalBasic(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr connectExternalSignalGeneralized(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    BaseObjectPtr changeInputPortStreamingSource(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr removeExternalSignals(const ParamsDictPtr& params);
     BaseObjectPtr acceptsSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
 

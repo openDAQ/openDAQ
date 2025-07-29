@@ -28,6 +28,7 @@ option(OPENDAQ_CSV_WRITER "Example that connects to available devices, writing t
 option(OPENDAQ_STREAMING_CONFIG "Streaming configuration example that modifies the configuration of OpcUa enabled device" ON)
 option(OPENDAQ_RECONNECTION "Example on how to detect connection loss and reconnection" ON)
 option(OPENDAQ_IP_MODIFICATION "Example on how to modify IP configuration parameters of the openDAQ device" ON)
+option(OPENDAQ_READ_WRITE_AUDIO "Example on how to read and write wav files with the audio module." ON)
 option(OPENDAQ_PROPERTIES_EXAMPLE "Properties example" ON)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -103,6 +104,10 @@ endif()
 
 if (OPENDAQ_IP_MODIFICATION)
   add_subdirectory(ip_modification)
+endif()
+
+if (OPENDAQ_READ_WRITE_AUDIO)
+  add_subdirectory(read_write_audio_file_example)
 endif()
 
 if (OPENDAQ_PROPERTIES_EXAMPLE)

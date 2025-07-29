@@ -224,6 +224,12 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
         message(WARNING "DAQMODULES_OPENDAQ_SERVER_MODULE, DAQMODULES_OPENDAQ_CLIENT_MODULE, OPENDAQ_ENABLE_WEBSOCKET_STREAMING, OPENDAQ_ENABLE_OPCUA, DAQMODULES_REF_FB_MODULE and DAQMODULES_REF_DEVICE_MODULE must be ON to enable csv_writer application")
     endif()
 
+	if (DAQMODULES_AUDIO_DEVICE_MODULE)
+		add_executable(read_write_audio_example cpp/read_write_audio_file_example/audio_example.cpp)
+		target_link_libraries(read_write_audio_example PRIVATE daq::opendaq)
+		add_dependencies(read_write_audio_example daq::audio_device_module)
+	endif()
+	
     if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND OPENDAQ_ENABLE_NATIVE_STREAMING AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
         add_executable(streaming_configuration_example cpp/streaming_configuration_example/streaming_configuration_example.cpp)
         target_link_libraries(streaming_configuration_example PRIVATE daq::opendaq)

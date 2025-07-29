@@ -4,10 +4,11 @@
 #include <coretypes/baseobject_factory.h>
 #include <coretypes/type_manager_ptr.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+#include <coretypes/coretype_utils.h>
 
+BEGIN_NAMESPACE_OPENDAQ
 SimpleTypeImpl::SimpleTypeImpl(CoreType coreType)
-    : GenericTypeImpl<daq::ISimpleType>(coreTypeToString(coreType), coreType)
+    : GenericTypeImpl<daq::ISimpleType>(coretype_utils::coreTypeToString(coreType), coreType)
 {
 }
 
@@ -69,45 +70,6 @@ ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     }
     
     return OPENDAQ_SUCCESS;
-}
-
-std::string SimpleTypeImpl::coreTypeToString(CoreType coreType)
-{
-    switch(coreType)
-    {
-        case ctBool:
-            return "bool";
-        case ctInt:
-            return "int";
-        case ctFloat:
-            return "float";
-        case ctString:
-            return "string";
-        case ctList:
-            return "list";
-        case ctDict:
-            return "dict";
-        case ctRatio:
-            return "ratio";
-        case ctProc:
-            return "proc";
-        case ctObject:
-            return "object";
-        case ctBinaryData:
-            return "binaryData";
-        case ctFunc:
-            return "func";
-        case ctComplexNumber:
-            return "complexNumber";
-        case ctStruct:
-            return "struct";
-        case ctEnumeration:
-            return "enumeration";
-        case ctUndefined:
-            return "undefined";
-    }
-
-    return "undefined";
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

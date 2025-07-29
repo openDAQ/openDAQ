@@ -30,7 +30,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Procedure
     ProcedurePtr oldProc = fb.getPropertyValue("Procedure");
     oldProc(42);
-    auto proc = Procedure([](IntegerPtr a) { std::cout << "New procedure called with: " << a << "\n"; });
+    auto proc = Procedure([](IntegerPtr a) { std::cout << "New procedure called with: " << a << "\n\n"; });
     configureBasicProperty(fb, "Procedure", proc);
     ProcedurePtr newProc = fb.getPropertyValue("Procedure");
     newProc(42);
@@ -38,7 +38,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Function
     FunctionPtr oldFun = fb.getPropertyValue("FunctionObject.Function");
     auto res = oldFun(2, 3);
-    std::cout << "Old function result (2 + 3): " << res << "\n";
+    std::cout << "Old function result (2 + 3): " << res << "\n\n";
     auto fun = Function(
         [](IntegerPtr a, IntegerPtr b)
         {
@@ -48,7 +48,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     configureBasicProperty(fb, "FunctionObject.Function", fun);
     FunctionPtr newFun = fb.getPropertyValue("FunctionObject.Function");
     auto newRes = newFun(2, 3);
-    std::cout << "New function result (2 * 3): " << newRes << "\n";
+    std::cout << "New function result (2 * 3): " << newRes << "\n\n";
 
     // Object class
     configureBasicProperty(fb, "ClassObject.Foo", "BarBar");

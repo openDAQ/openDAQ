@@ -49,20 +49,20 @@ inline void printMetadata(const daq::BaseObjectPtr& obj, const daq::StringPtr& n
     std::cout << std::string(indent * 2, ' ') << name << ": " << obj << "\n";
 }
 
-inline void printProperty(const daq::PropertyPtr& property, size_t indent = 0)
+inline void printProperty(const daq::PropertyPtr& property, const bool printFullMetadata = false, size_t indent = 0)
 {
-    std::cout << "\n"
-              << std::string(indent * 2, ' ') << "******************\n"
-              << std::string(indent * 2, ' ') << "* START PROPERTY *\n"
-              << std::string(indent * 2, ' ') << "******************\n\n";
-
+    // Always print Property name from metadata
     printMetadata(property.getName(), "Name", indent);
-    printMetadata(daq::coretype_utils::coreTypeToString(property.getValueType()), "Value Type", indent + 1);
-    printMetadata(property.getDescription(), "Description", indent + 1);
-    printMetadata(property.getDefaultValue(), "Default Value", indent + 1);
-    printMetadata(daq::Boolean(property.getReadOnly()), "Read Only", indent + 1);
-    printMetadata(daq::Boolean(property.getVisible()), "Visible", indent + 1);
-    printMetadata(property.getUnit(), "Unit", indent + 1);
+    if (printFullMetadata)
+    {
+        // Print additional metadata
+        printMetadata(daq::coretype_utils::coreTypeToString(property.getValueType()), "Value Type", indent + 1);
+        printMetadata(property.getDescription(), "Description", indent + 1);
+        printMetadata(property.getDefaultValue(), "Default Value", indent + 1);
+        printMetadata(daq::Boolean(property.getReadOnly()), "Read Only", indent + 1);
+        printMetadata(daq::Boolean(property.getVisible()), "Visible", indent + 1);
+        printMetadata(property.getUnit(), "Unit", indent + 1);
+    }
 
     auto value = property.getValue();
     if (value.getCoreType() == daq::CoreType::ctObject)
@@ -72,7 +72,7 @@ inline void printProperty(const daq::PropertyPtr& property, size_t indent = 0)
         {
             for (const auto& prop : objPtr.getAllProperties())
             {
-                printProperty(prop, indent + 1);
+                printProperty(prop, printFullMetadata, indent + 1);
             }
         }
     }
@@ -91,11 +91,7 @@ inline void printProperty(const daq::PropertyPtr& property, size_t indent = 0)
     {
         std::cout << std::string(indent * 2, ' ') << "  Value: " << value << "\n";
     }
-
-    std::cout << "\n"
-              << std::string(indent * 2, ' ') << "****************\n"
-              << std::string(indent * 2, ' ') << "* END PROPERTY *\n"
-              << std::string(indent * 2, ' ') << "****************\n\n";
+    std::cout << "\n";
 }
 
 inline void printFBProperties(const daq::FunctionBlockPtr& fb)
@@ -168,21 +164,25 @@ inline PropertyType getPropertyType(const daq::PropertyPtr& property)
 // Demonstrates how to configure a List property
 inline void configureListProperty(const daq::PropertyObjectPtr& propObject)
 {
-    std::cout << "Configuring List property...\n";
-    auto prop = propObject.getProperty("List");
+    // Get Property by name
+    auto property = propObject.getProperty("List");
 
-    std::cout << "Property value type: " << daq::coretype_utils::coreTypeToString(prop.getValueType()) << "\n";
-    std::cout << "List item type: " << daq::coretype_utils::coreTypeToString(prop.getItemType()) << "\n";
+    // Print some metadata
+    std::cout << "Property value type: " << daq::coretype_utils::coreTypeToString(property.getValueType()) << "\n";
+    std::cout << "List item type: " << daq::coretype_utils::coreTypeToString(property.getItemType()) << "\n";
 
+    // Print old Property value
     daq::ListPtr<daq::IInteger> currentValues = propObject.getPropertyValue("List");
     std::cout << "Current List values: " << currentValues << "\n";
 
     // New value
+    std::cout << "Configuring List property...\n";
     auto list = daq::List<daq::IInteger>();
     list.pushBack(32);
     list.pushBack(64);
-    propObject.setPropertyValue("List", list);
+    property.setValue(list);
 
+    // Print updated Property value
     std::cout << "Updated List values: " << propObject.getPropertyValue("List") << "\n";
 
     // List properties can also be accessed by index using the syntax "List[index]" in the property name argument
@@ -192,79 +192,86 @@ inline void configureListProperty(const daq::PropertyObjectPtr& propObject)
 // Demonstrates how to configure a Dict property
 inline void configureDictProperty(const daq::PropertyObjectPtr& propObject)
 {
-    std::cout << "Configuring Dict property...\n";
-    auto prop = propObject.getProperty("Dict");
+    // Get Property by name
+    auto property = propObject.getProperty("Dict");
 
-    auto valueType = prop.getValueType();
+    // Print some metadata
+    auto valueType = property.getValueType();
     std::cout << "Property value type: " << daq::coretype_utils::coreTypeToString(valueType) << "\n";
 
-    auto keyType = prop.getKeyType();
+    auto keyType = property.getKeyType();
     std::cout << "Dict key type: " << daq::coretype_utils::coreTypeToString(keyType) << "\n";
 
-    auto itemType = prop.getItemType();
+    auto itemType = property.getItemType();
     std::cout << "Dict item type: " << daq::coretype_utils::coreTypeToString(itemType) << "\n";
 
-    auto currentDict = propObject.getProperty("Dict");
+    // Print old Property
     std::cout << "Current Dict values:\n";
-    printProperty(currentDict);
+    printProperty(property, true);
 
     // New value
+    std::cout << "Configuring Dict property...\n";
     auto dict = daq::Dict<daq::IString, daq::IString>();
     dict["key1"] = "Horse";
     dict["key2"] = "Excited";
-    propObject.setPropertyValue("Dict", dict);
+    property.setValue(dict);
 
-    auto newDict = propObject.getProperty("Dict");
+    // Print updated Property
     std::cout << "New Dict values:\n";
-    printProperty(newDict);
+    printProperty(property);
 }
 
 // Demonstrates how to configure a Struct property
 inline void configureStructProperty(const daq::PropertyObjectPtr& propObject, const daq::TypeManagerPtr& manager)
 {
+    // Get Property by name
+    auto property = propObject.getProperty("Struct");
+
+    // Print old Property
+    std::cout << "Current Struct: " << "\n";
+    printProperty(property);
+
     std::cout << "Configuring Struct property...\n";
-    auto prop = propObject.getProperty("Struct");
-
-    printProperty(prop);
-
     // New value (requires the Type Manager which stores the possible types)
     auto stru = StructBuilder("Struct", manager).set("Int", 100).set("String", "openDAQ").build();
-    propObject.setPropertyValue("Struct", stru);
+    property.setValue(stru);
 
-    std::cout << "Updated Struct values: " << "\n";
-    auto newStruct = propObject.getProperty("Struct");
-    printProperty(newStruct);
+    // Print updated Property
+    std::cout << "Updated Struct: " << "\n";
+    printProperty(property);
 }
 
 // Demos how to modify a Struct property using an alternative overload on the builder
 inline void reconfigureStructProperty(const daq::PropertyObjectPtr& propObject)
 {
-    std::cout << "Reconfiguring Struct property...\n";
-
     // This overload is used to modify an existing Struct property (the Type Manager is not required this time)
+    std::cout << "Reconfiguring Struct property...\n";
     auto struMod = propObject.getPropertyValue("Struct");
     auto stru = StructBuilder(struMod).set("Int", 200).set("String", "openDAQ modified").build();
     propObject.setPropertyValue("Struct", stru);
 
-    auto newProp = propObject.getPropertyValue("Struct");
-
-    std::cout << "Updated Struct values: " << "\n";
+    // Print updated Property
+    std::cout << "Updated Struct: " << "\n";
     printProperty(propObject.getProperty("Struct"));
 }
 
 inline void configureEnumProperty(const daq::PropertyObjectPtr& propObject, const daq::TypeManagerPtr& manager)
 {
+    // Get Property by name
+    auto property = propObject.getProperty("Enum");
+
+    // Print old Property
     std::cout << "Current Enum value: " << "\n";
-    auto value = propObject.getProperty("Enum");
-    printProperty(value);
+    printProperty(property, true);
 
-    std::cout << "Configuring Enum property...\n";
+    // Configure an Enum Property with a new value
+    std::cout << "Setting Enum property...\n";
     auto enumVal = Enumeration("Enum", "Third", manager);
-    propObject.setPropertyValue("Enum", enumVal);
+    property.setValue(enumVal);
 
-    std::cout << "New Enum value: " << "\n";
-    auto newValue = propObject.getProperty("Enum");
-    printProperty(newValue);
+    // Print updated Property
+    std::cout << "Updated Enum: " << "\n";
+    printProperty(property);
 }
 
 // Demos how to modify a basic property
@@ -275,15 +282,15 @@ inline void configureBasicProperty(const daq::PropertyObjectPtr& propObject,
     // Get Property by name
     auto property = propObject.getProperty(propName);
 
-    // Print old Property value
+    // Print old Property
     std::cout << "Before setting value of '" << propName << "':\n";
-    printProperty(property);
+    printProperty(property, true);
 
     // Configure a basic Property with a new value
-    std::cout << "Configuring a basic Property...\n\n";
+    std::cout << "Setting " << propName << "...\n";
     property.setValue(newValue);
 
-    // Print new Property value
+    // Print updated Property
     std::cout << "After setting value of '" << propName << "':\n";
     printProperty(property);
 }

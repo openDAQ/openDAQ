@@ -28,7 +28,7 @@ void ExampleFBPropertyObjectsAndClasses::initProperties()
     // Procedure - used for defining a callable procedure with arguments (doesn't return anything)
     auto procProp = FunctionProperty("Procedure", ProcedureInfo(List<IArgumentInfo>(ArgumentInfo("a", ctInt))));
     objPtr.addProperty(procProp);
-    auto proc = Procedure([](IntegerPtr a) { std::cout << "Procedure called with: " << a << "\n"; });
+    auto proc = Procedure([](IntegerPtr a) { std::cout << "Procedure called with: " << a << "\n\n"; });
     objPtr.setPropertyValue("Procedure", proc);
 
     // Protected nested Function - used for defining a callable function with arguments and a return value
@@ -40,7 +40,7 @@ void ExampleFBPropertyObjectsAndClasses::initProperties()
     auto fun = Function(
         [](IntegerPtr a, IntegerPtr b)
         {
-            std::cout << "Function called\n";
+            std::cout << "Function called\n\n";
             return a + b;
         });
     funObj.setPropertyValue("Function", fun);

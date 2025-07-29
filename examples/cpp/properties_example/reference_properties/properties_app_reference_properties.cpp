@@ -13,7 +13,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance();
 
     // Pretty print
-    std::cout << "\nopenDAQ(TM) Properties Application: Reference Properties\n\n";
+    std::cout << "\nopenDAQ(TM) Properties Application: Reference Properties\n\nNothing will change between beginUpdate and endUpdate:\n\n";
 
     // Add Function Block by type ID
     auto fb = instance.addFunctionBlock("ExampleFBPropertyReferenceProperties");

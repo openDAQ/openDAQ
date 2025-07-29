@@ -19,6 +19,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto fb = instance.addFunctionBlock("ExampleFBPropertyReferenceProperties");
 
     // Apply changes in one go, later
+    std::cout << "Calling beginUpdate!\n\n";
     fb.beginUpdate();
 
     // Property visibility depending on another Property
@@ -28,17 +29,18 @@ int main(int /*argc*/, const char* /*argv*/[])
     configureBasicProperty(fb, "Referenced", True);
 
     // Apply changes in one go, no actual changes to Properties were made up to this point
+    std::cout << "Calling endUpdate!\n\n";
     fb.endUpdate();
 
     // Print after calling endUpdate, changes are visible
-    std::cout << "After calling endUpdate, changes are visible:" << std::endl;
+    std::cout << "After calling endUpdate, changes are visible:\n\n";
 
     printProperty(fb.getProperty("SometimesVisible"));
     printProperty(fb.getProperty("Referenced"));
 
     // Check if Properties are referenced
-    std::cout << "Referenced is referenced: " << Boolean(fb.getProperty("Referenced").getIsReferenced()) << "\n";
-    std::cout << "Reference is referenced: " << Boolean(fb.getProperty("Reference").getIsReferenced()) << "\n";
+    std::cout << "Referenced is referenced: " << Boolean(fb.getProperty("Referenced").getIsReferenced()) << "\n\n";
+    std::cout << "Reference is referenced: " << Boolean(fb.getProperty("Reference").getIsReferenced()) << "\n\n";
 
     // Coerced Int
     configureBasicProperty(fb, "CoercedProp", 4);    // No coercion
@@ -51,7 +53,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
     catch (const std::exception& e)
     {
-        std::cout << "Exception: " << e.what() << "\n";
+        std::cout << "Exception: " << e.what() << "\n\n";
     }
 
     // Validated Int
@@ -62,7 +64,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
     catch (const std::exception& e)
     {
-        std::cout << "Exception: " << e.what() << "\n";
+        std::cout << "Exception: " << e.what() << "\n\n";
     }
 
     // Gracefully exit

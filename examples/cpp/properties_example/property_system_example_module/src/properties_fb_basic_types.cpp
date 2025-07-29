@@ -50,7 +50,8 @@ void ExampleFBPropertyBasicTypes::initProperties()
     // objPtr.getOnAnyPropertyValueRead() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something read\n\n";
     // }; objPtr.getOnPropertyValueRead("Bool") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Bool read\n\n";
     // };
-    objPtr.getOnAnyPropertyValueWrite() += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something written\n"; };
+    objPtr.getOnAnyPropertyValueWrite() +=
+        [](PropertyObjectPtr&, const PropertyValueEventArgsPtr&) { std::cout << "Something written\n\n"; };
     objPtr.getOnPropertyValueWrite("StubbornInt") += [](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
     {
         args.setValue(43);  // Force value to 43

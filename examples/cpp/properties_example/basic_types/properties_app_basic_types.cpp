@@ -9,11 +9,11 @@ using namespace daq;
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
-    // Pretty print
-    std::cout << "\nopenDAQ(TM) Properties Application: Basic Property types and callbacks\n\n";
-
     // Create an Instance, loading modules in the default module path
     const InstancePtr instance = Instance();
+
+    // Pretty print
+    std::cout << "\nopenDAQ(TM) Properties Application: Basic Property types and callbacks\n\n";
 
     // Add Function Block by type ID
     auto fb = instance.addFunctionBlock("ExampleFBPropertyBasicTypes");

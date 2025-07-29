@@ -255,6 +255,7 @@ inline void reconfigureStructProperty(const daq::PropertyObjectPtr& propObject)
     printProperty(propObject.getProperty("Struct"));
 }
 
+// Demos how to modify an Enum property
 inline void configureEnumProperty(const daq::PropertyObjectPtr& propObject, const daq::TypeManagerPtr& manager)
 {
     // Get Property by name

@@ -1,5 +1,5 @@
 /*
- * Properties Application: Container types and selection properties
+ * Properties Application: Container Types and Selection Properties
  * Demonstrates features like container types and selection properties usage
  */
 
@@ -9,11 +9,11 @@ using namespace daq;
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
-    // Create an Instance, loading modules in the default module path
-    const InstancePtr instance = Instance();
-
     // Pretty print
     std::cout << "\nopenDAQ(TM) Properties Application: Container Types and Selection Properties\n\n";
+
+    // Create an Instance, loading modules in the default module path
+    const InstancePtr instance = Instance();
 
     // Add Function Block by type ID
     auto fb = instance.addFunctionBlock("ExampleFBPropertyContainerTypes");

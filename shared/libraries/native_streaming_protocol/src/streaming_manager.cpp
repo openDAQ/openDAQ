@@ -56,7 +56,7 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
     }
     else
     {
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
+        throw NativeStreamingProtocolException(fmt::format("Can't send packet - signal {} is not registered in streaming", signalStringId));
     }
 }
 
@@ -104,7 +104,7 @@ void StreamingManager::processPackets(const tsl::ordered_map<std::string, Packet
         }
         else
         {
-            throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
+            throw NativeStreamingProtocolException(fmt::format("Can't process packet - signal {} is not registered in streaming", signalStringId));
         }
     }
 }
@@ -237,25 +237,38 @@ SignalNumericIdType StreamingManager::registerSignal(const SignalPtr& signal)
     }
 }
 
-bool StreamingManager::removeSignal(const SignalPtr& signal)
+void StreamingManager::removeSignal(const SignalPtr& signal)
 {
-    bool doSignalUnsubscribe = false;
     auto signalStringId = signal.getGlobalId().toStdString();
 
     std::scoped_lock lock(sync);
-
     if (auto signalIter = registeredSignals.find(signalStringId); signalIter != registeredSignals.end())
     {
-        const auto& subscribers = signalIter->second.subscribedClientsIds;
-        if (!subscribers.empty())
-            doSignalUnsubscribe = true;
         registeredSignals.erase(signalIter);
     }
     else
     {
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
+        throw NativeStreamingProtocolException(fmt::format("Can't remove - signal {} is not registered in streaming", signalStringId));
     }
-    return doSignalUnsubscribe;
+}
+
+bool StreamingManager::isSignalSubscribed(const SignalPtr& signal)
+{
+    auto signalStringId = signal.getGlobalId().toStdString();
+
+    std::scoped_lock lock(sync);
+    if (auto signalIter = registeredSignals.find(signalStringId); signalIter != registeredSignals.end())
+    {
+        const auto& subscribers = signalIter->second.subscribedClientsIds;
+        if (!subscribers.empty())
+            return true;
+        else
+            return false;
+    }
+    else
+    {
+        throw NativeStreamingProtocolException(fmt::format("Can't check subscriptions - signal {} is not registered in streaming", signalStringId));
+    }
 }
 
 void StreamingManager::registerClient(const std::string& clientId,
@@ -389,7 +402,7 @@ bool StreamingManager::registerSignalSubscriber(const std::string& signalStringI
     }
     else
     {
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
+        throw NativeStreamingProtocolException(fmt::format("Can't register subscriber - signal {} is not registered in streaming", signalStringId));
     }
 
     return doSignalSubscribe;
@@ -422,7 +435,7 @@ bool StreamingManager::removeSignalSubscriberNoLock(const std::string& signalStr
     }
     else
     {
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
+        throw NativeStreamingProtocolException(fmt::format("Can't remove subscriber - signal {} is not registered in streaming", signalStringId));
     }
 
     return doSignalUnsubscribe;
@@ -437,7 +450,7 @@ SignalNumericIdType StreamingManager::findSignalNumericId(const SignalPtr& signa
     if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
         return iter->second.numericId;
     else
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
+        throw NativeStreamingProtocolException(fmt::format("Can't find numeric ID - signal {} is not registered in streaming", signalStringId));
 }
 
 SignalPtr StreamingManager::findRegisteredSignal(const std::string& signalStringId)
@@ -447,7 +460,7 @@ SignalPtr StreamingManager::findRegisteredSignal(const std::string& signalString
     if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
         return iter->second.daqSignal;
     else
-        throw NativeStreamingProtocolException(fmt::format("Signal {} is not registered in streaming", signalStringId));
+        throw NativeStreamingProtocolException(fmt::format("Can't find openDAQ signal - signal {} is not registered in streaming", signalStringId));
 }
 
 std::map<SignalNumericIdType, SignalPtr> StreamingManager::getRegisteredSignals()

@@ -225,13 +225,6 @@ void MirroredDeviceBase<Interfaces...>::removed()
 template <typename... Interfaces>
 ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* config)
 {
-    if (!this->isAddedToLocalComponentTree())
-    {
-        return DAQ_MAKE_ERROR_INFO(
-            OPENDAQ_ERR_INVALID_OPERATION,
-            "Cannot set config for device added to remote component tree"
-        );
-    }
     ErrCode errCode = Super::setComponentConfig(config);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 

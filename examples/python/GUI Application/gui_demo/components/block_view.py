@@ -8,6 +8,7 @@ from ..event_port import EventPort
 from .input_ports_view import InputPortsView
 from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
+from .recorder_view import RecorderView
 from .attributes_dialog import AttributesDialog
 
 class BlockView(ttk.Frame):
@@ -85,7 +86,8 @@ class BlockView(ttk.Frame):
             self.properties = None
             self.input_ports = None
             self.output_signals = None
-
+            self.recoder = None
+            
             if daq.IDevice.can_cast_from(self.node):
                 self.node = daq.IDevice.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -139,9 +141,11 @@ class BlockView(ttk.Frame):
                 label.pack(side='left')
                 options = tk.OptionMenu(combined, opt, *available_op_modes)
                 options.pack(side='left')
-
-
+            
             elif daq.IFunctionBlock.can_cast_from(self.node):
+                if daq.IRecorder.can_cast_from(self.node):
+                    self.node = daq.IRecorder.cast_from(self.node)
+                    self.recoder = RecorderView(self.expanded_frame, self.node, self.context)
                 self.node = daq.IFunctionBlock.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
@@ -150,6 +154,7 @@ class BlockView(ttk.Frame):
                 self.output_signals = OutputSignalsView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.function_block_img)
+                
                 self.cols = [0, 1]
                 self.rows = [0, 1]
             elif daq.IFolder.can_cast_from(self.node):
@@ -258,6 +263,10 @@ class BlockView(ttk.Frame):
             if self.output_signals:
                 self.output_signals.grid(
                     row=1 if self.input_ports else 0, column=1, sticky=tk.NSEW)
+                
+            if self.recoder:
+                self.recoder.grid(
+                    row=2, column=1, sticky=tk.NSEW)
 
             self.toggle_button.config(text='-', image=self.expanded_img)
         else:  # collapsed
@@ -266,7 +275,9 @@ class BlockView(ttk.Frame):
             if self.input_ports:
                 self.input_ports.grid_forget()
             if self.output_signals:
-                self.output_signals.grid_forget()
+                self.output_signals.grid_forget()   
+            if self.recoder:
+                self.recoder.grid_forget()
             self.expanded_frame.pack_forget()
             self.toggle_button.config(text='+', image=self.collapsed_img)
 

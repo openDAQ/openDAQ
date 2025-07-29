@@ -457,13 +457,13 @@ TEST_F(OpcuaDeviceModulesTest, DeviceComponentConfig)
 
     // config automatically set by local ModuleManager when device created (will have local config)
     ASSERT_TRUE(localOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
-    ASSERT_THROW(localOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), AlreadyExistsException);
+    ASSERT_NO_THROW(localOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()));
 
-    // nestead remote component config will store the server config
+    // nested remote component config will store the server config
     auto clientConfig = nestedOpcuaDevice.asPtr<IComponentPrivate>().getComponentConfig();
     auto serverConfig = serverDevice.asPtr<IComponentPrivate>().getComponentConfig();
     comparePropertyObjects(clientConfig, serverConfig);
-    ASSERT_THROW(nestedOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()), InvalidOperationException);
+    ASSERT_NO_THROW(nestedOpcuaDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()));
 }
 
 TEST_F(OpcuaDeviceModulesTest, RemoveDevice)
@@ -598,7 +598,7 @@ TEST_F(OpcuaDeviceModulesTest, DeviceDynamicFeatures)
     auto daqDevice = client.getDevices()[0];
 
     ASSERT_EQ(daqDevice.getAvailableDevices().getCount(), 0u);
-    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 11u);
+    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 12u);
     ASSERT_THROW(daqDevice.addDevice("daqref://device0"),
                  opcua::OpcUaClientCallNotAvailableException);  // Are these the correct errors to return?
 

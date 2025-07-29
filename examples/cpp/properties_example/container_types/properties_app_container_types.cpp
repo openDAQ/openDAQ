@@ -18,8 +18,7 @@ inline void configureListProperty(const daq::PropertyObjectPtr& propObject)
     std::cout << "List item type: " << daq::coretype_utils::coreTypeToString(property.getItemType()) << "\n";
 
     // Print old Property value
-    daq::ListPtr<daq::IInteger> currentValues = propObject.getPropertyValue("List");
-    std::cout << "Current List values: " << currentValues << "\n";
+    std::cout << "Current List values: " << property.getValue() << "\n";
 
     // New value
     std::cout << "Configuring List property...\n";
@@ -29,7 +28,7 @@ inline void configureListProperty(const daq::PropertyObjectPtr& propObject)
     property.setValue(list);
 
     // Print updated Property value
-    std::cout << "Updated List values: " << propObject.getPropertyValue("List") << "\n";
+    std::cout << "Updated List values: " << property.getValue() << "\n";
 
     // List properties can also be accessed by index using the syntax "List[index]" in the property name argument
     std::cout << "Second element in updated list: " << propObject.getPropertyValue("List[1]") << "\n\n";

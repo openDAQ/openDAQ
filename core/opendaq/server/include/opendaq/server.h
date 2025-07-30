@@ -18,6 +18,7 @@
 #include <opendaq/folder.h>
 #include <opendaq/server_type.h>
 #include <coreobjects/property_object.h>
+#include <opendaq/streaming.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -72,6 +73,12 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IFolder)
      * Server signals are most often the mirrored representations of signals that belong to the client connected to the instance via this server.
      */
     virtual ErrCode INTERFACE_FUNC getSignals(IList** signals, ISearchFilter* searchFilter = nullptr) = 0;
+
+    /*!
+     * @brief Gets a streaming source associated with server.
+     * @param[out] streaming The streaming object.
+     */
+    virtual ErrCode INTERFACE_FUNC getStreaming(IStreaming** streaming) = 0;
 };
 /*!@}*/
 

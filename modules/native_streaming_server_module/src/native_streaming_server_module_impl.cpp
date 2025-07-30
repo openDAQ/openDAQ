@@ -21,7 +21,7 @@ DictPtr<IString, IServerType> NativeStreamingServerModule::onGetAvailableServerT
 {
     auto result = Dict<IString, IServerType>();
 
-    auto serverType = NativeStreamingToDeviceServerImpl::createType(context);
+    auto serverType = NativeStreamingServerImpl::createType(context);
     result.set(serverType.getId(), serverType);
 
     return result;
@@ -36,11 +36,11 @@ ServerPtr NativeStreamingServerModule::onCreateServer(const StringPtr& serverTyp
 
     PropertyObjectPtr config = serverConfig;
     if (!config.assigned())
-        config = NativeStreamingServerBaseImpl::createDefaultConfig(context);
+        config = NativeStreamingServerImpl::createDefaultConfig(context);
     else
-        config = NativeStreamingServerBaseImpl::populateDefaultConfig(config, context);
+        config = NativeStreamingServerImpl::populateDefaultConfig(config, context);
 
-    ServerPtr server(NativeStreamingToDeviceServer_Create(rootDevice, config, context));
+    ServerPtr server(NativeStreamingServer_Create(rootDevice, config, context));
     return server;
 }
 

@@ -2,7 +2,6 @@ set(BASE_NAME modulemanager)
 
 function(rtgen_component_${BASE_NAME})
     rtgen(SRC_Module module.h)
-    rtgen(SRC_ModuleLicense license_checker.h)
     rtgen(SRC_ModuleManager module_manager.h)
     rtgen(SRC_ModuleManagerUtils module_manager_utils.h)
     rtgen(SRC_ContextInternal context_internal.h)
@@ -47,7 +46,6 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/module_exports.h
         ${SDK_HEADERS_DIR}/module_factory.h
         ${SDK_HEADERS_DIR}/module_check_dependencies.h
-        ${SDK_HEADERS_DIR}/license_checker.h
         ${SDK_SRC_DIR}/module_impl.cpp
     )
     

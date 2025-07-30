@@ -112,32 +112,32 @@ ErrCode MockServerModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamin
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockServerModuleImpl::authenticate(Bool* succeeded, IPropertyObject* authenticationConfig)
+ErrCode MockServerModuleImpl::authenticate(Bool* /*succeeded*/, IPropertyObject* /*authenticationConfig*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockServerModuleImpl::getAuthenticationConfig(IPropertyObject** authenticationConfig)
+ErrCode MockServerModuleImpl::getAuthenticationConfig(IPropertyObject** /*authenticationConfig*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockServerModuleImpl::isAuthenticated(Bool* authenticated)
+ErrCode MockServerModuleImpl::isAuthenticated(Bool* /*authenticated*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockServerModuleImpl::loadLicense(Bool* succeeded, IPropertyObject* licenseConfig)
+ErrCode MockServerModuleImpl::loadLicense(Bool* /*succeeded*/, IPropertyObject* /*licenseConfig*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockServerModuleImpl::getLicenseConfig(IPropertyObject** licenseConfig)
+ErrCode MockServerModuleImpl::getLicenseConfig(IPropertyObject** /*licenseConfig*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockServerModuleImpl::licenseLoaded(Bool* valid)
+ErrCode MockServerModuleImpl::licenseLoaded(Bool* /*loaded*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }

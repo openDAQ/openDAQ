@@ -16,7 +16,6 @@
 
 #pragma once
 #include <licensing_module/common.h>
-#include <opendaq/license_checker.h>
 #include <coretypes/intfs.h>
 #include <map>
 #include <string>

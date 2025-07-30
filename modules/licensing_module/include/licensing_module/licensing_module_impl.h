@@ -22,6 +22,9 @@
 
 BEGIN_NAMESPACE_LICENSING_MODULE
 
+/*!
+ * @brief A reference module implementing the licensing feature in the module interface.
+ */
 class LicensingModule final : public Module
 {
 public:

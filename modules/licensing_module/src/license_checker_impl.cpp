@@ -1,4 +1,6 @@
 #include <licensing_module/license_checker_impl.h>
+#include <coretypes/string_ptr.h>
+#include <coretypes/listobject_factory.h>
 
 BEGIN_NAMESPACE_LICENSING_MODULE
 
@@ -12,7 +14,7 @@ ErrCode LicenseChecker::getComponentTypes(IList** componentTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(componentTypes);
 
-    ListPtr<IString> componentTypesLocal;
+    daq::ListPtr<IString> componentTypesLocal;
     for (auto pair : _featureTokens)
     {
         StringPtr ptr;

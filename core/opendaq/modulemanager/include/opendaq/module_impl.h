@@ -35,7 +35,6 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
-#include <opendaq/license_checker_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class Module : public ImplementationOf<IModule>

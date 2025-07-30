@@ -2,7 +2,6 @@
 
 #include <licensing_module/common.h>
 #include <licensing_module/license_checker_impl.h>
-#include <opendaq/license_checker_ptr.h>
 #include <opendaq/function_block_impl.h>
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/event_packet_ptr.h>

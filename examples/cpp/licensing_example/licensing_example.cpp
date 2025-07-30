@@ -7,12 +7,23 @@
 
 using namespace daq;
 
+/*
+* A brief example showcasing the use for a licensed module in openDAQ.
+* The module itself requires user authentication (here we use a simple txt file with a password, but in practise an RSA approach
+* can be used, where the public key is embedded in the module and the secret key is owned by the relevant user).
+* Then the module takes in a license file describing how the module can be used.
+* The relevant files are provided with the example. To run the example, the reference quick_start_simulator can be used
+* for the input signal.
+*/
+
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create an Instance, loading modules at MODULE_PATH
     const InstancePtr instance = daq::InstanceBuilder().setModulePath(MODULE_PATH).setUsingSchedulerMainLoop(true).build(); 
 
-
+    // Setup your paths here..
+    std::string authPath = R"(C:\Users\jakob\source\openDAQ\examples\cpp\licensing_example\authentication_key.txt)";
+    std::string licPath = R"(C:\Users\jakob\source\openDAQ\examples\cpp\licensing_example\license.lic)";
 
     // ------------------- Find and connect to a simulator device ------------------- //
     const auto availableDevices = instance.getAvailableDevices();
@@ -58,7 +69,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     PropertyObjectPtr authenticationConfig = PropertyObject();
     authenticationConfig.addProperty(StringProperty(
-        "AuthenticationKeyPath", "C:\\Users\\jakob\\source\\openDAQ\\examples\\cpp\\licensing_example\\authentication_key.txt"));
+        "AuthenticationKeyPath", authPath));
     succeeded = licensingModulePtr.authenticate(authenticationConfig);
 
     if (succeeded == false)
@@ -69,7 +80,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     PropertyObjectPtr licenseConfig = PropertyObject();
     licenseConfig.addProperty(
-        StringProperty("LicensePath", "C:\\Users\\jakob\\source\\openDAQ\\examples\\cpp\\licensing_example\\license.lic"));
+        StringProperty("LicensePath", licPath));
     succeeded = licensingModulePtr.loadLicense(licenseConfig);
 
     if (succeeded == false)

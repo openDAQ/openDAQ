@@ -30,10 +30,10 @@ DECLARE_OPENDAQ_INTERFACE(INativeServerStreamingPrivate, IBaseObject)
 
 using TransportServerHandlerPtr = std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler>;
 
-class NativeServerStreamingImpl : public daq::StreamingImpl<daq::IStreaming, INativeServerStreamingPrivate>
+class NativeServerStreamingImpl : public daq::StreamingImpl<INativeServerStreamingPrivate>
 {
 public:
-    using Super = daq::StreamingImpl<daq::IStreaming, INativeServerStreamingPrivate>;
+    using Super = daq::StreamingImpl<INativeServerStreamingPrivate>;
 
     explicit NativeServerStreamingImpl(TransportServerHandlerPtr transportServerHandler,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,

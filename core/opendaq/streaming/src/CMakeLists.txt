@@ -10,7 +10,6 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_MirroredDeviceConfig mirrored_device_config.h)
     rtgen(SRC_MirroredInputPortConfig mirrored_input_port_config.h)
     rtgen(SRC_MirroredInputPortPrivate mirrored_input_port_private.h)
-    rtgen(SRC_StreamingToDevice streaming_to_device.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Streaming_PublicHeaders}
@@ -22,7 +21,6 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_StreamingType_PublicHeaders}
         ${SRC_MirroredInputPortConfig_PublicHeaders}
         ${SRC_MirroredInputPortPrivate_PublicHeaders}
-        ${SRC_StreamingToDevice_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -36,7 +34,6 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_StreamingType_PrivateHeaders}
         ${SRC_MirroredInputPortConfig_PrivateHeaders}
         ${SRC_MirroredInputPortPrivate_PrivateHeaders}
-        ${SRC_StreamingToDevice_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -49,7 +46,6 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_StreamingType_Cpp}
         ${SRC_MirroredInputPortConfig_Cpp}
         ${SRC_MirroredInputPortPrivate_Cpp}
-        ${SRC_StreamingToDevice_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -102,11 +98,6 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/mirrored_input_port_private.h
     )
 
-    source_group("streaming//streaming_to_device" FILES
-        ${SDK_HEADERS_DIR}/streaming_to_device.h
-        ${SDK_HEADERS_DIR}/streaming_to_device_impl.h
-        ${SDK_HEADERS_DIR}/streaming_to_device_private.h
-    )
 endfunction()
 
 set(SRC_PublicHeaders_Component 
@@ -121,8 +112,6 @@ set(SRC_PublicHeaders_Component
     streaming_type.h
     streaming_type_factory.h
     streaming_source_manager.h
-    streaming_to_device_impl.h
-    streaming_to_device_private.h
     mirrored_input_port_impl.h
     mirrored_input_port_private.h
     PARENT_SCOPE

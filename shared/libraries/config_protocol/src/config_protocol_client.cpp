@@ -640,10 +640,10 @@ void ConfigProtocolClientComm::disconnectExternalSignalFromServerInputPort(const
 
     if (unusedSignals.getCount() > 0)
     {
-        ListPtr<IStreamingToDevice> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
+        ListPtr<IStreaming> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
         for (const auto& streaming : streamingSources)
         {
-            checkErrorInfo(streaming.asPtr<IStreamingToDevicePrivate>()->unregisterStreamedSignals(unusedSignals.getValueList()));
+            checkErrorInfo(streaming.asPtr<IStreamingPrivate>()->unregisterStreamedSignals(unusedSignals.getValueList()));
         }
         auto params = ParamsDict({{"SignalNumericIds", unusedSignals.getKeyList()}});
         sendNoReplyCommand(ClientCommand("RemoveExternalSignals"), params);
@@ -685,30 +685,17 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPortGeneralized
     if (!streamingProducer)
         DAQ_THROW_EXCEPTION(NotAssignedException, "StreamingProducer is not assigned.");
 
-    const StreamingToDevicePtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
+    const StreamingPtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
     StringPtr streamingProtocolId = activeSource.assigned() ? activeSource.getProtocolId() : nullptr;
-    MirroredDevicePtr streamingSourceDevice = activeSource.assigned() ? activeSource.getOwnerDevice() : nullptr;
-    StringPtr streamingSourceDeviceId;
-
-    if (activeSource.assigned())
-    {
-        if (!streamingSourceDevice.assigned())
-        {
-            DAQ_THROW_EXCEPTION(InvalidStateException, "The source device for the input port’s active streaming source is unknown");
-        }
-        else
-        {
-            streamingSourceDeviceId = streamingSourceDevice.getRemoteId();
-        }
-    }
+    StringPtr streamingSourceDeviceId = activeSource.assigned() ? activeSource.getOwnerDeviceRemoteId() : nullptr;
 
     auto signals = List<ISignal>(signal);
     if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
         signals.pushBack(domainSignal);
-    ListPtr<IStreamingToDevice> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
+    ListPtr<IStreaming> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
     for (const auto& streaming : streamingSources)
     {
-        checkErrorInfo(streaming.asPtr<IStreamingToDevicePrivate>()->registerStreamedSignals(signals));
+        checkErrorInfo(streaming.asPtr<IStreamingPrivate>()->registerStreamedSignals(signals));
     }
 
     auto domainSignal = signal.getDomainSignal();
@@ -736,22 +723,9 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPortGeneralized
 void ConfigProtocolClientComm::changeInputPortStreamingSource(const StringPtr& inputPortRemoteGlobalId,
                                                               const MirroredInputPortPrivatePtr& mirroredInputPortPrivate)
 {
-    const StreamingToDevicePtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
+    const StreamingPtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
     StringPtr streamingProtocolId = activeSource.assigned() ? activeSource.getProtocolId() : nullptr;
-    MirroredDevicePtr streamingSourceDevice = activeSource.assigned() ? activeSource.getOwnerDevice() : nullptr;
-    StringPtr streamingSourceDeviceId;
-
-    if (activeSource.assigned())
-    {
-        if (!streamingSourceDevice.assigned())
-        {
-            DAQ_THROW_EXCEPTION(InvalidStateException, "The source device for the input port’s active streaming source is unknown");
-        }
-        else
-        {
-            streamingSourceDeviceId = streamingSourceDevice.getRemoteId();
-        }
-    }
+    StringPtr streamingSourceDeviceId = activeSource.assigned() ? activeSource.getOwnerDeviceRemoteId() : nullptr;
 
     auto params = ParamsDict({{"ActiveStreamingProtocolId", streamingProtocolId},
                               {"ActiveStreamingSourceDeviceId", streamingSourceDeviceId}});

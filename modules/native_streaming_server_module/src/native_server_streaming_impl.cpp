@@ -16,7 +16,7 @@ using namespace opendaq_native_streaming_protocol;
 NativeServerStreamingImpl::NativeServerStreamingImpl(TransportServerHandlerPtr transportServerHandler,
                                                      std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                                      ContextPtr context)
-    : Super("OpenDAQNativeStreaming", context, false)
+    : Super("OpenDAQNativeStreaming", context, false, "OpenDAQNativeStreaming")
     , transportServerHandler(transportServerHandler)
     , processingIOContextPtr(processingIOContextPtr)
 {

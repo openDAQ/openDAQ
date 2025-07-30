@@ -21,7 +21,7 @@
 #include <config_protocol/config_client_input_port.h>
 #include <opendaq/errors.h>
 #include <opendaq/mirrored_input_port_config_ptr.h>
-#include <opendaq/streaming_to_device_private.h>
+#include <opendaq/streaming_private.h>
 
 namespace daq::config_protocol
 {

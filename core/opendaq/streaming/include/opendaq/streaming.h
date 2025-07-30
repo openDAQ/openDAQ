@@ -24,8 +24,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceSmartPtr(IEnumeration, EnumerationPtr, "<coretypes/enumeration_ptr.h>")]
- * [templated(defaultAliasName: StreamingPtr)]
- * [interfaceSmartPtr(IStreaming, GenericStreamingPtr)]
  */
 
 /*!
@@ -112,6 +110,17 @@ DECLARE_OPENDAQ_INTERFACE(IStreaming, IBaseObject)
      * with possible values: "Connected", "Reconnecting", or "Unrecoverable".
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStatus(IEnumeration** connectionStatus) = 0;
+
+    // [elementType(inputPorts, IMirroredInputPortConfig)]
+    virtual ErrCode INTERFACE_FUNC addInputPorts(IList* inputPorts) = 0;
+
+    // [elementType(inputPorts, IMirroredInputPortConfig)]
+    virtual ErrCode INTERFACE_FUNC removeInputPorts(IList* inputPorts) = 0;
+
+    virtual ErrCode INTERFACE_FUNC removeAllInputPorts() = 0;
+
+    virtual ErrCode INTERFACE_FUNC getOwnerDeviceRemoteId(IString** deviceRemoteId) const = 0;
+    virtual ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) const = 0;
 };
 /*!@}*/
 

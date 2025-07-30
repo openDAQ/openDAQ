@@ -30,7 +30,7 @@ DECLARE_OPENDAQ_INTERFACE(IMockStreaming, daq::IBaseObject)
     virtual void triggerReconnectionCompletion() = 0;
 };
 
-struct MockStreaming : daq::StreamingImpl<daq::IStreaming, IMockStreaming>
+struct MockStreaming : daq::StreamingImpl<IMockStreaming>
 {
     typedef MockPtr<
         daq::IStreaming,
@@ -45,6 +45,8 @@ struct MockStreaming : daq::StreamingImpl<daq::IStreaming, IMockStreaming>
     MOCK_METHOD(void, onRemoveSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
     MOCK_METHOD(void, onSubscribeSignal, (const daq::StringPtr& signalStreamingId), (override));
     MOCK_METHOD(void, onUnsubscribeSignal, (const daq::StringPtr& signalStreamingId), (override));
+    MOCK_METHOD(void, onRegisterStreamedSignal, (const daq::SignalPtr& signal), (override));
+    MOCK_METHOD(void, onUnregisterStreamedSignal, (const daq::SignalPtr& signal), (override));
 
     void makeSignalAvailable(const daq::StringPtr& signalStreamingId) override { addToAvailableSignals(signalStreamingId); }
     void makeSignalUnavailable(const daq::StringPtr& signalStreamingId) override { removeFromAvailableSignals(signalStreamingId); }
@@ -61,7 +63,7 @@ struct MockStreaming : daq::StreamingImpl<daq::IStreaming, IMockStreaming>
     daq::MirroredSignalConfigPtr signal;
 
     MockStreaming(const daq::StringPtr& connectionString, const daq::ContextPtr& context)
-        : daq::StreamingImpl<daq::IStreaming, IMockStreaming>(connectionString, context, false)
+        : daq::StreamingImpl<IMockStreaming>(connectionString, context, false, "MockStreaming")
     {
         using namespace testing;
 

@@ -17,18 +17,18 @@
 #pragma once
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
-#include <opendaq/streaming_to_device.h>
+#include <opendaq/streaming.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 DECLARE_OPENDAQ_INTERFACE(IMirroredInputPortPrivate, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC addStreamingSource(IStreamingToDevice* streaming) = 0;
+    virtual ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streaming) = 0;
     virtual ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) = 0;
 
-    virtual ErrCode INTERFACE_FUNC getActiveStreamingSourceObject(IStreamingToDevice** streaming) = 0;
+    virtual ErrCode INTERFACE_FUNC getActiveStreamingSourceObject(IStreaming** streaming) = 0;
 
-    // [templateType(objects, IStreamingToDevice)]
+    // [templateType(objects, IStreaming)]
     virtual ErrCode INTERFACE_FUNC getStreamingSourceObjects(IList** objects) = 0;
 };
 

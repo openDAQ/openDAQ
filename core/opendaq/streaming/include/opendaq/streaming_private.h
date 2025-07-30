@@ -60,6 +60,14 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingPrivate, IBaseObject)
      * @param device The device to which the streaming object is attached.
      */
     virtual ErrCode INTERFACE_FUNC setOwnerDevice(const DevicePtr& device) = 0;
+
+    // [elementType(signals, ISignal)]
+    virtual ErrCode INTERFACE_FUNC registerStreamedSignals(IList* signals) = 0;
+
+    // [elementType(signals, ISignal)]
+    virtual ErrCode INTERFACE_FUNC unregisterStreamedSignals(IList* signals) = 0;
+
+    virtual ErrCode INTERFACE_FUNC detachRemovedInputPort(IString* inputPortRemoteId) = 0;
 };
 /*!@}*/
 

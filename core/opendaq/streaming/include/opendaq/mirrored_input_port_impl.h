@@ -17,8 +17,8 @@
 #pragma once
 #include <opendaq/input_port_impl.h>
 #include <opendaq/mirrored_input_port_config_ptr.h>
-#include <opendaq/streaming_to_device_ptr.h>
-#include <opendaq/streaming_to_device_private.h>
+#include <opendaq/streaming_ptr.h>
+#include <opendaq/streaming_private.h>
 #include <opendaq/mirrored_input_port_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -46,9 +46,9 @@ public:
     ErrCode INTERFACE_FUNC getActiveStreamingSource(IString** streamingConnectionString) override;
 
     // IMirroredInputPortPrivate
-    ErrCode INTERFACE_FUNC addStreamingSource(IStreamingToDevice* streaming) override;
+    ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streaming) override;
     ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
-    ErrCode INTERFACE_FUNC getActiveStreamingSourceObject(IStreamingToDevice** streaming) override;
+    ErrCode INTERFACE_FUNC getActiveStreamingSourceObject(IStreaming** streaming) override;
     ErrCode INTERFACE_FUNC getStreamingSourceObjects(IList** objects) override;
 
     // TODO
@@ -75,8 +75,8 @@ protected:
 private:
     // vector is used as the order of adding & accessing sources is important
     // store a pair string + weak reference to manage the removal of destroyed sources
-    std::vector<std::pair<StringPtr, WeakRefPtr<IStreamingToDevice>>> streamingSourcesRefs;
-    WeakRefPtr<IStreamingToDevice> activeStreamingSourceRef;
+    std::vector<std::pair<StringPtr, WeakRefPtr<IStreaming>>> streamingSourcesRefs;
+    WeakRefPtr<IStreaming> activeStreamingSourceRef;
 };
 
 template <typename... Interfaces>
@@ -114,7 +114,7 @@ void MirroredInputPortBase<Interfaces...>::removed()
         for (const auto& [_, streamingRef] : streamingSourcesRefs)
         {
             if (auto streamingSource = streamingRef.getRef(); streamingSource.assigned())
-                streamingSource.template asPtr<IStreamingToDevicePrivate>()->detachRemovedInputPort(inputPortRemoteId);
+                streamingSource.template asPtr<IStreamingPrivate>()->detachRemovedInputPort(inputPortRemoteId);
         }
         streamingSourcesRefs.clear();
     }
@@ -122,7 +122,7 @@ void MirroredInputPortBase<Interfaces...>::removed()
 }
 
 template <typename... Interfaces>
-ErrCode MirroredInputPortBase<Interfaces...>::addStreamingSource(IStreamingToDevice* streaming)
+ErrCode MirroredInputPortBase<Interfaces...>::addStreamingSource(IStreaming* streaming)
 {
     OPENDAQ_PARAM_NOT_NULL(streaming);
 
@@ -133,7 +133,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::addStreamingSource(IStreamingToDev
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
-                           [&connectionString](const std::pair<StringPtr, WeakRefPtr<IStreamingToDevice>>& item)
+                           [&connectionString](const std::pair<StringPtr, WeakRefPtr<IStreaming>>& item)
                            {
                                return connectionString == item.first;
                            });
@@ -150,7 +150,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::addStreamingSource(IStreamingToDev
         );
     }
 
-    streamingSourcesRefs.push_back({connectionString, WeakRefPtr<IStreamingToDevice>(streamingPtr)});
+    streamingSourcesRefs.push_back({connectionString, WeakRefPtr<IStreaming>(streamingPtr)});
     return OPENDAQ_SUCCESS;
 }
 
@@ -165,7 +165,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::removeStreamingSource(IString* str
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
-                           [&streamingConnectionStringPtr](const std::pair<StringPtr, WeakRefPtr<IStreamingToDevice>>& item)
+                           [&streamingConnectionStringPtr](const std::pair<StringPtr, WeakRefPtr<IStreaming>>& item)
                            {
                                return streamingConnectionStringPtr == item.first;
                            });
@@ -241,7 +241,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::setActiveStreamingSource(IString* 
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
-                           [&connectionStringPtr](const std::pair<StringPtr, WeakRefPtr<IStreamingToDevice>>& item)
+                           [&connectionStringPtr](const std::pair<StringPtr, WeakRefPtr<IStreaming>>& item)
                            {
                                return connectionStringPtr == item.first;
                            });
@@ -292,7 +292,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::getActiveStreamingSource(IString**
 }
 
 template <typename... Interfaces>
-ErrCode MirroredInputPortBase<Interfaces...>::getActiveStreamingSourceObject(IStreamingToDevice** streaming)
+ErrCode MirroredInputPortBase<Interfaces...>::getActiveStreamingSourceObject(IStreaming** streaming)
 {
     OPENDAQ_PARAM_NOT_NULL(streaming);
 
@@ -311,7 +311,7 @@ ErrCode MirroredInputPortBase<Interfaces...>::getStreamingSourceObjects(IList** 
 {
     OPENDAQ_PARAM_NOT_NULL(objects);
 
-    auto objectsPtr = List<IStreamingToDevice>();
+    auto objectsPtr = List<IStreaming>();
 
     auto lock = this->getRecursiveConfigLock();
     for (const auto& [connectionString, streamingRef] : streamingSourcesRefs)

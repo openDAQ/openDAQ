@@ -26,7 +26,6 @@
 #include <opendaq/module_manager_utils_ptr.h>
 
 #include <opendaq/mirrored_input_port_config_ptr.h>
-#include <opendaq/streaming_to_device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -279,7 +278,7 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
     {
         for (const auto& streamingBase : allStreamingSources)
         {
-            StreamingToDevicePtr streaming = streamingBase.asPtrOrNull<IStreamingToDevice>();
+            StreamingPtr streaming = streamingBase.asPtrOrNull<IStreaming>();
             if (!streaming.assigned())
                 continue;
             ErrCode errCode = daqTry([&]()
@@ -307,7 +306,7 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
             auto inputPortStreamingSources = mirroredInputPortConfigPtr.getStreamingSources();
             for (const auto& streamingBase : allStreamingSources)
             {
-                StreamingToDevicePtr streaming = streamingBase.asPtrOrNull<IStreamingToDevice>();
+                StreamingPtr streaming = streamingBase.asPtrOrNull<IStreaming>();
                 if (!streaming.assigned())
                     continue;
                 auto connectionString = streaming.getConnectionString();

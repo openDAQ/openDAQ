@@ -584,11 +584,7 @@ StreamingPtr NativeStreamingClientModule::createNativeStreaming(const StringPtr&
             context,
             transportClientHandler,
             addStreamingProcessingContext(connectionString),
-            streamingInitTimeout,
-            nullptr,
-            nullptr,
-            nullptr,
-            "OpenDAQNativeStreaming"
+            streamingInitTimeout
         );
     else
         nativeStreaming = createWithImplementation<IStreaming, NativeStreamingBasicImpl>(

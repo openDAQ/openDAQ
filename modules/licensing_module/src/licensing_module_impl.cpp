@@ -9,7 +9,8 @@ LicensingModule::LicensingModule(const ContextPtr& context)
              daq::VersionInfo(LICENSING_MODULE_MAJOR_VERSION, LICENSING_MODULE_MINOR_VERSION, LICENSING_MODULE_PATCH_VERSION),
             context,
             "LicensingModule")
-    , mLicenseChecker(nullptr)
+    , _licenseChecker(nullptr)
+    , _authenticated(false)
 {
 }
 
@@ -28,9 +29,15 @@ FunctionBlockPtr LicensingModule::onCreateFunctionBlock(const StringPtr& id,
                                                         const StringPtr& localId,
                                                         const PropertyObjectPtr& config)
 {
+    if (!_authenticated)
+    {
+        LOG_W("Module not authenticated, cannot create function block!");
+        return nullptr;
+    }
+
     if (id == PassthroughFbImpl::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PassthroughFbImpl>(context, parent, localId, mLicenseChecker);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PassthroughFbImpl>(context, parent, localId, _licenseChecker);
         return fb;
     }
 
@@ -40,7 +47,31 @@ FunctionBlockPtr LicensingModule::onCreateFunctionBlock(const StringPtr& id,
 
 Bool LicensingModule::onAuthenticate(IPropertyObject* authenticationConfig)
 {
-    return true;
+    auto ptr = PropertyObjectPtr::Borrow(authenticationConfig);
+    std::string path = ptr.getPropertyValue("AuthenticationKeyPath");
+
+    std::string secret_key = "my_secret_key";
+    std::string path_key;
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        LOG_W("Authentication file \"{}\" not found!", path);
+        return false;
+    }
+    std::getline(file, path_key);
+
+    _authenticated = path_key == secret_key;
+
+    if (!_authenticated)
+    {
+        LOG_W("Authentication with \"{}\" failed, invalid key!", path);
+    }
+    else
+    {
+        LOG_I("Authentication successful!");
+    }
+
+    return _authenticated;
 }
 
 PropertyObjectPtr LicensingModule::onGetAuthenticationConfig()
@@ -50,7 +81,7 @@ PropertyObjectPtr LicensingModule::onGetAuthenticationConfig()
 
 Bool LicensingModule::onIsAuthenticated()
 {
-    return true;
+    return _authenticated;
 }
 
 Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
@@ -73,18 +104,17 @@ Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
     auto lineNumber = 0;
     while (std::getline(file, line))
     {
-        ++lineNumber;
+        lineNumber++;
         if (line.empty() || line[0] == '#')
             continue;  // Skip empty lines and comments
 
         std::smatch match;
         if (std::regex_match(line, match, lineRegex))
         {
-            // Extract feature name and count
+            // Extract feature name and count, and build map
             const auto featureName = match[1].str();
             const auto count = static_cast<SizeT>(std::stoull(match[2].str()));
 
-            // Populate _featureTokensOverall
             tokens[featureName] = count;
         }
         else
@@ -92,20 +122,25 @@ Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
             LOG_W("Unexpected line #{} in license file: {}", lineNumber, line);
         }
     }
+    if (tokens.size() == 0)
+    {
+        LOG_W("Invalid license, no function blocks / components founds!");
+        return false;
+    }
+    _licenseChecker = std::make_shared<LicenseChecker>(tokens);
 
-    mLicenseChecker = LicenseCheckerPtr(new LicenseChecker(tokens));
     return true;
 }
 
 PropertyObjectPtr LicensingModule::onGetLicenseConfig()
 {
-    if (!mLicenseChecker)
+    if (!_licenseChecker)
     {
         return nullptr;
     }
 
     ListPtr<IString> list;
-    mLicenseChecker->getComponentTypes(&list);
+    _licenseChecker->getComponentTypes(&list);
 
     PropertyObjectPtr propertyObject;
     Int value;
@@ -113,21 +148,16 @@ PropertyObjectPtr LicensingModule::onGetLicenseConfig()
     for (auto item : list)
     {
         propertyObject.addProperty(PropertyPtr(item));
-        mLicenseChecker->getNumberOfAvailableTokens(item,&value);
+        _licenseChecker->getNumberOfAvailableTokens(item,&value);
         propertyObject.setPropertyValue(item, value);
     }
 
     return propertyObject;
 }
 
-Bool LicensingModule::onLicenseValid()
+Bool LicensingModule::onLicenseLoaded()
 {
-    return mLicenseChecker == nullptr;
-}
-
-LicenseCheckerPtr LicensingModule::onGetLicenseChecker()
-{
-    return mLicenseChecker;
+    return _licenseChecker == nullptr;
 }
 
 END_NAMESPACE_LICENSING_MODULE

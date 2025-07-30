@@ -106,7 +106,10 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 
     add_executable(quick_start_empty cpp/quick_start/quick_start_empty.cpp)
     target_link_libraries(quick_start_empty PRIVATE daq::opendaq)
-
+	
+	add_executable(licensing_example cpp/licensing_example/licensing_example.cpp)
+	target_link_libraries(licensing_example PRIVATE daq::opendaq)
+	
     if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND OPENDAQ_ENABLE_NATIVE_STREAMING)
         add_executable(client_authentication cpp/client_authentication/client_authentication.cpp)
         target_link_libraries(client_authentication PRIVATE daq::opendaq)

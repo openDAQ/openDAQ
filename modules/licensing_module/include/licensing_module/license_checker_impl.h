@@ -23,18 +23,18 @@
 
 BEGIN_NAMESPACE_LICENSING_MODULE
 
-class LicenseChecker : public ImplementationOf<ILicenseChecker>{
+class LicenseChecker {
 public:
-    explicit LicenseChecker(const std::map<std::string, unsigned int> &featureTokens);
+    LicenseChecker(const std::map<std::string, unsigned int>& tokens);
 
-    ErrCode getComponentTypes(IList** componentTypes) override;
-    ErrCode getNumberOfAvailableTokens(IString* componentId, Int* availableTokens) override;
-    ErrCode checkOut(IString* feature, SizeT count) override;
-    ErrCode checkIn(IString* feature, SizeT count) override;
+    ErrCode getComponentTypes(IList** componentTypes);
+    ErrCode getNumberOfAvailableTokens(IString* componentId, Int* availableTokens);
+    ErrCode checkOut(IString* feature, SizeT count);
+    ErrCode checkIn(IString* feature, SizeT count);
 
 private:
-    std::map<std::string, unsigned int> mFeatureTokens;
-    std::mutex mutex;
+    std::map<std::string, unsigned int> _featureTokens;
+    std::mutex _mutex;
 };
 
 END_NAMESPACE_LICENSING_MODULE

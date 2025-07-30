@@ -24,6 +24,9 @@
 #include <coretypes/stringobject.h>
 #include <opendaq/server_capability_config.h>
 #include <opendaq/module_info.h>
+#include <map>
+#include <string>
+
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -57,5 +60,10 @@ DECLARE_OPENDAQ_INTERFACE(ILicenseChecker, IBaseObject)
     virtual ErrCode INTERFACE_FUNC checkIn(IString * feature, SizeT count) = 0;
 };
 /*!@}*/
+using token_map = std::map<std::string, unsigned int>;
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
+                                             LicenseChecker,
+                                             ILicenseChecker, const token_map&, map)
 
 END_NAMESPACE_OPENDAQ

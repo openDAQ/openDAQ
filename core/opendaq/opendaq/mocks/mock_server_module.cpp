@@ -137,12 +137,7 @@ ErrCode MockServerModuleImpl::getLicenseConfig(IPropertyObject** licenseConfig)
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockServerModuleImpl::licenseValid(Bool* valid)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
-ErrCode MockServerModuleImpl::getLicenseChecker(ILicenseChecker** licenseChecker)
+ErrCode MockServerModuleImpl::licenseLoaded(Bool* valid)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }

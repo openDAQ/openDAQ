@@ -43,8 +43,7 @@ public:
 
     daq::ErrCode INTERFACE_FUNC loadLicense(daq::Bool* succeeded, daq::IPropertyObject* licenseConfig) override;
     daq::ErrCode INTERFACE_FUNC getLicenseConfig(daq::IPropertyObject** licenseConfig) override;
-    daq::ErrCode INTERFACE_FUNC licenseValid(daq::Bool* valid) override;
-    daq::ErrCode INTERFACE_FUNC getLicenseChecker(daq::ILicenseChecker** licenseChecker) override;
+    daq::ErrCode INTERFACE_FUNC licenseLoaded(daq::Bool* valid) override;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockModule, daq::IModule)

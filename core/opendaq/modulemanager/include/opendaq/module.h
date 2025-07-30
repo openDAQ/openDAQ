@@ -135,8 +135,7 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
 
     virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeeded, IPropertyObject * licenseConfig) = 0;
     virtual ErrCode INTERFACE_FUNC getLicenseConfig(IPropertyObject * *licenseConfig) = 0;
-    virtual ErrCode INTERFACE_FUNC licenseValid(Bool * valid) = 0;
-    virtual ErrCode INTERFACE_FUNC getLicenseChecker(ILicenseChecker** licenseChecker) = 0;
+    virtual ErrCode INTERFACE_FUNC licenseLoaded(Bool * loaded) = 0;
 };
 /*!@}*/
 

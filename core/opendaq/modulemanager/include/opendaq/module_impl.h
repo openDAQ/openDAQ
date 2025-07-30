@@ -432,7 +432,7 @@ public:
 
     virtual Bool onIsAuthenticated()
     {
-        return false;
+        return true;
     }
 
     virtual ErrCode loadLicense(Bool* succeded, IPropertyObject* licenseConfig)
@@ -449,7 +449,7 @@ public:
 
     virtual Bool onLoadLicense(IPropertyObject* licenseConfig)
     {
-        return false;
+        return true;
     }
 
     virtual ErrCode getLicenseConfig(IPropertyObject** licenseConfig)
@@ -468,36 +468,20 @@ public:
         return nullptr;
     }
 
-    virtual ErrCode licenseValid(Bool* valid)
+    virtual ErrCode licenseLoaded(Bool* valid)
     {
         OPENDAQ_PARAM_NOT_NULL(valid);
 
         Bool validLocal;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onLicenseValid, validLocal);
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onLicenseLoaded, validLocal);
 
         *valid = validLocal;
         return errCode;
     }
 
-    virtual Bool onLicenseValid()
+    virtual Bool onLicenseLoaded()
     {
-        return false;
-    }
-
-    virtual ErrCode getLicenseChecker(ILicenseChecker** licenseChecker)
-    {
-        OPENDAQ_PARAM_NOT_NULL(licenseChecker);
-
-        LicenseCheckerPtr ptr;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetLicenseChecker, ptr);
-
-        *licenseChecker = ptr.detach();
-        return errCode;
-    }
-
-    virtual LicenseCheckerPtr onGetLicenseChecker()
-    {
-        return nullptr;
+        return true;
     }
 
 protected:

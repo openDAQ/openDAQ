@@ -156,12 +156,7 @@ daq::ErrCode MockFunctionBlockModuleImpl::getLicenseConfig(IPropertyObject** lic
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-daq::ErrCode MockFunctionBlockModuleImpl::licenseValid(Bool* valid)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
-daq::ErrCode MockFunctionBlockModuleImpl::getLicenseChecker(ILicenseChecker** licenseChecker)
+daq::ErrCode MockFunctionBlockModuleImpl::licenseLoaded(Bool* loaded)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }

@@ -107,15 +107,11 @@ daq::ErrCode MockModuleImpl::getLicenseConfig(IPropertyObject** licenseConfig)
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-daq::ErrCode MockModuleImpl::licenseValid(Bool* valid)
+daq::ErrCode MockModuleImpl::licenseLoaded(Bool* loaded)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-daq::ErrCode MockModuleImpl::getLicenseChecker(ILicenseChecker** licenseChecker)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
 
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockModule, IModule)

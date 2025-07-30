@@ -1423,11 +1423,7 @@ public:
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
-    daq::ErrCode INTERFACE_FUNC licenseValid(daq::Bool* valid) override
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-    }
-    daq::ErrCode INTERFACE_FUNC getLicenseChecker(daq::ILicenseChecker** licenseChecker) override
+    daq::ErrCode INTERFACE_FUNC licenseLoaded(daq::Bool* loaded) override
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }

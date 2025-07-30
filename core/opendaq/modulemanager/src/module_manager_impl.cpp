@@ -182,6 +182,11 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         paths = this->paths;
     }
 
+    for (const auto& path : paths)
+    {
+        LOG_D("Loading modules: paths \'{}\'", path);
+    }
+
     std::vector<fs::path> modulesPath;
     for (const auto& path: paths)
     {
@@ -206,6 +211,12 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     libraries.reserve(modulesPath.size());
 
     orphanedModules.tryUnload();
+
+    for (const auto& modulePath : modulesPath)
+    {
+        std::string modulePathStr = modulePath.string();
+        LOG_D("Loading modules: modulePath \'{}\'", modulePathStr);
+    }
 
     bool newModulesAdded = false;
     for (const auto& modulePath: modulesPath)

@@ -12,10 +12,10 @@ const daq::StringPtr strRequiredLicense("passthrough");
 PassthroughFbImpl::PassthroughFbImpl(const ContextPtr& ctx,
                                      const ComponentPtr& parent,
                                      const StringPtr& localId,
-                                     LicenseCheckerPtr licenseComponent)
+                                     std::shared_ptr<LicenseChecker> licenseComponent)
     : FunctionBlock(CreateType(), ctx, parent, localId)
-    , mLicenseComponent(licenseComponent)
-    , mIsLicenseCheckedOut(false)
+    , _licenseComponent(licenseComponent)
+    , _isLicenseCheckedOut(false)
 {
     initComponentStatus();
     createInputPorts();
@@ -24,9 +24,9 @@ PassthroughFbImpl::PassthroughFbImpl(const ContextPtr& ctx,
 
 PassthroughFbImpl::~PassthroughFbImpl()
 {
-    if (mIsLicenseCheckedOut)
+    if (_isLicenseCheckedOut)
     {
-        if (OPENDAQ_SUCCEEDED(mLicenseComponent->checkIn(strRequiredLicense, 1)))
+        if (OPENDAQ_SUCCEEDED(_licenseComponent->checkIn(strRequiredLicense, 1)))
         {
             LOG_I("~PassthroughFbImpl({}): The previously checked out \"{}\" license was checked in again.", localId, strRequiredLicense);
         }
@@ -55,12 +55,17 @@ void PassthroughFbImpl::createSignals()
 
 void PassthroughFbImpl::onConnected(const InputPortPtr& port)
 {
-    if (!mIsLicenseCheckedOut)
+    if (!_isLicenseCheckedOut)
     {
-        if (OPENDAQ_SUCCEEDED(mLicenseComponent->checkOut(strRequiredLicense, 1)))
+        if (_licenseComponent == nullptr)
+        {
+            LOG_W("onConnected({}): Failed to check out required \"{}\" license!", localId, strRequiredLicense);
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Required license is missing!");
+        }
+        if (OPENDAQ_SUCCEEDED(_licenseComponent->checkOut(strRequiredLicense, 1)))
         {
             LOG_I("onConnected({}): Successfully checked out \"{}\" license.", localId, strRequiredLicense);
-            mIsLicenseCheckedOut = true;
+            _isLicenseCheckedOut = true;
             setComponentStatus(ComponentStatus::Ok);
         }
         else
@@ -73,11 +78,15 @@ void PassthroughFbImpl::onConnected(const InputPortPtr& port)
 
 void PassthroughFbImpl::onDisconnected(const InputPortPtr& port)
 {
-    if (mIsLicenseCheckedOut)
+    if (_isLicenseCheckedOut)
     {
-        if (OPENDAQ_SUCCEEDED(mLicenseComponent->checkIn(strRequiredLicense, 1)))
+        if (_licenseComponent == nullptr)
         {
-            mIsLicenseCheckedOut = false;
+            LOG_I("onDisconnected({}): Failed to check in \"{}\" license.", localId, strRequiredLicense);
+        }
+        if (OPENDAQ_SUCCEEDED(_licenseComponent->checkIn(strRequiredLicense, 1)))
+        {
+            _isLicenseCheckedOut = false;
             LOG_I("onDisconnected({}): Successfully checked in \"{}\" license.", localId, strRequiredLicense);
         }
         else
@@ -124,15 +133,13 @@ void PassthroughFbImpl::onPacketReceived(const InputPortPtr& port)
 }
 void PassthroughFbImpl::processEventPacket(const EventPacketPtr& packet)
 {
+    if (!_isLicenseCheckedOut)
+    {
+        return;
+    }
+
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        if (!mIsLicenseCheckedOut)
-        {
-            // Must NOT log any messages here because this function is called for every packet !!!
-            //LOG_W("processEventPacket({}): Required \"{}\" license could not be checked out!", localId, strRequiredLicense);
-            return;
-        }
-
         const DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
         const DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
 
@@ -175,7 +182,7 @@ void PassthroughFbImpl::processEventPacket(const EventPacketPtr& packet)
 }
 void PassthroughFbImpl::processDataPacket(DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue)
 {
-    if (!mIsLicenseCheckedOut)
+    if (!_isLicenseCheckedOut)
         return;
 
     DataPacketPtr outputPacket;

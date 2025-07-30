@@ -48,8 +48,7 @@ public:
 
     daq::ErrCode INTERFACE_FUNC loadLicense(daq::Bool* succeeded, daq::IPropertyObject* licenseConfig) override;
     daq::ErrCode INTERFACE_FUNC getLicenseConfig(daq::IPropertyObject** licenseConfig) override;
-    daq::ErrCode INTERFACE_FUNC licenseValid(daq::Bool* valid) override;
-    daq::ErrCode INTERFACE_FUNC getLicenseChecker(daq::ILicenseChecker** licenseChecker) override;
+    daq::ErrCode INTERFACE_FUNC licenseLoaded(daq::Bool* loaded) override;
 
 private:
     static daq::FunctionBlockTypePtr CreateDeviceFunctionType();

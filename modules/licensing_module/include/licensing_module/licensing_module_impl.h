@@ -36,11 +36,11 @@ public:
 
     Bool onLoadLicense(IPropertyObject* licenseConfig) override;
     PropertyObjectPtr onGetLicenseConfig() override;
-    Bool onLicenseValid() override;
-    LicenseCheckerPtr onGetLicenseChecker() override;
+    Bool onLicenseLoaded() override;
 
 private:
-    LicenseCheckerPtr mLicenseChecker;
+    std::shared_ptr<LicenseChecker> _licenseChecker;
+    bool _authenticated;
 };
 
 END_NAMESPACE_LICENSING_MODULE

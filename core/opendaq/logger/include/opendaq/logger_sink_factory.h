@@ -127,7 +127,7 @@ inline ListPtr<ILoggerSink> DefaultSinks(const StringPtr& fileName = nullptr)
 #ifdef NDEBUG
     logLevel = OPENDAQ_LOG_LEVEL_WARN;
 #else
-    logLevel = OPENDAQ_LOG_LEVEL_INFO;
+    logLevel = OPENDAQ_LOG_LEVEL_DEBUG;
 #endif
 
     auto consoleSinkLogLevel = getEnvLogLevel("OPENDAQ_SINK_CONSOLE_LOG_LEVEL", logLevel);

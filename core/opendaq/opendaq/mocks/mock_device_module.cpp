@@ -176,12 +176,7 @@ ErrCode MockDeviceModuleImpl::getLicenseConfig(daq::IPropertyObject** /*licenseC
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockDeviceModuleImpl::licenseValid(daq::Bool* /*valid*/)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
-ErrCode MockDeviceModuleImpl::getLicenseChecker(daq::ILicenseChecker** /*licenseChecker*/)
+ErrCode MockDeviceModuleImpl::licenseLoaded(daq::Bool* /*valid*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }

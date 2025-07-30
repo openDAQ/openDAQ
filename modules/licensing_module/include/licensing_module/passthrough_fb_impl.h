@@ -16,10 +16,10 @@ public:
     explicit PassthroughFbImpl(const ContextPtr& ctx,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
-                               LicenseCheckerPtr licenseComponent);
+                               std::shared_ptr<LicenseChecker> licenseComponent);
     ~PassthroughFbImpl() override;
 
-    static constexpr const char* TypeID = "ProtectedAnalyticsModulePassthrough";
+    static constexpr const char* TypeID = "LicensingModulePassthrough";
     static FunctionBlockTypePtr CreateType();
 
 private:
@@ -33,8 +33,8 @@ private:
     void processDataPacket(DataPacketPtr&& packet, ListPtr<IPacket>& outQueue, ListPtr<IPacket>& outDomainQueue);
 
 private:
-    LicenseCheckerPtr mLicenseComponent;
-    bool mIsLicenseCheckedOut;
+    std::shared_ptr<LicenseChecker> _licenseComponent;
+    bool _isLicenseCheckedOut;
     InputPortPtr _inputPort;
     SignalConfigPtr _outputSignal;
     SignalConfigPtr _outputDomainSignal;

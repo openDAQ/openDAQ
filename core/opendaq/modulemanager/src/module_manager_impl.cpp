@@ -655,7 +655,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             checkErrorInfo(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
-            if (devicePtr.assigned())
+            if (devicePtr.assigned() && devicePtr.assigned())
             {
                 onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
                 if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())

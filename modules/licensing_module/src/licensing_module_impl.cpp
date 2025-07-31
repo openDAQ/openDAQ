@@ -76,7 +76,10 @@ Bool LicensingModule::onAuthenticate(IPropertyObject* authenticationConfig)
 
 PropertyObjectPtr LicensingModule::onGetAuthenticationConfig()
 {
-    return nullptr;
+    auto authenticationConfig = PropertyObject();
+    authenticationConfig.addProperty(StringProperty("AuthenticationKeyPath", ""));
+
+    return authenticationConfig;
 }
 
 Bool LicensingModule::onIsAuthenticated()
@@ -134,25 +137,10 @@ Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
 
 PropertyObjectPtr LicensingModule::onGetLicenseConfig()
 {
-    if (!_licenseChecker)
-    {
-        return nullptr;
-    }
+    auto licenseConfig = PropertyObject();
+    licenseConfig.addProperty(StringProperty("LicensePath", ""));
 
-    ListPtr<IString> list;
-    _licenseChecker->getComponentTypes(&list);
-
-    PropertyObjectPtr propertyObject;
-    Int value;
-
-    for (auto item : list)
-    {
-        propertyObject.addProperty(PropertyPtr(item));
-        _licenseChecker->getNumberOfAvailableTokens(item,&value);
-        propertyObject.setPropertyValue(item, value);
-    }
-
-    return propertyObject;
+    return licenseConfig;
 }
 
 Bool LicensingModule::onLicenseLoaded()

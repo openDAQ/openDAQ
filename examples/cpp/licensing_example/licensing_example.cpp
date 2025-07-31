@@ -67,9 +67,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     ModulePtr licensingModulePtr = *itFound;
     Bool succeeded = false;
 
-    PropertyObjectPtr authenticationConfig = PropertyObject();
-    authenticationConfig.addProperty(StringProperty(
-        "AuthenticationKeyPath", authPath));
+    PropertyObjectPtr authenticationConfig = licensingModulePtr.getAuthenticationConfig();
+    authenticationConfig.setPropertyValue("AuthenticationKeyPath", authPath);
     succeeded = licensingModulePtr.authenticate(authenticationConfig);
 
     if (succeeded == false)
@@ -78,9 +77,8 @@ int main(int /*argc*/, const char* /*argv*/[])
         return 1;
     }
 
-    PropertyObjectPtr licenseConfig = PropertyObject();
-    licenseConfig.addProperty(
-        StringProperty("LicensePath", licPath));
+    PropertyObjectPtr licenseConfig = licensingModulePtr.getLicenseConfig();
+    licenseConfig.setPropertyValue("LicensePath", licPath);
     succeeded = licensingModulePtr.loadLicense(licenseConfig);
 
     if (succeeded == false)

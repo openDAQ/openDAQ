@@ -1198,13 +1198,35 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationModeRecursive(Oper
 {
     ErrCode errCode = setOperationMode(modeType);
     OPENDAQ_RETURN_IF_FAILED(errCode);
-    
-    for (const DevicePtr & dev: this->devices.getItems())
+
+    auto scheduler = this->context.getScheduler();
+
+    const auto& devices = this->devices.getItems();
+    std::vector<AwaitablePtr> jobs;
+    jobs.reserve(devices.getCount());
+
+    for (const DevicePtr& device : devices)
     {
-        errCode = dev->setOperationModeRecursive(modeType);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
+        const auto jobFunc = [device, modeType]() -> Int { return device->setOperationModeRecursive(modeType); };
+        jobs.push_back(scheduler.scheduleFunction(jobFunc));
     }
-    return OPENDAQ_SUCCESS;
+
+    try
+    {
+        for (auto& job : jobs)
+        {
+            const auto jobResult = (ErrCode) job.getResult();
+            if (errCode == OPENDAQ_SUCCESS && jobResult != OPENDAQ_SUCCESS)
+                errCode = jobResult;
+        }
+    }
+    catch (const std::exception& e)
+    {
+        errCode = OPENDAQ_ERR_CALLFAILED;
+        LOG_W("Error '{}' at retriving setOperationModeRecursive job", e.what());
+    }
+
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>

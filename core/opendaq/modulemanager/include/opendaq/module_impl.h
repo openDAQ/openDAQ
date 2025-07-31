@@ -384,7 +384,7 @@ public:
         return false;
     }
 
-    virtual ErrCode authenticate(Bool* succeeded, IPropertyObject* authenticationConfig)
+    virtual ErrCode authenticate(Bool* succeeded, IPropertyObject* authenticationConfig) override
     {
         OPENDAQ_PARAM_NOT_NULL(succeeded);
         OPENDAQ_PARAM_NOT_NULL(authenticationConfig);
@@ -402,7 +402,7 @@ public:
         return false;
     }
 
-    virtual ErrCode getAuthenticationConfig(IPropertyObject** authenticationConfig)
+    virtual ErrCode getAuthenticationConfig(IPropertyObject** authenticationConfig) override
     {
         OPENDAQ_PARAM_NOT_NULL(authenticationConfig);
 
@@ -418,7 +418,7 @@ public:
         return nullptr;
     }
 
-    virtual ErrCode isAuthenticated(Bool* authenticated)
+    virtual ErrCode isAuthenticated(Bool* authenticated) override
     {
         OPENDAQ_PARAM_NOT_NULL(authenticated);
 
@@ -434,7 +434,7 @@ public:
         return true;
     }
 
-    virtual ErrCode loadLicense(Bool* succeded, IPropertyObject* licenseConfig)
+    virtual ErrCode loadLicense(Bool* succeded, IPropertyObject* licenseConfig) override
     {
         OPENDAQ_PARAM_NOT_NULL(succeded);
         OPENDAQ_PARAM_NOT_NULL(licenseConfig);
@@ -451,7 +451,7 @@ public:
         return true;
     }
 
-    virtual ErrCode getLicenseConfig(IPropertyObject** licenseConfig)
+    virtual ErrCode getLicenseConfig(IPropertyObject** licenseConfig) override
     {
         OPENDAQ_PARAM_NOT_NULL(licenseConfig);
 
@@ -467,7 +467,7 @@ public:
         return nullptr;
     }
 
-    virtual ErrCode licenseLoaded(Bool* valid)
+    virtual ErrCode licenseLoaded(Bool* valid) override
     {
         OPENDAQ_PARAM_NOT_NULL(valid);
 

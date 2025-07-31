@@ -40,12 +40,14 @@ public:
     bool isForwardedCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& eventArgs);
 
 private:
-    MirroredSignalConfigPtr createMirroredExternalSignal(const StringPtr& signalStringId,
-                                                         const StringPtr& serializedSignal,
-                                                         SignalNumericIdType signalNumericId);
+    MirroredSignalConfigPtr createMirroredExternalSignal(const StringPtr& signalStringId, const StringPtr& serializedSignal);
 
     void addExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
     void removeExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
+
+    bool isSignalOfConnectedClient(const StringPtr& signalId);
+
+    MirroredSignalConfigPtr getExternalSignal(const StringPtr& signalId);
 
     ContextPtr daqContext;
     LoggerComponentPtr loggerComponent;

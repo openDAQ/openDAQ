@@ -65,6 +65,7 @@ protected:
 
     void removed() override;
     bool isAddedToLocalComponentTree() override;
+    StringPtr onGetRemoteId() const override;
 
 private:
     void fetchTimeDomain();

@@ -19,6 +19,7 @@
 #include <native_streaming_client_module/common.h>
 
 #include <native_streaming_protocol/native_streaming_client_handler.h>
+#include <opendaq/packet_reader_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -82,6 +83,41 @@ protected:
     std::chrono::milliseconds streamingInitTimeout;
     std::shared_ptr<boost::asio::io_context> timerContextPtr;
     std::shared_ptr<boost::asio::steady_timer> protocolInitTimer;
+};
+
+using NativeStreamingBasicImpl = NativeStreamingImpl;
+
+class NativeStreamingToDeviceImpl : public NativeStreamingImpl
+{
+public:
+    using Super = NativeStreamingImpl;
+    explicit NativeStreamingToDeviceImpl(const StringPtr& connectionString,
+                                         const ContextPtr& context,
+                                         opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
+                                         std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+                                         Int streamingInitTimeout);
+
+    ~NativeStreamingToDeviceImpl();
+
+    // INativeStreamingPrivate
+    void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() override;
+
+protected:
+    void onRegisterStreamedSignal(const SignalPtr& signal) override;
+    void onUnregisterStreamedSignal(const SignalPtr& signal) override;
+    void signalReadingFunc() override;
+
+    bool isClientToDeviceStreamingSupported() override;
+
+private:
+    void initStreamingToDeviceCallbacks();
+    void upgradeStreamingToDeviceCallbacks();
+
+    void signalSubscribeHandler(const SignalPtr& signal);
+    void signalUnsubscribeHandler(const SignalPtr& signal);
+
+    std::vector<std::pair<SignalPtr, PacketReaderPtr>> signalReaders;
+    std::mutex readersSync;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

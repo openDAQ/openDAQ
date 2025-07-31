@@ -31,6 +31,10 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/connection_status_container_private_ptr.h>
+#include <opendaq/mirrored_input_port_private_ptr.h>
+
+#include <opendaq/thread_name.h>
+#include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -46,7 +50,7 @@ public:
     using Super = ImplementationOfWeak<IStreaming, IStreamingPrivate, Interfaces...>;
     using Self = StreamingImpl<Interfaces...>;
 
-    explicit StreamingImpl(const StringPtr& connectionString, ContextPtr context, bool skipDomainSignalSubscribe);
+    explicit StreamingImpl(const StringPtr& connectionString, ContextPtr context, bool skipDomainSignalSubscribe, const StringPtr& protocolId);
 
     ~StreamingImpl() override;
 
@@ -59,11 +63,22 @@ public:
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) const override;
     ErrCode INTERFACE_FUNC getConnectionStatus(IEnumeration** connectionStatus) override;
 
+    ErrCode INTERFACE_FUNC addInputPorts(IList* inputPorts) override;
+    ErrCode INTERFACE_FUNC removeInputPorts(IList* inputPorts) override;
+    ErrCode INTERFACE_FUNC removeAllInputPorts() override;
+
+    ErrCode INTERFACE_FUNC getOwnerDeviceRemoteId(IString** deviceRemoteId) const override;
+    ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) const override;
+
     // IStreamingPrivate
     ErrCode INTERFACE_FUNC subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
     ErrCode INTERFACE_FUNC unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
     ErrCode INTERFACE_FUNC detachRemovedSignal(const StringPtr& signalRemoteId) override;
     ErrCode INTERFACE_FUNC setOwnerDevice(const DevicePtr& device) override;
+
+    ErrCode INTERFACE_FUNC registerStreamedSignals(IList* signals) override;
+    ErrCode INTERFACE_FUNC unregisterStreamedSignals(IList* signals) override;
+    ErrCode INTERFACE_FUNC detachRemovedInputPort(IString* inputPortRemoteId) override;
 
 protected:
     void addToAvailableSignals(const StringPtr& signalStreamingId);
@@ -101,6 +116,13 @@ protected:
      */
     virtual void onUnsubscribeSignal(const StringPtr& signalStreamingId) = 0;
 
+    virtual void onRegisterStreamedSignal(const SignalPtr& signal);
+    virtual void onUnregisterStreamedSignal(const SignalPtr& signal);
+    virtual void signalReadingFunc() {} // ? FIXME - should not be virtual
+
+    virtual bool isClientToDeviceStreamingSupported();
+
+    void startReadThread();
     void onPacket(const StringPtr& signalId, const PacketPtr& packet);
     void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
     void triggerSubscribeAck(const StringPtr& signalStreamingId, bool subscribed);
@@ -112,6 +134,7 @@ protected:
     LoggerComponentPtr loggerComponent;
     WeakRefPtr<IDevice> ownerDeviceRef;
     EnumerationPtr connectionStatus;
+    std::unordered_map<StringPtr, WeakRefPtr<ISignal>> streamedSignals;
 
 private:
     /*!
@@ -145,6 +168,11 @@ private:
     void startReconnection();
     void completeReconnection();
 
+    ErrCode removeStreamingSourceForAllInputPorts();
+    void removeAllInputPortsInternal();
+    void readingThreadFunc();
+    void stopReadThread();
+
     bool isActive{false};
     bool isReconnecting{false};
     const bool skipDomainSignalSubscribe;
@@ -153,15 +181,30 @@ private:
     std::unordered_map<StringPtr, SignalItem, StringHash, StringEqualTo> streamingSignalsItems;
 
     std::unordered_set<StringPtr, StringHash, StringEqualTo> availableSignalIds;
+
+    StringPtr protocolId;
+
+    using InputPortItem = WeakRefPtr<IMirroredInputPortConfig>;
+    std::unordered_map<StringPtr, InputPortItem, StringHash, StringEqualTo> inputPortsItems;
+
+    bool readThreadRunning;
+    std::chrono::milliseconds readThreadSleepTime;
+    std::thread readerThread;
 };
 
 template <typename... Interfaces>
-StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString, ContextPtr context, bool skipDomainSignalSubscribe)
+StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString,
+                                                        ContextPtr context,
+                                                        bool skipDomainSignalSubscribe,
+                                                        const StringPtr& protocolId)
     : connectionString(connectionString)
     , context(std::move(context))
     , loggerComponent(this->context.getLogger().getOrAddComponent(fmt::format("Streaming({})", connectionString)))
     , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
     , skipDomainSignalSubscribe(skipDomainSignalSubscribe)
+    , protocolId(protocolId)
+    , readThreadRunning(false)
+    , readThreadSleepTime(std::chrono::milliseconds(20))
 {
 }
 
@@ -178,6 +221,20 @@ StreamingImpl<Interfaces...>::~StreamingImpl()
     {
         LOG_E("Failed to remove signals on streaming object destruction: {}", e.what());
     }
+
+    try
+    {
+        ErrCode errCode = removeStreamingSourceForAllInputPorts();
+        removeAllInputPortsInternal();
+        checkErrorInfo(errCode);
+    }
+    catch (const DaqException& e)
+    {
+        DAQLOGF_W(this->loggerComponent, "Failed to remove signals on streaming object destruction: {}", e.what());
+    }
+
+    if (readThreadRunning)
+        stopReadThread();
 }
 
 template <typename... Interfaces>
@@ -721,6 +778,24 @@ void StreamingImpl<Interfaces...>::updateConnectionStatus(const EnumerationPtr& 
 }
 
 template <typename... Interfaces>
+void StreamingImpl<Interfaces...>::onRegisterStreamedSignal(const SignalPtr &signal)
+{
+    DAQ_THROW_EXCEPTION(NotSupportedException);
+}
+
+template <typename... Interfaces>
+void StreamingImpl<Interfaces...>::onUnregisterStreamedSignal(const SignalPtr &signal)
+{
+    DAQ_THROW_EXCEPTION(NotSupportedException);
+}
+
+template <typename... Interfaces>
+bool StreamingImpl<Interfaces...>::isClientToDeviceStreamingSupported()
+{
+    return false;
+}
+
+template <typename... Interfaces>
 StringPtr StreamingImpl<Interfaces...>::getSignalStreamingId(const StringPtr& signalRemoteId)
 {
     const auto it = std::find_if(
@@ -853,6 +928,294 @@ void StreamingImpl<Interfaces...>::completeReconnection()
         DAQ_THROW_EXCEPTION(InvalidStateException, "Fail to complete reconnection - reconnection was not started");
 
     isReconnecting = false;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::addInputPorts(IList* inputPorts)
+{
+    OPENDAQ_PARAM_NOT_NULL(inputPorts);
+
+    if (!isClientToDeviceStreamingSupported())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED);
+
+    const auto inputPortsPtr = ListPtr<IMirroredInputPortConfig>::Borrow(inputPorts);
+    for (const auto& mirroredInputPort : inputPortsPtr)
+    {
+        auto inputPortRemoteId = mirroredInputPort.getRemoteId();
+        auto inputPortGlobalId = mirroredInputPort.getGlobalId();
+        {
+            std::scoped_lock lock(this->sync);
+
+            StringPtr inputPortIdKey = inputPortRemoteId;
+
+            auto it = inputPortsItems.find(inputPortIdKey);
+            if (it != inputPortsItems.end())
+            {
+                return DAQ_MAKE_ERROR_INFO(
+                    OPENDAQ_ERR_DUPLICATEITEM,
+                    fmt::format(
+                        R"(Input port with Ids (global /// remote /// key) "{}" /// "{}" /// "{}" failed to add - input port already added to streaming "{}")",
+                        inputPortGlobalId,
+                        inputPortRemoteId,
+                        inputPortIdKey,
+                        this->connectionString
+                        )
+                    );
+            }
+
+            auto inputPortItem = WeakRefPtr<IMirroredInputPortConfig>(mirroredInputPort);
+            inputPortsItems.insert({inputPortIdKey, inputPortItem});
+        }
+
+        ErrCode errCode =
+            daqTry([&]()
+                   {
+                       auto thisPtr = this->template borrowPtr<StreamingPtr>();
+                       mirroredInputPort.template asPtr<IMirroredInputPortPrivate>().addStreamingSource(thisPtr);
+                   });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::removeInputPorts(IList* inputPorts)
+{
+    OPENDAQ_PARAM_NOT_NULL(inputPorts);
+
+    if (!isClientToDeviceStreamingSupported())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED);
+
+    const auto inputPortsPtr = ListPtr<IMirroredInputPortConfig>::Borrow(inputPorts);
+    for (const auto& mirroredInputPortToRemove : inputPortsPtr)
+    {
+        ErrCode errCode =
+            daqTry([&]()
+                   {
+                       mirroredInputPortToRemove.template asPtr<IMirroredInputPortPrivate>().removeStreamingSource(this->connectionString);
+                   });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        auto inputPortRemoteId = mirroredInputPortToRemove.getRemoteId();
+        auto inputPortGlobalId = mirroredInputPortToRemove.getGlobalId();
+        {
+            std::scoped_lock lock(this->sync);
+
+            StringPtr inputPortIdKey = mirroredInputPortToRemove.getRemoteId();
+
+            auto it = inputPortsItems.find(inputPortIdKey);
+            if (it != inputPortsItems.end())
+            {
+                auto mirroredInputPortlRef = it->second;
+                if (auto mirroredInputPort = mirroredInputPortlRef.getRef(); mirroredInputPort.assigned())
+                {
+                    inputPortsItems.erase(it);
+                }
+            }
+            else
+            {
+                return DAQ_MAKE_ERROR_INFO(
+                    OPENDAQ_ERR_NOTFOUND,
+                    fmt::format(
+                        R"(Input port with Ids (global /// remote /// key) "{}" /// "{}" /// "{}" failed to remove - input port not found in streaming "{}" )",
+                        inputPortGlobalId,
+                        inputPortRemoteId,
+                        inputPortIdKey,
+                        this->connectionString
+                        )
+                    );
+            }
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::removeAllInputPorts()
+{
+    ErrCode errCode = removeStreamingSourceForAllInputPorts();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    std::scoped_lock lock(this->sync);
+
+    removeAllInputPortsInternal();
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::getOwnerDeviceRemoteId(IString** deviceRemoteId) const
+{
+    OPENDAQ_PARAM_NOT_NULL(deviceRemoteId);
+
+    *deviceRemoteId = this->ownerDeviceRef.getRef().template asPtr<IMirroredDevice>().getRemoteId();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::getProtocolId(IString** protocolId) const
+{
+    OPENDAQ_PARAM_NOT_NULL(protocolId);
+
+    *protocolId = this->protocolId;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::registerStreamedSignals(IList* signals)
+{
+    OPENDAQ_PARAM_NOT_NULL(signals);
+
+    const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
+
+    std::scoped_lock lock(this->sync);
+    for (const auto& signal : signalsPtr)
+    {
+        const StringPtr signalKey = signal.getGlobalId();
+        if (const auto it = streamedSignals.find(signalKey); it == streamedSignals.end())
+        {
+            ErrCode errCode = wrapHandler(this, &Self::onRegisterStreamedSignal, signal);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+
+            streamedSignals.insert({signalKey, signal});
+        }
+    }
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::unregisterStreamedSignals(IList* signals)
+{
+    OPENDAQ_PARAM_NOT_NULL(signals);
+
+    const auto signalsPtr = ListPtr<ISignal>::Borrow(signals);
+
+    std::scoped_lock lock(this->sync);
+    for (const auto& signal : signalsPtr)
+    {
+        const StringPtr signalKey = signal.getGlobalId();
+        if (const auto it = streamedSignals.find(signalKey); it != streamedSignals.end())
+        {
+            streamedSignals.erase(it);
+
+            ErrCode errCode = wrapHandler(this, &Self::onUnregisterStreamedSignal, signal);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+        else
+        {
+            return OPENDAQ_NOTFOUND;
+        }
+    }
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::detachRemovedInputPort(IString* inputPortRemoteId)
+{
+    std::scoped_lock lock(this->sync);
+
+    StringPtr inputPortIdKey = inputPortRemoteId;
+    if (auto it = inputPortsItems.find(inputPortIdKey); it != inputPortsItems.end())
+    {
+        inputPortsItems.erase(it);
+    }
+    else
+    {
+        return DAQ_MAKE_ERROR_INFO(
+            OPENDAQ_ERR_NOTFOUND,
+            fmt::format(
+                R"(Input port "{}" failed to remove - input port not found in streaming "{}" )",
+                inputPortIdKey,
+                this->connectionString
+                )
+            );
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::removeStreamingSourceForAllInputPorts()
+{
+    if (!isClientToDeviceStreamingSupported())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED);
+
+    auto allInputPorts = List<IMirroredInputPortConfig>();
+
+    {
+        std::scoped_lock lock(this->sync);
+
+        for (const auto& [_, inputPortItem] : inputPortsItems)
+        {
+            if (auto mirroredInputPort = inputPortItem.getRef(); mirroredInputPort.assigned())
+                allInputPorts.pushBack(mirroredInputPort);
+        }
+    }
+
+    for (const auto& inputPort : allInputPorts)
+    {
+        ErrCode errCode =
+            daqTry([&]()
+                   {
+                       inputPort.template asPtr<IMirroredInputPortPrivate>().removeStreamingSource(this->connectionString);
+                   });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+void StreamingImpl<Interfaces...>::removeAllInputPortsInternal()
+{
+    inputPortsItems.clear();
+}
+
+template <typename... Interfaces>
+void StreamingImpl<Interfaces...>::readingThreadFunc()
+{
+    daqNameThread("TODO-put-some-name-here");
+    DAQLOGF_D(this->loggerComponent, "Streaming-to-device read thread started")
+    while (readThreadRunning)
+    {
+        signalReadingFunc();
+
+        std::this_thread::sleep_for(readThreadSleepTime);
+    }
+    DAQLOGF_D(this->loggerComponent, "Streaming-to-device read thread stopped");
+}
+
+template <typename... Interfaces>
+void StreamingImpl<Interfaces...>::startReadThread()
+{
+    assert(!readThreadRunning);
+    readThreadRunning = true;
+    readerThread = std::thread(&Self::readingThreadFunc, this);
+}
+
+template <typename... Interfaces>
+void StreamingImpl<Interfaces...>::stopReadThread()
+{
+    assert(readThreadRunning);
+    readThreadRunning = false;
+    if (readerThread.get_id() != std::this_thread::get_id())
+    {
+        if (readerThread.joinable())
+        {
+            readerThread.join();
+            DAQLOGF_D(this->loggerComponent, "Streaming-to-device read thread joined");
+        }
+        else
+        {
+            DAQLOGF_W(this->loggerComponent, "Streaming-to-device read thread is not joinable");
+        }
+    }
+    else
+    {
+        DAQLOGF_C(this->loggerComponent, "Streaming-to-device read thread cannot join itself");
+    }
 }
 
 END_NAMESPACE_OPENDAQ

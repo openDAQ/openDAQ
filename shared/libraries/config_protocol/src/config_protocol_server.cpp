@@ -10,6 +10,7 @@
 #include <config_protocol/config_server_access_control.h>
 #include <opendaq/custom_log.h>
 #include <config_protocol/config_server_recorder.h>
+#include <config_protocol/config_mirrored_ext_sig_impl.h>
 
 namespace daq::config_protocol
 {
@@ -86,7 +87,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({15, 16}))
+    , supportedServerVersions(std::set<uint16_t>({15, 16, 17}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
@@ -175,7 +176,9 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
     addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
-    addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));
+    addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignalBasic, this, _1, _2, _3));
+    addHandler<InputPortPtr>("ConnectExternalSignalGeneralized", std::bind(&ConfigProtocolServer::connectExternalSignalGeneralized, this, _1, _2, _3));
+    addHandler<InputPortPtr>("ChangeInputPortStreamingSource", std::bind(&ConfigProtocolServer::changeInputPortStreamingSource, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
     addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
 
@@ -411,12 +414,82 @@ BaseObjectPtr ConfigProtocolServer::connectSignal(const RpcContext& context, con
     return ConfigServerInputPort::connect(context, inputPort, signal, params);
 }
 
-BaseObjectPtr ConfigProtocolServer::connectExternalSignal(const RpcContext& context,
-                                                          const InputPortPtr& inputPort,
-                                                          const ParamsDictPtr& params)
+BaseObjectPtr ConfigProtocolServer::connectExternalSignalBasic(const RpcContext& context,
+                                                               const InputPortPtr& inputPort,
+                                                               const ParamsDictPtr& params)
 {
-    const SignalPtr signal = streamingConsumer.getOrAddExternalSignal(params);
+    // verifies that access to input port is granted for current user before creating mirrored signals
+    ConfigServerInputPort::access(context, inputPort);
+
+    const MirroredSignalConfigPtr signal = streamingConsumer.getOrAddExternalSignal(params);
     return ConfigServerInputPort::connect(context, inputPort, signal, params);
+}
+
+BaseObjectPtr ConfigProtocolServer::connectExternalSignalGeneralized(const RpcContext& context,
+                                                                     const InputPortPtr& inputPort,
+                                                                     const ParamsDictPtr& params)
+{
+    // verifies that access to input port is granted for current user before creating mirrored signals
+    ConfigServerInputPort::access(context, inputPort);
+
+    const MirroredSignalConfigPtr externalSignal = streamingConsumer.getOrAddExternalSignal(params);
+
+    const StringPtr activeStreamingProtocolId = params.get("ActiveStreamingProtocolId");
+    const StringPtr activeStreamingSourceDeviceId = params.get("ActiveStreamingSourceDeviceId");
+
+    auto signals = List<IMirroredSignalConfig>();
+    if (const auto domainSignal = externalSignal.getDomainSignal(); domainSignal.assigned())
+        signals.pushBack(domainSignal);
+    signals.pushBack(externalSignal);
+
+    for (const auto& server : rootDevice.getServers())
+    {
+        // add-attach signals to all available streaming sources
+        if (auto streaming = server.getStreaming(); streaming.assigned())
+        {
+            streaming.addSignals(signals);
+            if (activeStreamingProtocolId.assigned())
+            {
+                if (server.getId() == activeStreamingProtocolId)
+                    assert(activeStreamingSourceDeviceId.assigned());
+
+                for (const auto& signal : signals)
+                {
+                    // may change the active streaming source
+                    signal.setActiveStreamingSource(activeStreamingProtocolId);
+                }
+            }
+        }
+    }
+
+    // the subscribe is automatically done while connect is perfmormed
+    return ConfigServerInputPort::connect(context, inputPort, externalSignal, params);
+}
+
+BaseObjectPtr ConfigProtocolServer::changeInputPortStreamingSource(const RpcContext& context,
+                                                                   const InputPortPtr& inputPort,
+                                                                   const ParamsDictPtr& params)
+{
+    auto externalSignal = inputPort.getSignal();
+    if (externalSignal.assigned() && externalSignal.supportsInterface<IMirroredExternalSignalPrivate>())
+        return nullptr;
+
+    const StringPtr activeStreamingProtocolId = params.get("ActiveStreamingProtocolId");
+    const StringPtr activeStreamingSourceDeviceId = params.get("ActiveStreamingSourceDeviceId");
+
+    if (activeStreamingProtocolId.assigned())
+    {
+        auto signals = List<IMirroredSignalConfig>();
+        if (const auto domainSignal = externalSignal.getDomainSignal(); domainSignal.assigned())
+            signals.pushBack(domainSignal);
+        signals.pushBack(externalSignal);
+
+        for (const auto& signal : signals)
+        {
+            signal.setActiveStreamingSource(activeStreamingProtocolId);
+        }
+    }
+    return nullptr;
 }
 
 BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& params)

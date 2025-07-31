@@ -27,6 +27,7 @@
 #include <opendaq/discovery_server_ptr.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/signal_container_impl.h>
+#include <opendaq/streaming_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -102,6 +103,18 @@ public:
         return this->signals->getItems(signals, searchFilter);
     }
 
+    ErrCode INTERFACE_FUNC getStreaming(IStreaming** streaming) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(streaming);
+
+        StreamingPtr streamingPtr;
+        const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetStreaming, streamingPtr);
+
+        *streaming = streamingPtr.detach();
+
+        return errCode;
+    }
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override
     {
@@ -164,6 +177,11 @@ protected:
 
     virtual void onStopServer()
     {
+    }
+
+    virtual StreamingPtr onGetStreaming()
+    {
+        return nullptr;
     }
 
     void removed() override

@@ -7,6 +7,7 @@
 #include <opendaq/subscription_event_args_factory.h>
 
 #include <boost/asio/dispatch.hpp>
+#include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -21,7 +22,7 @@ NativeStreamingImpl::NativeStreamingImpl(
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb)
-    : Super(connectionString, context, false)
+    : Super(connectionString, context, false, NativeStreamingID)
     , transportClientHandler(transportClientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
@@ -332,6 +333,168 @@ void NativeStreamingImpl::onSubscribeSignal(const StringPtr& signalStreamingId)
 void NativeStreamingImpl::onUnsubscribeSignal(const StringPtr& signalStreamingId)
 {
     transportClientHandler->unsubscribeSignal(signalStreamingId);
+}
+
+NativeStreamingToDeviceImpl::NativeStreamingToDeviceImpl(const StringPtr& connectionString,
+                                                         const ContextPtr& context,
+                                                         opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
+                                                         std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
+                                                         Int streamingInitTimeout)
+    : Super(connectionString,
+            context,
+            transportClientHandler,
+            processingIOContextPtr,
+            streamingInitTimeout,
+            nullptr,
+            nullptr,
+            nullptr)
+{
+    initStreamingToDeviceCallbacks();
+    startReadThread();
+}
+
+NativeStreamingToDeviceImpl::~NativeStreamingToDeviceImpl()
+{
+    this->transportClientHandler->resetStreamingToDeviceHandlers();
+    for (const auto& [_, signalRef] : this->streamedSignals)
+    {
+        if (auto signal = signalRef.getRef(); signal.assigned())
+            this->transportClientHandler->removeClientSignal(signal);
+    }
+}
+
+void NativeStreamingToDeviceImpl::upgradeToSafeProcessingCallbacks()
+{
+    upgradeStreamingToDeviceCallbacks();
+    Super::upgradeToSafeProcessingCallbacks();
+}
+
+void NativeStreamingToDeviceImpl::onRegisterStreamedSignal(const SignalPtr& signal)
+{
+    this->transportClientHandler->addClientSignal(signal);
+}
+
+void NativeStreamingToDeviceImpl::onUnregisterStreamedSignal(const SignalPtr& signal)
+{
+    this->transportClientHandler->removeClientSignal(signal);
+}
+
+void NativeStreamingToDeviceImpl::signalReadingFunc()
+{
+    std::scoped_lock lock(readersSync);
+    bool hasPacketsToRead;
+    do
+    {
+        hasPacketsToRead = false;
+        for (const auto& [signal, reader] : signalReaders)
+        {
+            if (reader.getAvailableCount() == 0)
+                continue;
+
+            auto packet = reader.read();
+            this->transportClientHandler->sendPacket(signal.getGlobalId().toStdString(), std::move(packet));
+
+            if (reader.getAvailableCount() > 0)
+                hasPacketsToRead = true;
+        }
+    }
+    while(hasPacketsToRead);
+}
+
+bool NativeStreamingToDeviceImpl::isClientToDeviceStreamingSupported()
+{
+    return true;
+}
+
+void NativeStreamingToDeviceImpl::initStreamingToDeviceCallbacks()
+{
+    using namespace boost::asio;
+    opendaq_native_streaming_protocol::OnSignalSubscribedCallback signaSubscribeCb =
+        [this](const SignalPtr& signal)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, signal]()
+            {
+                this->signalSubscribeHandler(signal);
+            }
+        );
+    };
+    opendaq_native_streaming_protocol::OnSignalUnsubscribedCallback signaUnsubscribeCb =
+        [this](const SignalPtr& signal)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, signal]()
+            {
+                this->signalUnsubscribeHandler(signal);
+            }
+        );
+    };
+    this->transportClientHandler->setStreamingToDeviceHandlers(signaSubscribeCb, signaUnsubscribeCb);
+}
+
+void NativeStreamingToDeviceImpl::upgradeStreamingToDeviceCallbacks()
+{
+    using namespace boost::asio;
+    WeakRefPtr<IStreaming> thisRef = this->template borrowPtr<StreamingPtr>();
+
+    opendaq_native_streaming_protocol::OnSignalSubscribedCallback signaSubscribeCb =
+        [this, thisRef](const SignalPtr& signal)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, signal]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    this->signalSubscribeHandler(signal);
+            }
+        );
+    };
+    opendaq_native_streaming_protocol::OnSignalUnsubscribedCallback signaUnsubscribeCb =
+        [this, thisRef](const SignalPtr& signal)
+    {
+        dispatch(
+            *processingIOContextPtr,
+            [this, thisRef, signal]()
+            {
+                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
+                    this->signalUnsubscribeHandler(signal);
+            }
+        );
+    };
+    this->transportClientHandler->setStreamingToDeviceHandlers(signaSubscribeCb, signaUnsubscribeCb);
+}
+
+void NativeStreamingToDeviceImpl::signalSubscribeHandler(const SignalPtr &signal)
+{
+    auto it = std::find_if(signalReaders.begin(),
+                           signalReaders.end(),
+                           [&signal](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           {
+                               return element.first == signal;
+                           });
+    if (it != signalReaders.end())
+        return;
+
+    LOG_I("Add reader for client signal {}", signal.getGlobalId());
+    auto reader = PacketReader(signal);
+    signalReaders.push_back(std::pair<SignalPtr, PacketReaderPtr>({signal, reader}));
+}
+
+void NativeStreamingToDeviceImpl::signalUnsubscribeHandler(const SignalPtr &signal)
+{
+    auto it = std::find_if(signalReaders.begin(),
+                           signalReaders.end(),
+                           [&signal](const std::pair<SignalPtr, PacketReaderPtr>& element)
+                           {
+                               return element.first == signal;
+                           });
+    if (it == signalReaders.end())
+        return;
+
+    LOG_I("Remove reader for client signal {}", signal.getGlobalId());
+    signalReaders.erase(it);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

@@ -10,11 +10,13 @@ set(SRC_Include common.h
                 module_dll.h
                 native_streaming_server_module_impl.h
                 native_streaming_server_impl.h
+                native_server_streaming_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
              native_streaming_server_module_impl.cpp
              native_streaming_server_impl.cpp
+             native_server_streaming_impl.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)

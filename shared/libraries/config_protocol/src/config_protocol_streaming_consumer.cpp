@@ -9,7 +9,9 @@ namespace daq::config_protocol
 ConfigProtocolStreamingConsumer::ConfigProtocolStreamingConsumer(const ContextPtr& daqContext, const FolderConfigPtr& externalSignalsFolder)
     : daqContext(daqContext)
     , loggerComponent(this->daqContext.getLogger().getOrAddComponent("ClientToServerStreamingConsumer"))
-    , externalSignalsFolder(externalSignalsFolder)
+    , externalSignalsFolder(externalSignalsFolder.assigned()
+                                ? externalSignalsFolder
+                                : throw ArgumentNullException("External signals folder must not be null"))
 {
 }
 
@@ -20,6 +22,7 @@ ConfigProtocolStreamingConsumer::~ConfigProtocolStreamingConsumer()
     {
         for (const auto& [_, signal] : mirroredExternalSignals)
             externalSignalsFolder.removeItem(signal);
+
     }
     mirroredExternalSignals.clear();
     mirroredExternalSignalsIds.clear();
@@ -50,8 +53,7 @@ void ConfigProtocolStreamingConsumer::processClientToServerStreamingPacket(Signa
 }
 
 MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::createMirroredExternalSignal(const StringPtr& signalStringId,
-                                                                                      const StringPtr& serializedSignal,
-                                                                                      SignalNumericIdType signalNumericId)
+                                                                                      const StringPtr& serializedSignal)
 {
     const auto deserializer = JsonDeserializer();
     const auto deserializeContext = ComponentDeserializeContext(daqContext, nullptr, externalSignalsFolder, signalStringId);
@@ -74,19 +76,25 @@ MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::createMirroredExternalS
     return signal;
 }
 
+bool ConfigProtocolStreamingConsumer::isSignalOfConnectedClient(const StringPtr& signalId)
+{
+    std::scoped_lock lock(sync);
+
+    const auto it = mirroredExternalSignalsIds.find(signalId);
+    return it != mirroredExternalSignalsIds.end();
+}
+
+MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getExternalSignal(const StringPtr& signalId)
+{
+    return externalSignalsFolder.findComponent(ConfigMirroredExternalSignalImpl::getLocalId(signalId));
+}
+
 bool ConfigProtocolStreamingConsumer::isForwardedCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& eventArgs)
 {
     const auto coreEventId = static_cast<CoreEventId>(eventArgs.getEventId());
 
     if (component.assigned())
     {
-        const auto isSignalOfConnectedClient = [this](const StringPtr& signalId)
-        {
-            std::scoped_lock lock(sync);
-            const auto it = mirroredExternalSignalsIds.find(signalId);
-            return it != mirroredExternalSignalsIds.end();
-        };
-
         if (externalSignalsFolder.assigned())
         {
             if (component == externalSignalsFolder)
@@ -144,31 +152,30 @@ void ConfigProtocolStreamingConsumer::addExternalSignal(const MirroredSignalConf
 
         mirroredExternalSignalsIds.insert(signal.getLocalId());
         mirroredExternalSignals.insert({signalNumericId, signal});
+
+        LOG_D("Added new mirrored external signal numeric ID {}, remote ID {}, global ID {}",
+              signalNumericId,
+              signal.getRemoteId(),
+              signal.getGlobalId());
     }
 
-    if (externalSignalsFolder.assigned())
-        externalSignalsFolder.addItem(signal);
-
-    LOG_D("Added new mirrored external signal numeric ID {}, remote ID {}, global ID {}",
-          signalNumericId,
-          signal.getRemoteId(),
-          signal.getGlobalId());
+    externalSignalsFolder.addItem(signal);
 }
 
 void ConfigProtocolStreamingConsumer::removeExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId)
 {
     auto signalLocalId = signal.getLocalId();
-    LOG_D("Remove mirrored external signal numeric ID {}, remote ID {}, global ID {}",
-          signalNumericId,
-          signal.getRemoteId(),
-          signal.getGlobalId());
 
-    if (externalSignalsFolder.assigned())
-        externalSignalsFolder.removeItem(signal);
+    externalSignalsFolder.removeItem(signal);
 
     std::scoped_lock lock(sync);
     mirroredExternalSignals.erase(signalNumericId);
     mirroredExternalSignalsIds.erase(signalLocalId);
+
+    LOG_D("Remove mirrored external signal numeric ID {}, remote ID {}, global ID {}",
+          signalNumericId,
+          signal.getRemoteId(),
+          signal.getGlobalId());
 }
 
 MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignal(const ParamsDictPtr& params)
@@ -185,7 +192,7 @@ MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignal(
     {
         if (const auto iter = mirroredExternalSignals.find(domainSignalNumericId); iter == mirroredExternalSignals.end())
         {
-            domainSignal = createMirroredExternalSignal(domainSignalStringId, domainSerializedSignal, domainSignalNumericId);
+            domainSignal = createMirroredExternalSignal(domainSignalStringId, domainSerializedSignal);
             addExternalSignal(domainSignal, domainSignalNumericId);
         }
         else
@@ -197,7 +204,7 @@ MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignal(
     MirroredSignalConfigPtr signal;
     if (const auto iter = mirroredExternalSignals.find(signalNumericId); iter == mirroredExternalSignals.end())
     {
-        signal = createMirroredExternalSignal(signalStringId, serializedSignal, signalNumericId);
+        signal = createMirroredExternalSignal(signalStringId, serializedSignal);
         if (domainSignal.assigned())
             signal.asPtr<IMirroredExternalSignalPrivate>()->assignDomainSignal(domainSignal);
         addExternalSignal(signal, signalNumericId);

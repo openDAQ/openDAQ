@@ -26,7 +26,7 @@ class ConfigServerAccessControl
 public:
     static void protectObject(const PropertyObjectPtr& component, const UserPtr& user, Permission requiredPermission);
     static void protectObject(const PropertyObjectPtr& component, const UserPtr& user, const std::vector<Permission>& requiredPermissions);
-    static PropertyObjectPtr getFirstPropertyParent(const ComponentPtr& component, const StringPtr& propertyName);
+    static PropertyObjectPtr getFirstPropertyParent(const PropertyObjectPtr& component, const StringPtr& propertyName);
     static void protectLockedComponent(const ComponentPtr& component);
     static void protectViewOnlyConnection(ClientType connectionType);
 
@@ -56,7 +56,7 @@ inline void ConfigServerAccessControl::protectObject(const PropertyObjectPtr& co
     }
 }
 
-inline PropertyObjectPtr daq::config_protocol::ConfigServerAccessControl::getFirstPropertyParent(const ComponentPtr& component,
+inline PropertyObjectPtr daq::config_protocol::ConfigServerAccessControl::getFirstPropertyParent(const PropertyObjectPtr& component,
                                                                                                  const StringPtr& propertyName)
 {
     std::string parentObjectName = propertyName;

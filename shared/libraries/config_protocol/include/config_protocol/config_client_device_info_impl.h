@@ -49,7 +49,7 @@ public:
 protected:
 
     template <class Interface, class Implementation>
-    static BaseObjectPtr DeserializeDeviceInfo(const SerializedObjectPtr& serialized, const BaseObjectPtr& context);
+    static BaseObjectPtr DeserializeDeviceInfo(const SerializedObjectPtr& serialized, const BaseObjectPtr& context, IFunction* factoryCallback);
 
     ErrCode setValueInternal(IString* propertyName, IBaseObject* value) override;
 };
@@ -115,31 +115,32 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::getDeserializedParameter(IString* 
 template <class Impl>
 ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::Deserialize(ISerializedObject* serialized,
                                                           IBaseObject* context,
-                                                          IFunction* /*factoryCallback*/,
+                                                          IFunction* factoryCallback,
                                                           IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context]
+    return daqTry([&obj, &serialized, &context, &factoryCallback]
     {
-        *obj = DeserializeDeviceInfo<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(serialized, context).detach();
+        *obj = DeserializeDeviceInfo<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(serialized, context, factoryCallback).detach();
     });
 }
 
 template <class Impl>
 template <class Interface, class Implementation>
-BaseObjectPtr ConfigClientBaseDeviceInfoImpl<Impl>::DeserializeDeviceInfo(const SerializedObjectPtr& serialized, const BaseObjectPtr& context)
+BaseObjectPtr ConfigClientBaseDeviceInfoImpl<Impl>::DeserializeDeviceInfo(const SerializedObjectPtr& serialized, const BaseObjectPtr& context, IFunction* factoryCallback)
 {
-    PropertyObjectPtr propObj = Super::DeserializePropertyObject(
-        serialized,
-        context,
-        nullptr,
-        [](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className) -> PropertyObjectPtr
-        {
-            const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
-            return createWithImplementation<Interface, Implementation>(ctx->getClientComm(), ctx->getRemoteGlobalId());
-        });
+    ComponentDeserializeContextPtr deserializeContextPtr = ComponentDeserializeContextPtr::Borrow(context);
+    const auto ctx = deserializeContextPtr.asPtr<IConfigProtocolDeserializeContext>();
+    PropertyObjectPtr propObj = createWithImplementation<Interface, Implementation>(ctx->getClientComm(), ctx->getRemoteGlobalId());
 
+    Super::DeserializePropertyOrder(serialized, context, nullptr, propObj);
+
+    Super::DeserializeLocalProperties(serialized, context, factoryCallback, propObj);
+
+    // Do not create client objects for nested property objects (eg. active client connection info)
+    Super::DeserializePropertyValues(serialized, context, nullptr, propObj);
+    
     const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
     deserializeComponent.complete();
 

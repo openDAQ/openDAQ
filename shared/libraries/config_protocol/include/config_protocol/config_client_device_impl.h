@@ -464,7 +464,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         this->removeComponentById(id);
     
     const std::set<std::string> ignoredKeys{
-        "__type", "deviceInfo", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues", "ComponentConfig"};
+        "__type", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues", "ComponentConfig"};
 
     for (const auto& key : serialized.getKeys())
     {
@@ -487,7 +487,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
             const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
                 this->clientComm, this->remoteGlobalId + "/" + key, this->context, nullptr, thisPtr, key, nullptr);
 
-            const ComponentPtr deserializedObj = this->clientComm->deserializeConfigComponent(
+            const PropertyObjectPtr deserializedObj = this->clientComm->deserializeConfigComponent(
                 type,
                 obj,
                 deserializeContext,
@@ -499,19 +499,20 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
                     return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
                 });
 
+
             if (deserializedObj.assigned())
-                this->addExistingComponent(deserializedObj);
+            {
+                if (key == "deviceInfo")
+                    this->deviceInfo = deserializedObj;
+                else
+                    this->addExistingComponent(deserializedObj);
+            }
         }
     }
 
     if (serialized.hasKey("deviceDomain"))
     {
         this->setDeviceDomainNoCoreEvent(serialized.readObject("deviceDomain"));
-    }
-
-    if (serialized.hasKey("deviceInfo"))
-    {
-        this->deviceInfo = serialized.readObject("deviceInfo");
     }
 
     if (serialized.hasKey("OperationMode"))
@@ -644,6 +645,9 @@ bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyAdded(c
     const PropertyPtr prop = params.get("Property");
     if (propObjPtr.hasProperty(prop.getName()))
         return true;
+
+    if (auto configObj = dynamic_cast<ConfigClientPropertyImpl*>(prop.getObject()); configObj)
+        configObj->setRemoteGlobalId(this->remoteGlobalId);
 
     // fixme - nested property objects of DeviceInfo do not support IConfigClientObject interface
     //ScopedRemoteUpdate update(propObjPtr);

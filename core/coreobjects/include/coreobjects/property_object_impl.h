@@ -303,6 +303,7 @@ public:
     virtual ErrCode INTERFACE_FUNC setCoreEventTrigger(IProcedure* trigger) override;
     virtual ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
     virtual ErrCode INTERFACE_FUNC setPath(IString* path) override;
+    virtual ErrCode INTERFACE_FUNC getPath(IString** path) override;
     virtual ErrCode INTERFACE_FUNC isUpdating(Bool* updating) override;
     virtual ErrCode INTERFACE_FUNC hasUserReadAccess(IBaseObject* userContext, Bool* hasAccessOut) override;
     virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) override;
@@ -2827,6 +2828,17 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPath(IStr
     return OPENDAQ_SUCCESS;
 }
 
+template <typename PropObjInterface, typename ... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPath(IString** path)
+{
+    OPENDAQ_PARAM_NOT_NULL(path);
+
+    auto lock = getRecursiveConfigLock();
+
+    *path = this->path.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isUpdating(Bool* updating)
 {
@@ -3137,7 +3149,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProp
 template <class PropObjInterface, class... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeLocalProperties(const SerializedObjectPtr& serialized,
                                                                                             const BaseObjectPtr& context,
-                                                                                            const FunctionPtr& /*factoryCallback*/,
+                                                                                            const FunctionPtr& factoryCallback,
                                                                                             PropertyObjectPtr& propObjPtr)
 {
     const auto keyStr = String("properties");
@@ -3151,7 +3163,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeLoca
 
     for (SizeT i = 0; i < propertyList.getCount(); i++)
     {
-        const PropertyPtr prop = propertyList.readObject(context);
+        const PropertyPtr prop = propertyList.readObject(context, factoryCallback);
         const auto propName = prop.getName();
 
         if (!propObjPtr.hasProperty(propName))

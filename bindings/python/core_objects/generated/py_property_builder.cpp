@@ -351,4 +351,24 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
         nullptr,
         py::return_value_policy::take_ownership,
         "Gets a custom on-read event. Used mostly when cloning properties. / Sets a custom on-read event. Used mostly when cloning properties.");
+    cls.def_property("on_suggested_values_read",
+        [](daq::IPropertyBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
+            return objectPtr.getOnSuggestedValuesRead().getEventPtr().detach();
+        },
+        nullptr,
+        py::return_value_policy::take_ownership,
+        "Gets a custom on-suggested-values-read event. Used mostly when cloning properties. / Sets a custom on-suggested-values-read event. Used mostly when cloning properties.");
+    cls.def_property("on_selection_values_read",
+        [](daq::IPropertyBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
+            return objectPtr.getOnSelectionValuesRead().getEventPtr().detach();
+        },
+        nullptr,
+        py::return_value_policy::take_ownership,
+        "Gets a custom on-selection-values-read event. Used mostly when cloning properties. / Sets a custom on-selection-values-read event. Used mostly when cloning properties.");
 }

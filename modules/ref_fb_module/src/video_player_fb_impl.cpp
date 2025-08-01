@@ -1,7 +1,9 @@
 #include <ref_fb_module/video_player_fb_impl.h>
+#include <ref_fb_module/arial.ttf.h>
 #include <opendaq/work_factory.h>
 #include <opendaq/event_packet_params.h>
 #include <coreobjects/callable_info_factory.h>
+
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace VideoPlayer
@@ -14,19 +16,26 @@ VideoPlayerFbImpl::VideoPlayerFbImpl(const ContextPtr& ctx,
     : FunctionBlock(CreateType(), ctx, parent, localId)
     , texture()
     , sprite(texture)
+    , font(ARIAL_TTF, sizeof(ARIAL_TTF))
+    , timestampText(font)
 {
     if (!context.getScheduler().isMainLoopSet())
        DAQ_THROW_EXCEPTION(InvalidStateException, "Main loop is not set in the scheduler. Video player requires main loop for rendering.");
 
     initProperties();
     initInputPorts();
+
+    timestampText.setCharacterSize(24);
+    timestampText.setFillColor(sf::Color::White);
+    timestampText.setOutlineColor(sf::Color::Black);
+    timestampText.setOutlineThickness(2);
 }
 
 FunctionBlockTypePtr VideoPlayerFbImpl::CreateType()
 {
-    return FunctionBlockType("RefFBModuleMjpegPlayer",
-                             "Mjpeg Player",
-                             "Mjpeg playback and visualization"
+    return FunctionBlockType("RefFBModuleVideoPlayer",
+                             "Video Player",
+                             "Video playback and visualization"
     );
 }
 
@@ -43,6 +52,27 @@ void VideoPlayerFbImpl::initInputPorts()
 {
     videoInputPort = createAndAddInputPort("VideoIp", PacketReadyNotification::Scheduler);
     videoInputPort.setActive(false);
+}
+
+void VideoPlayerFbImpl::updateTimestamp(const DataPacketPtr& domainPacket)
+{
+    bool timestampAvailable = false;
+    if (domainPacket.assigned() && domainPacket.getSampleCount())
+    {
+        std::chrono::system_clock::time_point timePoint;
+        if (timeReader.transform(domainPacket.getData(), &timePoint, 1, domainPacket.getDataDescriptor()))
+        {
+            std::time_t t = std::chrono::system_clock::to_time_t(timePoint);
+            std::tm tm = *std::localtime(&t);
+            std::ostringstream oss;
+            oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+            std::string timeStr = oss.str();
+
+            timestampText.setString(timeStr);
+            return;
+        }
+    }
+    timestampText.setString("No timestamp available");
 }
 
 void VideoPlayerFbImpl::startRender()
@@ -84,23 +114,34 @@ void VideoPlayerFbImpl::startRender()
             return true;
 
         const SizeT pictureSize = packet.getRawDataSize();
-        const uint8_t* jpegData = static_cast<const uint8_t*>(packet.getData());
+        const uint8_t* pictureData = static_cast<const uint8_t*>(packet.getData());
 
-        if (!texture.loadFromMemory(jpegData, pictureSize))
+        if (!texture.loadFromMemory(pictureData, pictureSize))
             DAQ_THROW_EXCEPTION(InvalidOperationException, "Failed to load image from memory");
 
+        updateTimestamp(packet.getDomainPacket());
+
         if (!window)
-            window = std::make_unique<sf::RenderWindow>(sf::VideoMode(texture.getSize()), "MJPEG Video Playback");
+            window = std::make_unique<sf::RenderWindow>(sf::VideoMode(texture.getSize()), "Video Playback");
+
+        auto winSize = window->getSize();
+        auto textRect = timestampText.getLocalBounds();
+        timestampText.setPosition({
+            static_cast<float>(winSize.x) - textRect.size.x - 10,
+            static_cast<float>(winSize.y) - textRect.size.y - 10
+        });
 
         sprite.setTexture(texture, true);
         
         window->clear();
         window->draw(sprite);
+        window->draw(timestampText);
         window->display();
 
         return true;
     }));
 }
+
 void VideoPlayerFbImpl::onPacketReceived(const InputPortPtr& port)
 {
     auto lock = this->getAcquisitionLock();
@@ -145,8 +186,7 @@ void VideoPlayerFbImpl::handleEventPacket(const EventPacketPtr& packet)
     auto scheduler = context.getScheduler();
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
 
-    scheduler.scheduleWorkOnMainLoop(Work([this, 
-                                          thisWeakRef = std::move(thisWeakRef)]
+    scheduler.scheduleWorkOnMainLoop(Work([this, thisWeakRef = std::move(thisWeakRef)]
     {   
         const auto thisFb = thisWeakRef.getRef();
         if (!thisFb.assigned())

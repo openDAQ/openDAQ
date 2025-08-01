@@ -19,6 +19,7 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/event_packet_ptr.h>
+#include <opendaq/time_reader.h>
 
 #include "SFML/Window.hpp"
 #include "SFML/Graphics.hpp"
@@ -80,11 +81,18 @@ private:
     void initInputPorts();
     void startRender();
 
+    void updateTimestamp(const DataPacketPtr& domainPacket);
+
     InputPortConfigPtr videoInputPort;
+    TimeReaderBase timeReader;
 
     std::unique_ptr<sf::RenderWindow> window;
     sf::Texture texture;
     sf::Sprite sprite;
+
+    // For rendering timestamps
+    sf::Font font;
+    sf::Text timestampText;
 
     SafeDeque<DataPacketPtr> dataPackets;
 };

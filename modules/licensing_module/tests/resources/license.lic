@@ -1,0 +1,5 @@
+#This is a demo license file, which allows for experienting with different license scenarios.
+#The structure is simple: First add the name of the license, then a ':' and then the number of licenses.
+passthrough: 3
+fft: 10
+cpb: 3

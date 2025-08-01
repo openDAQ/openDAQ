@@ -138,5 +138,57 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
             return objectPtr.getAvailableStreamingTypes().detach();
         },
         py::return_value_policy::take_ownership,
-        "Returns a dictionary of known and available streaming types that this module (client) can create.");
+        "Returns a dictionary of known and available streaming types that this module (client) can create.T");
+    cls.def("authenticate",
+        [](daq::IModule *object, daq::IPropertyObject* authenticationConfig)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.authenticate(authenticationConfig);
+        },
+        py::arg("authentication_config"),
+        "Used for authenticating the module caller, when the module is meant to be used only with authenticated software.");
+    cls.def_property_readonly("authentication_config",
+        [](daq::IModule *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.getAuthenticationConfig().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Used to retrieve the authenticationConfig used to authenticate the module caller.");
+    cls.def_property_readonly("authenticated",
+        [](daq::IModule *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.isAuthenticated();
+        },
+        "Check whether this module is authenticated and ready for use.");
+    cls.def("load_license",
+        [](daq::IModule *object, daq::IPropertyObject* licenseConfig)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.loadLicense(licenseConfig);
+        },
+        py::arg("license_config"),
+        "Used for loading a license, when the module requires one. Licenses can specify the degree to which the module is unlocked to the user (i.e. which and/or how many concurrent function blocks from this modules are accessible with the license).");
+    cls.def_property_readonly("license_config",
+        [](daq::IModule *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.getLicenseConfig().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Used to retrieve the license config previously used.");
+    cls.def("license_loaded",
+        [](daq::IModule *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.licenseLoaded();
+        },
+        "Check whether the module license is loaded.");
 }

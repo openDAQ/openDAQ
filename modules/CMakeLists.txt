@@ -8,6 +8,11 @@ if (POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
+if (DAQMODULES_LICENSING_MODULE)
+		message(STATUS "    - Reference licensing implementation module")
+        add_subdirectory(licensing_module)
+endif()
+
 if (DAQSIMULATOR_ENABLE_SIMULATOR_APP)
     message(NOTICE "Enable simulator support in reference device module.")
     add_compile_definitions(DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED)

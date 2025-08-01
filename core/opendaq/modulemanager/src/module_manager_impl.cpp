@@ -1791,8 +1791,8 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         if (OPENDAQ_FAILED(errCode))
         {
             LOG_T("Failed to check dependencies for \"{}\"", relativePath);
-            DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES, fmt::format("Module \"{}\" failed dependencies check"));
-            checkErrorInfo(errCode);
+            DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES, fmt::format("Module \"{}\" failed dependencies check.", relativePath));
+            checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
         }
     }
 
@@ -1813,8 +1813,8 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
     if (OPENDAQ_FAILED(errCode))
     {
         LOG_T("Failed creating module from \"{}\"", relativePath);
-        DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_ENTRY_POINT_FAILED, fmt::format("Module \"{}\" failed to create a Module.", relativePath));
-        checkErrorInfo(errCode);
+        DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_ENTRY_POINT_FAILED, fmt::format("Library \"{}\" failed to create a Module.", relativePath));
+        checkErrorInfo(OPENDAQ_ERR_MODULE_ENTRY_POINT_FAILED);
     }
 
     if (auto version = module.getModuleInfo().getVersionInfo(); version.assigned())

@@ -109,7 +109,7 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckFailed)
         auto module = manager.loadModule(modulePath.string()),
         ModuleIncompatibleDependenciesException,
         fmt::format(
-            "Module \"{}\" failed dependencies check. Error: 0x{:x} [{}]",
+            "Module \"{}\" failed dependencies check.",
             fs::relative(modulePath).string(),
             OPENDAQ_ERR_GENERALERROR,
             "Mock failure"

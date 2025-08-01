@@ -1014,15 +1014,15 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
     {
         const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
         if (!serializedPtr.assigned())
-            DAQ_THROW_EXCEPTION(ArgumentNullException, "Serialized object not assigned");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Serialized object not assigned");
 
         const auto contextPtr = BaseObjectPtr::Borrow(context);
         if (!contextPtr.assigned())
-            DAQ_THROW_EXCEPTION(ArgumentNullException, "Deserialization context not assigned");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Deserialization context not assigned");
 
         const auto componentDeserializeContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>(true);
         if (!componentDeserializeContext.assigned())
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid deserialization context");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Invalid deserialization context");
 
         const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 
@@ -1044,6 +1044,7 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
         deserializeComponent.complete();
 
         *obj = propObj.detach();
+        return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;

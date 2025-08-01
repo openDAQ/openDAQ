@@ -1230,12 +1230,12 @@ public:
         ErrCode err = clone(&prop);
         OPENDAQ_RETURN_IF_FAILED(err);
 
-        err = daqTry([&] {
-            prop.asPtr<IOwnable>().setOwner(owner);
+        if (auto ownableProp = prop.asPtrOrNull<IOwnable>(true); ownableProp.assigned())
+            OPENDAQ_RETURN_IF_FAILED(ownableProp->setOwner(owner));
+        else 
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOINTERFACE);
 
-            *clonedProperty = prop.detach();
-        });
-        OPENDAQ_RETURN_IF_FAILED(err);
+        *clonedProperty = prop.detach();
         return err;
     }
 

@@ -232,7 +232,6 @@ ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
     if (errorInfoList.empty())
         return OPENDAQ_SUCCESS;
 
-    ErrCode errCode = OPENDAQ_SUCCESS;
     std::vector<IErrorInfo*> errorList;
     errorList.reserve(errorInfoList.size());
     for (auto it = errorInfoList.rbegin(); it != errorInfoList.rend(); ++it)
@@ -241,10 +240,7 @@ ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
         ErrCode prevErrCode = OPENDAQ_SUCCESS;
         it->borrow()->getPreviousErrorCode(&prevErrCode);
         if (prevErrCode == OPENDAQ_SUCCESS)
-        {
-            it->borrow()->getErrorCode(&errCode);
             break;
-        }
     }
 
     std::ostringstream ss;
@@ -277,6 +273,9 @@ ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
 
     auto str = ss.str();
     createString(message, str.c_str());
+
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    errorInfoList.back().borrow()->getErrorCode(&errCode);
     return errCode;
 }
 #else

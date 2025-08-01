@@ -119,17 +119,11 @@ void VideoPlayerFbImpl::startRender()
         if (!texture.loadFromMemory(pictureData, pictureSize))
             DAQ_THROW_EXCEPTION(InvalidOperationException, "Failed to load image from memory");
 
-        updateTimestamp(packet.getDomainPacket());
-
         if (!window)
             window = std::make_unique<sf::RenderWindow>(sf::VideoMode(texture.getSize()), "Video Playback");
 
-        auto winSize = window->getSize();
-        auto textRect = timestampText.getLocalBounds();
-        timestampText.setPosition({
-            static_cast<float>(winSize.x) - textRect.size.x - 10,
-            static_cast<float>(winSize.y) - textRect.size.y - 10
-        });
+        updateTimestamp(packet.getDomainPacket());
+        timestampText.setPosition({5.0f,5.0f});
 
         sprite.setTexture(texture, true);
         

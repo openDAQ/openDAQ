@@ -711,11 +711,11 @@ jobs:
             Write-Output "Building for Python $version"
             if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
             {
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ matrix.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ matrix.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} "-DOPENDAQ_PYTHON_VERSION=$version" "-DPYBIND11_PYTHON_VERSION=$version" ..
             }
             else
             {
-              cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ matrix.cmake_preset }} ${{ matrix.cmake_defines }}  -DCI_GIT_BRANCH=${{ github.head_ref }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
+              cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ matrix.cmake_preset }} ${{ matrix.cmake_defines }}  -DCI_GIT_BRANCH=${{ github.head_ref }} "-DOPENDAQ_PYTHON_VERSION=$version" "-DPYBIND11_PYTHON_VERSION=$version" ..
             }
             cmake --build . --config ${{ matrix.cmake_build_type }}
             Write-Output "Creating virtual environment for Python $version"

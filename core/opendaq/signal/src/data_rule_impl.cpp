@@ -175,10 +175,8 @@ ErrCode DataRuleImpl::verifyParametersInternal()
         }
     }
 
-    if (const auto paramsFrozen = params.asPtrOrNull<IFreezable>(); paramsFrozen.assigned())
+    if (const auto paramsFrozen = params.asPtrOrNull<IFreezable>(true); paramsFrozen.assigned())
         paramsFrozen.freeze();
-    else
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_FROZEN);
     return OPENDAQ_SUCCESS;
 }
 

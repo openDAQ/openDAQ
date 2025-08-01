@@ -85,7 +85,8 @@ TEST_F(AwaitableTest, FunctionThrows)
 {
     auto scheduler = Scheduler(daq::Logger());
 
-    auto awaitable = scheduler.scheduleFunction([]() -> Int {
+    auto awaitable = scheduler.scheduleFunction([]() -> Int 
+    {
         DAQ_THROW_EXCEPTION(SchedulerUnknownException, "MockException");
     });
 

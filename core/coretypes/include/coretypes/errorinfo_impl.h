@@ -43,7 +43,6 @@ public:
     ErrCode INTERFACE_FUNC getFileLine(Int* line) override;
     ErrCode INTERFACE_FUNC setErrorCode(ErrCode errorCode) override;
     ErrCode INTERFACE_FUNC getErrorCode(ErrCode* errorCode) override;
-
     ErrCode INTERFACE_FUNC setPreviousErrorCode(ErrCode prevErrCode) override;
     ErrCode INTERFACE_FUNC getPreviousErrorCode(ErrCode* prevErrCode) override;
 

@@ -222,6 +222,7 @@ ErrCode ErrorGuardImpl::getErrorInfoList(IList** errorInfos)
     return OPENDAQ_SUCCESS;
 }
 
+#ifndef NDEBUG
 ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
 {
     if (message == nullptr)
@@ -278,6 +279,40 @@ ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
     createString(message, str.c_str());
     return errCode;
 }
+#else
+ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
+{
+    if (message == nullptr)
+        return OPENDAQ_IGNORED;
+
+    *message = nullptr;
+    if (errorInfoList.empty())
+        return OPENDAQ_SUCCESS;
+
+    ErrCode errorCode = OPENDAQ_SUCCESS;
+    errorInfoList.back().borrow()->getErrorCode(&errorCode);
+
+    // Try to find the error info with custom message. Otherwise return default message.
+    for (auto it = errorInfoList.rbegin(); it != errorInfoList.rend(); ++it)
+    {
+        IErrorInfo* errorInfo = it->borrow();
+
+        if (errorInfo->getMessage(message) == OPENDAQ_SUCCESS)
+            return errorCode;
+
+        ErrCode prevErrCode = OPENDAQ_SUCCESS;
+        errorInfo->getPreviousErrorCode(&prevErrCode);
+
+        if (prevErrCode != errorCode)
+        {
+            auto defaultMessage = ErrorCodeMessage(errorCode);
+            createString(message, defaultMessage.c_str());
+            return errorCode;
+        }
+    }
+    return OPENDAQ_IGNORED;
+}
+#endif
 
 ErrCode ErrorGuardImpl::toString(CharPtr* str)
 {
@@ -314,11 +349,11 @@ ErrCode ErrorGuardImpl::getLastErrorInfo(IErrorInfo** errorInfo) const
     }
 
     IString* message = nullptr;
-    ErrCode errCode = this->getFormattedMessage(&message);
+    this->getFormattedMessage(&message);
     if (message == nullptr)
         return lastErrorCode;
 
-    errCode = createErrorInfo(errorInfo);
+    ErrCode errCode = createErrorInfo(errorInfo);
     if (OPENDAQ_SUCCEEDED(errCode))
     {
         (*errorInfo)->setErrorCode(lastErrorCode);
@@ -427,7 +462,7 @@ ErrCode ErrorInfoImpl::getMessage(IString** message)
     *message = this->message;
     addRefIfNotNull(*message);
 
-    return OPENDAQ_SUCCESS;
+    return this->message ? OPENDAQ_SUCCESS : OPENDAQ_IGNORED;
 }
 
 ErrCode ErrorInfoImpl::setSource(IString* source)

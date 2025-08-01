@@ -613,7 +613,7 @@ TEST_F(PropertyObjectTest, ConvertToPropertyCoreTypeFails)
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.setPropertyValue("FloatProperty", "a"),
                      ConversionFailedException,
-                     "Value type is different than Property type and conversion failed")
+                     "Failed to set property value")
 }
 
 TEST_F(PropertyObjectTest, ConvertToPropertyCoreTypeFails2)
@@ -622,7 +622,7 @@ TEST_F(PropertyObjectTest, ConvertToPropertyCoreTypeFails2)
     auto list = List<IBaseObject>();
     ASSERT_THROW_MSG(propObj.setPropertyValue("FloatProperty", list),
                      NoInterfaceException,
-                     "Value type is different than Property type and conversion failed")
+                     "Failed to set property value")
 }
 
 TEST_F(PropertyObjectTest, SetNullPropertyValue)
@@ -645,14 +645,15 @@ TEST_F(PropertyObjectTest, SelectionPropNoEnum)
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.getPropertySelectionValue("IntProperty"),
                      InvalidPropertyException,
-                     "Selection property \"IntProperty\" has no selection values assigned")
+                     "Failed to get property selection value")
 }
 
 TEST_F(PropertyObjectTest, SelectionPropNotRegistered)
 {
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.getPropertySelectionValue("TestProp"),
-                     NotFoundException, "Selection property \"TestProp\" not found")
+                     NotFoundException,
+                     "Failed to get property selection value")
 }
 
 TEST_F(PropertyObjectTest, SelectionPropNoList)
@@ -660,7 +661,7 @@ TEST_F(PropertyObjectTest, SelectionPropNoList)
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.getPropertySelectionValue("SelectionPropNoList"),
                      InvalidPropertyException,
-                     "Selection property \"SelectionPropNoList\" has no selection values assigned")
+                     "Failed to get property selection value")
 }
 
 TEST_F(PropertyObjectTest, DictProp)

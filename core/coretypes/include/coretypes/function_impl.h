@@ -107,7 +107,7 @@ protected:
             BaseObjectPtr ret = this->functor(std::forward<decltype(args)>(args)...);
             *result = ret.detach();
         });
-        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to call function in FunctionBase::dispatchInternal");
+        OPENDAQ_RETURN_IF_FAILED(errCode);
         return errCode;
     }
 };
@@ -138,7 +138,7 @@ public:
                                                                 std::make_index_sequence<ArgCount>{});
                 *result = funcReturn.detach();
             });
-            OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to call function in FunctionImpl::call");
+            OPENDAQ_RETURN_IF_FAILED(errCode);
             return errCode;
         }
     }

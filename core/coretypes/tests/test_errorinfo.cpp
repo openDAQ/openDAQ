@@ -183,9 +183,12 @@ TEST_F(ErrorInfoTest, ErrorWithFileNameAndLine)
 TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
-
+#ifdef NDEBUG
+    std::string expected = "multipleErrorInfoTest failed twice";
+#else
     std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(47) + "\n";
     expected += " - Caused by: multipleErrorInfoTest failed twice" + getErrorPostfix(53);
+#endif
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 

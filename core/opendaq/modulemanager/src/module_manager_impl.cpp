@@ -663,9 +663,9 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         }
         return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOTFOUND,
-            fmt::format("Device with given connection string and config is not available [{}]", StringPtr::Borrow(connectionString)));
+            fmt::format("Device with given connection string '{}' and config is not available", StringPtr::Borrow(connectionString)));
     });
-    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create device from connection string and config");
+    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to create device from connection string '{}' and config", StringPtr::Borrow(connectionString)));
     return errCode;
 }
 

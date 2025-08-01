@@ -48,6 +48,9 @@ public:
 
 protected:
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 };
 
 class ConfigClientRecorderFunctionBlockImpl : public ConfigClientBaseFunctionBlockImpl<FunctionBlockImpl<IFunctionBlock, IRecorder, IConfigClientObject>>
@@ -185,6 +188,16 @@ void ConfigClientBaseFunctionBlockImpl<Impl>::onRemoteUpdate(const SerializedObj
             comp.template asPtr<IConfigClientObject>()->remoteUpdate(serObj);
         }
     }
+}
+
+template <class Impl>
+void ConfigClientBaseFunctionBlockImpl<Impl>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                            const BaseObjectPtr& context,
+                                                                            const FunctionPtr& factoryCallback)
+{
+    Impl::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+    if (serializedObject.hasKey("ComponentConfig"))
+        this->componentConfig = serializedObject.readObject("ComponentConfig");
 }
 
 inline ConfigClientRecorderFunctionBlockImpl::ConfigClientRecorderFunctionBlockImpl(

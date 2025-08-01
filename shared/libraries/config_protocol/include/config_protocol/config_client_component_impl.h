@@ -144,9 +144,13 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::updateOperationMode(OperationModeTy
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::getComponentConfig(IPropertyObject** config)
 {
-    const ErrCode errCode = daqTry([this, &config]
-    {
-        *config = this->clientComm->getComponentConfig(this->remoteGlobalId).detach();
+    OPENDAQ_PARAM_NOT_NULL(config);
+    return daqTry([this, config] 
+    { 
+        if (this->clientComm->getProtocolVersion() < 16)
+            *config = this->clientComm->getComponentConfig(this->remoteGlobalId).detach();
+        else
+            checkErrorInfo(Impl::getComponentConfig(config));   
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;

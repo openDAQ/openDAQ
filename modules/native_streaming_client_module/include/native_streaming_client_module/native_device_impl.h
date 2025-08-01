@@ -51,8 +51,7 @@ public:
     ~NativeDeviceHelper();
 
     void setupProtocolClients(const ContextPtr& context);
-    DevicePtr connectAndGetDevice(const ComponentPtr& parent, uint16_t protocolVersion);
-    uint16_t getProtocolVersion() const;
+    DevicePtr connectAndGetDevice(const ComponentPtr& parent, uint16_t& protocolVersion);
 
     void subscribeToCoreEvent(const ContextPtr& context);
     void unsubscribeFromCoreEvent(const ContextPtr& context);
@@ -72,6 +71,8 @@ private:
     void componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);
     void tryConfigProtocolReconnect();
+    void startAcceptNotificationPackets();
+    void stopAcceptNotificationPackets();
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
@@ -84,10 +85,12 @@ private:
     WeakRefPtr<IDevice> deviceRef;
     EnumerationPtr connectionStatus;
     bool acceptNotificationPackets;
+    bool subscribedToCoreEvent;
     std::chrono::milliseconds configProtocolRequestTimeout;
     Bool restoreClientConfigOnReconnect;
     const StringPtr connectionString;
-    std::mutex sync;
+    std::mutex requestReplySync;
+    std::mutex flagsSync;
 
     std::shared_ptr<boost::asio::steady_timer> configProtocolReconnectionRetryTimer;
     std::chrono::milliseconds reconnectionPeriod;
@@ -130,6 +133,7 @@ protected:
 
 private:
     void attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper);
+    void disconnectAndCleanUp();
 
     std::shared_ptr<NativeDeviceHelper> deviceHelper;
 };

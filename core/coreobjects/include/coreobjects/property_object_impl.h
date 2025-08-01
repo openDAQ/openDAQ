@@ -2380,13 +2380,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callBeginUpdate
         if (!propObj.assigned())
             continue;
 
-        Bool isFrozen {false};
         auto freezable = propObj.template asPtrOrNull<IFreezable>(true);
-        if (freezable.assigned())
-            isFrozen = freezable.isFrozen();
-        
-        if (!isFrozen)
-            propObj.beginUpdate();
+        if (freezable.assigned() && freezable.isFrozen())
+            continue;
+
+        propObj.beginUpdate();
     }
 }
 
@@ -2399,13 +2397,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callEndUpdateOn
         if (!propObj.assigned())
             continue;
 
-        Bool isFrozen {false};
         auto freezable = propObj.template asPtrOrNull<IFreezable>(true);
-        if (freezable.assigned())
-            isFrozen = freezable.isFrozen();
-        
-        if (!isFrozen)
-            propObj.endUpdate();
+        if (freezable.assigned() && freezable.isFrozen())
+            continue;
+
+        propObj.endUpdate();
     }
 }
 

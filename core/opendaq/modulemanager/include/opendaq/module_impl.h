@@ -408,6 +408,7 @@ public:
 
         PropertyObjectPtr ptr;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAuthenticationConfig, ptr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *authenticationConfig = ptr.detach();
         return errCode;
@@ -424,6 +425,7 @@ public:
 
         Bool isAuthenticated;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onIsAuthenticated, isAuthenticated);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *authenticated = isAuthenticated;
         return errCode;
@@ -441,6 +443,7 @@ public:
 
         Bool loadedLicense;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onLoadLicense, loadedLicense, licenseConfig);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *succeded = loadedLicense;
         return errCode;
@@ -457,6 +460,7 @@ public:
 
         PropertyObjectPtr licenseConfigLocal;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetLicenseConfig, licenseConfigLocal);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *licenseConfig = licenseConfigLocal.detach();
         return errCode;
@@ -473,6 +477,7 @@ public:
 
         Bool validLocal;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onLicenseLoaded, validLocal);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *valid = validLocal;
         return errCode;

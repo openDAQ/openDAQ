@@ -12,8 +12,8 @@ sys.path.append("..")
 if __name__ == "__main__":
     instance = daq.Instance()
 
-    auth_path = R'C:\Users\jakob\source\openDAQ\examples\python\Licensing\authentication_key.txt'
-    lic_path = R'C:\Users\jakob\source\openDAQ\examples\python\Licensing\license.lic'
+    auth_path = 'authentication_key.txt'
+    lic_path = 'license.lic'
 
     # Create a fresh openDAQ(TM) instance that we will use for all the interactions with the openDAQ(TM) SDK
     instance = daq.Instance()

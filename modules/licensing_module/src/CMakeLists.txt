@@ -17,13 +17,13 @@ set(SRC_Srcs module_dll.cpp
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
 source_group("module" FILES ${MODULE_HEADERS_DIR}/module_dll.h
-							${MODULE_HEADERS_DIR}/licensing_module_impl.h
-							${MODULE_HEADERS_DIR}/license_checker_impl.h
-							${MODULE_HEADERS_DIR}/passthrough_fb_impl.h
+                            ${MODULE_HEADERS_DIR}/licensing_module_impl.h
+                            ${MODULE_HEADERS_DIR}/license_checker_impl.h
+                            ${MODULE_HEADERS_DIR}/passthrough_fb_impl.h
                             module_dll.cpp
-							licensing_module_impl.cpp
-							license_checker_impl.cpp
-							passthrough_fb_impl.cpp
+                            licensing_module_impl.cpp
+                            license_checker_impl.cpp
+                            passthrough_fb_impl.cpp
 )
 
 

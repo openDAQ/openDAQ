@@ -56,6 +56,7 @@ Bool LicensingModule::onAuthenticate(IPropertyObject* authenticationConfig)
     if (!file.is_open())
     {
         LOG_W("Authentication file \"{}\" not found!", path);
+        _authenticated = false;
         return false;
     }
     std::getline(file, path_key);

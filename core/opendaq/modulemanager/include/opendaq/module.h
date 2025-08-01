@@ -133,19 +133,19 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
     * @param succeeded Authentication was successful or not.
     * @param authenticationConfig Any information relevant for authentication (i.e. a path to a certificate file).
     */
-    virtual ErrCode INTERFACE_FUNC authenticate(Bool * succeeded, IPropertyObject * authenticationConfig) = 0;
+    virtual ErrCode INTERFACE_FUNC authenticate(Bool* succeeded, IPropertyObject* authenticationConfig) = 0;
 
     /*!
     * @brief Used to retrieve the authenticationConfig used to authenticate the module caller.
     * @param authenticationConfig Previously used config.
     */
-    virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IPropertyObject * *authenticationConfig) = 0;
+    virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IPropertyObject** authenticationConfig) = 0;
 
     /*!
     * @brief Check whether this module is authenticated and ready for use.
     * @param authenticated Is authenticated, should be implemented to return true if no authentication is necessary.
     */
-    virtual ErrCode INTERFACE_FUNC isAuthenticated(Bool * authenticated) = 0;
+    virtual ErrCode INTERFACE_FUNC isAuthenticated(Bool* authenticated) = 0;
 
     /*!
     * @brief Used for loading a license, when the module requires one. Licenses can specify the degree to which the module is unlocked to the user
@@ -153,19 +153,19 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
     * @param succeeded License was accepted.
     * @param licenseConfig Any information relevant to load the license (i.e. a path to the license file).
     */
-    virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeeded, IPropertyObject * licenseConfig) = 0;
+    virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeeded, IPropertyObject* licenseConfig) = 0;
 
     /*!
      * @brief Used to retrieve the license config previously used.
      * @param licenseConfig Previously used config.
      */
-    virtual ErrCode INTERFACE_FUNC getLicenseConfig(IPropertyObject * *licenseConfig) = 0;
+    virtual ErrCode INTERFACE_FUNC getLicenseConfig(IPropertyObject** licenseConfig) = 0;
 
     /*!
      * @brief Check whether the module license is loaded.
      * @param loaded Should be implemented to return true, if no license is required.
      */
-    virtual ErrCode INTERFACE_FUNC licenseLoaded(Bool * loaded) = 0;
+    virtual ErrCode INTERFACE_FUNC licenseLoaded(Bool* loaded) = 0;
 };
 /*!@}*/
 

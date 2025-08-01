@@ -62,7 +62,7 @@ void PassthroughFbImpl::onConnected(const InputPortPtr& port)
             LOG_W("onConnected({}): Failed to check out required \"{}\" license!", localId, strRequiredLicense);
             setComponentStatusWithMessage(ComponentStatus::Warning, "Required license is missing!");
         }
-        if (OPENDAQ_SUCCEEDED(_licenseComponent->checkOut(strRequiredLicense, 1)))
+        else if (OPENDAQ_SUCCEEDED(_licenseComponent->checkOut(strRequiredLicense, 1)))
         {
             LOG_I("onConnected({}): Successfully checked out \"{}\" license.", localId, strRequiredLicense);
             _isLicenseCheckedOut = true;
@@ -143,39 +143,17 @@ void PassthroughFbImpl::processEventPacket(const EventPacketPtr& packet)
         const DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
         const DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
 
-        if (!inputDataDescriptor.assigned())
-        {
-            //Setting the component status to Error (but only once otherwise we will be flooded by error log messages)
-            const auto oldStatus = statusContainer.getStatus("ComponentStatus");
-            const auto oldMessage = statusContainer.getStatusMessage("ComponentStatus");
-            const auto newMessage = "Failed to set descriptor for output signal: Input data descriptor has not been provided!";
-            if (!(oldStatus == ComponentStatus::Error) || oldMessage != newMessage)  //!= operator is currently not available for ComponentStatus (see: https://blueberrydaq.atlassian.net/servicedesk/customer/portal/34/SHS-175)
-                setComponentStatusWithMessage(ComponentStatus::Error, newMessage);
-
-            _outputSignal.setDescriptor(nullptr);
-            return;
-        }
-
-        if (!inputDomainDataDescriptor.assigned())
-        {
-            const auto oldStatus = statusContainer.getStatus("ComponentStatus");
-            const auto oldMessage = statusContainer.getStatusMessage("ComponentStatus");
-            const auto newMessage = "Failed to set descriptor for output signal: Input domain data descriptor has not been provided!";
-            if (!(oldStatus == ComponentStatus::Error) || oldMessage != newMessage)
-                setComponentStatusWithMessage(ComponentStatus::Error, newMessage);
-
-            _outputSignal.setDescriptor(nullptr);
-            return;
-        }
-
-        const auto inputName = inputDataDescriptor.getName();
-        auto outputDataDescriptorBuilder = DataDescriptorBuilderCopy(inputDataDescriptor)
-            .setName(inputName.toStdString() + "/passthrough");
-
-        const auto outputDataDescriptor = outputDataDescriptorBuilder.build();
-
-        _outputSignal.setDescriptor(outputDataDescriptor);
+        _outputSignal.setDescriptor(inputDataDescriptor);
         _outputDomainSignal.setDescriptor(inputDomainDataDescriptor);
+
+        if (!inputDataDescriptor.assigned() || !inputDomainDataDescriptor.assigned())
+        {
+            setComponentStatusWithMessage(
+                ComponentStatus::Error, "Failed to set descriptor for output signal: Input domain/data descriptor has not been provided!");
+
+            _outputSignal.setDescriptor(nullptr);
+            return;
+        }
 
         setComponentStatus(ComponentStatus::Ok);
     }

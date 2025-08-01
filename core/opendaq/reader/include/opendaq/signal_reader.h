@@ -64,7 +64,7 @@ struct SignalReader
 
     SizeT getAvailable(bool acrossDescriptorChanges) const;
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
-    bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode) const;
+    bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const;
     void setCommonSampleRate(const std::int64_t commonSampleRate);
 
     void prepare(void* outValues, SizeT count);

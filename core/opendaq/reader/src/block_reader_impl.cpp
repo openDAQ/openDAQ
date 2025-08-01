@@ -263,7 +263,7 @@ ErrCode BlockReaderImpl::readPacketData()
         errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
-            if (!trySetDomainSampleType(domainPacket, errCode))
+            if (!trySetDomainSampleType(domainPacket))
                 return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             daqClearErrorInfo();
             errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);

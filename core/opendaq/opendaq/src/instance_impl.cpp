@@ -769,7 +769,7 @@ ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
         const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
         const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
         if (rootDeviceWrapperKeysPtr.getCount() != 1)
-            DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid root device object");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, "Invalid root device object");
 
         const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
         rootDevicePtr.checkObjectType("Device");

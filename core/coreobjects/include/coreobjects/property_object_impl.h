@@ -1995,7 +1995,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         const auto propInternal = prop.asPtr<IPropertyInternal>(true);
         auto values = propInternal.getSelectionValuesNoLock();
         if (!values.assigned())
-            DAQ_THROW_EXCEPTION(InvalidPropertyException, R"(Selection property "{}" has no selection values assigned)", propName);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" has no selection values assigned)", propName));
 
         if (auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true); valuesList.assigned())
         {

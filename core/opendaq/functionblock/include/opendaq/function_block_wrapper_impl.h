@@ -128,10 +128,10 @@ ErrCode FunctionBlockWrapperImpl::setOverridenObject(
         auto propertyNameStr = StringPtr::Borrow(propertyName);
 
         if (!isPropertyVisible(propertyNameStr))
-            DAQ_THROW_EXCEPTION(NotFoundException);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
         if (!functionBlock.hasProperty(propertyNameStr))
-            DAQ_THROW_EXCEPTION(NotFoundException);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
         auto objectPtr = TSmartPtr::Borrow(object);
 
@@ -139,6 +139,7 @@ ErrCode FunctionBlockWrapperImpl::setOverridenObject(
             objects.insert_or_assign(propertyNameStr, objectPtr);
         else
             objects.erase(propertyNameStr);
+        return OPENDAQ_SUCCESS;
 
     });
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set overridden object");

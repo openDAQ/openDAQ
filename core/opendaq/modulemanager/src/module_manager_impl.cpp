@@ -1125,9 +1125,9 @@ DeviceInfoPtr ModuleManagerImpl::getSmartConnectionDeviceInfo(const StringPtr& i
     if (!availableDevicesGroup.assigned())
         DAQ_THROW_EXCEPTION(NotFoundException, "Device scan has not yet been initiated.");
 
-        if (availableDevicesGroup.hasKey(inputConnectionString))
-            return availableDevicesGroup.get(inputConnectionString);
-        DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" not found", inputConnectionString);
+    if (availableDevicesGroup.hasKey(inputConnectionString))
+        return availableDevicesGroup.get(inputConnectionString);
+    DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" not found", inputConnectionString);
 }
 
 DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const
@@ -1790,20 +1790,9 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         const ErrCode errCode = checkDeps(&errMsg);
         if (OPENDAQ_FAILED(errCode))
         {
-            StringPtr detailedMsg;
-            const ErrCode err = daqGetErrorInfoMessage(&detailedMsg);
-            if (err == errCode)
-                daqClearErrorInfo();
-            else
-                detailedMsg = nullptr;
-            LOG_T("Failed to check dependencies for \"{}\". {}", relativePath, detailedMsg.assigned() ? detailedMsg.toStdString());
-
-            DAQ_THROW_EXCEPTION(ModuleIncompatibleDependenciesException,
-                                "Module \"{}\" failed dependencies check. Error: 0x{:x} [{}]",
-                                relativePath,
-                                errCode,
-                                errMsg
-            );
+            LOG_T("Failed to check dependencies for \"{}\"", relativePath);
+            DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES, fmt::format("Module \"{}\" failed dependencies check"));
+            checkErrorInfo(errCode);
         }
     }
 
@@ -1823,15 +1812,9 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
     const ErrCode errCode = factory(&module, context);
     if (OPENDAQ_FAILED(errCode))
     {
-        StringPtr detailedMsg;
-        const ErrCode err = daqGetErrorInfoMessage(&detailedMsg);
-        if (err == errCode)
-            daqClearErrorInfo();
-        else
-            detailedMsg = nullptr;
-        LOG_T("Failed creating module from \"{}\". {}", relativePath, detailedMsg.assigned() ? detailedMsg.toStdString());
-
-        DAQ_THROW_EXCEPTION(ModuleEntryPointFailedException, "Library \"{}\" failed to create a Module.", relativePath);
+        LOG_T("Failed creating module from \"{}\"", relativePath);
+        DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_ENTRY_POINT_FAILED, fmt::format("Module \"{}\" failed to create a Module.", relativePath));
+        checkErrorInfo(errCode);
     }
 
     if (auto version = module.getModuleInfo().getVersionInfo(); version.assigned())

@@ -164,10 +164,10 @@ ErrCode FunctionBlockWrapperImpl::setPropertySelectionValues(IString* propertyNa
         const auto propertyNameStr = StringPtr::Borrow(propertyName);
 
         if (!isPropertyVisible(propertyNameStr))
-            DAQ_THROW_EXCEPTION(NotFoundException);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
         if (!functionBlock.hasProperty(propertyNameStr))
-            DAQ_THROW_EXCEPTION(NotFoundException);
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
         const auto enumValuesPtr = ListPtr<IInteger>::Borrow(enumValues);
 
@@ -179,7 +179,10 @@ ErrCode FunctionBlockWrapperImpl::setPropertySelectionValues(IString* propertyNa
             enumValuesMap.insert_or_assign(propertyNameStr, std::move(evl));
         }
         else
+        {
             enumValuesMap.erase(propertyNameStr);
+        }
+        return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set property selection values");
     return errCode;
@@ -308,15 +311,15 @@ ErrCode FunctionBlockWrapperImpl::setPropertyValue(IString* propertyName, IBaseO
             StringPtr subName;
             splitOnFirstDot(propertyNameStr, childName, subName);
             if (!isPropertyVisible(childName))
-                DAQ_THROW_EXCEPTION(NotFoundException);
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
         }
         else
         {
             if (!isPropertyVisible(propertyNameStr))
-                DAQ_THROW_EXCEPTION(NotFoundException);
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
             if (!isSelectionAvailable(propertyNameStr, valuePtr))
-                DAQ_THROW_EXCEPTION(NotFoundException, "Selection value not available");
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "Selection value not available");
 
             auto cIt = coercers.find(propertyNameStr);
             if (cIt != coercers.end())
@@ -334,6 +337,7 @@ ErrCode FunctionBlockWrapperImpl::setPropertyValue(IString* propertyName, IBaseO
         }
 
         functionBlock.setPropertyValue(propertyNameStr, valuePtr);
+        return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set property value");
     return errCode;
@@ -428,11 +432,10 @@ ErrCode FunctionBlockWrapperImpl::getProperty(IString* propertyName, IProperty**
         if (isPropertyVisible(propertyNamePtr))
         {
             auto prop = wrapProperty(propertyNamePtr);
-
             *property = prop.detach();
+            return OPENDAQ_SUCCESS;
         }
-        else
-            DAQ_THROW_EXCEPTION(NotFoundException);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
     });
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get property");
     return errCode;

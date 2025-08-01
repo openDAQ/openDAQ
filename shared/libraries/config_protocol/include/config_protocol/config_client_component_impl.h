@@ -145,7 +145,7 @@ template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::getComponentConfig(IPropertyObject** config)
 {
     OPENDAQ_PARAM_NOT_NULL(config);
-    return daqTry([this, config] 
+    const ErrCode errCode = daqTry([this, config] 
     { 
         if (this->clientComm->getProtocolVersion() < 16)
             *config = this->clientComm->getComponentConfig(this->remoteGlobalId).detach();

@@ -411,7 +411,7 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
     }
 }
 
-bool StreamReaderImpl::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode)
+bool StreamReaderImpl::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
 {
     ObjectPtr<IErrorInfo> errorInfo;
     daqGetErrorInfo(&errorInfo);
@@ -465,7 +465,7 @@ ErrCode StreamReaderImpl::readPacketData()
         ErrCode errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
-            if (!trySetDomainSampleType(domainPacket, errCode))
+            if (!trySetDomainSampleType(domainPacket))
             {
                 return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             }

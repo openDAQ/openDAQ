@@ -493,7 +493,7 @@ protected:
         }
     }
 
-    bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode)
+    bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
     {
         ObjectPtr<IErrorInfo> errorInfo;
         daqGetErrorInfo(&errorInfo);

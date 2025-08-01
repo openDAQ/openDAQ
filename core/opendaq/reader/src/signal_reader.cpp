@@ -577,7 +577,7 @@ ErrCode SignalReader::readPacketData()
         ErrCode errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
-            if (!trySetDomainSampleType(domainPacket, errCode))
+            if (!trySetDomainSampleType(domainPacket))
                 return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             daqClearErrorInfo();
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
@@ -601,7 +601,7 @@ ErrCode SignalReader::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket, ErrCode errCode) const
+bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const
 {
     ObjectPtr<IErrorInfo> errorInfo;
     daqGetErrorInfo(&errorInfo);

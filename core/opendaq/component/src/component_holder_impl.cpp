@@ -105,10 +105,10 @@ ErrCode ComponentHolderImpl::Deserialize(ISerializedObject* serialized, IBaseObj
     {
         const auto keys = serializedObj.getKeys();
         if (keys.getCount() < 2)
-            DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid structure of component holder");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, "Invalid structure of component holder");
 
         if (keys[0] != "__type")
-            DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid structure of component holder");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, "Invalid structure of component holder");
 
         const auto rootKey = keys[1];
         auto parent = deserializeContextPtr.getParent();
@@ -127,6 +127,7 @@ ErrCode ComponentHolderImpl::Deserialize(ISerializedObject* serialized, IBaseObj
         const ComponentPtr comp = serializedObj.readObject(rootKey, newDeserializeContextPtr, factoryCallbackPtr);
 
         *obj = createWithImplementation<IComponentHolder, ComponentHolderImpl>(rootKey, "", comp).detach();
+        return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;

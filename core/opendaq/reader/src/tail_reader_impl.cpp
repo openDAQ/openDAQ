@@ -133,7 +133,7 @@ ErrCode TailReaderImpl::readPacket(TailReaderInfo& info, const DataPacketPtr& da
         errCode = domainReader->readData(domainPacket.getData(), info.offset, &info.domainValues, toRead);
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
-            if (!trySetDomainSampleType(domainPacket, errCode))
+            if (!trySetDomainSampleType(domainPacket))
             {
                 return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             }

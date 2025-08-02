@@ -36,11 +36,13 @@ ErrCode StructBuilderImpl::build(IStruct** struct_)
 
     const auto builderPtr = this->borrowPtr<StructBuilderPtr>();
 
-    return daqTry([&]()
+    const ErrCode errCode = daqTry([&]()
     {
         *struct_ = StructFromBuilder(builderPtr).detach();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode StructBuilderImpl::setFieldValues(IList* values)

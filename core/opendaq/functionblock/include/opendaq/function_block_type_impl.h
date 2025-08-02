@@ -63,41 +63,42 @@ inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)
 
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-    return daqTry(
-        [this, &serializerPtr]
+    const ErrCode errCode = daqTry([this, &serializerPtr]
+    {
+        serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
         {
-            serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
+            serializerPtr.key("id");
+            serializerPtr.writeString(id);
+
+            if (name.assigned())
             {
-                serializerPtr.key("id");
-                serializerPtr.writeString(id);
-
-                if (name.assigned())
-                {
-                    serializerPtr.key("name");
-                    serializerPtr.writeString(name);
-                }
-
-                if (description.assigned())
-                {
-                    serializerPtr.key("description");
-                    serializerPtr.writeString(description);
-                }
-
-                if (defaultConfig.assigned())
-                {
-                    serializerPtr.key("defaultConfig");
-                    defaultConfig.serialize(serializerPtr);
-                }
-
-                if (moduleInfo.assigned())
-                {
-                    serializerPtr.key("moduleInfo");
-                    moduleInfo.serialize(serializerPtr);
-                }
+                serializerPtr.key("name");
+                serializerPtr.writeString(name);
             }
 
-            serializerPtr.endObject();
-        });
+            if (description.assigned())
+            {
+                serializerPtr.key("description");
+                serializerPtr.writeString(description);
+            }
+
+            if (defaultConfig.assigned())
+            {
+                serializerPtr.key("defaultConfig");
+                defaultConfig.serialize(serializerPtr);
+            }
+
+            if (moduleInfo.assigned())
+            {
+                serializerPtr.key("moduleInfo");
+                moduleInfo.serialize(serializerPtr);
+            }
+        }
+
+        serializerPtr.endObject();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode FunctionBlockTypeImpl::getSerializeId(ConstCharPtr* id) const
@@ -125,36 +126,37 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
     const auto contextPtr = BaseObjectPtr::Borrow(context);
     const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 
-    return daqTry(
-        [&serializedObj, &contextPtr, &factoryCallbackPtr, &obj]
+    const ErrCode errCode = daqTry([&serializedObj, &contextPtr, &factoryCallbackPtr, &obj]
+    {
+        const auto id = serializedObj.readString("id");
+
+        StringPtr name;
+        if (serializedObj.hasKey("name"))
+            name = serializedObj.readString("name");
+
+        StringPtr description;
+        if (serializedObj.hasKey("description"))
+            description = serializedObj.readString("description");
+
+        PropertyObjectPtr defaultConfig;
+        if (serializedObj.hasKey("defaultConfig"))
+            defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
+
+        auto functionBlockType =
+            createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, defaultConfig);
+
+        ModuleInfoPtr moduleInfo;
+        if (serializedObj.hasKey("moduleInfo"))
         {
-            const auto id = serializedObj.readString("id");
+            moduleInfo = serializedObj.readObject("moduleInfo", contextPtr, factoryCallbackPtr);
+            functionBlockType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo);
+        }
 
-            StringPtr name;
-            if (serializedObj.hasKey("name"))
-                name = serializedObj.readString("name");
+        *obj = functionBlockType.detach();
 
-            StringPtr description;
-            if (serializedObj.hasKey("description"))
-                description = serializedObj.readString("description");
-
-            PropertyObjectPtr defaultConfig;
-            if (serializedObj.hasKey("defaultConfig"))
-                defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
-
-            auto functionBlockType =
-                createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, defaultConfig);
-
-            ModuleInfoPtr moduleInfo;
-            if (serializedObj.hasKey("moduleInfo"))
-            {
-                moduleInfo = serializedObj.readObject("moduleInfo", contextPtr, factoryCallbackPtr);
-                functionBlockType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo);
-            }
-
-            *obj = functionBlockType.detach();
-
-        });
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlockTypeImpl)

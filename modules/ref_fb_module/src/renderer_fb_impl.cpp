@@ -909,7 +909,6 @@ void RendererFbImpl::prepareSingleXAxis()
         {
             DAQ_THROW_EXCEPTION(InvalidStateException, "First signal not valid");
         }
-            
 
         hasTimeOrigin = sigIt->hasTimeOrigin;
         SAMPLE_TYPE_DISPATCH(sigIt->domainSampleType, domainStampToDomainValue, lastDomainValue, *sigIt, sigIt->lastDomainStamp)

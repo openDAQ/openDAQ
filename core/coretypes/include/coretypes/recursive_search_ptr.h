@@ -64,20 +64,12 @@ public:
 
     RecursiveSearchPtr& operator=(const RecursiveSearchPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         daq::ObjectPtr<IRecursiveSearch>::operator=(other);
         return *this;
     }
 
     RecursiveSearchPtr& operator=(RecursiveSearchPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
         daq::ObjectPtr<IRecursiveSearch>::operator=(std::move(other));
         return *this;
     }

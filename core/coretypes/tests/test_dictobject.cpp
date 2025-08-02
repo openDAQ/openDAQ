@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <coretypes/coretypes.h>
 #include <coretypes/dict_element_type.h>
 #include <gmock/gmock-matchers.h>
@@ -523,7 +523,7 @@ TEST_F(DictObjectTest, DeserializeKeyErrorJson)
 
     IDict* deserializedDict = nullptr;
     ErrCode errCode = deserializer->deserialize(serializedDict, nullptr, nullptr, reinterpret_cast<IBaseObject**>(&deserializedDict));
-    ASSERT_NE(errCode, OPENDAQ_SUCCESS);
+    ASSERT_ERROR_CODE_FAILED(errCode);
 }
 
 TEST_F(DictObjectTest, DeserializeValueErrorJson)
@@ -533,7 +533,7 @@ TEST_F(DictObjectTest, DeserializeValueErrorJson)
 
     IDict* deserializedDict = nullptr;
     ErrCode errCode = deserializer->deserialize(serializedDict, nullptr, nullptr, reinterpret_cast<IBaseObject**>(&deserializedDict));
-    ASSERT_NE(errCode, OPENDAQ_SUCCESS);
+    ASSERT_ERROR_CODE_FAILED(errCode);
 }
 
 TEST_F(DictObjectTest, CoreType)

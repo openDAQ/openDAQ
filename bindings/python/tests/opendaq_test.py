@@ -8,7 +8,9 @@ class TestCase(unittest.TestCase):
         self.expect_memory_leak = False
 
     def tearDown(self):
-        daq.clear_error_info()
+        errors = daq.get_unresolved_errors()
+        if errors:
+            print(f'Warning: Unresolved errors after test: {errors}')
         daq.event_queue.clear()
         gc.collect()
         cnt = daq.get_tracked_object_count()

@@ -218,7 +218,6 @@ public:
         std::atomic_fetch_add_explicit(&daqSharedLibObjectCount, std::size_t{1}, std::memory_order_relaxed);
 #endif
     }
-
     virtual ~GenericObjInstance()
     {
 #ifndef NDEBUG
@@ -379,11 +378,14 @@ protected:
     template <typename... Params>
     ErrCode makeErrorInfo(ErrCode errCode, const std::string& message, Params... params) const
     {
-        IBaseObject* thisBaseObject;
-        ErrCode err = this->borrowInterface(IBaseObject::Id, reinterpret_cast<void**>(&thisBaseObject));
-        OPENDAQ_RETURN_IF_FAILED(err);
-
-        setErrorInfoWithSource(thisBaseObject, message, std::forward<Params>(params)...);
+        IErrorInfo* errorInfo = nullptr;
+        const ErrCode err = createErrorInfoObjectWithSource(&errorInfo, getThisAsBaseObject(), message, std::forward<Params>(params)...);
+        if (OPENDAQ_SUCCEEDED(err))
+        {
+            errorInfo->setErrorCode(errCode);
+            daqSetErrorInfo(errorInfo);
+            errorInfo->releaseRef();
+        }
         return errCode;
     }
 

@@ -209,11 +209,13 @@ ErrCode SignalContainerImpl<Intf, Intfs...>::setActive(Bool active)
     if (err == OPENDAQ_IGNORED)
         return err;
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         this->setActiveRecursive(this->components, active);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Intf, class ... Intfs>
@@ -223,11 +225,13 @@ ErrCode SignalContainerImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilt
 
     if (searchFilter)
     {
-        return daqTry([&]
+        const ErrCode errCode = daqTry([&]
         {
             *items = this->searchItems(searchFilter, this->components).detach();
             return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     auto itemList = List<IComponent>();

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <coreobjects/property_object_class_ptr.h>
 #include <coretypes/type_manager_factory.h>
 #include <coreobjects/property_factory.h>
@@ -70,7 +70,7 @@ TEST_F(PropertyObjectClassManagerTest, GetClass)
 TEST_F(PropertyObjectClassManagerTest, FindNonExistentClass)
 {
     IType* propertyObjectClass;
-    ASSERT_EQ(manager->getType(StringPtr("Test1"), &propertyObjectClass), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_ERROR_CODE_EQ(manager->getType(StringPtr("Test1"), &propertyObjectClass), OPENDAQ_ERR_NOTFOUND);
 }
 
 TEST_F(PropertyObjectClassManagerTest, ClassList)

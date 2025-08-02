@@ -71,7 +71,6 @@ ErrCode ConnectedClientInfoImpl::getAddress(IString** address)
     return daqTry([&]()
     {
         *address = getTypedProperty<IString>(ClientAddress).detach();
-        return OPENDAQ_SUCCESS;
     });
 }
 
@@ -80,7 +79,6 @@ ErrCode ConnectedClientInfoImpl::getProtocolType(ProtocolType* type)
     return daqTry([&]
     {
         *type = StringToProtocolType(getTypedProperty<IString>(ClientProtocolTypeName));
-        return OPENDAQ_SUCCESS;
     });
 }
 

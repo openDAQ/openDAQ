@@ -348,7 +348,9 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     {
         synced = SyncStatus::Unsynchronized;
         bool firstData {false};
-        handlePacket(packetToReturn, firstData);
+        const ErrCode errCode = handlePacket(packetToReturn, firstData);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
     }
 
     return packetToReturn;
@@ -474,14 +476,15 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
                 }
                 catch (...)
                 {
-                    errCode = OPENDAQ_ERR_GENERALERROR;
+                    errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to handle descriptor change");
                 }
 
                 if (OPENDAQ_FAILED(errCode))
                 {
                     invalid = true;
 
-                    return DAQ_MAKE_ERROR_INFO(
+                    return DAQ_EXTEND_ERROR_INFO(
+                        errCode,
                         OPENDAQ_ERR_INVALID_DATA,
                         "Exception occurred while processing a signal descriptor change"
                     );
@@ -518,7 +521,10 @@ ErrCode SignalReader::readPackets()
         }
 
         if (packet.assigned())
+        {
             errCode = handlePacket(packet, firstData);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
     }
 
     return errCode;
@@ -572,9 +578,7 @@ ErrCode SignalReader::readPacketData()
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
             if (!trySetDomainSampleType(domainPacket))
-            {
-                return errCode;
-            }
+                return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             daqClearErrorInfo();
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         }
@@ -599,17 +603,16 @@ ErrCode SignalReader::readPacketData()
 
 bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const
 {
-    ObjectPtr<IErrorInfo> errInfo;
-    daqGetErrorInfo(&errInfo);
+    ObjectPtr<IErrorInfo> errorInfo;
+    daqGetErrorInfo(&errorInfo);
     daqClearErrorInfo();
 
     auto dataDescriptor = domainPacket.getDataDescriptor();
-    if (!domainReader->handleDescriptorChanged(dataDescriptor, readMode))
-    {
-        daqSetErrorInfo(errInfo);
-        return false;
-    }
-    return true;
+    if (domainReader->handleDescriptorChanged(dataDescriptor, readMode))
+        return true;
+
+    daqSetErrorInfo(errorInfo);
+    return false;
 }
 
 END_NAMESPACE_OPENDAQ

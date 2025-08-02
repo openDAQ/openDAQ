@@ -87,6 +87,7 @@ ReadTask BaseSessionHandler::readConfigurationPacket(const void* data, size_t si
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         decltype(config_protocol::PacketHeader::headerSize) headerSize;
 
         // Get packet buffer header size from received buffer
@@ -247,11 +248,11 @@ void BaseSessionHandler::copyData(void* destination, const void* source, size_t 
 {
     if ( (bytesToCopy + sourceOffset) > sourceSize)
     {
-        throw DaqException(OPENDAQ_ERR_GENERALERROR,
-                           fmt::format(R"(Failed to copy {} bytes from offset {} bytes of received data with size {} bytes)",
-                                       bytesToCopy,
-                                       sourceOffset,
-                                       sourceSize));
+        DAQ_THROW_EXCEPTION(GeneralErrorException,
+                            R"(Failed to copy {} bytes from offset {} bytes of received data with size {} bytes)",
+                            bytesToCopy,
+                            sourceOffset,
+                            sourceSize);
     }
 
     const char* sourcePtr = static_cast<const char*>(source);
@@ -262,11 +263,11 @@ std::string BaseSessionHandler::getStringFromData(const void* source, size_t str
 {
     if ( (stringSize + sourceOffset) > sourceSize)
     {
-        throw DaqException(OPENDAQ_ERR_GENERALERROR,
-                           fmt::format(R"(Failed to get string with size {} bytes from offset {} bytes of received data with size {} bytes)",
-                                       stringSize,
-                                       sourceOffset,
-                                       sourceSize));
+        DAQ_THROW_EXCEPTION(GeneralErrorException,
+                            R"(Failed to get string with size {} bytes from offset {} bytes of received data with size {} bytes)",
+                            stringSize,
+                            sourceOffset,
+                            sourceSize);
     }
 
     const char* sourcePtr = static_cast<const char*>(source);
@@ -285,6 +286,7 @@ ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         decltype(GenericPacketHeader::size) headerSize;
 
         // Get packet buffer header size from received buffer

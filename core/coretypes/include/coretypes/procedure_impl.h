@@ -16,7 +16,6 @@
 
 #pragma once
 #include <coretypes/procedure.h>
-#include <stdexcept>
 #include <coretypes/intfs.h>
 #include <coretypes/listobject_factory.h>
 #include <coretypes/function_traits.h>
@@ -101,20 +100,12 @@ protected:
               typename... TArgs>
     ErrCode dispatchInternal(TArgs&&... args)
     {
-        try
+        const ErrCode errCode = daqTry([&]()
         {
-            this->functor(std::forward<decltype(args)>(args)...);
-        }
-        catch (const DaqException& e)
-        {
-            return errorFromException(e);
-        }
-        catch (...)
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED);
-        }
-
-        return OPENDAQ_SUCCESS;
+            return this->functor(std::forward<decltype(args)>(args)...);
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to dispatch procedure");
+        return errCode;
     }
 };
 
@@ -129,20 +120,12 @@ public:
 
     ErrCode INTERFACE_FUNC dispatch(IBaseObject* args) override
     {
-        try
+        const ErrCode errCode = daqTry([&]()
         {
             dispatchMultipleParams(this->functor, ListPtr<IBaseObject>(args), std::make_index_sequence<ArgCount>{});
-        }
-        catch (const DaqException& e)
-        {
-            return errorFromException(e);
-        }
-        catch (...)
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED);
-        }
-
-        return OPENDAQ_SUCCESS;
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to dispatch procedure with multiple parameters");
+        return errCode;
     }
 };
 
@@ -218,8 +201,7 @@ template <typename TFunctor, typename std::enable_if<!std::is_bind_expression<TF
 ErrCode createProcedureWrapper(IProcedure** obj, [[maybe_unused]] TFunctor proc)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         if constexpr (std::is_same_v<TFunctor, std::nullptr_t>)
         {
@@ -229,23 +211,10 @@ ErrCode createProcedureWrapper(IProcedure** obj, [[maybe_unused]] TFunctor proc)
         {
             *obj = new ProcedureImpl<TFunctor>(std::move(proc));
         }
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::bad_alloc&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
-    }
-    catch (const std::exception&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
-
-    (*obj)->addRef();
-
-    return OPENDAQ_SUCCESS;
+        (*obj)->addRef();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create procedure wrapper for lambda");
+    return errCode;
 }
 
 // Handle std::bind()
@@ -255,26 +224,14 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor proc)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         *obj = new ProcedureImpl<TFunctor, ProcObjectNativeArgs>(std::move(proc));
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::bad_alloc&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
-    }
-    catch (const std::exception&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
+        (*obj)->addRef();
+    });
 
-    (*obj)->addRef();
-
-    return OPENDAQ_SUCCESS;
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create procedure wrapper for std::bind");
+    return errCode;
 }
 
 // Function pointer
@@ -284,26 +241,14 @@ ErrCode createProcedureWrapper(IProcedure** obj, TFunctor* proc)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         *obj = new ProcedureImpl<TFunctor>(proc);
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::bad_alloc&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
-    }
-    catch (const std::exception&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
+        (*obj)->addRef();
+    });
 
-    (*obj)->addRef();
-
-    return OPENDAQ_SUCCESS;
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create procedure wrapper for function pointer");
+    return errCode;
 }
 
 // Lambda / std::bind

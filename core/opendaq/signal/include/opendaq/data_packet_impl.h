@@ -612,34 +612,35 @@ ErrCode INTERFACE_FUNC DataPacketImpl<TInterface, TInterfaces...>::equals(IBaseO
     if (other == nullptr)
         return OPENDAQ_SUCCESS;
 
-    return daqTry(
-        [this, &other, &equals]()
-        {
-            ErrCode errCode = Super::equals(other, equals);
-            checkErrorInfo(errCode);
+    const ErrCode errCode = daqTry([this, &other, &equals]()
+    {
+        ErrCode errCode = Super::equals(other, equals);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
-            if (!(*equals))
-                return errCode;
-
-            *equals = false;
-            const DataPacketPtr packetOther = BaseObjectPtr::Borrow(other).asPtrOrNull<IDataPacket>(true);
-            if (packetOther == nullptr)
-                return errCode;
-
-            if (!BaseObjectPtr::Equals(this->domainPacket, packetOther.getDomainPacket()))
-                return errCode;
-            if (!BaseObjectPtr::Equals(this->descriptor, packetOther.getDataDescriptor()))
-                return errCode;
-            if (this->sampleCount != packetOther.getSampleCount())
-                return errCode;
-            if (this->offset != packetOther.getOffset())
-                return errCode;
-            if (!this->isDataEqual(packetOther))
-                return errCode;
-
-            *equals = true;
+        if (!(*equals))
             return errCode;
-        });
+
+        *equals = false;
+        const DataPacketPtr packetOther = BaseObjectPtr::Borrow(other).asPtrOrNull<IDataPacket>(true);
+        if (packetOther == nullptr)
+            return errCode;
+
+        if (!BaseObjectPtr::Equals(this->domainPacket, packetOther.getDomainPacket()))
+            return errCode;
+        if (!BaseObjectPtr::Equals(this->descriptor, packetOther.getDataDescriptor()))
+            return errCode;
+        if (this->sampleCount != packetOther.getSampleCount())
+            return errCode;
+        if (this->offset != packetOther.getOffset())
+            return errCode;
+        if (!this->isDataEqual(packetOther))
+            return errCode;
+
+        *equals = true;
+        return errCode;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... TInterfaces>
@@ -673,7 +674,7 @@ ErrCode DataPacketImpl<TInterface, TInterfaces...>::getRawValueByIndex(void** va
     if (sampleIndex >= sampleCount)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
 
-    return daqTry([this, &value, sampleIndex]
+    const ErrCode errCode = daqTry([this, &value, sampleIndex]
     {
         if (hasRawDataOnly)
         {
@@ -693,6 +694,8 @@ ErrCode DataPacketImpl<TInterface, TInterfaces...>::getRawValueByIndex(void** va
                 descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateSample(offset, sampleIndex, data, rawDataSize, value);
         }
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... TInterfaces>

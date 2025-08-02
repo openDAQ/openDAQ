@@ -93,48 +93,49 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializeComponent(
-                       serialized,
-                       context,
-                       factoryCallback,
-                       [](const SerializedObjectPtr& serialized,
-                          const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr& className)
-                       {
-                            const auto configDeserializeContext = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = Super::DeserializeComponent(
+                    serialized,
+                    context,
+                    factoryCallback,
+                    [](const SerializedObjectPtr& serialized,
+                        const ComponentDeserializeContextPtr& deserializeContext,
+                        const StringPtr& className)
+                    {
+                        const auto configDeserializeContext = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
 
-                            const auto typeId = serialized.readString("typeId");
+                        const auto typeId = serialized.readString("typeId");
 
-                            const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
+                        const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
 
-                            bool isRecorder = false;
-                            if (serialized.hasKey("isRecorder"))
-                                isRecorder = serialized.readBool("isRecorder");
+                        bool isRecorder = false;
+                        if (serialized.hasKey("isRecorder"))
+                            isRecorder = serialized.readBool("isRecorder");
 
-                            if (isRecorder)
-                                return createWithImplementation<IFunctionBlock, ConfigClientRecorderFunctionBlockImpl>(
-                                    configDeserializeContext->getClientComm(),
-                                    configDeserializeContext->getRemoteGlobalId(),
-                                    fbType,
-                                    deserializeContext.getContext(),
-                                    deserializeContext.getParent(),
-                                    deserializeContext.getLocalId(),
-                                    className);
-                            else
-                                return createWithImplementation<IFunctionBlock, ConfigClientFunctionBlockImpl>(
-                                    configDeserializeContext->getClientComm(),
-                                    configDeserializeContext->getRemoteGlobalId(),
-                                    fbType,
-                                    deserializeContext.getContext(),
-                                    deserializeContext.getParent(),
-                                    deserializeContext.getLocalId(),
-                                    className);
-                       })
-                       .detach();
-        });
+                        if (isRecorder)
+                            return createWithImplementation<IFunctionBlock, ConfigClientRecorderFunctionBlockImpl>(
+                                configDeserializeContext->getClientComm(),
+                                configDeserializeContext->getRemoteGlobalId(),
+                                fbType,
+                                deserializeContext.getContext(),
+                                deserializeContext.getParent(),
+                                deserializeContext.getLocalId(),
+                                className);
+                        else
+                            return createWithImplementation<IFunctionBlock, ConfigClientFunctionBlockImpl>(
+                                configDeserializeContext->getClientComm(),
+                                configDeserializeContext->getRemoteGlobalId(),
+                                fbType,
+                                deserializeContext.getContext(),
+                                deserializeContext.getParent(),
+                                deserializeContext.getLocalId(),
+                                className);
+                    })
+                    .detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -213,23 +214,28 @@ inline ConfigClientRecorderFunctionBlockImpl::ConfigClientRecorderFunctionBlockI
 
 inline ErrCode ConfigClientRecorderFunctionBlockImpl::startRecording()
 {
-    return daqTry([this] { this->clientComm->startRecording(this->remoteGlobalId); });
+    const ErrCode errCode = daqTry([this] { this->clientComm->startRecording(this->remoteGlobalId); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode ConfigClientRecorderFunctionBlockImpl::stopRecording()
 {
-    return daqTry([this] { this->clientComm->stopRecording(this->remoteGlobalId); });
+    const ErrCode errCode = daqTry([this] { this->clientComm->stopRecording(this->remoteGlobalId); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode ConfigClientRecorderFunctionBlockImpl::getIsRecording(Bool* isRecording)
 {
-    return daqTry(
-        [this, &isRecording]
-        {
-            BooleanPtr isRecordingPtr = clientComm->getIsRecording(remoteGlobalId);
-            *isRecording = isRecordingPtr.getValue(False);
-            return OPENDAQ_SUCCESS;
-        });
+    const ErrCode errCode = daqTry([this, &isRecording]
+    {
+        BooleanPtr isRecordingPtr = clientComm->getIsRecording(remoteGlobalId);
+        *isRecording = isRecordingPtr.getValue(False);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 }

@@ -16,11 +16,13 @@ typename InterfaceToSmartPtr<T>::SmartPtr UpdateParametersImpl::getTypedProperty
 
 ErrCode UpdateParametersImpl::getReAddDevicesEnabled(Bool* enabled)
 {
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         *enabled = getTypedProperty<IBoolean>("ReAddDevices");
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode UpdateParametersImpl::setReAddDevicesEnabled(Bool enabled)

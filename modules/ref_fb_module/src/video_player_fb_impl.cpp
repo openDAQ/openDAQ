@@ -75,6 +75,14 @@ void VideoPlayerFbImpl::updateTimestamp(const DataPacketPtr& domainPacket)
     timestampText.setString("No timestamp available");
 }
 
+bool VideoPlayerFbImpl::closeWindow()
+{
+    window->close();
+    dataPackets.clear();
+    videoInputPort.setActive(false);
+    return false;
+}
+
 void VideoPlayerFbImpl::startRender()
 {
     if (window && window->isOpen())
@@ -100,12 +108,7 @@ void VideoPlayerFbImpl::startRender()
             while (auto event = window->pollEvent())
             {
                 if (event->is<sf::Event::Closed>())
-                {
-                    window->close();
-                    dataPackets.clear();
-                    videoInputPort.setActive(false);
-                    return false;
-                }
+                    return closeWindow();
             }
         }
 
@@ -117,7 +120,10 @@ void VideoPlayerFbImpl::startRender()
         const uint8_t* pictureData = static_cast<const uint8_t*>(packet.getData());
 
         if (!texture.loadFromMemory(pictureData, pictureSize))
+        {
+            closeWindow();
             DAQ_THROW_EXCEPTION(InvalidOperationException, "Failed to load image from memory");
+        }
 
         if (!window)
             window = std::make_unique<sf::RenderWindow>(sf::VideoMode(texture.getSize()), "Video Playback");
@@ -127,7 +133,7 @@ void VideoPlayerFbImpl::startRender()
 
         sprite.setTexture(texture, true);
         
-        window->clear();
+        window->clear(sf::Color::Black);
         window->draw(sprite);
         window->draw(timestampText);
         window->display();

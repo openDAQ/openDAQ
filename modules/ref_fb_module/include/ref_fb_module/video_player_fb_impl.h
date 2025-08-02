@@ -80,6 +80,7 @@ private:
     void initProperties();
     void initInputPorts();
     void startRender();
+    bool closeWindow();
 
     void updateTimestamp(const DataPacketPtr& domainPacket);
 

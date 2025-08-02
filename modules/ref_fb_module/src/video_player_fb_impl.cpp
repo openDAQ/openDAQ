@@ -179,10 +179,17 @@ void VideoPlayerFbImpl::handleEventPacket(const EventPacketPtr& packet)
     if (descriptor.getSampleType() != SampleType::Binary)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Video player requires binary data descriptor");
 
-    // auto unit = descriptor.getUnit();
-    // if (unit.getSymbol() != "JPEG")
-    //     DAQ_THROW_EXCEPTION(InvalidParameterException, "Video player requires JPEG data descriptor");
+    std::string frameFormat = descriptor.getUnit().getSymbol();
+    std::transform(frameFormat.begin(), frameFormat.end(), frameFormat.begin(), ::tolower);
 
+    if (frameFormat != "jpeg" &&
+        frameFormat != "png" &&
+        frameFormat != "bmp" &&
+        frameFormat != "targa" &&
+        frameFormat != "hdr")
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Video player does not support '{}' data descriptor", frameFormat);
+    }
     auto scheduler = context.getScheduler();
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
 

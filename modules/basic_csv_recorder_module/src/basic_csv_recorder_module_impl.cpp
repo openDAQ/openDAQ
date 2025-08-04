@@ -43,7 +43,7 @@ FunctionBlockPtr BasicCsvRecorderModule::onCreateFunctionBlock(
     if (id == basicCsvRecorderType.getId())
         return createWithImplementation<IFunctionBlock, BasicCsvRecorderImpl>(context, parent, localId, config);
 
-    throw NotFoundException("This module does not support function block type '" + id + "'");
+    DAQ_THROW_EXCEPTION(NotFoundException, "This module does not support function block type '" + id + "'");
 }
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

@@ -120,7 +120,7 @@ void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerF
         const auto component = findComponent(componentGlobalId);
 
         if (!component.assigned())
-            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
+            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found {}", componentGlobalId);
 
         const auto componentPtr = component.asPtr<typename SmartPtr::DeclaredInterface>();
         return handler(context, componentPtr, params);
@@ -389,7 +389,7 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
     const auto component = findComponent(componentGlobalId);
 
     if (!component.assigned())
-        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found {}", componentGlobalId);
 
     ConfigServerAccessControl::protectObject(component, user, Permission::Read);
     return ComponentHolder(component);

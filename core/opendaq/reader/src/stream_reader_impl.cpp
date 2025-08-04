@@ -287,7 +287,7 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
 
     std::scoped_lock lock(this->mutex);
 
-    return wrapHandler([count, this]
+    const ErrCode errCode = wrapHandler([count, this]
     {
         *count = 0;
         if (info.dataPacket.assigned())
@@ -301,6 +301,8 @@ ErrCode StreamReaderImpl::getAvailableCount(SizeT* count)
                 : connection.getSamplesUntilNextEventPacket();
         }
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode StreamReaderImpl::getEmpty(Bool* empty)
@@ -411,22 +413,19 @@ void StreamReaderImpl::handleDescriptorChanged(const EventPacketPtr& eventPacket
 
 bool StreamReaderImpl::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
 {
-    ObjectPtr<IErrorInfo> errInfo;
-    daqGetErrorInfo(&errInfo);
+    ObjectPtr<IErrorInfo> errorInfo;
+    daqGetErrorInfo(&errorInfo);
     daqClearErrorInfo();
 
     auto dataDescriptor = domainPacket.getDataDescriptor();
     if (domainReader->isUndefined())
-    {
         inferReaderReadType(dataDescriptor, domainReader);
-    }
 
-    if (!domainReader->handleDescriptorChanged(dataDescriptor, readMode))
-    {
-        daqSetErrorInfo(errInfo);
-        return false;
-    }
-    return true;
+    if (domainReader->handleDescriptorChanged(dataDescriptor, readMode))
+        return true;
+
+    daqSetErrorInfo(errorInfo);
+    return false;    
 }
 
 void* StreamReaderImpl::getValuePacketData(const DataPacketPtr& packet) const
@@ -468,7 +467,7 @@ ErrCode StreamReaderImpl::readPacketData()
         {
             if (!trySetDomainSampleType(domainPacket))
             {
-                return errCode;
+                return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             }
             daqClearErrorInfo();
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);

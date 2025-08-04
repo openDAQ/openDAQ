@@ -77,7 +77,6 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
     return daqTry([&]()
     {
         *instance = InstanceFromBuilder(builderPtr).detach();
-        return OPENDAQ_SUCCESS;
     });
 }
 
@@ -375,6 +374,7 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
     {
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             auto provider = JsonConfigProvider();
             provider.populateOptions(this->options);
         }
@@ -391,6 +391,7 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
     {
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             provider.populateOptions(this->options);
         }
         catch (const DaqException& e)

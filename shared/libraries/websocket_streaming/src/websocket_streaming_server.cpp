@@ -1,6 +1,5 @@
 #include <opendaq/packet.h>
 #include <opendaq/reader_factory.h>
-#include <iostream>
 #include "websocket_streaming/websocket_streaming_server.h"
 #include <opendaq/device_private.h>
 #include <coreobjects/property_factory.h>

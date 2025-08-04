@@ -200,12 +200,19 @@ ConstCharPtr EnumerationImpl::SerializeId()
 
 ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* context, IFunction* /* factoryCallback*/, IBaseObject** obj)
 {
+    OPENDAQ_PARAM_NOT_NULL(context);
+
     TypeManagerPtr typeManager;
-    if (context == nullptr || OPENDAQ_FAILED(context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager))))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_TYPE_MANAGER, "Type manager is required for deserialization of Enumeration");
+    ErrCode errCode = context->queryInterface(ITypeManager::Id, reinterpret_cast<void**>(&typeManager));
+    if (OPENDAQ_FAILED(errCode))
+    {
+        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            return DAQ_MAKE_ERROR_INFO(errCode, "Context does not implement ITypeManager interface for Enumeration deserialization");
+        return DAQ_EXTEND_ERROR_INFO(errCode);
+    }
 
     StringPtr typeName;
-    ErrCode errCode = ser->readString("typeName"_daq, &typeName);
+    errCode = ser->readString("typeName"_daq, &typeName);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     StringPtr value;
@@ -215,7 +222,8 @@ ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* contex
     try
     {
         EnumerationPtr enumerationPtr;
-        createEnumeration(&enumerationPtr, typeName, value, typeManager);
+        errCode = createEnumeration(&enumerationPtr, typeName, value, typeManager);
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create Enumeration object from deserialized data");
         *obj = enumerationPtr.detach();
     }
     catch(const DaqException& e)
@@ -224,7 +232,7 @@ ErrCode EnumerationImpl::Deserialize(ISerializedObject* ser, IBaseObject* contex
     }
     catch(...)
     {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to deserialize Enumeration object");
     }
 
     return OPENDAQ_SUCCESS;

@@ -89,40 +89,23 @@ template <typename... Interfaces>
 ErrCode LoggerSinkBase<Interfaces...>::setPattern(IString* pattern)
 {
     OPENDAQ_PARAM_NOT_NULL(pattern);
-
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         this->sink->set_pattern(toStdString(pattern));
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-    }
-
-    return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set pattern for logger sink");
+    return errCode;
 }
 
 template <typename... Interfaces>
 ErrCode LoggerSinkBase<Interfaces...>::flush()
 {
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         this->sink->flush();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-    }
-
-    return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to flush logger sink");
+    return errCode;
 }
 
 template <typename... Interfaces>

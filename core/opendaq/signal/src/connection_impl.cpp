@@ -35,35 +35,36 @@ ConnectionImpl::ConnectionImpl(const InputPortPtr& port, const SignalPtr& signal
 template <class P, class F>
 ErrCode ConnectionImpl::enqueueInternal(P&& packet, const F& f)
 {
-    return daqTry(
-        [this, &packet, &f]
+    const ErrCode errCode = daqTry([this, &packet, &f]
+    {
+        if (!port.getActive())
         {
-            if (!port.getActive())
+            const auto type = packet.getType();
+            if (type != PacketType::Event)
+                return OPENDAQ_IGNORED;
+            LOGP_T("Port not active, data packet dropped.")
+        }
+
+        bool queueWasEmpty;
+
+        withLock(
+            [&packet, &queueWasEmpty, this]()
             {
-                const auto type = packet.getType();
-                if (type != PacketType::Event)
-                    return OPENDAQ_IGNORED;
-                LOGP_T("Port not active, data packet dropped.")
-            }
+                queueWasEmpty = queueEmpty;
+                if (gapCheckState != GapCheckState::disabled)
+                    checkForGaps(packet);
 
-			bool queueWasEmpty;
+                onPacketEnqueued(packet);
+                packets.emplace_back(std::forward<P>(packet));
+                queueEmpty = false;
+                LOGP_T("Packet enqueued.")
+            });
 
-            withLock(
-                [&packet, &queueWasEmpty, this]()
-                {
-                    queueWasEmpty = queueEmpty;
-                    if (gapCheckState != GapCheckState::disabled)
-                        checkForGaps(packet);
-
-                    onPacketEnqueued(packet);
-                    packets.emplace_back(std::forward<P>(packet));
-                    queueEmpty = false;
-                    LOGP_T("Packet enqueued.")
-                });
-
-            f(queueWasEmpty);
-            return OPENDAQ_SUCCESS;
-        });
+        f(queueWasEmpty);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ConnectionImpl::enqueue(IPacket* packet)
@@ -97,13 +98,15 @@ ErrCode ConnectionImpl::enqueueWithScheduler(IPacket* packet)
 
 ErrCode ConnectionImpl::enqueueMultipleInternal(const ListPtr<IPacket>& packets)
 {
-    return daqTry([this, &packets] {
+    const ErrCode errCode = daqTry([this, &packets] 
+    {
         if (!port.getActive())
             return OPENDAQ_IGNORED;
 
         bool queueWasEmpty;
 
-        withLock([&packets, &queueWasEmpty, this]() {
+        withLock([&packets, &queueWasEmpty, this]()
+        {
             queueWasEmpty = queueEmpty;
             const size_t cnt = packets.getCount();
             for (size_t i = 0; i < cnt; ++i)
@@ -118,11 +121,14 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(const ListPtr<IPacket>& packets)
         port.notifyPacketEnqueued(queueWasEmpty);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ConnectionImpl::enqueueMultipleInternal(ListPtr<IPacket>&& packets)
 {
-    return daqTry([this, &packets] {
+    const ErrCode errCode = daqTry([this, &packets]
+    {
         if (!port.getActive())
             return OPENDAQ_IGNORED;
 
@@ -143,6 +149,8 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(ListPtr<IPacket>&& packets)
         port.notifyPacketEnqueued(queueWasEmpty);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 #else
@@ -150,39 +158,40 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(ListPtr<IPacket>&& packets)
 template <class P>
 ErrCode ConnectionImpl::enqueueMultipleInternal(P&& packets)
 {
-    return daqTry(
-        [this, &packets]
-        {
-            if (!port.getActive())
-                return OPENDAQ_IGNORED;
+    const ErrCode errCode = daqTry([this, &packets]
+    {
+        if (!port.getActive())
+            return OPENDAQ_IGNORED;
 
-            bool queueWasEmpty;
+        bool queueWasEmpty;
 
-            withLock(
-                [&packets, &queueWasEmpty, this]()
+        withLock(
+            [&packets, &queueWasEmpty, this]()
+            {
+                queueWasEmpty = queueEmpty;
+                const size_t cnt = packets.getCount();
+                for (size_t i = 0; i < cnt; ++i)
                 {
-                    queueWasEmpty = queueEmpty;
-                    const size_t cnt = packets.getCount();
-                    for (size_t i = 0; i < cnt; ++i)
+                    PacketPtr packet;
+                    if constexpr (std::is_rvalue_reference_v<P&&>)
                     {
-                        PacketPtr packet;
-                        if constexpr (std::is_rvalue_reference_v<P&&>)
-                        {
-                            packet = packets.popBack();
-                        }
-                        else
-                        {
-                            packet = packets.getItemAt(i);
-                        }
-                        onPacketEnqueued(packet);
-                        this->packets.push_back(packet);
+                        packet = packets.popBack();
                     }
-                    queueEmpty = false;
-                });
+                    else
+                    {
+                        packet = packets.getItemAt(i);
+                    }
+                    onPacketEnqueued(packet);
+                    this->packets.push_back(packet);
+                }
+                queueEmpty = false;
+            });
 
-            port.notifyPacketEnqueued(queueWasEmpty);
-            return OPENDAQ_SUCCESS;
-        });
+        port.notifyPacketEnqueued(queueWasEmpty);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 #endif
@@ -246,9 +255,9 @@ ErrCode INTERFACE_FUNC ConnectionImpl::dequeueAll(IList** packets)
     return withLock(
         [&packetsPtr, packets, this]()
         {
-            for (auto& packet : this->packets)
+            for (const auto& packet : this->packets)
             {
-                packetsPtr.pushBack(std::move(packet));
+                packetsPtr.pushBack(packet);
             }
             samplesCnt = 0;
             eventPacketsCnt = 0;
@@ -470,14 +479,15 @@ ErrCode ConnectionImpl::getSignal(ISignal** signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
-    return daqTry(
-        [this, &signal]
-        {
-            auto sig = this->signalRef.getRef();
-            *signal = sig.detach();
-            LOG_T("Signal = {}.", sig.assigned() ? sig.getGlobalId().toStdString() : "null")
-            return OPENDAQ_SUCCESS;
-        });
+    const ErrCode errCode = daqTry([this, &signal]
+    {
+        auto sig = this->signalRef.getRef();
+        *signal = sig.detach();
+        LOG_T("Signal = {}.", sig.assigned() ? sig.getGlobalId().toStdString() : "null")
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ConnectionImpl::getInputPort(IInputPort** inputPort)

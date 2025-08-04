@@ -207,6 +207,7 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
         {
             try
             {
+                auto errorGuard = DAQ_ERROR_GUARD();
                 UserPtr user = authProvider.authenticateAnonymous();
                 userContextOut = std::shared_ptr<daq::IUser>(user.detach(), UserContextDeleter());
                 return true;
@@ -222,6 +223,7 @@ bool NativeStreamingServerHandler::onAuthenticate(const daq::native_streaming::A
         {
             try
             {
+                auto errorGuard = DAQ_ERROR_GUARD();
                 UserPtr user = authProvider.authenticate(authentication.getUsername(), authentication.getPassword());
                 userContextOut = std::shared_ptr<daq::IUser>(user.detach(), UserContextDeleter());
                 return true;
@@ -533,6 +535,7 @@ void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjec
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         const ClientType clientType = parseClientTypeProp(propertyObject);
         sessionHandler->setClientType(clientType);
     }
@@ -544,6 +547,7 @@ void NativeStreamingServerHandler::handleTransportLayerProps(const PropertyObjec
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         const bool dropOthers = parseExclusiveControlDropOthersProp(propertyObject);
         sessionHandler->setExclusiveControlDropOthers(dropOthers);
     }

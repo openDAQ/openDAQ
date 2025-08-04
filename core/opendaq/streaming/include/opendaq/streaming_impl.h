@@ -35,6 +35,7 @@
 
 #include <opendaq/thread_name.h>
 #include <thread>
+#include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -213,6 +214,7 @@ StreamingImpl<Interfaces...>::~StreamingImpl()
 {
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         ErrCode errCode = removeStreamingSourceForAllSignals();
         removeAllSignalsInternal();
         checkErrorInfo(errCode);

@@ -83,59 +83,54 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
-    return daqTry(
-        [this, &signal]
-        {
-            if (!this->deserializationComplete)
-                return Super::connect(signal);
-            const auto signalPtr = SignalPtr::Borrow(signal);
-            const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
-            if (!isSignalFromTheSameComponentTree(signalPtr))
-            {
-                const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
-                LOG_W("InputPort \"{}\": connecting to signal \"{}\" from another openDAQ instance — "
-                      "may cause unsafe loopbacks or undefined behavior.",
-                      this->globalId,
-                      signalPtr.getGlobalId());
-            }
-            {
-                auto lock = this->getRecursiveConfigLock();
-
-                const auto connectedSignal = getConnectedSignal();
-                if (connectedSignal == signalPtr)
-                    return OPENDAQ_IGNORED;
-                if (connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
-                    clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId, mirroredInputPortPrivate);
-            }
-
-            const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
-            if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
-            {
-                StringPtr signalRemoteGlobalId;
-                checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
-                clientComm->connectSignal(remoteGlobalId, signalRemoteGlobalId);
-            }
-            else
-            {
-                if (clientComm->getProtocolVersion() >= 17)
-                {
-                    clientComm->connectExternalSignalToServerInputPortGeneralized(signalPtr, remoteGlobalId, mirroredInputPortPrivate);
-                }
-                else if (clientComm->getProtocolVersion() >= 2)
-                {
-                    clientComm->connectExternalSignalToServerInputPortBasic(signalPtr, remoteGlobalId);
-                }
-                else
-                {
-                    return DAQ_MAKE_ERROR_INFO(
-                        OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
-                        "Client-to-device streaming operations are not supported by the protocol version currently in use"
-                    );
-                }
-            }
-
+    const ErrCode errCode = daqTry([this, &signal]
+    {
+        if (!this->deserializationComplete)
             return Super::connect(signal);
-        });
+        const auto signalPtr = SignalPtr::Borrow(signal);
+        const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+        if (!isSignalFromTheSameComponentTree(signalPtr))
+        {
+            const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
+            LOG_W("InputPort \"{}\": connecting to signal \"{}\" from another openDAQ instance — "
+                    "may cause unsafe loopbacks or undefined behavior.",
+                    this->globalId,
+                    signalPtr.getGlobalId());
+        }
+        {
+            auto lock = this->getRecursiveConfigLock();
+
+            const auto connectedSignal = getConnectedSignal();
+            if (connectedSignal == signalPtr)
+                return OPENDAQ_IGNORED;
+            if (connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
+                clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId, mirroredInputPortPrivate);
+        }
+
+        const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
+        if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
+        {
+            StringPtr signalRemoteGlobalId;
+            checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+            clientComm->connectSignal(remoteGlobalId, signalRemoteGlobalId);
+        }
+        else
+        {
+            if (clientComm->getProtocolVersion() >= 17)
+                clientComm->connectExternalSignalToServerInputPortGeneralized(signalPtr, remoteGlobalId, mirroredInputPortPrivate);
+            else if (clientComm->getProtocolVersion() >= 2)
+                clientComm->connectExternalSignalToServerInputPortBasic(signalPtr, remoteGlobalId);
+            else
+                return DAQ_MAKE_ERROR_INFO(
+                    OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
+                    "Client-to-device streaming operations are not supported by the protocol version currently in use"
+                );
+        }
+
+        return Super::connect(signal);
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode ConfigClientInputPortImpl::connectSignalSchedulerNotification(ISignal* signal)
@@ -145,14 +140,15 @@ inline ErrCode ConfigClientInputPortImpl::connectSignalSchedulerNotification(ISi
 
 inline ErrCode ConfigClientInputPortImpl::disconnect()
 {
-    return daqTry(
-        [this]
-        {
-            assert(this->deserializationComplete);
+    const ErrCode errCode = daqTry([this]
+    {
+        assert(this->deserializationComplete);
 
-            clientComm->disconnectSignal(remoteGlobalId);
-            return Super::disconnect();
-        });
+        clientComm->disconnectSignal(remoteGlobalId);
+        return Super::disconnect();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode ConfigClientInputPortImpl::assignSignal(ISignal* signal)
@@ -176,25 +172,26 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
     OPENDAQ_PARAM_NOT_NULL(signal);
     OPENDAQ_PARAM_NOT_NULL(accepts);
 
-    return daqTry(
-        [this, &signal, &accepts]
-        {
-            if (clientComm->getProtocolVersion() < 4)
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+    const ErrCode errCode = daqTry([this, &signal, &accepts]
+    {
+        if (clientComm->getProtocolVersion() < 4)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
 
-            const auto signalPtr = SignalPtr::Borrow(signal);
-            const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
-            if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
-            {
-                StringPtr signalRemoteGlobalId;
-                checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
-                BooleanPtr acceptsPtr = clientComm->acceptsSignal(remoteGlobalId, signalRemoteGlobalId);
-                *accepts = acceptsPtr.getValue(False);
-                return OPENDAQ_SUCCESS;
-            }
-            *accepts = True;
+        const auto signalPtr = SignalPtr::Borrow(signal);
+        const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
+        if (configObject.assigned() && clientComm->isComponentNested(signalPtr.getGlobalId()))
+        {
+            StringPtr signalRemoteGlobalId;
+            checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+            BooleanPtr acceptsPtr = clientComm->acceptsSignal(remoteGlobalId, signalRemoteGlobalId);
+            *accepts = acceptsPtr.getValue(False);
             return OPENDAQ_SUCCESS;
-        });
+        }
+        *accepts = True;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode ConfigClientInputPortImpl::setActiveStreamingSource(IString* streamingConnectionString)
@@ -227,11 +224,12 @@ inline ErrCode ConfigClientInputPortImpl::Deserialize(ISerializedObject* seriali
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeConfigComponent<IInputPortConfig, ConfigClientInputPortImpl>(serialized, context, factoryCallback).detach();
-        });
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = DeserializeConfigComponent<IInputPortConfig, ConfigClientInputPortImpl>(serialized, context, factoryCallback).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline void ConfigClientInputPortImpl::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)

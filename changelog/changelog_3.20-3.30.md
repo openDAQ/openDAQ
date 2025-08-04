@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#869](https://github.com/openDAQ/openDAQ/pull/869) Implementing video player function block.
 - [#861](https://github.com/openDAQ/openDAQ/pull/861) Add support for list and dictionary item/key type identification in Argument Info.
 - [#849] (https://github.com/openDAQ/openDAQ/pull/849) Improving error logging and implementing an error guard.
 - [#837](https://github.com/openDAQ/openDAQ/pull/837) Add main thread event loop, SFML 3.0 migration, and renderer window control
@@ -25,6 +26,7 @@
 - [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active.
 - [#808](https://github.com/openDAQ/openDAQ/pull/808) Fix examples CMake when downloaded as solo archive via https://docs.opendaq.com/ or https://docs-dev.opendaq.com/ (when not part of whole openDAQ project).
 - [#781](https://github.com/openDAQ/openDAQ/pull/781) Fix how Lists are interpreted for Function Property in Python.
+
 
 ## Misc
 

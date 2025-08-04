@@ -40,7 +40,7 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DPYBIND11_FINDPYTHON=ON
             cpack: NSIS
           - name: Windows VS 2022 Win32 Release
             runner: windows-latest

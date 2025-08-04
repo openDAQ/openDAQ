@@ -204,11 +204,11 @@ BaseObjectPtr SwitchNode::getResult()
 
     auto varResult = varNode->getResult();
 
-    for (size_t i = 0; i < valueNodes->size(); i += 2)
+    for (size_t i = 0, nodeIdx = 0; i < valueNodes->size() / 2; i += 1, nodeIdx += 2)
     {
-        auto caseResult = valueNodes->at(i)->getResult();
+        auto caseResult = valueNodes->at(nodeIdx)->getResult();
         if (varResult == caseResult)
-            return valueNodes->at(i + 1)->getResult();
+            return valueNodes->at(nodeIdx + 1)->getResult();
     }
 
     if (valueNodes->size() % 2 == 1)

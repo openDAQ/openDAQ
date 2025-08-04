@@ -198,7 +198,6 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                  reconnectionPeriod);
         deviceHelper->setupProtocolClients(context);
         auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
-        protocolVersion = deviceHelper->getProtocolVersion();
 
         deviceHelper->subscribeToCoreEvent(context);
 
@@ -531,11 +530,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
 
     auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig, authenticationConfig);
     if (!transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString()))
-    {
-        auto message = fmt::format("Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
-        LOG_E("{}", message);
-        DAQ_THROW_EXCEPTION(NotFoundException, message);
-    }
+        DAQ_THROW_EXCEPTION(NotFoundException, "Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
 
     return transportClientHandler;
 }

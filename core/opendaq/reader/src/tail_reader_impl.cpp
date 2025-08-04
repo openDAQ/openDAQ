@@ -135,7 +135,7 @@ ErrCode TailReaderImpl::readPacket(TailReaderInfo& info, const DataPacketPtr& da
         {
             if (!trySetDomainSampleType(domainPacket))
             {
-                return errCode;
+                return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             }
             daqClearErrorInfo();
             errCode = domainReader->readData(domainPacket.getData(), info.offset, &info.domainValues, toRead);

@@ -128,6 +128,7 @@ set(SRC_PublicHeaders
     weakref_impl.h
 
     errorinfo.h
+    error_guard.h
     errorinfo_factory.h
 
     factory.h

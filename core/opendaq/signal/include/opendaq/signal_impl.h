@@ -799,14 +799,16 @@ ErrCode SignalBase<TInterface, Interfaces...>::sendPacketAndStealRef(IPacket* pa
 
     auto packetPtr = PacketPtr::Adopt(packet);
 
-    return daqTry(
-        [this, packet = std::move(packetPtr)] () mutable
-        {
-            if (!keepLastPacketAndEnqueue(std::move(packet)))
-                return OPENDAQ_IGNORED;
+    const ErrCode errCode = daqTry(
+    [this, packet = std::move(packetPtr)] () mutable
+    {
+        if (!keepLastPacketAndEnqueue(std::move(packet)))
+            return OPENDAQ_IGNORED;
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -816,13 +818,15 @@ ErrCode INTERFACE_FUNC SignalBase<TInterface, Interfaces...>::sendPackets(IList*
 
     const auto packetsPtr = ListPtr<IPacket>::Borrow(packets);
 
-    return daqTry([&packetsPtr, this]
+    const ErrCode errCode = daqTry([&packetsPtr, this]
     {
         if (!keepLastPacketAndEnqueueMultiple(packetsPtr))
             return OPENDAQ_IGNORED;
 
         return OPENDAQ_SUCCESS;
-    });    
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -897,14 +901,15 @@ ErrCode SignalBase<TInterface, Interfaces...>::sendPacketInner(IPacket* packet, 
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
     const auto packetPtr = PacketPtr::Borrow(packet);
-    return daqTry(
-        [this, &packetPtr, recursiveLock]
-        {
-            if (!keepLastPacketAndEnqueue(packetPtr, recursiveLock))
-                return OPENDAQ_IGNORED;
+    const ErrCode errCode = daqTry([this, &packetPtr, recursiveLock]
+    {
+        if (!keepLastPacketAndEnqueue(packetPtr, recursiveLock))
+            return OPENDAQ_IGNORED;
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1086,21 +1091,22 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializeComponent(
-                       serialized,
-                       context,
-                       factoryCallback,
-                       [](const SerializedObjectPtr& serialized,
-                          const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr& className)
-                       {
-                           return createWithImplementation<ISignalConfig, SignalImpl>(
-                               deserializeContext.getContext(), nullptr, deserializeContext.getParent(), deserializeContext.getLocalId(), className);
-                       }).detach();
-        });
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = Super::DeserializeComponent(
+                    serialized,
+                    context,
+                    factoryCallback,
+                    [](const SerializedObjectPtr& serialized,
+                        const ComponentDeserializeContextPtr& deserializeContext,
+                        const StringPtr& className)
+                    {
+                        return createWithImplementation<ISignalConfig, SignalImpl>(
+                            deserializeContext.getContext(), nullptr, deserializeContext.getParent(), deserializeContext.getLocalId(), className);
+                    }).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1264,13 +1270,15 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
     if (!lastDataDescriptor.assigned())
         return OPENDAQ_IGNORED;
 
-    return daqTry([&value, this]
+    const ErrCode errCode = daqTry([&value, this]
     {
         auto manager = this->context.getTypeManager();
         void* rawValue = lastRawDataValue.data();
         lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager);
         *value = lastDataValue.addRefAndReturn();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>

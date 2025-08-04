@@ -21,7 +21,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 static StringPtr DefineLocalId(const StringPtr& localId);
 static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder);
-static std::string GetErrorMessage();
 
 InstanceImpl::InstanceImpl(ContextPtr context, const StringPtr& localId)
     : context(std::move(context))
@@ -136,7 +135,10 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
 
     // Configure moduleManager
     if (!moduleManager.assigned())
+    {
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
+        builderPtr->setModuleManager(moduleManager);
+    }
 
     auto discoveryServers = Dict<IString, IDiscoveryServer>();
     for (const auto& serverName : builderPtr.getDiscoveryServers())
@@ -213,26 +215,6 @@ ErrCode InstanceImpl::addServer(IString* typeId, IPropertyObject* config, IServe
     return rootDevice->addServer(typeId, config, server);
 }
 
-std::string GetErrorMessage()
-{
-    std::string errorMessage;
-
-    ErrorInfoPtr errorInfo;
-    daqGetErrorInfo(&errorInfo);
-    if (errorInfo.assigned())
-    {
-        StringPtr message;
-        errorInfo->getMessage(&message);
-
-        if (message.assigned())
-        {
-            errorMessage = message.toStdString();
-        }
-    }
-
-    return errorMessage;
-}
-
 ErrCode InstanceImpl::addStandardServers(IList** standardServers)
 {
     OPENDAQ_PARAM_NOT_NULL(standardServers);
@@ -246,10 +228,7 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     ServerPtr nativeStreamingServer;
     serverName = "OpenDAQNativeStreaming";
     errCode = addServer(serverName, nullptr, &nativeStreamingServer);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module)", serverName));
     serversPtr.pushBack(nativeStreamingServer);
 
 #elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
@@ -257,22 +236,15 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     ServerPtr websocketServer;
     serverName = "OpenDAQLTStreaming";
     errCode = addServer(serverName, nullptr, &websocketServer);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module)", serverName));
     serversPtr.pushBack(websocketServer);
 #endif
 
     ServerPtr opcUaServer;
     serverName = "OpenDAQOPCUA";
     errCode = addServer(serverName, nullptr, &opcUaServer);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        return DAQ_MAKE_ERROR_INFO(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module: {} [{:#x}])", serverName, GetErrorMessage(), errCode));
-    }
+    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module)", serverName));
     serversPtr.pushBack(opcUaServer);
-
     *standardServers = serversPtr.detach();
 
     return OPENDAQ_SUCCESS;
@@ -610,18 +582,17 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
 {
     OPENDAQ_PARAM_NOT_NULL(configuration);
 
-    return daqTry([this, &configuration]()
+    const ErrCode errCode = daqTry([this, &configuration]()
     {
         auto serializer = JsonSerializer(True);
 
-        checkErrorInfo(this->serializeForUpdate(serializer));
+        const ErrCode errCode = this->serializeForUpdate(serializer);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        auto str = serializer.getOutput();
-
-        *configuration = str.detach();
-
-        return OPENDAQ_SUCCESS;
+        return serializer->getOutput(configuration);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode InstanceImpl::loadConfiguration(IString* configuration, IUpdateParameters* config)
@@ -629,7 +600,7 @@ ErrCode InstanceImpl::loadConfiguration(IString* configuration, IUpdateParameter
     OPENDAQ_PARAM_NOT_NULL(configuration);
     auto configPtr = BaseObjectPtr(config);
 
-    return daqTry([this, &configuration, &configPtr]
+    const ErrCode errCode = daqTry([this, &configuration, &configPtr]
     {
         const auto deserializer = JsonDeserializer();
 
@@ -639,6 +610,8 @@ ErrCode InstanceImpl::loadConfiguration(IString* configuration, IUpdateParameter
 
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 // IPropertyObject
@@ -750,10 +723,12 @@ ErrCode InstanceImpl::hasProperty(IString* propertyName, Bool* hasProperty)
 
 ErrCode InstanceImpl::serialize(ISerializer* serializer)
 {
-    return daqTry([this, &serializer] 
+    const ErrCode errCode = daqTry([this, &serializer] 
     {
         return rootDevice.asPtr<ISerializable>(true)->serialize(serializer);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode InstanceImpl::getSerializeId(ConstCharPtr* id) const
@@ -787,14 +762,14 @@ ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
 {
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
 
-    return daqTry([&objPtr, &config, this]
+    const ErrCode errCode = daqTry([&objPtr, &config, this]
     {
         objPtr.checkObjectType("Instance");
 
         const auto rootDeviceWrapperPtr = objPtr.readSerializedObject("rootDevice");
         const auto rootDeviceWrapperKeysPtr = rootDeviceWrapperPtr.getKeys();
         if (rootDeviceWrapperKeysPtr.getCount() != 1)
-            DAQ_THROW_EXCEPTION(InvalidValueException, "Invalid root device object");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, "Invalid root device object");
 
         const auto rootDevicePtr = rootDeviceWrapperPtr.readSerializedObject(rootDeviceWrapperKeysPtr[0]);
         rootDevicePtr.checkObjectType("Device");
@@ -804,6 +779,8 @@ ErrCode InstanceImpl::update(ISerializedObject* obj, IBaseObject* config)
 
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode InstanceImpl::updateEnded(IBaseObject* /* context */)

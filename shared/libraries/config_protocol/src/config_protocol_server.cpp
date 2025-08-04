@@ -86,7 +86,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::move(GetSupportedConfigProtocolVersions()))
+    , supportedServerVersions(std::set<uint16_t>({15, 16}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
@@ -108,7 +108,7 @@ ConfigProtocolServer::~ConfigProtocolServer()
 template <class SmartPtr>
 void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerFunction<SmartPtr>& handler)
 {
-    auto wrappedHanler = [this, handler](const ParamsDictPtr& params)
+    auto wrappedHandler = [this, handler](const ParamsDictPtr& params)
     {
         RpcContext context;
         context.protocolVersion = this->protocolVersion;
@@ -119,13 +119,13 @@ void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerF
         const auto component = findComponent(componentGlobalId);
 
         if (!component.assigned())
-            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
+            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found {}", componentGlobalId);
 
         const auto componentPtr = component.asPtr<typename SmartPtr::DeclaredInterface>();
         return handler(context, componentPtr, params);
     };
 
-    rpcDispatch.insert({name, wrappedHanler});
+    rpcDispatch.insert({name, wrappedHandler});
 }
 
 void ConfigProtocolServer::buildRpcDispatchStructure()
@@ -386,7 +386,7 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
     const auto component = findComponent(componentGlobalId);
 
     if (!component.assigned())
-        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found {}", componentGlobalId);
 
     ConfigServerAccessControl::protectObject(component, user, Permission::Read);
     return ComponentHolder(component);

@@ -214,7 +214,7 @@ void DataDescriptorImpl::calculateSampleMemSize()
 
 ErrCode DataDescriptorImpl::validate()
 {
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         if (structFields.assigned() && structFields.getCount() != 0)
         {
@@ -267,7 +267,6 @@ ErrCode DataDescriptorImpl::validate()
                 if (referenceDomainInfo.assigned())
                     DAQ_THROW_EXCEPTION(InvalidParameterException, "Reference Domain Info not supported with post scaling.");
             }
-                
         }
 
         if (dimensions.assigned())
@@ -286,18 +285,16 @@ ErrCode DataDescriptorImpl::validate()
         }
 
         initCalcs();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    
-    return OPENDAQ_SUCCESS;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Data descriptor validation failed");
+    return errCode;
 }
 
 ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equals) const
 {
-    return daqTry([this, &other, &equals]() {
+    const ErrCode errCode = daqTry([this, &other, &equals]()
+    {
         if (equals == nullptr)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
@@ -341,6 +338,8 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::equals(IBaseObject* other, Bool* equa
         *equals = true;
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 // IScalingCalcPrivate

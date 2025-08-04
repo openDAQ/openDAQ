@@ -1,7 +1,6 @@
 #include <property_value_event_args_ptr.h>
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include <testutils/testutils.h>
+#include <gmock/gmock.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_class_ptr.h>
 #include <coretypes/type_manager_factory.h>
@@ -114,8 +113,10 @@ protected:
         objManager.removeType("BaseClass");
         objManager.removeType("Test");
 
-        objManager->removeType(String("Parent"));
-        objManager->removeType(String("Base"));
+        if (objManager.hasType("Parent"))
+            objManager.removeType(String("Parent"));
+        if (objManager.hasType("Base"))
+            objManager.removeType(String("Base"));
 
         propValue.release();
         propName.release();
@@ -438,7 +439,7 @@ TEST_F(PropertyObjectTest, EnumVisiblePropertyListNull)
     auto propObj = PropertyObject(objManager, "Test");
     ErrCode errCode = propObj->getVisibleProperties(nullptr);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(PropertyObjectTest, EnumVisiblePropertyWhenClassNull)
@@ -612,7 +613,7 @@ TEST_F(PropertyObjectTest, ConvertToPropertyCoreTypeFails)
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.setPropertyValue("FloatProperty", "a"),
                      ConversionFailedException,
-                     "Value type is different than Property type and conversion failed")
+                     "Failed to set property value")
 }
 
 TEST_F(PropertyObjectTest, ConvertToPropertyCoreTypeFails2)
@@ -621,7 +622,7 @@ TEST_F(PropertyObjectTest, ConvertToPropertyCoreTypeFails2)
     auto list = List<IBaseObject>();
     ASSERT_THROW_MSG(propObj.setPropertyValue("FloatProperty", list),
                      NoInterfaceException,
-                     "Value type is different than Property type and conversion failed")
+                     "Failed to set property value")
 }
 
 TEST_F(PropertyObjectTest, SetNullPropertyValue)
@@ -644,14 +645,15 @@ TEST_F(PropertyObjectTest, SelectionPropNoEnum)
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.getPropertySelectionValue("IntProperty"),
                      InvalidPropertyException,
-                     "Selection property \"IntProperty\" has no selection values assigned")
+                     "Failed to get property selection value")
 }
 
 TEST_F(PropertyObjectTest, SelectionPropNotRegistered)
 {
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.getPropertySelectionValue("TestProp"),
-                     NotFoundException, "Selection property \"TestProp\" not found")
+                     NotFoundException,
+                     "Failed to get property selection value")
 }
 
 TEST_F(PropertyObjectTest, SelectionPropNoList)
@@ -659,7 +661,7 @@ TEST_F(PropertyObjectTest, SelectionPropNoList)
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.getPropertySelectionValue("SelectionPropNoList"),
                      InvalidPropertyException,
-                     "Selection property \"SelectionPropNoList\" has no selection values assigned")
+                     "Failed to get property selection value")
 }
 
 TEST_F(PropertyObjectTest, DictProp)
@@ -1397,7 +1399,7 @@ TEST_F(PropertyObjectTest, PropertyValidateFailedEvalValue)
     obj.addProperty(ptr);
     
     ErrCode err = obj->setPropertyValue(String(propertyName), Floating(10.2));
-    ASSERT_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
 
     ASSERT_THROW(obj.setPropertyValue(propertyName, 10.2), ValidateFailedException);
 }
@@ -1428,7 +1430,8 @@ TEST_F(PropertyObjectTest, PropertyWriteValidateEvalValueMultipleTimes)
     ASSERT_NO_THROW(obj.setPropertyValue(propertyName, 12.2));
 
     err = obj->setPropertyValue(String(propertyName), Floating(5.0));
-    ASSERT_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+
     ASSERT_THROW(obj.setPropertyValue(propertyName, 5), ValidateFailedException);
 }
 

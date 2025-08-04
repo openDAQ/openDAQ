@@ -132,7 +132,6 @@ ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc,
     err = rule->getType(&type);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-
     if (type != daq::DataRuleType::Explicit)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Packet Buffer supports only Explicit Rule Type packets.");
 
@@ -144,15 +143,16 @@ ErrCode PacketBufferImpl::createPacket(SizeT sampleCount, IDataDescriptor* desc,
     err = desc->getRawSampleSize(&rawSampleSize);
     OPENDAQ_RETURN_IF_FAILED(err);
 
+    SizeT packetSize = sampleCount * rawSampleSize;
     void* startMemPos = nullptr;
 
-    this->Write(sampleCount * rawSampleSize, &startMemPos);
-    DeleterPtr deleter;
-
-    deleter = daq::Deleter([this, sampleCnt = (sampleCount * rawSampleSize), startMemPos = startMemPos](void*) mutable
-                           {
-                                Read(startMemPos, sampleCnt);
-                            });
+    const ErrCode errCode = this->Write(packetSize, &startMemPos);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    
+    DeleterPtr deleter = daq::Deleter([this, packetSize, startMemPos = startMemPos] (void*) mutable
+    {
+        Read(startMemPos, packetSize);
+    });
     *packet = daq::DataPacketWithExternalMemory(domainPacket, desc, sampleCount, startMemPos, deleter).detach();
 
     return OPENDAQ_SUCCESS;
@@ -163,12 +163,11 @@ ErrCode PacketBufferImpl::resize(SizeT sizeInBytes)
     std::unique_lock<std::mutex> lock(readWriteMutex);
     underReset = true;
 
-    this->resizeSync.wait(lock,
-                          [this]
-                          {
-                            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-                            return ((readPos == writePos) && (!isFull));
-                          });
+    this->resizeSync.wait(lock, [this]
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        return ((readPos == writePos) && (!isFull));
+    });
 
     data.resize(sizeInBytes);
     this->sizeInBytes = sizeInBytes;

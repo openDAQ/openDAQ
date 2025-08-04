@@ -7,6 +7,7 @@ set(SRC_Include common.h
                 audio_device_impl.h
                 audio_channel_impl.h
                 wav_writer_fb_impl.h
+                wav_reader_fb_impl.h
                 miniaudio_utils.h
 )
 
@@ -15,6 +16,7 @@ set(SRC_Srcs module_dll.cpp
              audio_device_impl.cpp
              audio_channel_impl.cpp
              wav_writer_fb_impl.cpp
+             wav_reader_fb_impl.cpp
              miniaudio_utils.cpp
 )
 
@@ -25,6 +27,7 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/audio_device_module_common.h
                             ${MODULE_HEADERS_DIR}/audio_channel_impl.h
                             ${MODULE_HEADERS_DIR}/audio_device_impl.h
                             ${MODULE_HEADERS_DIR}/wav_writer_fb_impl.h
+                            ${MODULE_HEADERS_DIR}/wav_reader_fb_impl.h
                             ${MODULE_HEADERS_DIR}/miniaudio_utils.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             module_dll.cpp
@@ -32,6 +35,7 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/audio_device_module_common.h
                             audio_device_impl.cpp
                             audio_channel_impl.cpp
                             wav_writer_fb_impl.cpp
+                            wav_reader_fb_impl.cpp
                             miniaudio_utils.cpp
 )
 

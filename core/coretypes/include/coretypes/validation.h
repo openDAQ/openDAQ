@@ -34,6 +34,9 @@
         do { if (nullptr == (param)) return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Parameter %s must not be null", #param); } while (0)
 #endif
 
+#define OPENDAQ_PARAM_REQUIRE(cond) \
+    do { if (!(cond)) return OPENDAQ_ERR_INVALIDPARAMETER; } while (0)
+
 #define OPENDAQ_PARAM_TRUTHY(param) \
     do { if (!(param)) return OPENDAQ_ERR_INVALIDPARAMETER; } while (0)
 
@@ -60,8 +63,8 @@
 
 #else
 
-#define OPENDAQ_PARAM_REQUIRE(cond)
 #define OPENDAQ_PARAM_NOT_NULL(param)
+#define OPENDAQ_PARAM_REQUIRE(cond)
 #define OPENDAQ_PARAM_TRUTHY(param)
 #define OPENDAQ_PARAM_FALSY(param)
 #define OPENDAQ_PARAM_GE(param, val)

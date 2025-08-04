@@ -120,10 +120,12 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::Deserialize(ISerializedObject* ser
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context]
     {
         *obj = DeserializeDeviceInfo<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(serialized, context).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>

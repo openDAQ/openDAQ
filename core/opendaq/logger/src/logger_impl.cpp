@@ -7,11 +7,9 @@
 #include <opendaq/logger_thread_pool_factory.h>
 #include <spdlog/async.h>
 #include <spdlog/spdlog.h>
-#include <functional>
 #include <utility>
 #include <coretypes/ctutils.h>
 #include <memory.h>
-#include <iostream>
 
 #include "opendaq/utils/thread_name.h"
 

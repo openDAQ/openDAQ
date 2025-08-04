@@ -401,7 +401,7 @@ void NativeStreamingToDeviceImpl::signalReadingFunc()
     while(hasPacketsToRead);
 }
 
-bool NativeStreamingToDeviceImpl::isClientToDeviceStreamingSupported()
+bool NativeStreamingToDeviceImpl::isClientToDeviceStreamingSupported() const
 {
     return true;
 }

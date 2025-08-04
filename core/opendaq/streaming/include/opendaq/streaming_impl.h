@@ -71,6 +71,8 @@ public:
     ErrCode INTERFACE_FUNC getOwnerDeviceRemoteId(IString** deviceRemoteId) const override;
     ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) const override;
 
+    ErrCode INTERFACE_FUNC getClientToDeviceStreamingEnabled(Bool* enabled) const override;
+
     // IStreamingPrivate
     ErrCode INTERFACE_FUNC subscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
     ErrCode INTERFACE_FUNC unsubscribeSignal(const StringPtr& signalRemoteId, const StringPtr& domainSignalRemoteId) override;
@@ -121,7 +123,7 @@ protected:
     virtual void onUnregisterStreamedSignal(const SignalPtr& signal);
     virtual void signalReadingFunc() {} // ? FIXME - should not be virtual
 
-    virtual bool isClientToDeviceStreamingSupported();
+    virtual bool isClientToDeviceStreamingSupported() const;
 
     void startReadThread();
     void onPacket(const StringPtr& signalId, const PacketPtr& packet);
@@ -133,7 +135,7 @@ protected:
     StringPtr connectionString;
     ContextPtr context;
     LoggerComponentPtr loggerComponent;
-    WeakRefPtr<IDevice> ownerDeviceRef;
+    WeakRefPtr<IMirroredDevice> ownerDeviceRef;
     EnumerationPtr connectionStatus;
     std::unordered_map<StringPtr, WeakRefPtr<ISignal>> streamedSignals;
 
@@ -660,6 +662,11 @@ ErrCode StreamingImpl<Interfaces...>::setOwnerDevice(const DevicePtr& device)
 {
     std::scoped_lock lock(sync);
 
+    if (!device.supportsInterface<IMirroredDevice>())
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Owner device should be mirrored device");
+    }
+
     ownerDeviceRef = device;
     return OPENDAQ_SUCCESS;
 }
@@ -792,7 +799,7 @@ void StreamingImpl<Interfaces...>::onUnregisterStreamedSignal(const SignalPtr &s
 }
 
 template <typename... Interfaces>
-bool StreamingImpl<Interfaces...>::isClientToDeviceStreamingSupported()
+bool StreamingImpl<Interfaces...>::isClientToDeviceStreamingSupported() const
 {
     return false;
 }
@@ -1052,8 +1059,15 @@ ErrCode StreamingImpl<Interfaces...>::getOwnerDeviceRemoteId(IString** deviceRem
 {
     OPENDAQ_PARAM_NOT_NULL(deviceRemoteId);
 
-    *deviceRemoteId = this->ownerDeviceRef.getRef().template asPtr<IMirroredDevice>().getRemoteId();
-    return OPENDAQ_SUCCESS;
+    if (auto device = this->ownerDeviceRef.getRef(); device.assigned())
+    {
+        *deviceRemoteId = device.getRemoteId();
+        return OPENDAQ_SUCCESS;
+    }
+    else
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Owner device is not assigned");
+    }
 }
 
 template <typename... Interfaces>
@@ -1062,6 +1076,16 @@ ErrCode StreamingImpl<Interfaces...>::getProtocolId(IString** protocolId) const
     OPENDAQ_PARAM_NOT_NULL(protocolId);
 
     *protocolId = this->protocolId;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::getClientToDeviceStreamingEnabled(Bool* enabled) const
+{
+    OPENDAQ_PARAM_NOT_NULL(enabled);
+
+    *enabled = isClientToDeviceStreamingSupported();
+
     return OPENDAQ_SUCCESS;
 }
 

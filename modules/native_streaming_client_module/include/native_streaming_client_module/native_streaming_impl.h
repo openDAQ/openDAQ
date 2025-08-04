@@ -107,7 +107,7 @@ protected:
     void onUnregisterStreamedSignal(const SignalPtr& signal) override;
     void signalReadingFunc() override;
 
-    bool isClientToDeviceStreamingSupported() override;
+    bool isClientToDeviceStreamingSupported() const override;
 
 private:
     void initStreamingToDeviceCallbacks();

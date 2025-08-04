@@ -276,10 +276,9 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
 
     auto setupStreamingForInputPort = [this, &allStreamingSources](const InputPortPtr& inputPort)
     {
-        for (const auto& streamingBase : allStreamingSources)
+        for (const auto& streaming : allStreamingSources)
         {
-            StreamingPtr streaming = streamingBase.asPtrOrNull<IStreaming>();
-            if (!streaming.assigned())
+            if (!streaming.getClientToDeviceStreamingEnabled())
                 continue;
             ErrCode errCode = daqTry([&]()
                                      {

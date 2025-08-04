@@ -121,6 +121,8 @@ DECLARE_OPENDAQ_INTERFACE(IStreaming, IBaseObject)
 
     virtual ErrCode INTERFACE_FUNC getOwnerDeviceRemoteId(IString** deviceRemoteId) const = 0;
     virtual ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) const = 0;
+
+    virtual ErrCode INTERFACE_FUNC getClientToDeviceStreamingEnabled(Bool* enabled) const = 0;
 };
 /*!@}*/
 

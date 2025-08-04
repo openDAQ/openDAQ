@@ -204,6 +204,5 @@ void VideoPlayerFbImpl::handleEventPacket(const EventPacketPtr& packet)
     }));
 }
 
-
 } // namespace VideoPlayer
 END_NAMESPACE_REF_FB_MODULE

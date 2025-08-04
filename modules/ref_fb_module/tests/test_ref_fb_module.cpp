@@ -181,8 +181,8 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStructDecoder"));
     ASSERT_EQ("RefFBModuleStructDecoder", functionBlockTypes.get("RefFBModuleStructDecoder").getId());
 
-    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleMjpegPlayer"));
-    ASSERT_EQ("RefFBModuleMjpegPlayer", functionBlockTypes.get("RefFBModuleMjpegPlayer").getId());
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleVideoPlayer"));
+    ASSERT_EQ("RefFBModuleVideoPlayer", functionBlockTypes.get("RefFBModuleVideoPlayer").getId());
 
     // Check module info for module
     ModuleInfoPtr moduleInfo;

@@ -1,36 +1,56 @@
-#include <websocket_streaming_client_module/websocket_streaming_client_module_impl.h>
-#include <websocket_streaming_client_module/version.h>
+/*
+ * Copyright 2022-2025 openDAQ d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <algorithm>
+#include <mutex>
+#include <regex>
+#include <string>
+#include <utility>
+
 #include <coretypes/version_info_factory.h>
-#include <chrono>
-#include <websocket_streaming/websocket_client_device_factory.h>
-#include <websocket_streaming/websocket_streaming_factory.h>
 #include <opendaq/streaming_type_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/address_info_factory.h>
-#include <regex>
+
+#include <websocket_streaming/ws_streaming.h>
+#include <websocket_streaming/ws_streaming_device.h>
+
+#include <websocket_streaming_client_module/common.h>
+#include <websocket_streaming_client_module/version.h>
+#include <websocket_streaming_client_module/websocket_streaming_client_module_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE
-
-static std::string WebsocketDeviceTypeId = "OpenDAQLTStreaming";
-static std::string OldWebsocketDeviceTypeId = "OpenDAQLTStreamingOld";
-static std::string WebsocketDevicePrefix = "daq.lt";
-static std::string OldWebsocketDevicePrefix = "daq.ws";
 
 static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
 static const std::regex RegexIpv4Hostname(R"(^(.+://)?([^:/\s]+)(?::(\d+))?(/.*)?$)");
 
 using namespace discovery;
-using namespace daq::websocket_streaming;
+using namespace websocket_streaming;
 
 WebsocketStreamingClientModule::WebsocketStreamingClientModule(ContextPtr context)
-    : Module("OpenDAQWebsocketClientModule",
-            daq::VersionInfo(WS_STREAM_CL_MODULE_MAJOR_VERSION, WS_STREAM_CL_MODULE_MINOR_VERSION, WS_STREAM_CL_MODULE_PATCH_VERSION),
-            std::move(context),
-            "OpenDAQWebsocketClientModule")
+    : Module(
+        "OpenDAQWebsocketClientModule",
+        daq::VersionInfo(
+            WS_STREAM_CL_MODULE_MAJOR_VERSION,
+            WS_STREAM_CL_MODULE_MINOR_VERSION,
+            WS_STREAM_CL_MODULE_PATCH_VERSION),
+        std::move(context),
+        "OpenDAQWebsocketClientModule")
     , deviceIndex(0)
-    , discoveryClient(
-        {"LT"}
-    )
+    , discoveryClient({"LT"})
 {
     discoveryClient.initMdnsClient(List<IString>("_streaming-lt._tcp.local.", "_streaming-ws._tcp.local."));
     loggerComponent = this->context.getLogger().getOrAddComponent("StreamingLTClient");
@@ -48,8 +68,8 @@ DictPtr<IString, IDeviceType> WebsocketStreamingClientModule::onGetAvailableDevi
 {
     auto result = Dict<IString, IDeviceType>();
 
-    const auto websocketDeviceType = createWebsocketDeviceType(false);
-    const auto oldWebsocketDeviceType = createWebsocketDeviceType(true);
+    const auto websocketDeviceType = WsStreamingDevice::NEW_TYPE;
+    const auto oldWebsocketDeviceType = WsStreamingDevice::OLD_TYPE;
 
     result.set(websocketDeviceType.getId(), websocketDeviceType);
     result.set(oldWebsocketDeviceType.getId(), oldWebsocketDeviceType);
@@ -61,7 +81,7 @@ DictPtr<IString, IStreamingType> WebsocketStreamingClientModule::onGetAvailableS
 {
     auto result = Dict<IString, IStreamingType>();
 
-    auto websocketStreamingType = createWebsocketStreamingType();
+    auto websocketStreamingType = WsStreaming::TYPE;
 
     result.set(websocketStreamingType.getId(), websocketStreamingType);
 
@@ -90,7 +110,7 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     std::scoped_lock lock(sync);
 
     std::string localId = fmt::format("websocket_pseudo_device{}", deviceIndex++);
-    auto device = WebsocketClientDevice(context, parent, localId, strPtr);
+    auto device = createWithImplementation<IDevice, WsStreamingDevice>(context, parent, localId, strPtr);
 
     // Set the connection info for the device
     auto host = String("");
@@ -116,13 +136,13 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
 
     // Set the connection info for the device
     ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
-    connectionInfo.setProtocolId(WebsocketDeviceTypeId);
-    connectionInfo.setProtocolName("OpenDAQLTStreaming");
+    connectionInfo.setProtocolId(WsStreaming::TYPE.getId());
+    connectionInfo.setProtocolName(WsStreaming::TYPE.getId());
     connectionInfo.setProtocolType(ProtocolType::Streaming);
     connectionInfo.setConnectionType("TCP/IP");
     connectionInfo.addAddress(host);
     connectionInfo.setPort(port);
-    connectionInfo.setPrefix("daq.lt");
+    connectionInfo.setPrefix(WsStreaming::TYPE.getConnectionStringPrefix());
     connectionInfo.setConnectionString(strPtr);
 
     return device;
@@ -131,7 +151,8 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
 bool WebsocketStreamingClientModule::acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
 {
     std::string connStr = connectionString;
-    auto found = connStr.find(WebsocketDevicePrefix + "://") == 0 || connStr.find(OldWebsocketDevicePrefix + "://") == 0;
+    auto found = connStr.find(WsStreamingDevice::OLD_TYPE.getConnectionStringPrefix().toStdString() + "://") == 0
+        || connStr.find(WsStreamingDevice::NEW_TYPE.getConnectionStringPrefix().toStdString() + "://") == 0;
     return found;
 }
 
@@ -153,7 +174,7 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     const StringPtr str = formConnectionString(connectionString, config);
-    return WebsocketStreaming(str, context);
+    return createWithImplementation<IStreaming, WsStreaming>(str, context);
 }
 
 Bool WebsocketStreamingClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
@@ -217,32 +238,8 @@ StringPtr WebsocketStreamingClientModule::createUrlConnectionString(const String
                                                                     const IntegerPtr& port,
                                                                     const StringPtr& path)
 {
-    return String(std::string(WebsocketDevicePrefix) + fmt::format("://{}:{}{}", host, port, path));
-}
-
-DeviceTypePtr WebsocketStreamingClientModule::createWebsocketDeviceType(bool useOldPrefix)
-{
-    const StringPtr prefix = useOldPrefix ? String(OldWebsocketDevicePrefix) : String(WebsocketDevicePrefix);
-    const StringPtr id = useOldPrefix ? String(OldWebsocketDeviceTypeId) : String(WebsocketDeviceTypeId);
-
-    return DeviceTypeBuilder()
-        .setId(id)
-        .setName("Streaming LT enabled pseudo-device")
-        .setDescription("Pseudo device, provides only signals of the remote device as flat list")
-        .setConnectionStringPrefix(prefix)
-        .setDefaultConfig(createDefaultConfig())
-        .build();
-}
-
-StreamingTypePtr WebsocketStreamingClientModule::createWebsocketStreamingType()
-{
-    return StreamingTypeBuilder()
-        .setId(WebsocketDeviceTypeId)
-        .setName("Streaming LT")
-        .setDescription("openDAQ native streaming protocol client")
-        .setConnectionStringPrefix("daq.lt")
-        .setDefaultConfig(createDefaultConfig())
-        .build();
+    return String(WsStreaming::TYPE.getConnectionStringPrefix().toStdString()
+        + fmt::format("://{}:{}{}", host, port, path));
 }
 
 PropertyObjectPtr WebsocketStreamingClientModule::createDefaultConfig()
@@ -294,7 +291,10 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
 
 DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    auto cap = ServerCapability(WebsocketDeviceTypeId, "OpenDAQLTStreaming", ProtocolType::Streaming);
+    auto cap = ServerCapability(
+        WsStreamingDevice::NEW_TYPE.getId(),
+        "OpenDAQLTStreaming",
+        ProtocolType::Streaming);
 
     for (const auto& ipAddress : discoveredDevice.ipv4Addresses)
     {
@@ -337,7 +337,11 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
 
-    return populateDiscoveredDeviceInfo(DiscoveryClient::populateDiscoveredInfoProperties, discoveredDevice, cap, createWebsocketDeviceType(false));
+    return populateDiscoveredDeviceInfo(
+        DiscoveryClient::populateDiscoveredInfoProperties,
+        discoveredDevice,
+        cap,
+        WsStreamingDevice::NEW_TYPE);
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE

@@ -1,6 +1,7 @@
 # Changes from 3.20 to 3.30
 
 ## Features
+- [#870](https://github.com/openDAQ/openDAQ/pull/870) Licensing interface and reference module + example implementation.
 - [#861](https://github.com/openDAQ/openDAQ/pull/861) Add support for list and dictionary item/key type identification in Argument Info.
 - [#837](https://github.com/openDAQ/openDAQ/pull/837) Add main thread event loop, SFML 3.0 migration, and renderer window control
 - [#838](https://github.com/openDAQ/openDAQ/pull/838) Set of multi reader improvements.

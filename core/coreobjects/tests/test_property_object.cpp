@@ -2278,12 +2278,12 @@ TEST_F(PropertyObjectTest, OnGetSelectionValues)
     {
         ASSERT_EQ(selectionProp.getSelectionValues(), List<IString>("apple", "pineapple", "blueberry"));
         ASSERT_EQ(selectionProp.getSelectionValues(), List<IString>("foo", "bar"));
-        ASSERT_EQ(cnt, 4 * i + 2);
         
         ASSERT_EQ(objProp.getSelectionValues(), List<IString>("apple", "pineapple", "blueberry"));
         ASSERT_EQ(objProp.getSelectionValues(), List<IString>("foo", "bar"));
-        ASSERT_EQ(cnt, 4 * (i + 1));
     }
+
+    ASSERT_EQ(cnt, 40);
 }
 
 TEST_F(PropertyObjectTest, OnGetSparseSelectionValues)

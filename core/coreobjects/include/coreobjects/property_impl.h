@@ -565,6 +565,7 @@ public:
                 {
                     // TODO: Should this lock !? If yes, what mutex !?
                     auto args = PropertyMetadataReadArgs(propPtr);
+                    args.setValue(this->suggestedValues);
                     onSuggestedValuesRead(propPtr, args);
 
                     ListPtr<IBaseObject> selectionValuesPtr = args.getValue();
@@ -651,6 +652,7 @@ public:
                 {
                     // TODO: Should this lock !? If yes, what mutex !?
                     auto args = PropertyMetadataReadArgs(propPtr);
+                    args.setValue(this->selectionValues);
                     onSelectionValuesRead(propPtr, args);
 
                     *values = args.getValue().detach();
@@ -1449,13 +1451,14 @@ public:
         OPENDAQ_PARAM_NOT_NULL(values);
 
         if (onSuggestedValuesRead.hasListeners())
-            return OPENDAQ_SUCCESS;
+            return getSuggestedValuesNoLock(values);
 
-        ErrCode errCode = return daqTry([&]()
+        ErrCode errCode = daqTry([&]()
         {
             ListPtr<IBaseObject> suggestedValuesPtr = getUnresolved(this->suggestedValues);
             *values = suggestedValuesPtr.detach();
         });
+
         OPENDAQ_RETURN_IF_FAILED(errCode);
         return errCode;
     }
@@ -1491,7 +1494,7 @@ public:
         OPENDAQ_PARAM_NOT_NULL(values);
 
         if (onSelectionValuesRead.hasListeners())
-            return OPENDAQ_SUCCESS;
+            return getSelectionValuesNoLock(values);
 
         ErrCode errCode = daqTry([&]()
         {

@@ -188,12 +188,14 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyValue(IString* prop
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
     const auto valuePtr = BaseObjectPtr::Borrow(value);
-    return daqTry([this, &propertyNamePtr, &valuePtr]()
+    const ErrCode errCode = daqTry([this, &propertyNamePtr, &valuePtr]()
     {
         checkCanSetPropertyValue(propertyNamePtr);
         const auto fullPropName = getFullPropName(propertyNamePtr);
         clientComm->setPropertyValue(remoteGlobalId, fullPropName, valuePtr);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -206,12 +208,14 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setProtectedPropertyValue(IStr
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
     const auto valuePtr = BaseObjectPtr::Borrow(value);
-    return daqTry([this, &propertyNamePtr, &valuePtr]()
+    const ErrCode errCode = daqTry([this, &propertyNamePtr, &valuePtr]()
     {
         checkCanSetPropertyValue(propertyNamePtr);
         const auto fullPropName = getFullPropName(propertyNamePtr);
         clientComm->setProtectedPropertyValue(remoteGlobalId, fullPropName, valuePtr);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -222,7 +226,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    return daqTry([this, &propertyNamePtr, &value]()
+    const ErrCode errCode = daqTry([this, &propertyNamePtr, &value]()
     {
 
         PropertyPtr prop;
@@ -243,6 +247,8 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 
         return Impl::getPropertyValue(propertyNamePtr, value);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -275,10 +281,12 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearPropertyValue(IString* pr
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
-    return daqTry([this, &propertyNamePtr]()
+    const ErrCode errCode = daqTry([this, &propertyNamePtr]()
     {
         clientComm->clearPropertyValue(remoteGlobalId, propertyNamePtr);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -289,10 +297,12 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValue(IS
         return Impl::clearProtectedPropertyValue(propertyName);
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
-    return daqTry([this, &propertyNamePtr]()
+    const ErrCode errCode = daqTry([this, &propertyNamePtr]()
     {
         clientComm->clearProtectedPropertyValue(remoteGlobalId, propertyNamePtr);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -369,25 +379,29 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* ordere
 template <class Impl>
 ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::beginUpdate()
 {
-    return daqTry([this]()
+    const ErrCode errCode = daqTry([this]()
     {
         std::string path{};
         if (this->path.assigned())
             path = this->path.toStdString();
         clientComm->beginUpdate(remoteGlobalId, path);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
 ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
 {
-    return daqTry([this]()
+    const ErrCode errCode = daqTry([this]()
     {
         std::string path{};
         if (this->path.assigned())
             path = this->path.toStdString();
         clientComm->endUpdate(remoteGlobalId, path);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -395,12 +409,14 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObje
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([this, &obj]()
+    const ErrCode errCode = daqTry([this, &obj]()
     {
         StringPtr serialized;
         checkErrorInfo(obj->toJson(&serialized));
         clientComm->update(remoteGlobalId, serialized, this->path);
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -467,11 +483,13 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreEvent(ICompone
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject* serialized)
 {
-    return daqTry([&serialized, this]
+    const ErrCode errCode = daqTry([&serialized, this]
     {
         onRemoteUpdate(serialized);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>
@@ -516,10 +534,14 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
     const auto hasKey = serObj.hasKey(keyStr);
     const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
 
-    if (!IsTrue(hasKey))
+    if (IsFalse(hasKey))
     {
         for (const auto& prop : thisPtr.getAllProperties())
-            Impl::removeProperty(prop.getName());
+        {
+            const ErrCode errCode = Impl::removeProperty(prop.getName());
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo();
+        }
         return;
     }
     
@@ -542,7 +564,11 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
     {
         const auto propName = prop.getName();
         if (!serializedProps.count(propName))
-            Impl::removeProperty(propName);
+        {
+            const ErrCode errCode = Impl::removeProperty(propName);
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo();
+        }
     }
 }
 
@@ -1009,19 +1035,19 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]()
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
     {
         const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
         if (!serializedPtr.assigned())
-            DAQ_THROW_EXCEPTION(ArgumentNullException, "Serialized object not assigned");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Serialized object not assigned");
 
         const auto contextPtr = BaseObjectPtr::Borrow(context);
         if (!contextPtr.assigned())
-            DAQ_THROW_EXCEPTION(ArgumentNullException, "Deserialization context not assigned");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Deserialization context not assigned");
 
         const auto componentDeserializeContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>(true);
         if (!componentDeserializeContext.assigned())
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid deserialization context");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Invalid deserialization context");
 
         const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 
@@ -1043,7 +1069,10 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
         deserializeComponent.complete();
 
         *obj = propObj.detach();
+        return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline void ConfigClientPropertyObjectImpl::unfreeze()

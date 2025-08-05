@@ -66,20 +66,12 @@ public:
 
     VersionInfoPtr& operator=(const VersionInfoPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         daq::ObjectPtr<IVersionInfo>::operator =(other);
         return *this;
     }
 
     VersionInfoPtr& operator=(VersionInfoPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
         daq::ObjectPtr<IVersionInfo>::operator =(std::move(other));
         return *this;
     }

@@ -6,6 +6,9 @@
 #include <coretypes/objectptr.h>
 #include <coretypes/inspectable_ptr.h>
 #include <coretypes/validation.h>
+#include <coretypes/ctutils.h>
+#include <coretypes/errorinfo_factory.h>
+#include <coretypes/listobject_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
 
@@ -46,8 +49,10 @@ public:
 
     ErrCode INTERFACE_FUNC multipleErrorInfoTest() override
     {
-        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed once");
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "multipleErrorInfoTest failed twice");
+        const ErrCode errCode = newMakeErrorInfoTest();
+        OPENDAQ_RETURN_IF_FAILED(errCode, "multipleErrorInfoTest failed twice");
+
+        return OPENDAQ_SUCCESS;
     }
 
     ErrCode INTERFACE_FUNC argumentNotNullTest(IBaseObject* obj) override
@@ -125,74 +130,34 @@ TEST_F(ErrorInfoTest, MultipleMessages)
     DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error0");
     DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "General error1");
 
-    IErrorInfo* lastError;
+    ObjectPtr<IErrorInfo> lastError;
     daqGetErrorInfo(&lastError);
+    ASSERT_TRUE(lastError.assigned());
 
-    ASSERT_TRUE(lastError != nullptr);
-    Finally finally([&]
-    {
-        if (lastError != nullptr)
-            lastError->releaseRef();
-        daqClearErrorInfo();
-    });
-
-    IList* errorInfoList;
+    ListPtr<IErrorInfo> errorInfoList;
     daqGetErrorInfoList(&errorInfoList);
+    ASSERT_TRUE(errorInfoList.assigned());
+    ASSERT_EQ(errorInfoList.getCount(), 2);
 
-    ASSERT_TRUE(errorInfoList != nullptr);
-    Finally finally3([&]
+    for (SizeT i = 0; i < errorInfoList.getCount(); ++i)
     {
-        if (errorInfoList != nullptr)
-            errorInfoList->releaseRef();
-    });
+        auto errorInfoObject = errorInfoList[i];
+        ASSERT_TRUE(errorInfoObject.assigned());
 
-    SizeT count = 0;
-    errorInfoList->getCount(&count);
-    ASSERT_EQ(count, 2);
-
-    for (SizeT i = 0; i < count; ++i)
-    {
-        IBaseObject* errorInfoObject;
-        errorInfoList->getItemAt(i, &errorInfoObject);
-
-        ASSERT_TRUE(errorInfoObject != nullptr);
-        Finally finally4([&]
-        {
-            if (errorInfoObject != nullptr)
-                errorInfoObject->releaseRef();
-        });
-
-        IErrorInfo* errorInfo;
-        errorInfoObject->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
-
-        if (i == count -1)
-        {
-            ASSERT_EQ(errorInfo, lastError);
-        }
-
-        IString* message;
-        errorInfo->getMessage(&message);
-
-        ASSERT_TRUE(message != nullptr);
-        Finally finally5([&]
-        {
-            if (message != nullptr)
-                message->releaseRef();
-        });
-
-        ConstCharPtr msgCharPtr;
-        message->getCharPtr(&msgCharPtr);
+        StringPtr message;
+        errorInfoObject->getMessage(&message);
+        ASSERT_TRUE(message.assigned());
 
         std::string expectedMsg = "General error" + std::to_string(i);
-        ASSERT_STREQ(msgCharPtr, expectedMsg.c_str());
+        ASSERT_STREQ(message.getCharPtr(), expectedMsg.c_str());
 
 #ifndef NDEBUG
         ConstCharPtr fileName;
-        errorInfo->getFileName(&fileName);
+        errorInfoObject->getFileName(&fileName);
         ASSERT_TRUE(fileName != nullptr);
 
         Int line;
-        errorInfo->getFileLine(&line);
+        errorInfoObject->getFileLine(&line);
         ASSERT_NE(line, -1);
 #endif
     }
@@ -203,25 +168,27 @@ std::string getErrorPostfix([[maybe_unused]] Int fileLine)
 #ifdef NDEBUG
     return "";
 #else
-    return " [ File " + std::string(__FILE__) + ":" + std::to_string(fileLine) + " ]";
+    return " [ " + std::string(__FILE__) + ":" + std::to_string(fileLine) + " ]";
 #endif
 }
-
 
 TEST_F(ErrorInfoTest, ErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(44);
+    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(47);
     ASSERT_THROW_MSG(checkErrorInfo(obj->newMakeErrorInfoTest()), GeneralErrorException, expected);
 }
 
 TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
-
-    std::string expected = "multipleErrorInfoTest failed once" + getErrorPostfix(49);
-    expected += "\nmultipleErrorInfoTest failed twice" + getErrorPostfix(50);
+#ifdef NDEBUG
+    std::string expected = "multipleErrorInfoTest failed twice";
+#else
+    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(47) + "\n";
+    expected += " - Caused by: multipleErrorInfoTest failed twice" + getErrorPostfix(53);
+#endif
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 
@@ -232,7 +199,7 @@ TEST_F(ErrorInfoTest, ArgumentNotNull)
 #ifdef NDEBUG
     std::string expected = "Parameter obj must not be null in the function \"";
 #else
-    std::string expected = "Parameter obj must not be null" + getErrorPostfix(55);
+    std::string expected = "Parameter obj must not be null" + getErrorPostfix(60);
 #endif
     ASSERT_THROW_MSG(checkErrorInfo(obj->argumentNotNullTest(nullptr)), ArgumentNullException, expected);
 }
@@ -241,7 +208,7 @@ TEST_F(ErrorInfoTest, ThrowExceptionInDaqTry)
 {
     auto obj = CreateTestObject();
 
-    std::string expected = "Test failed" + getErrorPostfix(63);
+    std::string expected = "Test failed" + getErrorPostfix(68);
     ASSERT_THROW_MSG(checkErrorInfo(obj->throwExceptionTest()), GeneralErrorException, expected);
 }
 
@@ -309,4 +276,35 @@ TEST_F(ErrorInfoTest, SerializeDeserialize)
     const auto jsonStrNew = serializer.getOutput();
 
     ASSERT_EQ(jsonStr, jsonStrNew);
+}
+
+TEST_F(ErrorInfoTest, errorGuardClearing)
+{
+    const auto trackedObjectCount = daqGetTrackedObjectCount();
+    // create error scope and error here
+    {
+        auto errorGuard = DAQ_ERROR_GUARD();
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Error in error guard");
+        {
+            auto errorGuard2 = DAQ_ERROR_GUARD();
+            DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Error in error guard2");
+
+            ListPtr<IErrorInfo> errorInfoList;
+            errorGuard2->getErrorInfoList(&errorInfoList);
+            ASSERT_TRUE(errorInfoList.assigned());
+            ASSERT_EQ(errorInfoList.getCount(), 1);
+        }
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "One more error in error guard");
+
+        ListPtr<IErrorInfo> errorInfoList;
+        errorGuard->getErrorInfoList(&errorInfoList);
+        ASSERT_TRUE(errorInfoList.assigned());
+        ASSERT_EQ(errorInfoList.getCount(), 2);
+    }
+    // scope is cleared, error info should be cleared as well
+    ObjectPtr<IErrorInfo> lastError;
+    daqGetErrorInfo(&lastError);
+    ASSERT_FALSE(lastError.assigned());
+
+    ASSERT_EQ(daqGetTrackedObjectCount(), trackedObjectCount);
 }

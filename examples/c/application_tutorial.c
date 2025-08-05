@@ -368,7 +368,7 @@ int main()
     daqReleaseRef(noiseAmplitudeValue);
 
     // Modulate the signal amplitude by a step of 0.1 every 25 ms.
-    const daqFloat ampStep = 0.1;
+    daqFloat ampStep = 0.1;
     for (int i = 0; i < 200; ++i)
     {
         sleepMs(25);
@@ -378,6 +378,9 @@ int main()
 
         daqFloat currentAmplitude = 0.0;
         daqFloatObject_getValue(amplitudeValue, &currentAmplitude);
+
+        if(9.95 < currentAmplitude || currentAmplitude < 1.05)
+            ampStep = -ampStep;
 
         currentAmplitude += ampStep;
 

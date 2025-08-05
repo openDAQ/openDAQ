@@ -1,5 +1,3 @@
-#include <websocket_streaming/streaming_client.h>
-#include <websocket_streaming/streaming_server.h>
 #include <opendaq/context_factory.h>
 
 #include <gtest/gtest.h>

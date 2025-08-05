@@ -38,11 +38,9 @@ public:
     Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target) override;
 
 private:
-    static DeviceTypePtr createWebsocketDeviceType(bool useOldPrefix);
     static StringPtr createUrlConnectionString(const StringPtr& host,
                                                const IntegerPtr& port,
                                                const StringPtr& path);
-    static StreamingTypePtr createWebsocketStreamingType();
     static PropertyObjectPtr createDefaultConfig();
     static StringPtr formConnectionString(const StringPtr& connectionString, const PropertyObjectPtr& config);
     static DeviceInfoPtr populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);

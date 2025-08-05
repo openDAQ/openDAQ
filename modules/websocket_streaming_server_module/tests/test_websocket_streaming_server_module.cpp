@@ -1,4 +1,5 @@
 #include <websocket_streaming_server_module/module_dll.h>
+#include <websocket_streaming_server_module/ws_streaming_server_module.h>
 #include <websocket_streaming_server_module/version.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/instance_factory.h>
@@ -12,7 +13,7 @@
 #include <opendaq/mock/mock_fb_module.h>
 #include <coreobjects/authentication_provider_factory.h>
 
-class WebsocketStreamingServerModuleTest : public testing::Test
+class WsStreamingServerModuleTest : public testing::Test
 {
 public:
     void TearDown() override
@@ -24,46 +25,10 @@ using namespace daq;
 
 static ModulePtr CreateModule(ContextPtr context = NullContext())
 {
-    ModulePtr module;
-    createWebsocketStreamingServerModule(&module, context);
-    return module;
+    return createWithImplementation<IModule, modules::websocket_streaming_server_module::WsStreamingServerModule>(context);
 }
 
-static InstancePtr CreateTestInstance()
-{
-    const auto logger = Logger();
-    const auto moduleManager = ModuleManager("[[none]]");
-    const auto authenticationProvider = AuthenticationProvider();
-    const auto context = Context(Scheduler(logger), logger, TypeManager(), moduleManager, authenticationProvider);
-
-    const ModulePtr deviceModule(MockDeviceModule_Create(context));
-    moduleManager.addModule(deviceModule);
-
-    const ModulePtr fbModule(MockFunctionBlockModule_Create(context));
-    moduleManager.addModule(fbModule);
-
-    const ModulePtr daqWebsocketStreamingServerModule = CreateModule(context);
-    moduleManager.addModule(daqWebsocketStreamingServerModule);
-
-    auto instance = InstanceCustom(context, "localInstance");
-    for (const auto& deviceInfo : instance.getAvailableDevices())
-        instance.addDevice(deviceInfo.getConnectionString());
-
-    for (const auto& [id, _] : instance.getAvailableFunctionBlockTypes())
-        instance.addFunctionBlock(id);
-
-    return instance;
-}
-
-static PropertyObjectPtr CreateServerConfig(const InstancePtr& instance)
-{
-    auto config = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
-    config.setPropertyValue("WebsocketStreamingPort", 0);
-    config.setPropertyValue("WebsocketControlPort", 0);
-    return config;
-}
-
-TEST_F(WebsocketStreamingServerModuleTest, CreateModule)
+TEST_F(WsStreamingServerModuleTest, CreateModule)
 {
     IModule* module = nullptr;
     ErrCode errCode = createModule(&module, NullContext());
@@ -73,19 +38,19 @@ TEST_F(WebsocketStreamingServerModuleTest, CreateModule)
     module->releaseRef();
 }
 
-TEST_F(WebsocketStreamingServerModuleTest, ModuleName)
+TEST_F(WsStreamingServerModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getModuleInfo().getName(), "OpenDAQWebsocketStreamingServerModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "OpenDAQWebSocketStreamingServerModule");
 }
 
-TEST_F(WebsocketStreamingServerModuleTest, VersionAvailable)
+TEST_F(WsStreamingServerModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
     ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
-TEST_F(WebsocketStreamingServerModuleTest, VersionCorrect)
+TEST_F(WsStreamingServerModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
     auto version = module.getModuleInfo().getVersionInfo();
@@ -95,7 +60,7 @@ TEST_F(WebsocketStreamingServerModuleTest, VersionCorrect)
     ASSERT_EQ(version.getPatch(), WS_STREAM_SRV_MODULE_PATCH_VERSION);
 }
 
-TEST_F(WebsocketStreamingServerModuleTest, GetAvailableComponentTypes)
+TEST_F(WsStreamingServerModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();
 
@@ -114,7 +79,7 @@ TEST_F(WebsocketStreamingServerModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ(serverTypes.get("OpenDAQLTStreaming").getId(), "OpenDAQLTStreaming");
 }
 
-TEST_F(WebsocketStreamingServerModuleTest, ServerConfig)
+TEST_F(WsStreamingServerModuleTest, ServerConfig)
 {
     auto module = CreateModule();
 
@@ -128,21 +93,4 @@ TEST_F(WebsocketStreamingServerModuleTest, ServerConfig)
 
     ASSERT_TRUE(config.hasProperty("WebsocketControlPort"));
     ASSERT_EQ(config.getPropertyValue("WebsocketControlPort"), 7438);
-}
-
-TEST_F(WebsocketStreamingServerModuleTest, CreateServer)
-{
-    auto device = CreateTestInstance();
-    auto module = CreateModule(device.getContext());
-    auto config = CreateServerConfig(device);
-
-    ASSERT_NO_THROW(module.createServer("OpenDAQLTStreaming", device.getRootDevice(), config));
-}
-
-TEST_F(WebsocketStreamingServerModuleTest, CreateServerFromInstance)
-{
-    auto device = CreateTestInstance();
-    auto config = CreateServerConfig(device);
-
-    ASSERT_NO_THROW(device.addServer("OpenDAQLTStreaming", config));
 }

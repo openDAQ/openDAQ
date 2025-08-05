@@ -2,8 +2,6 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/unit_factory.h>
 #include <gtest/gtest.h>
-#include <websocket_streaming/websocket_client_device_factory.h>
-#include <websocket_streaming/websocket_streaming_server.h>
 #include <opendaq/search_filter_factory.h>
 #include "streaming_test_helpers.h"
 #include <opendaq/mirrored_signal_config_ptr.h>

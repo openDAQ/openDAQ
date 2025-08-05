@@ -120,7 +120,10 @@ endif()
 
 if(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     add_subdirectory(nlohmann_json EXCLUDE_FROM_ALL)
-    add_subdirectory(streaming_protocol EXCLUDE_FROM_ALL)
+    add_subdirectory(ws-streaming EXCLUDE_FROM_ALL)
+    if(OPENDAQ_ENABLE_TESTS AND DAQMODULES_OPENDAQ_CLIENT_MODULE AND OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS)
+        add_subdirectory(streaming_protocol EXCLUDE_FROM_ALL)
+    endif()
 endif()
 
 if(OPENDAQ_MIMALLOC_SUPPORT)

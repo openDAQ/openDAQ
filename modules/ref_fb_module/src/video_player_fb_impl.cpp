@@ -56,7 +56,6 @@ void VideoPlayerFbImpl::initInputPorts()
 
 void VideoPlayerFbImpl::updateTimestamp(const DataPacketPtr& domainPacket)
 {
-    bool timestampAvailable = false;
     if (domainPacket.assigned() && domainPacket.getSampleCount())
     {
         std::chrono::system_clock::time_point timePoint;

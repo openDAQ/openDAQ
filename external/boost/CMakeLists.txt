@@ -46,7 +46,8 @@ if (NOT BOOST_INCLUDE_LIBRARIES)
                          uuid
                          locale
                          align
-
+                         serialization
+                         signals2
     )
 
     if(DAQMODULES_PARQUET_RECORDER_MODULE AND MSVC)

@@ -102,6 +102,7 @@ endif()
 if(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     add_subdirectory(nlohmann_json EXCLUDE_FROM_ALL)
     add_subdirectory(streaming_protocol EXCLUDE_FROM_ALL)
+    add_subdirectory(ws-streaming EXCLUDE_FROM_ALL)
 endif()
 
 if(OPENDAQ_MIMALLOC_SUPPORT)

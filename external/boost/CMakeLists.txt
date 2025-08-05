@@ -46,6 +46,8 @@ if (NOT BOOST_INCLUDE_LIBRARIES)
                          uuid
                          locale
                          align
+                         serialization
+                         signals2
     )
 
     set(BOOST_INCLUDE_LIBRARIES "${NEEDED_LIBRARIES}"

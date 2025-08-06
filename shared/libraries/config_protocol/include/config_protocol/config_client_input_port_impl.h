@@ -198,7 +198,7 @@ inline ErrCode ConfigClientInputPortImpl::setActiveStreamingSource(IString* stre
 {
     ErrCode errCode = Super::setActiveStreamingSource(streamingConnectionString);
 
-    if (errCode == OPENDAQ_SUCCESS && clientComm->getProtocolVersion() >= 17)
+    if (errCode == OPENDAQ_SUCCESS && clientComm->getProtocolVersion() >= 17 && this->getConnectedSignal().assigned())
     {
         const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
         // notify server that source has been changed

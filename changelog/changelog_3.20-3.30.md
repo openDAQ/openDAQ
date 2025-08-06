@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#865](https://github.com/openDAQ/openDAQ/pull/865) onPropertyValueRead events are now supported over native. Suggested and Selection values can be overridden in new onRead events. String properties can now have suggested values.
 - [#861](https://github.com/openDAQ/openDAQ/pull/861) Add support for list and dictionary item/key type identification in Argument Info.
 - [#849] (https://github.com/openDAQ/openDAQ/pull/849) Improving error logging and implementing an error guard.
 - [#837](https://github.com/openDAQ/openDAQ/pull/837) Add main thread event loop, SFML 3.0 migration, and renderer window control

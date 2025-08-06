@@ -26,6 +26,7 @@
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
 #include <opendaq/context_factory.h>
 #include <config_protocol/errors.h>
+#include <config_protocol/config_client_property.h>
 
 namespace daq::config_protocol
 {
@@ -227,10 +228,13 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 
     const ErrCode errCode = daqTry([this, &propertyNamePtr, &value]()
     {
-        // TODO: Refactor this
+
         PropertyPtr prop;
         checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
-        if (clientComm->getConnected() && (prop.getValueType() == ctFunc || prop.getValueType() == ctProc))
+
+        auto isFunction = prop.getValueType() == ctFunc || prop.getValueType() == ctProc;
+        auto hasReadListeners = prop.asPtr<IPropertyInternal>().getHasOnReadListeners();
+        if (clientComm->getConnected() && (isFunction || hasReadListeners))
         {
             bool setValue;
             auto v = getValueFromServer(propertyNamePtr, setValue);
@@ -250,7 +254,25 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
-    return Impl::getPropertySelectionValue(propertyName, value);
+    const auto propertyNamePtr = StringPtr::Borrow(propertyName);
+
+    return daqTry([this, &propertyNamePtr, &value]()
+    {
+        PropertyPtr prop;
+        checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
+
+        auto hasReadListeners = prop.asPtr<IPropertyInternal>().getHasOnReadListeners();
+        if (clientComm->getConnected() && hasReadListeners)
+        {
+            bool setValue;
+            auto v = getValueFromServer(propertyNamePtr, setValue);
+
+            if (setValue)
+                Impl::setPropertyValue(propertyNamePtr, v);
+        }
+        
+        return Impl::getPropertySelectionValue(propertyNamePtr, value);
+    });
 }
 
 template <class Impl>
@@ -829,6 +851,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyAdded(const CoreEventArgs
     PropertyPtr prop = params.get("Property");
     if (obj.hasProperty(prop.getName()))
         return;
+    
+    if (auto configObj = dynamic_cast<ConfigClientPropertyImpl*>(prop.getObject()); configObj)
+        configObj->setRemoteGlobalId(this->remoteGlobalId);
 
     if (params.get("Path") != "")
     {
@@ -1004,9 +1029,9 @@ inline ErrCode ConfigClientPropertyObjectImpl::getDeserializedParameter(IString*
 }
 
 inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* serialized,
-    IBaseObject* context,
-    IFunction* factoryCallback,
-    IBaseObject** obj)
+                                                           IBaseObject* context,
+                                                           IFunction* factoryCallback,
+                                                           IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 

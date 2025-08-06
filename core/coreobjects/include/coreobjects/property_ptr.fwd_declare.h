@@ -25,5 +25,6 @@ class GenericPropertyObjectPtr;
 using PropertyObjectPtr = GenericPropertyObjectPtr<IPropertyObject>;
 
 class PropertyValueEventArgsPtr;
+class PropertyMetadataReadArgsPtr;
 
 END_NAMESPACE_OPENDAQ

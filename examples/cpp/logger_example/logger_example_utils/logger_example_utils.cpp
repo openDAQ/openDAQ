@@ -1,4 +1,3 @@
-#pragma once
 #include <opendaq/custom_log.h>
 #include <opendaq/opendaq.h>
 #include <chrono>

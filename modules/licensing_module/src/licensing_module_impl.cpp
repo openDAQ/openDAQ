@@ -1,6 +1,7 @@
 #include <licensing_module/licensing_module_impl.h>
 #include <licensing_module/passthrough_fb_impl.h>
 #include <fstream>
+#include <regex>
 
 BEGIN_NAMESPACE_LICENSING_MODULE
 

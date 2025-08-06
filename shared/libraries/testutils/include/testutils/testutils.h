@@ -17,6 +17,7 @@
 #pragma once
 #include <gtest/gtest.h>
 #include <coretypes/errors.h>
+#include <coretypes/errorinfo.h>
 #include <coretypes/complex_number_type.h>
 #include <coretypes/coretype_traits.h>
 #include <type_traits>
@@ -65,8 +66,8 @@
     catch (const EXCEPTION_TYPE& e)                                                                 \
     {                                                                                               \
         ASSERT_TRUE(std::string(e.what()).find(message) != std::string::npos)                       \
-            << "Expected exception " << message << std::endl                                        \
-            << "Actually throws " << e.what() << ".";                                               \
+            << "Expected exception \"" << message << "\"" << std::endl                              \
+            << "Actually throws \"" << e.what() << "\".";                                           \
     }                                                                                               \
     catch (const std::exception& e)                                                                 \
     {                                                                                               \
@@ -95,6 +96,31 @@
         ASSERT_DOUBLE_EQ(Val1, Val2);                                                               \
     else                                                                                            \
         ASSERT_EQ(Val1, Val2); 
+
+inline testing::AssertionResult CmpErrorCodeHelperEQ(const char* lhs_expression,
+                                                        const char* rhs_expression, 
+                                                        daq::ErrCode lhs,
+                                                        daq::ErrCode rhs) 
+{
+    if (lhs == rhs) 
+    {
+        if (OPENDAQ_FAILED(lhs))
+            daqClearErrorInfo();
+        return testing::AssertionSuccess();
+    }
+    return testing::internal::CmpHelperEQFailure(lhs_expression, rhs_expression, lhs, rhs);
+};
+
+#define ASSERT_ERROR_CODE_EQ(lhs, rhs) \
+    ASSERT_PRED_FORMAT2(CmpErrorCodeHelperEQ, lhs, rhs)
+
+#define ASSERT_ERROR_CODE_FAILED(errCode)                                                                                 \
+    do                                                                                                                    \
+    {                                                                                                                     \
+        const ErrCode errCode_ = (errCode);                                                                               \
+        ASSERT_TRUE(OPENDAQ_FAILED(errCode_)) << "Expected error code to be failed, but it was successful: " << errCode_; \
+        daqClearErrorInfo();                                                                                              \
+    } while (0)
 
 namespace daq
 {

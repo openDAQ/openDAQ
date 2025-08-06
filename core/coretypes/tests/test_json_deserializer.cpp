@@ -1,4 +1,3 @@
-#include <gtest/gtest.h>
 #include <testutils/testutils.h>
 #include <limits>
 #include <cmath>
@@ -26,13 +25,17 @@ protected:
 
     void TearDown() override
     {
-        daqUnregisterSerializerFactory(factoryId);
+        const ErrCode errCode = daqUnregisterSerializerFactory(factoryId);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
         deserializer.release();
     }
 
     void registerFactory(daqDeserializerFactory factory)
     {
-        daqRegisterSerializerFactory(factoryId, factory);
+        const ErrCode errCode = daqRegisterSerializerFactory(factoryId, factory);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
     }
 
     DeserializerPtr deserializer;
@@ -333,7 +336,7 @@ TEST_F(JsonDeserializerTest, unknownObjectType)
     IBaseObject* obj;
     ErrCode errCode = deserializer->deserialize(String(json.data()), nullptr, nullptr, &obj);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
 }
 
 TEST_F(JsonDeserializerTest, objectTypeTagNotInt)
@@ -341,7 +344,7 @@ TEST_F(JsonDeserializerTest, objectTypeTagNotInt)
     IBaseObject* obj;
     ErrCode errCode = deserializer->deserialize(String(R"({"__type":0.0})"), nullptr, nullptr, &obj);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE);
 }
 
 TEST_F(JsonDeserializerTest, noObjectType)
@@ -349,7 +352,7 @@ TEST_F(JsonDeserializerTest, noObjectType)
     IBaseObject* obj;
     ErrCode errCode = deserializer->deserialize(String(R"({"test":0})"), nullptr, nullptr, &obj);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_DESERIALIZE_NO_TYPE);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_DESERIALIZE_NO_TYPE);
 }
 
 TEST_F(JsonDeserializerTest, deserializeNullString)
@@ -395,7 +398,7 @@ TEST_F(JsonDeserializerTest, unregisterNonExistingFactory)
 {
     ErrCode errCode = daqUnregisterSerializerFactory(factoryId);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
 }
 
 TEST_F(JsonDeserializerTest, getNonExistingFactory)
@@ -403,7 +406,7 @@ TEST_F(JsonDeserializerTest, getNonExistingFactory)
     daqDeserializerFactory factory;
     ErrCode errCode = daqGetSerializerFactory(factoryId, &factory);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
 }
 
 TEST_F(JsonDeserializerTest, factoryReturnsError)
@@ -419,7 +422,7 @@ TEST_F(JsonDeserializerTest, createToNull)
 {
     ErrCode errCode = createJsonDeserializer(nullptr);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(JsonDeserializerTest, deserializerGuid)

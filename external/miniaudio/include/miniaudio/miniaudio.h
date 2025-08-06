@@ -12284,11 +12284,11 @@ MA_API int ma_itoa_s(int value, char* dst, size_t dstSizeInBytes, int radix)
 
 MA_API int ma_strcmp(const char* str1, const char* str2)
 {
-    if (str1 == str2) return  0;
+    if (str1 == str2) return 0;
 
     /* These checks differ from the standard implementation. It's not important, but I prefer it just for sanity. */
     if (str1 == NULL) return -1;
-    if (str2 == NULL) return  1;
+    if (str2 == NULL) return 1;
 
     for (;;) {
         if (str1[0] == '\0') {

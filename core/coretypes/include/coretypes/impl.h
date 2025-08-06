@@ -51,7 +51,6 @@ template <class Interface, class Impl, class... Params>
 ErrCode createObjectForwarding(Interface** intf, Params... params)
 {
     OPENDAQ_PARAM_NOT_NULL(intf);
-
     Impl* impl;
     try
     {

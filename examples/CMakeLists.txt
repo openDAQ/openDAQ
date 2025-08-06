@@ -109,27 +109,29 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 	
 	# Logger examples
 	
-	set(logger_example_utils cpp/logger_example/logger_example_utils/)
+	add_library(logger_example_util SHARED cpp/logger_example/logger_example_utils/logger_example_utils.cpp)
+	target_link_libraries(logger_example_util PRIVATE daq::opendaq)
+
 	
 	add_executable(default_logger_example cpp/logger_example/instance_default/instance_default_example.cpp)
-	target_link_libraries(default_logger_example PRIVATE daq::opendaq)
-	target_link_directories(default_logger_example PRIVATE logger_example_utils)
+	target_link_libraries(default_logger_example PRIVATE daq::opendaq
+														 logger_example_util)
 
 	add_executable(logging_w_components cpp/logger_example/instance_global_log_level/instance_global_log_level_example.cpp)
-	target_link_libraries(logging_w_components PRIVATE daq::opendaq)
-	target_link_directories(logging_w_components PRIVATE logger_example_utils)
+	target_link_libraries(logging_w_components PRIVATE daq::opendaq
+													   logger_example_util)
 
     add_executable(logger_wo_sinks_example cpp/logger_example/logger_wo_sinks/logger_wo_sinks_example.cpp)
-    target_link_libraries(logger_wo_sinks_example PRIVATE daq::opendaq)
-	target_link_directories(logger_wo_sinks_example PRIVATE logger_example_utils)
+    target_link_libraries(logger_wo_sinks_example PRIVATE daq::opendaq
+														  logger_example_util)
 
     add_executable(logger_w_sinks_example cpp/logger_example/logger_w_sinks/logger_w_sinks_example.cpp)
-    target_link_libraries(logger_w_sinks_example PRIVATE daq::opendaq)
-	target_link_directories(logger_w_sinks_example PRIVATE logger_example_utils)
+    target_link_libraries(logger_w_sinks_example PRIVATE daq::opendaq
+														 logger_example_util)
 	
 	add_executable(logger_log_level_configure_example cpp/logger_example/instance_w_sinks/instance_w_sinks_example.cpp)
-    target_link_libraries(logger_log_level_configure_example PRIVATE daq::opendaq)
-	target_link_directories(logger_log_level_configure_example PRIVATE logger_example_utils)
+    target_link_libraries(logger_log_level_configure_example PRIVATE daq::opendaq
+																	 logger_example_util)
 
 	# end of Logger examples
 

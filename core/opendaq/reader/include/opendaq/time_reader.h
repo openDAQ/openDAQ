@@ -32,6 +32,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 class TimeReaderBase
 {
+public:
+    bool transform(void* inputBuff, std::chrono::system_clock::time_point* outputBuff, SizeT toRead, const DataDescriptorPtr& descriptor);
+
 protected:
     template <typename ReadType>
     void readSamples(ReadType* input, std::chrono::system_clock::time_point* output, SizeT samples) const;
@@ -39,7 +42,6 @@ protected:
     void readData(void* inputBuffer, std::chrono::system_clock::time_point* output, SizeT count) const;
 
     void handleDescriptorChanged(const DataDescriptorPtr& descriptor);
-    bool transform(void* inputBuff, std::chrono::system_clock::time_point* outputBuff, SizeT toRead, const DataDescriptorPtr& descriptor);
 
     DataDescriptorPtr domainDataDescriptor;
 

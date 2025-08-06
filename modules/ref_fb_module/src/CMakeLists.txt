@@ -37,14 +37,16 @@ if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
                                    polyline.h
                                    polyline_impl.h
                                    polyline_impl_generic.h
-                                   polyline_impl_line.h)
+                                   polyline_impl_line.h
+                                   video_player_fb_impl.h)
                                    
     set(SRC_Srcs ${SRC_Srcs} renderer_fb_impl.cpp 
                              polyline.cpp
                              polyline_impl.cpp
                              polyline_impl_generic.cpp
                              polyline_impl_line.cpp
-                             ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h)                             
+                             ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h
+                             video_player_fb_impl.cpp)
 else()
     message(STATUS "Renderer function block disabled") 
 endif()
@@ -77,6 +79,7 @@ if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     set(MODULE_FILES ${MODULE_FILES} ${MODULE_HEADERS_DIR}/renderer_fb_impl.h
                                      ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h
                                      renderer_fb_impl.cpp
+                                     video_player_fb_impl.cpp
     )
 
     source_group("polyline" FILES ${MODULE_HEADERS_DIR}/polyline.h
@@ -87,6 +90,7 @@ if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
                                   polyline_impl.cpp
                                   polyline_impl_generic.cpp
                                   polyline_impl_line.cpp
+                                  video_player_fb_impl.cpp
 )
 endif()
 
@@ -107,6 +111,7 @@ if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     target_compile_definitions(${LIB_NAME} PRIVATE OPENDAQ_ENABLE_RENDERER)
     target_link_libraries(${LIB_NAME} PRIVATE sfml-graphics
                                               sfml-window
+                                              sfml-system
                                               date::date)
 endif()
 

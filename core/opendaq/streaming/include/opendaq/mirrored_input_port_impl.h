@@ -284,9 +284,14 @@ ErrCode MirroredInputPortBase<Interfaces...>::getActiveStreamingSource(IString**
     auto lock = this->getRecursiveConfigLock();
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned())
-        *streamingConnectionString = activeStreamingSource.getConnectionString().addRefAndReturn();
+    {
+        auto connectionString = activeStreamingSource.getConnectionString();
+        *streamingConnectionString = connectionString.detach();
+    }
     else
+    {
         *streamingConnectionString = nullptr;
+    }
 
     return OPENDAQ_SUCCESS;
 }
@@ -297,11 +302,8 @@ ErrCode MirroredInputPortBase<Interfaces...>::getActiveStreamingSourceObject(ISt
     OPENDAQ_PARAM_NOT_NULL(streaming);
 
     auto lock = this->getRecursiveConfigLock();
-    auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
-    if (activeStreamingSource.assigned())
-        *streaming = activeStreamingSource.addRefAndReturn();
-    else
-        *streaming = nullptr;
+    StreamingPtr activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
+    *streaming = activeStreamingSource.detach();
 
     return OPENDAQ_SUCCESS;
 }

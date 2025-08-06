@@ -662,7 +662,7 @@ ErrCode StreamingImpl<Interfaces...>::setOwnerDevice(const DevicePtr& device)
 {
     std::scoped_lock lock(sync);
 
-    if (!device.supportsInterface<IMirroredDevice>())
+    if (device.assigned() && !device.supportsInterface<IMirroredDevice>())
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Owner device should be mirrored device");
     }
@@ -1059,9 +1059,10 @@ ErrCode StreamingImpl<Interfaces...>::getOwnerDeviceRemoteId(IString** deviceRem
 {
     OPENDAQ_PARAM_NOT_NULL(deviceRemoteId);
 
-    if (auto device = this->ownerDeviceRef.getRef(); device.assigned())
+    if (MirroredDevicePtr device = this->ownerDeviceRef.getRef(); device.assigned())
     {
-        *deviceRemoteId = device.getRemoteId();
+        StringPtr remoteId = device.getRemoteId();
+        *deviceRemoteId = remoteId.detach();
         return OPENDAQ_SUCCESS;
     }
     else

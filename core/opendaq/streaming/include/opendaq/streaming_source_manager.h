@@ -303,10 +303,9 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
             // streaming sources were created (by completeStreamingConnections) and ordered by priority above,
             // set the highest-priority source as active for inputPort, if relevant
             auto inputPortStreamingSources = mirroredInputPortConfigPtr.getStreamingSources();
-            for (const auto& streamingBase : allStreamingSources)
+            for (const auto& streaming : allStreamingSources)
             {
-                StreamingPtr streaming = streamingBase.asPtrOrNull<IStreaming>();
-                if (!streaming.assigned())
+                if (!streaming.getClientToDeviceStreamingEnabled())
                     continue;
                 auto connectionString = streaming.getConnectionString();
                 auto it = std::find(inputPortStreamingSources.begin(), inputPortStreamingSources.end(), connectionString);

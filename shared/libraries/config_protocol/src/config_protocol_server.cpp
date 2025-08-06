@@ -444,15 +444,12 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignalGeneralized(const RpcCo
 
     for (const auto& server : rootDevice.getServers())
     {
-        // add-attach signals to all available streaming sources
+        // add/attach signals to all available streaming sources
         if (auto streaming = server.getStreaming(); streaming.assigned())
         {
             streaming.addSignals(signals);
             if (activeStreamingProtocolId.assigned())
             {
-                if (server.getId() == activeStreamingProtocolId)
-                    assert(activeStreamingSourceDeviceId.assigned());
-
                 for (const auto& signal : signals)
                 {
                     // may change the active streaming source

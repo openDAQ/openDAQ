@@ -38,15 +38,11 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     activateStreaming();
     this->connectionStatusContainer.addStreamingConnectionStatus(connectionString, connectionStatus, nativeStreaming);
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", connectionStatus);
-
-    const auto thisPtr = this->template borrowPtr<DevicePtr>();
-    checkErrorInfo(nativeStreaming.asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr));
 }
 
 void NativeStreamingDeviceImpl::removed()
 {
     this->connectionStatusContainer.removeStreamingConnectionStatus(connectionString);
-    checkErrorInfo(nativeStreaming.asPtr<IStreamingPrivate>()->setOwnerDevice(nullptr));
     nativeStreaming.release();
     Device::removed();
 }

@@ -2,6 +2,7 @@
 #include <cctype>
 #include <map>
 #include <set>
+#include <algorithm>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
 

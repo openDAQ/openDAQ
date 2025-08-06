@@ -1342,11 +1342,11 @@ TEST_F(MultiReaderTest, Signal2Invalidated)
 
     sig0.createAndSendPacket(1);
     sig1.createAndSendPacket(1);
-    sig2.createAndSendPacket(1);
+    sig2.createAndSendPacket<ComplexFloat64>(1);
 
     sig0.createAndSendPacket(2);
     sig1.createAndSendPacket(2);
-    sig2.createAndSendPacket(2);
+    sig2.createAndSendPacket<ComplexFloat64>(2);
 
     sig0.createAndSendPacket(3);
 

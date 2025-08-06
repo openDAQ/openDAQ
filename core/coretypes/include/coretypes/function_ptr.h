@@ -156,23 +156,12 @@ FunctionPtr Function(TFunctor* value)
 template <typename TReturn, typename... Params>
 ErrCode wrapHandlerReturn(FunctionPtr handler, TReturn& output, Params... params)
 {
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         output = (handler)(params...);
-        return OPENDAQ_SUCCESS;
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, e.what());
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to wrap handler return");
+    return errCode;
 }
 
 END_NAMESPACE_OPENDAQ

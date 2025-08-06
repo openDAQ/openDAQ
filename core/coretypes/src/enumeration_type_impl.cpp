@@ -106,14 +106,14 @@ ErrCode EnumerationTypeImpl::serialize(ISerializer* serializer)
     serializer->key("enumerators");
     ISerializable* serializable;
     ErrCode errCode = this->enumerators->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializable));
-
-    if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
-
-    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+        return DAQ_EXTEND_ERROR_INFO(errCode);
+    }
 
     errCode = serializable->serialize(serializer);
-
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();
@@ -147,7 +147,7 @@ ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* co
     errCode = ser->readObject("enumerators"_daq, context, factoryCallback, &enumerators);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    try
+    errCode = daqTry([&]()
     {
         TypeManagerPtr typeManager;
         if (context)
@@ -169,17 +169,9 @@ ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* co
         }
 
         *obj = enumerationType.detach();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
-
-    return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to deserialize EnumerationType");
+    return errCode;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

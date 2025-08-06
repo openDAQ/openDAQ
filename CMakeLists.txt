@@ -154,6 +154,15 @@ option(OPENDAQ_DISABLE_DEBUG_POSTFIX "Disable debug ('-debug') postfix" OFF)
 option(OPENDAQ_DEBUG_WARNINGS_AS_ERRORS "Treat debug warnings as errors" OFF)
 option(OPENDAQ_RELEASE_WARNINGS_AS_ERRORS "Treat release warnings as errors" ON)
 option(OPENDAQ_USE_CCACHE "Use compiler cache driver if available" ON)
+option(OPENDAQ_ENABLE_ERROR_GUARD "Enable error guard" OFF)
+
+if(NOT OPENDAQ_ENABLE_ERROR_GUARD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(OPENDAQ_ENABLE_ERROR_GUARD ON CACHE BOOL "Enable error guard" FORCE)
+endif()
+
+if(OPENDAQ_ENABLE_ERROR_GUARD)
+    add_compile_definitions(OPENDAQ_ENABLE_ERROR_GUARD)
+endif()
 
 # Dependent options
 cmake_dependent_option(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS "Enable delphi bindings tests" ON "OPENDAQ_GENERATE_DELPHI_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)

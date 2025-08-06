@@ -37,47 +37,48 @@ ErrCode INTERFACE_FUNC DeviceTypeImpl::serialize(ISerializer* serializer)
 
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-    return daqTry(
-        [this, &serializerPtr]
+    const ErrCode errCode = daqTry([this, &serializerPtr]
+    {
+        serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
         {
-            serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
+            serializerPtr.key("id");
+            serializerPtr.writeString(id);
+
+            if (name.assigned())
             {
-                serializerPtr.key("id");
-                serializerPtr.writeString(id);
-
-                if (name.assigned())
-                {
-                    serializerPtr.key("name");
-                    serializerPtr.writeString(name);
-                }
-
-                if (description.assigned())
-                {
-                    serializerPtr.key("description");
-                    serializerPtr.writeString(description);
-                }
-
-                if (description.assigned())
-                {
-                    serializerPtr.key("prefix");
-                    serializerPtr.writeString(prefix);
-                }
-
-                if (defaultConfig.assigned())
-                {
-                    serializerPtr.key("defaultConfig");
-                    defaultConfig.serialize(serializerPtr);
-                }
-
-                if (moduleInfo.assigned())
-                {
-                    serializerPtr.key("moduleInfo");
-                    moduleInfo.serialize(serializerPtr);
-                }
+                serializerPtr.key("name");
+                serializerPtr.writeString(name);
             }
 
-            serializerPtr.endObject();
-        });
+            if (description.assigned())
+            {
+                serializerPtr.key("description");
+                serializerPtr.writeString(description);
+            }
+
+            if (description.assigned())
+            {
+                serializerPtr.key("prefix");
+                serializerPtr.writeString(prefix);
+            }
+
+            if (defaultConfig.assigned())
+            {
+                serializerPtr.key("defaultConfig");
+                defaultConfig.serialize(serializerPtr);
+            }
+
+            if (moduleInfo.assigned())
+            {
+                serializerPtr.key("moduleInfo");
+                moduleInfo.serialize(serializerPtr);
+            }
+        }
+
+        serializerPtr.endObject();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode INTERFACE_FUNC DeviceTypeImpl::getSerializeId(ConstCharPtr* serializedId) const
@@ -102,38 +103,39 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
     const auto contextPtr = BaseObjectPtr::Borrow(context);
     const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 
-    return daqTry(
-        [&serializedObj, &contextPtr, &factoryCallbackPtr, &obj]
+    const ErrCode errCode = daqTry([&serializedObj, &contextPtr, &factoryCallbackPtr, &obj]
+    {
+        const auto id = serializedObj.readString("id");
+
+        StringPtr name;
+        if (serializedObj.hasKey("name"))
+            name = serializedObj.readString("name");
+
+        StringPtr description;
+        if (serializedObj.hasKey("description"))
+            description = serializedObj.readString("description");
+
+        StringPtr prefix;
+        if (serializedObj.hasKey("prefix"))
+            prefix = serializedObj.readString("prefix");
+
+        PropertyObjectPtr defaultConfig;
+        if (serializedObj.hasKey("defaultConfig"))
+            defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
+
+        auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(id, name, description, defaultConfig, prefix);
+
+        ModuleInfoPtr moduleInfo;
+        if (serializedObj.hasKey("moduleInfo"))
         {
-            const auto id = serializedObj.readString("id");
+            moduleInfo = serializedObj.readObject("moduleInfo", contextPtr, factoryCallbackPtr);
+            deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo);
+        }
 
-            StringPtr name;
-            if (serializedObj.hasKey("name"))
-                name = serializedObj.readString("name");
-
-            StringPtr description;
-            if (serializedObj.hasKey("description"))
-                description = serializedObj.readString("description");
-
-            StringPtr prefix;
-            if (serializedObj.hasKey("prefix"))
-                prefix = serializedObj.readString("prefix");
-
-            PropertyObjectPtr defaultConfig;
-            if (serializedObj.hasKey("defaultConfig"))
-                defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
-
-            auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(id, name, description, defaultConfig, prefix);
-
-            ModuleInfoPtr moduleInfo;
-            if (serializedObj.hasKey("moduleInfo"))
-            {
-                moduleInfo = serializedObj.readObject("moduleInfo", contextPtr, factoryCallbackPtr);
-                deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo);
-            }
-
-            *obj = deviceType.detach();
-        });
+        *obj = deviceType.detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceTypeImpl)

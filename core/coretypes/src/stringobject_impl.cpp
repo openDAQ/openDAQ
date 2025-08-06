@@ -170,9 +170,14 @@ ErrCode StringImpl::toBool(Bool* val)
         Int intVal;
         ErrCode errCode = toInt(&intVal);
         if (OPENDAQ_SUCCEEDED(errCode))
+        {    
             *val = intVal != 0 ? True : False;
+        }
         else
+        {
+            daqClearErrorInfo();
             *val = False;
+        }
     }
     return OPENDAQ_SUCCESS;
 }
@@ -186,7 +191,7 @@ ErrCode StringImpl::getCoreType(CoreType* coreType)
 ErrCode StringImpl::compareTo(IBaseObject* obj)
 {
     if (obj == nullptr)
-        return  OPENDAQ_LOWER;
+        return OPENDAQ_LOWER;
 
     ConstCharPtr otherValue = nullptr;
     CharPtr otherValueOwned = nullptr;

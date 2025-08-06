@@ -89,11 +89,12 @@ inline ErrCode ConfigClientSignalImpl::Deserialize(ISerializedObject* serialized
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = DeserializeConfigComponent<ISignal, ConfigClientSignalImpl>(serialized, context, factoryCallback).detach();
-        });
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = DeserializeConfigComponent<ISignal, ConfigClientSignalImpl>(serialized, context, factoryCallback).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline void ConfigClientSignalImpl::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
@@ -173,24 +174,15 @@ inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
 {
     const ErrCode err = Super::getLastValue(value);
     OPENDAQ_RETURN_IF_FAILED(err);
-
     if (err != OPENDAQ_IGNORED)
         return err;
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         *value = this->clientComm->getLastValue(this->remoteGlobalId).detach();
-    }
-    catch (const DaqException& e)
-    {
-        LOG_W("getLastValue() RPC failed: {}", e.what());
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-    }
-
-    return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get last value for signal with remote ID: %s", this->remoteGlobalId.c_str());
+    return errCode;
 }
 
 inline void ConfigClientSignalImpl::attributeChanged(const CoreEventArgsPtr& args)

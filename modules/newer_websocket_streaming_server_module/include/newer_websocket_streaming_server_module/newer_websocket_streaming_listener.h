@@ -2,7 +2,7 @@
 
 #include <opendaq/opendaq.h>
 
-#include <ws-streaming/ws-streaming.hpp>
+#include <ws-streaming/local_signal.hpp>
 
 #include <newer_websocket_streaming_server_module/common.h>
 
@@ -28,8 +28,6 @@ class NewerWebsocketStreamingListenerImpl
         virtual ErrCode INTERFACE_FUNC packetReceived(IInputPort *port) override;
 
     private:
-
-        wss::metadata_builder buildMetadata(const DataDescriptorPtr& descriptor);
 
         void onDataPacketReceived(DataPacketPtr packet);
 

@@ -30,6 +30,27 @@ NewerWebsocketStreamingServerImpl::NewerWebsocketStreamingServerImpl(const Devic
     for (const auto& signal : rootDevice.getSignalsRecursive())
         createListener(signal);
 
+    _server.on_available.connect(
+        [self = ObjectPtr<NewerWebsocketStreamingServerImpl>(this)]
+        (wss::connection_ptr connection, wss::remote_signal_ptr signal)
+        {
+            std::cout << "acquired client-supplied signal " << signal->id() << std::endl;
+
+            self->_remoteSignals.emplace(
+                signal->id(),
+                std::make_shared<RemoteSignalHandler>(signal)).first->second->attach();
+        });
+
+    _server.on_unavailable.connect(
+        [self = ObjectPtr<NewerWebsocketStreamingServerImpl>(this)]
+        (wss::connection_ptr connection, wss::remote_signal_ptr signal)
+        {
+            std::cout << "lost client-supplied signal " << signal->id() << std::endl;
+
+            if (auto handler = self->_remoteSignals.extract(signal->id()); handler)
+                handler.mapped()->detach();
+        });
+
     _thread = std::thread{[this]()
     {
         std::cout << "running io context" << std::endl;
@@ -120,13 +141,13 @@ void NewerWebsocketStreamingServerImpl::createListener(const SignalPtr& signal)
     if (auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
         createListener(domainSignal);
 
-    auto it = _signals.find(signal.getGlobalId());
-    if (it != _signals.end())
+    auto it = _localSignals.find(signal.getGlobalId());
+    if (it != _localSignals.end())
         return;
 
     std::cout << "registering signal " << signal.getGlobalId() << std::endl;
 
-    auto& streamableSignal = _signals.emplace(
+    auto& streamableSignal = _localSignals.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(
                 signal.getGlobalId()),

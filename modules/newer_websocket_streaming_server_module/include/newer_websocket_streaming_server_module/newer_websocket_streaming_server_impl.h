@@ -17,12 +17,14 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <string>
 #include <thread>
 
 #include <boost/asio/io_context.hpp>
 
 #include <coretypes/intfs.h>
+#include <coretypes/objectptr.h>
 #include <opendaq/device_ptr.h>
 #include <opendaq/server.h>
 #include <opendaq/server_impl.h>
@@ -30,6 +32,7 @@
 #include <ws-streaming/ws-streaming.hpp>
 
 #include <newer_websocket_streaming_server_module/common.h>
+#include <newer_websocket_streaming_server_module/remote_signal_handler.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
@@ -76,7 +79,8 @@ class NewerWebsocketStreamingServerImpl : public Server
         boost::asio::io_context _ioc;
         wss::server _server;
         std::thread _thread;
-        std::map<std::string, StreamableSignal> _signals;
+        std::map<std::string, StreamableSignal> _localSignals;
+        std::map<std::string, std::shared_ptr<RemoteSignalHandler>> _remoteSignals;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

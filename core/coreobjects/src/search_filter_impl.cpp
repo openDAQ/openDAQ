@@ -21,11 +21,13 @@ ErrCode VisiblePropertyFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    return daqTry(
-        [&]{
-            const auto& propertyPtr = PropertyPtr::Borrow(obj);
-            *accepts = propertyPtr.getVisible();
-        });
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto& propertyPtr = PropertyPtr::Borrow(obj);
+        *accepts = propertyPtr.getVisible();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode VisiblePropertyFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
@@ -34,11 +36,13 @@ ErrCode VisiblePropertyFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    return daqTry(
-        [&]{
-            const auto& propertyPtr = PropertyPtr::Borrow(obj);
-            *visit = propertyPtr.getVisible();
-        });
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto& propertyPtr = PropertyPtr::Borrow(obj);
+        *visit = propertyPtr.getVisible();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ReadOnlyPropertyFilterImpl::ReadOnlyPropertyFilterImpl() = default;
@@ -49,11 +53,13 @@ ErrCode ReadOnlyPropertyFilterImpl::acceptsObject(IBaseObject* obj, Bool* accept
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    return daqTry(
-        [&]{
-            const auto& propertyPtr = PropertyPtr::Borrow(obj);
-            *accepts = propertyPtr.getReadOnly();
-        });
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto& propertyPtr = PropertyPtr::Borrow(obj);
+        *accepts = propertyPtr.getReadOnly();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ReadOnlyPropertyFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)
@@ -77,13 +83,15 @@ ErrCode NamePropertyFilterImpl::acceptsObject(IBaseObject* obj, Bool* accepts)
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_RETURN_IF_FAILED(validateType(obj));
 
-    return daqTry(
-        [&]{
-            const auto& propertyPtr = PropertyPtr::Borrow(obj);
-            *accepts = std::regex_search(propertyPtr.getName().toStdString(), regex);
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto& propertyPtr = PropertyPtr::Borrow(obj);
+        *accepts = std::regex_search(propertyPtr.getName().toStdString(), regex);
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode NamePropertyFilterImpl::visitChildren(IBaseObject* obj, Bool* visit)

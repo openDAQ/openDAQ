@@ -4,6 +4,7 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/deleter_factory.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <algorithm>
 
 namespace daq::packet_streaming
 {

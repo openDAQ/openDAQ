@@ -103,20 +103,12 @@ public:
         
     GenericStructPtr& operator=(const StructPtr& other)
     {
-        if (this == &other)
-            return *this;
-
         daq::ObjectPtr<InterfaceType>::operator =(other);
         return *this;
     }
 
     GenericStructPtr& operator=(StructPtr&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
         daq::ObjectPtr<InterfaceType>::operator =(std::move(other));
         return *this;
     }

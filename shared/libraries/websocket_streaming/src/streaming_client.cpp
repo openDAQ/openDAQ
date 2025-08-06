@@ -686,6 +686,7 @@ void StreamingClient::onSignal(const daq::streaming_protocol::SubscribedSignal& 
 {
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         {
             LOG_I("Signal #{}; signalId {}; tableId {}; name {}; value type {}; Json parameters: \n\n{}\n",
                   subscribedSignal.signalNumber(),

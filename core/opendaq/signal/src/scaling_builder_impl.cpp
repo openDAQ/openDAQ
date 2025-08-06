@@ -56,7 +56,6 @@ ErrCode ScalingBuilderImpl::build(IScaling** scaling)
     return daqTry([&]()
     {
         *scaling = ScalingFromBuilder(builderPtr).detach();
-        return OPENDAQ_SUCCESS;
     });
 }
 

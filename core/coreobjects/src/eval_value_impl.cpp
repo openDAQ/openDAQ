@@ -536,16 +536,14 @@ ErrCode EvalValueImpl::createStartIterator(IIterator** iterator)
 
     ListPtr<IBaseObject> list;
 
-    try
+    errCode = daqTry([&]()
     {
         list = node->getResult();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = list->createStartIterator(iterator);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return errCode;
 }
@@ -694,11 +692,13 @@ ErrCode EvalValueImpl::UnitObject_GetId(Int* id)
     ErrCode err = getValueInternal<UnitPtr>(unit);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         *id = unit.getId();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode EvalValueImpl::UnitObject_GetSymbol(IString** symbol)
@@ -709,11 +709,13 @@ ErrCode EvalValueImpl::UnitObject_GetSymbol(IString** symbol)
     ErrCode err = getValueInternal<UnitPtr>(unit);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         *symbol = unit.getSymbol().addRefAndReturn();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode EvalValueImpl::UnitObject_GetName(IString** name)
@@ -724,11 +726,13 @@ ErrCode EvalValueImpl::UnitObject_GetName(IString** name)
     ErrCode err = getValueInternal<UnitPtr>(unit);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         *name = unit.getName().addRefAndReturn();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode EvalValueImpl::UnitObject_GetQuantity(IString** quantity)
@@ -739,11 +743,13 @@ ErrCode EvalValueImpl::UnitObject_GetQuantity(IString** quantity)
     ErrCode err = getValueInternal<UnitPtr>(unit);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         *quantity = unit.getQuantity().addRefAndReturn();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode EvalValueImpl::StructObject_getStructType(IStructType** /*type*/)

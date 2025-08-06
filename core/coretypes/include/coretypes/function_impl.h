@@ -100,24 +100,16 @@ protected:
    template <typename F = typename std::remove_pointer<TFunctor>::type,
              typename ReturnsErrorCode<F, false>::type* = nullptr,
              typename... TArgs>
-   ErrCode dispatchInternal(IBaseObject** result, TArgs&&... args)
-   {
-        try
+    ErrCode dispatchInternal(IBaseObject** result, TArgs&&... args)
+    {
+        const ErrCode errCode = daqTry([&]()
         {
             BaseObjectPtr ret = this->functor(std::forward<decltype(args)>(args)...);
             *result = ret.detach();
-        }
-        catch (const DaqException& e)
-        {
-            return errorFromException(e, this->getThisAsBaseObject());
-        }
-        catch (...)
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED);
-        }
-
-        return OPENDAQ_SUCCESS;
-   }
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
+    }
 };
 
 template <typename TFunctor, std::size_t ArgCount = FunctionTraits<TFunctor>::Arity>
@@ -139,23 +131,15 @@ public:
         }
         else
         {
-            try
+            const ErrCode errCode = daqTry([&]()
             {
                 BaseObjectPtr funcReturn = callMultipleParams(this->functor,
                                                                 ListPtr<IBaseObject>(args),
                                                                 std::make_index_sequence<ArgCount>{});
                 *result = funcReturn.detach();
-            }
-            catch (const DaqException& e)
-            {
-                return errorFromException(e, this->getThisAsBaseObject());
-            }
-            catch (...)
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CALLFAILED);
-            }
-
-            return OPENDAQ_SUCCESS;
+            });
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+            return errCode;
         }
     }
 };
@@ -244,8 +228,7 @@ template <typename TFunctor, typename std::enable_if<!std::is_bind_expression<TF
 ErrCode createFunctionWrapper(IFunction** obj, [[maybe_unused]] TFunctor func)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         if constexpr (std::is_same_v<TFunctor, std::nullptr_t>)
         {
@@ -255,23 +238,11 @@ ErrCode createFunctionWrapper(IFunction** obj, [[maybe_unused]] TFunctor func)
         {
             *obj = new FunctionImpl<TFunctor>(std::move(func));
         }
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::bad_alloc&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
-    }
-    catch (const std::exception&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
+        (*obj)->addRef();
+    });
 
-    (*obj)->addRef();
-
-    return OPENDAQ_SUCCESS;
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create function wrapper for lambda");
+    return errCode;
 }
 
 // Handle std::bind()
@@ -280,27 +251,14 @@ template <typename TFunctor, typename std::enable_if<std::is_bind_expression<TFu
 ErrCode createFunctionWrapper(IFunction** obj, TFunctor func)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         *obj = new FunctionImpl<TFunctor, FuncObjectNativeArgs>(std::move(func));
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::bad_alloc&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
-    }
-    catch (const std::exception&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
+        (*obj)->addRef();
+    });
 
-    (*obj)->addRef();
-
-    return OPENDAQ_SUCCESS;
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create function wrapper for std::bind");
+    return errCode;
 }
 
 // Function pointer
@@ -310,26 +268,14 @@ ErrCode createFunctionWrapper(IFunction** obj, TFunctor* func)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    try
+    const ErrCode errCode = daqTry([&]()
     {
         *obj = new FunctionImpl<TFunctor>(func);
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (const std::bad_alloc&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOMEMORY);
-    }
-    catch (const std::exception&)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
+        (*obj)->addRef();
+    });
 
-    (*obj)->addRef();
-
-    return OPENDAQ_SUCCESS;
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create function wrapper for function pointer");
+    return errCode;
 }
 
 // Lambda / std::bind

@@ -594,7 +594,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
                 Console.WriteLine($"-> 'parameters' is not a 'ListObject<IntegerObject>' with 2 entries");
 
                 //tell API that it was not OK
-                return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+                return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
             }
 
             //returning the sum of the given integer parameters as result

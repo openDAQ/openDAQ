@@ -3212,7 +3212,7 @@ TEST_F(NativeC2DStreamingTest, ConnectAndRead)
     }
 }
 
-TEST_F(NativeC2DStreamingTest, DISABLED_ConnectAndRender)
+TEST_F(NativeC2DStreamingTest, DISABLED_ConnectAndRenderGeneralized)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -3235,7 +3235,55 @@ TEST_F(NativeC2DStreamingTest, DISABLED_ConnectAndRender)
     auto mirroredExternalSignal = server.getServers()[0].getSignals()[0];
     renderer.getInputPorts()[1].connect(mirroredExternalSignal);
 
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+}
+
+TEST_F(NativeC2DStreamingTest, ConnectAndReadGeneralized)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(17);
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+
+    // read output signal of function block to which external signal connected
+    {
+        auto fbSignal = server.getFunctionBlocks()[0].getSignals()[0];
+        StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(fbSignal, ReadTimeoutType::Any);
+        {
+            daq::SizeT count = 0;
+            reader.read(nullptr, &count, 100);
+        }
+        double samples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT count = 100;
+            reader.read(samples, &count, 1000);
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
+    }
+
+    // read mirrored external signal directly
+    {
+        auto mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+        StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(mirroredExternalSignal, ReadTimeoutType::Any);
+        {
+            daq::SizeT count = 0;
+            reader.read(nullptr, &count, 100);
+        }
+        double samples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT count = 100;
+            reader.read(samples, &count, 1000);
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
+    }
 }
 
 TEST_F(NativeC2DStreamingTest, ServerCoreEvents)

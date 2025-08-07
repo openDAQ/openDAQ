@@ -131,10 +131,6 @@ opendaq_target_include_directories(${MAIN_TARGET}
         ${SRC_PrivateIncludeDirectories}
 )
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(STDCFS_LIBS "stdc++fs")
-endif()
-
 if (MSVC)
     set(MSVC_PRIVATE_COMPILE_OPTIONS
         /wd4324

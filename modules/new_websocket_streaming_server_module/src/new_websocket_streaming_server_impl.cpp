@@ -4,6 +4,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/server_type_factory.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/device_info_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NEW_WEBSOCKET_STREAMING_SERVER_MODULE
 
@@ -17,6 +18,18 @@ NewWebsocketStreamingServerImpl::NewWebsocketStreamingServerImpl(const DevicePtr
         config.getPropertyValue("WebsocketStreamingPort"),
         config.getPropertyValue("WebsocketControlPort"))
 {
+    auto info = rootDevice.getInfo();
+    if (info.hasServerCapability("OpenDAQNewLTStreaming"))
+        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQNewLTStreaming server capability.", info.getName()));
+
+    if (info.hasServerCapability("OpenDAQLTStreaming"))
+        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQLTStreaming server capability - newer version cannot be added.", info.getName()));
+
+    const ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQNewLTStreaming", "OpenDAQNewLTStreaming", ProtocolType::Streaming);
+    serverCapability.setPrefix("daq.lt");
+    serverCapability.setPort(config.getPropertyValue("WebsocketStreamingPort"));
+    serverCapability.setConnectionType("TCP/IP");
+    info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapability);
 }
 
 void NewWebsocketStreamingServerImpl::populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config)

@@ -22,7 +22,6 @@ ConfigProtocolStreamingConsumer::~ConfigProtocolStreamingConsumer()
     {
         for (const auto& [_, signal] : mirroredExternalSignals)
             externalSignalsFolder.removeItem(signal);
-
     }
     mirroredExternalSignals.clear();
     mirroredExternalSignalsIds.clear();
@@ -147,35 +146,35 @@ void ConfigProtocolStreamingConsumer::removeExternalSignals(const ParamsDictPtr&
 
 void ConfigProtocolStreamingConsumer::addExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId)
 {
+    externalSignalsFolder.addItem(signal);
     {
         std::scoped_lock lock(sync);
 
         mirroredExternalSignalsIds.insert(signal.getLocalId());
         mirroredExternalSignals.insert({signalNumericId, signal});
 
-        LOG_D("Added new mirrored external signal numeric ID {}, remote ID {}, global ID {}",
-              signalNumericId,
-              signal.getRemoteId(),
-              signal.getGlobalId());
     }
-
-    externalSignalsFolder.addItem(signal);
+    LOG_D("Added new mirrored external signal numeric ID {}, remote ID {}, global ID {}",
+          signalNumericId,
+          signal.getRemoteId(),
+          signal.getGlobalId());
 }
 
 void ConfigProtocolStreamingConsumer::removeExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId)
 {
-    auto signalLocalId = signal.getLocalId();
-
-    externalSignalsFolder.removeItem(signal);
-
-    std::scoped_lock lock(sync);
-    mirroredExternalSignals.erase(signalNumericId);
-    mirroredExternalSignalsIds.erase(signalLocalId);
-
-    LOG_D("Remove mirrored external signal numeric ID {}, remote ID {}, global ID {}",
+    LOG_D("Removing mirrored external signal numeric ID {}, remote ID {}, global ID {}",
           signalNumericId,
           signal.getRemoteId(),
           signal.getGlobalId());
+
+    {
+        std::scoped_lock lock(sync);
+        auto signalLocalId = signal.getLocalId();
+        mirroredExternalSignals.erase(signalNumericId);
+        mirroredExternalSignalsIds.erase(signalLocalId);
+    }
+
+    externalSignalsFolder.removeItem(signal);
 }
 
 MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignal(const ParamsDictPtr& params)

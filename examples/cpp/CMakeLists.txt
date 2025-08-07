@@ -29,6 +29,7 @@ option(OPENDAQ_STREAMING_CONFIG "Streaming configuration example that modifies t
 option(OPENDAQ_RECONNECTION "Example on how to detect connection loss and reconnection" ON)
 option(OPENDAQ_IP_MODIFICATION "Example on how to modify IP configuration parameters of the openDAQ device" ON)
 option(OPENDAQ_READ_WRITE_AUDIO "Example on how to read and write wav files with the audio module." ON)
+option(OPENDAQ_LOGGER_USAGE "Example that show how to correctly use the logger and logging features in openDAQ" ON)
 
 if (OPENDAQ_CONSOLE_APP)
   add_subdirectory(console_application)
@@ -103,6 +104,10 @@ if (OPENDAQ_IP_MODIFICATION)
   add_subdirectory(ip_modification)
 endif()
 
+if(OPENDAQ_LOGGER_USAGE)
+  add_subdirectory(logger_example)
+  
 if (OPENDAQ_READ_WRITE_AUDIO)
   add_subdirectory(read_write_audio_file_example)
+
 endif()

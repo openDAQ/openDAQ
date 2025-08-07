@@ -258,6 +258,12 @@ void NativeStreamingDeviceImpl::connectionStatusChangedHandler(const Enumeration
     connectionStatus = status;
 
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage("ConnectionStatus", connectionStatus, statusMessage);
+    this->connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(
+        this->connectionString,
+        connectionStatus,
+        nativeStreaming,
+        statusMessage
+    );
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

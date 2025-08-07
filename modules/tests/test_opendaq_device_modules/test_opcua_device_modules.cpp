@@ -1401,6 +1401,18 @@ public:
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
+    daq::ErrCode INTERFACE_FUNC loadLicense(daq::Bool* succeeded, daq::IPropertyObject* licenseConfig) override
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    }
+    daq::ErrCode INTERFACE_FUNC getLicenseConfig(daq::IPropertyObject** licenseConfig) override
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    }
+    daq::ErrCode INTERFACE_FUNC licenseLoaded(daq::Bool* loaded) override
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    }
 
 private:
     daq::ContextPtr ctx;

@@ -393,6 +393,58 @@ public:
         return false;
     }
 
+    virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeded, IPropertyObject* licenseConfig) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(succeded);
+        OPENDAQ_PARAM_NOT_NULL(licenseConfig);
+
+        Bool loadedLicense;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onLoadLicense, loadedLicense, licenseConfig);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *succeded = loadedLicense;
+        return errCode;
+    }
+
+    virtual Bool onLoadLicense(IPropertyObject* licenseConfig)
+    {
+        return true;
+    }
+
+    virtual ErrCode INTERFACE_FUNC getLicenseConfig(IPropertyObject** licenseConfig) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(licenseConfig);
+
+        PropertyObjectPtr licenseConfigLocal;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetLicenseConfig, licenseConfigLocal);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *licenseConfig = licenseConfigLocal.detach();
+        return errCode;
+    }
+
+    virtual PropertyObjectPtr onGetLicenseConfig()
+    {
+        return nullptr;
+    }
+
+    virtual ErrCode INTERFACE_FUNC licenseLoaded(Bool* valid) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(valid);
+
+        Bool validLocal;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onLicenseLoaded, validLocal);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *valid = validLocal;
+        return errCode;
+    }
+
+    virtual Bool onLicenseLoaded()
+    {
+        return true;
+    }
+
 protected:
     ModuleInfoPtr moduleInfo;
 

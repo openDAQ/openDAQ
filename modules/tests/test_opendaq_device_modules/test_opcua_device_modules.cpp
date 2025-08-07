@@ -1401,20 +1401,6 @@ public:
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
-
-    daq::ErrCode INTERFACE_FUNC authenticate(daq::Bool* succeeded, daq::IPropertyObject* authenticationConfig) override
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-    }
-    daq::ErrCode INTERFACE_FUNC getAuthenticationConfig(daq::IPropertyObject** authenticationConfig) override
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-    }
-    daq::ErrCode INTERFACE_FUNC isAuthenticated(daq::Bool* authenticated) override
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-    }
-
     daq::ErrCode INTERFACE_FUNC loadLicense(daq::Bool* succeeded, daq::IPropertyObject* licenseConfig) override
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);

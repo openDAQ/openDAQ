@@ -112,21 +112,6 @@ ErrCode MockServerModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamin
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockServerModuleImpl::authenticate(Bool* /*succeeded*/, IPropertyObject* /*authenticationConfig*/)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
-ErrCode MockServerModuleImpl::getAuthenticationConfig(IPropertyObject** /*authenticationConfig*/)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
-ErrCode MockServerModuleImpl::isAuthenticated(Bool* /*authenticated*/)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
 ErrCode MockServerModuleImpl::loadLicense(Bool* /*succeeded*/, IPropertyObject* /*licenseConfig*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);

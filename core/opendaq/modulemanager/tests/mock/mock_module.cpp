@@ -82,21 +82,6 @@ daq::ErrCode MockModuleImpl::getAvailableStreamingTypes(daq::IDict** streamingTy
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-daq::ErrCode MockModuleImpl::authenticate(Bool* succeeded, IPropertyObject* authenticationConfig)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
-daq::ErrCode MockModuleImpl::getAuthenticationConfig(IPropertyObject** authenticationConfig)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
-daq::ErrCode MockModuleImpl::isAuthenticated(Bool* authenticated)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
 daq::ErrCode MockModuleImpl::loadLicense(Bool* succeeded, IPropertyObject* licenseConfig)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);

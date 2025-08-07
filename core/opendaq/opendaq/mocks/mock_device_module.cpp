@@ -151,21 +151,6 @@ ErrCode MockDeviceModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamin
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockDeviceModuleImpl::authenticate(daq::Bool* /*succeeded*/, daq::IPropertyObject* /*authenticationConfig*/)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
-ErrCode MockDeviceModuleImpl::getAuthenticationConfig(daq::IPropertyObject** /*authenticationConfig*/)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
-ErrCode MockDeviceModuleImpl::isAuthenticated(daq::Bool* /*authenticated*/)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
-}
-
 ErrCode MockDeviceModuleImpl::loadLicense(daq::Bool* /*succeeded*/, daq::IPropertyObject* /*licenseConfig*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);

@@ -393,58 +393,6 @@ public:
         return false;
     }
 
-    virtual ErrCode INTERFACE_FUNC authenticate(Bool* succeeded, IPropertyObject* authenticationConfig) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(succeeded);
-        OPENDAQ_PARAM_NOT_NULL(authenticationConfig);
-
-        Bool authenticated;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onAuthenticate, authenticated, authenticationConfig);
-
-        *succeeded = authenticated;
-        return errCode;
-    }
-
-    // Decide here what you want the default value to be..
-    virtual Bool onAuthenticate(IPropertyObject* authenticationConfig)
-    {
-        return false;
-    }
-
-    virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IPropertyObject** authenticationConfig) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(authenticationConfig);
-
-        PropertyObjectPtr ptr;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAuthenticationConfig, ptr);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-
-        *authenticationConfig = ptr.detach();
-        return errCode;
-    }
-
-    virtual PropertyObjectPtr onGetAuthenticationConfig()
-    {
-        return nullptr;
-    }
-
-    virtual ErrCode INTERFACE_FUNC isAuthenticated(Bool* authenticated) override
-    {
-        OPENDAQ_PARAM_NOT_NULL(authenticated);
-
-        Bool isAuthenticated;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onIsAuthenticated, isAuthenticated);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-
-        *authenticated = isAuthenticated;
-        return errCode;
-    }
-
-    virtual Bool onIsAuthenticated()
-    {
-        return true;
-    }
-
     virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeded, IPropertyObject* licenseConfig) override
     {
         OPENDAQ_PARAM_NOT_NULL(succeded);

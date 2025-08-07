@@ -33,13 +33,27 @@ if __name__ == "__main__":
 
     licensing_module = None
     for module in instance.module_manager.modules:
-        print(module.module_info)
-        if(module.Id is 'LicensingModule')
+        print(module.module_info.id)
+        if(module.module_info.id == 'LicensingModule'):
+            print("Found!")
+            licensing_module = module
+
+    cfg = licensing_module.license_config
+    cfg.set_property_value("VendorKey", "my_secret_key")
+    cfg.set_property_value("LicensePath", lic_path)
+
+    licensing_module.load_license(cfg)
 
     # Get the first signal of the first device's channel
     channel = device.channels[0]
     signal = channel.signals[0]
 
-    instance.add_function_block("LicensingModulePassthrough")
+    # Crate an instance of a licensed passthrough function block
+    fb = instance.add_function_block("LicensingModulePassthrough")
+    fb.input_ports[0].connect(signal)
 
-    #authenticationConfig = 
+    # Create an instance of the renderer function block
+    renderer = instance.add_function_block('RefFBModuleRenderer')
+    renderer.input_ports[0].connect(fb.signals[0])
+
+    input("Press any key to quit...")

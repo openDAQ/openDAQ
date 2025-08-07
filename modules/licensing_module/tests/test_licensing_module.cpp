@@ -101,31 +101,35 @@ protected:
         fb = tmp;
     }
 
-    void authenticateValid()
-    {
-        auto config = module.getAuthenticationConfig();
-        config.setPropertyValue("AuthenticationKeyPath", resourcesPath + "/authentication_key.txt");
-        module.authenticate(config);
-    }
-
-    void authenticateInvalid()
-    {
-        auto config = module.getAuthenticationConfig();
-        config.setPropertyValue("AuthenticationKeyPath", "");
-        module.authenticate(config);
-    }
-
-    void loadValidLicense()
+    void authenticateAndLicenseValid()
     {
         auto config = module.getLicenseConfig();
+        config.setPropertyValue("VendorKey", "my_secret_key");
         config.setPropertyValue("LicensePath", resourcesPath + "/license.lic");
         module.loadLicense(config);
     }
 
-    void loadInvalidLicense()
+    void authenticateAndLicenseInvalid()
     {
         auto config = module.getLicenseConfig();
+        config.setPropertyValue("VendorKey", "my_not_so_secret_key");
         config.setPropertyValue("LicensePath", "");
+        module.loadLicense(config);
+    }
+
+    void authenticateValidAndLicenseInvalid()
+    {
+        auto config = module.getLicenseConfig();
+        config.setPropertyValue("VendorKey", "my_secret_key");
+        config.setPropertyValue("LicensePath", "");
+        module.loadLicense(config);
+    }
+
+    void authenticateInvalidAndLicenseValid()
+    {
+        auto config = module.getLicenseConfig();
+        config.setPropertyValue("VendorKey", "my_not_so_secret_key");
+        config.setPropertyValue("LicensePath", resourcesPath + "/license.lic");
         module.loadLicense(config);
     }
 
@@ -179,9 +183,7 @@ TEST_F(ModuleTest, ModuleName)
 bool validAuthenticationWorks = false;
 TEST_F(LicensingModuleTestWithSignal, ValidAuthentication)
 {
-    authenticateValid();
-
-    ASSERT_TRUE(module.isAuthenticated());
+    authenticateAndLicenseValid();
 
     createPassthroughFb();
 
@@ -192,9 +194,7 @@ TEST_F(LicensingModuleTestWithSignal, ValidAuthentication)
 
 TEST_F(LicensingModuleTestWithSignal, InvalidAuthentication)
 {
-    authenticateInvalid();
-
-    ASSERT_FALSE(module.isAuthenticated());
+    authenticateAndLicenseInvalid();
 
     createPassthroughFb();
 
@@ -204,9 +204,7 @@ TEST_F(LicensingModuleTestWithSignal, InvalidAuthentication)
 
 TEST_F(LicensingModuleTestWithSignal, NoAuthentication)
 {
-    ASSERT_FALSE(module.isAuthenticated());
-
-    loadValidLicense();
+    authenticateInvalidAndLicenseValid();
     createPassthroughFb();
 
     // Cannot get function block from an un-authenticated module
@@ -221,17 +219,17 @@ TEST_F(LicensingModuleTestWithSignal, MultipleAuthentication)
     createPassthroughFb();
     ASSERT_TRUE(fb == nullptr);
 
-    authenticateValid();
+    authenticateAndLicenseValid();
 
     createPassthroughFb();
     ASSERT_TRUE(!fb.isEmpty());
 
-    authenticateInvalid();
+    authenticateAndLicenseInvalid();
 
     createPassthroughFb();
     ASSERT_TRUE(fb == nullptr);
     
-    authenticateValid();
+    authenticateAndLicenseValid();
 
     createPassthroughFb();
     ASSERT_TRUE(!fb.isEmpty());
@@ -242,9 +240,7 @@ TEST_F(LicensingModuleTestWithSignal, ValidLicense)
     if (!validAuthenticationWorks)
         GTEST_SKIP();
 
-    authenticateValid();
-
-    loadValidLicense();
+    authenticateAndLicenseValid();
 
     createPassthroughFb();
     setupPipeline();
@@ -257,26 +253,10 @@ TEST_F(LicensingModuleTestWithSignal, InvalidLicense)
     if (!validAuthenticationWorks)
         GTEST_SKIP();
 
-    authenticateValid();
-
-    loadInvalidLicense();
+    authenticateValidAndLicenseInvalid();
 
     createPassthroughFb();
     setupPipeline();
 
     ASSERT_FALSE(canReadSignal());
 }
-
-TEST_F(LicensingModuleTestWithSignal, NoLicense)
-{
-    if (!validAuthenticationWorks)
-        GTEST_SKIP();
-
-    authenticateValid();
-
-    createPassthroughFb();
-    setupPipeline();
-
-    ASSERT_FALSE(canReadSignal());
-}
-

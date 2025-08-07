@@ -46,6 +46,7 @@ FunctionBlockPtr LicensingModule::onCreateFunctionBlock(const StringPtr& id,
     DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
 }
 
+/*
 Bool LicensingModule::onAuthenticate(IPropertyObject* authenticationConfig)
 {
     auto ptr = PropertyObjectPtr::Borrow(authenticationConfig);
@@ -88,15 +89,32 @@ Bool LicensingModule::onIsAuthenticated()
 {
     return _authenticated;
 }
+*/
 
 Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
 {
     auto ptr = PropertyObjectPtr::Borrow(licenseConfig);
     std::string path = ptr.getPropertyValue("LicensePath");
+    std::string vendor_key = ptr.getPropertyValue("VendorKey");
+
+    std::string secret_key = "my_secret_key";
+
+    _authenticated = vendor_key == secret_key;
+
+    if (!_authenticated)
+    {
+        LOG_W("Authentication with \"{}\" failed, invalid key!", path);
+        return false;
+    }
+    else
+    {
+        LOG_I("Authentication successful!");
+    }
 
     std::ifstream file(path);
     if (!file.is_open())
     {
+        LOG_W("License file \"{}\" not found!", path);
         return false;
     }
 
@@ -132,6 +150,7 @@ Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
         LOG_W("Invalid license, no function blocks / components founds!");
         return false;
     }
+
     _licenseChecker = std::make_shared<LicenseChecker>(tokens);
 
     return true;
@@ -141,6 +160,7 @@ PropertyObjectPtr LicensingModule::onGetLicenseConfig()
 {
     auto licenseConfig = PropertyObject();
     licenseConfig.addProperty(StringProperty("LicensePath", ""));
+    licenseConfig.addProperty(StringProperty("VendorKey", ""));
 
     return licenseConfig;
 }

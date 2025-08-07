@@ -139,32 +139,6 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         },
         py::return_value_policy::take_ownership,
         "Returns a dictionary of known and available streaming types that this module (client) can create.T");
-    cls.def("authenticate",
-        [](daq::IModule *object, daq::IPropertyObject* authenticationConfig)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.authenticate(authenticationConfig);
-        },
-        py::arg("authentication_config"),
-        "Used for authenticating the module caller, when the module is meant to be used only with authenticated software.");
-    cls.def_property_readonly("authentication_config",
-        [](daq::IModule *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.getAuthenticationConfig().detach();
-        },
-        py::return_value_policy::take_ownership,
-        "Used to retrieve the authenticationConfig used to authenticate the module caller.");
-    cls.def_property_readonly("authenticated",
-        [](daq::IModule *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ModulePtr::Borrow(object);
-            return objectPtr.isAuthenticated();
-        },
-        "Check whether this module is authenticated and ready for use.");
     cls.def("load_license",
         [](daq::IModule *object, daq::IPropertyObject* licenseConfig)
         {

@@ -413,7 +413,7 @@ void ParquetWriter::reconfigure(const DataDescriptorPtr& dataDescriptor, const D
 void ParquetWriter::enqueuePacketList(ListPtr<IPacket>& packets)
 {
     std::lock_guard lock(packetBufferMutex);
-    if (isClosing) return;
+    if (isClosing && packetBuffer.empty()) return;
 
     for (auto&& packet : packets)
     {

@@ -144,10 +144,6 @@ if("${Boost_LIBRARIES}")
     set(BOOST_LIBS ${Boost_LIBRARIES})
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(STDCFS_LIBS "stdc++fs")
-endif()
-
 if (WIN32)
     set(PING_COMPILE_DEFS
         _WIN32_WINNT=${MIN_WINDOWS_VERSION}

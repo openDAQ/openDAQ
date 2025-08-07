@@ -781,13 +781,13 @@ void StreamingImpl<Interfaces...>::updateConnectionStatus(const EnumerationPtr& 
 }
 
 template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::onRegisterStreamedClientSignal(const SignalPtr& signal)
+void StreamingImpl<Interfaces...>::onRegisterStreamedClientSignal(const SignalPtr& /*signal*/)
 {
     DAQ_THROW_EXCEPTION(NotSupportedException);
 }
 
 template <typename... Interfaces>
-void StreamingImpl<Interfaces...>::onUnregisterStreamedClientSignal(const SignalPtr& signal)
+void StreamingImpl<Interfaces...>::onUnregisterStreamedClientSignal(const SignalPtr& /*signal*/)
 {
     DAQ_THROW_EXCEPTION(NotSupportedException);
 }

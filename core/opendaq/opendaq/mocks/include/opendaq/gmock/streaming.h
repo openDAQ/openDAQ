@@ -45,8 +45,8 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
     MOCK_METHOD(void, onRemoveSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
     MOCK_METHOD(void, onSubscribeSignal, (const daq::StringPtr& signalStreamingId), (override));
     MOCK_METHOD(void, onUnsubscribeSignal, (const daq::StringPtr& signalStreamingId), (override));
-    MOCK_METHOD(void, onRegisterStreamedSignal, (const daq::SignalPtr& signal), (override));
-    MOCK_METHOD(void, onUnregisterStreamedSignal, (const daq::SignalPtr& signal), (override));
+    MOCK_METHOD(void, onRegisterStreamedClientSignal, (const daq::SignalPtr& signal), (override));
+    MOCK_METHOD(void, onUnregisterStreamedClientSignal, (const daq::SignalPtr& signal), (override));
 
     void makeSignalAvailable(const daq::StringPtr& signalStreamingId) override { addToAvailableSignals(signalStreamingId); }
     void makeSignalUnavailable(const daq::StringPtr& signalStreamingId) override { removeFromAvailableSignals(signalStreamingId); }

@@ -643,7 +643,7 @@ void ConfigProtocolClientComm::disconnectExternalSignalFromServerInputPort(const
         ListPtr<IStreaming> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
         for (const auto& streaming : streamingSources)
         {
-            checkErrorInfo(streaming.asPtr<IStreamingPrivate>()->unregisterStreamedSignals(unusedSignals.getValueList()));
+            checkErrorInfo(streaming.asPtr<IStreamingPrivate>()->unregisterStreamedClientSignals(unusedSignals.getValueList()));
         }
         auto params = ParamsDict({{"SignalNumericIds", unusedSignals.getKeyList()}});
         sendNoReplyCommand(ClientCommand("RemoveExternalSignals"), params);
@@ -695,7 +695,7 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPortGeneralized
     ListPtr<IStreaming> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
     for (const auto& streaming : streamingSources)
     {
-        checkErrorInfo(streaming.asPtr<IStreamingPrivate>()->registerStreamedSignals(signals));
+        checkErrorInfo(streaming.asPtr<IStreamingPrivate>()->registerStreamedClientSignals(signals));
     }
 
     auto domainSignal = signal.getDomainSignal();

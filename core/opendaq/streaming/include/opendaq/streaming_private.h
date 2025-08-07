@@ -62,10 +62,10 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingPrivate, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setOwnerDevice(const DevicePtr& device) = 0;
 
     // [elementType(signals, ISignal)]
-    virtual ErrCode INTERFACE_FUNC registerStreamedSignals(IList* signals) = 0;
+    virtual ErrCode INTERFACE_FUNC registerStreamedClientSignals(IList* signals) = 0;
 
     // [elementType(signals, ISignal)]
-    virtual ErrCode INTERFACE_FUNC unregisterStreamedSignals(IList* signals) = 0;
+    virtual ErrCode INTERFACE_FUNC unregisterStreamedClientSignals(IList* signals) = 0;
 
     virtual ErrCode INTERFACE_FUNC detachRemovedInputPort(IString* inputPortRemoteId) = 0;
 };

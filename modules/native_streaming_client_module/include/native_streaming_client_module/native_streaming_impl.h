@@ -35,14 +35,16 @@ class NativeStreamingImpl : public StreamingImpl<INativeStreamingPrivate>
 {
 public:
     using Super = StreamingImpl<INativeStreamingPrivate>;
-    explicit NativeStreamingImpl(const StringPtr& connectionString,
+    explicit NativeStreamingImpl(
+        const StringPtr& connectionString,
         const ContextPtr& context,
         opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
         std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
         Int streamingInitTimeout,
         const ProcedurePtr& onDeviceSignalAvailableCallback,
         const ProcedurePtr& onDeviceSignalUnavailableCallback,
-        opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb);
+        opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb,
+        bool isClientToDeviceStreamingSupported = false);
 
     ~NativeStreamingImpl();
 
@@ -91,6 +93,8 @@ class NativeStreamingToDeviceImpl : public NativeStreamingImpl
 {
 public:
     using Super = NativeStreamingImpl;
+    using Self = NativeStreamingToDeviceImpl;
+
     explicit NativeStreamingToDeviceImpl(const StringPtr& connectionString,
                                          const ContextPtr& context,
                                          opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
@@ -103,11 +107,8 @@ public:
     void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() override;
 
 protected:
-    void onRegisterStreamedSignal(const SignalPtr& signal) override;
-    void onUnregisterStreamedSignal(const SignalPtr& signal) override;
-    void signalReadingFunc() override;
-
-    bool isClientToDeviceStreamingSupported() const override;
+    void onRegisterStreamedClientSignal(const SignalPtr& signal) override;
+    void onUnregisterStreamedClientSignal(const SignalPtr& signal) override;
 
 private:
     void initStreamingToDeviceCallbacks();
@@ -116,8 +117,17 @@ private:
     void signalSubscribeHandler(const SignalPtr& signal);
     void signalUnsubscribeHandler(const SignalPtr& signal);
 
+    void startReadThread();
+
+    void readingThreadFunc();
+    void stopReadThread();
+
     std::vector<std::pair<SignalPtr, PacketReaderPtr>> signalReaders;
     std::mutex readersSync;
+
+    bool readThreadRunning;
+    std::chrono::milliseconds readThreadSleepTime;
+    std::thread readerThread;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

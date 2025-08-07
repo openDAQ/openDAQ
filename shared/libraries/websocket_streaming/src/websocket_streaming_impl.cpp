@@ -18,7 +18,7 @@ WebsocketStreamingImpl::WebsocketStreamingImpl(const StringPtr& connectionString
 WebsocketStreamingImpl::WebsocketStreamingImpl(StreamingClientPtr streamingClient,
                                                const StringPtr& connectionString,
                                                const ContextPtr& context)
-    : Streaming(connectionString, context, true)
+    : Streaming(connectionString, context, true, "OpenDAQLTStreaming")
     , streamingClient(streamingClient)
 {
     prepareStreamingClient();

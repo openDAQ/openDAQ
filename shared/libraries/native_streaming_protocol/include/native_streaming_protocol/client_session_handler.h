@@ -31,23 +31,16 @@ public:
                          OnSignalCallback signalReceivedHandler,
                          OnStreamingInitDoneCallback protocolInitDoneHandler,
                          OnSubscriptionAckCallback subscriptionAckHandler,
+                         OnFindSignalCallback findSignalHandler,
+                         OnSignalSubscriptionCallback signalSubscriptionHandler,
                          native_streaming::OnSessionErrorCallback errorHandler);
 
-    void sendSignalSubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId);
-    void sendSignalUnsubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId);
     void sendTransportLayerProperties(const PropertyObjectPtr& properties);
     void sendStreamingRequest();
 
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;
 
-    daq::native_streaming::ReadTask readSignalAvailable(const void* data, size_t size);
-    daq::native_streaming::ReadTask readSignalUnavailable(const void* data, size_t size);
-    daq::native_streaming::ReadTask readSignalSubscribedAck(const void* data, size_t size);
-    daq::native_streaming::ReadTask readSignalUnsubscribedAck(const void* data, size_t size);
-
-    OnSignalCallback signalReceivedHandler;
     OnStreamingInitDoneCallback streamingInitDoneHandler;
-    OnSubscriptionAckCallback subscriptionAckHandler;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

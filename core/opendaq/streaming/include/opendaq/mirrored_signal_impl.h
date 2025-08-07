@@ -77,6 +77,8 @@ public:
     // ISignal
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
+
+    // ISignalPrivate
     ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
 
 protected:

@@ -110,6 +110,19 @@ DECLARE_OPENDAQ_INTERFACE(IStreaming, IBaseObject)
      * with possible values: "Connected", "Reconnecting", or "Unrecoverable".
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStatus(IEnumeration** connectionStatus) = 0;
+
+    // [elementType(inputPorts, IMirroredInputPortConfig)]
+    virtual ErrCode INTERFACE_FUNC addInputPorts(IList* inputPorts) = 0;
+
+    // [elementType(inputPorts, IMirroredInputPortConfig)]
+    virtual ErrCode INTERFACE_FUNC removeInputPorts(IList* inputPorts) = 0;
+
+    virtual ErrCode INTERFACE_FUNC removeAllInputPorts() = 0;
+
+    virtual ErrCode INTERFACE_FUNC getOwnerDeviceRemoteId(IString** deviceRemoteId) const = 0;
+    virtual ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) const = 0;
+
+    virtual ErrCode INTERFACE_FUNC getClientToDeviceStreamingEnabled(Bool* enabled) const = 0;
 };
 /*!@}*/
 

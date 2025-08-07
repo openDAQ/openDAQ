@@ -223,15 +223,18 @@ StreamingImpl<Interfaces...>::~StreamingImpl()
         LOG_E("Failed to remove signals on streaming object destruction: {}", e.what());
     }
 
-    try
+    if (isClientToDeviceStreamingSupported)
     {
-        ErrCode errCode = removeStreamingSourceForAllInputPorts();
-        removeAllInputPortsInternal();
-        checkErrorInfo(errCode);
-    }
-    catch (const DaqException& e)
-    {
-        DAQLOGF_W(this->loggerComponent, "Failed to remove signals on streaming object destruction: {}", e.what());
+        try
+        {
+            ErrCode errCode = removeStreamingSourceForAllInputPorts();
+            removeAllInputPortsInternal();
+            checkErrorInfo(errCode);
+        }
+        catch (const DaqException& e)
+        {
+            DAQLOGF_W(this->loggerComponent, "Failed to remove signals on streaming object destruction: {}", e.what());
+        }
     }
 }
 

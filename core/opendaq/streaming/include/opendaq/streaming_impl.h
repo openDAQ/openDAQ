@@ -227,6 +227,7 @@ StreamingImpl<Interfaces...>::~StreamingImpl()
     {
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             ErrCode errCode = removeStreamingSourceForAllInputPorts();
             removeAllInputPortsInternal();
             checkErrorInfo(errCode);
@@ -1067,7 +1068,7 @@ ErrCode StreamingImpl<Interfaces...>::getProtocolId(IString** protocolId) const
 {
     OPENDAQ_PARAM_NOT_NULL(protocolId);
 
-    *protocolId = this->protocolId;
+    *protocolId = this->protocolId.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -23,7 +23,7 @@ NativeStreamingImpl::NativeStreamingImpl(
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb,
     bool isClientToDeviceStreamingSupported)
-    : Super(connectionString, context, false, NativeStreamingID, isClientToDeviceStreamingSupported)
+    : Super(connectionString, context, false, String(NativeStreamingID), isClientToDeviceStreamingSupported)
     , transportClientHandler(transportClientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)

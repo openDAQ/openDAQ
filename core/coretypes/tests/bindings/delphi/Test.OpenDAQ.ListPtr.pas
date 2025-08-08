@@ -273,7 +273,7 @@ procedure TTest_ListPtr.ForEach;
 var
   ListObj: IListPtr<IInteger>;
   Value: IInteger;
-  Sum: RtInt;
+  Sum: DaqInt;
 begin
   ListObj := TListPtr<IInteger>.Create();
 
@@ -288,7 +288,7 @@ begin
   for Value in ListObj do
     Sum := Sum + BaseObjectToInt(Value);
 
-  Assert.AreEqual<RtInt>(6, Sum);
+  Assert.AreEqual<DaqInt>(6, Sum);
 end;
 
 procedure TTest_ListPtr.Popping();
@@ -675,13 +675,8 @@ begin
   ListObj := TListPtr<IBaseObject>.Create();
   Serializable := GetSerializableInterface(ListObj);
 
-  Assert.WillRaise(procedure()
-    begin
-      SerializeId := Serializable.GetSerializeId();
-      SerializeId := nil;
-    end,
-    ERTNotImplementedException
-  );
+  SerializeId := Serializable.GetSerializeId();
+  Assert.AreEqual('List', string(SerializeId));
 end;
 
 procedure TTest_ListPtr.Setup();

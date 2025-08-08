@@ -149,8 +149,8 @@ namespace RTGen.Delphi.Generators
 
             _interfaceToValueType = new Dictionary<string, string>
             {
-                {"Integer", "RtInt"},
-                {"Float", "RtFloat"},
+                {"Integer", "DaqInt"},
+                {"Float", "DaqFloat"},
                 {"Boolean", "Boolean"},
             };
 
@@ -1367,9 +1367,9 @@ namespace RTGen.Delphi.Generators
             mappings.Add("IDict", "IDictObject");
             mappings.Add("void", "Pointer");
             mappings.Add("Bool", "Boolean");
-            mappings.Add("Int", "RtInt");
-            mappings.Add("UInt", "RtUInt");
-            mappings.Add("uint64_t", "RtUInt");
+            mappings.Add("Int", "DaqInt");
+            mappings.Add("UInt", "DaqUInt");
+            mappings.Add("uint64_t", "DaqUInt");
             mappings.Add("byte", "Byte");
             mappings.Add("int8", "Int8");
             mappings.Add("int16", "Int16");

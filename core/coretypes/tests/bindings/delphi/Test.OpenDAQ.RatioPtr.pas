@@ -100,7 +100,7 @@ var
   RatioObj: IRatioPtr;
 begin
   RatioObj := TRatioPtr.Create(1, 2);
-  Assert.AreEqual<RtInt>(RatioObj.GetNumerator(), 1);
+  Assert.AreEqual<DaqInt>(RatioObj.GetNumerator(), 1);
 end;
 
 procedure TTest_RatioPtr.GetDenominator();
@@ -108,40 +108,40 @@ var
   RatioObj: IRatioPtr;
 begin
   RatioObj := TRatioPtr.Create(1, 2);
-  Assert.AreEqual<RtInt>(RatioObj.GetDenominator(), 2);
+  Assert.AreEqual<DaqInt>(RatioObj.GetDenominator(), 2);
 end;
 
 procedure TTest_RatioPtr.ConvertFloatPtr();
 var
   RatioObj: IRatioPtr;
-  FloatVal : RtFloat;
+  FloatVal : DaqFloat;
 begin
   RatioObj := TRatioPtr.Create(1, 2);
   FloatVal := (RatioObj as IConvertiblePtr).ToFloat();
 
-  Assert.AreEqual<RtFloat>(FloatVal, 1 / 2.0);
+  Assert.AreEqual<DaqFloat>(FloatVal, 1 / 2.0);
 end;
 
 procedure TTest_RatioPtr.ConvertFloat();
 var
   RatioObj: IRatioPtr;
-  FloatVal : RtFloat;
+  FloatVal : DaqFloat;
 begin
   RatioObj := TRatioPtr.Create(1, 2);
   (RatioObj as IConvertible).ToFloat(FloatVal);
 
-  Assert.AreEqual<RtFloat>(FloatVal, 1 / 2.0);
+  Assert.AreEqual<DaqFloat>(FloatVal, 1 / 2.0);
 end;
 
 procedure TTest_RatioPtr.ConvertInt();
 var
   RatioObj: IRatioPtr;
-  IntVal : RtInt;
+  IntVal : DaqInt;
 begin
   RatioObj := TRatioPtr.Create(1, 2);
   IntVal := (RatioObj as IConvertiblePtr).ToInt();
 
-  Assert.AreEqual<RtInt>(IntVal, 1);
+  Assert.AreEqual<DaqInt>(IntVal, 1);
 end;
 
 procedure TTest_RatioPtr.ConvertBoolTrue();
@@ -211,8 +211,8 @@ var
 
   DeserializedObj : IBaseObject;
   DeserializedRatio : IRatio;
-  Numerator : RtInt;
-  Denominator : RtInt;
+  Numerator : DaqInt;
+  Denominator : DaqInt;
 begin
   CreateRatio(RatioObj, 1, 2);
   CreateJsonSerializer(Serializer);
@@ -224,7 +224,7 @@ begin
   Err := CreateJsonDeserializer(Deserializer);
   Assert.AreEqual(Err, OPENDAQ_SUCCESS);
 
-  Err := Deserializer.Deserialize(OutputObj, nil, DeserializedObj);
+  Err := Deserializer.Deserialize(OutputObj, nil, nil, DeserializedObj);
   Assert.AreEqual(Err, OPENDAQ_SUCCESS);
   Assert.AreNotEqual<IBaseObject>(DeserializedObj, nil);
 
@@ -235,10 +235,10 @@ begin
   );
 
   DeserializedRatio.GetNumerator(Numerator);
-  Assert.AreEqual<RtInt>(Numerator, 1);
+  Assert.AreEqual<DaqInt>(Numerator, 1);
 
   DeserializedRatio.GetDenominator(Denominator);
-  Assert.AreEqual<RtInt>(Denominator, 2);
+  Assert.AreEqual<DaqInt>(Denominator, 2);
 end;
 
 procedure TTest_RatioPtr.CoreType();

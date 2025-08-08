@@ -120,7 +120,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.CreateStartIterator(Iter);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TIteratorPtr<T>.Create(Iter);
 end;
@@ -134,7 +134,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.CreateEndIterator(Iter);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TIteratorPtr<T>.Create(Iter);
 end;

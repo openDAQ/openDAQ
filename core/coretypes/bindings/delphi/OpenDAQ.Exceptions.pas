@@ -8,7 +8,7 @@ uses
   System.Generics.Collections;
 
 type
-  ERTException = class(Exception)
+  EDaqException = class(Exception)
   private
     ErrorCode: ErrCode;
   protected
@@ -21,280 +21,280 @@ type
     property Code: ErrCode read ErrorCode;
   end;
 
-  ERTInvalidParameterException = class(ERTException)
+  ERTInvalidParameterException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTArgumentNullException = class(ERTException)
+  ERTArgumentNullException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTOutOfRangeException = class(ERTException)
+  ERTOutOfRangeException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTNotFoundException = class(ERTException)
+  ERTNotFoundException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTFrozenException = class(ERTException)
+  ERTFrozenException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTNoInterfaceException = class(ERTException)
+  ERTNoInterfaceException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTNotImplementedException = class(ERTException)
+  ERTNotImplementedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTInvalidTypeException = class(ERTException)
+  ERTInvalidTypeException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTNotAssignedException = class(ERTException)
+  ERTNotAssignedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTNotEnabledException = class(ERTException)
+  ERTNotEnabledException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTCoversionFailedException = class(ERTException)
+  ERTCoversionFailedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTInvalidPropertyException = class(ERTException)
+  ERTInvalidPropertyException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTInvalidValueException = class(ERTException)
+  ERTInvalidValueException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTInvalidStateException = class(ERTException)
+  ERTInvalidStateException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  ERTAlreadyExistsException = class(ERTException)
+  ERTAlreadyExistsException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqNoMemoryException = class(ERTException)
+  EDaqNoMemoryException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqSizeTooSmallException = class(ERTException)
+  EDaqSizeTooSmallException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqCallFailedException = class(ERTException)
+  EDaqCallFailedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqParseFailedException = class(ERTException)
+  EDaqParseFailedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqResolveFailedException = class(ERTException)
+  EDaqResolveFailedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqAccessDeniedException = class(ERTException)
+  EDaqAccessDeniedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqNotFrozenException = class(ERTException)
+  EDaqNotFrozenException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqNotSerializableException = class(ERTException)
+  EDaqNotSerializableException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqInvalidPropertyException = class(ERTException)
+  EDaqInvalidPropertyException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqDuplicateItemException = class(ERTException)
+  EDaqDuplicateItemException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqInvalidOperationException = class(ERTException)
+  EDaqInvalidOperationException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqUninitializedException = class(ERTException)
+  EDaqUninitializedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqValidateFailedException = class(ERTException)
+  EDaqValidateFailedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqNotUpdatableException = class(ERTException)
+  EDaqNotUpdatableException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
   
-  EDaqNoCompatibleVersionException = class(ERTException)
+  EDaqNoCompatibleVersionException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqLockedException = class(ERTException)
+  EDaqLockedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqSizeTooLargeException = class(ERTException)
+  EDaqSizeTooLargeException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqBufferFullException = class(ERTException)
+  EDaqBufferFullException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqEmptyScalingTableException = class(ERTException)
+  EDaqEmptyScalingTableException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqEmptyRangeException = class(ERTException)
+  EDaqEmptyRangeException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqCreateFailedException = class(ERTException)
+  EDaqCreateFailedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqDiscoveryFailedException = class(ERTException)
+  EDaqDiscoveryFailedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqCoerceFailedException = class(ERTException)
+  EDaqCoerceFailedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqNotSupportedException = class(ERTException)
+  EDaqNotSupportedException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
     constructor Create(Msg: string); overload;
   end;
 
-  EDaqListNotHomogeneousException = class(ERTException)
+  EDaqListNotHomogeneousException = class(EDaqException)
   public
     constructor Create(); overload;
     constructor Create(ErrorCode: ErrCode); overload; override;
@@ -303,7 +303,7 @@ type
 
   // Deserialize Exceptions
 
-  ERTDeserializeException = class abstract(ERTException)
+  ERTDeserializeException = class abstract(EDaqException)
   public
     constructor Create(Err: ErrCode); overload; override;
     constructor Create(Msg: string; Err: ErrCode); overload;
@@ -337,28 +337,28 @@ type
     constructor Create(Msg: string); overload;
   end;
 
-  RTExceptionClass = class of ERTException;
+  DaqExceptionClass = class of EDaqException;
 
-  TRTExceptionRegistry = class
+  TDaqExceptionRegistry = class
   private
-    class var FKnownExceptions : TDictionary<ErrCode, RTExceptionClass>;
+    class var FKnownExceptions : TDictionary<ErrCode, DaqExceptionClass>;
   public
-    class procedure RegisterException(Err: ErrCode; ClassType: RTExceptionClass); static;
+    class procedure RegisterException(Err: ErrCode; ClassType: DaqExceptionClass); static;
     class procedure UnregisterException(Err: ErrCode); static;
-    class function GetExceptionClass(Err: ErrCode): RTExceptionClass; static;
+    class function GetExceptionClass(Err: ErrCode): DaqExceptionClass; static;
   end;
 
-  procedure CheckRtErrorInfo(Err: ErrCode);
+  procedure CheckDaqErrorInfo(Err: ErrCode);
 
 implementation
 
 uses
-  DS.Utils,
-  OpenDAQ.CoreTypes.Errors;
+  OpenDAQ.CoreTypes.Errors,
+  System.StrUtils;
 
-procedure CheckRtErrorInfo(Err: ErrCode);
+procedure CheckDaqErrorInfo(Err: ErrCode);
 var
-  ExceptionClass: RTExceptionClass;
+  ExceptionClass: DaqExceptionClass;
   Msg: string;
   ErrorMsg: IString;
   ErrorInfo: IErrorInfo;
@@ -379,9 +379,9 @@ begin
     DaqClearErrorInfo;
   end;
 
-  ExceptionClass := TRTExceptionRegistry.GetExceptionClass(Err);
+  ExceptionClass := TDaqExceptionRegistry.GetExceptionClass(Err);
   if not Assigned(ExceptionClass) then
-    raise ERTException.Create(IfThenStr(Length(Msg) = 0, 'openDAQ Exception occured', Msg), Err)
+    raise EDaqException.Create(IfThen(Length(Msg) = 0, 'openDAQ Exception occured', Msg), Err)
   else
     if Length(Msg) = 0 then
       raise ExceptionClass.Create(Err)
@@ -391,30 +391,30 @@ end;
 
 { ERTException }
 
-constructor ERTException.Create();
+constructor EDaqException.Create();
 begin
   inherited Create('openDAQ Genneral error occured.');
 end;
 
-constructor ERTException.Create(Msg: string);
+constructor EDaqException.Create(Msg: string);
 begin
   inherited Create(Msg);
   Self.ErrorCode := OPENDAQ_ERR_GENERALERROR;
 end;
 
-constructor ERTException.Create(Msg: string; ErrorCode: ErrCode);
+constructor EDaqException.Create(Msg: string; ErrorCode: ErrCode);
 begin
   inherited Create('openDAQ Error 0x' + IntToHex(ErrorCode, 8) + ': ' + Msg);
   Self.ErrorCode := ErrorCode;
 end;
 
-constructor ERTException.Create(ErrorCode: ErrCode);
+constructor EDaqException.Create(ErrorCode: ErrCode);
 begin
   inherited Create('Error ' + IntToHex(ErrorCode, 8));
   Self.ErrorCode := ErrorCode;
 end;
 
-constructor ERTException.Create(ErrorCode: ErrCode; Msg: string);
+constructor EDaqException.Create(ErrorCode: ErrCode; Msg: string);
 begin
   inherited Create(Msg);
   Self.ErrorCode := ErrorCode;
@@ -439,17 +439,17 @@ end;
 
 { TRTExceptionRegistry }
 
-class procedure TRTExceptionRegistry.RegisterException(Err: ErrCode; ClassType: RTExceptionClass);
+class procedure TDaqExceptionRegistry.RegisterException(Err: ErrCode; ClassType: DaqExceptionClass);
 begin
   FKnownExceptions.Add(Err, ClassType);
 end;
 
-class procedure TRTExceptionRegistry.UnregisterException(Err: ErrCode);
+class procedure TDaqExceptionRegistry.UnregisterException(Err: ErrCode);
 begin
   FKnownExceptions.Remove(Err);
 end;
 
-class function TRTExceptionRegistry.GetExceptionClass(Err: ErrCode): RTExceptionClass;
+class function TDaqExceptionRegistry.GetExceptionClass(Err: ErrCode): DaqExceptionClass;
 begin
   if not FKnownExceptions.ContainsKey(Err) then
     Exit(nil);
@@ -1201,53 +1201,53 @@ begin
 end;
 
 initialization
-  TRTExceptionRegistry.FKnownExceptions := TDictionary<ErrCode, RTExceptionClass>.Create();
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NOMEMORY, EDaqNoMemoryException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALIDPARAMETER, ERTInvalidParameterException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NOINTERFACE, ERTNoInterfaceException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_SIZETOOSMALL, EDaqSizeTooSmallException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_CONVERSIONFAILED, ERTCoversionFailedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_OUTOFRANGE, ERTOutOfRangeException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NOTFOUND, ERTNotFoundException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_ALREADYEXISTS, ERTAlreadyExistsException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NOTASSIGNED, ERTNotAssignedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_CALLFAILED, EDaqCallFailedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_PARSEFAILED, EDaqParseFailedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALIDVALUE, ERTInvalidValueException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_RESOLVEFAILED, EDaqResolveFailedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALIDTYPE, ERTInvalidTypeException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_ACCESSDENIED, EDaqAccessDeniedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NOTENABLED, ERTNotEnabledException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NOTIMPLEMENTED, ERTNotImplementedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_FROZEN, ERTFrozenException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NOT_FROZEN, EDaqNotFrozenException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NOT_SERIALIZABLE, EDaqNotSerializableException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_FACTORY_NOT_REGISTERED, ERTDeserializeFactoryNotRegisteredException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR, ERTDeserializeParseException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE, ERTDeserializeInvalidTypeTagException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_DESERIALIZE_NO_TYPE, ERTDeserializeNoTypeTagException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_DUPLICATEITEM, EDaqDuplicateItemException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_ARGUMENT_NULL, ERTArgumentNullException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALID_OPERATION, EDaqInvalidOperationException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_UNINITIALIZED, EDaqUninitializedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALIDSTATE, ERTInvalidStateException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_VALIDATE_FAILED, EDaqValidateFailedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NOT_UPDATABLE, EDaqNotUpdatableException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NO_COMPATIBLE_VERSION, EDaqNoCompatibleVersionException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_LOCKED, EDaqLockedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_SIZETOOLARGE, EDaqSizeTooLargeException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_BUFFERFULL, EDaqBufferFullException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_EMPTY_SCALING_TABLE, EDaqEmptyScalingTableException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_EMPTY_RANGE, EDaqEmptyRangeException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_CREATE_FAILED, EDaqCreateFailedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_DISCOVERY_FAILED, EDaqDiscoveryFailedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_COERCE_FAILED, EDaqCoerceFailedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_NOT_SUPPORTED, EDaqNotSupportedException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_LIST_NOT_HOMOGENEOUS, EDaqListNotHomogeneousException);
-  TRTExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALIDPROPERTY, ERTInvalidPropertyException);
+  TDaqExceptionRegistry.FKnownExceptions := TDictionary<ErrCode, DaqExceptionClass>.Create();
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NOMEMORY, EDaqNoMemoryException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALIDPARAMETER, ERTInvalidParameterException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NOINTERFACE, ERTNoInterfaceException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_SIZETOOSMALL, EDaqSizeTooSmallException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_CONVERSIONFAILED, ERTCoversionFailedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_OUTOFRANGE, ERTOutOfRangeException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NOTFOUND, ERTNotFoundException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_ALREADYEXISTS, ERTAlreadyExistsException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NOTASSIGNED, ERTNotAssignedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_CALLFAILED, EDaqCallFailedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_PARSEFAILED, EDaqParseFailedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALIDVALUE, ERTInvalidValueException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_RESOLVEFAILED, EDaqResolveFailedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALIDTYPE, ERTInvalidTypeException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_ACCESSDENIED, EDaqAccessDeniedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NOTENABLED, ERTNotEnabledException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NOTIMPLEMENTED, ERTNotImplementedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_FROZEN, ERTFrozenException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NOT_FROZEN, EDaqNotFrozenException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NOT_SERIALIZABLE, EDaqNotSerializableException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_FACTORY_NOT_REGISTERED, ERTDeserializeFactoryNotRegisteredException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR, ERTDeserializeParseException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE, ERTDeserializeInvalidTypeTagException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_DESERIALIZE_NO_TYPE, ERTDeserializeNoTypeTagException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_DUPLICATEITEM, EDaqDuplicateItemException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_ARGUMENT_NULL, ERTArgumentNullException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALID_OPERATION, EDaqInvalidOperationException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_UNINITIALIZED, EDaqUninitializedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALIDSTATE, ERTInvalidStateException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_VALIDATE_FAILED, EDaqValidateFailedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NOT_UPDATABLE, EDaqNotUpdatableException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NO_COMPATIBLE_VERSION, EDaqNoCompatibleVersionException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_LOCKED, EDaqLockedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_SIZETOOLARGE, EDaqSizeTooLargeException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_BUFFERFULL, EDaqBufferFullException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_EMPTY_SCALING_TABLE, EDaqEmptyScalingTableException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_EMPTY_RANGE, EDaqEmptyRangeException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_CREATE_FAILED, EDaqCreateFailedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_DISCOVERY_FAILED, EDaqDiscoveryFailedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_COERCE_FAILED, EDaqCoerceFailedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_NOT_SUPPORTED, EDaqNotSupportedException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_LIST_NOT_HOMOGENEOUS, EDaqListNotHomogeneousException);
+  TDaqExceptionRegistry.RegisterException(OPENDAQ_ERR_INVALIDPROPERTY, ERTInvalidPropertyException);
 
 finalization
-  TRTExceptionRegistry.FKnownExceptions.Free();
+  TDaqExceptionRegistry.FKnownExceptions.Free();
 
 end.
 

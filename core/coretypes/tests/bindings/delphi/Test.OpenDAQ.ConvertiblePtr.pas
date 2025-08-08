@@ -86,21 +86,21 @@ end;
 procedure TTest_ConvertiblePtr.IntToFloat();
 var
   IntObj: IIntegerPtr;
-  FloatValue: RtFloat;
+  FloatValue: DaqFloat;
 begin
   IntObj := TIntegerPtr.Create(5);
   FloatValue := (IntObj as IConvertiblePtr).ToFloat();
-  Assert.AreEqual<RtFloat>(FloatValue, 5.0);
+  Assert.AreEqual<DaqFloat>(FloatValue, 5.0);
 end;
 
 procedure TTest_ConvertiblePtr.IntToInt();
 var
   IntObj: IIntegerPtr;
-  IntValue: RtInt;
+  IntValue: DaqInt;
 begin
   IntObj := TIntegerPtr.Create(5);
   IntValue := (IntObj as IConvertiblePtr).ToInt();
-  Assert.AreEqual<RtInt>(IntValue, 5);
+  Assert.AreEqual<DaqInt>(IntValue, 5);
 end;
 
 procedure TTest_ConvertiblePtr.StringToBool();
@@ -143,11 +143,11 @@ end;
 procedure TTest_ConvertiblePtr.StringToFloat();
 var
   StringObj: IStringPtr;
-  FloatValue: RtFloat;
+  FloatValue: DaqFloat;
 begin
   StringObj := TStringPtr.Create('5.2');
   FloatValue := (StringObj as IConvertiblePtr).ToFloat();
-  Assert.AreEqual<RtFloat>(FloatValue, 5.2);
+  Assert.AreEqual<DaqFloat>(FloatValue, 5.2);
 
   StringObj := TStringPtr.Create('a');
 {$IFDEF TEST_EXCEPTIONS}
@@ -164,11 +164,11 @@ end;
 procedure TTest_ConvertiblePtr.StringToInt();
 var
   StringObj: IStringPtr;
-  IntValue: RtInt;
+  IntValue: DaqInt;
 begin
   StringObj := TStringPtr.Create('5');
   IntValue := BaseObjectToInt(StringObj);
-  Assert.AreEqual<RtInt>(IntValue, 5);
+  Assert.AreEqual<DaqInt>(IntValue, 5);
 
   StringObj := TStringPtr.Create('a');
 {$IFDEF TEST_EXCEPTIONS}
@@ -198,29 +198,29 @@ end;
 procedure TTest_ConvertiblePtr.BoolToFloat();
 var
   BoolObj: IBooleanPtr;
-  FloatValue: RtFloat;
+  FloatValue: DaqFloat;
 begin
   BoolObj := TBooleanPtr.Create(True);
   FloatValue := (BoolObj as IConvertiblePtr).ToFloat();
-  Assert.AreEqual<RtFloat>(FloatValue, 1);
+  Assert.AreEqual<DaqFloat>(FloatValue, 1);
 
   BoolObj := TBooleanPtr.Create(False);
   FloatValue := (BoolObj as IConvertiblePtr).ToFloat();
-  Assert.AreEqual<RtFloat>(FloatValue, 0);
+  Assert.AreEqual<DaqFloat>(FloatValue, 0);
 end;
 
 procedure TTest_ConvertiblePtr.BoolToInt();
 var
   BoolObj: IBooleanPtr;
-  IntValue: RtInt;
+  IntValue: DaqInt;
 begin
   BoolObj := TBooleanPtr.Create(True);
   IntValue := (BoolObj as IConvertiblePtr).ToInt();
-  Assert.AreEqual<RtInt>(IntValue, 1);
+  Assert.AreEqual<DaqInt>(IntValue, 1);
 
   BoolObj := TBooleanPtr.Create(False);
   IntValue := (BoolObj as IConvertiblePtr).ToInt();
-  Assert.AreEqual<RtInt>(IntValue, 0);
+  Assert.AreEqual<DaqInt>(IntValue, 0);
 end;
 
 procedure TTest_ConvertiblePtr.FloatToBool();
@@ -240,7 +240,7 @@ end;
 procedure TTest_ConvertiblePtr.FloatToFloat();
 var
   FloatObj: IFloatPtr;
-  FloatValue: RtFloat;
+  FloatValue: DaqFloat;
 begin
   FloatObj := TFloatPtr.Create(1.0);
   FloatValue := (FloatObj as IConvertiblePtr).ToFloat();
@@ -250,7 +250,7 @@ end;
 procedure TTest_ConvertiblePtr.FloatToInt();
 var
   FloatObj: IFloatPtr;
-  IntValue: RtInt;
+  IntValue: DaqInt;
 begin
   FloatObj := TFloatPtr.Create(5.0);
   IntValue := (FloatObj as IConvertiblePtr).ToInt();

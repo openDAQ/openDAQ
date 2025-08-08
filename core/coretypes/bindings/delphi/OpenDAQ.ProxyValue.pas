@@ -1,9 +1,8 @@
 unit OpenDAQ.ProxyValue;
 
 interface
-uses 
-  OpenDAQ.CoreTypes,
-  OpenDAQ.ObjectPtr;
+uses
+  OpenDAQ.CoreTypes;
 
 type
   {$MINENUMSIZE 4}
@@ -12,16 +11,16 @@ type
   public
     constructor Create(Obj : T); overload;
 
-    class operator Implicit(Proxy: TProxyValue<T>): RtInt;
-    class operator Implicit(Proxy: TProxyValue<T>): RtFloat;
+    class operator Implicit(Proxy: TProxyValue<T>): DaqInt;
+    class operator Implicit(Proxy: TProxyValue<T>): DaqFloat;
     class operator Implicit(Proxy: TProxyValue<T>): Boolean;
     class operator Implicit(Proxy: TProxyValue<T>): string;
 
     class operator Implicit(Proxy: TProxyValue<T>): T;
     class operator Implicit(Proxy: TProxyValue<T>): IObjectPtr<T>;
 
-    class operator Implicit(Value : RtInt): TProxyValue<T>;
-    class operator Implicit(Value : RtFloat): TProxyValue<T>;
+    class operator Implicit(Value : DaqInt): TProxyValue<T>;
+    class operator Implicit(Value : DaqFloat): TProxyValue<T>;
     class operator Implicit(Value : Boolean): TProxyValue<T>;
     class operator Implicit(Value : string): TProxyValue<T>;
 
@@ -36,6 +35,9 @@ type
     function AsPtrOrNil<U : ISmartPtr>() : U;
 
     function IsAssigned(): Boolean;
+
+    class operator Equal(A: TProxyValue<T>; B: TProxyValue<T>): Boolean;
+    class operator NotEqual(A: TProxyValue<T>; B: TProxyValue<T>): Boolean;
   private
     FObject : T;
   end;
@@ -54,6 +56,21 @@ uses
 constructor TProxyValue<T>.Create(Obj : T);
 begin
   FObject := Obj;
+end;
+
+class operator TProxyValue<T>.Equal(A, B: TProxyValue<T>): Boolean;
+var
+  Err: ErrCode;
+  Equal: Boolean;
+begin
+  Err := A.FObject.EqualsObject(B.FObject, Equal);
+  CheckDaqErrorInfo(Err);
+  Result := Equal;
+end;
+
+class operator TProxyValue<T>.NotEqual(A, B: TProxyValue<T>): Boolean;
+begin
+  Result := not (A = B);
 end;
 
 function TProxyValue<T>.AsInterface<U>(): U;
@@ -96,14 +113,14 @@ begin
   PtrClass := TSmartPtrRegistry.GetPtrClass(InterfaceGuid);
 
   if not Assigned(PtrClass) then
-    raise ERTException.Create('SmartPtr class for this interface is not registered.');
+    raise EDaqException.Create('SmartPtr class for this interface is not registered.');
 
   Ptr := PtrClass.Create(FObject);
 
   if Supports(Ptr, InterfaceGuid, PtrInterface) then
     Result := PtrInterface
   else
-    raise ERTException.Create('The registered SmartPtr class does not implement the specified interface.');
+    raise EDaqException.Create('The registered SmartPtr class does not implement the specified interface.');
 end;
 
 function TProxyValue<T>.AsPtrOrNil<U>(): U;
@@ -122,7 +139,7 @@ begin
   PtrClass := TSmartPtrRegistry.GetPtrClass(PtrGuid);
 
   if not Assigned(PtrClass) then
-    raise ERTException.Create('SmartPtr class for this interface is not registered.');
+    raise EDaqException.Create('SmartPtr class for this interface is not registered.');
 
   InterfaceGuid := TSmartPtrRegistry.GetInterfaceFromPtr(PtrGuid);
   if not Supports(FObject, InterfaceGuid, InterfaceObj) then
@@ -140,10 +157,10 @@ begin
   Result := Assigned(FObject);
 end;
 
-class operator TProxyValue<T>.Implicit(Proxy: TProxyValue<T>): RtInt;
+class operator TProxyValue<T>.Implicit(Proxy: TProxyValue<T>): DaqInt;
 var
   Err : ErrCode;
-  Value : RtInt;
+  Value : DaqInt;
   Convertible: IConvertible;
 begin
   if not Assigned(Proxy.FObject) then
@@ -154,16 +171,16 @@ begin
   else if (Supports(Proxy.FObject, IConvertible, Convertible)) then
     Err := Convertible.ToInt(Value)
   else
-    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to RtInt.');
+    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to DaqInt.');
 
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
   Result := Value;
 end;
 
-class operator TProxyValue<T>.Implicit(Proxy: TProxyValue<T>): RtFloat;
+class operator TProxyValue<T>.Implicit(Proxy: TProxyValue<T>): DaqFloat;
 var
   Err : ErrCode;
-  Value : RtFloat;
+  Value : DaqFloat;
   Convertible: IConvertible;
 begin
   if not Assigned(Proxy.FObject) then
@@ -174,9 +191,9 @@ begin
   else if (Supports(Proxy.FObject, IConvertible, Convertible)) then
     Err := Convertible.ToFloat(Value)
   else
-    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to RtInt.');
+    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to DaqInt.');
 
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
   Result := Value;
 end;
 
@@ -194,9 +211,9 @@ begin
   else if (Supports(Proxy.FObject, IConvertible, Convertible)) then
     Err := Convertible.ToBool(Value)
   else
-    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to RtInt.');
+    raise ERTInvalidParameterException.Create('Could not convert ' + GetTypeName(TypeInfo(T)) +' to DaqInt.');
 
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
   Result := Value;
 end;
 
@@ -257,7 +274,7 @@ begin
   Result := TProxyValue<T>.Create(nil);
 end;
 
-class operator TProxyValue<T>.Implicit(Value: RtFloat): TProxyValue<T>;
+class operator TProxyValue<T>.Implicit(Value: DaqFloat): TProxyValue<T>;
 var
   FloatObj : IFloat;
   Err : ErrCode;
@@ -266,7 +283,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface is not IFloat or IBaseObject.');
 
   Err := CreateFloat(FloatObj, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue<T>(TProxyValue<IFloat>.Create(FloatObj));
 end;
@@ -281,7 +298,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface is not IBoolean or IBaseObject.');
 
   Err := CreateBoolean(BoolObj, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue<T>(TProxyValue<IBoolean>.Create(BoolObj));
 end;
@@ -297,7 +314,7 @@ begin
   Result := TProxyValue<T>(TProxyValue<IString>.Create(Str));
 end;
 
-class operator TProxyValue<T>.Implicit(Value: RtInt): TProxyValue<T>;
+class operator TProxyValue<T>.Implicit(Value: DaqInt): TProxyValue<T>;
 var
   IntObj : IInteger;
   FloatObj : IFloat;
@@ -306,14 +323,14 @@ begin
   if ((TypeInfo(T) = TypeInfo(IInteger)) or (TypeInfo(T) = TypeInfo(IBaseObject))) then
   begin
     Err := CreateInteger(IntObj, Value);
-    CheckRtErrorInfo(Err);
+    CheckDaqErrorInfo(Err);
 
     Exit(TProxyValue<T>(TProxyValue<IInteger>.Create(IntObj)))
   end
   else if (TypeInfo(T) = TypeInfo(IFloat)) then
   begin
     Err := CreateFloat(FloatObj, Value);
-    CheckRtErrorInfo(Err);
+    CheckDaqErrorInfo(Err);
 
     Exit(TProxyValue<T>(TProxyValue<IFloat>.Create(FloatObj)))
   end

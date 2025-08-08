@@ -44,7 +44,7 @@ begin
     raise ERTInvalidParameterException.Create('The parameter must be nil to initialize as a nil string.');
 
   Err := CreateString(Str, Ptr);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Create(Str);
 end;
@@ -73,7 +73,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetLength(Length);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Length;
 end;
@@ -87,7 +87,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetCharPtr(@Ptr);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := string(UTF8String(Ptr));
 end;

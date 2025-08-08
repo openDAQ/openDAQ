@@ -73,17 +73,17 @@ type
     procedure ReadListInvalidType;
   end;
 
-  function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
+  function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
 
-  function HasKeyFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function KeyFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function SerializedObjectErrorFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
+  function HasKeyFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function KeyFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function SerializedObjectErrorFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
 
 implementation
 uses  
@@ -98,7 +98,7 @@ uses
   OpenDAQ.Deserializer;
 
 
-function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Value: Int64;
   Res: ErrCode;
@@ -117,7 +117,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Value: Double;
   Res: ErrCode;
@@ -136,7 +136,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Value: Boolean;
   Res: ErrCode;
@@ -155,7 +155,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Value: IString;
   Res: ErrCode;
@@ -172,7 +172,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
+function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
 var
   List: ISerializedList;
   Res: ErrCode;
@@ -192,14 +192,14 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   List: IListObject;
   Res: ErrCode;
   StringObj: IString;
 begin
   CreateString(StringObj, 'list');
-  Res := Serialized.ReadList(StringObj, Context, List);
+  Res := Serialized.ReadList(StringObj, Context, nil, List);
 
   if OPENDAQ_FAILED(Res) then
     Exit(Res);
@@ -209,7 +209,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function HasKeyFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function HasKeyFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   HasKey: Boolean;
   Res: ErrCode;
@@ -228,7 +228,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function KeyFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function KeyFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Res: ErrCode;
   StringObj: IString;
@@ -249,14 +249,14 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Res: ErrCode;
   StringObj: IString;
 
 begin
   CreateString(StringObj, 'doesNotExist');
-  Res := Serialized.ReadObject(StringObj, Context, Obj);
+  Res := Serialized.ReadObject(StringObj, Context, nil, Obj);
 
   if OPENDAQ_FAILED(Res) then
     Exit(Res);
@@ -264,7 +264,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function SerializedObjectErrorFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function SerializedObjectErrorFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Res: ErrCode;
   StringObj: IString;
@@ -304,7 +304,7 @@ begin
 
   Str := '{"__type":"' + FId + '","int":1}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseOBject(IntObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(IntObj));
 
   IntObj.GetValue(IntVal);
   Assert.AreEqual(IntVal, Int64(1));
@@ -323,7 +323,7 @@ begin
 
   Str := '{"__type":"' + FId + '","int":-1}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseOBject(IntObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(IntObj));
 
   IntObj.GetValue(IntVal);
   Assert.AreEqual(IntVal, Int64(-1));
@@ -341,7 +341,7 @@ begin
 
   Str := '{"__type":"' + FId + '","int":1.0}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseOBject(IntObj)), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(IntObj)), OPENDAQ_ERR_INVALIDTYPE);
 
 end;
 
@@ -357,7 +357,7 @@ begin
 
   Str := '{"__type":"' + FId + '","integer":1}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseOBject(IntObj)), OPENDAQ_ERR_NOTFOUND);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(IntObj)), OPENDAQ_ERR_NOTFOUND);
 end;
 
 procedure TTest_JsonSerializedObject.ReadFloatPositive;
@@ -373,7 +373,7 @@ begin
 
   Str := '{"__type":"' + FId + '","float":1.5}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseOBject(FloatObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(FloatObj));
 
   FloatObj.GetValue(FloatVal);
   Assert.AreEqual(FloatVal, Double(1.5));
@@ -393,7 +393,7 @@ begin
 
   Str := '{"__type":"' + FId + '","float":-1.5}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseOBject(FloatObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(FloatObj));
 
   FloatObj.GetValue(FloatVal);
   Assert.AreEqual(FloatVal, Double(-1.5));
@@ -411,7 +411,7 @@ begin
 
   Str := '{"__type":"' + FId + '","floating":1.0}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(FloatObj)), OPENDAQ_ERR_NOTFOUND);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(FloatObj)), OPENDAQ_ERR_NOTFOUND);
 end;
 
 procedure TTest_JsonSerializedObject.ReadFloatInvalidType;
@@ -426,7 +426,7 @@ begin
 
   Str := '{"__type":"' + FId + '","float":1}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseOBject(FloatObj)), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(FloatObj)), OPENDAQ_ERR_INVALIDTYPE);
 end;
 
 procedure TTest_JsonSerializedObject.ReadBoolTrue;
@@ -442,7 +442,7 @@ begin
 
   Str := '{"__type":"' + FId + '","bool":true}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseOBject(BoolObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(BoolObj));
 
   BoolObj.GetValue(BoolVal);
   Assert.AreEqual(BoolVal, True);
@@ -461,7 +461,7 @@ begin
 
   Str := '{"__type":"' + FId + '","bool":false}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseOBject(BoolObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(BoolObj));
 
   BoolObj.GetValue(BoolVal);
   Assert.AreEqual(BoolVal, False);
@@ -479,7 +479,7 @@ begin
 
   Str := '{"__type":"'+ FId + '","bool":1}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(BoolObj)), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(BoolObj)), OPENDAQ_ERR_INVALIDTYPE);
 end;
 
 procedure TTest_JsonSerializedObject.ReadNonExistentBool;
@@ -494,7 +494,7 @@ begin
 
   Str := '{"__type":"' + FId + '","boolean":true}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseOBject(BoolObj)), OPENDAQ_ERR_NOTFOUND);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(BoolObj)), OPENDAQ_ERR_NOTFOUND);
 end;
 
 procedure TTest_JsonSerializedObject.ReadString;
@@ -510,7 +510,7 @@ begin
 
   Str := '{"__type":"' + FId + '","string":"Test"}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseOBject(StrObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseOBject(StrObj));
 
   StrObj.GetCharPtr(@StrVal);
   Assert.AreEqual(string(StrVal), 'Test');
@@ -529,7 +529,7 @@ begin
   Str := '{"__type":"' + FId + '","string":0}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(StrObj)), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(StrObj)), OPENDAQ_ERR_INVALIDTYPE);
 end;
 
 procedure TTest_JsonSerializedObject.ReadNonExistentString;
@@ -545,7 +545,7 @@ begin
   Str := '{"__type":"' + FId + '","str":"Test"}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(StrObj)), OPENDAQ_ERR_NOTFOUND);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(StrObj)), OPENDAQ_ERR_NOTFOUND);
 end;
 
 procedure TTest_JsonSerializedObject.TestHasKeyTrue;
@@ -562,7 +562,7 @@ begin
 
   Str := '{"__type":"' + FId + '","str":"Test"}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(BoolObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(BoolObj));
   BoolObj.GetValue(BoolVal);
 
   Assert.AreEqual(BoolVal, True);
@@ -582,7 +582,7 @@ begin
 
   Str := '{"__type":"' + FId + '","string":"Test"}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(BoolObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(BoolObj));
   BoolObj.GetValue(BoolVal);
 
   Assert.AreEqual(BoolVal, False);
@@ -601,7 +601,7 @@ begin
 
   Str := '{"__type":"' + FId + '","object":{}}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(Keys));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Keys));
   Keys.GetCount(Count);
 
   Assert.AreEqual(Count, SizeT(0));
@@ -620,7 +620,7 @@ begin
 
   Str := '{"__type":"' + FId + '","object":{"key1":1,"key2":0.0,"key3":false,"key4":"string","key5":[],"key6":{}}}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(Keys));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Keys));
   Keys.GetCount(Count);
 
   Assert.AreEqual(Count, SizeT(6));
@@ -638,7 +638,7 @@ begin
 
   Str := '{"__type":"' + FId + '","object":{}}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, Obj), OPENDAQ_ERR_NOTFOUND);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, Obj), OPENDAQ_ERR_NOTFOUND);
 end;
 
 procedure TTest_JsonSerializedObject.ReadSerializedObjectInvalidType;
@@ -653,7 +653,7 @@ begin
 
   Str := '{"__type":"' + FId + '","object":[]}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, Obj), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, Obj), OPENDAQ_ERR_INVALIDTYPE);
 end;
 
 procedure TTest_JsonSerializedObject.ReadNonExistentSerializedObject;
@@ -668,7 +668,7 @@ begin
 
   Str := '{"__type":"' + FId + '","obj":{}}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, Obj), OPENDAQ_ERR_NOTFOUND);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, Obj), OPENDAQ_ERR_NOTFOUND);
 end;
 
 procedure TTest_JsonSerializedObject.ReadEmptySerializedList;
@@ -684,7 +684,7 @@ begin
 
   Str := '{"__type":"' + FId + '","list":[]}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(SerializedList));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(SerializedList));
   SerializedList.GetCount(Count);
   Assert.AreEqual(Count, SizeT(0));
 end;
@@ -701,7 +701,7 @@ begin
 
   Str := '{"__type":"' + FId + '","array":[]}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(SerializedList)), OPENDAQ_ERR_NOTFOUND);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(SerializedList)), OPENDAQ_ERR_NOTFOUND);
 end;
 
 procedure TTest_JsonSerializedObject.ReadSerializedListInvalidType;
@@ -716,7 +716,7 @@ begin
 
   Str := '{"__type":"' + FId + '","list":false}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(SerializedList)), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(SerializedList)), OPENDAQ_ERR_INVALIDTYPE);
 end;
 
 procedure TTest_JsonSerializedObject.ReadEmptyList;
@@ -732,7 +732,7 @@ begin
 
   Str := '{"__type":"' + FId + '","list":[]}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(List));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(List));
   List.GetCount(Count);
   Assert.AreEqual(Count, SizeT(0));
 end;
@@ -749,7 +749,7 @@ begin
 
   Str := '{"__type":"' + FId + '","array":[]}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(List)), OPENDAQ_ERR_NOTFOUND);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(List)), OPENDAQ_ERR_NOTFOUND);
 end;
 
 procedure TTest_JsonSerializedObject.ReadListInvalidType;
@@ -764,7 +764,7 @@ begin
 
   Str := '{"__type":"' + FId + '","list":false}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(List)), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(List)), OPENDAQ_ERR_INVALIDTYPE);
 end;
 
 initialization

@@ -25,7 +25,7 @@ type
     procedure Key(Name: IString); overload;
     procedure Key(const Str: PAnsiChar; Len: SizeT); overload;
 
-    procedure WriteInt(Int: RtInt);
+    procedure WriteInt(Int: DaqInt);
     procedure WriteBool(Bool: Boolean);
     procedure WriteFloat(Real: Double);
     procedure WriteNull();
@@ -63,11 +63,11 @@ type
     function ReadBool(Key : IString): Boolean; overload;
     function ReadBool(Key : string): Boolean; overload;
 
-    function ReadFloat(Key : IString): RtFloat; overload;
-    function ReadFloat(Key : string): RtFloat; overload;
+    function ReadFloat(Key : IString): DaqFloat; overload;
+    function ReadFloat(Key : string): DaqFloat; overload;
 
-    function ReadInt(Key : IString): RtInt; overload;
-    function ReadInt(Key : string): RtInt; overload;
+    function ReadInt(Key : IString): DaqInt; overload;
+    function ReadInt(Key : string): DaqInt; overload;
 
     function HasKey(Key : IString): Boolean; overload;
     function HasKey(Key : string): Boolean; overload;
@@ -93,8 +93,8 @@ type
     function ReadStringPtr(): IStringPtr; overload;
     function ReadString(): string; overload;
     function ReadBool(): Boolean;
-    function ReadFloat(): RtFloat;
-    function ReadInt(): RtInt;
+    function ReadFloat(): DaqFloat;
+    function ReadInt(): DaqInt;
     function GetCount(): SizeT;
     function GetCurrentItemType(): TCoreType;
   end;
@@ -118,7 +118,7 @@ type
     procedure Key(const Str: PAnsiChar); overload;
     procedure Key(Name: IString); overload;
     procedure Key(const Str: PAnsiChar; Len: SizeT); overload;
-    procedure WriteInt(Int: RtInt);
+    procedure WriteInt(Int: DaqInt);
     procedure WriteBool(Bool: Boolean);
     procedure WriteFloat(Real: Double);
     procedure WriteString(const Str: PAnsiChar; Len: SizeT); overload;
@@ -159,9 +159,9 @@ type
     function Interface_Key(const Str: PAnsiChar): ErrCode; stdcall;
     function Interface_KeyStr(Name: IString): ErrCode stdcall;
     function Interface_KeyRaw(const Str: PAnsiChar; Len: SizeT): ErrCode; stdcall;
-    function Interface_WriteInt(Int: RtInt): ErrCode stdcall;
+    function Interface_WriteInt(Int: DaqInt): ErrCode stdcall;
     function Interface_WriteBool(Bool: Boolean): ErrCode; stdcall;
-    function Interface_WriteFloat(Real: RtFloat): ErrCode; stdcall;
+    function Interface_WriteFloat(Real: DaqFloat): ErrCode; stdcall;
     function Interface_WriteString(const Str: PAnsiChar; Len: SizeT): ErrCode; stdcall;
     function Interface_WriteNull(): ErrCode; stdcall;
 
@@ -182,7 +182,7 @@ var
   Err : ErrCode;
 begin
   Err := CreateJsonSerializer(Serializer);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Create(Serializer);
 end;
@@ -202,7 +202,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.StartList();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.StartObject();
@@ -210,7 +210,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.StartObject();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.StartTaggedObject(Obj: ISerializable);
@@ -218,7 +218,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.StartTaggedObject(Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.EndList();
@@ -226,7 +226,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.EndList();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.EndObject();
@@ -234,7 +234,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.EndObject();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TSerializerPtr.GetOutput(): IStringPtr;
@@ -243,7 +243,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.GetOutput(Output);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TStringPtr.Create(Output);
 end;
@@ -259,7 +259,7 @@ var
   Complete : Boolean;
 begin
   Err := FObject.IsComplete(Complete);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Complete;
 end;
@@ -269,7 +269,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.Key(Str);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.Key(const Str: PAnsiChar; Len: SizeT);
@@ -277,7 +277,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.KeyRaw(Str, Len);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.Key(Name: IString);
@@ -285,7 +285,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.KeyStr(Name);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.Reset();
@@ -293,7 +293,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.Reset();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteBool(Bool: Boolean);
@@ -301,7 +301,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.WriteBool(Bool);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteFloat(Real: Double);
@@ -309,15 +309,15 @@ var
   Err : ErrCode;
 begin
   Err := FObject.WriteFloat(Real);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
-procedure TSerializerPtr.WriteInt(Int: RtInt);
+procedure TSerializerPtr.WriteInt(Int: DaqInt);
 var
   Err : ErrCode;
 begin
   Err := FObject.WriteInt(Int);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteNull();
@@ -325,7 +325,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.WriteNull();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteString(const Str: PAnsiChar; Len: SizeT);
@@ -333,7 +333,7 @@ var
   Err : ErrCode;
 begin
   Err := FObject.WriteString(Str, Len);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteString(Str: IString);
@@ -343,13 +343,13 @@ var
   Err : ErrCode;
 begin
   Err := Str.GetCharPtr(@Ptr);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Err := Str.GetLength(Length);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Err := FObject.WriteString(Ptr, Length);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TSerializerPtr.WriteString(Str: string);
@@ -419,12 +419,12 @@ begin
   Result := FObject.WriteBool(Bool);
 end;
 
-function TSerializerPtr.Interface_WriteFloat(Real: RtFloat): ErrCode;
+function TSerializerPtr.Interface_WriteFloat(Real: DaqFloat): ErrCode;
 begin
   Result := FObject.WriteFloat(Real);
 end;
 
-function TSerializerPtr.Interface_WriteInt(Int: RtInt): ErrCode;
+function TSerializerPtr.Interface_WriteInt(Int: DaqInt): ErrCode;
 begin
   Result := FObject.WriteInt(Int);
 end;

@@ -68,21 +68,21 @@ type
     procedure ReadObject;
   end;
 
-  function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function SerializedListFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function EmptyFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
+  function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function SerializedListFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function EmptyFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
 
 implementation
 uses
   DS.UT.DSUnitTestEngineUnit, WinApi.Windows, OpenDAQ.CoreTypes.Errors, SysUtils;
 
-function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   SerializedList: ISerializedList;
   Res: ErrCode;
@@ -95,7 +95,7 @@ begin
   if OPENDAQ_FAILED(Res) then
     Exit(Res);
 
-  Res := SerializedList.ReadObject(Context, BaseObj);
+  Res := SerializedList.ReadObject(Context, nil, BaseObj);
 
   if OPENDAQ_FAILED(Res) then
     Exit(Res);
@@ -105,7 +105,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   List: ISerializedList;
   Res: ErrCode;
@@ -130,7 +130,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   SerializedList: ISerializedList;
   Res: ErrCode;
@@ -143,7 +143,7 @@ begin
   if OPENDAQ_FAILED(Res) then
     Exit(Res);
 
-  Res := SerializedList.ReadList(nil, List);
+  Res := SerializedList.ReadList(nil, nil, List);
 
   if OPENDAQ_FAILED(Res) then
     Exit(Res);
@@ -153,7 +153,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   SerializedList: ISerializedList;
   Res: ErrCode;
@@ -178,7 +178,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   SerializedList: ISerializedList;
   Res: ErrCode;
@@ -203,7 +203,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   SerializedList: ISerializedList;
   Res: ErrCode;
@@ -228,7 +228,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   SerializedList: ISerializedList;
   Res: ErrCode;
@@ -251,7 +251,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function SerializedListFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function SerializedListFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   SerializedList: ISerializedList;
   Res: ErrCode;
@@ -274,7 +274,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function EmptyFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function EmptyFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 begin
   Obj := nil;
   Result := OPENDAQ_SUCCESS;
@@ -306,7 +306,7 @@ begin
 
   Str := '{"__type":"test","list":[false]}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, BaseObj), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, BaseObj), OPENDAQ_ERR_INVALIDTYPE);
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
 
@@ -324,7 +324,7 @@ begin
 
   Str := '{"__type":"test","list":[]}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, BaseObj), OPENDAQ_ERR_OUTOFRANGE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, BaseObj), OPENDAQ_ERR_OUTOFRANGE);
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
 
@@ -342,7 +342,7 @@ begin
 
   Str := '{"__type":"test","list":[{"__type":1}]}';
   CreateString(StringObj, PAnsiChar(Str));
-  Deserializer.Deserialize(StringObj, nil, BaseObj);
+  Deserializer.Deserialize(StringObj, nil, nil, BaseObj);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
   Assert.IsTrue(Assigned(BaseObj));
@@ -362,7 +362,7 @@ begin
 
   Str := '{"__type":"test","list":[false]}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, BaseObj), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, BaseObj), OPENDAQ_ERR_INVALIDTYPE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -383,7 +383,7 @@ begin
   Str := '{"__type":"test","list":[[]]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(List));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(List));
   List.GetCount(Count);
   Assert.AreEqual(Count, SizeT(0));
 
@@ -405,7 +405,7 @@ begin
   Str := '{"__type":"test","list":[]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(List)), OPENDAQ_ERR_OUTOFRANGE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(List)), OPENDAQ_ERR_OUTOFRANGE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -425,7 +425,7 @@ begin
   Str := '{"__type":"test","list":[{}]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(List));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(List));
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -446,7 +446,7 @@ begin
   Str := '{"__type":"test","list":[[]]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(List));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(List));
   List.GetCount(Count);
   Assert.AreEqual(Count, SizeT(0));
 
@@ -468,7 +468,7 @@ begin
   Str := '{"__type":"test","list":[]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(List)), OPENDAQ_ERR_OUTOFRANGE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(List)), OPENDAQ_ERR_OUTOFRANGE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -489,7 +489,7 @@ begin
   Str := '{"__type":"test","list":[true]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(Bool));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Bool));
   Bool.GetValue(BoolVal);
 
   Assert.AreEqual(BoolVal, True);
@@ -512,7 +512,7 @@ begin
   Str := '{"__type":"test","list":[false]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(Bool));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Bool));
   Bool.GetValue(BoolVal);
 
   Assert.AreEqual(BoolVal, False);
@@ -534,7 +534,7 @@ begin
   Str := '{"__type":"test","list":[1]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(Bool)), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Bool)), OPENDAQ_ERR_INVALIDTYPE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -554,7 +554,7 @@ begin
   Str := '{"__type":"test","list":[]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(Bool)), OPENDAQ_ERR_OUTOFRANGE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Bool)), OPENDAQ_ERR_OUTOFRANGE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -575,7 +575,7 @@ begin
   Str := '{"__type":"test","list":[1]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(Int));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Int));
   Int.GetValue(IntVal);
 
   Assert.AreEqual(IntVal, Int64(1));
@@ -598,7 +598,7 @@ begin
   Str := '{"__type":"test","list":[-1]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(Int));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Int));
   Int.GetValue(IntVal);
 
   Assert.AreEqual(IntVal, Int64(-1));
@@ -620,7 +620,7 @@ begin
   Str := '{"__type":"test","list":[1.0]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(Int)), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Int)), OPENDAQ_ERR_INVALIDTYPE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -640,7 +640,7 @@ begin
   Str := '{"__type":"test","list":[]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(Int)), OPENDAQ_ERR_OUTOFRANGE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Int)), OPENDAQ_ERR_OUTOFRANGE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -661,7 +661,7 @@ begin
   Str := '{"__type":"test","list":[1.5]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(Float));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Float));
   Float.GetValue(FloatVal);
 
   Assert.AreEqual(FloatVal, Double(1.5));
@@ -684,7 +684,7 @@ begin
   Str := '{"__type":"test","list":[-1.5]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(Float));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Float));
   Float.GetValue(FloatVal);
 
   Assert.AreEqual(FloatVal, Double(-1.5));
@@ -706,7 +706,7 @@ begin
   Str := '{"__type":"test","list":[]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(Float)), OPENDAQ_ERR_OUTOFRANGE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Float)), OPENDAQ_ERR_OUTOFRANGE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -726,7 +726,7 @@ begin
   Str := '{"__type":"test","list":[1]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(Float)), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(Float)), OPENDAQ_ERR_INVALIDTYPE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -747,7 +747,7 @@ begin
   Str := '{"__type":"test","list":["Test"]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(StrObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(StrObj));
   StrObj.GetCharPtr(@StrVal);
 
   Assert.AreEqual(string(StrVal), 'Test');
@@ -769,7 +769,7 @@ begin
   Str := '{"__type":"test","list":[0]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(StrObj)), OPENDAQ_ERR_INVALIDTYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(StrObj)), OPENDAQ_ERR_INVALIDTYPE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -789,7 +789,7 @@ begin
   Str := '{"__type":"test","list":[]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, IBaseObject(StrObj)), OPENDAQ_ERR_OUTOFRANGE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(StrObj)), OPENDAQ_ERR_OUTOFRANGE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -809,7 +809,7 @@ begin
   Str := '{"__type":"'+ Id +'","list":[]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, Obj), OPENDAQ_ERR_OUTOFRANGE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, Obj), OPENDAQ_ERR_OUTOFRANGE);
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
@@ -829,7 +829,7 @@ begin
   Str := '{"__type":"'+ Id +'","list":[{"__type":"null"}]}';
   CreateString(StringObj, PAnsiChar(Str));
 
-  Deserializer.Deserialize(StringObj, nil, Obj);
+  Deserializer.Deserialize(StringObj, nil, nil, Obj);
   Assert.IsFalse(Assigned(Obj));
 
   DaqUnregisterSerializerFactory(PAnsiChar(Id));

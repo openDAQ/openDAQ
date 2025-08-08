@@ -40,8 +40,8 @@ uses
 procedure TTest_Floating.Basic;
 var
   FloatObj: IFloat;
-  FloatVal: RtFloat;
-  ReferenceValue: RtFloat;
+  FloatVal: DaqFloat;
+  ReferenceValue: DaqFloat;
 
 begin
   CreateFloat(FloatObj, 5.5);
@@ -53,7 +53,7 @@ end;
 procedure TTest_Floating.Equality;
 var
   FloatObj1, FloatObj2, FloatObj3: IFloat;
-  ReferenceValue: RtFloat;
+  ReferenceValue: DaqFloat;
   Eq: Boolean;
 begin
   CreateFloat(FloatObj1, 3.0);
@@ -104,7 +104,7 @@ end;
 procedure TTest_Floating.CastInt;
 var
   FloatObj: IFloat;
-  Int: RtInt;
+  Int: DaqInt;
 begin
   CreateFloat(FloatObj, 1);
 
@@ -115,7 +115,7 @@ end;
 procedure TTest_Floating.CastFloat;
 var
   FloatObj: IFloat;
-  Float: RtFloat;
+  Float: DaqFloat;
 begin
   CreateFloat(FloatObj, 1);
 

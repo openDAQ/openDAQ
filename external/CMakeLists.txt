@@ -111,3 +111,8 @@ endif()
 if(OPENDAQ_ENABLE_NATIVE_STREAMING)
     add_subdirectory(native_streaming EXCLUDE_FROM_ALL)
 endif()
+
+if (DAQMODULES_PARQUET_RECORDER_MODULE)
+    add_subdirectory(arrow EXCLUDE_FROM_ALL)
+    add_subdirectory(thrift EXCLUDE_FROM_ALL)
+endif()

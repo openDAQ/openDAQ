@@ -1,4 +1,4 @@
-#include <iostream>
+#include <cstdint>
 
 #include <opendaq/opendaq.h>
 
@@ -14,31 +14,26 @@ WsStreamingListener::WsStreamingListener(
         IContext *context,
         ISignal *signal,
         wss::local_signal *localSignal)
-    : signal(signal)
-    , port(
+    : _signal(signal)
+    , _port(
         InputPort(
             context,
             nullptr,
             String("ws-streaming")))
-    , lastDescriptor(this->signal.getDescriptor())
-    , localSignal(*localSignal)
+    , _lastDescriptor(_signal.getDescriptor())
+    , _localSignal(*localSignal)
 {
-    std::cout << "listener created" << std::endl;
-
-    this->localSignal.set_metadata(
+    _localSignal.set_metadata(
         descriptorToMetadata(
             signal,
-            lastDescriptor));
-
-    // XXX TODO - why?
-    internalAddRef();
+            _lastDescriptor));
 }
 
 void WsStreamingListener::start()
 {
-    port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
-    port.setNotificationMethod(PacketReadyNotification::SameThread);
-    port.connect(signal);
+    _port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
+    _port.setNotificationMethod(PacketReadyNotification::SameThread);
+    _port.connect(_signal);
 }
 
 ErrCode WsStreamingListener::acceptsSignal(
@@ -65,7 +60,7 @@ ErrCode WsStreamingListener::packetReceived(IInputPort *port)
 {
     while (true)
     {
-        auto packet = this->port.getConnection().dequeue();
+        auto packet = _port.getConnection().dequeue();
         if (!packet.assigned())
             break;
 
@@ -86,19 +81,18 @@ void WsStreamingListener::onDataPacketReceived(DataPacketPtr packet)
 
     auto descriptor = packet.getDataDescriptor();
 
-    if (descriptor != lastDescriptor)
+    if (descriptor != _lastDescriptor)
     {
-        std::cout << '(' << signal.getGlobalId() << ") setting metadata" << std::endl;
-        localSignal.set_metadata(
+        _localSignal.set_metadata(
             descriptorToMetadata(
-                descriptor,
-                signal));
+                _signal,
+                descriptor));
 
-        lastDescriptor = descriptor;
+        _lastDescriptor = descriptor;
     }
 
     if (packet.getRawDataSize())
-        localSignal.publish_data(
+        _localSignal.publish_data(
             offset,
             packet.getSampleCount(),
             packet.getRawData(),

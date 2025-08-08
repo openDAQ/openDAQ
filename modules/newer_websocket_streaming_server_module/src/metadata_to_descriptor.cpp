@@ -82,9 +82,8 @@ DataDescriptorPtr metadataToDescriptor(
                 unit.value().name(),
                 unit.value().quantity()));
 
-    // XXX TODO: domain signal id
-
     auto rule = metadata.rule();
+
     if (rule == wss::rule_types::linear_rule)
     {
         auto startDelta = metadata.linear_start_delta();
@@ -93,6 +92,9 @@ DataDescriptorPtr metadataToDescriptor(
                 startDelta.second,
                 startDelta.first));
     }
+
+    else if (rule == wss::rule_types::constant_rule)
+        builder.setRule(ConstantDataRule());
 
     return builder.build();
 }

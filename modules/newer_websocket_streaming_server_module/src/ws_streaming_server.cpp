@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <functional>
-#include <iostream>
 #include <thread>
 #include <utility>
 
@@ -82,11 +81,7 @@ WsStreamingServer::WsStreamingServer(
 
     rescan();
 
-    _thread = std::thread{[this]()
-    {
-        std::cout << "running io context" << std::endl;
-        _ioc.run();
-    }};
+    _thread = std::thread{[this]() { _ioc.run(); }};
 
     context.getOnCoreEvent() += event(&WsStreamingServer::onCoreEvent);
 }

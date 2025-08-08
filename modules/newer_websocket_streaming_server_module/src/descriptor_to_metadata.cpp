@@ -22,11 +22,31 @@
 #include <ws-streaming/data_types.hpp>
 #include <ws-streaming/metadata.hpp>
 #include <ws-streaming/metadata_builder.hpp>
+#include <ws-streaming/struct_field_builder.hpp>
 
 #include <websocket_streaming_server_module/common.h>
 #include <websocket_streaming_server_module/descriptor_to_metadata.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
+
+static std::string getWebSocketDataType(SampleType type)
+{
+    switch (type)
+    {
+        case SampleType::Float32: return wss::data_types::real32_t;
+        case SampleType::Float64: return wss::data_types::real64_t;
+        case SampleType::Int8: return wss::data_types::int8_t;
+        case SampleType::Int16: return wss::data_types::int16_t;
+        case SampleType::Int32: return wss::data_types::int32_t;
+        case SampleType::Int64: return wss::data_types::int64_t;
+        case SampleType::UInt8: return wss::data_types::uint8_t;
+        case SampleType::UInt16: return wss::data_types::uint16_t;
+        case SampleType::UInt32: return wss::data_types::uint32_t;
+        case SampleType::UInt64: return wss::data_types::uint64_t;
+        case SampleType::Struct: return wss::data_types::struct_t;
+        default: return "";
+    }
+}
 
 wss::metadata descriptorToMetadata(
     const DataDescriptorPtr& descriptor,
@@ -35,40 +55,38 @@ wss::metadata descriptorToMetadata(
 {
     auto builder = wss::metadata_builder{descriptor.getName()};
 
-    switch (descriptor.getSampleType())
+    std::string dataType = getWebSocketDataType(descriptor.getSampleType());
+    if (!dataType.empty())
+        builder.data_type(dataType);
+
+    if (auto fields = descriptor.getStructFields(); fields.assigned())
     {
-        case SampleType::Float32:
-            builder.data_type(wss::data_types::real32_t);
-            break;
-        case SampleType::Float64:
-            builder.data_type(wss::data_types::real64_t);
-            break;
-        case SampleType::Int8:
-            builder.data_type(wss::data_types::int8_t);
-            break;
-        case SampleType::Int16:
-            builder.data_type(wss::data_types::int16_t);
-            break;
-        case SampleType::Int32:
-            builder.data_type(wss::data_types::int32_t);
-            break;
-        case SampleType::Int64:
-            builder.data_type(wss::data_types::int64_t);
-            break;
-        case SampleType::UInt8:
-            builder.data_type(wss::data_types::uint8_t);
-            break;
-        case SampleType::UInt16:
-            builder.data_type(wss::data_types::uint16_t);
-            break;
-        case SampleType::UInt32:
-            builder.data_type(wss::data_types::uint32_t);
-            break;
-        case SampleType::UInt64:
-            builder.data_type(wss::data_types::uint64_t);
-            break;
-        default:
-            break;
+        for (auto field : fields)
+        {
+            wss::struct_field_builder fieldBuilder(field.getName());
+            fieldBuilder.data_type(getWebSocketDataType(field.getSampleType()));
+
+            if (auto dims = field.getDimensions(); dims.assigned())
+            {
+                for (const auto& dim : dims)
+                {
+                    wss::dimension_builder dimBuilder(dim.getName());
+
+                    if (auto rule = dims[0].getRule(); rule.assigned()
+                        && rule.getType() == DimensionRuleType::Linear)
+                    {
+                        dimBuilder.linear_rule(
+                            rule.getParameters().get("start"),
+                            rule.getParameters().get("delta"),
+                            rule.getParameters().get("size"));
+                    }
+
+                    fieldBuilder.dimension(dimBuilder);
+                }
+            }
+
+            builder.struct_field(fieldBuilder);
+        }
     }
 
     if (auto originPtr = descriptor.getOrigin(); originPtr.assigned())
@@ -111,6 +129,11 @@ wss::metadata descriptorToMetadata(
             }
 
             builder.linear_rule(start, delta);
+        }
+
+        else if (rulePtr.getType() == DataRuleType::Constant)
+        {
+            builder.constant_rule();
         }
     }
 

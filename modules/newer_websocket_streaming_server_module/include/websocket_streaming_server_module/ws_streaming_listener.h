@@ -31,10 +31,11 @@ class WsStreamingListener
 
     private:
 
-        SignalPtr signal;
-        InputPortConfigPtr port;
-        DataDescriptorPtr lastDescriptor;
-        wss::local_signal& localSignal;
+        SignalPtr _signal;
+        InputPortConfigPtr _port;
+        DataDescriptorPtr _lastDescriptor;
+        wss::local_signal& _localSignal;
+        bool _ruleType;
 };
 
 END_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE

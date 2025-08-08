@@ -356,7 +356,7 @@ void ParquetWriter::openFile()
                      *schema, arrow::default_memory_pool(), outfile, writerPropertiesBuilder.build(), arrowPropertiesBuilder.build())
                      .ValueOr(nullptr);
     }
-    LOG_D("ParquetWriter::openFile: Parquet file file {} writer {}",
+    LOG_D("ParquetWriter::openFile: Parquet file {} writer {}",
           outfile ? "opened successfully" : "failed to open",
           writer ? "created successfully" : "failed to create");
 }

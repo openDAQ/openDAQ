@@ -46,13 +46,12 @@ ErrCode ParquetRecorderImpl::startRecording()
 {
     LOG_D("ParquetRecorderImpl::startRecording: Starting recording...");
     auto lock = getRecursiveConfigLock();
-    if (recording.load(std::memory_order_relaxed))
+    if (recording)
     {
-        LOG_E("ParquetRecorderImpl::startRecording: Recording is already active.");
-        return OPENDAQ_ERR_INVALIDSTATE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Recording is already active.");
     }
 
-    recording.store(true, std::memory_order_relaxed);
+    recording = true;
 
     reconfigure();
 
@@ -63,13 +62,12 @@ ErrCode ParquetRecorderImpl::stopRecording()
 {
     LOG_D("ParquetRecorderImpl::stopRecording: Stopping recording...");
     auto lock = getRecursiveConfigLock();
-    if (!recording.load(std::memory_order_relaxed))
+    if (!recording)
     {
-        LOG_E("ParquetRecorderImpl::stopRecording: Recording is not active.");
-        return OPENDAQ_ERR_INVALIDSTATE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Recording is not active.");
     }
 
-    recording.store(false, std::memory_order_relaxed);
+    recording = false;
     clearWriters();
 
     return OPENDAQ_SUCCESS;
@@ -80,7 +78,7 @@ ErrCode ParquetRecorderImpl::getIsRecording(Bool* isRecording)
     LOG_D("ParquetRecorderImpl::getIsRecording: Checking if recording is active...");
     OPENDAQ_PARAM_NOT_NULL(isRecording);
 
-    *isRecording = recording.load(std::memory_order_relaxed);
+    *isRecording = recording;
 
     return OPENDAQ_SUCCESS;
 }
@@ -110,7 +108,7 @@ void ParquetRecorderImpl::activeChanged()
 
 void ParquetRecorderImpl::onPacketReceived(const InputPortPtr& port)
 {
-    if (!active || !recording.load(std::memory_order_relaxed))
+    if (!active || !recording)
         return;
 
     auto writer = findWriterForSignal(port);
@@ -140,7 +138,7 @@ void ParquetRecorderImpl::addProperties()
 void ParquetRecorderImpl::addInputPort()
 {
     LOG_D("ParquetRecorderImpl::addInputPort: Adding new input port for ParquetRecorder");
-    auto c = createAndAddInputPort("Value" + std::to_string(portCount.fetch_add(1, std::memory_order_relaxed)),
+    auto c = createAndAddInputPort("Value" + std::to_string(portCount.fetch_add(1)),
                                    PacketReadyNotification::SameThread);
 }
 

@@ -20,7 +20,7 @@
 
 #include <ws-streaming/metadata.hpp>
 
-#include <newer_websocket_streaming_server_module/common.h>
+#include <websocket_streaming_server_module/common.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 

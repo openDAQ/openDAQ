@@ -4,13 +4,13 @@
 
 #include <ws-streaming/local_signal.hpp>
 
-#include <newer_websocket_streaming_server_module/common.h>
-#include <newer_websocket_streaming_server_module/descriptor_to_metadata.h>
-#include <newer_websocket_streaming_server_module/newer_websocket_streaming_listener.h>
+#include <websocket_streaming_server_module/common.h>
+#include <websocket_streaming_server_module/descriptor_to_metadata.h>
+#include <websocket_streaming_server_module/ws_streaming_listener.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
-NewerWebsocketStreamingListenerImpl::NewerWebsocketStreamingListenerImpl(
+WsStreamingListener::WsStreamingListener(
         IContext *context,
         ISignal *signal,
         wss::local_signal *localSignal)
@@ -34,19 +34,14 @@ NewerWebsocketStreamingListenerImpl::NewerWebsocketStreamingListenerImpl(
     internalAddRef();
 }
 
-NewerWebsocketStreamingListenerImpl::~NewerWebsocketStreamingListenerImpl()
-{
-    std::cout << "listener destroyed" << std::endl;
-}
-
-void NewerWebsocketStreamingListenerImpl::start()
+void WsStreamingListener::start()
 {
     port.setListener(this->template thisPtr<InputPortNotificationsPtr>());
     port.setNotificationMethod(PacketReadyNotification::SameThread);
     port.connect(signal);
 }
 
-ErrCode NewerWebsocketStreamingListenerImpl::acceptsSignal(
+ErrCode WsStreamingListener::acceptsSignal(
     IInputPort *port,
     ISignal *signal,
     Bool *accept)
@@ -56,17 +51,17 @@ ErrCode NewerWebsocketStreamingListenerImpl::acceptsSignal(
     return OPENDAQ_SUCCESS;
 };
 
-ErrCode NewerWebsocketStreamingListenerImpl::connected(IInputPort *port)
+ErrCode WsStreamingListener::connected(IInputPort *port)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode NewerWebsocketStreamingListenerImpl::disconnected(IInputPort *port)
+ErrCode WsStreamingListener::disconnected(IInputPort *port)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode NewerWebsocketStreamingListenerImpl::packetReceived(IInputPort *port)
+ErrCode WsStreamingListener::packetReceived(IInputPort *port)
 {
     while (true)
     {
@@ -81,7 +76,7 @@ ErrCode NewerWebsocketStreamingListenerImpl::packetReceived(IInputPort *port)
     return OPENDAQ_SUCCESS;
 }
 
-void NewerWebsocketStreamingListenerImpl::onDataPacketReceived(DataPacketPtr packet)
+void WsStreamingListener::onDataPacketReceived(DataPacketPtr packet)
 {
     std::int64_t offset = 0;
 
@@ -109,12 +104,5 @@ void NewerWebsocketStreamingListenerImpl::onDataPacketReceived(DataPacketPtr pac
             packet.getRawData(),
             packet.getRawDataSize());
 }
-
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY, NewerWebsocketStreamingListener, IInputPortNotifications,
-    IContext *, context,
-    ISignal *, signal,
-    wss::local_signal *, localSignal
-)
 
 END_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE

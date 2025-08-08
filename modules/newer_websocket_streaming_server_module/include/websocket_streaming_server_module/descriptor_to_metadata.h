@@ -22,7 +22,7 @@
 
 #include <ws-streaming/metadata.hpp>
 
-#include <newer_websocket_streaming_server_module/common.h>
+#include <websocket_streaming_server_module/common.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
@@ -30,6 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
  * @brief Translates an openDAQ data descriptor to WebSocket Streaming metadata.
  *
  * @param descriptor The openDAQ data descriptor to translate.
+ * @param signalId The global identifier of the signal to which the descriptor applies.
  * @param domainSignalId If the signal described by @p descriptor has an associated domain signal,
  *     that signal's global identifier; otherwise, either an unassigned StringPtr or an empty
  *     string.
@@ -38,6 +39,7 @@ BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
  */
 wss::metadata descriptorToMetadata(
     const DataDescriptorPtr& descriptor,
+    const StringPtr& signalId,
     const StringPtr& domainSignalId = "");
 
 /*!

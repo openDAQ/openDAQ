@@ -4,21 +4,19 @@
 
 #include <ws-streaming/local_signal.hpp>
 
-#include <newer_websocket_streaming_server_module/common.h>
+#include <websocket_streaming_server_module/common.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
-class NewerWebsocketStreamingListenerImpl
+class WsStreamingListener
     : public ImplementationOfWeak<IInputPortNotifications>
 {
     public:
 
-        NewerWebsocketStreamingListenerImpl(
+        WsStreamingListener(
             IContext *context,
             ISignal *signal,
             wss::local_signal *localSignal);
-
-        ~NewerWebsocketStreamingListenerImpl();
 
         void start();
 
@@ -38,12 +36,5 @@ class NewerWebsocketStreamingListenerImpl
         DataDescriptorPtr lastDescriptor;
         wss::local_signal& localSignal;
 };
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    INTERNAL_FACTORY, NewerWebsocketStreamingListener, IInputPortNotifications,
-    IContext *, context,
-    ISignal *, signal,
-    wss::local_signal *, localSignal
-)
 
 END_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE

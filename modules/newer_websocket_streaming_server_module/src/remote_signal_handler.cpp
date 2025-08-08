@@ -14,31 +14,33 @@
  * limitations under the License.
  */
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
-#include <iostream>
+
+#include <opendaq/opendaq.h>
 
 #include <ws-streaming/ws-streaming.hpp>
 
-#include <newer_websocket_streaming_server_module/common.h>
-#include <newer_websocket_streaming_server_module/remote_signal_handler.h>
+#include <websocket_streaming_server_module/common.h>
+#include <websocket_streaming_server_module/remote_signal_handler.h>
+
+using namespace std::placeholders;
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
-RemoteSignalHandler::RemoteSignalHandler(wss::remote_signal_ptr& remoteSignal)
+RemoteSignalHandler::RemoteSignalHandler(
+        wss::remote_signal_ptr remoteSignal)
     : _remoteSignal(remoteSignal)
 {
-    std::cout << "RemoteSignalHandler created at " << this << " with remoteSignal " << _remoteSignal.get() << std::endl;
 }
 
 RemoteSignalHandler::~RemoteSignalHandler()
 {
-    std::cout << "RemoteSignalHandler destroyed at " << this << " with remoteSignal " << _remoteSignal.get() << std::endl;
 }
 
 void RemoteSignalHandler::attach()
 {
-    std::cout << "RemoteSignalHandler at " << this << " with remoteSignal " << _remoteSignal.get() << " attached" << std::endl;
-
     _onSubscribed = _remoteSignal->on_subscribed.connect(
         std::bind(
             &RemoteSignalHandler::onSubscribed,
@@ -49,32 +51,78 @@ void RemoteSignalHandler::attach()
             &RemoteSignalHandler::onMetadataChanged,
             shared_from_this()));
 
-    _subscribed = true;
+    _onDataReceived = _remoteSignal->on_data_received.connect(
+        std::bind(
+            &RemoteSignalHandler::onDataReceived,
+            shared_from_this(),
+            _1,
+            _2,
+            _3,
+            _4));
+
     _remoteSignal->subscribe();
 }
 
-void RemoteSignalHandler::detach()
+const wss::remote_signal_ptr& RemoteSignalHandler::signal() const noexcept
 {
-    std::cout << "RemoteSignalHandler at " << this << " with remoteSignal " << _remoteSignal.get() << " detached" << std::endl;
-
-    _onSubscribed.disconnect();
-    _onMetadataChanged.disconnect();
-
-    if (_subscribed)
-    {
-        _subscribed = false;
-        _remoteSignal->unsubscribe();
-    }
+    return _remoteSignal;
 }
 
 void RemoteSignalHandler::onSubscribed()
 {
-    std::cout << "RemoteSignalHandler at " << this << " with remoteSignal " << _remoteSignal.get() << " onSubscribed()" << std::endl;
-    _remoteSignal->unsubscribe();
 }
 
 void RemoteSignalHandler::onMetadataChanged()
 {
+    if (_signal.assigned())
+    {
+        // XXX TODO update signal descriptor!
+    }
+
+    else
+    {
+        auto result = onSignalReady();
+        if (!result.has_value())
+            return;
+
+        _signal = result.value().first;
+        _domainSignal = result.value().second;
+
+        if (!_signal.assigned())
+            return;
+    }
+}
+
+void RemoteSignalHandler::onDataReceived(
+    std::int64_t domainValue,
+    std::size_t sampleCount,
+    const void *data,
+    std::size_t size)
+{
+    if (!_signal.assigned())
+        return;
+
+    if (_domainSignal.assigned())
+    {
+        auto domainPacket = DataPacket(_domainSignal.getDescriptor(), sampleCount, domainValue);
+        auto packet = DataPacketWithDomain(domainPacket, _signal.getDescriptor(), sampleCount);
+
+        std::memcpy(
+            packet.getRawData(),
+            data,
+            std::min(
+                size,
+                packet.getRawDataSize()));
+
+        _domainSignal.sendPacket(domainPacket);
+        _signal.sendPacket(packet);
+    }
+
+    else
+    {
+        auto packet = DataPacket(_signal.getDescriptor(), 0);
+        _signal.sendPacket(packet);
+    }
 }
 
 END_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE

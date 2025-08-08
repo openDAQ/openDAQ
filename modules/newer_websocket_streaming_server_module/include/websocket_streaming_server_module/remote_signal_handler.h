@@ -16,14 +16,21 @@
 
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <utility>
 
 #include <boost/signals2/connection.hpp>
 #include <boost/signals2/signal.hpp>
 
+#include <opendaq/component_ptr.h>
+#include <opendaq/context_ptr.h>
+#include <opendaq/signal_factory.h>
+
 #include <ws-streaming/ws-streaming.hpp>
 
-#include <newer_websocket_streaming_server_module/common.h>
+#include <websocket_streaming_server_module/common.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
@@ -31,23 +38,37 @@ class RemoteSignalHandler : public std::enable_shared_from_this<RemoteSignalHand
 {
     public:
 
-        RemoteSignalHandler(wss::remote_signal_ptr& remoteSignal);
+        RemoteSignalHandler(wss::remote_signal_ptr remoteSignal);
+
         ~RemoteSignalHandler();
 
         void attach();
-        void detach();
 
-        boost::signals2::signal<void()> on_todo;
+        const wss::remote_signal_ptr& signal() const noexcept;
+
+        boost::signals2::signal<
+            std::pair<SignalConfigPtr, SignalConfigPtr>()
+        > onSignalReady;
 
     private:
 
         void onSubscribed();
+
         void onMetadataChanged();
+
+        void onDataReceived(
+            std::int64_t domainValue,
+            std::size_t sampleCount,
+            const void *data,
+            std::size_t size);
 
         wss::remote_signal_ptr _remoteSignal;
         boost::signals2::scoped_connection _onSubscribed;
         boost::signals2::scoped_connection _onMetadataChanged;
-        bool _subscribed = false;
+        boost::signals2::scoped_connection _onDataReceived;
+
+        SignalConfigPtr _signal;
+        SignalConfigPtr _domainSignal;
 };
 
 END_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE

@@ -1,4 +1,5 @@
-#include <newer_websocket_streaming_server_module/module_dll.h>
+#include <websocket_streaming_server_module/module_dll.h>
+#include <websocket_streaming_server_module/ws_streaming_server_module.h>
 #include <newer_websocket_streaming_server_module/version.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/instance_factory.h>
@@ -12,7 +13,7 @@
 #include <opendaq/mock/mock_fb_module.h>
 #include <coreobjects/authentication_provider_factory.h>
 
-class NewerWebsocketStreamingServerModuleTest : public testing::Test
+class WsStreamingServerModuleTest : public testing::Test
 {
 public:
     void TearDown() override
@@ -24,12 +25,10 @@ using namespace daq;
 
 static ModulePtr CreateModule(ContextPtr context = NullContext())
 {
-    ModulePtr module;
-    createNewerWebsocketStreamingServerModule(&module, context);
-    return module;
+    return createWithImplementation<IModule, modules::newer_websocket_streaming_server_module::WsStreamingServerModule>(context);
 }
 
-TEST_F(NewerWebsocketStreamingServerModuleTest, CreateModule)
+TEST_F(WsStreamingServerModuleTest, CreateModule)
 {
     IModule* module = nullptr;
     ErrCode errCode = createModule(&module, NullContext());
@@ -39,19 +38,19 @@ TEST_F(NewerWebsocketStreamingServerModuleTest, CreateModule)
     module->releaseRef();
 }
 
-TEST_F(NewerWebsocketStreamingServerModuleTest, ModuleName)
+TEST_F(WsStreamingServerModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getModuleInfo().getName(), "OpenDAQNewerWebsocketStreamingServerModule");
+    ASSERT_EQ(module.getModuleInfo().getName(), "OpenDAQNewerWebSocketStreamingServerModule");
 }
 
-TEST_F(NewerWebsocketStreamingServerModuleTest, VersionAvailable)
+TEST_F(WsStreamingServerModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
     ASSERT_TRUE(module.getModuleInfo().getVersionInfo().assigned());
 }
 
-TEST_F(NewerWebsocketStreamingServerModuleTest, VersionCorrect)
+TEST_F(WsStreamingServerModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
     auto version = module.getModuleInfo().getVersionInfo();
@@ -61,7 +60,7 @@ TEST_F(NewerWebsocketStreamingServerModuleTest, VersionCorrect)
     ASSERT_EQ(version.getPatch(), NEWER_WS_STREAM_SRV_MODULE_PATCH_VERSION);
 }
 
-TEST_F(NewerWebsocketStreamingServerModuleTest, GetAvailableComponentTypes)
+TEST_F(WsStreamingServerModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();
 
@@ -80,7 +79,7 @@ TEST_F(NewerWebsocketStreamingServerModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ(serverTypes.get("OpenDAQNewerLTStreaming").getId(), "OpenDAQNewerLTStreaming");
 }
 
-TEST_F(NewerWebsocketStreamingServerModuleTest, ServerConfig)
+TEST_F(WsStreamingServerModuleTest, ServerConfig)
 {
     auto module = CreateModule();
 

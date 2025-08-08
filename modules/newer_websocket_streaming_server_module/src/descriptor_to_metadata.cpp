@@ -23,13 +23,14 @@
 #include <ws-streaming/metadata.hpp>
 #include <ws-streaming/metadata_builder.hpp>
 
-#include <newer_websocket_streaming_server_module/common.h>
-#include <newer_websocket_streaming_server_module/descriptor_to_metadata.h>
+#include <websocket_streaming_server_module/common.h>
+#include <websocket_streaming_server_module/descriptor_to_metadata.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
 wss::metadata descriptorToMetadata(
     const DataDescriptorPtr& descriptor,
+    const StringPtr& signalId,
     const StringPtr& domainSignalId)
 {
     auto builder = wss::metadata_builder{descriptor.getName()};
@@ -92,6 +93,8 @@ wss::metadata descriptorToMetadata(
 
     if (domainSignalId.assigned() && domainSignalId != "")
         builder.table(domainSignalId);
+    else
+        builder.table(signalId);
 
     if (auto rulePtr = descriptor.getRule(); rulePtr.assigned())
     {
@@ -123,7 +126,10 @@ wss::metadata descriptorToMetadata(
     if (auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
         domainSignalId = domainSignal.getGlobalId();
 
-    return descriptorToMetadata(descriptor, domainSignalId);
+    return descriptorToMetadata(
+        descriptor,
+        signal.getGlobalId(),
+        domainSignalId);
 }
 
 END_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE

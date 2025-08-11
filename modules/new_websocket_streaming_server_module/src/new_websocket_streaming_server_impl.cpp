@@ -19,16 +19,14 @@ NewWebsocketStreamingServerImpl::NewWebsocketStreamingServerImpl(const DevicePtr
         config.getPropertyValue("WebsocketControlPort"))
 {
     auto info = rootDevice.getInfo();
-    if (info.hasServerCapability("OpenDAQNewLTStreaming"))
-        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQNewLTStreaming server capability.", info.getName()));
-
     if (info.hasServerCapability("OpenDAQLTStreaming"))
-        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQLTStreaming server capability - newer version cannot be added.", info.getName()));
+        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQLTStreaming server capability.", info.getName()));
 
-    const ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQNewLTStreaming", "OpenDAQNewLTStreaming", ProtocolType::Streaming);
+    const ServerCapabilityConfigPtr serverCapability = ServerCapability("OpenDAQLTStreaming", "OpenDAQLTStreaming", ProtocolType::Streaming);
     serverCapability.setPrefix("daq.lt");
     serverCapability.setPort(config.getPropertyValue("WebsocketStreamingPort"));
     serverCapability.setConnectionType("TCP/IP");
+    serverCapability.setProtocolVersion("OpenDAQNewLTStreaming");
     info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapability);
 }
 
@@ -77,7 +75,7 @@ PropertyObjectPtr NewWebsocketStreamingServerImpl::getDiscoveryConfig()
     discoveryConfig.addProperty(StringProperty("ServiceCap", "LT"));
     discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
     discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("WebsocketStreamingPort")));
-    discoveryConfig.addProperty(StringProperty("ProtocolVersion", ""));
+    discoveryConfig.addProperty(StringProperty("ProtocolVersion", "OpenDAQNewLTStreaming"));
     return discoveryConfig;
 }
 

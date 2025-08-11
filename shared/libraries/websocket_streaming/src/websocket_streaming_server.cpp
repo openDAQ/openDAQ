@@ -55,9 +55,6 @@ void WebsocketStreamingServer::start()
     if (info.hasServerCapability("OpenDAQLTStreaming"))
         DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQLTStreaming server capability.", info.getName()));
 
-    if (info.hasServerCapability("OpenDAQNewLTStreaming"))
-        DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQNewLTStreaming server capability - older version cannot be added.", info.getName()));
-
     streamingServer.onAccept([this](const daq::streaming_protocol::StreamWriterPtr& writer) { return device.getSignals(search::Recursive(search::Any())); });
     streamingServer.onStartSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.startReadSignals(signals); } );
     streamingServer.onStopSignalsRead([this](const ListPtr<ISignal>& signals) { packetReader.stopReadSignals(signals); } );

@@ -50,19 +50,13 @@ jobs:
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
         include:
-          - name: Windows VS 2019 x64 Release
-            runner: windows-2019
-            cmake_generator: "Visual Studio 16 2019"
-            cmake_generator_platform: x64
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
-            cpack: NSIS
           - name: Windows VS 2022 x64 Release
             runner: windows-2022
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            #need to explicitly specify build type for correct arrow building
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DCMAKE_BUILD_TYPE=Release
             cpack: NSIS
           - name: Windows VS 2022 x64 Debug
             runner: windows-2022
@@ -108,6 +102,11 @@ jobs:
               3.11
               3.12
               3.13
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
@@ -219,7 +218,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             apt_packages: g++-12
             cc: gcc-12
             cxx: g++-12
@@ -464,6 +463,7 @@ jobs:
             cmake_build_type: Release
             cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             additional_packages:
+            additional_cmake_options: -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             cc: gcc
             cxx: g++
             cpack: ZIP
@@ -504,7 +504,7 @@ jobs:
           last_version="3.7"
           for version in ${{ env.python_versions }}; do
               echo "Building for Python $version"
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ..
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version ${{ matrix.additional_cmake_options }} ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -571,6 +571,7 @@ jobs:
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_osx_deployment_target: 10.15
+            additional_cmake_options: -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             runner: macos-13
           # - name: macos-13 clang Debug
             # cmake_generator: Ninja
@@ -580,6 +581,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
 
       - name: Install ninja-build
         uses: seanmiddleditch/gha-setup-ninja@v5
@@ -607,7 +613,7 @@ jobs:
         run: |
           last_version="3.8"
           for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ${{ github.workspace }}
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DOPENDAQ_PYTHON_VERSION=$version ${{ matrix.additional_cmake_options }} ${{ github.workspace }}
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -663,7 +669,8 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            #need to explicitly specify build type for correct arrow building
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DCMAKE_BUILD_TYPE=Release -DPYBIND11_FINDPYTHON=ON
             cpack: NSIS
             cmake_preset: package
 
@@ -681,6 +688,11 @@ jobs:
               3.11
               3.12
               3.13
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
@@ -715,7 +727,7 @@ jobs:
               Write-Output "Installing $file"
               pip install $file
             }
-            cmake --build . --config ${{ matrix.cmake_build_type }} -t test_py_opendaq
+            ctest --output-on-failure -C ${{ matrix.cmake_build_type }} -R test_py_opendaq .
             Copy-Item pip/packages/*.whl wheels
             deactivate
             Remove-Item venv -Recurse

@@ -3,10 +3,7 @@
  * 
  */
 
-#include <opendaq/custom_log.h>
-#include <opendaq/opendaq.h>
-#include <chrono>
-#include <iostream>
+#include "../logger_example_utils/logger_example_utils.h"
 
 using namespace daq;
 
@@ -20,7 +17,7 @@ ListPtr<LoggerSinkPtr> setupSinks(/* LogLevel level*/)
 }
 
 // (note on logging the stuff necessary)
-void doExample(InstancePtr instance)
+void doExample(const InstancePtr& instance)
 {
     auto logger = instance.getContext().getLogger();
 
@@ -66,7 +63,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     auto context2 = Context(Scheduler(logger4), logger4, TypeManager(), ModuleManager(MODULE_PATH));
     auto instance4 = InstanceBuilder().setContext(context2).build();
 
-    // (note)::
+    // (note)::In the example we will create a custom logger component that will the check what
+    // level of logging is available and being written to a file
     doExample(instance1);
     doExample(instance2);
     doExample(instance3);

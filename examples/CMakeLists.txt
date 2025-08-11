@@ -3,6 +3,11 @@ set_cmake_folder_context(TARGET_FOLDER_NAME)
 set(OPENDAQ_EXAMPLES_VERSION ${OPENDAQ_PACKAGE_VERSION})
 project(Examples VERSION ${OPENDAQ_EXAMPLES_VERSION} LANGUAGES CXX)
 
+if (MSVC)
+    set(MSVC_PRIVATE_COMPILE_OPTIONS
+        /bigobj)
+endif()
+
 option(APP_ENABLE_WEBPAGE_EXAMPLES "Enable webpage examples" OFF)
 
 if (APP_ENABLE_WEBPAGE_EXAMPLES)
@@ -109,7 +114,8 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 	
 	# Logger examples
 	
-	add_library(logger_example_util SHARED cpp/logger_example/logger_example_utils/logger_example_utils.cpp)
+	add_library(logger_example_util STATIC cpp/logger_example/logger_example_utils/logger_example_utils.h
+                                               cpp/logger_example/logger_example_utils/logger_example_utils.cpp)
 	target_link_libraries(logger_example_util PRIVATE daq::opendaq)
 
 	

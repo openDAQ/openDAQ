@@ -1,8 +1,4 @@
-#include <opendaq/custom_log.h>
-#include <opendaq/opendaq.h>
-#include <chrono>
-#include <iostream>
-
+#include "logger_example_utils.h"
 
 using namespace daq;
 

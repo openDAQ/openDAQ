@@ -158,7 +158,7 @@ StreamingPtr WebsocketStreamingClientModule::onCreateStreaming(const StringPtr& 
 
 Bool WebsocketStreamingClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
 {
-    if (target.getProtocolId() != "OpenDAQLTStreaming")
+    if (target.getProtocolId() != "OpenDAQLTStreaming" && target.getProtocolId() != "OpenDAQNewLTStreaming")
         return false;
 
     if (source.getConnectionType() != "TCP/IP")

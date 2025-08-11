@@ -30,12 +30,17 @@ namespace daq::config_protocol
 class ConfigServerComponent
 {
 public:
-    static BaseObjectPtr getPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr setPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr clearPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr clearProtectedPropertyValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr callProperty(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    // Property object methods
+    static BaseObjectPtr getPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr setPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr clearPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr clearProtectedPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr getSuggestedValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr getSelectionValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr callProperty(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+
+    // Component methods
     static BaseObjectPtr beginUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr endUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setAttributeValue(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
@@ -47,15 +52,19 @@ public:
 
 private:
     static void applyProps(uint16_t protocolVersion, const PropertyObjectPtr& obj, const ListPtr<IDict>& props);
+    static void parseAndGetDeviceInfo(PropertyObjectPtr& component, std::string& propName);
 };
 
 inline BaseObjectPtr ConfigServerComponent::getPropertyValue(const RpcContext& context,
-                                                             const ComponentPtr& component,
+                                                             const PropertyObjectPtr& component,
                                                              const ParamsDictPtr& params)
 {
-    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
-    const auto value = component.getPropertyValue(propertyName);
-    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+    std::string propertyName = static_cast<std::string>(params["PropertyName"]);
+    PropertyObjectPtr targetComponent = component;
+    parseAndGetDeviceInfo(targetComponent, propertyName);
+
+    const auto value = targetComponent.getPropertyValue(propertyName);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
 
     ConfigServerAccessControl::protectObject(propertyParent, context.user, Permission::Read);
 
@@ -63,107 +72,131 @@ inline BaseObjectPtr ConfigServerComponent::getPropertyValue(const RpcContext& c
 }
 
 inline BaseObjectPtr ConfigServerComponent::setPropertyValue(const RpcContext& context,
-                                                             const ComponentPtr& component,
+                                                             const PropertyObjectPtr& component,
                                                              const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
-    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     const auto propertyValue = params["PropertyValue"];
-
-    const std::string prefix = "DaqDeviceInfo";
-    if (propertyName.find(prefix) != std::string::npos)
-    {
-        auto deviceInfoPropertyName = propertyName.substr(prefix.size() + 1);
-        auto deviceInfo = component.asPtr<IDevice>(true).getInfo();
-        ConfigServerAccessControl::protectObject(deviceInfo, context.user, {Permission::Read, Permission::Write});
-        deviceInfo.setPropertyValue(deviceInfoPropertyName, propertyValue);
-        return nullptr;
-    }
     
-    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+    auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    PropertyObjectPtr targetComponent = component;
+    parseAndGetDeviceInfo(targetComponent, propertyName);
+
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
 
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
 
-    component.setPropertyValue(propertyName, propertyValue);
+    targetComponent.setPropertyValue(propertyName, propertyValue);
 
     return nullptr;
 }
 
 inline BaseObjectPtr ConfigServerComponent::setProtectedPropertyValue(const RpcContext& context,
-                                                                      const ComponentPtr& component,
+                                                                      const PropertyObjectPtr& component,
                                                                       const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
-    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
     const auto propertyValue = static_cast<std::string>(params["PropertyValue"]);
+    auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    PropertyObjectPtr targetComponent = component;
+    parseAndGetDeviceInfo(targetComponent, propertyName);
 
-    const std::string prefix = "DaqDeviceInfo";
-    if (propertyName.find(prefix) != std::string::npos)
-    {
-        auto deviceInfoPropertyName = propertyName.substr(prefix.size() + 1);
-        auto deviceInfo = component.asPtr<IDevice>(true).getInfo();
-        ConfigServerAccessControl::protectObject(deviceInfo, context.user, {Permission::Read, Permission::Write});
-        deviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(deviceInfoPropertyName, propertyValue);
-        return nullptr;
-    }
-
-    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
 
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
 
-    component.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, propertyValue);
+    targetComponent.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, propertyValue);
 
     return nullptr;
 }
 
 inline BaseObjectPtr ConfigServerComponent::clearPropertyValue(const RpcContext& context,
-                                                               const ComponentPtr& component,
+                                                               const PropertyObjectPtr& component,
                                                                const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
-    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
-    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+    auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    PropertyObjectPtr targetComponent = component;
+    parseAndGetDeviceInfo(targetComponent, propertyName);
+
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
 
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
 
-    component.clearPropertyValue(propertyName);
+    targetComponent.clearPropertyValue(propertyName);
 
     return nullptr;
 }
 
 inline BaseObjectPtr ConfigServerComponent::clearProtectedPropertyValue(const RpcContext& context,
-                                                                        const ComponentPtr& component,
+                                                                        const PropertyObjectPtr& component,
                                                                         const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+    
+    auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    PropertyObjectPtr targetComponent = component;
+    parseAndGetDeviceInfo(targetComponent, propertyName);
 
-    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
-    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
 
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
 
-    component.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue(propertyName);
+    targetComponent.asPtr<IPropertyObjectProtected>().clearProtectedPropertyValue(propertyName);
 
     return nullptr;
 }
 
+inline BaseObjectPtr ConfigServerComponent::getSuggestedValues(const RpcContext& context,
+                                                               const PropertyObjectPtr& component,
+                                                               const ParamsDictPtr& params)
+{
+    auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    PropertyObjectPtr targetComponent = component;
+    parseAndGetDeviceInfo(targetComponent, propertyName);
+
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, Permission::Read);
+
+    return targetComponent.getProperty(propertyName).getSuggestedValues();
+}
+
+inline BaseObjectPtr ConfigServerComponent::getSelectionValues(const RpcContext& context,
+                                                               const PropertyObjectPtr& component,
+                                                               const ParamsDictPtr& params)
+{
+    auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    PropertyObjectPtr targetComponent = component;
+    parseAndGetDeviceInfo(targetComponent, propertyName);
+
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, Permission::Read);
+
+    return targetComponent.getProperty(propertyName).getSelectionValues();
+}
+
 inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& context,
-                                                         const ComponentPtr& component,
+                                                         const PropertyObjectPtr& component,
                                                          const ParamsDictPtr& params)
 {
-    const auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    PropertyObjectPtr targetComponent = component;
+    parseAndGetDeviceInfo(targetComponent, propertyName);
+
     BaseObjectPtr callParams = params.getOrDefault("Params");
 
-    const auto prop = component.getProperty(propertyName);
-    const auto propValue = component.getPropertyValue(propertyName);
-    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(component, propertyName);
+    const auto prop = targetComponent.getProperty(propertyName);
+    const auto propValue = targetComponent.getPropertyValue(propertyName);
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
 
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Execute});
 
@@ -180,7 +213,7 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
 
     if (!prop.getCallableInfo().isConst())
     {
-        ConfigServerAccessControl::protectLockedComponent(component);
+        ConfigServerAccessControl::protectLockedComponent(targetComponent);
         ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
     }
 
@@ -303,6 +336,17 @@ inline void ConfigServerComponent::applyProps(uint16_t protocolVersion, const Pr
         else
             obj.clearPropertyValue(name);
     }
+}
+
+inline void ConfigServerComponent::parseAndGetDeviceInfo(PropertyObjectPtr& component, std::string& propName)
+
+{
+    const std::string prefix = "DaqDeviceInfo";
+    if (propName.find(prefix) == std::string::npos)
+        return;
+
+    propName = propName.substr(prefix.size() + 1);
+    component = component.asPtr<IDevice>(true).getInfo();
 }
 
 inline BaseObjectPtr ConfigServerComponent::getAvailableFunctionBlockTypes(const RpcContext& context,

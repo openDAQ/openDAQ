@@ -9,6 +9,8 @@
 #include <opendaq/reusable_data_packet_ptr.h>
 #include <opendaq/sample_type_traits.h>
 
+#include <chrono>
+
 using namespace daq;
 
 using PacketBufferTest = testing::Test;
@@ -308,39 +310,24 @@ TEST_F(PacketBufferTest, MultithreadBasicFunctionallity)
 
 TEST_F(PacketBufferTest, ResetTest)
 {
-    auto builder = PacketBufferBuilder();
-    builder.setSizeInBytes(800);
-    auto buffer = PacketBuffer(builder);
+    auto buffer = PacketBufferBuilder().setSizeInBytes(800).build();
 
     auto [desc, domain] = generateBuildingBlocks();
-
-    auto check = [buffer = buffer, desc = desc, domain = domain](SizeT t, DataPacketPtr& destination)
+    
+    auto reset = [&buffer](SizeT t)
     {
-        destination = buffer.createPacket(t, desc, domain);
-    };
-
-    auto reset = [buffer = buffer](SizeT t)
-    {
-        std::this_thread::sleep_for(std::chrono::microseconds(20));
         buffer.resize(t);
     };
 
-    std::thread t1;
-    std::thread t2;
-    std::thread t3;
+    auto packet = buffer.createPacket(20, desc, domain);
+    auto thread_ = std::thread(reset, 1000);
 
-    {
-        DataPacketPtr r1;
-        t1 = std::thread(check, 20, std::ref(r1));
-        t1.join();
-    }
-    t2 = std::thread(reset, 1000);
-    {
-        DataPacketPtr r2;
-        t3 = std::thread(check, 20, std::ref(r2));
-        t3.join();
-    }
-    t2.join();
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(1000ms);
+    ASSERT_THROW(buffer.createPacket(20, desc, domain), InvalidStateException);
+
+    packet.release();
+    thread_.join();
 
     ASSERT_EQ(buffer.getAvailableSampleCount(desc), 100);
 }

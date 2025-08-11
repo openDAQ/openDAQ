@@ -120,13 +120,4 @@ void defineISignalConfig(pybind11::module_ m, PyDaqIntf<daq::ISignalConfig, daq:
         },
         py::arg("packets"),
         "Sends multiple packets through all connections of the signal.");
-    cls.def_property("last_value",
-        nullptr,
-        [](daq::ISignalConfig *object, const py::object& lastValue)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::SignalConfigPtr::Borrow(object);
-            objectPtr.setLastValue(pyObjectToBaseObject(lastValue));
-        },
-        "Sets the last value of the signal.");
 }

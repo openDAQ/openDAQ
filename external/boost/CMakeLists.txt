@@ -48,6 +48,7 @@ if (NOT BOOST_INCLUDE_LIBRARIES)
                          align
                          serialization
                          signals2
+                         url
     )
 
     if(DAQMODULES_PARQUET_RECORDER_MODULE AND MSVC)

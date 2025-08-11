@@ -30,6 +30,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
+#include "py_opendaq/py_typed_reader.h"
 
 PyDaqIntf<daq::IMultiReaderBuilder, daq::IBaseObject> declareIMultiReaderBuilder(pybind11::module_ m)
 {
@@ -47,6 +48,10 @@ void defineIMultiReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderB
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::MultiReaderBuilderPtr::Borrow(object);
+			auto domainReadType = objectPtr.getDomainReadType();
+			PyTypedReader::checkTypes(objectPtr.getValueReadType(), domainReadType);
+			if(domainReadType == daq::SampleType::Undefined)
+				throw daq::InvalidParameterException("Domain type cannot be undefined.");
             return objectPtr.build().detach();
         },
         "Builds and returns a Multi reader object using the currently set values of the Builder.");

@@ -26,6 +26,22 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
+static SampleType getOpenDaqSampleType(const std::string& type)
+{
+    if (type == wss::data_types::real32_t) return SampleType::Float32;
+    else if (type == wss::data_types::real64_t) return SampleType::Float64;
+    else if (type == wss::data_types::int8_t) return SampleType::Int8;
+    else if (type == wss::data_types::int16_t) return SampleType::Int16;
+    else if (type == wss::data_types::int32_t) return SampleType::Int32;
+    else if (type == wss::data_types::int64_t) return SampleType::Int64;
+    else if (type == wss::data_types::uint8_t) return SampleType::UInt8;
+    else if (type == wss::data_types::uint16_t) return SampleType::UInt16;
+    else if (type == wss::data_types::uint32_t) return SampleType::UInt32;
+    else if (type == wss::data_types::uint64_t) return SampleType::UInt64;
+    else if (type == wss::data_types::struct_t) return SampleType::Struct;
+    else return SampleType::Undefined;
+}
+
 DataDescriptorPtr metadataToDescriptor(
     const wss::metadata& metadata)
 {
@@ -33,27 +49,9 @@ DataDescriptorPtr metadataToDescriptor(
 
     builder.setName(metadata.name());
 
-    std::string dataType = metadata.data_type();
-    if (dataType == wss::data_types::real32_t)
-        builder.setSampleType(SampleType::Float32);
-    else if (dataType == wss::data_types::real64_t)
-        builder.setSampleType(SampleType::Float64);
-    else if (dataType == wss::data_types::int8_t)
-        builder.setSampleType(SampleType::Int8);
-    else if (dataType == wss::data_types::int16_t)
-        builder.setSampleType(SampleType::Int16);
-    else if (dataType == wss::data_types::int32_t)
-        builder.setSampleType(SampleType::Int32);
-    else if (dataType == wss::data_types::int64_t)
-        builder.setSampleType(SampleType::Int64);
-    else if (dataType == wss::data_types::uint8_t)
-        builder.setSampleType(SampleType::UInt8);
-    else if (dataType == wss::data_types::uint16_t)
-        builder.setSampleType(SampleType::UInt16);
-    else if (dataType == wss::data_types::uint32_t)
-        builder.setSampleType(SampleType::UInt32);
-    else if (dataType == wss::data_types::uint64_t)
-        builder.setSampleType(SampleType::UInt64);
+    builder.setSampleType(
+        getOpenDaqSampleType(
+            metadata.data_type()));
 
     std::string origin = metadata.origin();
     if (!origin.empty())

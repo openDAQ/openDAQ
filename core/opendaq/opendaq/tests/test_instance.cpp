@@ -513,6 +513,7 @@ TEST_F(InstanceTest, InstanceBuilderRootDeviceConfig)
 TEST_F(InstanceTest, InstanceCreateFactory)
 {
     const auto logger = Logger();
+    logger.setLevel(LogLevel::Debug);
     const auto scheduler = Scheduler(logger, 2);
     const auto moduleManager = ModuleManager("");
     const auto authenticationProvider = AuthenticationProvider();
@@ -520,7 +521,6 @@ TEST_F(InstanceTest, InstanceCreateFactory)
 
     auto instance = InstanceBuilder()
                         .setLogger(logger)
-                        .setGlobalLogLevel(LogLevel::Debug)
                         .setModuleManager(moduleManager)
                         .setScheduler(scheduler)
                         .setDefaultRootDeviceLocalId("OpenDAQClient")

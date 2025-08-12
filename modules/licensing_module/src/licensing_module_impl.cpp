@@ -43,6 +43,9 @@ FunctionBlockPtr LicensingModule::onCreateFunctionBlock(const StringPtr& id,
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PassthroughFbImpl>(context, parent, localId, _licenseChecker);
         return fb;
     }
+
+    DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
+    return nullptr;
 }
 
 Bool LicensingModule::onLoadLicense(IDict* licenseConfig)

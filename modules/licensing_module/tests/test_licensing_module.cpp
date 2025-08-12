@@ -104,32 +104,32 @@ protected:
     void authenticateAndLicenseValid()
     {
         auto config = module.getLicenseConfig();
-        config.setPropertyValue("VendorKey", "my_secret_key");
-        config.setPropertyValue("LicensePath", resourcesPath + "/license.lic");
+        config.set("VendorKey", "my_secret_key");
+        config.set("LicensePath", resourcesPath + "/license.lic");
         module.loadLicense(config);
     }
 
     void authenticateAndLicenseInvalid()
     {
         auto config = module.getLicenseConfig();
-        config.setPropertyValue("VendorKey", "my_not_so_secret_key");
-        config.setPropertyValue("LicensePath", "");
+        config.set("VendorKey", "my_not_so_secret_key");
+        config.set("LicensePath", "");
         module.loadLicense(config);
     }
 
     void authenticateValidAndLicenseInvalid()
     {
         auto config = module.getLicenseConfig();
-        config.setPropertyValue("VendorKey", "my_secret_key");
-        config.setPropertyValue("LicensePath", "");
+        config.set("VendorKey", "my_secret_key");
+        config.set("LicensePath", "");
         module.loadLicense(config);
     }
 
     void authenticateInvalidAndLicenseValid()
     {
         auto config = module.getLicenseConfig();
-        config.setPropertyValue("VendorKey", "my_not_so_secret_key");
-        config.setPropertyValue("LicensePath", resourcesPath + "/license.lic");
+        config.set("VendorKey", "my_not_so_secret_key");
+        config.set("LicensePath", resourcesPath + "/license.lic");
         module.loadLicense(config);
     }
 
@@ -196,19 +196,14 @@ TEST_F(LicensingModuleTestWithSignal, InvalidAuthentication)
 {
     authenticateAndLicenseInvalid();
 
-    createPassthroughFb();
-
-    // Cannot get function block from an un-authenticated module
-    ASSERT_TRUE(fb == nullptr);
+    ASSERT_THROW(createPassthroughFb(), NotFoundException);
 }
 
 TEST_F(LicensingModuleTestWithSignal, NoAuthentication)
 {
     authenticateInvalidAndLicenseValid();
-    createPassthroughFb();
 
-    // Cannot get function block from an un-authenticated module
-    ASSERT_TRUE(fb == nullptr);
+    ASSERT_THROW(createPassthroughFb(), NotFoundException);
 }
 
 TEST_F(LicensingModuleTestWithSignal, MultipleAuthentication)
@@ -216,8 +211,7 @@ TEST_F(LicensingModuleTestWithSignal, MultipleAuthentication)
     if (!validAuthenticationWorks)
         GTEST_SKIP();
 
-    createPassthroughFb();
-    ASSERT_TRUE(fb == nullptr);
+    ASSERT_THROW(createPassthroughFb(), NotFoundException);
 
     authenticateAndLicenseValid();
 
@@ -226,8 +220,7 @@ TEST_F(LicensingModuleTestWithSignal, MultipleAuthentication)
 
     authenticateAndLicenseInvalid();
 
-    createPassthroughFb();
-    ASSERT_TRUE(fb == nullptr);
+    ASSERT_THROW(createPassthroughFb(), NotFoundException);
     
     authenticateAndLicenseValid();
 

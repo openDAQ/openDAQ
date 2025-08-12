@@ -151,12 +151,12 @@ ErrCode MockDeviceModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamin
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockDeviceModuleImpl::loadLicense(daq::Bool* /*succeeded*/, daq::IPropertyObject* /*licenseConfig*/)
+ErrCode MockDeviceModuleImpl::loadLicense(daq::Bool* /*succeeded*/, daq::IDict* /*licenseConfig*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockDeviceModuleImpl::getLicenseConfig(daq::IPropertyObject** /*licenseConfig*/)
+ErrCode MockDeviceModuleImpl::getLicenseConfig(daq::IDict** /*licenseConfig*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }

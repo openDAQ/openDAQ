@@ -33,8 +33,8 @@ public:
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config) override;
 
-    Bool onLoadLicense(IPropertyObject* licenseConfig) override;
-    PropertyObjectPtr onGetLicenseConfig() override;
+    Bool onLoadLicense(IDict* licenseConfig) override;
+    DictPtr<IString, IString> onGetLicenseConfig() override;
     Bool onLicenseLoaded() override;
 
 private:

@@ -35,7 +35,7 @@ FunctionBlockPtr LicensingModule::onCreateFunctionBlock(const StringPtr& id,
     if (!_authenticated)
     {
         LOG_W("Module not authenticated, cannot create function block!");
-        return nullptr;
+        DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
     }
 
     if (id == PassthroughFbImpl::CreateType().getId())
@@ -43,16 +43,13 @@ FunctionBlockPtr LicensingModule::onCreateFunctionBlock(const StringPtr& id,
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PassthroughFbImpl>(context, parent, localId, _licenseChecker);
         return fb;
     }
-
-    LOG_W("Function block \"{}\" not found", id);
-    DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
 }
 
-Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
+Bool LicensingModule::onLoadLicense(IDict* licenseConfig)
 {
-    auto ptr = PropertyObjectPtr::Borrow(licenseConfig);
-    std::string path = ptr.getPropertyValue("LicensePath");
-    std::string vendor_key = ptr.getPropertyValue("VendorKey");
+    auto ptr = DictPtr<IString, IString>::Borrow(licenseConfig);
+    std::string path = ptr.get("LicensePath");
+    std::string vendor_key = ptr.get("VendorKey");
 
     std::string secret_key = "my_secret_key";
 
@@ -112,11 +109,11 @@ Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
     return true;
 }
 
-PropertyObjectPtr LicensingModule::onGetLicenseConfig()
+DictPtr<IString, IString> LicensingModule::onGetLicenseConfig()
 {
-    auto licenseConfig = PropertyObject();
-    licenseConfig.addProperty(StringProperty("LicensePath", ""));
-    licenseConfig.addProperty(StringProperty("VendorKey", ""));
+    auto licenseConfig = Dict<IString,IString>();
+    licenseConfig.set("LicensePath", "");
+    licenseConfig.set("VendorKey", "");
 
     return licenseConfig;
 }

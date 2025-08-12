@@ -82,12 +82,12 @@ daq::ErrCode MockModuleImpl::getAvailableStreamingTypes(daq::IDict** streamingTy
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-daq::ErrCode MockModuleImpl::loadLicense(Bool* succeeded, IPropertyObject* licenseConfig)
+daq::ErrCode MockModuleImpl::loadLicense(Bool* succeeded, IDict* licenseConfig)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-daq::ErrCode MockModuleImpl::getLicenseConfig(IPropertyObject** licenseConfig)
+daq::ErrCode MockModuleImpl::getLicenseConfig(IDict** licenseConfig)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }

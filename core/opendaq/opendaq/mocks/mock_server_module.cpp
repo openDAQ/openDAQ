@@ -112,12 +112,12 @@ ErrCode MockServerModuleImpl::getAvailableStreamingTypes(daq::IDict** /*streamin
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockServerModuleImpl::loadLicense(Bool* /*succeeded*/, IPropertyObject* /*licenseConfig*/)
+ErrCode MockServerModuleImpl::loadLicense(Bool* /*succeeded*/, IDict* /*licenseConfig*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
-ErrCode MockServerModuleImpl::getLicenseConfig(IPropertyObject** /*licenseConfig*/)
+ErrCode MockServerModuleImpl::getLicenseConfig(IDict** /*licenseConfig*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }

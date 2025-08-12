@@ -35,6 +35,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <coretypes/dictobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class Module : public ImplementationOf<IModule>
@@ -393,7 +394,7 @@ public:
         return false;
     }
 
-    virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeded, IPropertyObject* licenseConfig) override
+    virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeded, IDict* licenseConfig) override
     {
         OPENDAQ_PARAM_NOT_NULL(succeded);
         OPENDAQ_PARAM_NOT_NULL(licenseConfig);
@@ -406,16 +407,16 @@ public:
         return errCode;
     }
 
-    virtual Bool onLoadLicense(IPropertyObject* licenseConfig)
+    virtual Bool onLoadLicense(IDict* licenseConfig)
     {
         return true;
     }
 
-    virtual ErrCode INTERFACE_FUNC getLicenseConfig(IPropertyObject** licenseConfig) override
+    virtual ErrCode INTERFACE_FUNC getLicenseConfig(IDict** licenseConfig) override
     {
         OPENDAQ_PARAM_NOT_NULL(licenseConfig);
 
-        PropertyObjectPtr licenseConfigLocal;
+        DictPtr<IString, IString> licenseConfigLocal;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetLicenseConfig, licenseConfigLocal);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
@@ -423,7 +424,7 @@ public:
         return errCode;
     }
 
-    virtual PropertyObjectPtr onGetLicenseConfig()
+    virtual DictPtr<IString, IString> onGetLicenseConfig()
     {
         return nullptr;
     }

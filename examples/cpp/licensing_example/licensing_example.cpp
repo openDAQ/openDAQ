@@ -26,7 +26,6 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Setup your paths here..
     std::string licPath = resourcePath + "license.lic";
-
     // Make sure you open up the quick_start_simulator example app to get a reference device!
     // ------------------- Find and connect to a simulator device ------------------- //
     const auto availableDevices = instance.getAvailableDevices();
@@ -52,8 +51,14 @@ int main(int /*argc*/, const char* /*argv*/[])
     daq::SignalPtr inputSignal = inputChannel.getSignals()[0];
     // ------------------------------------------------------------------------------ //
 
-    // --- Attempt to obtain the modules' function blocks without authenticating it --- //
-    assert(instance.addFunctionBlock("LicensingModulePassthrough") == nullptr);
+    try
+    {
+        instance.addFunctionBlock("LicensingModulePassthrough");
+    }
+    catch (daq::NotFoundException e)
+    {
+        std::cout << "Attempting to use an unlicensed module!" << std::endl;
+    }
 
     // -------------------------------------------------------------------------------- //
 
@@ -73,9 +78,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     ModulePtr licensingModulePtr = *itFound;
 
     // --------------------------- Load the license ------------------------------------------- //
-    PropertyObjectPtr licenseConfig = licensingModulePtr.getLicenseConfig();
-    licenseConfig.setPropertyValue("LicensePath", licPath);
-    licenseConfig.setPropertyValue("VendorKey", "my_secret_key");
+    DictPtr<IString, IString> licenseConfig = licensingModulePtr.getLicenseConfig();
+    licenseConfig.set("VendorKey", "my_secret_key");
+    licenseConfig.set("LicensePath", licPath);
     Bool succeeded = licensingModulePtr.loadLicense(licenseConfig);
 
     if (succeeded == false)
@@ -86,48 +91,49 @@ int main(int /*argc*/, const char* /*argv*/[])
     // ---------------------------------------------------------------------------------------- //
 
     // ------------- Attempt to read the signal again with a licensed fb ------------------ //
+    
+    // Sleeping so log output gets flushed before printing..
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    std::cout << "\nAttempting to use a licensed function block...\n" << std::endl;
+
+    // --- Create and connect the unlicensed passthrough function block and read some signals --- //
+    const auto fb = instance.addFunctionBlock("LicensingModulePassthrough");
+        
+    fb.getInputPorts()[0].connect(inputSignal);
+
+    const uint64_t noOfSamples = 100;
+
+    auto reader = StreamReaderBuilder()
+                        .setSignal(fb.getSignals()[0])
+                        .setValueReadType(SampleType::Float32)
+                        .setDomainReadType(SampleType::Int64)
+                        .setReadMode(ReadMode::Scaled)
+                        .setReadTimeoutType(ReadTimeoutType::All)
+                        .setSkipEvents(true)
+                        .build();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    std::vector<float> data(noOfSamples);
+    std::vector<int64_t> time(noOfSamples);
+
+    SizeT noOfSamplesRead = noOfSamples;
+    auto readerStatus = reader.readWithDomain(data.data(), time.data(), &noOfSamplesRead);
+    // Check if we can read the data (otherwise, we might have had a license problem)...
+    if (noOfSamplesRead == noOfSamples)
     {
-        // Sleeping so log output gets flushed before printing..
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        std::cout << "\nAttempting to use unlicensed function block...\n" << std::endl;
-
-        // --- Create and connect the unlicensed passthrough function block and read some signals --- //
-        const auto fb = instance.addFunctionBlock("LicensingModulePassthrough");
-
-        fb.getInputPorts()[0].connect(inputSignal);
-
-        const uint64_t noOfSamples = 100;
-
-        auto reader = StreamReaderBuilder()
-                          .setSignal(fb.getSignals()[0])
-                          .setValueReadType(SampleType::Float32)
-                          .setDomainReadType(SampleType::Int64)
-                          .setReadMode(ReadMode::Scaled)
-                          .setReadTimeoutType(ReadTimeoutType::All)
-                          .setSkipEvents(true)
-                          .build();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        std::vector<float> data(noOfSamples);
-        std::vector<int64_t> time(noOfSamples);
-
-        SizeT noOfSamplesRead = noOfSamples;
-        auto readerStatus = reader.readWithDomain(data.data(), time.data(), &noOfSamplesRead);
-        // Check if we can read the data (otherwise, we might have had a license problem)...
-        if (noOfSamplesRead == noOfSamples)
-        {
-            std::cout << "Read all " << noOfSamplesRead << " samples" << std::endl;
-        }
-        else
-        {
-            auto fbStatus = fb.getStatusContainer().getStatusMessage("ComponentStatus");
-            if (fbStatus.getLength() == 0)
-                fbStatus = "<OK>";
-
-            std::cerr << "Failed to read the expected number of samples. Status of pass-through function block: " << fbStatus << std::endl;
-        }
+        std::cout << "Read all " << noOfSamplesRead << " samples" << std::endl;
     }
+    else
+    {
+        auto fbStatus = fb.getStatusContainer().getStatusMessage("ComponentStatus");
+        if (fbStatus.getLength() == 0)
+            fbStatus = "<OK>";
+
+        std::cerr << "Failed to read the expected number of samples. Status of pass-through function block: " << fbStatus << "\nNumber of samples read: " << noOfSamplesRead
+                    << std::endl;
+    }
+    
     // ------------------------------------------------------------------------------- //
 
     std::cout << "Press \"enter\" to exit the application..." << std::endl;

@@ -22,7 +22,7 @@ const std::string resourcePath = RESOURCE_PATH;
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create an Instance, loading modules at MODULE_PATH
-    const InstancePtr instance = daq::InstanceBuilder().setModulePath(MODULE_PATH).setUsingSchedulerMainLoop(true).build();
+    const InstancePtr instance = daq::InstanceBuilder().setModulePath(MODULE_PATH).build();
 
     // Setup your paths here..
     std::string licPath = resourcePath + "license.lic";

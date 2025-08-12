@@ -3,6 +3,8 @@
 #include <fstream>
 #include <regex>
 
+const std::regex tokenLineRegex(R"(^\s*(\w+)\s*[:-]?\s*(\d+)\s*$)");
+
 BEGIN_NAMESPACE_LICENSING_MODULE
 
 LicensingModule::LicensingModule(const ContextPtr& context)
@@ -46,51 +48,6 @@ FunctionBlockPtr LicensingModule::onCreateFunctionBlock(const StringPtr& id,
     DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
 }
 
-/*
-Bool LicensingModule::onAuthenticate(IPropertyObject* authenticationConfig)
-{
-    auto ptr = PropertyObjectPtr::Borrow(authenticationConfig);
-    std::string path = ptr.getPropertyValue("AuthenticationKeyPath");
-
-    std::string secret_key = "my_secret_key";
-    std::string path_key;
-    std::ifstream file(path);
-    if (!file.is_open())
-    {
-        LOG_W("Authentication file \"{}\" not found!", path);
-        _authenticated = false;
-        return false;
-    }
-    std::getline(file, path_key);
-
-    _authenticated = path_key == secret_key;
-
-    if (!_authenticated)
-    {
-        LOG_W("Authentication with \"{}\" failed, invalid key!", path);
-    }
-    else
-    {
-        LOG_I("Authentication successful!");
-    }
-
-    return _authenticated;
-}
-
-PropertyObjectPtr LicensingModule::onGetAuthenticationConfig()
-{
-    auto authenticationConfig = PropertyObject();
-    authenticationConfig.addProperty(StringProperty("AuthenticationKeyPath", ""));
-
-    return authenticationConfig;
-}
-
-Bool LicensingModule::onIsAuthenticated()
-{
-    return _authenticated;
-}
-*/
-
 Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
 {
     auto ptr = PropertyObjectPtr::Borrow(licenseConfig);
@@ -120,7 +77,6 @@ Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
 
     std::map<std::string, unsigned int> tokens;
 
-    const std::regex lineRegex(R"(^\s*(\w+)\s*[:-]?\s*(\d+)\s*$)");
     std::string line;
 
     // Read each line
@@ -132,7 +88,7 @@ Bool LicensingModule::onLoadLicense(IPropertyObject* licenseConfig)
             continue;  // Skip empty lines and comments
 
         std::smatch match;
-        if (std::regex_match(line, match, lineRegex))
+        if (std::regex_match(line, match, tokenLineRegex))
         {
             // Extract feature name and count, and build map
             const auto featureName = match[1].str();

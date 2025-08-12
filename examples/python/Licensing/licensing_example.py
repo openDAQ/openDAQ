@@ -39,8 +39,8 @@ if __name__ == "__main__":
             licensing_module = module
 
     cfg = licensing_module.license_config
-    cfg.set_property_value("VendorKey", "my_secret_key")
-    cfg.set_property_value("LicensePath", lic_path)
+    cfg["VendorKey"] = "my_secret_key"
+    cfg["LicensePath"] = lic_path
 
     licensing_module.load_license(cfg)
 

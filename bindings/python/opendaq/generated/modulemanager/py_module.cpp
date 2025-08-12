@@ -140,7 +140,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
         py::return_value_policy::take_ownership,
         "Returns a dictionary of known and available streaming types that this module (client) can create.T");
     cls.def("load_license",
-        [](daq::IModule *object, daq::IPropertyObject* licenseConfig)
+        [](daq::IModule *object, daq::IDict* licenseConfig)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ModulePtr::Borrow(object);

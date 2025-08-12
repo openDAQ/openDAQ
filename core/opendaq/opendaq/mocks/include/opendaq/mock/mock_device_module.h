@@ -41,6 +41,10 @@ public:
 
     daq::ErrCode INTERFACE_FUNC completeServerCapability(daq::Bool* succeeded, daq::IServerCapability* source, daq::IServerCapabilityConfig* target) override;
 
+    daq::ErrCode INTERFACE_FUNC loadLicense(daq::Bool* succeeded, daq::IDict* licenseConfig) override;
+    daq::ErrCode INTERFACE_FUNC getLicenseConfig(daq::IDict** licenseConfig) override;
+    daq::ErrCode INTERFACE_FUNC licenseLoaded(daq::Bool* loaded) override;
+
 private:
     daq::ContextPtr ctx;
     size_t cnt = 0;

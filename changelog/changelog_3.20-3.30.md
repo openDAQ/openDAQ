@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#878](https://github.com/openDAQ/openDAQ/pull/878) Licensing interface and reference module + example implementation.
 - [#853](https://github.com/openDAQ/openDAQ/pull/853) Parquet writer
 - [#861](https://github.com/openDAQ/openDAQ/pull/861) Add support for list and dictionary item/key type identification in Argument Info.
 - [#849] (https://github.com/openDAQ/openDAQ/pull/849) Improving error logging and implementing an error guard.

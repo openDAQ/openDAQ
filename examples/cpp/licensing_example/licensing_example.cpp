@@ -55,9 +55,9 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         instance.addFunctionBlock("LicensingModulePassthrough");
     }
-    catch (daq::NotFoundException e)
+    catch (daq::NotFoundException const &e)
     {
-        std::cout << "Attempting to use an unlicensed module!" << std::endl;
+        std::cout << "Attempting to use an unlicensed module! Error: " << e.getErrorMessage() << std::endl;
     }
 
     // -------------------------------------------------------------------------------- //

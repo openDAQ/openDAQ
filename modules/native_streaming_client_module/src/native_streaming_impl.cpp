@@ -383,6 +383,7 @@ void NativeStreamingToDeviceImpl::onRegisterStreamedClientSignal(const SignalPtr
 
 void NativeStreamingToDeviceImpl::onUnregisterStreamedClientSignal(const SignalPtr& signal)
 {
+    this->signalUnsubscribeHandler(signal);
     this->transportClientHandler->removeClientSignal(signal);
 }
 
@@ -447,7 +448,7 @@ void NativeStreamingToDeviceImpl::upgradeStreamingToDeviceCallbacks()
     // TODO clear read signals on disconnection
 }
 
-void NativeStreamingToDeviceImpl::signalSubscribeHandler(const SignalPtr &signal)
+void NativeStreamingToDeviceImpl::signalSubscribeHandler(const SignalPtr& signal)
 {
     std::scoped_lock lock(readersSync);
     auto it = std::find_if(signalReaders.begin(),
@@ -464,7 +465,7 @@ void NativeStreamingToDeviceImpl::signalSubscribeHandler(const SignalPtr &signal
     signalReaders.push_back(std::pair<SignalPtr, PacketReaderPtr>({signal, reader}));
 }
 
-void NativeStreamingToDeviceImpl::signalUnsubscribeHandler(const SignalPtr &signal)
+void NativeStreamingToDeviceImpl::signalUnsubscribeHandler(const SignalPtr& signal)
 {
     std::scoped_lock lock(readersSync);
     auto it = std::find_if(signalReaders.begin(),

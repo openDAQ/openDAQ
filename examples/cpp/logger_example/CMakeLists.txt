@@ -4,17 +4,14 @@ project(logger_example VERSION ${OPENDAQ_EXAMPLES_VERSION})
 find_package(openDAQ)
 add_compile_definitions(MODULE_PATH="${OPENDAQ_MODULES_DIR}")
 
-add_executable(logger_wo_sinks_example logger_wo_sinks/logger_wo_sinks_example.cpp)
-target_link_libraries(logger_wo_sinks_example PRIVATE daq::opendaq)
+add_executable(logger_writing_log_example writing_log/writing_log_example.cpp)
+target_link_libraries(logger_writing_log_example PRIVATE daq::opendaq)
 
-add_executable(logger_w_sinks_example logger_w_sinks/logger_w_sinks_example.cpp)
-target_link_libraries(logger_w_sinks_example PRIVATE daq::opendaq)
+add_executable(logger_default_state_example default_state/default_state_example.cpp)
+target_link_libraries(logger_default_state_example PRIVATE daq::opendaq)
 
-add_executable(instance_default_example instance_default/instance_default_example.cpp)
-target_link_libraries(instance_default_example PRIVATE daq::opendaq)
+add_executable(logger_with_sinks_example logger_with_sinks/logger_with_sinks_example.cpp)
+target_link_libraries(logger_with_sinks_example PRIVATE daq::opendaq)
 
-add_executable(instance_global_log_level_example instance_global_log_level/instance_global_log_level_example.cpp)
-target_link_libraries(instance_global_log_level_example PRIVATE daq::opendaq)
-
-add_executable(instance_w_sinks_example instance_w_sinks/instance_w_sinks_example.cpp)
-target_link_libraries(instance_w_sinks_example PRIVATE daq::opendaq)
+add_executable(logger_configure_log_levels_example configure_log_levels/configure_log_levels_example.cpp)
+target_link_libraries(logger_configure_log_levels_example PRIVATE daq::opendaq)

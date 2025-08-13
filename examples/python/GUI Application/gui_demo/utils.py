@@ -10,10 +10,8 @@ import opendaq as daq
 yes_no = ['No', 'Yes']
 
 yes_no_inv = {
-    'No':  False,
-    'no': False,
-    'Yes': True,
     'yes': True,
+    'no': False,
     'y': True,
     'n': False,
     'none': False,

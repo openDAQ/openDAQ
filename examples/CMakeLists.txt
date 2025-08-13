@@ -140,6 +140,10 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 																	 logger_example_util)
 
 	# end of Logger examples
+    
+    add_executable(licensing_example cpp/licensing_example/licensing_example.cpp)
+    target_link_libraries(licensing_example PRIVATE daq::opendaq)
+    target_compile_definitions(licensing_example PUBLIC RESOURCE_PATH="${CMAKE_CURRENT_LIST_DIR}/cpp/licensing_example/")
 
     if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND OPENDAQ_ENABLE_NATIVE_STREAMING)
         add_executable(client_authentication cpp/client_authentication/client_authentication.cpp)

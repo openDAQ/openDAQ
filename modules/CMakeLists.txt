@@ -8,6 +8,11 @@ if (POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
+if (DAQMODULES_LICENSING_MODULE)
+		message(STATUS "    - Reference licensing implementation module")
+        add_subdirectory(licensing_module)
+endif()
+
 if (DAQSIMULATOR_ENABLE_SIMULATOR_APP)
     message(NOTICE "Enable simulator support in reference device module.")
     add_compile_definitions(DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED)
@@ -76,6 +81,15 @@ if (DAQMODULES_BASIC_CSV_RECORDER_MODULE)
     message(STATUS "Basic CSV recorder module")
     add_subdirectory(basic_csv_recorder_module)
 endif()
+
+if (DAQMODULES_PARQUET_RECORDER_MODULE)
+    message(STATUS "Parquet recorder module")
+    if (CMAKE_VERSION VERSION_LESS "4.0.0")
+        message(FATAL_ERROR "Parquet recorder module requires CMake 4.0.0 or higher.")
+    endif()
+    add_subdirectory(parquet_recorder_module)
+endif()
+
 
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)

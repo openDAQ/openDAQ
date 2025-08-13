@@ -48,7 +48,7 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DPYBIND11_FINDPYTHON=ON
             cpack: NSIS
           - name: Windows VS 2022 Win32 Release
             runner: windows-latest
@@ -78,6 +78,11 @@ jobs:
               3.11
               3.12
               3.13
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
 
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
@@ -233,7 +238,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON
+            cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             build_documentation: true
             cpack: DEB
             apt_packages: g++-10
@@ -467,7 +472,7 @@ jobs:
           mkdir wheels
           for version in ${{ env.python_versions }}; do
               echo "Building for Python $version"
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCI_GIT_BRANCH=${{ github.ref }}  -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCI_GIT_BRANCH=${{ github.ref }}  -DOPENDAQ_PYTHON_VERSION=$version -DDAQMODULES_PARQUET_RECORDER_MODULE=ON ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -532,6 +537,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
+
       - name: Install ninja-build
         uses: seanmiddleditch/gha-setup-ninja@v5
         with:
@@ -557,7 +567,7 @@ jobs:
         working-directory: ./build
         run: |
           for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DOPENDAQ_PYTHON_VERSION=$version ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -575,7 +585,7 @@ jobs:
         working-directory: ./build
         run: |
           for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCMAKE_SYSTEM_NAME=Darwin -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCMAKE_SYSTEM_NAME=Darwin -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DCMAKE_SYSTEM_PROCESSOR=arm64 -DARROW_CPU_FLAG=aarch64 -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DOPENDAQ_PYTHON_VERSION=$version ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate

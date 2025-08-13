@@ -20,8 +20,10 @@
 
 using namespace daq;
 
-void doExample(const InstancePtr instance)
+int main(int /*argc*/, const char* /*argv*/[])
 {
+    auto instance = Instance();
+
     auto logger = instance.getContext().getLogger();
     // When using Logger macros, a variable named loggerComponent of a LoggerComponentPtr must be present to ensure correct logging
     // The following is an example of how to create a new loggerComponent
@@ -44,11 +46,4 @@ void doExample(const InstancePtr instance)
 
     // This logs at the critical level
     LOG_C("Critical level");
-}
-
-int main(int /*argc*/, const char* /*argv*/[])
-{
-    auto instance1 = Instance();
-
-    doExample(instance1);
 }

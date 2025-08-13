@@ -19,6 +19,7 @@
 
 ## Bug fixes
 
+- [#880](https://github.com/openDAQ/openDAQ/pull/880) Fix OPC UA warnings related to writing default values to a node.
 - [#848](https://github.com/openDAQ/openDAQ/pull/848) Do not throw an exception when getting operation modes on old devices. Return default state instead.
 - [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active.
 - [#808](https://github.com/openDAQ/openDAQ/pull/808) Fix examples CMake when downloaded as solo archive via https://docs.opendaq.com/ or https://docs-dev.opendaq.com/ (when not part of whole openDAQ project).

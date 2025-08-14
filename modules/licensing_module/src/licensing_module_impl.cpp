@@ -34,8 +34,8 @@ FunctionBlockPtr LicensingModule::onCreateFunctionBlock(const StringPtr& id,
 {
     if (!_authenticated)
     {
-        LOG_W("Module not authenticated, cannot create function block!");
-        DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
+        LOG_W("Module not authenticated, cannot create function block");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Module not authenticated, cannot create function block");
     }
 
     if (id == PassthroughFbImpl::CreateType().getId())
@@ -52,11 +52,11 @@ Bool LicensingModule::onLoadLicense(IDict* licenseConfig)
 {
     auto ptr = DictPtr<IString, IString>::Borrow(licenseConfig);
     std::string path = ptr.get("LicensePath");
-    std::string vendor_key = ptr.get("VendorKey");
+    std::string vendorKey = ptr.get("VendorKey");
 
-    std::string secret_key = "my_secret_key";
+    std::string secretKey = "my_secretKey";
 
-    _authenticated = vendor_key == secret_key;
+    _authenticated = vendorKey == secretKey;
 
     if (!_authenticated)
     {

@@ -37,6 +37,6 @@ int main(int /*argc*/, const char* /*argv*/[])
     // (the same function gets called within the default constructor)
     // Note: The name given in the argument will be superseded by the environment variable
     //        (OPENDAQ_SINK_FILE_FILE_NAME) if it is assigned.
-    for (auto sink : DefaultSinks())
+    for (auto sink : DefaultSinks("MyCustomDefaultSink"))
         myCustomSinks.pushBack(sink);
 }

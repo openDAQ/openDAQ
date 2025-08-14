@@ -13,10 +13,11 @@
  * contained in the call of the macro itself. Ones below will not log anything instead.
  * (OPENDAQ_LOG_LEVEL_DEBUG is set to "Warn", therefore LOG_W, LOG_E and LOG_C will pass on the messages normally, while
  * LOG_T, LOG_D and LOG_I will not do anything).
- * ANY CHANGES TO the CMake VARIABLES REQUIRE the REBUILD of the ENTIRE openDAQ project.
+ * ANY CHANGES TO the CMake VARIABLES REQUIRE a RECONFIGURE and REBUILD of the ENTIRE openDAQ project.
  */
 
-#include "../logger_example_utils/logger_example_utils.h"
+#include <opendaq/custom_log.h>
+#include <opendaq/opendaq.h>
 
 using namespace daq;
 

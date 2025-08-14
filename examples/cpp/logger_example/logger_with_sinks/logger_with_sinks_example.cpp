@@ -30,8 +30,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Basic file sink only needs the name of the file
     auto sinks2 = BasicFileLoggerSink("text_hive.txt");
 
-    // Logger can also be created with a list of sinks (the parameter can be a list or a single sink)
-    auto logger2 = LoggerWithSinks(sinks2);
+    // Logger can also be created with a list of sinks (the parameter can be a list of a single sink)
+    auto logger2 = LoggerWithSinks(List<ILoggerSink>(sinks2));
 
     // Logger is one of the building blocks of Context and can be either added through constructor (below)
     // or into the builder (similar procedure to above with InstanceBuilder)

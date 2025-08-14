@@ -31,12 +31,12 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Due to the logger having default settings Info level will be logged on default sinks
     logAtLevel(LogLevel::Info, logger);
 
-    daq::ListPtr<ILoggerSink> myCustomSinks;
+    auto myCustomSinks = List<ILoggerSink>();
 
     // When adding the default sinks to custom ones, call DefaultSinks function
     // (the same function gets called within the default constructor)
     // Note: The name given in the argument will be superseded by the environment variable
     //        (OPENDAQ_SINK_FILE_FILE_NAME) if it is assigned.
-    for (auto sink : DefaultSinks("MyCustomNameOfDefaultSinks"))
+    for (auto sink : DefaultSinks())
         myCustomSinks.pushBack(sink);
 }

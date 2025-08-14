@@ -1,7 +1,5 @@
 set(daq_hbk_REQUIREDVERSION "3.0.12")
 
-get_custom_fetch_content_params(daqhbkspec FC_PARAMS)
-
 message(STATUS "Fetching hbk daq specification ${daq_hbk_REQUIREDVERSION}...")
 
 opendaq_dependency(

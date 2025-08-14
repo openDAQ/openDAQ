@@ -546,7 +546,7 @@ begin
   CreateList(ListObj);
   Serializable := GetSerializableInterface(ListObj);
   Res := Serializable.GetSerializeId(@Id);
-  Assert.AreEqual(Res, OPENDAQ_ERR_NOTIMPLEMENTED);
+  Assert.AreEqual(Res, OPENDAQ_SUCCESS);
 end;
 
 procedure TTest_ListObject.Setup;

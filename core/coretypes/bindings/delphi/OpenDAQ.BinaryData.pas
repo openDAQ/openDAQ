@@ -42,7 +42,7 @@ var
   Err : ErrCode;
 begin
   Err := CreateBinaryData(Data, ByteLength);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(Data);
 end;
@@ -66,7 +66,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetAddress(Ptr);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
   
   Result := Ptr;
 end;
@@ -80,7 +80,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetSize(Size);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Size;
 end;

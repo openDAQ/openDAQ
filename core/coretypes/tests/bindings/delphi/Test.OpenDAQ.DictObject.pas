@@ -401,7 +401,7 @@ var
   Keys: IListObject;
   Count: SizeT;
   IntObj3, IntObj4: IInteger;
-  IntVal1, IntVal2: RtInt;
+  IntVal1, IntVal2: DaqInt;
 begin
   CreateDict(DictObj);
   CreateInteger(IntObj1, 1);
@@ -434,7 +434,7 @@ var
   Keys: IIterable;
   It, EndIt: IIterator;
   IntObj3, IntObj4: IInteger;
-  IntVal1, IntVal2: RtInt;
+  IntVal1, IntVal2: DaqInt;
 begin
   CreateDict(DictObj);
   CreateInteger(IntObj1, 1);

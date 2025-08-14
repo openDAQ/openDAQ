@@ -73,17 +73,17 @@ type
     procedure ReadListInvalidType;
   end;
 
-  function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
+  function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
 
-  function HasKeyFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function KeyFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-  function SerializedObjectErrorFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
+  function HasKeyFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function KeyFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+  function SerializedObjectErrorFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
 
 implementation
 uses
@@ -96,9 +96,9 @@ uses
   OpenDAQ.Serializer,
   OpenDAQ.Deserializer;
 
-function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function IntFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
-  Value: RtInt;
+  Value: DaqInt;
   Res: ErrCode;
   StringObj: IString;
   IntObj: IInteger;
@@ -115,9 +115,9 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function FloatFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
-  Value: RtFloat;
+  Value: DaqFloat;
   Res: ErrCode;
   StringObj: IString;
   FloatObj: IFloat;
@@ -134,7 +134,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function BoolFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Value: Boolean;
   Res: ErrCode;
@@ -153,7 +153,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function StringFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Value: IString;
   Res: ErrCode;
@@ -170,7 +170,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
+function SerializedObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
 var
   List: ISerializedList;
   Res: ErrCode;
@@ -190,14 +190,14 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function ListFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   List: IListObject;
   Res: ErrCode;
   StringObj: IString;
 begin
   CreateString(StringObj, 'list');
-  Res := Serialized.ReadList(StringObj, Context, List);
+  Res := Serialized.ReadList(StringObj, Context, nil, List);
 
   if OPENDAQ_FAILED(Res) then
     Exit(Res);
@@ -207,7 +207,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function HasKeyFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function HasKeyFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   HasKey: Boolean;
   Res: ErrCode;
@@ -226,7 +226,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function KeyFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function KeyFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Res: ErrCode;
   StringObj: IString;
@@ -247,14 +247,14 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function ObjectFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Res: ErrCode;
   StringObj: IString;
 
 begin
   CreateString(StringObj, 'doesNotExist');
-  Res := Serialized.ReadObject(StringObj, Context, Obj);
+  Res := Serialized.ReadObject(StringObj, Context, nil, Obj);
 
   if OPENDAQ_FAILED(Res) then
     Exit(Res);
@@ -262,7 +262,7 @@ begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function SerializedObjectErrorFactory(Serialized: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function SerializedObjectErrorFactory(Serialized: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 var
   Res: ErrCode;
   StringObj: IString;
@@ -291,39 +291,39 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadIntPositive();
 var
-  Deserializer: IDeserializerPtr<IInteger>;
-  IntVal: RtInt;
+  Deserializer: IDeserializerPtr;
+  IntVal: DaqInt;
 begin
-  Deserializer := TDeserializerPtr<IInteger>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, IntFactory);
 
-  IntVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","int":1}');
-  Assert.AreEqual<RtInt>(IntVal, 1);
+  IntVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","int":1}', nil, nil);
+  Assert.AreEqual<DaqInt>(IntVal, 1);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadIntNegative();
 var
-  Deserializer: IDeserializerPtr<IInteger>;
-  IntVal: RtInt;
+  Deserializer: IDeserializerPtr;
+  IntVal: DaqInt;
 begin
-  Deserializer := TDeserializerPtr<IInteger>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, IntFactory);
 
-  IntVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","int":-1}');
-  Assert.AreEqual<RtInt>(IntVal, -1);
+  IntVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","int":-1}', nil, nil);
+  Assert.AreEqual<DaqInt>(IntVal, -1);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadIntInvalidType();
 var
-  Deserializer: IDeserializerPtr<IInteger>;
-  IntVal: RtInt;
+  Deserializer: IDeserializerPtr;
+  IntVal: DaqInt;
 begin
-  Deserializer := TDeserializerPtr<IInteger>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, IntFactory);
 
   Assert.WillRaise(procedure()
     begin
-      IntVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","int":1.0}');
+      IntVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","int":1.0}', nil, nil);
     end,
     ERTInvalidTypeException
   );
@@ -331,15 +331,15 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadNonExistentInt();
 var
-  Deserializer: IDeserializerPtr<IInteger>;
-  IntVal: RtInt;
+  Deserializer: IDeserializerPtr;
+  IntVal: DaqInt;
 begin
-  Deserializer := TDeserializerPtr<IInteger>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, IntFactory);
 
   Assert.WillRaise(procedure()
     begin
-      IntVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","integer":1}')
+      IntVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","integer":1}', nil, nil)
     end,
     ERTNotFoundException
   );
@@ -347,40 +347,40 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadFloatPositive();
 var
-  Deserializer: IDeserializerPtr<IFloat>;
-  FloatVal: RtFloat;
+  Deserializer: IDeserializerPtr;
+  FloatVal: DaqFloat;
 begin
-  Deserializer := TDeserializerPtr<IFloat>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, FloatFactory);
 
-  FloatVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","float":1.5}');
-  Assert.AreEqual<RtFloat>(FloatVal, 1.5);
+  FloatVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","float":1.5}', nil, nil);
+  Assert.AreEqual<DaqFloat>(FloatVal, 1.5);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadFloatNegative();
 var
-  Deserializer: IDeserializerPtr<IFloat>;
-  FloatVal: RtFloat;
+  Deserializer: IDeserializerPtr;
+  FloatVal: DaqFloat;
 begin
-  Deserializer := TDeserializerPtr<IFloat>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, FloatFactory);
 
-  FloatVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","float":-1.5}');
+  FloatVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","float":-1.5}', nil, nil);
 
-  Assert.AreEqual<RtFloat>(FloatVal, -1.5);
+  Assert.AreEqual<DaqFloat>(FloatVal, -1.5);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadNonExistentFloat();
 var
-  Deserializer: IDeserializerPtr<IFloat>;
-  FloatVal: RtFloat;
+  Deserializer: IDeserializerPtr;
+  FloatVal: DaqFloat;
 begin
-  Deserializer := TDeserializerPtr<IFloat>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, FloatFactory);
 
   Assert.WillRaise(procedure()
     begin
-      FloatVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","floating":1.0}');
+      FloatVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","floating":1.0}', nil, nil);
     end,
     ERTNotFoundException
   );
@@ -388,15 +388,15 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadFloatInvalidType();
 var
-  Deserializer: IDeserializerPtr<IFloat>;
-  FloatVal: RtFloat;
+  Deserializer: IDeserializerPtr;
+  FloatVal: DaqFloat;
 begin
-  Deserializer := TDeserializerPtr<IFloat>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, FloatFactory);
 
   Assert.WillRaise(procedure()
     begin
-      FloatVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","float":1}');
+      FloatVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","float":1}', nil, nil);
     end,
     ERTInvalidTypeException
   );
@@ -404,39 +404,39 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadBoolTrue();
 var
-  Deserializer: IDeserializerPtr<IBoolean>;
+  Deserializer: IDeserializerPtr;
   BoolVal: Boolean;
 begin
-  Deserializer := TDeserializerPtr<IBoolean>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, BoolFactory);
 
-  BoolVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","bool":true}');
+  BoolVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","bool":true}', nil, nil);
   Assert.AreEqual(BoolVal, True);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadBoolFalse();
 var
-  Deserializer: IDeserializerPtr<IBoolean>;
+  Deserializer: IDeserializerPtr;
   BoolVal: Boolean;
 begin
-  Deserializer := TDeserializerPtr<IBoolean>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, BoolFactory);
 
-  BoolVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","bool":false}');
+  BoolVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","bool":false}', nil, nil);
   Assert.AreEqual(BoolVal, False);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadBoolInvalidType();
 var
-  Deserializer: IDeserializerPtr<IBoolean>;
+  Deserializer: IDeserializerPtr;
   BoolVal: Boolean;
 begin
-  Deserializer := TDeserializerPtr<IBoolean>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, BoolFactory);
 
   Assert.WillRaise(procedure()
     begin
-        BoolVal := Deserializer.Deserialize('{"__type":"'+ FFactoryId + '","bool":1}');
+        BoolVal := Deserializer.Deserialize('{"__type":"'+ FFactoryId + '","bool":1}', nil, nil);
     end,
     ERTInvalidTypeException
   );
@@ -444,15 +444,15 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadNonExistentBool();
 var
-  Deserializer: IDeserializerPtr<IBoolean>;
+  Deserializer: IDeserializerPtr;
   BoolVal: Boolean;
 begin
-  Deserializer := TDeserializerPtr<IBoolean>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, BoolFactory);
 
   Assert.WillRaise(procedure()
     begin
-      BoolVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","boolean":true}');
+      BoolVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","boolean":true}', nil, nil);
     end,
     ERTNotFoundException
   );
@@ -460,27 +460,27 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadString();
 var
-  Deserializer: IDeserializerPtr<IString>;
+  Deserializer: IDeserializerPtr;
   StrVal: string;
 begin
-  Deserializer := TDeserializerPtr<IString>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, StringFactory);
 
-  StrVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","string":"Test"}');
+  StrVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","string":"Test"}', nil, nil);
   Assert.AreEqual(StrVal, 'Test');
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadStringInvalidType();
 var
-  Deserializer: IDeserializerPtr<IString>;
+  Deserializer: IDeserializerPtr;
   StrVal: string;
 begin
-  Deserializer := TDeserializerPtr<IString>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, StringFactory);
 
   Assert.WillRaise(procedure()
     begin
-      StrVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","string":0}');
+      StrVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","string":0}', nil, nil);
     end,
     ERTInvalidTypeException
   );
@@ -488,15 +488,15 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadNonExistentString();
 var
-  Deserializer: IDeserializerPtr<IString>;
+  Deserializer: IDeserializerPtr;
   StrVal: string;
 begin
-  Deserializer := TDeserializerPtr<IString>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, StringFactory);
 
   Assert.WillRaise(procedure()
     begin
-      StrVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","str":"Test"}');
+      StrVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","str":"Test"}', nil, nil);
     end,
     ERTNotFoundException
   );
@@ -504,51 +504,51 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.TestHasKeyTrue();
 var
-  Deserializer: IDeserializerPtr<IBoolean>;
+  Deserializer: IDeserializerPtr;
   BoolVal: Boolean;
 begin
-  Deserializer := TDeserializerPtr<IBoolean>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, HasKeyFactory);
 
-  BoolVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","str":"Test"}');
+  BoolVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","str":"Test"}', nil, nil);
   Assert.AreEqual(BoolVal, True);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.TestHasKeyFalse();
 var
-  Deserializer: IDeserializerPtr<IBoolean>;
+  Deserializer: IDeserializerPtr;
   BoolVal: Boolean;
 begin
-  Deserializer := TDeserializerPtr<IBoolean>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, HasKeyFactory);
 
-  BoolVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","string":"Test"}');
+  BoolVal := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","string":"Test"}', nil, nil);
 
   Assert.AreEqual(BoolVal, False);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadEmptyObjectKeys();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   Keys: IListPtr<IBaseObject>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, KeyFactory);
 
-  Keys := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","object":{}}').AsPtr<IListPtr<IBaseObject>>();
+  Keys := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","object":{}}', nil, nil).AsPtr<IListPtr<IBaseObject>>();
 
   Assert.AreEqual<SizeT>(Keys.GetCount(), 0);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadObjectKeys();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   Keys: IListPtr<IBaseObject>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, KeyFactory);
 
-  Keys := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","object":{"key1":1,"key2":0.0,"key3":false,"key4":"string","key5":[],"key6":{}}}')
+  Keys := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","object":{"key1":1,"key2":0.0,"key3":false,"key4":"string","key5":[],"key6":{}}}', nil, nil)
                       .AsPtr<IListPtr<IBaseObject>>;
 
   Assert.AreEqual<SizeT>(Keys.GetCount(), 6);
@@ -564,7 +564,7 @@ begin
 
   Assert.WillRaise(procedure()
     begin
-      Obj := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","object":{}}');
+      Obj := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","object":{}}', nil, nil);
     end,
     ERTNotFoundException
   );
@@ -580,7 +580,7 @@ begin
 
   Assert.WillRaise(procedure()
     begin
-      Obj := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","object":[]}');
+      Obj := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","object":[]}', nil, nil);
     end,
     ERTInvalidTypeException
   );
@@ -596,7 +596,7 @@ begin
 
   Assert.WillRaise(procedure()
     begin
-      Obj := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","obj":{}}');
+      Obj := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","obj":{}}', nil, nil);
     end,
     ERTNotFoundException
   );
@@ -604,27 +604,27 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadEmptySerializedList();
 var
-  Deserializer: IDeserializerPtr<ISerializedList>;
+  Deserializer: IDeserializerPtr;
   SerializedList: ISerializedListPtr;
 begin
-  Deserializer := TDeserializerPtr<ISerializedList>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, SerializedObjectFactory);
 
-  SerializedList := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","list":[]}').AsPtr<ISerializedListPtr>();
+  SerializedList := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","list":[]}', nil, nil).AsPtr<ISerializedListPtr>();
   Assert.AreEqual<SizeT>(SerializedList.GetCount(), 0);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadNonExistingSerializedList();
 var
-  Deserializer: IDeserializerPtr<ISerializedList>;
+  Deserializer: IDeserializerPtr;
   SerializedList: ISerializedListPtr;
 begin
-  Deserializer := TDeserializerPtr<ISerializedList>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, SerializedObjectFactory);
 
   Assert.WillRaise(procedure()
     begin
-      SerializedList := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","array":[]}').AsPtr<ISerializedListPtr>();
+      SerializedList := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","array":[]}', nil, nil).AsPtr<ISerializedListPtr>();
     end,
     ERTNotFoundException
   );
@@ -632,15 +632,15 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadSerializedListInvalidType();
 var
-  Deserializer: IDeserializerPtr<ISerializedList>;
+  Deserializer: IDeserializerPtr;
   SerializedList: ISerializedListPtr;
 begin
-  Deserializer := TDeserializerPtr<ISerializedList>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, SerializedObjectFactory);
 
   Assert.WillRaise(procedure()
     begin
-      SerializedList := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","list":false}').AsPtr<ISerializedListPtr>();;
+      SerializedList := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","list":false}', nil, nil).AsPtr<ISerializedListPtr>();;
     end,
     ERTInvalidTypeException
   );
@@ -648,28 +648,28 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadEmptyList();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   List: IListPtr<IBaseObject>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, ListFactory);
 
-  List := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","list":[]}').AsPtr<IListPtr<IBaseObject>>;
+  List := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","list":[]}', nil, nil).AsPtr<IListPtr<IBaseObject>>;
   
   Assert.AreEqual<SizeT>(List.GetCount(), 0);
 end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadNonExistingList();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
-  List: IListObject;
+  Deserializer: IDeserializerPtr;
+  List: IListPtr<IBaseObject>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, ListFactory);
 
   Assert.WillRaise(procedure()
     begin
-      List := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","array":[]}');
+      List := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","array":[]}', nil, nil).AsPtr<IListPtr<IBaseObject>>;
     end,
     ERTNotFoundException
   );
@@ -677,15 +677,15 @@ end;
 
 procedure TTest_JsonSerializedObjectPtr.ReadListInvalidType();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
-  List: IListObject;
+  Deserializer: IDeserializerPtr;
+  List: IListPtr<IBaseObject>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
   DaqRegisterSerializerFactory(FFactoryId, ListFactory);
 
   Assert.WillRaise(procedure()
     begin
-      List := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","list":false}');
+      List := Deserializer.Deserialize('{"__type":"' + FFactoryId + '","list":false}', nil, nil).AsPtr<IListPtr<IBaseObject>>;
     end,
     ERTInvalidTypeException
   );

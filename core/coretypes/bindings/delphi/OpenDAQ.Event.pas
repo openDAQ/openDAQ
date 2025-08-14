@@ -59,7 +59,7 @@ type
 implementation
 uses
   OpenDAQ.Exceptions,
-  OpenDAQ.CoreTypes.Errors,
+
   OpenDAQ.SmartPtrRegistry;
 
 constructor TEventPtr<T>.Create(Obj: T);
@@ -80,7 +80,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.AddHandler(EventHandler);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TEventPtr<T>.RemoveHandler(EventHandler : IEventHandler);
@@ -91,7 +91,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.RemoveHandler(EventHandler);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TEventPtr<T>.Trigger(Sender : IBaseObject; Args : IEventArgs);
@@ -102,7 +102,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Trigger(Sender, Args);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TEventPtr<T>.Clear();
@@ -113,7 +113,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Clear();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TEventPtr<T>.GetSubscriberCount() : SizeT;
@@ -125,7 +125,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetSubscriberCount(Count);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Count;
 end;

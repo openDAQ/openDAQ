@@ -191,6 +191,9 @@ option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" 
 option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
+if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER AND APPLE)
+    enable_language(OBJC OBJCXX)
+endif()
 
 # logging
 

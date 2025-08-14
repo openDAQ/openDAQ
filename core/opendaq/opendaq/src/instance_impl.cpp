@@ -116,11 +116,12 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
         else
             logger = LoggerWithSinks(sinks, builderPtr.getGlobalLogLevel());
 
-        for (const auto& [component, logLevel] : builderPtr.getComponentsLogLevel())
-        {
-            auto createdComponent = logger.getOrAddComponent(component);
-            createdComponent.setLevel(LogLevel(logLevel));
-        }
+    }
+
+    for (const auto& [component, logLevel] : builderPtr.getComponentsLogLevel())
+    {
+        auto createdComponent = logger.getOrAddComponent(component);
+        createdComponent.setLevel(LogLevel(logLevel));
     }
 
     // Configure scheduler

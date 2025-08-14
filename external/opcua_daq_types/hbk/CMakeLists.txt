@@ -1,17 +1,17 @@
 set(daq_hbk_REQUIREDVERSION "3.0.12")
 
-get_custom_fetch_content_params(daqhbkspec FC_PARAMS)
-FetchContent_Declare(daqhbkspec
-  GIT_REPOSITORY "https://github.com/hbkworld/opc-ua-specs.git"
-  GIT_TAG        v${daq_hbk_REQUIREDVERSION}
-  ${FC_PARAMS}
+message(STATUS "Fetching hbk daq specification ${daq_hbk_REQUIREDVERSION}...")
+
+opendaq_dependency(
+    NAME                daqhbkspec
+    REQUIRED_VERSION    ${daq_hbk_REQUIREDVERSION}
+    GIT_REPOSITORY      https://github.com/hbkworld/opc-ua-specs.git
+    GIT_REF             v${daq_hbk_REQUIREDVERSION}
+    PATCH_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/hbk/001-add-default-values-for-double-variables.patch
 )
-FetchContent_GetProperties(daqhbkspec)
-if(NOT daqhbkspec_POPULATED)
-    message(STATUS "Fetching hbk daq specification ${daq_hbk_REQUIREDVERSION}...")
-    FetchContent_Populate(daqhbkspec)
-    list(APPEND VENDOR_COMPANION_SPECIFICATION_DIRPREFIX "${daqhbkspec_SOURCE_DIR}/opendaq/hbk")
-endif()
+
+list(APPEND VENDOR_COMPANION_SPECIFICATION_DIRPREFIX "${daqhbkspec_SOURCE_DIR}/opendaq/hbk")
 
 message(STATUS "Generating DAQ Hbk nodeset...")
 

@@ -100,7 +100,19 @@ void TmsServerPropertyObject::addChildNodes()
                 continue;
             if (prop.getValueType() == ctFunc || prop.getValueType() == ctProc)
             {
-                addMethodPropertyNode(prop, propOrder[propName]);
+                const auto args = prop.getCallableInfo().getArguments();
+                bool isCompatibleArg = true;
+                for (SizeT i = 0; (args.assigned() && i < args.getCount()); i++)
+                {
+                    const auto type = args.getItemAt(i).getType();
+                    // The OPC UA server does not yet support list or dictionary type arguments
+                    isCompatibleArg = (type != ctList && type != ctDict);
+                    if (!isCompatibleArg)
+                        break;
+                }
+
+                if (isCompatibleArg)
+                    addMethodPropertyNode(prop, propOrder[propName]);
                 continue;
             }
 

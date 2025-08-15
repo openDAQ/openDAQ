@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using RTGen.Generation;
+﻿using RTGen.Generation;
 using RTGen.Interfaces;
 using RTGen.Interfaces.Doc;
 using RTGen.Types;
 using RTGen.Util;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace RTGen.Python.Generators
 {
@@ -22,7 +22,7 @@ namespace RTGen.Python.Generators
         {
             Major = 2,
             Minor = 0,
-            Patch = 0
+            Patch = 1
         };
 
         private static readonly Dictionary<string, string> DaqToPythonMapping = new Dictionary<string, string>
@@ -38,9 +38,14 @@ namespace RTGen.Python.Generators
             { "IString", "py::str" }
         };
 
-        private static readonly HashSet<string> EvalTypes = new HashSet<string>
+        private static readonly ISet<string> EvalTypes = new HashSet<string>
         {
             "IBoolean", "IInteger", "IFloat", "INumber", "IList", "IString"
+        };
+
+        private static readonly ISet<string> DisabledMethods = new HashSet<string>
+        {
+            "getRawLastValue", "getRawValueByIndex"
         };
 
         public override IRTFile RtFile
@@ -79,7 +84,7 @@ namespace RTGen.Python.Generators
         protected override string GetIncludes(IRTFile rtFile)
         {
             string includes = null;
-            if (VariantUsed)
+            if (VariantUsed && rtFile.CurrentClass.Type.LibraryName != "coretypes")
             {
                 includes += "#include \"py_core_objects/py_variant_extractor.h\"";
             }
@@ -91,7 +96,7 @@ namespace RTGen.Python.Generators
                 includes += "#include \"py_opendaq/py_packet_buffer.h\"";
             }
 
-                if (!string.IsNullOrEmpty(includes))
+            if (!string.IsNullOrEmpty(includes))
                 return includes;
 
             return base.GetIncludes(rtFile);
@@ -127,6 +132,8 @@ namespace RTGen.Python.Generators
                         // the logic below does not seem to work for IEventArgs
                         if (rtClass.Type.Name == "IEventArgs")
                             return "EventArgsPtr<>";
+                        if (rtClass.Type.Name == "IType")
+                            return "TypePtr";
 
                         if (RtFile.AttributeInfo.PtrMappings.TryGet(rtClass.Type.Name, out ISmartPtr ptr) && ptr.HasDefaultAlias)
                             return ptr.DefaultAliasName;
@@ -360,6 +367,8 @@ namespace RTGen.Python.Generators
                     if (needLambdaForFactory) break;
                 }
 
+                needLambdaForFactory &= RtFile.CurrentClass.Type.LibraryName != "coretypes";
+
                 if (needLambdaForFactory)
                 {
                     factoriesImpl.AppendLine(GenerateFactoryLambda(factory));
@@ -440,8 +449,8 @@ namespace RTGen.Python.Generators
                     argumentsOut.Add(argument);
                 }
                 else
-                {                 
-                    if (CheckArgumentTypeCouldBeMapped(argument))
+                {
+                    if (CheckArgumentTypeCouldBeMapped(argument) && RtFile.CurrentClass.Type.LibraryName != "coretypes")
                     {
                         argumentsListIn.Add(GenerateVariantForArgument(argument));
                         argumentsListPass.Add(GenerateVariantExtractorForArgument(argument));
@@ -449,7 +458,7 @@ namespace RTGen.Python.Generators
                     else
                     {
                         argumentsListIn.Add(GetPyBind11TypeName(argument) + " " + argument.Name);
-                            argumentsListPass.Add(GetPyBind11WrappedName(argument));
+                        argumentsListPass.Add(GetPyBind11WrappedName(argument));
                     }
                     if (generateArgumentAnnotations)
                     {
@@ -531,7 +540,7 @@ namespace RTGen.Python.Generators
         //TODO: a temporary set of functions that are not properly supported yet
         private bool isMethodTemporarilyDisabled(IMethod method)
         {
-            return false;
+            return DisabledMethods.Contains(method.Name);
         }
 
         private bool IsFactoryTemporarilyDisabled(IRTFactory factory)

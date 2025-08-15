@@ -696,7 +696,7 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoCont
 
 void NativeStreamingClientHandler::resetStreamingHandlers()
 {
-    clientHandlerPtr->resetConfigHandlers();
+    clientHandlerPtr->resetStreamingHandlers();
 }
 
 void NativeStreamingClientHandler::setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,

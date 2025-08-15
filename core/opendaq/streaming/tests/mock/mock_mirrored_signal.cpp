@@ -17,5 +17,5 @@ StringPtr MockMirroredSignalImpl::onGetRemoteId() const
 
 Bool MockMirroredSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)
 {
-    return False;
+    return MirroredSignal::onTriggerEvent(eventPacket);
 }

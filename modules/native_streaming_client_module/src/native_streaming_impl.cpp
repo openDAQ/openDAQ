@@ -363,7 +363,7 @@ NativeStreamingToDeviceImpl::~NativeStreamingToDeviceImpl()
         stopReadThread();
 
     this->transportClientHandler->resetStreamingToDeviceHandlers();
-    for (const auto& [_, signalRef] : this->streamedSignals)
+    for (const auto& [_, signalRef] : this->streamedClientSignals)
     {
         if (auto signal = signalRef.getRef(); signal.assigned())
             this->transportClientHandler->removeClientSignal(signal);

@@ -4,37 +4,37 @@
 using namespace daq;
 
 MockStreamingImpl::MockStreamingImpl(const StringPtr& connectionString, const ContextPtr& context)
-    : Streaming(connectionString, context, false, "MockStreaming")
+    : Streaming(connectionString, context, false, "MockStreaming", true)
 {
 }
 
 void MockStreamingImpl::onSetActive(bool /*active*/)
 {
-
 }
 
 void MockStreamingImpl::onAddSignal(const MirroredSignalConfigPtr& /*signal*/)
 {
-
 }
 
 void MockStreamingImpl::onRemoveSignal(const MirroredSignalConfigPtr& /*signal*/)
 {
-
 }
 
 void MockStreamingImpl::onSubscribeSignal(const StringPtr& /*signalStreamingId*/)
 {
-
 }
 
 void MockStreamingImpl::onUnsubscribeSignal(const StringPtr& /*signalStreamingId*/)
 {
-
 }
 
-void MockStreamingImpl::onRegisterStreamedClientSignal(const daq::SignalPtr& /*signal*/) {}
-void MockStreamingImpl::onUnregisterStreamedClientSignal(const daq::SignalPtr& /*signal*/) {}
+void MockStreamingImpl::onRegisterStreamedClientSignal(const daq::SignalPtr& /*signal*/)
+{
+}
+
+void MockStreamingImpl::onUnregisterStreamedClientSignal(const daq::SignalPtr& /*signal*/)
+{
+}
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     INTERNAL_FACTORY,

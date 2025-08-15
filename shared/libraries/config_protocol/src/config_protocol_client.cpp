@@ -640,10 +640,13 @@ void ConfigProtocolClientComm::disconnectExternalSignalFromServerInputPort(const
 
     if (unusedSignals.getCount() > 0)
     {
-        ListPtr<IStreaming> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
-        for (const auto& streaming : streamingSources)
+        if (protocolVersion >= 17) // generalized client-to-device streaming enabled
         {
-            checkErrorInfo(streaming.asPtr<IStreamingPrivate>()->unregisterStreamedClientSignals(unusedSignals.getValueList()));
+            ListPtr<IStreaming> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
+            for (const auto& streaming : streamingSources)
+            {
+                checkErrorInfo(streaming.asPtr<IStreamingPrivate>()->unregisterStreamedClientSignals(unusedSignals.getValueList()));
+            }
         }
         auto params = ParamsDict({{"SignalNumericIds", unusedSignals.getKeyList()}});
         sendNoReplyCommand(ClientCommand("RemoveExternalSignals"), params);

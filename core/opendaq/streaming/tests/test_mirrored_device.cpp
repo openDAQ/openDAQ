@@ -23,7 +23,7 @@ public:
 protected:
     StringPtr onGetRemoteId() const override
     {
-        return String("TestId").detach();
+        return String("TestId");
     }
 };
 
@@ -38,6 +38,11 @@ public:
     ContextPtr context;
     MirroredDeviceConfigPtr device;
 };
+
+TEST_F(MirroredDeviceTest, GetRemoteId)
+{
+    ASSERT_EQ(device.getRemoteId(), "TestId");
+}
 
 TEST_F(MirroredDeviceTest, GetStreamingSources)
 {

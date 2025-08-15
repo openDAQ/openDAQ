@@ -139,7 +139,7 @@ protected:
     LoggerComponentPtr loggerComponent;
     WeakRefPtr<IMirroredDevice> ownerDeviceRef;
     EnumerationPtr connectionStatus;
-    std::unordered_map<StringPtr, WeakRefPtr<ISignal>> streamedSignals;
+    std::unordered_map<StringPtr, WeakRefPtr<ISignal>> streamedClientSignals;
 
 private:
     /*!
@@ -1093,12 +1093,12 @@ ErrCode StreamingImpl<Interfaces...>::registerStreamedClientSignals(IList* signa
     for (const auto& signal : signalsPtr)
     {
         const StringPtr signalKey = signal.getGlobalId();
-        if (const auto it = streamedSignals.find(signalKey); it == streamedSignals.end())
+        if (const auto it = streamedClientSignals.find(signalKey); it == streamedClientSignals.end())
         {
             ErrCode errCode = wrapHandler(this, &Self::onRegisterStreamedClientSignal, signal);
             OPENDAQ_RETURN_IF_FAILED(errCode);
 
-            streamedSignals.insert({signalKey, signal});
+            streamedClientSignals.insert({signalKey, signal});
         }
     }
     return OPENDAQ_SUCCESS;
@@ -1115,16 +1115,16 @@ ErrCode StreamingImpl<Interfaces...>::unregisterStreamedClientSignals(IList* sig
     for (const auto& signal : signalsPtr)
     {
         const StringPtr signalKey = signal.getGlobalId();
-        if (const auto it = streamedSignals.find(signalKey); it != streamedSignals.end())
+        if (const auto it = streamedClientSignals.find(signalKey); it != streamedClientSignals.end())
         {
-            streamedSignals.erase(it);
+            streamedClientSignals.erase(it);
 
             ErrCode errCode = wrapHandler(this, &Self::onUnregisterStreamedClientSignal, signal);
             OPENDAQ_RETURN_IF_FAILED(errCode);
         }
         else
         {
-            return OPENDAQ_NOTFOUND;
+            return OPENDAQ_ERR_NOTFOUND;
         }
     }
     return OPENDAQ_SUCCESS;

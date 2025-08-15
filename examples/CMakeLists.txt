@@ -3,6 +3,11 @@ set_cmake_folder_context(TARGET_FOLDER_NAME)
 set(OPENDAQ_EXAMPLES_VERSION ${OPENDAQ_PACKAGE_VERSION})
 project(Examples VERSION ${OPENDAQ_EXAMPLES_VERSION} LANGUAGES CXX)
 
+if (MSVC)
+    set(MSVC_PRIVATE_COMPILE_OPTIONS
+        /bigobj)
+endif()
+
 option(APP_ENABLE_WEBPAGE_EXAMPLES "Enable webpage examples" OFF)
 
 if (APP_ENABLE_WEBPAGE_EXAMPLES)
@@ -106,11 +111,36 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 
     add_executable(quick_start_empty cpp/quick_start/quick_start_empty.cpp)
     target_link_libraries(quick_start_empty PRIVATE daq::opendaq)
+	
+	# Logger examples
+	
+	add_library(logger_example_util STATIC cpp/logger_example/logger_example_utils/logger_example_utils.h
+                                               cpp/logger_example/logger_example_utils/logger_example_utils.cpp)
+	target_link_libraries(logger_example_util PRIVATE daq::opendaq)
+
+	
+	add_executable(logger_default_state_example cpp/logger_example/default_state/default_state_example.cpp)
+	target_link_libraries(logger_default_state_example PRIVATE daq::opendaq
+															   logger_example_util)
+
+	add_executable(logger_logging_with_sinks_example cpp/logger_example/logger_with_sinks/logger_with_sinks_example.cpp)
+	target_link_libraries(logger_logging_with_sinks_example PRIVATE daq::opendaq
+																	logger_example_util)
+	
+	add_executable(logger_configure_log_levels_example cpp/logger_example/configure_log_levels/configure_log_levels_example.cpp)
+    target_link_libraries(logger_configure_log_levels_example PRIVATE daq::opendaq
+																	  logger_example_util)
+															   
+    add_executable(logger_writing_log_example cpp/logger_example/writing_log/writing_log_example.cpp)
+    target_link_libraries(logger_writing_log_example PRIVATE daq::opendaq
+															 logger_example_util)
+
+	# end of Logger examples
     
     add_executable(licensing_example cpp/licensing_example/licensing_example.cpp)
     target_link_libraries(licensing_example PRIVATE daq::opendaq)
     target_compile_definitions(licensing_example PUBLIC RESOURCE_PATH="${CMAKE_CURRENT_LIST_DIR}/cpp/licensing_example/")
-	
+
     if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND OPENDAQ_ENABLE_NATIVE_STREAMING)
         add_executable(client_authentication cpp/client_authentication/client_authentication.cpp)
         target_link_libraries(client_authentication PRIVATE daq::opendaq)

@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.20)
+project(logger_example VERSION ${OPENDAQ_EXAMPLES_VERSION})
+
+find_package(openDAQ)
+add_compile_definitions(MODULE_PATH="${OPENDAQ_MODULES_DIR}")
+
+add_executable(logger_writing_log_example writing_log/writing_log_example.cpp)
+target_link_libraries(logger_writing_log_example PRIVATE daq::opendaq)
+
+add_executable(logger_default_state_example default_state/default_state_example.cpp)
+target_link_libraries(logger_default_state_example PRIVATE daq::opendaq)
+
+add_executable(logger_with_sinks_example logger_with_sinks/logger_with_sinks_example.cpp)
+target_link_libraries(logger_with_sinks_example PRIVATE daq::opendaq)
+
+add_executable(logger_configure_log_levels_example configure_log_levels/configure_log_levels_example.cpp)
+target_link_libraries(logger_configure_log_levels_example PRIVATE daq::opendaq)

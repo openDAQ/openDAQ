@@ -35,6 +35,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <coretypes/dictobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class Module : public ImplementationOf<IModule>
@@ -391,6 +392,58 @@ public:
     virtual Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
     {
         return false;
+    }
+
+    virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeded, IDict* licenseConfig) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(succeded);
+        OPENDAQ_PARAM_NOT_NULL(licenseConfig);
+
+        Bool loadedLicense;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onLoadLicense, loadedLicense, licenseConfig);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *succeded = loadedLicense;
+        return errCode;
+    }
+
+    virtual Bool onLoadLicense(IDict* licenseConfig)
+    {
+        return true;
+    }
+
+    virtual ErrCode INTERFACE_FUNC getLicenseConfig(IDict** licenseConfig) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(licenseConfig);
+
+        DictPtr<IString, IString> licenseConfigLocal;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetLicenseConfig, licenseConfigLocal);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *licenseConfig = licenseConfigLocal.detach();
+        return errCode;
+    }
+
+    virtual DictPtr<IString, IString> onGetLicenseConfig()
+    {
+        return nullptr;
+    }
+
+    virtual ErrCode INTERFACE_FUNC licenseLoaded(Bool* valid) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(valid);
+
+        Bool validLocal;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onLicenseLoaded, validLocal);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *valid = validLocal;
+        return errCode;
+    }
+
+    virtual Bool onLicenseLoaded()
+    {
+        return true;
     }
 
 protected:

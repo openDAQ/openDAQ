@@ -10,10 +10,17 @@ import opendaq as daq
 yes_no = ['No', 'Yes']
 
 yes_no_inv = {
-    'No':  False,
+    'yes': True,
     'no': False,
-    'Yes': True,
-    'yes': True
+    'y': True,
+    'n': False,
+    'none': False,
+    'true': True,
+    'false': False,
+    'on': True,
+    'off': False,
+    '1': True,
+    '0': False
 }
 
 class StatusColor(enum.Enum):
@@ -213,10 +220,10 @@ def str_to_num_or_eval(num_str: str):
 def value_to_coretype(value, coretype: daq.CoreType):
     # removing unit symbols
     if coretype in (daq.CoreType.ctBool, daq.CoreType.ctInt, daq.CoreType.ctFloat):
-        value = str.split(value, ' ')[0]
+        value = str.split(str.strip(value), ' ')[0]
     if coretype == daq.CoreType.ctBool:
         value = value.lower()
-        if value in ('yes', 'no'):
+        if value in yes_no_inv.keys():
             return daq.Boolean(yes_no_inv[value])
         else:
             return daq.Boolean(bool(value))

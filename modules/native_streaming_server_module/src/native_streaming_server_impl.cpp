@@ -17,6 +17,8 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/thread_name.h>
 
+#include <native_streaming_server_module/native_server_streaming_impl.h>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 using namespace daq;
 using namespace opendaq_native_streaming_protocol;
@@ -32,7 +34,8 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     , readThreadActive(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
     , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
-    , processingStrand(processingIOContext)
+    , processingIOContextPtr(std::make_shared<boost::asio::io_context>())
+    , processingStrand(*processingIOContextPtr)
     , rootDeviceGlobalId(rootDevice.getGlobalId().toStdString())
     , logger(context.getLogger())
     , loggerComponent(logger.getOrAddComponent(id))
@@ -48,6 +51,10 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     startTransportOperations();
 
     prepareServerHandler();
+    streaming = createWithImplementation<IStreaming, NativeServerStreamingImpl>(serverHandler, processingIOContextPtr, context);
+    streaming.asPtr<INativeServerStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
+    streaming.setActive(true);
+
     const uint16_t port = config.getPropertyValue("NativeStreamingPort");
     serverHandler->startServer(port);
 
@@ -207,8 +214,8 @@ void NativeStreamingServerImpl::startProcessingOperations()
             daqNameThread("NatSrvProc");
 
             using namespace boost::asio;
-            auto workGuard = make_work_guard(processingIOContext);
-            processingIOContext.run();
+            auto workGuard = make_work_guard(*processingIOContextPtr);
+            processingIOContextPtr->run();
             LOG_I("Processing thread finished");
         }
     );
@@ -216,7 +223,7 @@ void NativeStreamingServerImpl::startProcessingOperations()
 
 void NativeStreamingServerImpl::stopProcessingOperations()
 {
-    processingIOContext.stop();
+    processingIOContextPtr->stop();
     if (processingThread.get_id() != std::this_thread::get_id())
     {
         if (processingThread.joinable())
@@ -298,7 +305,7 @@ void NativeStreamingServerImpl::prepareServerHandler()
             {
                 auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
                 boost::asio::dispatch(
-                    processingIOContext,
+                    *processingIOContextPtr,
                     processingStrand.wrap(
                         [configServer, sendConfigPacketCb, packetBufferPtr]()
                         {
@@ -321,7 +328,7 @@ void NativeStreamingServerImpl::prepareServerHandler()
                 [this, packetStreamingClient, configServer](const packet_streaming::PacketBufferPtr& packetBufferPtr)
             {
                 boost::asio::dispatch(
-                    processingIOContext,
+                    *processingIOContextPtr,
                     processingStrand.wrap(
                         [configServer, packetStreamingClient, packetBufferPtr]()
                         {
@@ -474,6 +481,11 @@ ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context)
 void NativeStreamingServerImpl::onStopServer()
 {
     stopServerInternal();
+}
+
+StreamingPtr NativeStreamingServerImpl::onGetStreaming()
+{
+    return streaming;
 }
 
 void NativeStreamingServerImpl::startReading()

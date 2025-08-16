@@ -52,6 +52,17 @@ BEGIN_NAMESPACE_OPENDAQ
  * the streaming. Each Streaming object provides the string representation of a connection address
  * used to connect to the streaming service of the device. This string representation is used as
  * a unique ID to determine the streaming source for the mirrored signal.
+ *
+ * When the generalized client-to-device streaming mechanism is employed, however, the roles are effectively switched:
+ * the server becomes a consumer of signal data, while the client-side Streaming object acts as
+ * the producer, sending signal data over the protocol. In this context, Streaming objects are expected
+ * to exist on the server side as well to interact with mirrored copies of client signals.
+ * In context of client-to-device streaming, in addition to signals, mirrored input ports can also be added or removed
+ * dynamically through the corresponding methods of the Streaming interface, similarly to mirrored signals.
+ *
+ * The support for client-to-device streaming can be checked via `getClientToDeviceStreamingEnabled`.
+ * If it is not enabled or not supported by the protocol, the method provides `false` value, and adding or removing
+ * mirrored input ports is not allowed, therefore disabling any client-to-device streaming operations.
  */
 
 DECLARE_OPENDAQ_INTERFACE(IStreaming, IBaseObject)
@@ -110,6 +121,54 @@ DECLARE_OPENDAQ_INTERFACE(IStreaming, IBaseObject)
      * with possible values: "Connected", "Reconnecting", or "Unrecoverable".
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStatus(IEnumeration** connectionStatus) = 0;
+
+    // [elementType(inputPorts, IMirroredInputPortConfig)]
+    /*!
+     * @brief Adds input ports to the Streaming.
+     * @param inputPorts The list of input ports to be added.
+     * @retval OPENDAQ_ERR_DUPLICATEITEM if an input port on the list is already added to the Streaming.
+     * @retval OPENDAQ_ERR_NOINTERFACE if an input port on the list is not a mirrored signal.
+     *
+     * After an input port is added to the Streaming, the Streaming automatically appears in the list of
+     * available streaming sources of an input port.
+     */
+    virtual ErrCode INTERFACE_FUNC addInputPorts(IList* inputPorts) = 0;
+
+    // [elementType(inputPorts, IMirroredInputPortConfig)]
+    /*!
+     * @brief Removes input ports from the Streaming.
+     * @param inputPorts The list of input ports to be removed.
+     * @retval OPENDAQ_ERR_NOTFOUND if an input port on the list was not added to the Streaming.
+     *
+     * After an input port is removed from the Streaming, the Streaming is automatically excluded in the list of
+     * available streaming sources of an input port.
+     */
+    virtual ErrCode INTERFACE_FUNC removeInputPorts(IList* inputPorts) = 0;
+
+    /*!
+     * @brief Removes all added input ports from the Streaming.
+     */
+    virtual ErrCode INTERFACE_FUNC removeAllInputPorts() = 0;
+
+    /*!
+     * @brief Gets the global ID of the device (as it appears on the remote instance)
+     * to which this streaming object establishes a connection.
+     * @param[out] deviceRemoteId The string representing the device's remote ID.
+     */
+    virtual ErrCode INTERFACE_FUNC getOwnerDeviceRemoteId(IString** deviceRemoteId) const = 0;
+
+    /*!
+     * @brief Gets the identifier of the data transfer protocol (e.g., "OpenDAQNativeStreaming", "OpenDAQLTStreaming")
+     * used by this streaming object.
+     * @param[out] protocolId The string representing the protocol ID.
+     */
+    virtual ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) const = 0;
+
+    /*!
+     * @brief Checks whether client-to-device streaming is enabled for this streaming object.
+     * @param[out] enabled The flag indicating if client-to-device streaming is enabled.
+     */
+    virtual ErrCode INTERFACE_FUNC getClientToDeviceStreamingEnabled(Bool* enabled) const = 0;
 };
 /*!@}*/
 

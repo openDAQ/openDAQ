@@ -36,6 +36,10 @@ public:
                        SessionPtr session,
                        const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                        native_streaming::OnSessionErrorCallback errorHandler,
+                       OnSignalCallback signalReceivedHandler,
+                       OnSubscriptionAckCallback subscriptionAckHandler,
+                       OnFindSignalCallback findSignalHandler,
+                       OnSignalSubscriptionCallback signalSubscriptionHandler,
                        ConstCharPtr loggerComponentName,
                        SizeT streamingPacketSendTimeout = UNLIMITED_PACKET_SEND_TIME);
     virtual ~BaseSessionHandler();
@@ -55,6 +59,13 @@ public:
     void setPacketBufferReceivedHandler(const OnPacketBufferReceivedCallback& packetBufferReceivedHandler);
 
     void startConnectionActivityMonitoring(Int period, Int timeout);
+
+    void sendSignalAvailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
+    void sendSignalUnavailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
+    void sendSubscribingDone(const SignalNumericIdType signalNumericId);
+    void sendUnsubscribingDone(const SignalNumericIdType signalNumericId);
+    void sendSignalSubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId);
+    void sendSignalUnsubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId);
 
 protected:
     virtual daq::native_streaming::ReadTask readHeader(const void* data, size_t size);
@@ -81,6 +92,16 @@ protected:
     static void copyData(void* destination, const void* source, size_t bytesToCopy, size_t sourceOffset, size_t sourceSize);
     static std::string getStringFromData(const void* source, size_t stringSize, size_t sourceOffset, size_t sourceSize);
 
+    daq::native_streaming::ReadTask readSignalAvailable(const void* data, size_t size);
+    daq::native_streaming::ReadTask readSignalUnavailable(const void* data, size_t size);
+    daq::native_streaming::ReadTask readSignalSubscribedAck(const void* data, size_t size);
+    daq::native_streaming::ReadTask readSignalUnsubscribedAck(const void* data, size_t size);
+    daq::native_streaming::ReadTask readSignalSubscribe(const void* data, size_t size);
+    daq::native_streaming::ReadTask readSignalUnsubscribe(const void* data, size_t size);
+
+    virtual bool hasUserAccessToSignal(const SignalPtr& signal);
+    virtual std::string getClientId();
+
     SessionPtr session;
     ProcessConfigProtocolPacketCb configPacketReceivedHandler;
     OnPacketBufferReceivedCallback packetBufferReceivedHandler;
@@ -90,5 +111,10 @@ protected:
     LoggerComponentPtr loggerComponent;
     bool connectionActivityMonitoringStarted{false};
     std::chrono::milliseconds streamingPacketSendTimeout;
+
+    OnSignalCallback signalReceivedHandler;
+    OnSubscriptionAckCallback subscriptionAckHandler;
+    OnFindSignalCallback findSignalHandler;
+    OnSignalSubscriptionCallback signalSubscriptionHandler;
 };
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

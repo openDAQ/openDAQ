@@ -76,7 +76,11 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IFolder)
 
     /*!
      * @brief Gets a streaming source associated with server.
-     * @param[out] streaming The streaming object.
+     * @param[out] streaming The streaming object that represents the server’s client-to-device streaming source.
+     *
+     * The streaming object is assigned on servers that support the generalized client-to-device streaming mechanism.
+     * The object is expected to be associated with mirrored server-side copies of client signals and is responsible for receiving
+     * their data sent from the client to the device.
      */
     virtual ErrCode INTERFACE_FUNC getStreaming(IStreaming** streaming) = 0;
 };

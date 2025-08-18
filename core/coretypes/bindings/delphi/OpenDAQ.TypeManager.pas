@@ -256,7 +256,7 @@ var
   Err: ErrCode;
 begin
   Err := OpenDAQ.TypeManager.CreateTypeManager(RawInterface);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(RawInterface);
 end;
@@ -269,7 +269,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.AddType(AType);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TTypeManagerPtr.AddType(AType: ITypePtr);
@@ -286,7 +286,7 @@ begin
     TypeIntf := nil;
 
   Err := FObject.AddType(TypeIntf);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TTypeManagerPtr.RemoveType(TypeName: IString);
@@ -297,7 +297,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.RemoveType(TypeName);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TTypeManagerPtr.RemoveType(TypeName: IStringPtr);
@@ -314,7 +314,7 @@ begin
     TypeNameIntf := nil;
 
   Err := FObject.RemoveType(TypeNameIntf);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TTypeManagerPtr.RemoveType(TypeName: string);
@@ -325,7 +325,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.RemoveType(CreateStringFromDelphiString(TypeName));
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TTypeManagerPtr.GetType(TypeName: IString): ITypePtr;
@@ -337,7 +337,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetType(TypeName, AType);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TTypePtr.Create(AType);
 end;
@@ -357,7 +357,7 @@ begin
     TypeNameIntf := nil;
 
   Err := FObject.GetType(TypeNameIntf, AType);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TTypePtr.Create(AType);
 end;
@@ -371,7 +371,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetType(CreateStringFromDelphiString(TypeName), AType);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TTypePtr.Create(AType);
 end;
@@ -385,7 +385,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetTypes(Types);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TListPtr<IType>.Create(Types);
 end;
@@ -399,7 +399,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.HasType(TypeName, HasType);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := HasType;
 end;
@@ -419,7 +419,7 @@ begin
     TypeNameIntf := nil;
 
   Err := FObject.HasType(TypeNameIntf, HasType);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := HasType;
 end;
@@ -433,7 +433,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.HasType(CreateStringFromDelphiString(TypeName), HasType);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := HasType;
 end;

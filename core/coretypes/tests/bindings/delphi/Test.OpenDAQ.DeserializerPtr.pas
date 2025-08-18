@@ -80,8 +80,8 @@ type
     procedure FactoryReturnsError;
   end;
 
-function SerializedObjectFactory(SerObj: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-function ErrorFactory(SerObj: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
+function SerializedObjectFactory(SerObj: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+function ErrorFactory(SerObj: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
 
 implementation
 
@@ -96,12 +96,12 @@ uses
   OpenDAQ.Exceptions,
   OpenDAQ.Deserializer;
 
-function SerializedObjectFactory(SerObj: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function SerializedObjectFactory(SerObj: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function ErrorFactory(SerObj: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function ErrorFactory(SerObj: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 begin
   Result := OPENDAQ_ERR_GENERALERROR;
 end;
@@ -125,7 +125,7 @@ begin
 
   Assert.WillRaise(procedure()
     begin
-      BaseObj := Deserializer.Deserialize('...');
+      BaseObj := Deserializer.Deserialize('...', nil, nil);
     end,
     ERTDeserializeParseException
   )
@@ -133,121 +133,121 @@ end;
 
 procedure TTest_DeserializerPtr.BoolTrue();
 var
-  Deserializer: IDeserializerPtr<IBoolean>;
+  Deserializer: IDeserializerPtr;
 begin
-  Deserializer := TDeserializerPtr<IBoolean>.Create();
-  Assert.IsTrue(Deserializer.Deserialize('true'));
+  Deserializer := TDeserializerPtr.Create();
+  Assert.IsTrue(Deserializer.Deserialize('true', nil, nil));
 end;
 
 procedure TTest_DeserializerPtr.BoolFalse();
 var
-  Deserializer: IDeserializerPtr<IBoolean>;
+  Deserializer: IDeserializerPtr;
 begin
-  Deserializer := TDeserializerPtr<IBoolean>.Create();
-  Assert.IsFalse(Deserializer.Deserialize('false'));
+  Deserializer := TDeserializerPtr.Create();
+  Assert.IsFalse(Deserializer.Deserialize('false', nil, nil));
 end;
 
 procedure TTest_DeserializerPtr.FloatZero();
 var
-  Deserializer: IDeserializerPtr<IFloat>;
-  FloatVal: RtFloat;
+  Deserializer: IDeserializerPtr;
+  FloatVal: DaqFloat;
 begin
-  Deserializer := TDeserializerPtr<IFloat>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
-  FloatVal := Deserializer.Deserialize('0.0');
-  Assert.AreEqual<RtFloat>(FloatVal, 0.0);
+  FloatVal := Deserializer.Deserialize('0.0', nil, nil);
+  Assert.AreEqual<DaqFloat>(FloatVal, 0.0);
 end;
 
 procedure TTest_DeserializerPtr.FloatMax();
 const FloatMax = 1.7976931348623157e308;
 var
-  Deserializer: IDeserializerPtr<IFloat>;
-  FloatVal: RtFloat;
+  Deserializer: IDeserializerPtr;
+  FloatVal: DaqFloat;
 begin
-  Deserializer := TDeserializerPtr<IFloat>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
-  FloatVal := Deserializer.Deserialize('1.7976931348623157e308');
-  Assert.AreEqual<RtFloat>(FloatVal, FloatMax);
+  FloatVal := Deserializer.Deserialize('1.7976931348623157e308', nil, nil);
+  Assert.AreEqual<DaqFloat>(FloatVal, FloatMax);
 end;
 
 procedure TTest_DeserializerPtr.FloatMin();
 const FloatMin = 2.2250738585072014e-308;
 var
-  Deserializer: IDeserializerPtr<IFloat>;
-  FloatVal: RtFloat;
+  Deserializer: IDeserializerPtr;
+  FloatVal: DaqFloat;
 begin
-  Deserializer := TDeserializerPtr<IFloat>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
-  FloatVal := Deserializer.Deserialize('2.2250738585072014e-308');
-  Assert.AreEqual<RtFloat>(FloatVal, FloatMin);
+  FloatVal := Deserializer.Deserialize('2.2250738585072014e-308', nil, nil);
+  Assert.AreEqual<DaqFloat>(FloatVal, FloatMin);
 end;
 
 procedure TTest_DeserializerPtr.IntZero();
 var
-  Deserializer: IDeserializerPtr<IInteger>;
-  IntVal: RtInt;
+  Deserializer: IDeserializerPtr;
+  IntVal: DaqInt;
 begin
-  Deserializer := TDeserializerPtr<IInteger>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
-  IntVal := Deserializer.Deserialize('0');
-  Assert.AreEqual<RtInt>(IntVal, 0);
+  IntVal := Deserializer.Deserialize('0', nil, nil);
+  Assert.AreEqual<DaqInt>(IntVal, 0);
 end;
 
 procedure TTest_DeserializerPtr.IntMax();
 const IntMax = 9223372036854775807;
 var
-  Deserializer: IDeserializerPtr<IInteger>;
-  IntVal: RtInt;
+  Deserializer: IDeserializerPtr;
+  IntVal: DaqInt;
 begin
-  Deserializer := TDeserializerPtr<IInteger>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
-  IntVal := Deserializer.Deserialize('9223372036854775807');
-  Assert.AreEqual<RtInt>(IntVal, IntMax);
+  IntVal := Deserializer.Deserialize('9223372036854775807', nil, nil);
+  Assert.AreEqual<DaqInt>(IntVal, IntMax);
 end;
 
 procedure TTest_DeserializerPtr.IntMin();
 const IntMin = -9223372036854775808;
 var
-  Deserializer: IDeserializerPtr<IInteger>;
-  IntVal: RtInt;
+  Deserializer: IDeserializerPtr;
+  IntVal: DaqInt;
 begin
-  Deserializer := TDeserializerPtr<IInteger>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
-  IntVal := Deserializer.Deserialize('-9223372036854775808');
-  Assert.AreEqual<RtInt>(IntVal, IntMin);
+  IntVal := Deserializer.Deserialize('-9223372036854775808', nil, nil);
+  Assert.AreEqual<DaqInt>(IntVal, IntMin);
 end;
 
 procedure TTest_DeserializerPtr.AsciiStr();
 const Expected = ' !"#$%&''()*+''-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
 var
-  Deserializer: IDeserializerPtr<IString>;
+  Deserializer: IDeserializerPtr;
   Str: string;
 begin
-  Deserializer := TDeserializerPtr<IString>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
-  Str := Deserializer.Deserialize('" !\"#$%&''()*+''-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"');
+  Str := Deserializer.Deserialize('" !\"#$%&''()*+''-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"', nil, nil);
   Assert.AreEqual(Str, Expected);
 end;
 
 
 procedure TTest_DeserializerPtr.EmptyList();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IBaseObject>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
-  ListObj := Deserializer.Deserialize('[]').AsPtr<IListPtr<IBaseObject>>();
+  ListObj := Deserializer.Deserialize('[]', nil, nil).AsPtr<IListPtr<IBaseObject>>();
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 0);
 end;
 
 procedure TTest_DeserializerPtr.StringListOne();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IString>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
-  ListObj := Deserializer.Deserialize('["Item1"]').AsPtr<IListPtr<IString>>();
+  Deserializer := TDeserializerPtr.Create();
+  ListObj := Deserializer.Deserialize('["Item1"]', nil, nil).AsPtr<IListPtr<IString>>();
 
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 1);
   Assert.AreEqual<string>(ListObj[0], 'Item1');
@@ -255,11 +255,11 @@ end;
 
 procedure TTest_DeserializerPtr.StringListMultiple();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IString>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
-  ListObj := Deserializer.Deserialize('["Item1", "Item2"]').AsPtr<IListPtr<IString>>();
+  Deserializer := TDeserializerPtr.Create();
+  ListObj := Deserializer.Deserialize('["Item1", "Item2"]', nil, nil).AsPtr<IListPtr<IString>>();
 
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 2);
 
@@ -269,11 +269,11 @@ end;
 
 procedure TTest_DeserializerPtr.BoolListTrue();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IBoolean>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
-  ListObj := Deserializer.Deserialize('[true]').AsPtr<IListPtr<IBoolean>>();
+  Deserializer := TDeserializerPtr.Create();
+  ListObj := Deserializer.Deserialize('[true]', nil, nil).AsPtr<IListPtr<IBoolean>>();
 
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 1);
   Assert.IsTrue(ListObj[0]);
@@ -281,11 +281,11 @@ end;
 
 procedure TTest_DeserializerPtr.BoolListFalse();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IBoolean>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
-  ListObj := Deserializer.Deserialize('[false]').AsPtr<IListPtr<IBoolean>>();
+  Deserializer := TDeserializerPtr.Create();
+  ListObj := Deserializer.Deserialize('[false]', nil, nil).AsPtr<IListPtr<IBoolean>>();
 
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 1);
   Assert.IsFalse(ListObj[0]);
@@ -293,11 +293,11 @@ end;
 
 procedure TTest_DeserializerPtr.BoolList();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IBoolean>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
-  ListObj := Deserializer.Deserialize('[false,true]').AsPtr<IListPtr<IBoolean>>();
+  Deserializer := TDeserializerPtr.Create();
+  ListObj := Deserializer.Deserialize('[false,true]', nil, nil).AsPtr<IListPtr<IBoolean>>();
 
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 2);
   Assert.IsFalse(ListObj[0]);
@@ -306,14 +306,14 @@ end;
 
 procedure TTest_DeserializerPtr.FloatListOne();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IFloat>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
-  ListObj := Deserializer.Deserialize('[0.0]').AsPtr<IListPtr<IFloat>>();
+  Deserializer := TDeserializerPtr.Create();
+  ListObj := Deserializer.Deserialize('[0.0]', nil, nil).AsPtr<IListPtr<IFloat>>();
 
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 1);
-  Assert.AreEqual<RtFloat>(ListObj[0], 0.0);
+  Assert.AreEqual<DaqFloat>(ListObj[0], 0.0);
 end;
 
 procedure TTest_DeserializerPtr.FloatListMultiple();
@@ -321,28 +321,28 @@ const
   FloatMax = 1.7976931348623157e308;
   FloatMin = 2.2250738585072014e-308;
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IFloat>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
-  ListObj := Deserializer.Deserialize('[0.0,2.2250738585072014e-308,1.7976931348623157e308]').AsPtr<IListPtr<IFloat>>();
+  Deserializer := TDeserializerPtr.Create();
+  ListObj := Deserializer.Deserialize('[0.0,2.2250738585072014e-308,1.7976931348623157e308]', nil, nil).AsPtr<IListPtr<IFloat>>();
 
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 3);
-  Assert.AreEqual<RtFloat>(ListObj[0], 0);
-  Assert.AreEqual<RtFloat>(ListObj[1], FloatMin);
-  Assert.AreEqual<RtFloat>(ListObj[2], FloatMax);
+  Assert.AreEqual<DaqFloat>(ListObj[0], 0);
+  Assert.AreEqual<DaqFloat>(ListObj[1], FloatMin);
+  Assert.AreEqual<DaqFloat>(ListObj[2], FloatMax);
 end;
 
 procedure TTest_DeserializerPtr.IntListOne();
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IInteger>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
-  ListObj := Deserializer.Deserialize('[0]').AsPtr<IListPtr<IInteger>>();
+  Deserializer := TDeserializerPtr.Create();
+  ListObj := Deserializer.Deserialize('[0]', nil, nil).AsPtr<IListPtr<IInteger>>();
 
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 1);
-  Assert.AreEqual<RtInt>(ListObj.GetItemAt(0), 0);
+  Assert.AreEqual<DaqInt>(ListObj.GetItemAt(0), 0);
 end;
 
 procedure TTest_DeserializerPtr.IntListMultiple();
@@ -350,17 +350,17 @@ const
   IntMax = 9223372036854775807;
   IntMin = -9223372036854775808;
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IInteger>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
-  ListObj := Deserializer.Deserialize('[0,-9223372036854775808,9223372036854775807]').AsPtr<IListPtr<IInteger>>();
+  ListObj := Deserializer.Deserialize('[0,-9223372036854775808,9223372036854775807]', nil, nil).AsPtr<IListPtr<IInteger>>();
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 3);
 
-  Assert.AreEqual<RtInt>(ListObj[0], 0);
-  Assert.AreEqual<RtInt>(ListObj[1], IntMin);
-  Assert.AreEqual<RtInt>(ListObj[2], IntMax);
+  Assert.AreEqual<DaqInt>(ListObj[0], 0);
+  Assert.AreEqual<DaqInt>(ListObj[1], IntMin);
+  Assert.AreEqual<DaqInt>(ListObj[2], IntMax);
 end;
 
 procedure TTest_DeserializerPtr.MixedList();
@@ -370,38 +370,38 @@ const
   FloatMax = 1.7976931348623157e308;
   FloatMin = 2.2250738585072014e-308;
 var
-  Deserializer: IDeserializerPtr<IListObject>;
+  Deserializer: IDeserializerPtr;
   ListObj: IListPtr<IBaseObject>;
 begin
-  Deserializer := TDeserializerPtr<IListObject>.Create();
-  ListObj := Deserializer.Deserialize('[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807,"Test1"]')
+  Deserializer := TDeserializerPtr.Create();
+  ListObj := Deserializer.Deserialize('[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807,"Test1"]', nil, nil)
                          .AsPtr<IListPtr<IBaseObject>>();
 
   Assert.AreEqual<SizeT>(ListObj.GetCount(), 11);
 
-  Assert.AreEqual<RtFloat>(ListObj[0], 0.0);
-  Assert.AreEqual<RtInt>(ListObj[1], 0);
-  Assert.AreEqual<RtFloat>(ListObj[2], -2.5);
-  Assert.AreEqual<RtFloat>(ListObj[3], 1.5);
-  Assert.AreEqual<RtInt>(ListObj[4], 1);
-  Assert.AreEqual<RtInt>(ListObj[5], -2);
-  Assert.AreEqual<RtFloat>(ListObj[6], FloatMin);
-  Assert.AreEqual<RtFloat>(ListObj[7], FloatMax);
-  Assert.AreEqual<RtInt>(ListObj[8], IntMin);
-  Assert.AreEqual<RtInt>(ListObj[9], IntMax);
+  Assert.AreEqual<DaqFloat>(ListObj[0], 0.0);
+  Assert.AreEqual<DaqInt>(ListObj[1], 0);
+  Assert.AreEqual<DaqFloat>(ListObj[2], -2.5);
+  Assert.AreEqual<DaqFloat>(ListObj[3], 1.5);
+  Assert.AreEqual<DaqInt>(ListObj[4], 1);
+  Assert.AreEqual<DaqInt>(ListObj[5], -2);
+  Assert.AreEqual<DaqFloat>(ListObj[6], FloatMin);
+  Assert.AreEqual<DaqFloat>(ListObj[7], FloatMax);
+  Assert.AreEqual<DaqInt>(ListObj[8], IntMin);
+  Assert.AreEqual<DaqInt>(ListObj[9], IntMax);
   Assert.AreEqual<string>(ListObj[10], 'Test1');
 end;
 
 procedure TTest_DeserializerPtr.UnknownObjectType();
 var
-  Deserializer: IDeserializerPtr<IBaseObject>;
+  Deserializer: IDeserializerPtr;
   BaseObj: IObjectPtr;
 begin
-  Deserializer := TDeserializerPtr<IBaseObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
   Assert.WillRaise(procedure()
     begin
-      BaseObj := Deserializer.Deserialize('{"__type":"unknown"}');
+      BaseObj := Deserializer.Deserialize('{"__type":"unknown"}', nil, nil);
     end,
     ERTDeserializeFactoryNotRegisteredException
   );
@@ -409,14 +409,14 @@ end;
 
 procedure TTest_DeserializerPtr.ObjectTypeTagNotInt();
 var
-  Deserializer: IDeserializerPtr<IBaseObject>;
+  Deserializer: IDeserializerPtr;
   BaseObj: IObjectPtr;
 begin
-  Deserializer := TDeserializerPtr<IBaseObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
   Assert.WillRaise(procedure()
     begin
-      BaseObj := Deserializer.Deserialize('{"__type":0.0}');
+      BaseObj := Deserializer.Deserialize('{"__type":0.0}', nil, nil);
     end,
     ERTDeserializeInvalidTypeTagException
   );
@@ -424,14 +424,14 @@ end;
 
 procedure TTest_DeserializerPtr.NoObjectType();
 var
-  Deserializer: IDeserializerPtr<IBaseObject>;
+  Deserializer: IDeserializerPtr;
   BaseObj: IBaseObject;
 begin
-  Deserializer := TDeserializerPtr<IBaseObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
   Assert.WillRaise(procedure()
     begin
-      BaseObj := Deserializer.Deserialize('{"test":0}');
+      BaseObj := Deserializer.Deserialize('{"test":0}', nil, nil);
     end,
     ERTDeserializeNoTypeTagException
   );
@@ -439,14 +439,14 @@ end;
 
 procedure TTest_DeserializerPtr.DeserializeNullString();
 var
-  Deserializer: IDeserializerPtr<IBaseObject>;
+  Deserializer: IDeserializerPtr;
   BaseObj: IBaseObject;
 begin
-  Deserializer := TDeserializerPtr<IBaseObject>.Create();
+  Deserializer := TDeserializerPtr.Create();
 
   Assert.WillRaise(procedure()
     begin
-       BaseObj := Deserializer.Deserialize(nil);
+       BaseObj := Deserializer.Deserialize(nil, nil, nil);
     end,
     ERTArgumentNullException
   );
@@ -531,20 +531,17 @@ procedure TTest_DeserializerPtr.FactoryReturnsError();
 var
   Id: string;
   Deserializer: IDeserializerPtr;
-  StringObj: IStringPtr;
   BaseObj: IBaseObject;
 begin
   Id := 'test';
   DaqRegisterSerializerFactory(Id, ErrorFactory);
   Deserializer := TDeserializerPtr.Create();
 
-  StringObj := TStringPtr.Create();
-
   Assert.WillRaise(procedure()
     begin
-      BaseObj := Deserializer.Deserialize('{"__type":"' + Id + '"}');
+      BaseObj := Deserializer.Deserialize('{"__type":"' + Id + '"}', nil, nil);
     end,
-    ERTException
+    EDaqException
   );
 
   DaqUnregisterSerializerFactory(Id);

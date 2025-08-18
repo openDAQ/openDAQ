@@ -121,11 +121,11 @@ end;
 procedure TTest_ConvertibleObject.StringToFloat;
 var
   StringObj: IString;
-  FloatValue: RtFloat;
+  FloatValue: DaqFloat;
 begin
   CreateString(StringObj, '5.2');
   FloatValue := BaseObjectToFloat(StringObj);
-  Assert.AreEqual<RtFloat>(FloatValue, 5.2);
+  Assert.AreEqual<DaqFloat>(FloatValue, 5.2);
 
   CreateString(StringObj, 'a');
 {$IFDEF TEST_EXCEPTIONS}

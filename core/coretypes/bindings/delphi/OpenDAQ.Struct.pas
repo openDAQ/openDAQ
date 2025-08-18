@@ -198,7 +198,7 @@ var
   Err: ErrCode;
 begin
   Err := OpenDAQ.Struct.CreateStruct(RawInterface, Name, Fields, TypeManager);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(RawInterface);
 end;
@@ -209,7 +209,7 @@ var
   Err: ErrCode;
 begin
   Err := OpenDAQ.Struct.CreateStruct(RawInterface, CreateStringFromDelphiString(Name), Fields, TypeManager);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(RawInterface);
 end;
@@ -223,7 +223,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetStructType(AType);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TStructTypePtr.Create(AType);
 end;
@@ -237,7 +237,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetFieldNames(Names);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TListPtr<IString>.Create(Names);
 end;
@@ -251,7 +251,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetFieldValues(Values);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TListPtr<IBaseObject>.Create(Values);
 end;
@@ -265,7 +265,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Get(Name, Field);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Field);
 end;
@@ -285,7 +285,7 @@ begin
     NameIntf := nil;
 
   Err := FObject.Get(NameIntf, Field);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Field);
 end;
@@ -299,7 +299,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Get(CreateStringFromDelphiString(Name), Field);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Field);
 end;
@@ -313,7 +313,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetAsDictionary(Dictionary);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TDictionaryPtr<IString, IBaseObject>.Create(Dictionary);
 end;
@@ -327,7 +327,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.HasField(Name, Contains);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Contains;
 end;
@@ -347,7 +347,7 @@ begin
     NameIntf := nil;
 
   Err := FObject.HasField(NameIntf, Contains);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Contains;
 end;
@@ -361,7 +361,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.HasField(CreateStringFromDelphiString(Name), Contains);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Contains;
 end;

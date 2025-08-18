@@ -293,4 +293,22 @@ void defineIProperty(pybind11::module_ m, PyDaqIntf<daq::IProperty, daq::IBaseOb
         },
         py::return_value_policy::take_ownership,
         "Gets the value of the Property. Available only if the Property is bound to a Property object. / Sets the value of the Property. Available only if the Property is bound to a Property object.");
+    cls.def_property_readonly("on_suggested_values_read",
+        [](daq::IProperty *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyPtr::Borrow(object);
+            return objectPtr.getOnSuggestedValuesRead().getEventPtr().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the event triggered when a user retrieves the suggested values field. Allows for overriding the returned value.");
+    cls.def_property_readonly("on_selection_values_read",
+        [](daq::IProperty *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyPtr::Borrow(object);
+            return objectPtr.getOnSelectionValuesRead().getEventPtr().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the event triggered when a user retrieves the selection values field. Allows for overriding the returned value.");
 }

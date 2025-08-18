@@ -116,7 +116,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
         }
         else
         {
-            if (clientComm->getProtocolVersion() >= 17)
+            if (clientComm->getProtocolVersion() >= 18)
                 clientComm->connectExternalSignalToServerInputPortGeneralized(signalPtr, remoteGlobalId, mirroredInputPortPrivate);
             else if (clientComm->getProtocolVersion() >= 2)
                 clientComm->connectExternalSignalToServerInputPortBasic(signalPtr, remoteGlobalId);
@@ -198,7 +198,7 @@ inline ErrCode ConfigClientInputPortImpl::setActiveStreamingSource(IString* stre
 {
     ErrCode errCode = Super::setActiveStreamingSource(streamingConnectionString);
 
-    if (errCode == OPENDAQ_SUCCESS && clientComm->getProtocolVersion() >= 17 && this->getConnectedSignal().assigned())
+    if (errCode == OPENDAQ_SUCCESS && clientComm->getProtocolVersion() >= 18 && this->getConnectedSignal().assigned())
     {
         const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
         // notify server that source has been changed

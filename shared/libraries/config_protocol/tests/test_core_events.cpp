@@ -672,9 +672,18 @@ TEST_F(ConfigCoreEventTest, ComponentAttributeChanged)
     clientContext.getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::AttributeChanged));
-            ASSERT_EQ(args.getEventName(), "AttributeChanged");
-            changeCount++;
+            auto eventId = args.getEventId();
+            if (eventId == static_cast<int>(CoreEventId::AttributeChanged))
+            {
+                ASSERT_EQ(args.getEventName(), "AttributeChanged");
+                changeCount++;
+            }
+            else if (eventId == static_cast<int>(CoreEventId::PropertyValueChanged))
+            {
+                ASSERT_EQ(args.getEventName(), "PropertyValueChanged");
+                ASSERT_EQ(args.getParameters().get("Name"), "name");
+                changeCount++;
+            }
         };
 
     serverDevice.asPtr<IComponentPrivate>().unlockAllAttributes();
@@ -699,7 +708,7 @@ TEST_F(ConfigCoreEventTest, ComponentAttributeChanged)
     ASSERT_EQ(clientDevice.getActive(), true);
     ASSERT_EQ(clientDevice.getVisible(), true);
 
-    ASSERT_EQ(changeCount, 8);
+    ASSERT_EQ(changeCount, 10);
 }
 
 TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursive)

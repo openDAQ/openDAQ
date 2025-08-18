@@ -15,23 +15,25 @@
  */
 
 #pragma once
+#include <coretypes/common.h>
+#include <coreobjects/property_metadata_read_args.h>
+#include <coreobjects/property_ptr.h>
+#include <coretypes/event_args_impl.h>
 
-#include <config_protocol/config_protocol_client.h>
+BEGIN_NAMESPACE_OPENDAQ
 
-namespace daq::config_protocol
-{
-
-class ConfigClientObjectImpl
+class PropertyMetadataReadArgsImpl : public EventArgsBase<IPropertyMetadataReadArgs>
 {
 public:
-    ConfigClientObjectImpl(ConfigProtocolClientCommPtr clientComm, std::string remoteGlobalId);
-    virtual ~ConfigClientObjectImpl() = default;
+    explicit PropertyMetadataReadArgsImpl(PropertyPtr property);
 
-    void setRemoteGlobalId(const std::string newId);
+    ErrCode INTERFACE_FUNC getProperty(IProperty** prop) override;
+    ErrCode INTERFACE_FUNC getValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC setValue(IBaseObject* value) override;
 
-protected:
-    ConfigProtocolClientCommPtr clientComm;
-    std::string remoteGlobalId;
+private:
+    PropertyPtr property;
+    BaseObjectPtr value;
 };
 
-}
+END_NAMESPACE_OPENDAQ

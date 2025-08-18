@@ -173,6 +173,7 @@ run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming   
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        mirrored_device
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        mirrored_device_config
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        streaming_type
+run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        mirrored_input_port_config
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        tags
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        tags_private
 run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  sync_component

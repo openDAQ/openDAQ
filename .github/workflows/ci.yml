@@ -571,7 +571,7 @@ jobs:
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_osx_deployment_target: 10.15
-            additional_cmake_options: -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
+            additional_cmake_options: -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             runner: macos-13
           # - name: macos-13 clang Debug
             # cmake_generator: Ninja

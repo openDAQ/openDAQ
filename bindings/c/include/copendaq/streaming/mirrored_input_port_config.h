@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:50.
+//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -34,14 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct daqMirroredDevice daqMirroredDevice;
-    typedef struct daqList daqList;
+    typedef struct daqMirroredInputPortConfig daqMirroredInputPortConfig;
     typedef struct daqString daqString;
+    typedef struct daqList daqList;
 
-    EXPORTED extern const daqIntfID DAQ_MIRRORED_DEVICE_INTF_ID;
+    EXPORTED extern const daqIntfID DAQ_MIRRORED_INPUT_PORT_CONFIG_INTF_ID;
 
-    daqErrCode EXPORTED daqMirroredDevice_getStreamingSources(daqMirroredDevice* self, daqList** streamingSources);
-    daqErrCode EXPORTED daqMirroredDevice_getRemoteId(daqMirroredDevice* self, daqString** id);
+    daqErrCode EXPORTED daqMirroredInputPortConfig_getRemoteId(daqMirroredInputPortConfig* self, daqString** id);
+    daqErrCode EXPORTED daqMirroredInputPortConfig_getStreamingSources(daqMirroredInputPortConfig* self, daqList** streamingConnectionStrings);
+    daqErrCode EXPORTED daqMirroredInputPortConfig_setActiveStreamingSource(daqMirroredInputPortConfig* self, daqString* streamingConnectionString);
+    daqErrCode EXPORTED daqMirroredInputPortConfig_getActiveStreamingSource(daqMirroredInputPortConfig* self, daqString** streamingConnectionString);
 
 #ifdef __cplusplus
 }

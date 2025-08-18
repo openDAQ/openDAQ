@@ -345,7 +345,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     LOG_I("Config protocol version {} used", protocolVersion);
 
     // enable signal reading within basic client-to-device streaming
-    if (protocolVersion < 17)
+    if (protocolVersion < 18)
         streamingProducer->enableReading();
 }
 

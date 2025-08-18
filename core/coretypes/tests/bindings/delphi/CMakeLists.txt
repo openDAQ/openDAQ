@@ -75,6 +75,12 @@ set_property(TARGET ${SDK_TARGET_NAMESPACE}coretypes
              ${CoreTypesDelphiIncludes}
 )
 
+if(OPENDAQ_DISABLE_DEBUG_POSTFIX)
+  set(DELPHI_OPENDAQ_RELEASE_ONLY ";OPENDAQ_RELEASE_ONLY")
+else()
+  set(DELPHI_OPENDAQ_RELEASE_ONLY "")
+endif()
+
 configure_file(${ProjectFileName}.in ${ProjectFileName})
 configure_file(${DprFileName}.in ${DprFileName})
 

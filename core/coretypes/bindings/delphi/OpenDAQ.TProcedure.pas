@@ -12,8 +12,8 @@ type
     procedure Execute(Args : IBaseObject); overload;
     procedure Execute(Args : ISmartPtr); overload;
     procedure Execute(Args : string); overload;
-    procedure Execute(Args : RtInt); overload;
-    procedure Execute(Args : RtFloat); overload;
+    procedure Execute(Args : DaqInt); overload;
+    procedure Execute(Args : DaqFloat); overload;
     procedure Execute(Args : Boolean); overload;
   end;
 
@@ -26,8 +26,8 @@ type
     procedure Execute(Args : IBaseObject); overload;
     procedure Execute(Args : ISmartPtr); overload;
     procedure Execute(Args : string); overload;
-    procedure Execute(Args : RtInt); overload;
-    procedure Execute(Args : RtFloat); overload;
+    procedure Execute(Args : DaqInt); overload;
+    procedure Execute(Args : DaqFloat); overload;
     procedure Execute(Args : Boolean); overload;
 
   private
@@ -61,10 +61,10 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Execute(CreateStringFromDelphiString(Args));
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
-procedure TProcedurePtr.Execute(Args: RtFloat);
+procedure TProcedurePtr.Execute(Args: DaqFloat);
 var
   Err : ErrCode;
   FloatObj: IFloat;
@@ -73,10 +73,10 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := CreateFloat(FloatObj, Args);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Err := FObject.Execute(FloatObj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TProcedurePtr.Execute(Args: Boolean);
@@ -88,10 +88,10 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := CreateBoolean(BoolObj, Args);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Err := FObject.Execute(BoolObj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TProcedurePtr.Execute();
@@ -102,10 +102,10 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Execute(nil);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
-procedure TProcedurePtr.Execute(Args: RtInt);
+procedure TProcedurePtr.Execute(Args: DaqInt);
 var
   Err : ErrCode;
   IntObj: IInteger;
@@ -114,10 +114,10 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := CreateInteger(IntObj, Args);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Err := FObject.Execute(IntObj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TProcedurePtr.Execute(Args : IBaseObject);
@@ -128,7 +128,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Execute(Args);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TProcedurePtr.Execute(Args: ISmartPtr);
@@ -145,7 +145,7 @@ begin
     Param := nil;
 
   Err := FObject.Execute(Param);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TProcedurePtr.Interface_Execute(Args : IBaseObject): ErrCode;

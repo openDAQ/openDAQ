@@ -10,7 +10,7 @@ class TestDocumentationHowToLastValue(opendaq_test.TestCase):
     def test_last_value_signal(self):
         mock = opendaq.MockSignal()
         mock.add_data([0.1, 0.2, 0.3])
-        my_signal = mock.signal
+        my_signal = ISignal.cast_from(mock.signal)
 
         # START DOCS CODE
 

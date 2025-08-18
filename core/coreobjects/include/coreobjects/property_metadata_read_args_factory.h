@@ -15,23 +15,26 @@
  */
 
 #pragma once
+#include <coretypes/common.h>
+#include <coreobjects/property_metadata_read_args_ptr.h>
 
-#include <config_protocol/config_protocol_client.h>
+BEGIN_NAMESPACE_OPENDAQ
 
-namespace daq::config_protocol
+/*!
+ * @ingroup objects_property
+ * @addtogroup objects_property_metadata_read_args_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Creates a new PropertyMetadataReadArgs object with a given property that owns the metadata field.
+ * @param prop The property that owns the metadata field.
+ */
+inline PropertyMetadataReadArgsPtr PropertyMetadataReadArgs(const PropertyPtr& prop)
 {
-
-class ConfigClientObjectImpl
-{
-public:
-    ConfigClientObjectImpl(ConfigProtocolClientCommPtr clientComm, std::string remoteGlobalId);
-    virtual ~ConfigClientObjectImpl() = default;
-
-    void setRemoteGlobalId(const std::string newId);
-
-protected:
-    ConfigProtocolClientCommPtr clientComm;
-    std::string remoteGlobalId;
-};
-
+    return {PropertyMetadataReadArgs_Create(prop)};
 }
+
+/*!@}*/
+
+END_NAMESPACE_OPENDAQ

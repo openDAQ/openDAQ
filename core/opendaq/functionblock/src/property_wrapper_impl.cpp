@@ -168,4 +168,14 @@ ErrCode PropertyWrapperImpl::setValue(IBaseObject* value)
     return property->setValue(value);
 }
 
+ErrCode PropertyWrapperImpl::getOnSuggestedValuesRead(IEvent** event)
+{
+    return property->getOnSuggestedValuesRead(event);
+}
+
+ErrCode PropertyWrapperImpl::getOnSelectionValuesRead(IEvent** event)
+{
+    return property->getOnSelectionValuesRead(event);
+}
+
 END_NAMESPACE_OPENDAQ

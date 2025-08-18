@@ -82,4 +82,21 @@ daq::ErrCode MockModuleImpl::getAvailableStreamingTypes(daq::IDict** streamingTy
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
+daq::ErrCode MockModuleImpl::loadLicense(Bool* succeeded, IDict* licenseConfig)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+daq::ErrCode MockModuleImpl::getLicenseConfig(IDict** licenseConfig)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+daq::ErrCode MockModuleImpl::licenseLoaded(Bool* loaded)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockModule, IModule)

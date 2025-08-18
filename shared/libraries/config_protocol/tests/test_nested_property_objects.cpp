@@ -132,7 +132,8 @@ private:
             clientDevice,
             std::bind(&ConfigPropertyObjectNestedDevicesTest::nestedServerNotificationReady, this, std::placeholders::_1),
             anonymousUser,
-            ClientType::Control);
+            ClientType::Control,
+            test_utils::dummyExtSigFolder(clientDevice.getContext()));
 
         nestedClientContext = NullContext();
         nestedClient =

@@ -48,7 +48,7 @@ static std::string getWebSocketDataType(SampleType type)
     }
 }
 
-wss::metadata descriptorToMetadata(
+static wss::metadata descriptorToMetadata(
     const DataDescriptorPtr& descriptor,
     const StringPtr& signalId,
     const StringPtr& domainSignalId)

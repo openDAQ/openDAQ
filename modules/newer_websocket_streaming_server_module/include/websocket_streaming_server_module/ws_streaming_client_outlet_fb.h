@@ -35,32 +35,52 @@
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
 /*!
- * A function block which publishes data received from a single WebSocket Streaming client. The
- * function block is constructed with a ws-streaming connection object. Each WebSocket Streaming
- * signal published by the client causes the function block instance to create a corresponding
- * openDAQ Signal. All client-published signals are subscribed to, and data arriving from the
- * client causes corresponding data packets to be transmitted over the openDAQ Signals.
+ * @brief A function block which publishes data received from a single WebSocket Streaming client.
  *
- * WsClientFb instances are intended to be nested inside a WsClientSignalProvider function block
- * instance.
+ * The function block is constructed (normally by an WsStreamingServerOutletFb) with a
+ * ws-streaming connection object. Each WebSocket Streaming signal published by the client causes
+ * the function block instance to create a corresponding openDAQ signal. All client-published
+ * signals are subscribed to, and data arriving from the client causes corresponding data packets
+ * to be transmitted over the openDAQ Signals.
+ *
+ * WsStreamingClientOutletFb instances are intended to be nested inside a
+ * WsStreamingServerOutletFb function block instance.
  */
-class WsClientFb : public FunctionBlock
+class WsStreamingClientOutletFb : public FunctionBlock
 {
     public:
 
-        static constexpr const char *ID = "WsClientFb";
+        /*!
+         * @brief A string identifying the type of this function block.
+         */
+        static constexpr const char *ID = "WsStreamingClientOutletFb";
 
-        static FunctionBlockTypePtr createType();
+        /*!
+         * @brief A FunctionBlockType object describing this function block type.
+         */
+        static const FunctionBlockTypePtr TYPE;
 
-        explicit WsClientFb(
-            const ContextPtr& ctx,
+        /*!
+         * @brief Constructs a new function block.
+         *
+         * This function attaches event handlers to the specified @p connection so that
+         * member functions will be called when signals become or are no longer available from
+         * the remote peer.
+         *
+         * @todo When called for an already-established connection, any signals already available
+         *     from the remote peer are missed. Only signals that become available after this call
+         *     will be detected.
+         */
+        explicit WsStreamingClientOutletFb(
+            const ContextPtr& context,
             const ComponentPtr& parent,
             wss::connection_ptr connection);
 
-        void attach();
-
     protected:
 
+        /*!
+         * @brief Detaches event handlers from the ws-streaming connection object.
+         */
         void removed() override;
 
     private:

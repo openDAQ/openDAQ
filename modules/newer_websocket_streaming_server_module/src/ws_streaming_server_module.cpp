@@ -19,10 +19,11 @@
 #include <opendaq/module_impl.h>
 #include <opendaq/opendaq.h>
 
-#include <websocket_streaming_server_module/ws_client_signal_provider.h>
+#include <websocket_streaming_server_module/common.h>
 #include <websocket_streaming_server_module/ws_stream_test_fb.h>
 #include <websocket_streaming_server_module/ws_streaming_server.h>
 #include <websocket_streaming_server_module/ws_streaming_server_module.h>
+#include <websocket_streaming_server_module/ws_streaming_server_outlet_fb.h>
 
 #include <newer_websocket_streaming_server_module/version.h>
 
@@ -45,7 +46,7 @@ WsStreamingServerModule::onGetAvailableFunctionBlockTypes()
 {
     auto result = Dict<IString, IFunctionBlockType>();
 
-    result.set(WsClientSignalProvider::ID, WsClientSignalProvider::createType());
+    result.set(WsStreamingServerOutletFb::ID, WsStreamingServerOutletFb::TYPE);
     result.set(WsStreamTestFb::ID, WsStreamTestFb::createType());
 
     return result;
@@ -68,8 +69,8 @@ FunctionBlockPtr WsStreamingServerModule::onCreateFunctionBlock(
     const StringPtr& localId,
     const PropertyObjectPtr& config)
 {
-    if (typeId == WsClientSignalProvider::ID)
-        return createWithImplementation<IFunctionBlock, WsClientSignalProvider>(
+    if (typeId == WsStreamingServerOutletFb::ID)
+        return createWithImplementation<IFunctionBlock, WsStreamingServerOutletFb>(
             context,
             parent,
             localId);

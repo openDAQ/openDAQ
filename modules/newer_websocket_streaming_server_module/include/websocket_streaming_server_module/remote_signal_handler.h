@@ -34,7 +34,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
-class RemoteSignalHandler : public std::enable_shared_from_this<RemoteSignalHandler>
+class RemoteSignalHandler
+    : public std::enable_shared_from_this<RemoteSignalHandler>
 {
     public:
 

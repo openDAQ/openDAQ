@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022-2025 openDAQ d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <algorithm>
 #include <functional>
 #include <thread>
@@ -134,8 +150,6 @@ void WsStreamingServer::createListener(const SignalPtr& signal)
     if (it != _localSignals.end())
         return;
 
-    std::cout << "registering signal " << signal.getGlobalId() << std::endl;
-
     auto& streamableSignal = _localSignals.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(
@@ -152,8 +166,6 @@ void WsStreamingServer::createListener(const SignalPtr& signal)
         signal_id = signal.getGlobalId().toStdString()
     ]()
     {
-        std::cout << signal_id << " subscribed" << std::endl;
-
         streamableSignal.listener = createWithImplementation<IInputPortNotifications, WsStreamingListener>(
             this->template thisPtr<ComponentPtr>().getContext(),
             signal,
@@ -167,7 +179,6 @@ void WsStreamingServer::createListener(const SignalPtr& signal)
         signal_id = signal.getGlobalId().toStdString()
     ]()
     {
-        std::cout << signal_id << " unsubscribed" << std::endl;
         streamableSignal.listener.release();
     });
 
@@ -191,7 +202,6 @@ void WsStreamingServer::onComponentAdded(
     ComponentPtr& component,
     CoreEventArgsPtr& args)
 {
-    std::cout << "[CORE EVENT] component " << component.getGlobalId() << " added" << std::endl;
     rescan();
 }
 
@@ -199,7 +209,6 @@ void WsStreamingServer::onComponentRemoved(
     ComponentPtr& component,
     CoreEventArgsPtr& args)
 {
-    std::cout << "[CORE EVENT] component " << component.getGlobalId() << " removed" << std::endl;
     rescan();
 }
 
@@ -207,7 +216,6 @@ void WsStreamingServer::onComponentUpdateEnd(
     ComponentPtr& component,
     CoreEventArgsPtr& args)
 {
-    std::cout << "[CORE EVENT] component " << component.getGlobalId() << " updated" << std::endl;
     rescan();
 }
 
@@ -218,8 +226,6 @@ void WsStreamingServer::rescan()
     {
         if (it->second.openDaqSignal.isRemoved())
         {
-            std::cout << it->first << " was removed" << std::endl;
-
             auto jt = it++;
             _server.remove_local_signal(jt->second.localSignal);
             _localSignals.erase(jt);

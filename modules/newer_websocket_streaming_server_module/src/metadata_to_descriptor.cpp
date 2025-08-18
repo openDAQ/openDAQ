@@ -87,8 +87,8 @@ DataDescriptorPtr metadataToDescriptor(
         auto startDelta = metadata.linear_start_delta();
         builder.setRule(
             LinearDataRule(
-                startDelta.second,
-                startDelta.first));
+                startDelta.second.value_or(0),
+                startDelta.first.value_or(0)));
     }
 
     else if (rule == wss::rule_types::constant_rule)

@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <coretypes/string_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/signal_ptr.h>
 
@@ -29,25 +28,8 @@ BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 /*!
  * @brief Translates an openDAQ data descriptor to WebSocket Streaming metadata.
  *
- * @param descriptor The openDAQ data descriptor to translate.
- * @param signalId The global identifier of the signal to which the descriptor applies.
- * @param domainSignalId If the signal described by @p descriptor has an associated domain signal,
- *     that signal's global identifier; otherwise, either an unassigned StringPtr or an empty
- *     string.
- *
- * @return A WebSocket Streaming metadata object.
- */
-wss::metadata descriptorToMetadata(
-    const DataDescriptorPtr& descriptor,
-    const StringPtr& signalId,
-    const StringPtr& domainSignalId = "");
-
-/*!
- * @brief Translates an openDAQ data descriptor to WebSocket Streaming metadata.
- *
  * @param The signal described by the @p descriptor. This object is used to determine the global
- *     identifier of the associated domain signal, if any; then
- *     descriptorToMetadata(const DataDescriptor&, const StringPtr&) is called.
+ *     identifier of the associated domain signal, if any.
  * @param descriptor The openDAQ data descriptor to translate.
  *
  * @return A WebSocket Streaming metadata object.

@@ -26,75 +26,49 @@
 
 #include <websocket_streaming_server_module/common.h>
 #include <websocket_streaming_server_module/metadata_to_descriptor.h>
-#include <websocket_streaming_server_module/ws_client_fb.h>
+#include <websocket_streaming_server_module/ws_streaming_client_outlet_fb.h>
 
 #include <ws-streaming/connection.hpp>
 
-using namespace std::placeholders;
-
 BEGIN_NAMESPACE_OPENDAQ_NEWER_WEBSOCKET_STREAMING_SERVER_MODULE
 
-FunctionBlockTypePtr WsClientFb::createType()
-{
-    return FunctionBlockType(
-        ID,
-        ID,
-        "Exposes signals provided by a WebSocket Streaming client");
-}
+const FunctionBlockTypePtr WsStreamingClientOutletFb::TYPE{
+    FunctionBlockType_Create(
+        StringPtr{WsStreamingClientOutletFb::ID},
+        StringPtr{WsStreamingClientOutletFb::ID},
+        StringPtr{"Exposes signals provided by a WebSocket Streaming client"},
+        PropertyObject())};
 
-WsClientFb::WsClientFb(
-        const ContextPtr& ctx,
+WsStreamingClientOutletFb::WsStreamingClientOutletFb(
+        const ContextPtr& context,
         const ComponentPtr& parent,
         wss::connection_ptr connection)
-    : FunctionBlock(createType(), ctx, parent, calculateLocalId(connection))
-    , _connection(connection)
-{
-}
-
-void WsClientFb::attach()
+    : FunctionBlock{TYPE, context, parent, calculateLocalId(connection)}
+    , _connection{connection}
 {
     _onConnectionDisconnected = _connection->on_disconnected.connect(
         [self = thisPtr<FunctionBlockPtr>()]
         (const boost::system::error_code& ec)
         {
-            reinterpret_cast<WsClientFb *>(self.getObject())->onConnectionDisconnected(ec);
+            reinterpret_cast<WsStreamingClientOutletFb *>(self.getObject())->onConnectionDisconnected(ec);
         });
 
     _onSignalAvailable = _connection->on_available.connect(
         [self = thisPtr<FunctionBlockPtr>()]
         (wss::remote_signal_ptr signal)
         {
-            reinterpret_cast<WsClientFb *>(self.getObject())->onSignalAvailable(signal);
+            reinterpret_cast<WsStreamingClientOutletFb *>(self.getObject())->onSignalAvailable(signal);
         });
 
     _onSignalUnavailable = _connection->on_unavailable.connect(
         [self = thisPtr<FunctionBlockPtr>()]
         (wss::remote_signal_ptr signal)
         {
-            reinterpret_cast<WsClientFb *>(self.getObject())->onSignalUnavailable(signal);
+            reinterpret_cast<WsStreamingClientOutletFb *>(self.getObject())->onSignalUnavailable(signal);
         });
 }
 
-StringPtr WsClientFb::calculateLocalId(const wss::connection_ptr& connection)
-{
-    auto endpoint = connection->socket().remote_endpoint();
-    return endpoint.address().to_string() + ':' + std::to_string(endpoint.port());
-}
-
-void WsClientFb::onSignalAvailable(wss::remote_signal_ptr signal)
-{
-    auto& entry = _handlers[signal.get()];
-    entry.handler = std::make_shared<RemoteSignalHandler>(signal);
-    entry.handler->attach();
-
-    entry.onSignalReady = entry.handler->onSignalReady.connect(
-        [self = thisPtr<FunctionBlockPtr>(), handler = entry.handler]()
-        {
-            return reinterpret_cast<WsClientFb *>(self.getObject())->onSignalReady(handler);
-        });
-}
-
-void WsClientFb::removed()
+void WsStreamingClientOutletFb::removed()
 {
     FunctionBlock::removed();
 
@@ -103,8 +77,27 @@ void WsClientFb::removed()
     _onConnectionDisconnected.disconnect();
 }
 
+StringPtr WsStreamingClientOutletFb::calculateLocalId(const wss::connection_ptr& connection)
+{
+    auto endpoint = connection->socket().remote_endpoint();
+    return endpoint.address().to_string() + ':' + std::to_string(endpoint.port());
+}
+
+void WsStreamingClientOutletFb::onSignalAvailable(wss::remote_signal_ptr signal)
+{
+    auto& entry = _handlers[signal.get()];
+    entry.handler = std::make_shared<RemoteSignalHandler>(signal);
+    entry.handler->attach();
+
+    entry.onSignalReady = entry.handler->onSignalReady.connect(
+        [self = thisPtr<FunctionBlockPtr>(), handler = entry.handler]()
+        {
+            return reinterpret_cast<WsStreamingClientOutletFb *>(self.getObject())->onSignalReady(handler);
+        });
+}
+
 std::pair<SignalConfigPtr, SignalConfigPtr>
-WsClientFb::onSignalReady(std::shared_ptr<RemoteSignalHandler> handler)
+WsStreamingClientOutletFb::onSignalReady(std::shared_ptr<RemoteSignalHandler> handler)
 {
     auto handlerIt = _handlers.find(handler->signal().get());
     if (handlerIt == _handlers.end())
@@ -157,12 +150,12 @@ WsClientFb::onSignalReady(std::shared_ptr<RemoteSignalHandler> handler)
     }
 }
 
-void WsClientFb::onSignalUnavailable(wss::remote_signal_ptr signal)
+void WsStreamingClientOutletFb::onSignalUnavailable(wss::remote_signal_ptr signal)
 {
     _handlers.erase(signal.get());
 }
 
-void WsClientFb::onConnectionDisconnected(const boost::system::error_code& ec)
+void WsStreamingClientOutletFb::onConnectionDisconnected(const boost::system::error_code& ec)
 {
     _onSignalAvailable.disconnect();
     _onSignalUnavailable.disconnect();

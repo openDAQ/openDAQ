@@ -8,16 +8,6 @@ if (POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
-if (DAQMODULES_LICENSING_MODULE)
-		message(STATUS "    - Reference licensing implementation module")
-        add_subdirectory(licensing_module)
-endif()
-
-if (DAQSIMULATOR_ENABLE_SIMULATOR_APP)
-    message(NOTICE "Enable simulator support in reference device module.")
-    add_compile_definitions(DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED)
-endif()
-
 if (DAQMODULES_OPENDAQ_CLIENT_MODULE)
     message(STATUS "Client modules:")
 
@@ -56,40 +46,6 @@ if (DAQMODULES_OPENDAQ_SERVER_MODULE)
         add_subdirectory(native_streaming_server_module)
     endif()
 endif()
-
-if (DAQMODULES_EMPTY_MODULE)
-    message(STATUS "Empty module")
-    add_subdirectory(empty_module)
-endif()
-
-if (DAQMODULES_REF_DEVICE_MODULE)
-    message(STATUS "Reference device module")
-    add_subdirectory(ref_device_module)
-endif()
-
-if (DAQMODULES_REF_FB_MODULE)
-    message(STATUS "Reference function block module")
-    add_subdirectory(ref_fb_module)
-endif()
-
-if (DAQMODULES_AUDIO_DEVICE_MODULE)
-    message(STATUS "Audio device module")
-    add_subdirectory(audio_device_module)
-endif()
-
-if (DAQMODULES_BASIC_CSV_RECORDER_MODULE)
-    message(STATUS "Basic CSV recorder module")
-    add_subdirectory(basic_csv_recorder_module)
-endif()
-
-if (DAQMODULES_PARQUET_RECORDER_MODULE)
-    message(STATUS "Parquet recorder module")
-    if (CMAKE_VERSION VERSION_LESS "4.0.0")
-        message(FATAL_ERROR "Parquet recorder module requires CMake 4.0.0 or higher.")
-    endif()
-    add_subdirectory(parquet_recorder_module)
-endif()
-
 
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)

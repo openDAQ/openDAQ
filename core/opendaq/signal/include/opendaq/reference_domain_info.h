@@ -21,7 +21,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-enum class TimeSource : EnumType
+enum class TimeProtocol : EnumType
 {
     Unknown,
     Tai,
@@ -84,7 +84,7 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
 
     /*!
      * @brief Gets the value that indicates the Reference Time Source.
-     * @param[out] referenceTimeSource The value that indicates the Reference Time Source.
+     * @param[out] referenceTimeProtocol The value that indicates the Reference Time Source.
      *
      * If not set to Unknown, the domain quantity is “time”, and the timestamps are absolute according 
      * to the chosen time standard. The possible values are Gps, Tai, and Utc.
@@ -93,7 +93,7 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
      * time stamps that correlate to the chosen time standard (eg. two separate PTP networks, 
      * both driven through GPS can be read together, as their absolute time is the same).
      */
-    virtual ErrCode INTERFACE_FUNC getReferenceTimeSource(TimeSource* referenceTimeSource) = 0;
+    virtual ErrCode INTERFACE_FUNC getReferenceTimeProtocol(TimeProtocol* referenceTimeProtocol) = 0;
 
     /*!
      * @brief Gets the value that indicates if offset is used.

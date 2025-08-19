@@ -23,7 +23,7 @@ type
     function ToString(): string; override;
 
     function QueryInterface(const IID: TGUID; out Obj): HResult; stdcall;
-
+    function SupportsInterface(const IID: TGUID): Boolean;
   protected
     FObject : T;
   private
@@ -47,9 +47,10 @@ implementation
 uses
   System.TypInfo,
   System.SysUtils,
-  OpenDAQ.CoreTypes.Errors,
+
   OpenDAQ.Exceptions,
-  OpenDAQ.SmartPtrRegistry;
+  OpenDAQ.SmartPtrRegistry,
+  OpenDAQ.CoreTypes.Errors;
 
 { TObjectPtr<T> }
 
@@ -76,9 +77,13 @@ var
   Err : ErrCode;
 begin
   Err := CreateBaseObject(Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   FObject := T(Obj);
+
+{$IF defined(DEBUG) and not defined(UNIT_TESTING)}
+  Assert(not Assigned(FObject), 'Factory constructor not overriden! Creating a BaseObject object is only usefull in tests');
+{$ENDIF}
 end;
 
 function TObjectPtr<T>.EqualsObject(Other: IBaseObject): Boolean;
@@ -89,7 +94,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is null.');
 
   Err := FObject.EqualsObject(Other, Result);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TObjectPtr<T>.EqualsObject(Other: ISmartPtr): Boolean;
@@ -109,7 +114,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is null.');
 
   Err := FObject.GetHashCodeEx(HashCode);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := HashCode;
 end;
@@ -143,7 +148,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is null.');
 
   Error := FObject.ToCharPtr(@Ptr);
-  CheckRtErrorInfo(Error);
+  CheckDaqErrorInfo(Error);
 
   Result := string(UTF8String(Ptr));
 end;
@@ -215,6 +220,15 @@ begin
   end
   else
     Result := inherited QueryInterface(IID, Obj);
+end;
+
+function TObjectPtr<T>.SupportsInterface(const IID: TGUID): Boolean;
+var
+  Intf: Pointer;
+  Res: HRESULT;
+begin
+  Res := FObject.BorrowInterface(IID, Intf);
+  Result := Res = 0;
 end;
 
 initialization

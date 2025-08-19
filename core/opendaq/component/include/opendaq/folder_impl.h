@@ -127,7 +127,7 @@ ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
     if (err == OPENDAQ_IGNORED)
         return err;
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         std::vector<ComponentPtr> itemsVec;
         for (const auto& [_, item] : this->items)
@@ -135,6 +135,8 @@ ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
         this->setActiveRecursive(itemsVec, active);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Intf, class... Intfs>
@@ -146,7 +148,7 @@ ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searc
 
     if (searchFilter)
     {
-        return daqTry([&]
+        const ErrCode errCode = daqTry([&]
         {
             std::vector<ComponentPtr> itemsVec;
             for (const auto& [_, item] : this->items)
@@ -155,6 +157,8 @@ ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searc
             *items = this->searchItems(searchFilter, itemsVec).detach();
             return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     IList* list;
@@ -387,10 +391,12 @@ ErrCode FolderImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized,
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
         *obj = DeserializeFolder<IFolderConfig, FolderImpl>(serialized, context, factoryCallback).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Intf, class... Intfs>

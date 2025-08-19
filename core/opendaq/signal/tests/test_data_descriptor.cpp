@@ -441,7 +441,7 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainIdForConstantDataRule)
                          .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainId("RefDomId").build())
                          .build(),
                      InvalidParameterException,
-                     "Reference Domain Info not supported for constant data rule type.");
+                     "Data descriptor validation failed");
 }
 
 TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetForConstantDataRule)
@@ -452,7 +452,7 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetForConstantDataRule)
                          .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
                          .build(),
                      InvalidParameterException,
-                     "Reference Domain Info not supported for constant data rule type.");
+                     "Data descriptor validation failed");
 }
 
 TEST_F(DataDescriptorTest, DisallowReferenceTimeSourceForConstantDataRule)
@@ -463,7 +463,7 @@ TEST_F(DataDescriptorTest, DisallowReferenceTimeSourceForConstantDataRule)
                          .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceTimeSource(TimeSource::Tai).build())
                          .build(),
                      InvalidParameterException,
-                     "Reference Domain Info not supported for constant data rule type.");
+                     "Data descriptor validation failed");
 }
 
 TEST_F(DataDescriptorTest, DisallowReferenceDomainIdWithPostScaling)
@@ -475,7 +475,7 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainIdWithPostScaling)
                          .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainId("RefDomId").build())
                          .build(),
                      InvalidParameterException,
-                     "Reference Domain Info not supported with post scaling.");
+                     "Data descriptor validation failed");
 }
 
 TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetWithPostScaling)
@@ -487,7 +487,7 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetWithPostScaling)
                          .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainOffset(100).build())
                          .build(),
                      InvalidParameterException,
-                     "Reference Domain Info not supported with post scaling.");
+                     "Data descriptor validation failed");
 }
 
 TEST_F(DataDescriptorTest, DisallowReferenceTimeSourceWithPostScaling)
@@ -499,7 +499,7 @@ TEST_F(DataDescriptorTest, DisallowReferenceTimeSourceWithPostScaling)
                          .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceTimeSource(TimeSource::Tai).build())
                          .build(),
                      InvalidParameterException,
-                     "Reference Domain Info not supported with post scaling.");
+                     "Data descriptor validation failed");
 }
 
 TEST_F(DataDescriptorTest, NullDataDescriptor)

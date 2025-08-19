@@ -30,6 +30,7 @@
 #include <opendaq/component_private_ptr.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <coreobjects/property_object_class_internal_ptr.h>
+#include <algorithm>
 
 namespace daq::config_protocol
 {
@@ -69,6 +70,10 @@ public:
     void setPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
     void setProtectedPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
     BaseObjectPtr getPropertyValue(const std::string& globalId, const std::string& propertyName);
+
+    BaseObjectPtr getSelectionValues(const std::string& globalId, const std::string& path, const std::string& propertyName);
+    ListPtr<IBaseObject> getSuggestedValues(const std::string& globalId, const std::string& path, const std::string& propertyName);
+
     void clearPropertyValue(const std::string& globalId, const std::string& propertyName);
     void clearProtectedPropertyValue(const std::string& globalId, const std::string& propertyName);
     void update(const std::string& globalId, const std::string& serialized, const std::string& path);
@@ -362,11 +367,12 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
             const ErrCode errCode = localTypeManager->addType(type);
             if (OPENDAQ_FAILED(errCode))
             {
-                ObjectPtr<IErrorInfo> errorInfo;
-                daqGetErrorInfo(&errorInfo);
                 StringPtr message;
-                if (errorInfo.assigned())
-                    errorInfo->getMessage(&message);
+                const ErrCode err = daqGetErrorInfoMessage(&message);
+                if (err == errCode)
+                    daqClearErrorInfo();
+                else
+                    message = nullptr;
 
                 const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
                 LOG_W("Couldn't add type {} to local type manager: {}", type.getName(), message.assigned() ? message: "Unknown error");

@@ -138,11 +138,12 @@ inline ErrCode ConfigClientConnectionImpl::getSignal(ISignal** signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
-    return daqTry(
-        [this, &signal]
-        {
-            *signal = this->signalRef.getRef().detach();
-        });
+    const ErrCode errCode = daqTry([this, &signal]
+    {
+        *signal = this->signalRef.getRef().detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode ConfigClientConnectionImpl::getInputPort(IInputPort** inputPort)

@@ -412,6 +412,19 @@ TEST_F(TmsPropertyObjectTest, ProcedurePropWithDictArg)
     //proc(dictArg);
 }
 
+TEST_F(TmsPropertyObjectTest, StringSuggestedValues)
+{
+    PropertyObjectPtr obj = PropertyObject();
+    obj.addProperty(StringPropertyBuilder("StringSuggestedValues", "Orange").setSuggestedValues(List<IString>("Apple", "Orange", "Mango")).build());
+    auto [serverObj, clientObj] = registerPropertyObject(obj);
+
+    // TODO: String suggested values are not yet supported over OPC UA!
+    //ASSERT_EQ(clientObj.getProperty("StringSuggestedValues").getSuggestedValues(), List<IString>("Apple", "Orange", "Mango"));
+    ASSERT_EQ(clientObj.getProperty("StringSuggestedValues").getSuggestedValues(), nullptr);
+
+    ASSERT_NO_THROW(clientObj.setPropertyValue("StringSuggestedValues", "Tomato"));
+}
+
 class TmsNestedPropertyObjectTest : public TmsObjectIntegrationTest
 {
 public:

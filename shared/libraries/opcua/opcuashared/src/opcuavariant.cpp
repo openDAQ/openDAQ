@@ -3,7 +3,6 @@
 #include <rapidjson/stringbuffer.h>
 #include <cctype>
 #include <open62541/types_generated_handling.h>
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
 

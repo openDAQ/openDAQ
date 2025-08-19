@@ -456,10 +456,12 @@ ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]()
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
     {
         *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 void NativeDeviceImpl::removed()
@@ -503,14 +505,9 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
     if (clientComm->getProtocolVersion() < 8)
     {
         auto changeableFields = List<IString>();
-        PropertyPtr userNameProp;
-        deviceInfo->getProperty(String("userName"), &userNameProp);
-        if (userNameProp.assigned())
+        if (deviceInfo.hasProperty("userName"))
             changeableFields.pushBack("userName");
-        
-        PropertyPtr locationProp;
-        deviceInfo->getProperty(String("location"), &locationProp);
-        if (locationProp.assigned())
+        if (deviceInfo.hasProperty("location"))
             changeableFields.pushBack("location");
         
         auto newDeviceInfo = DeviceInfoWithChanegableFields(changeableFields);

@@ -59,10 +59,12 @@ ErrCode ConfigClientBaseSyncComponentImpl<Impl>::Deserialize(ISerializedObject* 
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
         *obj = DeserializeSyncComponent<ISyncComponent, ConfigClientSyncComponentImpl>(serialized, context, factoryCallback).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Impl>

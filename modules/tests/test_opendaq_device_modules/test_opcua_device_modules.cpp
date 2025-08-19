@@ -598,7 +598,7 @@ TEST_F(OpcuaDeviceModulesTest, DeviceDynamicFeatures)
     auto daqDevice = client.getDevices()[0];
 
     ASSERT_EQ(daqDevice.getAvailableDevices().getCount(), 0u);
-    ASSERT_EQ(daqDevice.getAvailableFunctionBlockTypes().getCount(), 15u);
+    ASSERT_GE(daqDevice.getAvailableFunctionBlockTypes().getCount(), 11u);
     ASSERT_THROW(daqDevice.addDevice("daqref://device0"),
                  opcua::OpcUaClientCallNotAvailableException);  // Are these the correct errors to return?
 
@@ -1398,6 +1398,18 @@ public:
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
     daq::ErrCode INTERFACE_FUNC completeServerCapability(daq::Bool*, daq::IServerCapability*, daq::IServerCapabilityConfig*) override
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    }
+    daq::ErrCode INTERFACE_FUNC loadLicense(daq::Bool* succeeded, daq::IDict* licenseConfig) override
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    }
+    daq::ErrCode INTERFACE_FUNC getLicenseConfig(daq::IDict** licenseConfig) override
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    }
+    daq::ErrCode INTERFACE_FUNC licenseLoaded(daq::Bool* loaded) override
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }

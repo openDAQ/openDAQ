@@ -1,7 +1,8 @@
+#include <testutils/testutils.h>
 #include <coretypes/coretypes.h>
 #include <coretypes/list_element_type.h>
 #include <coretypes/cloneable.h>
-#include <gtest/gtest.h>
+#include <algorithm>
 
 using namespace daq;
 
@@ -308,7 +309,7 @@ TEST_F(ListObjectTest, PushBackWhenFrozen)
     IBaseObject* obj = nullptr;
     ErrCode errCode = list->pushBack(obj);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_FROZEN);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_FROZEN);
 }
 
 TEST_F(ListObjectTest, PushBackRValueWhenFrozen)

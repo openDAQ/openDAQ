@@ -154,6 +154,15 @@ option(OPENDAQ_DISABLE_DEBUG_POSTFIX "Disable debug ('-debug') postfix" OFF)
 option(OPENDAQ_DEBUG_WARNINGS_AS_ERRORS "Treat debug warnings as errors" OFF)
 option(OPENDAQ_RELEASE_WARNINGS_AS_ERRORS "Treat release warnings as errors" ON)
 option(OPENDAQ_USE_CCACHE "Use compiler cache driver if available" ON)
+option(OPENDAQ_ENABLE_ERROR_GUARD "Enable error guard" OFF)
+
+if(NOT OPENDAQ_ENABLE_ERROR_GUARD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(OPENDAQ_ENABLE_ERROR_GUARD ON CACHE BOOL "Enable error guard" FORCE)
+endif()
+
+if(OPENDAQ_ENABLE_ERROR_GUARD)
+    add_compile_definitions(OPENDAQ_ENABLE_ERROR_GUARD)
+endif()
 
 # Dependent options
 cmake_dependent_option(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS "Enable delphi bindings tests" ON "OPENDAQ_GENERATE_DELPHI_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
@@ -178,6 +187,8 @@ option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
 option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder module" OFF)
+option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" OFF)
+option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
 

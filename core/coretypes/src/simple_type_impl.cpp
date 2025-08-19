@@ -43,7 +43,7 @@ ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
     ErrCode errCode = ser->readInt("coreType"_daq, &coreTypeInt);
     OPENDAQ_RETURN_IF_FAILED(errCode);
     
-    try
+    errCode = daqTry([&]()
     {
         ObjectPtr<ISimpleType> simpleType;
         createSimpleType(&simpleType, static_cast<CoreType>(coreTypeInt));
@@ -59,17 +59,9 @@ ErrCode SimpleTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
         }
 
         *obj = simpleType.detach();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
-    
-    return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to deserialize SimpleType.");
+    return errCode;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

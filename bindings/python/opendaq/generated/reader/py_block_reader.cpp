@@ -37,7 +37,7 @@ void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::I
         {
             PyTypedReader::checkTypes(valueType, domainType);
             if (blockSize < 1u)
-                throw daq::InvalidParameterException("Block size must be greater than 0");
+                DAQ_THROW_EXCEPTION(daq::InvalidParameterException, "Block size must be greater than 0");
 
             const auto signalPtr = daq::SignalPtr::Borrow(signal);
 

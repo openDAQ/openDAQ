@@ -1,6 +1,5 @@
 #include <opendaq/packet_factory.h>
 #include <opcuaclient/browser/opcuabrowser.h>
-#include <opcuatms_client/tms_client.h>
 #include <open62541/daq_opcua_nodesets.h>
 #include <open62541/di_nodeids.h>
 #include <open62541/daqdevice_nodeids.h>
@@ -10,7 +9,7 @@
 #include <open62541/types_daqesp_generated.h>
 #include <open62541/types_daqhbk_generated.h>
 
-#include <iostream>
+#include <opcuatms_client/tms_client.h>
 #include <opcuatms_client/tms_attribute_collector.h>
 #include <opcuatms_client/objects/tms_client_device_factory.h>
 

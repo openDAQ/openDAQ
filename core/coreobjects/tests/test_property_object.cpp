@@ -1,7 +1,6 @@
 #include <property_value_event_args_ptr.h>
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include <testutils/testutils.h>
+#include <gmock/gmock.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_class_ptr.h>
 #include <coretypes/type_manager_factory.h>
@@ -22,8 +21,8 @@
 
 using namespace daq;
 
-static constexpr SizeT NumVisibleProperties = 12u;
-static constexpr SizeT NumAllProperties = 14u;
+static constexpr SizeT NumVisibleProperties = 13u;
+static constexpr SizeT NumAllProperties = 15u;
 
 class PropertyObjectTest : public testing::Test
 {
@@ -67,7 +66,8 @@ protected:
                                .addProperty(SparseSelectionProperty("SparseSelectionProp", dict, 5))
                                .addProperty(DictProperty("DictProp", dict))
                                .addProperty(ReferenceProperty("Kind", EvalValue("%Child")))
-                               .addProperty(referencedProp);
+                               .addProperty(referencedProp)
+                               .addProperty(StringPropertyBuilder("StringSuggestedValues", "Orange").setSuggestedValues(List<IString>("Apple", "Orange", "Mango")).build());
         testPropClass = testPropClassBuilder.build();
         objManager = TypeManager();
         objManager.addType(testPropClass);
@@ -114,8 +114,10 @@ protected:
         objManager.removeType("BaseClass");
         objManager.removeType("Test");
 
-        objManager->removeType(String("Parent"));
-        objManager->removeType(String("Base"));
+        if (objManager.hasType("Parent"))
+            objManager.removeType(String("Parent"));
+        if (objManager.hasType("Base"))
+            objManager.removeType(String("Base"));
 
         propValue.release();
         propName.release();
@@ -438,7 +440,7 @@ TEST_F(PropertyObjectTest, EnumVisiblePropertyListNull)
     auto propObj = PropertyObject(objManager, "Test");
     ErrCode errCode = propObj->getVisibleProperties(nullptr);
 
-    ASSERT_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
 TEST_F(PropertyObjectTest, EnumVisiblePropertyWhenClassNull)
@@ -480,6 +482,7 @@ TEST_F(PropertyObjectTest, SelectionPropertiesInsertionOrder)
     ASSERT_EQ(props[order++].getName(), "Kind");
     // Derived class properties after base
     ASSERT_EQ(props[order++].getName(), "Referenced");
+    ASSERT_EQ(props[order++].getName(), "StringSuggestedValues");
     ASSERT_EQ(props[order++].getName(), "AdditionalProp");
 }
 
@@ -612,7 +615,7 @@ TEST_F(PropertyObjectTest, ConvertToPropertyCoreTypeFails)
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.setPropertyValue("FloatProperty", "a"),
                      ConversionFailedException,
-                     "Value type is different than Property type and conversion failed")
+                     "Failed to set property value")
 }
 
 TEST_F(PropertyObjectTest, ConvertToPropertyCoreTypeFails2)
@@ -621,7 +624,7 @@ TEST_F(PropertyObjectTest, ConvertToPropertyCoreTypeFails2)
     auto list = List<IBaseObject>();
     ASSERT_THROW_MSG(propObj.setPropertyValue("FloatProperty", list),
                      NoInterfaceException,
-                     "Value type is different than Property type and conversion failed")
+                     "Failed to set property value")
 }
 
 TEST_F(PropertyObjectTest, SetNullPropertyValue)
@@ -644,14 +647,15 @@ TEST_F(PropertyObjectTest, SelectionPropNoEnum)
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.getPropertySelectionValue("IntProperty"),
                      InvalidPropertyException,
-                     "Selection property \"IntProperty\" has no selection values assigned")
+                     "Failed to get property selection value")
 }
 
 TEST_F(PropertyObjectTest, SelectionPropNotRegistered)
 {
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.getPropertySelectionValue("TestProp"),
-                     NotFoundException, "Selection property \"TestProp\" not found")
+                     NotFoundException,
+                     "Failed to get property selection value")
 }
 
 TEST_F(PropertyObjectTest, SelectionPropNoList)
@@ -659,7 +663,7 @@ TEST_F(PropertyObjectTest, SelectionPropNoList)
     auto propObj = PropertyObject(objManager, "Test");
     ASSERT_THROW_MSG(propObj.getPropertySelectionValue("SelectionPropNoList"),
                      InvalidPropertyException,
-                     "Selection property \"SelectionPropNoList\" has no selection values assigned")
+                     "Failed to get property selection value")
 }
 
 TEST_F(PropertyObjectTest, DictProp)
@@ -1397,7 +1401,7 @@ TEST_F(PropertyObjectTest, PropertyValidateFailedEvalValue)
     obj.addProperty(ptr);
     
     ErrCode err = obj->setPropertyValue(String(propertyName), Floating(10.2));
-    ASSERT_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
 
     ASSERT_THROW(obj.setPropertyValue(propertyName, 10.2), ValidateFailedException);
 }
@@ -1428,7 +1432,8 @@ TEST_F(PropertyObjectTest, PropertyWriteValidateEvalValueMultipleTimes)
     ASSERT_NO_THROW(obj.setPropertyValue(propertyName, 12.2));
 
     err = obj->setPropertyValue(String(propertyName), Floating(5.0));
-    ASSERT_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+    ASSERT_ERROR_CODE_EQ(err, OPENDAQ_ERR_VALIDATE_FAILED);
+
     ASSERT_THROW(obj.setPropertyValue(propertyName, 5), ValidateFailedException);
 }
 
@@ -2247,4 +2252,123 @@ TEST_F(PropertyObjectTest, FunctionPropWithDictArg)
 
     auto dictArg = Dict<IInteger, IString>({{5, "blueberry"}, {2, "banana"}, {8, "pear"}, {1, "apple"}});
     ASSERT_EQ(func(dictArg), List<IString>("apple", "banana", "blueberry", "pear"));
+}
+
+TEST_F(PropertyObjectTest, OnGetSelectionValues)
+{
+    auto obj = PropertyObject();
+    auto selectionProp = SelectionProperty("Selection", List<IString>(), 0);
+
+    int cnt = 0;
+    selectionProp.getOnSelectionValuesRead() += [&cnt](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(List<IString>("foo", "bar"));
+        else
+            args.setValue(List<IString>("apple", "pineapple", "blueberry"));
+        cnt++;
+    };
+
+    obj.addProperty(selectionProp);
+
+    auto objProp = obj.getProperty("Selection");
+
+    for (int i = 0; i < 10; ++i)
+    {
+        ASSERT_EQ(selectionProp.getSelectionValues(), List<IString>("apple", "pineapple", "blueberry"));
+        ASSERT_EQ(selectionProp.getSelectionValues(), List<IString>("foo", "bar"));
+        
+        ASSERT_EQ(objProp.getSelectionValues(), List<IString>("apple", "pineapple", "blueberry"));
+        ASSERT_EQ(objProp.getSelectionValues(), List<IString>("foo", "bar"));
+    }
+
+    ASSERT_EQ(cnt, 40);
+}
+
+TEST_F(PropertyObjectTest, OnGetSparseSelectionValues)
+{
+    auto obj = PropertyObject();
+    auto selectionProp = SparseSelectionProperty("Selection", Dict<IInteger, IString>(), 0);
+
+    auto dict1 = Dict<IInteger, IString>({{0, "foo"}, {5, "bar"}});
+    auto dict2 = Dict<IInteger, IString>({{0, "foo"}, {5, "bar"}});
+
+    int cnt = 0;
+    selectionProp.getOnSelectionValuesRead() += [&cnt, &dict1, &dict2](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(dict1);
+        else
+            args.setValue(dict2);
+        cnt++;
+    };
+
+    obj.addProperty(selectionProp);
+
+    auto objProp = obj.getProperty("Selection");
+
+    for (int i = 0; i < 10; ++i)
+    {
+        DictPtr<IInteger, IString> values = selectionProp.getSelectionValues();
+        ASSERT_EQ(values.getKeyList(), dict2.getKeyList());
+        ASSERT_EQ(values.getValueList(), dict2.getValueList());
+
+        values = selectionProp.getSelectionValues();
+        ASSERT_EQ(values.getValueList(), dict1.getValueList());
+        ASSERT_EQ(values.getKeyList(), dict1.getKeyList());
+        
+        ASSERT_EQ(cnt, 4 * i + 2);
+        
+        values = objProp.getSelectionValues();
+        ASSERT_EQ(values.getKeyList(), dict2.getKeyList());
+        ASSERT_EQ(values.getValueList(), dict2.getValueList());
+
+        values = objProp.getSelectionValues();
+        ASSERT_EQ(values.getValueList(), dict1.getValueList());
+        ASSERT_EQ(values.getKeyList(), dict1.getKeyList());
+
+        ASSERT_EQ(cnt, 4 * (i + 1));
+    }
+}
+
+TEST_F(PropertyObjectTest, OnGetSuggestedValues)
+{
+    auto obj = PropertyObject();
+    auto intProp = IntPropertyBuilder("SuggestedValues", 10).build();
+
+    int cnt = 0;
+    intProp.getOnSuggestedValuesRead() += [&cnt](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(List<IInteger>(0, 10, 20));
+        else
+            args.setValue(List<IInteger>(10, 20, 30));
+        cnt++;
+    };
+
+    obj.addProperty(intProp);
+
+    auto objProp = obj.getProperty("SuggestedValues");
+
+    for (int i = 0; i < 10; ++i)
+    {
+        ASSERT_EQ(intProp.getSuggestedValues(), List<IInteger>(10, 20, 30));
+        ASSERT_EQ(intProp.getSuggestedValues(), List<IInteger>(0, 10, 20));
+        ASSERT_EQ(cnt, 4 * i + 2);
+        
+        ASSERT_EQ(objProp.getSuggestedValues(), List<IInteger>(10, 20, 30));
+        ASSERT_EQ(objProp.getSuggestedValues(), List<IInteger>(0, 10, 20));
+        ASSERT_EQ(cnt, 4 * (i + 1));
+    }
+}
+
+TEST_F(PropertyObjectTest, StringSuggestedValues)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    ASSERT_EQ(propObj.getProperty("StringSuggestedValues").getSuggestedValues(), List<IString>("Apple", "Orange", "Mango"));
+
+    ASSERT_NO_THROW(propObj.setPropertyValue("StringSuggestedValues", "Tomato"));
 }

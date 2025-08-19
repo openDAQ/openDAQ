@@ -44,7 +44,7 @@ type
 
 implementation
 uses
-  OpenDAQ.CoreTypes.Errors,
+
   OpenDAQ.Exceptions,
   OpenDAQ.CoreTypes.Config,
   OpenDAQ.SmartPtrRegistry;
@@ -67,7 +67,7 @@ var
   Err: ErrCode;
 begin
   Err := OpenDAQ.SimpleType.CreateSimpleType(RawInterface, CoreType);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(RawInterface);
 end;

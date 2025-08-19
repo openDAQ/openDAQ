@@ -20,9 +20,9 @@ type
     function Deserialize(Serialized: string; Context: ISmartPtr; FactoryCallback: IFunctionPtr): TProxyValue; overload;
     function Deserialize(Serialized: string; Context: TProxyValue; FactoryCallback: IFunctionPtr): TProxyValue; overload;
 
-    procedure Update(Updatable: IUpdatable; Serialized: IString); overload;
-    procedure Update(Updatable: IUpdatablePtr; Serialized: IStringPtr); overload;
-    procedure Update(Updatable: IUpdatablePtr; Serialized: string); overload;
+    procedure Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject); overload;
+    procedure Update(Updatable: IUpdatablePtr; Serialized: IStringPtr; Config: TProxyValue); overload;
+    procedure Update(Updatable: IUpdatablePtr; Serialized: string; Config: TProxyValue); overload;
 
     procedure CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString); overload;
     procedure CallCustomProc(CustomDeserialize: IProcedurePtr; Serialized: IStringPtr); overload;
@@ -31,6 +31,7 @@ type
 
   TDeserializerPtr = class(TObjectPtr<IDeserializer>, IDeserializerPtr, IDeserializer)
   public
+    constructor Create; overload; override;
     constructor Create(Obj: IBaseObject); overload; override;
     constructor Create(Obj: IDeserializer); overload;
 
@@ -39,9 +40,9 @@ type
     function Deserialize(Serialized: string; Context: ISmartPtr; FactoryCallback: IFunctionPtr): TProxyValue; overload;
     function Deserialize(Serialized: string; Context: TProxyValue; FactoryCallback: IFunctionPtr): TProxyValue; overload;
 
-    procedure Update(Updatable: IUpdatable; Serialized: IString); overload;
-    procedure Update(Updatable: IUpdatablePtr; Serialized: IStringPtr); overload;
-    procedure Update(Updatable: IUpdatablePtr; Serialized: string); overload;
+    procedure Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject); overload;
+    procedure Update(Updatable: IUpdatablePtr; Serialized: IStringPtr; Config: TProxyValue); overload;
+    procedure Update(Updatable: IUpdatablePtr; Serialized: string; Config: TProxyValue); overload;
 
     procedure CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString); overload;
     procedure CallCustomProc(CustomDeserialize: IProcedurePtr; Serialized: IStringPtr); overload;
@@ -52,24 +53,34 @@ type
     function IDeserializer.CallCustomProc = Interface_CallCustomProc;
 
     function Interface_Deserialize(Serialized: IString; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;
-    function Interface_Update(Updatable: IUpdatable; Serialized: IString): ErrCode; stdcall;
+    function Interface_Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject): ErrCode; stdcall;
     function Interface_CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString): ErrCode; stdcall;
   end;
 
 
 implementation
 uses
-  OpenDAQ.CoreTypes.Errors,
   OpenDAQ.Exceptions,
   OpenDAQ.SmartPtrRegistry;
 
 
-constructor TDeserializerPtr.Create(Obj: IDeserializer);
+constructor TDeserializerPtr.Create();
+var
+  Deserializer : IDeserializer;
+  Err : ErrCode;
+begin
+  Err := CreateJsonDeserializer(Deserializer);
+  CheckDaqErrorInfo(Err);
+
+  Create(Deserializer);
+end;
+
+constructor TDeserializerPtr.Create(Obj: IBaseObject);
 begin
   inherited Create(Obj);
 end;
 
-constructor TDeserializerPtr.Create(Obj: IBaseObject);
+constructor TDeserializerPtr.Create(Obj: IDeserializer);
 begin
   inherited Create(Obj);
 end;
@@ -83,7 +94,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Deserialize(Serialized, Context, FactoryCallback, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Obj);
 end;
@@ -115,7 +126,7 @@ begin
     FactoryCallbackIntf := nil;
 
   Err := FObject.Deserialize(SerializedIntf, ContextIntf, FactoryCallbackIntf, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Obj);
 end;
@@ -141,7 +152,7 @@ begin
     FactoryCallbackIntf := nil;
 
   Err := FObject.Deserialize(CreateStringFromDelphiString(Serialized), ContextIntf, FactoryCallbackIntf, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Obj);
 end;
@@ -161,23 +172,23 @@ begin
     FactoryCallbackIntf := nil;
 
   Err := FObject.Deserialize(CreateStringFromDelphiString(Serialized), Context, FactoryCallbackIntf, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue.Create(Obj);
 end;
 
-procedure TDeserializerPtr.Update(Updatable: IUpdatable; Serialized: IString);
+procedure TDeserializerPtr.Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject);
 var
   Err: ErrCode;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
-  Err := FObject.Update(Updatable, Serialized);
-  CheckRtErrorInfo(Err);
+  Err := FObject.Update(Updatable, Serialized, Config);
+  CheckDaqErrorInfo(Err);
 end;
 
-procedure TDeserializerPtr.Update(Updatable: IUpdatablePtr; Serialized: IStringPtr);
+procedure TDeserializerPtr.Update(Updatable: IUpdatablePtr; Serialized: IStringPtr; Config: TProxyValue);
 var
   Err: ErrCode;
   UpdatableIntf: IUpdatable;
@@ -196,11 +207,11 @@ begin
   else
     SerializedIntf := nil;
 
-  Err := FObject.Update(UpdatableIntf, SerializedIntf);
-  CheckRtErrorInfo(Err);
+  Err := FObject.Update(UpdatableIntf, SerializedIntf, Config);
+  CheckDaqErrorInfo(Err);
 end;
 
-procedure TDeserializerPtr.Update(Updatable: IUpdatablePtr; Serialized: string);
+procedure TDeserializerPtr.Update(Updatable: IUpdatablePtr; Serialized: string; Config: TProxyValue);
 var
   Err: ErrCode;
   UpdatableIntf: IUpdatable;
@@ -213,8 +224,8 @@ begin
   else
     UpdatableIntf := nil;
 
-  Err := FObject.Update(UpdatableIntf, CreateStringFromDelphiString(Serialized));
-  CheckRtErrorInfo(Err);
+  Err := FObject.Update(UpdatableIntf, CreateStringFromDelphiString(Serialized), Config);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TDeserializerPtr.CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString);
@@ -225,7 +236,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.CallCustomProc(CustomDeserialize, Serialized);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TDeserializerPtr.CallCustomProc(CustomDeserialize: IProcedurePtr; Serialized: IStringPtr);
@@ -248,7 +259,7 @@ begin
     SerializedIntf := nil;
 
   Err := FObject.CallCustomProc(CustomDeserializeIntf, SerializedIntf);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TDeserializerPtr.CallCustomProc(CustomDeserialize: IProcedurePtr; Serialized: string);
@@ -265,7 +276,7 @@ begin
     CustomDeserializeIntf := nil;
 
   Err := FObject.CallCustomProc(CustomDeserializeIntf, CreateStringFromDelphiString(Serialized));
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TDeserializerPtr.Interface_Deserialize(Serialized: IString; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; stdcall;
@@ -273,9 +284,9 @@ begin
   Result := FObject.Deserialize(Serialized, Context, FactoryCallback, Obj);
 end;
 
-function TDeserializerPtr.Interface_Update(Updatable: IUpdatable; Serialized: IString): ErrCode; stdcall;
+function TDeserializerPtr.Interface_Update(Updatable: IUpdatable; Serialized: IString; Config: IBaseObject): ErrCode; stdcall;
 begin
-  Result := FObject.Update(Updatable, Serialized);
+  Result := FObject.Update(Updatable, Serialized, Config);
 end;
 
 function TDeserializerPtr.Interface_CallCustomProc(CustomDeserialize: IProcedure; Serialized: IString): ErrCode; stdcall;

@@ -86,7 +86,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({15, 16}))
+    , supportedServerVersions(std::set<uint16_t>({17}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
@@ -119,7 +119,7 @@ void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerF
         const auto component = findComponent(componentGlobalId);
 
         if (!component.assigned())
-            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
+            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found {}", componentGlobalId);
 
         const auto componentPtr = component.asPtr<typename SmartPtr::DeclaredInterface>();
         return handler(context, componentPtr, params);
@@ -142,6 +142,8 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue);
     addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue);
     addHandler<ComponentPtr>("ClearProtectedPropertyValue", &ConfigServerComponent::clearProtectedPropertyValue);
+    addHandler<ComponentPtr>("GetSuggestedValues", &ConfigServerComponent::getSuggestedValues);
+    addHandler<ComponentPtr>("GetSelectionValues", &ConfigServerComponent::getSelectionValues);
     addHandler<ComponentPtr>("CallProperty", &ConfigServerComponent::callProperty);
     addHandler<ComponentPtr>("BeginUpdate", &ConfigServerComponent::beginUpdate);
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
@@ -182,6 +184,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<RecorderPtr>("StartRecording", &ConfigServerRecorder::startRecording);
     addHandler<RecorderPtr>("StopRecording", &ConfigServerRecorder::stopRecording);
     addHandler<RecorderPtr>("GetIsRecording", &ConfigServerRecorder::getIsRecording);
+
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -386,7 +389,7 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
     const auto component = findComponent(componentGlobalId);
 
     if (!component.assigned())
-        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found {}", componentGlobalId);
 
     ConfigServerAccessControl::protectObject(component, user, Permission::Read);
     return ComponentHolder(component);

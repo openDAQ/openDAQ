@@ -14,8 +14,6 @@ interface
 uses
   OpenDAQ.CoreTypes,
   OpenDAQ.ObjectPtr,
-  OpenDAQ.ProxyValue,
-  OpenDAQ.SerializedObject,
   OpenDAQ.Serializer;
 
 type
@@ -57,7 +55,6 @@ type
 
 implementation
 uses
-  OpenDAQ.CoreTypes.Errors,
   OpenDAQ.Exceptions,
   OpenDAQ.SmartPtrRegistry;
 
@@ -80,7 +77,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Update(Update);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TUpdatablePtr.Update(Update: ISerializedObjectPtr);
@@ -97,7 +94,7 @@ begin
     UpdateIntf := nil;
 
   Err := FObject.Update(UpdateIntf);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TUpdatablePtr.SerializeForUpdate(Serializer: ISerializer);
@@ -108,7 +105,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.SerializeForUpdate(Serializer);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TUpdatablePtr.SerializeForUpdate(Serializer: ISerializerPtr);
@@ -125,7 +122,7 @@ begin
     SerializerIntf := nil;
 
   Err := FObject.SerializeForUpdate(SerializerIntf);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TUpdatablePtr.UpdateEnded();
@@ -136,7 +133,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.UpdateEnded();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TUpdatablePtr.Interface_Update(Update: ISerializedObject): ErrCode; stdcall;

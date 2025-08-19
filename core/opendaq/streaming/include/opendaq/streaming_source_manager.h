@@ -231,13 +231,13 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
             {
                 LOG_D("Signal \"{}\" added to streaming \"{}\"", signal.getGlobalId(), streaming.getConnectionString());
             }
-            else if (errCode != OPENDAQ_ERR_DUPLICATEITEM)
+            else if (errCode == OPENDAQ_ERR_DUPLICATEITEM)
             {
-                checkErrorInfo(errCode);
+                daqClearErrorInfo();
             }
             else
             {
-                daqClearErrorInfo();
+                checkErrorInfo(errCode);
             }
         }
         auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
@@ -458,7 +458,9 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
                                   streaming = managerUtils.createStreaming(connectionString, deviceConfig);
                                   return OPENDAQ_SUCCESS;
                               });
-        if (OPENDAQ_FAILED(errCode) || !streaming.assigned())
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
+        if (!streaming.assigned())
             continue;
 
         const SizeT protocolPriority = protocolIt->second;

@@ -7,7 +7,7 @@ uses
 type
   TSourceLocation = packed record
     FileName: PAnsiChar;
-    Line: RtInt;
+    Line: DaqInt;
     FuncName: PAnsiChar;
   end;
 

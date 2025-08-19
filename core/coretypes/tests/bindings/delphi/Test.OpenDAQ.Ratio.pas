@@ -79,48 +79,48 @@ procedure TTest_Ratio.GetNumerator();
 var
   RatioObj: IRatio;
   Err : ErrCode;
-  Numerator : RtInt;
+  Numerator : DaqInt;
 begin
   CreateRatio(RatioObj, 1, 2);
 
   Err := RatioObj.GetNumerator(Numerator);
   Assert.AreEqual(Err, OPENDAQ_SUCCESS);
-  Assert.AreEqual<RtInt>(Numerator, 1);
+  Assert.AreEqual<DaqInt>(Numerator, 1);
 end;
 
 procedure TTest_Ratio.GetDenominator();
 var
   RatioObj: IRatio;
   Err : ErrCode;
-  Denominator : RtInt;
+  Denominator : DaqInt;
 begin
   CreateRatio(RatioObj, 1, 2);
 
   Err := RatioObj.GetDenominator(Denominator);
   Assert.AreEqual(Err, OPENDAQ_SUCCESS);
-  Assert.AreEqual<RtInt>(Denominator, 2);
+  Assert.AreEqual<DaqInt>(Denominator, 2);
 end;
 
 procedure TTest_Ratio.ConvertFloat();
 var
   RatioObj: IRatio;
-  FloatVal : RtFloat;
+  FloatVal : DaqFloat;
 begin
   CreateRatio(RatioObj, 1, 2);
   FloatVal := BaseObjectToFloat(RatioObj);
 
-  Assert.AreEqual<RtFloat>(FloatVal, 1 / 2.0);
+  Assert.AreEqual<DaqFloat>(FloatVal, 1 / 2.0);
 end;
 
 procedure TTest_Ratio.ConvertInt();
 var
   RatioObj: IRatio;
-  IntVal : RtInt;
+  IntVal : DaqFloat;
 begin
   CreateRatio(RatioObj, 1, 2);
   IntVal := BaseObjectToInt(RatioObj);
 
-  Assert.AreEqual<RtInt>(IntVal, 1);
+  Assert.AreEqual<DaqFloat>(IntVal, 1);
 end;
 
 procedure TTest_Ratio.ConvertBoolTrue();
@@ -190,8 +190,8 @@ var
 
   DeserializedObj : IBaseObject;
   DeserializedRatio : IRatio;
-  Numerator : RtInt;
-  Denominator : RtInt;
+  Numerator : DaqInt;
+  Denominator : DaqInt;
 begin
   CreateRatio(RatioObj, 1, 2);
   CreateJsonSerializer(Serializer);
@@ -203,7 +203,7 @@ begin
   Err := CreateJsonDeserializer(Deserializer);
   Assert.AreEqual(Err, OPENDAQ_SUCCESS);
 
-  Err := Deserializer.Deserialize(OutputObj, nil, DeserializedObj);
+  Err := Deserializer.Deserialize(OutputObj, nil, nil, DeserializedObj);
   Assert.AreEqual(Err, OPENDAQ_SUCCESS);
   Assert.AreNotEqual<IBaseObject>(DeserializedObj, nil);
 
@@ -214,10 +214,10 @@ begin
   );
 
   DeserializedRatio.GetNumerator(Numerator);
-  Assert.AreEqual<RtInt>(Numerator, 1);
+  Assert.AreEqual<DaqInt>(Numerator, 1);
 
   DeserializedRatio.GetDenominator(Denominator);
-  Assert.AreEqual<RtInt>(Denominator, 2);
+  Assert.AreEqual<DaqInt>(Denominator, 2);
 end;
 
 procedure TTest_Ratio.CoreType();

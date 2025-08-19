@@ -61,7 +61,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetCurrent(Current);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := T(Current);
 end;
@@ -75,7 +75,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetCurrent(Current);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TObjectPtr<IBaseObject>.Create(Current);
 end;
@@ -92,7 +92,7 @@ begin
   if (Err = OPENDAQ_NO_MORE_ITEMS) then
     Exit(False);
 
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := True;
 end;

@@ -684,6 +684,16 @@ ErrCode EvalValueImpl::Property_SetValue(IBaseObject* /*value*/)
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
+ErrCode EvalValueImpl::Property_GetOnSuggestedValuesRead(IEvent** /*event*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
+ErrCode EvalValueImpl::Property_GetOnSelectionValuesRead(IEvent** /*event*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
 ErrCode EvalValueImpl::UnitObject_GetId(Int* id)
 {
     OPENDAQ_PARAM_NOT_NULL(id);

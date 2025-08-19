@@ -1252,9 +1252,18 @@ TEST_F(CoreEventTest, NameDescriptionChanged)
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::AttributeChanged));
+        auto eventId = args.getEventId();
+        if (eventId == static_cast<int>(CoreEventId::AttributeChanged))
+        {
             ASSERT_EQ(args.getEventName(), "AttributeChanged");
             changeCount++;
+        }
+        else if (eventId == static_cast<int>(CoreEventId::PropertyValueChanged))
+        {
+            ASSERT_EQ(args.getEventName(), "PropertyValueChanged");
+            ASSERT_EQ(args.getParameters().get("Name"), "name");
+            changeCount++;
+        }
         };
 
     instance.setName("name1");
@@ -1283,8 +1292,9 @@ TEST_F(CoreEventTest, NameDescriptionChanged)
     instance.setDescription("desc1");
     instance.setDescription("desc2");
 
-    ASSERT_EQ(changeCount, 8);
+    ASSERT_EQ(changeCount, 12);
 }
+
 TEST_F(CoreEventTest, TagsChanged)
 {
     int changeCount = 0;

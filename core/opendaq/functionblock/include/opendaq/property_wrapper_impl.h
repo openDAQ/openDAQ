@@ -37,7 +37,6 @@ public:
     virtual ErrCode INTERFACE_FUNC getMinValue(INumber** min);
     virtual ErrCode INTERFACE_FUNC getMaxValue(INumber** max);
     virtual ErrCode INTERFACE_FUNC getDefaultValue(IBaseObject** value);
-    // [templateType(values, IBaseObject)]
     virtual ErrCode INTERFACE_FUNC getSuggestedValues(IList** values);
     virtual ErrCode INTERFACE_FUNC getVisible(Bool* visible);
     virtual ErrCode INTERFACE_FUNC getReadOnly(Bool* readOnly);
@@ -48,12 +47,12 @@ public:
     virtual ErrCode INTERFACE_FUNC getCoercer(ICoercer** coercer);
     virtual ErrCode INTERFACE_FUNC getCallableInfo(ICallableInfo** callable);
     virtual ErrCode INTERFACE_FUNC getStructType(IStructType** structType);
-    // [ignore(Wrapper)]
     virtual ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IEvent** event);
-    // [ignore(Wrapper)]
     virtual ErrCode INTERFACE_FUNC getOnPropertyValueRead(IEvent** event);
     virtual ErrCode INTERFACE_FUNC getValue(IBaseObject** value);
     virtual ErrCode INTERFACE_FUNC setValue(IBaseObject* value);
+    virtual ErrCode INTERFACE_FUNC getOnSuggestedValuesRead(IEvent** event);
+    virtual ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event);
 
 private:
     PropertyPtr property;

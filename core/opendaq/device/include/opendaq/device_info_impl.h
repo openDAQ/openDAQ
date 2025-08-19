@@ -223,13 +223,6 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("activeClientConnections", PropertyObject()).setReadOnly(true).build());
-
-    this->objPtr.getOnPropertyValueRead("name") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& value)
-    {
-        const ComponentPtr ownerPtr = this->owner.assigned() ? this->owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
-            value.setValue(ownerPtr.getName());
-    };
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -805,22 +798,23 @@ ConstCharPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::SerializeId()
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
                                                                      IBaseObject* context,
-                                                                     IFunction* /*factoryCallback*/,
+                                                                     IFunction* factoryCallback,
                                                                      IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    const ErrCode errCode = daqTry([&obj, &serialized, &context]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
-        *obj = Super::DeserializePropertyObject(
-            serialized,
-            context,
-            nullptr,
-            [](const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const StringPtr& className)
-            {
-                const auto info = createWithImplementation<IDeviceInfo, DeviceInfoConfigBase>();
-                return info;
-            }).detach();
+        PropertyObjectPtr propObjPtr = createWithImplementation<IDeviceInfo, DeviceInfoConfigBase>();
+
+        Super::DeserializePropertyOrder(serialized, context, nullptr, propObjPtr);
+
+        Super::DeserializeLocalProperties(serialized, context, factoryCallback, propObjPtr);
+
+        Super::DeserializePropertyValues(serialized, context, nullptr, propObjPtr);
+
+        *obj = propObjPtr.detach();
+        return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
@@ -1201,6 +1195,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
         return errCode;
 
     ComponentPtr parent = newOwner;
+
+    errCode = this->setProtectedPropertyValue(String("name"), parent.getName());
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     if (!coreEvent.assigned())
     {
         parent.getContext()->getOnCoreEvent(&coreEvent);

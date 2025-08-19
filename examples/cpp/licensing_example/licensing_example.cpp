@@ -102,7 +102,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // ------------------------------------------------------------------------------ //
 
     tryReadSignalData(instance, inputSignal);
-    
+
     // ------------- Find the licensing module ------------------ //
     const auto modules = instance.getModuleManager().getModules();
     auto itFound = std::find_if(modules.begin(),
@@ -133,7 +133,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // ---------------------------------------------------------------------------------------- //
 
     tryReadSignalData(instance, inputSignal);
-    
+
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();
     return 0;

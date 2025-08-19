@@ -38,8 +38,7 @@ type
 
 implementation
 uses
-  OpenDAQ.Exceptions,
-  OpenDAQ.CoreTypes.Errors;
+  OpenDAQ.Exceptions;
 
 constructor TEventHandlerPtr<T>.Create(Obj: T);
 begin
@@ -59,7 +58,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.HandleEvent(Sender, EventArgs);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TEventHandlerPtr<T>.Interface_HandleEvent(Sender : IBaseObject; EventArgs : IEventArgs) : ErrCode; stdcall;

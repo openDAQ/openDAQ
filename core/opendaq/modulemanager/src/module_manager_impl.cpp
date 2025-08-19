@@ -49,8 +49,10 @@ static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerCompo
 static ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries);
 static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
 
-ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
-    : modulesLoaded(false)
+ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path, Bool loadAuthenticatedOnly, ModuleAuthenticatorPtr authenticator)
+    : authenticatedModulesOnly(loadAuthenticatedOnly)
+    , moduleAuthenticator(authenticator)
+    , modulesLoaded(false)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
 {
@@ -123,7 +125,12 @@ ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 ErrCode ModuleManagerImpl::addModule(IModule* module)
 {
     OPENDAQ_PARAM_NOT_NULL(module);
-    
+
+    if (authenticatedModulesOnly)
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Cannot add modules directly without verification!");
+    }
+
     orphanedModules.tryUnload();
 
     const auto found = std::find_if(
@@ -145,6 +152,14 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
 
 ErrCode ModuleManagerImpl::loadModules(IContext* context)
 {
+    if (authenticatedModulesOnly)
+    {
+        if (moduleAuthenticator == nullptr)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
+        }
+    }
+
     if (!modulesLoaded)
     {
         this->context = ContextPtr::Borrow(context);
@@ -214,8 +229,20 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
         try
         {
-            libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
-            newModulesAdded = true;
+            Bool validBinary = false;
+            if (moduleAuthenticator != nullptr)
+            {
+                moduleAuthenticator->authenticateModuleBinary(&validBinary, StringPtr(modulePath.string()));
+            }
+
+            if (validBinary || !authenticatedModulesOnly)
+            {
+                libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
+                newModulesAdded = true;
+            }
+            else {
+                LOG_W("Cannot not load module {}, failed to authenticate!", modulePath.string());
+            }
         }
         catch (const daq::DaqException& e)
         {
@@ -293,6 +320,22 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
 
     try
     {
+        if (authenticatedModulesOnly)
+        {
+            if (moduleAuthenticator == nullptr)
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
+            }
+
+            Bool valid;
+            moduleAuthenticator->authenticateModuleBinary(&valid, path);
+
+            if (!valid)
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Module ({}) authentication failed!", path);
+            }
+        }
+
         libraries.push_back(loadModuleInternal(loggerComponent, fileSystemPath, context));
         *module = libraries.back().module.addRefAndReturn();
     }
@@ -312,6 +355,22 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
         return OPENDAQ_ERR_GENERALERROR;
     }
 
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::loadAuthenticatedOnly(Bool* authOnly)
+{
+    OPENDAQ_PARAM_NOT_NULL(authOnly);
+
+    authenticatedModulesOnly = authOnly;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::loadModuleAuthenticator(IModuleAuthenticator* authenticator)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticator);
+
+    moduleAuthenticator = authenticator;
     return OPENDAQ_SUCCESS;
 }
 
@@ -1838,13 +1897,13 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, ModuleManager,
-    IString*, path
+    IString*, path, Bool, loadAuthenticatedOnly, IModuleAuthenticator*, authenticator
 )
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, ModuleManager,
     IModuleManager, createModuleManagerMultiplePaths,
-    IList*, paths
+    IList*, paths, Bool, loadAuthenticatedOnly, IModuleAuthenticator*, authenticator
 )
 
 END_NAMESPACE_OPENDAQ

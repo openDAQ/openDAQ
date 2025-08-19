@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/module.h>
 #include <coretypes/listobject.h>
+#include <opendaq/module_authenticator.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -62,15 +63,18 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManager, IBaseObject)
      * The specified path must exist and reference a file with the proper extension.
      */
     virtual ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) = 0;
+
+    virtual ErrCode INTERFACE_FUNC loadAuthenticatedOnly(Bool* verifiedOnly) = 0;
+
+    virtual ErrCode INTERFACE_FUNC loadModuleAuthenticator(IModuleAuthenticator* authenticator) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY(
-    LIBRARY_FACTORY, ModuleManager,
-    IString*, path)
+    LIBRARY_FACTORY, ModuleManager, IString*, path, Bool, loadAuthenticatedOnly, IModuleAuthenticator*, authenticator)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
     ModuleManagerMultiplePaths, IModuleManager,
-    IList*, paths)
+    IList*, paths, Bool, loadAuthenticatedOnly, IModuleAuthenticator*, authenticator)
 
 END_NAMESPACE_OPENDAQ

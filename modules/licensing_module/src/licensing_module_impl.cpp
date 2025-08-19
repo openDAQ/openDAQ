@@ -34,8 +34,9 @@ FunctionBlockPtr LicensingModule::onCreateFunctionBlock(const StringPtr& id,
 {
     if (!_authenticated)
     {
-        LOG_W("Module not authenticated, cannot create function block!");
-        DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
+        LOG_W("Module not authenticated, returning locked function block!");
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PassthroughFbImpl>(context, parent, localId, nullptr);
+        return fb;
     }
 
     if (id == PassthroughFbImpl::CreateType().getId())

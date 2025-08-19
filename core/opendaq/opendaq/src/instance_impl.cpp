@@ -17,6 +17,8 @@
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/discovery_server_factory.h>
 
+#include <iostream>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 static StringPtr DefineLocalId(const StringPtr& localId);
@@ -105,8 +107,13 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto moduleManager = builderPtr.getModuleManager();
     auto typeManager = TypeManager();
     auto authenticationProvider = builderPtr.getAuthenticationProvider();
+    auto loadAuthenticatedModulesOnly = builderPtr.getLoadAuthenticatedModulesOnly();
+    auto moduleAuthenticator = builderPtr.getModuleAuthenticator();
     auto options = builderPtr.getOptions();
-
+    std::cout << std::endl
+              << "ContextFromInstanceBuilder module manager at start"
+              << " " << moduleManager << std::endl;
+    //    LOG_C("ContextFromInstanceBuilder module manager at start {}", moduleManager);
     // Configure logger
     if (!logger.assigned())
     {
@@ -136,7 +143,15 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     // Configure moduleManager
     if (!moduleManager.assigned())
     {
-        moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
+        std::cout << std::endl << "ContextFromInstanceBuilder module manager at not assigned"
+                  << " " << moduleManager << std::endl;
+            //        LOG_C("ContextFromInstanceBuilder module manager at not assigned {}", moduleManager);
+        
+        moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList(), loadAuthenticatedModulesOnly, moduleAuthenticator);
+        std::cout << std::endl
+                  << "ContextFromInstanceBuilder module manager after build"
+                  << " " << moduleManager << std::endl;
+        //        LOG_C("ContextFromInstanceBuilder module manager after build {}", moduleManager);
         builderPtr->setModuleManager(moduleManager);
     }
 

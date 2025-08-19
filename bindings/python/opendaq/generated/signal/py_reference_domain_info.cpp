@@ -69,7 +69,7 @@ void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDo
         },
         py::return_value_policy::take_ownership,
         "Gets the Reference Domain Offset.");
-    cls.def_property_readonly("reference_time_source",
+    cls.def_property_readonly("reference_time_protocol",
         [](daq::IReferenceDomainInfo *object)
         {
             py::gil_scoped_release release;

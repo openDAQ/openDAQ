@@ -122,7 +122,7 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
     virtual ErrCode INTERFACE_FUNC completeServerCapability(Bool* succeeded, IServerCapability* source, IServerCapabilityConfig* target) = 0;
 
     /*!
-     * @brief Returns a dictionary of known and available streaming types that this module (client) can create.T
+     * @brief Returns a dictionary of known and available streaming types that this module (client) can create.
      * @param[out] streamingTypes The dictionary of known streaming types.
      */
     // [templateType(streamingTypes, IString, IStreamingType)]

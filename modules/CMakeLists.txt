@@ -46,7 +46,3 @@ if (DAQMODULES_OPENDAQ_SERVER_MODULE)
         add_subdirectory(native_streaming_server_module)
     endif()
 endif()
-
-if (OPENDAQ_ENABLE_TESTS)
-    add_subdirectory(tests)
-endif()

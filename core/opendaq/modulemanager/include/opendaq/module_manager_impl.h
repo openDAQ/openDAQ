@@ -32,6 +32,7 @@
 #include <opendaq/module_ptr.h>
 #include <tsl/ordered_map.h>
 #include <daq_discovery/daq_discovery_client.h>
+#include <opendaq/module_authenticator_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 struct ModuleLibrary;
@@ -39,13 +40,15 @@ struct ModuleLibrary;
 class ModuleManagerImpl : public ImplementationOfWeak<IModuleManager, IModuleManagerUtils>
 {
 public:
-    explicit ModuleManagerImpl(const BaseObjectPtr& path);
+    explicit ModuleManagerImpl(const BaseObjectPtr& path, Bool loadAuthenticatedOnly, ModuleAuthenticatorPtr authenticator);
     ~ModuleManagerImpl() override;
 
     ErrCode INTERFACE_FUNC getModules(IList** availableModules) override;
     ErrCode INTERFACE_FUNC addModule(IModule* module) override;
     ErrCode INTERFACE_FUNC loadModules(IContext* context) override;
     ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) override;
+    ErrCode INTERFACE_FUNC loadAuthenticatedOnly(Bool* authenticatedOnly) override;
+    ErrCode INTERFACE_FUNC loadModuleAuthenticator(IModuleAuthenticator* authenticator) override;
 
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
@@ -105,6 +108,9 @@ private:
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
     void onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo);
+
+    bool authenticatedModulesOnly;
+    ModuleAuthenticatorPtr moduleAuthenticator;
 
     bool modulesLoaded;
     std::vector<std::string> paths;

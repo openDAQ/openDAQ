@@ -83,6 +83,12 @@ public:
     ErrCode INTERFACE_FUNC getDiscoveryServers(IList** serverNames) override;
     ErrCode INTERFACE_FUNC addDiscoveryServer(IString* serverName) override;
 
+    ErrCode INTERFACE_FUNC setModuleAuthenticator(IModuleAuthenticator* authenticator) override;
+    ErrCode INTERFACE_FUNC getModuleAuthenticator(IModuleAuthenticator** authenticator) override;
+
+    ErrCode INTERFACE_FUNC setLoadAuthenticatedModulesOnly(Bool authenticatedOnly) override;
+    ErrCode INTERFACE_FUNC getLoadAuthenticatedModulesOnly(Bool* authenticatedOnly) override;
+
 private:
     static DictPtr<IString, IBaseObject> GetDefaultOptions();
 
@@ -100,9 +106,11 @@ private:
 
     SchedulerPtr scheduler;
     ModuleManagerPtr moduleManager;
+    ModuleAuthenticatorPtr moduleAuthenticator;
     AuthenticationProviderPtr authenticationProvider;
     ContextPtr context{nullptr};
 
+    Bool authenticatedModulesOnly{false};
     Bool useStandardProviders{false};
     ListPtr<IConfigProvider> providers;
     DictPtr<IString, IBaseObject> options;

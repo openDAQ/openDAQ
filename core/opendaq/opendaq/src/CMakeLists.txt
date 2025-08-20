@@ -2,6 +2,7 @@ set(BASE_NAME opendaq)
 
 function(rtgen_component_${BASE_NAME})
     rtgen(SRC_Instance instance.h)
+    rtgen(SRC_ModuleAuthenticator module_authenticator.h)
     rtgen(SRC_InstanceBuilder instance_builder.h)
     rtgen(SRC_ConfigProvider config_provider.h)
     
@@ -15,6 +16,7 @@ function(rtgen_component_${BASE_NAME})
 	    ${ConfigHeader}
         ${SRC_Instance_PublicHeaders}
         ${SRC_InstanceBuilder_PublicHeaders}
+		${SRC_ModuleAuthenticator_PublicHeaders}
         ${SRC_ConfigProvider_PublicHeaders}
         PARENT_SCOPE
     )
@@ -22,6 +24,7 @@ function(rtgen_component_${BASE_NAME})
     set(SRC_PrivateHeaders_Component_Generated
         ${SRC_Instance_PrivateHeaders}
         ${SRC_InstanceBuilder_PrivateHeaders}
+		${SRC_ModuleAuthenticator_PrivateHeaders}
         ${SRC_ConfigProvider_PrivateHeaders}
         ${SRC_ComponentTypeBuilder_PrivateHeaders}
         PARENT_SCOPE
@@ -30,6 +33,7 @@ function(rtgen_component_${BASE_NAME})
     set(SRC_Cpp_Component_Generated
         ${SRC_Instance_Cpp}
         ${SRC_InstanceBuilder_Cpp}
+		${SRC_ModuleAuthenticator_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -40,6 +44,9 @@ function(create_component_source_groups_${BASE_NAME})
     
     source_group("opendaq//instance" FILES 
         ${SDK_HEADERS_DIR}/instance.h
+        ${SDK_HEADERS_DIR}/module_authenticator.h
+        ${SDK_HEADERS_DIR}/module_authenticator_impl.h
+        ${SDK_HEADERS_DIR}/module_authenticator_factory.h
         ${SDK_HEADERS_DIR}/instance_impl.h
         ${SDK_HEADERS_DIR}/instance_factory.h
         ${SDK_HEADERS_DIR}/client_impl.h
@@ -54,6 +61,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/cmd_line_args_config_provider_impl.h
         ${SDK_HEADERS_DIR}/client_type.h
         ${SDK_SRC_DIR}/instance_impl.cpp
+        ${SDK_SRC_DIR}/module_authenticator_impl.cpp
         ${SDK_SRC_DIR}/client_impl.cpp
         ${SDK_SRC_DIR}/instance_builder_impl.cpp
         ${SDK_SRC_DIR}/json_config_provider_impl.cpp
@@ -77,14 +85,17 @@ set(SRC_PublicHeaders_Component
     errors.h
     exceptions.h
     instance_factory.h
+	module_authenticator_factory.h
     config_provider_factory.h
     client_type.h
+	module_authenticator.h
     PARENT_SCOPE
 )
 
 set(SRC_PrivateHeaders_Component
     opendaq_config.h.in
     instance_impl.h
+	module_authenticator_impl.h
     client_impl.h
     opendaq_init.h
     instance_builder_impl.h
@@ -100,6 +111,7 @@ set(SRC_PrivateHeaders_Component
 set(SRC_Cpp_Component 
     version.cpp
     instance_impl.cpp
+	module_authenticator_impl.cpp
     client_impl.cpp
     opendaq_init.cpp
     instance_builder_impl.cpp

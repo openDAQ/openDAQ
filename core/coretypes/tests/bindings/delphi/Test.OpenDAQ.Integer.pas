@@ -40,7 +40,7 @@ uses
 procedure TTest_Integer.Basic;
 var
   IntObj: IInteger;
-  IntVal: RtInt;
+  IntVal: DaqInt;
 begin
   CreateInteger(IntObj, 5);
 

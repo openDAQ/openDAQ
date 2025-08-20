@@ -279,7 +279,7 @@ begin
 
   Serializer.GetOutput(StrObj);
   StrObj.GetCharPtr(@Str);
-  Assert.AreEqual(string(Str), '[]');
+  Assert.AreEqual(string(Str), '{"__type":"List","values":[]}');
 end;
 
 procedure TTest_JsonSerializer.StringListOne;
@@ -301,7 +301,7 @@ begin
 
   Serializer.GetOutput(StrObj);
   StrObj.GetCharPtr(@Str);
-  Assert.AreEqual(string(Str), '["Item1"]');
+  Assert.AreEqual(string(Str), '{"__type":"List","values":["Item1"]}');
 end;
 
 procedure TTest_JsonSerializer.StringListMultiple;
@@ -325,7 +325,7 @@ begin
 
   Serializer.GetOutput(StrObj);
   StrObj.GetCharPtr(@Str);
-  Assert.AreEqual(string(Str), '["Item1","Item2"]');
+  Assert.AreEqual(string(Str), '{"__type":"List","values":["Item1","Item2"]}');
 end;
 
 procedure TTest_JsonSerializer.FloatListOne;
@@ -347,7 +347,7 @@ begin
 
   Serializer.GetOutput(StrObj);
   StrObj.GetCharPtr(@Str);
-  Assert.AreEqual(string(Str), '[0.0]');
+  Assert.AreEqual(string(Str), '{"__type":"List","values":[0.0]}');
 end;
 
 procedure TTest_JsonSerializer.FloatListMultiple;
@@ -375,7 +375,7 @@ begin
 
   Serializer.GetOutput(StrObj);
   StrObj.GetCharPtr(@Str);
-  Assert.AreEqual(string(Str), '[0.0,2.2250738585072014e-308,1.7976931348623157e308]');
+  Assert.AreEqual(string(Str), '{"__type":"List","values":[0.0,2.2250738585072014e-308,1.7976931348623157e308]}');
 end;
 
 procedure TTest_JsonSerializer.IntListOne;
@@ -397,7 +397,7 @@ begin
 
   Serializer.GetOutput(StrObj);
   StrObj.GetCharPtr(@Str);
-  Assert.AreEqual(string(Str), '[0]');
+  Assert.AreEqual(string(Str), '{"__type":"List","values":[0]}');
 end;
 
 procedure TTest_JsonSerializer.IntListMultiple;
@@ -425,7 +425,7 @@ begin
 
   Serializer.GetOutput(StrObj);
   StrObj.GetCharPtr(@Str);
-  Assert.AreEqual(string(Str), '[0,-9223372036854775808,9223372036854775807]');
+  Assert.AreEqual(string(Str), '{"__type":"List","values":[0,-9223372036854775808,9223372036854775807]}');
 end;
 
 procedure TTest_JsonSerializer.IntFloatList;
@@ -470,7 +470,7 @@ begin
 
   Serializer.GetOutput(StrObj);
   StrObj.GetCharPtr(@Str);
-  Assert.AreEqual(string(Str), '[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807]');
+  Assert.AreEqual(string(Str), '{"__type":"List","values":[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807]}');
 end;
 
 procedure TTest_JsonSerializer.MixedList;
@@ -518,7 +518,7 @@ begin
 
   Serializer.GetOutput(StrObj);
   StrObj.GetCharPtr(@Str);
-  Assert.AreEqual(string(Str), '[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807,"Test1"]');
+  Assert.AreEqual(string(Str), '{"__type":"List","values":[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807,"Test1"]}');
 end;
 
 procedure TTest_JsonSerializer.StartTaggedNull;

@@ -14,7 +14,7 @@ interface
 uses
   OpenDAQ.CoreTypes,
   OpenDAQ.ObjectPtr,
-  OpenDAQ.ProxyValue,
+
   OpenDAQ.TString;
 
 type
@@ -54,7 +54,7 @@ type
 
 implementation
 uses
-  OpenDAQ.CoreTypes.Errors,
+
   OpenDAQ.Exceptions,
   OpenDAQ.SmartPtrRegistry;
 
@@ -78,7 +78,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetName(TypeName);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TStringPtr.Create(TypeName);
 end;

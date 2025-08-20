@@ -123,10 +123,19 @@ protected:
      */
     virtual void onUnsubscribeSignal(const StringPtr& signalStreamingId) = 0;
 
+    /*!
+     * @brief Called when a client signal is registered in a Streaming that supports client-to-device streaming.
+     * This is typically triggered when a client signal is connected to a device input port.
+     * @param signal The client signal being registered with the Streaming.
+     */
     virtual void onRegisterStreamedClientSignal(const SignalPtr& signal);
+
+    /*!
+     * @brief Called when a client signal is unregistered in a Streaming that supports client-to-device streaming.
+     * This is typically triggered when a client signal is disconnected from a device input port.
+     * @param signal The client signal being unregistered from the Streaming.
+     */
     virtual void onUnregisterStreamedClientSignal(const SignalPtr& signal);
-
-
 
     void onPacket(const StringPtr& signalId, const PacketPtr& packet);
     void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);

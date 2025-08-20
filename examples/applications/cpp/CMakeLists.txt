@@ -32,10 +32,6 @@ option(OPENDAQ_LICENSING "Licensing example." ON)
 option(OPENDAQ_READ_WRITE_AUDIO "Example on how to read and write wav files with the audio module." ON)
 option(OPENDAQ_LOGGER_USAGE "Example that show how to correctly use the logger and logging features in openDAQ" ON)
 
-if (OPENDAQ_CONSOLE_APP)
-  add_subdirectory(console_application)
-endif()
-
 if (OPENDAQ_EMPTY_EXAMPLE)
   add_subdirectory(empty_example)
 endif()

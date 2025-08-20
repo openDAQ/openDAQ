@@ -131,7 +131,7 @@ wheel_tag = auto_wheel_tag(
 path_build_pip_source_dir = os.path.dirname(__file__)
 package_version = read_opendaq_version(
     os.path.join(path_build_pip_source_dir, '..', '..', '..', 'opendaq_version')) if not package_version else package_version
-examples_dir = os.path.join(path_build_pip_source_dir, '..', '..', '..', 'examples', 'python')
+examples_dir = os.path.join(path_build_pip_source_dir, '..', '..', '..', 'examples', 'applications', 'python')
 
 if not modules.libs:
     print(f'Could not find any libraries in {build_bin_dir}')

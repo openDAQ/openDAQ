@@ -1,3 +1,13 @@
+set_cmake_folder_context(TARGET_FOLDER_NAME)
+
+if (MSVC)
+    add_compile_options(/wd4100)
+endif()
+
+if (POLICY CMP0077)
+    cmake_policy(SET CMP0077 NEW)
+endif()
+
 if (DAQMODULES_REF_FB_MODULE AND DAQMODULES_REF_DEVICE_MODULE)
     message(STATUS "Reference device & function block module test app")
     add_subdirectory(test_ref_modules)
@@ -14,8 +24,7 @@ if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND
     add_subdirectory(test_opendaq_device_modules)
 endif()
 
-if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND
-        OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS)
+if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS)
     message(STATUS "Websocket streaming signal generator tool integration test app")
     add_subdirectory(test_ws_siggen_integration)
 endif()

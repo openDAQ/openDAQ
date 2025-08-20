@@ -117,7 +117,7 @@ ErrCode ReferenceDomainInfoImpl::serialize(ISerializer* serializer)
             serializer->writeInt(referenceDomainOffset);
         }
 
-        serializer->key("referenceTimeProtocol");
+        serializer->key("referenceTimeSource");
         serializer->writeInt(static_cast<Int>(referenceTimeProtocol));
 
         serializer->key("usesOffset");
@@ -165,9 +165,9 @@ ErrCode ReferenceDomainInfoImpl::Deserialize(ISerializedObject* serialized, IBas
         dataDescriptor.setReferenceDomainOffset(referenceDomainOffset);
     }
 
-    if (serializedObj.hasKey("referenceTimeProtocol"))
+    if (serializedObj.hasKey("referenceTimeSource"))
     {
-        auto referenceTimeProtocol = static_cast<TimeProtocol>(serializedObj.readInt("referenceTimeProtocol"));
+        auto referenceTimeProtocol = static_cast<TimeProtocol>(serializedObj.readInt("referenceTimeSource"));
         dataDescriptor.setReferenceTimeProtocol(referenceTimeProtocol);
     }
 

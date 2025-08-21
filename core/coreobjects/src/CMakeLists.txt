@@ -343,6 +343,7 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_PermisisonMaskBuilder}
                                ${SRC_Permisisons}
                                ${SRC_ObjectLockGuard}
+                               ${SRC_PropertyMetadataReadArgs}
                                coreobjects.natvis
 )
 

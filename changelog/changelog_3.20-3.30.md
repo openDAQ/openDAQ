@@ -3,7 +3,7 @@
 ## Features
 
 - [#878](https://github.com/openDAQ/openDAQ/pull/878) Licensing interface and reference module + example implementation.
-- [#865](https://github.com/openDAQ/openDAQ/pull/865) onPropertyValueRead events are now supported over native. Suggested and Selection values can be overridden in new onRead events. String properties can now have suggested values.
+- [#865](https://github.com/openDAQ/openDAQ/pull/865), [#882](https://github.com/openDAQ/openDAQ/pull/882) onPropertyValueRead events are now supported over native. Suggested and Selection values can be overridden in new onRead events. String properties can now have suggested values.
 - [#853](https://github.com/openDAQ/openDAQ/pull/853) Parquet writer
 - [#861](https://github.com/openDAQ/openDAQ/pull/861) Add support for list and dictionary item/key type identification in Argument Info.
 - [#849](https://github.com/openDAQ/openDAQ/pull/849) Improving error logging and implementing an error guard.
@@ -23,6 +23,7 @@
 
 ## Bug fixes
 
+- [#880](https://github.com/openDAQ/openDAQ/pull/880) Fix OPC UA warnings related to writing default values to a node.
 - [#848](https://github.com/openDAQ/openDAQ/pull/848) Do not throw an exception when getting operation modes on old devices. Return default state instead.
 - [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active.
 - [#808](https://github.com/openDAQ/openDAQ/pull/808) Fix examples CMake when downloaded as solo archive via https://docs.opendaq.com/ or https://docs-dev.opendaq.com/ (when not part of whole openDAQ project).

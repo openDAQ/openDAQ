@@ -35,10 +35,6 @@ option(OPENDAQ_PROPERTIES_EXAMPLE "Properties example" ON)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if (OPENDAQ_CONSOLE_APP)
-  add_subdirectory(console_application)
-endif()
-
 if (OPENDAQ_EMPTY_EXAMPLE)
   add_subdirectory(empty_example)
 endif()

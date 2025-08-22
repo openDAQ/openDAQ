@@ -116,10 +116,8 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
         }
         else
         {
-            if (clientComm->getProtocolVersion() >= 18)
-                clientComm->connectExternalSignalToServerInputPortGeneralized(signalPtr, remoteGlobalId, mirroredInputPortPrivate);
-            else if (clientComm->getProtocolVersion() >= 2)
-                clientComm->connectExternalSignalToServerInputPortBasic(signalPtr, remoteGlobalId);
+            if (clientComm->getProtocolVersion() >= 2)
+                clientComm->connectExternalSignalToServerInputPort(signalPtr, remoteGlobalId, mirroredInputPortPrivate);
             else
                 return DAQ_MAKE_ERROR_INFO(
                     OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,

@@ -145,10 +145,9 @@ public:
                                              const BaseObjectPtr& context,
                                              const FunctionPtr& factoryCallback);
     bool isComponentNested(const StringPtr& componentGlobalId);
-    void connectExternalSignalToServerInputPortBasic(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
-    void connectExternalSignalToServerInputPortGeneralized(const SignalPtr& signal,
-                                                           const StringPtr& inputPortRemoteGlobalId,
-                                                           const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
+    void connectExternalSignalToServerInputPort(const SignalPtr& signal,
+                                                const StringPtr& inputPortRemoteGlobalId,
+                                                const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
     void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal,
                                                      const StringPtr& inputPortRemoteGlobalId,
                                                      const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);

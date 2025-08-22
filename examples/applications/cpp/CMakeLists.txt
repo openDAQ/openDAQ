@@ -31,6 +31,9 @@ option(OPENDAQ_IP_MODIFICATION "Example on how to modify IP configuration parame
 option(OPENDAQ_LICENSING "Licensing example." ON)
 option(OPENDAQ_READ_WRITE_AUDIO "Example on how to read and write wav files with the audio module." ON)
 option(OPENDAQ_LOGGER_USAGE "Example that show how to correctly use the logger and logging features in openDAQ" ON)
+option(OPENDAQ_PROPERTIES_EXAMPLE "Properties example" ON)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if (OPENDAQ_EMPTY_EXAMPLE)
   add_subdirectory(empty_example)
@@ -110,6 +113,12 @@ if (OPENDAQ_READ_WRITE_AUDIO)
   add_subdirectory(read_write_audio_file_example)
 endif()
 
+<<<<<<< HEAD
+if (OPENDAQ_PROPERTIES_EXAMPLE)
+    set(PROPERTIES_FOLDER_PATH "properties_example")
+    add_subdirectory(properties_example)
+endif()
+=======
 if(OPENDAQ_LOGGER_USAGE)
   add_subdirectory(logger_example)
 endif()
@@ -118,3 +127,4 @@ if (OPENDAQ_READ_WRITE_AUDIO)
   add_subdirectory(read_write_audio_file_example)
 endif()
 
+>>>>>>> main

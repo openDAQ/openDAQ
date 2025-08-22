@@ -30,6 +30,7 @@
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
 
+
 PyDaqIntf<daq::IStructBuilder, daq::IBaseObject> declareIStructBuilder(pybind11::module_ m)
 {
     return wrapInterface<daq::IStructBuilder, daq::IBaseObject>(m, "IStructBuilder");

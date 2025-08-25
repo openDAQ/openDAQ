@@ -4,6 +4,7 @@
 
 - [#869](https://github.com/openDAQ/openDAQ/pull/869) Implementing video player function block.
 - [#878](https://github.com/openDAQ/openDAQ/pull/878) Licensing interface and reference module + example implementation.
+- [#865](https://github.com/openDAQ/openDAQ/pull/865), [#882](https://github.com/openDAQ/openDAQ/pull/882) onPropertyValueRead events are now supported over native. Suggested and Selection values can be overridden in new onRead events. String properties can now have suggested values.
 - [#853](https://github.com/openDAQ/openDAQ/pull/853) Parquet writer
 - [#861](https://github.com/openDAQ/openDAQ/pull/861) Add support for list and dictionary item/key type identification in Argument Info.
 - [#849](https://github.com/openDAQ/openDAQ/pull/849) Improving error logging and implementing an error guard.
@@ -24,6 +25,7 @@
 
 ## Bug fixes
 
+- [#880](https://github.com/openDAQ/openDAQ/pull/880) Fix OPC UA warnings related to writing default values to a node.
 - [#848](https://github.com/openDAQ/openDAQ/pull/848) Do not throw an exception when getting operation modes on old devices. Return default state instead.
 - [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active.
 - [#808](https://github.com/openDAQ/openDAQ/pull/808) Fix examples CMake when downloaded as solo archive via https://docs.opendaq.com/ or https://docs-dev.opendaq.com/ (when not part of whole openDAQ project).
@@ -34,6 +36,7 @@
 
 - [#835](https://github.com/openDAQ/openDAQ/pull/835) Removes the opendaq_dev target.
 - [#829](https://github.com/openDAQ/openDAQ/pull/829) Add search functionality to Antora documentation to significantly improve user experience. 
+- [#883](https://github.com/openDAQ/openDAQ/pull/883) Renaming enum TimeSource into TimeProtocol, so that it more accurately reflects its values.
 
 
 ## Required application changes
@@ -63,6 +66,13 @@ FunctionPtr customVisitorFunc = Function(
 auto foundComponents = folder.getItems(search::Recursive(search::Custom(customAcceptorFunc, customVisitorFunc)));
 ```
 
+### [#883](https://github.com/openDAQ/openDAQ/pull/883) Renaming enum TimeSource into TimeProtocol, so that it more accurately reflects its values.
+
+```cpp
+auto info = device.getDomain().getReferenceDomainInfo();
+auto timeProtocol = info.getReferenceTimeProtocol();
+```
+
 ## Required module changes
 
 ### [#788](https://github.com/openDAQ/openDAQ/pull/788) Component property search.
@@ -82,4 +92,22 @@ public:
 -   ErrCode INTERFACE_FUNC visitChildren(IComponent* component, Bool* visit) override;
 +   ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
 };
+```
+
+### [#883](https://github.com/openDAQ/opeDAQ/pull/883)
+
+Changed the `TimeSource` into `TimeProtocol`.
+
+```diff
+-	ReferenceDomainInfoBuilder()
+			.setRefereceTimeSource(TimeSource::Gps)
+			.build();
+			
+-	referenceDomainInfo.getReferenceTimeSource();
+
++	ReferenceDomainInfoBuilder()
+			.setReferenceTimeProtocol(TimeProtocol::Gps)
+			.build();
+			
++	referenceDomainInfo.getReferenceTimeProtocol();
 ```

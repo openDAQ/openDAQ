@@ -7,6 +7,6 @@ begin
 $EnumKinds$    else raise ERTInvalidParameterException.Create('Invalid kind parameter to create $NonInterfaceType$.');
   end;
 
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
   inherited Create(RawInterface);
 end;

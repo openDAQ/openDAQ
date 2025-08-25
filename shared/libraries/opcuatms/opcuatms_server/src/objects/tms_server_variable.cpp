@@ -44,7 +44,17 @@ void TmsServerVariable<CoreType>::configureVariableNodeAttributes(opcua::OpcUaOb
     const auto dataType = this->getDataTypeId();
     if (!dataType.isNull())
     {
-        attr->dataType = dataType.getValue(); 
+        attr->dataType = dataType.getValue();
+        if (attr->dataType.identifier.numeric == UA_NS0ID_INT64)
+        {
+            UA_Int64 var = 0;
+            UA_Variant_setScalarCopy(&attr->value, &var, &UA_TYPES[UA_TYPES_INT64]);
+        }
+        else if (attr->dataType.identifier.numeric == UA_NS0ID_DOUBLE)
+        {
+            UA_Double var = 0;
+            UA_Variant_setScalarCopy(&attr->value, &var, &UA_TYPES[UA_TYPES_DOUBLE]);
+        }
     }
     else
     {

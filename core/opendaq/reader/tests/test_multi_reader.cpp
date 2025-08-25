@@ -2706,17 +2706,17 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality06)
     ASSERT_THROW_MSG(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Reference domain is incompatible.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceEquality01)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality01)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
 
     addSignal(
-        0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeSource(TimeSource::Tai).build()));
+        0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(
-        0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeSource(TimeSource::Tai).build()));
+        0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(
-        0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeSource(TimeSource::Tai).build()));
+        0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 
@@ -2730,7 +2730,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceEquality01)
     ASSERT_EQ(str, R"(Domain signal "time" Reference Domain ID not assigned.)");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceEquality02)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality02)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2738,15 +2738,15 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceEquality02)
     addSignal(
         0,
         113,
-        createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeSource(TimeSource::Unknown).build()));
+        createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(
         0,
         113,
-        createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeSource(TimeSource::Unknown).build()));
+        createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(
         0,
         113,
-        createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeSource(TimeSource::Unknown).build()));
+        createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 
@@ -2760,7 +2760,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceEquality02)
     ASSERT_EQ(str, R"(Domain signal "time" Reference Time Source is Unknown.)");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceEquality03)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality03)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2770,24 +2770,24 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceEquality03)
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceEquality04)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality04)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2798,26 +2798,26 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceEquality04)
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality01)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality01)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2827,25 +2827,25 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality01
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality02)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality02)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2855,25 +2855,25 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality02
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality03)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality03)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2883,25 +2883,25 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality03
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality04)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality04)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2911,84 +2911,26 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality04
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality05)
-{
-    constexpr const auto NUM_SIGNALS = 3;
-    readSignals.reserve(NUM_SIGNALS);
-
-    addSignal(
-        0,
-        113,
-        createDomainSignal("1993",
-                           nullptr,
-                           nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
-}
-
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality06)
-{
-    constexpr const auto NUM_SIGNALS = 3;
-    readSignals.reserve(NUM_SIGNALS);
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
-    addSignal(
-        0,
-        113,
-        createDomainSignal("1993",
-                           nullptr,
-                           nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
-}
-
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality07)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality05)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -2999,25 +2941,83 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality07
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
+
+    ASSERT_THROW_MSG(
+        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality06)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+
+    ASSERT_THROW_MSG(
+        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+}
+
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality07)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(
+        0,
+        113,
+        createDomainSignal("1993",
+                           nullptr,
+                           nullptr,
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+    addSignal(
+        0,
+        113,
+        createDomainSignal("1993",
+                           nullptr,
+                           nullptr,
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality08)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality08)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3027,26 +3027,26 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality08
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality09)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality09)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3056,26 +3056,26 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality09
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality10)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality10)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3085,26 +3085,26 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality10
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality11)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality11)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3115,25 +3115,25 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality11
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Tai).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality12)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality12)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3143,27 +3143,27 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality12
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Gps).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality13)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality13)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3173,26 +3173,26 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality13
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Gps).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality01)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality01)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3202,25 +3202,25 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality02)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality02)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3230,25 +3230,25 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality03)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality03)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3258,25 +3258,25 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality04)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality04)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3287,24 +3287,24 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality05)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality05)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3314,26 +3314,26 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Tai).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality06)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality06)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3344,25 +3344,25 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Tai).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     ASSERT_THROW_MSG(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Reference domain is incompatible.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality07)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality07)
 {
     constexpr const auto NUM_SIGNALS = 3;
     readSignals.reserve(NUM_SIGNALS);
@@ -3373,25 +3373,25 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Gps).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Gps).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality08)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality08)
 {
     constexpr const auto NUM_SIGNALS = 4;
     readSignals.reserve(NUM_SIGNALS);
@@ -3402,32 +3402,32 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality09)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality09)
 {
     constexpr const auto NUM_SIGNALS = 4;
     readSignals.reserve(NUM_SIGNALS);
@@ -3437,20 +3437,20 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     addSignal(
         0,
@@ -3458,12 +3458,12 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality10)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality10)
 {
     constexpr const auto NUM_SIGNALS = 6;
     readSignals.reserve(NUM_SIGNALS);
@@ -3474,27 +3474,27 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     addSignal(
         0,
@@ -3502,7 +3502,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     addSignal(
         0,
@@ -3510,12 +3510,12 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality11)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality11)
 {
     constexpr const auto NUM_SIGNALS = 6;
     readSignals.reserve(NUM_SIGNALS);
@@ -3526,27 +3526,27 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     addSignal(
         0,
@@ -3554,19 +3554,19 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality12)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality12)
 {
     constexpr const auto NUM_SIGNALS = 12;
     readSignals.reserve(NUM_SIGNALS);
@@ -3577,65 +3577,27 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Tai).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
-
-    addSignal(
-        0,
-        113,
-        createDomainSignal("1993",
-                           nullptr,
-                           nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
-
-    addSignal(
-        0,
-        113,
-        createDomainSignal("1993",
-                           nullptr,
-                           nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
-
-    addSignal(
-        0,
-        113,
-        createDomainSignal("1993",
-                           nullptr,
-                           nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     addSignal(
         0,
@@ -3643,14 +3605,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     addSignal(
         0,
@@ -3658,12 +3613,57 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
+
+    addSignal(
+        0,
+        113,
+        createDomainSignal("1993",
+                           nullptr,
+                           nullptr,
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+
+    addSignal(
+        0,
+        113,
+        createDomainSignal("1993",
+                           nullptr,
+                           nullptr,
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+
+    addSignal(
+        0,
+        113,
+        createDomainSignal("1993",
+                           nullptr,
+                           nullptr,
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality13)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality13)
 {
     constexpr const auto NUM_SIGNALS = 12;
     readSignals.reserve(NUM_SIGNALS);
@@ -3674,65 +3674,27 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
-
-    addSignal(
-        0,
-        113,
-        createDomainSignal("1993",
-                           nullptr,
-                           nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
-
-    addSignal(
-        0,
-        113,
-        createDomainSignal("1993",
-                           nullptr,
-                           nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
-
-    addSignal(
-        0,
-        113,
-        createDomainSignal("1993",
-                           nullptr,
-                           nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     addSignal(
         0,
@@ -3740,14 +3702,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     addSignal(
         0,
@@ -3755,12 +3710,57 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
+
+    addSignal(
+        0,
+        113,
+        createDomainSignal("1993",
+                           nullptr,
+                           nullptr,
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+
+    addSignal(
+        0,
+        113,
+        createDomainSignal("1993",
+                           nullptr,
+                           nullptr,
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+
+    addSignal(
+        0,
+        113,
+        createDomainSignal("1993",
+                           nullptr,
+                           nullptr,
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality14)
+TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality14)
 {
     constexpr const auto NUM_SIGNALS = 12;
     readSignals.reserve(NUM_SIGNALS);
@@ -3771,35 +3771,27 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
-
-    addSignal(
-        0,
-        113,
-        createDomainSignal("1993",
-                           nullptr,
-                           nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
     addSignal(
         0,
@@ -3807,7 +3799,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     addSignal(
         0,
@@ -3815,35 +3807,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Unknown).build()));
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeSource(TimeSource::Tai).build()));
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
-
-    addSignal(0,
-              113,
-              createDomainSignal("1993",
-                                 nullptr,
-                                 nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     addSignal(
         0,
@@ -3851,13 +3815,49 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeSourceInequality
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
+
+    addSignal(0,
+              113,
+              createDomainSignal("1993",
+                                 nullptr,
+                                 nullptr,
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
+
+    addSignal(
+        0,
+        113,
+        createDomainSignal("1993",
+                           nullptr,
+                           nullptr,
+                           ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
 }
 
-TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality15)
+TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality15)
 {
     constexpr const auto NUM_SIGNALS = 5;
     readSignals.reserve(NUM_SIGNALS);
@@ -3868,20 +3868,20 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality15
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Tai).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
     addSignal(
         0,
         113,
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     addSignal(
         0,
@@ -3889,14 +3889,14 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeSourceInequality15
         createDomainSignal("1993",
                            nullptr,
                            nullptr,
-                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Unknown).build()));
+                           ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
     addSignal(0,
               113,
               createDomainSignal("1993",
                                  nullptr,
                                  nullptr,
-                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeSource(TimeSource::Gps).build()));
+                                 ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
 
     ASSERT_THROW_MSG(
         MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");

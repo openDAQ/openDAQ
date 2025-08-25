@@ -127,7 +127,7 @@ var
   Err : ErrCode;
 begin
   Err := CreateList(List);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(List);
 end;
@@ -145,7 +145,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.PushBack(Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TListPtr<T>.PushFront(Value: TProxyValue<T>);
@@ -156,7 +156,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.PushFront(Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TListPtr<T>.PopBack(): TProxyValue<T>;
@@ -168,7 +168,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.PopBack(Removed);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := T(Removed);
 end;
@@ -182,7 +182,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.PopFront(Removed);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := T(Removed);
 end;
@@ -195,7 +195,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.MoveBack(Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TListPtr<T>.MoveFront(Value: TProxyValue<T>);
@@ -206,7 +206,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.MoveFront(Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TListPtr<T>.InsertAt(Index: SizeT; Value: TProxyValue<T>);
@@ -217,7 +217,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.InsertAt(Index, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TListPtr<T>.RemoveAt(Index: SizeT) : TProxyValue<T>;
@@ -229,7 +229,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.RemoveAt(Index, Removed);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := T(Removed);
 end;
@@ -242,7 +242,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.DeleteAt(Index);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TListPtr<T>.SetItemAt(Index: SizeT; Value: TProxyValue<T>);
@@ -253,7 +253,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.SetItemAt(Index, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TListPtr<T>.Clear();
@@ -264,7 +264,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Clear();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TListPtr<T>.GetCount(): SizeT;
@@ -276,7 +276,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetCount(Count);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Count;
 end;
@@ -290,7 +290,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetItemAt(Index, Item);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := T(Item);
 end;
@@ -304,7 +304,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.CreateStartIterator(Iter);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TIteratorPtr<T>.Create(Iter);
 end;
@@ -318,7 +318,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.CreateEndIterator(Iter);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TIteratorPtr<T>.Create(Iter);
 end;

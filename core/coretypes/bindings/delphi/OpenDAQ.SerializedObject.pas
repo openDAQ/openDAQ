@@ -36,11 +36,11 @@ type
     function ReadBool(Key : IString): Boolean; overload;
     function ReadBool(Key : string): Boolean; overload;
 
-    function ReadFloat(Key : IString): RtFloat; overload;
-    function ReadFloat(Key : string): RtFloat; overload;
+    function ReadFloat(Key : IString): DaqFloat; overload;
+    function ReadFloat(Key : string): DaqFloat; overload;
 
-    function ReadInt(Key : IString): RtInt; overload;
-    function ReadInt(Key : string): RtInt; overload;
+    function ReadInt(Key : IString): DaqInt; overload;
+    function ReadInt(Key : string): DaqInt; overload;
 
     function HasKey(Key : IString): Boolean; overload;
     function HasKey(Key : string): Boolean; overload;
@@ -78,7 +78,7 @@ type
     function Interface_ReadString(Key: IString; out Str: IString): ErrCode stdcall;
     function Interface_ReadBool(Key: IString; out Bool: Boolean): ErrCode stdcall;
     function Interface_ReadFloat(Key: IString; out Real: Double): ErrCode stdcall;
-    function Interface_ReadInt(Key: IString; out Int: RtInt): ErrCode stdcall;
+    function Interface_ReadInt(Key: IString; out Int: DaqInt): ErrCode stdcall;
     function Interface_HasKey(Key: IString; out HasKey: Boolean): ErrCode stdcall;
     function Interface_GetKeys(out List: IListObject): ErrCode stdcall;
     function Interface_GetType(Key: IString; out AType: TCoreType): ErrCode stdcall;
@@ -113,7 +113,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.HasKey(Key, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Value;
 end;
@@ -127,7 +127,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.HasKey(CreateStringFromDelphiString(Key), Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Value;
 end;
@@ -141,7 +141,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetKeys(List);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TListPtr<IString>.Create(List);
 end;
@@ -155,7 +155,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ReadBool(Key, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Value;
 end;
@@ -165,40 +165,40 @@ begin
   Result := ReadBool(CreateStringFromDelphiString(Key));
 end;
 
-function TSerializedObjectPtr.ReadFloat(Key : IString): RtFloat;
+function TSerializedObjectPtr.ReadFloat(Key : IString): DaqFloat;
 var
   Err : ErrCode;
-  Value : RtFloat;
+  Value : DaqFloat;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ReadFloat(Key, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Value;
 end;
 
-function TSerializedObjectPtr.ReadFloat(Key : string): RtFloat;
+function TSerializedObjectPtr.ReadFloat(Key : string): DaqFloat;
 begin
   Result := ReadFloat(CreateStringFromDelphiString(Key));
 end;
 
-function TSerializedObjectPtr.ReadInt(Key : IString): RtInt;
+function TSerializedObjectPtr.ReadInt(Key : IString): DaqInt;
 var
   Err : ErrCode;
-  Value : RtInt;
+  Value : DaqInt;
 begin
   if not Assigned(FObject) then
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ReadInt(Key, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Value;
 end;
 
-function TSerializedObjectPtr.ReadInt(Key : string): RtInt;
+function TSerializedObjectPtr.ReadInt(Key : string): DaqInt;
 begin
   Result := ReadInt(CreateStringFromDelphiString(Key));
 end;
@@ -212,7 +212,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ReadList(Key, Context, FactoryCallback, List);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TListPtr<IBaseObject>.Create(List);
 end;
@@ -231,7 +231,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ReadObject(Key, Context, FactoryCallback, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TObjectPtr<IBaseObject>.Create(Obj);
 end;
@@ -250,7 +250,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ReadSerializedList(Key, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TSerializedListPtr.Create(Obj);
 end;
@@ -269,7 +269,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ReadSerializedObject(Key, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TSerializedObjectPtr.Create(Obj);
 end;
@@ -288,7 +288,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ReadString(Key, Str);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TStringPtr.Create(Str);
 end;
@@ -307,7 +307,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ReadString(Key, Obj);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := RtToString(Obj);
 end;
@@ -326,7 +326,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetType(Key, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Value;
 end;
@@ -345,7 +345,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetType(CreateStringFromDelphiString(Key), Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Value;
 end;
@@ -359,7 +359,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.IsRoot(Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Value;
 end;
@@ -373,7 +373,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ToJson(JsonString);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TStringPtr.Create(JsonString);
 end;
@@ -387,7 +387,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.ToJson(JsonString);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := RtToString(JsonString);
 end;
@@ -419,7 +419,7 @@ begin
   Result := FObject.ReadString(Key, Str);
 end;
 
-function TSerializedObjectPtr.Interface_ReadInt(Key: IString; out Int: RtInt): ErrCode;
+function TSerializedObjectPtr.Interface_ReadInt(Key: IString; out Int: DaqInt): ErrCode;
 begin
   Result := FObject.ReadInt(Key, Int);
 end;

@@ -56,13 +56,13 @@ extern "C"
         daqPacketTypeEvent      ///< Packet is an Event packet
     } daqPacketType;
 
-    typedef enum daqTimeSource
+    typedef enum daqTimeProtocol
     {
-        daqTimeSourceUnknown,
-        daqTimeSourceTai,
-        daqTimeSourceGps,
-        daqTimeSourceUtc
-    } daqTimeSource;
+        daqTimeProtocolUnknown,
+        daqTimeProtocolTai,
+        daqTimeProtocolGps,
+        daqTimeProtocolUtc
+    } daqTimeProtocol;
 
     typedef enum daqUsesOffset
     {

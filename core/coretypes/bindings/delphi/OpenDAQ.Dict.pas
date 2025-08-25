@@ -97,7 +97,7 @@ var
   Err : ErrCode;
 begin
   Err := CreateDict(Dict);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
   
   inherited Create(Dict);
 end;
@@ -121,7 +121,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetItem(Key, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TProxyValue<TValue>.Create(TValue(Value));
 end;
@@ -134,7 +134,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.SetItem(Key, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TDictionaryPtr<TKey, TValue>.RemoveItem(Key : TProxyValue<TKey>) : TProxyValue<TValue>;
@@ -146,7 +146,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.RemoveItem(key, Value);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TValue(Value);
 end;
@@ -159,7 +159,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.DeleteItem(key);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 procedure TDictionaryPtr<TKey, TValue>.Clear();
@@ -170,7 +170,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.Clear();
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;
 
 function TDictionaryPtr<TKey, TValue>.GetCount() : SizeT;
@@ -182,7 +182,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetCount(Size);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Size;
 end;
@@ -196,7 +196,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.HasKey(key, HasKey);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := HasKey;
 end;
@@ -210,7 +210,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetKeyList(Keys);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TListPtr<TKey>.Create(Keys);
 end;
@@ -224,7 +224,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetValueList(Values);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TListPtr<TValue>.Create(Values);
 end;
@@ -238,7 +238,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetKeys(Keys);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TIterablePtr<TKey>.Create(Keys);
 end;
@@ -252,7 +252,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetValues(Values);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := TIterablePtr<TValue>.Create(Values);
 end;

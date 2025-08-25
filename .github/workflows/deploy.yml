@@ -384,9 +384,8 @@ jobs:
 
       - name: Upload examples to S3
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
-        working-directory: ./examples
         run: |
-          zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip cpp python
+          zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip examples/applications -x examples/applications/CMakeLists.txt
           aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/  --recursive --exclude '*' --include '*examples.zip'
           aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/
 

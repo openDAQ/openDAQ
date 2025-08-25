@@ -8,7 +8,7 @@ BEGIN_NAMESPACE_OPENDAQ
 ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl()
     : referenceDomainId(nullptr)
     , referenceDomainOffset(nullptr)
-    , referenceTimeSource(TimeSource::Unknown)
+    , referenceTimeProtocol(TimeProtocol::Unknown)
     , usesOffset(UsesOffset::Unknown)
 {
 }
@@ -16,7 +16,7 @@ ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl()
 ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl(const ReferenceDomainInfoPtr& infoCopy)
     : referenceDomainId(infoCopy.getReferenceDomainId())
     , referenceDomainOffset(infoCopy.getReferenceDomainOffset())
-    , referenceTimeSource(infoCopy.getReferenceTimeSource())
+    , referenceTimeProtocol(infoCopy.getReferenceTimeProtocol())
     , usesOffset(infoCopy.getUsesOffset())
 {
 }
@@ -61,16 +61,16 @@ ErrCode ReferenceDomainInfoBuilderImpl::getReferenceDomainOffset(IInteger** refe
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ReferenceDomainInfoBuilderImpl::setReferenceTimeSource(TimeSource referenceTimeSource)
+ErrCode ReferenceDomainInfoBuilderImpl::setReferenceTimeProtocol(TimeProtocol referenceTimeProtocol)
 {
-    this->referenceTimeSource = referenceTimeSource;
+    this->referenceTimeProtocol = referenceTimeProtocol;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ReferenceDomainInfoBuilderImpl::getReferenceTimeSource(TimeSource* referenceTimeSource)
+ErrCode ReferenceDomainInfoBuilderImpl::getReferenceTimeProtocol(TimeProtocol* referenceTimeProtocol)
 {
-    OPENDAQ_PARAM_NOT_NULL(referenceTimeSource);
-    *referenceTimeSource = this->referenceTimeSource;
+    OPENDAQ_PARAM_NOT_NULL(referenceTimeProtocol);
+    *referenceTimeProtocol = this->referenceTimeProtocol;
     return OPENDAQ_SUCCESS;
 }
 

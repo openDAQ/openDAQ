@@ -48,6 +48,7 @@ rtgen(SRC_PermisisonMaskBuilder permission_mask_builder.h)
 rtgen(SRC_Permisisons permissions.h)
 rtgen(SRC_PermisisonsInternal permissions_internal.h)
 rtgen(SRC_ObjectLockGuard object_lock_guard.h)
+rtgen(SRC_PropertyMetadataReadArgs property_metadata_read_args.h)
 
 get_target_property(CORE_CONTAINERS_SRCS core_containers INTERFACE_SOURCES)
 
@@ -127,6 +128,11 @@ source_group("property_value" FILES ${SDK_HEADERS_DIR}/property_value.h
                                     property_value_event_args_impl.cpp
 )
 
+source_group("property_metadata_read_args" FILES ${SDK_HEADERS_DIR}/property_metadata_read_args.h
+                                                 ${SDK_HEADERS_DIR}/property_metadata_read_args_factory.h
+                                                 ${SDK_HEADERS_DIR}/property_metadata_read_args_impl.h
+                                                 property_metadata_read_args_impl.cpp
+)
 source_group("end_update_event_args" FILES ${SDK_HEADERS_DIR}/end_update_event_args.h
                                            ${SDK_HEADERS_DIR}/end_update_event_args_factory.h
                                            ${SDK_HEADERS_DIR}/end_update_event_args_impl.h
@@ -220,6 +226,7 @@ set(SRC_Cpp version.cpp
             permissions_builder_impl.cpp
             permission_mask_builder_impl.cpp
             search_filter_impl.cpp
+            property_metadata_read_args_impl.cpp
 )
 
 set(SRC_PublicHeaders coreobjects.h
@@ -269,6 +276,8 @@ set(SRC_PublicHeaders coreobjects.h
                       object_lock_guard.h
                       search_filter.h
                       search_filter_factory.h
+                      property_metadata_read_args.h
+                      property_metadata_read_args_factory.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -297,6 +306,7 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        permissions_builder_impl.h
                        permission_mask_builder_impl.h
                        search_filter_impl.h
+                       property_metadata_read_args_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
@@ -333,6 +343,7 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_PermisisonMaskBuilder}
                                ${SRC_Permisisons}
                                ${SRC_ObjectLockGuard}
+                               ${SRC_PropertyMetadataReadArgs}
                                coreobjects.natvis
 )
 

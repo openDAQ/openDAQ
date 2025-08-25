@@ -87,6 +87,8 @@ public:
 
     virtual PropertyObjectPtr onCreateDefaultAddDeviceConfig();
 
+    ErrCode INTERFACE_FUNC setName(IString* name) override;
+
     // IDevice
     ErrCode INTERFACE_FUNC getInfo(IDeviceInfo** info) override;
     ErrCode INTERFACE_FUNC getDomain(IDeviceDomain** deviceDomain) override;
@@ -1521,6 +1523,18 @@ PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onCreateDefaultAddDe
     checkErrorInfo(manager->createDefaultAddDeviceConfig(&obj));
 
     return obj;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setName(IString* name)
+{
+    if (deviceInfo.assigned())
+    {
+        auto protected_ = deviceInfo.asPtr<IPropertyObjectProtected>();
+        OPENDAQ_RETURN_IF_FAILED(protected_->setProtectedPropertyValue(String("name"), name));
+    }
+
+    return Super::setName(name);
 }
 
 template <typename TInterface, typename... Interfaces>

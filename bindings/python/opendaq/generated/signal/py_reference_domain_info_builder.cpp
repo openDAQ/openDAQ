@@ -80,18 +80,18 @@ void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IRefe
         },
         py::return_value_policy::take_ownership,
         "Gets the Reference Domain Offset. / Sets the Reference Domain Offset.");
-    cls.def_property("reference_time_source",
+    cls.def_property("reference_time_protocol",
         [](daq::IReferenceDomainInfoBuilder *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
-            return objectPtr.getReferenceTimeSource();
+            return objectPtr.getReferenceTimeProtocol();
         },
-        [](daq::IReferenceDomainInfoBuilder *object, daq::TimeSource referenceTimeSource)
+        [](daq::IReferenceDomainInfoBuilder *object, daq::TimeProtocol referenceTimeProtocol)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
-            objectPtr.setReferenceTimeSource(referenceTimeSource);
+            objectPtr.setReferenceTimeProtocol(referenceTimeProtocol);
         },
         "Gets the value that indicates the Reference Time Source. / Sets the value that indicates the Reference Time Source.");
     cls.def_property("uses_offset",

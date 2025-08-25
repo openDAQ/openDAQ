@@ -49,4 +49,12 @@ void defineIMirroredDevice(pybind11::module_ m, PyDaqIntf<daq::IMirroredDevice, 
         },
         py::return_value_policy::take_ownership,
         "Gets a list of streaming objects representing all streaming sources of the device.");
+    cls.def_property_readonly("remote_id",
+        [](daq::IMirroredDevice *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MirroredDevicePtr::Borrow(object);
+            return objectPtr.getRemoteId().toStdString();
+        },
+        "Gets the global ID of the device as it appears on the remote instance.");
 }

@@ -6,6 +6,7 @@
 #include <opendaq/input_port_factory.h>
 #include "mock/mock_mirrored_signal.h"
 #include <opendaq/component_factory.h>
+#include "mock/mock_mirrored_input_port.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -125,6 +126,23 @@ TEST_F(StreamingTest, TriggerAvailableDuringReconnection)
     ASSERT_NO_THROW(streaming.mock().makeSignalUnavailable("Signal1"));
     ASSERT_NO_THROW(streaming.mock().makeSignalUnavailable("Signal2"));
     ASSERT_NO_THROW(streaming.mock().makeSignalUnavailable("Signal3"));
+}
+
+TEST_F(StreamingTest, StreamedClientSignals)
+{
+    SignalPtr signal = Signal(context, nullptr, String("Signal"));
+
+    EXPECT_CALL(streaming.mock(), onRegisterStreamedClientSignal(signal)).Times(Exactly(1));
+    ASSERT_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->registerStreamedClientSignals(List<ISignal>(signal)),
+              OPENDAQ_SUCCESS);
+    ASSERT_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->registerStreamedClientSignals(List<ISignal>(signal)),
+              OPENDAQ_SUCCESS);
+
+    EXPECT_CALL(streaming.mock(), onUnregisterStreamedClientSignal(signal)).Times(Exactly(1));
+    ASSERT_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->unregisterStreamedClientSignals(List<ISignal>(signal)),
+              OPENDAQ_SUCCESS);
+    ASSERT_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->unregisterStreamedClientSignals(List<ISignal>(signal)),
+              OPENDAQ_ERR_NOTFOUND);
 }
 
 // 1-st parameter signal available in streaming (true) or not (false)
@@ -278,6 +296,91 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple(true, true)
     )
 );
+
+class InputPortAddRemoveTest : public StreamingTest
+{
+public:
+    InputPortAddRemoveTest()
+        : StreamingTest()
+    {
+    }
+
+    MirroredInputPortConfigPtr createMirroredInputPort(const StringPtr& id)
+    {
+        auto inputPort = createWithImplementation<IMirroredInputPortConfig, MockMirroredInputPortImpl>(context, nullptr, id);
+        return inputPort;
+    }
+};
+
+TEST_F(InputPortAddRemoveTest, AddInputPort)
+{
+    auto inputPort = createMirroredInputPort("InputPort");
+
+    ASSERT_NO_THROW(streaming.ptr.addInputPorts({inputPort}));
+}
+
+TEST_F(InputPortAddRemoveTest, AddInputPortTwice)
+{
+    auto inputPort = createMirroredInputPort("InputPort");
+
+    ASSERT_NO_THROW(streaming.ptr.addInputPorts({inputPort}));
+    ASSERT_THROW(streaming.ptr.addInputPorts({inputPort}), DuplicateItemException);
+}
+
+TEST_F(InputPortAddRemoveTest, AddMultipleInputPorts)
+{
+    auto inputPort = createMirroredInputPort("InputPort");
+    auto inputPort2 = createMirroredInputPort("InputPort2");
+
+    ASSERT_NO_THROW(streaming.ptr.addInputPorts({inputPort, inputPort2}));
+}
+
+TEST_F(InputPortAddRemoveTest, RemoveInputPortNotFound)
+{
+    auto inputPort = createMirroredInputPort("InputPort");
+
+    ASSERT_THROW(streaming.ptr.removeInputPorts({inputPort}), NotFoundException);
+}
+
+TEST_F(InputPortAddRemoveTest, RemoveInputPort)
+{
+    auto inputPort = createMirroredInputPort("InputPort");
+
+    ASSERT_NO_THROW(streaming.ptr.addInputPorts({inputPort}));
+    ASSERT_NO_THROW(streaming.ptr.removeInputPorts({inputPort}));
+}
+
+TEST_F(InputPortAddRemoveTest, AddInputPortAfterRemove)
+{
+    auto inputPort = createMirroredInputPort("InputPort");
+
+    ASSERT_NO_THROW(streaming.ptr.addInputPorts({inputPort}));
+    ASSERT_NO_THROW(streaming.ptr.removeInputPorts({inputPort}));
+    ASSERT_NO_THROW(streaming.ptr.addInputPorts({inputPort}));
+}
+
+TEST_F(InputPortAddRemoveTest, RemoveMultipleInputPorts)
+{
+    auto inputPort1 = createMirroredInputPort("InputPort");
+    auto inputPort2 = createMirroredInputPort("InputPort2");
+
+    ASSERT_NO_THROW(streaming.ptr.addInputPorts({inputPort1, inputPort2}));
+    ASSERT_NO_THROW(streaming.ptr.removeInputPorts({inputPort1, inputPort2}));
+}
+
+TEST_F(InputPortAddRemoveTest, RemoveAllNoInputPorts)
+{
+    ASSERT_NO_THROW(streaming.ptr.removeAllInputPorts());
+}
+
+TEST_F(InputPortAddRemoveTest, RemoveAllOneInputPort)
+{
+    auto inputPort = createMirroredInputPort("InputPort");
+
+    ASSERT_NO_THROW(streaming.ptr.addInputPorts({inputPort}));
+    ASSERT_NO_THROW(streaming.ptr.removeAllInputPorts());
+    ASSERT_NO_THROW(streaming.ptr.addInputPorts({inputPort}));
+}
 
 // test parameter signal has parent (true) and remote and streaming Ids are different, or not (false)
 class DirectSubscriptionTest : public StreamingTest, public WithParamInterface<bool>

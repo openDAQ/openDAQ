@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:56.
+//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -20,4 +20,9 @@ const daqIntfID DAQ_MIRRORED_DEVICE_INTF_ID = { daq::IMirroredDevice::Id.Data1, 
 daqErrCode daqMirroredDevice_getStreamingSources(daqMirroredDevice* self, daqList** streamingSources)
 {
     return reinterpret_cast<daq::IMirroredDevice*>(self)->getStreamingSources(reinterpret_cast<daq::IList**>(streamingSources));
+}
+
+daqErrCode daqMirroredDevice_getRemoteId(daqMirroredDevice* self, daqString** id)
+{
+    return reinterpret_cast<daq::IMirroredDevice*>(self)->getRemoteId(reinterpret_cast<daq::IString**>(id));
 }

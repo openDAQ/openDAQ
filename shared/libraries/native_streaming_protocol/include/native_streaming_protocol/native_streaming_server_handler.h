@@ -31,9 +31,6 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 static const SizeT UNLIMITED_CONFIGURATION_CONNECTIONS = 0;
 
-using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
-using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
-
 using OnClientConnectedCallback = std::function<void(const std::string& clientId, const std::string& address, bool isStreamingConnection, ClientType clientType, const std::string& hostName)>;
 using OnClientDisconnectedCallback = std::function<void(const std::string& clientId)>;
 
@@ -65,6 +62,15 @@ public:
     void sendAvailableStreamingPackets();
 
     static PropertyObjectPtr createDefaultConfig();
+
+    // streaming-to-device subscriptions
+    void doSubscribeSignal(const StringPtr& signalStringId, bool subscribe);
+
+    void resetStreamingToDeviceHandlers();
+    void setStreamingToDeviceHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
+                                      const OnSignalUnavailableCallback& signalUnavailableHandler,
+                                      const OnPacketCallback& packetHandler,
+                                      const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback);
 
 protected:
     void initSessionHandler(SessionPtr session);
@@ -98,6 +104,18 @@ protected:
     ClientType parseClientTypeProp(const PropertyObjectPtr& propertyObject);
     bool parseExclusiveControlDropOthersProp(const PropertyObjectPtr& propertyObject);
 
+    void handleClientSignal(const SignalNumericIdType& signalNumericId,
+                            const StringPtr& signalStringId,
+                            const StringPtr& serializedSignal,
+                            bool available,
+                            const std::string& clientId);
+
+    void handleClientSignalSubscribeAck(const SignalNumericIdType& signalNumericId,
+                                        bool subscribed,
+                                        const std::string& clientId);
+
+    void onPacketBufferReceived(const packet_streaming::PacketBufferPtr& packetBuffer, const std::string& clientId);
+
     ContextPtr context;
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     LoggerPtr logger;
@@ -125,6 +143,12 @@ protected:
     SizeT streamingPacketSendTimeout;
     SizeT packetStreamingReleaseThreshold;
     SizeT cacheablePacketPayloadSizeMax;
+
+    // streaming-to-device callbacks
+    OnSignalAvailableCallback signalAvailableHandler;
+    OnSignalUnavailableCallback signalUnavailableHandler;
+    OnPacketCallback packetHandler;
+    OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

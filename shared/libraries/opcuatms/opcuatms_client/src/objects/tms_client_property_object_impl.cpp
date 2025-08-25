@@ -10,7 +10,7 @@
 #include <opcuatms_client/objects/tms_client_function_factory.h>
 #include <opcuatms_client/objects/tms_client_procedure_factory.h>
 #include <opendaq/mirrored_signal_impl.h>
-#include <opendaq/input_port_impl.h>
+#include <opendaq/mirrored_input_port_impl.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/mirrored_device_impl.h>
 #include <opendaq/io_folder_impl.h>
@@ -601,7 +601,7 @@ template class TmsClientPropertyObjectBaseImpl<MirroredDeviceBase<ITmsClientComp
 template class TmsClientPropertyObjectBaseImpl<FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<ChannelImpl<ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<MirroredSignalBase<ITmsClientComponent>>;
-template class TmsClientPropertyObjectBaseImpl<GenericInputPortImpl<ITmsClientComponent>>;
+template class TmsClientPropertyObjectBaseImpl<MirroredInputPortBase<ITmsClientComponent>>;
 template class TmsClientPropertyObjectBaseImpl<ServerCapabilityConfigImpl>;
 template class TmsClientPropertyObjectBaseImpl<GenericSyncComponentImpl<ISyncComponent, ITmsClientComponent>>;
 

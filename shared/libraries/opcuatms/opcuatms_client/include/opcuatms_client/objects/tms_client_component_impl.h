@@ -39,6 +39,7 @@ public:
                                const opcua::OpcUaNodeId& nodeId,
                                const std::map<std::string, std::string>& propBrowseName = {})
         : TmsClientPropertyObjectBaseImpl<Impl>(ctx, parent, localId, clientContext, nodeId, propBrowseName)
+        , remoteComponentId(nodeId.getIdentifier())
     {
         initComponent();
         clientContext->readObjectAttributes(nodeId);
@@ -72,8 +73,9 @@ public:
 
 protected:
     bool isChildComponent(const ComponentPtr& component);
-
     PropertyObjectPtr findAndCreateComponentConfig();
+
+    std::string remoteComponentId;
 
 private:
     LoggerComponentPtr getLoggerComponent();

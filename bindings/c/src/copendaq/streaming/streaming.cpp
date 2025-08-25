@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:59.
+//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -50,4 +50,34 @@ daqErrCode daqStreaming_getConnectionString(daqStreaming* self, daqString** conn
 daqErrCode daqStreaming_getConnectionStatus(daqStreaming* self, daqEnumeration** connectionStatus)
 {
     return reinterpret_cast<daq::IStreaming*>(self)->getConnectionStatus(reinterpret_cast<daq::IEnumeration**>(connectionStatus));
+}
+
+daqErrCode daqStreaming_addInputPorts(daqStreaming* self, daqList* inputPorts)
+{
+    return reinterpret_cast<daq::IStreaming*>(self)->addInputPorts(reinterpret_cast<daq::IList*>(inputPorts));
+}
+
+daqErrCode daqStreaming_removeInputPorts(daqStreaming* self, daqList* inputPorts)
+{
+    return reinterpret_cast<daq::IStreaming*>(self)->removeInputPorts(reinterpret_cast<daq::IList*>(inputPorts));
+}
+
+daqErrCode daqStreaming_removeAllInputPorts(daqStreaming* self)
+{
+    return reinterpret_cast<daq::IStreaming*>(self)->removeAllInputPorts();
+}
+
+daqErrCode daqStreaming_getOwnerDeviceRemoteId(daqStreaming* self, daqString** deviceRemoteId)
+{
+    return reinterpret_cast<daq::IStreaming*>(self)->getOwnerDeviceRemoteId(reinterpret_cast<daq::IString**>(deviceRemoteId));
+}
+
+daqErrCode daqStreaming_getProtocolId(daqStreaming* self, daqString** protocolId)
+{
+    return reinterpret_cast<daq::IStreaming*>(self)->getProtocolId(reinterpret_cast<daq::IString**>(protocolId));
+}
+
+daqErrCode daqStreaming_getClientToDeviceStreamingEnabled(daqStreaming* self, daqBool* enabled)
+{
+    return reinterpret_cast<daq::IStreaming*>(self)->getClientToDeviceStreamingEnabled(enabled);
 }

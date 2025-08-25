@@ -36,7 +36,8 @@ public:
             serverDevice,
             std::bind(&ConfigProtocolViewOnlyClientTest::serverNotificationReady, this, std::placeholders::_1),
             UserTomaz,
-            connectionType);
+            connectionType,
+            test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
         auto clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(

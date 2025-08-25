@@ -60,6 +60,33 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingPrivate, IBaseObject)
      * @param device The device to which the streaming object is attached.
      */
     virtual ErrCode INTERFACE_FUNC setOwnerDevice(const DevicePtr& device) = 0;
+
+    // [elementType(signals, ISignal)]
+    /*!
+     * @brief Registers client signal within the streaming source of the input port it is connected to.
+     * @param signals The list of client signals to register, typically including the connected signal and
+     * its associated domain signal.
+     *
+     * Forwarding of signal data via streaming is enabled for these signals once they are registered.
+     */
+    virtual ErrCode INTERFACE_FUNC registerStreamedClientSignals(IList* signals) = 0;
+
+    // [elementType(signals, ISignal)]
+    /*!
+     * @brief Unregisters client signal within the streaming source of the input port it is disconnected from.
+     * @param signals The list of client signals to unregister, typically including the disconnected signal and
+     * its associated domain signal.
+     *
+     * Unregistered signals will not be transmitted through the streaming protocol.
+     */
+    virtual ErrCode INTERFACE_FUNC unregisterStreamedClientSignals(IList* signals) = 0;
+
+    /*!
+     * @brief Removes added input port without removing the streaming source from it.
+     * @param inputPortRemoteId The global remote ID of the removed input port.
+     * @retval OPENDAQ_ERR_NOTFOUND if an input port with corresponding remote Id was not added to the Streaming.
+     */
+    virtual ErrCode INTERFACE_FUNC detachRemovedInputPort(IString* inputPortRemoteId) = 0;
 };
 /*!@}*/
 

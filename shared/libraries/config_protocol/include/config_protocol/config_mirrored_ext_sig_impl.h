@@ -30,6 +30,7 @@ class ConfigMirroredExternalSignalImpl final : public MirroredSignalBase<IMirror
 {
 public:
     using Super = MirroredSignalBase<IMirroredExternalSignalPrivate>;
+
     explicit ConfigMirroredExternalSignalImpl(const ContextPtr& ctx,
                                               const ComponentPtr& parent,
                                               const StringPtr& remoteGlobalId);
@@ -46,6 +47,8 @@ public:
     // ISignalPrivate
     ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
 
+    static StringPtr getLocalId(const StringPtr& remoteGlobalId);
+
 protected:
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
@@ -55,8 +58,6 @@ protected:
     DataDescriptorPtr onGetDescriptor() override;
 
 private:
-    static StringPtr createLocalId(const StringPtr& remoteGlobalId);
-
     StringPtr remoteGlobalId;
 };
 

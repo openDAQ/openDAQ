@@ -3,11 +3,14 @@ set(MODULE_NAME streaming)
 
 set(TEST_MOCKS mock/mock_mirrored_signal.h
                mock/mock_mirrored_signal.cpp
+               mock/mock_mirrored_input_port.h
+               mock/mock_mirrored_input_port.cpp
 )
 
 set(TEST_SOURCES test_streaming.cpp
                  test_mirrored_signal.cpp
                  test_mirrored_device.cpp
+                 test_mirrored_input_port.cpp
                  ${TEST_MOCKS}
 )
 

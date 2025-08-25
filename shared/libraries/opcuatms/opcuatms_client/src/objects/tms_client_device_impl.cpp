@@ -682,6 +682,11 @@ bool TmsClientDeviceImpl::isAddedToLocalComponentTree()
     return this->clientContext->getRootDevice() == this->thisPtr<DevicePtr>();
 }
 
+StringPtr TmsClientDeviceImpl::onGetRemoteId() const
+{
+    return String(remoteComponentId).detach();
+}
+
 void TmsClientDeviceImpl::findAndCreateCustomComponents()
 {
     std::map<uint32_t, ComponentPtr> orderedComponents;

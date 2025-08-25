@@ -16,18 +16,20 @@
 
 #pragma once
 #include <config_protocol/config_client_component_impl.h>
-#include <opendaq/input_port_impl.h>
+#include <opendaq/mirrored_input_port_impl.h>
 #include <config_protocol/config_client_connection_impl.h>
 #include <config_protocol/config_client_input_port.h>
 #include <opendaq/errors.h>
+#include <opendaq/mirrored_input_port_config_ptr.h>
+#include <opendaq/streaming_private.h>
 
 namespace daq::config_protocol
 {
 
-class ConfigClientInputPortImpl : public ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject, IConfigClientInputPort>>
+class ConfigClientInputPortImpl : public ConfigClientComponentBaseImpl<MirroredInputPortBase<IConfigClientObject, IConfigClientInputPort>>
 {
 public:
-    using Super = ConfigClientComponentBaseImpl<GenericInputPortImpl<IConfigClientObject, IConfigClientInputPort>>;
+    using Super = ConfigClientComponentBaseImpl<MirroredInputPortBase<IConfigClientObject, IConfigClientInputPort>>;
 
     ConfigClientInputPortImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                               const std::string& remoteGlobalId,
@@ -36,13 +38,19 @@ public:
                               const StringPtr& localId,
                               const StringPtr& className = nullptr);
 
+    // IInputPort
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
-    ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
+    ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
 
+    // IInputPortPrivate
+    ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
+
+    // IConfigClientInputPort
     ErrCode INTERFACE_FUNC assignSignal(ISignal* signal) override;
 
-    ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
+    // IMirroredInputPortConfig
+    ErrCode INTERFACE_FUNC setActiveStreamingSource(IString* streamingConnectionString) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -57,6 +65,8 @@ protected:
     bool isSignalFromTheSameComponentTree(const SignalPtr& signal);
 
     void removed() override;
+
+    StringPtr onGetRemoteId() const override;
 };
 
 inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -65,7 +75,7 @@ inline ConfigClientInputPortImpl::ConfigClientInputPortImpl(const ConfigProtocol
                                                             const ComponentPtr& parent,
                                                             const StringPtr& localId,
                                                             const StringPtr&)
-    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, false)
+    : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId)
 {
 }
 
@@ -78,6 +88,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
         if (!this->deserializationComplete)
             return Super::connect(signal);
         const auto signalPtr = SignalPtr::Borrow(signal);
+        const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
         if (!isSignalFromTheSameComponentTree(signalPtr))
         {
             const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
@@ -93,7 +104,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
             if (connectedSignal == signalPtr)
                 return OPENDAQ_IGNORED;
             if (connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
-                clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
+                clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId, mirroredInputPortPrivate);
         }
 
         const auto configObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
@@ -106,7 +117,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
         else
         {
             if (clientComm->getProtocolVersion() >= 2)
-                clientComm->connectExternalSignalToServerInputPort(signalPtr, remoteGlobalId);
+                clientComm->connectExternalSignalToServerInputPort(signalPtr, remoteGlobalId, mirroredInputPortPrivate);
             else
                 return DAQ_MAKE_ERROR_INFO(
                     OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED,
@@ -144,7 +155,10 @@ inline ErrCode ConfigClientInputPortImpl::assignSignal(ISignal* signal)
     const auto signalPtr = SignalPtr::Borrow(signal);
 
     if (connectedSignal != signalPtr && connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
-        clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
+    {
+        const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+        clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId, mirroredInputPortPrivate);
+    }
 
     if (signal == nullptr)
         return Super::disconnect();
@@ -178,6 +192,19 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
     return errCode;
 }
 
+inline ErrCode ConfigClientInputPortImpl::setActiveStreamingSource(IString* streamingConnectionString)
+{
+    ErrCode errCode = Super::setActiveStreamingSource(streamingConnectionString);
+
+    if (errCode == OPENDAQ_SUCCESS && clientComm->getProtocolVersion() >= 18 && this->getConnectedSignal().assigned())
+    {
+        const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+        // notify server that source has been changed
+        clientComm->changeInputPortStreamingSource(remoteGlobalId, mirroredInputPortPrivate);
+    }
+
+    return errCode;
+}
 
 inline SignalPtr ConfigClientInputPortImpl::getConnectedSignal()
 {
@@ -255,6 +282,11 @@ inline ConnectionPtr ConfigClientInputPortImpl::createConnection(const SignalPtr
     return connection;
 }
 
+inline StringPtr ConfigClientInputPortImpl::onGetRemoteId() const
+{
+    return String(remoteGlobalId).detach();
+}
+
 inline bool ConfigClientInputPortImpl::isSignalFromTheSameComponentTree(const SignalPtr& signal)
 {
     auto portGlobalId = this->globalId.toStdString();
@@ -277,7 +309,10 @@ inline void ConfigClientInputPortImpl::removed()
     const auto connectedSignal = getConnectedSignal();
 
     if (connectedSignal.assigned() && !clientComm->isComponentNested(connectedSignal.getGlobalId()))
-        clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId);
+    {
+        const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+        clientComm->disconnectExternalSignalFromServerInputPort(connectedSignal, remoteGlobalId, mirroredInputPortPrivate);
+    }
     Super::removed();
 }
 

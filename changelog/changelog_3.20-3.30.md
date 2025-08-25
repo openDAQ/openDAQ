@@ -34,6 +34,7 @@
 
 - [#835](https://github.com/openDAQ/openDAQ/pull/835) Removes the opendaq_dev target.
 - [#829](https://github.com/openDAQ/openDAQ/pull/829) Add search functionality to Antora documentation to significantly improve user experience. 
+- [#883](https://github.com/openDAQ/openDAQ/pull/883) Renaming enum TimeSource into TimeProtocol, so that it more accurately reflects its values.
 
 
 ## Required application changes
@@ -63,6 +64,13 @@ FunctionPtr customVisitorFunc = Function(
 auto foundComponents = folder.getItems(search::Recursive(search::Custom(customAcceptorFunc, customVisitorFunc)));
 ```
 
+### [#883](https://github.com/openDAQ/openDAQ/pull/883) Renaming enum TimeSource into TimeProtocol, so that it more accurately reflects its values.
+
+```cpp
+auto info = device.getDomain().getReferenceDomainInfo();
+auto timeProtocol = info.getReferenceTimeProtocol();
+```
+
 ## Required module changes
 
 ### [#788](https://github.com/openDAQ/openDAQ/pull/788) Component property search.
@@ -82,4 +90,22 @@ public:
 -   ErrCode INTERFACE_FUNC visitChildren(IComponent* component, Bool* visit) override;
 +   ErrCode INTERFACE_FUNC visitChildren(IBaseObject* obj, Bool* visit) override;
 };
+```
+
+### [#883](https://github.com/openDAQ/opeDAQ/pull/883)
+
+Changed the `TimeSource` into `TimeProtocol`.
+
+```diff
+-	ReferenceDomainInfoBuilder()
+			.setRefereceTimeSource(TimeSource::Gps)
+			.build();
+			
+-	referenceDomainInfo.getReferenceTimeSource();
+
++	ReferenceDomainInfoBuilder()
+			.setReferenceTimeProtocol(TimeProtocol::Gps)
+			.build();
+			
++	referenceDomainInfo.getReferenceTimeProtocol();
 ```

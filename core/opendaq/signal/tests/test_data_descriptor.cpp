@@ -27,7 +27,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorSetGet)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceTimeSource(TimeSource::Tai)
+                    .setReferenceTimeProtocol(TimeProtocol::Tai)
                     .setUsesOffset(UsesOffset::True)
                     .build();
     auto descriptor = DataDescriptorBuilder()
@@ -67,7 +67,7 @@ TEST_F(DataDescriptorTest, ValueDescriptorCopyFactory)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceTimeSource(TimeSource::Tai)
+                    .setReferenceTimeProtocol(TimeProtocol::Tai)
                     .setUsesOffset(UsesOffset::True)
                     .build();
     auto descriptor = DataDescriptorBuilder()
@@ -154,7 +154,7 @@ TEST_F(DataDescriptorTest, SerializeDeserialize)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceTimeSource(TimeSource::Tai)
+                    .setReferenceTimeProtocol(TimeProtocol::Tai)
                     .setUsesOffset(UsesOffset::True)
                     .build();
     auto descriptor = DataDescriptorBuilder()
@@ -213,7 +213,7 @@ TEST_F(DataDescriptorTest, StructFields)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceTimeSource(TimeSource::Tai)
+                    .setReferenceTimeProtocol(TimeProtocol::Tai)
                     .setUsesOffset(UsesOffset::True)
                     .build();
     const StructPtr descriptor = DataDescriptorBuilder()
@@ -259,7 +259,7 @@ TEST_F(DataDescriptorTest, DataDescriptorBuilderSetGet)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceTimeSource(TimeSource::Tai)
+                    .setReferenceTimeProtocol(TimeProtocol::Tai)
                     .setUsesOffset(UsesOffset::True)
                     .build();
     const auto descriptorBuilder = DataDescriptorBuilder()
@@ -297,7 +297,7 @@ TEST_F(DataDescriptorTest, DataDescriptorCreateFactory)
     auto info = ReferenceDomainInfoBuilder()
                     .setReferenceDomainId("testReferenceDomainId")
                     .setReferenceDomainOffset(53)
-                    .setReferenceTimeSource(TimeSource::Tai)
+                    .setReferenceTimeProtocol(TimeProtocol::Tai)
                     .setUsesOffset(UsesOffset::True)
                     .build();
     const auto descriptorBuilder = DataDescriptorBuilder()
@@ -455,12 +455,12 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetForConstantDataRule)
                      "Data descriptor validation failed");
 }
 
-TEST_F(DataDescriptorTest, DisallowReferenceTimeSourceForConstantDataRule)
+TEST_F(DataDescriptorTest, DisallowReferenceTimeProtocolForConstantDataRule)
 {
     ASSERT_THROW_MSG(DataDescriptorBuilder()
                          .setSampleType(SampleType::Int32)
                          .setRule(ConstantDataRule())
-                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceTimeSource(TimeSource::Tai).build())
+                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceTimeProtocol(TimeProtocol::Tai).build())
                          .build(),
                      InvalidParameterException,
                      "Data descriptor validation failed");
@@ -490,13 +490,13 @@ TEST_F(DataDescriptorTest, DisallowReferenceDomainOffsetWithPostScaling)
                      "Data descriptor validation failed");
 }
 
-TEST_F(DataDescriptorTest, DisallowReferenceTimeSourceWithPostScaling)
+TEST_F(DataDescriptorTest, DisallowReferenceTimeProtocolWithPostScaling)
 {
     ASSERT_THROW_MSG(DataDescriptorBuilder()
                          .setSampleType(SampleType::Float64)
                          .setRule(ExplicitDataRule())
                          .setPostScaling(LinearScaling(2, 3))
-                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceTimeSource(TimeSource::Tai).build())
+                         .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceTimeProtocol(TimeProtocol::Tai).build())
                          .build(),
                      InvalidParameterException,
                      "Data descriptor validation failed");

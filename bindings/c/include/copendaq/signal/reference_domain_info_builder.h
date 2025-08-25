@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:50.
+//     RTGen (CGenerator v0.7.0) on 19.08.2025 10:42:38.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -46,8 +46,8 @@ extern "C"
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceDomainId(daqReferenceDomainInfoBuilder* self, daqString** referenceDomainId);
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceDomainOffset(daqReferenceDomainInfoBuilder* self, daqInteger* referenceDomainOffset);
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceDomainOffset(daqReferenceDomainInfoBuilder* self, daqInteger** referenceDomainOffset);
-    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceTimeSource(daqReferenceDomainInfoBuilder* self, daqTimeSource referenceTimeSource);
-    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceTimeSource(daqReferenceDomainInfoBuilder* self, daqTimeSource* referenceTimeSource);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceTimeProtocol(daqReferenceDomainInfoBuilder* self, daqTimeProtocol referenceTimeProtocol);
+    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceTimeProtocol(daqReferenceDomainInfoBuilder* self, daqTimeProtocol* referenceTimeProtocol);
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setUsesOffset(daqReferenceDomainInfoBuilder* self, daqUsesOffset usesOffset);
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getUsesOffset(daqReferenceDomainInfoBuilder* self, daqUsesOffset* usesOffset);
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_createReferenceDomainInfoBuilder(daqReferenceDomainInfoBuilder** obj);

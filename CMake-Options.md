@@ -43,6 +43,7 @@ The following options might be used to customize the build passing them in the *
 | `DAQMODULES_EMPTY_MODULE` | Bool | `OFF` | Build demo empty module | - |
 | `DAQMODULES_AUDIO_DEVICE_MODULE` | Bool | `OFF` | Build audio device module | - |
 | `DAQMODULES_REF_DEVICE_MODULE` | Bool | `OFF` | Build reference device module | - |
+| `DAQMODULES_SIMULATOR_DEVICE_MODULE` | Bool | `OFF` | Build simulator device module | - |
 | `DAQMODULES_REF_FB_MODULE` | Bool | `OFF` | Build reference function block module | - |
 | `DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER` | Bool | `ON` | Enable renderer function block | Only relevant if `DAQMODULES_REF_FB_MODULE` is ON |
 

@@ -440,7 +440,22 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignal(const RpcContext& cont
             // add/attach signals to all available streaming sources
             if (auto streaming = server.getStreaming(); streaming.assigned())
             {
-                streaming.addSignals(signals);
+                for (const auto& signal : signals)
+                {
+                    ErrCode errCode = daqTry([&]()
+                                             {
+                                                 streaming.addSignals({signal});
+                                             });
+                    if (errCode == OPENDAQ_ERR_DUPLICATEITEM)
+                    {
+                        daqClearErrorInfo();
+                    }
+                    else if (OPENDAQ_FAILED(errCode))
+                    {
+                        checkErrorInfo(errCode);
+                    }
+                }
+
                 if (activeStreamingProtocolId.assigned())
                 {
                     for (const auto& signal : signals)

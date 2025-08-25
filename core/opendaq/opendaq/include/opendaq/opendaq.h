@@ -26,7 +26,6 @@
 #include <opendaq/function_block_type_factory.h>
 
 #include <opendaq/module_authenticator_ptr.h>
-#include <opendaq/module_authenticator_factory.h>
 #include <opendaq/module_authenticator_impl.h>
 
 #include <opendaq/module_manager_factory.h>

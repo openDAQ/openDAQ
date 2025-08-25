@@ -17,7 +17,6 @@
 #pragma once
 #include <opendaq/module_authenticator.h>
 #include <opendaq/module_authenticator_ptr.h>
-#include <opendaq/module_authenticator_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

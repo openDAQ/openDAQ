@@ -46,7 +46,6 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/instance.h
         ${SDK_HEADERS_DIR}/module_authenticator.h
         ${SDK_HEADERS_DIR}/module_authenticator_impl.h
-        ${SDK_HEADERS_DIR}/module_authenticator_factory.h
         ${SDK_HEADERS_DIR}/instance_impl.h
         ${SDK_HEADERS_DIR}/instance_factory.h
         ${SDK_HEADERS_DIR}/client_impl.h
@@ -84,7 +83,6 @@ set(SRC_PublicHeaders_Component
     errors.h
     exceptions.h
     instance_factory.h
-	module_authenticator_factory.h
     config_provider_factory.h
     client_type.h
 	module_authenticator.h

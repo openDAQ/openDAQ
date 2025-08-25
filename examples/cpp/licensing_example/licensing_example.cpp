@@ -3,12 +3,78 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <opendaq/opendaq.h>
 #include "licensing_example.h"
 
 using namespace daq;
 
 const std::string resourcePath = RESOURCE_PATH;
+
+/*
+* An example imlementation of a ModuleAuthenticator. The example takes in a "certificate" file, which contains the names of the valid modules.
+* When loading modules with the module manager, only the files matching these names are loaded and stored into the list (dict) of valid modules.
+* The dict can be retrieved later and shows the file used to "authenticate" each module.
+* A real implementation would have multiple paths to certificate files, then use something like the windows crypto/trust API to verify each DLL file loaded.
+* The user could then check which certificate was used for which file.
+*/
+
+class ModuleAuthenticatorImpl : public ModuleAuthenticator
+{
+public:
+    explicit ModuleAuthenticatorImpl(IString* path)
+        : certificatePath(path)
+        , authenticatedModules(Dict<IString, IString>())
+        , validModules()
+    {
+        std::string endsWith(".module.dll");
+
+        char* pathStr;
+        certificatePath->toString(&pathStr);
+
+        if (auto file = std::fopen(pathStr, "r"))
+        {
+            std::ifstream stream(file);
+            for (std::string line; std::getline(stream, line);)
+            {
+                if (line.compare(line.size() - endsWith.size(), endsWith.size(), endsWith) == 0)
+                {
+                    validModules.push_back(line);
+                }
+            }
+        }
+    }
+
+    Bool onAuthenticateModuleBinary(IString* binaryPath) override
+    {
+        char* str;
+        binaryPath->toString(&str);
+
+        std::string pathToModule(str);
+
+        for (const std::string& moduleName : validModules)
+        {
+            if (pathToModule.compare(pathToModule.size() - moduleName.size(), moduleName.size(), moduleName) == 0)
+            {
+                authenticatedModules.set(String(pathToModule.c_str()), certificatePath);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    DictPtr<IString, IString> onGetAuthenticatedModules() override
+    {
+        return authenticatedModules;
+    }
+
+private:
+    IString* certificatePath;
+    DictPtr<IString, IString> authenticatedModules;
+
+    std::vector<std::string> validModules;
+};
 
 /*
 * A brief example showcasing the use for a licensed module in openDAQ.
@@ -24,7 +90,6 @@ void tryReadSignalData(const daq::InstancePtr& instance, daq::SignalPtr& inputSi
 {
     // Sleeping so log output gets flushed before printing..
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    std::cout << "\nAttempting to use a licensed function block...\n" << std::endl;
 
     // --- Create and connect the unlicensed passthrough function block and read some signals --- //
     const auto fb = instance.addFunctionBlock("LicensingModulePassthrough");
@@ -68,11 +133,19 @@ void tryReadSignalData(const daq::InstancePtr& instance, daq::SignalPtr& inputSi
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create an Instance, loading modules at MODULE_PATH
-    const StringPtr path = StringPtr("");
-    const ModuleAuthenticatorPtr authenticator = daq::ModuleAuthenticator(path);
+    const StringPtr path = StringPtr(resourcePath + "Certificate.txt");
+    const ModuleAuthenticatorPtr authenticator = daq::createWithImplementation<IModuleAuthenticator, ModuleAuthenticatorImpl>(path.as<IString>(false));
+
     const InstancePtr instance =
         daq::InstanceBuilder().setModuleAuthenticator(authenticator).setLoadAuthenticatedModulesOnly(true).setModulePath(MODULE_PATH).build();
 
+    std::cout << std::endl << "Loaded modules:" << std::endl;
+    auto moduleDict = authenticator.getAuthenticatedModules();
+    for (auto module : moduleDict)
+    {
+        std::cout << "Module path: " << module.first << std::endl << " - \"Certificate\" path: " << module.second << std::endl;
+    }
+    
     // Setup your paths here..
     std::string licPath = resourcePath + "license.lic";
     // Make sure you open up the quick_start_simulator example app to get a reference device!
@@ -101,10 +174,12 @@ int main(int /*argc*/, const char* /*argv*/[])
     daq::SignalPtr inputSignal = inputChannel.getSignals()[0];
     // ------------------------------------------------------------------------------ //
 
+    std::cout << "\nAttempting to use an unlicensed function block...\n" << std::endl;
     tryReadSignalData(instance, inputSignal);
 
     // ------------- Find the licensing module ------------------ //
     const auto modules = instance.getModuleManager().getModules();
+
     auto itFound = std::find_if(modules.begin(),
                                 modules.end(),
                                 [](const ModulePtr& module) { return module.getModuleInfo().getName() == "LicensingModule"; });
@@ -132,6 +207,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     }
     // ---------------------------------------------------------------------------------------- //
 
+    std::cout << "\nAttempting to use a licensed function block...\n" << std::endl;
     tryReadSignalData(instance, inputSignal);
 
     std::cout << "Press \"enter\" to exit the application..." << std::endl;

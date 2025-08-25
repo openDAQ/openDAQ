@@ -143,15 +143,10 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     // Configure moduleManager
     if (!moduleManager.assigned())
     {
-        std::cout << std::endl << "ContextFromInstanceBuilder module manager at not assigned"
-                  << " " << moduleManager << std::endl;
-            //        LOG_C("ContextFromInstanceBuilder module manager at not assigned {}", moduleManager);
-        
-        moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList(), loadAuthenticatedModulesOnly, moduleAuthenticator);
-        std::cout << std::endl
-                  << "ContextFromInstanceBuilder module manager after build"
-                  << " " << moduleManager << std::endl;
-        //        LOG_C("ContextFromInstanceBuilder module manager after build {}", moduleManager);
+        moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
+        moduleManager->setAuthenticatedOnly(loadAuthenticatedModulesOnly);
+        moduleManager->setModuleAuthenticator(moduleAuthenticator);
+
         builderPtr->setModuleManager(moduleManager);
     }
 

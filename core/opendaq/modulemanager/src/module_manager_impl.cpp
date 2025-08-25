@@ -49,9 +49,9 @@ static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerCompo
 static ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries);
 static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
 
-ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path, Bool loadAuthenticatedOnly, ModuleAuthenticatorPtr authenticator)
-    : authenticatedModulesOnly(loadAuthenticatedOnly)
-    , moduleAuthenticator(authenticator)
+ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
+    : authenticatedModulesOnly(false)
+    , moduleAuthenticator(nullptr)
     , modulesLoaded(false)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
@@ -358,15 +358,13 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ModuleManagerImpl::loadAuthenticatedOnly(Bool* authOnly)
+ErrCode ModuleManagerImpl::setAuthenticatedOnly(Bool authOnly)
 {
-    OPENDAQ_PARAM_NOT_NULL(authOnly);
-
     authenticatedModulesOnly = authOnly;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ModuleManagerImpl::loadModuleAuthenticator(IModuleAuthenticator* authenticator)
+ErrCode ModuleManagerImpl::setModuleAuthenticator(IModuleAuthenticator* authenticator)
 {
     OPENDAQ_PARAM_NOT_NULL(authenticator);
 
@@ -1897,13 +1895,11 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, ModuleManager,
-    IString*, path, Bool, loadAuthenticatedOnly, IModuleAuthenticator*, authenticator
-)
+    IString*, path)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, ModuleManager,
     IModuleManager, createModuleManagerMultiplePaths,
-    IList*, paths, Bool, loadAuthenticatedOnly, IModuleAuthenticator*, authenticator
-)
+    IList*, paths)
 
 END_NAMESPACE_OPENDAQ

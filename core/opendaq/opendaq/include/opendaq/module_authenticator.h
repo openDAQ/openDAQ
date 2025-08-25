@@ -39,10 +39,16 @@ DECLARE_OPENDAQ_INTERFACE(IModuleAuthenticator, IBaseObject)
     /*!
      * @brief Verify the module binary with a certificate file.
      * @param binaryPath Absolute path to the binary.
-     * @param certPath Absolute path to the certificate file.
      * @param[out] binaryValid The binarys checksum matches and it's considered valid.
      */
     virtual ErrCode INTERFACE_FUNC authenticateModuleBinary(Bool* binaryValid, IString* binaryPath) = 0;
+
+    /*!
+     * @brief Get a dictionary of module (files) loaded and the corresponding certificates used.
+     * @param[out] certModuleDict Empty before modules are loaded.
+     */
+    // [templateType(certModuleDict, IString, IString)]
+    virtual ErrCode INTERFACE_FUNC getAuthenticatedModules(IDict** certModuleDict) = 0;
 };
 /*!@}*/
 

@@ -40,15 +40,15 @@ struct ModuleLibrary;
 class ModuleManagerImpl : public ImplementationOfWeak<IModuleManager, IModuleManagerUtils>
 {
 public:
-    explicit ModuleManagerImpl(const BaseObjectPtr& path, Bool loadAuthenticatedOnly, ModuleAuthenticatorPtr authenticator);
+    explicit ModuleManagerImpl(const BaseObjectPtr& path);
     ~ModuleManagerImpl() override;
 
     ErrCode INTERFACE_FUNC getModules(IList** availableModules) override;
     ErrCode INTERFACE_FUNC addModule(IModule* module) override;
     ErrCode INTERFACE_FUNC loadModules(IContext* context) override;
     ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) override;
-    ErrCode INTERFACE_FUNC loadAuthenticatedOnly(Bool* authenticatedOnly) override;
-    ErrCode INTERFACE_FUNC loadModuleAuthenticator(IModuleAuthenticator* authenticator) override;
+    ErrCode INTERFACE_FUNC setAuthenticatedOnly(Bool authenticatedOnly) override;
+    ErrCode INTERFACE_FUNC setModuleAuthenticator(IModuleAuthenticator* authenticator) override;
 
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;

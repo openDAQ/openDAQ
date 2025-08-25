@@ -64,17 +64,16 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManager, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) = 0;
 
-    virtual ErrCode INTERFACE_FUNC loadAuthenticatedOnly(Bool* verifiedOnly) = 0;
+    virtual ErrCode INTERFACE_FUNC setAuthenticatedOnly(Bool verifiedOnly) = 0;
 
-    virtual ErrCode INTERFACE_FUNC loadModuleAuthenticator(IModuleAuthenticator* authenticator) = 0;
+    virtual ErrCode INTERFACE_FUNC setModuleAuthenticator(IModuleAuthenticator* authenticator) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY(
-    LIBRARY_FACTORY, ModuleManager, IString*, path, Bool, loadAuthenticatedOnly, IModuleAuthenticator*, authenticator)
+    LIBRARY_FACTORY, ModuleManager, IString*, path)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
-    ModuleManagerMultiplePaths, IModuleManager,
-    IList*, paths, Bool, loadAuthenticatedOnly, IModuleAuthenticator*, authenticator)
+    ModuleManagerMultiplePaths, IModuleManager, IList*, paths)
 
 END_NAMESPACE_OPENDAQ

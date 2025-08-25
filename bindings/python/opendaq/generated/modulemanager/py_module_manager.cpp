@@ -40,13 +40,13 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
 {
     cls.doc() = "Loads all available modules in a implementation-defined manner. User can also side-load custom modules via `addModule` call.";
 
-    m.def("ModuleManager", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& path, const bool loadAuthenticatedOnly, daq::IModuleAuthenticator* authenticator){
-        return daq::ModuleManager_Create(getVariantValue<daq::IString*>(path), loadAuthenticatedOnly, authenticator);
-    }, py::arg("path"), py::arg("load_authenticated_only"), py::arg("authenticator"));
+    m.def("ModuleManager", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& path){
+        return daq::ModuleManager_Create(getVariantValue<daq::IString*>(path));
+    }, py::arg("path"));
 
-    m.def("ModuleManagerMultiplePaths", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& paths, const bool loadAuthenticatedOnly, daq::IModuleAuthenticator* authenticator){
-        return daq::ModuleManagerMultiplePaths_Create(getVariantValue<daq::IList*>(paths), loadAuthenticatedOnly, authenticator);
-    }, py::arg("paths"), py::arg("load_authenticated_only"), py::arg("authenticator"));
+    m.def("ModuleManagerMultiplePaths", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& paths){
+        return daq::ModuleManagerMultiplePaths_Create(getVariantValue<daq::IList*>(paths));
+    }, py::arg("paths"));
 
 
     cls.def_property_readonly("modules",
@@ -85,21 +85,22 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
         },
         py::arg("path"),
         "Loads and adds a single module from the given absolute file system path.");
-    cls.def("load_authenticated_only",
-        [](daq::IModuleManager *object)
+    cls.def_property("authenticated_only",
+        nullptr,
+        [](daq::IModuleManager *object, const bool verifiedOnly)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
-            return objectPtr.loadAuthenticatedOnly();
+            objectPtr.setAuthenticatedOnly(verifiedOnly);
         },
         "");
-    cls.def("load_module_authenticator",
+    cls.def_property("module_authenticator",
+        nullptr,
         [](daq::IModuleManager *object, daq::IModuleAuthenticator* authenticator)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
-            objectPtr.loadModuleAuthenticator(authenticator);
+            objectPtr.setModuleAuthenticator(authenticator);
         },
-        py::arg("authenticator"),
         "");
 }

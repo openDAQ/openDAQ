@@ -21,16 +21,50 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ModuleAuthenticatorImpl : public ImplementationOf<IModuleAuthenticator>
+class ModuleAuthenticator : public ImplementationOf<IModuleAuthenticator>
 {
 public:
-    explicit ModuleAuthenticatorImpl(IString* certPath);
-
     ErrCode INTERFACE_FUNC authenticateModuleBinary(Bool* binaryValid, IString* binaryPath) override;
-    Bool onAuthenticateModuleBinary(IString* binaryPath);
+    virtual Bool onAuthenticateModuleBinary(IString* binaryPath);
 
-private:
-    StringPtr certificatePath;
+    ErrCode INTERFACE_FUNC getAuthenticatedModules(IDict** certModuleDict) override;
+    virtual DictPtr<IString, IString> onGetAuthenticatedModules();
 };
+
+inline ErrCode INTERFACE_FUNC ModuleAuthenticator::authenticateModuleBinary(Bool* binaryValid, IString* binaryPath)
+{
+    OPENDAQ_PARAM_NOT_NULL(binaryValid);
+    OPENDAQ_PARAM_NOT_NULL(binaryPath);
+
+    Bool valid;
+    const ErrCode errCode = wrapHandlerReturn(this, &ModuleAuthenticator::onAuthenticateModuleBinary, valid, binaryPath);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *binaryValid = valid;
+    return errCode;
+}
+
+inline Bool ModuleAuthenticator::onAuthenticateModuleBinary(IString* binaryPath)
+{
+    return binaryPath == binaryPath;
+}
+
+inline ErrCode INTERFACE_FUNC ModuleAuthenticator::getAuthenticatedModules(IDict** certModuleDict)
+{
+    OPENDAQ_PARAM_NOT_NULL(certModuleDict);
+
+    DictPtr<IString, IString> dict;
+    const ErrCode errCode = wrapHandlerReturn(this, &ModuleAuthenticator::onGetAuthenticatedModules, dict);
+
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *certModuleDict = dict.detach();
+    return errCode;
+}
+
+inline DictPtr<IString, IString> ModuleAuthenticator::onGetAuthenticatedModules()
+{
+    return DictPtr<IString, IString>();
+}
 
 END_NAMESPACE_OPENDAQ

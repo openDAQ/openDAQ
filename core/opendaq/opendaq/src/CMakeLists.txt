@@ -61,7 +61,6 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/cmd_line_args_config_provider_impl.h
         ${SDK_HEADERS_DIR}/client_type.h
         ${SDK_SRC_DIR}/instance_impl.cpp
-        ${SDK_SRC_DIR}/module_authenticator_impl.cpp
         ${SDK_SRC_DIR}/client_impl.cpp
         ${SDK_SRC_DIR}/instance_builder_impl.cpp
         ${SDK_SRC_DIR}/json_config_provider_impl.cpp
@@ -111,7 +110,6 @@ set(SRC_PrivateHeaders_Component
 set(SRC_Cpp_Component 
     version.cpp
     instance_impl.cpp
-	module_authenticator_impl.cpp
     client_impl.cpp
     opendaq_init.cpp
     instance_builder_impl.cpp

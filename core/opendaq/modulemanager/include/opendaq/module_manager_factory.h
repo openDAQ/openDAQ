@@ -34,19 +34,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 inline ModuleManagerPtr ModuleManager(const StringPtr& searchPath)
 {
-    ModuleManagerPtr obj(ModuleManager_Create(searchPath, false, nullptr));
-    return obj;
-}
-
-/*!
- * @brief Creates a ModuleManager that loads modules at a given search path. If the search path is empty,
- * it searches the executable folder and its subfolders. Otherwise, it searches the for the relative directory
- * based on the current working directory.
- * @param searchPath The location of the module libraries.
- */
-inline ModuleManagerPtr ModuleManager(const StringPtr& searchPath, Bool loadAuthenticatedOnly, ModuleAuthenticatorPtr authenticator)
-{
-    ModuleManagerPtr obj(ModuleManager_Create(searchPath, loadAuthenticatedOnly, authenticator));
+    ModuleManagerPtr obj(ModuleManager_Create(searchPath));
     return obj;
 }
 
@@ -56,9 +44,9 @@ inline ModuleManagerPtr ModuleManager(const StringPtr& searchPath, Bool loadAuth
  * based on the current working directory.
  * @param paths The locations of the module libraries.
  */
-inline ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths, Bool loadAuthenticatedOnly, ModuleAuthenticatorPtr authenticator)
+inline ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths)
 {
-    ModuleManagerPtr obj(ModuleManagerMultiplePaths_Create(paths, loadAuthenticatedOnly, authenticator));
+    ModuleManagerPtr obj(ModuleManagerMultiplePaths_Create(paths));
     return obj;
 }
 

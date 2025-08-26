@@ -50,7 +50,10 @@ static ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<Modu
 static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
-    : modulesLoaded(false)
+    : authenticatedModulesOnly(false)
+    , moduleAuthenticator(nullptr)
+    , moduleKeys(Dict<IString, IString>())
+    , modulesLoaded(false)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
 {
@@ -123,7 +126,12 @@ ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 ErrCode ModuleManagerImpl::addModule(IModule* module)
 {
     OPENDAQ_PARAM_NOT_NULL(module);
-    
+
+    if (authenticatedModulesOnly)
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Cannot add modules directly without verification!");
+    }
+
     orphanedModules.tryUnload();
 
     const auto found = std::find_if(
@@ -145,6 +153,14 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
 
 ErrCode ModuleManagerImpl::loadModules(IContext* context)
 {
+    if (authenticatedModulesOnly)
+    {
+        if (moduleAuthenticator == nullptr)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
+        }
+    }
+
     if (!modulesLoaded)
     {
         this->context = ContextPtr::Borrow(context);
@@ -214,8 +230,25 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
         try
         {
-            libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
-            newModulesAdded = true;
+            Bool validBinary = false;
+            StringPtr moduleKey;
+            if (moduleAuthenticator != nullptr)
+            {
+                moduleAuthenticator->authenticateModuleBinary(&validBinary, &moduleKey, StringPtr(modulePath.string()));
+            }
+
+            if (validBinary || !authenticatedModulesOnly)
+            {
+                libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
+                if (authenticatedModulesOnly)
+                {
+                    moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
+                }
+                newModulesAdded = true;
+            }
+            else {
+                LOG_W("Cannot not load module {}, failed to authenticate!", modulePath.string());
+            }
         }
         catch (const daq::DaqException& e)
         {
@@ -293,7 +326,30 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
 
     try
     {
+        StringPtr moduleKey;
+        if (authenticatedModulesOnly)
+        {
+            if (moduleAuthenticator == nullptr)
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
+            }
+
+            Bool valid;
+            moduleAuthenticator->authenticateModuleBinary(&valid, &moduleKey, path);
+
+            if (!valid)
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Module ({}) authentication failed!", path);
+            }
+        }
+
         libraries.push_back(loadModuleInternal(loggerComponent, fileSystemPath, context));
+
+        if (authenticatedModulesOnly)
+        {
+            moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
+        }
+
         *module = libraries.back().module.addRefAndReturn();
     }
     catch (const daq::DaqException& e)
@@ -311,6 +367,30 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
         LOG_W(R"(Unknown error occurred loading module "{}")", pathString)
         return OPENDAQ_ERR_GENERALERROR;
     }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::setAuthenticatedOnly(Bool authOnly)
+{
+    authenticatedModulesOnly = authOnly;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::setModuleAuthenticator(IModuleAuthenticator* authenticator)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticator);
+
+    moduleAuthenticator = authenticator;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::getVendorKeys(IDict** vendorKeys)
+{
+    OPENDAQ_PARAM_NOT_NULL(vendorKeys);
+
+    DictPtr<IString, IString> dict(moduleKeys);
+    *vendorKeys = dict.detach();
 
     return OPENDAQ_SUCCESS;
 }
@@ -1838,13 +1918,11 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, ModuleManager,
-    IString*, path
-)
+    IString*, path)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, ModuleManager,
     IModuleManager, createModuleManagerMultiplePaths,
-    IList*, paths
-)
+    IList*, paths)
 
 END_NAMESPACE_OPENDAQ

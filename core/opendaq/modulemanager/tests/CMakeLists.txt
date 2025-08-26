@@ -3,6 +3,8 @@ set(MODULE_NAME module_manager)
 
 set(TEST_MOCKS mock/mock_module.h
                mock/mock_module.cpp
+			   mock/mock_module_authenticator.h
+			   mock/mock_module_authenticator.cpp
 )
 
 ##############################

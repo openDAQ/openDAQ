@@ -344,4 +344,33 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setUsingSchedulerMainLoop(useMainLoop);
         },
         "Checks whether the scheduler will be created with main loop support. / Enables or disables usage of the scheduler's main loop.");
+    cls.def_property("module_authenticator",
+        [](daq::IInstanceBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            return objectPtr.getModuleAuthenticator().detach();
+        },
+        [](daq::IInstanceBuilder *object, daq::IModuleAuthenticator* authenticator)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.setModuleAuthenticator(authenticator);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the authenticator object. / Set verification class for modules. The class will check each module DLL and verify it's authenticity before it is loaded.");
+    cls.def_property("load_authenticated_modules_only",
+        [](daq::IInstanceBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            return objectPtr.getLoadAuthenticatedModulesOnly();
+        },
+        [](daq::IInstanceBuilder *object, const bool authOnly)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.setLoadAuthenticatedModulesOnly(authOnly);
+        },
+        "");
 }

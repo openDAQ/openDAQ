@@ -138,7 +138,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
             return objectPtr.getAvailableStreamingTypes().detach();
         },
         py::return_value_policy::take_ownership,
-        "Returns a dictionary of known and available streaming types that this module (client) can create.T");
+        "Returns a dictionary of known and available streaming types that this module (client) can create.");
     cls.def("load_license",
         [](daq::IModule *object, std::variant<daq::IDict*, py::dict>& licenseConfig)
         {
@@ -156,7 +156,7 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
             return objectPtr.getLicenseConfig().detach();
         },
         py::return_value_policy::take_ownership,
-        "Used to retrieve the license config previously used.");
+        "Used to retrieve the license config template.");
     cls.def("license_loaded",
         [](daq::IModule *object)
         {

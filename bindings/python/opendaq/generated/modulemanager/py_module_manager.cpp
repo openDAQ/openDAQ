@@ -85,4 +85,22 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
         },
         py::arg("path"),
         "Loads and adds a single module from the given absolute file system path.");
+    cls.def_property("authenticated_only",
+        nullptr,
+        [](daq::IModuleManager *object, const bool verifiedOnly)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
+            objectPtr.setAuthenticatedOnly(verifiedOnly);
+        },
+        "");
+    cls.def_property("module_authenticator",
+        nullptr,
+        [](daq::IModuleManager *object, daq::IModuleAuthenticator* authenticator)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
+            objectPtr.setModuleAuthenticator(authenticator);
+        },
+        "");
 }

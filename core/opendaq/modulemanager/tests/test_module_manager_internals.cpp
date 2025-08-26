@@ -11,6 +11,7 @@
 #include <opendaq/boost_dll.h>
 
 #include "mock/mock_module.h"
+#include "mock/mock_module_authenticator.h"
 
 using namespace daq;
 
@@ -192,4 +193,22 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleAfterAddedFromMemory)
     ASSERT_NO_THROW(module = manager.loadModule(modulePath.string()));
     ASSERT_EQ(manager.getModules().getCount(), 2u);
     ASSERT_EQ(manager.getModules()[1], module);
+}
+
+TEST_F(ModuleManagerInternalsTest, TestAuthenticator)
+{
+    StringPtr certPath = StringPtr("mock/path");
+    auto authenticator = createWithImplementation<IModuleAuthenticator, MockModuleAuthenticatorImpl>(certPath);
+    auto manager = ModuleManager("[[none]]");
+    manager->setAuthenticatedOnly(true);
+    manager->setModuleAuthenticator(authenticator);
+    manager.loadModules(NullContext());
+
+    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePath.string());
+
+    ModulePtr module;
+    ASSERT_NO_THROW(module = manager.loadModule(modulePath.string()));
+    ASSERT_EQ(manager.getModules().getCount(), 1u);
+    ASSERT_EQ(manager.getModules()[0], module);
 }

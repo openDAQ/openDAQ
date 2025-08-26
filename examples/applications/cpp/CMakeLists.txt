@@ -113,12 +113,12 @@ if (OPENDAQ_READ_WRITE_AUDIO)
   add_subdirectory(read_write_audio_file_example)
 endif()
 
-<<<<<<< HEAD
+
 if (OPENDAQ_PROPERTIES_EXAMPLE)
     set(PROPERTIES_FOLDER_PATH "properties_example")
     add_subdirectory(properties_example)
 endif()
-=======
+
 if(OPENDAQ_LOGGER_USAGE)
   add_subdirectory(logger_example)
 endif()
@@ -126,5 +126,3 @@ endif()
 if (OPENDAQ_READ_WRITE_AUDIO)
   add_subdirectory(read_write_audio_file_example)
 endif()
-
->>>>>>> main

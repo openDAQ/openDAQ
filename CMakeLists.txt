@@ -189,6 +189,7 @@ option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OF
 option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder module" OFF)
 option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" OFF)
 option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
+option(DAQMODULES_PROPERTIES_MODULE "Enable properties example module" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
 

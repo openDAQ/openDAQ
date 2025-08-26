@@ -38,6 +38,7 @@ The following options might be used to customize the build passing them in the *
 | Option name | Type | Default value | Description | Conditions, if any |
 |-|-|-|-|-|
 | `DAQMODULES_LICENSING_MODULE` | Bool | `OFF` | Build reference licensing module | - |
+| `DAQMODULES_PROPERTIES_MODULE` | Bool | `OFF` | Build properties example module | - |
 | `DAQMODULES_OPENDAQ_CLIENT_MODULE` | Bool | `OFF` | Build openDAQ client modules | - |
 | `DAQMODULES_OPENDAQ_SERVER_MODULE` | Bool | `OFF` | Build openDAQ server modules | - |
 | `DAQMODULES_EMPTY_MODULE` | Bool | `OFF` | Build demo empty module | - |

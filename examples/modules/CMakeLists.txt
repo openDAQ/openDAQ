@@ -50,3 +50,8 @@ if (DAQMODULES_PARQUET_RECORDER_MODULE)
     endif()
     add_subdirectory(parquet_recorder_module)
 endif()
+
+if (DAQMODULES_PROPERTIES_MODULE)
+    message(STATUS "Properties example module")
+    add_subdirectory(property_system_example_module)
+endif()

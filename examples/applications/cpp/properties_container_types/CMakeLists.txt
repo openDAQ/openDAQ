@@ -11,7 +11,6 @@ include_directories("../common")
 
 add_executable(properties_app_container_types properties_app_container_types.cpp "../common/utils.h")
 target_link_libraries(properties_app_container_types PRIVATE daq::opendaq)
-set_target_properties(properties_app_container_types PROPERTIES FOLDER ${PROPERTIES_FOLDER_PATH})
 
 if (MSVC)
     target_compile_options(properties_app_container_types PRIVATE /bigobj)

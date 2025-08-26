@@ -53,7 +53,7 @@ Bool LicensingModule::onLoadLicense(IDict* licenseConfig)
 {
     auto ptr = DictPtr<IString, IString>::Borrow(licenseConfig);
     std::string path = ptr.get("LicensePath");
-    std::string vendor_key = ptr.get("VendorKey");
+    std::string vendor_key = ptr.get("VendorSecret");
 
     std::string secret_key = "my_secret_key";
 
@@ -117,7 +117,7 @@ DictPtr<IString, IString> LicensingModule::onGetLicenseConfig()
 {
     auto licenseConfig = Dict<IString,IString>();
     licenseConfig.set("LicensePath", "");
-    licenseConfig.set("VendorKey", "");
+    licenseConfig.set("VendorSecret", "");
 
     return licenseConfig;
 }

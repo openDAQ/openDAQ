@@ -23,11 +23,9 @@ BEGIN_NAMESPACE_OPENDAQ
 class MockModuleAuthenticatorImpl : public ModuleAuthenticator
 {
 public:
-    explicit MockModuleAuthenticatorImpl(IString* certPath);
+    explicit MockModuleAuthenticatorImpl(const StringPtr& certPath);
 
-    Bool onAuthenticateModuleBinary(IString* binaryPath) override;
-
-    DictPtr<IString, IString> onGetAuthenticatedModules() override;
+    Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath) override;
 
 private:
     StringPtr certificatePath;

@@ -49,6 +49,7 @@ public:
     ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) override;
     ErrCode INTERFACE_FUNC setAuthenticatedOnly(Bool authenticatedOnly) override;
     ErrCode INTERFACE_FUNC setModuleAuthenticator(IModuleAuthenticator* authenticator) override;
+    ErrCode INTERFACE_FUNC getVendorKeys(IDict** vendorKeys) override;
 
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
@@ -111,6 +112,7 @@ private:
 
     bool authenticatedModulesOnly;
     ModuleAuthenticatorPtr moduleAuthenticator;
+    DictPtr<IString, IString> moduleKeys;
 
     bool modulesLoaded;
     std::vector<std::string> paths;

@@ -52,6 +52,7 @@ static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponen
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : authenticatedModulesOnly(false)
     , moduleAuthenticator(nullptr)
+    , moduleKeys(Dict<IString, IString>())
     , modulesLoaded(false)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
@@ -230,14 +231,19 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         try
         {
             Bool validBinary = false;
+            StringPtr moduleKey;
             if (moduleAuthenticator != nullptr)
             {
-                moduleAuthenticator->authenticateModuleBinary(&validBinary, StringPtr(modulePath.string()));
+                moduleAuthenticator->authenticateModuleBinary(&validBinary, &moduleKey, StringPtr(modulePath.string()));
             }
 
             if (validBinary || !authenticatedModulesOnly)
             {
                 libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
+                if (authenticatedModulesOnly)
+                {
+                    moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
+                }
                 newModulesAdded = true;
             }
             else {
@@ -320,6 +326,7 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
 
     try
     {
+        StringPtr moduleKey;
         if (authenticatedModulesOnly)
         {
             if (moduleAuthenticator == nullptr)
@@ -328,7 +335,7 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
             }
 
             Bool valid;
-            moduleAuthenticator->authenticateModuleBinary(&valid, path);
+            moduleAuthenticator->authenticateModuleBinary(&valid, &moduleKey, path);
 
             if (!valid)
             {
@@ -337,6 +344,12 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
         }
 
         libraries.push_back(loadModuleInternal(loggerComponent, fileSystemPath, context));
+
+        if (authenticatedModulesOnly)
+        {
+            moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
+        }
+
         *module = libraries.back().module.addRefAndReturn();
     }
     catch (const daq::DaqException& e)
@@ -369,6 +382,16 @@ ErrCode ModuleManagerImpl::setModuleAuthenticator(IModuleAuthenticator* authenti
     OPENDAQ_PARAM_NOT_NULL(authenticator);
 
     moduleAuthenticator = authenticator;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::getVendorKeys(IDict** vendorKeys)
+{
+    OPENDAQ_PARAM_NOT_NULL(vendorKeys);
+
+    DictPtr<IString, IString> dict(moduleKeys);
+    *vendorKeys = dict.detach();
+
     return OPENDAQ_SUCCESS;
 }
 

@@ -64,9 +64,26 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManager, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) = 0;
 
-    virtual ErrCode INTERFACE_FUNC setAuthenticatedOnly(Bool verifiedOnly) = 0;
+    /*!
+     * @brief Toggle whether this module manager will only load modules that can be authenticated.
+     * @param authenticatedOnly true - only authenticated modules are loaded, false - all modules are loaded
+     */
+    virtual ErrCode INTERFACE_FUNC setAuthenticatedOnly(Bool authenticatedOnly) = 0;
 
+    /*!
+     * @brief Imports the module authenticator.
+     * @param authenticator A custom authenticator used to verify the signature/checksum of the modules.
+     */
     virtual ErrCode INTERFACE_FUNC setModuleAuthenticator(IModuleAuthenticator* authenticator) = 0;
+
+    /*!
+     * @brief Returns a dictionary of module IDs and the respective public keys of their vendors.
+     * @param[out] vendorKeys key (IString) - module ID, value (IString) - public vendor key 
+     *
+     * Used to identify which authenticator/certificate was used to authenticate the module.
+     */
+    // [templateType(vendorKeys, IString, IString)]
+    virtual ErrCode INTERFACE_FUNC getVendorKeys(IDict** vendorKeys) = 0;
 };
 /*!@}*/
 

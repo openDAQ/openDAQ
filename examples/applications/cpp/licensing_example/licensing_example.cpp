@@ -21,9 +21,9 @@ const std::string resourcePath = RESOURCE_PATH;
 class ModuleAuthenticatorImpl : public ModuleAuthenticator
 {
 public:
-    explicit ModuleAuthenticatorImpl(IString* path)
+    explicit ModuleAuthenticatorImpl(const StringPtr& path, const StringPtr& key)
         : certificatePath(path)
-        , authenticatedModules(Dict<IString, IString>())
+        , key(key)
         , validModules()
     {
         std::string endsWith(".module.dll");
@@ -46,18 +46,16 @@ public:
         }
     }
 
-    Bool onAuthenticateModuleBinary(IString* binaryPath) override
+    Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath) override
     {
-        char* str;
-        binaryPath->toString(&str);
-
-        std::string pathToModule(str);
+        std::string pathToModule(binaryPath);
 
         for (const std::string& moduleName : validModules)
         {
             if (pathToModule.compare(pathToModule.size() - moduleName.size(), moduleName.size(), moduleName) == 0)
             {
-                authenticatedModules.set(String(pathToModule.c_str()), certificatePath);
+                vendorKey = key;
+                
                 return true;
             }
         }
@@ -65,14 +63,9 @@ public:
         return false;
     }
 
-    DictPtr<IString, IString> onGetAuthenticatedModules() override
-    {
-        return authenticatedModules;
-    }
-
 private:
-    IString* certificatePath;
-    DictPtr<IString, IString> authenticatedModules;
+    StringPtr certificatePath;
+    StringPtr key;
 
     std::vector<std::string> validModules;
 };
@@ -135,18 +128,16 @@ int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create an Instance, loading modules at MODULE_PATH
     const StringPtr path = StringPtr(resourcePath + "Certificate.txt");
-    const ModuleAuthenticatorPtr authenticator = daq::createWithImplementation<IModuleAuthenticator, ModuleAuthenticatorImpl>(path.as<IString>(false));
+    const StringPtr key = StringPtr("myAuthenticatorKey");
+    const ModuleAuthenticatorPtr authenticator =
+        daq::createWithImplementation<IModuleAuthenticator, ModuleAuthenticatorImpl>(path, key);
 
     const InstancePtr instance =
         daq::InstanceBuilder().setModuleAuthenticator(authenticator).setLoadAuthenticatedModulesOnly(true).setModulePath(MODULE_PATH).build();
 
     std::cout << std::endl << "Loaded modules:" << std::endl;
-    auto moduleDict = authenticator.getAuthenticatedModules();
-    for (auto module : moduleDict)
-    {
-        std::cout << "Module path: " << module.first << std::endl << " - \"Certificate\" path: " << module.second << std::endl;
-    }
-    
+    auto vendorKeys = instance.getModuleManager().getVendorKeys();
+
     // Setup your paths here..
     std::string licPath = resourcePath + "license.lic";
     // Make sure you open up the quick_start_simulator example app to get a reference device!
@@ -181,26 +172,25 @@ int main(int /*argc*/, const char* /*argv*/[])
     // ------------- Find the licensing module ------------------ //
     const auto modules = instance.getModuleManager().getModules();
 
-    auto itFound = std::find_if(modules.begin(),
-                                modules.end(),
-                                [](const ModulePtr& module) { return module.getModuleInfo().getName() == "LicensingModule"; });
-
-    if (itFound == modules.end())
-    {
-        std::cerr << "The 'LicensingModule' was not found!" << std::endl << "Press any key to continue...";
-        std::cin.get();
-        return 1;
-    }
-
-    ModulePtr licensingModulePtr = *itFound;
-    // ---------------------------------------------------------- //
-
     // --------------------------- Load the license ------------------------------------------- //
-    DictPtr<IString, IString> licenseConfig = licensingModulePtr.getLicenseConfig();
-    licenseConfig.set("VendorKey", "my_secret_key");
-    licenseConfig.set("LicensePath", licPath);
-    Bool succeeded = licensingModulePtr.loadLicense(licenseConfig);
-
+    Bool succeeded = false;
+    for (auto module : modules)
+    {
+        if (key.equals(vendorKeys.get(module.getModuleInfo().getId())))
+        {
+            if (module.getModuleInfo().getName() == "LicensingModule")
+            {
+                DictPtr<IString, IString> licenseConfig = module.getLicenseConfig();
+                licenseConfig.set("VendorSecret", "my_secret_key");
+                licenseConfig.set("LicensePath", licPath);
+                succeeded = module.loadLicense(licenseConfig);
+            }
+        }
+        if (succeeded)
+        {
+            break;
+        }
+    }
     if (succeeded == false)
     {
         std::cout << "Failed to load license!" << std::endl;

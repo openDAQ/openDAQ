@@ -23,50 +23,34 @@ BEGIN_NAMESPACE_OPENDAQ
 class ModuleAuthenticator : public ImplementationOf<IModuleAuthenticator>
 {
 public:
-    ErrCode INTERFACE_FUNC authenticateModuleBinary(Bool* binaryValid, IString* binaryPath) override;
-    virtual Bool onAuthenticateModuleBinary(IString* binaryPath);
-
-    ErrCode INTERFACE_FUNC getAuthenticatedModules(IDict** certModuleDict) override;
-    virtual DictPtr<IString, IString> onGetAuthenticatedModules();
+    ErrCode INTERFACE_FUNC authenticateModuleBinary(Bool* binaryValid, IString** vendorKey, IString* binaryPath) override;
+    virtual Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath);
 };
 
-inline ErrCode INTERFACE_FUNC ModuleAuthenticator::authenticateModuleBinary(Bool* binaryValid, IString* binaryPath)
+inline ErrCode INTERFACE_FUNC ModuleAuthenticator::authenticateModuleBinary(Bool* binaryValid, IString** vendorKey, IString* binaryPath)
 {
     OPENDAQ_PARAM_NOT_NULL(binaryValid);
+    OPENDAQ_PARAM_NOT_NULL(vendorKey);
     OPENDAQ_PARAM_NOT_NULL(binaryPath);
 
     Bool valid;
-    const ErrCode errCode = wrapHandlerReturn(this, &ModuleAuthenticator::onAuthenticateModuleBinary, valid, binaryPath);
+    StringPtr key;
+    const ErrCode errCode = wrapHandlerReturn(this, &ModuleAuthenticator::onAuthenticateModuleBinary, valid, key, binaryPath);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *binaryValid = valid;
+    *vendorKey = key.detach();
     return errCode;
 }
 
-inline Bool ModuleAuthenticator::onAuthenticateModuleBinary(IString* binaryPath)
+inline Bool ModuleAuthenticator::onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath)
 {
-    SizeT len = 0;
-    binaryPath->getLength(&len);
+    SizeT len = binaryPath.getLength();
+
+    StringPtr key("");
+    vendorKey = key.detach();
 
     return len > 0;
-}
-
-inline ErrCode INTERFACE_FUNC ModuleAuthenticator::getAuthenticatedModules(IDict** certModuleDict)
-{
-    OPENDAQ_PARAM_NOT_NULL(certModuleDict);
-
-    DictPtr<IString, IString> dict;
-    const ErrCode errCode = wrapHandlerReturn(this, &ModuleAuthenticator::onGetAuthenticatedModules, dict);
-
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    *certModuleDict = dict.detach();
-    return errCode;
-}
-
-inline DictPtr<IString, IString> ModuleAuthenticator::onGetAuthenticatedModules()
-{
-    return DictPtr<IString, IString>();
 }
 
 END_NAMESPACE_OPENDAQ

@@ -3,14 +3,15 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-MockModuleAuthenticatorImpl::MockModuleAuthenticatorImpl(IString* certPath)
+MockModuleAuthenticatorImpl::MockModuleAuthenticatorImpl(const StringPtr& certPath)
     : certificatePath(certPath)
 {
 
 }
 
-Bool MockModuleAuthenticatorImpl::onAuthenticateModuleBinary(IString* binaryPath)
+Bool MockModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath)
 {
+    StringPtr key("mockKey");
     if (certificatePath == "mock/path")
     {
         return true;
@@ -19,11 +20,8 @@ Bool MockModuleAuthenticatorImpl::onAuthenticateModuleBinary(IString* binaryPath
     {
         return false;
     }
-}
 
-DictPtr<IString,IString> MockModuleAuthenticatorImpl::onGetAuthenticatedModules()
-{
-    return nullptr;
+    vendorKey = key.detach();
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockModuleAuthenticator, IModuleAuthenticator, IString*, certPath)

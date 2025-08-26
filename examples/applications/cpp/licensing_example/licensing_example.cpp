@@ -5,7 +5,6 @@
 #include <iostream>
 #include <fstream>
 #include <opendaq/opendaq.h>
-#include "licensing_example.h"
 
 using namespace daq;
 

@@ -31,9 +31,11 @@ public:
         char* pathStr;
         certificatePath->toString(&pathStr);
 
-        if (auto file = std::fopen(pathStr, "r"))
+        std::ifstream stream;
+        stream.open(pathStr, std::ifstream::in);
+
+        if (stream.good())
         {
-            std::ifstream stream(file);
             for (std::string line; std::getline(stream, line);)
             {
                 if (line.compare(line.size() - endsWith.size(), endsWith.size(), endsWith) == 0)

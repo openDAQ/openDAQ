@@ -6,7 +6,6 @@ add_compile_definitions(MODULE_PATH="${OPENDAQ_MODULES_DIR}")
 
 add_executable(licensing_example licensing_example.cpp)
 
-target_link_libraries(licensing_example PRIVATE daq::opendaq ImageHlp)
-target_link_options(your_target PRIVATE /VERBOSE:LIB)
+target_link_libraries(licensing_example PRIVATE daq::opendaq)
 
 target_compile_definitions(licensing_example PUBLIC RESOURCE_PATH="${CMAKE_CURRENT_LIST_DIR}")

@@ -154,6 +154,7 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
         },
         py::arg("index"), py::arg("type_manager") = nullptr,
         "Gets the data packet last value.");
+    /*
     cls.def_property_readonly("raw_last_value",
         [](daq::IDataPacket *object)
         {
@@ -163,6 +164,8 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
         },
         py::return_value_policy::take_ownership,
         "Gets the last raw value of the data packet.");
+    */
+    /*
     cls.def("get_raw_value_by_index",
         [](daq::IDataPacket *object, const size_t index)
         {
@@ -172,4 +175,5 @@ void defineIDataPacket(pybind11::module_ m, PyDaqIntf<daq::IDataPacket, daq::IPa
         },
         py::arg("index"),
         "Gets the raw value of the data packet at the specified index.");
+    */
 }

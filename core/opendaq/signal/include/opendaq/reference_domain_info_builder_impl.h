@@ -34,16 +34,16 @@ public:
     ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) override;
     ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
 
-    ErrCode INTERFACE_FUNC setReferenceTimeSource(TimeSource referenceTimeSource) override;
-    ErrCode INTERFACE_FUNC getReferenceTimeSource(TimeSource* referenceTimeSource) override;
+    ErrCode INTERFACE_FUNC setReferenceTimeProtocol(TimeProtocol referenceTimeProtocol) override;
+    ErrCode INTERFACE_FUNC getReferenceTimeProtocol(TimeProtocol* referenceTimeProtocol) override;
 
-    ErrCode INTERFACE_FUNC setUsesOffset(UsesOffset referenceTimeSource) override;
-    ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset* referenceTimeSource) override;
+    ErrCode INTERFACE_FUNC setUsesOffset(UsesOffset referenceTimeProtocol) override;
+    ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset* referenceTimeProtocol) override;
 
 protected:
     StringPtr referenceDomainId;
     IntegerPtr referenceDomainOffset;
-    TimeSource referenceTimeSource;
+    TimeProtocol referenceTimeProtocol;
     UsesOffset usesOffset;
 };
 

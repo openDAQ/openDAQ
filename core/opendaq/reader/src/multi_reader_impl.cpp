@@ -31,12 +31,12 @@ BEGIN_NAMESPACE_OPENDAQ
 struct MultiReaderImpl::ReferenceDomainBin
 {
     StringPtr id;
-    TimeSource timeSource;
+    TimeProtocol timeProtocol;
 
     bool operator<(const ReferenceDomainBin& rhs) const
     {
         if (id == rhs.id)
-            return timeSource < rhs.timeSource;
+            return timeProtocol < rhs.timeProtocol;
         if (id.assigned() && rhs.id.assigned())
             return id < rhs.id;
         if (rhs.id.assigned())
@@ -238,7 +238,7 @@ ErrCode MultiReaderImpl::checkDomainUnits(const ListPtr<InputPortConfigPtr>& por
 
 ErrCode MultiReaderImpl::checkReferenceDomainInfo(const ListPtr<InputPortConfigPtr>& ports) const
 {
-    TimeSource timeSource = TimeSource::Unknown;
+    TimeProtocol TimeProtocol = TimeProtocol::Unknown;
     std::set<ReferenceDomainBin> bins;
 
     for (const auto& port : ports)
@@ -272,27 +272,27 @@ ErrCode MultiReaderImpl::checkReferenceDomainInfo(const ListPtr<InputPortConfigP
                 LOG_D(R"(Domain signal "{}" Reference Domain ID not assigned.)", domain.getLocalId());
             }
 
-            if (referenceDomainInfo.getReferenceTimeSource() == TimeSource::Unknown)
+            if (referenceDomainInfo.getReferenceTimeProtocol() == TimeProtocol::Unknown)
             {
                 // This will perhaps be bumped up to a higher severity later on (warning)
                 LOG_D(R"(Domain signal "{}" Reference Time Source is Unknown.)", domain.getLocalId());
             }
             else
             {
-                if (timeSource != TimeSource::Unknown && referenceDomainInfo.getReferenceTimeSource() != timeSource)
+                if (TimeProtocol != TimeProtocol::Unknown && referenceDomainInfo.getReferenceTimeProtocol() != TimeProtocol)
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE,
                                                "Only one known Reference Time Source is allowed per Multi Reader.");
-                timeSource = referenceDomainInfo.getReferenceTimeSource();
+                TimeProtocol = referenceDomainInfo.getReferenceTimeProtocol();
             }
 
-            ReferenceDomainBin bin = {referenceDomainInfo.getReferenceDomainId(), referenceDomainInfo.getReferenceTimeSource()};
+            ReferenceDomainBin bin = {referenceDomainInfo.getReferenceDomainId(), referenceDomainInfo.getReferenceTimeProtocol()};
             auto elt = bins.begin();
             while (elt != bins.end())
             {
                 // Traverse one group
 
-                bool needsKnownTimeSource = false;
-                bool hasKnownTimeSource = false;
+                bool needsKnownTimeProtocol = false;
+                bool hasKnownTimeProtocol = false;
                 auto groupDomainId = elt->id;
 
                 while (elt != bins.end() && elt->id == groupDomainId)
@@ -301,17 +301,17 @@ ErrCode MultiReaderImpl::checkReferenceDomainInfo(const ListPtr<InputPortConfigP
                     {
                         // Both are assigned, but not matching
                         // Needs at least one known time source
-                        needsKnownTimeSource = true;
+                        needsKnownTimeProtocol = true;
                     }
-                    if (elt->timeSource != TimeSource::Unknown)
+                    if (elt->timeProtocol != TimeProtocol::Unknown)
                     {
                         // Group (domain signals with identical domain ID) has at least one known time source
-                        hasKnownTimeSource = true;
+                        hasKnownTimeProtocol = true;
                     }
                     ++elt;
                 }
 
-                if (needsKnownTimeSource && !hasKnownTimeSource)
+                if (needsKnownTimeProtocol && !hasKnownTimeProtocol)
                 {
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Reference domain is incompatible.");
                 }

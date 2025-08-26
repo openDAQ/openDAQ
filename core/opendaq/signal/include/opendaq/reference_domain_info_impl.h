@@ -29,7 +29,7 @@ public:
 
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
-    ErrCode INTERFACE_FUNC getReferenceTimeSource(TimeSource* referenceTimeSource) override;
+    ErrCode INTERFACE_FUNC getReferenceTimeProtocol(TimeProtocol* referenceTimeProtocol) override;
     ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset* usesOffset) override;
 
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
@@ -44,7 +44,7 @@ public:
 protected:
     StringPtr referenceDomainId;
     IntegerPtr referenceDomainOffset;
-    TimeSource referenceTimeSource;
+    TimeProtocol referenceTimeProtocol;
     UsesOffset usesOffset;
 
 private:

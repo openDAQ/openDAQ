@@ -45,9 +45,10 @@ inline ErrCode INTERFACE_FUNC ModuleAuthenticator::authenticateModuleBinary(Bool
 
 inline Bool ModuleAuthenticator::onAuthenticateModuleBinary(IString* binaryPath)
 {
-    binaryPath;
+    SizeT len = 0;
+    binaryPath->getLength(&len);
 
-    return true;
+    return len > 0;
 }
 
 inline ErrCode INTERFACE_FUNC ModuleAuthenticator::getAuthenticatedModules(IDict** certModuleDict)

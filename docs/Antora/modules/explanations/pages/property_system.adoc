@@ -745,8 +745,8 @@ Cpp::
 ----
 auto propObj = PropertyObject();
 
-auto arguments = List<IArgumentInfo>(ArgumentInfo("Val1", ctInt), ArgumentInfo("Val2", ctInt), true);
-propObj.addProperty(FunctionProperty("SumFunction", FunctionInfo(ctInt, arguments)));
+auto arguments = List<IArgumentInfo>(ArgumentInfo("Val1", ctInt), ArgumentInfo("Val2", ctInt));
+propObj.addProperty(FunctionProperty("SumFunction", FunctionInfo(ctInt, arguments, true)));
 
 auto func = Function([](IntegerPtr val1, IntegerPtr val2)
 {

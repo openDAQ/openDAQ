@@ -197,6 +197,13 @@ source_group("permission_builder" FILES ${SDK_HEADERS_DIR}/permissions_builder.h
                                         permissions_impl.cpp
 )
 
+source_group("mutex" FILES ${SDK_HEADERS_DIR}/mutex.h
+                           ${SDK_HEADERS_DIR}/mutex_factory.h
+                           ${SDK_HEADERS_DIR}/mutex_impl.h
+                           ${SDK_HEADERS_DIR}/mutex_ptr.h
+                           mutex_impl.cpp
+)
+
 set(SRC_Cpp version.cpp
             eval_value_impl.cpp
             eval_value_lexer.cpp
@@ -227,6 +234,7 @@ set(SRC_Cpp version.cpp
             permission_mask_builder_impl.cpp
             search_filter_impl.cpp
             property_metadata_read_args_impl.cpp
+            mutex_impl.cpp
 )
 
 set(SRC_PublicHeaders coreobjects.h
@@ -278,6 +286,9 @@ set(SRC_PublicHeaders coreobjects.h
                       search_filter_factory.h
                       property_metadata_read_args.h
                       property_metadata_read_args_factory.h
+                      mutex.h
+                      mutex_factory.h
+					  mutex_ptr.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -307,6 +318,7 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        permission_mask_builder_impl.h
                        search_filter_impl.h
                        property_metadata_read_args_impl.h
+                       mutex_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)

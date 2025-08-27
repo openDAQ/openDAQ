@@ -144,7 +144,7 @@ void daq::ws_streaming::server::thread_main()
             control_socket.set_option(option);
         }
 
-        catch (const std::exception& ex)
+        catch (const std::exception& /*ex*/)
         {
             // IPv6-only option not supported. We can ignore this because it means
             // the acceptors will always support IPv4 and IPv6, which is what we want.

@@ -25,7 +25,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// PermissionManagerImpl
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
 
 class PermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IPermissionManagerInternal, ICloneable>
 {
@@ -54,12 +54,14 @@ private:
     PermissionsPtr localPermissions;
 };
 
-// DisabledPermissionManagerImpl
+#else
 
-class DisabledPermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IPermissionManagerInternal, ICloneable>
+// permission manager which never restricts any access to any object.
+
+class PermissionManagerImpl : public ImplementationOfWeak<IPermissionManager, IPermissionManagerInternal, ICloneable>
 {
 public:
-    explicit DisabledPermissionManagerImpl();
+    explicit PermissionManagerImpl(const PermissionManagerPtr& parent);
 
     ErrCode INTERFACE_FUNC setPermissions(IPermissions* permissions) override;
     ErrCode INTERFACE_FUNC isAuthorized(IUser* user, Permission permission, Bool* authorizedOut) override;
@@ -72,5 +74,7 @@ protected:
     ErrCode INTERFACE_FUNC getPermissions(IPermissions** permisisonConfigOut) override;
     ErrCode INTERFACE_FUNC updateInheritedPermissions() override;
 };
+
+#endif
 
 END_NAMESPACE_OPENDAQ

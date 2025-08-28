@@ -31,34 +31,36 @@ namespace VideoPlayer
 {
 
 template<typename T>
-class SafeDeque
+class LatestBox
 {
 public:
-    void pushBack(T&& value)
+
+    LatestBox()
+        : isNewValue(false)
     {
-        std::lock_guard<std::mutex> lock(mutex);
-        deque.push_back(std::forward<T>(value));
     }
 
-    bool tryPopFront(T& value)
+    void update(T value)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        if (deque.empty())
+        lastValue = std::move(value);
+        isNewValue = true;
+    }
+
+    bool tryGetLastValue(T& value)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (!isNewValue)
             return false;
 
-        value = std::move(deque.front());
-        deque.pop_front();
+        value = lastValue;
+        isNewValue = false;
         return true;
     }
 
-    void clear()
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        deque.clear();
-    }
-
 private:
-    std::deque<T> deque;
+    T lastValue;
+    bool isNewValue;
     mutable std::mutex mutex;
 };
 
@@ -95,7 +97,7 @@ private:
     sf::Font font;
     sf::Text timestampText;
 
-    SafeDeque<DataPacketPtr> dataPackets;
+    LatestBox<DataPacketPtr> lastPacket;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

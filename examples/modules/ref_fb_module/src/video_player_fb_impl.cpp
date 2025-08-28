@@ -77,7 +77,6 @@ void VideoPlayerFbImpl::updateTimestamp(const DataPacketPtr& domainPacket)
 bool VideoPlayerFbImpl::closeWindow()
 {
     window->close();
-    dataPackets.clear();
     videoInputPort.setActive(false);
     return false;
 }
@@ -112,7 +111,7 @@ void VideoPlayerFbImpl::startRender()
         }
 
         DataPacketPtr packet;
-        if (!dataPackets.tryPopFront(packet))
+        if (!lastPacket.tryGetLastValue(packet))
             return true;
 
         const SizeT pictureSize = packet.getRawDataSize();
@@ -164,7 +163,7 @@ void VideoPlayerFbImpl::onPacketReceived(const InputPortPtr& port)
 
 void VideoPlayerFbImpl::handleDataPacket(const DataPacketPtr& packet)
 {
-    dataPackets.pushBack(DataPacketPtr(packet));
+    lastPacket.update(packet);
 }
 
 void VideoPlayerFbImpl::handleEventPacket(const EventPacketPtr& packet)

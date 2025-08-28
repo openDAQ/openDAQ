@@ -632,13 +632,9 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 
-#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
     this->permissionManager = PermissionManager();
     this->permissionManager.setPermissions(
         PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
-#else
-    this->permissionManager = DisabledPermissionManager();
-#endif
 
     PropertyValueEventEmitter readEmitter;
     PropertyValueEventEmitter writeEmitter;
@@ -3133,11 +3129,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
         serializerPtr.startList();
         for (const auto& prop : localProperties)
         {
-#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
             bool isObjectProp = prop.second.template asPtr<IPropertyInternal>().getValueTypeUnresolved() == ctObject;
             if (isObjectProp && !hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
                 continue;
-#endif
 
             const ErrCode errCode = serializeProperty(prop.second, serializer);
             OPENDAQ_RETURN_IF_FAILED(errCode);

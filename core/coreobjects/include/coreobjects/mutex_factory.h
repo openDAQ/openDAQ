@@ -21,7 +21,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 inline MutexPtr Mutex()
 {
-    return MutexPtr(Mutex_Create());
+    return { Mutex_Create() };
 }
 
 END_NAMESPACE_OPENDAQ

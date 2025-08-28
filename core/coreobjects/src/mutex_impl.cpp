@@ -3,6 +3,7 @@
 #include <coretypes/impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 ErrCode MutexImpl::lock()
 {
     try

@@ -16,17 +16,22 @@
 
 #pragma once
 #include <coreobjects/property.h>
-#include <coreobjects/property_object.h>
+#include <coreobjects/mutex.h>
 #include <coreobjects/object_lock_guard.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 
 /*!
  * @ingroup objects_property_object
  * @addtogroup objects_property_object_obj PropertyObjectInternal
  * @{
  */
+
+enum class LockingStrategy : EnumType
+{
+    OwnLock = 0,
+    InheritLock
+};
 
 /*#
  * [interfaceSmartPtr(ILockGuard, LockGuardPtr, "<coreobjects/object_lock_guard_ptr.h>")]
@@ -49,10 +54,13 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* name, IBaseObject** value) = 0;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValueNoLock(IString* name, IBaseObject** value) = 0;
     virtual ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* name, IBaseObject* value) = 0;
+    virtual ErrCode INTERFACE_FUNC setProtectedPropertyValueNoLock(IString* name, IBaseObject* value) = 0;
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* name) = 0;
 
     virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) = 0;
     virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) = 0;
+    virtual ErrCode INTERFACE_FUNC setLockingStrategy(LockingStrategy strategy) = 0;
+    virtual ErrCode INTERFACE_FUNC getMutex(IMutex** mutex) = 0;
 };
 
 /*!@}*/

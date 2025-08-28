@@ -61,7 +61,8 @@ protected:
                                        const DataDescriptorPtr& descriptor = nullptr,
                                        bool visible = true,
                                        bool isPublic = true,
-                                       const PermissionsPtr& permissions = nullptr);
+                                       const PermissionsPtr& permissions = nullptr,
+                                       LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
 
     void addSignal(const SignalPtr& signal);
     void removeSignal(const SignalConfigPtr& signal);
@@ -72,13 +73,19 @@ protected:
     FunctionBlockPtr createAndAddNestedFunctionBlock(const StringPtr& typeId,
                                                      const StringPtr& localId,
                                                      const PropertyObjectPtr& config = nullptr);
+
     void validateComponentNotExists(const std::string& localId);
     void validateComponentIsDefault(const std::string& localId);
 
     template <class TItemInterface = IComponent>
-    FolderConfigPtr addFolder(const std::string& localId, const FolderConfigPtr& parent = nullptr);
+    FolderConfigPtr addFolder(const std::string& localId,
+                              const FolderConfigPtr& parent = nullptr,
+                              LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
 
-    ComponentPtr addComponent(const std::string& localId, const FolderConfigPtr& parent = nullptr);
+    ComponentPtr addComponent(const std::string& localId,
+                              const FolderConfigPtr& parent = nullptr,
+                              LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
+
     ComponentPtr addExistingComponent(const ComponentPtr& component, const FolderConfigPtr& parent = nullptr);
     void removeComponentById(const std::string& localId);
 
@@ -158,8 +165,8 @@ GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const Con
     defaultComponents.insert("Sig");
     defaultComponents.insert("FB");
 
-    signals = addFolder<ISignal>("Sig", nullptr);
-    functionBlocks = addFolder<IFunctionBlock>("FB", nullptr);
+    signals = addFolder<ISignal>("Sig", nullptr, LockingStrategy::InheritLock);
+    functionBlocks = addFolder<IFunctionBlock>("FB", nullptr, LockingStrategy::InheritLock);
 
     signals.asPtr<IComponentPrivate>().lockAllAttributes();
     functionBlocks.asPtr<IComponentPrivate>().lockAllAttributes();
@@ -297,9 +304,12 @@ SignalConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddSignal(c
                                                                                const DataDescriptorPtr& descriptor,
                                                                                bool visible,
                                                                                bool isPublic,
-                                                                               const PermissionsPtr& permissions)
+                                                                               const PermissionsPtr& permissions,
+                                                                               LockingStrategy lockingStrategy)
 {
     SignalConfigPtr signal = Signal(this->context, signals, localId);
+    if (lockingStrategy != LockingStrategy::OwnLock)
+        signal.asPtr<IPropertyObjectInternal>().setLockingStrategy(lockingStrategy);
 
     if (descriptor.assigned())
         signal.setDescriptor(descriptor);
@@ -358,8 +368,10 @@ void GenericSignalContainerImpl<Intf, Intfs...>::addNestedFunctionBlock(const Fu
     }
 }
 
-template <class Intf, class ... Intfs>
-FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedFunctionBlock(const StringPtr& typeId, const StringPtr& localId, const PropertyObjectPtr& config)
+template <class Intf, class... Intfs>
+FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedFunctionBlock(const StringPtr& typeId,
+                                                                                             const StringPtr& localId,
+                                                                                             const PropertyObjectPtr& config)
 {
     ObjectPtr<IBaseObject> obj;
     this->context->getModuleManager(&obj);
@@ -373,8 +385,11 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedF
     FunctionBlockPtr fb;
 
     checkErrorInfo(managerUtils->createFunctionBlock(&fb, typeId, functionBlocks, config, localId));
+
     if (fb.assigned())
+    {
         addNestedFunctionBlock(fb);
+    }
     return fb;
 }
 
@@ -407,9 +422,11 @@ void GenericSignalContainerImpl<Intf, Intfs...>::validateComponentIsDefault(cons
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Non-default component cannot be added as child!");
 }
 
-template <class Intf, class ... Intfs>
+template <class Intf, class... Intfs>
 template <class TItemInterface>
-FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std::string& localId, const FolderConfigPtr& parent)
+FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std::string& localId,
+                                                                      const FolderConfigPtr& parent,
+                                                                      LockingStrategy lockingStrategy)
 {
     if (!parent.assigned())
     {
@@ -418,6 +435,9 @@ FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std:
             validateComponentIsDefault(localId);
 
         auto folder = Folder<TItemInterface>(this->context, this->template thisPtr<ComponentPtr>(), localId);
+        if (lockingStrategy != LockingStrategy::OwnLock)
+            folder.template asPtr<IPropertyObjectInternal>().setLockingStrategy(lockingStrategy);
+
         this->components.push_back(folder);
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -438,8 +458,10 @@ FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std:
     return folder;
 }
 
-template <class Intf, class ... Intfs>
-ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std::string& localId, const FolderConfigPtr& parent)
+template <class Intf, class... Intfs>
+ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std::string& localId,
+                                                                      const FolderConfigPtr& parent,
+                                                                      LockingStrategy lockingStrategy)
 {
     if (!parent.assigned())
     {
@@ -448,6 +470,9 @@ ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std:
             validateComponentIsDefault(localId);
 
         auto component = Component(this->context, this->template thisPtr<ComponentPtr>(), localId);
+        if (lockingStrategy != LockingStrategy::OwnLock)
+            component.template asPtr<IPropertyObjectInternal>().setLockingStrategy(lockingStrategy);
+
         this->components.push_back(component);
 
         if (!this->coreEventMuted && this->coreEvent.assigned())

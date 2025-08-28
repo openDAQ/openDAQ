@@ -184,6 +184,7 @@ protected:
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannelWithPermissions(const FolderConfigPtr& parentFolder, const StringPtr& localId, const PermissionsPtr& permissions, Params&&... params);
+
     void removeChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
     bool hasChannel(const FolderConfigPtr& parentFolder, const ChannelPtr& channel);
 
@@ -197,7 +198,8 @@ protected:
     DevicePtr createAndAddSubDevice(const StringPtr& connectionString, const PropertyObjectPtr& config);
 
     IoFolderConfigPtr addIoFolder(const std::string& localId,
-                                  const IoFolderConfigPtr& parent = nullptr);
+                                  const IoFolderConfigPtr& parent = nullptr,
+                                  LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateFunctionBlock(const std::string& fbId,
@@ -282,10 +284,14 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     this->defaultComponents.insert("Srv");
     this->allowNonDefaultComponents = true;
 
-    devices = this->template addFolder<IDevice>("Dev", nullptr);
+    devices = this->template addFolder<IDevice>("Dev", nullptr, LockingStrategy::InheritLock);
     ioFolder = this->addIoFolder("IO", nullptr);
-    syncComponent = this->addExistingComponent(SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization"));
-    servers = this->template addFolder<IComponent>("Srv", nullptr);
+
+    auto syncComponentObj = SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization");
+    syncComponentObj.template asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+    syncComponent = this->addExistingComponent(syncComponentObj.detach());
+
+    servers = this->template addFolder<IComponent>("Srv", nullptr, LockingStrategy::InheritLock);
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
@@ -1790,13 +1796,17 @@ void GenericDevice<TInterface, Interfaces...>::setDeviceDomain(const DeviceDomai
 
 template <typename TInterface, typename... Interfaces>
 inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(const std::string& localId,
-                                                                               const IoFolderConfigPtr& parent)
+                                                                               const IoFolderConfigPtr& parent,
+                                                                               LockingStrategy lockingStrategy)
 {
     if (!parent.assigned())
     {
         this->validateComponentNotExists(localId);
 
         auto folder = IoFolder(this->context, this->template thisPtr<ComponentPtr>(), localId);
+        if (lockingStrategy != LockingStrategy::OwnLock)
+            folder.template asPtr<IPropertyObjectInternal>().setLockingStrategy(lockingStrategy);
+
         this->components.push_back(folder);
 
         if (!this->coreEventMuted && this->coreEvent.assigned())

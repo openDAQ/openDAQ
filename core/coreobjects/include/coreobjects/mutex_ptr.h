@@ -91,7 +91,7 @@ public:
         if (this->object == nullptr)
             DAQ_THROW_EXCEPTION(daq::InvalidParameterException);
 
-        auto errCode = this->object->lock();
+        auto errCode = this->object->unlock();
         daq::checkErrorInfo(errCode);
     }
 };

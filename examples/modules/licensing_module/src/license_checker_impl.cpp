@@ -14,15 +14,13 @@ ErrCode LicenseChecker::getComponentTypes(IList** componentTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(componentTypes);
 
-    daq::ListPtr<IString> componentTypesLocal;
-    for (auto pair : _featureTokens)
-    {
-        StringPtr ptr;
-        createString(&ptr, pair.first.c_str() );
-        componentTypesLocal->pushBack(ptr);
-    }
+    auto componentTypesLocal = List<IString>();
+    for (const auto& [key, _] : _featureTokens)
+        componentTypesLocal.pushBack(key);
 
-    return ErrCode();
+    *componentTypes = componentTypesLocal.detach();
+
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode LicenseChecker::getNumberOfAvailableTokens(IString* componentId, Int* availableTokens)
@@ -32,23 +30,21 @@ ErrCode LicenseChecker::getNumberOfAvailableTokens(IString* componentId, Int* av
 
     const std::string featureName = daq::StringPtr::Borrow(componentId);
 
-    try
+    const auto it = _featureTokens.find(featureName);
+    if (it != _featureTokens.cend())
     {
-        int nTokens = _featureTokens.at(featureName);
-        *availableTokens = nTokens;
-    }
-    catch (std::out_of_range e)
-    {
-        return OPENDAQ_ERR_INVALIDPARAMETER;
+        *availableTokens = it->second;
+        return OPENDAQ_SUCCESS;
     }
 
-    return OPENDAQ_SUCCESS;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 ErrCode LicenseChecker::checkOut(IString* feature, SizeT count)
 {
     OPENDAQ_PARAM_NOT_NULL(feature);
-    OPENDAQ_PARAM_GT(count, 0);
+    if (count == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     // Take lock to protect the dictionary from race conditions
     std::lock_guard<std::mutex> lock(_mutex);
@@ -65,16 +61,15 @@ ErrCode LicenseChecker::checkOut(IString* feature, SizeT count)
 
         return OPENDAQ_SUCCESS;
     }
-    else
-    {
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
-    }
+
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 ErrCode LicenseChecker::checkIn(IString* feature, SizeT count)
 {
     OPENDAQ_PARAM_NOT_NULL(feature);
-    OPENDAQ_PARAM_GT(count, 0);
+    if (count == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     // Take lock to protect the dictionary from race conditions
     std::lock_guard<std::mutex> lock(_mutex);
@@ -84,13 +79,10 @@ ErrCode LicenseChecker::checkIn(IString* feature, SizeT count)
     if (it != _featureTokens.cend())
     {
         it->second += count;
-
         return OPENDAQ_SUCCESS;
     }
-    else
-    {
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
-    }
+
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
 END_NAMESPACE_LICENSING_MODULE

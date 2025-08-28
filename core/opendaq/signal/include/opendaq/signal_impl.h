@@ -1321,8 +1321,8 @@ void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPac
     }
 
     lastDataDescriptor = packet.getDataDescriptor();
-
-    lastRawDataValue.resize(lastDataDescriptor.getSampleSize());
+    SizeT sampleSize = lastDataDescriptor.getSampleType() == SampleType::Binary ? packet.getRawDataSize() : lastDataDescriptor.getSampleSize();
+    lastRawDataValue.resize(sampleSize);
     void* rawValue = lastRawDataValue.data();
     const ErrCode errCode = packet->getRawLastValue(&rawValue);
     if (errCode != OPENDAQ_SUCCESS)

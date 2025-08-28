@@ -301,12 +301,16 @@ endif()
 
 set(SRC_PublicHeaders_Component
     connection_factory.h
+    data_packet_impl.h
     data_rule_factory.h
     dimension_factory.h
     dimension_rule_factory.h
     data_descriptor_factory.h
+    data_rule_calc_private.h
+    generic_data_packet_impl.h
     input_port_factory.h
     packet_factory.h
+    packet_impl.h
     range_factory.h
     scaling_factory.h
     signal_errors.h
@@ -333,6 +337,8 @@ set(SRC_PublicHeaders_Component
     packet_destruct_callback_factory.h
     signal_impl.h
     reference_domain_info_factory.h
+    reference_domain_offset_adder.h
+    scaling_calc_private.h
     ${SRC_Mimalloc_PublicHeaders}
     PARENT_SCOPE
 )
@@ -345,9 +351,6 @@ set(SRC_PrivateHeaders_Component
     data_descriptor_impl.h
     data_descriptor_builder_impl.h
     input_port_impl.h
-    packet_impl.h
-    generic_data_packet_impl.h
-    data_packet_impl.h
     event_packet_impl.h
     scaling_impl.h
     scaling_builder_impl.h
@@ -359,10 +362,7 @@ set(SRC_PrivateHeaders_Component
     scaling_calc.h
     binary_data_packet_impl.h
     malloc_allocator_impl.h
-    data_rule_calc_private.h
-    scaling_calc_private.h
     external_allocator_impl.h
-    reference_domain_offset_adder.h
     reference_domain_info_impl.h
     reference_domain_info_builder_impl.h
     ${SRC_Mimalloc_PrivateHeaders}

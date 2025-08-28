@@ -59,6 +59,6 @@ private:
     static void DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptorBuilder);
     static void DecodeBitsInterpretationObject(const nlohmann::json& bits, DataDescriptorBuilderPtr& dataDescriptorBuilder);
     static nlohmann::json DictToJson(const DictPtr<IString, IBaseObject>& dict);
-    static DictPtr<IString, IBaseObject> JsonToDict(const nlohmann::json& json);
+    static ObjectPtr<IBaseObject> JsonToObject(const nlohmann::json& json);
 };
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

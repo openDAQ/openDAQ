@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:49.
+//     RTGen (CGenerator v0.7.0) on 19.08.2025 10:42:37.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -43,7 +43,7 @@ extern "C"
 
     daqErrCode EXPORTED daqReferenceDomainInfo_getReferenceDomainId(daqReferenceDomainInfo* self, daqString** referenceDomainId);
     daqErrCode EXPORTED daqReferenceDomainInfo_getReferenceDomainOffset(daqReferenceDomainInfo* self, daqInteger** referenceDomainOffset);
-    daqErrCode EXPORTED daqReferenceDomainInfo_getReferenceTimeSource(daqReferenceDomainInfo* self, daqTimeSource* referenceTimeSource);
+    daqErrCode EXPORTED daqReferenceDomainInfo_getReferenceTimeProtocol(daqReferenceDomainInfo* self, daqTimeProtocol* referenceTimeProtocol);
     daqErrCode EXPORTED daqReferenceDomainInfo_getUsesOffset(daqReferenceDomainInfo* self, daqUsesOffset* usesOffset);
     daqErrCode EXPORTED daqReferenceDomainInfo_createReferenceDomainInfoFromBuilder(daqReferenceDomainInfo** obj, daqReferenceDomainInfoBuilder* builder);
 

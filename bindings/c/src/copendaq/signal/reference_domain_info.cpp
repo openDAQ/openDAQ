@@ -27,9 +27,9 @@ daqErrCode daqReferenceDomainInfo_getReferenceDomainOffset(daqReferenceDomainInf
     return reinterpret_cast<daq::IReferenceDomainInfo*>(self)->getReferenceDomainOffset(reinterpret_cast<daq::IInteger**>(referenceDomainOffset));
 }
 
-daqErrCode daqReferenceDomainInfo_getReferenceTimeSource(daqReferenceDomainInfo* self, daqTimeSource* referenceTimeSource)
+daqErrCode daqReferenceDomainInfo_getReferenceTimeProtocol(daqReferenceDomainInfo* self, daqTimeProtocol* referenceTimeProtocol)
 {
-    return reinterpret_cast<daq::IReferenceDomainInfo*>(self)->getReferenceTimeSource(reinterpret_cast<daq::TimeSource*>(referenceTimeSource));
+    return reinterpret_cast<daq::IReferenceDomainInfo*>(self)->getReferenceTimeProtocol(reinterpret_cast<daq::TimeProtocol*>(referenceTimeProtocol));
 }
 
 daqErrCode daqReferenceDomainInfo_getUsesOffset(daqReferenceDomainInfo* self, daqUsesOffset* usesOffset)

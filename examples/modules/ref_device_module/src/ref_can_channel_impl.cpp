@@ -30,6 +30,8 @@ RefCANChannelImpl::RefCANChannelImpl(const ContextPtr& context,
     , lastCollectTime(0)
     , samplesGenerated(0)
 {
+    objPtr.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+
     initProperties();
     propChangedInternal();
     createSignals();
@@ -64,7 +66,6 @@ void RefCANChannelImpl::propChanged()
 
 void RefCANChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    auto lock = this->getAcquisitionLock();
     const auto duration = static_cast<int64_t>(curTime.count() - lastCollectTime.count());
 
     if (duration > 0 && valueSignal.getActive())

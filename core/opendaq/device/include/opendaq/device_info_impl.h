@@ -1210,7 +1210,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     if (parent.supportsInterface<IMirroredDevice>())
         return errCode;
     
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     for (const StringPtr& propertyName: {String("userName"), String("location")})
     {
         PropertyPtr property;

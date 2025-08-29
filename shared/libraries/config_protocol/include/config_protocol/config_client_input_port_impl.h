@@ -87,7 +87,7 @@ inline ErrCode ConfigClientInputPortImpl::connect(ISignal* signal)
                     signalPtr.getGlobalId());
         }
         {
-            auto lock = this->getRecursiveConfigLock();
+            auto lock = this->getRecursiveConfigLock2();
 
             const auto connectedSignal = getConnectedSignal();
             if (connectedSignal == signalPtr)

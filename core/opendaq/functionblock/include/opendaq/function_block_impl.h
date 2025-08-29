@@ -93,7 +93,8 @@ protected:
                                              PacketReadyNotification notificationMethod,
                                              BaseObjectPtr customData = nullptr,
                                              bool requestGapPackets = false,
-                                             const PermissionsPtr& permissions = nullptr);
+                                             const PermissionsPtr& permissions = nullptr,
+                                             LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
 
     void addInputPort(const InputPortPtr& inputPort);
     void removeInputPort(const InputPortConfigPtr& inputPort);
@@ -135,7 +136,7 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
                                                            : throw ArgumentNullException("Logger must not be null"))
 {
     this->defaultComponents.insert("IP");
-    inputPorts = this->template addFolder<IInputPort>("IP", nullptr);
+    inputPorts = this->template addFolder<IInputPort>("IP", nullptr, LockingStrategy::ForwardOwnerLockOwn);
     inputPorts.asPtr<IComponentPrivate>().lockAllAttributes();
     inputPorts.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
 }
@@ -487,7 +488,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunct
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
     this->functionBlocks.removeItem(functionBlock);
 }
 
@@ -541,9 +542,12 @@ InputPortConfigPtr FunctionBlockImpl<TInterface, Interfaces...>::createAndAddInp
                                                                                        PacketReadyNotification notificationMethod,
                                                                                        BaseObjectPtr customData,
                                                                                        bool requestGapPackets,
-                                                                                       const PermissionsPtr& permissions)
+                                                                                       const PermissionsPtr& permissions,
+                                                                                       LockingStrategy lockingStrategy)
 {
     InputPortConfigPtr inputPort = InputPort(this->context, inputPorts, localId, requestGapPackets);
+    if (lockingStrategy != LockingStrategy::OwnLock)
+        inputPort.asPtr<IPropertyObjectInternal>().setLockingStrategy(lockingStrategy);
 
     inputPort.setListener(this->template borrowPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(notificationMethod);

@@ -262,3 +262,131 @@ TEST_F(FolderTest, BeginUpdateEndUpdate)
     ASSERT_EQ(folder.getPropertyValue("FolderProp"), "s");
     ASSERT_EQ(component.getPropertyValue("ComponentProp"), "cs");
 }
+
+using namespace daq;
+
+TEST_F(FolderTest, InheritedLocking1)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+    const auto folderInternal = folder.asPtr<IPropertyObjectInternal>();
+    
+    const auto folder1 = daq::Folder(ctx, folder, "folder");
+    const auto folderInternal1 = folder1.asPtr<IPropertyObjectInternal>();
+    folderInternal1.setLockingStrategy(LockingStrategy::InheritLock);
+    folder.addItem(folder1);
+    
+    const auto component = daq::Component(ctx, folder1, "folder");
+    const auto componentInternal = component.asPtr<IPropertyObjectInternal>();
+    componentInternal.setLockingStrategy(LockingStrategy::InheritLock);
+    folder1.addItem(component);
+
+    auto propObj = PropertyObject();
+    auto objInternal = propObj.asPtr<IPropertyObjectInternal>();
+    objInternal.setLockingStrategy(LockingStrategy::InheritLock);
+    component.addProperty(ObjectProperty("child", propObj));
+
+    auto propObj1 = PropertyObject();
+    auto objInternal1 = propObj1.asPtr<IPropertyObjectInternal>();
+
+    objInternal1.setLockingStrategy(LockingStrategy::InheritLock);
+    propObj.addProperty(ObjectProperty("child", propObj1));
+
+    folderInternal.enableCoreEventTrigger();
+    
+    ASSERT_EQ(folderInternal.getLockingStrategy(), LockingStrategy::OwnLock);
+    ASSERT_EQ(folderInternal1.getLockingStrategy(), LockingStrategy::InheritLock);
+    ASSERT_EQ(componentInternal.getLockingStrategy(), LockingStrategy::InheritLock);
+    ASSERT_EQ(objInternal.getLockingStrategy(), LockingStrategy::InheritLock);
+    ASSERT_EQ(objInternal1.getLockingStrategy(), LockingStrategy::InheritLock);
+
+    auto mutex = folderInternal.getMutex();
+    ASSERT_EQ(mutex, folderInternal1.getMutex());
+    ASSERT_EQ(mutex, componentInternal.getMutex());
+    ASSERT_EQ(mutex, objInternal.getMutex());
+    ASSERT_EQ(mutex, objInternal1.getMutex());
+
+    {
+        auto lg = objInternal1.getLockGuard();
+        ASSERT_FALSE(mutex.tryLock());
+    }
+
+    {
+        auto lg = folderInternal.getRecursiveLockGuard();
+        auto lg1 = folderInternal1.getRecursiveLockGuard();
+        auto lg2 = componentInternal.getRecursiveLockGuard();
+        auto lg3 = objInternal.getRecursiveLockGuard();
+        auto lg4 = objInternal1.getRecursiveLockGuard();
+    }
+
+    ASSERT_EQ(folderInternal, componentInternal.getMutexOwner());
+    ASSERT_EQ(folderInternal, objInternal1.getMutexOwner());
+}
+
+TEST_F(FolderTest, InheritedLocking2)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder = daq::Folder(ctx, nullptr, "folder");
+    const auto folderInternal = folder.asPtr<IPropertyObjectInternal>();
+    
+    const auto folder1 = daq::Folder(ctx, folder, "folder");
+    const auto folderInternal1 = folder1.asPtr<IPropertyObjectInternal>();
+    folderInternal1.setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
+    folder.addItem(folder1);
+    
+    const auto component = daq::Component(ctx, folder1, "folder");
+    const auto componentInternal = component.asPtr<IPropertyObjectInternal>();
+    componentInternal.setLockingStrategy(LockingStrategy::InheritLock);
+    folder1.addItem(component);
+
+    auto propObj = PropertyObject();
+    auto objInternal = propObj.asPtr<IPropertyObjectInternal>();
+    objInternal.setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
+    component.addProperty(ObjectProperty("child", propObj));
+
+    auto propObj1 = PropertyObject();
+    auto objInternal1 = propObj1.asPtr<IPropertyObjectInternal>();
+
+    objInternal1.setLockingStrategy(LockingStrategy::InheritLock);
+    propObj.addProperty(ObjectProperty("child", propObj1));
+
+    folderInternal.enableCoreEventTrigger();
+    
+    ASSERT_EQ(folderInternal.getLockingStrategy(), LockingStrategy::OwnLock);
+    ASSERT_EQ(folderInternal1.getLockingStrategy(), LockingStrategy::ForwardOwnerLockOwn);
+    ASSERT_EQ(componentInternal.getLockingStrategy(), LockingStrategy::InheritLock);
+    ASSERT_EQ(objInternal.getLockingStrategy(), LockingStrategy::ForwardOwnerLockOwn);
+    ASSERT_EQ(objInternal1.getLockingStrategy(), LockingStrategy::InheritLock);
+
+    auto mutex = folderInternal.getMutex();
+    ASSERT_NE(mutex, folderInternal1.getMutex());
+    ASSERT_EQ(mutex, componentInternal.getMutex());
+    ASSERT_NE(mutex, objInternal.getMutex());
+    ASSERT_EQ(mutex, objInternal1.getMutex());
+
+    {
+        auto lg = objInternal1.getLockGuard();
+        ASSERT_FALSE(mutex.tryLock());
+
+        auto mutex1 = folderInternal1.getMutex();
+        auto mutex2 = objInternal.getMutex();
+        ASSERT_TRUE(mutex1.tryLock());
+        ASSERT_TRUE(mutex2.tryLock());
+
+        mutex1.unlock();
+        mutex2.unlock();
+    }
+
+    {
+        auto lg = folderInternal.getRecursiveLockGuard();
+        auto lg1 = folderInternal1.getRecursiveLockGuard();
+        auto lg2 = componentInternal.getRecursiveLockGuard();
+        auto lg3 = objInternal.getRecursiveLockGuard();
+        auto lg4 = objInternal1.getRecursiveLockGuard();
+    }
+
+    ASSERT_EQ(folderInternal, componentInternal.getMutexOwner());
+    ASSERT_EQ(folderInternal, objInternal1.getMutexOwner());
+    ASSERT_EQ(folderInternal, folderInternal1.getMutexOwner());
+    ASSERT_EQ(folderInternal, objInternal.getMutexOwner());
+}

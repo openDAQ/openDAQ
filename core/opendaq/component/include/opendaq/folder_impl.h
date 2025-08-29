@@ -144,7 +144,7 @@ ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searc
 {
     OPENDAQ_PARAM_NOT_NULL(items);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (searchFilter)
     {
@@ -181,7 +181,7 @@ ErrCode FolderImpl<Intf, Intfs...>::getItem(IString* localId, IComponent** item)
     OPENDAQ_PARAM_NOT_NULL(localId);
     OPENDAQ_PARAM_NOT_NULL(item);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto it = items.find(StringPtr::Borrow(localId).toStdString());
     if (it == items.end())
@@ -206,7 +206,7 @@ ErrCode FolderImpl<Intf, Intfs...>::hasItem(IString* localId, Bool* value)
 {
     OPENDAQ_PARAM_NOT_NULL(localId);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const auto it = items.find(StringPtr::Borrow(localId).toStdString());
     if (it == items.end())
@@ -239,7 +239,7 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
     ComponentPtr component = ComponentPtr::Borrow(item);
 
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
 
         const ErrCode err = daqTry([this, &component]
         {
@@ -276,7 +276,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
     const auto str = ComponentPtr::Borrow(item).getLocalId().toStdString();
 
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
 
         const ErrCode err = daqTry([this, &str]
         {
@@ -309,7 +309,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
     const auto str = StringPtr::Borrow(localId).toStdString();
 
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
 
         const ErrCode err = daqTry([this, &str]
         {
@@ -337,7 +337,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
 template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::clear()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     clearInternal();
 
     return OPENDAQ_SUCCESS;

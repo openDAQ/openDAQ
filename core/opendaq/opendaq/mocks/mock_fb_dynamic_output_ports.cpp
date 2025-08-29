@@ -42,7 +42,7 @@ void MockFunctionBlockDynamicOutputPortImpl::onPacketReceived(const daq::InputPo
 
 void MockFunctionBlockDynamicOutputPortImpl::onDisconnected(const daq::InputPortPtr& /* port */)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     this->signals.clear();
 }
 

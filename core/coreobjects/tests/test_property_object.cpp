@@ -2372,3 +2372,87 @@ TEST_F(PropertyObjectTest, StringSuggestedValues)
 
     ASSERT_NO_THROW(propObj.setPropertyValue("StringSuggestedValues", "Tomato"));
 }
+
+TEST_F(PropertyObjectTest, InheritedLocking1)
+{
+    auto propObj = PropertyObject();
+    auto objInternal = propObj.asPtr<IPropertyObjectInternal>();
+
+    auto propObj1 = PropertyObject();
+    auto objInternal1 = propObj1.asPtr<IPropertyObjectInternal>();
+
+    objInternal1.setLockingStrategy(LockingStrategy::InheritLock);
+    propObj.addProperty(ObjectProperty("child", propObj1));
+
+    auto propObj2 = PropertyObject();
+    auto objInternal2 = propObj2.asPtr<IPropertyObjectInternal>();
+
+    objInternal2.setLockingStrategy(LockingStrategy::InheritLock);
+    propObj1.addProperty(ObjectProperty("child", propObj2));
+
+    ASSERT_EQ(objInternal.getLockingStrategy(), LockingStrategy::OwnLock);
+    ASSERT_EQ(objInternal1.getLockingStrategy(), LockingStrategy::InheritLock);
+    ASSERT_EQ(objInternal2.getLockingStrategy(), LockingStrategy::InheritLock);
+
+    auto mutex = objInternal.getMutex();
+    ASSERT_EQ(mutex, objInternal1.getMutex());
+    ASSERT_EQ(mutex, objInternal2.getMutex());
+
+    {
+        auto lg = objInternal.getLockGuard();
+        ASSERT_FALSE(mutex.tryLock());
+    }
+
+    {
+        auto lg = objInternal.getRecursiveLockGuard();
+        auto lg1 = objInternal1.getRecursiveLockGuard();
+        auto lg2 = objInternal2.getRecursiveLockGuard();
+    }
+
+    ASSERT_EQ(objInternal, objInternal1.getMutexOwner());
+    ASSERT_EQ(objInternal, objInternal2.getMutexOwner());
+}
+
+TEST_F(PropertyObjectTest, InheritedLocking2)
+{
+    auto propObj = PropertyObject();
+    auto objInternal = propObj.asPtr<IPropertyObjectInternal>();
+
+    auto propObj1 = PropertyObject();
+    auto objInternal1 = propObj1.asPtr<IPropertyObjectInternal>();
+
+    objInternal1.setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
+    propObj.addProperty(ObjectProperty("child", propObj1));
+
+    auto propObj2 = PropertyObject();
+    auto objInternal2 = propObj2.asPtr<IPropertyObjectInternal>();
+
+    objInternal2.setLockingStrategy(LockingStrategy::InheritLock);
+    propObj1.addProperty(ObjectProperty("child", propObj2));
+
+    auto mutex = objInternal.getMutex();
+    ASSERT_NE(mutex, objInternal1.getMutex());
+    ASSERT_EQ(mutex, objInternal2.getMutex());
+    
+    ASSERT_EQ(objInternal.getLockingStrategy(), LockingStrategy::OwnLock);
+    ASSERT_EQ(objInternal1.getLockingStrategy(), LockingStrategy::ForwardOwnerLockOwn);
+    ASSERT_EQ(objInternal2.getLockingStrategy(), LockingStrategy::InheritLock);
+
+    {
+        auto lg = objInternal.getLockGuard();
+        ASSERT_FALSE(mutex.tryLock());
+
+        auto mutex1 = objInternal1.getMutex();
+        ASSERT_TRUE(mutex1.tryLock());
+        mutex1.unlock();
+    }
+
+    {
+        auto lg = objInternal.getRecursiveLockGuard();
+        auto lg1 = objInternal1.getRecursiveLockGuard();
+        auto lg2 = objInternal2.getRecursiveLockGuard();
+    }
+
+    ASSERT_EQ(objInternal, objInternal1.getMutexOwner());
+    ASSERT_EQ(objInternal, objInternal2.getMutexOwner());
+}

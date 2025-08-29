@@ -26,13 +26,13 @@ daq::FunctionBlockTypePtr MockFunctionBlockDynamicInputPortImpl::CreateType()
 
 void MockFunctionBlockDynamicInputPortImpl::onConnected(const daq::InputPortPtr& /* port */)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     updateInputPorts();
 }
 
 void MockFunctionBlockDynamicInputPortImpl::onDisconnected(const daq::InputPortPtr& port)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     removeInputPort(port);
 }
 

@@ -121,7 +121,7 @@ ErrCode FunctionBlockWrapperImpl::setOverridenObject(
         std::unordered_map<std::string, TSmartPtr>& objects,
         TInterface* object)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const ErrCode errCode = daqTry([this, &propertyName, &objects, &object]()
     {

@@ -9,6 +9,8 @@ using namespace daq;
 
 using PermissionManagerTest = testing::Test;
 
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+
 TEST_F(PermissionManagerTest, Create)
 {
     auto manager = PermissionManager();
@@ -279,11 +281,13 @@ TEST_F(PermissionManagerTest, AssignAddPermission)
     ASSERT_TRUE(manager.isAuthorized(admin, Permission::Execute));
 }
 
+#else
+
 TEST_F(PermissionManagerTest, CreateDisabledPermissionManager)
 {
     auto admin = User("admin", "password", List<IString>("admin"));
 
-    auto permissionManager = DisabledPermissionManager();
+    auto permissionManager = PermissionManager();
     permissionManager.setPermissions(nullptr);
 
     ASSERT_TRUE(permissionManager.isAuthorized(admin, Permission::Read));
@@ -294,3 +298,5 @@ TEST_F(PermissionManagerTest, CreateDisabledPermissionManager)
     ASSERT_TRUE(permissionManager.isAuthorized(nullptr, Permission::Write));
     ASSERT_TRUE(permissionManager.isAuthorized(nullptr, Permission::Execute));
 }
+
+#endif

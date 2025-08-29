@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:13.
+//     RTGen (CGenerator v0.7.0) on 28.08.2025 07:28:15.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -43,7 +43,6 @@ extern "C"
     daqErrCode EXPORTED daqPermissionManager_setPermissions(daqPermissionManager* self, daqPermissions* permissions);
     daqErrCode EXPORTED daqPermissionManager_isAuthorized(daqPermissionManager* self, daqUser* user, daqPermission permission, daqBool* authorizedOut);
     daqErrCode EXPORTED daqPermissionManager_createPermissionManager(daqPermissionManager** obj, daqPermissionManager* parent);
-    daqErrCode EXPORTED daqPermissionManager_createDisabledPermissionManager(daqPermissionManager** obj);
 
 #ifdef __cplusplus
 }

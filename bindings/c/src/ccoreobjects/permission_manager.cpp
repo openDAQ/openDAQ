@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:13.
+//     RTGen (CGenerator v0.7.0) on 28.08.2025 07:28:16.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -31,14 +31,6 @@ daqErrCode daqPermissionManager_createPermissionManager(daqPermissionManager** o
 {
     daq::IPermissionManager* ptr = nullptr;
     daqErrCode err = daq::createPermissionManager(&ptr, reinterpret_cast<daq::IPermissionManager*>(parent));
-    *obj = reinterpret_cast<daqPermissionManager*>(ptr);
-    return err;
-}
-
-daqErrCode daqPermissionManager_createDisabledPermissionManager(daqPermissionManager** obj)
-{
-    daq::IPermissionManager* ptr = nullptr;
-    daqErrCode err = daq::createDisabledPermissionManager(&ptr);
     *obj = reinterpret_cast<daqPermissionManager*>(ptr);
     return err;
 }

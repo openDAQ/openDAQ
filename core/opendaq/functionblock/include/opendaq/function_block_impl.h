@@ -136,7 +136,7 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
                                                            : throw ArgumentNullException("Logger must not be null"))
 {
     this->defaultComponents.insert("IP");
-    inputPorts = this->template addFolder<IInputPort>("IP", nullptr, LockingStrategy::InheritLock);
+    inputPorts = this->template addFolder<IInputPort>("IP", nullptr, LockingStrategy::ForwardOwnerLockOwn);
     inputPorts.asPtr<IComponentPrivate>().lockAllAttributes();
     inputPorts.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
 }

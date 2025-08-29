@@ -30,7 +30,8 @@ BEGIN_NAMESPACE_OPENDAQ
 enum class LockingStrategy : EnumType
 {
     OwnLock = 0,
-    InheritLock
+    InheritLock,
+    ForwardOwnerLockOwn
 };
 
 /*#
@@ -60,7 +61,9 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) = 0;
     virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) = 0;
     virtual ErrCode INTERFACE_FUNC setLockingStrategy(LockingStrategy strategy) = 0;
+    virtual ErrCode INTERFACE_FUNC getLockingStrategy(LockingStrategy* strategy) = 0;
     virtual ErrCode INTERFACE_FUNC getMutex(IMutex** mutex) = 0;
+    virtual ErrCode INTERFACE_FUNC getMutexOwner(IPropertyObjectInternal** owner) = 0;
 };
 
 /*!@}*/

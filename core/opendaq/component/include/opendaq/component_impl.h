@@ -79,6 +79,7 @@ public:
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
+    ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) override;
 
     // IComponent
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
@@ -278,6 +279,23 @@ ErrCode ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger()
     }
 
     return Super::enableCoreEventTrigger();
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getRecursiveLockGuard(ILockGuard** lockGuard)
+{
+    OPENDAQ_PARAM_NOT_NULL(lockGuard);
+
+    if (this->lockingStrategy == LockingStrategy::InheritLock)
+    {
+        PropertyObjectInternalPtr lockOwnerPtr;
+        OPENDAQ_RETURN_IF_FAILED(this->getMutexOwner(&lockOwnerPtr));
+
+        this->setLockOwner(lockOwnerPtr);
+        this->setMutex(lockOwnerPtr.getMutex());
+    }
+
+    return Super::getRecursiveLockGuard(lockGuard);
 }
 
 template <class Intf, class ... Intfs>

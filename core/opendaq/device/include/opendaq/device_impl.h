@@ -284,14 +284,14 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     this->defaultComponents.insert("Srv");
     this->allowNonDefaultComponents = true;
 
-    devices = this->template addFolder<IDevice>("Dev", nullptr, LockingStrategy::InheritLock);
+    devices = this->template addFolder<IDevice>("Dev", nullptr, LockingStrategy::ForwardOwnerLockOwn);
     ioFolder = this->addIoFolder("IO", nullptr);
 
     auto syncComponentObj = SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization");
-    syncComponentObj.template asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+    syncComponentObj.template asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
     syncComponent = this->addExistingComponent(syncComponentObj.detach());
 
-    servers = this->template addFolder<IComponent>("Srv", nullptr, LockingStrategy::InheritLock);
+    servers = this->template addFolder<IComponent>("Srv", nullptr, LockingStrategy::ForwardOwnerLockOwn);
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();

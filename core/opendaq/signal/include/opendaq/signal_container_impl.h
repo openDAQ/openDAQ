@@ -165,8 +165,8 @@ GenericSignalContainerImpl<Intf, Intfs...>::GenericSignalContainerImpl(const Con
     defaultComponents.insert("Sig");
     defaultComponents.insert("FB");
 
-    signals = addFolder<ISignal>("Sig", nullptr, LockingStrategy::InheritLock);
-    functionBlocks = addFolder<IFunctionBlock>("FB", nullptr, LockingStrategy::InheritLock);
+    signals = addFolder<ISignal>("Sig", nullptr, LockingStrategy::ForwardOwnerLockOwn);
+    functionBlocks = addFolder<IFunctionBlock>("FB", nullptr, LockingStrategy::ForwardOwnerLockOwn);
 
     signals.asPtr<IComponentPrivate>().lockAllAttributes();
     functionBlocks.asPtr<IComponentPrivate>().lockAllAttributes();

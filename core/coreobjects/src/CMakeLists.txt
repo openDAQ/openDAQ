@@ -49,6 +49,7 @@ rtgen(SRC_Permisisons permissions.h)
 rtgen(SRC_PermisisonsInternal permissions_internal.h)
 rtgen(SRC_ObjectLockGuard object_lock_guard.h)
 rtgen(SRC_PropertyMetadataReadArgs property_metadata_read_args.h)
+rtgen(SRC_Mutex	mutex.h)
 
 get_target_property(CORE_CONTAINERS_SRCS core_containers INTERFACE_SOURCES)
 
@@ -200,7 +201,7 @@ source_group("permission_builder" FILES ${SDK_HEADERS_DIR}/permissions_builder.h
 source_group("mutex" FILES ${SDK_HEADERS_DIR}/mutex.h
                            ${SDK_HEADERS_DIR}/mutex_factory.h
                            ${SDK_HEADERS_DIR}/mutex_impl.h
-                           ${SDK_HEADERS_DIR}/mutex_ptr.h
+                           ${SDK_HEADERS_DIR}/mutex_ptr.custom.h
                            mutex_impl.cpp
 )
 
@@ -288,7 +289,7 @@ set(SRC_PublicHeaders coreobjects.h
                       property_metadata_read_args_factory.h
                       mutex.h
                       mutex_factory.h
-					  mutex_ptr.h
+					  mutex_ptr.custom.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -356,6 +357,7 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_Permisisons}
                                ${SRC_ObjectLockGuard}
                                ${SRC_PropertyMetadataReadArgs}
+                               ${SRC_Mutex}
                                coreobjects.natvis
 )
 

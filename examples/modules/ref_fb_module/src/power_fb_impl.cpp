@@ -115,7 +115,7 @@ void PowerFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& voltag
 
 void PowerFbImpl::processPackets()
 {
-    auto lock = this->getAcquisitionLock2();
+    auto lock = this->getAcquisitionLock();
 
     PacketPtr voltagePacket;
     PacketPtr currentPacket;
@@ -488,13 +488,13 @@ void PowerFbImpl::createSignals()
 
 void PowerFbImpl::onConnected(const InputPortPtr& inputPort)
 {
-    auto lock = this->getRecursiveConfigLock2();
+    auto lock = this->getRecursiveConfigLock();
     LOG_T("Connected to port {}", inputPort.getLocalId())
 }
 
 void PowerFbImpl::onDisconnected(const InputPortPtr& inputPort)
 {
-    auto lock = this->getRecursiveConfigLock2();
+    auto lock = this->getRecursiveConfigLock();
     LOG_T("Disconnected from port {}", inputPort.getLocalId())
 }
 

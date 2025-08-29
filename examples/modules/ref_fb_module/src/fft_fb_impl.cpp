@@ -197,7 +197,7 @@ void FFTFbImpl::processEventPacket(const EventPacketPtr& packet)
 
 void FFTFbImpl::calculate()
 {
-    auto lock = this->getAcquisitionLock2();
+    auto lock = this->getAcquisitionLock();
 
     while (!linearReader.getEmpty())
     {

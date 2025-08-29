@@ -182,7 +182,7 @@ void ScalingFbImpl::onPacketReceived(const InputPortPtr& port)
     auto outQueue = List<IPacket>();
     auto outDomainQueue = List<IPacket>();
     
-    auto lock = this->getAcquisitionLock2();
+    auto lock = this->getAcquisitionLock();
 
     PacketPtr packet;
     const auto connection = inputPort.getConnection();

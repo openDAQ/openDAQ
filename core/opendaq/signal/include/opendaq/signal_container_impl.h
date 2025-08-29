@@ -454,6 +454,9 @@ FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std:
     }
 
     auto folder = Folder(this->context, parent, localId);
+    if (lockingStrategy != LockingStrategy::OwnLock)
+        folder.template asPtr<IPropertyObjectInternal>().setLockingStrategy(lockingStrategy);
+
     parent.addItem(folder);
     return folder;
 }
@@ -489,6 +492,9 @@ ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std:
     }
 
     auto component = Component(this->context, parent, localId);
+    if (lockingStrategy != LockingStrategy::OwnLock)
+        component.template asPtr<IPropertyObjectInternal>().setLockingStrategy(lockingStrategy);
+
     parent.addItem(component);
     return component;
 }

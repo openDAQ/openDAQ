@@ -285,7 +285,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     this->allowNonDefaultComponents = true;
 
     devices = this->template addFolder<IDevice>("Dev", nullptr, LockingStrategy::ForwardOwnerLockOwn);
-    ioFolder = this->addIoFolder("IO", nullptr);
+    ioFolder = this->addIoFolder("IO", nullptr, LockingStrategy::ForwardOwnerLockOwn);
 
     auto syncComponentObj = SyncComponent(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization");
     syncComponentObj.template asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
@@ -1819,6 +1819,9 @@ inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(c
     }
 
     auto folder = IoFolder(this->context, parent, localId);
+    if (lockingStrategy != LockingStrategy::OwnLock)
+        folder.template asPtr<IPropertyObjectInternal>().setLockingStrategy(lockingStrategy);
+
     parent.addItem(folder);
     return folder;
 }

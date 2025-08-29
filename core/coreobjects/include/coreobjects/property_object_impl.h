@@ -1826,6 +1826,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
 template <typename PropObjInterface, typename... Interfaces>
 std::unique_ptr<RecursiveConfigLockGuard> GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveConfigLock()
 {
+    if (this->lockingStrategy == LockingStrategy::InheritLock)
+    {
+        DAQ_THROW_EXCEPTION(daq::InvalidStateException, "Can't build recursive lock locally if using InheritLock strategy.");
+    }
+
     if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
         return std::make_unique<GenericRecursiveConfigLockGuard<object_utils::NullMutex>>(nullSync, &externalCallThreadId, &externalCallDepth);
 
@@ -2916,7 +2921,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursive
 
     auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr;
     if (lockOwnerPtr.assigned() && lockingStrategy == LockingStrategy::InheritLock)
-        return DAQ_MAKE_ERROR_INFO(lockOwnerPtr->getRecursiveLockGuard(lockGuard));
+        return lockOwnerPtr->getRecursiveLockGuard(lockGuard);
     
     // Prevent access violation when lock is obtained during destruction.
     auto objRef = this->refCount ? this->objPtr : nullptr;
@@ -2962,7 +2967,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getMutexOwne
     
     PropertyObjectInternalPtr ownerPtr = getPropertyObjectParent();
     if (lockingStrategy == LockingStrategy::OwnLock || !ownerPtr.assigned())
+    {
         *owner = objPtr.asPtr<IPropertyObjectInternal>().addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
 
     return ownerPtr->getMutexOwner(owner);
 }

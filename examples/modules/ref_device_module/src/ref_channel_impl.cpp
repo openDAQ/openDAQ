@@ -163,7 +163,7 @@ void RefChannelImpl::initProperties()
     objPtr.addProperty(getCurrentAndSetCounterProp);
     objPtr.setPropertyValue("GetAndSetCounter", Function([this](Int val)
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
         const auto cnt = counter;
         this->setCounter(val, false);
         return cnt;
@@ -276,7 +276,7 @@ void RefChannelImpl::signalTypeChangedInternal()
 
 void RefChannelImpl::resetCounter()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     counter = 0;
 }
 
@@ -284,7 +284,7 @@ void RefChannelImpl::setCounter(uint64_t cnt, bool shouldLock)
 {
     if (shouldLock)
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
 	    counter = cnt;
     }
     else
@@ -299,7 +299,7 @@ uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) co
 
 void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
     if (!acqActive)
         return;
 
@@ -522,7 +522,7 @@ void RefChannelImpl::createSignals()
 
 void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
 {
-    const auto lock = getRecursiveConfigLock();
+    const auto lock = getRecursiveConfigLock2();
     globalSampleRate = coerceSampleRate(newGlobalSampleRate);
     signalTypeChanged();
 }

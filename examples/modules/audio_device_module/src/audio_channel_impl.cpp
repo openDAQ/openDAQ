@@ -19,7 +19,7 @@ void AudioChannelImpl::configure(const ma_device& device, const SignalPtr& timeS
     auto dataDescriptor =
         DataDescriptorBuilder().setSampleType(SampleType::Float32).setValueRange(Range(-1.0, 1.0)).setName(channelName).build();
 
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
 
     outputSignal.setDomainSignal(timeSignal);
     outputSignal.setDescriptor(dataDescriptor);

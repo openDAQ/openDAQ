@@ -202,7 +202,7 @@ public:
     
     void onPacketReceived(const daq::InputPortPtr& /*port*/) override
     {
-        auto lock = getAcquisitionLock();
+        auto lock = getAcquisitionLock2();
     }
 };
 

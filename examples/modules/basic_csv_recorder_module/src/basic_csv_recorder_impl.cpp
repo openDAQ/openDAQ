@@ -38,7 +38,7 @@ BasicCsvRecorderImpl::BasicCsvRecorderImpl(
 
 ErrCode BasicCsvRecorderImpl::startRecording()
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     recordingActive = true;
     reconfigure();
 
@@ -47,7 +47,7 @@ ErrCode BasicCsvRecorderImpl::startRecording()
 
 ErrCode BasicCsvRecorderImpl::stopRecording()
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     recordingActive = false;
     reconfigure();
 
@@ -58,7 +58,7 @@ ErrCode BasicCsvRecorderImpl::getIsRecording(Bool *isRecording)
 {
     OPENDAQ_PARAM_NOT_NULL(isRecording);
     
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     *isRecording = recordingActive;
 
     return OPENDAQ_SUCCESS;
@@ -66,14 +66,14 @@ ErrCode BasicCsvRecorderImpl::getIsRecording(Bool *isRecording)
 
 void BasicCsvRecorderImpl::onConnected(const InputPortPtr& port)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     addInputPort();
     reconfigure();
 }
 
 void BasicCsvRecorderImpl::onDisconnected(const InputPortPtr& port)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
 
     while (portCount >= 2)
     {
@@ -179,7 +179,7 @@ void BasicCsvRecorderImpl::reconfigure()
 std::shared_ptr<BasicCsvRecorderThread> BasicCsvRecorderImpl::findThreadForSignal(IInputPort *port)
 {
     std::shared_ptr<BasicCsvRecorderThread> thread;
-    auto lock = getAcquisitionLock();
+    auto lock = getAcquisitionLock2();
     auto it = threads.find(port);
     if (it != threads.end())
         thread = it->second;

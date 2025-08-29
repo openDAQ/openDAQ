@@ -78,7 +78,7 @@ void PowerReaderFbImpl::initProperties()
 
 void PowerReaderFbImpl::propertyChanged(bool configure)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     readProperties();
     if (configure)
         this->configure(nullptr, nullptr, nullptr);
@@ -137,7 +137,7 @@ bool PowerReaderFbImpl::getDomainDescriptor(const EventPacketPtr& eventPacket, D
 
 void PowerReaderFbImpl::onDataReceived()
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
 
     SizeT cnt = reader.getAvailableCount();
     const auto voltageData = std::make_unique<double[]>(cnt);

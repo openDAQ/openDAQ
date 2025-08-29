@@ -275,7 +275,7 @@ void ClassifierFbImpl::configure()
 
 void ClassifierFbImpl::processData()
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
     while (!linearReader.getEmpty())
     {
         size_t blocksToRead = 1;

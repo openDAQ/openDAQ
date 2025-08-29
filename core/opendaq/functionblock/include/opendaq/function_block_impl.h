@@ -488,7 +488,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunct
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
     this->functionBlocks.removeItem(functionBlock);
 }
 

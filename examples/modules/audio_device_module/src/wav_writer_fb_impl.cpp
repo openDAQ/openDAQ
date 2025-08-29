@@ -24,7 +24,7 @@ FunctionBlockTypePtr WAVWriterFbImpl::CreateType()
 
 ErrCode WAVWriterFbImpl::startRecording()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     assert(!recording);
 
@@ -48,7 +48,7 @@ ErrCode WAVWriterFbImpl::startRecording()
 
 ErrCode WAVWriterFbImpl::stopRecording()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (!stopRecordingInternal())
         return OPENDAQ_FAILED(OPENDAQ_ERR_INVALIDSTATE);
@@ -58,7 +58,7 @@ ErrCode WAVWriterFbImpl::stopRecording()
 
 ErrCode WAVWriterFbImpl::getIsRecording(Bool* isRecording)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (!isRecording)
     {
@@ -216,7 +216,7 @@ void WAVWriterFbImpl::processEventPacket(const EventPacketPtr& packet)
 
 void WAVWriterFbImpl::processInputData()
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
     SizeT availableData = reader.getAvailableCount();
     size_t dataSize = 1;
     std::vector<unsigned char> inputData;

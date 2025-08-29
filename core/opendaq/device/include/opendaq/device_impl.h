@@ -349,7 +349,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     this->isRootDevice = true;
     this->updateOperationMode(OperationModeType::Unknown);
@@ -365,7 +365,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceConfig(IPropertyObjec
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     ListPtr<IDevice> devices;
     ErrCode status = this->getDevices(&devices, search::Any());
@@ -406,7 +406,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::unlock(IUser* user)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     ErrCode status = unlockInternal(user);
     OPENDAQ_RETURN_IF_FAILED(status);
@@ -455,7 +455,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLockedInternal(Bool* locked)
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlock()
 {
-    auto syncLock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
 
     ErrCode status = forceUnlockInternal();
     OPENDAQ_RETURN_IF_FAILED(status);
@@ -789,7 +789,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableFunctionBlockTypes
 template <typename TInterface, typename... Interfaces>
 DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     auto availableTypes = Dict<IString, IFunctionBlockType>();
 
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
@@ -820,7 +820,7 @@ template <typename TInterface, typename... Interfaces>
 FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& typeId,
                                                                               const PropertyObjectPtr& config)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
         return nullptr;
 
@@ -1017,7 +1017,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLocked(Bool* locked)
 {
     OPENDAQ_PARAM_NOT_NULL(locked);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     return isLockedInternal(locked);
 }
 
@@ -1289,7 +1289,7 @@ ListPtr<IDeviceInfo> GenericDevice<TInterface, Interfaces...>::onGetAvailableDev
     if (!allowAddDevicesFromModules())
         return List<IDeviceInfo>();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableDevices();
 }
@@ -1316,7 +1316,7 @@ DictPtr<IString, IDeviceType> GenericDevice<TInterface, Interfaces...>::onGetAva
     if (!allowAddDevicesFromModules())
         return Dict<IString, IDeviceType>();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableDeviceTypes();
 }
@@ -1377,7 +1377,7 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::onAddDevice(const StringPtr&
     if (!allowAddDevicesFromModules())
         return nullptr;
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     auto device = managerUtils.createDevice(connectionString, devices, config);
@@ -1415,7 +1415,7 @@ ServerPtr GenericDevice<TInterface, Interfaces...>::onAddServer(const StringPtr&
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     ServerPtr server = managerUtils.createServer(typeId, this->template thisPtr<DevicePtr>(), config);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     if (!this->isRootDevice)
         DAQ_THROW_EXCEPTION(NotFoundException, "Device does not allow adding/removing servers.");
     this->servers.addItem(server);
@@ -1426,7 +1426,7 @@ ServerPtr GenericDevice<TInterface, Interfaces...>::onAddServer(const StringPtr&
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveServer(const ServerPtr& server)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (!this->isRootDevice)
         DAQ_THROW_EXCEPTION(NotFoundException, "Device does not allow adding/removing servers.");
@@ -1475,7 +1475,7 @@ DictPtr<IString, IDevice> GenericDevice<TInterface, Interfaces...>::onAddDevices
         return nullptr;
     }
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     auto createdDevices = managerUtils.createDevices(connectionArgs, devices, errCodes, errorInfos);

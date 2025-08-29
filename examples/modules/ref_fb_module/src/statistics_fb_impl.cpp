@@ -60,7 +60,7 @@ FunctionBlockPtr StatisticsFbImpl::onAddFunctionBlock(const StringPtr& typeId, c
 {
     FunctionBlockPtr nestedFunctionBlock;
     {
-        auto lock = this->getAcquisitionLock();
+        auto lock = this->getAcquisitionLock2();
         if (this->functionBlocks.getItems().getCount())
         {
             setComponentStatusWithMessage(ComponentStatus::Error, "Only one nested function block is supported");
@@ -685,7 +685,7 @@ void StatisticsFbImpl::onPacketReceived(const InputPortPtr& port)
 
 void StatisticsFbImpl::processTriggerPackets(const InputPortPtr& port)
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
 
     const auto conn = port.getConnection();
     if (!conn.assigned())
@@ -719,7 +719,7 @@ void StatisticsFbImpl::processTriggerPackets(const InputPortPtr& port)
 
 void StatisticsFbImpl::processInputPackets(const InputPortPtr& port)
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
 
     const auto conn = port.getConnection();
     if (!conn.assigned())

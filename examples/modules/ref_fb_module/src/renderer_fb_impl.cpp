@@ -696,7 +696,7 @@ void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget
 
 void RendererFbImpl::onConnected(const InputPortPtr& inputPort)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     subscribeToSignalCoreEvent(inputPort.getSignal());
     updateInputPorts();
@@ -705,7 +705,7 @@ void RendererFbImpl::onConnected(const InputPortPtr& inputPort)
 
 void RendererFbImpl::onDisconnected(const InputPortPtr& inputPort)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     updateInputPorts();
     LOG_T("Disconnected from port {}", inputPort.getLocalId());

@@ -105,7 +105,7 @@ void TriggerFbImpl::configure()
 
 void TriggerFbImpl::onPacketReceived(const InputPortPtr& port)
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
 
     PacketPtr packet;
     const auto connection = inputPort.getConnection();

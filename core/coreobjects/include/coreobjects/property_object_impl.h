@@ -980,7 +980,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coerceMinMax(co
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     return setPropertyValueInternal(propertyName, value, true, true, updateCount > 0);
 }
 
@@ -993,7 +993,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setProtected
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     return setPropertyValueNoLock(propertyName, value);
 }
 
@@ -1728,7 +1728,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     return getPropertyValueNoLock(propertyName, value);
 }
 
@@ -1741,7 +1741,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     return getPropertySelectionValueNoLock(propertyName, value);
 }
 
@@ -1755,7 +1755,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearProtectedPropertyValue(IString* propertyName)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     return clearPropertyValueInternal(propertyName, true, updateCount > 0);
 }
 
@@ -1869,7 +1869,7 @@ std::unique_lock<MutexPtr> GenericPropertyObjectImpl<PropObjInterface, Interface
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValue(IString* propertyName)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     return clearPropertyValueNoLock(propertyName);
 }
 
@@ -2201,7 +2201,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
 
     if (localProperties.find(propertyName) == localProperties.cend())
     {
@@ -2235,7 +2235,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getAllProper
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     if (frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
@@ -2431,7 +2431,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnAnyProp
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginUpdate()
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     return beginUpdateInternal(true);
 }
 
@@ -2627,14 +2627,14 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::onUpdatableUpda
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endUpdate()
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     return endUpdateInternal(true);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUpdating(Bool* updating)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     return getUpdatingInternal(updating);
 }
 
@@ -2756,7 +2756,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForReferences(IProperty* property, Bool* isReferenced)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     return checkForReferencesNoLock(property, isReferenced);
 }
 
@@ -2817,7 +2817,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getCoreEvent
 {
     OPENDAQ_PARAM_NOT_NULL(trigger);
     
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     *trigger = this->triggerCoreEvent.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -2825,7 +2825,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getCoreEvent
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setCoreEventTrigger(IProcedure* trigger)
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     this->triggerCoreEvent = trigger;
     return OPENDAQ_SUCCESS;
 }
@@ -2862,7 +2862,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPath(IStr
 {
     OPENDAQ_PARAM_NOT_NULL(path);
 
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
     if (this->path.getLength())
         return OPENDAQ_IGNORED;
 
@@ -2875,7 +2875,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPath(IStr
 {
     OPENDAQ_PARAM_NOT_NULL(path);
 
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
 
     *path = this->path.addRefAndReturn();
     return OPENDAQ_SUCCESS;

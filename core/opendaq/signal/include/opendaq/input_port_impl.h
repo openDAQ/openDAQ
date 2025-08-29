@@ -226,7 +226,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnect()
     {
         ConnectionPtr connection;
         {
-            auto lock = this->getRecursiveConfigLock();
+            auto lock = this->getRecursiveConfigLock2();
             connection = getConnectionNoLock();
             connectionRef.release();
         }
@@ -243,7 +243,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getSignal(ISignal** signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     *signal = getSignalNoLock().detach();
 
@@ -265,7 +265,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connect
 {
     OPENDAQ_PARAM_NOT_NULL(connection);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const ErrCode errCode = daqTry([this, &connection] { *connection = getConnectionNoLock().detach(); });
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -275,7 +275,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connect
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::setNotificationMethod(PacketReadyNotification method)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if ((method == PacketReadyNotification::Scheduler || method == PacketReadyNotification::SchedulerQueueWasEmpty) && !scheduler.assigned())
     {
@@ -403,7 +403,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedWithScheduler()
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications* port)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (auto connection = getConnectionNoLock(); connection.assigned())
     {
@@ -442,7 +442,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getCustomData(IBaseObject** data)
 {
     OPENDAQ_PARAM_NOT_NULL(data);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     *data = this->customData.addRefAndReturn();
 
@@ -452,7 +452,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getCustomData(IBaseObject** data)
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::setCustomData(IBaseObject* data)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     this->customData = data;
 
     return OPENDAQ_SUCCESS;
@@ -465,7 +465,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification
     {
         ConnectionPtr connection;
         {
-            auto lock = this->getRecursiveConfigLock();
+            auto lock = this->getRecursiveConfigLock2();
             connection = getConnectionNoLock();
             connectionRef.release();
         }
@@ -525,7 +525,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
 
     *active = this->active;
     return OPENDAQ_SUCCESS;
@@ -590,7 +590,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connectInternal(ISignal* signal, bo
 
         InputPortNotificationsPtr inputPortListener;
         {
-            auto lock = this->getRecursiveConfigLock();
+            auto lock = this->getRecursiveConfigLock2();
             if (this->isComponentRemoved)
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
 
@@ -750,7 +750,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getRequiresSignal(Bool* requiresSig
 {
     OPENDAQ_PARAM_NOT_NULL(requiresSignal);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     *requiresSignal = this->requiresSignal;
     return OPENDAQ_SUCCESS;
@@ -759,7 +759,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::getRequiresSignal(Bool* requiresSig
 template <class... Interfaces>
 ErrCode GenericInputPortImpl<Interfaces...>::setRequiresSignal(Bool requiresSignal)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     this->requiresSignal = requiresSignal;
     return OPENDAQ_SUCCESS;

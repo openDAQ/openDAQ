@@ -28,12 +28,23 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Mutex wrapper interface.
+ * @brief Mutex wrapper interface. Wraps a std::mutex object.
  */
 DECLARE_OPENDAQ_INTERFACE(IMutex, IBaseObject)
 {
+    /*!
+     * @brief Locks the mutex; blocking call.
+     */
     virtual ErrCode INTERFACE_FUNC lock() = 0;
+
+    /*!
+     * @brief Tries to lock the mutex and returns `true` if successful; non-blocking call.
+     */
     virtual ErrCode INTERFACE_FUNC tryLock(Bool* succeeded) = 0;
+
+    /*!
+     * @brief Unlocks the mutex.
+     */
     virtual ErrCode INTERFACE_FUNC unlock() = 0;
 };
 

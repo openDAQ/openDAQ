@@ -29,9 +29,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 enum class LockingStrategy : EnumType
 {
-    OwnLock = 0,
-    InheritLock,
-    ForwardOwnerLockOwn
+    OwnLock = 0,        // Object locks its own mutex.
+    InheritLock,        // Object locks the mutex of the nearest ancestor with the OwnLock strategy.
+    ForwardOwnerLockOwn // Object locks its own mutex, but forwards the `getMutexOwner` request to its owner/parent.
 };
 
 /*#
@@ -58,11 +58,37 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValueNoLock(IString* name, IBaseObject* value) = 0;
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* name) = 0;
 
+    /*!
+     *  @brief Gets a lock guard that locks the object's mutex.
+     */
     virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) = 0;
+
+    /*!
+     *  @brief Gets a lock guard that locks the object's mutex. The mutex is wrapped to be recursive,
+     *  allowing for multiple locks to be instantiated on the same thread. Fails if a non-recursive lock
+     *  was already created on this thread.
+     */
     virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) = 0;
+
+    /*!
+     * @brief Sets the locking strategy of the object. The locking strategy must be set before the
+     * object gets and owner is added to a parent folder.
+     */
     virtual ErrCode INTERFACE_FUNC setLockingStrategy(LockingStrategy strategy) = 0;
+    /*!
+     * @brief Gets the locking strategy of the object. The locking strategy must be set before the
+     * object gets and owner is added to a parent folder.
+     */
     virtual ErrCode INTERFACE_FUNC getLockingStrategy(LockingStrategy* strategy) = 0;
+    /*!
+     * @brief Gets the object's mutex. Returns the mutex of the closest `OwnLock` strategy ancestor
+     * if using the `InheritLock` strategy.
+     */
     virtual ErrCode INTERFACE_FUNC getMutex(IMutex** mutex) = 0;
+    /*
+     * @brief Gets a reference to the owner of the mutex locked by the object. If the object's locking
+     * strategy is not `OwnLock`, returns the closest ancestor with the `OwnLock` strategy.
+     */
     virtual ErrCode INTERFACE_FUNC getMutexOwner(IPropertyObjectInternal** owner) = 0;
 };
 

@@ -377,20 +377,54 @@ protected:
     // Using vector to preserve write order when the same property is changed twice within an update
     using UpdatingActions = std::vector<std::pair<std::string, UpdatingAction>>;
 
-    // Gets a lock for the configuration of the object. Can be used to lock the sync mutex in a function
-    // that is called during a property value read/write event to prevent deadlocks. The lock behaves
-    // similarly to a recursive mutex.
+    /**
+     * Gets a lock for the configuration of the object. Can be used to lock the sync mutex in a function
+     * that is called during a property value read/write event to prevent deadlocks. The lock behaves
+     * similarly to a lock guard created with recursive mutex.
+     *
+     * WARNING: Only usable if locking strategy is set to `OwnLock` or `ForwardOwnerLockOwn`.
+     */
     std::unique_ptr<RecursiveConfigLockGuard> getRecursiveConfigLock();
-
-    // Gets a lock to be used in the data acquisition loop, or in other performance-critical parts of
-    // a module implementation. The lock is not recursive in comparison to the config lock and should
-    // be used with caution to prevent deadlocks.
+    
+    /**
+     * Gets a lock to be used in the data acquisition loop, or in other performance-critical parts of
+     * a module implementation. The lock is not recursive in comparison to the config lock and should
+     * be used with caution to prevent deadlocks.
+     *
+     * WARNING: Only usable if locking strategy is set to `OwnLock` or `ForwardOwnerLockOwn`.
+     */
     std::lock_guard<std::mutex> getAcquisitionLock();
-
+    
+    /**
+     * Gets a unique lock wrapping the object's mutex.
+     *
+     * WARNING: Only usable if locking strategy is set to `OwnLock` or `ForwardOwnerLockOwn`.
+     */
     std::unique_lock<std::mutex> getUniqueLock();
 
+    /**
+     * Gets a lock for the configuration of the object. Can be used to lock the sync mutex in a function
+     * that is called during a property value read/write event to prevent deadlocks. The lock behaves
+     * similarly to a lock guard created with recursive mutex.
+     *
+     * Wraps the mutex of the closest owner/parent if the locking strategy is set to `InheritLock`.
+     */
     LockGuardPtr getRecursiveConfigLock2();
+    
+    /**
+     * Gets a lock to be used in the data acquisition loop, or in other performance-critical parts of
+     * a module implementation. The lock is not recursive in comparison to the config lock and should
+     * be used with caution to prevent deadlocks.
+     *
+     * Wraps the mutex of the closest owner/parent if the locking strategy is set to `InheritLock`.
+     */
     std::lock_guard<MutexPtr> getAcquisitionLock2();
+    
+    /**
+     * Gets a unique lock wrapping the object's mutex.
+     *
+     * Wraps the mutex of the closest owner/parent if the locking strategy is set to `InheritLock`.
+     */
     std::unique_lock<MutexPtr> getUniqueLock2();
 
     bool frozen;

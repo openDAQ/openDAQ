@@ -54,7 +54,7 @@ public:
     explicit StreamingImpl(const StringPtr& connectionString,
                            ContextPtr context,
                            bool skipDomainSignalSubscribe,
-                           const StringPtr& protocolId,
+                           const StringPtr& protocolId = nullptr,
                            bool isClientToDeviceStreamingSupported = false);
 
     ~StreamingImpl() override;
@@ -215,6 +215,21 @@ StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString,
     , protocolId(protocolId)
     , isClientToDeviceStreamingSupported(isClientToDeviceStreamingSupported)
 {
+    const auto validateClientToDeviceStreamingParameters = [this]()
+    {
+        if (this->isClientToDeviceStreamingSupported)
+        {
+            if (!this->protocolId.assigned() || this->protocolId.getLength() == 0)
+            {
+                return DAQ_MAKE_ERROR_INFO(
+                    OPENDAQ_ERR_INVALIDPARAMETER,
+                    R"(Enabled client-to-device streaming requires a valid "protocolId" StringPtr parameter to be specified for "StreamingImpl" constructor)"
+                );
+            }
+        }
+        return OPENDAQ_SUCCESS;
+    };
+    checkErrorInfo(validateClientToDeviceStreamingParameters());
 }
 
 template <typename... Interfaces>

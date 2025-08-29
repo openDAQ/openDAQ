@@ -70,6 +70,9 @@ namespace object_utils
         void unlock() noexcept {}
         bool try_lock() { return true; }
     };
+
+    static const auto UnrestrictedPermissions =
+        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
 }
 
 class RecursiveConfigLockGuard : public std::enable_shared_from_this<RecursiveConfigLockGuard>
@@ -633,8 +636,7 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 
     this->permissionManager = PermissionManager();
-    this->permissionManager.setPermissions(
-        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
+    this->permissionManager.setPermissions(object_utils::UnrestrictedPermissions);
 
     PropertyValueEventEmitter readEmitter;
     PropertyValueEventEmitter writeEmitter;

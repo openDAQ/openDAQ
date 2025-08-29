@@ -2903,7 +2903,10 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
 {
     OPENDAQ_PARAM_NOT_NULL(lockGuard);
-    return createObject<ILockGuard, LockGuardImpl, IPropertyObject*, MutexPtr>(lockGuard, this->objPtr, sync);
+    
+    // Prevent access violation when lock is obtained during destruction.
+    auto objRef = this->refCount ? this->objPtr : nullptr;
+    return createObject<ILockGuard, LockGuardImpl, IPropertyObject*, MutexPtr>(lockGuard, objRef, sync);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2914,12 +2917,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursive
     auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr;
     if (lockOwnerPtr.assigned() && lockingStrategy == LockingStrategy::InheritLock)
         return DAQ_MAKE_ERROR_INFO(lockOwnerPtr->getRecursiveLockGuard(lockGuard));
-
+    
+    // Prevent access violation when lock is obtained during destruction.
+    auto objRef = this->refCount ? this->objPtr : nullptr;
     if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
         return createObject<ILockGuard, RecursiveLockGuardImpl<object_utils::NullMutex>, IPropertyObject*, object_utils::NullMutex, std::thread::id*, int*>
-            (lockGuard, this->objPtr, nullSync, &externalCallThreadId, &externalCallDepth);
+            (lockGuard, objRef, nullSync, &externalCallThreadId, &externalCallDepth);
     return createObject<ILockGuard, RecursiveLockGuardImpl<MutexPtr>, IPropertyObject*, MutexPtr, std::thread::id*, int*>
-        (lockGuard, this->objPtr, sync, &externalCallThreadId, &externalCallDepth);
+        (lockGuard, objRef, sync, &externalCallThreadId, &externalCallDepth);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>

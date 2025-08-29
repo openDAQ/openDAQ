@@ -40,7 +40,8 @@ using SignalNumericIdType = uint32_t;
 using OnSignalCallback = std::function<void(const SignalNumericIdType& signalNumericId,
                                             const StringPtr& signalStringId,
                                             const StringPtr& serializedSignal,
-                                            bool available)>;
+                                            bool available,
+                                            const std::string& clientId)>;
 
 using OnSignalSubscriptionCallback = std::function<bool(const SignalNumericIdType& signalNumericId,
                                                         const SignalPtr& signal,
@@ -54,7 +55,8 @@ using OnStreamingRequestCallback = std::function<void()>;
 using OnStreamingInitDoneCallback = std::function<void()>;
 
 using OnSubscriptionAckCallback = std::function<void(const SignalNumericIdType& signalNumericId,
-                                                     bool subscribed)>;
+                                                     bool subscribed,
+                                                     const std::string& clientId)>;
 
 using OnPacketBufferReceivedCallback = std::function<void(const packet_streaming::PacketBufferPtr& packetBuffer)>;
 
@@ -62,6 +64,15 @@ using SendConfigProtocolPacketCb = std::function<void(const config_protocol::Pac
 using ProcessConfigProtocolPacketCb = std::function<void(config_protocol::PacketBuffer&& packetBuffer)>;
 
 using OnTrasportLayerPropertiesCallback = std::function<void(const PropertyObjectPtr& propertyObject)>;
+
+using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStringId,
+                                                     const StringPtr& serializedSignal)>;
+using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
+using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
+using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
+
+using OnSignalSubscribedCallback = std::function<void(const SignalPtr& signal)>;
+using OnSignalUnsubscribedCallback = std::function<void(const SignalPtr& signal)>;
 
 enum class PayloadType
 {

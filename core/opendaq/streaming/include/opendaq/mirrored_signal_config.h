@@ -41,7 +41,7 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredSignalConfig, ISignalConfig)
 {
     /*!
      * @brief Gets the global ID of the signal as it appears on the remote device.
-     * @param[out] id The signal id.
+     * @param[out] id The signal ID.
      */
     virtual ErrCode INTERFACE_FUNC getRemoteId(IString** id) const = 0;
 

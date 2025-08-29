@@ -48,8 +48,12 @@ struct PacketBufferData
 using SendPacketBufferCallback = std::function<void(const std::string& subscribedClientId,
                                                     packet_streaming::PacketBufferPtr&& packetBuffer)>;
 using PacketStreamingServerPtr = std::shared_ptr<packet_streaming::PacketStreamingServer>;
+using PacketStreamingClientPtr = std::shared_ptr<packet_streaming::PacketStreamingClient>;
 using StreamingWriteTasks = std::pair<std::vector<daq::native_streaming::WriteTask>,
                                       std::optional<std::chrono::steady_clock::time_point>>;
+using SubscribeAckCallback = std::function<void(const std::string& signalStringId, bool subscribed)>;
+using DoSubscribeCallback = std::function<void(SignalNumericIdType signalNumericId, const std::string& clientId)>;
+using SignalAvailableCallback = std::function<void(const std::string& signalStringId)>;
 
 class StreamingManager
 {
@@ -171,17 +175,46 @@ public:
     /// Common method for device-to-client and client-to-device streaming.
     static StreamingWriteTasks getStreamingWriteTasks(const PacketStreamingServerPtr& packetStreamingServer);
 
+    void registerClientSignal(const SignalNumericIdType& signalNumericId,
+                              const StringPtr& signalStringId,
+                              const std::string& clientId);
+
+    void unregisterClientSignal(const SignalNumericIdType& signalNumericId,
+                                const StringPtr& signalStringId,
+                                const std::string& clientId);
+
+    void unregisterClientSignals(const std::string& clientId, SignalAvailableCallback cb);
+
+    void handleClientSignalSubscribeAck(const SignalNumericIdType& signalNumericId,
+                                        bool subscribed,
+                                        const std::string& clientId,
+                                        SubscribeAckCallback cb);
+
+    void doClientSignalSubscription(const std::string& signalStringId, DoSubscribeCallback cb);
+    void handleReceivedPacketBuffer(const packet_streaming::PacketBufferPtr& packetBuffer,
+                                    const std::string& clientId,
+                                    OnPacketCallback cb);
+
 private:
 
-    struct RegisteredSignal
+    struct RegisteredServerSignal
     {
-        explicit RegisteredSignal(SignalPtr daqSignal, SignalNumericIdType numericId);
+        explicit RegisteredServerSignal(SignalPtr daqSignal, SignalNumericIdType numericId);
 
         SignalPtr daqSignal;
         SignalNumericIdType numericId;
         std::unordered_set<std::string> subscribedClientsIds;
         DataDescriptorPtr lastDataDescriptorParam;
         DataDescriptorPtr lastDomainDescriptorParam;
+    };
+
+    struct RegisteredClientSignal
+    {
+        explicit RegisteredClientSignal(const std::string& signalStringId, SignalNumericIdType signalNumericId, const std::string& clientId);
+
+        std::string signalStringId;
+        SignalNumericIdType signalNumericId;
+        std::string clientId;
     };
 
     static void sendDaqPacket(const SendPacketBufferCallback& sendPacketBufferCb,
@@ -201,10 +234,15 @@ private:
     SignalNumericIdType signalNumericIdCounter;
 
     // key: signal global id
-    std::unordered_map<std::string, RegisteredSignal> registeredSignals;
+    std::unordered_map<std::string, RegisteredServerSignal> registeredSignals;
 
+    // key: client id
     std::unordered_map<std::string, PacketStreamingServerPtr> packetStreamingServers;
     std::unordered_set<std::string> streamingClientsIds;
+    std::unordered_map<std::string, PacketStreamingClientPtr> packetStreamingClients;
+
+    // key: signal global id as it appears on the client
+    std::unordered_map<std::string, RegisteredClientSignal> registeredClientSignals;
 
     std::mutex sync;
     static void linearCachingAssertion(const std::string& condition, const PacketStreamingServerPtr& packetStreamingServerPtr, const packet_streaming::PacketBufferPtr& packetBuffer);

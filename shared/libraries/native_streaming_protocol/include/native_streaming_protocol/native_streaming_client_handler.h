@@ -18,6 +18,7 @@
 
 #include <native_streaming_protocol/native_streaming_protocol.h>
 #include <native_streaming_protocol/client_session_handler.h>
+#include <native_streaming_protocol/native_streaming_protocol_types.h>
 
 #include <opendaq/context_ptr.h>
 #include <opendaq/logger_ptr.h>
@@ -33,12 +34,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
-
-using OnSignalAvailableCallback = std::function<void(const StringPtr& signalStringId,
-                                                     const StringPtr& serializedSignal)>;
-using OnSignalUnavailableCallback = std::function<void(const StringPtr& signalStringId)>;
-using OnPacketCallback = std::function<void(const StringPtr& signalStringId, const PacketPtr& packet)>;
-using OnSignalSubscriptionAckCallback = std::function<void(const StringPtr& signalStringId, bool subscribed)>;
 using OnConnectionStatusChangedCallback = std::function<void(const EnumerationPtr& status, const StringPtr& statusMessage)>;
 
 class NativeStreamingClientHandler;
@@ -79,6 +74,14 @@ public:
     void setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
                            const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
+    // client-to-device streaming
+    void addClientSignal(const SignalPtr& signal);
+    void removeClientSignal(const SignalPtr& signal);
+    void sendPacket(const std::string& signalStringId, PacketPtr&& packet);
+    void resetStreamingToDeviceHandlers();
+    void setStreamingToDeviceHandlers(const OnSignalSubscribedCallback& signalSubscribedHandler,
+                                      const OnSignalUnsubscribedCallback& signalUnsubscribedHandler);
+
 protected:
     void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
@@ -95,6 +98,9 @@ protected:
     void checkReconnectionResult(const boost::system::error_code& ec);
     void tryReconnect();
     void connectionStatusChanged(const EnumerationPtr& status, const StringPtr& statusMessage);
+    bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,
+                                  const SignalPtr& signal,
+                                  bool subscribe);
 
     enum class ConnectionResult
     {
@@ -106,6 +112,9 @@ protected:
     void onConnectionFailed(const std::string& errorMessage, const ConnectionResult result);
     void onSessionError(const std::string& errorMessage, SessionPtr session);
     void onPacketBufferReceived(const packet_streaming::PacketBufferPtr& packetBuffer);
+
+    SignalNumericIdType registerSignal(const SignalPtr& signal);
+    SignalPtr findClientSignal(const std::string& signalStringId);
 
     ContextPtr context;
     PropertyObjectPtr transportLayerProperties;
@@ -124,6 +133,10 @@ protected:
     // config callbacks
     OnConnectionStatusChangedCallback connectionStatusChangedConfigCb;
     ProcessConfigProtocolPacketCb configPacketHandler;
+
+    // client-to-device streaming callbacks
+    OnSignalSubscribedCallback signalSubscribedHandler;
+    OnSignalUnsubscribedCallback signalUnsubscribedHandler;
 
     std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;
 
@@ -147,6 +160,22 @@ protected:
     Int connectionInactivityTimeout;
     std::chrono::milliseconds connectionTimeout;
     std::chrono::milliseconds reconnectionPeriod;
+
+    struct ClientSignal
+    {
+        explicit ClientSignal(const std::string& signalStringId, SignalNumericIdType signalNumericId, const SignalPtr& signal)
+            : signalStringId(signalStringId)
+            , signalNumericId(signalNumericId)
+            , signal(signal)
+        {}
+
+        std::string signalStringId;
+        SignalNumericIdType signalNumericId;
+        SignalPtr signal;
+    };
+    // key: signal global id
+    std::unordered_map<std::string, ClientSignal> registeredSignals;
+    SignalNumericIdType signalNumericIdCounter;
 };
 
 // wraps transport IO operations' context & thread and client handler
@@ -183,6 +212,16 @@ public:
     void setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
                            const OnConnectionStatusChangedCallback& connectionStatusChangedCb);
 
+    // client-to-device streaming
+    void addClientSignal(const SignalPtr& signal);
+    void removeClientSignal(const SignalPtr& signal);
+    void sendPacket(const std::string& signalStringId, PacketPtr&& packet);
+    void resetStreamingToDeviceHandlers();
+    void setStreamingToDeviceHandlers(const OnSignalSubscribedCallback& signalSubscribedHandler,
+                                      const OnSignalUnsubscribedCallback& signalUnsubscribedHandler);
+
+    bool supportsToDeviceStreaming();
+
 protected:
     void startTransportOperations();
     void stopTransportOperations();
@@ -191,6 +230,7 @@ protected:
     std::thread ioThread;
     LoggerComponentPtr loggerComponent;
     std::shared_ptr<NativeStreamingClientImpl> clientHandlerPtr;
+    bool toDeviceStreamingEnabled;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

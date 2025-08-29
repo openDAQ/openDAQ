@@ -33,16 +33,16 @@
 #include <opendaq/component_update_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-template <class... Interfaces>
+template <typename TInterface, typename...  Interfaces>
 class GenericInputPortImpl;
 
-using InputPortImpl = GenericInputPortImpl<>;
+using InputPortImpl = GenericInputPortImpl<IInputPortConfig>;
 
-template <class ... Interfaces>
-class GenericInputPortImpl : public ComponentImpl<IInputPortConfig, IInputPortPrivate, Interfaces ...>
+template <typename TInterface, typename...  Interfaces>
+class GenericInputPortImpl : public ComponentImpl<TInterface, IInputPortPrivate, Interfaces ...>
 {
 public:
-    using Super = ComponentImpl<IInputPortConfig, IInputPortPrivate, Interfaces ...>;
+    using Super = ComponentImpl<TInterface, IInputPortPrivate, Interfaces ...>;
 
     explicit GenericInputPortImpl(const ContextPtr& context,
                                   const ComponentPtr& parent,
@@ -128,11 +128,11 @@ private:
     SignalPtr getSignalNoLock();
 };
 
-template <class... Interfaces>
-GenericInputPortImpl<Interfaces ...>::GenericInputPortImpl(const ContextPtr& context,
-                             const ComponentPtr& parent,
-                             const StringPtr& localId,
-                             bool gapCheckingEnabled)
+template <typename TInterface, typename...  Interfaces>
+GenericInputPortImpl<TInterface, Interfaces...>::GenericInputPortImpl(const ContextPtr& context,
+                                                                      const ComponentPtr& parent,
+                                                                      const StringPtr& localId,
+                                                                      bool gapCheckingEnabled)
     : Super(context, parent, localId)
     , requiresSignal(true)
     , gapCheckingEnabled(gapCheckingEnabled)
@@ -145,8 +145,8 @@ GenericInputPortImpl<Interfaces ...>::GenericInputPortImpl(const ContextPtr& con
         scheduler = context.getScheduler();
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::acceptsSignal(ISignal* signal, Bool* accepts)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::acceptsSignal(ISignal* signal, Bool* accepts)
 {
     OPENDAQ_PARAM_NOT_NULL(accepts);
     OPENDAQ_PARAM_NOT_NULL(signal);
@@ -165,8 +165,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::acceptsSignal(ISignal* signal, Bool
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::canConnectSignal(ISignal* signal) const
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::canConnectSignal(ISignal* signal) const
 {
     const auto removablePtr = SignalPtr::Borrow(signal).asPtrOrNull<IRemovable>();
     if (removablePtr.assigned() && removablePtr.isRemoved())
@@ -175,14 +175,14 @@ ErrCode GenericInputPortImpl<Interfaces...>::canConnectSignal(ISignal* signal) c
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::connect(ISignal* signal)
 {
     return connectInternal(signal, false);
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal, bool triggerCoreEvent)
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal, bool triggerCoreEvent)
 {
     if (!connection.assigned())
         return;
@@ -219,8 +219,8 @@ void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr
     }
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::disconnect()
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::disconnect()
 {
     const ErrCode errCode = daqTry([this]()
     {
@@ -238,8 +238,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnect()
     return errCode;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getSignal(ISignal** signal)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getSignal(ISignal** signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
@@ -250,8 +250,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::getSignal(ISignal** signal)
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-SignalPtr GenericInputPortImpl<Interfaces...>::getSignalNoLock()
+template <typename TInterface, typename...  Interfaces>
+SignalPtr GenericInputPortImpl<TInterface, Interfaces...>::getSignalNoLock()
 {
     if (!connectionRef.assigned())
         return nullptr;
@@ -260,8 +260,8 @@ SignalPtr GenericInputPortImpl<Interfaces...>::getSignalNoLock()
     return connection.assigned() ? connection.getSignal() : nullptr;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connection)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getConnection(IConnection** connection)
 {
     OPENDAQ_PARAM_NOT_NULL(connection);
 
@@ -272,8 +272,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connect
     return errCode;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::setNotificationMethod(PacketReadyNotification method)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setNotificationMethod(PacketReadyNotification method)
 {
     auto lock = this->getRecursiveConfigLock();
 
@@ -288,8 +288,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::setNotificationMethod(PacketReadyNo
     return OPENDAQ_SUCCESS;
 }
 
-template <class ... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getNotificationMethod(PacketReadyNotification* method)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getNotificationMethod(PacketReadyNotification* method)
 {
     OPENDAQ_PARAM_NOT_NULL(method);
 
@@ -297,8 +297,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::getNotificationMethod(PacketReadyNo
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedSameThread()
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueuedSameThread()
 {
     if (listenerRef.assigned())
     {
@@ -317,16 +317,16 @@ void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedSameThread()
     }
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedScheduler()
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueuedScheduler()
 {
     const auto errCode = scheduler->scheduleWork(notifySchedulerCallback);
     if (OPENDAQ_FAILED(errCode) && (errCode != OPENDAQ_ERR_SCHEDULER_STOPPED))
         checkErrorInfo(errCode);
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueued(Bool queueWasEmpty)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueued(Bool queueWasEmpty)
 {
     const ErrCode errCode = daqTry([this, &queueWasEmpty]
     {
@@ -359,8 +359,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueued(Bool queueWasE
     return errCode;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedOnThisThread()
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueuedOnThisThread()
 {
     const ErrCode errCode = daqTry([this]
     {
@@ -380,8 +380,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedOnThisThread()
     return errCode;
 }
 
-template <class ... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedWithScheduler()
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueuedWithScheduler()
 {
     const ErrCode errCode = daqTry([this]
     {
@@ -400,8 +400,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedWithScheduler()
     return errCode;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications* port)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setListener(IInputPortNotifications* port)
 {
     auto lock = this->getRecursiveConfigLock();
 
@@ -437,8 +437,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getCustomData(IBaseObject** data)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getCustomData(IBaseObject** data)
 {
     OPENDAQ_PARAM_NOT_NULL(data);
 
@@ -449,8 +449,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::getCustomData(IBaseObject** data)
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::setCustomData(IBaseObject* data)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setCustomData(IBaseObject* data)
 {
     auto lock = this->getRecursiveConfigLock();
     this->customData = data;
@@ -458,8 +458,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::setCustomData(IBaseObject* data)
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification()
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::disconnectWithoutSignalNotification()
 {
     const ErrCode errCode = daqTry([this]() -> auto
     {
@@ -478,20 +478,20 @@ ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification
     return errCode;
 }
 
-template <class ... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::connectSignalSchedulerNotification(ISignal* signal)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::connectSignalSchedulerNotification(ISignal* signal)
 {
     return connectInternal(signal, true);
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::finishUpdate()
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::finishUpdate()
 {
     serializedSignalId.release();
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::removed()
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::removed()
 {
     if (customData.assigned())
     {
@@ -507,8 +507,8 @@ void GenericInputPortImpl<Interfaces...>::removed()
     disconnectSignalInternal(std::move(connection), false, true, true);
 }
 
-template <class... Interfaces>
-ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::setOwner(IPropertyObject* owner)
+template <typename TInterface, typename...  Interfaces>
+ErrCode INTERFACE_FUNC GenericInputPortImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* owner)
 {
     if (this->owner.assigned())
     {
@@ -520,8 +520,8 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::setOwner(IPropertyOb
     return OPENDAQ_SUCCESS;
 }
 
-template <class ... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getActive(Bool* active)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
@@ -531,8 +531,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::getActive(Bool* active)
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::getSerializeId(ConstCharPtr* id) const
+template <typename TInterface, typename...  Interfaces>
+ErrCode INTERFACE_FUNC GenericInputPortImpl<TInterface, Interfaces...>::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
 
@@ -541,14 +541,14 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::getSerializeId(Const
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ConstCharPtr GenericInputPortImpl<Interfaces...>::SerializeId()
+template <typename TInterface, typename...  Interfaces>
+ConstCharPtr GenericInputPortImpl<TInterface, Interfaces...>::SerializeId()
 {
     return "InputPort";
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::Deserialize(ISerializedObject* serialized,
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
                                                          IBaseObject* context,
                                                          IFunction* factoryCallback,
                                                          IBaseObject** obj)
@@ -574,8 +574,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::Deserialize(ISerializedObject* seri
     return errCode;
 }
 
-template <class ... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::connectInternal(ISignal* signal, bool scheduled)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::connectInternal(ISignal* signal, bool scheduled)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
@@ -646,8 +646,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::connectInternal(ISignal* signal, bo
     return errCode;
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
@@ -661,8 +661,8 @@ void GenericInputPortImpl<Interfaces...>::serializeCustomObjectValues(const Seri
     }
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     if (obj.hasKey("signalId"))
     {
@@ -678,8 +678,8 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
     }
 }
 
-template <class ... Interfaces>
-void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
     if (this->getSignalNoLock().assigned())
         return;
@@ -707,8 +707,8 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
     Super::onUpdatableUpdateEnd(context);
 }
 
-template <class... Interfaces>
-BaseObjectPtr GenericInputPortImpl<Interfaces...>::getDeserializedParameter(const StringPtr& parameter)
+template <typename TInterface, typename...  Interfaces>
+BaseObjectPtr GenericInputPortImpl<TInterface, Interfaces...>::getDeserializedParameter(const StringPtr& parameter)
 {
     if (parameter == "signalId")
         return serializedSignalId;
@@ -716,8 +716,8 @@ BaseObjectPtr GenericInputPortImpl<Interfaces...>::getDeserializedParameter(cons
     DAQ_THROW_EXCEPTION(NotFoundException);
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                                          const BaseObjectPtr& context,
                                                          const FunctionPtr& factoryCallback)
 {
@@ -729,15 +729,15 @@ void GenericInputPortImpl<Interfaces...>::deserializeCustomObjectValues(const Se
     }
 }
 
-template <class ... Interfaces>
-ConnectionPtr GenericInputPortImpl<Interfaces...>::createConnection(const SignalPtr& signal)
+template <typename TInterface, typename...  Interfaces>
+ConnectionPtr GenericInputPortImpl<TInterface, Interfaces...>::createConnection(const SignalPtr& signal)
 {
     const auto connection = Connection(this->template thisPtr<InputPortPtr>(), signal, this->context);
     return connection;
 }
 
-template <class ... Interfaces>
-ConnectionPtr GenericInputPortImpl<Interfaces...>::getConnectionNoLock()
+template <typename TInterface, typename...  Interfaces>
+ConnectionPtr GenericInputPortImpl<TInterface, Interfaces...>::getConnectionNoLock()
 {
     if (!connectionRef.assigned())
         return nullptr;
@@ -745,8 +745,8 @@ ConnectionPtr GenericInputPortImpl<Interfaces...>::getConnectionNoLock()
     return connectionRef.getRef();
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getRequiresSignal(Bool* requiresSignal)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getRequiresSignal(Bool* requiresSignal)
 {
     OPENDAQ_PARAM_NOT_NULL(requiresSignal);
 
@@ -756,8 +756,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::getRequiresSignal(Bool* requiresSig
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::setRequiresSignal(Bool requiresSignal)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setRequiresSignal(Bool requiresSignal)
 {
     auto lock = this->getRecursiveConfigLock();
 
@@ -765,8 +765,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::setRequiresSignal(Bool requiresSign
     return OPENDAQ_SUCCESS;
 }
 
-template <class ... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getGapCheckingEnabled(Bool* gapCheckingEnabled)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getGapCheckingEnabled(Bool* gapCheckingEnabled)
 {
     OPENDAQ_PARAM_NOT_NULL(gapCheckingEnabled);
 

@@ -3,6 +3,7 @@ import os
 
 OPENDAQ_MODULES_DIR = os.path.dirname(os.path.abspath(__file__))
 OPENDAQ_CWD = os.getcwd()
+__version__ = '@VERSION@'
 
 # BUG: in mac os creating the project with `-> IInstance:` is failing`. 
 # To build successfully, we need to remove the `-> IInstance:` from the code.

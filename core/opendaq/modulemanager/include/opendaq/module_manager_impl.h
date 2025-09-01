@@ -32,6 +32,7 @@
 #include <opendaq/module_ptr.h>
 #include <tsl/ordered_map.h>
 #include <daq_discovery/daq_discovery_client.h>
+#include <opendaq/module_authenticator_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 struct ModuleLibrary;
@@ -46,6 +47,9 @@ public:
     ErrCode INTERFACE_FUNC addModule(IModule* module) override;
     ErrCode INTERFACE_FUNC loadModules(IContext* context) override;
     ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) override;
+    ErrCode INTERFACE_FUNC setAuthenticatedOnly(Bool authenticatedOnly) override;
+    ErrCode INTERFACE_FUNC setModuleAuthenticator(IModuleAuthenticator* authenticator) override;
+    ErrCode INTERFACE_FUNC getVendorKeys(IDict** vendorKeys) override;
 
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
@@ -105,6 +109,10 @@ private:
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
     void onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo);
+
+    bool authenticatedModulesOnly;
+    ModuleAuthenticatorPtr moduleAuthenticator;
+    DictPtr<IString, IString> moduleKeys;
 
     bool modulesLoaded;
     std::vector<std::string> paths;

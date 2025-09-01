@@ -20,6 +20,7 @@
 #include <opendaq/config_provider.h>
 #include <coreobjects/authentication_provider.h>
 #include <opendaq/discovery_server.h>
+#include <opendaq/module_authenticator.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

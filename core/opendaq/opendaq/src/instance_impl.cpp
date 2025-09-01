@@ -105,6 +105,8 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto moduleManager = builderPtr.getModuleManager();
     auto typeManager = TypeManager();
     auto authenticationProvider = builderPtr.getAuthenticationProvider();
+    auto loadAuthenticatedModulesOnly = builderPtr.getLoadAuthenticatedModulesOnly();
+    auto moduleAuthenticator = builderPtr.getModuleAuthenticator();
     auto options = builderPtr.getOptions();
 
     // Configure logger
@@ -132,6 +134,9 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
     {
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
+        moduleManager->setAuthenticatedOnly(loadAuthenticatedModulesOnly);
+        moduleManager->setModuleAuthenticator(moduleAuthenticator);
+
         builderPtr->setModuleManager(moduleManager);
     }
 

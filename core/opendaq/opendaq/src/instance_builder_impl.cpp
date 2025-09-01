@@ -29,6 +29,7 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 InstanceBuilderImpl::InstanceBuilderImpl()
     : componentsLogLevel(Dict<IString, LogLevel>())
     , sinks(List<ILoggerSink>())
+    , moduleAuthenticator(nullptr)
     , authenticationProvider(AuthenticationProvider())
     , providers(List<IConfigProvider>())
     , options(GetDefaultOptions())
@@ -407,6 +408,36 @@ ErrCode InstanceBuilderImpl::addDiscoveryServer(IString* serverName)
         return OPENDAQ_IGNORED;
 
     discoveryServers.pushBack(serverName);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setModuleAuthenticator(IModuleAuthenticator* authenticator)
+{
+    if (authenticator == nullptr)
+    {
+        return OPENDAQ_IGNORED;
+    }
+    this->moduleAuthenticator = authenticator;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getModuleAuthenticator(IModuleAuthenticator** authenticator)
+{
+    *authenticator = this->moduleAuthenticator.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setLoadAuthenticatedModulesOnly(Bool authenticatedOnly)
+{
+    this->authenticatedModulesOnly = authenticatedOnly;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getLoadAuthenticatedModulesOnly(Bool* authenticatedOnly)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticatedOnly);
+
+    *authenticatedOnly = this->authenticatedModulesOnly;
     return OPENDAQ_SUCCESS;
 }
 

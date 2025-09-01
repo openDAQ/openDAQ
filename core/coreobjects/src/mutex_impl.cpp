@@ -4,6 +4,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+MutexImpl::MutexImpl()
+{
+}
+
 ErrCode MutexImpl::lock()
 {
     try

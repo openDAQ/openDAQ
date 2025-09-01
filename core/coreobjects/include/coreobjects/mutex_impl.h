@@ -23,6 +23,8 @@ BEGIN_NAMESPACE_OPENDAQ
 class MutexImpl : public ImplementationOf<IMutex>
 {
 public:
+    explicit MutexImpl();
+
     ErrCode INTERFACE_FUNC lock() override;
     ErrCode INTERFACE_FUNC tryLock(Bool* succeeded) override;
     ErrCode INTERFACE_FUNC unlock() override;

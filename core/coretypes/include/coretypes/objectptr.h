@@ -733,7 +733,7 @@ inline ComplexFloat32 getValueFromObject<ComplexFloat32, IComplexNumber>(IComple
 {
     ComplexFloat64 value;
     typeObj->getValue(&value);
-    return ComplexFloat32(value.real, value.imaginary);
+    return ComplexFloat32(static_cast<float>(value.real), static_cast<float>(value.imaginary));
 }
 
 template <typename T>

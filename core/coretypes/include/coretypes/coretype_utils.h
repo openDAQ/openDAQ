@@ -170,7 +170,7 @@ inline Bool isNearRelative<float>(const float& actual, const float& expected, co
 template <>
 inline Bool isNearRelative<Int>(const Int& actual, const Int& expected, const Float& relativeErr)
 {
-    return isNearRelative<Float>(actual, expected, relativeErr);
+    return isNearRelative<Float>(static_cast<Float>(actual), static_cast<Float>(expected), relativeErr);
 }
 
 template <>

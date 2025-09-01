@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#894](https://github.com/openDAQ/openDAQ/pull/894) Allows for objects to specify whether they will use their own mutex, or that of their owner/parent.
 - [#884](https://github.com/openDAQ/openDAQ/pull/884) Tampering check interface and example implementation.
 - [#878](https://github.com/openDAQ/openDAQ/pull/878) Licensing interface and reference module + example implementation.
 - [#867](https://github.com/openDAQ/openDAQ/pull/867) Generalized client-to-device streaming

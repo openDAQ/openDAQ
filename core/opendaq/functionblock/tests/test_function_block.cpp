@@ -202,7 +202,12 @@ public:
     
     void onPacketReceived(const daq::InputPortPtr& /*port*/) override
     {
-        auto lock = getAcquisitionLock();
+        auto lock = getAcquisitionLock2();
+    }
+
+    std::unordered_set<std::string> getDefaultComponents()
+    {
+        return this->defaultComponents;
     }
 };
 
@@ -231,4 +236,19 @@ TEST_F(FunctionBlockTest, SetDomainDescriptorUnderLock)
 
     for (int i = 0; i < 10; ++i)
         fb.setPropertyValue("ConnectIp", i);
+}
+
+TEST_F(FunctionBlockTest, DefaultFolderLockingStrategy)
+{
+    const auto logger = daq::Logger();
+    auto context = daq::Context(daq::Scheduler(logger), logger, daq::TypeManager(), nullptr, nullptr);
+    auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl1>(context);
+
+    auto testFbImpl = dynamic_cast<MockFbImpl1*>(fb.getObject());
+    auto defaultComponents = testFbImpl->getDefaultComponents();
+    for (const daq::ComponentPtr& component : fb.getItems())
+    {
+        if (defaultComponents.count(component.getName()))
+            ASSERT_EQ(component.asPtr<daq::IPropertyObjectInternal>().getLockingStrategy(), daq::LockingStrategy::ForwardOwnerLockOwn);
+    }
 }

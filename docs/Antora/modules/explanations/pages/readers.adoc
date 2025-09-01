@@ -28,6 +28,10 @@ As a parameter, they receive the xref:explanations:signals.adoc[Signal] to read 
 
 [#example-constructor]
 .Constructing a reader
+[tabs]
+====
+Cpp::
++
 [source,cpp,caption="Example {counter:example-nr:1.} "]
 ----
 // Standard factory signature with signal as input argument
@@ -39,10 +43,20 @@ Reader(inputPort, SampleType::Float64, SampleType::Int64);
 // In C++ there is also a templated helper
 Reader<double, std::int64_t>(signal);
 ----
+C#::
++
+[source,csharp]
+----
+// These calls all create the same Reader (e.g. for a Stream Reader)
+var reader1 = OpenDAQFactory.CreateStreamReader(signal);
+var reader2 = OpenDAQFactory.CreateStreamReader<double, long>(signal);
+// right now there exists no factory function using `SampleType` as parameters
+----
+====
 
 [CAUTION]
 ====
-There is also a way to construct a Reader without knowing the sample-types in advance by using `SampleType::Undefined`.
+There is also a way to construct a Reader without knowing the sample-types in advance by using `SampleType::Undefined` (not applicable in C#).
 
 .Reading without knowing the sample-types in advance
 ----
@@ -105,11 +119,23 @@ In addition to these two operations, Readers also define their own methods to re
 
 [#example-read]
 .Read calls function signature
+[tabs]
+====
+Cpp::
++
 [source,cpp,caption="Example {counter:example-nr:1.} "]
 ----
 ReaderStatusPtr read(void* values, std::size_t* count);
 ReaderStatusPtr readWithDomain(void* values, void* domain, std::size_t* count);
 ----
+C#::
++
+[source,csharp]
+----
+ReaderStatus Read(TValue[] samples, ref nuint count, nuint timeoutMs = 0);
+ReaderStatus ReadWithDomain(TValue[] samples, TDomain[] domain, ref nuint count, nuint timeoutMs = 0);
+----
+====
 The way to use the read calls is to have a memory buffer of a desired size and type pre-allocated.
 Then you pass it into the call where it will get filled with at maximum `count` elements.
 The Reader returns a ReaderStatusPtr object, indicating whether the reading process was successful or if there is an event packet that needs to be handled. Moreover, if the data type has changed, the Reader will include in the status whether the new type is convertible by the Reader or not.
@@ -132,14 +158,16 @@ The Sample Reader provides another four operations:
 [#value_read_type]
 * `getValueReadType()` / `getDomainReadType()` reports the sample-type of samples the Reader outputs on _read_ calls.
 This should be the same as the one passed in on construction except in the case where `SampleType::Undefined` was used.
-There it is the Signal's data type.
+There it is the Signal's data type. +
+In C# property getters `ValueReadType` / `DomainReadType` return the `SampleType` equivalent to the types passed in on construction.
 
 [#transform_callback]
-* `setValueTransformFunction(callback)` / `setDomainTransformFunction(callback)` enables custom user transformation of raw signal data specific to the programming language or use case. See the chapter <<custom_conversion>> for more info.
+* `setValueTransformFunction(callback)` / `setDomainTransformFunction(callback)` enables custom user transformation of raw signal data specific to the programming language or use case. See the chapter <<custom_conversion>> for more info. +
+In C# the `callback` parameter is a custom user generated `Function`.
 
 [NOTE]
 ====
-If there is a custom transform function assigned the corresponding value or domain `SampleType` requested at construction is completely ignored and the Reader directly returns whatever data the callback produces.
+If there is a custom transform function assigned the corresponding value or domain `SampleType` requested at construction is completely ignored and the Reader directly returns whatever data the callback produces. +
 No additional processing is done except to advance the reading position if required.
 ====
 
@@ -164,6 +192,10 @@ This event contains new xref:explanations:signals.adoc[Data Descriptor]s for bot
 The processing of event packets in our system occurs dynamically through the reader, not immediately upon reception, but rather during the reading process.
 
 To illustrate, consider a scenario with a queue containing 10 packets. One of these is an event packet positioned in the middle, while the remaining packets are data packets, each containing two samples. In a user scenario where reading up to 5 packets is requested, the event packet will not be included in the processing list. However, if the user attempts to read more than 5 samples, the reader will return 5 samples, update the types of internal readers, and provide a reading status. This status will include information about the event packet, and whether the reader can convert new data or not.
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 auto reader = StreamReader<double, Int>(signal);
@@ -194,14 +226,19 @@ signal.sendPacket(packet1);
 
 SizeT count{10};
 double values[10]{};
-ReaderStatusPtr status = reader.read(values, &count);  
+ReaderStatusPtr status = reader.read(values, &count);
 // count = 5, values = { 1.0, 2.0, 3.0, 4.0, 5.0 }
 // status.getReadStatus() == ReadStatus::Event
 
 // reading remaining data
 count = 5;
-reader.read(&values[5], &count);  
+reader.read(&values[5], &count);
 ----
+C#::
++
+[NOTE]
+Currently this functionality cannot be translated to C# (signal and data simulation not possible).
+====
 
 [NOTE]
 ====
@@ -236,6 +273,10 @@ The callback signature is shown <<transform_callback_signatrue,below>> where `in
 
 [#transform_callback_signatrue]
 .The transform callback signature
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 bool callback(Int inputBuffer,
@@ -243,6 +284,13 @@ bool callback(Int inputBuffer,
               SizeT toRead,
               DataDescriptor descriptor)
 ----
+C#::
++
+[source,csharp]
+----
+// not yet available in C#
+----
+====
 
 [#packet_reader]
 == Packet Reader

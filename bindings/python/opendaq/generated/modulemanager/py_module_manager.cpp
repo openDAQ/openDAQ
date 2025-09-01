@@ -87,13 +87,13 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
         "Loads and adds a single module from the given absolute file system path.");
     cls.def_property("authenticated_only",
         nullptr,
-        [](daq::IModuleManager *object, const bool verifiedOnly)
+        [](daq::IModuleManager *object, const bool authenticatedOnly)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
-            objectPtr.setAuthenticatedOnly(verifiedOnly);
+            objectPtr.setAuthenticatedOnly(authenticatedOnly);
         },
-        "");
+        "Toggle whether this module manager will only load modules that can be authenticated.");
     cls.def_property("module_authenticator",
         nullptr,
         [](daq::IModuleManager *object, daq::IModuleAuthenticator* authenticator)
@@ -102,5 +102,14 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
             const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
             objectPtr.setModuleAuthenticator(authenticator);
         },
-        "");
+        "Imports the module authenticator.");
+    cls.def_property_readonly("vendor_keys",
+        [](daq::IModuleManager *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModuleManagerPtr::Borrow(object);
+            return objectPtr.getVendorKeys().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Returns a dictionary of module IDs and the respective public keys of their vendors.");
 }

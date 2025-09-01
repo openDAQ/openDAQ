@@ -46,6 +46,4 @@ DECLARE_OPENDAQ_INTERFACE(IModuleAuthenticator, IBaseObject)
 };
 /*!@}*/
 
-OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, ModuleAuthenticator, IString*, certPath)
-
 END_NAMESPACE_OPENDAQ

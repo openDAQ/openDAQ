@@ -10,6 +10,7 @@ set(SRC_Cpp
     generated/opendaq/py_instance.cpp
     generated/opendaq/py_instance_builder.cpp
     generated/opendaq/py_config_provider.cpp
+    generated/opendaq/py_module_authenticator.cpp
     generated/component/py_component.cpp
     generated/component/py_removable.cpp
     generated/component/py_folder.cpp

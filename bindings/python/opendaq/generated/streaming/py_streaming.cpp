@@ -97,4 +97,54 @@ void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBase
         },
         py::return_value_policy::take_ownership,
         "Retrieves the current status of the streaming connection.");
+    cls.def("add_input_ports",
+        [](daq::IStreaming *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& inputPorts)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamingPtr::Borrow(object);
+            objectPtr.addInputPorts(getVariantValue<daq::IList*>(inputPorts));
+        },
+        py::arg("input_ports"),
+        "Adds input ports to the Streaming.");
+    cls.def("remove_input_ports",
+        [](daq::IStreaming *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& inputPorts)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamingPtr::Borrow(object);
+            objectPtr.removeInputPorts(getVariantValue<daq::IList*>(inputPorts));
+        },
+        py::arg("input_ports"),
+        "Removes input ports from the Streaming.");
+    cls.def("remove_all_input_ports",
+        [](daq::IStreaming *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamingPtr::Borrow(object);
+            objectPtr.removeAllInputPorts();
+        },
+        "Removes all added input ports from the Streaming.");
+    cls.def_property_readonly("owner_device_remote_id",
+        [](daq::IStreaming *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamingPtr::Borrow(object);
+            return objectPtr.getOwnerDeviceRemoteId().toStdString();
+        },
+        "Gets the global ID of the device (as it appears on the remote instance) to which this streaming object establishes a connection.");
+    cls.def_property_readonly("protocol_id",
+        [](daq::IStreaming *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamingPtr::Borrow(object);
+            return objectPtr.getProtocolId().toStdString();
+        },
+        "Gets the identifier of the data transfer protocol (e.g., \"OpenDAQNativeStreaming\", \"OpenDAQLTStreaming\") used by this streaming object.");
+    cls.def_property_readonly("client_to_device_streaming_enabled",
+        [](daq::IStreaming *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamingPtr::Borrow(object);
+            return objectPtr.getClientToDeviceStreamingEnabled();
+        },
+        "Checks whether client-to-device streaming is enabled for this streaming object.");
 }

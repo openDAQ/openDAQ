@@ -53,7 +53,7 @@ public:
                          NotificationReadyCallback notificationReadyCallback,
                          const UserPtr& user,
                          ClientType connectionType,
-                         const FolderConfigPtr& externalSignalsFolder = nullptr);
+                         const FolderConfigPtr& externalSignalsFolder);
     ~ConfigProtocolServer();
 
     void buildRpcDispatchStructure();
@@ -118,6 +118,7 @@ private:
     BaseObjectPtr getSerializedRootDevice(const ParamsDictPtr& params);
     BaseObjectPtr connectSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr connectExternalSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    BaseObjectPtr changeInputPortStreamingSource(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr removeExternalSignals(const ParamsDictPtr& params);
     BaseObjectPtr acceptsSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
 

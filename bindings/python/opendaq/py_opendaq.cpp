@@ -116,6 +116,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classISubscriptionEventArgs = declareISubscriptionEventArgs(m);
     auto classIMirroredDevice = declareIMirroredDevice(m);
     auto classIMirroredDeviceConfig = declareIMirroredDeviceConfig(m);
+    auto classIMirroredInputPortConfig = declareIMirroredInputPortConfig(m);
     auto classMockSignal = declareMockSignal(m);
     auto classIComponentPrivate = declareIComponentPrivate(m);
     auto classIComponentStatusContainer = declareIComponentStatusContainer(m);
@@ -219,6 +220,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineISubscriptionEventArgs(m, classISubscriptionEventArgs);
     defineIMirroredDevice(m, classIMirroredDevice);
     defineIMirroredDeviceConfig(m, classIMirroredDeviceConfig);
+    defineIMirroredInputPortConfig(m, classIMirroredInputPortConfig);
     defineMockSignal(m, classMockSignal);
     defineIComponentPrivate(m, classIComponentPrivate);
     defineIComponentStatusContainer(m, classIComponentStatusContainer);

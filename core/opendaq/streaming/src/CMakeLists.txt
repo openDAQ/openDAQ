@@ -8,6 +8,8 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_MirroredSignalPrivate mirrored_signal_private.h)
     rtgen(SRC_MirroredDevice mirrored_device.h)
     rtgen(SRC_MirroredDeviceConfig mirrored_device_config.h)
+    rtgen(SRC_MirroredInputPortConfig mirrored_input_port_config.h)
+    rtgen(SRC_MirroredInputPortPrivate mirrored_input_port_private.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Streaming_PublicHeaders}
@@ -17,6 +19,8 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_MirroredDevice_PublicHeaders}
         ${SRC_MirroredDeviceConfig_PublicHeaders}
         ${SRC_StreamingType_PublicHeaders}
+        ${SRC_MirroredInputPortConfig_PublicHeaders}
+        ${SRC_MirroredInputPortPrivate_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -28,6 +32,8 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_MirroredDevice_PrivateHeaders}
         ${SRC_MirroredDeviceConfig_PrivateHeaders}
         ${SRC_StreamingType_PrivateHeaders}
+        ${SRC_MirroredInputPortConfig_PrivateHeaders}
+        ${SRC_MirroredInputPortPrivate_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -38,6 +44,8 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_MirroredDevice_Cpp}
         ${SRC_MirroredDeviceConfig_Cpp}
         ${SRC_StreamingType_Cpp}
+        ${SRC_MirroredInputPortConfig_Cpp}
+        ${SRC_MirroredInputPortPrivate_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -83,6 +91,13 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/streaming_type_impl.h
         ${SDK_SRC_DIR}/streaming_type_impl.cpp
     )
+
+    source_group("streaming//mirrored_input_port" FILES
+        ${SDK_HEADERS_DIR}/mirrored_input_port_config.h
+        ${SDK_HEADERS_DIR}/mirrored_input_port_impl.h
+        ${SDK_HEADERS_DIR}/mirrored_input_port_private.h
+    )
+
 endfunction()
 
 set(SRC_PublicHeaders_Component 
@@ -97,6 +112,8 @@ set(SRC_PublicHeaders_Component
     streaming_type.h
     streaming_type_factory.h
     streaming_source_manager.h
+    mirrored_input_port_impl.h
+    mirrored_input_port_private.h
     PARENT_SCOPE
 )
 

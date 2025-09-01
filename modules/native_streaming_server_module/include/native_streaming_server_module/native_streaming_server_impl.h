@@ -41,6 +41,7 @@ public:
 protected:
     PropertyObjectPtr getDiscoveryConfig() override;
     void onStopServer() override;
+    StreamingPtr onGetStreaming() override;
     void prepareServerHandler();
 
     std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler> serverHandler;
@@ -78,7 +79,7 @@ protected:
     std::shared_ptr<boost::asio::io_context> transportIOContextPtr;
     std::thread transportThread;
 
-    boost::asio::io_context processingIOContext;
+    std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::thread processingThread;
     boost::asio::io_context::strand processingStrand;
 
@@ -92,6 +93,7 @@ protected:
     size_t maxPacketReadCount;
     std::unordered_map<std::string, SizeT> registeredClientIds;
     std::unordered_map<std::string, SizeT> disconnectedClientIds;
+    StreamingPtr streaming;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

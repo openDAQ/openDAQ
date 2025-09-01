@@ -54,7 +54,11 @@ public:
         return {daq::OperationModeType::Idle, daq::OperationModeType::Operation}; 
     }
 
-protected:
+    std::unordered_set<std::string> getDefaultComponents()
+    {
+        return this->defaultComponents;
+    }
+protected :
     void onSubmitNetworkConfiguration(const daq::StringPtr& ifaceName, const daq::PropertyObjectPtr& config) override {}
     daq::PropertyObjectPtr onRetrieveNetworkConfiguration(const daq::StringPtr& ifaceName) override
     {
@@ -646,4 +650,16 @@ TEST_F(DeviceTest, CheckNotSupportedOpMode)
 
     ASSERT_EQ(device->setOperationMode(daq::OperationModeType::SafeOperation), OPENDAQ_IGNORED);
     ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Operation);
+}
+
+TEST_F(DeviceTest, DefaultFolderLockingStrategy)
+{
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    auto testDeviceImpl = dynamic_cast<TestDevice*>(device.getObject());
+    auto defaultComponents = testDeviceImpl->getDefaultComponents();
+    for (const daq::ComponentPtr& component : device.getItems())
+    {
+        if (defaultComponents.count(component.getName()))
+            ASSERT_EQ(component.asPtr<daq::IPropertyObjectInternal>().getLockingStrategy(), daq::LockingStrategy::ForwardOwnerLockOwn);
+    }
 }

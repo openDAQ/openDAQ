@@ -27,7 +27,7 @@ ErrCode FunctionBlockWrapperImpl::includeObject(IString* objectName,
 {
     const auto objectNameStr = StringPtr::Borrow(objectName).toStdString();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (includeObjectsByDefault)
     {
@@ -58,7 +58,7 @@ ErrCode FunctionBlockWrapperImpl::excludeObject(IString* objectName,
 {
     const auto objectNameStr = StringPtr::Borrow(objectName).toStdString();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (!includeObjectsByDefault)
     {
@@ -157,7 +157,7 @@ ErrCode FunctionBlockWrapperImpl::setPropertySelectionValues(IString* propertyNa
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const ErrCode errCode = daqTry([this, &propertyName, &enumValues]()
     {
@@ -230,7 +230,7 @@ ErrCode FunctionBlockWrapperImpl::getInputPorts(IList** ports, ISearchFilter* se
 
     const auto innerPorts = functionBlock.getInputPorts(searchFilter);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto portList = getObjects<IInputPort>(innerPorts,
                                                  includedInputPorts,
@@ -247,7 +247,7 @@ ErrCode FunctionBlockWrapperImpl::getSignals(IList** signals, ISearchFilter* sea
 
     const auto innerSignals = functionBlock.getSignals(searchFilter);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto signalList = getObjects<ISignal>(innerSignals,
                                            includedSignals,
@@ -264,7 +264,7 @@ ErrCode FunctionBlockWrapperImpl::getFunctionBlocks(IList** functionBlocks, ISea
 
     const auto innerFbs = functionBlock.getFunctionBlocks(searchFilter);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto fbList = getObjects<IFunctionBlock>(
         innerFbs,
@@ -299,7 +299,7 @@ ErrCode FunctionBlockWrapperImpl::setPropertyValue(IString* propertyName, IBaseO
 
     auto propertyNameStr = StringPtr::Borrow(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const ErrCode errCode = daqTry([this, &propertyNameStr, &value]()
     {
@@ -347,7 +347,7 @@ ErrCode FunctionBlockWrapperImpl::getPropertyValue(IString* propertyName, IBaseO
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->getPropertyValue(propertyName, value);
@@ -359,7 +359,7 @@ ErrCode FunctionBlockWrapperImpl::getPropertySelectionValue(IString* propertyNam
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->getPropertySelectionValue(propertyName, value);
@@ -371,7 +371,7 @@ ErrCode FunctionBlockWrapperImpl::clearPropertyValue(IString* propertyName)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->clearPropertyValue(propertyName);
@@ -383,7 +383,7 @@ ErrCode FunctionBlockWrapperImpl::hasProperty(IString* propertyName, Bool* hasPr
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->hasProperty(propertyName, hasProperty);
@@ -425,7 +425,7 @@ ErrCode FunctionBlockWrapperImpl::getProperty(IString* propertyName, IProperty**
 
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const ErrCode errCode = daqTry([this, &propertyNamePtr, &property]()
     {
@@ -455,7 +455,7 @@ ErrCode FunctionBlockWrapperImpl::getProperties(const ListPtr<IProperty>& innerP
 {
     assert(properties != nullptr);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const auto propertyList = getObjects<IProperty>(innerProperties,
                                                     includedProperties,

@@ -226,7 +226,7 @@ ErrCode MirroredSignalBase<Interfaces...>::addStreamingSource(IStreaming* stream
     const auto streamingPtr = StreamingPtr::Borrow(streaming);
     const auto connectionString = streamingPtr.getConnectionString();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto it = std::find_if(streamingSourcesRefs.begin(),
                            streamingSourcesRefs.end(),
@@ -256,7 +256,7 @@ ErrCode MirroredSignalBase<Interfaces...>::removeStreamingSource(IString* stream
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
 
@@ -352,7 +352,7 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString*
 
     if (syncLock)
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
         this->lastDataValue = nullptr;
     }
     else
@@ -473,7 +473,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getStreamingSources(IList** streaming
 
     auto stringsPtr = List<IString>();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     for (const auto& [connectionString, streamingRef] : streamingSourcesRefs)
     {
         auto streamingSource = streamingRef.getRef();
@@ -494,7 +494,7 @@ ErrCode MirroredSignalBase<Interfaces...>::setActiveStreamingSource(IString* str
     const auto connectionStringPtr = StringPtr::Borrow(streamingConnectionString);
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned() &&
@@ -554,7 +554,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getActiveStreamingSource(IString** st
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     auto activeStreamingSource = activeStreamingSourceRef.assigned() ? activeStreamingSourceRef.getRef() : nullptr;
     if (activeStreamingSource.assigned())
         *streamingConnectionString = activeStreamingSource.getConnectionString().addRefAndReturn();
@@ -569,7 +569,7 @@ ErrCode MirroredSignalBase<Interfaces...>::deactivateStreaming()
 {
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     ErrCode errCode = OPENDAQ_SUCCESS;
     if (listened && streamed)
@@ -691,7 +691,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getStreamed(Bool* streamed)
 {
     OPENDAQ_PARAM_NOT_NULL(streamed);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     *streamed = this->streamed;
     return OPENDAQ_SUCCESS;
 }
@@ -699,7 +699,7 @@ ErrCode MirroredSignalBase<Interfaces...>::getStreamed(Bool* streamed)
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (static_cast<bool>(streamed) == this->streamed)
         return OPENDAQ_IGNORED;

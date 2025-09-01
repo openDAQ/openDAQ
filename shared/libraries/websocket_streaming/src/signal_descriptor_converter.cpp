@@ -60,7 +60,7 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(
         for (const auto& field : details)
         {
             auto fieldBuilder = DataDescriptorBuilder();
-            fieldBuilder.setName(field.at("name"));
+            fieldBuilder.setName(String(field.at("name")));
             fieldBuilder.setSampleType(ConvertSampleTypeString(field.value("dataType", "")));
             fieldNames.pushBack(fieldBuilder.getName());
 
@@ -77,7 +77,7 @@ SubscribedSignalInfo SignalDescriptorConverter::ToDataDescriptor(
 
                     daqDimensions.pushBack(
                         DimensionBuilder()
-                            .setName(dimension.at("name"))
+                            .setName(String(dimension.at("name")))
                             .setRule(LinearDimensionRule(
                                 static_cast<unsigned>(dimension.at("linear").at("delta")),
                                 static_cast<unsigned>(dimension.at("linear").at("start")),
@@ -539,23 +539,23 @@ void SignalDescriptorConverter::DecodeBitsInterpretationObject(const nlohmann::j
 void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json& extra, DataDescriptorBuilderPtr& dataDescriptorBuilder)
 {
     // sets descriptor name when corresponding field is present in interpretation object
-    if (extra.count("desc_name") > 0)
-        dataDescriptorBuilder.setName(extra["desc_name"]);
+    if (extra.contains("desc_name"))
+        dataDescriptorBuilder.setName(String(extra["desc_name"]));
 
-    if (extra.count("metadata") > 0)
+    if (extra.contains("metadata"))
     {
-        auto meta = JsonToDict(extra["metadata"]);
+        auto meta = JsonToObject(extra["metadata"]);
         dataDescriptorBuilder.setMetadata(meta);
     }
 
-    if (extra.count("unit") > 0)
+    if (extra.contains("unit"))
     {
         auto unitObj = extra["unit"];
-        auto unit = Unit(unitObj["symbol"], unitObj["id"], unitObj["name"], unitObj["quantity"]);
+        auto unit = Unit(String(unitObj["symbol"]), Integer(unitObj["id"]), String(unitObj["name"]), String(unitObj["quantity"]));
         dataDescriptorBuilder.setUnit(unit);
     }
 
-    if (extra.count("range") > 0)
+    if (extra.contains("range"))
     {
         auto rangeObj = extra["range"];
         auto low = std::stoi(std::string(rangeObj["low"]));
@@ -564,21 +564,21 @@ void SignalDescriptorConverter::DecodeInterpretationObject(const nlohmann::json&
         dataDescriptorBuilder.setValueRange(range);
     }
 
-    if (extra.count("origin") > 0)
-        dataDescriptorBuilder.setOrigin(extra["origin"]);
+    if (extra.contains("origin"))
+        dataDescriptorBuilder.setOrigin(String(extra["origin"]));
 
-    if (extra.count("rule") > 0)
+    if (extra.contains("rule") && extra["rule"].contains("parameters") && extra["rule"]["parameters"].is_object())
     {
-        auto params = JsonToDict(extra["rule"]["parameters"]);
+        auto params = JsonToObject(extra["rule"]["parameters"]);
         params.freeze();
 
         auto rule = DataRuleBuilder().setType(extra["rule"]["type"]).setParameters(params).build();
         dataDescriptorBuilder.setRule(rule);
     }
 
-    if (extra.count("scaling") > 0)
+    if (extra.contains("scaling") && extra["scaling"].contains("parameters") && extra["scaling"]["parameters"].is_object())
     {
-        auto params = JsonToDict(extra["scaling"]["parameters"]);
+        auto params = JsonToObject(extra["scaling"]["parameters"]);
         params.freeze();
 
         auto scaling = ScalingBuilder()
@@ -615,29 +615,38 @@ nlohmann::json SignalDescriptorConverter::DictToJson(const DictPtr<IString, IBas
     return json;
 }
 
-DictPtr<IString, IBaseObject> SignalDescriptorConverter::JsonToDict(const nlohmann::json& json)
+ObjectPtr<IBaseObject> SignalDescriptorConverter::JsonToObject(const nlohmann::json& json)
 {
-    auto dict = Dict<IString, IBaseObject>();
-    auto items = json.items();
-
-    for (const auto& entry : items)
+    if (json.is_object())
     {
-        if (entry.value().is_array())
-        {
-            auto vect = entry.value().get<std::vector<BaseObjectPtr>>();
-            dict[entry.key()] = ListPtr<IBaseObject>::FromVector(vect);
-        }
-        else if (entry.value().is_object())
-            dict[entry.key()] = JsonToDict(entry.value());
-        else if (entry.value().is_number_float())
-            dict[entry.key()] = entry.value().get<Float>();
-        else if (entry.value().is_number_integer())
-            dict[entry.key()] = entry.value().get<Int>();
-        else
-            dict[entry.key()] = entry.value();
+        auto dict = Dict<IString, IBaseObject>();
+        for (const auto& entry : json.items())
+            if (auto obj = JsonToObject(entry.value()); obj.assigned())
+                dict[entry.key()] = obj;
+        return dict;
     }
+    else if (json.is_array())
+    {
+        auto list = List<IBaseObject>();
+        for (const auto& entry : json)
+            if (auto obj = JsonToObject(entry); obj.assigned())
+                list.pushBack(obj);
+        return list;
+    }
+    else if (json.is_number_float())
+        return json.get<Float>();
 
-    return dict;
+    else if (json.is_number_integer())
+        return json.get<Int>();
+
+    else if (json.is_string())
+        return StringPtr(json.get<std::string>());
+
+    else if (json.is_boolean())
+        return Boolean(json.get<bool>());
+
+    else
+        return nullptr;
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

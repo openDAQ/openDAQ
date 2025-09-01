@@ -169,7 +169,9 @@ inline ListPtr<ILoggerSink> DefaultSinks(const StringPtr& fileName = nullptr)
 inline LogLevel LogLevelFromString(const StringPtr logLevelName)
 {
     std::string name = logLevelName.toStdString();
-    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    std::locale loc = std::locale::classic();
+    const auto& f = std::use_facet<std::ctype<char>>(loc);
+    std::transform(name.begin(), name.end(), name.begin(), [&f](char c){ return f.tolower(c); });
 
     if (name == "trace")
         return LogLevel::Trace;

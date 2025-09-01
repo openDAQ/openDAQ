@@ -3,7 +3,9 @@
 ## Features
 
 - [#894](https://github.com/openDAQ/openDAQ/pull/894) Allows for objects to specify whether they will use their own mutex, or that of their owner/parent.
+- [#884](https://github.com/openDAQ/openDAQ/pull/884) Tampering check interface and example implementation.
 - [#878](https://github.com/openDAQ/openDAQ/pull/878) Licensing interface and reference module + example implementation.
+- [#867](https://github.com/openDAQ/openDAQ/pull/867) Generalized client-to-device streaming
 - [#865](https://github.com/openDAQ/openDAQ/pull/865), [#882](https://github.com/openDAQ/openDAQ/pull/882) onPropertyValueRead events are now supported over native. Suggested and Selection values can be overridden in new onRead events. String properties can now have suggested values.
 - [#853](https://github.com/openDAQ/openDAQ/pull/853) Parquet writer
 - [#861](https://github.com/openDAQ/openDAQ/pull/861) Add support for list and dictionary item/key type identification in Argument Info.

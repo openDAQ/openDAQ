@@ -31,22 +31,20 @@ public:
                          const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                          SessionPtr session,
                          const std::string& clientId,
+                         OnSignalCallback signalReceivedHandler,
+                         OnSubscriptionAckCallback subscriptionAckHandler,
                          OnFindSignalCallback findSignalHandler,
                          OnSignalSubscriptionCallback signalSubscriptionHandler,
                          native_streaming::OnSessionErrorCallback errorHandler,
                          SizeT streamingPacketSendTimeout);
 
-    void sendSignalAvailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
-    void sendSignalUnavailable(const SignalNumericIdType& signalNumericId, const SignalPtr& signal);
     void sendStreamingInitDone();
-    void sendSubscribingDone(const SignalNumericIdType signalNumericId);
-    void sendUnsubscribingDone(const SignalNumericIdType signalNumericId);
 
     void setTransportLayerPropsHandler(const OnTrasportLayerPropertiesCallback& transportLayerPropsHandler);
     void setStreamingInitHandler(const OnStreamingRequestCallback& streamingInitHandler);
 
     void setClientId(const std::string& clientId);
-    std::string getClientId();
+    std::string getClientId() override;
 
     void setClientHostName(const std::string& hostName);
     std::string getClientHostName();
@@ -64,15 +62,11 @@ public:
 
 private:
     daq::native_streaming::ReadTask readHeader(const void* data, size_t size) override;
-    daq::native_streaming::ReadTask readSignalSubscribe(const void* data, size_t size);
-    daq::native_streaming::ReadTask readSignalUnsubscribe(const void* data, size_t size);
     daq::native_streaming::ReadTask readTransportLayerProperties(const void* data, size_t size);
 
-    bool hasUserAccessToSignal(const SignalPtr& signal);
+    bool hasUserAccessToSignal(const SignalPtr& signal) override;
 
     OnStreamingRequestCallback streamingInitHandler;
-    OnFindSignalCallback findSignalHandler;
-    OnSignalSubscriptionCallback signalSubscriptionHandler;
     OnTrasportLayerPropertiesCallback transportLayerPropsHandler;
 
     std::string clientId;

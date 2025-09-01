@@ -147,6 +147,11 @@ SignalPtr TmsClientInputPortImpl::onGetSignal()
     return nullptr;
 }
 
+StringPtr TmsClientInputPortImpl::onGetRemoteId() const
+{
+    return String(remoteComponentId).detach();
+}
+
 ErrCode TmsClientInputPortImpl::getConnection(IConnection** connection)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);

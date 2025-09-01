@@ -26,6 +26,8 @@ public:
     static BaseObjectPtr connect(const RpcContext& context, const InputPortPtr& inputPort, const SignalPtr& signal, const ParamsDictPtr& params);
     static BaseObjectPtr disconnect(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
 	static BaseObjectPtr accepts(const RpcContext& context, const InputPortPtr& inputPort, const SignalPtr& signal, const UserPtr& user);
+
+    static void access(const RpcContext& context, const InputPortPtr& inputPort);
 };
 
 inline BaseObjectPtr ConfigServerInputPort::connect(const RpcContext& context,
@@ -69,6 +71,13 @@ inline BaseObjectPtr ConfigServerInputPort::accepts(const RpcContext& context,
     ConfigServerAccessControl::protectObject(signal, user, Permission::Read);
 
     return Boolean(inputPort.acceptsSignal(signal));
+}
+
+inline void ConfigServerInputPort::access(const RpcContext& context, const InputPortPtr& inputPort)
+{
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+    ConfigServerAccessControl::protectLockedComponent(inputPort);
+    ConfigServerAccessControl::protectObject(inputPort, context.user, {Permission::Read, Permission::Write});
 }
 
 }

@@ -38,15 +38,11 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     activateStreaming();
     this->connectionStatusContainer.addStreamingConnectionStatus(connectionString, connectionStatus, nativeStreaming);
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", connectionStatus);
-
-    const auto thisPtr = this->template borrowPtr<DevicePtr>();
-    checkErrorInfo(nativeStreaming.asPtr<IStreamingPrivate>()->setOwnerDevice(thisPtr));
 }
 
 void NativeStreamingDeviceImpl::removed()
 {
     this->connectionStatusContainer.removeStreamingConnectionStatus(connectionString);
-    checkErrorInfo(nativeStreaming.asPtr<IStreamingPrivate>()->setOwnerDevice(nullptr));
     nativeStreaming.release();
     Device::removed();
 }
@@ -75,14 +71,14 @@ void NativeStreamingDeviceImpl::createNativeStreaming(NativeStreamingClientHandl
         };
 
     nativeStreaming =
-        createWithImplementation<IStreaming, NativeStreamingImpl>(connectionString,
-                                                                  context,
-                                                                  transportProtocolClient,
-                                                                  processingIOContextPtr,
-                                                                  initTimeout,
-                                                                  onSignalAvailableCallback,
-                                                                  onSignalUnavailableCallback,
-                                                                  onConnectionStatusChangedCallback);
+        createWithImplementation<IStreaming, NativeStreamingBasicImpl>(connectionString,
+                                                                       context,
+                                                                       transportProtocolClient,
+                                                                       processingIOContextPtr,
+                                                                       initTimeout,
+                                                                       onSignalAvailableCallback,
+                                                                       onSignalUnavailableCallback,
+                                                                       onConnectionStatusChangedCallback);
     nativeStreaming.asPtr<INativeStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
 }
 
@@ -262,6 +258,12 @@ void NativeStreamingDeviceImpl::connectionStatusChangedHandler(const Enumeration
     connectionStatus = status;
 
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage("ConnectionStatus", connectionStatus, statusMessage);
+    this->connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(
+        this->connectionString,
+        connectionStatus,
+        nativeStreaming,
+        statusMessage
+    );
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

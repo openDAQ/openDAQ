@@ -1,6 +1,7 @@
 // Ignore Spelling: Opc Ua nullable daqref
 
 
+using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Reflection;
@@ -818,7 +819,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05211_FeaturesPropertySystemAddingRemovingPropertiesTest()
+    public void Test_0521_FeaturesPropertySystemAddingRemovingPropertiesTest()
     {
         OpenDaqException ex = Assert.Throws<OpenDaqException>(() =>
         {
@@ -838,7 +839,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05212_FeaturesPropertySystemListingPropertiesTest()
+    public void Test_0522_FeaturesPropertySystemListingPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
         propObj.AddProperty(PropertyFactory.StringProperty("String", "foo"));
@@ -860,7 +861,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05213_FeaturesPropertySystemReadingWritingPropertyValuesTest()
+    public void Test_0523_FeaturesPropertySystemReadingWritingPropertyValuesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
         propObj.AddProperty(PropertyFactory.StringProperty("String", "foo"));
@@ -874,7 +875,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05214_FeaturesPropertySystemRWNestedPropertyObjectsTest()
+    public void Test_0524_FeaturesPropertySystemRWNestedPropertyObjectsTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
         var child1 = CoreObjectsFactory.CreatePropertyObject();
@@ -892,7 +893,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05215_FeaturesPropertySystemRWSelectionPropertiesTest()
+    public void Test_0525_FeaturesPropertySystemRWSelectionPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
@@ -906,7 +907,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05216_FeaturesPropertySystemRWListPropertiesTest1()
+    public void Test_0526_FeaturesPropertySystemRWListPropertiesTest1()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
@@ -928,7 +929,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05217_FeaturesPropertySystemRWListPropertiesTest2()
+    public void Test_0527_FeaturesPropertySystemRWListPropertiesTest2()
     {
         #region just for the test to compile
         var propObj = CoreObjectsFactory.CreatePropertyObject();
@@ -948,7 +949,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05218_FeaturesPropertySystemRWDictionaryPropertiesTest()
+    public void Test_0528_FeaturesPropertySystemRWDictionaryPropertiesTest()
     {
         var propObj = CoreObjectsFactory.CreatePropertyObject();
 
@@ -964,7 +965,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     //[Test]
     [Category(SKIP_SETUP)]
-    public void Test_05219_FeaturesPropertySystemRWEventsTest()
+    public void Test_0529_FeaturesPropertySystemRWEventsTest()
     {
         /*
             [NOTE]
@@ -1011,7 +1012,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05311_FeaturesPropertySystemPropertyObjectClassTest()
+    public void Test_0531_FeaturesPropertySystemPropertyObjectClassTest()
     {
         var list = CoreTypesFactory.CreateList<StringObject>("Banana", "Apple", "Kiwi");
 
@@ -1022,7 +1023,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05312_FeaturesPropertySystemPOCManageTest()
+    public void Test_0532_FeaturesPropertySystemPOCManageTest()
     {
         TypeManager manager = CoreTypesFactory.CreateTypeManager();
 
@@ -1041,7 +1042,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     [Test]
     [Category(SKIP_SETUP)]
-    public void Test_05314_FeaturesPropertySystemPOCClassInheritanceTest()
+    public void Test_0534_FeaturesPropertySystemPOCClassInheritanceTest()
     {
         TypeManager manager = CoreTypesFactory.CreateTypeManager();
 
@@ -1064,7 +1065,7 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
 
     //[Test]
     [Category(SKIP_SETUP)]
-    public void Test_05315_FeaturesPropertySystemPOCPropertyEventsOnClassesTest()
+    public void Test_0535_FeaturesPropertySystemPOCPropertyEventsOnClassesTest()
     {
 #if !supports_events
         /*
@@ -1101,4 +1102,265 @@ public class OpenDaqExplanationsTests : OpenDAQTestsBase
     #endregion Property Object Class
 
     #endregion Property system
+
+    #region Readers ./Antora/modules/explanations/pages/readers.adoc
+
+    [Test]
+    public void Test_0601_ConstructingAReaderTest()
+    {
+        // These calls all create the same Reader (e.g. for a Stream Reader)
+        var reader1 = OpenDAQFactory.CreateStreamReader(signal);
+        var reader2 = OpenDAQFactory.CreateStreamReader<double, long>(signal);
+        // right now there exists no factory function using `SampleType` as parameters
+    }
+
+    #endregion Readers ./Antora/modules/explanations/pages/readers.adoc
+
+    #region Multi Reader ./Antora/modules/explanations/pages/multireader_spec.adoc
+
+    [Test]
+    [Category(SKIP_SETUP)]
+    public void Test_0701_MultiReaderExampleTest()
+    {
+        var instance  = OpenDAQFactory.Instance();
+        var refDevice = instance.AddDevice("daqref://device0");
+        var signals   = refDevice.GetSignalsRecursive();
+
+        // Create reader that converts values to `double` and time data to `int64`
+        var multiReader = OpenDAQFactory.CreateMultiReader<double, long>(signals);
+
+        // Allocate buffers for each signal
+        int   signalsCount = signals.Count;
+        nuint kBufferSize  = 0;
+
+        var dataBuffers   = new double[signalsCount][];
+        var domainBuffers = new long[signalsCount][];
+
+        // read data every 50ms, up to a maximum of kBufferSize samples
+        for (int readCount = 0; readCount < 20; readCount++)
+        {
+            var dataAvailable = multiReader.AvailableCount;
+            var count         = Math.Min(kBufferSize, dataAvailable);
+            var status        = multiReader.ReadWithDomain(dataBuffers, domainBuffers, ref count);
+
+            if (status.ReadStatus == ReadStatus.Event)
+            {
+                // Set buffer size based on sample rate, allocate buffers
+                // Buffers have 100ms worth of memory for each signal
+                //ToDo: reader::getSampleRate() not available in .NET Bindings
+                //var sampleRate = reader::getSampleRate(
+                //    status.MainDescriptor.Parameters["DomainDataDescriptor"]);
+                // simplified for the example:
+                var sampleRate = GetSampleRate(status.MainDescriptor
+                                                     .Parameters["DomainDataDescriptor"]
+                                                     .Cast<DataDescriptor>());
+
+                kBufferSize = sampleRate / 10;
+
+                for (int i = 0; i < signalsCount; ++i)
+                {
+                    dataBuffers[i]   = new double[kBufferSize];
+                    domainBuffers[i] = new long[kBufferSize];
+                }
+            }
+            else if ((status.ReadStatus == ReadStatus.Ok) && (count > 0))
+            {
+                Console.Write("Data: ");
+                foreach (var buf in dataBuffers)
+                    Console.Write($"{buf[0]}; ");
+                Console.WriteLine();
+            }
+
+            System.Threading.Thread.Sleep(50);
+        }
+
+        nuint GetSampleRate(DataDescriptor dataDescriptor)
+        {
+            var resolution = dataDescriptor.TickResolution;
+            var delta      = (NumberObject)1;
+            var rule       = dataDescriptor.Rule;
+
+            if ((rule != null) && (rule.Type != DataRuleType.Linear))
+            {
+                throw new NotSupportedException("Only signals with implicit linear-rule as a domain are supported.");
+            }
+            else if (rule != null)
+            {
+                delta = rule.Parameters["delta"].Cast<NumberObject>();
+            }
+
+            double sampleRate = (double)resolution.Denominator
+                              / (double)resolution.Numerator
+                              * (double)delta;
+            if (sampleRate != (double)(ulong)sampleRate)
+            {
+                throw new NotSupportedException($"Only signals with integral sample-rate are supported but found signal with {sampleRate} Hz");
+            }
+
+            return (nuint)Convert.ToUInt64(sampleRate);
+        }
+    }
+
+    //[Test]
+    [Category(SKIP_SETUP)]
+    public void Test_0702_MultiReaderReusingDomainDataTest()
+    {
+        #region just for the test to compile
+        //OpenDAQFactory.CreateMultiReaderStatus(EventPacket mainDescriptor, IDictObject < BaseObject, BaseObject > eventPackets, bool valid, NumberObject offset);
+        MultiReaderStatus status  = OpenDAQFactory.CreateMultiReaderStatus(mainDescriptor: null, eventPackets: null, valid: false, offset: 0);
+        Context           context = null;
+        Component         parent  = null;
+        #endregion
+
+        var eventPacket            = status.MainDescriptor;
+        var outputDomainDescriptor = eventPacket.Parameters["DomainDataDescriptor"].Cast<DataDescriptor>();
+        var outputDomainSignal     = OpenDAQFactory.CreateSignalWithDescriptor(context, outputDomainDescriptor, parent, "outputDomainSignal", "Signal");
+    }
+
+    //[Test]
+    [Category(SKIP_SETUP)]
+    public void Test_0703_MultiReaderReusingDomainDataTest()
+    {
+        #region just for the test to compile
+        //OpenDAQFactory.CreateMultiReaderStatus(EventPacket mainDescriptor, IDictObject < BaseObject, BaseObject > eventPackets, bool valid, NumberObject offset);
+        MultiReaderStatus status  = OpenDAQFactory.CreateMultiReaderStatus(mainDescriptor: null, eventPackets: null, valid: false, offset: 0);
+        Context           context = null;
+        Component         parent  = null;
+
+        var eventPacket = status.MainDescriptor;
+        var outputDomainDescriptor = eventPacket.Parameters["DomainDataDescriptor"].Cast<DataDescriptor>();
+        var outputDomainSignal = OpenDAQFactory.CreateSignalWithDescriptor(context, outputDomainDescriptor, parent, "outputDomainSignal", "Signal");
+
+        nuint count = 1;
+        #endregion
+
+        // `count` corresponds to the amount of samples read
+        var outputDomainPacket = OpenDAQFactory.CreateDataPacket(outputDomainDescriptor, count, status.Offset);
+        outputDomainSignal.SendPacket(outputDomainPacket);
+    }
+
+    //[Test]
+    [Category(SKIP_SETUP)]
+    public void Test_0704_MultiReaderDifferentSampleRatesTest()
+    {
+        #region just for the test to compile
+        var instance  = OpenDAQFactory.Instance();
+        var refDevice = instance.AddDevice("daqref://device0");
+        var signals   = refDevice.GetSignalsRecursive();
+
+        // Create reader that converts values to `double` and time data to `int64`
+        var multiReader = OpenDAQFactory.CreateMultiReader<double, long>(signals);
+
+        // Allocate buffers for each signal
+        int   signalsCount = signals.Count;
+        nuint kBufferSize  = 0;
+
+        var dataBuffers   = new double[signalsCount][];
+        var domainBuffers = new long[signalsCount][];
+
+        // read data every 50ms, up to a maximum of kBufferSize samples
+        for (int readCount = 0; readCount < 20; readCount++)
+        {
+        #endregion
+
+            List<long> dividers = new();
+
+            var dataAvailable = multiReader.AvailableCount;
+            var count = Math.Min(kBufferSize, dataAvailable);
+            var status = multiReader.ReadWithDomain(dataBuffers, domainBuffers, ref count);
+
+            if (status.ReadStatus == ReadStatus.Event)
+            {
+                var packets = status.EventPackets;
+                if (!(packets.Values.First().EventId == "DATA_DESCRIPTOR_CHANGED"))
+                    continue;
+
+                // SRDiv calculation
+                long commonSampleRate = multiReader.CommonSampleRate;
+                dividers.Clear();
+                Console.Write("Dividers: ");
+                foreach (var eventPacket in packets.Values)
+                {
+                    var descriptor = eventPacket.Parameters["DomainDataDescriptor"].Cast<DataDescriptor>();
+                    var sampleRate = GetSampleRate(descriptor);
+                    dividers.Add(commonSampleRate / (long)sampleRate);
+                    Console.Write($"{dividers.Last()}, ");
+                }
+                Console.WriteLine();
+
+                // Allocate buffers for 100ms according to commonSampleRate
+                long lcm = 1;
+                foreach (var div in dividers)
+                    lcm = GetLeastCommonMultiple(lcm, div); // https://stackoverflow.com/a/20824923
+
+                // Calculate k as the minimum number of LCM-size blocks to read ~100ms of data
+                long k = Math.Max(commonSampleRate / lcm / 10, 1);
+                kBufferSize = (nuint)(k * lcm);
+
+                Console.Write("Buffer sizes: ");
+                for (int i = 0; i < signalsCount; ++i)
+                {
+                    dataBuffers[i]   = new double[(long)kBufferSize / dividers[i]];
+                    domainBuffers[i] = new long[(long)kBufferSize / dividers[i]];
+                    Console.Write($"{(long)kBufferSize / dividers[i]}, ");
+                }
+                Console.WriteLine();
+            }
+
+        #region just for the test to compile
+        }
+
+        nuint GetSampleRate(DataDescriptor dataDescriptor)
+        {
+            var resolution = dataDescriptor.TickResolution;
+            var delta      = (NumberObject)1;
+            var rule       = dataDescriptor.Rule;
+
+            if ((rule != null) && (rule.Type != DataRuleType.Linear))
+            {
+                throw new NotSupportedException("Only signals with implicit linear-rule as a domain are supported.");
+            }
+            else if (rule != null)
+            {
+                delta = rule.Parameters["delta"].Cast<NumberObject>();
+            }
+
+            double sampleRate = (double)resolution.Denominator
+                              / (double)resolution.Numerator
+                              * (double)delta;
+            if (sampleRate != (double)(ulong)sampleRate)
+            {
+                throw new NotSupportedException($"Only signals with integral sample-rate are supported but found signal with {sampleRate} Hz");
+            }
+
+            return (nuint)Convert.ToUInt64(sampleRate);
+        }
+
+        static long GetLeastCommonMultiple(long a, long b)
+        {
+            return (a / gcf(a, b)) * b;
+
+            static long gcf(long a, long b)
+            {
+                while (b != 0)
+                {
+                    long temp = b;
+                    b = a % b;
+                    a = temp;
+                }
+                return a;
+            }
+        }
+        #endregion
+    }
+
+    #endregion Multi Reader ./Antora/modules/explanations/pages/multireader_spec.adoc
+
+
+    //[Test]
+    //[Category(SKIP_SETUP)]
+    //public void Test_aabb_Test()
+    //{
+
+    //}
 }

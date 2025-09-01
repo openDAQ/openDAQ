@@ -137,7 +137,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 17);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 18);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -3146,9 +3146,10 @@ TEST_F(NativeDeviceModulesTest, DISABLED_UseOldProtocolVersionLocationUsername)
     server.detach();
 }
 
-using NativeC2DStreamingTest = testing::Test;
+// native config protocol version as a param
+using NativeC2DStreamingTest = testing::TestWithParam<uint16_t>;
 
-TEST_F(NativeC2DStreamingTest, DISABLED_ConnectSignalWithOldProtocolVersion)
+TEST_P(NativeC2DStreamingTest, DISABLED_ConnectSignalWithOldProtocolVersion)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -3164,11 +3165,11 @@ TEST_F(NativeC2DStreamingTest, DISABLED_ConnectSignalWithOldProtocolVersion)
                      "Client-to-device streaming operations are not supported by the protocol version currently in use");
 }
 
-TEST_F(NativeC2DStreamingTest, ConnectAndRead)
+TEST_P(NativeC2DStreamingTest, ConnectAndRead)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     const auto mirroredDevice = client.getDevices()[0];
     const auto clientRefDevice = client.addDevice("daqref://device0");
@@ -3212,7 +3213,81 @@ TEST_F(NativeC2DStreamingTest, ConnectAndRead)
     }
 }
 
-TEST_F(NativeC2DStreamingTest, ServerCoreEvents)
+TEST_P(NativeC2DStreamingTest, DISABLED_ConnectAndRenderSignal)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(GetParam());
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+
+    auto renderer = server.addFunctionBlock("ref_fb_module_renderer");
+
+    // read output signal of function block to which external signal connected
+    auto fbSignal = server.getFunctionBlocks()[0].getSignals()[0];
+    renderer.getInputPorts()[0].connect(fbSignal);
+
+    // read mirrored external signal directly
+    auto mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+    renderer.getInputPorts()[1].connect(mirroredExternalSignal);
+
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+}
+
+TEST_P(NativeC2DStreamingTest, ConnectAndReadGeneralized)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(GetParam());
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+
+    // read output signal of function block to which external signal connected
+    {
+        auto fbSignal = server.getFunctionBlocks()[0].getSignals()[0];
+        StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(fbSignal, ReadTimeoutType::Any);
+        {
+            daq::SizeT count = 0;
+            reader.read(nullptr, &count, 100);
+        }
+        double samples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT count = 100;
+            reader.read(samples, &count, 1000);
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
+    }
+
+    // read mirrored external signal directly
+    {
+        auto mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+        StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(mirroredExternalSignal, ReadTimeoutType::Any);
+        {
+            daq::SizeT count = 0;
+            reader.read(nullptr, &count, 100);
+        }
+        double samples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT count = 100;
+            reader.read(samples, &count, 1000);
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
+    }
+}
+
+TEST_P(NativeC2DStreamingTest, ServerCoreEvents)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -3255,7 +3330,7 @@ TEST_F(NativeC2DStreamingTest, ServerCoreEvents)
     std::future<void> signalDisconnectedFuture = signalDisconnectedPromise.get_future();
     std::future<void> signalRemovedFuture = signalRemovedPromise.get_future();
 
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
     auto mirroredDevice = client.getDevices()[0];
     const auto clientRefDevice = client.addDevice("daqref://device0");
     clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
@@ -3287,11 +3362,11 @@ TEST_F(NativeC2DStreamingTest, ServerCoreEvents)
     ASSERT_TRUE(signalRemovedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
 }
 
-TEST_F(NativeC2DStreamingTest, ClientLostConnection)
+TEST_P(NativeC2DStreamingTest, ClientLostConnection)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     ASSERT_EQ(server.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
@@ -3333,11 +3408,11 @@ TEST_F(NativeC2DStreamingTest, ClientLostConnection)
     }
 }
 
-TEST_F(NativeC2DStreamingTest, ServerLostConnection)
+TEST_P(NativeC2DStreamingTest, ServerLostConnection)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     auto mirroredDevice = client.getDevices()[0];
     const auto clientRefDevice = client.addDevice("daqref://device0");
@@ -3369,11 +3444,11 @@ TEST_F(NativeC2DStreamingTest, ServerLostConnection)
     ASSERT_EQ(server.getServers()[0].getSignals(search::Any()).getCount(), 0u);
 }
 
-TEST_F(NativeC2DStreamingTest, StreamingData)
+TEST_P(NativeC2DStreamingTest, StreamingData)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     const auto mirroredDevice = client.getDevices()[0];
     const auto clientLocalDevice = client.addDevice("daqmock://phys_device");
@@ -3415,6 +3490,10 @@ TEST_F(NativeC2DStreamingTest, StreamingData)
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(test_helpers::packetsEqual(clientReceivedPackets, serverReceivedPackets));
 }
+
+// version 17 falls to basic C2Ds
+// version 18 uses generalized C2Ds
+INSTANTIATE_TEST_SUITE_P(NativeC2DStreamingTestGroup, NativeC2DStreamingTest, testing::Values(17, 18));
 
 TEST_F(NativeDeviceModulesTest, AddNestedFB)
 {

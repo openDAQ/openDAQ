@@ -43,6 +43,12 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredDevice, IDevice)
      * @param[out] streamingSources The list of streaming objects.
      */
     virtual ErrCode INTERFACE_FUNC getStreamingSources(IList** streamingSources) = 0;
+
+    /*!
+     * @brief Gets the global ID of the device as it appears on the remote instance.
+     * @param[out] id The device ID.
+     */
+    virtual ErrCode INTERFACE_FUNC getRemoteId(IString** id) const = 0;
 };
 
 /*!@}*/

@@ -197,6 +197,73 @@ public:
         }
     }
 
+    void testSignalStreamingSources(const InstancePtr& client, const InstancePtr& gateway, bool minHops)
+    {
+        auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
+        auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
+        ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
+        for (size_t index = 0; index < clientSignals.getCount(); ++index)
+        {
+            auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
+            auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
+
+            if (minHops)
+            {
+                ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u) << clientSignal.getGlobalId();
+                ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
+                ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
+                ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
+                            clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1])
+                    << "client sig " << clientSignal.getGlobalId()
+                    << " streaming source " << clientSignal.getActiveStreamingSource();
+            }
+            else
+            {
+                ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 2u) << clientSignal.getGlobalId();
+                ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
+                ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
+                ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[0])
+                    << "client sig " << clientSignal.getGlobalId()
+                    << " streaming source " << clientSignal.getActiveStreamingSource();
+                ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[1])
+                    << "client sig " << clientSignal.getGlobalId()
+                    << " streaming source " << clientSignal.getActiveStreamingSource();
+            }
+        }
+    }
+
+    void testInputPortStreamingSources(const InstancePtr& client, const InstancePtr& gateway, bool minHops)
+    {
+        auto clientInputPorts = client.getItems(search::Recursive(search::InterfaceId(IInputPort::Id)));
+        auto gatewayInputPorts = gateway.getItems(search::Recursive(search::InterfaceId(IInputPort::Id)));
+        ASSERT_GT(clientInputPorts.getCount(), 0u);
+        ASSERT_EQ(clientInputPorts.getCount(), gatewayInputPorts.getCount());
+        for (size_t index = 0; index < clientInputPorts.getCount(); ++index)
+        {
+            auto clientInputPort = clientInputPorts[index].template asPtr<IMirroredInputPortConfig>();
+            auto gatewayInputPort = gatewayInputPorts[index].template asPtr<IMirroredInputPortConfig>();
+
+            if (minHops)
+            {
+                ASSERT_EQ(clientInputPort.getStreamingSources().getCount(), 2u) << clientInputPort.getGlobalId();
+                ASSERT_EQ(gatewayInputPort.getStreamingSources().getCount(), 1u) << gatewayInputPort.getGlobalId();
+                ASSERT_TRUE(clientInputPort.getActiveStreamingSource().assigned());
+                ASSERT_TRUE(clientInputPort.getActiveStreamingSource() == gatewayInputPort.getStreamingSources()[0])
+                    << "client input port " << clientInputPort.getGlobalId()
+                    << " streaming source " << clientInputPort.getActiveStreamingSource();
+            }
+            else
+            {
+            ASSERT_EQ(clientInputPort.getStreamingSources().getCount(), 1u) << clientInputPort.getGlobalId();
+            ASSERT_EQ(gatewayInputPort.getStreamingSources().getCount(), 1u) << gatewayInputPort.getGlobalId();
+            ASSERT_TRUE(clientInputPort.getActiveStreamingSource().assigned());
+            ASSERT_NE(clientInputPort.getActiveStreamingSource(), gatewayInputPort.getStreamingSources()[0])
+                << "client input port " << clientInputPort.getGlobalId()
+                << " streaming source " << clientInputPort.getActiveStreamingSource();
+            }
+        }
+    }
+
     InstancePtr CreateLeafDeviceInstance(uint16_t leafDeviceIndex)
     {
         auto logger = Logger();
@@ -207,6 +274,7 @@ public:
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
         auto instance = InstanceCustom(context, fmt::format("subdevice{}", leafDeviceIndex));
         const auto refDevice = instance.addDevice("daqref://device0");
+        refDevice.addFunctionBlock("RefFBModuleStatistics");
 
         auto structureProtocolType = std::get<0>(GetParam());
 
@@ -317,24 +385,8 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
     secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
-    auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
-    auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
-
-    for (size_t index = 0; index < clientSignals.getCount(); ++index)
-    {
-        auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
-        auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 2u) << clientSignal.getGlobalId();
-        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
-        ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
-        ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[0])
-            << "client sig " << clientSignal.getGlobalId()
-            << " streaming source " << clientSignal.getActiveStreamingSource();
-        ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[1])
-            << "client sig " << clientSignal.getGlobalId()
-            << " streaming source " << clientSignal.getActiveStreamingSource();
-    }
+    testSignalStreamingSources(client, gateway, false);
+    testInputPortStreamingSources(client, gateway, false);
 
 #ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
 #ifndef OPENDAQ_SKIP_UNSTABLE_TESTS
@@ -355,28 +407,15 @@ TEST_P(SubDevicesTest, LeafStreamingToClient)
     secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
-    auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
-    auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
-
-    for (size_t index = 0; index < clientSignals.getCount(); ++index)
-    {
-        auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
-        auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u) << clientSignal.getGlobalId();
-        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
-        ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
-        ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
-                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1])
-            << "client sig " << clientSignal.getGlobalId()
-            << " streaming source " << clientSignal.getActiveStreamingSource();
-    }
+    testSignalStreamingSources(client, gateway, true);
+    testInputPortStreamingSources(client, gateway, true);
 
 #ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
     testStreamClientSignalFromLeaf(client);
 #endif
 }
 
+#ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
 TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 {
     SKIP_TEST_MAC_CI;
@@ -389,31 +428,15 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
     secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
-    auto clientSignals = client.getSignalsRecursive();
-    auto gatewaySignals = gateway.getSignalsRecursive();
-    ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
+    testSignalStreamingSources(client, gateway, true);
 
-    for (size_t index = 0; index < clientSignals.getCount(); ++index)
-    {
-        auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
-        auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u) << clientSignal.getGlobalId();
-        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
-        ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
-        ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
-                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1])
-            << "client sig " << clientSignal.getGlobalId()
-            << " streaming source " << clientSignal.getActiveStreamingSource();
-    }
-
-#ifdef OPENDAQ_ENABLE_OPTIONAL_TESTS
     if (std::get<2>(GetParam()) == StreamingProtocolType::WebsocketStreaming)
     {
         GTEST_SKIP();
     }
     testStreamGatewayAndClientSignals(client, gateway);
-#endif
 }
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     SubDevicesTestGroup,
@@ -443,23 +466,7 @@ TEST_P(SubDevicesReconnectionTest, LeafStreamingToClientAfterReconnect)
 
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
 
-    auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
-    auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
-
-    for (size_t index = 0; index < clientSignals.getCount(); ++index)
-    {
-        auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
-        auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u) << clientSignal.getGlobalId();
-        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
-        ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
-        ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
-                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1])
-            << "client sig " << clientSignal.getGlobalId()
-            << " streaming source " << clientSignal.getActiveStreamingSource();
-    }
-    gatewaySignals.clear();
+    testSignalStreamingSources(client, gateway, true);
 
     std::promise<StringPtr> reconnectionStatusPromise;
     std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
@@ -488,17 +495,7 @@ TEST_P(SubDevicesReconnectionTest, LeafStreamingToClientAfterReconnect)
     ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
 
     // test streaming sources again
-    gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
-    for (size_t index = 0; index < clientSignals.getCount(); ++index)
-    {
-        auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
-        auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u);
-        ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u);
-        ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
-        ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
-                    clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1]);
-    }
+    testSignalStreamingSources(client, gateway, true);
 }
 
 INSTANTIATE_TEST_SUITE_P(

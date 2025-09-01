@@ -30,6 +30,7 @@
 #include <opendaq/component_private_ptr.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <coreobjects/property_object_class_internal_ptr.h>
+#include <opendaq/mirrored_input_port_private_ptr.h>
 #include <algorithm>
 
 namespace daq::config_protocol
@@ -144,8 +145,14 @@ public:
                                              const BaseObjectPtr& context,
                                              const FunctionPtr& factoryCallback);
     bool isComponentNested(const StringPtr& componentGlobalId);
-    void connectExternalSignalToServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
-    void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
+    void connectExternalSignalToServerInputPort(const SignalPtr& signal,
+                                                const StringPtr& inputPortRemoteGlobalId,
+                                                const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
+    void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal,
+                                                     const StringPtr& inputPortRemoteGlobalId,
+                                                     const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
+    void changeInputPortStreamingSource(const StringPtr& inputPortRemoteGlobalId,
+                                        const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
 
     uint16_t getProtocolVersion() const;
 
@@ -204,6 +211,7 @@ private:
     void setProtocolVersion(uint16_t protocolVersion);
     std::tuple<uint32_t, StringPtr, StringPtr> getExternalSignalParams(const SignalPtr& signal,
                                                                        const ConfigProtocolStreamingProducerPtr& streamingProducer);
+    StringPtr getSerializedSignal(const SignalPtr& signal);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
@@ -334,6 +342,10 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     clientComm->setProtocolVersion(protocolVersion);
     const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
     LOG_I("Config protocol version {} used", protocolVersion);
+
+    // enable signal reading within basic client-to-device streaming
+    if (protocolVersion < 18)
+        streamingProducer->enableReading();
 }
 
 template<class TRootDeviceImpl>

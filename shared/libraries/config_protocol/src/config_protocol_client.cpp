@@ -640,9 +640,7 @@ bool ConfigProtocolClientComm::isComponentNested(const StringPtr& componentGloba
     return IdsParser::isNestedComponentId(dev.getGlobalId().toStdString(), componentGlobalId.toStdString());
 }
 
-std::tuple<uint32_t, StringPtr, StringPtr> ConfigProtocolClientComm::getExternalSignalParams(
-    const SignalPtr& signal,
-    const ConfigProtocolStreamingProducerPtr& streamingProducer)
+StringPtr ConfigProtocolClientComm::getSerializedSignal(const SignalPtr& signal)
 {
     SerializerPtr serializer;
     if (getProtocolVersion() < 10)
@@ -651,35 +649,70 @@ std::tuple<uint32_t, StringPtr, StringPtr> ConfigProtocolClientComm::getExternal
         serializer = JsonSerializerWithVersion(2);
 
     signal.serialize(serializer);
+    return serializer.getOutput();
+}
 
+std::tuple<uint32_t, StringPtr, StringPtr> ConfigProtocolClientComm::getExternalSignalParams(
+    const SignalPtr& signal,
+    const ConfigProtocolStreamingProducerPtr& streamingProducer)
+{
     return std::make_tuple(streamingProducer->registerOrUpdateSignal(signal),
                            signal.getGlobalId(),
-                           serializer.getOutput());
+                           getSerializedSignal(signal));
 }
 
 void ConfigProtocolClientComm::disconnectExternalSignalFromServerInputPort(const SignalPtr& signal,
-                                                                           const StringPtr& inputPortRemoteGlobalId)
+                                                                           const StringPtr& inputPortRemoteGlobalId,
+                                                                           const MirroredInputPortPrivatePtr& mirroredInputPortPrivate)
 {
     const auto streamingProducer = streamingProducerRef.lock();
     if (!streamingProducer)
         return;
 
-    std::vector<SignalNumericIdType> unusedSignals;
+    auto unusedSignals = Dict<IInteger, ISignal>();
     streamingProducer->removeConnection(signal, inputPortRemoteGlobalId, unusedSignals);
 
-    if (!unusedSignals.empty())
+    if (unusedSignals.getCount() > 0)
     {
-        auto params = ParamsDict({{"SignalNumericIds", ListPtr<IInteger>::FromVector(unusedSignals)}});
+        if (protocolVersion >= 18) // generalized client-to-device streaming enabled
+        {
+            ListPtr<IStreaming> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
+            for (const auto& streaming : streamingSources)
+            {
+                checkErrorInfo(streaming.asPtr<IStreamingPrivate>()->unregisterStreamedClientSignals(unusedSignals.getValueList()));
+            }
+        }
+        auto params = ParamsDict({{"SignalNumericIds", unusedSignals.getKeyList()}});
         sendNoReplyCommand(ClientCommand("RemoveExternalSignals"), params);
     }
 }
 
 void ConfigProtocolClientComm::connectExternalSignalToServerInputPort(const SignalPtr& signal,
-                                                                      const StringPtr& inputPortRemoteGlobalId)
+                                                                      const StringPtr& inputPortRemoteGlobalId,
+                                                                      const MirroredInputPortPrivatePtr& mirroredInputPortPrivate)
 {
     const auto streamingProducer = streamingProducerRef.lock();
     if (!streamingProducer)
         DAQ_THROW_EXCEPTION(NotAssignedException, "StreamingProducer is not assigned.");
+
+    StringPtr streamingProtocolId;
+    StringPtr streamingSourceDeviceId;
+
+    if (protocolVersion >= 18)
+    {
+        const StreamingPtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
+        streamingProtocolId = activeSource.assigned() ? activeSource.getProtocolId() : nullptr;
+        streamingSourceDeviceId = activeSource.assigned() ? activeSource.getOwnerDeviceRemoteId() : nullptr;
+
+        auto signals = List<ISignal>(signal);
+        if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
+            signals.pushBack(domainSignal);
+        ListPtr<IStreaming> streamingSources = mirroredInputPortPrivate.getStreamingSourceObjects();
+        for (const auto& streaming : streamingSources)
+        {
+            checkErrorInfo(streaming.asPtr<IStreamingPrivate>()->registerStreamedClientSignals(signals));
+        }
+    }
 
     auto domainSignal = signal.getDomainSignal();
     const auto [domainSignalNumericId, domainSignalGlobalId, serializedDomainSignal] =
@@ -694,11 +727,26 @@ void ConfigProtocolClientComm::connectExternalSignalToServerInputPort(const Sign
                               {"DomainSerializedSignal", serializedDomainSignal},
                               {"SignalNumericId", signalNumericId},
                               {"SignalStringId", signal.getGlobalId()},
-                              {"SerializedSignal", serializedSignal}});
+                              {"SerializedSignal", serializedSignal},
+                              {"ActiveStreamingProtocolId", streamingProtocolId},
+                              {"ActiveStreamingSourceDeviceId", streamingSourceDeviceId}});
 
     sendComponentCommand(inputPortRemoteGlobalId, ClientCommand("ConnectExternalSignal"), params, nullptr);
 
     streamingProducer->addConnection(signal, inputPortRemoteGlobalId);
+}
+
+void ConfigProtocolClientComm::changeInputPortStreamingSource(const StringPtr& inputPortRemoteGlobalId,
+                                                              const MirroredInputPortPrivatePtr& mirroredInputPortPrivate)
+{
+    const StreamingPtr activeSource = mirroredInputPortPrivate.getActiveStreamingSourceObject();
+    StringPtr streamingProtocolId = activeSource.assigned() ? activeSource.getProtocolId() : nullptr;
+    StringPtr streamingSourceDeviceId = activeSource.assigned() ? activeSource.getOwnerDeviceRemoteId() : nullptr;
+
+    auto params = ParamsDict({{"ActiveStreamingProtocolId", streamingProtocolId},
+                              {"ActiveStreamingSourceDeviceId", streamingSourceDeviceId}});
+
+    sendComponentCommand(inputPortRemoteGlobalId, ClientCommand("ChangeInputPortStreamingSource", 18), params, nullptr);
 }
 
 void ConfigProtocolClientComm::requireMinServerVersion(const ClientCommand& command)

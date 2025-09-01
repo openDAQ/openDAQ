@@ -77,6 +77,8 @@ public:
     // ISignal
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
+
+    // ISignalPrivate
     ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
 
 protected:
@@ -649,7 +651,7 @@ ErrCode MirroredSignalBase<Interfaces...>::subscribeInternal()
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         StringPtr domainSignalRemoteId;
-        if (domainSignal.assigned())
+        if (domainSignal.assigned() && !domainSignal.isRemoved())
             domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
         return activeStreamingSource.template asPtr<IStreamingPrivate>()->subscribeSignal(signalRemoteId, domainSignalRemoteId);
     }
@@ -674,7 +676,7 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeInternal()
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         StringPtr domainSignalRemoteId;
-        if (domainSignal.assigned())
+        if (domainSignal.assigned() && !domainSignal.isRemoved())
             domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
         return activeStreamingSource.template asPtr<IStreamingPrivate>()->unsubscribeSignal(signalRemoteId, domainSignalRemoteId);
     }

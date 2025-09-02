@@ -20,7 +20,6 @@ if __name__ == '__main__':
     # exploring enum values
     # all the values are also available through autocomplete on daq.IEnumerationType
     print(enum_type.enumerator_names)
-    dir(enum_type)
 
     # creating and adding struct type
     names = daq.List()

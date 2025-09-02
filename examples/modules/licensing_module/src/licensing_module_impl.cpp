@@ -3,7 +3,7 @@
 #include <fstream>
 #include <regex>
 
-const std::regex tokenLineRegex(R"(^\s*(\w+)\s*[:-]?\s*(\d+)\s*$)");
+static const std::regex TokenLineRegex(R"(^\s*(\w+)\s*[:-]?\s*(\d+)\s*$)");
 
 BEGIN_NAMESPACE_LICENSING_MODULE
 
@@ -53,11 +53,11 @@ Bool LicensingModule::onLoadLicense(IDict* licenseConfig)
 {
     auto ptr = DictPtr<IString, IString>::Borrow(licenseConfig);
     std::string path = ptr.get("LicensePath");
-    std::string vendor_key = ptr.get("VendorSecret");
+    std::string vendorKey = ptr.get("VendorSecret");
 
-    std::string secret_key = "my_secret_key";
+    std::string secretKey = "my_secretKey";
 
-    _authenticated = vendor_key == secret_key;
+    _authenticated = vendorKey == secretKey;
 
     if (!_authenticated)
     {
@@ -89,7 +89,7 @@ Bool LicensingModule::onLoadLicense(IDict* licenseConfig)
             continue;  // Skip empty lines and comments
 
         std::smatch match;
-        if (std::regex_match(line, match, tokenLineRegex))
+        if (std::regex_match(line, match, TokenLineRegex))
         {
             // Extract feature name and count, and build map
             const auto featureName = match[1].str();

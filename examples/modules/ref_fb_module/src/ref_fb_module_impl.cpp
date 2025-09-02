@@ -5,6 +5,7 @@
 #include <ref_fb_module/ref_fb_module_impl.h>
 #ifdef OPENDAQ_ENABLE_RENDERER
 #include <ref_fb_module/renderer_fb_impl.h>
+#include <ref_fb_module/video_player_fb_impl.h>
 #endif
 #include <ref_fb_module/scaling_fb_impl.h>
 #include <ref_fb_module/statistics_fb_impl.h>
@@ -31,6 +32,8 @@ DictPtr<IString, IFunctionBlockType> RefFBModule::onGetAvailableFunctionBlockTyp
 #ifdef OPENDAQ_ENABLE_RENDERER
     const auto typeRenderer = Renderer::RendererFbImpl::CreateType();
     types.set(typeRenderer.getId(), typeRenderer);
+    const auto typeVideoPlayer = VideoPlayer::VideoPlayerFbImpl::CreateType();
+    types.set(typeVideoPlayer.getId(), typeVideoPlayer);
 #endif
 
     const auto typeStatistics = Statistics::StatisticsFbImpl::CreateType();
@@ -69,6 +72,11 @@ FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
     if (id == Renderer::RendererFbImpl::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, Renderer::RendererFbImpl>(context, parent, localId);
+        return fb;
+    }
+    if (id == VideoPlayer::VideoPlayerFbImpl::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, VideoPlayer::VideoPlayerFbImpl>(context, parent, localId, config);
         return fb;
     }
 #endif

@@ -102,7 +102,6 @@ if (OPENDAQ_IP_MODIFICATION)
 endif()
 
 if(OPENDAQ_LICENSING)
-  add_library(licensing_module)
   add_subdirectory(licensing_example)
 endif()
 

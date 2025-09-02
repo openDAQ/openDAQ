@@ -86,13 +86,13 @@ set(SRC_PublicHeaders_Component
     config_provider_factory.h
     client_type.h
 	module_authenticator.h
+	module_authenticator_impl.h
     PARENT_SCOPE
 )
 
 set(SRC_PrivateHeaders_Component
     opendaq_config.h.in
     instance_impl.h
-	module_authenticator_impl.h
     client_impl.h
     opendaq_init.h
     instance_builder_impl.h

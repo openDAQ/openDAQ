@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -133,8 +134,21 @@ void daq::ws_streaming::server::thread_main()
 {
     try
     {
-        boost::asio::ip::tcp::acceptor ws_socket(ioc, boost::asio::ip::tcp::endpoint({}, ws_port), true);
-        boost::asio::ip::tcp::acceptor control_socket(ioc, boost::asio::ip::tcp::endpoint({}, control_port), true);
+        boost::asio::ip::tcp::acceptor ws_socket(ioc, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), ws_port), true);
+        boost::asio::ip::tcp::acceptor control_socket(ioc, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), control_port), true);
+
+        try
+        {
+            boost::asio::ip::v6_only option{false};
+            ws_socket.set_option(option);
+            control_socket.set_option(option);
+        }
+
+        catch (const std::exception& /*ex*/)
+        {
+            // IPv6-only option not supported. We can ignore this because it means
+            // the acceptors will always support IPv4 and IPv6, which is what we want.
+        }
 
         ws_socket.listen();
         control_socket.listen();

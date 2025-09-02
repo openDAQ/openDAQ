@@ -290,6 +290,7 @@ set(SRC_PublicHeaders coreobjects.h
                       mutex.h
                       mutex_factory.h
 					  mutex_ptr.custom.h
+					  mutex_impl.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -319,7 +320,6 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        permission_mask_builder_impl.h
                        search_filter_impl.h
                        property_metadata_read_args_impl.h
-                       mutex_impl.h
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)

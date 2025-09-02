@@ -355,6 +355,7 @@ run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_signal_private m
 run_rtgen copendaq/streaming opendaq/streaming opendaq streaming streaming
 run_rtgen copendaq/streaming opendaq/streaming opendaq streaming_type streaming_type
 run_rtgen copendaq/streaming opendaq/streaming opendaq subscription_event_args subscription_event_args #enum
+run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_input_port_config mirrored_input_port_config
 
 # run_rtgen copendaq/streaming opendaq/streaming opendaq streaming_private streaming_private #C++
 # run_rtgen copendaq/streaming opendaq/streaming opendaq streaming_source_manager streaming_source_manager #C++

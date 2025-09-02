@@ -3,7 +3,7 @@
 #include <fstream>
 #include <regex>
 
-const std::regex tokenLineRegex(R"(^\s*(\w+)\s*[:-]?\s*(\d+)\s*$)");
+static const std::regex TokenLineRegex(R"(^\s*(\w+)\s*[:-]?\s*(\d+)\s*$)");
 
 BEGIN_NAMESPACE_LICENSING_MODULE
 
@@ -34,8 +34,9 @@ FunctionBlockPtr LicensingModule::onCreateFunctionBlock(const StringPtr& id,
 {
     if (!_authenticated)
     {
-        LOG_W("Module not authenticated, cannot create function block");
-        DAQ_THROW_EXCEPTION(NotFoundException, "Module not authenticated, cannot create function block");
+        LOG_W("Module not authenticated, returning locked function block!");
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PassthroughFbImpl>(context, parent, localId, nullptr);
+        return fb;
     }
 
     if (id == PassthroughFbImpl::CreateType().getId())
@@ -52,7 +53,7 @@ Bool LicensingModule::onLoadLicense(IDict* licenseConfig)
 {
     auto ptr = DictPtr<IString, IString>::Borrow(licenseConfig);
     std::string path = ptr.get("LicensePath");
-    std::string vendorKey = ptr.get("VendorKey");
+    std::string vendorKey = ptr.get("VendorSecret");
 
     std::string secretKey = "my_secretKey";
 
@@ -88,7 +89,7 @@ Bool LicensingModule::onLoadLicense(IDict* licenseConfig)
             continue;  // Skip empty lines and comments
 
         std::smatch match;
-        if (std::regex_match(line, match, tokenLineRegex))
+        if (std::regex_match(line, match, TokenLineRegex))
         {
             // Extract feature name and count, and build map
             const auto featureName = match[1].str();
@@ -116,7 +117,7 @@ DictPtr<IString, IString> LicensingModule::onGetLicenseConfig()
 {
     auto licenseConfig = Dict<IString,IString>();
     licenseConfig.set("LicensePath", "");
-    licenseConfig.set("VendorKey", "");
+    licenseConfig.set("VendorSecret", "");
 
     return licenseConfig;
 }

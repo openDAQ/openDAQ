@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:58.
+//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -48,6 +48,12 @@ extern "C"
     daqErrCode EXPORTED daqStreaming_removeAllSignals(daqStreaming* self);
     daqErrCode EXPORTED daqStreaming_getConnectionString(daqStreaming* self, daqString** connectionString);
     daqErrCode EXPORTED daqStreaming_getConnectionStatus(daqStreaming* self, daqEnumeration** connectionStatus);
+    daqErrCode EXPORTED daqStreaming_addInputPorts(daqStreaming* self, daqList* inputPorts);
+    daqErrCode EXPORTED daqStreaming_removeInputPorts(daqStreaming* self, daqList* inputPorts);
+    daqErrCode EXPORTED daqStreaming_removeAllInputPorts(daqStreaming* self);
+    daqErrCode EXPORTED daqStreaming_getOwnerDeviceRemoteId(daqStreaming* self, daqString** deviceRemoteId);
+    daqErrCode EXPORTED daqStreaming_getProtocolId(daqStreaming* self, daqString** protocolId);
+    daqErrCode EXPORTED daqStreaming_getClientToDeviceStreamingEnabled(daqStreaming* self, daqBool* enabled);
 
 #ifdef __cplusplus
 }

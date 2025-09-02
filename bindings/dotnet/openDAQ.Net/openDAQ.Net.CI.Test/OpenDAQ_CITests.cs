@@ -786,12 +786,12 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into array 'samples'
-                reader.Read(samples, ref count, timeoutMs: 5000);
+                using var status = reader.Read(samples, ref count, timeoutMs: 5000);
                 readSamplesCount += count;
 
                 sw.Stop();
 
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status?.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
@@ -873,12 +873,12 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++>  {loopNo + 1,2} : AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into array 'samples'
-                reader.Read(samples, ref count);
+                using var status = reader.Read(samples, ref count);
                 readSamplesCount += count;
 
                 sw.Stop();
 
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status?.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
@@ -942,7 +942,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         using (var reader = OpenDAQFactory.CreateBlockReader<TValue>(signal, blockSize))
         {
             Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
-            Console.WriteLine($"  Reading {loopCount} times {maxCount} blocks � {blockSize} values (waiting {sleepTime}ms before reading)");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} blocks with {blockSize} values (waiting {sleepTime}ms before reading)");
 
             Stopwatch sw = new Stopwatch();
 
@@ -960,14 +960,14 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 nuint availableCount = reader.AvailableCount;
 
                 //read up to 'count' blocks, storing the amount read into array 'samples'
-                reader.Read(samples, ref count, 5000);
+                using var status = reader.Read(samples, ref count, 5000);
                 readBlockCount += count;
                 Debug.Print($"+++>     read {count} blocks");
 
                 sw.Stop();
 
                 nuint valueCount = count * blockSize;
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status?.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,2} blocks ({valueCount,3} values) {valueString}");
             }
         }
@@ -1029,12 +1029,12 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into array 'samples'
-                reader.Read(samples, ref count/*, timeoutMs: 5000*/);
+                using var status = reader.Read(samples, ref count/*, timeoutMs: 5000*/);
                 readSamplesCount += count;
 
                 sw.Stop();
 
-                string valueString  = (count == 0) ? string.Empty : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000})";
+                string valueString  = (count == 0) ? $"(ReadStatus = {status?.ReadStatus})" : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000})";
                 string valueString2 = (count == 0) ? string.Empty : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
                 Console.WriteLine($"                                                       {valueString2}");
@@ -1101,12 +1101,12 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into arrays 'samples' and 'timeStamps'
-                reader.ReadWithDomain(samples, timeStamps, ref count, timeoutMs: 5000);
+                using var status = reader.ReadWithDomain(samples, timeStamps, ref count, timeoutMs: 5000);
                 readSamplesCount += count;
 
                 sw.Stop();
 
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
@@ -1170,10 +1170,10 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++>  {loopNo + 1,2} : AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into arrays 'samples' and 'timeStamps'
-                reader.ReadWithDomain(samples, timeStamps, ref count);
+                using var status = reader.ReadWithDomain(samples, timeStamps, ref count);
                 readSamplesCount += count;
                 sw.Stop();
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
@@ -1219,7 +1219,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         using (var reader = OpenDAQFactory.CreateBlockReader<double>(signal, blockSize))
         {
             Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
-            Console.WriteLine($"  Reading {loopCount} times {maxCount} blocks � {blockSize} values (waiting {sleepTime}ms before reading)");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} blocks with {blockSize} values (waiting {sleepTime}ms before reading)");
 
             Stopwatch sw = new Stopwatch();
 
@@ -1238,14 +1238,14 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' blocks, storing the amount read into arrays 'samples' and 'timeStamps'
-                reader.ReadWithDomain(samples, timeStamps, ref count, 5000);
+                using var status = reader.ReadWithDomain(samples, timeStamps, ref count, 5000);
                 readBlockCount += count;
                 Debug.Print($"+++>     read {count} blocks");
 
                 sw.Stop();
 
                 nuint valueCount = count * blockSize;
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,2} blocks ({valueCount,3} values) {valueString}");
             }
         }
@@ -1310,14 +1310,14 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into arrays 'samples' and 'timeStamps'
-                //reader.Read(samples, ref count, timeoutMs: 5000);
-                reader.ReadWithDomain(samples, timeStamps, ref count, timeoutMs: 5000);
+                //using var status = reader.Read(samples, ref count, timeoutMs: 5000);
+                using var status = reader.ReadWithDomain(samples, timeStamps, ref count, timeoutMs: 5000);
                 readSamplesCount += count;
 
                 sw.Stop();
 
-                string valueString  = (count == 0) ? string.Empty : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0][0]:0.0000000} ... {factor * timeStamps[0][count - 1]:0.0000000})";
-                string valueString2 = (count == 0) ? string.Empty : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[1][0]:0.0000000} ... {factor * timeStamps[1][count - 1]:0.0000000})";
+                string valueString  = (count == 0) ? $"(ReadStatus = {status?.ReadStatus})" : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0][0]:0.0000000} ... {factor * timeStamps[0][count - 1]:0.0000000})";
+                string valueString2 = (count == 0) ? string.Empty                           : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[1][0]:0.0000000} ... {factor * timeStamps[1][count - 1]:0.0000000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
                 Console.WriteLine($"                                                       {valueString2}");
             }
@@ -1467,7 +1467,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             }
             else if (status?.ReadStatus == ReadStatus.Event)
             {
-                Console.WriteLine($"            event occurred'");
+                Console.WriteLine($"            event occurred");
             }
             else
             {

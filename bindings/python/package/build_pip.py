@@ -13,10 +13,9 @@ from argparse import ArgumentParser
 
 
 def read_opendaq_version(version_file):
-    version = ''
     with open(version_file) as f:
-        version = f.readline().strip()
-    return version
+        return f.readline().strip()
+    return ''
 
 
 def auto_python_version(opendaq_filename):
@@ -91,6 +90,15 @@ def find_modules(bin_dir):
 
     ret = namedtuple('Modules', ['libs', 'modules', 'opendaq'])
     return ret(libs, modules, opendaq)
+
+
+def replace_opendaq_version_stub(filepath):
+    print(f'Replacing @VERSION@ string with {package_version} in {filepath}')
+    with open(filepath, 'r') as f:
+        contents = f.readlines()
+    contents = ''.join(contents).replace('@VERSION@', package_version)
+    with open(filepath, 'wt') as f:
+        f.write(contents)
 
 
 # parsing arguments
@@ -180,8 +188,8 @@ shutil.copytree(os.path.join(examples_dir, 'GUI Application/gui_demo'), os.path.
 pathlib.Path(os.path.join(path_stage_package, 'py.typed')).touch()
 
 # __init__.py
-shutil.copy(os.path.join(path_build_pip_source_dir, 'opendaq',
-            '__init__.py'), path_stage_package)
+shutil.copy(os.path.join(path_build_pip_source_dir, 'opendaq', '__init__.py'), path_stage_package)
+replace_opendaq_version_stub(os.path.join(path_stage_package, '__init__.py'))
 os.makedirs(os.path.join(path_stage_package, 'opendaq'))
 
 
@@ -210,16 +218,8 @@ generate_stubs(stubs_use_cache)
 
 
 # metadata
-def generate_metadata(destination):
-    print(f'Generating {destination}')
-    with open(os.path.join(path_build_pip_source_dir, 'METADATA.in')) as f:
-        contents = f.readlines()
-    contents = ''.join(contents).replace('@VERSION@', package_version)
-    with open(destination, 'wt') as f_out:
-        f_out.write(contents)
-
-
-generate_metadata(os.path.join(path_stage_dist_info, 'METADATA'))
+shutil.copy(os.path.join(path_build_pip_source_dir, 'METADATA.in'), os.path.join(path_stage_dist_info, 'METADATA'))
+replace_opendaq_version_stub(os.path.join(path_stage_dist_info, 'METADATA'))
 
 
 def generate_wheel_file(destination):

@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/module.h>
 #include <coretypes/listobject.h>
+#include <opendaq/module_authenticator.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -62,15 +63,34 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManager, IBaseObject)
      * The specified path must exist and reference a file with the proper extension.
      */
     virtual ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) = 0;
+
+    /*!
+     * @brief Toggle whether this module manager will only load modules that can be authenticated.
+     * @param authenticatedOnly true - only authenticated modules are loaded, false - all modules are loaded
+     */
+    virtual ErrCode INTERFACE_FUNC setAuthenticatedOnly(Bool authenticatedOnly) = 0;
+
+    /*!
+     * @brief Imports the module authenticator.
+     * @param authenticator A custom authenticator used to verify the signature/checksum of the modules.
+     */
+    virtual ErrCode INTERFACE_FUNC setModuleAuthenticator(IModuleAuthenticator* authenticator) = 0;
+
+    /*!
+     * @brief Returns a dictionary of module IDs and the respective public keys of their vendors.
+     * @param[out] vendorKeys key (IString) - module ID, value (IString) - public vendor key 
+     *
+     * Used to identify which authenticator/certificate was used to authenticate the module.
+     */
+    // [templateType(vendorKeys, IString, IString)]
+    virtual ErrCode INTERFACE_FUNC getVendorKeys(IDict** vendorKeys) = 0;
 };
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY(
-    LIBRARY_FACTORY, ModuleManager,
-    IString*, path)
+    LIBRARY_FACTORY, ModuleManager, IString*, path)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
-    ModuleManagerMultiplePaths, IModuleManager,
-    IList*, paths)
+    ModuleManagerMultiplePaths, IModuleManager, IList*, paths)
 
 END_NAMESPACE_OPENDAQ

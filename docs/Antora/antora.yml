@@ -1,12 +1,12 @@
 name: opendaq
 title: openDAQ Documentation
-version: "rc"
+version: "dev"
 start_page: ROOT:introduction.adoc
 asciidoc:
   attributes:
     page-toclevels: 3@
     experimental: true
-    version: "rc"
+    version: "dev"
 nav:
 - modules/tutorials/tutorials.adoc
 - modules/howto_guides/nav-howto-guides.adoc

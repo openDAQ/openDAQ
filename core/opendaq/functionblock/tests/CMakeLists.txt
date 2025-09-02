@@ -30,10 +30,6 @@ target_link_libraries(${TEST_APP}
         daq::opendaq_mocks
 )
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(STDCFS_LIBS "stdc++fs")
-endif()
-
 if (MSVC)
     target_compile_options(${TEST_APP} PRIVATE /bigobj)
 endif()

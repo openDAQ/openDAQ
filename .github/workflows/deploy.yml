@@ -49,14 +49,14 @@ jobs:
             cmake_generator_platform: x64
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DPYBIND11_FINDPYTHON=ON
-            cpack: NSIS
+            cpack: "NSIS;ZIP"
           - name: Windows VS 2022 Win32 Release
             runner: windows-latest
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: Win32
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-            cpack: NSIS
+            cpack: "NSIS;ZIP"
 
     outputs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
@@ -156,14 +156,14 @@ jobs:
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
+          Get-ChildItem -Path .\* -Include *.exe,*.zip | Rename-Item -NewName {$_.FullName.ToLower()}
 
       - name: Rename package (main)
         if: github.ref == 'refs/heads/main'
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
+          Get-ChildItem -Path .\* -Include *.exe,*.zip | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
 
       - name: Rename wheels (main)
         if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
@@ -184,9 +184,9 @@ jobs:
           Write-Output "# S3 listing"
           aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --human-readable
           Write-Output "# S3 remove '*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe'"
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe"
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe" --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.zip"
           Write-Output "# S3 copy '*.exe' from '${{ env.package_path }}'"
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*.exe"
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*.exe" --include "*.zip"
 
       - name: Upload Wheels to S3
         if: matrix.cmake_generator_platform != 'Win32'
@@ -243,7 +243,7 @@ jobs:
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             build_documentation: true
-            cpack: DEB
+            cpack: "DEB;ZIP"
             apt_packages: g++-10
             cc: gcc-10
             cxx: g++-10
@@ -260,7 +260,7 @@ jobs:
               -DCMAKE_SYSTEM_PROCESSOR=aarch64
               -DDAQMODULES_REF_FB_MODULE=OFF
             build_documentation: false
-            cpack: DEB
+            cpack: "DEB;ZIP"
             apt_packages: gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu
             cc: aarch64-linux-gnu-gcc-10
             cxx: aarch64-linux-gnu-g++-10
@@ -369,17 +369,17 @@ jobs:
         working-directory: ${{ env.package_path_rel }}
         if: github.ref == 'refs/heads/main'
         run: |
-          rename 's/_amd64/-ubuntu22.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.deb
-          rename 's/_arm64/-ubuntu22.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.deb
-          rename 's/opendaq_/opendaq-/' *.deb
+          rename 's/_amd64/-ubuntu22.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.{deb,zip}
+          rename 's/_arm64/-ubuntu22.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.{deb,zip}
+          rename 's/opendaq_/opendaq-/' *.{deb,zip}
 
       - name: Rename package
         working-directory: ${{ env.package_path_rel }}
         if: github.ref != 'refs/heads/main'
         run: |
-          rename 's/_amd64/-ubuntu22.04-x86_64/' *.deb
-          rename 's/_arm64/-ubuntu22.04-arm64/' *.deb
-          rename 's/opendaq_/opendaq-/' *.deb
+          rename 's/_amd64/-ubuntu22.04-x86_64/' *.{deb,zip}
+          rename 's/_arm64/-ubuntu22.04-arm64/' *.{deb,zip}
+          rename 's/opendaq_/opendaq-/' *.{deb,zip}
 
       - name: Read openDAQ version
         id: daq_version
@@ -403,7 +403,7 @@ jobs:
       - name: Upload package to S3
         working-directory: ${{ env.package_path_rel }}
         run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/"  --recursive --exclude '*' --include '*${{ matrix.arch }}*.deb'
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/"  --recursive --exclude '*' --include '*${{ matrix.arch }}*.deb' --include '*${{ matrix.arch }}*.zip'
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive
 
       - name: Upload package

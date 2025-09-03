@@ -3066,7 +3066,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 {
     auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-    const int numOfSerializablePropertyValues =
+    const auto numOfSerializablePropertyValues =
         std::count_if(propValues.begin(), propValues.end(), [](const std::pair<StringPtr, BaseObjectPtr>& keyValue) {
             return keyValue.second.supportsInterface<ISerializable>();
         });

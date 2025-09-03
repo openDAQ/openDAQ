@@ -463,7 +463,7 @@ DataPacketImpl<TInterface, TInterfaces...>::DataPacketImpl(const DataPacketPtr& 
     dataSize = this->sampleCount * sampleSize;
     const auto structSize = sampleSize + sizeof(uint32_t);
 
-    rawDataSize = sampleSize + structSize * otherValueCount;
+    rawDataSize = static_cast<uint32_t>(sampleSize + structSize * otherValueCount);
     data = std::malloc(rawDataSize);
     std::memcpy(data, initialValue, sampleSize);
     if (otherValueCount > 0)

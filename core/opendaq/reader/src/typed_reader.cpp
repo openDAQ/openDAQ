@@ -262,10 +262,8 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
 }
 
 #if defined(_MSC_VER)
-#   ifdef _MSC_VER
-#       pragma warning(push)
-#       pragma warning(disable : 4244)
-#   endif
+#   pragma warning(push)
+#   pragma warning(disable : 4244)
 #endif
 
 template <typename TReadType>
@@ -411,7 +409,7 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
     }
 }
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 #   pragma warning(pop)
 #endif
 

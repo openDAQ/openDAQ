@@ -175,15 +175,15 @@ void MockChannelImpl::addChangingSignal()
     signal.setDomainSignal(changingTimeSignal);
     auto generatedSignal = std::make_shared<SignalGenerator>(signal, sigGenAbsStartTime);
 
-    auto stepFunction10 = [this](uint64_t tick, void* sampleOut) {
+    auto stepFunction10 = [](uint64_t tick, void* sampleOut) {
         double* intOut = (double*) sampleOut;
-        *intOut = tick % 10;
+        *intOut = static_cast<double>(tick % 10);
     };
 
-    auto stepFunction100 = [this](uint64_t tick, void* sampleOut)
+    auto stepFunction100 = [](uint64_t tick, void* sampleOut)
     {
         double* intOut = (double*) sampleOut;
-        *intOut = tick % 100;
+        *intOut = static_cast<double>(tick % 100);
     };
 
     generatedSignal->setFunction(stepFunction10);

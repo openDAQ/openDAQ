@@ -299,7 +299,6 @@ void SimulatorDeviceImpl::acqLoop()
 
     using namespace std::chrono_literals;
     using milli = std::chrono::milliseconds;
-    const auto loopTime = milli(acqLoopTime);
     auto prevLoopTime = std::chrono::steady_clock::now();
     uint64_t remainingSamples = 0;
 
@@ -307,6 +306,7 @@ void SimulatorDeviceImpl::acqLoop()
 
     while (!stopAcq)
     {
+        const auto loopTime = milli(acqLoopTime);
         const auto time = std::chrono::high_resolution_clock::now();
         const auto loopDuration = std::chrono::duration_cast<milli>(time - prevLoopTime);
         const auto waitTime = loopDuration.count() >= loopTime.count() ? milli(0) : milli(loopTime.count() - loopDuration.count());

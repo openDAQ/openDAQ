@@ -30,7 +30,7 @@ SignalGenerator::SignalGenerator()
 PropertyObjectPtr SignalGenerator::initProperties()
 {
     const auto waveformProp =
-        SelectionProperty("Waveform", List<IString>("Sine", "Rect", "Counter", "Constant", "None"), 0);
+        SelectionProperty("Waveform", List<IString>("Sine", "Rect", "None", "Counter", "Constant"), 0);
 
     const auto frequencyProp = FloatPropertyBuilder("Frequency", 10.0)
                                .setVisible(EvalValue("$Waveform < 2"))

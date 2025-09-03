@@ -295,6 +295,18 @@ jobs:
             libgl-dev libudev-dev libfreetype6-dev \
             pkg-config
 
+      - name: Enable arm64 repos (ports)
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          dpkg --add-architecture arm64
+          printf "%s\n" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-backports main restricted universe multiverse" \
+            > /etc/apt/sources.list.d/ubuntu-arm64.list
+          apt-get update
+
       - name: Install ARM64 sysroot & X11 dev (only for arm64)
         if: ${{ matrix.arch == 'arm64' }}
         run: |

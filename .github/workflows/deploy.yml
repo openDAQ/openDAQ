@@ -292,6 +292,7 @@ jobs:
             python3-pip python3-dev \
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
             libx11-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev \
+            libx11-xcb-dev xorg-dev mesa-common-dev \
             libgl-dev libudev-dev libfreetype6-dev libjpeg-dev pkg-config
 
       - name: Install documentation dependencies

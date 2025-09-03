@@ -84,13 +84,13 @@ struct ReadSignal
                       << std::endl;
         }
 
-        auto packet = createPacket(packetSize, offset, *this);
+        auto packet = createPacket(static_cast<SizeT>(packetSize), offset, *this);
         zeroOutPacketData(packet);
 
-        auto* data = static_cast<ValueType*>(packet.getData());
+        ValueType* data = static_cast<ValueType*>(packet.getData());
         for (auto i = 0; i < packetSize; ++i)
         {
-            data[i] = offset + i;
+            data[i] = static_cast<ValueType>(offset + i);
         }
 
         if (log)

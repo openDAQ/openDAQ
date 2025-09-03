@@ -1,0 +1,1661 @@
+  +++++++++++++++++++++++ Building openDAQ.Net.NuGet.Test.csproj ++++++++++++++++++++++++++++++++++++
+  Configuration                  = 'Debug'
+  Platform                       = 'AnyCPU'
+  OutputPath                     = 'bin/Debug/net8.0/'
+  +++++++++++++++++++++++ Compiling openDAQ.Net.NuGet.Test.csproj ++++++++++++++++++++++++++++++++++++
+  +++++++++++++++++++++++ Compiling of openDAQ.Net.NuGet.Test.csproj finished ++++++++++++++++++++++++++++++++++++
+  openDAQ.Net.NuGet.Test -> /home/nick/dewesoft/blueberry_sdk/OD_opcua_dyn_sign/bindings/dotnet/openDAQ.Net/openDAQ.Net.NuGet.Test/bin/Debug/net8.0/openDAQ.Net.NuGet.Test.dll
+  +++++++++++++++++++++++ Build of openDAQ.Net.NuGet.Test.csproj finished ++++++++++++++++++++++++++++++++++++
+Test run for /home/nick/dewesoft/blueberry_sdk/OD_opcua_dyn_sign/bindings/dotnet/openDAQ.Net/openDAQ.Net.NuGet.Test/bin/Debug/net8.0/openDAQ.Net.NuGet.Test.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.11.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Executing 'openDaq.Net.Test.CoreTypesBaseObjectTests.BorrowInterfaceTest'
+begin of test - 2025-02-05 14:39:52
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:52
+
+
+Executing 'openDaq.Net.Test.CoreTypesBaseObjectTests.CastBoolObjectTest'
+begin of test - 2025-02-05 14:39:53
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:53
+
+
+Executing 'openDaq.Net.Test.CoreTypesBaseObjectTests.CastFloatObjectTest'
+begin of test - 2025-02-05 14:39:53
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:53
+
+
+Executing 'openDaq.Net.Test.CoreTypesBaseObjectTests.CastIntegerObjectTest'
+begin of test - 2025-02-05 14:39:53
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:53
+
+
+Executing 'openDaq.Net.Test.CoreTypesBaseObjectTests.CastStringObjectTest'
+begin of test - 2025-02-05 14:39:53
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:53
+
+
+Executing 'openDaq.Net.Test.CoreTypesBaseObjectTests.CreateTest'
+begin of test - 2025-02-05 14:39:53
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:53
+
+
+Executing 'openDaq.Net.Test.CoreTypesBaseObjectTests.GuidTest'
+begin of test - 2025-02-05 14:39:53
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:53
+
+
+Executing 'openDaq.Net.Test.CoreTypesBaseObjectTests.QueryInterfaceTest'
+begin of test - 2025-02-05 14:39:53
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:53
+
+
+Executing 'openDaq.Net.Test.CoreTypesBoolTests.CreateReturnErrorCodeTest'
+begin of test - 2025-02-05 14:39:53
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:53
+
+
+Executing 'openDaq.Net.Test.CoreTypesBoolTests.CreateReturnObjectTest'
+begin of test - 2025-02-05 14:39:53
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:53
+
+
+Executing 'openDaq.Net.Test.CoreTypesBoolTests.CreateTestExplicit'
+begin of test - 2025-02-05 14:39:54
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:54
+
+
+Executing 'openDaq.Net.Test.CoreTypesBoolTests.CreateTestImplicit'
+begin of test - 2025-02-05 14:39:54
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:54
+
+
+Executing 'openDaq.Net.Test.CoreTypesBoolTests.GetValueExplicitTest(True)'
+begin of test - 2025-02-05 14:39:54
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:54
+
+
+Executing 'openDaq.Net.Test.CoreTypesBoolTests.GetValueExplicitTest(False)'
+begin of test - 2025-02-05 14:39:54
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:54
+
+
+Executing 'openDaq.Net.Test.CoreTypesBoolTests.GetValueImplicitTest(True)'
+begin of test - 2025-02-05 14:39:54
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:54
+
+
+Executing 'openDaq.Net.Test.CoreTypesBoolTests.GetValueImplicitTest(False)'
+begin of test - 2025-02-05 14:39:54
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:54
+
+
+Executing 'openDaq.Net.Test.CoreTypesBoolTests.GetValueTest(True)'
+begin of test - 2025-02-05 14:39:54
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:54
+
+
+Executing 'openDaq.Net.Test.CoreTypesBoolTests.GetValueTest(False)'
+begin of test - 2025-02-05 14:39:54
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:54
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.CreateReturnErrorCodeTest'
+begin of test - 2025-02-05 14:39:55
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:55
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.CreateReturnObjectTest'
+begin of test - 2025-02-05 14:39:55
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:55
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.CreateTestExplicit'
+begin of test - 2025-02-05 14:39:55
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:55
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.CreateTestImplicit'
+begin of test - 2025-02-05 14:39:55
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:55
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueExplicitTest(123.0d)'
+begin of test - 2025-02-05 14:39:55
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:55
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueExplicitTest(1234.0d)'
+begin of test - 2025-02-05 14:39:55
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:55
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueExplicitTest(12345.0d)'
+begin of test - 2025-02-05 14:39:55
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:55
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueExplicitTest(123456.0d)'
+begin of test - 2025-02-05 14:39:55
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:55
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueImplicitTest(123.0d)'
+begin of test - 2025-02-05 14:39:55
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:55
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueImplicitTest(1234.0d)'
+begin of test - 2025-02-05 14:39:56
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:56
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueImplicitTest(12345.0d)'
+begin of test - 2025-02-05 14:39:56
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:56
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueImplicitTest(123456.0d)'
+begin of test - 2025-02-05 14:39:56
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:56
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueTest(123.0d)'
+begin of test - 2025-02-05 14:39:56
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:56
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueTest(1234.0d)'
+begin of test - 2025-02-05 14:39:56
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:56
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueTest(12345.0d)'
+begin of test - 2025-02-05 14:39:56
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:56
+
+
+Executing 'openDaq.Net.Test.CoreTypesFloatTests.GetValueTest(123456.0d)'
+begin of test - 2025-02-05 14:39:56
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:56
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.CreateReturnErrorCodeTest'
+begin of test - 2025-02-05 14:39:56
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:56
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.CreateReturnObjectTest'
+begin of test - 2025-02-05 14:39:56
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:56
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.CreateTestExplicit'
+begin of test - 2025-02-05 14:39:57
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:57
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.CreateTestImplicit'
+begin of test - 2025-02-05 14:39:57
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:57
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueExplicitTest(123)'
+begin of test - 2025-02-05 14:39:57
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:57
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueExplicitTest(1234)'
+begin of test - 2025-02-05 14:39:57
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:57
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueExplicitTest(12345)'
+begin of test - 2025-02-05 14:39:57
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:57
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueExplicitTest(123456)'
+begin of test - 2025-02-05 14:39:57
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:57
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueImplicitTest(123)'
+begin of test - 2025-02-05 14:39:57
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:57
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueImplicitTest(1234)'
+begin of test - 2025-02-05 14:39:57
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:57
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueImplicitTest(12345)'
+begin of test - 2025-02-05 14:39:58
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:58
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueImplicitTest(123456)'
+begin of test - 2025-02-05 14:39:58
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:58
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueTest(123)'
+begin of test - 2025-02-05 14:39:58
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:58
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueTest(1234)'
+begin of test - 2025-02-05 14:39:58
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:58
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueTest(12345)'
+begin of test - 2025-02-05 14:39:58
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:58
+
+
+Executing 'openDaq.Net.Test.CoreTypesIntegerTests.GetValueTest(123456)'
+begin of test - 2025-02-05 14:39:58
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:58
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.CreateExplicitTest'
+begin of test - 2025-02-05 14:39:58
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:58
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.CreateImplicitTest'
+begin of test - 2025-02-05 14:39:58
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:58
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.CreateTest'
+begin of test - 2025-02-05 14:39:58
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:58
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.CreateTest2'
+begin of test - 2025-02-05 14:39:59
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:59
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetCharPtrTest("123")'
+begin of test - 2025-02-05 14:39:59
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:59
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetCharPtrTest("1234")'
+begin of test - 2025-02-05 14:39:59
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:59
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetCharPtrTest("12345")'
+begin of test - 2025-02-05 14:39:59
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:59
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetCharPtrTest("123456")'
+begin of test - 2025-02-05 14:39:59
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:59
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetLengthTest("123")'
+begin of test - 2025-02-05 14:39:59
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:59
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetLengthTest("1234")'
+begin of test - 2025-02-05 14:39:59
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:59
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetLengthTest("12345")'
+begin of test - 2025-02-05 14:39:59
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:39:59
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetLengthTest("123456")'
+begin of test - 2025-02-05 14:40:00
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:00
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringExplicitTest("")'
+begin of test - 2025-02-05 14:40:00
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:00
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringExplicitTest("1")'
+begin of test - 2025-02-05 14:40:00
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:00
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringExplicitTest("12")'
+begin of test - 2025-02-05 14:40:00
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:00
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringExplicitTest("123")'
+begin of test - 2025-02-05 14:40:00
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:00
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringExplicitTest("1234")'
+begin of test - 2025-02-05 14:40:00
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:00
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringExplicitTest("12345")'
+begin of test - 2025-02-05 14:40:00
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:00
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringExplicitTest("123456")'
+begin of test - 2025-02-05 14:40:00
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:00
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringImplicitTest("123")'
+begin of test - 2025-02-05 14:40:00
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:00
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringImplicitTest("1234")'
+begin of test - 2025-02-05 14:40:01
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:01
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringImplicitTest("12345")'
+begin of test - 2025-02-05 14:40:01
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:01
+
+
+Executing 'openDaq.Net.Test.CoreTypesStringTests.GetStringImplicitTest("123456")'
+begin of test - 2025-02-05 14:40:01
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:01
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0000_GetVersion'
+begin of test - 2025-02-05 14:40:01
+-----------------------------------
+CoreTypes SDK version   = 3.10.2 / .NET Bindings version = 3.10.2
+CoreObjects SDK version = 3.10.2 / .NET Bindings version = 3.10.2
+openDAQ SDK version     = 3.10.2 / .NET Bindings version = 3.10.2
+Assembly version        = 9.9.9.9
+Assembly info version   = 3.10.2.20-beta-docs-ci.20241224.825+8ee0637e89abc32810b1a66707e234fffe91ce06
+-----------------------------------
+end of test - 2025-02-05 14:40:01
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0001_ListObjectDisposeTest'
+begin of test - 2025-02-05 14:40:01
+-----------------------------------
+> creating...
+> adding to list...
+> disposing object...
+> getting first element...
+> disposing list...
+> disposing object...
+-----------------------------------
+end of test - 2025-02-05 14:40:01
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0002_ListObjectWithParamsNoExceptionTest'
+begin of test - 2025-02-05 14:40:01
+-----------------------------------
+> creating string-list with exception
+-----------------------------------
+end of test - 2025-02-05 14:40:01
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0003_ListObjectWithParamsNoErrorCodeTest'
+begin of test - 2025-02-05 14:40:01
+-----------------------------------
+> creating string-list with error-code
+-----------------------------------
+end of test - 2025-02-05 14:40:01
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0004_ListObjectWithParamsArrayTest'
+begin of test - 2025-02-05 14:40:01
+-----------------------------------
+> creating string-list with array
+-----------------------------------
+end of test - 2025-02-05 14:40:01
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0101_InstanceManualDispose'
+begin of test - 2025-02-05 14:40:02
+-----------------------------------
+daqInstance name = 'OpenDAQClient'
+-----------------------------------
+end of test - 2025-02-05 14:40:02
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0102_InstanceAutoDispose1'
+begin of test - 2025-02-05 14:40:02
+-----------------------------------
+daqInstance name = 'OpenDAQClient'
+-----------------------------------
+end of test - 2025-02-05 14:40:02
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0103_InstanceAutoDispose2'
+begin of test - 2025-02-05 14:40:02
+-----------------------------------
+daqInstance name = 'OpenDAQClient'
+-----------------------------------
+end of test - 2025-02-05 14:40:02
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0201_AvailableDevicesProperty'
+begin of test - 2025-02-05 14:40:02
+-----------------------------------
+> daqInstance.AvailableDevices
+  9 devices available
+  - Name = 'IOLITE-X-16xLV', Connection String = 'daq://Dewesoft_DB22000806'
+    Model = 'IOLITE-X', DeviceClass = '', Software Revision = '2.000621.0.2024060000'
+  - Name = 'Monitor of sof-hda-dsp HDMI3/DP3 Output', Connection String = 'miniaudio://pulseaudio/alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__hw_sofhdadsp_5__sink.monitor'
+    Model = '', DeviceClass = '', Software Revision = ''
+  - Name = 'Monitor of sof-hda-dsp HDMI2/DP2 Output', Connection String = 'miniaudio://pulseaudio/alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__hw_sofhdadsp_4__sink.monitor'
+    Model = '', DeviceClass = '', Software Revision = ''
+  - Name = 'Monitor of sof-hda-dsp HDMI1/DP1 Output', Connection String = 'miniaudio://pulseaudio/alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__hw_sofhdadsp_3__sink.monitor'
+    Model = '', DeviceClass = '', Software Revision = ''
+  - Name = 'Monitor of sof-hda-dsp Speaker + Headphones', Connection String = 'miniaudio://pulseaudio/alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__hw_sofhdadsp__sink.monitor'
+    Model = '', DeviceClass = '', Software Revision = ''
+  - Name = 'sof-hda-dsp Headphones Stereo Microphone', Connection String = 'miniaudio://pulseaudio/alsa_input.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__hw_sofhdadsp__source'
+    Model = '', DeviceClass = '', Software Revision = ''
+  - Name = 'sof-hda-dsp Digital Microphone', Connection String = 'miniaudio://pulseaudio/alsa_input.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__hw_sofhdadsp_6__source'
+    Model = '', DeviceClass = '', Software Revision = ''
+  - Name = 'Device 0', Connection String = 'daqref://device0'
+    Model = 'Reference device', DeviceClass = '', Software Revision = ''
+  - Name = 'Device 1', Connection String = 'daqref://device1'
+    Model = 'Reference device', DeviceClass = '', Software Revision = ''
+-----------------------------------
+end of test - 2025-02-05 14:40:03
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0202_GetAndConnectDaqRefDevice'
+begin of test - 2025-02-05 14:40:03
+-----------------------------------
+instance.AvailableDevices
+  - connecting daqref://device0
+  - connecting daqref://device1
+2 connected devices
+  Name: 'RefDev0', Connection string: 'daqref://device0'
+  Name: 'RefDev1', Connection string: 'daqref://device1'
+-----------------------------------
+end of test - 2025-02-05 14:40:03
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0301_GetAvailableChannelsTest'
+begin of test - 2025-02-05 14:40:03
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetChannelsRecursive()
+  found 2 channels
+  -  1: RefCh0 (RefCh0) (/openDAQDevice/Dev/RefDev0/IO/AI/RefCh0)
+  -  2: RefCh1 (RefCh1) (/openDAQDevice/Dev/RefDev0/IO/AI/RefCh1)
+-----------------------------------
+end of test - 2025-02-05 14:40:04
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0302_GetAvailableSignalsTest'
+begin of test - 2025-02-05 14:40:04
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  -  1: AI0 (AI0) (/openDAQDevice/Dev/RefDev0/IO/AI/RefCh0/Sig/AI0)
+  -  2: AI1 (AI1) (/openDAQDevice/Dev/RefDev0/IO/AI/RefCh1/Sig/AI1)
+-----------------------------------
+end of test - 2025-02-05 14:40:05
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0303_GetAvailableFunctionBlocks'
+begin of test - 2025-02-05 14:40:05
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+daqInstance.GetAvailableFunctionBlocks()
+  10 function blocks available
+  - 'AudioDeviceModuleWavWriter' (AudioDeviceModuleWavWriter)
+  - 'RefFBModuleRenderer' (RefFBModuleRenderer)
+  - 'RefFBModuleStatistics' (RefFBModuleStatistics)
+  - 'RefFBModulePower' (RefFBModulePower)
+  - 'RefFBModuleScaling' (RefFBModuleScaling)
+  - 'RefFBModuleClassifier' (RefFBModuleClassifier)
+  - 'RefFBModuleTrigger' (RefFBModuleTrigger)
+  - 'RefFBModuleFFT' (RefFBModuleFFT)
+  - 'RefFBModulePowerReader' (RefFBModulePowerReader)
+  - 'RefFBModuleStructDecoder' (RefFBModuleStructDecoder)
+-----------------------------------
+end of test - 2025-02-05 14:40:05
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0401_StreamReaderTest<Int32>(int.MinValue)'
+begin of test - 2025-02-05 14:40:05
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  -  1: AI0
+  -  2: AI1
+  using signal 1 'AI0'
+OpenDAQFactory.CreateStreamReader()
+  ValueReadType = Int32, DomainReadType = Int64
+  Reading 10 times 150 values (waiting 25ms before reading)
+  Loop  1  27.997ms before AvailableCount=0   but read   0 values 
+  Loop  2 128.312ms before AvailableCount=43  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  3 142.427ms before AvailableCount=36  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  4 142.756ms before AvailableCount=28  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  5 162.814ms before AvailableCount=21  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  6 142.741ms before AvailableCount=34  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  7 162.558ms before AvailableCount=26  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  8 142.490ms before AvailableCount=39  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  9 142.714ms before AvailableCount=32  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop 10 162.864ms before AvailableCount=25  but read 150 values (0:  0.000 ... 149:  0.000)
+-----------------------------------
+end of test - 2025-02-05 14:40:07
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0401_StreamReaderTest<UInt64>(ulong.MinValue)'
+begin of test - 2025-02-05 14:40:07
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  -  1: AI0
+  -  2: AI1
+  using signal 1 'AI0'
+OpenDAQFactory.CreateStreamReader()
+  ValueReadType = UInt64, DomainReadType = Int64
+  Reading 10 times 150 values (waiting 25ms before reading)
+  Loop  1  26.555ms before AvailableCount=0   but read   0 values 
+  Loop  2 132.682ms before AvailableCount=43  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  3 142.318ms before AvailableCount=35  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  4 142.632ms before AvailableCount=28  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  5 163.126ms before AvailableCount=21  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  6 142.708ms before AvailableCount=34  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  7 162.970ms before AvailableCount=26  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  8 142.589ms before AvailableCount=39  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop  9 142.493ms before AvailableCount=32  but read 150 values (0:  0.000 ... 149:  0.000)
+  Loop 10 163.142ms before AvailableCount=25  but read 150 values (0:  0.000 ... 149:  0.000)
+-----------------------------------
+end of test - 2025-02-05 14:40:09
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0401_StreamReaderTest<Double>(double.MinValue)'
+begin of test - 2025-02-05 14:40:10
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  -  1: AI0
+  -  2: AI1
+  using signal 1 'AI0'
+OpenDAQFactory.CreateStreamReader()
+  ValueReadType = Float64, DomainReadType = Int64
+  Reading 10 times 150 values (waiting 25ms before reading)
+  Loop  1  26.535ms before AvailableCount=0   but read   0 values 
+  Loop  2 132.881ms before AvailableCount=43  but read 150 values (0:  0.000 ... 149: +0.314)
+  Loop  3 142.543ms before AvailableCount=36  but read 150 values (0:  0.000 ... 149: -0.314)
+  Loop  4 142.563ms before AvailableCount=29  but read 150 values (0:  0.000 ... 149: +0.314)
+  Loop  5 162.914ms before AvailableCount=21  but read 150 values (0:  0.000 ... 149: -0.314)
+  Loop  6 142.617ms before AvailableCount=34  but read 150 values (0:  0.000 ... 149: +0.314)
+  Loop  7 162.616ms before AvailableCount=27  but read 150 values (0:  0.000 ... 149: -0.314)
+  Loop  8 142.619ms before AvailableCount=40  but read 150 values (0:  0.000 ... 149: +0.314)
+  Loop  9 142.499ms before AvailableCount=32  but read 150 values (0:  0.000 ... 149: -0.314)
+  Loop 10 162.918ms before AvailableCount=25  but read 150 values (0:  0.000 ... 149: +0.314)
+-----------------------------------
+end of test - 2025-02-05 14:40:11
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0402_TailReaderTest<Int32>(int.MinValue)'
+begin of test - 2025-02-05 14:40:12
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  -  1: AI0
+  -  2: AI1
+  using signal 1 'AI0'
+OpenDAQFactory.CreateTailReader()
+  ValueReadType = Int32, DomainReadType = Int64
+  Reading 10 times 150 values (waiting 25ms before reading)
+  Loop  1  27.107ms before AvailableCount=23  but read   0 values 
+  Loop  2  25.425ms before AvailableCount=43  but read  43 values (0:  0.000 ...  42: +2.000)
+  Loop  3  25.376ms before AvailableCount=83  but read  84 values (0:  0.000 ...  83: -4.000)
+  Loop  4  25.416ms before AvailableCount=104 but read 104 values (0:  0.000 ... 103:  0.000)
+  Loop  5  25.409ms before AvailableCount=124 but read 124 values (0:  0.000 ... 123: +4.000)
+  Loop  6  25.397ms before AvailableCount=145 but read 145 values (0:  0.000 ... 144: +1.000)
+  Loop  7  25.409ms before AvailableCount=165 but read 150 values (0: +4.000 ... 149: -3.000)
+  Loop  8  25.239ms before AvailableCount=163 but read 150 values (0: -1.000 ... 149: +1.000)
+  Loop  9  25.204ms before AvailableCount=163 but read 150 values (0: -4.000 ... 149: +5.000)
+  Loop 10  25.369ms before AvailableCount=162 but read 150 values (0: -1.000 ... 149: +1.000)
+-----------------------------------
+end of test - 2025-02-05 14:40:12
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0402_TailReaderTest<UInt64>(ulong.MinValue)'
+begin of test - 2025-02-05 14:40:13
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  -  1: AI0
+  -  2: AI1
+  using signal 1 'AI0'
+OpenDAQFactory.CreateTailReader()
+  ValueReadType = UInt64, DomainReadType = Int64
+  Reading 10 times 150 values (waiting 25ms before reading)
+  Loop  1  26.250ms before AvailableCount=23  but read   0 values 
+  Loop  2  25.378ms before AvailableCount=43  but read  43 values (0:  0.000 ...  42: +2.000)
+  Loop  3  25.247ms before AvailableCount=63  but read  63 values (0:  0.000 ...  62: +18446744073709551613.000)
+  Loop  4  25.202ms before AvailableCount=104 but read 104 values (0:  0.000 ... 103:  0.000)
+  Loop  5  25.360ms before AvailableCount=124 but read 124 values (0:  0.000 ... 123: +4.000)
+  Loop  6  25.393ms before AvailableCount=145 but read 145 values (0:  0.000 ... 144: +1.000)
+  Loop  7  25.427ms before AvailableCount=165 but read 150 values (0: +4.000 ... 149: +18446744073709551613.000)
+  Loop  8  25.246ms before AvailableCount=163 but read 150 values (0: +18446744073709551615.000 ... 149: +1.000)
+  Loop  9  25.396ms before AvailableCount=163 but read 150 values (0: +18446744073709551612.000 ... 149: +5.000)
+  Loop 10  25.380ms before AvailableCount=163 but read 150 values (0:  0.000 ... 149: +1.000)
+-----------------------------------
+end of test - 2025-02-05 14:40:13
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0402_TailReaderTest<Double>(double.MinValue)'
+begin of test - 2025-02-05 14:40:13
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  -  1: AI0
+  -  2: AI1
+  using signal 1 'AI0'
+OpenDAQFactory.CreateTailReader()
+  ValueReadType = Float64, DomainReadType = Int64
+  Reading 10 times 150 values (waiting 25ms before reading)
+  Loop  1  26.452ms before AvailableCount=23  but read   0 values 
+  Loop  2  25.379ms before AvailableCount=43  but read  43 values (0:  0.000 ...  42: +2.409)
+  Loop  3  25.263ms before AvailableCount=63  but read  63 values (0:  0.000 ...  62: -3.423)
+  Loop  4  25.264ms before AvailableCount=104 but read 104 values (0:  0.000 ... 103: +0.937)
+  Loop  5  25.375ms before AvailableCount=124 but read 124 values (0:  0.000 ... 123: +4.961)
+  Loop  6  25.386ms before AvailableCount=145 but read 145 values (0:  0.000 ... 144: +1.841)
+  Loop  7  25.409ms before AvailableCount=165 but read 150 values (0: +4.045 ... 149: -3.853)
+  Loop  8  25.397ms before AvailableCount=163 but read 150 values (0: -1.841 ... 149: +1.545)
+  Loop  9  25.418ms before AvailableCount=163 but read 150 values (0: -4.990 ... 149: +5.000)
+  Loop 10  25.373ms before AvailableCount=163 but read 150 values (0: -0.937 ... 149: +1.243)
+-----------------------------------
+end of test - 2025-02-05 14:40:14
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0403_BlockReaderTest<Int32>(int.MinValue)'
+begin of test - 2025-02-05 14:40:14
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  -  1: AI0
+  -  2: AI1
+  using signal 1 'AI0'
+OpenDAQFactory.CreateBlockReader()
+  ValueReadType = Int32, DomainReadType = Int64
+  Reading 10 times 10 blocks � 30 values (waiting 25ms before reading)
+  Loop  1  27.035ms before AvailableCount=0   but read  0 blocks (  0 values) 
+  Loop  2 275.892ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  3 305.952ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  4 285.627ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  5 305.348ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  6 305.570ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  7 305.774ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  8 285.675ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  9 305.123ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop 10 305.466ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+-----------------------------------
+end of test - 2025-02-05 14:40:18
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0403_BlockReaderTest<UInt64>(ulong.MinValue)'
+begin of test - 2025-02-05 14:40:18
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  -  1: AI0
+  -  2: AI1
+  using signal 1 'AI0'
+OpenDAQFactory.CreateBlockReader()
+  ValueReadType = UInt64, DomainReadType = Int64
+  Reading 10 times 10 blocks � 30 values (waiting 25ms before reading)
+  Loop  1  26.409ms before AvailableCount=0   but read  0 blocks (  0 values) 
+  Loop  2 275.866ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  3 305.987ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  4 305.517ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  5 285.433ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  6 305.755ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  7 305.795ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  8 285.517ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop  9 305.712ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+  Loop 10 305.897ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299:  0.000)
+-----------------------------------
+end of test - 2025-02-05 14:40:21
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0403_BlockReaderTest<Double>(double.MinValue)'
+begin of test - 2025-02-05 14:40:21
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  -  1: AI0
+  -  2: AI1
+  using signal 1 'AI0'
+OpenDAQFactory.CreateBlockReader()
+  ValueReadType = Float64, DomainReadType = Int64
+  Reading 10 times 10 blocks � 30 values (waiting 25ms before reading)
+  Loop  1  26.509ms before AvailableCount=0   but read  0 blocks (  0 values) 
+  Loop  2 275.741ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314)
+  Loop  3 305.678ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314)
+  Loop  4 305.444ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314)
+  Loop  5 285.552ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314)
+  Loop  6 305.675ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314)
+  Loop  7 305.727ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314)
+  Loop  8 285.314ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314)
+  Loop  9 305.213ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314)
+  Loop 10 305.792ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314)
+-----------------------------------
+end of test - 2025-02-05 14:40:24
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0404_MultiReaderTest<Int32>(int.MinValue)'
+begin of test - 2025-02-05 14:40:25
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  using signal 0 'AI0'
+  using signal 1 'AI1'
+OpenDAQFactory.CreateMultiReader()
+  ValueReadType = Int32, DomainReadType = Int64
+  Reading 10 times 200 values (waiting 25ms before reading)
+  Loop  1  34.369ms before AvailableCount=0   but read   0 values 
+                                                       
+  Loop  2  25.436ms before AvailableCount=62  but read  62 values (0:  0.000 ...  61: -3.000)
+                                                       (0:  0.000 ...  61: -3.000)
+  Loop  3  25.407ms before AvailableCount=21  but read  21 values (0: -3.000 ...  20: -4.000)
+                                                       (0: -3.000 ...  20: -4.000)
+  Loop  4  25.442ms before AvailableCount=20  but read  20 values (0: -4.000 ...  19:  0.000)
+                                                       (0: -4.000 ...  19:  0.000)
+  Loop  5  25.414ms before AvailableCount=20  but read  20 values (0: +1.000 ...  19: +4.000)
+                                                       (0: +1.000 ...  19: +4.000)
+  Loop  6  25.435ms before AvailableCount=41  but read  41 values (0: +4.000 ...  40: -3.000)
+                                                       (0: +4.000 ...  40: -3.000)
+  Loop  7  25.434ms before AvailableCount=21  but read  21 values (0: -4.000 ...  20: -4.000)
+                                                       (0: -4.000 ...  20: -4.000)
+  Loop  8  25.420ms before AvailableCount=20  but read  20 values (0: -3.000 ...  19: +1.000)
+                                                       (0: -3.000 ...  19: +1.000)
+  Loop  9  25.458ms before AvailableCount=20  but read  20 values (0: +1.000 ...  19: +5.000)
+                                                       (0: +1.000 ...  19: +5.000)
+  Loop 10  25.453ms before AvailableCount=41  but read  41 values (0: +4.000 ...  40: -4.000)
+                                                       (0: +4.000 ...  40: -4.000)
+-----------------------------------
+end of test - 2025-02-05 14:40:25
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0404_MultiReaderTest<UInt64>(ulong.MinValue)'
+begin of test - 2025-02-05 14:40:26
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  using signal 0 'AI0'
+  using signal 1 'AI1'
+OpenDAQFactory.CreateMultiReader()
+  ValueReadType = UInt64, DomainReadType = Int64
+  Reading 10 times 200 values (waiting 25ms before reading)
+  Loop  1  28.861ms before AvailableCount=0   but read   0 values 
+                                                       
+  Loop  2  25.422ms before AvailableCount=42  but read  42 values (0:  0.000 ...  41: +2.000)
+                                                       (0:  0.000 ...  41: +2.000)
+  Loop  3  25.482ms before AvailableCount=41  but read  41 values (0: +2.000 ...  40: +18446744073709551612.000)
+                                                       (0: +2.000 ...  40: +18446744073709551612.000)
+  Loop  4  25.437ms before AvailableCount=20  but read  20 values (0: +18446744073709551612.000 ...  19:  0.000)
+                                                       (0: +18446744073709551612.000 ...  19:  0.000)
+  Loop  5  25.422ms before AvailableCount=20  but read  20 values (0: +1.000 ...  19: +4.000)
+                                                       (0: +1.000 ...  19: +4.000)
+  Loop  6  25.341ms before AvailableCount=21  but read  21 values (0: +4.000 ...  20: +1.000)
+                                                       (0: +4.000 ...  20: +1.000)
+  Loop  7  25.462ms before AvailableCount=41  but read  41 values (0: +1.000 ...  40: +18446744073709551612.000)
+                                                       (0: +1.000 ...  40: +18446744073709551612.000)
+  Loop  8  25.376ms before AvailableCount=20  but read  20 values (0: +18446744073709551613.000 ...  19: +1.000)
+                                                       (0: +18446744073709551613.000 ...  19: +1.000)
+  Loop  9  25.305ms before AvailableCount=20  but read  20 values (0: +1.000 ...  19: +5.000)
+                                                       (0: +1.000 ...  19: +5.000)
+  Loop 10  25.419ms before AvailableCount=21  but read  21 values (0: +4.000 ...  20: +1.000)
+                                                       (0: +4.000 ...  20: +1.000)
+-----------------------------------
+end of test - 2025-02-05 14:40:26
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0404_MultiReaderTest<Double>(double.MinValue)'
+begin of test - 2025-02-05 14:40:26
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  using signal 0 'AI0'
+  using signal 1 'AI1'
+OpenDAQFactory.CreateMultiReader()
+  ValueReadType = Float64, DomainReadType = Int64
+  Reading 10 times 200 values (waiting 25ms before reading)
+  Loop  1  29.915ms before AvailableCount=0   but read   0 values 
+                                                       
+  Loop  2  25.462ms before AvailableCount=42  but read  42 values (0: +0.314 ...  41: +2.409)
+                                                       (0: +0.314 ...  41: +2.409)
+  Loop  3  25.551ms before AvailableCount=40  but read  40 values (0: +2.129 ...  39: -4.524)
+                                                       (0: +2.129 ...  39: -4.524)
+  Loop  4  25.451ms before AvailableCount=21  but read  21 values (0: -4.382 ...  20: +0.937)
+                                                       (0: -4.382 ...  20: +0.937)
+  Loop  5  25.438ms before AvailableCount=20  but read  20 values (0: +1.243 ...  19: +4.961)
+                                                       (0: +1.243 ...  19: +4.961)
+  Loop  6  25.412ms before AvailableCount=21  but read  21 values (0: +4.990 ...  20: +1.841)
+                                                       (0: +4.990 ...  20: +1.841)
+  Loop  7  25.387ms before AvailableCount=40  but read  40 values (0: +1.545 ...  39: -4.222)
+                                                       (0: +1.545 ...  39: -4.222)
+  Loop  8  25.307ms before AvailableCount=21  but read  21 values (0: -4.045 ...  20: +1.545)
+                                                       (0: -4.045 ...  20: +1.545)
+  Loop  9  25.310ms before AvailableCount=20  but read  20 values (0: +1.841 ...  19: +5.000)
+                                                       (0: +1.841 ...  19: +5.000)
+  Loop 10  25.438ms before AvailableCount=20  but read  20 values (0: +4.990 ...  19: +1.545)
+                                                       (0: +4.990 ...  19: +1.545)
+-----------------------------------
+end of test - 2025-02-05 14:40:27
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0411_StreamReaderWithDomainTest'
+begin of test - 2025-02-05 14:40:27
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  using signal 0 'AI0'
+  tick resolution: 1 / 1000000 = 1E-06
+OpenDAQFactory.CreateStreamReader()
+  ValueReadType = Float64, DomainReadType = Int64
+  Reading 10 times 150 values (waiting 25ms before reading)
+  Loop  1  27.201ms before AvailableCount=0   but read   0 values 
+  Loop  2 132.127ms before AvailableCount=43  but read 150 values (0:  0.000 ... 149: +0.314 @ 1738762828.4899000 ... 1738762828.6389000)
+  Loop  3 142.565ms before AvailableCount=36  but read 150 values (0:  0.000 ... 149: -0.314 @ 1738762828.6399000 ... 1738762828.7889000)
+  Loop  4 142.195ms before AvailableCount=28  but read 150 values (0:  0.000 ... 149: +0.314 @ 1738762828.7899000 ... 1738762828.9389000)
+  Loop  5 162.051ms before AvailableCount=20  but read 150 values (0:  0.000 ... 149: -0.314 @ 1738762828.9399000 ... 1738762829.0889000)
+  Loop  6 142.201ms before AvailableCount=32  but read 150 values (0:  0.000 ... 149: +0.314 @ 1738762829.0899000 ... 1738762829.2389000)
+  Loop  7 163.250ms before AvailableCount=25  but read 150 values (0:  0.000 ... 149: -0.314 @ 1738762829.2399000 ... 1738762829.3889000)
+  Loop  8 142.619ms before AvailableCount=38  but read 150 values (0:  0.000 ... 149: +0.314 @ 1738762829.3899000 ... 1738762829.5389000)
+  Loop  9 142.740ms before AvailableCount=31  but read 150 values (0:  0.000 ... 149: -0.314 @ 1738762829.5399000 ... 1738762829.6889000)
+  Loop 10 162.910ms before AvailableCount=24  but read 150 values (0:  0.000 ... 149: +0.314 @ 1738762829.6899000 ... 1738762829.8389000)
+-----------------------------------
+end of test - 2025-02-05 14:40:29
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0412_TailReaderWithDomainTest'
+begin of test - 2025-02-05 14:40:29
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  using signal 0 'AI0'
+  tick resolution: 1 / 1000000 = 1E-06
+OpenDAQFactory.CreateTailReader()
+  ValueReadType = Float64, DomainReadType = Int64
+  Reading 10 times 150 values (waiting 25ms before reading)
+  Loop  1  27.028ms before AvailableCount=23  but read   0 values 
+  Loop  2  25.396ms before AvailableCount=43  but read  43 values (0:  0.000 ...  42: +2.409 @ 1738762830.5380700 ... 1738762830.5800700)
+  Loop  3  25.418ms before AvailableCount=63  but read  63 values (0:  0.000 ...  62: -3.423 @ 1738762830.5380700 ... 1738762830.6000700)
+  Loop  4  25.396ms before AvailableCount=104 but read 104 values (0:  0.000 ... 103: +0.937 @ 1738762830.5380700 ... 1738762830.6410700)
+  Loop  5  25.394ms before AvailableCount=124 but read 124 values (0:  0.000 ... 123: +4.961 @ 1738762830.5380700 ... 1738762830.6610700)
+  Loop  6  25.407ms before AvailableCount=145 but read 145 values (0:  0.000 ... 144: +1.841 @ 1738762830.5380700 ... 1738762830.6820700)
+  Loop  7  25.432ms before AvailableCount=165 but read 150 values (0: +4.045 ... 149: -3.853 @ 1738762830.5530700 ... 1738762830.7020700)
+  Loop  8  25.402ms before AvailableCount=163 but read 150 values (0: -1.841 ... 149: +1.545 @ 1738762830.5940700 ... 1738762830.7430700)
+  Loop  9  25.364ms before AvailableCount=163 but read 150 values (0: -4.990 ... 149: +5.000 @ 1738762830.6140700 ... 1738762830.7630700)
+  Loop 10  25.359ms before AvailableCount=163 but read 150 values (0: -0.937 ... 149: +1.243 @ 1738762830.6350700 ... 1738762830.7840700)
+-----------------------------------
+end of test - 2025-02-05 14:40:30
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0413_BlockReaderWithDomainTest'
+begin of test - 2025-02-05 14:40:30
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  using signal 0 'AI0'
+  tick resolution: 1 / 1000000 = 1E-06
+OpenDAQFactory.CreateBlockReader()
+  ValueReadType = Float64, DomainReadType = Int64
+  Reading 10 times 10 blocks � 30 values (waiting 25ms before reading)
+  Loop  1  26.422ms before AvailableCount=0   but read  0 blocks (  0 values) 
+  Loop  2 276.495ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314 @ 1738762831.4914400 ... 1738762831.5004400)
+  Loop  3 305.407ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314 @ 1738762831.7914400 ... 1738762831.8004400)
+  Loop  4 305.391ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314 @ 1738762832.0914400 ... 1738762832.1004400)
+  Loop  5 285.334ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314 @ 1738762832.3914400 ... 1738762832.4004400)
+  Loop  6 305.860ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314 @ 1738762832.6914400 ... 1738762832.7004400)
+  Loop  7 305.302ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314 @ 1738762832.9914400 ... 1738762833.0004400)
+  Loop  8 285.606ms before AvailableCount=1   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314 @ 1738762833.2914400 ... 1738762833.3004400)
+  Loop  9 305.778ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314 @ 1738762833.5914400 ... 1738762833.6004400)
+  Loop 10 305.531ms before AvailableCount=0   but read 10 blocks (300 values) (0:  0.000 ... 299: -0.314 @ 1738762833.8914400 ... 1738762833.9004400)
+-----------------------------------
+end of test - 2025-02-05 14:40:34
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0414_MultiReaderWithDomainTest'
+begin of test - 2025-02-05 14:40:34
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  found 2 signals
+  using signal 0 'AI0'
+  using signal 1 'AI1'
+  tick resolution: 1 / 1000000 = 1E-06
+OpenDAQFactory.CreateMultiReader()
+  ValueReadType = Float64, DomainReadType = Int64
+  Reading 10 times 150 values (waiting 25ms before reading)
+  Loop  1  30.246ms before AvailableCount=0   but read   0 values 
+                                                       
+  Loop  2 129.595ms before AvailableCount=42  but read 150 values (0: +0.314 ... 149:  0.000 @ 1738762834.8837200 ... 1738762835.0327200)
+                                                       (0: +0.314 ... 149:  0.000 @ 1738762834.8837200 ... 1738762835.0327200)
+  Loop  3 142.381ms before AvailableCount=34  but read 150 values (0: -0.314 ... 149:  0.000 @ 1738762835.0337200 ... 1738762835.1827200)
+                                                       (0: -0.314 ... 149:  0.000 @ 1738762835.0337200 ... 1738762835.1827200)
+  Loop  4 163.042ms before AvailableCount=27  but read 150 values (0: +0.314 ... 149:  0.000 @ 1738762835.1837200 ... 1738762835.3327200)
+                                                       (0: +0.314 ... 149:  0.000 @ 1738762835.1837200 ... 1738762835.3327200)
+  Loop  5 142.546ms before AvailableCount=40  but read 150 values (0: -0.314 ... 149:  0.000 @ 1738762835.3337200 ... 1738762835.4827200)
+                                                       (0: -0.314 ... 149:  0.000 @ 1738762835.3337200 ... 1738762835.4827200)
+  Loop  6 142.784ms before AvailableCount=32  but read 150 values (0: +0.314 ... 149:  0.000 @ 1738762835.4837200 ... 1738762835.6327200)
+                                                       (0: +0.314 ... 149:  0.000 @ 1738762835.4837200 ... 1738762835.6327200)
+  Loop  7 163.109ms before AvailableCount=25  but read 150 values (0: -0.314 ... 149:  0.000 @ 1738762835.6337200 ... 1738762835.7827200)
+                                                       (0: -0.314 ... 149:  0.000 @ 1738762835.6337200 ... 1738762835.7827200)
+  Loop  8 142.569ms before AvailableCount=38  but read 150 values (0: +0.314 ... 149:  0.000 @ 1738762835.7837200 ... 1738762835.9327200)
+                                                       (0: +0.314 ... 149:  0.000 @ 1738762835.7837200 ... 1738762835.9327200)
+  Loop  9 142.438ms before AvailableCount=31  but read 150 values (0: -0.314 ... 149:  0.000 @ 1738762835.9337200 ... 1738762836.0827200)
+                                                       (0: -0.314 ... 149:  0.000 @ 1738762835.9337200 ... 1738762836.0827200)
+  Loop 10 162.791ms before AvailableCount=23  but read 150 values (0: +0.314 ... 149:  0.000 @ 1738762836.0837200 ... 1738762836.2327200)
+                                                       (0: +0.314 ... 149:  0.000 @ 1738762836.0837200 ... 1738762836.2327200)
+-----------------------------------
+end of test - 2025-02-05 14:40:36
+
+
+ReadWithDomain error: Event
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0451_TimeReaderTest<Double>(Stream,double.MinValue)'
+begin of test - 2025-02-05 14:40:36
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  using signal 0 'AI0'
+  domain signal tick-resolution = '1/1,000,000'
+OpenDAQFactory.CreateStreamReader()
+  buffer size = 100
+OpenDAQFactory.CreateTimeReader()
+  ValueReadType = Float64, DomainReadType = Int64
+looping timeReader.ReadWithDomain()
+            event occurred'
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:36.9305790 ... 14:40:37.0295790)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:37.0305790 ... 14:40:37.1295790)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:37.1305790 ... 14:40:37.2295790)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:37.2305790 ... 14:40:37.3295790)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:37.3305790 ... 14:40:37.4295790)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:37.4305790 ... 14:40:37.5295790)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:37.5305790 ... 14:40:37.6295790)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:37.6305790 ... 14:40:37.7295790)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:37.7305790 ... 14:40:37.8295790)
+-----------------------------------
+end of test - 2025-02-05 14:40:37
+
+
+ReadWithDomain error: Event
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0451_TimeReaderTest<Double>(Tail,double.MinValue)'
+begin of test - 2025-02-05 14:40:37
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  using signal 0 'AI0'
+  domain signal tick-resolution = '1/1,000,000'
+OpenDAQFactory.CreateTailReader()
+  buffer  size = 100
+  history size = 100
+OpenDAQFactory.CreateTimeReader()
+  ValueReadType = Float64, DomainReadType = Int64
+looping timeReader.ReadWithDomain()
+            event occurred'
+            read  43 values (0:  0.000 ... 42: +2.409 @ 2025-02-05 14:40:38.5294330 ... 14:40:38.5714330)
+            read  63 values (0:  0.000 ... 62: -3.423 @ 2025-02-05 14:40:38.5294330 ... 14:40:38.5914330)
+            read 100 values (0: +1.243 ... 99: +0.937 @ 2025-02-05 14:40:38.5334330 ... 14:40:38.6324330)
+            read 100 values (0: +5.000 ... 99: +4.990 @ 2025-02-05 14:40:38.5544330 ... 14:40:38.6534330)
+            read 100 values (0: +1.545 ... 99: +1.841 @ 2025-02-05 14:40:38.5744330 ... 14:40:38.6734330)
+            read 100 values (0: -4.045 ... 99: -3.853 @ 2025-02-05 14:40:38.5944330 ... 14:40:38.6934330)
+            read 100 values (0: +1.841 ... 99: +1.545 @ 2025-02-05 14:40:38.6354330 ... 14:40:38.7344330)
+            read 100 values (0: +4.990 ... 99: +5.000 @ 2025-02-05 14:40:38.6554330 ... 14:40:38.7544330)
+            read 100 values (0: +0.937 ... 99: +1.243 @ 2025-02-05 14:40:38.6764330 ... 14:40:38.7754330)
+-----------------------------------
+end of test - 2025-02-05 14:40:38
+
+
+ReadWithDomain error: Event
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0451_TimeReaderTest<Double>(Block,double.MinValue)'
+begin of test - 2025-02-05 14:40:38
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  using signal 0 'AI0'
+  domain signal tick-resolution = '1/1,000,000'
+OpenDAQFactory.CreateBlockReader()
+  buffer size = 100
+  block  size = 10
+OpenDAQFactory.CreateTimeReader()
+  ValueReadType = Float64, DomainReadType = Int64
+looping timeReader.ReadWithDomain()
+            event occurred'
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:39.4712110 ... 14:40:39.5702110)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:39.5712110 ... 14:40:39.6702110)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:39.6712110 ... 14:40:39.7702110)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:39.7712110 ... 14:40:39.8702110)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:39.8712110 ... 14:40:39.9702110)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:39.9712110 ... 14:40:40.0702110)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:40.0712110 ... 14:40:40.1702110)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:40.1712110 ... 14:40:40.2702110)
+            read 100 values (0:  0.000 ... 99: -0.314 @ 2025-02-05 14:40:40.2712110 ... 14:40:40.3702110)
+-----------------------------------
+end of test - 2025-02-05 14:40:40
+
+
+ReadWithDomain error: Event
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0451_TimeReaderTest<Double>(Multi,double.MinValue)'
+begin of test - 2025-02-05 14:40:40
+-----------------------------------
+  ConnectFirstDaqRefDevice...
+  - connecting daqref://device0
+addedDevice.GetSignalsRecursive()
+  using signal 0 'AI0'
+  using signal 1 'AI1'
+  domain signal tick-resolution = '1/1,000,000'
+OpenDAQFactory.CreateMultiReader()
+OpenDAQFactory.CreateTimeReader()
+  ValueReadType = Float64, DomainReadType = Int64
+looping timeReader.ReadWithDomain()
+            event occurred'
+            read 100 values (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.0718890 ... 14:40:41.1708890)
+                            (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.0718890 ... 14:40:41.1708890)
+            read 100 values (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.1718890 ... 14:40:41.2708890)
+                            (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.1718890 ... 14:40:41.2708890)
+            read 100 values (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.2718890 ... 14:40:41.3708890)
+                            (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.2718890 ... 14:40:41.3708890)
+            read 100 values (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.3718890 ... 14:40:41.4708890)
+                            (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.3718890 ... 14:40:41.4708890)
+            read 100 values (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.4718890 ... 14:40:41.5708890)
+                            (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.4718890 ... 14:40:41.5708890)
+            read 100 values (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.5718890 ... 14:40:41.6708890)
+                            (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.5718890 ... 14:40:41.6708890)
+            read 100 values (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.6718890 ... 14:40:41.7708890)
+                            (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.6718890 ... 14:40:41.7708890)
+            read 100 values (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.7718890 ... 14:40:41.8708890)
+                            (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.7718890 ... 14:40:41.8708890)
+            read 100 values (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.8718890 ... 14:40:41.9708890)
+                            (0: +0.314 ... 99:  0.000 @ 2025-02-05 14:40:41.8718890 ... 14:40:41.9708890)
+-----------------------------------
+end of test - 2025-02-05 14:40:41
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0501_ProcedureFailTest'
+begin of test - 2025-02-05 14:40:42
+-----------------------------------
+CreateProcedure
+Dispatch("this is not a boolean")
+in MyBoolCallbackProcedure()
+-> 'parameters' is not a 'BoolObject'
+-----------------------------------
+end of test - 2025-02-05 14:40:42
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0502_ProcedureFailTest2'
+begin of test - 2025-02-05 14:40:42
+-----------------------------------
+CreateProcedure
+Dispatch(null)
+in MyBoolCallbackProcedure()
+-> 'parameters' is 'null'
+-----------------------------------
+end of test - 2025-02-05 14:40:42
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0503_ProcedureNullFailTest'
+begin of test - 2025-02-05 14:40:42
+-----------------------------------
+CreateProcedure
+Dispatch("this is not null")
+in MyNullCallbackProcedure()
+-> 'parameters' is not 'null'
+-----------------------------------
+end of test - 2025-02-05 14:40:42
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0511_ProcedureTest'
+begin of test - 2025-02-05 14:40:42
+-----------------------------------
+CreateProcedure
+Dispatch(false)
+in MyBoolCallbackProcedure()
+-> got False
+Dispatch(true)
+in MyBoolCallbackProcedure()
+-> got True
+-----------------------------------
+end of test - 2025-02-05 14:40:42
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0512_ProcedureMultiTest'
+begin of test - 2025-02-05 14:40:42
+-----------------------------------
+2x CreateProcedure
+1: Dispatch(false)
+in MyBoolCallbackProcedure()
+-> got False
+2: Dispatch("Hello")
+in MyStringCallbackProcedure()
+-> got "Hello"
+1: Dispatch(true)
+in MyBoolCallbackProcedure()
+-> got True
+2: Dispatch("World")
+in MyStringCallbackProcedure()
+-> got "World"
+-----------------------------------
+end of test - 2025-02-05 14:40:42
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0513_ProcedureListArgTest'
+begin of test - 2025-02-05 14:40:42
+-----------------------------------
+CreateProcedure
+CreateList
+Dispatch(stringList)
+in MyStringListCallbackProcedure()
+-> got 3 strings:
+   - "string 1"
+   - "string 2"
+   - "string 3"
+-----------------------------------
+end of test - 2025-02-05 14:40:42
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0514_ProcedureNullTest'
+begin of test - 2025-02-05 14:40:42
+-----------------------------------
+CreateProcedure
+Dispatch(null)
+in MyNullCallbackProcedure()
+-> got 'null'
+-----------------------------------
+end of test - 2025-02-05 14:40:42
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0551_FunctionFailTest'
+begin of test - 2025-02-05 14:40:43
+-----------------------------------
+CreateFunction
+Call("this is not a boolean")
+in MyBoolCallbackFunction()
+-> 'parameters' is not a 'BoolObject'
+-----------------------------------
+end of test - 2025-02-05 14:40:43
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0561_FunctionBoolToBoolTest'
+begin of test - 2025-02-05 14:40:43
+-----------------------------------
+CreateFunction
+Call(false)
+in MyBoolCallbackFunction()
+-> got False
+Call(true)
+in MyBoolCallbackFunction()
+-> got True
+-----------------------------------
+end of test - 2025-02-05 14:40:43
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0563_FunctionIntListToStringListTest'
+begin of test - 2025-02-05 14:40:43
+-----------------------------------
+CreateFunction
+CreateList
+Call(integerList)
+in MyIntegerToStringListCallbackFunction()
+-> got 4 integers:
+   - 1
+   - 2
+   - 3
+   - 4
+-> returned 4 strings:
+   - string 1
+   - string 2
+   - string 3
+   - string 4
+-----------------------------------
+end of test - 2025-02-05 14:40:43
+
+
+Executing 'openDaq.Net.Test.OpenDAQ_CITests.Test_0563_FunctionNullToStringTest'
+begin of test - 2025-02-05 14:40:43
+-----------------------------------
+CreateFunction
+Call(null)
+in MyIntegerToStringListCallbackFunction()
+-> 'parameters' is 'null'
+-> returned "'parameters' was 'null'"
+Call("not null")
+in MyIntegerToStringListCallbackFunction()
+-> 'parameters' is not 'null'
+-> returned "'parameters' was not 'null'"
+-----------------------------------
+end of test - 2025-02-05 14:40:43
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.AddingRemovingPropertiesTest'
+begin of test - 2025-02-05 14:40:43
+-----------------------------------
+as expected: OpenDaqException thrown with error code = OPENDAQ_ERR_NOTFOUND
+-----------------------------------
+end of test - 2025-02-05 14:40:43
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.ChannelsTest'
+begin of test - 2025-02-05 14:40:43
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:44
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.ContainerPropertiesTest'
+begin of test - 2025-02-05 14:40:44
+-----------------------------------
+Banana
+bar
+-----------------------------------
+end of test - 2025-02-05 14:40:44
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.CreatingAndConfiguringAPropertyTest'
+begin of test - 2025-02-05 14:40:44
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:44
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.DeviceComponentsTest'
+begin of test - 2025-02-05 14:40:44
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:45
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.DeviceInformationTest'
+begin of test - 2025-02-05 14:40:45
+-----------------------------------
+DevSer0
+IOLITE-X-16xLV
+-----------------------------------
+end of test - 2025-02-05 14:40:46
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.FunctionBlockInstantiationTest'
+begin of test - 2025-02-05 14:40:46
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:46
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.InputPortsTest'
+begin of test - 2025-02-05 14:40:46
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:47
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.InstanceAndRootDeviceTest'
+begin of test - 2025-02-05 14:40:47
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:48
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.ListingPropertiesTest'
+begin of test - 2025-02-05 14:40:48
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:48
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.NumericalPropertiesTest'
+begin of test - 2025-02-05 14:40:48
+-----------------------------------
+15
+2.34
+-----------------------------------
+end of test - 2025-02-05 14:40:48
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.ObjectPropertiesTest'
+begin of test - 2025-02-05 14:40:48
+-----------------------------------
+foo
+-----------------------------------
+end of test - 2025-02-05 14:40:48
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.POCClassInheritanceTest'
+begin of test - 2025-02-05 14:40:49
+-----------------------------------
+foo
+bar
+-----------------------------------
+end of test - 2025-02-05 14:40:49
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.POCManageTest'
+begin of test - 2025-02-05 14:40:49
+-----------------------------------
+Apple
+-----------------------------------
+end of test - 2025-02-05 14:40:49
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.PropertyObjectClassTest'
+begin of test - 2025-02-05 14:40:49
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:49
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.PropertyTest'
+begin of test - 2025-02-05 14:40:49
+-----------------------------------
+bar
+-----------------------------------
+end of test - 2025-02-05 14:40:49
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.ReadingWritingPropertyValuesTest'
+begin of test - 2025-02-05 14:40:49
+-----------------------------------
+foo
+bar
+-----------------------------------
+end of test - 2025-02-05 14:40:49
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.ReferencePropertiesTest'
+begin of test - 2025-02-05 14:40:49
+-----------------------------------
+foo
+bar
+-----------------------------------
+end of test - 2025-02-05 14:40:49
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.ReferencingAnotherPropertyTest1'
+begin of test - 2025-02-05 14:40:49
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:49
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.ReferencingAnotherPropertyTest2'
+begin of test - 2025-02-05 14:40:49
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:49
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.RemainingPropertyTypesTest'
+begin of test - 2025-02-05 14:40:49
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:49
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.RWDictionaryPropertiesTest'
+begin of test - 2025-02-05 14:40:50
+-----------------------------------
+-----------------------------------
+end of test - 2025-02-05 14:40:50
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.RWListPropertiesTest1'
+begin of test - 2025-02-05 14:40:50
+-----------------------------------
+Banana
+[ Pear, Strawberry ]
+-----------------------------------
+end of test - 2025-02-05 14:40:50
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.RWListPropertiesTest2'
+begin of test - 2025-02-05 14:40:50
+-----------------------------------
+[ Banana, Kiwi, Blueberry ]
+-----------------------------------
+end of test - 2025-02-05 14:40:50
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.RWNestedPropertyObjectsTest'
+begin of test - 2025-02-05 14:40:50
+-----------------------------------
+bar
+-----------------------------------
+end of test - 2025-02-05 14:40:50
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.RWSelectionPropertiesTest'
+begin of test - 2025-02-05 14:40:50
+-----------------------------------
+Kiwi
+-----------------------------------
+end of test - 2025-02-05 14:40:50
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.SelectionPropertiesTest'
+begin of test - 2025-02-05 14:40:50
+-----------------------------------
+0
+Apple
+bar
+-----------------------------------
+end of test - 2025-02-05 14:40:50
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.SimplePropertyObjectExampleTest'
+begin of test - 2025-02-05 14:40:50
+-----------------------------------
+foo
+0
+bar
+-----------------------------------
+end of test - 2025-02-05 14:40:50
+
+
+Executing 'openDaq.Net.Test.OpenDaqBackgroundInfoGuidesTests.ValidationAndCoercionTest'
+begin of test - 2025-02-05 14:40:50
+-----------------------------------
+OpenDaqException thrown with error code = OPENDAQ_ERR_VALIDATE_FAILED
+-----------------------------------
+end of test - 2025-02-05 14:40:50
+
+
+
+Passed!  - Failed:     0, Passed:   146, Skipped:     0, Total:   146, Duration: 58 s - openDAQ.Net.NuGet.Test.dll (net8.0)

@@ -264,7 +264,7 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
 #if defined(_MSC_VER)
 #   ifdef _MSC_VER
 #       pragma warning(push)
-#       pragma warning(default : 4244) // do not treat it as error
+#       pragma warning(disable : 4244)
 #   endif
 #endif
 
@@ -312,7 +312,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
             // ss1 << toSysTime(adjusted, domainInfo.epoch, domainInfo.readResolution);
             // std::string s1 = ss1.str();
 
-            TReadType readValue = static_cast<TReadType>(dataStart[i]);
+            TReadType readValue = static_cast<TReadType>(dataStart[i]); // C4244 - possible data loss due to conversion
             if (GreaterEqual<TReadType>::Check(domainInfo.multiplier, readValue, startValue))
             {
                 if (absoluteTimestamp)
@@ -387,13 +387,13 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
         if (std::is_same_v<TReadType, TDataType>)
         {
             // Returns the pointer to the value after the last copied one
-            *outputBuffer = std::copy_n(dataStart, valuesPerSample * toRead, dataOut);
+            *outputBuffer = std::copy_n(dataStart, valuesPerSample * toRead, dataOut); // C4244 - possible data loss due to conversion
         }
         else
         {
             for (std::size_t i = 0; i < toRead * valuesPerSample; ++i)
             {
-                dataOut[i] = static_cast<TReadType>(dataStart[i]);
+                dataOut[i] = static_cast<TReadType>(dataStart[i]); // C4244 - possible data loss due to conversion
             }
 
             // Set the pointer to the value after the last copied one

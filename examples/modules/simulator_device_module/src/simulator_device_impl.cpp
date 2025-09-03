@@ -145,11 +145,11 @@ void SimulatorDeviceImpl::initProperties()
     const auto acqLoopTimeProp =
         IntPropertyBuilder("AcquisitionLoopTime", 20).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
 
-    const auto useFixedPacketSizeProp = BoolProperty("UseFixedPacketSize", false);
-    const auto fixedPacketSizeProp = IntProperty("FixedPacketSize", 500, EvalValue("$UseFixedPacketSize"));
+    //const auto useFixedPacketSizeProp = BoolProperty("UseFixedPacketSize", false);
+    //const auto fixedPacketSizeProp = IntProperty("FixedPacketSize", 500, EvalValue("$UseFixedPacketSize"));
 
     // Global value signal props
-    const auto clientSideScalingProp = BoolProperty("ClientSideScaling", False);
+    //const auto clientSideScalingProp = BoolProperty("ClientSideScaling", False);
 
     // Global time signal props
     const auto offsetProp = IntPropertyBuilder("Offset", 0)
@@ -171,10 +171,10 @@ void SimulatorDeviceImpl::initProperties()
         [this](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { updateAcqLoopTime(); };
 
     // TODO: Implement and onChange events
-    objPtr.addProperty(useFixedPacketSizeProp);
-    objPtr.addProperty(fixedPacketSizeProp);
+    //objPtr.addProperty(useFixedPacketSizeProp);
+    //objPtr.addProperty(fixedPacketSizeProp);
 
-    objPtr.addProperty(clientSideScalingProp);
+    //objPtr.addProperty(clientSideScalingProp);
     //objPtr.getOnPropertyValueWrite("ClientSideScaling") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChanged(); };
 
     objPtr.addProperty(offsetProp);

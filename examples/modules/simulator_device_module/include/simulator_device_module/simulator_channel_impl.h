@@ -33,7 +33,8 @@ class SimulatorChannelImpl final : public Channel
 public:
     explicit SimulatorChannelImpl(const ContextPtr& context,
                                   const ComponentPtr& parent,
-                                  const StringPtr& localId);
+                                  const StringPtr& localId,
+                                  const PropertyObjectPtr& ownerDevice);
 
 protected:
     void onPacketReceived(const InputPortPtr& port) override;
@@ -42,8 +43,8 @@ private:
     SignalConfigPtr valueSignal; // TODO: SRDiv
     SignalConfigPtr timeSignal;
     DataDescriptorPtr inputDomainDescriptor;
+    WeakRefPtr<IPropertyObject> ownerDevice;
 
-    bool selfChange;
     uint16_t sampleRateDivider;
 
     uint64_t sampleRate;
@@ -51,9 +52,10 @@ private:
 
     std::unique_ptr<SignalGenerator> generator;
 
-    void sendData(const DataPacketPtr& domainPacket) const;
+    void sendData(const DataPacketPtr& domainPacket);
     void processEventPacket(const EventPacketPtr& eventPacket);
     void dividerChanged(const PropertyValueEventArgsPtr& args);
+    void updateAvailableDividers(uint64_t deviceSampleRate) const;
     void configureDomainSettings();
     void initProperties();
     void createSignals();

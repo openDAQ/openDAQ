@@ -34,7 +34,6 @@ public:
     static DeviceInfoPtr CreateDeviceInfo(const DictPtr<IString, IBaseObject>& moduleOptions);
     static DeviceTypePtr CreateType();
 
-    void onSRDivChanged(const ChannelPtr& channel, Int newDivider);
 
 protected:
     // IDevice
@@ -52,8 +51,8 @@ private:
     void updateTimeSignal() const;
     void createChannels(const PropertyObjectPtr& config);
     void updateAcqLoopTime();
+    bool checkAndSetSR(uint64_t dt, uint64_t den);
     void updateSampleRate(uint64_t newSampleRate);
-    void updateDividers();
     void calculateDividerLcm();
     void acqLoop();
     void signalTypeChanged();

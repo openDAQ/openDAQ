@@ -2,9 +2,8 @@
 #include <coreobjects/callable_info_factory.h>
 #include <coreobjects/eval_value_factory.h>
 #include <coreobjects/property_object_protected_ptr.h>
-#include <coreobjects/unit_factory.h>
-#include <fmt/format.h>
 #include <opendaq/custom_log.h>
+#include <fmt/format.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/signal_factory.h>
@@ -15,14 +14,14 @@
 
 BEGIN_NAMESPACE_SIMULATOR_DEVICE_MODULE
 
-static ListPtr<IInteger> calculateAvailableSampleRateDividers(uint64_t deviceSampleRate)
+static DictPtr<IInteger, IInteger> calculateAvailableSampleRateDividers(uint64_t deviceSampleRate)
 {
-    auto availableDividers = List<IInteger>();
+    auto availableDividers = Dict<IInteger, IInteger>();
     constexpr uint16_t maxDividerCount = 10;
     for (uint64_t i = 1; i < deviceSampleRate / 2 && availableDividers.getCount() < maxDividerCount; ++i)
     {
-        if (deviceSampleRate % i == 0)
-            availableDividers.pushBack( i);
+        if (deviceSampleRate % i == 0 && deviceSampleRate / i >= 100)
+            availableDividers.set(i, deviceSampleRate / i);
     }
 
     return availableDividers;
@@ -43,9 +42,12 @@ static uint16_t calculateNearestDivider(uint64_t deviceSampleRate, uint16_t prev
     }
 }
 
-SimulatorChannelImpl::SimulatorChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+SimulatorChannelImpl::SimulatorChannelImpl(const ContextPtr& context,
+                                           const ComponentPtr& parent,
+                                           const StringPtr& localId,
+                                           const PropertyObjectPtr& ownerDevice)
     : ChannelImpl(FunctionBlockType("SimulatorAI", "Simulated analog input channel", ""), context, parent, localId)
-    , selfChange(false)
+    , ownerDevice(ownerDevice)
     , sampleRateDivider(1)
     , generator(std::make_unique<SignalGenerator>())
 {
@@ -60,31 +62,28 @@ SimulatorChannelImpl::SimulatorChannelImpl(const ContextPtr& context, const Comp
 
 void SimulatorChannelImpl::initProperties()
 {
-    objPtr.addProperty(ObjectProperty("SignalGenerator", generator->initProperties()));
-    auto availableRatesProp = ListPropertyBuilder("AvailableSRDividers", List<IInteger>(1))
+    auto signalGeneratorProp = ObjectProperty("SignalGenerator", generator->initProperties());
+    auto availableRatesProp =
+        DictPropertyBuilder("AvailableSRDividers", Dict<IInteger, IInteger>({{1, 10000}}))
                                   .setVisible(false)
                                   .setReadOnly(true)
                                   .build();
+    // TODO: Fix bug and change to SparseSelectionProperty builder.
+    auto sampleRateProp = SelectionProperty("SampleRate", EvalValue("$AvailableSRDividers"), 1);
 
+    objPtr.addProperty(signalGeneratorProp);
     objPtr.addProperty(availableRatesProp);
-    objPtr.getOnPropertyValueWrite("AvailableSRDividers") +=
+    objPtr.addProperty(sampleRateProp);
+
+    objPtr.getOnPropertyValueWrite("SampleRate") +=
         [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
         {
-            ListPtr<IInteger> availableDividers = args.getValue();
-            auto newDivider = calculateNearestDivider(sampleRate, sampleRateDivider);
-            auto it = std::find(availableDividers.begin(), availableDividers.end(), newDivider);
-            size_t index = it != availableDividers.end() ? std::distance(availableDividers.begin(), it) : 0;
-
-            objPtr.asPtr<IPropertyObjectInternal>().setPropertyValueNoLock("SampleRateDivider", index);
+            this->dividerChanged(args);
+            this->configureDomainSettings();
         };
-
-
-    objPtr.addProperty(SelectionProperty("SampleRateDivider", EvalValue("$AvailableSRDividers"), 0));
-    objPtr.getOnPropertyValueWrite("SampleRateDivider") +=
-        [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& args) { this->dividerChanged(args); };
 }
 
-void SimulatorChannelImpl::sendData(const DataPacketPtr& domainPacket) const
+void SimulatorChannelImpl::sendData(const DataPacketPtr& domainPacket)
 {
     auto sampleCount = domainPacket.getSampleCount();
     if (sampleCount && valueSignal.getActive())
@@ -101,6 +100,10 @@ void SimulatorChannelImpl::processEventPacket(const EventPacketPtr& eventPacket)
     if (eventId == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
         inputDomainDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+
+        uint64_t den = inputDomainDescriptor.getTickResolution().getDenominator();
+        uint64_t delta =  inputDomainDescriptor.getRule().getParameters().get("delta");
+        updateAvailableDividers(den / delta);
         configureDomainSettings();
     }
     else if (eventId == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
@@ -114,19 +117,29 @@ void SimulatorChannelImpl::processEventPacket(const EventPacketPtr& eventPacket)
 
 void SimulatorChannelImpl::dividerChanged(const PropertyValueEventArgsPtr& args)
 {
-    size_t value = args.getValue();
-    ListPtr<IInteger> availableDividers = args.getProperty().getSelectionValues();
+    sampleRateDivider = args.getValue();
+    PropertyObjectPtr ownerRef = ownerDevice.assigned() ? ownerDevice.getRef() : nullptr;
+    if (ownerRef.assigned())
+    {
+        ProcedurePtr proc = ownerRef.getPropertyValue("RecalculateDividerLCM");
+        proc();
+    }
+}
 
-    auto prevDivider = sampleRateDivider;
-    sampleRateDivider = availableDividers[value];
+inline void SimulatorChannelImpl::updateAvailableDividers(uint64_t deviceSampleRate) const
+{
+    DictPtr<IInteger, IInteger> availableDividers = calculateAvailableSampleRateDividers(deviceSampleRate);
+    auto newDivider = calculateNearestDivider(deviceSampleRate, sampleRateDivider);
 
-    if (prevDivider != sampleRateDivider)
-        configureDomainSettings();
+    if (!availableDividers.hasKey(newDivider))
+        newDivider = 1;
+
+    objPtr.asPtr<IPropertyObjectInternal>().setProtectedPropertyValueNoLock("AvailableSRDividers", availableDividers);
+    objPtr.asPtr<IPropertyObjectInternal>().setPropertyValueNoLock("SampleRate", newDivider);
 }
 
 void SimulatorChannelImpl::configureDomainSettings()
 {
-    const Int resolutionNum = inputDomainDescriptor.getTickResolution().getNumerator();
     const Int resolutionDen = inputDomainDescriptor.getTickResolution().getDenominator();
     
     const auto params = inputDomainDescriptor.getRule().getParameters();
@@ -136,7 +149,7 @@ void SimulatorChannelImpl::configureDomainSettings()
     if (prevDelta == deltaT)
         return;
 
-    sampleRate = resolutionDen / resolutionNum / deltaT / sampleRateDivider;
+    sampleRate = resolutionDen / deltaT;
     generator->sampleRate = sampleRate;
     generator->samplesGenerated = 0;
 

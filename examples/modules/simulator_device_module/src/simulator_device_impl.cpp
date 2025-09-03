@@ -15,8 +15,9 @@
 #include <utility>
 #include <opendaq/thread_name.h>
 
-BEGIN_NAMESPACE_SIMULATOR_DEVICE_MODULE
+#include "coreobjects/callable_info_factory.h"
 
+BEGIN_NAMESPACE_SIMULATOR_DEVICE_MODULE
 static StringPtr getEpoch()
 {
     const std::time_t epochTime = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
@@ -29,40 +30,13 @@ static StringPtr getEpoch()
 
 static RatioPtr getResolution()
 {
+    // Numerator is set to 1 and is optimized out of sample rate calculations.
     return Ratio(1, 1'000'000);
 }
 
 static UnitPtr getDomainUnit()
 {
     return UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build();
-}
-
-static ListPtr<IInteger> calculateAvailableSampleRateDividers(uint64_t deviceSampleRate)
-{
-    auto availableDividers = List<IInteger>();
-    constexpr uint16_t maxDividerCount = 10;
-    for (uint64_t i = 1; i < deviceSampleRate / 2 && availableDividers.getCount() < maxDividerCount; ++i)
-    {
-        if (deviceSampleRate % i == 0)
-            availableDividers.pushBack( i);
-    }
-
-    return availableDividers;
-}
-
-static uint64_t calculateNearestDivider(uint64_t deviceSampleRate, uint64_t previousDivider)
-{
-    if (deviceSampleRate % previousDivider == 0)
-        return previousDivider;
-
-    for (uint64_t delta = 0;; ++delta)
-    {
-        if (deviceSampleRate % (previousDivider + delta) == 0)
-            return previousDivider + delta;
-
-        if (deviceSampleRate % (previousDivider - delta) == 0)
-            return previousDivider - delta;
-    }
 }
 
 SimulatorDeviceImpl::SimulatorDeviceImpl(const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const DeviceInfoPtr& info)
@@ -86,7 +60,6 @@ SimulatorDeviceImpl::SimulatorDeviceImpl(const PropertyObjectPtr& config, const 
     initClock();
     createTimeSignal();
     createChannels(config);
-    updateDividers();
     updateAcqLoopTime();
 
     acqThread = std::thread{ &SimulatorDeviceImpl::acqLoop, this };
@@ -134,10 +107,6 @@ DeviceTypePtr SimulatorDeviceImpl::CreateType()
                       defaultConfig);
 }
 
-void SimulatorDeviceImpl::onSRDivChanged(const ChannelPtr& channel, Int newDivider)
-{
-}
-
 uint64_t SimulatorDeviceImpl::onGetTicksSinceOrigin()
 {
     return samplesGenerated * deltaTicks + ticksSinceEpochToDeviceStart;
@@ -171,7 +140,7 @@ void SimulatorDeviceImpl::initProperties()
     // Device setup props
     // Coerce for SR and Resolution.den to be integer divisible.
     const auto sampleRateProp =
-        IntPropertyBuilder("SampleRate", sampleRate).setUnit(Unit("Hz")).setMinValue(1).setMaxValue(1'000'000).build();
+        IntPropertyBuilder("SampleRate", sampleRate).setUnit(Unit("Hz")).setMinValue(100).setMaxValue(1'000'000).build();
 
     const auto acqLoopTimeProp =
         IntPropertyBuilder("AcquisitionLoopTime", 20).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
@@ -206,11 +175,16 @@ void SimulatorDeviceImpl::initProperties()
     objPtr.addProperty(fixedPacketSizeProp);
 
     objPtr.addProperty(clientSideScalingProp);
-    objPtr.getOnPropertyValueWrite("ClientSideScaling") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChanged(); };
+    //objPtr.getOnPropertyValueWrite("ClientSideScaling") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChanged(); };
 
     objPtr.addProperty(offsetProp);
     objPtr.getOnPropertyValueWrite("Offset") +=
-        [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& args) { signalTypeChanged(); };
+        [this](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { signalTypeChanged(); };
+
+    
+    auto dividerChangedProc = Procedure([this] { this->calculateDividerLcm(); });
+    objPtr.addProperty(FunctionProperty("RecalculateDividerLCM", ProcedureInfo(), false));
+    objPtr.setPropertyValue("RecalculateDividerLCM", dividerChangedProc);
 }
 
 void SimulatorDeviceImpl::initClock()
@@ -262,7 +236,7 @@ void SimulatorDeviceImpl::createChannels(const PropertyObjectPtr& config)
     for (auto i = 1; i <= numberOfChannels; i++)
     {
         auto chLocalId = fmt::format("AI_{}", i);
-        auto ch = createWithImplementation<IChannel, SimulatorChannelImpl>(context, aiFolder, chLocalId);
+        auto ch = createWithImplementation<IChannel, SimulatorChannelImpl>(context, aiFolder, chLocalId, objPtr);
         auto inputPort = ch.asPtr<IChannel>().getInputPorts(search::Any())[0];
         inputPort.connect(timeSignal);
         aiFolder.addItem(std::move(ch));
@@ -277,26 +251,35 @@ void SimulatorDeviceImpl::updateAcqLoopTime()
     this->acqLoopTime = static_cast<size_t>(loopTime);
 }
 
-void SimulatorDeviceImpl::updateSampleRate(uint64_t newSampleRate)
+bool SimulatorDeviceImpl::checkAndSetSR(uint64_t dt, uint64_t den)
 {
-    // Round to nearest acceptable sampling rate. Resolution.den must be divisible by the sampling rate.
-    // TODO: Round down instead of up
-    this->deltaTicks = resolution.getDenominator() / newSampleRate;
-    this->sampleRate = resolution.getDenominator() / deltaTicks;
-
-    resetClock();
-    updateDividers();
-    updateTimeSignal();
+    if (den % dt || den % (den / dt))
+        return false;
+    
+    this->deltaTicks = dt;
+    this->sampleRate = den / dt;
+    return true;
 }
 
-void SimulatorDeviceImpl::updateDividers()
+void SimulatorDeviceImpl::updateSampleRate(uint64_t newSampleRate)
 {
-    for (const auto& channel : aiFolder.getItems())
+    // Round to nearest acceptable sampling rate.
+    // Resolution.den must be divisible by the sampling rate and deltaT.
+
+    const auto den = resolution.getDenominator();
+    const auto dt = den / newSampleRate + (den % newSampleRate != 0); // Round up
+
+    for (int i = 0;;++i)
     {
-        auto availableDividers = calculateAvailableSampleRateDividers(sampleRate);
-        channel.asPtr<IPropertyObjectInternal>().setProtectedPropertyValueNoLock("AvailableSRDividers", availableDividers);
+        if (dt - i > 0 && checkAndSetSR(dt - i, den))
+            break;
+
+        if (i != 0 && checkAndSetSR(dt + i, den))
+            break;
     }
 
+    resetClock();
+    updateTimeSignal();
     calculateDividerLcm();
 }
 
@@ -305,7 +288,7 @@ void SimulatorDeviceImpl::calculateDividerLcm()
     dividerLcm = 1;
     for (const auto& channel : aiFolder.getItems())
     {
-        uint64_t divider = channel.getPropertySelectionValue("SampleRateDivider");
+        uint64_t divider = channel.getPropertyValue("SampleRate");
         dividerLcm = std::lcm(dividerLcm, divider);
     }
 }

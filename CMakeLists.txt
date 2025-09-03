@@ -236,8 +236,9 @@ if (COMMAND get_mode)
     message(STATUS "CMake Mode is ${CMAKE_MODE}")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|IntelLLVM)$")
     set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM Clang")
+    message(STATUS "Compiler is LLVM Clang")
 endif ()
 
 if (UNIX AND (CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUXX))
@@ -696,6 +697,13 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         -Wno-misleading-indentation \
         -Wno-missing-field-initializers"
     )
+
+    # Append Intel-LLVM-specific suppressions
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Rno-debug-disables-optimization"
+        )
+    endif()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANG_FLAGS}")

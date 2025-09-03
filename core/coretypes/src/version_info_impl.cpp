@@ -97,7 +97,12 @@ ErrCode VersionInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
     err = serializedObj->readInt(String("patch"), &patch);
     OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_NOTFOUND);
 
-    return createObject<IVersionInfo, VersionInfoImpl, SizeT, SizeT, SizeT>(reinterpret_cast<IVersionInfo**>(obj), major, minor, patch);
+    return createObject<IVersionInfo, VersionInfoImpl, SizeT, SizeT, SizeT>(
+        reinterpret_cast<IVersionInfo**>(obj),
+        static_cast<SizeT>(major),
+        static_cast<SizeT>(minor),
+        static_cast<SizeT>(patch)
+    );
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, VersionInfo, SizeT, major, SizeT, minor, SizeT, patch)

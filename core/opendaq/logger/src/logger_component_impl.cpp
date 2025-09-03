@@ -96,7 +96,7 @@ ErrCode LoggerComponentImpl::getLevel(LogLevel* level)
 ErrCode LoggerComponentImpl::logMessage(SourceLocation location, ConstCharPtr msg, LogLevel level)
 {
     spdlogLogger->log(
-        spdlog::source_loc(location.fileName, location.line, location.funcName), static_cast<spdlog::level::level_enum>(level), msg);
+        spdlog::source_loc(location.fileName, static_cast<int>(location.line), location.funcName), static_cast<spdlog::level::level_enum>(level), msg);
     return OPENDAQ_SUCCESS;
 }
 

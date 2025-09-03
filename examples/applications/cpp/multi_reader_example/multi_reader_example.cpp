@@ -275,7 +275,7 @@ void ReadSignal::sendPacket()
     auto* data = static_cast<double*>(packet.getRawData());
     for (auto i = 0; i < packetSize; ++i)
     {
-        data[i] = offset + i;
+        data[i] = static_cast<double>(offset + i);
     }
 
     signal.sendPacket(packet);

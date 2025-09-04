@@ -1,6 +1,0 @@
-  +++++++++++++++++++++++ Building openDAQ.Net.NuGet.Test.csproj ++++++++++++++++++++++++++++++++++++
-  Configuration                  = 'Debug'
-  Platform                       = 'AnyCPU'
-  OutputPath                     = 'bin/Debug/net8.0/'
-  +++++++++++++++++++++++ Compiling openDAQ.Net.NuGet.Test.csproj ++++++++++++++++++++++++++++++++++++
-/home/nick/dewesoft/blueberry_sdk/OD_opcua_dyn_sign/bindings/dotnet/openDAQ.Net/openDAQ.Net.CI.Test/OpenDAQ_CITests.cs(637,63): error CS1061: 'Channel' does not contain a definition for 'Signals' and no accessible extension method 'Signals' accepting a first argument of type 'Channel' could be found (are you missing a using directive or an assembly reference?) [/home/nick/dewesoft/blueberry_sdk/OD_opcua_dyn_sign/bindings/dotnet/openDAQ.Net/openDAQ.Net.NuGet.Test/openDAQ.Net.NuGet.Test.csproj]

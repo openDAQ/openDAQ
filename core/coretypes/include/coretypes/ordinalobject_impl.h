@@ -164,7 +164,7 @@ ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::toBool(Bool* val)
 {
     OPENDAQ_PARAM_NOT_NULL(val);
 
-    *val = (value != V{0});
+    *val = static_cast<Bool>(value);
 
     return OPENDAQ_SUCCESS;
 }

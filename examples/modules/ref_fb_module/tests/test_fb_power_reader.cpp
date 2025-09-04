@@ -730,4 +730,11 @@ TEST_F(PowerReaderTest, StatisticsStatusConnectedSignals)
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
     fb.getInputPorts()[0].connect(voltageSignal);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+
+    fb.getInputPorts()[1].connect(timeSignal);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    fb.getInputPorts()[1].disconnect();
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    fb.getInputPorts()[1].connect(currentSignal);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
 }

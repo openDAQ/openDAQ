@@ -154,13 +154,12 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IFunctionBlockType> functionBlockTypes;
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_TRUE(functionBlockTypes.assigned());
-#ifdef __APPLE__
-    ASSERT_EQ(functionBlockTypes.getCount(), 8u);
-#else
-    ASSERT_EQ(functionBlockTypes.getCount(), 9u);
+
+    ASSERT_EQ(functionBlockTypes.getCount(), 10u);
+
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleRenderer"));
     ASSERT_EQ("RefFBModuleRenderer", functionBlockTypes.get("RefFBModuleRenderer").getId());
-#endif
+
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStatistics"));
     ASSERT_EQ("RefFBModuleStatistics", functionBlockTypes.get("RefFBModuleStatistics").getId());
 
@@ -181,6 +180,9 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStructDecoder"));
     ASSERT_EQ("RefFBModuleStructDecoder", functionBlockTypes.get("RefFBModuleStructDecoder").getId());
+
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleVideoPlayer"));
+    ASSERT_EQ("RefFBModuleVideoPlayer", functionBlockTypes.get("RefFBModuleVideoPlayer").getId());
 
     // Check module info for module
     ModuleInfoPtr moduleInfo;
@@ -224,7 +226,6 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
 
 TEST_F(RefFbModuleTest, FunctionBlockRendererDefaultConfig)
 {
-#ifndef __APPLE__
     const auto module = CreateModule();
 
     auto fbType = module.getAvailableFunctionBlockTypes().get("RefFBModuleRenderer");
@@ -233,10 +234,10 @@ TEST_F(RefFbModuleTest, FunctionBlockRendererDefaultConfig)
     auto config = fbType.createDefaultConfig();
     ASSERT_TRUE(config.hasProperty("UseMainLoopForRenderer"));
 
-    // For macOS, the renderer should always use the main loop
-    // ASSERT_TRUE(config.getPropertyValue("UseMainLoopForRenderer"));
-
+#ifndef __APPLE__
     ASSERT_FALSE(config.getPropertyValue("UseMainLoopForRenderer"));
+#else
+    ASSERT_TRUE(config.getPropertyValue("UseMainLoopForRenderer"));
 #endif
 }
 

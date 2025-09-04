@@ -122,7 +122,7 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
     virtual ErrCode INTERFACE_FUNC completeServerCapability(Bool* succeeded, IServerCapability* source, IServerCapabilityConfig* target) = 0;
 
     /*!
-     * @brief Returns a dictionary of known and available streaming types that this module (client) can create.T
+     * @brief Returns a dictionary of known and available streaming types that this module (client) can create.
      * @param[out] streamingTypes The dictionary of known streaming types.
      */
     // [templateType(streamingTypes, IString, IStreamingType)]
@@ -139,14 +139,16 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
 
     // [templateType(licenseConfig, IString, IString)]
     /*!
-     * @brief Used to retrieve the license config previously used.
+     * @brief Used to retrieve the license config template.
      * @param[out] licenseConfig Previously used config.
      */
     virtual ErrCode INTERFACE_FUNC getLicenseConfig(IDict** licenseConfig) = 0;
 
     /*!
      * @brief Check whether the module license is loaded.
-     * @param[out] loaded Should be implemented to return true, if no license is required.
+     * @param[out] loaded True, if the module license is loaded.
+     *
+     * Always return True if no license is required by the module.
      */
     virtual ErrCode INTERFACE_FUNC licenseLoaded(Bool* loaded) = 0;
 };

@@ -122,7 +122,7 @@ void BasicCsvRecorderImpl::reconfigure()
 
     if (recordingActive)
     {
-        // We will update the 'signals' map by emplacing new BasicCsvRecorderSignal objects for
+        // We will update the 'threads' map by emplacing new BasicCsvRecorderSignal objects for
         // newly-connected input ports, and destroying BasicCsvRecorderSignal objects for ports
         // that are gone or no longer connected. Notably, we will not disturb
         // BasicCsvRecorderSignal objects for input ports that have not changed.
@@ -172,7 +172,7 @@ void BasicCsvRecorderImpl::reconfigure()
 
     else
     {
-        signals.clear();
+        threads.clear();
     }
 }
 

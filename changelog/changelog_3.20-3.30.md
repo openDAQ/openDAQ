@@ -2,6 +2,9 @@
 
 ## Features
 
+- [#869](https://github.com/openDAQ/openDAQ/pull/869) Implementing video player function block.
+- [#894](https://github.com/openDAQ/openDAQ/pull/894) Allows for objects to specify whether they will use their own mutex, or that of their owner/parent.
+- [#884](https://github.com/openDAQ/openDAQ/pull/884) Tampering check interface and example implementation.
 - [#878](https://github.com/openDAQ/openDAQ/pull/878) Licensing interface and reference module + example implementation.
 - [#867](https://github.com/openDAQ/openDAQ/pull/867) Generalized client-to-device streaming
 - [#865](https://github.com/openDAQ/openDAQ/pull/865), [#882](https://github.com/openDAQ/openDAQ/pull/882) onPropertyValueRead events are now supported over native. Suggested and Selection values can be overridden in new onRead events. String properties can now have suggested values.
@@ -30,6 +33,7 @@
 - [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active.
 - [#808](https://github.com/openDAQ/openDAQ/pull/808) Fix examples CMake when downloaded as solo archive via https://docs.opendaq.com/ or https://docs-dev.opendaq.com/ (when not part of whole openDAQ project).
 - [#781](https://github.com/openDAQ/openDAQ/pull/781) Fix how Lists are interpreted for Function Property in Python.
+
 
 ## Misc
 

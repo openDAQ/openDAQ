@@ -334,7 +334,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrLambdaOneParam)
 
 TEST_F(ProcedureTest, ImplicitSmartPtrLambdaOneParamThrow)
 {
-    ProcedurePtr ptr = [](Int /*param*/) -> ErrCode
+    ProcedurePtr ptr = [](Int /*param*/) -> Int
     {
         throw GeneralErrorException();
     };
@@ -362,7 +362,7 @@ TEST_F(ProcedureTest, ImplicitSmartPtrLambdaTwoParam)
 
 TEST_F(ProcedureTest, ImplicitSmartPtrLambdaTwoThrow)
 {
-    ProcedurePtr ptr = [](Int /*a*/, Int /*b*/) -> ErrCode
+    ProcedurePtr ptr = [](Int /*a*/, Int /*b*/) -> Int
     {
         throw GeneralErrorException();
     };

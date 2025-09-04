@@ -478,6 +478,16 @@ bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
 template <class Intf, class ... Intfs>
 void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
+    bool shouldSerialize = !forUpdate;
+    for(const auto& [itemId, item] : items) {
+        if (item.template asPtr<IPropertyObjectInternal>().hasUserReadAccess(serializer.getUser())) {
+            shouldSerialize = true;
+            break;
+        }
+    }
+
+    if(!shouldSerialize) return;
+
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
     if (!items.empty())

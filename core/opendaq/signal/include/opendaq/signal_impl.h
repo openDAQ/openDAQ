@@ -1121,13 +1121,12 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
             const auto domainSignalGlobalId = domainSignalObj.getGlobalId();
             serializer.writeString(domainSignalGlobalId);
         }
-    }
-
-    const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
-    if (dataDescriptorObj.assigned())
-    {
-        serializer.key("dataDescriptor");
-        dataDescriptorObj.serialize(serializer);
+        const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
+        if (dataDescriptorObj.assigned())
+        {
+            serializer.key("dataDescriptor");
+            dataDescriptorObj.serialize(serializer);
+        }
     }
 
     serializer.key("public");

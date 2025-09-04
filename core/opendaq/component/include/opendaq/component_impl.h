@@ -571,7 +571,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     {
         std::string str = strPtr.toStdString();
         str = coretype_utils::toLowerCase(str);
-        coretype_utils::toUpperCase(str[0]);
+        str[0] = coretype_utils::toUpperCase(str[0]);
         lockedAttributes.insert(str);
     }
 

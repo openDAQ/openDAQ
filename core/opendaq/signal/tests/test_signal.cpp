@@ -29,7 +29,7 @@ class ConnectionMockImpl : public ImplementationOf<IConnection>
 {
 public:
     bool packetEnqueued{ false };
-    int packetsEnqueued{0};
+    SizeT packetsEnqueued{0};
 
     ErrCode INTERFACE_FUNC enqueue(IPacket* packet) override
     {

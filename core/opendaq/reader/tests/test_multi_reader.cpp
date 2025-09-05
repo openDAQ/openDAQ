@@ -89,8 +89,15 @@ struct ReadSignal
 
         ValueType* data = static_cast<ValueType*>(packet.getData());
         for (auto i = 0; i < packetSize; ++i)
-        {
-            data[i] = static_cast<ValueType>(offset + i);
+        {            
+            using Scalar = std::conditional_t<
+                std::is_same_v<ValueType, Complex_Number<float>>, float,
+                std::conditional_t<
+                    std::is_same_v<ValueType, Complex_Number<double>>, double, ValueType
+                >
+            >;
+
+            data[i] = ValueType(static_cast<Scalar>(offset + i));
         }
 
         if (log)

@@ -288,8 +288,8 @@ void printData(std::int64_t samples, T& times, U& values)
     using namespace std::chrono;
     using namespace reader;
 
-    int numSignals = std::size(times);
-    for (int sigIndex = 0; sigIndex < numSignals; ++sigIndex)
+    size_t numSignals = std::size(times);
+    for (size_t sigIndex = 0; sigIndex < numSignals; ++sigIndex)
     {
         fmt::print("--------\n");
         fmt::print("Signal {}\n", sigIndex);

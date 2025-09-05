@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.10)
 set_cmake_folder_context(TARGET_FOLDER_NAME)
 project(NewWebsocketStreamingServerModule VERSION ${OPENDAQ_PACKAGE_VERSION} LANGUAGES CXX)
 
-
 if (MSVC)
     # loss of data / precision, unsigned <--> signed
     #

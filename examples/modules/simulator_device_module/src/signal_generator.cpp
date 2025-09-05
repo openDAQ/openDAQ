@@ -54,7 +54,7 @@ PropertyObjectPtr SignalGenerator::initProperties()
                                .build();
 
     const auto noiseAmplitudeProp = FloatPropertyBuilder("NoiseAmplitude", 0.0)
-                                    .setVisible(EvalValue("$Waveform < 2"))
+                                    .setVisible(EvalValue("$Waveform < 3"))
                                     .setUnit(Unit("V"))
                                     .setMinValue(0.0)
                                     .setMaxValue(10.0)
@@ -145,7 +145,7 @@ DataDescriptorPtr SignalGenerator::buildDescriptor() const
     const auto valueDescriptorBuilder =
         DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V", -1, "volts", "voltage"));
 
-    if (waveformType < WaveformType::None)
+    if (waveformType < WaveformType::Counter)
     {
         valueDescriptorBuilder.setValueRange(Range(-10, 10));
     }
@@ -160,20 +160,52 @@ DataDescriptorPtr SignalGenerator::buildDescriptor() const
 
 void SignalGenerator::waveformChanged(PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
 {
+    enum class WaveformProperty { Waveform, Frequency, DC, Amplitude, NoiseAmplitude, ConstantValue, Unknown };
+    static const std::unordered_map<std::string, WaveformProperty> waveformPropLookup
+    {
+        {"Waveform", WaveformProperty::Waveform},
+        {"Frequency", WaveformProperty::Frequency},
+        {"DC", WaveformProperty::DC},
+        {"Amplitude", WaveformProperty::Amplitude},
+        {"NoiseAmplitude", WaveformProperty::NoiseAmplitude},
+        {"ConstantValue", WaveformProperty::ConstantValue},
+        {"Unknown", WaveformProperty::Unknown},
+    };
+    
     const auto prevWaveform = waveformType;
+    auto propName = args.getProperty().getName();
+    auto value = args.getValue();
 
-    waveformType = generatorSettings.getPropertyValue("Waveform");
-    freq = generatorSettings.getPropertyValue("Frequency");
-    dc = generatorSettings.getPropertyValue("DC");
-    ampl = generatorSettings.getPropertyValue("Amplitude");
-    noiseAmpl = generatorSettings.getPropertyValue("NoiseAmplitude");
-    constantValue = generatorSettings.getPropertyValue("ConstantValue");
+    switch (waveformPropLookup.count(propName) ? waveformPropLookup.at(propName) : WaveformProperty::Unknown)
+    {
+        case WaveformProperty::Waveform:
+            waveformType = value;
+            valueSignal.setDescriptor(buildDescriptor());
+            break;
 
-    bool needsDescriptorUpdate =
-        prevWaveform != waveformType && (prevWaveform == WaveformType::ConstantValue || waveformType == WaveformType::ConstantValue);
+        case WaveformProperty::Frequency:
+            freq = value;
+            break;
 
-    if (needsDescriptorUpdate)
-        valueSignal.setDescriptor(buildDescriptor());
+        case WaveformProperty::DC:
+            dc = value;
+            break;
+
+        case WaveformProperty::Amplitude:
+            ampl = value;
+            break;
+
+        case WaveformProperty::NoiseAmplitude:
+            noiseAmpl = value;
+            break;
+
+        case WaveformProperty::ConstantValue:
+            constantValue = value;
+            break;
+
+        case WaveformProperty::Unknown:
+            break;
+    }
 }
 
 void SignalGenerator::resetCounter()

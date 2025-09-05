@@ -7,6 +7,7 @@ set(SRC_Include common.h
                 simulator_device_impl.h
                 simulator_channel_impl.h
                 signal_generator.h
+                utils.h
 )
 
 set(SRC_Srcs module_dll.cpp
@@ -26,7 +27,6 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/simulator_device_module_common
                             ${MODULE_HEADERS_DIR}/utils.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             module_dll.cpp
-                            tuils.cpp
                             simulator_device_module_impl.cpp
                             simulator_device_impl.cpp
                             simulator_channel_impl.cpp

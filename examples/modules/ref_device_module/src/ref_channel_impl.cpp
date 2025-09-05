@@ -386,7 +386,7 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
 
         if (!dataPacket.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "We have created an empty packet, OH NO");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Packet creation failed!");
         }
 
         double* buffer;

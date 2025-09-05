@@ -59,7 +59,7 @@ private:
     // Domain setup
     uint16_t sampleRateDivider;
     uint64_t sampleRate;
-    uint64_t deltaT;
+    uint64_t deltaTicks;
 
     // Signal data generator
     std::unique_ptr<SignalGenerator> generator;

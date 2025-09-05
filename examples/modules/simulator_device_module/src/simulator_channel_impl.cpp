@@ -170,13 +170,13 @@ void SimulatorChannelImpl::configureDomainSettings()
     const Int resolutionDen = inputDomainDescriptor.getTickResolution().getDenominator();
     
     const auto params = inputDomainDescriptor.getRule().getParameters();
-    deltaT = params.get("delta") * sampleRateDivider;
+    deltaTicks = params.get("delta") * sampleRateDivider;
 
-    sampleRate = resolutionDen / deltaT;
+    sampleRate = resolutionDen / deltaTicks;
     generator->sampleRate = sampleRate;
     generator->samplesGenerated = 0;
 
-    auto builder = DataDescriptorBuilderCopy(inputDomainDescriptor).setRule(LinearDataRule(deltaT, params.get("start")));
+    auto builder = DataDescriptorBuilderCopy(inputDomainDescriptor).setRule(LinearDataRule(deltaTicks, params.get("start")));
     timeSignal.setDescriptor(builder.build());
 }
 
@@ -207,7 +207,7 @@ void SimulatorChannelImpl::processEventPacket(const EventPacketPtr& eventPacket)
     {
         // TODO: Test this
         uint64_t gap = eventPacket.getParameters().get(event_packet_param::GAP_DIFF);
-        uint64_t gapInTicks = gap / deltaT;
+        uint64_t gapInTicks = gap / deltaTicks;
         generator->samplesGenerated += gapInTicks;
     }
 }

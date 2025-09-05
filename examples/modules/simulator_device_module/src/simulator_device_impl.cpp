@@ -232,7 +232,7 @@ bool SimulatorDeviceImpl::checkAndSetSR(uint64_t dt, uint64_t den)
 void SimulatorDeviceImpl::updateSampleRate(uint64_t newSampleRate)
 {
     // Round to nearest acceptable sampling rate.
-    // Resolution.den must be divisible by the sampling rate and deltaT.
+    // Resolution.den must be divisible by the sampling rate and deltaTicks.
 
     const auto den = resolution.getDenominator();
     const auto dt = den / newSampleRate + (den % newSampleRate != 0); // Round up

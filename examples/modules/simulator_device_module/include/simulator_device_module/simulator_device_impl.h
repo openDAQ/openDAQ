@@ -23,8 +23,6 @@
 
 BEGIN_NAMESPACE_SIMULATOR_DEVICE_MODULE
 
-
-
 class SimulatorDeviceImpl final : public Device
 {
 public:
@@ -34,9 +32,8 @@ public:
     static DeviceInfoPtr CreateDeviceInfo(const DictPtr<IString, IBaseObject>& moduleOptions);
     static DeviceTypePtr CreateType();
 
-
 protected:
-    // IDevice
+    // DeviceImpl overrides
     uint64_t onGetTicksSinceOrigin() override;
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;
@@ -44,28 +41,40 @@ protected:
     void onOperationModeChanged(OperationModeType modeType) override;
 
 private:
+    // Initialization
     void initProperties();
-    void initClock();
-    void resetClock();
+    void createChannels(uint64_t numberOfChannels);
     void createTimeSignal();
+    void initClock();
+
+    // Configuration changes
+    void propertyWriteCallback(PropertyObjectPtr&, PropertyValueEventArgsPtr& args);
+    void updateAcqLoopTime(uint64_t acqLoopTime);
+    void offsetChanged(uint64_t offset);
+    void resetClock();
     void updateTimeSignal() const;
-    void createChannels(const PropertyObjectPtr& config);
-    void updateAcqLoopTime();
+    void calculateDividerLcm();
     bool checkAndSetSR(uint64_t dt, uint64_t den);
     void updateSampleRate(uint64_t newSampleRate);
-    void calculateDividerLcm();
-    void acqLoop();
-    void signalTypeChanged();
 
+    // Acquisition loop
     uint64_t sendTimePackets(uint64_t newSampleCount);
     uint64_t getNewSampleCount(const std::chrono::steady_clock::time_point& curLoopTime,
                                const std::chrono::steady_clock::time_point& prevLoopTime,
                                uint64_t remainingSamples) const;
+    void acqLoop();
 
+    // Device domain constant construction helpers 
+    static StringPtr getEpoch();
+    static RatioPtr getResolution();
+    static UnitPtr getDomainUnit();
+
+    // Component references
     FolderConfigPtr aiFolder;
     SignalConfigPtr timeSignal;
 
-    size_t acqLoopTime;
+    // Acquisition loop parameters
+    uint64_t acqLoopTime;
     bool stopAcq;
 
     std::thread acqThread;
@@ -74,6 +83,7 @@ private:
     uint64_t ticksSinceEpochToDeviceStart;
     uint64_t samplesGenerated;
     
+    // Device domain setup
     uint64_t sampleRate;
     uint64_t deltaTicks;
     uint64_t offset;

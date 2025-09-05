@@ -15,7 +15,6 @@
  */
 
 #pragma once
-#include <simulator_device_module/common.h>
 #include <coreobjects/property_object_ptr.h>
 #include <random>
 #include <opendaq/logger_component_ptr.h>
@@ -37,16 +36,18 @@ public:
 
     uint64_t sampleRate;
     uint64_t samplesGenerated;
-    bool clientSideScaling;
     SignalConfigPtr valueSignal;
 
 private:
-    void waveformChanged();
+    void waveformChanged(PropertyObjectPtr&, PropertyValueEventArgsPtr& args);
     void resetCounter();
 
     LoggerComponentPtr loggerComponent;
+
+    // User settings
     PropertyObjectPtr generatorSettings;
 
+    // Waveform setup
     WaveformType waveformType;
     double freq;
     double ampl;

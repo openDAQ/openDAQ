@@ -37,5 +37,4 @@ private:
     void clearRemovedDevice();
 };
 
-
 END_NAMESPACE_SIMULATOR_DEVICE_MODULE

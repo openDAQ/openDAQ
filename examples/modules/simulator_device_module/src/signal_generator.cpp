@@ -7,6 +7,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <coretypes/intfs.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -15,7 +16,6 @@ BEGIN_NAMESPACE_OPENDAQ
 SignalGenerator::SignalGenerator()
     : sampleRate(0)
     , samplesGenerated(0)
-    , clientSideScaling(false)
     , waveformType(WaveformType::Sine)
     , freq(10.0)
     , ampl(5.0)
@@ -79,7 +79,8 @@ PropertyObjectPtr SignalGenerator::initProperties()
     generatorSettings.addProperty(constantValueProp);
 
     generatorSettings.setPropertyValue("ResetCounter", Procedure([this] { this->resetCounter(); }));
-    generatorSettings.getOnAnyPropertyValueWrite() += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { this->waveformChanged(); };
+
+    generatorSettings.getOnAnyPropertyValueWrite() += event(this, &SignalGenerator::waveformChanged);
 
     generatorSettings.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
     return generatorSettings;
@@ -98,12 +99,7 @@ PacketPtr SignalGenerator::generateData(const DataPacketPtr& domainPacket)
     else
     {
         dataPacket = DataPacketWithDomain(domainPacket, descriptor, newSampleCount);
-        double* buffer;
-
-        if (clientSideScaling)
-            buffer = static_cast<double*>(std::malloc(newSampleCount * sizeof(double)));
-        else
-            buffer = static_cast<double*>(dataPacket.getRawData());
+        double* buffer = static_cast<double*>(dataPacket.getRawData());
 
         switch(waveformType)
         {
@@ -138,16 +134,6 @@ PacketPtr SignalGenerator::generateData(const DataPacketPtr& domainPacket)
             case WaveformType::ConstantValue:
                 break;
         }
-
-        if (clientSideScaling)
-        {
-            double f = std::pow(2, 24);
-            auto packetBuffer = static_cast<uint32_t*>(dataPacket.getRawData());
-            for (size_t i = 0; i < newSampleCount; i++)
-                *packetBuffer++ = static_cast<uint32_t>((buffer[i] + 10.0) / 20.0 * f);
-
-            std::free(buffer);
-        }
     }
     
     samplesGenerated += newSampleCount;
@@ -164,13 +150,6 @@ DataDescriptorPtr SignalGenerator::buildDescriptor() const
         valueDescriptorBuilder.setValueRange(Range(-10, 10));
     }
 
-    if (clientSideScaling)
-    {
-        const double scale = 20.0 / std::pow(2, 24);
-        constexpr double offset = -10.0;
-        valueDescriptorBuilder.setPostScaling(LinearScaling(scale, offset, SampleType::Int32, ScaledSampleType::Float64));
-    }
-
     if (waveformType == WaveformType::ConstantValue)
     {
         valueDescriptorBuilder.setRule(ConstantDataRule());
@@ -179,7 +158,7 @@ DataDescriptorPtr SignalGenerator::buildDescriptor() const
     return valueDescriptorBuilder.build();
 }
 
-void SignalGenerator::waveformChanged()
+void SignalGenerator::waveformChanged(PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
 {
     const auto prevWaveform = waveformType;
 

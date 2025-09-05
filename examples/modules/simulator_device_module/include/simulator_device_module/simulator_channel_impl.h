@@ -24,10 +24,6 @@
 
 BEGIN_NAMESPACE_SIMULATOR_DEVICE_MODULE
 
-// TODO: Don't change things during update
-
-enum class WaveformType { Sine, Rect, None, Counter, ConstantValue };
-
 class SimulatorChannelImpl final : public Channel
 {
 public:
@@ -40,28 +36,34 @@ protected:
     void onPacketReceived(const InputPortPtr& port) override;
 
 private:
-    SignalConfigPtr valueSignal; // TODO: SRDiv
-    SignalConfigPtr timeSignal;
-    DataDescriptorPtr inputDomainDescriptor;
-    WeakRefPtr<IPropertyObject> ownerDevice;
-
-    uint16_t sampleRateDivider;
-
-    uint64_t sampleRate;
-    uint64_t deltaT;
-
-    std::unique_ptr<SignalGenerator> generator;
-
-    void sendData(const DataPacketPtr& domainPacket);
-    void processEventPacket(const EventPacketPtr& eventPacket);
-    void dividerChanged(const PropertyValueEventArgsPtr& args);
-    void updateAvailableDividers(uint64_t deviceSampleRate) const;
-    void configureDomainSettings();
+    // Initialization
     void initProperties();
     void createSignals();
     void createDomainSignalInputPort() const;
 
-    void configureDomainDescriptor() const;
+    // Domain setup
+    void dividerChanged(const PropertyValueEventArgsPtr& args);
+    void updateAvailableDividers(uint64_t deviceSampleRate) const;
+    void configureDomainSettings();
+
+    // Data generation
+    void sendData(const DataPacketPtr& domainPacket) const;
+    void processEventPacket(const EventPacketPtr& eventPacket);
+
+    // Component references
+    SignalConfigPtr valueSignal;
+    SignalConfigPtr timeSignal;
+    DataDescriptorPtr inputDomainDescriptor;
+    WeakRefPtr<IPropertyObject> ownerDevice;
+
+    // Domain setup
+    uint16_t sampleRateDivider;
+    uint64_t sampleRate;
+    uint64_t deltaT;
+
+    // Signal data generator
+    std::unique_ptr<SignalGenerator> generator;
+
 };
 
 END_NAMESPACE_SIMULATOR_DEVICE_MODULE

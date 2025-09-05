@@ -60,6 +60,33 @@ SimulatorChannelImpl::SimulatorChannelImpl(const ContextPtr& context,
     initComponentStatus();
 }
 
+void SimulatorChannelImpl::onPacketReceived(const InputPortPtr& port)
+{
+    const auto connection = port.getConnection();
+    if (!connection.assigned())
+        return;
+
+    PacketPtr packet = connection.dequeue();
+    while (packet.assigned())
+    {
+        switch (packet.getType())
+        {
+            case PacketType::Event:
+                processEventPacket(packet);
+                break;
+
+            case PacketType::Data:
+                sendData(packet);
+                break;
+
+            default:
+                break;
+        }
+
+        packet = connection.dequeue();
+    }
+}
+
 void SimulatorChannelImpl::initProperties()
 {
     auto signalGeneratorProp = ObjectProperty("SignalGenerator", generator->initProperties());
@@ -81,87 +108,6 @@ void SimulatorChannelImpl::initProperties()
             this->dividerChanged(args);
             this->configureDomainSettings();
         };
-}
-
-void SimulatorChannelImpl::sendData(const DataPacketPtr& domainPacket)
-{
-    auto sampleCount = domainPacket.getSampleCount();
-    if (sampleCount && valueSignal.getActive())
-    {
-        auto channelDomainPacket = DataPacket(timeSignal.getDescriptor(), sampleCount / sampleRateDivider, domainPacket.getOffset());
-        timeSignal.sendPacket(channelDomainPacket);
-        valueSignal.sendPacket(generator->generateData(channelDomainPacket));
-    }
-}
-
-void SimulatorChannelImpl::processEventPacket(const EventPacketPtr& eventPacket)
-{
-    auto eventId = eventPacket.getEventId();
-    if (eventId == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-    {
-        inputDomainDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-
-        uint64_t den = inputDomainDescriptor.getTickResolution().getDenominator();
-        uint64_t delta =  inputDomainDescriptor.getRule().getParameters().get("delta");
-        updateAvailableDividers(den / delta);
-        configureDomainSettings();
-    }
-    else if (eventId == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
-    {
-        // TODO: Test this
-        uint64_t gap = eventPacket.getParameters().get(event_packet_param::GAP_DIFF);
-        uint64_t gapInTicks = gap / deltaT;
-        generator->samplesGenerated += gapInTicks;
-    }
-}
-
-void SimulatorChannelImpl::dividerChanged(const PropertyValueEventArgsPtr& args)
-{
-    sampleRateDivider = args.getValue();
-    PropertyObjectPtr ownerRef = ownerDevice.assigned() ? ownerDevice.getRef() : nullptr;
-    if (ownerRef.assigned())
-    {
-        ProcedurePtr proc = ownerRef.getPropertyValue("RecalculateDividerLCM");
-        proc();
-    }
-}
-
-inline void SimulatorChannelImpl::updateAvailableDividers(uint64_t deviceSampleRate) const
-{
-    DictPtr<IInteger, IInteger> availableDividers = calculateAvailableSampleRateDividers(deviceSampleRate);
-    auto newDivider = calculateNearestDivider(deviceSampleRate, sampleRateDivider);
-
-    if (!availableDividers.hasKey(newDivider))
-        newDivider = 1;
-
-    objPtr.asPtr<IPropertyObjectInternal>().setProtectedPropertyValueNoLock("AvailableSRDividers", availableDividers);
-    objPtr.asPtr<IPropertyObjectInternal>().setPropertyValueNoLock("SampleRate", newDivider);
-}
-
-void SimulatorChannelImpl::configureDomainSettings()
-{
-    const Int resolutionDen = inputDomainDescriptor.getTickResolution().getDenominator();
-    
-    const auto params = inputDomainDescriptor.getRule().getParameters();
-    auto prevDelta = deltaT;
-    deltaT = params.get("delta") * sampleRateDivider;
-
-    if (prevDelta == deltaT)
-        return;
-
-    sampleRate = resolutionDen / deltaT;
-    generator->sampleRate = sampleRate;
-    generator->samplesGenerated = 0;
-
-    configureDomainDescriptor();
-}
-
-void SimulatorChannelImpl::configureDomainDescriptor() const
-{
-    auto params = inputDomainDescriptor.getRule().getParameters();
-    auto start = params.get("start");
-    auto builder = DataDescriptorBuilderCopy(inputDomainDescriptor).setRule(LinearDataRule(deltaT, start));
-    timeSignal.setDescriptor(builder.build());
 }
 
 void SimulatorChannelImpl::createSignals()
@@ -196,30 +142,73 @@ void SimulatorChannelImpl::createDomainSignalInputPort() const
     inputPorts.addItem(inputPort);
 }
 
-void SimulatorChannelImpl::onPacketReceived(const InputPortPtr& port)
+void SimulatorChannelImpl::dividerChanged(const PropertyValueEventArgsPtr& args)
 {
-    const auto connection = port.getConnection();
-    if (!connection.assigned())
-        return;
-
-    PacketPtr packet = connection.dequeue();
-    while (packet.assigned())
+    sampleRateDivider = args.getValue();
+    PropertyObjectPtr ownerRef = ownerDevice.assigned() ? ownerDevice.getRef() : nullptr;
+    if (ownerRef.assigned())
     {
-        switch (packet.getType())
-        {
-            case PacketType::Event:
-                processEventPacket(packet);
-                break;
+        ProcedurePtr proc = ownerRef.getPropertyValue("RecalculateDividerLCM");
+        proc();
+    }
+}
 
-            case PacketType::Data:
-                sendData(packet);
-                break;
+inline void SimulatorChannelImpl::updateAvailableDividers(uint64_t deviceSampleRate) const
+{
+    DictPtr<IInteger, IInteger> availableDividers = calculateAvailableSampleRateDividers(deviceSampleRate);
+    auto newDivider = calculateNearestDivider(deviceSampleRate, sampleRateDivider);
 
-            default:
-                break;
-        }
+    if (!availableDividers.hasKey(newDivider))
+        newDivider = 1;
 
-        packet = connection.dequeue();
+    objPtr.asPtr<IPropertyObjectInternal>().setProtectedPropertyValueNoLock("AvailableSRDividers", availableDividers);
+    objPtr.asPtr<IPropertyObjectInternal>().setPropertyValueNoLock("SampleRate", newDivider);
+}
+
+void SimulatorChannelImpl::configureDomainSettings()
+{
+    const Int resolutionDen = inputDomainDescriptor.getTickResolution().getDenominator();
+    
+    const auto params = inputDomainDescriptor.getRule().getParameters();
+    deltaT = params.get("delta") * sampleRateDivider;
+
+    sampleRate = resolutionDen / deltaT;
+    generator->sampleRate = sampleRate;
+    generator->samplesGenerated = 0;
+
+    auto builder = DataDescriptorBuilderCopy(inputDomainDescriptor).setRule(LinearDataRule(deltaT, params.get("start")));
+    timeSignal.setDescriptor(builder.build());
+}
+
+void SimulatorChannelImpl::sendData(const DataPacketPtr& domainPacket) const
+{
+    auto sampleCount = domainPacket.getSampleCount();
+    if (sampleCount && valueSignal.getActive())
+    {
+        auto channelDomainPacket = DataPacket(timeSignal.getDescriptor(), sampleCount / sampleRateDivider, domainPacket.getOffset());
+        timeSignal.sendPacket(channelDomainPacket);
+        valueSignal.sendPacket(generator->generateData(channelDomainPacket));
+    }
+}
+
+void SimulatorChannelImpl::processEventPacket(const EventPacketPtr& eventPacket)
+{
+    auto eventId = eventPacket.getEventId();
+    if (eventId == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+    {
+        inputDomainDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+
+        uint64_t den = inputDomainDescriptor.getTickResolution().getDenominator();
+        uint64_t delta =  inputDomainDescriptor.getRule().getParameters().get("delta");
+        updateAvailableDividers(den / delta);
+        configureDomainSettings();
+    }
+    else if (eventId == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+    {
+        // TODO: Test this
+        uint64_t gap = eventPacket.getParameters().get(event_packet_param::GAP_DIFF);
+        uint64_t gapInTicks = gap / deltaT;
+        generator->samplesGenerated += gapInTicks;
     }
 }
 

@@ -21,8 +21,8 @@ SimulatorDeviceImpl::SimulatorDeviceImpl(const PropertyObjectPtr& config, const 
     : Device(ctx, parent, fmt::format("{}_{}", info.getManufacturer(), info.getSerialNumber()), nullptr, info.getName())
     , acqLoopTime(20)
     , stopAcq(false)
-    , ticksSinceEpochToDeviceStart(0)
     , samplesGenerated(0)
+    , packetOffset(0)
     , sampleRate(10000)
     , deltaTicks(100)
     , offset(0)
@@ -85,7 +85,7 @@ DeviceTypePtr SimulatorDeviceImpl::CreateType()
 uint64_t SimulatorDeviceImpl::onGetTicksSinceOrigin()
 {
     auto lock = getAcquisitionLock2();
-    return samplesGenerated * deltaTicks + ticksSinceEpochToDeviceStart;
+    return packetOffset - deltaTicks;
 }
 
 bool SimulatorDeviceImpl::allowAddDevicesFromModules()
@@ -155,7 +155,9 @@ void SimulatorDeviceImpl::createTimeSignal()
 
 void SimulatorDeviceImpl::initClock()
 {
-    resetClock();
+    auto startAbsTime = std::chrono::system_clock::now();
+    packetOffset = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch()).count();
+
     auto referenceDomainInfo = ReferenceDomainInfoBuilder().setReferenceDomainId(this->localId).setReferenceDomainOffset(0).build();
     this->setDeviceDomain(DeviceDomain(resolution, epoch, domainUnit, referenceDomainInfo));
 }
@@ -189,13 +191,6 @@ void SimulatorDeviceImpl::offsetChanged(uint64_t offset)
 {
     this->offset = offset * resolution.getDenominator();
     updateTimeSignal();
-}
-
-void SimulatorDeviceImpl::resetClock()
-{
-    auto startAbsTime = std::chrono::system_clock::now();
-    ticksSinceEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch()).count();
-    samplesGenerated = 0;
 }
 
 void SimulatorDeviceImpl::updateTimeSignal() const
@@ -251,23 +246,19 @@ void SimulatorDeviceImpl::updateSampleRate(uint64_t newSampleRate)
             break;
     }
 
-    resetClock();
     updateTimeSignal();
     calculateDividerLcm();
 }
 
 uint64_t SimulatorDeviceImpl::sendTimePackets(uint64_t newSampleCount)
 {
-    const uint64_t packetTime = samplesGenerated * deltaTicks + ticksSinceEpochToDeviceStart;
     uint64_t sampleRemainder = newSampleCount % dividerLcm;
     uint64_t actualPacketSize = newSampleCount - sampleRemainder;
 
     if (actualPacketSize > 0)
-    {
-        timeSignal.sendPacket(std::move(DataPacket(timeSignal.getDescriptor(), actualPacketSize, packetTime)));
-    }
+        timeSignal.sendPacket(std::move(DataPacket(timeSignal.getDescriptor(), actualPacketSize, packetOffset)));
 
-    samplesGenerated += actualPacketSize;
+    packetOffset += actualPacketSize * deltaTicks;
     return sampleRemainder;
 }
 
@@ -287,25 +278,24 @@ void SimulatorDeviceImpl::acqLoop()
 
     using namespace std::chrono_literals;
     using milli = std::chrono::milliseconds;
-    auto prevLoopTime = std::chrono::steady_clock::now();
-    uint64_t remainingSamples = 0;
 
     auto lock = getUniqueLock();
 
+    auto loopTime = milli(acqLoopTime);
+    auto prevLoopTime = std::chrono::steady_clock::now();
+    uint64_t remainingSamples = 0;
+
     while (!stopAcq)
     {
-        const auto loopTime = milli(acqLoopTime);
-        const auto time = std::chrono::high_resolution_clock::now();
-        const auto loopDuration = std::chrono::duration_cast<milli>(time - prevLoopTime);
-        const auto waitTime = loopDuration.count() >= loopTime.count() ? milli(0) : milli(loopTime.count() - loopDuration.count());
-        
-        cv.wait_for(lock, waitTime);
+        cv.wait_until(lock, prevLoopTime + loopTime);
         if (!stopAcq)
         {
-            auto curLoopTime = std::chrono::steady_clock::now();
-            auto newSampleCount = getNewSampleCount(curLoopTime, prevLoopTime, remainingSamples);
+            const auto time = std::chrono::steady_clock::now();
+            auto newSampleCount = getNewSampleCount(time, prevLoopTime, remainingSamples);
             remainingSamples = sendTimePackets(newSampleCount);
-            prevLoopTime = curLoopTime;
+
+            prevLoopTime = time;
+            loopTime = milli(acqLoopTime);
         }
     }
 }

@@ -51,7 +51,6 @@ private:
     void propertyWriteCallback(PropertyObjectPtr&, PropertyValueEventArgsPtr& args);
     void updateAcqLoopTime(uint64_t acqLoopTime);
     void offsetChanged(uint64_t offset);
-    void resetClock();
     void updateTimeSignal() const;
     void calculateDividerLcm();
     bool checkAndSetSR(uint64_t dt, uint64_t den);
@@ -80,8 +79,8 @@ private:
     std::thread acqThread;
     std::condition_variable cv;
 
-    uint64_t ticksSinceEpochToDeviceStart;
     uint64_t samplesGenerated;
+    uint64_t packetOffset;
     
     // Device domain setup
     uint64_t sampleRate;

@@ -18,6 +18,24 @@
 #include <simulator_device_module/common.h>
 #include <opendaq/module_impl.h>
 
+/*
+ * Simulator module that mimics the behaviour of an Analog Input test and measurement device
+ *
+ * Remaining tasks for module finalization:
+ *  - Add logging to module
+ *  - Document module
+ *  - Add device and channel statuses
+ *  - Set up property descriptions
+ *  - Support the begin/end update mechanism
+ *  - Add option to set up custom device tick resolution
+ *  - Support client-side scaling (post scaling)
+ *  - Enable domain signal sharing across channels (requires `setDomainSignal` bugfix)
+ *  - Allow for fixed packet sizes
+ *  - Implement log retrieval callbacks
+ *  - Enable user-configurable device information fields
+ *  - Test save/load mechanism
+ */
+
 BEGIN_NAMESPACE_SIMULATOR_DEVICE_MODULE
 
 class SimulatorDeviceModule final : public Module

@@ -17,10 +17,9 @@ BEGIN_NAMESPACE_SIMULATOR_DEVICE_MODULE
 static DictPtr<IInteger, IInteger> calculateAvailableSampleRateDividers(uint64_t deviceSampleRate)
 {
     auto availableDividers = Dict<IInteger, IInteger>();
-    constexpr uint16_t maxDividerCount = 10;
-    for (uint64_t i = 1; i < deviceSampleRate / 2 && availableDividers.getCount() < maxDividerCount; ++i)
+    for (uint64_t i = 1; deviceSampleRate / i >= 100; ++i)
     {
-        if (deviceSampleRate % i == 0 && deviceSampleRate / i >= 100)
+        if (deviceSampleRate % i == 0)
             availableDividers.set(i, deviceSampleRate / i);
     }
 
@@ -95,6 +94,7 @@ void SimulatorChannelImpl::initProperties()
                                   .setVisible(false)
                                   .setReadOnly(true)
                                   .build();
+
     // TODO: Fix bug and change to SparseSelectionProperty builder.
     auto sampleRateProp = SelectionProperty("SampleRate", EvalValue("$AvailableSRDividers"), 1);
 

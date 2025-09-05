@@ -10,7 +10,6 @@
 #include <simulator_device_module/simulator_channel_impl.h>
 #include <simulator_device_module/simulator_device_impl.h>
 #include <chrono>
-#include <fstream>
 #include <iomanip>
 #include <utility>
 #include <opendaq/thread_name.h>

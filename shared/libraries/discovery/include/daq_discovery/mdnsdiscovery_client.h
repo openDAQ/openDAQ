@@ -969,7 +969,7 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
 
         timeval timeout;
         timeout.tv_sec = 0;
-        timeout.tv_usec = timeoutDuration.count();
+        timeout.tv_usec = static_cast<decltype(timeout.tv_usec)>(timeoutDuration.count());
 
         int nfds = 0;
         fd_set readfs;
@@ -1140,7 +1140,7 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
 
         timeval timeout;
         timeout.tv_sec = 0;
-        timeout.tv_usec = timeoutDuration.count();
+        timeout.tv_usec = static_cast<decltype(timeout.tv_usec)>(timeoutDuration.count());
 
         int nfds = 0;
         fd_set readfs;

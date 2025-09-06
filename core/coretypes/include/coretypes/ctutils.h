@@ -38,8 +38,8 @@ struct std::hash<daq::IntfID>
 
     result_type operator()(const argument_type& id) const noexcept
     {
-        return sizeof(std::size_t) == 4 ? XXH32(&id, sizeof(daq::IntfID), Seed)
-                                        : XXH3_64bits_withSeed(&id, sizeof(daq::IntfID), Seed);
+        return sizeof(std::size_t) == 4 ? static_cast<result_type>(XXH32(&id, sizeof(daq::IntfID), Seed))
+                                        : static_cast<result_type>(XXH3_64bits_withSeed(&id, sizeof(daq::IntfID), Seed));
     }
 };
 

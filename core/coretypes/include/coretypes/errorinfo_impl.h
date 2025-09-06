@@ -89,7 +89,7 @@ private:
 class ErrorGuardImpl : public ImplementationOf<IErrorGuard>
 {
 public:
-    ErrorGuardImpl(ConstCharPtr filename, int fileLine);
+    ErrorGuardImpl(ConstCharPtr filename, Int fileLine);
     ~ErrorGuardImpl();
 
     ErrCode INTERFACE_FUNC getLastErrorInfo(IErrorInfo** errorInfo) const override;
@@ -105,7 +105,7 @@ public:
 
 protected:
     ConstCharPtr filename;
-    int fileLine;
+    Int fileLine;
 
     std::list<ErrorInfoWrapper> errorInfoList;
 };

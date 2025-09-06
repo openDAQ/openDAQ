@@ -34,14 +34,14 @@ void readDataDifferentRates(const ListPtr<ISignal>& signals)
                 continue;
 
             // SRDiv calculation
-            size_t commonSampleRate = multiReader.getCommonSampleRate();
+            size_t commonSampleRate = static_cast<size_t>(multiReader.getCommonSampleRate());
             dividers.clear();
             std::cout << "Dividers: ";
             for (const auto& [_, eventPacket] : status.getEventPackets())
             {
                 auto descriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
                 auto sampleRate = reader::getSampleRate(descriptor);
-                dividers.push_back(commonSampleRate / sampleRate);
+                dividers.push_back(static_cast<size_t>(commonSampleRate / sampleRate));
                 std::cout << dividers.back() << ", ";
             }
             std::cout << "\n";

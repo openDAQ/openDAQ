@@ -487,14 +487,6 @@ if (MSVC)
         # assignment within conditional expression
         # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-4-c4706
         /wd4706
-        # loss of data / precision, unsigned <--> signed
-        #
-        # 'argument' : conversion from 'type1' to 'type2', possible loss of data
-        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4244
-        /wd4244
-        # 'var' : conversion from 'size_t' to 'type', possible loss of data
-        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4267
-        /wd4267
     )
         add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:${flag}>)
     endforeach()

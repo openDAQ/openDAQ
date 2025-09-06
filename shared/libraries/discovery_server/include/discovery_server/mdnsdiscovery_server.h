@@ -47,7 +47,7 @@ BEGIN_NAMESPACE_DISCOVERY_SERVICE
 struct MdnsDiscoveredService
 {
     MdnsDiscoveredService(const std::string& serviceName,
-                          uint32_t servicePort,
+                          uint16_t servicePort,
                           const std::unordered_map<std::string, std::string>& properties,
                           const daq::PropertyObjectPtr& deviceInfo);
 

@@ -76,8 +76,8 @@ namespace detail
         {
             constexpr XXH32_hash_t seed = 123456789;
             return sizeof(std::size_t) == 4
-                       ? XXH32(&delegatePtr, sizeof(Hashable), seed)
-                       : XXH3_64bits_withSeed(&delegatePtr, sizeof(Hashable), seed);
+                       ? static_cast<std::size_t>(XXH32(&delegatePtr, sizeof(Hashable), seed))
+                       : static_cast<std::size_t>(XXH3_64bits_withSeed(&delegatePtr, sizeof(Hashable), seed));
         }
 
 #if _MSC_VER < 1910

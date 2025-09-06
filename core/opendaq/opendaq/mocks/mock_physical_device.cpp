@@ -131,7 +131,8 @@ void MockPhysicalDeviceImpl::startAcq()
     if (generatePacketCount <= 0)
         return;
 
-    generateThread = std::thread([this, generatePacketCount]() { generatePackets(generatePacketCount); });
+    generateThread =
+        std::thread([this, generatePacketCount = static_cast<size_t>(generatePacketCount)]() { generatePackets(generatePacketCount); });
 }
 
 void MockPhysicalDeviceImpl::stopAcq()

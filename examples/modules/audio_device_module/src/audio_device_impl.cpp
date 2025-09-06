@@ -288,7 +288,7 @@ ma_device_id AudioDeviceImpl::getIdFromConnectionString(std::string connectionSt
         for (size_t i = 0; i < 16; ++i)
         {
             auto subStr = idStr.substr(i * 2, 2);
-            devId.dsound[i] = std::stoul(subStr, nullptr, 16);
+            devId.dsound[i] = static_cast<ma_uint8>(std::stoul(subStr, nullptr, 16));
         }
     }
     else if (backendStr == "winmm")

@@ -15,7 +15,9 @@
  */
 
 #pragma once
+#include <algorithm>
 #include <cctype>
+#include <locale>
 #include <string>
 #include <variant>
 #include <vector>
@@ -70,8 +72,9 @@ struct EvalValueToken
     static std::string toCanonicalForm(const std::string& identifier)
     {
         std::string canonicalForm = identifier;
-        for (size_t i = 0; i < canonicalForm.size(); ++i)
-            canonicalForm[i] = std::tolower(canonicalForm[i]);
+        std::locale loc = std::locale::classic();
+        const auto& f = std::use_facet<std::ctype<char>>(loc);
+        std::transform(canonicalForm.begin(), canonicalForm.end(), canonicalForm.begin(), [&f](char c){ return f.tolower(c); });
         return canonicalForm;
     }
 };

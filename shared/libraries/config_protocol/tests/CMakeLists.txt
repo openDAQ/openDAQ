@@ -30,7 +30,7 @@ target_link_libraries(${TEST_APP} PRIVATE
     daq::opendaq_mocks
 )
 
-if (TARGET ${SDK_TARGET_NAMESPACE}::ref_device_module AND TARGET ${SDK_TARGET_NAMESPACE}::ref_fb_module)
+if (DAQMODULES_REF_FB_MODULE AND DAQMODULES_REF_DEVICE_MODULE)
     add_dependencies(${TEST_APP}
         ${SDK_TARGET_NAMESPACE}::ref_device_module
         ${SDK_TARGET_NAMESPACE}::ref_fb_module

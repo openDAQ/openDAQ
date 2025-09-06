@@ -135,7 +135,7 @@ jobs:
           }
 
       - name: Install Intel-LLVM compiler
-        uses: intel/oneapi-ci@v1
+        uses: oneapi-src/oneapi-ci@v1
         with:
           components: "compiler"
 
@@ -327,7 +327,7 @@ jobs:
         run: pip install cmake
 
       - name: Install Intel-LLVM compiler
-        uses: intel/oneapi-ci@v1
+        uses: oneapi-src/oneapi-ci@v1
         with:
           components: "compiler"
 

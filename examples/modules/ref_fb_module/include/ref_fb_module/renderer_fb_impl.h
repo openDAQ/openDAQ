@@ -22,6 +22,8 @@
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/sample_type_traits.h>
 #include <ref_fb_module/polyline.h>
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/reader_utils.h>
 
 #if defined(_MSC_VER)
     #pragma warning(push)
@@ -74,10 +76,18 @@ DOMAIN_SAMPLE_TYPE(SampleType::Float64, SampleType::Float64)
 
 using DomainStamp = std::variant<int64_t, uint64_t, double>;
 
+struct GeneralContext
+{
+    bool hasTimeOrigin;
+    double duration;
+    bool freezed;
+};
+
 struct SignalContext
 {
     size_t index;
     InputPortConfigPtr inputPort;
+    GeneralContext* ctx;
     std::deque<DataPacketPtr> dataPackets;
     std::deque<DataPacketPtr> dataPacketsInFreezeMode;
 
@@ -100,7 +110,7 @@ struct SignalContext
     std::string domainQuantity;
     std::string caption;
     std::chrono::system_clock::time_point origin;
-    bool hasTimeOrigin;
+    bool hasTimeOrigin{false};
 
     SampleType domainSampleType;
     DomainStamp lastDomainStamp;
@@ -116,6 +126,28 @@ struct SignalContext
 
     bool lastValueSet;
     Float lastValue;
+
+    void processPacket();
+    void processEventPacket(const EventPacketPtr& packet);
+    void processDataPacket(const DataPacketPtr& packet);
+
+    void setEpoch(std::string timeStr);
+    sf::Color getColor() const;
+    void setCaption(const std::string& caption = std::string {});
+
+    void handleDataDescriptorChanged(const DataDescriptorPtr& descriptor);
+    void handleDomainDescriptorChanged(const DataDescriptorPtr& descriptor);
+
+    bool getValid();
+
+    template <SampleType DST>
+    void setLastDomainStamp(const DataPacketPtr& domainPacket);
+
+    template <SampleType DomainSampleType>
+    void timestampToTimePoint(typename SampleTypeToType<DomainSampleType>::Type timeStamp);
+
+    template <SampleType DST>
+    void setSingleXAxis(std::chrono::system_clock::time_point lastTimeValue, Float lastDomainValue);
 };
 
 class RendererFbImpl final : public FunctionBlock
@@ -139,17 +171,17 @@ private:
     std::chrono::milliseconds defaultWaitTime;
     std::chrono::steady_clock::time_point waitTime;
 
+    GeneralContext ctx;
+
     std::vector<SignalContext> signalContexts;
     std::thread renderThread;
     std::condition_variable cv;
-    bool rendererStopRequested;
+    std::atomic<bool> rendererStopRequested;
     bool resolutionChangedFlag;
     float lineThickness;
-    double duration;
     bool singleXAxis;
     bool singleYAxis;
     int resolution;
-    bool freeze;
     bool showLastValue;
     bool useCustomMinMaxValue;
     double customMinValue;
@@ -166,7 +198,6 @@ private:
 
     double lastDomainValue;
     std::chrono::system_clock::time_point lastTimeValue;
-    bool hasTimeOrigin;
 
     std::string domainUnit;
     std::string domainQuantity;
@@ -182,15 +213,10 @@ private:
 
     void updateInputPorts();
     void renderSignals(sf::RenderTarget& renderTarget, const sf::Font& renderFont);
-    static sf::Color getColor(const SignalContext& signalContext);
     void getWidthAndHeight(unsigned int& width, unsigned int& height);
 
     template <SampleType DST>
     void renderSignal(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& renderFont);
-
-/* void renderSignalExplicitRange(SignalContext& signalContext, sf::RenderTarget& renderTarget) const;
-    void renderSignalExplicit(SignalContext& signalContext, sf::RenderTarget& renderTarget) const;
-    void renderSignalImplicit(SignalContext& signalContext, sf::RenderTarget& renderTarget) const;*/
 
     template <SampleType DST>
     void renderPacket(SignalContext& signalContext,
@@ -230,26 +256,14 @@ private:
     void processSignalContexts();
 
     void prepareSingleXAxis();
-    template <SampleType DST>
-    void setSingleXAxis(SignalContext& signalContext, std::chrono::system_clock::time_point lastTimeValue, Float lastDomainValue);
     void getYMinMax(const SignalContext& signalContext, double& yMax, double& yMin);
 
     void renderAxes(sf::RenderTarget& renderTarget, const sf::Font& renderFont);
     void renderAxis(sf::RenderTarget& renderTarget, SignalContext& signalContext, const sf::Font& renderFont, bool drawXAxisLabels, bool drawTitle);
     void renderMultiTitle(sf::RenderTarget& renderTarget, const sf::Font& renderFont);
-    void processSignalContext(SignalContext& signalContetx);
-    void processSignalDescriptorChanged(SignalContext& signalContext,
-                                        const DataDescriptorPtr& valueSignalDescriptor,
-                                        const DataDescriptorPtr& domainSignalDescriptor);
     void processAttributeChanged(SignalContext& signalContext, const StringPtr& attrName, const BaseObjectPtr& attrValue);
     void subscribeToSignalCoreEvent(const SignalPtr& signal);
     void processCoreEvent(ComponentPtr& component, CoreEventArgsPtr& args);
-    void configureSignalContext(SignalContext& signalContext);
-    void setSignalContextCaption(SignalContext& signalContext, const std::string& caption = std::string {});
-    void processDataPacket(SignalContext& signalContext, const DataPacketPtr& dataPacket);
-
-    template <SampleType DST>
-    void setLastDomainStamp(SignalContext& signalContext, const DataPacketPtr& domainPacket);
 
     void resize(sf::RenderWindow& window);
     void initProperties();
@@ -257,16 +271,9 @@ private:
     void resolutionChanged();
     void readProperties();
     void readResolutionProperty();
-    std::string fixUpIso8601(std::string epoch);
-    std::chrono::system_clock::time_point timeStrToTimePoint(std::string timeStr);
 
     template <SampleType DST>
     void domainStampToDomainValue(Float& lastDomainValue, const SignalContext& signalContext, DomainStamp domainStamp);
-
-    template <SampleType DomainSampleType>
-    std::chrono::system_clock::time_point timestampToTimePoint(const SignalContext& signalContext, typename SampleTypeToType<DomainSampleType>::Type timeStamp);
-
-    static std::chrono::system_clock::duration timeValueToDuration(const SignalContext& signalContext, Float timeValue);
 
     template <typename Iter, typename Cont>
     bool isLastIter(Iter iter, const Cont& cont);

@@ -3,7 +3,6 @@
 #include <ref_fb_module/renderer_fb_impl.h>
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_params.h>
-#include <opendaq/event_packet_ptr.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/custom_log.h>
@@ -19,6 +18,312 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Renderer
 {
+
+static std::chrono::system_clock::duration TimeValueToDuration(Float timeValue)
+{
+    auto floatDuration = std::chrono::duration<float>(timeValue);
+    return std::chrono::round<std::chrono::system_clock::duration>(floatDuration);
+}
+
+void SignalContext::processPacket()
+{
+    const auto conn = inputPort.getConnection();
+    if (!conn.assigned())
+        return;
+
+    PacketPtr packet = conn.dequeue();
+    while (packet.assigned())
+    {
+        if (packet.getType() == PacketType::Event)
+            processEventPacket(packet);
+        else if (packet.getType() == PacketType::Data)
+            processDataPacket(packet);
+        packet = conn.dequeue();
+    }
+}
+
+void SignalContext::processEventPacket(const EventPacketPtr& packet)
+{
+    if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+    {
+        // TODO handle Null-descriptor params ('Null' sample type descriptors)
+        DataDescriptorPtr valueSignalDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+        DataDescriptorPtr domainSignalDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+        this->handleDataDescriptorChanged(valueSignalDescriptor);
+        this->handleDomainDescriptorChanged(domainSignalDescriptor);
+    }
+}
+
+void SignalContext::processDataPacket(const DataPacketPtr& packet)
+{
+    if (!valid)
+        return;
+
+    auto domainPacket = packet.getDomainPacket();
+    if (!domainPacket.assigned())
+    {
+        // LOGP_W("Packet recieved, but no domain packet assigned. Packet ignored")
+        return;
+    }
+
+    if (ctx->freezed)
+    {
+        dataPacketsInFreezeMode.push_front(packet);
+        while (dataPacketsInFreezeMode.size() > 1000)
+            dataPacketsInFreezeMode.pop_back();
+    }
+    else
+    {
+        while (!dataPacketsInFreezeMode.empty())
+        {
+            auto pkt = dataPacketsInFreezeMode.back();
+            dataPackets.push_front(pkt);
+            dataPacketsInFreezeMode.pop_back();
+        }
+        dataPackets.push_front(packet);
+        SAMPLE_TYPE_DISPATCH(domainSampleType, setLastDomainStamp, domainPacket)
+    }
+}
+
+void SignalContext::setEpoch(std::string timeStr)
+{
+    origin = reader::parseEpoch(timeStr);
+    hasTimeOrigin = true;
+}
+
+sf::Color SignalContext::getColor() const
+{
+    switch(this->index % 6)
+    {
+        case 0:
+            return sf::Color::Red;
+        case 1:
+            return sf::Color::Yellow;
+        case 2:
+            return sf::Color::Green;
+        case 3:
+            return sf::Color::Magenta;
+        case 4:
+            return sf::Color::Cyan;
+        case 5:
+            return sf::Color::Blue;
+        default:
+            return sf::Color::White;
+    }
+}
+
+void SignalContext::setCaption(const std::string& caption)
+{
+    if (caption.empty())
+    {
+        const auto sig = this->inputPort.getSignal();
+        if (sig.assigned())
+            this->caption = sig.getName().toStdString();
+        else
+            this->caption = "N/A";
+    }
+    else
+    {
+        this->caption = caption;
+    }
+
+    const auto unit = inputDataSignalDescriptor.getUnit();
+    if (unit.assigned() && !unit.getSymbol().toStdString().empty())
+        this->caption += fmt::format(" [{}]", unit.getSymbol().toStdString());
+}
+
+void SignalContext::handleDataDescriptorChanged(const DataDescriptorPtr& descriptor)
+{
+    if (!descriptor.assigned())
+        return;
+
+    this->inputDataSignalDescriptor = descriptor;
+
+    if (descriptor.getDimensions().getCount() > 1)  // matrix not supported on the input
+    {
+        // logAndSetFutureComponentStatus(ComponentStatus::Warning, "Matrix signals not supported");
+        return;
+    }
+    this->sampleType = descriptor.getSampleType();
+
+    const auto valueRange = descriptor.getValueRange();
+    if (!valueRange.assigned())
+    {
+        this->min = 0;
+        this->max = 1;
+    }
+    else
+    {
+        this->min = valueRange.getLowValue();
+        this->max = valueRange.getHighValue();
+    }
+
+    this->setCaption();
+    this->valid = true;
+}
+
+void SignalContext::handleDomainDescriptorChanged(const DataDescriptorPtr& descriptor)
+{
+    if (!descriptor.assigned())
+        return;
+
+    this->inputDomainDataDescriptor = descriptor;
+    this->valid = false;
+
+    if (!descriptor.getTickResolution().assigned())
+    {
+        // LOGP_W("Domain resolution not assigned")
+        return;
+    }
+
+    auto domainRes = descriptor.getTickResolution();
+    if (domainRes.assigned())
+    {
+        this->domainResNum = domainRes.getNumerator();
+        this->domainResDen = domainRes.getDenominator();
+        Int gcd = std::gcd(this->domainResDen, this->domainResNum);
+        this->domainResNum /= gcd;
+        this->domainResDen /= gcd;
+    }
+    else
+    {
+        this->domainResNum = 1;
+        this->domainResDen = 1;
+    }
+
+    const auto domainRule = descriptor.getRule();
+    if (domainRule.getType() == DataRuleType::Linear)
+    {
+        const auto domainRuleParams = domainRule.getParameters();
+        try
+        {
+            this->domainDelta = domainRuleParams.get("delta");
+            this->domainStart = domainRuleParams.get("start");
+        }
+        catch (const std::exception& e)
+        {
+            DAQ_THROW_EXCEPTION(InvalidPropertyException, "Invalid data rule parameters: {}", e.what());
+        }
+        this->isExplicit = false;
+    }
+    else
+    {
+        this->durationInTicks = static_cast<int64_t>(ctx->duration / static_cast<double>(descriptor.getTickResolution()));
+        this->isRange = descriptor.getSampleType() == SampleType::RangeInt64;
+        this->isExplicit = true;
+    }
+
+    this->domainUnit = descriptor.getUnit().getSymbol().toStdString();
+    this->domainQuantity = descriptor.getUnit().getQuantity().toStdString();
+    this->domainSampleType = descriptor.getSampleType();
+
+    const auto origin = descriptor.getOrigin();
+    if (origin.assigned() && !origin.toStdString().empty())
+    {
+        try
+        {
+            if (this->domainUnit != "s" || this->domainQuantity != "time")
+            {
+            //    LOGP_W("Domain signal not time, origin ignored")
+            }
+            else
+            {
+                this->setEpoch(origin);
+            //    LOG_D("Origin={}", date::format("%F %T", this->.origin))
+
+                int64_t n = this->domainResNum * std::chrono::system_clock::time_point::period::den;
+                int64_t d = this->domainResDen * std::chrono::system_clock::time_point::period::num;
+
+                int64_t gcd_n_d = std::gcd(n, d);
+                n /= gcd_n_d;
+                d /= gcd_n_d;
+
+                this->domainToTimeNum = n;
+                this->domainToTimeDen = d;
+            }
+        }
+        catch (...)
+        {
+            // logAndSetFutureComponentStatus(ComponentStatus::Warning, fmt::format("Invalid origin, ignored: {}", origin));
+        }
+    }
+    this->valid = true;
+}
+
+template <SampleType DST>
+void SignalContext::setLastDomainStamp(const DataPacketPtr& domainPacket)
+{ 
+    using SourceDomainType = typename SampleTypeToType<DST>::Type;
+    using DestDomainType = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
+
+    // const auto domainDataDescriptor = domainPacket.getDataDescriptor();
+    const auto sampleCount = domainPacket.getSampleCount();
+
+    DestDomainType lastDomainStamp;
+    if (this->isExplicit)
+    {
+        const auto domainDataPtr = static_cast<SourceDomainType*>(domainPacket.getData());
+        lastDomainStamp = static_cast<DestDomainType>(*(domainDataPtr + sampleCount - 1));
+    }
+    else
+    {
+        NumberPtr offset = 0;
+        if (domainPacket.getOffset().assigned())
+            offset = domainPacket.getOffset();
+        lastDomainStamp = static_cast<DestDomainType>(offset + (sampleCount - 1) * this->domainDelta +
+                                                      this->domainStart); 
+    }
+
+    this->lastDomainStamp = lastDomainStamp;
+    const DestDomainType domainDuration = ctx->duration * this->domainResDen / this->domainResNum;
+    this->firstDomainStamp = lastDomainStamp - domainDuration;
+
+    if (this->hasTimeOrigin)
+    {
+        timestampToTimePoint<DomainTypeCast<DST>::DomainSampleType>(lastDomainStamp);
+    }
+}
+
+template <SampleType DomainSampleType>
+void SignalContext::timestampToTimePoint(typename SampleTypeToType<DomainSampleType>::Type timeStamp)
+{
+    static_assert(DomainSampleType == SampleType::Float64 || DomainSampleType == SampleType::Int64 ||
+                  DomainSampleType == SampleType::UInt64);
+
+    if constexpr (std::is_floating_point_v<typename SampleTypeToType<DomainSampleType>::Type>)
+    {
+        this->lastTimeValue = this->origin + TimeValueToDuration(timeStamp);
+    }
+    else
+    {
+        this->lastTimeValue = this->origin + std::chrono::system_clock::time_point::duration(
+            timeStamp * this->domainToTimeNum / this->domainToTimeDen);
+    }
+    this->firstTimeValue = this->lastTimeValue - TimeValueToDuration(ctx->duration);
+}
+
+template <SampleType DST>
+void SignalContext::setSingleXAxis(std::chrono::system_clock::time_point lastTimeValue, Float lastDomainValue)
+{
+    using DestDomainType = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
+
+    if (ctx->hasTimeOrigin)
+    {
+        auto firstTimeValue = lastTimeValue - TimeValueToDuration(ctx->duration);
+        this->singleAxisLastDomainStamp = static_cast<DestDomainType>(
+            lastTimeValue.time_since_epoch().count() * this->domainToTimeDen / this->domainToTimeNum);
+        this->singleAxisFirstDomainStamp = static_cast<DestDomainType>(
+            firstTimeValue.time_since_epoch().count() * this->domainToTimeDen / this->domainToTimeNum);
+    }
+    else
+    {
+        auto firstDomainValue = lastDomainValue - ctx->duration;
+        this->singleAxisLastDomainStamp =
+            static_cast<DestDomainType>(lastDomainValue * this->domainResDen / this->domainResNum);
+        this->singleAxisFirstDomainStamp =
+            static_cast<DestDomainType>(firstDomainValue * this->domainResDen / this->domainResNum);
+    }
+}
 
 RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, 
                                const ComponentPtr& parent, 
@@ -173,14 +478,14 @@ void RendererFbImpl::resolutionChanged()
 
 void RendererFbImpl::readProperties()
 {
-    duration = objPtr.getPropertyValue("Duration");
-    LOG_T("Properties: Duration {}", duration)
+    ctx.duration = objPtr.getPropertyValue("Duration");
+    LOG_T("Properties: Duration {}", ctx.duration)
     singleXAxis = objPtr.getPropertyValue("SingleXAxis");
     LOG_T("Properties: SingleXAxis {}", singleXAxis)
     singleYAxis = objPtr.getPropertyValue("SingleYAxis");
     LOG_T("Properties: SingleYAxis {}", singleYAxis)
-    freeze = objPtr.getPropertyValue("Freeze");
-    LOG_T("Properties: Freeze {}", freeze)
+    ctx.freezed = objPtr.getPropertyValue("Freeze");
+    LOG_T("Properties: Freeze {}", ctx.freezed)
     showLastValue = objPtr.getPropertyValue("ShowLastValue");
     LOG_T("Properties: ShowLastValue {}", showLastValue)
     lineThickness = objPtr.getPropertyValue("LineThickness");
@@ -246,12 +551,14 @@ void RendererFbImpl::updateInputPorts()
             it = signalContexts.erase(it);
         }
         else
+        {
             ++it;
+        }
     }
 
     const auto inputPort = createAndAddInputPort(fmt::format("Input{}", inputPortCount++), PacketReadyNotification::SameThread);
 
-    signalContexts.emplace_back(SignalContext{ 0, inputPort });
+    signalContexts.emplace_back(SignalContext{ 0, inputPort, &ctx});
     for (size_t i = 0; i < signalContexts.size(); i++)
         signalContexts[i].index = i;
 }
@@ -265,98 +572,6 @@ void RendererFbImpl::renderSignals(sf::RenderTarget& renderTarget, const sf::Fon
     }
 }
 
-sf::Color RendererFbImpl::getColor(const SignalContext& signalContext)
-{
-    sf::Color color;
-    switch(signalContext.index % 6)
-    {
-        case 0:
-            color = sf::Color::Red;
-            break;
-        case 1:
-            color = sf::Color::Yellow;
-            break;
-        case 2:
-            color = sf::Color::Green;
-            break;
-        case 3:
-            color = sf::Color::Magenta;
-            break;
-        case 4:
-            color = sf::Color::Cyan;
-            break;
-        case 5:
-            color = sf::Color::Blue;
-            break;
-        default:
-            color = sf::Color::White;
-    }
-    return color;
-}
-
-/*
-void RendererFbImpl::renderSignalExplicitRange(SignalContext& signalContext, sf::RenderTarget& renderTarget) const
-{
-    if (signalContext.dataPackets.empty())
-        return;
-
-    auto packetIt = signalContext.dataPackets.begin();
-    auto domainPacket = packetIt->getDomainPacket();
-
-    if (domainPacket.getSampleCount() == 0)
-        return;
-
-    const float xSize = signalContext.bottomRight.x - signalContext.topLeft.x;
-    const float xOffset = signalContext.topLeft.x;
-    const float ySize = signalContext.bottomRight.y - signalContext.topLeft.y;
-    const float yOffset = signalContext.bottomRight.y;
-
-    constexpr float lineThickness = 1.0f;
-    const sf::Color color = getColor(signalContext);
-
-    Polyline line(lineThickness, LineStyle::solid);
-    line.setColor(color);
-
-    const auto domainData_ = static_cast<RangeType<int64_t>*>(domainPacket.getData());
-    auto domainValue = *(domainData_ + domainPacket.getSampleCount() - 1);
-    const auto firstDomainValueLimit = domainValue.end - signalContext.durationInTicks;
-    const auto domainRange = domainValue.end - firstDomainValueLimit;
-    if (domainRange == 0)
-        return;
-
-    while (packetIt != signalContext.dataPackets.end())
-    {
-        domainPacket = packetIt->getDomainPacket();
-        const auto samplesInPacket = packetIt->getSampleCount();
-        auto data = static_cast<double*>(packetIt->getData()) + samplesInPacket;
-        auto domainData = static_cast<RangeType<int64_t>*>(domainPacket.getData()) + samplesInPacket;
-
-        for (size_t i = 0; i < samplesInPacket; i++)
-        {
-            const double value = *(--data);
-            domainValue = *(--domainData);
-            if (domainValue.start < firstDomainValueLimit)
-                goto end;
-
-            const float xPos1 = xOffset + static_cast<double>(domainValue.start - firstDomainValueLimit) / static_cast<double>(domainRange) * static_cast<float>(xSize);
-            const float xPos2 = xOffset + static_cast<double>(domainValue.end - firstDomainValueLimit) / static_cast<double>(domainRange) * static_cast<float>(xSize);
-            const float yPos = yOffset - ((value - signalContext.min) / (signalContext.max - signalContext.min) * static_cast<float>(ySize));
-            line.addPoint(xPos1, yPos);
-            line.addPoint(xPos2, yPos);
-            line.reset();
-        }
-
-        ++packetIt;
-    }
-
-end:
-
-    signalContext.dataPackets.erase(packetIt, signalContext.dataPackets.end());
-
-    renderTarget.draw(line);
-}
-*/
-
 template <SampleType DST>
 void RendererFbImpl::renderPacket(
     SignalContext& signalContext,
@@ -368,13 +583,13 @@ void RendererFbImpl::renderPacket(
     std::unique_ptr<Polyline>& line,
     bool& end)
 {
-    auto domainPacket = packet.getDomainPacket();
+    const auto domainPacket = packet.getDomainPacket();
     if (domainPacket.getSampleCount() == 0)
         return;
 
-    auto domainDataDescriptor = domainPacket.getDataDescriptor();
-    auto domainRule = domainDataDescriptor.getRule();
-    size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
+    const auto domainDataDescriptor = signalContext.inputDomainDataDescriptor;
+    const auto domainRule = domainDataDescriptor.getRule();
+    const size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
     
     if (signalDimension == 1)
         renderArrayPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, renderFont, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
@@ -458,7 +673,7 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
     {
         renderTarget.draw(*line);
         line = std::make_unique<Polyline>(lineThickness, LineStyle::solid);
-        line->setColor(getColor(signalContext));
+        line->setColor(signalContext.getColor());
     }
 
     havePrevPacket = true;
@@ -643,10 +858,8 @@ void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget
     if (signalContext.dataPackets.empty())
         return;
 
-    const sf::Color color = getColor(signalContext);
-
     auto line = std::make_unique<Polyline>(lineThickness, LineStyle::solid);
-    line->setColor(color);
+    line->setColor(signalContext.getColor());
 
     typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type nextExpectedDomainPacketValue{};
     bool havePrevPacket = false;
@@ -922,7 +1135,7 @@ void RendererFbImpl::resize(sf::RenderWindow& window)
 void RendererFbImpl::processSignalContexts()
 {
     for (auto& sigCtx: signalContexts)
-        processSignalContext(sigCtx);
+        sigCtx.processPacket();
 }
 
 template <typename Iter, typename Cont>
@@ -1004,7 +1217,7 @@ void RendererFbImpl::prepareSingleXAxis()
             DAQ_THROW_EXCEPTION(InvalidStateException, "First signal not valid");
         }
 
-        hasTimeOrigin = sigIt->hasTimeOrigin;
+        ctx.hasTimeOrigin = sigIt->hasTimeOrigin;
         SAMPLE_TYPE_DISPATCH(sigIt->domainSampleType, domainStampToDomainValue, lastDomainValue, *sigIt, sigIt->lastDomainStamp)
         lastTimeValue = sigIt->lastTimeValue;
         domainUnit = sigIt->domainUnit;
@@ -1015,12 +1228,12 @@ void RendererFbImpl::prepareSingleXAxis()
             if (!sigIt->valid)
                 continue;
 
-            if (sigIt->hasTimeOrigin != hasTimeOrigin)
+            if (sigIt->hasTimeOrigin != ctx.hasTimeOrigin)
             {
                 DAQ_THROW_EXCEPTION(InvalidStateException, "Time origin set on some signals, but not all of them");
             }
 
-            if (!hasTimeOrigin)
+            if (!ctx.hasTimeOrigin)
             {
                if (domainUnit != sigIt->domainUnit)
                {
@@ -1033,7 +1246,7 @@ void RendererFbImpl::prepareSingleXAxis()
                }
             }
 
-            if (hasTimeOrigin)
+            if (ctx.hasTimeOrigin)
             {
                if (sigIt->lastTimeValue > lastTimeValue)
                    lastTimeValue = sigIt->lastTimeValue;
@@ -1050,36 +1263,13 @@ void RendererFbImpl::prepareSingleXAxis()
         singleXAxisConfigured = true;
         for (sigIt = signalContexts.begin(); sigIt != signalContexts.end() - 1; ++sigIt)
         {
-            SAMPLE_TYPE_DISPATCH(sigIt->domainSampleType, setSingleXAxis, *sigIt, lastTimeValue, lastDomainValue)
+            SAMPLE_TYPE_DISPATCH(sigIt->domainSampleType, sigIt->setSingleXAxis, lastTimeValue, lastDomainValue)
         }
 
     }
     catch (const std::exception& e)
     {
         logAndSetFutureComponentStatus(ComponentStatus::Error, fmt::format("Unable to configure single X axis: {}", e.what()));
-    }
-}
-
-template <SampleType DST>
-void RendererFbImpl::setSingleXAxis(SignalContext& signalContext, std::chrono::system_clock::time_point lastTimeValue, Float lastDomainValue)
-{
-    using DestDomainType = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
-
-    if (hasTimeOrigin)
-    {
-        auto firstTimeValue = lastTimeValue - timeValueToDuration(signalContext, duration);
-        signalContext.singleAxisLastDomainStamp = static_cast<DestDomainType>(
-            lastTimeValue.time_since_epoch().count() * signalContext.domainToTimeDen / signalContext.domainToTimeNum);
-        signalContext.singleAxisFirstDomainStamp = static_cast<DestDomainType>(
-            firstTimeValue.time_since_epoch().count() * signalContext.domainToTimeDen / signalContext.domainToTimeNum);
-    }
-    else
-    {
-        auto firstDomainValue = lastDomainValue - duration;
-        signalContext.singleAxisLastDomainStamp =
-            static_cast<DestDomainType>(lastDomainValue * signalContext.domainResDen / signalContext.domainResNum);
-        signalContext.singleAxisFirstDomainStamp =
-            static_cast<DestDomainType>(firstDomainValue * signalContext.domainResDen / signalContext.domainResNum);
     }
 }
 
@@ -1147,7 +1337,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
             }
             else
             {
-                const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
+                const auto tp = signalContext.lastTimeValue - TimeValueToDuration(ctx.duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
                 const auto tpms = date::floor<std::chrono::milliseconds>(tp);
                 labels.pushBack(String(date::format("%F %T", tpms)));
             }
@@ -1158,7 +1348,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
         labels = List<IFloat>();
         for (size_t i = 0; i < xTickCount; i += xTickStep)
         {
-            labels.pushBack(duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1)));
+            labels.pushBack(ctx.duration * (static_cast<double>(i) / static_cast<double>(xTickCount - 1)));
         }
     }
 
@@ -1273,7 +1463,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
     {
         sf::Text signalText(renderFont);
         signalText.setStyle(sf::Text::Style::Bold);
-        signalText.setFillColor(getColor(signalContext));
+        signalText.setFillColor(signalContext.getColor());
         signalText.setCharacterSize(16);
         signalText.setString(signalContext.caption);
         const auto valueBounds = signalText.getGlobalBounds();
@@ -1293,9 +1483,10 @@ void RendererFbImpl::renderMultiTitle(sf::RenderTarget& renderTarget, const sf::
     {
         sf::Text signalText(renderFont);
         signalText.setStyle(sf::Text::Style::Bold);
-        signalText.setFillColor(getColor(*sigIt));
+        signalText.setFillColor(sigIt->getColor());
         signalText.setCharacterSize(16);
         signalText.setString(sigIt->caption + " ");
+
         sf::FloatRect valueBounds = signalText.getGlobalBounds();
         totalWidth += valueBounds.size.x;
 
@@ -1311,55 +1502,12 @@ void RendererFbImpl::renderMultiTitle(sf::RenderTarget& renderTarget, const sf::
     }
 }
 
-
-void RendererFbImpl::processSignalContext(SignalContext& signalContext)
-{
-    const auto conn = signalContext.inputPort.getConnection();
-    if (!conn.assigned())
-        return;
-
-    PacketPtr packet = conn.dequeue();
-    while (packet.assigned())
-    {
-        if (packet.getType() == PacketType::Event)
-        {
-            auto eventPacket = packet.asPtr<IEventPacket>(true);
-            LOG_T("Processing {} event", eventPacket.getEventId())
-            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-            {
-                // TODO handle Null-descriptor params ('Null' sample type descriptors)
-                DataDescriptorPtr valueSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                DataDescriptorPtr domainSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-                processSignalDescriptorChanged(signalContext, valueSignalDescriptor, domainSignalDescriptor);
-            }
-        }
-        else if (packet.getType() == PacketType::Data)
-        {
-            auto dataPacket = packet.asPtr<IDataPacket>();
-            processDataPacket(signalContext, dataPacket);
-        }
-
-        packet = conn.dequeue();
-    }
-}
-
-void RendererFbImpl::processSignalDescriptorChanged(SignalContext& signalContext, const DataDescriptorPtr& valueSignalDescriptor, const DataDescriptorPtr& domainSignalDescriptor)
-{
-    if (domainSignalDescriptor.assigned())
-        signalContext.inputDomainDataDescriptor = domainSignalDescriptor;
-
-    if (valueSignalDescriptor.assigned())
-        signalContext.inputDataSignalDescriptor = valueSignalDescriptor;
-
-    configureSignalContext(signalContext);
-}
-
 void RendererFbImpl::processAttributeChanged(SignalContext& signalContext,
                                              const StringPtr& attrName,
                                              const BaseObjectPtr& attrValue)
 {
     if (attrName == "Name")
-        setSignalContextCaption(signalContext, attrValue);
+        signalContext.setCaption(attrValue);
 }
 
 void RendererFbImpl::subscribeToSignalCoreEvent(const SignalPtr& signal)
@@ -1384,272 +1532,6 @@ void RendererFbImpl::processCoreEvent(ComponentPtr& component, CoreEventArgsPtr&
             }
         }
     }
-}
-
-void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
-{
-    signalContext.valid = false;
-    if (!signalContext.inputDataSignalDescriptor.assigned() || !signalContext.inputDomainDataDescriptor.assigned())
-    {
-        LOG_D("Incomplete input signal descriptors")
-        return;
-    }
-
-    try
-    {
-        const auto domainDataDescriptor = signalContext.inputDomainDataDescriptor;
-        if (!domainDataDescriptor.getTickResolution().assigned())
-        {
-            LOGP_W("Domain resolution not assigned")
-            return;
-        }
-
-        auto domainRes = domainDataDescriptor.getTickResolution();
-        if (domainRes.assigned())
-        {
-            signalContext.domainResNum = domainRes.getNumerator();
-            signalContext.domainResDen = domainRes.getDenominator();
-            Int gcd = std::gcd(signalContext.domainResDen, signalContext.domainResNum);
-            signalContext.domainResNum /= gcd;
-            signalContext.domainResDen /= gcd;
-        }
-        else
-        {
-            signalContext.domainResNum = 1;
-            signalContext.domainResDen = 1;
-        }
-
-        const auto domainRule = domainDataDescriptor.getRule();
-        if (domainRule.getType() == DataRuleType::Linear)
-        {
-            const auto domainRuleParams = domainRule.getParameters();
-            try
-            {
-                signalContext.domainDelta = domainRuleParams.get("delta");
-                signalContext.domainStart = domainRuleParams.get("start");
-            }
-            catch (const std::exception& e)
-            {
-                DAQ_THROW_EXCEPTION(InvalidPropertyException, "Invalid data rule parameters: {}", e.what());
-            }
-            signalContext.isExplicit = false;
-        }
-        else
-        {
-            signalContext.durationInTicks = static_cast<int64_t>(duration / static_cast<double>(domainDataDescriptor.getTickResolution()));
-            signalContext.isExplicit = true;
-            signalContext.isRange = domainDataDescriptor.getSampleType() == SampleType::RangeInt64;
-        }
-
-        signalContext.domainUnit = domainDataDescriptor.getUnit().getSymbol().toStdString();
-        signalContext.domainQuantity = domainDataDescriptor.getUnit().getQuantity().toStdString();
-        signalContext.domainSampleType = domainDataDescriptor.getSampleType();
-
-        signalContext.hasTimeOrigin = false;
-        const auto origin = domainDataDescriptor.getOrigin();
-        if (origin.assigned() && !origin.toStdString().empty())
-        {
-            try
-            {
-                if (domainDataDescriptor.getUnit().getSymbol() != "s" || domainDataDescriptor.getUnit().getQuantity() != "time")
-                {
-                   LOGP_W("Domain signal not time, origin ignored")
-                }
-                else
-                {
-                   signalContext.origin = timeStrToTimePoint(origin);
-                   signalContext.hasTimeOrigin = true;
-                   LOG_D("Origin={}", date::format("%F %T", signalContext.origin))
-
-                   int64_t n = signalContext.domainResNum * std::chrono::system_clock::time_point::period::den;
-                   int64_t d = signalContext.domainResDen * std::chrono::system_clock::time_point::period::num;
-
-                   int64_t gcd_n_d = std::gcd(n, d);
-                   n /= gcd_n_d;
-                   d /= gcd_n_d;
-
-                   signalContext.domainToTimeNum = n;
-                   signalContext.domainToTimeDen = d;
-                }
-            }
-            catch (...)
-            {
-                logAndSetFutureComponentStatus(ComponentStatus::Warning, fmt::format("Invalid origin, ignored: {}", origin));
-            }
-        }
-
-        const auto dataDescriptor = signalContext.inputDataSignalDescriptor;
-        if (dataDescriptor.getDimensions().getCount() > 1)  // matrix not supported on the input
-        {
-            logAndSetFutureComponentStatus(ComponentStatus::Warning, "Matrix signals not supported");
-            return;
-        }
-        signalContext.sampleType = dataDescriptor.getSampleType();
-
-        const auto valueRange = dataDescriptor.getValueRange();
-        if (!valueRange.assigned())
-        {
-            signalContext.min = 0;
-            signalContext.max = 1;
-        }
-        else
-        {
-            signalContext.min = dataDescriptor.getValueRange().getLowValue();
-            signalContext.max = dataDescriptor.getValueRange().getHighValue();
-        }
-        setSignalContextCaption(signalContext);
-
-        signalContext.valid = true;
-        LOGP_D("Signal descriptor changed")
-    }
-    catch (const std::exception& e)
-    {
-        logAndSetFutureComponentStatus(ComponentStatus::Error, fmt::format("Signal descriptor changed error: {}", e.what()));
-    }
-}
-
-void RendererFbImpl::setSignalContextCaption(SignalContext& signalContext, const std::string& caption)
-{
-    if (caption.empty())
-    {
-        auto sig = signalContext.inputPort.getSignal();
-        if (sig.assigned())
-            signalContext.caption = sig.getName().toStdString();
-        else
-            signalContext.caption = "N/A";
-    }
-    else
-        signalContext.caption = caption;
-
-    auto unit = signalContext.inputDataSignalDescriptor.getUnit();
-    if (unit.assigned() && !unit.getSymbol().toStdString().empty())
-        signalContext.caption += fmt::format(" [{}]", unit.getSymbol().toStdString());
-}
-
-void RendererFbImpl::processDataPacket(SignalContext& signalContext, const DataPacketPtr& dataPacket)
-{
-    if (!signalContext.valid)
-        return;
-
-    auto domainPacket = dataPacket.getDomainPacket();
-    if (!domainPacket.assigned())
-    {
-        LOGP_W("Packet recieved, but no domain packet assigned. Packet ignored")
-        return;
-    }
-
-    if (freeze)
-    {
-        signalContext.dataPacketsInFreezeMode.push_front(dataPacket);
-        while (signalContext.dataPacketsInFreezeMode.size() > 1000)
-            signalContext.dataPacketsInFreezeMode.pop_back();
-    }
-    else
-    {
-        while (!signalContext.dataPacketsInFreezeMode.empty())
-        {
-            auto pkt = signalContext.dataPacketsInFreezeMode.back();
-            signalContext.dataPackets.push_front(pkt);
-            signalContext.dataPacketsInFreezeMode.pop_back();
-        }
-        signalContext.dataPackets.push_front(dataPacket);
-        SAMPLE_TYPE_DISPATCH(signalContext.domainSampleType, setLastDomainStamp, signalContext, domainPacket)
-    }
-}
-
-template <SampleType DST>
-void RendererFbImpl::setLastDomainStamp(SignalContext& signalContext, const DataPacketPtr& domainPacket)
-{ 
-    using SourceDomainType = typename SampleTypeToType<DST>::Type;
-    using DestDomainType = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
-
-    const auto domainDataDescriptor = domainPacket.getDataDescriptor();
-    const auto sampleCount = domainPacket.getSampleCount();
-
-    DestDomainType lastDomainStamp;
-    if (signalContext.isExplicit)
-    {
-        const auto domainDataPtr = static_cast<SourceDomainType*>(domainPacket.getData());
-        lastDomainStamp = static_cast<DestDomainType>(*(domainDataPtr + sampleCount - 1));
-    }
-    else
-    {
-        NumberPtr offset = 0;
-        if (domainPacket.getOffset().assigned())
-            offset = domainPacket.getOffset();
-        lastDomainStamp = static_cast<DestDomainType>(offset + sampleCount * signalContext.domainDelta +
-                                                      signalContext.domainStart); 
-    }
-
-    signalContext.lastDomainStamp = lastDomainStamp;
-    const DestDomainType domainDuration = duration * signalContext.domainResDen / signalContext.domainResNum;
-    signalContext.firstDomainStamp = lastDomainStamp - domainDuration;
-
-    if (signalContext.hasTimeOrigin)
-    {
-        signalContext.lastTimeValue = timestampToTimePoint<DomainTypeCast<DST>::DomainSampleType>(signalContext, lastDomainStamp);
-        signalContext.firstTimeValue = lastTimeValue - timeValueToDuration(signalContext, duration);
-    }
-}
-
-std::string RendererFbImpl::fixUpIso8601(std::string epoch)
-{
-    if (epoch.find('T') == std::string::npos)
-    {
-        // If no time assume Midnight UTC
-        epoch += "T00:00:00+00:00";
-    }
-    else if (epoch[epoch.size() - 1] == 'Z')
-    {
-        // If time-zone marked as "Zulu" (UTC) replace with offset
-        epoch = epoch.erase(epoch.size() - 1) + "+00:00";
-    }
-    else if (epoch.find('+') == std::string::npos)
-    {
-        // If not time-zone offset assume UTC
-        epoch += "+00:00";
-    }
-
-    return epoch;
-}
-
-std::chrono::system_clock::time_point RendererFbImpl::timeStrToTimePoint(std::string timeStr)
-{
-    std::istringstream timeStringStream(fixUpIso8601(timeStr));
-    std::chrono::system_clock::time_point timePoint;
-    timeStringStream >> date::parse("%FT%T%z", timePoint);
-    if (timeStringStream.fail())
-    {
-        throw std::runtime_error("Invalid format");
-    }
-
-    return timePoint;
-}
-
-template <SampleType DomainSampleType>
-std::chrono::system_clock::time_point RendererFbImpl::timestampToTimePoint(const SignalContext& signalContext, typename SampleTypeToType<DomainSampleType>::Type timeStamp)
-{
-    static_assert(DomainSampleType == SampleType::Float64 || DomainSampleType == SampleType::Int64 ||
-                  DomainSampleType == SampleType::UInt64);
-
-    if constexpr (std::is_floating_point_v<typename SampleTypeToType<DomainSampleType>::Type>)
-    {
-        const auto tp = signalContext.origin + timeValueToDuration(signalContext, timeStamp);
-        return tp;
-    }
-    else
-    {
-        const auto tp = signalContext.origin + std::chrono::system_clock::time_point::duration(
-            timeStamp * signalContext.domainToTimeNum / signalContext.domainToTimeDen);
-        return tp;
-    }
-}
-
-std::chrono::system_clock::duration RendererFbImpl::timeValueToDuration(const SignalContext& signalContext, Float timeValue)
-{
-    auto floatDuration = std::chrono::duration<float>(timeValue);
-    auto dur = std::chrono::round<std::chrono::system_clock::duration>(floatDuration);
-    return dur;
 }
 
 }

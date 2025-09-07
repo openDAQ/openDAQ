@@ -80,7 +80,7 @@ jobs:
             cpack: NSIS
           - name: Windows Intel-LLVM Release
             runner: windows-2022
-            cmake_generator: Ninja
+            cmake_generator: "Visual Studio 17 2022"
             cmake_build_type: Release
             cmake_defines: -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_COMPILER_ID=IntelLLVM -DCMAKE_CXX_COMPILER_ID_RUN_TRUE="" -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
             cpack: NSIS
@@ -152,6 +152,13 @@ jobs:
           icx --version
           icpx --version
 
+      - name: Temp
+        shell: pwsh
+        if: matrix.name == 'Windows Intel-LLVM Release'
+        run: |
+          & .\oneapi.exe --help
+          & .\oneapi.exe --list-components
+
       - name: Configure
         shell: pwsh
         if: matrix.name != 'Windows Intel-LLVM Release'
@@ -198,13 +205,6 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
           cmake --build . --config Release
-
-      - name: Temp
-        shell: pwsh
-        if: matrix.name == 'Windows Intel-LLVM Release'
-        run: |
-          & .\oneapi.exe --help
-          & .\oneapi.exe --list-components
 
       - name: Test
         shell: pwsh

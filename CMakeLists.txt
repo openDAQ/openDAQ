@@ -237,7 +237,7 @@ if (COMMAND get_mode)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|IntelLLVM)$")
-    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM Clang")
+    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM")
     message(STATUS "Compiler is LLVM Clang")
 endif ()
 

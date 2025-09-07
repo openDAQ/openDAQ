@@ -44,7 +44,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 210
+    timeout-minutes: 260
     strategy:
       fail-fast: false
       matrix:
@@ -139,12 +139,14 @@ jobs:
 
       - name: Install Intel-LLVM compiler
         shell: powershell
+        if: matrix.name == 'Windows Intel-LLVM Release'
         run: |
           Invoke-WebRequest -Uri "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/47a201d7-d4cd-4079-a2d8-0e66b860aaaa/intel-dpcpp-cpp-compiler-2025.2.0.536_offline.exe" -OutFile oneapi.exe
-          Start-Process oneapi.exe -ArgumentList '--silent', '--eula=accept', '--components=cpp-compiler' -Wait -NoNewWindow
+          Start-Process oneapi.exe -ArgumentList '--silent', '--eula=accept' -Wait -NoNewWindow
 
-      - name: Set up Intel environment
+      - name: Test set up Intel environment
         shell: cmd
+        if: matrix.name == 'Windows Intel-LLVM Release'
         run: |
           call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
           icx --version
@@ -153,17 +155,18 @@ jobs:
       - name: Configure
         shell: cmd
         run: |
-          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+          if exist "C:\Program Files (x86)\Intel\oneAPI\setvars.bat" (
+              call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+          ) else (
+              echo "setvars.bat not found, skipping"
+          )
           mkdir build
           cd build
-          if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
-          {
-            cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} ${{ matrix.cmake_defines }} ..
-          }
-          else
-          {
-            cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} ${{ matrix.cmake_defines }} ..
-          }
+          if "%{{ matrix.cmake_generator_platform }}%"=="" (
+              cmake -G "%{{ matrix.cmake_generator }}%" --preset %{{ env.cmake_preset }}% -DCI_GIT_BRANCH=%{{ github.head_ref }}% %{{ matrix.cmake_defines }}% ..
+          ) else (
+              cmake -G "%{{ matrix.cmake_generator }}%" -A %{{ matrix.cmake_generator_platform }}% --preset %{{ env.cmake_preset }}% -DCI_GIT_BRANCH=%{{ github.head_ref }}% %{{ matrix.cmake_defines }}% ..
+          )
 
       - name: Build
         shell: cmd
@@ -171,10 +174,21 @@ jobs:
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
-          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+          if exist "C:\Program Files (x86)\Intel\oneAPI\setvars.bat" (
+              call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+          ) else (
+              echo "setvars.bat not found, skipping"
+          )
           # for .NET Bindings build
-          $env:SHORT_SHA = "${{ env.short_sha }}"
-          cmake --build . --config ${{ matrix.cmake_build_type }}
+          set SHORT_SHA=%{{ env.short_sha }}%
+          cmake --build . --config %{{ matrix.cmake_build_type }}%
+
+      - name: Temp
+        shell: pwsh
+        if: matrix.name == 'Windows Intel-LLVM Release'
+        run: |
+          & .\oneapi.exe --help
+          & .\oneapi.exe --list-components
 
       - name: Test
         shell: pwsh

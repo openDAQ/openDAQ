@@ -138,18 +138,21 @@ jobs:
           }
 
       - name: Install Intel-LLVM compiler
-        uses: oneapi-src/oneapi-ci@v1
-        with:
-          components: "compiler"
-
-      - name: Temp
+        shell: pwsh
         run: |
+          winget install --id Intel.oneAPI.DPCPP.Compiler --silent --accept-package-agreements --accept-source-agreements
+
+      - name: Set up Intel environment
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
           icx --version
           icpx --version
 
       - name: Configure
-        shell: pwsh
+        shell: cmd
         run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
           mkdir build
           cd build
           if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
@@ -162,11 +165,12 @@ jobs:
           }
 
       - name: Build
-        shell: pwsh
+        shell: cmd
         working-directory: ./build
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
         run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
           # for .NET Bindings build
           $env:SHORT_SHA = "${{ env.short_sha }}"
           cmake --build . --config ${{ matrix.cmake_build_type }}
@@ -317,6 +321,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Add Intel oneAPI apt repo
+        run: |
+          wget -qO- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+            | gpg --dearmor \
+            | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+            | tee /etc/apt/sources.list.d/oneapi.list
+          apt-get update
+
       - name: Install additional dependencies
         run: |
           apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
@@ -324,30 +337,33 @@ jobs:
             lld ninja-build curl \
             python3-dev python3-numpy python3-distutils python3-pip \
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-            libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+            libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev \
+            intel-oneapi-compiler-dpcpp-cpp
 
       - name: Install latest CMake
         run: pip install cmake
 
-      - name: Install Intel-LLVM compiler
-        uses: oneapi-src/oneapi-ci@v1
-        with:
-          components: "compiler"
-
-      - name: Temp
+      - name: Source the oneAPI environment
+        shell: bash
         run: |
+          source /opt/intel/oneapi/setvars.sh
           icx --version
           icpx --version
 
       - name: Configure
+        shell: bash
         run: |
+          source /opt/intel/oneapi/setvars.sh
           mkdir build
           cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
       - name: Build
         working-directory: ./build
-        run: cmake --build .
+        shell: bash
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          cmake --build .
 
       - name: Test
         env:

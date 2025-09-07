@@ -184,7 +184,7 @@ jobs:
         env:
           CMAKE_PRESET: ${{ env.cmake_preset }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
-          CMAKE_GENERATOR: ${{ env.cmake_preset }}
+          CMAKE_GENERATOR: ${{ matrix.cmake_generator }}
         run: |
           call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
           mkdir build

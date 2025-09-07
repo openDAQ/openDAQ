@@ -138,7 +138,7 @@ jobs:
           }
 
       - name: Install Intel-LLVM compiler
-        shell: pwsh
+        shell: cmd
         run: |
           winget install --id Intel.oneAPI.DPCPP.Compiler --silent --accept-package-agreements --accept-source-agreements
 
@@ -313,7 +313,7 @@ jobs:
       - name: Install basic dependencies
         run: |
           apt-get update
-          apt-get install -y git openssh-client
+          apt-get install -y git openssh-client wget gnupg
 
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'

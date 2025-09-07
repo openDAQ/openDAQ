@@ -138,9 +138,10 @@ jobs:
           }
 
       - name: Install Intel-LLVM compiler
-        shell: cmd
+        shell: powershell
         run: |
-          winget install --id Intel.oneAPI.DPCPP.Compiler --silent --accept-package-agreements --accept-source-agreements
+          Invoke-WebRequest -Uri "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/47a201d7-d4cd-4079-a2d8-0e66b860aaaa/intel-dpcpp-cpp-compiler-2025.2.0.536_offline.exe" -OutFile oneapi.exe
+          Start-Process oneapi.exe -ArgumentList '--silent', '--eula=accept', '--components=cpp-compiler' -Wait -NoNewWindow
 
       - name: Set up Intel environment
         shell: cmd

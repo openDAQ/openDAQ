@@ -701,7 +701,8 @@ if(CMAKE_COMPILER_IS_CLANGXX)
     # Append Intel-LLVM-specific suppressions
     if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
         set(CLANG_FLAGS "${CLANG_FLAGS} \
-            -Rno-debug-disables-optimization"
+            -Rno-debug-disables-optimization \
+            -Wno-deprecated-literal-operator"
         )
     endif()
 

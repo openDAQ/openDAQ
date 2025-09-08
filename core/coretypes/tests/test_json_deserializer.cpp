@@ -84,7 +84,8 @@ TEST_F(JsonDeserializerTest, floatMax)
 TEST_F(JsonDeserializerTest, floatMin)
 {
     FloatPtr deserialized = deserializer.deserialize("2.2250738585072014e-308");
-    ASSERT_EQ(deserialized.getValue<Float>(-1), floatMin);
+    double d = std::stod("2.2250738585072014e-308");
+    ASSERT_EQ(deserialized.getValue<Float>(-1), floatMin) << "debug double min val: " << std::setprecision(20) << d << std::endl;
 }
 
 TEST_F(JsonDeserializerTest, floatNaN)

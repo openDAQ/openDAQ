@@ -108,6 +108,9 @@ jobs:
         with:
           cmake-version: '4.0'
 
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
+
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
         uses: seanmiddleditch/gha-setup-ninja@v5

@@ -141,7 +141,9 @@ jobs:
 
       - name: Package
         working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+        run: |
+          cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+          cpack -C ${{ matrix.cmake_build_type }} -G ZIP
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -153,14 +155,14 @@ jobs:
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
+          Get-ChildItem -Path .\* -Include *.exe,*.zip | Rename-Item -NewName {$_.FullName.ToLower()}
 
       - name: Rename package (main)
         if: github.ref == 'refs/heads/main'
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
+          Get-ChildItem -Path .\* -Include *.exe,*.zip | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
 
       - name: Rename wheels (main)
         if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
@@ -181,9 +183,9 @@ jobs:
           Write-Output "# S3 listing"
           aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --human-readable
           Write-Output "# S3 remove '*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe'"
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe"
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe" --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.zip"
           Write-Output "# S3 copy '*.exe' from '${{ env.package_path }}'"
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*.exe"
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*.exe" --include "*.zip"
 
       - name: Upload Wheels to S3
         if: matrix.cmake_generator_platform != 'Win32'
@@ -291,7 +293,50 @@ jobs:
             lld ninja-build curl \
             python3-pip python3-dev \
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-            libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+            libx11-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev \
+            libgl-dev libudev-dev libfreetype6-dev \
+            pkg-config
+
+      - name: Lock base repos to amd64
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          printf "%s\n" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-backports main restricted universe multiverse" \
+            "deb [arch=amd64] http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse" \
+            > /etc/apt/sources.list
+          apt-get update
+
+      - name: Enable arm64 repos (ports)
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          dpkg --add-architecture arm64
+          printf "%s\n" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-backports main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse" \
+            > /etc/apt/sources.list.d/ubuntu-arm64.list
+          apt-get update
+
+      - name: Install ARM64 sysroot & X11 dev (only for arm64)
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          dpkg --add-architecture arm64
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            libc6-dev:arm64 libstdc++-10-dev:arm64 zlib1g-dev:arm64 \
+            libx11-dev:arm64 libxrandr-dev:arm64 libxcursor-dev:arm64 libxi-dev:arm64 libxinerama-dev:arm64 \
+            libx11-xcb-dev:arm64 libgl1-mesa-dev:arm64 libudev-dev:arm64 \
+            libfreetype6-dev:arm64 libjpeg-dev:arm64 pkg-config
+
+      - name: Point pkg-config to ARM64 .pc files (only for arm64)
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          echo "PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
+          pkg-config --modversion x11 xrandr xcursor xi || true
 
       - name: Install documentation dependencies
         if: matrix.build_documentation
@@ -312,7 +357,9 @@ jobs:
 
       - name: Package
         working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+        run: |
+          cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+          cpack -C ${{ matrix.cmake_build_type }} -G ZIP
 
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
@@ -323,17 +370,17 @@ jobs:
         working-directory: ${{ env.package_path_rel }}
         if: github.ref == 'refs/heads/main'
         run: |
-          rename 's/_amd64/-ubuntu22.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.deb
-          rename 's/_arm64/-ubuntu22.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.deb
-          rename 's/opendaq_/opendaq-/' *.deb
+          rename 's/_amd64/-ubuntu22.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.{deb,zip}
+          rename 's/_arm64/-ubuntu22.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.{deb,zip}
+          rename 's/opendaq_/opendaq-/' *.{deb,zip}
 
       - name: Rename package
         working-directory: ${{ env.package_path_rel }}
         if: github.ref != 'refs/heads/main'
         run: |
-          rename 's/_amd64/-ubuntu22.04-x86_64/' *.deb
-          rename 's/_arm64/-ubuntu22.04-arm64/' *.deb
-          rename 's/opendaq_/opendaq-/' *.deb
+          rename 's/_amd64/-ubuntu22.04-x86_64/' *.{deb,zip}
+          rename 's/_arm64/-ubuntu22.04-arm64/' *.{deb,zip}
+          rename 's/opendaq_/opendaq-/' *.{deb,zip}
 
       - name: Read openDAQ version
         id: daq_version
@@ -357,7 +404,7 @@ jobs:
       - name: Upload package to S3
         working-directory: ${{ env.package_path_rel }}
         run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/"  --recursive --exclude '*' --include '*${{ matrix.arch }}*.deb'
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/"  --recursive --exclude '*' --include '*${{ matrix.arch }}*.deb' --include '*${{ matrix.arch }}*.zip'
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive
 
       - name: Upload package

@@ -210,10 +210,10 @@ jobs:
         if: matrix.name == 'Windows Intel-LLVM Release'
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
-          CMAKE_PRESET: ${{ env.cmake_preset }}
+          CTEST_PRESET: ${{ env.ctest_preset }}
         run: |
           call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
-          ctest --output-on-failure --preset %CMAKE_PRESET% -C Release --test-dir build
+          ctest --output-on-failure --preset %CTEST_PRESET% -C Release --test-dir build
 
       - name: Upload test results
         if: always()

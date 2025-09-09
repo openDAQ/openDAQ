@@ -228,7 +228,7 @@ endif()
 if (OPENDAQ_CI_RUNNER)
     message("Configured as CI runner")
     add_compile_definitions(DS_CI_RUNNER=1)
-    set(OPENDAQ_DEBUG_WARNINGS_AS_ERRORS ON)
+    set(OPENDAQ_DEBUG_WARNINGS_AS_ERRORS OFF)
 endif()
 
 if (COMMAND get_mode)

@@ -125,7 +125,8 @@ TEST_F(AttributeReaderTest, MaxNodesPerRead)
     auto client = std::make_shared<OpcUaClient>(getServerUrl());
     client->connect();
 
-    const size_t maxBatchSize = client->readValue(OpcUaNodeId(UA_NS0ID_SERVER_SERVERCAPABILITIES_OPERATIONLIMITS_MAXNODESPERREAD)).toInteger();
+    const size_t maxBatchSize =
+        static_cast<size_t>(client->readValue(OpcUaNodeId(UA_NS0ID_SERVER_SERVERCAPABILITIES_OPERATIONLIMITS_MAXNODESPERREAD)).toInteger());
     ASSERT_EQ(maxBatchSize, maxNodesPerRead);
 
     const auto idI64 = OpcUaNodeId(1, ".i64");

@@ -189,7 +189,7 @@ void ErrorInfoHolder::removeScopeEntry(ErrorGuardImpl* entry)
 
 // ErrorGuardImpl
 
-ErrorGuardImpl::ErrorGuardImpl(ConstCharPtr filename, int fileLine)
+ErrorGuardImpl::ErrorGuardImpl(ConstCharPtr filename, Int fileLine)
     : filename(filename)
     , fileLine(fileLine)
 {

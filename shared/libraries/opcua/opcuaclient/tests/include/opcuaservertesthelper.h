@@ -50,7 +50,7 @@ public:
                          const UA_DataType* type,
                          UA_NodeId* parentNodeId,
                          const char* locale = "en_US",
-                         int nodeIndex = 1,
+                         uint16_t nodeIndex = 1,
                          size_t dimension = 1);
 
 private:

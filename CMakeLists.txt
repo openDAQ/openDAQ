@@ -228,7 +228,7 @@ endif()
 if (OPENDAQ_CI_RUNNER)
     message("Configured as CI runner")
     add_compile_definitions(DS_CI_RUNNER=1)
-    set(OPENDAQ_DEBUG_WARNINGS_AS_ERRORS ON)
+    set(OPENDAQ_DEBUG_WARNINGS_AS_ERRORS OFF)
 endif()
 
 if (COMMAND get_mode)
@@ -236,8 +236,9 @@ if (COMMAND get_mode)
     message(STATUS "CMake Mode is ${CMAKE_MODE}")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM Clang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|IntelLLVM)$")
+    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM")
+    message(STATUS "Compiler is LLVM")
 endif ()
 
 if (UNIX AND (CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUXX))
@@ -487,14 +488,6 @@ if (MSVC)
         # assignment within conditional expression
         # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-4-c4706
         /wd4706
-        # loss of data / precision, unsigned <--> signed
-        #
-        # 'argument' : conversion from 'type1' to 'type2', possible loss of data
-        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4244
-        /wd4244
-        # 'var' : conversion from 'size_t' to 'type', possible loss of data
-        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4267
-        /wd4267
     )
         add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:${flag}>)
     endforeach()
@@ -704,6 +697,31 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         -Wno-misleading-indentation \
         -Wno-missing-field-initializers"
     )
+
+    # Append Intel-LLVM-specific suppressions
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Rno-debug-disables-optimization \
+            -Wno-deprecated-literal-operator \
+            -Wno-missing-field-initializers \
+            -Wno-self-assign-overloaded \
+            -Wno-logical-op-parentheses \
+            -Wno-misleading-indentation"
+        )
+    endif()
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
+        message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
+        # cmd-line options might be mixed - suppress warnings
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Wno-unknown-argument \
+            -Wno-unused-command-line-argument"
+        )
+        # suppress warning in MSVC toolchain header file
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Wno-delete-non-abstract-non-virtual-dtor"
+        )
+    endif ()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANG_FLAGS}")

@@ -84,8 +84,8 @@ static std::ostream& appendUnitInfo(std::ostream& stream, const DataDescriptorPt
 
     if (auto ratio = descriptor.getTickResolution(); ratio.assigned())
     {
-        int numerator = ratio.getNumerator();
-        int denominator = ratio.getDenominator();
+        Int numerator = ratio.getNumerator();
+        Int denominator = ratio.getDenominator();
 
         if (denominator != 1)
             stream << " * " << denominator;

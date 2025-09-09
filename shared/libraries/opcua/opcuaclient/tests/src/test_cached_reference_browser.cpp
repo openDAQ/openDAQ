@@ -164,7 +164,7 @@ TEST_F(CachedReferenceBrowserTest, MaxNodesPerBrowse)
     const auto maxNodesPerBrowse = client->readValue(maxNodesPerBrowseId).toInteger();
     ASSERT_GT(maxNodesPerBrowse, 0);
 
-    auto browser = CachedReferenceBrowser(client, maxNodesPerBrowse);
+    auto browser = CachedReferenceBrowser(client, static_cast<size_t>(maxNodesPerBrowse));
     const auto& references = browser.browse(nodeId);
     ASSERT_FALSE(references.byNodeId.empty());
 

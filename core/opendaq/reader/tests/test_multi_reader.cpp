@@ -84,13 +84,20 @@ struct ReadSignal
                       << std::endl;
         }
 
-        auto packet = createPacket(packetSize, offset, *this);
+        auto packet = createPacket(static_cast<SizeT>(packetSize), offset, *this);
         zeroOutPacketData(packet);
 
-        auto* data = static_cast<ValueType*>(packet.getData());
+        ValueType* data = static_cast<ValueType*>(packet.getData());
         for (auto i = 0; i < packetSize; ++i)
-        {
-            data[i] = offset + i;
+        {            
+            using Scalar = std::conditional_t<
+                std::is_same_v<ValueType, Complex_Number<float>>, float,
+                std::conditional_t<
+                    std::is_same_v<ValueType, Complex_Number<double>>, double, ValueType
+                >
+            >;
+
+            data[i] = ValueType(static_cast<Scalar>(offset + i));
         }
 
         if (log)

@@ -32,7 +32,7 @@ void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
             // Buffers have 100ms worth of memory for each signal
             auto sampleRate = reader::getSampleRate(
                 status.getMainDescriptor().getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
-            kBufferSize = sampleRate / 10;
+            kBufferSize = static_cast<SizeT>(sampleRate / 10);
 
             for (size_t i = 0; i < signalsCount; ++i)
             {

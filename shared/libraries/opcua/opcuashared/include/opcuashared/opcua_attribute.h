@@ -47,7 +47,7 @@ namespace std
     {
         size_t operator()(const daq::opcua::OpcUaAttribute& attr) const noexcept
         {
-            size_t hash = UA_NodeId_hash(attr.nodeId.get());
+            UA_UInt32 hash = UA_NodeId_hash(attr.nodeId.get());
             return UA_ByteString_hash(hash, (const UA_Byte*) &attr.attributeId, sizeof(UA_AttributeId));
         }
     };

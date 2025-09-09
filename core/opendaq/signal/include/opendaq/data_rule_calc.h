@@ -351,7 +351,7 @@ inline void DataRuleCalcTyped<T>::calculateLinearSample(const NumberPtr& packetO
     const T scale = parameters[0];
     const T offset = static_cast<T>(packetOffset) + parameters[1];
 
-    *outputTyped = scale * sampleIndex + offset;
+    *outputTyped = scale * static_cast<T>(sampleIndex) + offset;
 }
 
 template <typename T>

@@ -227,7 +227,7 @@ std::unique_ptr<daq::BaseNode> EvalValueParser::prefix(const EvalValueToken& tok
                     default: DAQ_THROW_EXCEPTION(daq::ParseFailedException, "unexpected token found");
                 }
 
-                auto node = std::make_unique<daq::RefNode>(argNum);
+                auto node = std::make_unique<daq::RefNode>(static_cast<int>(argNum));
                 node->onResolveReference = params->onResolveReference;
                 node->useAsArgument(static_cast<daq::RefNode*>(nextNode.get()));
                 return node;

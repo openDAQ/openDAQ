@@ -1114,12 +1114,18 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
+void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /*forUpdate*/)
 {
     if (!active)
     {
         serializer.key("active");
         serializer.writeBool(active);
+    }
+
+    if (!visible)
+    {
+        serializer.key("visible");
+        serializer.writeBool(visible);
     }
 
     if (description != "")
@@ -1140,12 +1146,16 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         tags.serialize(serializer);
     }
 
-    if(forUpdate) {
-        if (componentConfig.assigned())
-        {
-            serializer.key("ComponentConfig");
-            componentConfig.serialize(serializer);
-        }
+    if (statusContainer.getStatuses().getCount() > 0)
+    {
+        serializer.key("statuses");
+        statusContainer.serialize(serializer);
+    }
+
+    if (componentConfig.assigned())
+    {
+        serializer.key("ComponentConfig");
+        componentConfig.serialize(serializer);
     }
 }
 

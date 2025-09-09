@@ -599,10 +599,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(c
     if(!forUpdate) {
         serializer.key("isRecorder");
         FunctionBlockPtr thisPtr = this->template borrowPtr<FunctionBlockPtr>();
-        if (thisPtr.supportsInterface<IRecorder>())
-            serializer.writeBool(true);
-        else
-            serializer.writeBool(false);
+        serializer.writeBool(thisPtr.supportsInterface<IRecorder>());
     }
 
     Super::serializeCustomObjectValues(serializer, forUpdate);

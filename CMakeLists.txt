@@ -111,10 +111,6 @@ if (NOT DEFINED CMAKE_INSTALL_RPATH)
     set(CMAKE_INSTALL_RPATH ${LIB_LOAD_ORIGIN} ${LIB_LOAD_ORIGIN}/${RPATH_DIR})
 endif()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
-    message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
-endif ()
-
 if (NOT MSVC)
     option(OPENDAQ_FORCE_COMPILE_32BIT "Compile 32Bit on non MSVC" OFF)
 endif()
@@ -709,6 +705,16 @@ if(CMAKE_COMPILER_IS_CLANGXX)
             -Wno-deprecated-literal-operator"
         )
     endif()
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
+        message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
+        # cmd-line options might be mixed - suppress warnings
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Wno-unknown-argument \
+            -Wno-unused-command-line-argument \
+            -Wno-misleading-indentation"
+        )
+    endif ()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANG_FLAGS}")

@@ -137,7 +137,7 @@ PacketPtr SignalGenerator::generateData(const DataPacketPtr& domainPacket)
     }
     
     samplesGenerated += newSampleCount;
-    return std::move(dataPacket);
+    return dataPacket;
 }
 
 DataDescriptorPtr SignalGenerator::buildDescriptor() const
@@ -172,7 +172,6 @@ void SignalGenerator::waveformChanged(PropertyObjectPtr&, PropertyValueEventArgs
         {"Unknown", WaveformProperty::Unknown},
     };
     
-    const auto prevWaveform = waveformType;
     auto propName = args.getProperty().getName();
     auto value = args.getValue();
 

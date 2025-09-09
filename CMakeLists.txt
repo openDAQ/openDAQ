@@ -702,7 +702,11 @@ if(CMAKE_COMPILER_IS_CLANGXX)
     if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
         set(CLANG_FLAGS "${CLANG_FLAGS} \
             -Rno-debug-disables-optimization \
-            -Wno-deprecated-literal-operator"
+            -Wno-deprecated-literal-operator \
+            -Wno-missing-field-initializers \
+            -Wno-self-assign-overloaded \
+            -Wno-logical-op-parentheses \
+            -Wno-misleading-indentation"
         )
     endif()
 
@@ -711,8 +715,11 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         # cmd-line options might be mixed - suppress warnings
         set(CLANG_FLAGS "${CLANG_FLAGS} \
             -Wno-unknown-argument \
-            -Wno-unused-command-line-argument \
-            -Wno-misleading-indentation"
+            -Wno-unused-command-line-argument"
+        )
+        # suppress warning in MSVC toolchain header file
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Wno-delete-non-abstract-non-virtual-dtor"
         )
     endif ()
 

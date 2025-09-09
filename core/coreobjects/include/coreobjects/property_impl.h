@@ -1046,7 +1046,7 @@ public:
         if (refProp.assigned())
         {
             bool valid = valueType == ctUndefined;
-            valid = valid && !description.assigned() || description == "";
+            valid = (valid && !description.assigned()) || description == "";
             valid = valid && !readOnly;
             valid = valid && !selectionValues.assigned() && !suggestedValues.assigned();
             valid = valid && !coercer.assigned() && !validator.assigned();

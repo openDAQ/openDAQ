@@ -137,7 +137,7 @@ ErrCode INTERFACE_FUNC ListImpl::equals(IBaseObject* other, Bool* equal) const
         const auto otherItem = otherList.getItemAt(i);
 
         Bool eq{};
-        if (!(item == otherItem || OPENDAQ_SUCCEEDED(item->equals(otherItem, &eq)) && eq))
+        if (!(item == otherItem || (OPENDAQ_SUCCEEDED(item->equals(otherItem, &eq)) && eq)))
         {
             *equal = false;
             return OPENDAQ_SUCCESS;

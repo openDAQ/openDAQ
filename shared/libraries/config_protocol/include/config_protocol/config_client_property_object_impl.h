@@ -106,7 +106,7 @@ private:
     void checkCanSetPropertyValue(const StringPtr& propName);
     bool isBasePropertyObject(const PropertyObjectPtr& propObj);
 
-    std::string getPath();
+    std::string getPathInternal();
     void applyUpdatingPropsAndValuesProtocolVer0();
 };
 
@@ -720,7 +720,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::beginApplyUpdate()
     if (remoteUpdating)
         return Impl::beginApplyUpdate();
 
-    clientComm->beginUpdate(remoteGlobalId, getPath());
+    clientComm->beginUpdate(remoteGlobalId, getPathInternal());
 }
 
 template <class Impl>
@@ -751,7 +751,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::endApplyUpdate()
 
     this->updatingPropsAndValues.clear();
 
-    clientComm->endUpdate(remoteGlobalId, getPath(), propsAndValuesEx);
+    clientComm->endUpdate(remoteGlobalId, getPathInternal(), propsAndValuesEx);
 }*/
 
 template <class Impl>
@@ -945,7 +945,7 @@ bool ConfigClientPropertyObjectBaseImpl<Impl>::isBasePropertyObject(const Proper
 
 
 template <class Impl>
-std::string ConfigClientPropertyObjectBaseImpl<Impl>::getPath()
+std::string ConfigClientPropertyObjectBaseImpl<Impl>::getPathInternal()
 {
     std::string path{};
     if (this->path.assigned())

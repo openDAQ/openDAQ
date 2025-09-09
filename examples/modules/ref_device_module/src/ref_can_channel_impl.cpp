@@ -28,7 +28,6 @@ RefCANChannelImpl::RefCANChannelImpl(const ContextPtr& context,
     , startTime(init.startTime)
     , microSecondsFromEpochToStartTime(init.microSecondsFromEpochToStartTime)
     , lastCollectTime(0)
-    , samplesGenerated(0)
 {
     objPtr.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
 

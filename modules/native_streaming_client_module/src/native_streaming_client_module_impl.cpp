@@ -464,7 +464,7 @@ bool NativeStreamingClientModule::acceptsConnectionParameters(const StringPtr& c
     }
 
     if (config.assigned() &&
-        (pseudoDevicePrefixFound && !validateConnectionConfig(config) || devicePrefixFound && !validateDeviceConfig(config)))
+        ((pseudoDevicePrefixFound && !validateConnectionConfig(config)) || (devicePrefixFound && !validateDeviceConfig(config))))
     {
         LOG_W("Connection string \"{}\" is accepted but config is incomplete", connectionString);
         return false;

@@ -111,6 +111,10 @@ if (NOT DEFINED CMAKE_INSTALL_RPATH)
     set(CMAKE_INSTALL_RPATH ${LIB_LOAD_ORIGIN} ${LIB_LOAD_ORIGIN}/${RPATH_DIR})
 endif()
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
+    message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
+endif ()
+
 if (NOT MSVC)
     option(OPENDAQ_FORCE_COMPILE_32BIT "Compile 32Bit on non MSVC" OFF)
 endif()
@@ -238,7 +242,7 @@ endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|IntelLLVM)$")
     set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM")
-    message(STATUS "Compiler is LLVM Clang")
+    message(STATUS "Compiler is LLVM")
 endif ()
 
 if (UNIX AND (CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUXX))

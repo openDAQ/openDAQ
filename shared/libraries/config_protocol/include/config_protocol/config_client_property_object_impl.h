@@ -505,7 +505,7 @@ BaseObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getValueFromServer(const
     PropertyPtr prop;
     Impl::getProperty(propName, &prop);
     setValue = false;
-    switch (const auto vt = prop.getValueType())
+    switch (prop.getValueType())
     {
         case ctProc:
             return createWithImplementation<IProcedure, ConfigClientProcedureImpl>(clientComm, remoteGlobalId, this->path, propName);
@@ -925,7 +925,7 @@ template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const StringPtr& propName)
 {
     const auto prop = this->objPtr.getProperty(propName);
-    switch (const auto vt = prop.getValueType())
+    switch (prop.getValueType())
     {
         case ctProc:
         case ctFunc:

@@ -408,7 +408,7 @@ bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock
     }
 
     SizeT startPackets = info.prevSampleIndex;
-    Int droppedPackets = 0;
+    [[maybe_unused]] Int droppedPackets = 0;
 
     while (info.dataPacket.assigned())
     {

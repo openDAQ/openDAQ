@@ -40,6 +40,30 @@ jobs:
               -DCMAKE_C_COMPILER=gcc
               -DCMAKE_CXX_COMPILER=g++
 
+          - os: windows-latest
+            cmake-build-generator: 'Visual Studio 17 2022'
+            cmake-package-generator: NSIS
+            cmake-preset: --preset package
+            cmake-config: Release
+            cmake-defines:
+              -DCMAKE_SYSTEM_NAME=Linux
+              -DCMAKE_SYSTEM_PROCESSOR=x86_64
+              -DOPENDAQ_BUILD_DOCUMENTATION=OFF
+              -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
+              -DDAQMODULES_REF_FB_MODULE=OFF
+              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              -DDAQMODULES_REF_DEVICE_MODULE=OFF
+              -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF
+              -DDAQMODULES_OPENDAQ_CLIENT_MODULE=OFF
+              -DDAQMODULES_OPENDAQ_SERVER_MODULE=OFF
+              -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
+              -DOPENDAQ_ENABLE_OPCUA=OFF
+              -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
+              -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
+            cmake-compiler:
+              -DCMAKE_C_COMPILER=gcc
+              -DCMAKE_CXX_COMPILER=g++
+
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -61,11 +85,16 @@ jobs:
               python3-pip \
               mono-complete
 
+      - name: Install dependencies Windows
+        if: runner.os == 'Windows'
+        run: |
+          choco install nsis -y
+
       - name: Checkout openDAQ repository
         uses: actions/checkout@v4
 
       - name: Configure openDAQ CMake build
-        run: cmake -S . -B build -G ${{ matrix.cmake-build-generator }} ${{ matrix.cmake-preset }} ${{ matrix.cmake_defines }} ${{ matrix.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake-config }}
+        run: cmake -S . -B build -G "${{ matrix.cmake-build-generator }}" ${{ matrix.cmake-preset }} ${{ matrix.cmake_defines }} ${{ matrix.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake-config }}
 
       - name: Perfrom openDAQ CMake build
         run: cmake --build build --config Release

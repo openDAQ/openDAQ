@@ -144,7 +144,9 @@ jobs:
 
       - name: Package
         working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+        run: |
+          cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+          cpack -C ${{ matrix.cmake_build_type }} -G ZIP
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -156,14 +158,14 @@ jobs:
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
+          Get-ChildItem -Path .\* -Include *.exe,*.zip | Rename-Item -NewName {$_.FullName.ToLower()}
 
       - name: Rename package (main)
         if: github.ref == 'refs/heads/main'
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
+          Get-ChildItem -Path .\* -Include *.exe,*.zip | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
 
       - name: Rename wheels (main)
         if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
@@ -184,9 +186,9 @@ jobs:
           Write-Output "# S3 listing"
           aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --human-readable
           Write-Output "# S3 remove '*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe'"
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe"
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe" --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.zip"
           Write-Output "# S3 copy '*.exe' from '${{ env.package_path }}'"
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*.exe"
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*.exe" --include "*.zip"
 
       - name: Upload Wheels to S3
         if: matrix.cmake_generator_platform != 'Win32'
@@ -358,7 +360,9 @@ jobs:
 
       - name: Package
         working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+        run: |
+          cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+          cpack -C ${{ matrix.cmake_build_type }} -G ZIP
 
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
@@ -373,6 +377,12 @@ jobs:
           rename 's/_arm64/-ubuntu22.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
 
+      - name: Rename zip (main)
+        working-directory: ${{ env.package_path_rel }}
+        if: github.ref == 'refs/heads/main'
+        run: |
+          rename 's/-Linux/-ubuntu22.04-${{ matrix.arch }}_${{ steps.short-sha.outputs.sha }}/' *.zip
+
       - name: Rename package
         working-directory: ${{ env.package_path_rel }}
         if: github.ref != 'refs/heads/main'
@@ -380,6 +390,12 @@ jobs:
           rename 's/_amd64/-ubuntu22.04-x86_64/' *.deb
           rename 's/_arm64/-ubuntu22.04-arm64/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
+
+      - name: Rename zip
+        working-directory: ${{ env.package_path_rel }}
+        if: github.ref != 'refs/heads/main'
+        run: |
+          rename 's/-Linux/-ubuntu22.04-${{ matrix.arch }}/' *.zip
 
       - name: Read openDAQ version
         id: daq_version
@@ -403,7 +419,7 @@ jobs:
       - name: Upload package to S3
         working-directory: ${{ env.package_path_rel }}
         run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/"  --recursive --exclude '*' --include '*${{ matrix.arch }}*.deb'
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/"  --recursive --exclude '*' --include '*${{ matrix.arch }}*.deb' --include '*${{ matrix.arch }}*.zip'
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive
 
       - name: Upload package

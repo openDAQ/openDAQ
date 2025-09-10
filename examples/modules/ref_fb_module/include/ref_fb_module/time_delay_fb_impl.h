@@ -26,10 +26,10 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace TimeScaler
 {
 
-class TimeScalerFbImpl final : public FunctionBlock
+class TimeDelayFbImpl final : public FunctionBlock
 {
 public:
-    explicit TimeScalerFbImpl(const ContextPtr& ctx, 
+    explicit TimeDelayFbImpl(const ContextPtr& ctx, 
                             const ComponentPtr& parent, 
                             const StringPtr& localId, 
                             const PropertyObjectPtr& config);

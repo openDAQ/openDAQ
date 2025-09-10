@@ -1,4 +1,4 @@
-#include <ref_fb_module/time_scaler_fb_impl.h>
+#include <ref_fb_module/time_delay_fb_impl.h>
 #include <opendaq/event_packet_params.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reusable_data_packet_ptr.h>
@@ -8,7 +8,7 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace TimeScaler
 {
 
-TimeScalerFbImpl::TimeScalerFbImpl(const ContextPtr& ctx, 
+TimeDelayFbImpl::TimeDelayFbImpl(const ContextPtr& ctx, 
                                    const ComponentPtr& parent, 
                                    const StringPtr& localId,
                                    const PropertyObjectPtr& config)
@@ -20,21 +20,21 @@ TimeScalerFbImpl::TimeScalerFbImpl(const ContextPtr& ctx,
     initSignals();
 }
 
-FunctionBlockTypePtr TimeScalerFbImpl::CreateType()
+FunctionBlockTypePtr TimeDelayFbImpl::CreateType()
 {
     auto config = PropertyObject();
     const auto timeOffsetProperty = IntPropertyBuilder("TimeOffset", 0).setUnit(Unit("s", -1, "seconds", "time"))
                                                                                           .build();
     config.addProperty(timeOffsetProperty);
 
-    return FunctionBlockType("RefFBTimeScaler",
-                             "Time Scaler",
-                             "Adds offset to time",
+    return FunctionBlockType("RefFBModuleTimeDelay",
+                             "Time Delay",
+                             "Adds delay to the time signal both in positive and negative way",
                              config
     );
 }
 
-void TimeScalerFbImpl::initProperties()
+void TimeDelayFbImpl::initProperties()
 {
     const auto timeOffsetProperty = IntPropertyBuilder("TimeOffset", 0).setUnit(Unit("s", -1, "seconds", "time"))
                                                                                           .build();
@@ -46,29 +46,29 @@ void TimeScalerFbImpl::initProperties()
     };
 }
 
-void TimeScalerFbImpl::applyConfig(const PropertyObjectPtr& config)
+void TimeDelayFbImpl::applyConfig(const PropertyObjectPtr& config)
 {
     objPtr.setPropertyValue("TimeOffset", config.getPropertyValue("TimeOffset"));
 }
 
-void TimeScalerFbImpl::updateTimeOffset(Int timeOffset)
+void TimeDelayFbImpl::updateTimeOffset(Int timeOffset)
 {
     this->timeOffset = timeOffset;
 }
 
-void TimeScalerFbImpl::initInputPorts()
+void TimeDelayFbImpl::initInputPorts()
 {
     inputPort = createAndAddInputPort("Input", PacketReadyNotification::SameThread);
 }
 
-void TimeScalerFbImpl::initSignals()
+void TimeDelayFbImpl::initSignals()
 {
     dataSignal = createAndAddSignal("Data");
     domainSignal = createAndAddSignal("Time", nullptr, false);
     dataSignal.setDomainSignal(domainSignal);
 }
 
-void TimeScalerFbImpl::onPacketReceived(const InputPortPtr& port)
+void TimeDelayFbImpl::onPacketReceived(const InputPortPtr& port)
 {
     auto lock = this->getAcquisitionLock();
     const auto packet = port.getConnection().dequeue();
@@ -89,7 +89,7 @@ void TimeScalerFbImpl::onPacketReceived(const InputPortPtr& port)
     }
 }
 
-void TimeScalerFbImpl::handleDataPacket(const DataPacketPtr& inputPacket)
+void TimeDelayFbImpl::handleDataPacket(const DataPacketPtr& inputPacket)
 {
     const auto inputDomainPacket = inputPacket.getDomainPacket();
     const auto offsetToAdd = timeOffset * domainTickResolution.getDenominator() / domainTickResolution.getNumerator();
@@ -122,78 +122,63 @@ void TimeScalerFbImpl::handleDataPacket(const DataPacketPtr& inputPacket)
     domainSignal.sendPacket(outputDomainPacket);
 }
 
-void TimeScalerFbImpl::handleEventPacket(const EventPacketPtr& packet)
+void TimeDelayFbImpl::handleEventPacket(const EventPacketPtr& packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
-        DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-        if (inputDataDescriptor.assigned())
+        try
         {
-            dataDescriptor = inputDataDescriptor;
-            dataSignal.setDescriptor(inputDataDescriptor);
-
-            const auto dataRule = inputDataDescriptor.getRule();
-            if (!dataRule.assigned())
+            DataDescriptorPtr inputDataDescriptor = packet.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+            if (inputDataDescriptor.assigned())
             {
-                inputPort.setActive(false);
-                DAQ_THROW_EXCEPTION(ArgumentNullException, "Data rule is not assigned");
+                dataDescriptor = inputDataDescriptor;
+                dataSignal.setDescriptor(inputDataDescriptor);
+
+                const auto dataRule = inputDataDescriptor.getRule();
+                if (!dataRule.assigned())
+                    DAQ_THROW_EXCEPTION(ArgumentNullException, "Data rule is not assigned");
+
+                dataRuleType = dataRule.getType();
+                if (dataRuleType != DataRuleType::Linear && dataRuleType != DataRuleType::Explicit)
+                    DAQ_THROW_EXCEPTION(InvalidParametersException, "Data rule must be Linear or Explicit");
+            }
+            DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+            if (inputDomainDataDescriptor.assigned())
+            {
+                domainDescriptor = inputDomainDataDescriptor;
+                domainSignal.setDescriptor(inputDomainDataDescriptor);
+
+                const auto domainUnit = inputDomainDataDescriptor.getUnit();
+                if (!domainUnit.assigned())
+                    DAQ_THROW_EXCEPTION(ArgumentNullException, "Domain unit is not assigned");
+
+                if (domainUnit.getSymbol() != "s" && domainUnit.getSymbol() != "seconds")
+                    DAQ_THROW_EXCEPTION(InvalidParametersException, "Domain unit expected in seconds");
+
+                if (inputDomainDataDescriptor.getSampleType() != SampleType::Int64 && inputDomainDataDescriptor.getSampleType() != SampleType::UInt64)
+                    DAQ_THROW_EXCEPTION(InvalidParametersException, "Incompatible domain data sample type");
+
+                const auto domainRule = inputDomainDataDescriptor.getRule();
+                if (!domainRule.assigned())
+                    DAQ_THROW_EXCEPTION(ArgumentNullException, "Domain rule is not assigned");
+
+                domainRuleType = domainRule.getType();
+                if (domainRuleType != DataRuleType::Linear)
+                    DAQ_THROW_EXCEPTION(InvalidParametersException, "Domain rule must be Linear");
+
+                domainTickResolution = inputDomainDataDescriptor.getTickResolution();
+                if (!domainTickResolution.assigned())
+                    DAQ_THROW_EXCEPTION(ArgumentNullException, "Domain tick resolition is not assigned");
             }
 
-            dataRuleType = dataRule.getType();
-            if (dataRuleType != DataRuleType::Linear && dataRuleType != DataRuleType::Explicit)
-            {
-                inputPort.setActive(false);
-                DAQ_THROW_EXCEPTION(InvalidParametersException, "Data rule must be Linear or Explicit");
-            }
+            inputPort.setActive(true);
+            setComponentStatus(ComponentStatus::Ok);
         }
-        DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        if (inputDomainDataDescriptor.assigned())
+        catch (const std::exception& e)
         {
-            domainDescriptor = inputDomainDataDescriptor;
-            domainSignal.setDescriptor(inputDomainDataDescriptor);
-
-            const auto domainUnit = inputDomainDataDescriptor.getUnit();
-            if (!domainUnit.assigned())
-            {
-                inputPort.setActive(false);
-                DAQ_THROW_EXCEPTION(ArgumentNullException, "Domain unit is not assigned");
-            }
-
-            if (domainUnit.getSymbol() != "s" && domainUnit.getSymbol() != "seconds")
-            {
-                inputPort.setActive(false);
-                DAQ_THROW_EXCEPTION(InvalidParametersException, "Domain unit expected in seconds");
-            }
-
-            if (inputDomainDataDescriptor.getSampleType() != SampleType::Int64 && inputDomainDataDescriptor.getSampleType() != SampleType::UInt64)
-            {
-                inputPort.setActive(false);
-                DAQ_THROW_EXCEPTION(InvalidParametersException, "Incompatible domain data sample type");
-            }
-
-            const auto domainRule = inputDomainDataDescriptor.getRule();
-            if (!domainRule.assigned())
-            {
-                inputPort.setActive(false);
-                DAQ_THROW_EXCEPTION(ArgumentNullException, "Domain rule is not assigned");
-            }
-
-            domainRuleType = domainRule.getType();
-            if (domainRuleType != DataRuleType::Linear)
-            {
-                inputPort.setActive(false);
-                DAQ_THROW_EXCEPTION(InvalidParametersException, "Domain rule must be Linear");
-            }
-
-            domainTickResolution = inputDomainDataDescriptor.getTickResolution();
-            if (!domainTickResolution.assigned())
-            {
-                inputPort.setActive(false);
-                DAQ_THROW_EXCEPTION(ArgumentNullException, "Domain tick resolition is not assigned");
-            }
+            inputPort.setActive(false);
+            setComponentStatusWithMessage(ComponentStatus::Error, e.what());
         }
-
-        inputPort.setActive(true);
     } 
 }
 

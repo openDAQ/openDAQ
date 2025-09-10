@@ -19,6 +19,7 @@
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/reader_domain_info.h>
 #include <opendaq/sample_reader.h>
+#include <opendaq/data_packet_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,12 +32,11 @@ public:
     virtual ~Reader() = default;
 
     virtual ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) = 0;
-    virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) = 0;
+    virtual std::unique_ptr<Comparable> readStart(const DataPacketPtr& packet, SizeT offset, const ReaderDomainInfo& domainInfo) = 0;
     
     virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
                               const Comparable& start,
-                              void* inputBuffer,
-                              SizeT size,
+                              const DataPacketPtr& packet,
                               std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) = 0;
     virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) = 0;
 
@@ -65,15 +65,14 @@ public:
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
     }
 
-    virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) override
+    virtual std::unique_ptr<Comparable> readStart(const DataPacketPtr& packet, SizeT offset, const ReaderDomainInfo& domainInfo) override
     {
         DAQ_THROW_EXCEPTION(InvalidStateException);
     }
 
     SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
                       const Comparable& start,
-                      void* inputBuffer,
-                      SizeT size,
+                      const DataPacketPtr& packet,
                       std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) override
     {
         DAQ_THROW_EXCEPTION(InvalidStateException);
@@ -104,12 +103,11 @@ public:
     using Reader::Reader;
 
     virtual ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) override;
-    virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) override;
+    virtual std::unique_ptr<Comparable> readStart(const DataPacketPtr& packet, SizeT offset, const ReaderDomainInfo& domainInfo) override;
 
     virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
                               const Comparable& start,
-                              void* inputBuffer,
-                              SizeT size,
+                              const DataPacketPtr& packet,
                               std::chrono::system_clock::rep* firstSampleAbsoluteTime) override;
 
     virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) override;

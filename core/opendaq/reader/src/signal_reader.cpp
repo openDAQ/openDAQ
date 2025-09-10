@@ -233,7 +233,7 @@ std::unique_ptr<Comparable> SignalReader::readStartDomain()
         DAQ_THROW_EXCEPTION(InvalidStateException, "Packet must have a domain packet assigned!");
     }
 
-    return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
+    return domainReader->readStart(domainPacket, info.prevSampleIndex, domainInfo);
 }
 
 bool SignalReader::isFirstPacketEvent()
@@ -416,8 +416,7 @@ bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock
         info.prevSampleIndex = domainReader->getOffsetTo(
             domainInfo,
             commonStart,
-            domainPacket.getData(),
-            domainPacket.getSampleCount(),
+            domainPacket,
             &cachedFirstTimestamp
         );
 

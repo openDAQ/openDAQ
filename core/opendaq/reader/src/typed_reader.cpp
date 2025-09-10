@@ -143,7 +143,7 @@ static bool isSampleTypeConvertibleTo(SampleType sampleType)
 }
 
 template <typename ReadType>
-std::unique_ptr<Comparable> TypedReader<ReadType>::readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo)
+std::unique_ptr<Comparable> TypedReader<ReadType>::readStart(const DataPacketPtr& packet, SizeT offset, const ReaderDomainInfo& domainInfo)
 {
     if constexpr (std::is_same_v<void*, ReadType>)
     {
@@ -152,14 +152,34 @@ std::unique_ptr<Comparable> TypedReader<ReadType>::readStart(void* inputBuffer, 
     }
     else
     {
-        ReadType startDomain{};
-        void* data = &startDomain;
+        if (packet.getDataDescriptor().getRule().getType() == DataRuleType::Linear &&
+            dataSampleType == SampleType::Int64 &&
+            domainInfo.multiplier.getNumerator() == 1 &&
+            domainInfo.multiplier.getDenominator() == 1 &&
+            valuesPerSample == 1) // getOffsetToData
+        {
+            const DataRulePtr& dataRule = packet.getDataDescriptor().getRule();
+            NumberPtr packetOffset = packet.getOffset();
+            const auto& parameters = dataRule.getParameters();
+            const int64_t scale = static_cast<int64_t>(parameters.get("delta"));
+            int64_t packetStart = static_cast<int64_t>(parameters.get("start"));
+            packetStart = packetStart + packetOffset.getIntValue();
 
-        setTransformIgnore(true);
-        readData(inputBuffer, offset, &data, 1);
-        setTransformIgnore(false);
+            ReadType startDomain = scale * offset + packetStart;
+            return std::make_unique<ComparableValue<ReadType>>(startDomain, domainInfo);
+        }
+        else
+        {
+            void* inputBuffer = packet.getData();
+            ReadType startDomain{};
+            void* data = &startDomain;
 
-        return std::make_unique<ComparableValue<ReadType>>(startDomain, domainInfo);
+            setTransformIgnore(true);
+            readData(inputBuffer, offset, &data, 1);
+            setTransformIgnore(false);
+
+            return std::make_unique<ComparableValue<ReadType>>(startDomain, domainInfo);
+        }
     }
 }
 
@@ -213,12 +233,57 @@ ErrCode TypedReader<ReadType>::readData(void* inputBuffer, SizeT offset, void** 
 template <typename ReadType>
 SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
                                          const Comparable& start,
-                                         void* inputBuffer,
-                                         SizeT size,
+                                         const DataPacketPtr& packet,
                                          std::chrono::system_clock::rep* firstSampleAbsoluteTime)
 {
-    switch (dataSampleType)
+    if (packet.getDataDescriptor().getRule().getType() == DataRuleType::Linear &&
+        dataSampleType == SampleType::Int64 &&
+        domainInfo.multiplier.getNumerator() == 1 &&
+        domainInfo.multiplier.getDenominator() == 1 &&
+        valuesPerSample == 1) // getOffsetToData
     {
+        const DataRulePtr& dataRule = packet.getDataDescriptor().getRule();
+        NumberPtr packetOffset = packet.getOffset();
+        SizeT sampleCount = packet.getSampleCount();
+
+        if (sampleCount == 0)
+            return static_cast<SizeT>(-1);
+
+        const auto& parameters = dataRule.getParameters();
+        const int64_t scale = static_cast<int64_t>(parameters.get("delta"));
+        int64_t offset = static_cast<int64_t>(parameters.get("start"));
+        offset = offset + packetOffset.getIntValue();
+
+        auto* startV = dynamic_cast<const ComparableValue<int64_t>*>(&start);
+        // Should always be non-negative
+        auto startValue = GreaterEqual<int64_t>::GetStart(startV->getValue(), -domainInfo.offset);
+
+        int64_t diff = startValue - offset;
+        if (diff < 0)
+            return static_cast<SizeT>(-1);
+
+        int64_t index = (diff + scale - 1) / scale;
+        if (index < (int64_t)sampleCount)
+        {
+            if (firstSampleAbsoluteTime)
+            {
+                using namespace reader;
+                auto readValue = scale * index + offset;
+                auto readValueSysTime = toSysTime(readValue, domainInfo.epoch, domainInfo.resolution);
+                *firstSampleAbsoluteTime = readValueSysTime.time_since_epoch().count();
+            }
+            return index;
+        }
+
+        return static_cast<SizeT>(-1);
+    }
+    else
+    {
+
+        void* inputBuffer = packet.getData();
+        SizeT size = packet.getSampleCount();
+        switch (dataSampleType)
+        {
         case SampleType::Float32:
             return getOffsetToData<SampleTypeToType<SampleType::Float32>::Type>(domainInfo, start, inputBuffer, size, firstSampleAbsoluteTime);
         case SampleType::Float64:
@@ -256,9 +321,10 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered");
         case SampleType::_count:
             break;
-    }
+        }
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered");
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered");
+    }
 }
 
 template <typename TReadType>

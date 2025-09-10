@@ -323,7 +323,7 @@ void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateNumberOfChannels(); };
 
     const auto globalSampleRatePropInfo =
-        FloatPropertyBuilder("GlobalSampleRate", 1000.0).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(1000000.0).build();
+        FloatPropertyBuilder("GlobalSampleRate", 1500000.0).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(15000000.0).build();
 
     objPtr.addProperty(globalSampleRatePropInfo);
     objPtr.getOnPropertyValueWrite("GlobalSampleRate") +=

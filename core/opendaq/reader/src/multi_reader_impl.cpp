@@ -1219,13 +1219,13 @@ void MultiReaderImpl::readDomainStart()
     if (startOnFullUnitOfDomain)
     {
         commonStart->roundUpOnUnitOfDomain();
-        LOG_T("Rounded DomainStart: {}", *commonStart);
+        LOG_E("Rounded DomainStart: {}", *commonStart);
     }
     else
     {
         const RatioPtr interval = Ratio(sampleRateDividerLcm, commonSampleRate).simplify();
         commonStart->roundUpOnDomainInterval(interval);
-        LOG_T("Aligned DomainStart: {}", *commonStart);
+        LOG_E("Aligned DomainStart: {}", *commonStart);
     }
 }
 
@@ -1266,7 +1266,7 @@ void MultiReaderImpl::sync()
         }
     }
 
-    LOG_T("Synced: {}", synced);
+    LOG_E("Synced: {}", synced);
 }
 
 #pragma endregion MultiReaderInfo

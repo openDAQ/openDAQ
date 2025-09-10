@@ -373,17 +373,29 @@ jobs:
         working-directory: ${{ env.package_path_rel }}
         if: github.ref == 'refs/heads/main'
         run: |
-          rename 's/_amd64/-ubuntu22.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.{deb,zip}
-          rename 's/_arm64/-ubuntu22.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.{deb,zip}
-          rename 's/opendaq_/opendaq-/' *.{deb,zip}
+          rename 's/_amd64/-ubuntu22.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.deb
+          rename 's/_arm64/-ubuntu22.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.deb
+          rename 's/opendaq_/opendaq-/' *.deb
+
+      - name: Rename zip (main)
+        working-directory: ${{ env.package_path_rel }}
+        if: github.ref == 'refs/heads/main'
+        run: |
+          rename 's/-Linux/-ubuntu22.04-${{ matrix.arch }}_${{ steps.short-sha.outputs.sha }}/' *.zip
 
       - name: Rename package
         working-directory: ${{ env.package_path_rel }}
         if: github.ref != 'refs/heads/main'
         run: |
-          rename 's/_amd64/-ubuntu22.04-x86_64/' *.{deb,zip}
-          rename 's/_arm64/-ubuntu22.04-arm64/' *.{deb,zip}
-          rename 's/opendaq_/opendaq-/' *.{deb,zip}
+          rename 's/_amd64/-ubuntu22.04-x86_64/' *.deb
+          rename 's/_arm64/-ubuntu22.04-arm64/' *.deb
+          rename 's/opendaq_/opendaq-/' *.deb
+
+      - name: Rename zip
+        working-directory: ${{ env.package_path_rel }}
+        if: github.ref != 'refs/heads/main'
+        run: |
+          rename 's/-Linux/-ubuntu22.04-${{ matrix.arch }}/' *.zip
 
       - name: Read openDAQ version
         id: daq_version

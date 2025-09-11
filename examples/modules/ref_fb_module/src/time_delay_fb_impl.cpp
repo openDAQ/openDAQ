@@ -14,6 +14,7 @@ TimeDelayFbImpl::TimeDelayFbImpl(const ContextPtr& ctx,
                                    const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
+    initComponentStatus();
     initProperties();
     applyConfig(config);
     initInputPorts();
@@ -23,9 +24,9 @@ TimeDelayFbImpl::TimeDelayFbImpl(const ContextPtr& ctx,
 FunctionBlockTypePtr TimeDelayFbImpl::CreateType()
 {
     auto config = PropertyObject();
-    const auto timeOffsetProperty = IntPropertyBuilder("TimeOffset", 0).setUnit(Unit("s", -1, "seconds", "time"))
+    const auto timeDelayProperty = IntPropertyBuilder("TimeDelay", 0).setUnit(Unit("s", -1, "seconds", "time"))
                                                                                           .build();
-    config.addProperty(timeOffsetProperty);
+    config.addProperty(timeDelayProperty);
 
     return FunctionBlockType("RefFBModuleTimeDelay",
                              "Time Delay",
@@ -36,24 +37,24 @@ FunctionBlockTypePtr TimeDelayFbImpl::CreateType()
 
 void TimeDelayFbImpl::initProperties()
 {
-    const auto timeOffsetProperty = IntPropertyBuilder("TimeOffset", 0).setUnit(Unit("s", -1, "seconds", "time"))
+    const auto timeDelayProperty = IntPropertyBuilder("TimeDelay", 0).setUnit(Unit("s", -1, "seconds", "time"))
                                                                                           .build();
 
-    objPtr.addProperty(timeOffsetProperty);
-    objPtr.getOnPropertyValueWrite("TimeOffset") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args) 
+    objPtr.addProperty(timeDelayProperty);
+    objPtr.getOnPropertyValueWrite("TimeDelay") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args) 
     { 
-        updateTimeOffset(args.getValue());
+        updateTimeDelay(args.getValue());
     };
 }
 
 void TimeDelayFbImpl::applyConfig(const PropertyObjectPtr& config)
 {
-    objPtr.setPropertyValue("TimeOffset", config.getPropertyValue("TimeOffset"));
+    objPtr.setPropertyValue("TimeDelay", config.getPropertyValue("TimeDelay"));
 }
 
-void TimeDelayFbImpl::updateTimeOffset(Int timeOffset)
+void TimeDelayFbImpl::updateTimeDelay(Int timeDelay)
 {
-    this->timeOffset = timeOffset;
+    this->timeDelay = timeDelay;
 }
 
 void TimeDelayFbImpl::initInputPorts()
@@ -66,6 +67,26 @@ void TimeDelayFbImpl::initSignals()
     dataSignal = createAndAddSignal("Data");
     domainSignal = createAndAddSignal("Time", nullptr, false);
     dataSignal.setDomainSignal(domainSignal);
+}
+
+void TimeDelayFbImpl::onConnected(const InputPortPtr& port)
+{
+    auto lock = this->getRecursiveConfigLock();
+
+    const auto dataSignal = port.getSignal();
+    if (!dataSignal.assigned())
+        return;
+
+    const auto domainSignal = dataSignal.getDomainSignal();
+    if (domainSignal.assigned())
+    {
+        setComponentStatus(ComponentStatus::Ok);
+    }
+    else
+    {
+        inputPort.setActive(false);
+        setComponentStatusWithMessage(ComponentStatus::Error, "Expecting the signal with domain signal");
+    }
 }
 
 void TimeDelayFbImpl::onPacketReceived(const InputPortPtr& port)
@@ -92,7 +113,15 @@ void TimeDelayFbImpl::onPacketReceived(const InputPortPtr& port)
 void TimeDelayFbImpl::handleDataPacket(const DataPacketPtr& inputPacket)
 {
     const auto inputDomainPacket = inputPacket.getDomainPacket();
-    const auto offsetToAdd = timeOffset * domainTickResolution.getDenominator() / domainTickResolution.getNumerator();
+
+    if (timeDelay == 0)
+    {
+        domainSignal.sendPacket(inputDomainPacket);
+        dataSignal.sendPacket(inputPacket);
+        return;
+    }
+   
+    const auto offsetToAdd = timeDelay * domainTickResolution.getDenominator() / domainTickResolution.getNumerator();
 
     DataPacketPtr outputDomainPacket;
     if (domainRuleType == DataRuleType::Linear)
@@ -112,14 +141,14 @@ void TimeDelayFbImpl::handleDataPacket(const DataPacketPtr& inputPacket)
     }
     else if (dataRuleType == DataRuleType::Explicit)
     {
-        outputDataPacket = DataPacketWithDomain(outputDomainPacket, dataDescriptor, inputPacket.getSampleCount());
+        outputDataPacket = DataPacketWithDomain(outputDomainPacket, dataDescriptor, inputPacket.getSampleCount(), inputPacket.getOffset());
         void* src = inputPacket.getRawData();
         void* dst = outputDataPacket.getRawData();
         memcpy(dst, src, inputPacket.getRawDataSize());
     } 
 
-    dataSignal.sendPacket(outputDataPacket);
     domainSignal.sendPacket(outputDomainPacket);
+    dataSignal.sendPacket(outputDataPacket);
 }
 
 void TimeDelayFbImpl::handleEventPacket(const EventPacketPtr& packet)

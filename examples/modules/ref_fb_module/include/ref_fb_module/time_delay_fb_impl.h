@@ -36,6 +36,7 @@ public:
 
     static FunctionBlockTypePtr CreateType();
 
+    void onConnected(const InputPortPtr& port) override;
     void onPacketReceived(const InputPortPtr& port) override;
     void handleDataPacket(const DataPacketPtr& packet);
     void handleEventPacket(const EventPacketPtr& packet);
@@ -46,9 +47,9 @@ private:
     void initSignals();
     void initInputPorts();
 
-    void updateTimeOffset(Int timeOffset);
+    void updateTimeDelay(Int timeDelay);
 
-    Int timeOffset;
+    Int timeDelay;
 
     SignalConfigPtr dataSignal;
     SignalConfigPtr domainSignal;

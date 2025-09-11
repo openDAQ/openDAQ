@@ -22,6 +22,7 @@ VideoPlayerFbImpl::VideoPlayerFbImpl(const ContextPtr& ctx,
     if (!context.getScheduler().isMainLoopSet())
        DAQ_THROW_EXCEPTION(InvalidStateException, "Main loop is not set in the scheduler. Video player requires main loop for rendering.");
 
+    initComponentStatus();
     initProperties();
     initInputPorts();
 

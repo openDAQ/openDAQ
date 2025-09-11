@@ -158,11 +158,11 @@ jobs:
       - name: Debug 1
         shell: pwsh
         working-directory: ./build
-        run: tree
+        run: tree /f
 
       - name: Debug 2
         shell: pwsh
-        run: tree
+        run: tree /f
 
       - name: Test
         shell: pwsh

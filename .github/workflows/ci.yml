@@ -155,6 +155,15 @@ jobs:
           $env:SHORT_SHA = "${{ env.short_sha }}"
           cmake --build . --config ${{ matrix.cmake_build_type }}
 
+      - name: Debug 1
+        shell: pwsh
+        working-directory: ./build
+        run: tree
+
+      - name: Debug 2
+        shell: pwsh
+        run: tree
+
       - name: Test
         shell: pwsh
         env:

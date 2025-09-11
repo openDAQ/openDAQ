@@ -80,6 +80,9 @@ jobs:
         with:
           cmake-version: '4.0'
 
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
+
       - name: Configure and build Wheels
         id: configure_and_build_wheels
         if: matrix.cmake_generator_platform != 'Win32'

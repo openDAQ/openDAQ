@@ -33,6 +33,11 @@ if (DAQMODULES_REF_FB_MODULE)
     add_subdirectory(ref_fb_module)
 endif()
 
+if (DAQMODULES_SIMULATOR_DEVICE_MODULE)
+    message(STATUS "Simulator device module")
+    add_subdirectory(simulator_device_module)
+endif()
+
 if (DAQMODULES_AUDIO_DEVICE_MODULE)
     message(STATUS "Audio device module")
     add_subdirectory(audio_device_module)

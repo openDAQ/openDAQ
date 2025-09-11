@@ -352,8 +352,8 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
         delta = domainRuleParams.get("delta");
         start = domainRuleParams.get("start");
         curDomainPacketValue = firstDomainPacketValue + static_cast<DestDomainType>(samplesInPacket - 1) * delta + start;
-        gap = havePrevPacket && curDomainPacketValue != nextExpectedDomainPacketValue;
-        nextExpectedDomainPacketValue = firstDomainPacketValue - delta + start;
+        gap = havePrevPacket && (curDomainPacketValue + delta) != nextExpectedDomainPacketValue;
+        nextExpectedDomainPacketValue = firstDomainPacketValue + start;
     }
     else
     {

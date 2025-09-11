@@ -8,6 +8,16 @@ if (POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
+if (DAQMODULES_REF_DEVICE_MODULE)
+    message(STATUS "Reference device module")
+    add_subdirectory(ref_device_module)
+endif()
+
+if (DAQMODULES_REF_FB_MODULE)
+    message(STATUS "Reference function block module")
+    add_subdirectory(ref_fb_module)
+endif()
+
 if (DAQMODULES_OPENDAQ_CLIENT_MODULE)
     message(STATUS "Client modules:")
 

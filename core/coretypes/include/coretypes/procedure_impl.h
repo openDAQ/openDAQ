@@ -92,6 +92,7 @@ protected:
               typename... TArgs>
     ErrCode dispatchInternal(TArgs&&... args)
     {
+        // Procedure was initialized with functor returning ErrCode type - call functor directly
         return this->functor(std::forward<decltype(args)>(args)...);
     }
 
@@ -100,9 +101,10 @@ protected:
               typename... TArgs>
     ErrCode dispatchInternal(TArgs&&... args)
     {
+        // Procedure was initialized with functor returning type other than ErrCode - wrap functor with daqTry
         const ErrCode errCode = daqTry([&]()
         {
-            return this->functor(std::forward<decltype(args)>(args)...);
+            this->functor(std::forward<decltype(args)>(args)...);
         });
         OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to dispatch procedure");
         return errCode;

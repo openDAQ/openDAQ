@@ -184,7 +184,7 @@ ErrCode LogFileInfoImpl::Deserialize(ISerializedObject* serialized, IBaseObject*
                                      .setId(id)
                                      .setDescription(description)
                                      .setEncoding(encoding)
-                                     .setSize(size)
+                                     .setSize(static_cast<SizeT>(size))
                                      .setLastModified(lastModified)
                                      .build();
     *obj = info.detach();

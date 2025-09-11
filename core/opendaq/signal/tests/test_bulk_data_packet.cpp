@@ -125,7 +125,7 @@ TEST_P(BulkDataPacketTest, Explicit)
     for (size_t i = 0; i < sampleCount[1]; i++)
     {
         rawData1[i] = 2.0;
-        rawDomainData1[i] = 2.0;
+        rawDomainData1[i] = 2;
     }
     for (size_t i = 0; i < sampleCount[2]; i++)
     {
@@ -141,7 +141,7 @@ TEST_P(BulkDataPacketTest, Explicit)
     for (size_t i = 0; i < sampleCount[1]; i++)
     {
         ASSERT_EQ(rawData1[i], 2.0);
-        ASSERT_EQ(rawDomainData1[i], 2.0);
+        ASSERT_EQ(rawDomainData1[i], 2);
     }
     for (size_t i = 0; i < sampleCount[2]; i++)
     {

@@ -94,7 +94,7 @@ class ComparableValue : public Comparable
 public:
     explicit ComparableValue(ReadType startingValue, const ReaderDomainInfo& domainInfo, bool log = true)
         : Comparable(domainInfo)
-        , value(startingValue * domainInfo.multiplier.getNumerator() / static_cast<double>(domainInfo.multiplier.getDenominator()))
+        , value(static_cast<ReadType>(startingValue * domainInfo.multiplier.getNumerator() / static_cast<double>(domainInfo.multiplier.getDenominator())))
     {
 
 #if !defined(NDEBUG)
@@ -108,7 +108,7 @@ public:
                 domainInfo.resolution
             ));
             auto readTime = timePointString(toSysTime<ReadType, std::chrono::microseconds>(
-                value + info.offset,
+                value + static_cast<ReadType>(info.offset),
                 info.readEpoch,
                 info.readResolution
             ));
@@ -129,7 +129,7 @@ public:
         }
 #endif
 
-        value += info.offset;
+        value += static_cast<ReadType>(info.offset);
     }
 
     [[nodiscard]]
@@ -159,7 +159,7 @@ public:
         if (den % num != 0)
             DAQ_THROW_EXCEPTION(NotSupportedException, "Resolution must be aligned on full unit of domain");
 
-        value = (((value * num + den - 1) / den) * den) / num;
+        value = static_cast<ReadType>((((value * num + den - 1) / den) * den) / num);
     }
 
     void roundUpOnDomainInterval(const RatioPtr interval) override
@@ -174,7 +174,7 @@ public:
         if (den % num != 0)
             DAQ_THROW_EXCEPTION(NotSupportedException, "Resolution must be aligned on full unit of domain");
 
-        value = (((value * num + den - 1) / den) * den) / num;
+        value = static_cast<ReadType>((((value * num + den - 1) / den) * den) / num);
     }
 
     void print(std::ostream& os) const override

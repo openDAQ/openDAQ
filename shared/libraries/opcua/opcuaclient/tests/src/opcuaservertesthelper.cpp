@@ -178,7 +178,7 @@ void OpcUaServerTestHelper::publishVariable(std::string identifier,
                                             const UA_DataType* type,
                                             UA_NodeId* parentNodeId,
                                             const char* locale,
-                                            int nodeIndex,
+                                            uint16_t nodeIndex,
                                             size_t dimension)
 {
     OpcUaObject<UA_VariableAttributes> attr = UA_VariableAttributes_default;

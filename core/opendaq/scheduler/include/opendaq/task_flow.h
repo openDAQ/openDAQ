@@ -19,6 +19,7 @@
     #ifdef _MSC_VER
         #pragma warning(push)
         #pragma warning(disable : 4456)  // hides previous local declaration
+        #pragma warning(disable : 4244)
     #endif
 #endif
 

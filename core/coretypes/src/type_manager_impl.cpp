@@ -5,6 +5,7 @@
 #include <coretypes/type_ptr.h>
 #include <cctype>
 #include <algorithm>
+#include <coretypes/coretype_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,8 +37,8 @@ ErrCode TypeManagerImpl::addType(IType* type)
     if (!typeName.assigned() || typeName == "")
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
-    std::string typeStr = typeName;
-    std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(), [](char c) { return std::tolower(c); });
+    std::string typeStr = typeName.toStdString();
+    typeStr = coretype_utils::toLowerCase(typeStr);
     if (reservedTypeNames.count(typeStr))
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_RESERVED_TYPE_NAME, fmt::format(R"(""Type {} is in the list of protected type names.")", typeStr));
 

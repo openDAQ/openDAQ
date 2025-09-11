@@ -196,7 +196,7 @@ public:
             OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
 
         if (externalListener.assigned() && externalListener.getRef().assigned())
-            return externalListener.getRef()->disconnected(port);
+            return externalListener.getRef()->packetReceived(port);
 
         return OPENDAQ_SUCCESS;
     }

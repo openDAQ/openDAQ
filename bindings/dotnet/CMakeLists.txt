@@ -120,7 +120,7 @@ set(dependencyTargets ${SDK_TARGET_NAMESPACE}::coretypes
                       ${SDK_TARGET_NAMESPACE}::coreobjects
                       ${SDK_TARGET_NAMESPACE}::opendaq
 )
-add_cmake_targets(${CMAKE_SOURCE_DIR}/modules/. dependencyTargets)
+add_cmake_targets(${CMAKE_SOURCE_DIR}/examples/modules/. dependencyTargets)
 
 message(DEBUG "Adding target dependencies: ${dependencyTargets}")
 

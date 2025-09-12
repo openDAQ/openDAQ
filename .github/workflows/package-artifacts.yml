@@ -99,6 +99,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Checkout openDAQ repository
+        uses: actions/checkout@v4
+
       - name: Cache dependencies (Linux/APT)
         if: runner.os == 'Linux'
         uses: actions/cache@v4
@@ -157,9 +160,6 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           choco install nsis -y
-
-      - name: Checkout openDAQ repository
-        uses: actions/checkout@v4
 
       - name: Configure openDAQ CMake build
         run: cmake -S . -B build -G "${{ matrix.cmake-build-generator }}" ${{ matrix.cmake-preset }} ${{ matrix.cmake_defines }} ${{ matrix.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake-config }}

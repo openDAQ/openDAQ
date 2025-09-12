@@ -1,0 +1,223 @@
+name: Build and Upload Artifacts
+
+on:
+  push:
+    branches:
+      - jira/*
+
+  pull_request:
+    branches:
+      - jira/*
+
+  workflow_dispatch:
+
+jobs:
+  package:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            cache-key-os: linux
+            cmake-build-generator: Ninja
+            cmake-package-generator: DEB
+            cmake-parallel: --parallel 2
+            # cmake-preset: --preset package
+            cmake-preset: ''
+            cmake-config: Release
+            cmake-defines:
+              -DOPENDAQ_ENABLE_TESTS=OFF
+              # -DCMAKE_SYSTEM_NAME=Linux
+              # -DCMAKE_SYSTEM_PROCESSOR=x86_64
+              # -DOPENDAQ_BUILD_DOCUMENTATION=OFF
+              # -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
+              # -DDAQMODULES_REF_FB_MODULE=OFF
+              # -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              # -DDAQMODULES_REF_DEVICE_MODULE=OFF
+              # -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF
+              # -DDAQMODULES_OPENDAQ_CLIENT_MODULE=OFF
+              # -DDAQMODULES_OPENDAQ_SERVER_MODULE=OFF
+              # -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
+              # -DOPENDAQ_ENABLE_OPCUA=OFF
+              # -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
+              # -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
+            cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+              -DCMAKE_C_COMPILER=gcc
+              -DCMAKE_CXX_COMPILER=g++
+
+          - os: windows-latest
+            cache-key-os: windows
+            cmake-build-generator: 'Visual Studio 17 2022'
+            cmake-package-generator: NSIS
+            cmake-parallel: --parallel 2
+            # cmake-preset: --preset package
+            cmake-preset: ''
+            cmake-config: Release
+            cmake-defines:
+              -DOPENDAQ_ENABLE_TESTS=OFF
+              # -DCMAKE_SYSTEM_NAME=Linux
+              # -DCMAKE_SYSTEM_PROCESSOR=x86_64
+              # -DOPENDAQ_BUILD_DOCUMENTATION=OFF
+              # -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
+              # -DDAQMODULES_REF_FB_MODULE=OFF
+              # -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              # -DDAQMODULES_REF_DEVICE_MODULE=OFF
+              # -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF
+              # -DDAQMODULES_OPENDAQ_CLIENT_MODULE=OFF
+              # -DDAQMODULES_OPENDAQ_SERVER_MODULE=OFF
+              # -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
+              # -DOPENDAQ_ENABLE_OPCUA=OFF
+              # -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
+              # -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
+            cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=sccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+
+          - os: macos-13
+            cache-key-os: macos13
+            cmake-build-generator: Ninja
+            cmake-package-generator: ZIP
+            cmake-parallel: --parallel 4
+            # cmake-preset: --preset package
+            cmake-preset: ''
+            cmake-config: Release
+            cmake-defines:
+              -DOPENDAQ_ENABLE_TESTS=OFF
+              # -DCMAKE_SYSTEM_NAME=MacOS
+              # -DCMAKE_SYSTEM_PROCESSOR=x86_64
+              # -DOPENDAQ_BUILD_DOCUMENTATION=OFF
+              # -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
+              # -DDAQMODULES_REF_FB_MODULE=OFF
+              # -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              # -DDAQMODULES_REF_DEVICE_MODULE=OFF
+              # -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF
+              # -DDAQMODULES_OPENDAQ_CLIENT_MODULE=OFF
+              # -DDAQMODULES_OPENDAQ_SERVER_MODULE=OFF
+              # -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
+              # -DOPENDAQ_ENABLE_OPCUA=OFF
+              # -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
+              # -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
+
+            cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+              -DCMAKE_C_COMPILER=clang
+              -DCMAKE_CXX_COMPILER=clang++
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      SCCACHE_DIR: ${{ github.workspace }}\.sccache
+
+    steps:
+      - name: Checkout openDAQ repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+              libx11-dev \
+              libxrandr-dev \
+              libxcursor-dev \
+              libxi-dev \
+              libgl1-mesa-dev \
+              mesa-common-dev \
+              freeglut3-dev \
+              libudev-dev \
+              libfreetype6-dev \
+              python3.12-dev \
+              python3-pip \
+              mono-complete \
+              ccache
+
+      - name: Install dependencies Windows
+        if: runner.os == 'Windows'
+        run: |
+          choco install nsis sccache -y
+
+      - name: Prepare MSBuild for sccache
+        if: runner.os == 'Windows'
+        run: |
+          $wrapperDir = "$env:GITHUB_WORKSPACE\sccache-wrapper"
+          New-Item -ItemType Directory -Force -Path $wrapperDir
+
+          $msvcCl = "C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe"
+
+          $batFile = Join-Path $wrapperDir "cl.bat"
+          Set-Content $batFile -Value "@echo off`nsccache `"$msvcCl`" %*"
+
+          Add-Content -Path $env:GITHUB_ENV -Value "PATH=$wrapperDir`;$env:PATH"
+
+          Write-Host "Wrapper dir added to PATH: $wrapperDir"
+          Write-Host $env:PATH
+
+      - name: Install dependencies MacOS
+        if: runner.os == 'macOS'
+        run: |
+          brew install ccache
+
+      - name: Restore compiler cache (Unix)
+        if: matrix.os != 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ hashFiles('**/*.c','**/*.cpp') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+
+      - name: Restore compiler cache (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-msvc-${{ hashFiles('**/*.c','**/*.cpp') }}
+          restore-keys: |
+            sccache-msvc-
+
+      - name: Configure openDAQ CMake build
+        run: cmake -S . -B build -G "${{ matrix.cmake-build-generator }}" ${{ matrix.cmake-preset }} ${{ matrix.cmake_defines }} ${{ matrix.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake-config }}
+
+      - name: Perfrom openDAQ CMake build
+        run: cmake --build build --config Release ${{ matrix.cmake-parallel }}
+
+      - name: Package openDAQ CPack
+        run: cpack --config build/CPackConfig.cmake -G ${{ matrix.cmake-package-generator }}
+
+      - name: Read openDAQ version
+        id: opendaq-framework-version
+        shell: bash
+        run: |
+          OPENDAQ_VERSION=$(cat opendaq_version)
+          echo Head openDAQ version: $OPENDAQ_VERSION
+          echo "name=$OPENDAQ_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        id: opendaq-upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opendaq-${{ steps.opendaq-framework-version.outputs.name }}-${{ matrix.cmake-package-generator }}
+          path: build/_packages/*
+          retention-days: 1
+
+      - name: Output artifact ID
+        run: |
+          echo 'Artifact ID:..... ${{ steps.opendaq-upload-artifact.outputs.artifact-id }}'
+          echo 'Artifact URL:.... ${{ steps.opendaq-upload-artifact.outputs.artifact-url }}'
+          echo 'Artifact digest:. ${{ steps.opendaq-upload-artifact.outputs.artifact-digest }}'
+
+      - name: Print compiler cache stats (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "=== ccache stats ==="
+          ccache -s
+
+      - name: Print compiler cache stats (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          echo "=== sccache stats ==="
+          sccache --show-stats

@@ -23,6 +23,7 @@ jobs:
             cache-key-os: linux
             cmake-build-generator: Ninja
             cmake-package-generator: DEB
+            cmake-parallel: --parallel 2
             cmake-preset: --preset package
             cmake-config: Release
             cmake-defines:
@@ -51,6 +52,7 @@ jobs:
             cache-key-os: windows
             cmake-build-generator: 'Visual Studio 17 2022'
             cmake-package-generator: NSIS
+            cmake-parallel: --parallel 2
             cmake-preset: --preset package
             cmake-config: Release
             cmake-defines:
@@ -77,6 +79,7 @@ jobs:
             cache-key-os: macos13
             cmake-build-generator: Ninja
             cmake-package-generator: ZIP
+            cmake-parallel: --parallel 4
             cmake-preset: --preset package
             cmake-config: Release
             cmake-defines:
@@ -195,7 +198,7 @@ jobs:
         run: cmake -S . -B build -G "${{ matrix.cmake-build-generator }}" ${{ matrix.cmake-preset }} ${{ matrix.cmake_defines }} ${{ matrix.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake-config }}
 
       - name: Perfrom openDAQ CMake build
-        run: cmake --build build --config Release
+        run: cmake --build build --config Release ${{ matrix.cmake-parallel }}
 
       - name: Package openDAQ CPack
         run: cpack --config build/CPackConfig.cmake -G ${{ matrix.cmake-package-generator }}

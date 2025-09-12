@@ -1,5 +1,3 @@
-#include <testutils/memcheck_listener.h>
-#include <gmock/gmock.h>
 #include <opendaq/context_factory.h>
 #include <ref_fb_module/module_dll.h>
 #include <opendaq/data_descriptor_factory.h>
@@ -7,6 +5,8 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/input_port_factory.h>
 #include <thread>
+
+#include <testutils/memcheck_listener.h>
 
 using namespace daq;
 

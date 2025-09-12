@@ -11,9 +11,6 @@ on:
 
   workflow_dispatch:
 
-# env:
-#   VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
-
 jobs:
   package:
     strategy:
@@ -24,7 +21,8 @@ jobs:
             cmake-build-generator: Ninja
             cmake-package-generator: DEB
             cmake-parallel: --parallel 2
-            cmake-preset: --preset package
+            # cmake-preset: --preset package
+            cmake-preset: ''
             cmake-config: Release
             cmake-defines:
               -DOPENDAQ_ENABLE_TESTS=OFF
@@ -53,7 +51,8 @@ jobs:
             cmake-build-generator: 'Visual Studio 17 2022'
             cmake-package-generator: NSIS
             cmake-parallel: --parallel 2
-            cmake-preset: --preset package
+            # cmake-preset: --preset package
+            cmake-preset: ''
             cmake-config: Release
             cmake-defines:
               -DOPENDAQ_ENABLE_TESTS=OFF
@@ -80,7 +79,8 @@ jobs:
             cmake-build-generator: Ninja
             cmake-package-generator: ZIP
             cmake-parallel: --parallel 4
-            cmake-preset: --preset package
+            # cmake-preset: --preset package
+            cmake-preset: ''
             cmake-config: Release
             cmake-defines:
               -DOPENDAQ_ENABLE_TESTS=OFF
@@ -107,63 +107,13 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      SCCACHE_DIR: ${{ github.workspace }}\.sccache
+
     steps:
       - name: Checkout openDAQ repository
         uses: actions/checkout@v4
-
-      # - name: Cache dependencies (Linux/APT)
-      #   if: runner.os == 'Linux'
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: /var/cache/apt/archives
-      #     key: ${{ runner.os }}-apt-${{ hashFiles('**/.github/workflows/package-artifacts.yml') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-apt-
-
-      # - name: Cache dependencies (Windows/Chocolatey)
-      #   if: runner.os == 'Windows'
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: ~\AppData\Local\Temp\chocolatey
-      #     key: ${{ runner.os }}-choco-${{ hashFiles('**/.github/workflows/package-artifacts.yml') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-choco-
-
-      # - name: Setup vcpkg cache (Windows)
-      #   if: runner.os == 'Windows'
-      #   uses: actions/github-script@v7
-      #   with:
-      #     script: |
-      #       core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-      #       core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
-      # - name: Cache CMake build directory
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: |
-      #       build/__external
-      #     key: |
-      #       ${{ matrix.cache-key-os }}-cmake-deps-${{ hashFiles('**/CMakeLists.txt', 'CMakeBasePresets.json') }}
-      #     restore-keys: |
-      #       ${{ matrix.cache-key-os }}-cmake-deps-
-
-      - name: Restore compiler cache (Unix)
-        if: matrix.os != 'windows-latest'
-        uses: actions/cache@v4
-        with:
-          path: ~/.ccache
-          key: ccache-${{ runner.os }}-${{ hashFiles('**/*.c','**/*.cpp') }}
-          restore-keys: |
-            ccache-${{ runner.os }}-
-
-      - name: Restore compiler cache (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.LOCALAPPDATA }}\sccache
-          key: sccache-msvc-${{ hashFiles('**/*.c','**/*.cpp') }}
-          restore-keys: |
-            sccache-msvc-
 
       - name: Install dependencies Linux
         if: runner.os == 'Linux'
@@ -189,10 +139,44 @@ jobs:
         run: |
           choco install nsis sccache -y
 
+      - name: Prepare MSBuild for sccache
+        if: runner.os == 'Windows'
+        run: |
+          $wrapperDir = "$env:GITHUB_WORKSPACE\sccache-wrapper"
+          New-Item -ItemType Directory -Force -Path $wrapperDir
+
+          $msvcCl = "C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe"
+
+          $batFile = Join-Path $wrapperDir "cl.bat"
+          Set-Content $batFile -Value "@echo off`nsccache `"$msvcCl`" %*"
+
+          Add-Content -Path $env:GITHUB_ENV -Value "PATH=$wrapperDir`;$env:PATH"
+
+          Write-Host "Wrapper dir added to PATH: $wrapperDir"
+          Write-Host $env:PATH
+
       - name: Install dependencies MacOS
         if: runner.os == 'macOS'
         run: |
           brew install ccache
+
+      - name: Restore compiler cache (Unix)
+        if: matrix.os != 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ hashFiles('**/*.c','**/*.cpp') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+
+      - name: Restore compiler cache (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-msvc-${{ hashFiles('**/*.c','**/*.cpp') }}
+          restore-keys: |
+            sccache-msvc-
 
       - name: Configure openDAQ CMake build
         run: cmake -S . -B build -G "${{ matrix.cmake-build-generator }}" ${{ matrix.cmake-preset }} ${{ matrix.cmake_defines }} ${{ matrix.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake-config }}
@@ -224,3 +208,16 @@ jobs:
           echo 'Artifact ID:..... ${{ steps.opendaq-upload-artifact.outputs.artifact-id }}'
           echo 'Artifact URL:.... ${{ steps.opendaq-upload-artifact.outputs.artifact-url }}'
           echo 'Artifact digest:. ${{ steps.opendaq-upload-artifact.outputs.artifact-digest }}'
+
+      - name: Print compiler cache stats (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "=== ccache stats ==="
+          ccache -s
+
+      - name: Print compiler cache stats (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          echo "=== sccache stats ==="
+          sccache --show-stats

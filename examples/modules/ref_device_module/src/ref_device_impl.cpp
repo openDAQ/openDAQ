@@ -593,7 +593,7 @@ void RefDeviceImpl::onOperationModeChanged(OperationModeType modeType)
 
 void RefDeviceImpl::createSignals()
 {
-    timeSignal = createAndAddSignal("Time", nullptr, true);
+    timeSignal = createAndAddSignal("Time", nullptr, false);
     timeSignal.getTags().asPtr<ITagsPrivate>(true).add("DeviceDomain");
 }
 

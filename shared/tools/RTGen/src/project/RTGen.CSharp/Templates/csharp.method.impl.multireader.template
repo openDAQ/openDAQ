@@ -1,20 +1,8 @@
 ﻿    public $ReturnTypePtr$ $Name$($Arguments$)
     {$CSNativeOutputArgument$
-        if (count == 0)
-        {
-            return$CSDefaultReturnValue$;
-            //ToDo: or throw exception?
-        }
 
         //get the number of elements in the smallest sub-array
         nuint maxReadCount = $CSArrayLength$;
-
-        if (maxReadCount == 0)
-        {
-            count = 0;
-            return$CSDefaultReturnValue$;
-            //ToDo: or throw exception?
-        }
 
         if (count > maxReadCount)
         {

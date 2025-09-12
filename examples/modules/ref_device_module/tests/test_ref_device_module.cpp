@@ -218,7 +218,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainSignal)
     const auto module = CreateModule();
 
     const auto device = module.createDevice("daqref://device1", nullptr);
-    const auto deviceDomainSignal = device.getSignals()[0];
+    const auto deviceDomainSignal = device.getSignals(search::Any())[0];
 
     ASSERT_TRUE(deviceDomainSignal.getTags().contains("DeviceDomain"));
 

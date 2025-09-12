@@ -23,7 +23,7 @@ jobs:
             cache-key-os: linux
             cmake-build-generator: Ninja
             cmake-package-generator: DEB
-            cmake-preset: --preset package
+            cmake-preset: ''
             cmake-config: Release
             cmake-defines:
               -DOPENDAQ_ENABLE_TESTS=OFF
@@ -49,7 +49,7 @@ jobs:
             cache-key-os: windows
             cmake-build-generator: 'Visual Studio 17 2022'
             cmake-package-generator: NSIS
-            cmake-preset: --preset package
+            cmake-preset: ''
             cmake-config: Release
             cmake-defines:
               -DOPENDAQ_ENABLE_TESTS=OFF
@@ -67,9 +67,7 @@ jobs:
               # -DOPENDAQ_ENABLE_OPCUA=OFF
               # -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
               # -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
-            cmake-compiler:
-              -DCMAKE_C_COMPILER=gcc
-              -DCMAKE_CXX_COMPILER=g++
+            cmake-compiler: ''
 
           - os: macos-13
             cache-key-os: macos13
@@ -131,9 +129,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            build/_deps
-            build/external
-          key: ${{ matrix.cache-key-os }}-cmake-deps-${{ hashFiles('**/CMakeLists.txt', '**/CMakeBasePresets.json', '**/external/**') }}
+            build/__external
+          key: |
+            ${{ matrix.cache-key-os }}-cmake-deps-${{ hashFiles('**/CMakeLists.txt', 'CMakeBasePresets.json') }}
           restore-keys: |
             ${{ matrix.cache-key-os }}-cmake-deps-
 

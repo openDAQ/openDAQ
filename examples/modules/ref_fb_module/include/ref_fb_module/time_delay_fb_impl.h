@@ -49,7 +49,7 @@ private:
 
     void updateTimeDelay(Int timeDelay);
 
-    Int timeDelay;
+    Int timeDelay{0};
 
     SignalConfigPtr dataSignal;
     SignalConfigPtr domainSignal;

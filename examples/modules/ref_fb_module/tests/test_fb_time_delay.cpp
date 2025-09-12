@@ -114,7 +114,6 @@ TEST_F(TimeDelayFbTest, ConnectingSignalWithoutDomain)
     ASSERT_EQ(status.getStatus("ComponentStatus"), "Error");
 }
 
-
 TEST_F(TimeDelayFbTest, ConnectingSignalWithLinearDomain)
 {
     const auto ctx = NullContext();

@@ -120,14 +120,14 @@ void TimeDelayFbImpl::handleDataPacket(const DataPacketPtr& inputPacket)
         dataSignal.sendPacket(inputPacket);
         return;
     }
-   
+
     const auto offsetToAdd = timeDelay * domainTickResolution.getDenominator() / domainTickResolution.getNumerator();
 
     DataPacketPtr outputDomainPacket;
     if (domainRuleType == DataRuleType::Linear)
     {
-        auto packetOffset = inputDomainPacket.getOffset();
-        outputDomainPacket = DataPacket(inputDomainPacket.getDataDescriptor(), inputDomainPacket.getSampleCount(), packetOffset + offsetToAdd);
+        const auto packetOffset = inputDomainPacket.getOffset() + offsetToAdd;
+        outputDomainPacket = DataPacket(inputDomainPacket.getDataDescriptor(), inputDomainPacket.getSampleCount(), packetOffset);
     }
     else if (domainRuleType == DataRuleType::Explicit)
     {

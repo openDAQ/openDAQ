@@ -11,8 +11,8 @@ on:
 
   workflow_dispatch:
 
-env:
-  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+# env:
+#   VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
 
 jobs:
   package:
@@ -23,7 +23,7 @@ jobs:
             cache-key-os: linux
             cmake-build-generator: Ninja
             cmake-package-generator: DEB
-            cmake-preset: ''
+            cmake-preset: --preset package
             cmake-config: Release
             cmake-defines:
               -DOPENDAQ_ENABLE_TESTS=OFF
@@ -42,6 +42,8 @@ jobs:
               # -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
               # -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
             cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
               -DCMAKE_C_COMPILER=gcc
               -DCMAKE_CXX_COMPILER=g++
 
@@ -49,7 +51,7 @@ jobs:
             cache-key-os: windows
             cmake-build-generator: 'Visual Studio 17 2022'
             cmake-package-generator: NSIS
-            cmake-preset: ''
+            cmake-preset: --preset package
             cmake-config: Release
             cmake-defines:
               -DOPENDAQ_ENABLE_TESTS=OFF
@@ -67,13 +69,15 @@ jobs:
               # -DOPENDAQ_ENABLE_OPCUA=OFF
               # -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
               # -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
-            cmake-compiler: ''
+            cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=sccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
           - os: macos-13
             cache-key-os: macos13
             cmake-build-generator: Ninja
             cmake-package-generator: ZIP
-            cmake-preset: ''
+            cmake-preset: --preset package
             cmake-config: Release
             cmake-defines:
               -DOPENDAQ_ENABLE_TESTS=OFF
@@ -93,6 +97,8 @@ jobs:
               # -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
 
             cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
               -DCMAKE_C_COMPILER=clang
               -DCMAKE_CXX_COMPILER=clang++
 
@@ -102,41 +108,59 @@ jobs:
       - name: Checkout openDAQ repository
         uses: actions/checkout@v4
 
-      - name: Cache dependencies (Linux/APT)
-        if: runner.os == 'Linux'
+      # - name: Cache dependencies (Linux/APT)
+      #   if: runner.os == 'Linux'
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: /var/cache/apt/archives
+      #     key: ${{ runner.os }}-apt-${{ hashFiles('**/.github/workflows/package-artifacts.yml') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-apt-
+
+      # - name: Cache dependencies (Windows/Chocolatey)
+      #   if: runner.os == 'Windows'
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~\AppData\Local\Temp\chocolatey
+      #     key: ${{ runner.os }}-choco-${{ hashFiles('**/.github/workflows/package-artifacts.yml') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-choco-
+
+      # - name: Setup vcpkg cache (Windows)
+      #   if: runner.os == 'Windows'
+      #   uses: actions/github-script@v7
+      #   with:
+      #     script: |
+      #       core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+      #       core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      # - name: Cache CMake build directory
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       build/__external
+      #     key: |
+      #       ${{ matrix.cache-key-os }}-cmake-deps-${{ hashFiles('**/CMakeLists.txt', 'CMakeBasePresets.json') }}
+      #     restore-keys: |
+      #       ${{ matrix.cache-key-os }}-cmake-deps-
+
+      - name: Restore compiler cache (Unix)
+        if: matrix.os != 'windows-latest'
         uses: actions/cache@v4
         with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-${{ hashFiles('**/.github/workflows/package-artifacts.yml') }}
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-${{ hashFiles('**/*.c','**/*.cpp') }}
           restore-keys: |
-            ${{ runner.os }}-apt-
+            ccache-${{ runner.os }}-
 
-      - name: Cache dependencies (Windows/Chocolatey)
-        if: runner.os == 'Windows'
+      - name: Restore compiler cache (Windows)
+        if: matrix.os == 'windows-latest'
         uses: actions/cache@v4
         with:
-          path: ~\AppData\Local\Temp\chocolatey
-          key: ${{ runner.os }}-choco-${{ hashFiles('**/.github/workflows/package-artifacts.yml') }}
+          path: ${{ env.LOCALAPPDATA }}\sccache
+          key: sccache-msvc-${{ hashFiles('**/*.c','**/*.cpp') }}
           restore-keys: |
-            ${{ runner.os }}-choco-
-
-      - name: Setup vcpkg cache (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
-      - name: Cache CMake build directory
-        uses: actions/cache@v4
-        with:
-          path: |
-            build/__external
-          key: |
-            ${{ matrix.cache-key-os }}-cmake-deps-${{ hashFiles('**/CMakeLists.txt', 'CMakeBasePresets.json') }}
-          restore-keys: |
-            ${{ matrix.cache-key-os }}-cmake-deps-
+            sccache-msvc-
 
       - name: Install dependencies Linux
         if: runner.os == 'Linux'
@@ -154,12 +178,18 @@ jobs:
               libfreetype6-dev \
               python3.12-dev \
               python3-pip \
-              mono-complete
+              mono-complete \
+              ccache
 
       - name: Install dependencies Windows
         if: runner.os == 'Windows'
         run: |
-          choco install nsis -y
+          choco install nsis sccache -y
+
+      - name: Install dependencies MacOS
+        if: runner.os == 'macOS'
+        run: |
+          brew install ccache
 
       - name: Configure openDAQ CMake build
         run: cmake -S . -B build -G "${{ matrix.cmake-build-generator }}" ${{ matrix.cmake-preset }} ${{ matrix.cmake_defines }} ${{ matrix.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake-config }}

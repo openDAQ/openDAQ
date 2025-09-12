@@ -11,60 +11,68 @@ on:
 
   workflow_dispatch:
 
+env:
+  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+
 jobs:
   package:
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
+            cache-key-os: linux
             cmake-build-generator: Ninja
             cmake-package-generator: DEB
             cmake-preset: --preset package
             cmake-config: Release
             cmake-defines:
-              -DCMAKE_SYSTEM_NAME=Linux
-              -DCMAKE_SYSTEM_PROCESSOR=x86_64
-              -DOPENDAQ_BUILD_DOCUMENTATION=OFF
-              -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
-              -DDAQMODULES_REF_FB_MODULE=OFF
-              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-              -DDAQMODULES_REF_DEVICE_MODULE=OFF
-              -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF
-              -DDAQMODULES_OPENDAQ_CLIENT_MODULE=OFF
-              -DDAQMODULES_OPENDAQ_SERVER_MODULE=OFF
-              -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
-              -DOPENDAQ_ENABLE_OPCUA=OFF
-              -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
-              -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
+              -DOPENDAQ_ENABLE_TESTS=OFF
+              # -DCMAKE_SYSTEM_NAME=Linux
+              # -DCMAKE_SYSTEM_PROCESSOR=x86_64
+              # -DOPENDAQ_BUILD_DOCUMENTATION=OFF
+              # -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
+              # -DDAQMODULES_REF_FB_MODULE=OFF
+              # -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              # -DDAQMODULES_REF_DEVICE_MODULE=OFF
+              # -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF
+              # -DDAQMODULES_OPENDAQ_CLIENT_MODULE=OFF
+              # -DDAQMODULES_OPENDAQ_SERVER_MODULE=OFF
+              # -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
+              # -DOPENDAQ_ENABLE_OPCUA=OFF
+              # -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
+              # -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
             cmake-compiler:
               -DCMAKE_C_COMPILER=gcc
               -DCMAKE_CXX_COMPILER=g++
 
           - os: windows-latest
+            cache-key-os: windows
             cmake-build-generator: 'Visual Studio 17 2022'
             cmake-package-generator: NSIS
             cmake-preset: --preset package
             cmake-config: Release
             cmake-defines:
-              -DCMAKE_SYSTEM_NAME=Linux
-              -DCMAKE_SYSTEM_PROCESSOR=x86_64
-              -DOPENDAQ_BUILD_DOCUMENTATION=OFF
-              -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
-              -DDAQMODULES_REF_FB_MODULE=OFF
-              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-              -DDAQMODULES_REF_DEVICE_MODULE=OFF
-              -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF
-              -DDAQMODULES_OPENDAQ_CLIENT_MODULE=OFF
-              -DDAQMODULES_OPENDAQ_SERVER_MODULE=OFF
-              -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
-              -DOPENDAQ_ENABLE_OPCUA=OFF
-              -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
-              -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
+              -DOPENDAQ_ENABLE_TESTS=OFF
+              # -DCMAKE_SYSTEM_NAME=Linux
+              # -DCMAKE_SYSTEM_PROCESSOR=x86_64
+              # -DOPENDAQ_BUILD_DOCUMENTATION=OFF
+              # -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
+              # -DDAQMODULES_REF_FB_MODULE=OFF
+              # -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              # -DDAQMODULES_REF_DEVICE_MODULE=OFF
+              # -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF
+              # -DDAQMODULES_OPENDAQ_CLIENT_MODULE=OFF
+              # -DDAQMODULES_OPENDAQ_SERVER_MODULE=OFF
+              # -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
+              # -DOPENDAQ_ENABLE_OPCUA=OFF
+              # -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
+              # -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
             cmake-compiler:
               -DCMAKE_C_COMPILER=gcc
               -DCMAKE_CXX_COMPILER=g++
 
           - os: macos-13
+            cache-key-os: macos13
             cmake-build-generator: Ninja
             cmake-package-generator: ZIP
             cmake-preset: ''
@@ -90,7 +98,6 @@ jobs:
               -DCMAKE_C_COMPILER=clang
               -DCMAKE_CXX_COMPILER=clang++
 
-
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -111,6 +118,24 @@ jobs:
           key: ${{ runner.os }}-choco-${{ hashFiles('**/.github/workflows/package-artifacts.yml') }}
           restore-keys: |
             ${{ runner.os }}-choco-
+
+      - name: Setup vcpkg cache (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Cache CMake build directory
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/_deps
+            build/external
+          key: ${{ matrix.cache-key-os }}-cmake-deps-${{ hashFiles('**/CMakeLists.txt', '**/CMakeBasePresets.json', '**/external/**') }}
+          restore-keys: |
+            ${{ matrix.cache-key-os }}-cmake-deps-
 
       - name: Install dependencies Linux
         if: runner.os == 'Linux'

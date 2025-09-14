@@ -26,6 +26,48 @@ if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
     endforeach()
 endif()
 
+if(CMAKE_COMPILER_IS_CLANGXX)
+    set(CLANG_FLAGS "\
+        -Wno-unused-variable \
+        -Wno-missing-braces \
+        -Wno-unused-function \
+        -Wno-logical-op-parentheses \
+        -Wno-unused-variable \
+        -Werror=return-type \
+        -Wno-deprecated-declarations \
+        -Wno-undef \
+        -Wno-incompatible-pointer-types \
+        -Wno-unused-parameter \
+        -Wno-misleading-indentation \
+        -Wno-missing-field-initializers"
+    )
+
+    # Append Intel-LLVM-specific suppressions
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Rno-debug-disables-optimization \
+            -Wno-deprecated-literal-operator \
+            -Wno-self-assign-overloaded"
+        )
+    endif()
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
+        message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
+        # cmd-line options might be mixed - suppress warnings
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Wno-unknown-argument \
+            -Wno-unused-command-line-argument"
+        )
+        # suppress warning in MSVC toolchain header file
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Wno-delete-non-abstract-non-virtual-dtor"
+        )
+    endif ()
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANG_FLAGS}")
+endif()
+
 if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
     add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/WX->)
 else()

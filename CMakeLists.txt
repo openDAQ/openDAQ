@@ -701,7 +701,7 @@ if(CMAKE_COMPILER_IS_CLANGXX)
     # Append Intel-LLVM-specific suppressions
     if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
         set(CLANG_FLAGS "${CLANG_FLAGS} \
-            -Rno-debug-disables-optimization \
+            -Xclang -Rno-debug-disables-optimization \
             -Wno-deprecated-literal-operator \
             -Wno-missing-field-initializers \
             -Wno-self-assign-overloaded \
@@ -714,12 +714,12 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
         # cmd-line options might be mixed - suppress warnings
         set(CLANG_FLAGS "${CLANG_FLAGS} \
-            -Wno-unknown-argument \
+            -Xclang -Wno-unknown-argument \
             -Wno-unused-command-line-argument"
         )
         # suppress warning in MSVC toolchain header file
         set(CLANG_FLAGS "${CLANG_FLAGS} \
-            -Wno-delete-non-abstract-non-virtual-dtor"
+            -Xclang -Wno-delete-non-abstract-non-virtual-dtor"
         )
     endif ()
 

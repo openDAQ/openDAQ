@@ -25,7 +25,6 @@ RefCANChannelImpl::RefCANChannelImpl(const ContextPtr& context,
                                      const StringPtr& localId,
                                      const RefCANChannelInit& init)
     : ChannelImpl(FunctionBlockType("RefCANChannel",  "CAN", ""), context, parent, localId)
-    , startTime(init.startTime)
     , microSecondsFromEpochToStartTime(init.microSecondsFromEpochToStartTime)
     , lastCollectTime(0)
 {

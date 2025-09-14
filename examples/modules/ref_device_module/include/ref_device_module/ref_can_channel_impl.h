@@ -62,8 +62,6 @@ private:
     int32_t upperLimit;
     int32_t counter1;
     int32_t counter2;
-    size_t index;
-    std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
     std::chrono::microseconds lastCollectTime;
     SignalConfigPtr valueSignal;

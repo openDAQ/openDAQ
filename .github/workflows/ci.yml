@@ -344,7 +344,7 @@ jobs:
       - name: Install basic dependencies
         run: |
           apt-get update
-          apt-get install -y git openssh-client wget gnupg
+          apt-get install -y git openssh-client
 
       - name: Disable git safe directory checks
         run : git config --global --add safe.directory '*'
@@ -355,6 +355,7 @@ jobs:
       - name: Add Intel oneAPI apt repo
         if: matrix.name == 'Ubuntu 22.04 Intel-LLVM Release'
         run: |
+          apt-get install -y wget gnupg
           wget -qO- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
             | gpg --dearmor \
             | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null

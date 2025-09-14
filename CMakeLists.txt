@@ -444,7 +444,7 @@ if (OPENDAQ_FORCE_LLD_LINKER)
     message(STATUS "Forcing the use of LLVM LLD linker. Make sure it is installed and available.")
 endif()
 
-if (MSVC)
+if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
     # As above CMAKE_CXX_STANDARD but for VS
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++17>)
 
@@ -703,10 +703,7 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         set(CLANG_FLAGS "${CLANG_FLAGS} \
             -Xclang -Rno-debug-disables-optimization \
             -Wno-deprecated-literal-operator \
-            -Wno-missing-field-initializers \
-            -Wno-self-assign-overloaded \
-            -Wno-logical-op-parentheses \
-            -Wno-misleading-indentation"
+            -Wno-self-assign-overloaded"
         )
     endif()
 

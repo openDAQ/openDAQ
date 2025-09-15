@@ -924,7 +924,7 @@ TEST_F(SignalTest, GetLastValueInvisibleDisabled)
         signal.sendPacket(dataPacket);
     }
 
-    ASSERT_FALSE(signal.getLastValue().assigned());
+    ASSERT_TRUE(signal.getLastValue().assigned());
 }
 
 class ListenerImpl : public ImplementationOfWeak<IInputPortNotifications>

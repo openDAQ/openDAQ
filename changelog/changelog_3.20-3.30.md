@@ -37,6 +37,7 @@
 
 ## Misc
 
+- [#908](https://github.com/openDAQ/openDAQ/pull/908) Add support for Intel-LLVM compiler
 - [#903](https://github.com/openDAQ/openDAQ/pull/903) Enable suppressed type conversion warnings on Windows
 - [#893](https://github.com/openDAQ/openDAQ/pull/893) Rework disabled permission manager, making module code independent of the OPENDAQ_ENABLE_ACCESS_CONTROL option
 - [#835](https://github.com/openDAQ/openDAQ/pull/835) Removes the opendaq_dev target.

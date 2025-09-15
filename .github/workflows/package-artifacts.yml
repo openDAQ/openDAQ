@@ -51,7 +51,7 @@ jobs:
             # cmake-build-generator: 'Visual Studio 17 2022'
             cmake-build-generator: Ninja
             cmake-package-generator: NSIS
-            cmake-parallel: ''
+            cmake-parallel: --parallel 2
             # cmake-preset: --preset package
             cmake-preset: ''
             cmake-config: Release
@@ -114,7 +114,6 @@ jobs:
 
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
-      SCCACHE_DIR: ${{ github.workspace }}\.sccache
 
     steps:
       - name: Checkout openDAQ repository
@@ -196,9 +195,9 @@ jobs:
         id: opendaq-upload-artifact
         uses: actions/upload-artifact@v4
         with:
-          name: opendaq-${{ steps.opendaq-framework-version.outputs.name }}-${{ matrix.cmake-package-generator }}
+          # name: opendaq-${{ steps.opendaq-framework-version.outputs.name }}-${{ matrix.cmake-package-generator }}
           path: build/_packages/*
-          retention-days: 1
+          retention-days: 7
 
       - name: Output artifact ID
         run: |

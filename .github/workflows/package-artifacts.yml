@@ -76,8 +76,8 @@ jobs:
             cmake-compiler:
               -DCMAKE_C_COMPILER_LAUNCHER=ccache
               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-              # -DCMAKE_C_COMPILER=cl
-              # -DCMAKE_CXX_COMPILER=cl
+              -DCMAKE_C_COMPILER=cl
+              -DCMAKE_CXX_COMPILER=cl
 
           - os: macos-13
             cache-key-os: macos13
@@ -150,7 +150,6 @@ jobs:
           brew install ccache
 
       - name: Restore compiler cache
-        # if: matrix.os != 'windows-latest'
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -175,40 +174,6 @@ jobs:
               echo "$name=$value" >> $env:GITHUB_ENV
             }
           }
-
-      # - name: Setup MSBuild
-      #   if: matrix.os == 'windows-latest'
-      #   uses: microsoft/setup-msbuild@v2
-
-      # - name: Setup CC CXX paths (Windows)
-      #   if: matrix.os == 'windows-latest'
-      #   run: |
-      #     $cl = & vswhere -latest -products * -find **\Hostx64\x64\cl.exe
-      #     $cl = $cl | Select-Object -First 1
-      #     echo "CXX=$cl" >> $env:GITHUB_ENV
-      #     echo "CC=$cl" >> $env:GITHUB_ENV
-
-      # - name: Restore compiler cache (Windows)
-      #   if: matrix.os == 'windows-latest'
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: ${{ env.SCCACHE_DIR }}
-      #     key: sccache-msvc-${{ hashFiles('**/*.c','**/*.cpp') }}
-      #     restore-keys: |
-      #       sccache-msvc-
-
-      # - name: Restore compiler cache (Windows)
-      #   uses: actions/cache@v4
-      #   if: matrix.os == 'windows-latest'
-      #   with:
-      #     path: |
-      #       build
-      #       ${{ github.workspace }}/**/*.obj
-      #       ${{ github.workspace }}/**/*.pdb
-      #       ${{ github.workspace }}/**/*.lib
-      #     key: msvc-build-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.h') }}
-      #     restore-keys: |
-      #       msvc-build-${{ runner.os }}-
 
       - name: Configure openDAQ CMake build
         run: cmake -S . -B build -G "${{ matrix.cmake-build-generator }}" ${{ matrix.cmake-preset }} ${{ matrix.cmake_defines }} ${{ matrix.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake-config }}
@@ -242,14 +207,6 @@ jobs:
           echo 'Artifact digest:. ${{ steps.opendaq-upload-artifact.outputs.artifact-digest }}'
 
       - name: Print compiler cache stats (Unix)
-        # if: runner.os != 'Windows'
         run: |
           echo "=== ccache stats ==="
           ccache -s
-
-      # - name: Print compiler cache stats (Windows)
-      #   if: runner.os == 'Windows'
-      #   shell: powershell
-      #   run: |
-      #     echo "=== sccache stats ==="
-      #     sccache --show-stats

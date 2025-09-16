@@ -21,10 +21,6 @@ set(TEST_SOURCES main.cpp
                  test_tms_function_block_type.cpp
 )
 
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    list(APPEND TEST_SOURCES test_streaming_integration.cpp)
-endif()
-
 set(SUPPORTS_ASAN 0)
 
 if(CXX_COMPILER_ID EQUAL Clang OR CXX_COMPILER_ID EQUAL AppleClang OR CXX_COMPILER_ID EQUAL GNU)
@@ -40,19 +36,12 @@ if (WIN32)
     set(BCRYPT_LIB bcrypt.dll)
 endif()
 
-set(StreamingLibraries )
-
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    list(APPEND StreamingLibraries PRIVATE daq::websocket_streaming)
-endif()
-
 target_link_libraries(${TEST_APP} PRIVATE daq::opcuatms_test_utils
                                           daq::opcuatms_server
                                           daq::opcuatms_client
                                           daq::opendaq_mocks
                                           ${BCRYPT_LIB}
                                           Taskflow::Taskflow
-                                          ${StreamingLibraries}
 )
 
 if(SUPPORTS_ASAN)

@@ -8,10 +8,7 @@
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/signal_factory.h>
 #include <testutils/memcheck_listener.h>
-#include <websocket_streaming/websocket_streaming_server.h>
-#include <stream/WebsocketClientStream.hpp>
 #include <spdlog/spdlog.h>
-#include <websocket_streaming/websocket_streaming_factory.h>
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <signal_generator/signal_generator.h>
@@ -21,13 +18,14 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <opendaq/reader_factory.h>
+#include <websocket_streaming/ws_streaming.h>
+#include <websocket_streaming/ws_streaming_server.h>
 
 using namespace daq;
 using namespace daq::opcua;
 using namespace std::chrono_literals;
-using namespace daq::stream;
 using namespace daq::websocket_streaming;
-using namespace daq::streaming_protocol;
 
 class StreamingIntegrationTest : public testing::Test
 {
@@ -181,7 +179,7 @@ protected:
 
     StreamingPtr createStreaming()
     {
-        return WebsocketStreaming(STREAMING_URL, clientContext);
+        return createWithImplementation<IStreaming, WsStreaming>(STREAMING_URL, clientContext);
     }
 
     void setStreamingSource(const DevicePtr& device)
@@ -207,70 +205,13 @@ protected:
     StreamingPtr streaming;
 };
 
-TEST_F(StreamingIntegrationTest, Connect)
-{
-    std::string host = "127.0.0.1";
-    std::string target = "/";
-    uint16_t port = 2000;
-
-    // start server
-
-    boost::asio::io_context serverContext;
-    auto acceptFunc = [this](StreamPtr stream) {};
-    auto server = std::make_shared<daq::stream::WebsocketServer>(serverContext, acceptFunc, port);
-
-    auto serverThread = std::thread([&server, &serverContext]() {
-        server->start();
-        serverContext.run();
-    });
-
-    // start client
-
-    auto signalMetaCallback = [this](const SubscribedSignal& subscribedSignal, const std::string& method, const nlohmann::json& params) {};
-    auto protocolMetaCallback = [this](ProtocolHandler& protocolHandler, const std::string& method, const nlohmann::json& params) {};
-    auto messageCallback = [this](const SubscribedSignal& subscribedSignal, uint64_t timeStamp, const uint8_t* data, size_t size) {};
-
-    auto loggerComponent = logger.addComponent("StreamingClient");
-    auto logCallback = [loggerComponent](spdlog::source_loc location, spdlog::level::level_enum level, const char* msg) {
-        loggerComponent.logMessage(SourceLocation{location.filename, location.line, location.funcname}, msg, static_cast<LogLevel>(level));
-    };
-
-    daq::streaming_protocol::SignalContainer signalContainer(logCallback);
-    boost::asio::io_context clientContext;
-
-    signalContainer.setDataAsRawCb(messageCallback);
-    signalContainer.setSignalMetaCb(signalMetaCallback);
-
-    auto protocolHandler = std::make_shared<ProtocolHandler>(clientContext, signalContainer, protocolMetaCallback, logCallback);
-    auto clientStream = std::make_unique<WebsocketClientStream>(clientContext, host, std::to_string(port), target);
-    protocolHandler->startWithSyncInit(std::move(clientStream));
-    auto clientThread = std::thread([&clientContext]() { clientContext.run(); });
-
-    // wait a bit
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-    // stop client
-
-    clientContext.stop();
-    clientThread.join();
-
-    // stop server
-
-    server->stop();
-    serverThread.join();
-}
-
 TEST_F(StreamingIntegrationTest, ByteStep)
 {
     const size_t packetsToRead = 10;
 
     auto serverStepReader = createReader(instance, "ByteStep");
 
-    auto streamingServer = WebsocketStreamingServer(instance);
-    streamingServer.setStreamingPort(STREAMING_PORT);
-    streamingServer.setControlPort(STREAMING_CONTROL_PORT);
-    streamingServer.start();
+    auto streamingServer = WsStreamingServer(instance);
 
     auto server = TmsServer(instance);
     server.start();
@@ -312,10 +253,7 @@ TEST_F(StreamingIntegrationTest, ChangingSignal)
 
     auto serverStepReader = createReader(instance, "ChangingSignal");
 
-    auto streamingServer = WebsocketStreamingServer(instance);
-    streamingServer.setStreamingPort(STREAMING_PORT);
-    streamingServer.setControlPort(STREAMING_CONTROL_PORT);
-    streamingServer.start();
+    auto streamingServer = WsStreamingServer(instance);
 
     auto server = TmsServer(instance);
     server.start();
@@ -363,10 +301,7 @@ TEST_F(StreamingIntegrationTest, AllSignalsAsync)
     for (const auto& signal : signals)
         serverReaders.insert({signal, createReader(instance, signal)});
 
-    auto streamingServer = WebsocketStreamingServer(instance);
-    streamingServer.setStreamingPort(STREAMING_PORT);
-    streamingServer.setControlPort(STREAMING_CONTROL_PORT);
-    streamingServer.start();
+    auto streamingServer = WsStreamingServer(instance);
 
     auto server = TmsServer(instance);
     server.start();
@@ -436,10 +371,7 @@ TEST_F(StreamingIntegrationTest, StreamingDeactivate)
 
     auto serverStepReader = createReader(instance, "Sine");
 
-    auto streamingServer = WebsocketStreamingServer(instance);
-    streamingServer.setStreamingPort(STREAMING_PORT);
-    streamingServer.setControlPort(STREAMING_CONTROL_PORT);
-    streamingServer.start();
+    auto streamingServer = WsStreamingServer(instance);
 
     auto server = TmsServer(instance);
     server.start();

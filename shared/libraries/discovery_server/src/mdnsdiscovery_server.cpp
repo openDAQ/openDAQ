@@ -224,17 +224,17 @@ void MDNSDiscoveryServer::populateTxtRecords(const std::string& recordName,
 
 bool MDNSDiscoveryServer::registerService(const std::string& id, MdnsDiscoveredService& service)
 {
-    std::string serviceName = hostName;
+    std::string deviceId = hostName;
 
     auto manufacturer = service.properties["manufacturer"];
     auto serialNumber = service.properties["serialNumber"];
     if (!manufacturer.empty() && !serialNumber.empty())
-        serviceName = manufacturer + "_" + serialNumber;
+        deviceId = manufacturer + "_" + serialNumber;
     else
         fprintf(stderr, "MDNSDiscoveryServer: Manufacturer and serial number not provided for service %s. It can cause mdns conflict\n", id.c_str());
 
-    service.serviceInstance = serviceName + "." + service.serviceName;
-    service.serviceQualified = hostName + ".local.";
+    service.serviceInstance = deviceId + "." + service.serviceName;
+    service.serviceQualified = deviceId + ".local.";
 
     bool success = false;
     {
@@ -777,6 +777,8 @@ int MDNSDiscoveryServer::discoveryCallback(
         return 0;
 
     std::string dns_sd = "_services._dns-sd._udp.local.";
+
+    // Should this not use the name_length parameter?
     std::string name = discovery_common::DiscoveryUtils::extractRecordName(buffer, name_offset, size);
 
     auto recordTypeName = rtypeToString(mdns_record_type(rtype));

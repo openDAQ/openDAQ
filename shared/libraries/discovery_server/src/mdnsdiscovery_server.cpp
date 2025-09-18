@@ -584,7 +584,7 @@ void MDNSDiscoveryServer::openServerSockets()
                     (saddr->sin_addr.S_un.S_un_b.s_b3 != 0) ||
                     (saddr->sin_addr.S_un.S_un_b.s_b4 != 1))
                 {
-                    struct sockaddr_in sock_addr{};
+                    sockaddr_in sock_addr{};
                     sock_addr.sin_family = AF_INET;
                     sock_addr.sin_addr = saddr->sin_addr;
                     sock_addr.sin_port = htons(MDNS_PORT);
@@ -608,7 +608,7 @@ void MDNSDiscoveryServer::openServerSockets()
                 if ((unicast->DadState == NldsPreferred) && memcmp(saddr->sin6_addr.s6_addr, localhost, 16) &&
                     memcmp(saddr->sin6_addr.s6_addr, localhostMapped, 16))
                 {
-                    struct sockaddr_in6 sock_addr{};
+                    sockaddr_in6 sock_addr{};
                     sock_addr.sin6_family = AF_INET6;
                     sock_addr.sin6_addr = saddr->sin6_addr;
                     sock_addr.sin6_port = htons(MDNS_PORT);

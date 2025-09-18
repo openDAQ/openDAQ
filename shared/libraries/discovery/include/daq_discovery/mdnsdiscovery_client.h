@@ -65,8 +65,8 @@ struct MdnsDiscoveredDevice
     uint32_t servicePriority;
     uint32_t serviceWeight;
     uint32_t servicePort;
-    std::string ipv4Address;
-    std::string ipv6Address;
+    std::unordered_set<std::string> ipv4Addresses;
+    std::unordered_set<std::string> ipv6Addresses;
     discovery_common::TxtProperties properties;
 
     std::string getPropertyOrDefault(const std::string& name, const std::string& def = "") const
@@ -107,9 +107,8 @@ protected:
     {
         std::string PTR;
         SRVRecord SRV;
-        std::string A;
-        std::string AAAA;
-        std::string linkLocalInterface;
+        std::unordered_set<std::string> ipv4Addresses;
+        std::unordered_set<std::string> ipv6Addresses;
         std::vector<std::pair<std::string, std::string>> TXT;
     } DeviceData;
 
@@ -206,9 +205,8 @@ private:
                                      std::string& rpcErrorMessage,
                                      discovery_common::TxtProperties& resProps);
 
-    std::string ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort = false);
-    std::string ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort = false);
-    std::string ipAddressToString(const sockaddr* addr, size_t addrlen, bool includePort = false);
+    std::string ipv4AddressToString(const sockaddr_in* addr, size_t addrlen);
+    std::string ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, const sockaddr_in6* from);
     MdnsDiscoveredDevice createMdnsDiscoveredDevice(const DeviceData& device);
     bool isValidMdnsDevice(const MdnsDiscoveredDevice& device);
     std::string getIpv6NetworkInterface(const struct sockaddr_in6* from, size_t addrlen);
@@ -584,12 +582,8 @@ inline void MDNSDiscoveryClient::pruneDevices()
         data.PTR = addr;
         if (auto it = devicesMap.find(data.SRV.name); it != devicesMap.end())
         {
-            if (data.linkLocalInterface.empty())
-                data.linkLocalInterface = it->second.linkLocalInterface;
-            data.A = it->second.A;
-            data.AAAA = it->second.AAAA;
-            if (!data.AAAA.empty())
-                data.AAAA = "[" + data.AAAA + data.linkLocalInterface + "]";
+            data.ipv4Addresses = it->second.ipv4Addresses;
+            data.ipv6Addresses = it->second.ipv6Addresses;
         }
     }
 
@@ -597,7 +591,7 @@ inline void MDNSDiscoveryClient::pruneDevices()
         devicesMap.erase(val);
 }
 
-inline std::string MDNSDiscoveryClient::ipv4AddressToString(const sockaddr_in* addr, size_t addrlen, bool includePort)
+inline std::string MDNSDiscoveryClient::ipv4AddressToString(const sockaddr_in* addr, size_t addrlen)
 {
     char host[NI_MAXHOST] = {0};
     char service[NI_MAXSERV] = {0};
@@ -605,13 +599,10 @@ inline std::string MDNSDiscoveryClient::ipv4AddressToString(const sockaddr_in* a
                         service, NI_MAXSERV, NI_NUMERICSERV | NI_NUMERICHOST);
     if (ret != 0)
         return "";
-
-    if (addr->sin_port != 0 && includePort)
-        return std::string(host) + ":" + service;
     return std::string(host);
 }
 
-inline std::string MDNSDiscoveryClient::ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, bool includePort)
+inline std::string MDNSDiscoveryClient::ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, const sockaddr_in6* from)
 {
     char host[NI_MAXHOST] = {0};
     char service[NI_MAXSERV] = {0};
@@ -622,16 +613,14 @@ inline std::string MDNSDiscoveryClient::ipv6AddressToString(const sockaddr_in6* 
 
     std::string hostStr(host);
 
-    if (addr->sin6_port != 0 && includePort)
-        return "[" + hostStr + "]:" + service;
-    return hostStr;
-}
+    if (IN6_IS_ADDR_LINKLOCAL(&addr->sin6_addr))
+    {
+        std::string ifname = getIpv6NetworkInterface(reinterpret_cast<const sockaddr_in6*>(from), addrlen);
+        if (!ifname.empty())
+            hostStr += ifname;
+    }
 
-inline std::string MDNSDiscoveryClient::ipAddressToString(const sockaddr* addr, size_t addrlen, bool includePort)
-{
-    if (addr->sa_family == AF_INET6)
-        return ipv6AddressToString(reinterpret_cast<const sockaddr_in6*>(addr), addrlen, includePort);
-    return ipv4AddressToString(reinterpret_cast<const sockaddr_in*>(addr), addrlen, includePort);
+    return  "[" + hostStr + "]";
 }
 
 inline std::string MDNSDiscoveryClient::getIpv6NetworkInterface(const struct sockaddr_in6* addr, size_t addrlen)
@@ -659,8 +648,8 @@ inline MdnsDiscoveredDevice MDNSDiscoveryClient::createMdnsDiscoveredDevice(cons
     device.servicePort = data.SRV.port;
     device.servicePriority = data.SRV.priority;
     device.serviceWeight = data.SRV.weight;
-    device.ipv4Address = data.A;
-    device.ipv6Address = data.AAAA;
+    device.ipv4Addresses = data.ipv4Addresses;
+    device.ipv6Addresses = data.ipv6Addresses;
 
     for (const auto& prop : data.TXT)
         device.properties.insert(prop);
@@ -670,7 +659,7 @@ inline MdnsDiscoveredDevice MDNSDiscoveryClient::createMdnsDiscoveredDevice(cons
 
 inline bool MDNSDiscoveryClient::isValidMdnsDevice(const MdnsDiscoveredDevice& device)
 {
-    return device.ipv4Address.size() > 0 || device.ipv6Address.size() > 0;
+    return !device.ipv4Addresses.empty() || !device.ipv6Addresses.empty();
 }
 
 inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
@@ -705,13 +694,6 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
     auto it = devicesMap.emplace(deviceName, DeviceData{});
     DeviceData& deviceData = it.first->second;
 
-    if (from->sa_family == AF_INET6)
-    {
-        std::string linkLocalInterface = getIpv6NetworkInterface(reinterpret_cast<const sockaddr_in6*>(from), addrlen);
-        if (!linkLocalInterface.empty())
-            deviceData.linkLocalInterface = linkLocalInterface;
-    }    
-
     if (rtype == MDNS_RECORDTYPE_SRV)
     {
         char tempBuffer[1024];
@@ -722,13 +704,13 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
     {
         sockaddr_in addr;
         mdns_record_parse_a(buffer, size, rdata_offset, rdata_length, &addr);
-        deviceData.A = ipv4AddressToString(&addr, sizeof(addr));
+        deviceData.ipv4Addresses.insert(ipv4AddressToString(&addr, sizeof(addr)));
     }
     else if (rtype == MDNS_RECORDTYPE_AAAA)
     {
         sockaddr_in6 addr;
         mdns_record_parse_aaaa(buffer, size, rdata_offset, rdata_length, &addr);
-        deviceData.AAAA = ipv6AddressToString(&addr, sizeof(addr));
+        deviceData.ipv6Addresses.insert(ipv6AddressToString(&addr, sizeof(addr), reinterpret_cast<const sockaddr_in6*>(from)));
     }
     else if (rtype == MDNS_RECORDTYPE_TXT)
     {

@@ -71,18 +71,20 @@ NativeStreamingClientModule::~NativeStreamingClientModule()
 
 void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDevice& discoveredDevice, ServerCapabilityConfigPtr& cap, std::string protocolPrefix)
 {
-    if (!discoveredDevice.ipv4Address.empty())
+    // TODO: store all IPv4/6 addresses
+    if (!discoveredDevice.ipv4Addresses.empty())
     {
-        auto connectionStringIpv4 = NativeStreamingClientModule::CreateUrlConnectionString(
+        auto ipAddress = *discoveredDevice.ipv4Addresses.begin();
+        auto connectionStringIpv4 = CreateUrlConnectionString(
             protocolPrefix,
-            discoveredDevice.ipv4Address,
+            ipAddress,
             discoveredDevice.servicePort,
             discoveredDevice.getPropertyOrDefault("path", "/")
-        );
+            );
         cap.addConnectionString(connectionStringIpv4);
-        cap.addAddress(discoveredDevice.ipv4Address);
+        cap.addAddress(ipAddress);
 
-        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv4Address)
+        const auto addressInfo = AddressInfoBuilder().setAddress(ipAddress)
                                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                                      .setType("IPv4")
                                                      .setConnectionString(connectionStringIpv4)
@@ -90,18 +92,19 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
         cap.addAddressInfo(addressInfo);
     }
     
-    if (!discoveredDevice.ipv6Address.empty())
+    if (!discoveredDevice.ipv6Addresses.empty())
     {
-        auto connectionStringIpv6 = NativeStreamingClientModule::CreateUrlConnectionString(
+        auto ipAddress = *discoveredDevice.ipv6Addresses.begin();
+        auto connectionStringIpv6 = CreateUrlConnectionString(
             protocolPrefix,
-            discoveredDevice.ipv6Address,
+            ipAddress,
             discoveredDevice.servicePort,
             discoveredDevice.getPropertyOrDefault("path", "/")
-        );
+            );
         cap.addConnectionString(connectionStringIpv6);
-        cap.addAddress(discoveredDevice.ipv6Address);
+        cap.addAddress(ipAddress);
 
-        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
+        const auto addressInfo = AddressInfoBuilder().setAddress(ipAddress)
                                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                                      .setType("IPv6")
                                                      .setConnectionString(connectionStringIpv6)

@@ -294,18 +294,20 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
 
 DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
+    // TODO: store all IPv4/6 addresses
     auto cap = ServerCapability(WebsocketDeviceTypeId, "OpenDAQLTStreaming", ProtocolType::Streaming);
 
-    if (!discoveredDevice.ipv4Address.empty())
+    if (!discoveredDevice.ipv4Addresses.empty())
     {
+        auto ipAddress = *discoveredDevice.ipv4Addresses.begin();
         auto connectionStringIpv4 = WebsocketStreamingClientModule::createUrlConnectionString(
-            discoveredDevice.ipv4Address,
+            ipAddress,
             discoveredDevice.servicePort,
             discoveredDevice.getPropertyOrDefault("path", "/")
             );
         cap.addConnectionString(connectionStringIpv4);
-        cap.addAddress(discoveredDevice.ipv4Address);
-        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv4Address)
+        cap.addAddress(ipAddress);
+        const auto addressInfo = AddressInfoBuilder().setAddress(ipAddress)
                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                      .setType("IPv4")
                                      .setConnectionString(connectionStringIpv4)
@@ -313,17 +315,18 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
         cap.addAddressInfo(addressInfo);
     }
 
-    if(!discoveredDevice.ipv6Address.empty())
+    if (!discoveredDevice.ipv6Addresses.empty())
     {
+        auto ipAddress = *discoveredDevice.ipv6Addresses.begin();
         auto connectionStringIpv6 = WebsocketStreamingClientModule::createUrlConnectionString(
-            discoveredDevice.ipv6Address,
+            ipAddress,
             discoveredDevice.servicePort,
             discoveredDevice.getPropertyOrDefault("path", "/")
             );
         cap.addConnectionString(connectionStringIpv6);
-        cap.addAddress(discoveredDevice.ipv6Address);
+        cap.addAddress(ipAddress);
 
-        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
+        const auto addressInfo = AddressInfoBuilder().setAddress(ipAddress)
                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                      .setType("IPv6")
                                      .setConnectionString(connectionStringIpv6)

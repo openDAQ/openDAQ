@@ -219,6 +219,8 @@ void MirroredDeviceBase<Interfaces...>::removed()
     // disconnects all streaming connections
     streamingSources.clear();
 
+    streamingSourceManager.reset();
+
     Super::removed();
 }
 

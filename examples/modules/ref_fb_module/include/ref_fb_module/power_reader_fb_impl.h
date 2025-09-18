@@ -51,9 +51,6 @@ private:
     DataDescriptorPtr powerDataDescriptor;
     DataDescriptorPtr powerDomainDataDescriptor;
 
-    SampleType voltageSampleType;
-    SampleType currentSampleType;
-
     SignalConfigPtr powerSignal;
     SignalConfigPtr powerDomainSignal;
 

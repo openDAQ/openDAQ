@@ -28,7 +28,7 @@
 #include <cassert>
 #include <string>
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(_MSC_VER)
 #include <cxxabi.h>
 #endif
 
@@ -333,7 +333,7 @@ public:
         OPENDAQ_PARAM_NOT_NULL(implementationName);
 
         auto id = typeid(*this).name();
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(_MSC_VER)
         int status{};
         std::unique_ptr<char, MallocDeleter> demangled(abi::__cxa_demangle(id, nullptr, nullptr, &status));
         if (status == 0)

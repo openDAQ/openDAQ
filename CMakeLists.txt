@@ -236,8 +236,9 @@ if (COMMAND get_mode)
     message(STATUS "CMake Mode is ${CMAKE_MODE}")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM Clang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|IntelLLVM)$")
+    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM")
+    message(STATUS "Compiler is LLVM")
 endif ()
 
 if (UNIX AND (CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUXX))
@@ -443,7 +444,7 @@ if (OPENDAQ_FORCE_LLD_LINKER)
     message(STATUS "Forcing the use of LLVM LLD linker. Make sure it is installed and available.")
 endif()
 
-if (MSVC)
+if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
     # As above CMAKE_CXX_STANDARD but for VS
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++17>)
 
@@ -696,6 +697,28 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         -Wno-misleading-indentation \
         -Wno-missing-field-initializers"
     )
+
+    # Append Intel-LLVM-specific suppressions
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Rno-debug-disables-optimization \
+            -Wno-deprecated-literal-operator \
+            -Wno-self-assign-overloaded"
+        )
+    endif()
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
+        message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
+        # cmd-line options might be mixed - suppress warnings
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Wno-unknown-argument \
+            -Wno-unused-command-line-argument"
+        )
+        # suppress warning in MSVC toolchain header file
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Wno-delete-non-abstract-non-virtual-dtor"
+        )
+    endif ()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANG_FLAGS}")

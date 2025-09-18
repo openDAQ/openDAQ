@@ -101,7 +101,7 @@ void TimeDelayFbImpl::handleDataPacket(const DataPacketPtr& inputPacket)
         return;
     }
 
-    const auto offsetToAdd = timeDelay * domainTickResolution.getDenominator() / domainTickResolution.getNumerator();
+    const auto offsetToAdd = static_cast<Int>(timeDelay * domainTickResolution.getDenominator() / domainTickResolution.getNumerator());
 
     DataPacketPtr outputDomainPacket;
     if (domainRuleType == DataRuleType::Linear)

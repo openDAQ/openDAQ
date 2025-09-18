@@ -150,7 +150,7 @@ private:
     std::thread serviceThread;
     
     std::map<std::string, MdnsDiscoveredService> services;
-    std::vector<AdapterInfo> adapters;
+    std::unordered_map<std::string, AdapterInfo> adapters;
 
     std::string manufacturer;
     std::string serialNumber;

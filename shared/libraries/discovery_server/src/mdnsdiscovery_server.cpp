@@ -160,11 +160,11 @@ void MDNSDiscoveryServer::start()
 
 bool MDNSDiscoveryServer::getAdapter(int sock, AdapterInfo& adapter)
 {
-    for (const auto& info : adapters)
+    for (const auto& [_, adapter_] : adapters)
     {
-        if (info.ipv4Sock == sock || info.ipv6Sock == sock)
+        if (adapter_.ipv4Sock == sock || adapter_.ipv6Sock == sock)
         {
-            adapter = info;
+            adapter = adapter_;
             return true;
         }
     }
@@ -241,7 +241,7 @@ void MDNSDiscoveryServer::announceService(const MdnsDiscoveredService& service, 
     auto capacity = service.updateConnectedClientsAndGetPropsCount() + 3;
 
     std::vector<char> buffer(service.recordSize);
-    for (const auto & adapter : adapters)
+    for (const auto& [_, adapter] : adapters)
     {
         std::vector<mdns_record_t> records;
         records.reserve(capacity);
@@ -401,7 +401,7 @@ MDNSDiscoveryServer::~MDNSDiscoveryServer(void)
 {
     stop();
     
-    for (const auto& adapter: adapters)
+    for (const auto& [_, adapter]: adapters)
     {
         if (adapter.ipv4Sock >= 0)
             mdns_socket_close(adapter.ipv4Sock);
@@ -495,7 +495,7 @@ void MDNSDiscoveryServer::serviceLoop()
         fd_set readfs;
         FD_ZERO(&readfs);
 
-        for (const auto& adapter: adapters)
+        for (const auto& [_, adapter] : adapters)
         {
             if (adapter.ipv4Sock >= 0)
             {
@@ -526,7 +526,7 @@ void MDNSDiscoveryServer::serviceLoop()
             continue;
         }
 
-        for (const auto& adapter: adapters)
+        for (const auto& [_, adapter] : adapters)
         {
             if (adapter.ipv4Sock >= 0 && FD_ISSET(adapter.ipv4Sock, &readfs))
                 mdns_socket_listen(adapter.ipv4Sock, buffer.data(), buffer.size(), callbackWrapper, &callback);
@@ -573,8 +573,6 @@ void MDNSDiscoveryServer::openServerSockets()
         if (adapter->OperStatus != IfOperStatusUp)
             continue;
 
-        AdapterInfo info;
-        info.name = adapter->AdapterName;
         for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress; unicast; unicast = unicast->Next)
         {
             if (unicast->Address.lpSockaddr->sa_family == AF_INET)
@@ -594,6 +592,8 @@ void MDNSDiscoveryServer::openServerSockets()
                     int sock = mdns_socket_open_ipv4(&sock_addr);
                     if (sock >= 0)
                     {
+                        std::string ifname = adapter->AdapterName;
+                        AdapterInfo& info = adapters[ifname];
                         info.ipv4Address = *saddr;
                         info.ipv4Sock = sock;
                     }
@@ -616,15 +616,14 @@ void MDNSDiscoveryServer::openServerSockets()
                     int sock = mdns_socket_open_ipv6(&sock_addr);
                     if (sock >= 0)
                     {
+                        std::string ifname = adapter->AdapterName;
+                        AdapterInfo& info = adapters[ifname];
                         info.ipv6Address = *saddr;
                         info.ipv6Sock = sock;
                     }
                 }
             }
         }
-
-        if (info.ipv4Sock >= 0 || info.ipv6Sock >= 0)
-            adapters.push_back(info);
     }
     
     free(adapterAddress);
@@ -644,9 +643,7 @@ void MDNSDiscoveryServer::openServerSockets()
         if ((ifa->ifa_flags & IFF_LOOPBACK) || (ifa->ifa_flags & IFF_POINTOPOINT))
             continue;
         
-        AdapterInfo info;
-        info->name = ifa->ifa_name;
-        if (!hasIpv4 && ifa->ifa_addr->sa_family == AF_INET)
+        if (ifa->ifa_addr->sa_family == AF_INET)
         {
             struct sockaddr_in* saddr = (struct sockaddr_in*) ifa->ifa_addr;
             if (saddr->sin_addr.s_addr != htonl(INADDR_LOOPBACK))
@@ -663,12 +660,15 @@ void MDNSDiscoveryServer::openServerSockets()
                 int sock = mdns_socket_open_ipv4(&sock_addr);
                 if (sock >= 0)
                 {
+                    std::string ifname = ifa->ifa_name;
+                    AdapterInfo& info = adapters[ifname];
+                    info.name = ifname;
                     info.ipv4Address = *saddr;
                     info.ipv4Sock = sock;
                 }
             }
         }
-        else if (!hasIpv6 && ifa->ifa_addr->sa_family == AF_INET6)
+        else if (ifa->ifa_addr->sa_family == AF_INET6)
         {
             struct sockaddr_in6* saddr = (struct sockaddr_in6*) ifa->ifa_addr;
             static const unsigned char localhost[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
@@ -689,14 +689,13 @@ void MDNSDiscoveryServer::openServerSockets()
                 int sock = mdns_socket_open_ipv6(&sock_addr);
                 if (sock >= 0)
                 {
+                    std::string ifname = ifa->ifa_name;
+                    AdapterInfo& info = adapters[ifname];
                     info.ipv6Address = *saddr;
                     info.ipv6Sock = sock;
                 }
             }
         }
-    
-        if (info.ipv4Sock >= 0 || info.ipv6Sock >= 0)
-            adapters.push_back(info);
     }
     
     freeifaddrs(ifaddr);
@@ -713,7 +712,7 @@ void MDNSDiscoveryServer::openServerSockets()
 
 bool MDNSDiscoveryServer::getAdapter(int sock, AdapterInfo& info) const
 {
-    for (const auto& adapter : adapters)
+    for (const auto& [_, adapter] : adapters)
     {
         if (adapter.ipv4Sock == sock || adapter.ipv6Sock == sock)
         {

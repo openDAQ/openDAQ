@@ -5,7 +5,7 @@
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
-namespace TimeScaler
+namespace TimeDelay
 {
 
 TimeDelayFbImpl::TimeDelayFbImpl(const ContextPtr& ctx, 
@@ -25,7 +25,7 @@ FunctionBlockTypePtr TimeDelayFbImpl::CreateType()
 {
     auto config = PropertyObject();
     const auto timeDelayProperty = IntPropertyBuilder("TimeDelay", 0).setUnit(Unit("s", -1, "seconds", "time"))
-                                                                                          .build();
+                                                                     .build();
     config.addProperty(timeDelayProperty);
 
     return FunctionBlockType("RefFBModuleTimeDelay",
@@ -38,7 +38,7 @@ FunctionBlockTypePtr TimeDelayFbImpl::CreateType()
 void TimeDelayFbImpl::initProperties()
 {
     const auto timeDelayProperty = IntPropertyBuilder("TimeDelay", 0).setUnit(Unit("s", -1, "seconds", "time"))
-                                                                                          .build();
+                                                                     .build();
 
     objPtr.addProperty(timeDelayProperty);
     objPtr.getOnPropertyValueWrite("TimeDelay") += [this](PropertyObjectPtr& /*obj*/, PropertyValueEventArgsPtr& args) 
@@ -67,26 +67,6 @@ void TimeDelayFbImpl::initSignals()
     dataSignal = createAndAddSignal("Data");
     domainSignal = createAndAddSignal("Time", nullptr, false);
     dataSignal.setDomainSignal(domainSignal);
-}
-
-void TimeDelayFbImpl::onConnected(const InputPortPtr& port)
-{
-    auto lock = this->getRecursiveConfigLock();
-
-    const auto dataSignal = port.getSignal();
-    if (!dataSignal.assigned())
-        return;
-
-    const auto domainSignal = dataSignal.getDomainSignal();
-    if (domainSignal.assigned())
-    {
-        setComponentStatus(ComponentStatus::Ok);
-    }
-    else
-    {
-        inputPort.setActive(false);
-        setComponentStatusWithMessage(ComponentStatus::Error, "Expecting the signal with domain signal");
-    }
 }
 
 void TimeDelayFbImpl::onPacketReceived(const InputPortPtr& port)
@@ -171,6 +151,7 @@ void TimeDelayFbImpl::handleEventPacket(const EventPacketPtr& packet)
                 if (dataRuleType != DataRuleType::Linear && dataRuleType != DataRuleType::Explicit)
                     DAQ_THROW_EXCEPTION(InvalidParametersException, "Data rule must be Linear or Explicit");
             }
+
             DataDescriptorPtr inputDomainDataDescriptor = packet.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
             if (inputDomainDataDescriptor.assigned())
             {
@@ -200,6 +181,12 @@ void TimeDelayFbImpl::handleEventPacket(const EventPacketPtr& packet)
                     DAQ_THROW_EXCEPTION(ArgumentNullException, "Domain tick resolition is not assigned");
             }
 
+            if (!dataSignal.getDescriptor().assigned())
+                DAQ_THROW_EXCEPTION(ArgumentNullException, "The data signal descriptor is not assigned");
+            
+            if (!domainSignal.getDescriptor().assigned())
+                DAQ_THROW_EXCEPTION(ArgumentNullException, "The domain signal descriptor is not assigned");
+
             inputPort.setActive(true);
             setComponentStatus(ComponentStatus::Ok);
         }
@@ -211,5 +198,5 @@ void TimeDelayFbImpl::handleEventPacket(const EventPacketPtr& packet)
     } 
 }
 
-} // namespace TimeScaler;
+} // namespace TimeDelay;
 END_NAMESPACE_REF_FB_MODULE

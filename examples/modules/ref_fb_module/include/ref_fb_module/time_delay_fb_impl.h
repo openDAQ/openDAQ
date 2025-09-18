@@ -23,7 +23,7 @@
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
-namespace TimeScaler
+namespace TimeDelay
 {
 
 class TimeDelayFbImpl final : public FunctionBlock
@@ -36,7 +36,6 @@ public:
 
     static FunctionBlockTypePtr CreateType();
 
-    void onConnected(const InputPortPtr& port) override;
     void onPacketReceived(const InputPortPtr& port) override;
     void handleDataPacket(const DataPacketPtr& packet);
     void handleEventPacket(const EventPacketPtr& packet);

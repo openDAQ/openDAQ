@@ -61,7 +61,7 @@ DictPtr<IString, IFunctionBlockType> RefFBModule::onGetAvailableFunctionBlockTyp
     const auto typeStructDecoder = StructDecoder::StructDecoderFbImpl::CreateType();
     types.set(typeStructDecoder.getId(), typeStructDecoder);
 
-    const auto timeScaler = TimeScaler::TimeDelayFbImpl::CreateType();
+    const auto timeScaler = TimeDelay::TimeDelayFbImpl::CreateType();
     types.set(timeScaler.getId(), timeScaler);
 
     return types;
@@ -124,9 +124,9 @@ FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, StructDecoder::StructDecoderFbImpl>(context, parent, localId);
         return fb;
     }
-    if (id == TimeScaler::TimeDelayFbImpl::CreateType().getId())
+    if (id == TimeDelay::TimeDelayFbImpl::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, TimeScaler::TimeDelayFbImpl>(context, parent, localId, config);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, TimeDelay::TimeDelayFbImpl>(context, parent, localId, config);
         return fb;
     }
 

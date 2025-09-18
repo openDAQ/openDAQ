@@ -378,10 +378,13 @@ TEST_F(TmsIntegrationTest, InputPortMultipleServers)
     auto clientDevice1 = instance.addDevice("daq.opcua://127.0.0.1:4001");
     auto clientDevice2 = instance.addDevice("daq.opcua://127.0.0.1:4002");
 
-    auto inputPort1 = clientDevice1.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0);
-    auto inputPort2 = clientDevice2.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0);
-    auto signal1 = clientDevice1.getSignalsRecursive().getItemAt(0);
-    auto signal2 = clientDevice2.getSignalsRecursive().getItemAt(0);
+    InputPortPtr inputPort1, inputPort2;
+    SignalPtr signal1, signal2;
+    ASSERT_NO_THROW(inputPort1 = clientDevice1.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0));
+    ASSERT_NO_THROW(inputPort2 = clientDevice2.getChannelsRecursive().getItemAt(0).getInputPorts().getItemAt(0));
+    ASSERT_NO_THROW(signal1 = clientDevice1.getSignalsRecursive().getItemAt(0));
+    ASSERT_NO_THROW(signal2 = clientDevice2.getSignalsRecursive().getItemAt(0));
+
     SignalPtr portSignal;
 
     ASSERT_NO_THROW(inputPort1.connect(signal1));

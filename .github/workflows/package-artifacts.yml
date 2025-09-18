@@ -1,13 +1,13 @@
 name: Build and Upload Artifacts
 
 on:
-  push:
-    branches:
-      - jira/*
+  # push:
+  #   branches:
+  #     - jira/*
 
-  pull_request:
-    branches:
-      - jira/*
+  # pull_request:
+  #   branches:
+  #     - jira/*
 
   workflow_dispatch:
 
@@ -174,6 +174,18 @@ jobs:
             }
           }
 
+      - name: Outputs -> Prepare directories
+        shell: bash
+        run: |
+          mkdir -p ${{ runner.temp }}/ci/outputs/{packages,logs,reports/tests/unit}
+
+      - name: Metadata -> Collect runner info
+        uses: .github/actions/package-metadata
+        with:
+          key: 'runner.labels'
+          value: ${{ toJSON(github.runner_labels) }}
+          file: ${{ runner.temp }}/ci/ci-metadata.json
+
       - name: Configure openDAQ CMake build
         run: cmake -S . -B build -G "${{ matrix.cmake-build-generator }}" ${{ matrix.cmake-preset }} ${{ matrix.cmake_defines }} ${{ matrix.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake-config }}
 
@@ -209,3 +221,4 @@ jobs:
         run: |
           echo "=== ccache stats ==="
           ccache -s
+

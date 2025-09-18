@@ -139,7 +139,7 @@ MDNSDiscoveryServer::MDNSDiscoveryServer(void)
 
 #endif
     hostName = getHostname();
-    openServerSockets(sockets);
+    openServerSockets();
 }
 
 void MDNSDiscoveryServer::start()
@@ -156,6 +156,20 @@ void MDNSDiscoveryServer::start()
             serviceThread = std::thread(&MDNSDiscoveryServer::serviceLoop, this);
         }
     }
+}
+
+bool MDNSDiscoveryServer::getAdapter(int sock, AdapterInfo& adapter)
+{
+    for (const auto& info : adapters)
+    {
+        if (info.ipv4Sock == sock || info.ipv6Sock == sock)
+        {
+            adapter = info;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 mdns_record_t MDNSDiscoveryServer::createPtrRecord(const MdnsDiscoveredService& service) const
@@ -183,23 +197,23 @@ mdns_record_t MDNSDiscoveryServer::createSrvRecord(const MdnsDiscoveredService& 
     return recordSrv;
 }
 
-mdns_record_t MDNSDiscoveryServer::createARecord(const MdnsDiscoveredService& service) const
+mdns_record_t MDNSDiscoveryServer::createARecord(const MdnsDiscoveredService& service, const AdapterInfo& info) const
 {
     mdns_record_t recordA;
     recordA.name = {service.serviceQualified.c_str(), service.serviceQualified.size()},
     recordA.type = MDNS_RECORDTYPE_A,
-    recordA.data.a.addr = serviceAddressIpv4,
+    recordA.data.a.addr = info.ipv4Address,
     recordA.rclass = 0,
     recordA.ttl = 0;
     return recordA;
 }
 
-mdns_record_t MDNSDiscoveryServer::createAaaaRecord(const MdnsDiscoveredService& service) const
+mdns_record_t MDNSDiscoveryServer::createAaaaRecord(const MdnsDiscoveredService& service, const AdapterInfo& info) const
 {
     mdns_record_t recordAAA;
     recordAAA.name = {service.serviceQualified.c_str(), service.serviceQualified.size()},
     recordAAA.type = MDNS_RECORDTYPE_AAAA,
-    recordAAA.data.aaaa.addr = serviceAddressIpv6,
+    recordAAA.data.aaaa.addr = info.ipv6Address,
     recordAAA.rclass = 0,
     recordAAA.ttl = 0;
     return recordAAA;
@@ -222,12 +236,84 @@ void MDNSDiscoveryServer::populateTxtRecords(const std::string& recordName,
     }
 }
 
+void MDNSDiscoveryServer::announceService(const MdnsDiscoveredService& service, bool goodbye) const
+{
+    auto capacity = service.updateConnectedClientsAndGetPropsCount() + 3;
+
+    std::vector<char> buffer(service.recordSize);
+    for (const auto & adapter : adapters)
+    {
+        std::vector<mdns_record_t> records;
+        records.reserve(capacity);
+        records.push_back(createSrvRecord(service));
+        if (adapter.ipv6Sock >= 0)
+            records.push_back(createAaaaRecord(service, adapter));
+        if (adapter.ipv4Sock >= 0)
+            records.push_back(createARecord(service, adapter));
+
+        service.populateRecords(records);
+
+        if (!goodbye)
+        {
+            if (adapter.ipv4Sock >= 0)
+            {
+                mdns_announce_multicast(adapter.ipv4Sock,
+                                        buffer.data(),
+                                        buffer.size(),
+                                        createPtrRecord(service),
+                                        0,
+                                        0,
+                                        records.data(),
+                                        records.size());
+            }
+            
+            if (adapter.ipv6Sock >= 0)
+            {
+                mdns_announce_multicast(adapter.ipv6Sock,
+                                        buffer.data(),
+                                        buffer.size(),
+                                        createPtrRecord(service),
+                                        0,
+                                        0,
+                                        records.data(),
+                                        records.size());
+            }
+        }
+        else
+        {
+            if (adapter.ipv4Sock >= 0)
+            {
+                mdns_goodbye_multicast(adapter.ipv4Sock,
+                                        buffer.data(),
+                                        buffer.size(),
+                                        createPtrRecord(service),
+                                        0,
+                                        0,
+                                        records.data(),
+                                        records.size());
+            }
+            
+            if (adapter.ipv6Sock >= 0)
+            {
+                mdns_goodbye_multicast(adapter.ipv6Sock,
+                                        buffer.data(),
+                                        buffer.size(),
+                                        createPtrRecord(service),
+                                        0,
+                                        0,
+                                        records.data(),
+                                        records.size());
+            }
+        }
+    }
+}
+
 bool MDNSDiscoveryServer::registerService(const std::string& id, MdnsDiscoveredService& service)
 {
     std::string deviceId = hostName;
 
-    auto manufacturer = service.properties["manufacturer"];
-    auto serialNumber = service.properties["serialNumber"];
+    const auto manufacturer = service.properties["manufacturer"];
+    const auto serialNumber = service.properties["serialNumber"];
     if (!manufacturer.empty() && !serialNumber.empty())
         deviceId = manufacturer + "_" + serialNumber;
     else
@@ -236,46 +322,23 @@ bool MDNSDiscoveryServer::registerService(const std::string& id, MdnsDiscoveredS
     service.serviceInstance = deviceId + "." + service.serviceName;
     service.serviceQualified = deviceId + ".local.";
 
-    bool success = false;
+    bool success;
     {
         std::lock_guard<std::mutex> lock(mx);
         success = services.emplace(id, service).second;
     }
     if (success)
     {
-        std::vector<mdns_record_t> records;
-        records.reserve(service.updateConnectedClientsAndGetPropsCount() + 3);
-        records.push_back(createSrvRecord(service));
-        if (serviceAddressIpv4.sin_family == AF_INET)
-            records.push_back(createARecord(service));
-        if (serviceAddressIpv6.sin6_family == AF_INET6)
-            records.push_back(createAaaaRecord(service));
-        service.populateRecords(records);
-
-        std::vector<char> buffer(service.recordSize);
-        for (const auto & socket : sockets)
-            mdns_announce_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(service), 0, 0, records.data(), records.size());
-
+        announceService(service, false);
         start();
     }
 
     return success;
 }
 
-void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredService& service)
+void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredService& service) const
 {
-    std::vector<mdns_record_t> records;
-    records.reserve(service.updateConnectedClientsAndGetPropsCount() + 3);
-    records.push_back(createSrvRecord(service));
-    if (serviceAddressIpv4.sin_family == AF_INET)
-        records.push_back(createARecord(service));
-    if (serviceAddressIpv6.sin6_family == AF_INET6)
-        records.push_back(createAaaaRecord(service));
-    service.populateRecords(records);
-
-    std::vector<char> buffer(service.recordSize);
-    for (const auto & socket : sockets)
-        mdns_goodbye_multicast(socket, buffer.data(), buffer.size(), createPtrRecord(service), 0, 0, records.data(), records.size());
+    announceService(service, true);
 }
 
 bool MDNSDiscoveryServer::unregisterService(const std::string& id)
@@ -338,8 +401,13 @@ MDNSDiscoveryServer::~MDNSDiscoveryServer(void)
 {
     stop();
     
-    for (const auto & socket : sockets)
-        mdns_socket_close(socket);
+    for (const auto& adapter: adapters)
+    {
+        if (adapter.ipv4Sock >= 0)
+            mdns_socket_close(adapter.ipv4Sock);
+        if (adapter.ipv6Sock >= 0)
+            mdns_socket_close(adapter.ipv6Sock);
+    }
 
 #ifdef _WIN32
     WSACleanup();
@@ -426,83 +494,51 @@ void MDNSDiscoveryServer::serviceLoop()
         int nfds = 0;
         fd_set readfs;
         FD_ZERO(&readfs);
-        for (const auto & socket : sockets)
+
+        for (const auto& adapter: adapters)
         {
-            if (socket >= nfds)
-                nfds = socket + 1;
-            FD_SET((u_int) socket, &readfs);
+            if (adapter.ipv4Sock >= 0)
+            {
+                FD_SET((u_int) adapter.ipv4Sock, &readfs);
+                if (adapter.ipv4Sock >= nfds)
+                    nfds = adapter.ipv4Sock + 1;
+            }
+            
+            if (adapter.ipv6Sock >= 0)
+            {
+                FD_SET((u_int) adapter.ipv6Sock, &readfs);
+                if (adapter.ipv6Sock >= nfds)
+                    nfds = adapter.ipv6Sock + 1;
+            }
         }
 
-        struct timeval timeout;
+        timeval timeout;
         timeout.tv_sec = 0;
         timeout.tv_usec = 100000;
 
-        if (select(nfds, &readfs, 0, 0, &timeout) >= 0) 
-        {
-            for (const auto & socket : sockets)
-            {
-                if (FD_ISSET(socket, &readfs))
-                    mdns_socket_listen(socket, buffer.data(), buffer.size(), callbackWrapper, &callback);
-                FD_SET((u_int) socket, &readfs);
-            }
-        } 
-        else 
-        {
+        int ret = select(nfds, &readfs, nullptr, nullptr, &timeout);
+        if (ret < 0) {
+            // error
             break;
+        }
+        if (ret == 0) {
+            // timeout, nothing ready
+            continue;
+        }
+
+        for (const auto& adapter: adapters)
+        {
+            if (adapter.ipv4Sock >= 0 && FD_ISSET(adapter.ipv4Sock, &readfs))
+                mdns_socket_listen(adapter.ipv4Sock, buffer.data(), buffer.size(), callbackWrapper, &callback);
+            
+            if (adapter.ipv6Sock >= 0 && FD_ISSET(adapter.ipv6Sock, &readfs))
+                mdns_socket_listen(adapter.ipv6Sock, buffer.data(), buffer.size(), callbackWrapper, &callback);
         }
     }
 }
 
-void MDNSDiscoveryServer::openServerSockets(std::vector<int>& sockets) 
+void MDNSDiscoveryServer::openServerSockets() 
 {
-    sockets.reserve(2);
-    openClientSockets();
-    
-    {
-        struct sockaddr_in sock_addr;
-        memset(&sock_addr, 0, sizeof(struct sockaddr_in));
-        sock_addr.sin_family = AF_INET;
-#ifdef _WIN32
-        sock_addr.sin_addr = in4addr_any;
-#else
-        sock_addr.sin_addr.s_addr = INADDR_ANY;
-#endif
-        sock_addr.sin_port = htons(MDNS_PORT);
-#ifdef __APPLE__
-        sock_addr.sin_len = sizeof(struct sockaddr_in);
-#endif
-        int sock = mdns_socket_open_ipv4(&sock_addr);
-        if (sock >= 0)
-            sockets.push_back(sock);
-    }
-
-    {
-        struct sockaddr_in6 sock_addr;
-        memset(&sock_addr, 0, sizeof(struct sockaddr_in6));
-        sock_addr.sin6_family = AF_INET6;
-        sock_addr.sin6_addr = in6addr_any;
-        sock_addr.sin6_port = htons(MDNS_PORT);
-#ifdef __APPLE__
-        sock_addr.sin6_len = sizeof(struct sockaddr_in6);
-#endif
-        int sock = mdns_socket_open_ipv6(&sock_addr);
-        if (sock >= 0)
-            sockets.push_back(sock);
-    }
-
-    if (sockets.empty())
-    {
-#ifdef _WIN32
-        WSACleanup();
-#endif
-        throw std::runtime_error("MDNSDiscoveryServer: Failed to open sockets");
-    }
-}
-
-inline void MDNSDiscoveryServer::openClientSockets()
-{
-    bool hasIpv4 = false;
-    bool hasIpv6 = false;
 #ifdef _WIN32
     IP_ADAPTER_ADDRESSES* adapterAddress = nullptr;
     ULONG addressSize = 8000;
@@ -536,10 +572,12 @@ inline void MDNSDiscoveryServer::openClientSockets()
             continue;
         if (adapter->OperStatus != IfOperStatusUp)
             continue;
-        
+
+        AdapterInfo info;
+        info.name = adapter->AdapterName;
         for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress; unicast; unicast = unicast->Next)
         {
-            if (!hasIpv4 && unicast->Address.lpSockaddr->sa_family == AF_INET)
+            if (unicast->Address.lpSockaddr->sa_family == AF_INET)
             {
                 auto saddr = reinterpret_cast<sockaddr_in*>(unicast->Address.lpSockaddr);
 
@@ -548,11 +586,20 @@ inline void MDNSDiscoveryServer::openClientSockets()
                     (saddr->sin_addr.S_un.S_un_b.s_b3 != 0) ||
                     (saddr->sin_addr.S_un.S_un_b.s_b4 != 1))
                 {
-                    serviceAddressIpv4 = *saddr;
-                    hasIpv4 = true;
+                    struct sockaddr_in sock_addr{};
+                    sock_addr.sin_family = AF_INET;
+                    sock_addr.sin_addr = saddr->sin_addr;
+                    sock_addr.sin_port = htons(MDNS_PORT);
+
+                    int sock = mdns_socket_open_ipv4(&sock_addr);
+                    if (sock >= 0)
+                    {
+                        info.ipv4Address = *saddr;
+                        info.ipv4Sock = sock;
+                    }
                 }
             }
-            else if (!hasIpv6 && unicast->Address.lpSockaddr->sa_family == AF_INET6)
+            else if (unicast->Address.lpSockaddr->sa_family == AF_INET6)
             {
                 auto saddr = reinterpret_cast<sockaddr_in6*>(unicast->Address.lpSockaddr);
                 
@@ -561,13 +608,23 @@ inline void MDNSDiscoveryServer::openClientSockets()
                 if ((unicast->DadState == NldsPreferred) && memcmp(saddr->sin6_addr.s6_addr, localhost, 16) &&
                     memcmp(saddr->sin6_addr.s6_addr, localhostMapped, 16))
                 {
-                    serviceAddressIpv6 = *saddr;
-                    hasIpv6 = true;
+                    struct sockaddr_in6 sock_addr{};
+                    sock_addr.sin6_family = AF_INET6;
+                    sock_addr.sin6_addr = saddr->sin6_addr;
+                    sock_addr.sin6_port = htons(MDNS_PORT);
+
+                    int sock = mdns_socket_open_ipv6(&sock_addr);
+                    if (sock >= 0)
+                    {
+                        info.ipv6Address = *saddr;
+                        info.ipv6Sock = sock;
+                    }
                 }
             }
         }
-        if (hasIpv4 && hasIpv6)
-            break;
+
+        if (info.ipv4Sock >= 0 || info.ipv6Sock >= 0)
+            adapters.push_back(info);
     }
     
     free(adapterAddress);
@@ -587,13 +644,28 @@ inline void MDNSDiscoveryServer::openClientSockets()
         if ((ifa->ifa_flags & IFF_LOOPBACK) || (ifa->ifa_flags & IFF_POINTOPOINT))
             continue;
         
+        AdapterInfo info;
+        info->name = ifa->ifa_name;
         if (!hasIpv4 && ifa->ifa_addr->sa_family == AF_INET)
         {
             struct sockaddr_in* saddr = (struct sockaddr_in*) ifa->ifa_addr;
             if (saddr->sin_addr.s_addr != htonl(INADDR_LOOPBACK))
             {
-                serviceAddressIpv4 = *saddr;
-                hasIpv4 = true;
+                sockaddr_in sock_addr{};
+                sock_addr.sin_family = AF_INET;
+                sock_addr.sin_addr = saddr->sin_addr;
+                sock_addr.sin_port = htons(MDNS_PORT);
+
+#ifdef __APPLE__
+                sock_addr.sin_len = sizeof(sockaddr_in);
+#endif
+
+                int sock = mdns_socket_open_ipv4(&sock_addr);
+                if (sock >= 0)
+                {
+                    info.ipv4Address = *saddr;
+                    info.ipv4Sock = sock;
+                }
             }
         }
         else if (!hasIpv6 && ifa->ifa_addr->sa_family == AF_INET6)
@@ -603,25 +675,54 @@ inline void MDNSDiscoveryServer::openClientSockets()
             static const unsigned char localhost_mapped[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0, 0, 1};
             if (memcmp(saddr->sin6_addr.s6_addr, localhost, 16) && memcmp(saddr->sin6_addr.s6_addr, localhost_mapped, 16))
             {
-                serviceAddressIpv6 = *saddr;
-                hasIpv6 = true;
+                sockaddr_in6 sock_addr{};
+
+                sock_addr.sin6_family = AF_INET6;
+                sock_addr.sin6_addr = in6addr_any;
+                sock_addr.sin6_port = htons(MDNS_PORT);
+                sock_addr.sin6_scope_id = if_nametoindex(ifa->ifa_name);
+
+#ifdef __APPLE__
+                sock_addr.sin6_len = sizeof(sockaddr_in6);
+#endif
+
+                int sock = mdns_socket_open_ipv6(&sock_addr);
+                if (sock >= 0)
+                {
+                    info.ipv6Address = *saddr;
+                    info.ipv6Sock = sock;
+                }
             }
         }
     
-        if (hasIpv4 && hasIpv6)
-            break;
+        if (info.ipv4Sock >= 0 || info.ipv6Sock >= 0)
+            adapters.push_back(info);
     }
     
     freeifaddrs(ifaddr);
 #endif
 
-    if (!hasIpv4 && !hasIpv6)
+    if (adapters.empty())
     {
 #ifdef _WIN32
         WSACleanup();
 #endif
         throw std::runtime_error("MDNSDiscoveryServer: Network interfaces not found");
     }
+}
+
+bool MDNSDiscoveryServer::getAdapter(int sock, AdapterInfo& info) const
+{
+    for (const auto& adapter : adapters)
+    {
+        if (adapter.ipv4Sock == sock || adapter.ipv6Sock == sock)
+        {
+            info = adapter;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void send_mdns_query_answer(bool unicast, int sock, const sockaddr* from, socklen_t addrlen, 
@@ -776,6 +877,10 @@ int MDNSDiscoveryServer::discoveryCallback(
     if (entry != MDNS_ENTRYTYPE_QUESTION)
         return 0;
 
+    AdapterInfo adapter;
+    if (!getAdapter(sock, adapter))
+        return 0;
+
     std::string dns_sd = "_services._dns-sd._udp.local.";
 
     // Should this not use the name_length parameter?
@@ -820,10 +925,10 @@ int MDNSDiscoveryServer::discoveryCallback(
                 records.reserve(service.updateConnectedClientsAndGetPropsCount() + 3);
 
                 records.push_back(createSrvRecord(service));
-                if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
-                    records.push_back(createARecord(service));
-                if (serviceAddressIpv6.sin6_family == AF_INET6)
-                    records.push_back(createAaaaRecord(service));
+                if (adapter.ipv4Sock >= 0 && from->sa_family == AF_INET)
+                    records.push_back(createARecord(service, adapter));
+                if (adapter.ipv6Sock >= 0)
+                    records.push_back(createAaaaRecord(service, adapter));
                 service.populateRecords(records);
 
                 std::vector<char>sendBuffer(service.recordSize);
@@ -839,10 +944,10 @@ int MDNSDiscoveryServer::discoveryCallback(
                 std::vector<mdns_record_t> records;
                 records.reserve(service.updateConnectedClientsAndGetPropsCount() + 2);
 
-                if (serviceAddressIpv4.sin_family == AF_INET && from->sa_family == AF_INET)
-                    records.push_back(createARecord(service));
-                if (serviceAddressIpv6.sin6_family == AF_INET6)
-                    records.push_back(createAaaaRecord(service));
+                if (adapter.ipv4Sock >= 0 && from->sa_family == AF_INET)
+                    records.push_back(createARecord(service, adapter));
+                if (adapter.ipv6Sock >= 0)
+                    records.push_back(createAaaaRecord(service, adapter));
                 service.populateRecords(records);
 
                 std::vector<char>sendBuffer(service.recordSize);
@@ -851,9 +956,9 @@ int MDNSDiscoveryServer::discoveryCallback(
         } 
         else if (name == service.serviceQualified)
         {
-            if (((rtype == MDNS_RECORDTYPE_A) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv4.sin_family == AF_INET) && from->sa_family == AF_INET)
+            if ((rtype == MDNS_RECORDTYPE_A || rtype == MDNS_RECORDTYPE_ANY) && adapter.ipv4Sock >= 0 && from->sa_family == AF_INET)
             {
-                mdns_record_t answer = createARecord(service);
+                mdns_record_t answer = createARecord(service, adapter);
 
                 std::vector<mdns_record_t> records;
                 records.reserve(service.updateConnectedClientsAndGetPropsCount() + 1);
@@ -864,9 +969,9 @@ int MDNSDiscoveryServer::discoveryCallback(
                 std::vector<char>sendBuffer(service.recordSize);
                 send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records);
             } 
-            else if (((rtype == MDNS_RECORDTYPE_AAAA) || (rtype == MDNS_RECORDTYPE_ANY)) && (serviceAddressIpv6.sin6_family == AF_INET6))
+            else if ((rtype == MDNS_RECORDTYPE_AAAA || rtype == MDNS_RECORDTYPE_ANY) && adapter.ipv6Sock >= 0)
             {
-                mdns_record_t answer = createAaaaRecord(service);
+                mdns_record_t answer = createAaaaRecord(service, adapter);
 
                 std::vector<mdns_record_t> records;
                 records.reserve(service.updateConnectedClientsAndGetPropsCount() + 1);
@@ -881,5 +986,6 @@ int MDNSDiscoveryServer::discoveryCallback(
     }
     return 0;
 }
+
 
 END_NAMESPACE_DISCOVERY_SERVICE

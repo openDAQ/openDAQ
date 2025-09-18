@@ -908,7 +908,7 @@ TEST_F(SignalTest, GetLastValueNonPublicDisabled)
     ASSERT_FALSE(signal.getLastValue().assigned());
 }
 
-TEST_F(SignalTest, GetLastValueInvisibleDisabled)
+TEST_F(SignalTest, GetLastValueInvisible)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
     signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Visible"));
@@ -924,7 +924,7 @@ TEST_F(SignalTest, GetLastValueInvisibleDisabled)
         signal.sendPacket(dataPacket);
     }
 
-    ASSERT_FALSE(signal.getLastValue().assigned());
+    ASSERT_TRUE(signal.getLastValue().assigned());
 }
 
 class ListenerImpl : public ImplementationOfWeak<IInputPortNotifications>

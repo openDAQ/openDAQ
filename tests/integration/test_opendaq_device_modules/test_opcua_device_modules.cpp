@@ -411,7 +411,7 @@ TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
     auto signalsServer = server.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(signals.getCount(), 8u);
     auto signalsVisible = client.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(signalsVisible.getCount(), 5u);
+    ASSERT_EQ(signalsVisible.getCount(), 4u);
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
     auto fbs = devices[0].getFunctionBlocks();

@@ -48,6 +48,9 @@ MdnsDiscoveredService::MdnsDiscoveredService(const std::string& serviceName,
             if (prop.getReadOnly())
             {
                 std::string value = prop.getValue();
+                if (value.empty())
+                    continue;
+
                 this->properties[key] = value;
                 staticRecordSize += key.size() + value.size() + 2;
             }
@@ -57,7 +60,6 @@ MdnsDiscoveredService::MdnsDiscoveredService(const std::string& serviceName,
             }
         }
     }
-    this->recordSize = staticRecordSize;
 }
 
 size_t MdnsDiscoveredService::updateConnectedClientsAndGetPropsCount() const
@@ -96,6 +98,9 @@ void MdnsDiscoveredService::populateRecords(std::vector<mdns_record_t>& records)
     for (auto & [key, value] : dynamicProperties)
     {
         value = (std::string)deviceInfo.getPropertyValue(key);
+        if (value.empty())
+            continue;
+
         records.push_back(createTxtRecord(key, value));
         this->recordSize += key.size() + value.size() + 2;
     }
@@ -240,7 +245,6 @@ void MDNSDiscoveryServer::announceService(const MdnsDiscoveredService& service, 
 {
     auto capacity = service.updateConnectedClientsAndGetPropsCount() + 3;
 
-    std::vector<char> buffer(service.recordSize);
     for (const auto& [_, adapter] : adapters)
     {
         std::vector<mdns_record_t> records;
@@ -252,6 +256,7 @@ void MDNSDiscoveryServer::announceService(const MdnsDiscoveredService& service, 
             records.push_back(createARecord(service, adapter));
 
         service.populateRecords(records);
+        std::vector<char> buffer(service.recordSize);
 
         if (!goodbye)
         {

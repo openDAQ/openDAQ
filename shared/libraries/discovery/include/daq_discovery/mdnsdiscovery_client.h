@@ -662,6 +662,11 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
             devices.emplace_back(device);
     }
 
+    aRecords.clear();
+    aaaaRecords.clear();
+    txtRecords.clear();
+    ptrRecords.clear();
+    srvRecords.clear();
     return devices;
 }
 
@@ -805,12 +810,12 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
     }
     else if (rtype == MDNS_RECORDTYPE_TXT)
     {
+        auto reqProps = discovery_common::DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
         if (txtRecords.count(recordName))
             return 0;
 
         auto& record = txtRecords[recordName];
         record.serviceInstance = recordName;
-        auto reqProps = discovery_common::DiscoveryUtils::readTxtRecord(size, buffer, rdata_offset, rdata_length);
         for (const auto& prop : reqProps)
             record.txt.emplace_back(prop);
     }

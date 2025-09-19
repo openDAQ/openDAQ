@@ -70,6 +70,10 @@ struct MdnsDiscoveredDevice
     std::unordered_set<std::string> ipv6Addresses;
     discovery_common::TxtProperties properties;
 
+    // Kept for API compatibility; modules should use all ip addresses instead
+    std::string ipv4Address;
+    std::string ipv6Address;
+
     std::string getPropertyOrDefault(const std::string& name, const std::string& def = "") const
     {
         if (auto iter = properties.find(name); iter != properties.cend())
@@ -646,6 +650,13 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
                     device.properties.insert(prop);
             }
         }
+
+        // Kept to maintain API compatibility
+        if (!device.ipv4Addresses.empty())
+            device.ipv4Address = *device.ipv4Addresses.begin();
+
+        if (!device.ipv6Addresses.empty())
+            device.ipv6Address = *device.ipv6Addresses.begin();
 
         if (!device.ipv4Addresses.empty() || !device.ipv6Addresses.empty())
             devices.emplace_back(device);

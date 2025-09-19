@@ -598,6 +598,27 @@ void MDNSDiscoveryServer::openServerSockets()
                     int sock = mdns_socket_open_ipv4(&sock_addr);
                     if (sock >= 0)
                     {
+                        ip_mreq mreq{};
+                        mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.251");
+                        mreq.imr_interface = saddr->sin_addr;
+
+                        // Handle error where ADD_MEMBERSHIP fails, but socket still receives multicast queries
+                        if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char*)&mreq, sizeof(mreq)) < 0)
+                        {
+                            int err = WSAGetLastError();
+                            if (err != WSAEADDRINUSE && err != WSAEINVAL)
+                            {
+                                closesocket(sock);
+                                continue;
+                            }
+                        }
+
+                        if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_IF, (const char*)&saddr->sin_addr, sizeof(saddr->sin_addr)) < 0)
+                        {
+                            closesocket(sock);
+                            continue;
+                        }
+
                         std::string ifname = adapter->AdapterName;
                         AdapterInfo& info = adapters[ifname];
                         info.ipv4Address = *saddr;
@@ -689,6 +710,26 @@ void MDNSDiscoveryServer::openServerSockets()
                 int sock = mdns_socket_open_ipv4(&sock_addr);
                 if (sock >= 0)
                 {
+                    ip_mreq mreq{};
+                    mreq.imr_multiaddr.s_addr = inet_addr("224.0.0.251");
+                    mreq.imr_interface = saddr->sin_addr;
+
+                    if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) 
+                    {
+                        if (errno != EADDRINUSE && errno != EINVAL) 
+                        {
+                            close(sock);
+                            continue;
+                        }
+                    }
+
+                    // Set the default outgoing address for multicast packets
+                    if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_IF, &saddr->sin_addr, sizeof(saddr->sin_addr)) < 0)
+                    {               
+                        close(sock);
+                        continue;
+                    }
+
                     std::string ifname = ifa->ifa_name;
                     AdapterInfo& info = adapters[ifname];
                     info.name = ifname;
@@ -724,10 +765,14 @@ void MDNSDiscoveryServer::openServerSockets()
 
                     if (setsockopt(sock, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq, sizeof(mreq)) < 0)
                     {
-                        close(sock);
-                        continue;
+                        if (errno != EADDRINUSE && errno != EINVAL) 
+                        {
+                            close(sock);
+                            continue; 
+                        }
                     }
 
+                    // Set the default outgoing interface for multicast packets
                     unsigned int ifindex = if_nametoindex(ifa->ifa_name);
                     if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifindex, sizeof(ifindex)) < 0)
                     {

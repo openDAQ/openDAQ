@@ -1,0 +1,137 @@
+name: Build and Upload Artifacts
+
+on:
+  workflow_call:
+    inputs:
+      artefact-name:
+        description: "The name of the package artefact"
+        required: true
+        type: string
+
+      cmake-compiler:
+        required: true
+        type: string
+      cmake-config:
+        required: false
+        type: string
+        default: Release
+      cmake-defines:
+        required: true
+        type: string
+      cmake-generator:
+        required: true
+        type: string
+      cmake-preset-name:
+        required: false
+        type: string
+        default: ''
+
+      cpack-generator:
+        required: true
+        type: string
+
+      runner:
+        description: "Runner label"
+        required: true
+        type: string
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  build-artefacts:
+    runs-on: ${{ inputs.runner }}
+
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+
+    steps:
+      - name: Checkout openDAQ repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+              libx11-dev \
+              libxrandr-dev \
+              libxcursor-dev \
+              libxi-dev \
+              libgl1-mesa-dev \
+              mesa-common-dev \
+              freeglut3-dev \
+              libudev-dev \
+              libfreetype6-dev \
+              python3.12-dev \
+              python3-pip \
+              mono-complete \
+              ccache
+
+      - name: Install dependencies Windows
+        if: runner.os == 'Windows'
+        run: |
+          choco install ccache ninja nsis vswhere -y
+
+      - name: Install dependencies MacOS
+        if: runner.os == 'macOS'
+        run: |
+          brew install ccache
+
+      - name: Restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ hashFiles('**/*.c','**/*.cpp') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+
+      - name: Setup MSVC environment
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $vsPath = vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vsPath) { Write-Error "Visual Studio not found"; exit 1 }
+
+          $vcvarsall = Join-Path $vsPath 'VC\Auxiliary\Build\vcvarsall.bat'
+          if (-not (Test-Path $vcvarsall)) { Write-Error "vcvarsall.bat not found"; exit 1 }
+
+          cmd /c "`"$vcvarsall`" x64 && set" | ForEach-Object {
+            if ($_ -match "^(.*?)=(.*)$") {
+              $name = $matches[1]
+              $value = $matches[2]
+              echo "$name=$value" >> $env:GITHUB_ENV
+            }
+          }
+
+      - name: Configure openDAQ CMake build
+        shell: bash
+        run: |
+          cmake -S . -B build \
+            -G "${{ inputs.cmake-generator }}" \
+            ${{ inputs.cmake-preset }} \
+            ${{ inputs.cmake-defines }} \
+            ${{ inputs.cmake-compiler }} \
+            -DCMAKE_BUILD_TYPE=${{ inputs.cmake-config }}
+
+      - name: Perfrom openDAQ CMake build
+        shell: bash
+        run: |
+          cmake \
+            --build build \
+            --config Release \
+            ${{ inputs.cmake-parallel }}
+
+      - name: Package openDAQ CPack
+        shell: bash
+        run: |
+          cpack --config build/CPackConfig.cmake \
+            -G ${{ inputs.cpack-generator }}
+
+      - name: Upload artifact
+        id: opendaq-upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artefact-name }}
+          path: build/_packages/*
+          retention-days: 7

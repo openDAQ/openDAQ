@@ -294,12 +294,10 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
 
 DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    // TODO: store all IPv4/6 addresses
     auto cap = ServerCapability(WebsocketDeviceTypeId, "OpenDAQLTStreaming", ProtocolType::Streaming);
 
-    if (!discoveredDevice.ipv4Addresses.empty())
+    for (const auto& ipAddress : discoveredDevice.ipv4Addresses)
     {
-        auto ipAddress = *discoveredDevice.ipv4Addresses.begin();
         auto connectionStringIpv4 = WebsocketStreamingClientModule::createUrlConnectionString(
             ipAddress,
             discoveredDevice.servicePort,
@@ -315,9 +313,8 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
         cap.addAddressInfo(addressInfo);
     }
 
-    if (!discoveredDevice.ipv6Addresses.empty())
+    for (const auto& ipAddress : discoveredDevice.ipv6Addresses)
     {
-        auto ipAddress = *discoveredDevice.ipv6Addresses.begin();
         auto connectionStringIpv6 = WebsocketStreamingClientModule::createUrlConnectionString(
             ipAddress,
             discoveredDevice.servicePort,

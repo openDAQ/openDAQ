@@ -590,6 +590,7 @@ void MDNSDiscoveryServer::openServerSockets()
                     (saddr->sin_addr.S_un.S_un_b.s_b4 != 1))
                 {
                     sockaddr_in sock_addr{};
+                    
                     sock_addr.sin_family = AF_INET;
                     sock_addr.sin_addr = saddr->sin_addr;
                     sock_addr.sin_port = htons(MDNS_PORT);
@@ -621,10 +622,33 @@ void MDNSDiscoveryServer::openServerSockets()
                     int sock = mdns_socket_open_ipv6(&sock_addr);
                     if (sock >= 0)
                     {
+                        struct ipv6_mreq mreq{};
+                        inet_pton(AF_INET6, "ff02::fb", &mreq.ipv6mr_multiaddr);
+                        mreq.ipv6mr_interface = adapter->Ipv6IfIndex;
+
+                        if (setsockopt(sock, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (const char*) &mreq, sizeof(mreq)) < 0)
+                        {
+                            // Handle error where ADD_MEMBERSHIP fails, but socket still receives multicast queries
+                            int err = WSAGetLastError();
+                            if (err != WSAEADDRINUSE && err != WSAEINVAL)
+                            {
+                                closesocket(sock);
+                                continue;
+                            }
+                        }
+
+                        // Set the default outgoing interface for multicast packets
+                        DWORD ifindex = adapter->Ipv6IfIndex;
+                        if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_IF, (const char*) &ifindex, sizeof(ifindex)) < 0)
+                        {
+                            closesocket(sock);
+                            continue;
+                        }
+
                         std::string ifname = adapter->AdapterName;
-                        AdapterInfo& info = adapters[ifname];
-                        info.ipv6Address = *saddr;
-                        info.ipv6Sock = sock;
+                        AdapterInfo& info  = adapters[ifname];
+                        info.ipv6Address   = *saddr;
+                        info.ipv6Sock      = sock;
                     }
                 }
             }
@@ -694,6 +718,23 @@ void MDNSDiscoveryServer::openServerSockets()
                 int sock = mdns_socket_open_ipv6(&sock_addr);
                 if (sock >= 0)
                 {
+                    ipv6_mreq mreq{};
+                    inet_pton(AF_INET6, "ff02::fb", &mreq.ipv6mr_multiaddr);
+                    mreq.ipv6mr_interface = if_nametoindex(ifa->ifa_name);
+
+                    if (setsockopt(sock, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq, sizeof(mreq)) < 0)
+                    {
+                        close(sock);
+                        continue;
+                    }
+
+                    unsigned int ifindex = if_nametoindex(ifa->ifa_name);
+                    if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifindex, sizeof(ifindex)) < 0)
+                    {
+                        close(sock);
+                        continue;
+                    }
+
                     std::string ifname = ifa->ifa_name;
                     AdapterInfo& info = adapters[ifname];
                     info.ipv6Address = *saddr;

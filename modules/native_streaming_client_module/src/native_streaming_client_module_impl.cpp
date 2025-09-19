@@ -71,10 +71,8 @@ NativeStreamingClientModule::~NativeStreamingClientModule()
 
 void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDevice& discoveredDevice, ServerCapabilityConfigPtr& cap, std::string protocolPrefix)
 {
-    // TODO: store all IPv4/6 addresses
-    if (!discoveredDevice.ipv4Addresses.empty())
+    for (const auto& ipAddress : discoveredDevice.ipv4Addresses)
     {
-        auto ipAddress = *discoveredDevice.ipv4Addresses.begin();
         auto connectionStringIpv4 = CreateUrlConnectionString(
             protocolPrefix,
             ipAddress,
@@ -92,9 +90,8 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
         cap.addAddressInfo(addressInfo);
     }
     
-    if (!discoveredDevice.ipv6Addresses.empty())
+    for (const auto& ipAddress : discoveredDevice.ipv6Addresses)
     {
-        auto ipAddress = *discoveredDevice.ipv6Addresses.begin();
         auto connectionStringIpv6 = CreateUrlConnectionString(
             protocolPrefix,
             ipAddress,

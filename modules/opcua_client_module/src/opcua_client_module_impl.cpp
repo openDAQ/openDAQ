@@ -128,11 +128,10 @@ PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectP
 
 DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    // TODO: store all IPv4/6 addresses
     auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "OpenDAQOPCUA", ProtocolType::Configuration);
-    if (!discoveredDevice.ipv4Addresses.empty())
+
+    for (const auto& ipAddress : discoveredDevice.ipv4Addresses)
     {
-        auto ipAddress = *discoveredDevice.ipv4Addresses.begin();
         auto connectionStringIpv4 = fmt::format("{}://{}:{}{}",
                                                 DaqOpcUaDevicePrefix,
                                                 ipAddress,
@@ -148,9 +147,9 @@ DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDe
                                      .build();
         cap.addAddressInfo(addressInfo);
     }
-    if(!discoveredDevice.ipv6Addresses.empty())
+
+    for (const auto& ipAddress : discoveredDevice.ipv6Addresses)
     {
-        auto ipAddress = *discoveredDevice.ipv6Addresses.begin();
         auto connectionStringIpv6 = fmt::format("{}://{}:{}{}",
                                                 DaqOpcUaDevicePrefix,
                                                 ipAddress,
@@ -166,6 +165,7 @@ DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDe
                                      .build();
         cap.addAddressInfo(addressInfo);
     }
+
     cap.setConnectionType("TCP/IP");
     cap.setPrefix(DaqOpcUaDevicePrefix);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));

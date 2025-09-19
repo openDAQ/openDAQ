@@ -20,9 +20,10 @@
 #include <stdexcept>
 #include <opendaq/utils/thread_name.h>
 
-
 #ifdef _WIN32
     #define _CRT_SECURE_NO_WARNINGS 1
+#else
+#include <arpa/inet.h>
 #endif
 
 BEGIN_NAMESPACE_DISCOVERY_SERVICE

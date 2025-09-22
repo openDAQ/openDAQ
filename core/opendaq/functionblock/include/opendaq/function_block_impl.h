@@ -596,12 +596,11 @@ void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(c
     auto typeId = type.getId();
     serializer.writeString(typeId.getCharPtr(), typeId.getLength());
 
-    serializer.key("isRecorder");
-    FunctionBlockPtr thisPtr = this->template borrowPtr<FunctionBlockPtr>();
-    if (thisPtr.supportsInterface<IRecorder>())
-        serializer.writeBool(true);
-    else
-        serializer.writeBool(false);
+    if(!forUpdate) {
+        serializer.key("isRecorder");
+        FunctionBlockPtr thisPtr = this->template borrowPtr<FunctionBlockPtr>();
+        serializer.writeBool(thisPtr.supportsInterface<IRecorder>());
+    }
 
     Super::serializeCustomObjectValues(serializer, forUpdate);
     this->serializeFolder(serializer, inputPorts, "IP", forUpdate);

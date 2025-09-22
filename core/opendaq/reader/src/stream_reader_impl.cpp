@@ -256,7 +256,7 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
         OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
 
     if (externalListener.assigned() && externalListener.getRef().assigned())
-        return externalListener.getRef()->connected(port);
+        return externalListener.getRef()->packetReceived(port);
 
     return OPENDAQ_SUCCESS;
 }

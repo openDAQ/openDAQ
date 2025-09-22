@@ -1246,7 +1246,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::enableKeepLastValue(Bool enabled)
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
 {
-    keepLastPacket = keepLastValue && isPublic && this->visible;
+    keepLastPacket = keepLastValue && isPublic;
 
     if (!keepLastPacket)
     {

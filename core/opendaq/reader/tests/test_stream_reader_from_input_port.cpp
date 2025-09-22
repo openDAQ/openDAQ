@@ -877,7 +877,7 @@ TYPED_TEST(StreamReaderFromExistingTest, StealConnection)
 
     ASSERT_EQ(complexCount, 1u);
 
-    ComplexFloat32 expectedSample = convertable ? 222 : 111;
+    ComplexFloat32 expectedSample = convertable ? ComplexFloat32(222.0f) : ComplexFloat32(111.0f);
     ASSERT_EQ(complexSamples[0], expectedSample);
 }
 

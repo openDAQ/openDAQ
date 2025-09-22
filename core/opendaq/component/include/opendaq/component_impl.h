@@ -36,6 +36,7 @@
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_impl.h>
 #include <cctype>
+#include <coretypes/coretype_utils.h>
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
 #include <coreobjects/permission_manager_factory.h>
@@ -568,9 +569,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
     {
-        std::string str = strPtr;
-        std::transform(str.begin(), str.end(), str.begin(), [](char c){ return std::tolower(c); });
-        str[0] = std::toupper(str[0]);
+        std::string str = strPtr.toStdString();
+        str = coretype_utils::toLowerCase(str);
+        str[0] = coretype_utils::toUpperCase(str[0]);
         lockedAttributes.insert(str);
     }
 
@@ -602,9 +603,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
     {
-        std::string str = strPtr;
-        std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){ return std::tolower(c); });
-        str[0] = std::toupper(str[0]);
+        std::string str = strPtr.toStdString();
+        str = coretype_utils::toLowerCase(str);
+        str[0] = coretype_utils::toUpperCase(str[0]);
         lockedAttributes.erase(str);
     }
 

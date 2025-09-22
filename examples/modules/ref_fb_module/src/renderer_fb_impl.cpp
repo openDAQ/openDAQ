@@ -27,7 +27,6 @@ RendererFbImpl::RendererFbImpl(const ContextPtr& ctx,
     : FunctionBlock(CreateType(), ctx, parent, localId)
     , rendererStopRequested(false)
     , resolutionChangedFlag(false)
-    , signalContextIndex(0)
     , inputPortCount(0)
     , axisColor(150, 150, 150)
     , futureComponentStatus(ComponentStatus::Ok)

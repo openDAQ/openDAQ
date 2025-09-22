@@ -479,22 +479,19 @@ void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>&
                                                                  ? AddressReachabilityStatus::Reachable
                                                                  : AddressReachabilityStatus::Unreachable;
                     addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(reachability);
+                }
+            }
 
-                    if (reachability == AddressReachabilityStatus::Unreachable && cap.getConnectionString() == addressInfo.getConnectionString())
-                    {
-                        for (const auto& addressInfoInner : cap.getAddressInfo())
-                        {
-                            if (addressInfoInner == addressInfo)
-                                continue;
-
-                            if (addressInfoInner.getReachabilityStatus() != AddressReachabilityStatus::Unreachable)
-                            {
-                                cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfoInner.getConnectionString());
-                                break;
-                            }
-                        }
-                    }
-
+            for (const auto& addressInfo : addressInfos)
+            {
+                auto reachability = addressInfo.getReachabilityStatus();
+                if (reachability == AddressReachabilityStatus::Unknown)
+                {
+                    cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfo.getConnectionString());
+                }
+                else if (reachability == AddressReachabilityStatus::Reachable)
+                {
+                    cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfo.getConnectionString());
                     break;
                 }
             }

@@ -802,8 +802,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
 
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
 {
-    if (test_helpers::Ipv6IsDisabled())
-        return;
+    bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
@@ -820,30 +819,36 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
+            
+            if (capability.getProtocolName() != "OpenDAQNativeConfiguration")
+                continue;
 
-            if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+            bool hasIPv4 = false;
+            bool hasIPv6 = false;
+            int cnt = 0;
+            for (const auto& addressInfo : capability.getAddressInfo())
             {
-                const auto ipv4Info = capability.getAddressInfo()[0];
-                const auto ipv6Info = capability.getAddressInfo()[1];
-                ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-                ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[cnt]);
+                ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[cnt]);
+                if (addressInfo.getType() == "IPv4")
+                {
+                    hasIPv4 = true;
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                }
+                else if (addressInfo.getType() == "IPv6")
+                {
+                    hasIPv6 = true;
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                }
                 
-                ASSERT_EQ(ipv4Info.getType(), "IPv4");
-                ASSERT_EQ(ipv6Info.getType(), "IPv6");
+                if (hasIPv4 && (hasIPv6 || !checkIPv6))
+                    return;
 
-                ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-                ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
-                
-                ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-                ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
-                return;
-            }
-            else
-            {
-                ASSERT_EQ(capability.getProtocolName(), "OpenDAQNativeStreaming");
+                cnt++;
             }
         }      
     }
+
     ASSERT_TRUE(false) << "Device not found";
 }
 
@@ -963,8 +968,7 @@ TEST_F(NativeDeviceModulesTest, TestProtocolVersion)
 
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
-    if (test_helpers::Ipv6IsDisabled())
-        return;
+    bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
 
     auto deviceInfo = DeviceInfo("testdevice://");
     deviceInfo.setManufacturer("openDAQ");
@@ -974,9 +978,8 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configurator/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
-
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
-
+    
     auto client = Instance();
     DevicePtr device = FindNativeDeviceByPath(client, path);
     ASSERT_TRUE(device.assigned());
@@ -986,28 +989,37 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 
     for (const auto& capability : caps)
     {
-        if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-        {
-            const auto ipv4Info = capability.getAddressInfo()[0];
-            const auto ipv6Info = capability.getAddressInfo()[1];
-            ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
-            
-            ASSERT_EQ(ipv4Info.getType(), "IPv4");
-            ASSERT_EQ(ipv6Info.getType(), "IPv6");
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
 
-            ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
-            
-            ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
-            return;
-        }
-        else
+        if (capability.getProtocolName() != "OpenDAQNativeConfiguration")
+            continue;
+
+        bool hasIPv4 = false;
+        bool hasIPv6 = false;
+        int cnt = 0;
+        for (const auto& addressInfo : capability.getAddressInfo())
         {
-            ASSERT_EQ(capability.getProtocolName(), "OpenDAQNativeStreaming");
+            ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[cnt]);
+            ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[cnt]);
+            if (addressInfo.getType() == "IPv4")
+            {
+                hasIPv4 = true;
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+            }
+            else if (addressInfo.getType() == "IPv6")
+            {
+                hasIPv6 = true;
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+            }
+            
+            if (hasIPv4 && (hasIPv6 || !checkIPv6))
+                return;
+
+            cnt++;
         }
     }
+
     ASSERT_TRUE(false) << "Device not found";
 }
 

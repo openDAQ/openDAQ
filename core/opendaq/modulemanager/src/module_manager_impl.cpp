@@ -757,7 +757,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             OPENDAQ_RETURN_IF_FAILED(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
-            if (devicePtr.assigned() && devicePtr.assigned())
+            if (devicePtr.assigned())
             {
                 onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
                 if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())

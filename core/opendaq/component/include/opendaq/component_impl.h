@@ -1114,7 +1114,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /*forUpdate*/)
+void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     if (!active)
     {
@@ -1146,10 +1146,12 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         tags.serialize(serializer);
     }
 
-    if (statusContainer.getStatuses().getCount() > 0)
-    {
-        serializer.key("statuses");
-        statusContainer.serialize(serializer);
+    if(!forUpdate) {
+        if (statusContainer.getStatuses().getCount() > 0)
+        {
+            serializer.key("statuses");
+            statusContainer.serialize(serializer);
+        }
     }
 
     if (componentConfig.assigned())

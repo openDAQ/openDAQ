@@ -382,6 +382,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           rename 's/-Linux/-ubuntu22.04-${{ matrix.arch }}_${{ steps.short-sha.outputs.sha }}/' *.zip
+          rename 's/openDAQ/opendaq/' *.zip
 
       - name: Rename package
         working-directory: ${{ env.package_path_rel }}
@@ -396,6 +397,7 @@ jobs:
         if: github.ref != 'refs/heads/main'
         run: |
           rename 's/-Linux/-ubuntu22.04-${{ matrix.arch }}/' *.zip
+          rename 's/openDAQ/opendaq/' *.zip
 
       - name: Read openDAQ version
         id: daq_version

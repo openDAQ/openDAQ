@@ -200,7 +200,7 @@ jobs:
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
         run: |
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
           if (Test-Path -Path "${{ env.dotnet_test_path }}") {
             if (! (Test-Path -Path "${{ env.test_path }}")) { mkdir "${{ env.test_path }}" }
             Copy-Item "${{ env.dotnet_test_path }}/*.*" "${{ env.test_path }}"
@@ -216,7 +216,7 @@ jobs:
           CTEST_PRESET: ${{ env.ctest_preset }}
         run: |
           call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
-          ctest --output-on-failure --preset %CTEST_PRESET% -C Release --test-dir build
+          ctest --output-on-failure --preset %CTEST_PRESET% -C Release --test-dir build --verbose
 
       - name: Upload test results
         if: always()
@@ -402,7 +402,7 @@ jobs:
           if [ -f /opt/intel/oneapi/setvars.sh ]; then
               source /opt/intel/oneapi/setvars.sh
           fi
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
 
       - name: Upload test results
         if: always()
@@ -485,7 +485,7 @@ jobs:
           trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ${{ env.regression_simulator_folder }}/ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
 
           # Perform tests
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --verbose
 
           EOL
 
@@ -610,7 +610,7 @@ jobs:
           python$last_version -m venv build/venv
           . build/venv/bin/activate
           pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
 
       - name: Upload test results
         if: always()
@@ -719,7 +719,7 @@ jobs:
           python$last_version -m venv build/venv
           . build/venv/bin/activate
           pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
 
       - name: Upload test results
         if: always()
@@ -813,7 +813,7 @@ jobs:
               Write-Output "Installing $file"
               pip install $file
             }
-            ctest --output-on-failure -C ${{ matrix.cmake_build_type }} -R test_py_opendaq .
+            ctest --output-on-failure -C ${{ matrix.cmake_build_type }} -R test_py_opendaq . --verbose
             Copy-Item pip/packages/*.whl wheels
             deactivate
             Remove-Item venv -Recurse

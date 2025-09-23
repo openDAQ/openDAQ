@@ -117,7 +117,7 @@ TEST_F(CCoretypesTest, Convertible)
     ASSERT_EQ(err, 0);
     err = daqConvertible_toFloat(c, &f);
     ASSERT_EQ(err, 0);
-    ASSERT_FLOAT_EQ(f, 1.5);
+    ASSERT_DOUBLE_EQ(f, 1.5);
     daqBaseObject_releaseRef(s);
 }
 

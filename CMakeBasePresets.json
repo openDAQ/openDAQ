@@ -34,6 +34,14 @@
             }
         },
         {
+            "name": "intel-llvm",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "icx",
+                "CMAKE_CXX_COMPILER": "icpx"
+            }
+        },
+        {
             "name": "ninja",
             "hidden": true,
             "generator": "Ninja"
@@ -270,6 +278,24 @@
             "inherits": [
                 "full/release",
                 "clang",
+                "ninja"
+            ]
+        },
+        {
+            "name": "x64/intel-llvm/full/debug",
+            "displayName": "[IntelLLVM] Full - Debug",
+            "inherits": [
+                "full/debug",
+                "intel-llvm",
+                "ninja"
+            ]
+        },
+        {
+            "name": "x64/intel-llvm/full/release",
+            "displayName": "[IntelLLVM] Full - Release",
+            "inherits": [
+                "full/release",
+                "intel-llvm",
                 "ninja"
             ]
         }

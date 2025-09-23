@@ -37,7 +37,7 @@ protected:
     ListPtr<ISignal> signals;
     daq::ListPtr<daq::IInputPort> inputPorts;
     std::vector<SignalGeneratorPtr> generatedSignals;
-    Int intStepValue = -10;
+    int32_t intStepValue = -10;
     std::chrono::time_point<std::chrono::system_clock> sigGenAbsStartTime;
 
     void generateSamplesUntil(std::chrono::milliseconds currentTime) override;

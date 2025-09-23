@@ -867,7 +867,8 @@ if __name__ == '__main__':
         '--config', help='Saved config', type=str, default='')
     parser.add_argument(
         '--module_path', help='Additional modules path', type=str, default='')
-    parser.add_argument('-v', '--version', action='version', version=f'{os.path.dirname(__file__)} {daq.__version__}')
+    parser.add_argument('-v', '--version', action='version', 
+        version=f'{os.path.dirname(__file__)} {daq.__dict__.get("__version__", "@VERSION@").replace("@VERSION@", "Unknown version")}')
 
     app = App(parser.parse_args())
     app.mainloop()

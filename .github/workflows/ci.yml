@@ -78,6 +78,12 @@ jobs:
             cmake_build_type: Release
             cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
             cpack: NSIS
+          #- name: Windows Intel-LLVM Release
+          #  runner: windows-2022
+          #  cmake_generator: "Ninja"
+          #  cmake_build_type: Release
+          #  cmake_defines: -DCMAKE_C_COMPILER=icx-cl -DCMAKE_CXX_COMPILER=icx-cl -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+          #  cpack: NSIS
 
     outputs:
       # trick for reusable workflow in build_nuget because cannot use env context in "with:"
@@ -131,8 +137,16 @@ jobs:
             Invoke-Expression "py -$version -m pip install numpy"
           }
 
+      - name: Install Intel-LLVM compiler
+        shell: powershell
+        if: matrix.name == 'Windows Intel-LLVM Release'
+        run: |
+          Invoke-WebRequest -Uri "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/47a201d7-d4cd-4079-a2d8-0e66b860aaaa/intel-dpcpp-cpp-compiler-2025.2.0.536_offline.exe" -OutFile oneapi.exe
+          Start-Process oneapi.exe -ArgumentList '--silent', '--eula=accept' -Wait -NoNewWindow
+
       - name: Configure
         shell: pwsh
+        if: matrix.name != 'Windows Intel-LLVM Release'
         run: |
           mkdir build
           cd build
@@ -147,6 +161,7 @@ jobs:
 
       - name: Build
         shell: pwsh
+        if: matrix.name != 'Windows Intel-LLVM Release'
         working-directory: ./build
         env:
           dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
@@ -155,8 +170,33 @@ jobs:
           $env:SHORT_SHA = "${{ env.short_sha }}"
           cmake --build . --config ${{ matrix.cmake_build_type }}
 
+      - name: ConfigureIntel
+        shell: cmd
+        if: matrix.name == 'Windows Intel-LLVM Release'
+        env:
+          CMAKE_PRESET: ${{ env.cmake_preset }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          CMAKE_GENERATOR: ${{ matrix.cmake_generator }}
+          CMAKE_DEFINES: ${{ matrix.cmake_defines }}
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+          mkdir build
+          cd build
+          cmake -G "%CMAKE_GENERATOR%" --preset %CMAKE_PRESET% -DCI_GIT_BRANCH=%GITHUB_HEAD_REF% %CMAKE_DEFINES% ..
+
+      - name: BuildIntel
+        shell: cmd
+        if: matrix.name == 'Windows Intel-LLVM Release'
+        env:
+          CMAKE_BUILD_TYPE: ${{ matrix.cmake_build_type }}
+        working-directory: ./build
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+          cmake --build . --config %CMAKE_BUILD_TYPE%
+
       - name: Test
         shell: pwsh
+        if: matrix.name != 'Windows Intel-LLVM Release'
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
         run: |
@@ -167,6 +207,16 @@ jobs:
           } else {
             Write-Output "*** '${{ env.dotnet_test_path }}' not found, no .NET Bindings tests to copy"
           }
+
+      - name: TestIntel
+        shell: cmd
+        if: matrix.name == 'Windows Intel-LLVM Release'
+        env:
+          GTEST_OUTPUT: "xml:${{ env.test_path }}"
+          CTEST_PRESET: ${{ env.ctest_preset }}
+        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+          ctest --output-on-failure --preset %CTEST_PRESET% -C Release --test-dir build
 
       - name: Upload test results
         if: always()
@@ -250,6 +300,14 @@ jobs:
             apt_packages: clang++-14
             cc: clang-14
             cxx: clang++-14
+         # - name: Ubuntu 22.04 Intel-LLVM Release
+         #   image: ubuntu:22.04
+         #   cmake_generator: Ninja
+         #   cmake_build_type: Release
+         #   cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+         #   apt_packages: intel-oneapi-compiler-dpcpp-cpp
+         #   cc: icx
+         #   cxx: icpx
           # - name: Ubuntu 22.04 clang-14 libc++ Release
             # image: ubuntu:22.04
             # cmake_generator: Ninja
@@ -294,6 +352,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Add Intel oneAPI apt repo
+        if: matrix.name == 'Ubuntu 22.04 Intel-LLVM Release'
+        run: |
+          apt-get install -y wget gnupg
+          wget -qO- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+            | gpg --dearmor \
+            | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+            | tee /etc/apt/sources.list.d/oneapi.list
+          apt-get update
+
       - name: Install additional dependencies
         run: |
           apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
@@ -307,19 +376,33 @@ jobs:
         run: pip install cmake
 
       - name: Configure
+        shell: bash
         run: |
+          if [ -f /opt/intel/oneapi/setvars.sh ]; then
+              source /opt/intel/oneapi/setvars.sh
+          fi
           mkdir build
           cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
       - name: Build
         working-directory: ./build
-        run: cmake --build .
+        shell: bash
+        run: |
+          if [ -f /opt/intel/oneapi/setvars.sh ]; then
+              source /opt/intel/oneapi/setvars.sh
+          fi
+          cmake --build .
 
       - name: Test
+        shell: bash
         env:
           GTEST_OUTPUT: "xml:/junit_reports/unit/"
-        run: ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
+        run: |
+          if [ -f /opt/intel/oneapi/setvars.sh ]; then
+              source /opt/intel/oneapi/setvars.sh
+          fi
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()

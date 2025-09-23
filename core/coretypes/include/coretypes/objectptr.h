@@ -733,7 +733,7 @@ inline ComplexFloat32 getValueFromObject<ComplexFloat32, IComplexNumber>(IComple
 {
     ComplexFloat64 value;
     typeObj->getValue(&value);
-    return ComplexFloat32(value.real, value.imaginary);
+    return ComplexFloat32(static_cast<float>(value.real), static_cast<float>(value.imaginary));
 }
 
 template <typename T>
@@ -1349,7 +1349,8 @@ ObjectPtr<T>::ObjectPtr(const U& value)
     }
     else if constexpr (!std::is_same_v<T, IBaseObject> && !std::is_same_v<T, CreateInterface>)
     {
-        object = CoreTypeHelper<typename IntfToCoreType<T>::CoreType>::Create(value);
+        using CoreType = typename IntfToCoreType<T>::CoreType;
+        object = CoreTypeHelper<CoreType>::Create(static_cast<CoreType>(value));
     }
     else
     {
@@ -1633,7 +1634,8 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(const U& value)
     }
     else if constexpr (!std::is_same_v<T, IBaseObject> && !std::is_same_v<T, CreateInterface>)
     {
-        object = CoreTypeHelper<typename IntfToCoreType<T>::CoreType>::Create(value);
+        using CoreType = typename IntfToCoreType<T>::CoreType;
+        object = CoreTypeHelper<CoreType>::Create(static_cast<CoreType>(value));
     }
     else
     {

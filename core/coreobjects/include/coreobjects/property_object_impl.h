@@ -70,6 +70,9 @@ namespace object_utils
         void unlock() noexcept {}
         bool try_lock() { return true; }
     };
+
+    static const auto UnrestrictedPermissions =
+        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
 }
 
 class RecursiveConfigLockGuard : public std::enable_shared_from_this<RecursiveConfigLockGuard>
@@ -632,13 +635,8 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
 
-#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
     this->permissionManager = PermissionManager();
-    this->permissionManager.setPermissions(
-        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build());
-#else
-    this->permissionManager = DisabledPermissionManager();
-#endif
+    this->permissionManager.setPermissions(object_utils::UnrestrictedPermissions);
 
     PropertyValueEventEmitter readEmitter;
     PropertyValueEventEmitter writeEmitter;
@@ -1055,7 +1053,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Only base Property Object object-type values are allowed");
     }
 
-    auto iterate = [this](const IterablePtr<IBaseObject>& it, CoreType type) {
+    auto iterate = [](const IterablePtr<IBaseObject>& it, CoreType type) {
         for (const auto& key : it)
         {
             auto ct = key.getCoreType();
@@ -3066,7 +3064,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 {
     auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-    const int numOfSerializablePropertyValues =
+    const auto numOfSerializablePropertyValues =
         std::count_if(propValues.begin(), propValues.end(), [](const std::pair<StringPtr, BaseObjectPtr>& keyValue) {
             return keyValue.second.supportsInterface<ISerializable>();
         });
@@ -3133,11 +3131,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
         serializerPtr.startList();
         for (const auto& prop : localProperties)
         {
-#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
             bool isObjectProp = prop.second.template asPtr<IPropertyInternal>().getValueTypeUnresolved() == ctObject;
             if (isObjectProp && !hasUserReadAccess(serializerPtr.getUser(), prop.second.getDefaultValue()))
                 continue;
-#endif
 
             const ErrCode errCode = serializeProperty(prop.second, serializer);
             OPENDAQ_RETURN_IF_FAILED(errCode);

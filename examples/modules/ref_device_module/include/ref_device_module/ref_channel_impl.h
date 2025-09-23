@@ -92,7 +92,6 @@ private:
     uint64_t packetSize;
     StringPtr referenceDomainId;
     PacketBufferPtr packetBuffer;
-    daq::IdsParser* idp;
     bool acqActive;
 
     void packetBufferSetup();

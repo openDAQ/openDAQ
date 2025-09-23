@@ -1053,7 +1053,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Only base Property Object object-type values are allowed");
     }
 
-    auto iterate = [this](const IterablePtr<IBaseObject>& it, CoreType type) {
+    auto iterate = [](const IterablePtr<IBaseObject>& it, CoreType type) {
         for (const auto& key : it)
         {
             auto ct = key.getCoreType();

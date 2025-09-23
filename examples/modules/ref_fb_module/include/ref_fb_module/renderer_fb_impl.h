@@ -161,7 +161,6 @@ private:
     size_t custom2dMaxRange;
     sf::Vector2f topLeft;
     sf::Vector2f bottomRight;
-    size_t signalContextIndex;
     int inputPortCount;
 
     double lastDomainValue;

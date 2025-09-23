@@ -106,7 +106,7 @@ private:
     void checkCanSetPropertyValue(const StringPtr& propName);
     bool isBasePropertyObject(const PropertyObjectPtr& propObj);
 
-    std::string getPath();
+    std::string getPathInternal();
     void applyUpdatingPropsAndValuesProtocolVer0();
 };
 
@@ -505,7 +505,7 @@ BaseObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getValueFromServer(const
     PropertyPtr prop;
     Impl::getProperty(propName, &prop);
     setValue = false;
-    switch (const auto vt = prop.getValueType())
+    switch (prop.getValueType())
     {
         case ctProc:
             return createWithImplementation<IProcedure, ConfigClientProcedureImpl>(clientComm, remoteGlobalId, this->path, propName);
@@ -720,7 +720,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::beginApplyUpdate()
     if (remoteUpdating)
         return Impl::beginApplyUpdate();
 
-    clientComm->beginUpdate(remoteGlobalId, getPath());
+    clientComm->beginUpdate(remoteGlobalId, getPathInternal());
 }
 
 template <class Impl>
@@ -751,7 +751,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::endApplyUpdate()
 
     this->updatingPropsAndValues.clear();
 
-    clientComm->endUpdate(remoteGlobalId, getPath(), propsAndValuesEx);
+    clientComm->endUpdate(remoteGlobalId, getPathInternal(), propsAndValuesEx);
 }*/
 
 template <class Impl>
@@ -925,7 +925,7 @@ template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::checkCanSetPropertyValue(const StringPtr& propName)
 {
     const auto prop = this->objPtr.getProperty(propName);
-    switch (const auto vt = prop.getValueType())
+    switch (prop.getValueType())
     {
         case ctProc:
         case ctFunc:
@@ -945,7 +945,7 @@ bool ConfigClientPropertyObjectBaseImpl<Impl>::isBasePropertyObject(const Proper
 
 
 template <class Impl>
-std::string ConfigClientPropertyObjectBaseImpl<Impl>::getPath()
+std::string ConfigClientPropertyObjectBaseImpl<Impl>::getPathInternal()
 {
     std::string path{};
     if (this->path.assigned())

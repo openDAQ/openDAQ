@@ -37,7 +37,6 @@ FFTFbImpl::~FFTFbImpl()
 
 void FFTFbImpl::initProperties()
 {
-
     auto blockSizeProp = IntPropertyBuilder("BlockSize", defaultBlockSize).build();
     objPtr.addProperty(blockSizeProp);
     objPtr.getOnPropertyValueWrite("BlockSize") +=
@@ -55,6 +54,13 @@ void FFTFbImpl::propertyChanged(bool configure)
 
 void FFTFbImpl::readProperties()
 {
+    size_t newBlockSize = objPtr.getPropertyValue("BlockSize");
+    if (newBlockSize < 1)
+    {
+        LOG_W("Cannot set BlockSize < 1, setting back to previous value {}", blockSize/2);
+        objPtr.setPropertyValue("BlockSize", blockSize / 2);
+    }
+
     blockSize = objPtr.getPropertyValue("BlockSize") * 2;
     maxBlockReadCount = maxSampleReadCount / blockSize;
 

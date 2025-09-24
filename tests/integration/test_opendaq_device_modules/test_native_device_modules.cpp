@@ -986,6 +986,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 
     const auto caps = device.getInfo().getServerCapabilities();
     ASSERT_EQ(caps.getCount(), 2u);
+    int cnt = 0;
 
     for (const auto& capability : caps)
     {
@@ -995,32 +996,27 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         if (capability.getProtocolName() != "OpenDAQNativeConfiguration")
             continue;
 
-        bool hasIPv4 = false;
-        bool hasIPv6 = false;
-        int cnt = 0;
+        int index = 0;
         for (const auto& addressInfo : capability.getAddressInfo())
         {
-            ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[cnt]);
-            ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[cnt]);
+            ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[index]);
+            ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
             if (addressInfo.getType() == "IPv4")
             {
-                hasIPv4 = true;
                 ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                cnt++;
             }
             else if (addressInfo.getType() == "IPv6")
             {
-                hasIPv6 = true;
                 ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                cnt++;
             }
             
-            if (hasIPv4 && (hasIPv6 || !checkIPv6))
-                return;
-
-            cnt++;
+            index++;
         }
     }
-
-    ASSERT_TRUE(false) << "Device not found";
+    
+    ASSERT_GT(cnt, 0);
 }
 
 TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)

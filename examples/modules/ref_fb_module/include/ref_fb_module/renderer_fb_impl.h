@@ -170,8 +170,6 @@ private:
     std::string domainUnit;
     std::string domainQuantity;
 
-    bool singleXAxisConfigured;
-
     sf::Color axisColor;
 
     ComponentStatus futureComponentStatus;
@@ -186,10 +184,6 @@ private:
 
     template <SampleType DST>
     void renderSignal(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& renderFont);
-
-/* void renderSignalExplicitRange(SignalContext& signalContext, sf::RenderTarget& renderTarget) const;
-    void renderSignalExplicit(SignalContext& signalContext, sf::RenderTarget& renderTarget) const;
-    void renderSignalImplicit(SignalContext& signalContext, sf::RenderTarget& renderTarget) const;*/
 
     template <SampleType DST>
     void renderPacket(SignalContext& signalContext,
@@ -256,8 +250,6 @@ private:
     void resolutionChanged();
     void readProperties();
     void readResolutionProperty();
-    std::string fixUpIso8601(std::string epoch);
-    std::chrono::system_clock::time_point timeStrToTimePoint(std::string timeStr);
 
     template <SampleType DST>
     void domainStampToDomainValue(Float& lastDomainValue, const SignalContext& signalContext, DomainStamp domainStamp);
@@ -265,7 +257,7 @@ private:
     template <SampleType DomainSampleType>
     std::chrono::system_clock::time_point timestampToTimePoint(const SignalContext& signalContext, typename SampleTypeToType<DomainSampleType>::Type timeStamp);
 
-    static std::chrono::system_clock::duration timeValueToDuration(const SignalContext& signalContext, Float timeValue);
+    static std::chrono::system_clock::duration timeValueToDuration(Float timeValue);
 
     template <typename Iter, typename Cont>
     bool isLastIter(Iter iter, const Cont& cont);

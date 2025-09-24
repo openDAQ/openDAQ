@@ -14,6 +14,7 @@
 #include <ref_fb_module/version.h>
 #include <ref_fb_module/power_reader_fb_impl.h>
 #include <ref_fb_module/struct_decoder_fb_impl.h>
+#include <ref_fb_module/time_delay_fb_impl.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -59,6 +60,9 @@ DictPtr<IString, IFunctionBlockType> RefFBModule::onGetAvailableFunctionBlockTyp
 
     const auto typeStructDecoder = StructDecoder::StructDecoderFbImpl::CreateType();
     types.set(typeStructDecoder.getId(), typeStructDecoder);
+
+    const auto timeScaler = TimeDelay::TimeDelayFbImpl::CreateType();
+    types.set(timeScaler.getId(), timeScaler);
 
     return types;
 }
@@ -118,6 +122,11 @@ FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
     if (id == StructDecoder::StructDecoderFbImpl::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, StructDecoder::StructDecoderFbImpl>(context, parent, localId);
+        return fb;
+    }
+    if (id == TimeDelay::TimeDelayFbImpl::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, TimeDelay::TimeDelayFbImpl>(context, parent, localId, config);
         return fb;
     }
 

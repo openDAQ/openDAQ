@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <opendaq/work_factory.h>
 #include <coreobjects/callable_info_factory.h>
+#include <opendaq/reader_utils.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -266,95 +267,24 @@ void RendererFbImpl::renderSignals(sf::RenderTarget& renderTarget, const sf::Fon
 
 sf::Color RendererFbImpl::getColor(const SignalContext& signalContext)
 {
-    sf::Color color;
     switch(signalContext.index % 6)
     {
         case 0:
-            color = sf::Color::Red;
-            break;
+            return sf::Color::Red;
         case 1:
-            color = sf::Color::Yellow;
-            break;
+            return sf::Color::Yellow;
         case 2:
-            color = sf::Color::Green;
-            break;
+            return sf::Color::Green;
         case 3:
-            color = sf::Color::Magenta;
-            break;
+            return sf::Color::Magenta;
         case 4:
-            color = sf::Color::Cyan;
-            break;
+            return sf::Color::Cyan;
         case 5:
-            color = sf::Color::Blue;
-            break;
+            return sf::Color::Blue;
         default:
-            color = sf::Color::White;
+            return sf::Color::White;
     }
-    return color;
 }
-
-/*
-void RendererFbImpl::renderSignalExplicitRange(SignalContext& signalContext, sf::RenderTarget& renderTarget) const
-{
-    if (signalContext.dataPackets.empty())
-        return;
-
-    auto packetIt = signalContext.dataPackets.begin();
-    auto domainPacket = packetIt->getDomainPacket();
-
-    if (domainPacket.getSampleCount() == 0)
-        return;
-
-    const float xSize = signalContext.bottomRight.x - signalContext.topLeft.x;
-    const float xOffset = signalContext.topLeft.x;
-    const float ySize = signalContext.bottomRight.y - signalContext.topLeft.y;
-    const float yOffset = signalContext.bottomRight.y;
-
-    constexpr float lineThickness = 1.0f;
-    const sf::Color color = getColor(signalContext);
-
-    Polyline line(lineThickness, LineStyle::solid);
-    line.setColor(color);
-
-    const auto domainData_ = static_cast<RangeType<int64_t>*>(domainPacket.getData());
-    auto domainValue = *(domainData_ + domainPacket.getSampleCount() - 1);
-    const auto firstDomainValueLimit = domainValue.end - signalContext.durationInTicks;
-    const auto domainRange = domainValue.end - firstDomainValueLimit;
-    if (domainRange == 0)
-        return;
-
-    while (packetIt != signalContext.dataPackets.end())
-    {
-        domainPacket = packetIt->getDomainPacket();
-        const auto samplesInPacket = packetIt->getSampleCount();
-        auto data = static_cast<double*>(packetIt->getData()) + samplesInPacket;
-        auto domainData = static_cast<RangeType<int64_t>*>(domainPacket.getData()) + samplesInPacket;
-
-        for (size_t i = 0; i < samplesInPacket; i++)
-        {
-            const double value = *(--data);
-            domainValue = *(--domainData);
-            if (domainValue.start < firstDomainValueLimit)
-                goto end;
-
-            const float xPos1 = xOffset + static_cast<double>(domainValue.start - firstDomainValueLimit) / static_cast<double>(domainRange) * static_cast<float>(xSize);
-            const float xPos2 = xOffset + static_cast<double>(domainValue.end - firstDomainValueLimit) / static_cast<double>(domainRange) * static_cast<float>(xSize);
-            const float yPos = yOffset - ((value - signalContext.min) / (signalContext.max - signalContext.min) * static_cast<float>(ySize));
-            line.addPoint(xPos1, yPos);
-            line.addPoint(xPos2, yPos);
-            line.reset();
-        }
-
-        ++packetIt;
-    }
-
-end:
-
-    signalContext.dataPackets.erase(packetIt, signalContext.dataPackets.end());
-
-    renderTarget.draw(line);
-}
-*/
 
 template <SampleType DST>
 void RendererFbImpl::renderPacket(
@@ -741,7 +671,8 @@ void RendererFbImpl::getWidthAndHeight(unsigned int& width, unsigned int& height
     }
 }
 
-void RendererFbImpl::updateSingleXAxis() {
+void RendererFbImpl::updateSingleXAxis()
+{
     // we can use singleXAxis only on the same dimension signals
     if (singleXAxis && signalContexts.size() > 2) 
     {
@@ -993,8 +924,6 @@ void RendererFbImpl::prepareSingleXAxis()
     if (signalContexts.size() <= 1)
         return;
 
-    singleXAxisConfigured = false;
-
     try
     {
         auto sigIt = signalContexts.begin();
@@ -1046,7 +975,6 @@ void RendererFbImpl::prepareSingleXAxis()
             }
         }
 
-        singleXAxisConfigured = true;
         for (sigIt = signalContexts.begin(); sigIt != signalContexts.end() - 1; ++sigIt)
         {
             SAMPLE_TYPE_DISPATCH(sigIt->domainSampleType, setSingleXAxis, *sigIt, lastTimeValue, lastDomainValue)
@@ -1059,6 +987,16 @@ void RendererFbImpl::prepareSingleXAxis()
     }
 }
 
+template <typename T>
+T calc(T time, T num, T den)
+{
+    T q = time / den;
+    T r = time - (q * den);
+    T part1 = q * num;
+    T part2 = (r * num) / den;
+    return part1 + part2;
+}
+
 template <SampleType DST>
 void RendererFbImpl::setSingleXAxis(SignalContext& signalContext, std::chrono::system_clock::time_point lastTimeValue, Float lastDomainValue)
 {
@@ -1066,19 +1004,19 @@ void RendererFbImpl::setSingleXAxis(SignalContext& signalContext, std::chrono::s
 
     if (hasTimeOrigin)
     {
-        auto firstTimeValue = lastTimeValue - timeValueToDuration(signalContext, duration);
-        signalContext.singleAxisLastDomainStamp = static_cast<DestDomainType>(
-            lastTimeValue.time_since_epoch().count() * signalContext.domainToTimeDen / signalContext.domainToTimeNum);
-        signalContext.singleAxisFirstDomainStamp = static_cast<DestDomainType>(
-            firstTimeValue.time_since_epoch().count() * signalContext.domainToTimeDen / signalContext.domainToTimeNum);
+        auto firstTimeValue = lastTimeValue - timeValueToDuration(duration);
+        signalContext.singleAxisLastDomainStamp = calc<DestDomainType>(
+            lastTimeValue.time_since_epoch().count(), signalContext.domainToTimeDen, signalContext.domainToTimeNum);
+        signalContext.singleAxisFirstDomainStamp = calc<DestDomainType>(
+            firstTimeValue.time_since_epoch().count(),signalContext.domainToTimeDen, signalContext.domainToTimeNum);
     }
     else
     {
         auto firstDomainValue = lastDomainValue - duration;
         signalContext.singleAxisLastDomainStamp =
-            static_cast<DestDomainType>(lastDomainValue * signalContext.domainResDen / signalContext.domainResNum);
+            calc<DestDomainType>(lastDomainValue, signalContext.domainResDen, signalContext.domainResNum);
         signalContext.singleAxisFirstDomainStamp =
-            static_cast<DestDomainType>(firstDomainValue * signalContext.domainResDen / signalContext.domainResNum);
+            calc<DestDomainType>(firstDomainValue, signalContext.domainResDen, signalContext.domainResNum);
     }
 }
 
@@ -1146,7 +1084,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
             }
             else
             {
-                const auto tp = signalContext.lastTimeValue - timeValueToDuration(signalContext, duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
+                const auto tp = signalContext.lastTimeValue - timeValueToDuration(duration * (static_cast<double>(xTickCount - 1 - i) / static_cast<double>(xTickCount - 1)));
                 const auto tpms = date::floor<std::chrono::milliseconds>(tp);
                 labels.pushBack(String(date::format("%F %T", tpms)));
             }
@@ -1403,7 +1341,7 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
             return;
         }
 
-        auto domainRes = domainDataDescriptor.getTickResolution();
+        const auto domainRes = domainDataDescriptor.getTickResolution();
         if (domainRes.assigned())
         {
             signalContext.domainResNum = domainRes.getNumerator();
@@ -1452,23 +1390,23 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
             {
                 if (domainDataDescriptor.getUnit().getSymbol() != "s" || domainDataDescriptor.getUnit().getQuantity() != "time")
                 {
-                   LOGP_W("Domain signal not time, origin ignored")
+                    LOGP_W("Domain signal not time, origin ignored")
                 }
                 else
                 {
-                   signalContext.origin = timeStrToTimePoint(origin);
-                   signalContext.hasTimeOrigin = true;
-                   LOG_D("Origin={}", date::format("%F %T", signalContext.origin))
+                    signalContext.origin = reader::parseEpoch(origin);
+                    signalContext.hasTimeOrigin = true;
+                    LOG_D("Origin={}", date::format("%F %T", signalContext.origin))
 
-                   int64_t n = signalContext.domainResNum * std::chrono::system_clock::time_point::period::den;
-                   int64_t d = signalContext.domainResDen * std::chrono::system_clock::time_point::period::num;
+                    int64_t n = signalContext.domainResNum * std::chrono::system_clock::time_point::period::den;
+                    int64_t d = signalContext.domainResDen * std::chrono::system_clock::time_point::period::num;
 
-                   int64_t gcd_n_d = std::gcd(n, d);
-                   n /= gcd_n_d;
-                   d /= gcd_n_d;
+                    int64_t gcd_n_d = std::gcd(n, d);
+                    n /= gcd_n_d;
+                    d /= gcd_n_d;
 
-                   signalContext.domainToTimeNum = n;
-                   signalContext.domainToTimeDen = d;
+                    signalContext.domainToTimeNum = n;
+                    signalContext.domainToTimeDen = d;
                 }
             }
             catch (...)
@@ -1561,7 +1499,7 @@ void RendererFbImpl::setLastDomainStamp(SignalContext& signalContext, const Data
 { 
     using SourceDomainType = typename SampleTypeToType<DST>::Type;
     using DestDomainType = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
-
+    
     const auto domainDataDescriptor = domainPacket.getDataDescriptor();
     const auto sampleCount = domainPacket.getSampleCount();
 
@@ -1587,42 +1525,8 @@ void RendererFbImpl::setLastDomainStamp(SignalContext& signalContext, const Data
     if (signalContext.hasTimeOrigin)
     {
         signalContext.lastTimeValue = timestampToTimePoint<DomainTypeCast<DST>::DomainSampleType>(signalContext, lastDomainStamp);
-        signalContext.firstTimeValue = lastTimeValue - timeValueToDuration(signalContext, duration);
+        signalContext.firstTimeValue = lastTimeValue - timeValueToDuration(duration);
     }
-}
-
-std::string RendererFbImpl::fixUpIso8601(std::string epoch)
-{
-    if (epoch.find('T') == std::string::npos)
-    {
-        // If no time assume Midnight UTC
-        epoch += "T00:00:00+00:00";
-    }
-    else if (epoch[epoch.size() - 1] == 'Z')
-    {
-        // If time-zone marked as "Zulu" (UTC) replace with offset
-        epoch = epoch.erase(epoch.size() - 1) + "+00:00";
-    }
-    else if (epoch.find('+') == std::string::npos)
-    {
-        // If not time-zone offset assume UTC
-        epoch += "+00:00";
-    }
-
-    return epoch;
-}
-
-std::chrono::system_clock::time_point RendererFbImpl::timeStrToTimePoint(std::string timeStr)
-{
-    std::istringstream timeStringStream(fixUpIso8601(timeStr));
-    std::chrono::system_clock::time_point timePoint;
-    timeStringStream >> date::parse("%FT%T%z", timePoint);
-    if (timeStringStream.fail())
-    {
-        throw std::runtime_error("Invalid format");
-    }
-
-    return timePoint;
 }
 
 template <SampleType DomainSampleType>
@@ -1633,22 +1537,20 @@ std::chrono::system_clock::time_point RendererFbImpl::timestampToTimePoint(const
 
     if constexpr (std::is_floating_point_v<typename SampleTypeToType<DomainSampleType>::Type>)
     {
-        const auto tp = signalContext.origin + timeValueToDuration(signalContext, timeStamp);
-        return tp;
+        return signalContext.origin + timeValueToDuration(timeStamp);
     }
     else
     {
-        const auto tp = signalContext.origin + std::chrono::system_clock::time_point::duration(
-            timeStamp * signalContext.domainToTimeNum / signalContext.domainToTimeDen);
-        return tp;
+        using SourceDomainType = typename SampleTypeToType<DomainSampleType>::Type;
+        const auto tm = calc<SourceDomainType>(timeStamp, signalContext.domainToTimeNum, signalContext.domainToTimeDen);
+        return signalContext.origin + std::chrono::system_clock::time_point::duration(tm);
     }
 }
 
-std::chrono::system_clock::duration RendererFbImpl::timeValueToDuration(const SignalContext& signalContext, Float timeValue)
+std::chrono::system_clock::duration RendererFbImpl::timeValueToDuration(Float timeValue)
 {
     auto floatDuration = std::chrono::duration<float>(timeValue);
-    auto dur = std::chrono::round<std::chrono::system_clock::duration>(floatDuration);
-    return dur;
+    return std::chrono::round<std::chrono::system_clock::duration>(floatDuration);
 }
 
 }

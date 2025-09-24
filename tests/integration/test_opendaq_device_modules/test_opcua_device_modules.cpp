@@ -319,8 +319,6 @@ DevicePtr FindOpcuaDeviceByPath(const InstancePtr& instance, const std::string& 
 
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
-    bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
-
     auto deviceInfo = DeviceInfo("testdevice://");
     deviceInfo.setManufacturer("openDAQ");
     deviceInfo.setSerialNumber("TestSerial");

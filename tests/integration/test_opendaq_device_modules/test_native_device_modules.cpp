@@ -968,8 +968,6 @@ TEST_F(NativeDeviceModulesTest, TestProtocolVersion)
 
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
-    bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
-
     auto deviceInfo = DeviceInfo("testdevice://");
     deviceInfo.setManufacturer("openDAQ");
     deviceInfo.setSerialNumber("TestSerial");

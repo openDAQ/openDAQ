@@ -973,8 +973,6 @@ int MDNSDiscoveryServer::discoveryCallback(
         return 0;
 
     std::string dns_sd = "_services._dns-sd._udp.local.";
-
-    // Should this not use the name_length parameter?
     std::string name = discovery_common::DiscoveryUtils::extractRecordName(buffer, name_offset, size);
 
     auto recordTypeName = rtypeToString(mdns_record_type(rtype));

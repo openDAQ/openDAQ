@@ -51,8 +51,8 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-
 #include <discovery_common/daq_discovery_common.h>
+#include <coretypes/coretype_utils.h>
 
 BEGIN_NAMESPACE_DISCOVERY
 
@@ -165,7 +165,6 @@ private:
                                             void* user_data,
                                             uint8_t opcode)>;
 
-    static void transformToLower(std::string& str);
     void encodeNonDiscoveryRequest(const std::string& recordName,
                                    const discovery_common::TxtProperties& props,
                                    std::vector<mdns_record_t>& records);
@@ -239,7 +238,6 @@ private:
 
     std::string ipv4AddressToString(const sockaddr_in* addr, size_t addrlen);
     std::string ipv6AddressToString(const sockaddr_in6* addr, size_t addrlen, const sockaddr_in6* from);
-    bool isValidMdnsDevice(const MdnsDiscoveredDevice& device);
     std::string getIpv6NetworkInterface(const struct sockaddr_in6* from, size_t addrlen);
 
     std::vector<mdns_query_t> discoveryQueries;
@@ -264,7 +262,7 @@ inline MDNSDiscoveryClient::MDNSDiscoveryClient(const ListPtr<IString>& serviceN
     for (const auto& service : serviceNames)
     {
         auto serviceStr = service.toStdString();
-        transformToLower(serviceStr);
+        coretype_utils::toLowerCase(serviceStr);
         this->serviceNames.push_back(serviceStr);
     }
 
@@ -434,11 +432,6 @@ inline ErrCode MDNSDiscoveryClient::requestCurrentIpConfiguration(const std::str
         return DAQ_MAKE_ERROR_INFO(rpcErrorCode, rpcErrorMessage);
 
     return OPENDAQ_SUCCESS;
-}
-
-inline void MDNSDiscoveryClient::transformToLower(std::string& str)
-{
-    std::transform(str.begin(), str.end(), str.begin(),[](unsigned char c){ return static_cast<char>(std::tolower(c)); });
 }
 
 inline void MDNSDiscoveryClient::encodeNonDiscoveryRequest(const std::string& recordName,
@@ -720,11 +713,6 @@ inline std::string MDNSDiscoveryClient::getIpv6NetworkInterface(const struct soc
     return "";
 }
 
-inline bool MDNSDiscoveryClient::isValidMdnsDevice(const MdnsDiscoveredDevice& device)
-{
-    return !device.ipv4Addresses.empty() || !device.ipv6Addresses.empty();
-}
-
 inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
                                                        const sockaddr* from,
                                                        size_t addrlen,
@@ -750,7 +738,7 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
         return 0;
 
     std::string recordName = discovery_common::DiscoveryUtils::extractRecordName(buffer, rname_offset, size);
-    transformToLower(recordName);
+    coretype_utils::toLowerCase(recordName);
 
     std::lock_guard lg(recordsLock);
 
@@ -759,7 +747,7 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
         char tempBuffer[1024];
         mdns_string_t ptr = mdns_record_parse_ptr(buffer, size, rdata_offset, rdata_length, tempBuffer, sizeof(tempBuffer));
         std::string serviceInstance = std::string(ptr.str, ptr.length);
-        transformToLower(serviceInstance);
+        coretype_utils::toLowerCase(serviceInstance);
         if (ptrRecords.count(serviceInstance))
             return 0;
 
@@ -775,7 +763,7 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
         char tempBuffer[1024];
         mdns_record_srv_t srv = mdns_record_parse_srv(buffer, size, rdata_offset, rdata_length, tempBuffer, sizeof(tempBuffer));
         std::string serviceQualified = std::string(srv.name.str, srv.name.length);
-        transformToLower(serviceQualified);
+        coretype_utils::toLowerCase(serviceQualified);
 
         auto& record = srvRecords[recordName];
         record.serviceInstance = recordName;

@@ -115,7 +115,7 @@ TEST_F(ModuleManagerTest, EnumDriver)
     ListPtr<IModule> moduleDrivers = moduleManager.getModules();
     auto count = moduleDrivers.getCount();
 
-    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(count, 1u);
 
     std::cout << "Module driver count: " << count << std::endl;
 

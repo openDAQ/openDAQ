@@ -1767,8 +1767,6 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
     if (!fs::is_directory(searchFolder, errCode))
         DAQ_THROW_EXCEPTION(InvalidParameterException, fmt::format(R"(The specified path "{}" is not a folder.)", searchFolder));
 
-    fs::recursive_directory_iterator dirIterator(searchFolder);
-
     [[maybe_unused]]
     Finally onExit([workingDir = fs::current_path()]
     {
@@ -1776,6 +1774,7 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
     });
 
     fs::current_path(searchFolder);
+    fs::recursive_directory_iterator dirIterator(fs::current_path());
 
     const auto endIter = fs::recursive_directory_iterator();
     while (dirIterator != endIter)

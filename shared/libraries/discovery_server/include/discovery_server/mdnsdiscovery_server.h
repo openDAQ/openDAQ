@@ -76,7 +76,7 @@ struct AdapterInfo
 {
     sockaddr_in ipv4Address;
     sockaddr_in6 ipv6Address;
-    unsigned int ifindex;
+    unsigned int ipv6ifindex;
     int ipv4Sock = -1;
     int ipv6Sock = -1;
     std::string name;

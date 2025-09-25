@@ -271,7 +271,7 @@ void MDNSDiscoveryServer::announceService(const MdnsDiscoveredService& service, 
                                         0,
                                         records.data(),
                                         records.size(),
-                                        adapter.ifindex);
+                                        0);
             }
             
             if (adapter.ipv6Sock >= 0)
@@ -284,7 +284,7 @@ void MDNSDiscoveryServer::announceService(const MdnsDiscoveredService& service, 
                                         0,
                                         records.data(),
                                         records.size(),
-                                        adapter.ifindex);
+                                        adapter.ipv6ifindex);
             }
         }
         else
@@ -299,7 +299,7 @@ void MDNSDiscoveryServer::announceService(const MdnsDiscoveredService& service, 
                                         0,
                                         records.data(),
                                         records.size(),
-                                        adapter.ifindex);
+                                        0);
             }
             
             if (adapter.ipv6Sock >= 0)
@@ -312,7 +312,7 @@ void MDNSDiscoveryServer::announceService(const MdnsDiscoveredService& service, 
                                         0,
                                         records.data(),
                                         records.size(),
-                                        adapter.ifindex);
+                                        adapter.ipv6ifindex);
             }
         }
     }
@@ -626,7 +626,6 @@ void MDNSDiscoveryServer::openServerSockets()
 
                         std::string ifname = adapter->AdapterName;
                         AdapterInfo& info = adapters[ifname];
-                        info.ifindex = 0;
                         info.ipv4Address = *saddr;
                         info.ipv4Sock = sock;
                     }
@@ -674,7 +673,7 @@ void MDNSDiscoveryServer::openServerSockets()
 
                         std::string ifname = adapter->AdapterName;
                         AdapterInfo& info  = adapters[ifname];
-                        info.ifindex = (unsigned int) adapter->Ipv6IfIndex;
+                        info.ipv6ifindex = (unsigned int) adapter->Ipv6IfIndex;
                         info.ipv6Address   = *saddr;
                         info.ipv6Sock      = sock;
                     }
@@ -740,7 +739,6 @@ void MDNSDiscoveryServer::openServerSockets()
                     std::string ifname = ifa->ifa_name;
                     AdapterInfo& info = adapters[ifname];
                     info.name = ifname;
-                    info.ifindex = 0;
                     info.ipv4Address = *saddr;
                     info.ipv4Sock = sock;
                 }
@@ -790,7 +788,7 @@ void MDNSDiscoveryServer::openServerSockets()
 
                     std::string ifname = ifa->ifa_name;
                     AdapterInfo& info = adapters[ifname];
-                    info.ifindex = ifindex;
+                    info.ipv6ifindex = ifindex;
                     info.ipv6Address = *saddr;
                     info.ipv6Sock = sock;
                 }
@@ -835,7 +833,7 @@ void send_mdns_query_answer(bool unicast, int sock, const sockaddr* from, sockle
     } 
     else 
     {
-        mdns_query_answer_multicast(sock, buffer.data(), buffer.size(), answer, 0, 0, records.data(), records.size(), adapter.ifindex);
+        mdns_query_answer_multicast(sock, buffer.data(), buffer.size(), answer, 0, 0, records.data(), records.size(), adapter.ipv6ifindex);
     }
 }
 

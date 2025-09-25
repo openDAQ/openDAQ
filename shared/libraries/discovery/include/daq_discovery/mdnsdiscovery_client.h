@@ -575,7 +575,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<std::pair<int, un
                 saddr->sin_port = htons(static_cast<unsigned short>(0));
                 int sock = mdns_socket_open_ipv4(saddr);
                 if (sock >= 0)
-                    sockets.push_back(sock);
+                    sockets.push_back(std::make_pair(sock, 0));
             }
         }
         else if (ifa->ifa_addr->sa_family == AF_INET6)
@@ -589,7 +589,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<std::pair<int, un
                 unsigned int ifindex = if_nametoindex(ifa->ifa_name);
                 int sock = mdns_socket_open_ipv6(saddr, ifindex);
                 if (sock >= 0)
-                    sockets.push_back(sock);
+                    sockets.push_back(std::make_pair(sock, ifindex));
             }
         }
     }

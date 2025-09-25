@@ -541,7 +541,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets)
                     memcmp(saddr->sin6_addr.s6_addr, localhostMapped, 16))
                 {
                     saddr->sin6_port = htons(static_cast<unsigned short>(0));
-                    int sock = mdns_socket_open_ipv6(saddr);
+                    int sock = mdns_socket_open_ipv6(saddr, (unsigned int) adapter->Ipv6IfIndex);
                     if (sock >= 0)
                         sockets.push_back(sock);
                 }
@@ -585,7 +585,8 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<int>& sockets)
             if (memcmp(saddr->sin6_addr.s6_addr, localhost, 16) && memcmp(saddr->sin6_addr.s6_addr, localhost_mapped, 16))
             {
                 saddr->sin6_port = htons(static_cast<unsigned short>(0));
-                int sock = mdns_socket_open_ipv6(saddr);
+                unsigned int ifindex = if_nametoindex(ifa->ifa_name);
+                int sock = mdns_socket_open_ipv6(saddr, ifindex);
                 if (sock >= 0)
                     sockets.push_back(sock);
             }

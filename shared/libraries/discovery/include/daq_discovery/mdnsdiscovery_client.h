@@ -687,8 +687,11 @@ inline std::string MDNSDiscoveryClient::ipv6AddressToString(const sockaddr_in6* 
 
     std::string hostStr(host);
 
-    if (from && IN6_IS_ADDR_LINKLOCAL(&addr->sin6_addr))
+    if (IN6_IS_ADDR_LINKLOCAL(&addr->sin6_addr))
     {
+        if (!from)
+            return "";
+
         std::string ifname = getIpv6NetworkInterface(reinterpret_cast<const sockaddr_in6*>(from), addrlen);
         if (ifname.empty())
             return "";

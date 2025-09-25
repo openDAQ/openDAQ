@@ -528,7 +528,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<std::pair<int, un
                     saddr->sin_port = htons(static_cast<unsigned short>(0));
                     int sock = mdns_socket_open_ipv4(saddr);
                     if (sock >= 0)
-                        sockets.push_back(std::make_pair(sock, 0));
+                        sockets.emplace_back(sock, 0);
                 }
             }
             else if (unicast->Address.lpSockaddr->sa_family == AF_INET6)
@@ -544,7 +544,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<std::pair<int, un
                     auto ifindex = (unsigned int) adapter->Ipv6IfIndex; 
                     int sock = mdns_socket_open_ipv6(saddr, ifindex);
                     if (sock >= 0)
-                        sockets.push_back(std::make_pair(sock, ifindex));
+                        sockets.emplace_back(sock, ifindex);
                 }
             }
         }
@@ -575,7 +575,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<std::pair<int, un
                 saddr->sin_port = htons(static_cast<unsigned short>(0));
                 int sock = mdns_socket_open_ipv4(saddr);
                 if (sock >= 0)
-                    sockets.push_back(std::make_pair(sock, 0));
+                    sockets.emplace_back(sock, 0);
             }
         }
         else if (ifa->ifa_addr->sa_family == AF_INET6)
@@ -589,7 +589,7 @@ inline void MDNSDiscoveryClient::openClientSockets(std::vector<std::pair<int, un
                 unsigned int ifindex = if_nametoindex(ifa->ifa_name);
                 int sock = mdns_socket_open_ipv6(saddr, ifindex);
                 if (sock >= 0)
-                    sockets.push_back(std::make_pair(sock, ifindex));
+                    sockets.emplace_back(sock, ifindex);
             }
         }
     }
@@ -1068,7 +1068,7 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
         int nfds = 0;
         fd_set readfs;
         FD_ZERO(&readfs);
-        for (auto [socket, ifindex] : sockets)
+        for (auto [socket, _] : sockets)
         {
             if (socket >= nfds)
                 nfds = socket + 1;
@@ -1080,18 +1080,19 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
     
         for (size_t isock = 0; isock < sockets.size(); ++isock)
         {
-            if (FD_ISSET(sockets[isock].first, &readfs))
+            auto socket = sockets[isock].first;
+            if (FD_ISSET(socket, &readfs))
             {
-                auto availableData = getAvailableData(sockets[isock].first);
+                auto availableData = getAvailableData(socket);
                 std::vector<char> buffer(availableData);
-                mdns_query_recv(sockets[isock].first, buffer.data(), availableData, callbackWrapper, &callback, queryIds[isock]);
+                mdns_query_recv(socket, buffer.data(), availableData, callbackWrapper, &callback, queryIds[isock]);
             }
-            FD_SET((u_int) sockets[isock].first, &readfs);
+            FD_SET((u_int) socket, &readfs);
         }
     };
 
-    for (auto socket : sockets)
-        mdns_socket_close(socket.first);
+    for (auto [socket, _] : sockets)
+        mdns_socket_close(socket);
 }
 
 inline void MDNSDiscoveryClient::sendDiscoveryQuery()
@@ -1118,7 +1119,7 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
 #endif
         int sock = mdns_socket_open_ipv4(&sock_addr);
         if (sock >= 0)
-            sockets.push_back(std::make_pair(sock, 0));
+            sockets.emplace_back(sock, 0);
     }
         
     {
@@ -1132,7 +1133,7 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
 #endif
         int sock = mdns_socket_open_ipv6(&sock_addr, 0);
         if (sock >= 0)
-            sockets.push_back(std::make_pair(sock, 0));
+            sockets.emplace_back(sock, 0);
 	}
 
     if (sockets.empty())
@@ -1258,13 +1259,14 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
         
         for (size_t isock = 0; isock < sockets.size(); ++isock)
         {
-            if (FD_ISSET(sockets[isock].first, &readfs))
+            auto socket = sockets[isock].first;
+            if (FD_ISSET(socket, &readfs))
             {
-                auto availableData = getAvailableData(sockets[isock].first);
+                auto availableData = getAvailableData(socket);
                 std::vector<char> buffer(availableData);
-                mdns_query_recv(sockets[isock].first, buffer.data(), availableData, callbackWrapper, &callback, queryId[isock]);
+                mdns_query_recv(socket, buffer.data(), availableData, callbackWrapper, &callback, queryId[isock]);
             }
-            FD_SET((u_int) sockets[isock].first, &readfs);
+            FD_SET((u_int) socket, &readfs);
         }
     };
 

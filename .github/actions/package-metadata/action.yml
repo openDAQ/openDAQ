@@ -1,0 +1,59 @@
+name: "Update JSON via jq"
+description: "Adds or updates fields in a JSON file using jq"
+
+inputs:
+  file:
+    description: "Path to JSON file"
+    required: true
+  key:
+    description: "Key to add/update (dot notation)"
+    required: true
+  value:
+    description: "Value to set"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      env:
+        FILE: ${{ inputs.file }}
+        KEY: ${{ inputs.key }}
+        VALUE: ${{ inputs.value }}
+      run: |
+        # Form a temporary copy path
+        FILE_TMP="${FILE}.copy"
+
+        # Create an empty JSON file if it doesn't exist using jq
+        if [[ ! -f "$FILE" ]]; then
+          jq -n '{}' > "$FILE"
+        fi
+
+        # Determine how to pass VALUE to jq:
+        # - If VALUE is an array or object → pass as JSON using --argjson
+        # - Otherwise (string, number, boolean) → pass as string using --arg
+        # - Default fallback → string
+        VALUE_TYPE=$(echo "$VALUE" | jq -r 'type' 2>/dev/null || echo "string")
+        if [[ "$VALUE_TYPE" == "array" || "$TYPE" == "object" ]]; then
+            JQ_ARG_VALUE=(--argjson value "$VALUE")
+        else
+            JQ_ARG_VALUE=(--arg value "$VALUE")
+        fi
+
+        # Update JSON by setting a nested field using a dot-separated key
+        # Example:
+        #   key="foo.bar.baz"
+        #   value=42
+        #   input:  { "foo": { "bar": { "baz": 1 } } }
+        #   output: { "foo": { "bar": { "baz": 42 } } }
+        JQ_ARG_FILTER='(. as $orig | $key | split(".") as $path | $orig | setpath($path; $value))'
+
+        echo "::group::jq arguments"
+        echo "JQ_ARG_KEY:    ${JQ_ARG_KEY[*]}"
+        echo "JQ_ARG_VALUE:  ${JQ_ARG_VALUE[*]}"
+        echo "JQ_ARG_FILTER: $JQ_ARG_FILTER"
+        echo "::endgroup::"
+
+        # Update the JSON using jq
+        jq "${JQ_ARG_KEY[@]}" "${JQ_ARG_VALUE[@]}" "$JQ_ARG_FILTER" "$FILE" > "$FILE_TMP" && mv "$FILE_TMP" "$FILE"
+

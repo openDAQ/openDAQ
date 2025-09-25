@@ -9,4 +9,5 @@ opendaq_dependency(
     PATCH_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0001-Extension.patch
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0002-Fix-warnings.patch
+        ${CMAKE_CURRENT_SOURCE_DIR}/patches/0003-Fix-ipv6-socket-ifindex.patch
 )

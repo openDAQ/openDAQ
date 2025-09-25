@@ -685,7 +685,7 @@ inline std::string MDNSDiscoveryClient::ipv6AddressToString(const sockaddr_in6* 
 
     std::string hostStr(host);
 
-    if (IN6_IS_ADDR_LINKLOCAL(&addr->sin6_addr))
+    if (from && IN6_IS_ADDR_LINKLOCAL(&addr->sin6_addr))
     {
         std::string ifname = getIpv6NetworkInterface(reinterpret_cast<const sockaddr_in6*>(from), addrlen);
         if (ifname.empty())
@@ -788,8 +788,13 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
     {
         sockaddr_in6 addr;
         mdns_record_parse_aaaa(buffer, size, rdata_offset, rdata_length, &addr);
-        std::string address = ipv6AddressToString(&addr, sizeof(addr), reinterpret_cast<const sockaddr_in6*>(from));
-        if (address == "" || aaaaRecords.count(address))
+
+        const sockaddr_in6* fromIpv6 = nullptr;
+        if (from->sa_family == AF_INET6)
+            fromIpv6 = reinterpret_cast<const sockaddr_in6*>(from);
+
+        std::string address = ipv6AddressToString(&addr, sizeof(addr), fromIpv6);
+        if (address.empty() || aaaaRecords.count(address))
             return 0;
 
         auto& record = aaaaRecords[address];

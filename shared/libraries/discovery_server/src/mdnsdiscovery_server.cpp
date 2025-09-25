@@ -641,7 +641,7 @@ void MDNSDiscoveryServer::openServerSockets()
                     sock_addr.sin6_addr = saddr->sin6_addr;
                     sock_addr.sin6_port = htons(MDNS_PORT);
 
-                    int sock = mdns_socket_open_ipv6(&sock_addr);
+                    int sock = mdns_socket_open_ipv6(&sock_addr, (unsigned int) adapter->Ipv6IfIndex);
                     if (sock >= 0)
                     {
                         struct ipv6_mreq mreq{};
@@ -756,8 +756,9 @@ void MDNSDiscoveryServer::openServerSockets()
 #ifdef __APPLE__
                 sock_addr.sin6_len = sizeof(sockaddr_in6);
 #endif
-
-                int sock = mdns_socket_open_ipv6(&sock_addr);
+                
+                unsigned int ifindex = if_nametoindex(ifa->ifa_name);
+                int sock = mdns_socket_open_ipv6(&sock_addr, ifindex);
                 if (sock >= 0)
                 {
                     ipv6_mreq mreq{};
@@ -774,7 +775,6 @@ void MDNSDiscoveryServer::openServerSockets()
                     }
 
                     // Set the default outgoing interface for multicast packets
-                    unsigned int ifindex = if_nametoindex(ifa->ifa_name);
                     if (setsockopt(sock, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifindex, sizeof(ifindex)) < 0)
                     {
                         close(sock);

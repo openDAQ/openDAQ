@@ -129,40 +129,43 @@ PropertyObjectPtr OpcUaClientModule::populateDefaultConfig(const PropertyObjectP
 DeviceInfoPtr OpcUaClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
     auto cap = ServerCapability(DaqOpcUaDeviceTypeId, "OpenDAQOPCUA", ProtocolType::Configuration);
-    if (!discoveredDevice.ipv4Address.empty())
+
+    for (const auto& ipAddress : discoveredDevice.ipv4Addresses)
     {
         auto connectionStringIpv4 = fmt::format("{}://{}:{}{}",
                                                 DaqOpcUaDevicePrefix,
-                                                discoveredDevice.ipv4Address,
+                                                ipAddress,
                                                 discoveredDevice.servicePort,
                                                 discoveredDevice.getPropertyOrDefault("path", "/"));
         cap.addConnectionString(connectionStringIpv4);
-        cap.addAddress(discoveredDevice.ipv4Address);
+        cap.addAddress(ipAddress);
 
-        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv4Address)
+        const auto addressInfo = AddressInfoBuilder().setAddress(ipAddress)
                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                      .setType("IPv4")
                                      .setConnectionString(connectionStringIpv4)
                                      .build();
         cap.addAddressInfo(addressInfo);
     }
-    if(!discoveredDevice.ipv6Address.empty())
+
+    for (const auto& ipAddress : discoveredDevice.ipv6Addresses)
     {
         auto connectionStringIpv6 = fmt::format("{}://{}:{}{}",
                                                 DaqOpcUaDevicePrefix,
-                                                discoveredDevice.ipv6Address,
+                                                ipAddress,
                                                 discoveredDevice.servicePort,
                                                 discoveredDevice.getPropertyOrDefault("path", "/"));
         cap.addConnectionString(connectionStringIpv6);
-        cap.addAddress(discoveredDevice.ipv6Address);
+        cap.addAddress(ipAddress);
 
-        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
+        const auto addressInfo = AddressInfoBuilder().setAddress(ipAddress)
                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                      .setType("IPv6")
                                      .setConnectionString(connectionStringIpv6)
                                      .build();
         cap.addAddressInfo(addressInfo);
     }
+
     cap.setConnectionType("TCP/IP");
     cap.setPrefix(DaqOpcUaDevicePrefix);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));

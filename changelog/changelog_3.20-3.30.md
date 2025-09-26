@@ -29,6 +29,7 @@
 ## Bug fixes
 
 - [#930](https://github.com/openDAQ/openDAQ/pull/930) Fixes the operation mode of 3.10 native-client devices with no op-mode support to be "Operation" by default
+- [#925](https://github.com/openDAQ/openDAQ/pull/925) Set of discovery fixes for DNS resolution and enabling of multi-network card devices.
 - [#880](https://github.com/openDAQ/openDAQ/pull/880) Fix OPC UA warnings related to writing default values to a node.
 - [#848](https://github.com/openDAQ/openDAQ/pull/848) Do not throw an exception when getting operation modes on old devices. Return default state instead.
 - [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active.
@@ -119,3 +120,9 @@ Changed the `TimeSource` into `TimeProtocol`.
 			
 +	referenceDomainInfo.getReferenceTimeProtocol();
 ```
+
+### [#925](https://github.com/openDAQ/openDAQ/pull/925)
+
+Modules that use the openDAQ mDNS discovery should now post all addresses of devices returned by `DiscoveryClient::discoverMdnsDevices`. These are stored in the `MdnsDiscoveredDevice::ipv4Addresses` and `MdnsDiscoveredDevice::ipv6Addresses` fields. Previously, only a single address was returned for IPv4 and IPv6. 
+
+See PR for an example implementation in the Native streaming client module.

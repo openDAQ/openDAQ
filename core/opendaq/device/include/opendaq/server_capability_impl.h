@@ -190,9 +190,15 @@ inline ErrCode ServerCapabilityConfigImpl::addConnectionString(IString* connecti
     return daqTry([&]
     {
         ListPtr<IString> connectionStrings = getTypedProperty<IList>(ConnectionStrings);
+        StringPtr connectionStringPtr = StringPtr::Borrow(connectionString);
+        for (const auto& str : connectionStrings)
+        {
+            if (str == connectionStringPtr)
+                return OPENDAQ_IGNORED;
+        }
+
         connectionStrings.pushBack(connectionString);
         OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(ConnectionStrings), connectionStrings));
-
         if (connectionStrings.getCount() == 1)
             OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(PrimaryConnectionString), connectionString));
 

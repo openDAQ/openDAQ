@@ -455,14 +455,37 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
         }
         statuses.clear();
     }
-
-    setAddressesReachable(ipv4Addresses, "IPv4", list);
-
-    // TODO: Check ipv6 for reachability
+    
+    // TODO: Ping IPv6 addresses as well
+    setAddressesReachable(ipv4Addresses, list);
 }
 
-void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info)
+static bool ipv6Available(boost::asio::io_context& io)
 {
+    using boost::asio::ip::tcp;
+    
+    boost::system::error_code ec;
+    tcp::socket sock(io);
+
+    // Try to open an IPv6 socket
+    sock.open(tcp::v6(), ec);
+    if (ec) {
+        return false;  // couldn't open IPv6 socket
+    }
+
+    // Try binding to [::]:0
+    tcp::endpoint ep(tcp::v6(), 0);
+    sock.bind(ep, ec);
+    return !ec;
+}
+
+void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>& addr, ListPtr<IDeviceInfo>& info)
+{
+    // IPv6 addresses are unknown or unreachable, depending on host machine having IPv6 enabled
+    AddressReachabilityStatus ipv6Reachability = ipv6Available(ioContext)
+                                                     ? AddressReachabilityStatus::Unknown
+                                                     : AddressReachabilityStatus::Unreachable;
+
     for (const auto& devInfo : info)
     {
         for (const auto& cap : devInfo.getServerCapabilities())
@@ -473,28 +496,30 @@ void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>&
                 const auto address = addressInfo.getAddress();
                 const auto addressType = addressInfo.getType();
 
-                if (addr.count(address) && addressType == type)
+                // Ping for IPv4 addresses is available, but not for IPv6
+                if (addr.count(address) && addressType == "IPv4")
                 {
                     AddressReachabilityStatus reachability = addr.at(address)
                                                                  ? AddressReachabilityStatus::Reachable
                                                                  : AddressReachabilityStatus::Unreachable;
                     addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(reachability);
+                }
+                else if (addressType == "IPv6")
+                {
+                    addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(ipv6Reachability);
+                }
+            }
 
-                    if (reachability == AddressReachabilityStatus::Unreachable && cap.getConnectionString() == addressInfo.getConnectionString())
-                    {
-                        for (const auto& addressInfoInner : cap.getAddressInfo())
-                        {
-                            if (addressInfoInner == addressInfo)
-                                continue;
-
-                            if (addressInfoInner.getReachabilityStatus() != AddressReachabilityStatus::Unreachable)
-                            {
-                                cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfoInner.getConnectionString());
-                                break;
-                            }
-                        }
-                    }
-
+            for (const auto& addressInfo : addressInfos)
+            {
+                auto reachability = addressInfo.getReachabilityStatus();
+                if (reachability == AddressReachabilityStatus::Unknown)
+                {
+                    cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfo.getConnectionString());
+                }
+                else if (reachability == AddressReachabilityStatus::Reachable)
+                {
+                    cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfo.getConnectionString());
                     break;
                 }
             }
@@ -510,7 +535,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
     std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
 
-    // runs in parallel with getting avaiable devices from modules
+    // runs in parallel with getting available devices from modules
     std::future<DictPtr<IString, IDeviceInfo>> devicesWithIpModSupportAsyncResult = std::async([this]
     {
         return this->discoverDevicesWithIpModification();
@@ -732,7 +757,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             OPENDAQ_RETURN_IF_FAILED(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
-            if (devicePtr.assigned() && devicePtr.assigned())
+            if (devicePtr.assigned())
             {
                 onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
                 if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
@@ -1233,10 +1258,54 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
     return localInfo;
 }
 
+StringPtr ModuleManagerImpl::getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const
+{
+    AddressReachabilityStatus resolvedStatus = AddressReachabilityStatus::Unreachable;
+    StringPtr connectionString;
+
+    for (const auto& addrInfo : capability.getAddressInfo())
+    {
+        if (addrInfo.getType() == primaryAddressType)
+        {
+            switch (auto status = addrInfo.getReachabilityStatus())
+            {
+                case AddressReachabilityStatus::Unknown:
+                    connectionString = resolvedStatus == AddressReachabilityStatus::Unknown
+                                           ? connectionString
+                                           : addrInfo.getConnectionString();
+
+                    resolvedStatus = status;
+                    break;
+                case AddressReachabilityStatus::Reachable:
+                    return addrInfo.getConnectionString();
+                case AddressReachabilityStatus::Unreachable:
+                    connectionString = connectionString.assigned() ? connectionString : addrInfo.getConnectionString();
+                    break;
+            }
+        }
+    }
+
+    if (connectionString.assigned() && resolvedStatus == AddressReachabilityStatus::Unknown)
+    {
+        return connectionString;
+    }
+
+    if (connectionString.assigned() && resolvedStatus == AddressReachabilityStatus::Unreachable)
+    {
+        LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses with given address type were available.", connectionString);
+        return connectionString;
+    }
+
+    LOG_W("Selected server capability of device does not provide any addresses of primary {} type",
+          primaryAddressType);
+
+    return {};
+}
+
 StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString,
                                                           const DeviceInfoPtr& discoveredDeviceInfo,
                                                           const PropertyObjectPtr& generalConfig,
-                                                          const LoggerComponentPtr& loggerComponent)
+                                                          const LoggerComponentPtr& loggerComponent) const
 {
     const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
     if (capabilities.getCount() == 0)
@@ -1256,18 +1325,30 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
     }
 
     const StringPtr primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
+
     if (primaryAddressType == "IPv4" || primaryAddressType == "IPv6")
     {
-        for (const auto& addrInfo : selectedCapability.getAddressInfo())
-        {
-            if (addrInfo.getType() == primaryAddressType)
-                return addrInfo.getConnectionString();
-        }
-        LOG_W("Selected server capability of device with connection string \"{}\" does not provide any addresses of primary {} type",
-              inputConnectionString,
-              primaryAddressType);
+        auto connectionString = getConnectionStringWithType(selectedCapability, primaryAddressType);
+        if (connectionString.assigned())
+            return connectionString;
     }
-    return selectedCapability.getConnectionString();
+    auto connectionString = selectedCapability.getConnectionString();
+
+#if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_WARN
+    for (const auto& addressInfo : selectedCapability.getAddressInfo())
+    {
+        if (addressInfo.getConnectionString() == connectionString)
+        {
+            auto reachabilityStatus = addressInfo.getReachabilityStatus();
+            if (reachabilityStatus == AddressReachabilityStatus::Unreachable)
+            {
+                LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.",  connectionString);
+            }
+        }
+    }
+#endif
+
+    return connectionString;
 }
 
 DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const
@@ -1430,6 +1511,7 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
     for (const auto& target: targetCaps)
         target.freeze();
 }
+
 
 PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
 {

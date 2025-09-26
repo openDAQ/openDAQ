@@ -28,6 +28,7 @@
 
 ## Bug fixes
 
+- [#930](https://github.com/openDAQ/openDAQ/pull/930) Fixes the operation mode of 3.10 native-client devices with no op-mode support to be "Operation" by default
 - [#925](https://github.com/openDAQ/openDAQ/pull/925) Set of discovery fixes for DNS resolution and enabling of multi-network card devices.
 - [#880](https://github.com/openDAQ/openDAQ/pull/880) Fix OPC UA warnings related to writing default values to a node.
 - [#848](https://github.com/openDAQ/openDAQ/pull/848) Do not throw an exception when getting operation modes on old devices. Return default state instead.

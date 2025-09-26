@@ -39,6 +39,8 @@ extern "C" PUBLIC_EXPORT void daqPrintTrackedObjects();
 extern "C" PUBLIC_EXPORT void daqClearTrackedObjects();
 extern "C" PUBLIC_EXPORT daq::Bool daqIsTrackingObjects();
 extern "C" PUBLIC_EXPORT void daqPrepareHeapAlloc();
+extern "C" PUBLIC_EXPORT void daqDisableObjectTracking();
+extern "C" PUBLIC_EXPORT void daqEnableObjectTracking();
 
 BEGIN_NAMESPACE_OPENDAQ
 

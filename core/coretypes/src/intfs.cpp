@@ -23,6 +23,12 @@ using namespace daq;
         static std::mutex mtx;
         return mtx;
     }
+
+    bool& getIsObjectTrackingEnabled()
+    {
+        static bool isObjectTrackingEnabled = true;
+        return isObjectTrackingEnabled;
+    }
 #endif
 
 extern "C"
@@ -30,7 +36,7 @@ PUBLIC_EXPORT void daqTrackObject(IBaseObject* obj)
 {
 #ifndef NDEBUG
     std::lock_guard<std::mutex> lock(getObjectsMutex());
-    getObjects().insert(obj);
+    if (getIsObjectTrackingEnabled()) getObjects().insert(obj);
 #endif
 }
 
@@ -82,9 +88,28 @@ extern "C"
 PUBLIC_EXPORT daq::Bool daqIsTrackingObjects()
 {
 #ifndef NDEBUG
-    return true;
+    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    return getIsObjectTrackingEnabled();
 #else
     return false;
+#endif
+}
+
+extern "C" PUBLIC_EXPORT void daqDisableObjectTracking()
+{
+#ifndef NDEBUG
+    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    getIsObjectTrackingEnabled() = false;
+    printf("Object tracking disabled.\n");
+#endif
+}
+
+extern "C" PUBLIC_EXPORT void daqEnableObjectTracking()
+{
+#ifndef NDEBUG
+    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    getIsObjectTrackingEnabled() = true;
+    printf("Object tracking enabled.\n");
 #endif
 }
 

@@ -416,7 +416,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
     protocolHandshake(clientComm->getProtocolVersion());
     enumerateTypes();
 
-    if (restoreClientConfigOnReconnect)
+    if (restoreClientConfigOnReconnect && !rootDevice.isLocked())
     {
         SerializerPtr serializer;
         if (getProtocolVersion() < 10)

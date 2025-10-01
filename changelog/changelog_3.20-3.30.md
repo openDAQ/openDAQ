@@ -28,6 +28,8 @@
 
 ## Bug fixes
 
+- [#930](https://github.com/openDAQ/openDAQ/pull/930) Fixes the operation mode of 3.10 native-client devices with no op-mode support to be "Operation" by default
+- [#925](https://github.com/openDAQ/openDAQ/pull/925) Set of discovery fixes for DNS resolution and enabling of multi-network card devices.
 - [#880](https://github.com/openDAQ/openDAQ/pull/880) Fix OPC UA warnings related to writing default values to a node.
 - [#848](https://github.com/openDAQ/openDAQ/pull/848) Do not throw an exception when getting operation modes on old devices. Return default state instead.
 - [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active.
@@ -37,6 +39,9 @@
 
 ## Misc
 
+- [#921](https://github.com/openDAQ/openDAQ/pull/921) Allow getting last value on signals that are invisible
+- [#908](https://github.com/openDAQ/openDAQ/pull/908) Add support for Intel-LLVM compiler
+- [#903](https://github.com/openDAQ/openDAQ/pull/903) Enable suppressed type conversion warnings on Windows
 - [#893](https://github.com/openDAQ/openDAQ/pull/893) Rework disabled permission manager, making module code independent of the OPENDAQ_ENABLE_ACCESS_CONTROL option
 - [#835](https://github.com/openDAQ/openDAQ/pull/835) Removes the opendaq_dev target.
 - [#829](https://github.com/openDAQ/openDAQ/pull/829) Add search functionality to Antora documentation to significantly improve user experience. 
@@ -115,3 +120,9 @@ Changed the `TimeSource` into `TimeProtocol`.
 			
 +	referenceDomainInfo.getReferenceTimeProtocol();
 ```
+
+### [#925](https://github.com/openDAQ/openDAQ/pull/925)
+
+Modules that use the openDAQ mDNS discovery should now post all addresses of devices returned by `DiscoveryClient::discoverMdnsDevices`. These are stored in the `MdnsDiscoveredDevice::ipv4Addresses` and `MdnsDiscoveredDevice::ipv6Addresses` fields. Previously, only a single address was returned for IPv4 and IPv6. 
+
+See PR for an example implementation in the Native streaming client module.

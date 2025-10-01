@@ -29,7 +29,7 @@ class ConnectionMockImpl : public ImplementationOf<IConnection>
 {
 public:
     bool packetEnqueued{ false };
-    int packetsEnqueued{0};
+    SizeT packetsEnqueued{0};
 
     ErrCode INTERFACE_FUNC enqueue(IPacket* packet) override
     {
@@ -908,7 +908,7 @@ TEST_F(SignalTest, GetLastValueNonPublicDisabled)
     ASSERT_FALSE(signal.getLastValue().assigned());
 }
 
-TEST_F(SignalTest, GetLastValueInvisibleDisabled)
+TEST_F(SignalTest, GetLastValueInvisible)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
     signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Visible"));
@@ -924,7 +924,7 @@ TEST_F(SignalTest, GetLastValueInvisibleDisabled)
         signal.sendPacket(dataPacket);
     }
 
-    ASSERT_FALSE(signal.getLastValue().assigned());
+    ASSERT_TRUE(signal.getLastValue().assigned());
 }
 
 class ListenerImpl : public ImplementationOfWeak<IInputPortNotifications>
@@ -1151,8 +1151,8 @@ TEST_F(SignalTest, GetLastValueComplexFloat32)
     auto lastValuePacket = signal.getLastValue();
     ComplexNumberPtr complexPtr;
     ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IComplexNumber>());
-    ASSERT_FLOAT_EQ(complexPtr.getReal(), 8.1f);
-    ASSERT_FLOAT_EQ(complexPtr.getImaginary(), 9.1f);
+    ASSERT_DOUBLE_EQ(complexPtr.getReal(), 8.1f);
+    ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1f);
 }
 
 TEST_F(SignalTest, GetLastValueComplexFloat64)

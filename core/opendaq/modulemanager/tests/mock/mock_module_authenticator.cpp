@@ -12,6 +12,8 @@ MockModuleAuthenticatorImpl::MockModuleAuthenticatorImpl(const StringPtr& certPa
 Bool MockModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath)
 {
     StringPtr key("mockKey");
+    vendorKey = key.detach();
+
     if (certificatePath == "mock/path")
     {
         return true;
@@ -20,8 +22,6 @@ Bool MockModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKe
     {
         return false;
     }
-
-    vendorKey = key.detach();
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockModuleAuthenticator, IModuleAuthenticator, IString*, certPath)

@@ -242,6 +242,16 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
             transportClientHandlerTemp->sendStreamingPacket(signalNumericId, std::move(packet));
         }
     };
+    DowngradePacketStreamingCallback downgradePacketStreamingCallback =
+        [this](Int jsonSerializerVersion)
+    {
+        // use a temporary copy of the transport client
+        // to allow safe disposal of the member variable during device removal.
+        if (auto transportClientHandlerTemp = this->transportClientHandler; transportClientHandlerTemp)
+        {
+            transportClientHandlerTemp->downgradePacketStreamingServer(jsonSerializerVersion);
+        }
+    };
     configProtocolClient =
         std::make_unique<ConfigProtocolClient<NativeDeviceImpl>>(
             context,
@@ -249,7 +259,8 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
             sendNoReplyRequestCallback,
             handleDaqPacketCallback,
             nullptr,
-            nullptr
+            nullptr,
+            downgradePacketStreamingCallback
         );
 
     ProcessConfigProtocolPacketCb receiveConfigPacketCb =

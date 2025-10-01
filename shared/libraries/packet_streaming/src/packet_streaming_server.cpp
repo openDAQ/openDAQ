@@ -11,8 +11,9 @@ namespace daq::packet_streaming
 
 PacketStreamingServer::PacketStreamingServer(size_t cacheablePacketPayloadSizeMax,
                                              size_t releaseThreshold,
-                                             bool attachTimestampToPacketBuffer)
-    : jsonSerializer(JsonSerializer())
+                                             bool attachTimestampToPacketBuffer,
+                                             Int jsonSerializerVersion)
+    : jsonSerializer(jsonSerializerVersion ? JsonSerializerWithVersion(jsonSerializerVersion) : JsonSerializer())
     , countOfNonCacheableBuffers(0)
     , currentCacheablePacketGroupId(0)
     , packetCollection(std::make_shared<PacketCollection>())

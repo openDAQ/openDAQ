@@ -44,7 +44,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 210
+    timeout-minutes: 410
     strategy:
       fail-fast: false
       matrix:
@@ -201,6 +201,10 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
         run: |
           ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
           if (Test-Path -Path "${{ env.dotnet_test_path }}") {
             if (! (Test-Path -Path "${{ env.test_path }}")) { mkdir "${{ env.test_path }}" }
             Copy-Item "${{ env.dotnet_test_path }}/*.*" "${{ env.test_path }}"
@@ -262,7 +266,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 180
+    timeout-minutes: 380
     strategy:
       fail-fast: false
       matrix:
@@ -402,6 +406,10 @@ jobs:
           if [ -f /opt/intel/oneapi/setvars.sh ]; then
               source /opt/intel/oneapi/setvars.sh
           fi
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
           ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
 
       - name: Upload test results

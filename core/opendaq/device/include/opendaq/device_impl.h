@@ -789,7 +789,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableFunctionBlockTypes
 template <typename TInterface, typename... Interfaces>
 DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     auto availableTypes = Dict<IString, IFunctionBlockType>();
 
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())

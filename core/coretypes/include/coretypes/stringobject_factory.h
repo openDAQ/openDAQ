@@ -37,12 +37,12 @@ inline StringPtr String(const std::string& str)
     return obj;
 }
 
-inline StringPtr operator""_daq(const char* str)
+inline StringPtr operator"" _daq(const char* str)
 {
     return String(str);
 }
 
-inline StringPtr operator""_daq(const char* str, std::size_t length)
+inline StringPtr operator"" _daq(const char* str, std::size_t length)
 {
     return String(str, length);
 }

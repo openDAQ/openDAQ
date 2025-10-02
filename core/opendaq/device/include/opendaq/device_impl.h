@@ -997,7 +997,22 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getServers(IList** servers)
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
-    return this->servers->getItems(servers);
+    ErrCode errCode = this->servers->getItems(servers);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    auto serverList = List<IServer>();
+    auto componentList = ListPtr<IComponent>(*servers);
+
+    for (const auto& component : componentList)
+    {
+        const auto server = component.template asPtrOrNull<IServer>();
+        if (server.assigned())
+            serverList.pushBack(server);
+    }
+
+    *servers = serverList.detach();
+
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>

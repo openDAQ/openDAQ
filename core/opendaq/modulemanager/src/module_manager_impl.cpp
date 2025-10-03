@@ -1556,8 +1556,18 @@ void ModuleManagerImpl::overrideConfigProperties(PropertyObjectPtr& targetConfig
         if (sourceConfig.hasProperty(name))
         {
             const auto sourcePropValue = sourceConfig.getPropertyValue(name);
+            auto property = targetConfig.getProperty(name);
             if (targetConfig.getPropertyValue(name) != sourcePropValue)
-                targetConfig.setPropertyValue(name, sourcePropValue);
+            {
+                if (property.getValueType() == ctObject)
+                {
+                    targetConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, sourcePropValue);
+                }
+                else
+                {
+                    targetConfig.setPropertyValue(name, sourcePropValue);
+                }
+            }
         }
     }
 }

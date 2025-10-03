@@ -62,6 +62,8 @@ public:
     void pushOneStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet);
     void sendAvailableStreamingPackets();
 
+    void downgradePacketStreamingServer(Int jsonSerializerVersion);
+
     void resetStreamingHandlers();
     void setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
                               const OnSignalUnavailableCallback& signalUnavailableHandler,
@@ -199,6 +201,8 @@ public:
     void sendConfigRequest(const config_protocol::PacketBuffer& packet);
     void sendStreamingRequest();
     void sendStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet);
+
+    void downgradePacketStreamingServer(Int jsonSerializerVersion);
 
     void resetStreamingHandlers();
     void setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,

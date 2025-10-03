@@ -46,6 +46,7 @@
 #include <opendaq/connection_status_container_private_ptr.h>
 #include <opendaq/connection_status_container_impl.h>
 #include <opendaq/device_network_config.h>
+#include <opendaq/option_helpers.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -241,7 +242,6 @@ protected:
     ErrCode updateOperationModeInternal(OperationModeType modeType);
 
     DevicePtr getParentDevice();
-
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -1694,8 +1694,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::saveConfiguration(IString** co
 
     const ErrCode errCode = daqTry([this, &configuration]
     {
-        auto serializer = JsonSerializer(True);
-        const ErrCode errCode = this->serialize(serializer);
+        const auto prettyPrint = getPrettyPrintOnSaveConfig(this->context.getOptions());
+        auto serializer = JsonSerializer(prettyPrint);
+
+        const ErrCode errCode = this->serializeForUpdate(serializer);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         return serializer->getOutput(configuration);

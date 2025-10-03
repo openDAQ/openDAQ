@@ -29,6 +29,9 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
             {"DefaultLocalId", ""},
             {"ConnectionString", ""}
         })},
+        {"Configuration", Dict<IString, IBaseObject>({
+            {"SerializePrettyPrint", False}
+        })},
         {"Modules", Dict<IString, IBaseObject>(
         )}
     });

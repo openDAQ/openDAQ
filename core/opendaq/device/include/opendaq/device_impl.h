@@ -291,7 +291,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     syncComponentObj.template asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
     syncComponent = this->addExistingComponent(syncComponentObj.detach());
 
-    servers = this->template addFolder<IComponent>("Srv", nullptr, LockingStrategy::ForwardOwnerLockOwn);
+    servers = this->template addFolder<IServer>("Srv", nullptr, LockingStrategy::ForwardOwnerLockOwn);
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
@@ -997,22 +997,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getServers(IList** servers)
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
-    ErrCode errCode = this->servers->getItems(servers);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    auto serverList = List<IServer>();
-    auto componentList = ListPtr<IComponent>(*servers);
-
-    for (const auto& component : componentList)
-    {
-        const auto server = component.template asPtrOrNull<IServer>();
-        if (server.assigned())
-            serverList.pushBack(server);
-    }
-
-    *servers = serverList.detach();
-
-    return errCode;
+    return this->servers->getItems(servers);
 }
 
 template <typename TInterface, typename... Interfaces>

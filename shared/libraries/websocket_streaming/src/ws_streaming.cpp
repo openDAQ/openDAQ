@@ -38,12 +38,15 @@ using namespace std::placeholders;
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
-StreamingTypePtr WsStreaming::TYPE = StreamingTypeBuilder()
-    .setId("OpenDAQLTStreaming")
-    .setName("openDAQ WebSocket Streaming")
-    .setDescription("Streaming from devices using the WebSocket Streaming Protocol")
-    .setConnectionStringPrefix("daq.lt")
-    .build();
+StreamingTypePtr WsStreaming::createType()
+{
+    return StreamingTypeBuilder()
+        .setId("OpenDAQLTStreaming")
+        .setName("openDAQ WebSocket Streaming")
+        .setDescription("Streaming from devices using the WebSocket Streaming Protocol")
+        .setConnectionStringPrefix("daq.lt")
+        .build();
+}
 
 WsStreaming::WsStreaming(
         const StringPtr& connectionString,
@@ -55,7 +58,7 @@ WsStreaming::WsStreaming(
     // The ws-streaming library wants a URL like ws://1.2.3.4:7418/foo.
     // So we simply need to replace the daq.lt:// prefix with ws://.
     auto wsConnectionString = connectionString.toStdString();
-    boost::replace_all(wsConnectionString, TYPE.getConnectionStringPrefix().toStdString() + "://", "ws://");
+    boost::replace_all(wsConnectionString, createType().getConnectionStringPrefix().toStdString() + "://", "ws://");
 
         // Start the ws-streaming connection attempt.
     LOG_I("Connecting to {}", wsConnectionString);

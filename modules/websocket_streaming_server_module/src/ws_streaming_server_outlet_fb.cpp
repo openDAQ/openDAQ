@@ -69,18 +69,20 @@ static ServerPtr findServer(ComponentPtr component)
     return nullptr;
 }
 
-const FunctionBlockTypePtr WsStreamingServerOutletFb::TYPE{
-    FunctionBlockType_Create(
+FunctionBlockTypePtr WsStreamingServerOutletFb::createType()
+{
+    return FunctionBlockType_Create(
         StringPtr{WsStreamingServerOutletFb::ID},
         StringPtr{WsStreamingServerOutletFb::ID},
         StringPtr{"Exposes signals provided by clients connected to a WebSocket Streaming server"},
-        PropertyObject())};
+        PropertyObject());
+}
 
 WsStreamingServerOutletFb::WsStreamingServerOutletFb(
         const ContextPtr& context,
         const ComponentPtr& parent,
         const StringPtr& localId)
-    : FunctionBlock{TYPE, context, parent, localId}
+    : FunctionBlock{createType(), context, parent, localId}
     , _server{findServer(parent)}
 {
     // If no WsStreamingServer instance in this openDAQ instance, log a

@@ -3,7 +3,6 @@ set(LIB_NAME ws_stream_srv_module)
 set(SRC_Include
     common.h
     module_dll.h
-    ws_stream_test_fb.h
     ws_streaming_client_outlet_fb.h
     ws_streaming_server_module.h
     ws_streaming_server_outlet_fb.h
@@ -11,7 +10,6 @@ set(SRC_Include
 
 set(SRC_Srcs
     module_dll.cpp
-    ws_stream_test_fb.cpp
     ws_streaming_client_outlet_fb.cpp
     ws_streaming_server_module.cpp
     ws_streaming_server_outlet_fb.cpp

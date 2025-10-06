@@ -51,9 +51,11 @@ class WsStreamingServerOutletFb : public FunctionBlock
         static constexpr const char *ID = "WsStreamingServerOutletFb";
 
         /*!
-         * @brief A FunctionBlockType object describing this function block type.
+         * @brief Creates a FunctionBlockType object describing this function block type.
+         *
+         * @return A FunctionBlockType object describing this function block type.
          */
-        static const FunctionBlockTypePtr TYPE;
+        static FunctionBlockTypePtr createType();
 
         /*!
          * @brief Constructs a new function block.

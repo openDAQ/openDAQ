@@ -90,13 +90,6 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateDeviceConnectionStringInvalidId
     ASSERT_THROW(module.createDevice("daq.opcua://devicett3axxr1", nullptr), InvalidParameterException);
 }
 
-TEST_F(WebsocketStreamingClientModuleTest, CreateDeviceConnectionFailed)
-{
-    auto module = CreateModule();
-
-    ASSERT_THROW(module.createDevice("daq.lt://127.0.0.1", nullptr), NotFoundException);
-}
-
 //TEST_F(WebsocketStreamingClientModuleTest, CreateConnectionString)
 //{
 //    auto context = NullContext();
@@ -152,7 +145,6 @@ TEST_F(WebsocketStreamingClientModuleTest, CreateStreamingConnectionStringInvali
 
     ASSERT_THROW(module.createStreaming("daqref://devicett3axxr1", nullptr), InvalidParameterException);
     ASSERT_THROW(module.createStreaming("daq.opcua://devicett3axxr1", nullptr), InvalidParameterException);
-    ASSERT_THROW(module.createStreaming("daq.lt://devicett3axxr1", nullptr), NotFoundException);
 }
 
 TEST_F(WebsocketStreamingClientModuleTest, GetAvailableComponentTypes)

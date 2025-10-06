@@ -72,9 +72,11 @@ class WsStreaming : public Streaming
     public:
 
         /*!
-         * @brief An openDAQ streaming type object using the `daq.lt://` prefix.
+         * @brief Creates an openDAQ streaming type object using the `daq.lt://` prefix.
+         *
+         * @return An openDAQ streaming type object using the `daq.lt://` prefix.
          */
-        static StreamingTypePtr TYPE;
+        static StreamingTypePtr createType();
 
     public:
 

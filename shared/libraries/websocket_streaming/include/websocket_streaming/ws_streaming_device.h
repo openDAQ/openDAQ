@@ -46,14 +46,18 @@ class WsStreamingDevice : public Device
     public:
 
         /*!
-         * @brief An openDAQ device type for the old-style `daq.ws://` connection string.
+         * @brief Creates an openDAQ device type for the old-style `daq.ws://` connection string.
+         *
+         * @return An openDAQ device type for the old-style `daq.ws://` connection string.
          */
-        static DeviceTypePtr OLD_TYPE;
+        static DeviceTypePtr createOldType();
 
         /*!
-         * @brief An openDAQ device type for the new-style `daq.lt://` connection string.
+         * @brief Creates an openDAQ device type for the new-style `daq.lt://` connection string.
+         *
+         * @return An openDAQ device type for the new-style `daq.lt://` connection string.
          */
-        static DeviceTypePtr NEW_TYPE;
+        static DeviceTypePtr createNewType();
 
         /*!
          * @brief Opens a new WebSocket streaming connection.

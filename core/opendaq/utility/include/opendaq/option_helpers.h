@@ -22,6 +22,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 inline bool getPrettyPrintOnSaveConfig(const DictObjectPtr<IDict, IString, IBaseObject>& options)
 {
+    if (!options.hasKey("Configuration"))
+        return false;
+
     const auto configurationOptions = options.get("Configuration").template asPtrOrNull<IDict, DictObjectPtr<IDict, IString, IBaseObject>>(true);
     if (!configurationOptions.assigned())
         return false;

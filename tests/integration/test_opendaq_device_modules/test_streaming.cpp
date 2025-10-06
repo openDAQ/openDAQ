@@ -64,7 +64,10 @@ public:
 
     PacketReaderPtr createClientReader(const std::string& signalName)
     {
-        PacketReaderPtr reader = PacketReader(getSignal(clientInstance, signalName));
+        auto signal = getSignal(clientInstance, signalName);
+        readerInputPort = InputPort(clientInstance.getContext(), nullptr, "readsig");
+        PacketReaderPtr reader = PacketReaderFromPort(readerInputPort);
+        readerInputPort.connect(signal);
         return reader;
     }
 
@@ -106,6 +109,7 @@ protected:
         return instance;
     }
 
+    InputPortPtr readerInputPort;
     InstancePtr serverInstance;
     InstancePtr clientInstance;
 

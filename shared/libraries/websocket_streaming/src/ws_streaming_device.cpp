@@ -28,19 +28,25 @@ using namespace std::placeholders;
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
-DeviceTypePtr WsStreamingDevice::OLD_TYPE = DeviceTypeBuilder()
-    .setId("OpenDAQLTStreamingOld")
-    .setName("Streaming LT enabled pseudo-device")
-    .setDescription("Exposes signals from devices streamed using the WebSocket Streaming Protocol")
-    .setConnectionStringPrefix("daq.ws")
-    .build();
+DeviceTypePtr WsStreamingDevice::createOldType()
+{
+    return DeviceTypeBuilder()
+        .setId("OpenDAQLTStreamingOld")
+        .setName("Streaming LT enabled pseudo-device")
+        .setDescription("Exposes signals from devices streamed using the WebSocket Streaming Protocol")
+        .setConnectionStringPrefix("daq.ws")
+        .build();
+}
 
-DeviceTypePtr WsStreamingDevice::NEW_TYPE = DeviceTypeBuilder()
-    .setId("OpenDAQLTStreaming")
-    .setName("Streaming LT enabled pseudo-device")
-    .setDescription("Exposes signals from devices streamed using the WebSocket Streaming Protocol")
-    .setConnectionStringPrefix("daq.lt")
-    .build();
+DeviceTypePtr WsStreamingDevice::createNewType()
+{
+    return DeviceTypeBuilder()
+        .setId("OpenDAQLTStreaming")
+        .setName("Streaming LT enabled pseudo-device")
+        .setDescription("Exposes signals from devices streamed using the WebSocket Streaming Protocol")
+        .setConnectionStringPrefix("daq.lt")
+        .build();
+}
 
 WsStreamingDevice::WsStreamingDevice(
         const ContextPtr& context,

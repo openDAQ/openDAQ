@@ -68,8 +68,8 @@ DictPtr<IString, IDeviceType> WebsocketStreamingClientModule::onGetAvailableDevi
 {
     auto result = Dict<IString, IDeviceType>();
 
-    const auto websocketDeviceType = WsStreamingDevice::NEW_TYPE;
-    const auto oldWebsocketDeviceType = WsStreamingDevice::OLD_TYPE;
+    const auto websocketDeviceType = WsStreamingDevice::createNewType();
+    const auto oldWebsocketDeviceType = WsStreamingDevice::createOldType();
 
     result.set(websocketDeviceType.getId(), websocketDeviceType);
     result.set(oldWebsocketDeviceType.getId(), oldWebsocketDeviceType);
@@ -81,7 +81,7 @@ DictPtr<IString, IStreamingType> WebsocketStreamingClientModule::onGetAvailableS
 {
     auto result = Dict<IString, IStreamingType>();
 
-    auto websocketStreamingType = WsStreaming::TYPE;
+    auto websocketStreamingType = WsStreaming::createType();
 
     result.set(websocketStreamingType.getId(), websocketStreamingType);
 
@@ -135,14 +135,15 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     }
 
     // Set the connection info for the device
+    auto wsStreamingType = WsStreaming::createType();
     ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
-    connectionInfo.setProtocolId(WsStreaming::TYPE.getId());
-    connectionInfo.setProtocolName(WsStreaming::TYPE.getId());
+    connectionInfo.setProtocolId(wsStreamingType.getId());
+    connectionInfo.setProtocolName(wsStreamingType.getId());
     connectionInfo.setProtocolType(ProtocolType::Streaming);
     connectionInfo.setConnectionType("TCP/IP");
     connectionInfo.addAddress(host);
     connectionInfo.setPort(port);
-    connectionInfo.setPrefix(WsStreaming::TYPE.getConnectionStringPrefix());
+    connectionInfo.setPrefix(wsStreamingType.getConnectionStringPrefix());
     connectionInfo.setConnectionString(strPtr);
 
     return device;
@@ -151,8 +152,8 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
 bool WebsocketStreamingClientModule::acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
 {
     std::string connStr = connectionString;
-    auto found = connStr.find(WsStreamingDevice::OLD_TYPE.getConnectionStringPrefix().toStdString() + "://") == 0
-        || connStr.find(WsStreamingDevice::NEW_TYPE.getConnectionStringPrefix().toStdString() + "://") == 0;
+    auto found = connStr.find(WsStreamingDevice::createOldType().getConnectionStringPrefix().toStdString() + "://") == 0
+        || connStr.find(WsStreamingDevice::createNewType().getConnectionStringPrefix().toStdString() + "://") == 0;
     return found;
 }
 
@@ -238,7 +239,7 @@ StringPtr WebsocketStreamingClientModule::createUrlConnectionString(const String
                                                                     const IntegerPtr& port,
                                                                     const StringPtr& path)
 {
-    return String(WsStreaming::TYPE.getConnectionStringPrefix().toStdString()
+    return String(WsStreaming::createType().getConnectionStringPrefix().toStdString()
         + fmt::format("://{}:{}{}", host, port, path));
 }
 
@@ -292,7 +293,7 @@ StringPtr WebsocketStreamingClientModule::formConnectionString(const StringPtr& 
 DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
     auto cap = ServerCapability(
-        WsStreamingDevice::NEW_TYPE.getId(),
+        WsStreamingDevice::createNewType().getId(),
         "OpenDAQLTStreaming",
         ProtocolType::Streaming);
 
@@ -341,7 +342,7 @@ DeviceInfoPtr WebsocketStreamingClientModule::populateDiscoveredDevice(const Mdn
         DiscoveryClient::populateDiscoveredInfoProperties,
         discoveredDevice,
         cap,
-        WsStreamingDevice::NEW_TYPE);
+        WsStreamingDevice::createNewType());
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_CLIENT_MODULE

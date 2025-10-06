@@ -22,7 +22,6 @@
 #include <websocket_streaming/ws_streaming_server.h>
 
 #include <websocket_streaming_server_module/common.h>
-#include <websocket_streaming_server_module/ws_stream_test_fb.h>
 #include <websocket_streaming_server_module/ws_streaming_server_module.h>
 #include <websocket_streaming_server_module/ws_streaming_server_outlet_fb.h>
 
@@ -49,8 +48,8 @@ WsStreamingServerModule::onGetAvailableFunctionBlockTypes()
 {
     auto result = Dict<IString, IFunctionBlockType>();
 
-    result.set(WsStreamingServerOutletFb::ID, WsStreamingServerOutletFb::TYPE);
-    result.set(WsStreamTestFb::ID, WsStreamTestFb::createType());
+    auto type = WsStreamingServerOutletFb::createType();
+    result.set(type.getId(), type);
 
     return result;
 }
@@ -74,12 +73,6 @@ FunctionBlockPtr WsStreamingServerModule::onCreateFunctionBlock(
 {
     if (typeId == WsStreamingServerOutletFb::ID)
         return createWithImplementation<IFunctionBlock, WsStreamingServerOutletFb>(
-            context,
-            parent,
-            localId);
-
-    else if (typeId == WsStreamTestFb::ID)
-        return createWithImplementation<IFunctionBlock, WsStreamTestFb>(
             context,
             parent,
             localId);

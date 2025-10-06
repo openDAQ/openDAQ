@@ -291,7 +291,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     syncComponentObj.template asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
     syncComponent = this->addExistingComponent(syncComponentObj.detach());
 
-    servers = this->template addFolder<IComponent>("Srv", nullptr, LockingStrategy::ForwardOwnerLockOwn);
+    servers = this->template addFolder<IServer>("Srv", nullptr, LockingStrategy::ForwardOwnerLockOwn);
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();

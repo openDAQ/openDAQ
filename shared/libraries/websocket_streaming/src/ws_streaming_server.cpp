@@ -21,7 +21,11 @@
 
 #include <boost/system/error_code.hpp>
 
+#include <opendaq/connected_client_info.h>
+#include <opendaq/network_interface.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/opendaq.h>
+#include <opendaq/server_capability.h>
 #include <opendaq/server_impl.h>
 #include <opendaq/server_type_factory.h>
 
@@ -100,6 +104,8 @@ WsStreamingServer::WsStreamingServer(
     , _ioc{1}
     , _server{_ioc.get_executor()}
 {
+    _port = config.getPropertyValue("WebsocketStreamingPort");
+
     _server.add_listener(config.getPropertyValue("WebsocketStreamingPort"));
     _server.add_listener(config.getPropertyValue("WebsocketControlPort"), true);
 
@@ -110,6 +116,13 @@ WsStreamingServer::WsStreamingServer(
     _thread = std::thread{[this]() { _ioc.run(); }};
 
     context.getOnCoreEvent() += event(&WsStreamingServer::onCoreEvent);
+
+    addCapability();
+}
+
+WsStreamingServer::~WsStreamingServer()
+{
+    onStopServer();
 }
 
 wss::server& WsStreamingServer::getWsServer() noexcept
@@ -136,6 +149,7 @@ void WsStreamingServer::onStopServer()
     if (_thread.joinable())
     {
         _server.close();
+        _ioc.stop();
         _thread.join();
     }
 }
@@ -153,6 +167,21 @@ PropertyObjectPtr WsStreamingServer::populateDefaultConfig(
     }
 
     return defConfig;
+}
+
+void WsStreamingServer::addCapability()
+{
+    auto info = _rootDevice.getInfo();
+    if (info.hasServerCapability("OpenDAQLTStreaming"))
+        DAQ_THROW_EXCEPTION(InvalidStateException,
+            fmt::format("Device \"{}\" already has an OpenDAQLTStreaming server capability.", info.getName()));
+
+    auto cap = ServerCapability("OpenDAQLTStreaming", "OpenDAQLTStreaming", ProtocolType::Streaming);
+    cap.setPrefix("daq.lt");
+    cap.setPort(_port);
+    cap.setConnectionType("TCP/IP");
+    info.asPtr<IDeviceInfoInternal>(true).addServerCapability(cap);
+
 }
 
 void WsStreamingServer::createListener(const SignalPtr& signal)

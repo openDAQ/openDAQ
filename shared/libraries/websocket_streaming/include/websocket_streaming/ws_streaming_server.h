@@ -57,6 +57,8 @@ class WsStreamingServer : public Server
             const PropertyObjectPtr& config,
             const ContextPtr& context);
 
+        ~WsStreamingServer();
+
         wss::server& getWsServer() noexcept;
 
     protected:
@@ -70,6 +72,8 @@ class WsStreamingServer : public Server
         static void populateDefaultConfigFromProvider(
             const ContextPtr& context,
             const PropertyObjectPtr& config);
+
+        void addCapability();
 
         void createListener(const SignalPtr& signal);
 
@@ -119,6 +123,7 @@ class WsStreamingServer : public Server
         wss::server _server;
         std::thread _thread;
         std::map<std::string, StreamableSignal> _localSignals;
+        Int _port;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

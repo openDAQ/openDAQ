@@ -34,6 +34,7 @@ DeviceTypePtr WsStreamingDevice::createOldType()
         .setId("OpenDAQLTStreamingOld")
         .setName("Streaming LT enabled pseudo-device")
         .setDescription("Exposes signals from devices streamed using the WebSocket Streaming Protocol")
+        .setDefaultConfig(createDefaultConfig())
         .setConnectionStringPrefix("daq.ws")
         .build();
 }
@@ -44,6 +45,7 @@ DeviceTypePtr WsStreamingDevice::createNewType()
         .setId("OpenDAQLTStreaming")
         .setName("Streaming LT enabled pseudo-device")
         .setDescription("Exposes signals from devices streamed using the WebSocket Streaming Protocol")
+        .setDefaultConfig(createDefaultConfig())
         .setConnectionStringPrefix("daq.lt")
         .build();
 }
@@ -67,6 +69,13 @@ WsStreamingDevice::WsStreamingDevice(
 
     streamingEvents.emplace_back(wsStreaming.onSignalAvailable.connect(std::bind(&WsStreamingDevice::onSignalAvailable, this, _1, _2, _3)));
     streamingEvents.emplace_back(wsStreaming.onSignalUnavailable.connect(std::bind(&WsStreamingDevice::onSignalUnavailable, this, _1)));
+}
+
+PropertyObjectPtr WsStreamingDevice::createDefaultConfig()
+{
+    auto obj = PropertyObject();
+    obj.addProperty(IntProperty("Port", 7414));
+    return obj;
 }
 
 void WsStreamingDevice::removed()

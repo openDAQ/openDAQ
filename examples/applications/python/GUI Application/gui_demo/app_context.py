@@ -46,7 +46,6 @@ class AppContext(object):
         
         self.instance = daq.InstanceFromBuilder(builder)
         self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)
-        self.enabled_devices = {}
         self.connection_string = ''
         self.signals = {}
         self.on_needs_refresh: Optional[Callable[[], None]] = None
@@ -59,11 +58,7 @@ class AppContext(object):
 
         device = parent_device.add_device(
             device_info.connection_string, config)
-        if device:
-            device_info.name = device.local_id
-            device_info.serial_number = device.info.serial_number
-            self.enabled_devices[device.info.connection_string] = {
-                'device_info': device_info, 'device': device}
+
         return device
 
     def remove_device(self, device):
@@ -72,14 +67,7 @@ class AppContext(object):
         parent_device = utils.get_nearest_device(device.parent)
         if parent_device is None:
             return
-
-        subdevices = utils.list_all_subdevices(device)
-        for subdevice in subdevices:
-            del self.enabled_devices[subdevice.info.connection_string]
-
-        conn_string = device.info.connection_string
         parent_device.remove_device(device)
-        del self.enabled_devices[conn_string]
 
     def add_first_available_device(self):
         device_info = DeviceInfoLocal(self.connection_string)

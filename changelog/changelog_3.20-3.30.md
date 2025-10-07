@@ -28,6 +28,7 @@
 
 ## Bug fixes
 
+- [#941](https://github.com/openDAQ/openDAQ/pull/941) Fix getting on property value read write event for nestead proporties 
 - [#880](https://github.com/openDAQ/openDAQ/pull/880) Fix OPC UA warnings related to writing default values to a node.
 - [#848](https://github.com/openDAQ/openDAQ/pull/848) Do not throw an exception when getting operation modes on old devices. Return default state instead.
 - [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active.

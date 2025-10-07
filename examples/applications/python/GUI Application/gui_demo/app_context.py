@@ -51,16 +51,6 @@ class AppContext(object):
         self.signals = {}
         self.on_needs_refresh: Optional[Callable[[], None]] = None
 
-    def register_device(self, device_info):
-        conn = device_info.connection_string
-        # ignore reference devices unless explicitly requested
-        if not self.include_reference_devices and 'daqref' in conn:
-            return
-        # only add device to the list if it isn't there already
-        if not conn in self.enabled_devices:
-            self.enabled_devices[conn] = {
-                'device_info': device_info, 'device': None}
-
     def add_device(self, device_info, parent_device: daq.IDevice, config=None):
         if device_info is None:
             return None
@@ -90,12 +80,6 @@ class AppContext(object):
         conn_string = device.info.connection_string
         parent_device.remove_device(device)
         del self.enabled_devices[conn_string]
-
-    def scan_devices(self, parent_device=None):
-        parent_device = parent_device or self.instance
-
-        for device_info in parent_device.available_devices:
-            self.register_device(device_info)
 
     def add_first_available_device(self):
         device_info = DeviceInfoLocal(self.connection_string)

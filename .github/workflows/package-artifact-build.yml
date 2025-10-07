@@ -42,12 +42,18 @@ jobs:
   build-artefacts:
     runs-on: ${{ inputs.runner }}
 
-    env:
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
-
     steps:
       - name: Checkout openDAQ repository
         uses: actions/checkout@v4
+
+      - name: Set CCACHE_DIR
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "CCACHE_DIR=${GITHUB_WORKSPACE//\//\\}\\.ccache" >> "$GITHUB_ENV"
+          else
+            echo "CCACHE_DIR=$GITHUB_WORKSPACE/.ccache" >> "$GITHUB_ENV"
+          fi
 
       - name: Install dependencies Linux
         if: runner.os == 'Linux'
@@ -104,46 +110,28 @@ jobs:
             }
           }
 
-      - name: Normalize CCACHE dir for bash
-        id: opendaq-bash-ccache-dir
-        shell: bash
-        run: |
-          ccache_dir="$CCACHE_DIR"
-          # Normalize path for Windows (convert to Unix-style)
-          if command -v cygpath >/dev/null 2>&1; then
-            ccache_dir="$(cygpath "$CCACHE_DIR")"
-          fi
-          echo "ccache-dir=$ccache_dir" >> $GITHUB_OUTPUT
+      # - name: Normalize CCACHE dir for bash
+      #   id: opendaq-bash-ccache-dir
+      #   shell: bash
+      #   run: |
+      #     ccache_dir="$CCACHE_DIR"
+      #     # Normalize path for Windows (convert to Unix-style)
+      #     if command -v cygpath >/dev/null 2>&1; then
+      #       ccache_dir="$(cygpath "$CCACHE_DIR")"
+      #     fi
+      #     echo "ccache-dir=$ccache_dir" >> $GITHUB_OUTPUT
 
       - name: Configure openDAQ CMake build
-        shell: bash
-        env:
-          CCACHE_DIR: ${{ steps.opendaq-bash-ccache-dir.outputs.ccache-dir }}
         run: |
-          cmake -S . -B build \
-            -G "${{ inputs.cmake-generator }}" \
-            ${{ inputs.cmake-preset }} \
-            ${{ inputs.cmake-defines }} \
-            ${{ inputs.cmake-compiler }} \
-            -DCMAKE_BUILD_TYPE=${{ inputs.cmake-config }}
+          cmake -S . -B build -G "${{ inputs.cmake-generator }}" ${{ inputs.cmake-preset }} ${{ inputs.cmake-defines }} ${{ inputs.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ inputs.cmake-config }}
 
       - name: Perfrom openDAQ CMake build
-        shell: bash
-        env:
-          CCACHE_DIR: ${{ steps.opendaq-bash-ccache-dir.outputs.ccache-dir }}
         run: |
-          cmake \
-            --build build \
-            --config Release \
-            ${{ inputs.cmake-parallel }}
+          cmake --build build --config Release ${{ inputs.cmake-parallel }}
 
       - name: Package openDAQ CPack
-        shell: bash
-        env:
-          CCACHE_DIR: ${{ steps.opendaq-bash-ccache-dir.outputs.ccache-dir }}
         run: |
-          cpack --config build/CPackConfig.cmake \
-            -G ${{ inputs.cpack-generator }}
+          cpack --config build/CPackConfig.cmake -G ${{ inputs.cpack-generator }}
 
       - name: Read openDAQ version
         id: opendaq-framework-version

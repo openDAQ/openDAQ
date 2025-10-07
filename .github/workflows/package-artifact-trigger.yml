@@ -69,7 +69,7 @@ jobs:
       runner: ${{ matrix.os }}
       branch: 'jira/TBBAS-2595_create_shared_workflow'
       artifact-run-id: ${{ github.run_id }}
-      artifact-name: ${{ matrix.os }}
+      artifact-name: ${{ matrix.file-name }}
       file-name: ${{ matrix.file-name }}
     permissions:
       contents: read

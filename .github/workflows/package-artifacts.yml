@@ -82,7 +82,7 @@ jobs:
           - os: macos-13
             cache-key-os: macos13
             cmake-build-generator: Ninja
-            cmake-package-generator: ZIP
+            cmake-package-generator: TGZ
             cmake-parallel: --parallel 4
             # cmake-preset: --preset package
             cmake-preset: ''
@@ -203,13 +203,29 @@ jobs:
           echo Head openDAQ version: $OPENDAQ_VERSION
           echo "name=$OPENDAQ_VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Compose openDAQ framework filename
+        id: opendaq-framework-filename
+        uses: openDAQ/actions/framework-compose-filename@action-opendaq-version-parse
+          version: ${{ steps.opendaq-framework-version.outputs.name }}
+          packaging: ${{ matrix.cmake-package-generator }}
+
+      - name: Rename openDAQ framework package to artifact
+        env:
+          OPENDAQ_FRAMEWORK_FILENAME: ${{ opendaq-framework-filename.outputs.filename }}
+          OPENDAQ_FRAMEWORK_EXT: ${{ opendaq-framework-filename.outputs.packaging }}
+          OPENDAQ_FRAMEWORK_VERSION: ${{ opendaq-framework-filename.outputs.version }}
+        shell: bash
+        run: |
+          echo "$(ls -la)"
+          cp "build/_packages/opendaq-$OPENDAQ_FRAMEWORK_VERSION-$(uname -s).$OPENDAQ_FRAMEWORK_EXT" "$OPENDAQ_FRAMEWORK_FILENAME"
+
       - name: Upload artifact
         id: opendaq-upload-artifact
         uses: actions/upload-artifact@v4
         with:
           # name: opendaq-${{ steps.opendaq-framework-version.outputs.name }}-${{ matrix.cmake-package-generator }}
-          path: build/_packages/*
-          retention-days: 7
+          path: build/_packages/${{ opendaq-framework-filename.outputs.filename }}
+          retention-days: 30
 
       - name: Output artifact ID
         run: |

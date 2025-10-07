@@ -1121,7 +1121,7 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
         }
     }
 
-    if (nextPacketIsEvent || dataPacketsOrEventReady())
+    if ((invalid && nextPacketIsEvent) || (!invalid && dataPacketsOrEventReady()))
     {
         ProcedurePtr callback = readCallback;
         lock.unlock();

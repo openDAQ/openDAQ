@@ -28,6 +28,7 @@
 
 ## Bug fixes
 
+- [#942](https://github.com/openDAQ/openDAQ/pull/942) Add the configuration connection status while connecting with OPC UA client
 - [#936](https://github.com/openDAQ/openDAQ/pull/936) Fix compatibility issue with SDK v3.10 in client-to-device-streaming
 - [#930](https://github.com/openDAQ/openDAQ/pull/930) Fixes the operation mode of 3.10 native-client devices with no op-mode support to be "Operation" by default
 - [#925](https://github.com/openDAQ/openDAQ/pull/925) Set of discovery fixes for DNS resolution and enabling of multi-network card devices.

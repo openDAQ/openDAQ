@@ -1570,3 +1570,22 @@ TEST_F(OpcuaDeviceModulesTest, SaveLoadFunctionBlockConfig)
     ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
     ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
 }
+
+TEST_F(OpcuaDeviceModulesTest, ConnectionStatus)
+{
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+    auto clientDevice = client.getDevices()[0];
+
+    const auto connectionStatusInitValue = Enumeration("ConnectionStatusType", "Connected", client.getContext().getTypeManager());
+
+    const auto connectionStatusContainer = clientDevice.getConnectionStatusContainer();
+    const auto connectionStatuses = connectionStatusContainer.getStatuses();
+    ASSERT_TRUE(connectionStatuses.hasKey("ConfigurationStatus"));
+    ASSERT_EQ(connectionStatuses["ConfigurationStatus"], connectionStatusInitValue);
+
+    const auto statusContainer = clientDevice.getStatusContainer();
+    const auto statuses = statusContainer.getStatuses();
+    ASSERT_TRUE(statuses.hasKey("ConnectionStatus"));
+    ASSERT_EQ(statuses["ConnectionStatus"], connectionStatusInitValue);
+}

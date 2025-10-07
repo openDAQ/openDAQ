@@ -17,7 +17,6 @@
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/listobject_factory.h>
 #include <list>
-#include <thread>
 
 using namespace daq;
 
@@ -967,6 +966,93 @@ TEST_F(PropertyObjectTest, NestedChildPropGetViaRefProp)
     ASSERT_EQ(propObj.getPropertyValue("Kind.IntProperty"), 1);
     ASSERT_EQ(propObj.getPropertyValue("Kind.Kind.IntProperty"), 2);
     ASSERT_EQ(propObj.getPropertyValue("Kind.Kind.Kind.IntProperty"), 3);
+}
+
+TEST_F(PropertyObjectTest, NestedChildPropOnPropertyWrite)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    auto defaultObj1 = PropertyObject(objManager, "Test");
+    auto defaultObj2 = PropertyObject(objManager, "Test");
+    auto defaultObj3 = PropertyObject(objManager, "Test");
+
+    const auto childProp3 = ObjectProperty("Child", defaultObj3);
+    defaultObj2.addProperty(childProp3);
+
+    const auto childProp2 = ObjectProperty("Child", defaultObj2);
+    defaultObj1.addProperty(childProp2);
+
+    const auto childProp1 = ObjectProperty("Child", defaultObj1);
+    propObj.addProperty(childProp1);
+
+    int counter = 0;
+    auto callback = ([&counter](PropertyObjectPtr&, PropertyValueEventArgsPtr& a) { counter++; });
+
+    propObj.getOnPropertyValueWrite("Kind.Referenced") += callback;
+    propObj.getOnPropertyValueWrite("Kind.Kind.Referenced") += callback;
+    propObj.getOnPropertyValueWrite("Kind.Kind.Kind.Referenced") += callback;
+
+    ASSERT_NO_THROW(propObj.setPropertyValue("Kind.Referenced", 1));
+    ASSERT_NO_THROW(propObj.setPropertyValue("Kind.Kind.Referenced", 2));
+    ASSERT_NO_THROW(propObj.setPropertyValue("Kind.Kind.Kind.Referenced", 3));
+
+    ASSERT_EQ(counter, 3);
+}
+
+TEST_F(PropertyObjectTest, NestedChildPropOnPropertyRead)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    auto defaultObj1 = PropertyObject(objManager, "Test");
+    auto defaultObj2 = PropertyObject(objManager, "Test");
+    auto defaultObj3 = PropertyObject(objManager, "Test");
+
+    const auto childProp3 = ObjectProperty("Child", defaultObj3);
+    defaultObj2.addProperty(childProp3);
+
+    const auto childProp2 = ObjectProperty("Child", defaultObj2);
+    defaultObj1.addProperty(childProp2);
+
+    const auto childProp1 = ObjectProperty("Child", defaultObj1);
+    propObj.addProperty(childProp1);
+
+    int counter = 0;
+    auto callback = ([&counter](PropertyObjectPtr&, PropertyValueEventArgsPtr& a) { counter++; });
+
+    propObj.getOnPropertyValueRead("Kind.Referenced") += callback;
+    propObj.getOnPropertyValueRead("Kind.Kind.Referenced") += callback;
+    propObj.getOnPropertyValueRead("Kind.Kind.Kind.Referenced") += callback;
+
+    ASSERT_NO_THROW(propObj.getPropertyValue("Kind.Referenced"));
+    ASSERT_NO_THROW(propObj.getPropertyValue("Kind.Kind.Referenced"));
+    ASSERT_NO_THROW(propObj.getPropertyValue("Kind.Kind.Kind.Referenced"));
+
+    ASSERT_EQ(counter, 3);
+}
+
+TEST_F(PropertyObjectTest, ReferencedNestedChildPropOnPropertyReadWrite)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    auto defaultObj1 = PropertyObject(objManager, "Test");
+    auto defaultObj2 = PropertyObject(objManager, "Test");
+    auto defaultObj3 = PropertyObject(objManager, "Test");
+    
+    const auto childProp3 = ObjectProperty("Child", defaultObj3);
+    defaultObj2.addProperty(childProp3);
+
+    const auto childProp2 = ObjectProperty("Child", defaultObj2);
+    defaultObj1.addProperty(childProp2);
+
+    const auto childProp1 = ObjectProperty("Child", defaultObj1);
+    propObj.addProperty(childProp1);
+
+    auto callback = ([](PropertyObjectPtr&, PropertyValueEventArgsPtr&){});
+
+    ASSERT_THROW(propObj.getOnPropertyValueWrite("Kind.IntProperty") += callback, InvalidOperationException);
+    ASSERT_THROW(propObj.getOnPropertyValueWrite("Kind.Kind.IntProperty") += callback, InvalidOperationException);
+    ASSERT_THROW(propObj.getOnPropertyValueWrite("Kind.Kind.Kind.IntProperty") += callback, InvalidOperationException);
+
+    ASSERT_THROW(propObj.getOnPropertyValueRead("Kind.IntProperty") += callback, InvalidOperationException);
+    ASSERT_THROW(propObj.getOnPropertyValueRead("Kind.Kind.IntProperty") += callback, InvalidOperationException);
+    ASSERT_THROW(propObj.getOnPropertyValueRead("Kind.Kind.Kind.IntProperty") += callback, InvalidOperationException);
 }
 
 TEST_F(PropertyObjectTest, NestedChildPropClearViaRefProp)

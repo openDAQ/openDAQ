@@ -150,11 +150,8 @@ jobs:
         shell: bash
         run: |
           version=$(cat opendaq_version)
+          version="v${version%%dev}"
           echo "Head openDAQ version: $version"
-          hash=$(git rev-parse --short HEAD)
-          name="${version%%dev}"
-          version="$name-$hash"
-          echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Compose openDAQ framework filename
@@ -167,27 +164,17 @@ jobs:
       - name: Rename openDAQ framework package to artifact
         env:
           OPENDAQ_FRAMEWORK_FILENAME: ${{ steps.opendaq-framework-filename.outputs.filename }}
-          OPENDAQ_FRAMEWORK_EXT: ${{ steps.opendaq-framework-filename.outputs.packaging }}
-          OPENDAQ_VERSION: ${{ steps.opendaq-framework-version.outputs.name }}
         shell: bash
         run: |
           echo "Working directory: $(pwd)"
-          echo "Contents of build/_packages:"
-          ls -la build/_packages || true
-
-          echo "Find test:"
-          find build/_packages -type f -print
-
-          echo "Find with iname:"
-          find build/_packages -type f -iname 'opendaq*' -print
-
           echo "$(ls -la build/_packages/)"
           source=$(find build/_packages -type f -iname 'opendaq*' | head -n1)
           target=$OPENDAQ_FRAMEWORK_FILENAME
           echo "source=$source"
           echo "target=$target"
+          echo "Remane artifact to upload: $source -> $target"
           cp "$source" "./$target"
-          echo "$(ls -la)"
+          echo "$(ls -la) | grep \"$target\""
 
       - name: Upload artifact
         id: opendaq-upload-artifact

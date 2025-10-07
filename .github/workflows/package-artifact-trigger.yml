@@ -60,9 +60,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-24.04
-            file-name: opendaq_3.31.0_amd64.deb
+            file-name: opendaq-3.31.0-ubuntu24.04-x86_64.deb
           - os: windows-latest
-            file-name: openDAQ-3.31.0-win64.exe
+            file-name: opendaq-3.31.0-win64.exe
 
     uses: openDAQ/SimpleDeviceModule/.github/workflows/build-tests.yml@jira/TBBAS-2595_create_shared_workflow
     with:

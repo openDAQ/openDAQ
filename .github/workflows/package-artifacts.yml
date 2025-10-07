@@ -205,15 +205,16 @@ jobs:
 
       - name: Compose openDAQ framework filename
         id: opendaq-framework-filename
-        uses: openDAQ/actions/framework-compose-filename@action-opendaq-version-parse
+        uses: openDAQ/actions/framework-compose-filename@action-opendaq-version-
+        with:
           version: ${{ steps.opendaq-framework-version.outputs.name }}
           packaging: ${{ matrix.cmake-package-generator }}
 
       - name: Rename openDAQ framework package to artifact
         env:
-          OPENDAQ_FRAMEWORK_FILENAME: ${{ opendaq-framework-filename.outputs.filename }}
-          OPENDAQ_FRAMEWORK_EXT: ${{ opendaq-framework-filename.outputs.packaging }}
-          OPENDAQ_FRAMEWORK_VERSION: ${{ opendaq-framework-filename.outputs.version }}
+          OPENDAQ_FRAMEWORK_FILENAME: ${{ steps.opendaq-framework-filename.outputs.filename }}
+          OPENDAQ_FRAMEWORK_EXT: ${{ steps.opendaq-framework-filename.outputs.packaging }}
+          OPENDAQ_FRAMEWORK_VERSION: ${{ steps.opendaq-framework-filename.outputs.version }}
         shell: bash
         run: |
           echo "$(ls -la)"

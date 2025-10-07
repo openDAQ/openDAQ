@@ -104,8 +104,21 @@ jobs:
             }
           }
 
+      - name: Normalize CCACHE dir for bash
+        id: opendaq-bash-ccache-dir
+        shell: bash
+        run: |
+          ccache_dir="$CCACHE_DIR"
+          # Normalize path for Windows (convert to Unix-style)
+          if command -v cygpath >/dev/null 2>&1; then
+            ccache_dir="$(cygpath "$CCACHE_DIR")"
+          fi
+          echo "ccache-dir=$ccache_dir" >> $GITHUB_OUTPUT
+
       - name: Configure openDAQ CMake build
         shell: bash
+        env:
+          CCACHE_DIR: ${{ steps.opendaq-bash-ccache-dir.outputs.ccache-dir }}
         run: |
           cmake -S . -B build \
             -G "${{ inputs.cmake-generator }}" \
@@ -116,6 +129,8 @@ jobs:
 
       - name: Perfrom openDAQ CMake build
         shell: bash
+        env:
+          CCACHE_DIR: ${{ steps.opendaq-bash-ccache-dir.outputs.ccache-dir }}
         run: |
           cmake \
             --build build \
@@ -124,17 +139,63 @@ jobs:
 
       - name: Package openDAQ CPack
         shell: bash
+        env:
+          CCACHE_DIR: ${{ steps.opendaq-bash-ccache-dir.outputs.ccache-dir }}
         run: |
           cpack --config build/CPackConfig.cmake \
             -G ${{ inputs.cpack-generator }}
+
+      - name: Read openDAQ version
+        id: opendaq-framework-version
+        shell: bash
+        run: |
+          version=$(cat opendaq_version)
+          echo "Head openDAQ version: $version"
+          hash=$(git rev-parse --short HEAD)
+          name="${version%%dev}"
+          version="$name-$hash"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Compose openDAQ framework filename
+        id: opendaq-framework-filename
+        uses: openDAQ/actions/framework-compose-filename@action-opendaq-version-parse
+        with:
+          version: ${{ steps.opendaq-framework-version.outputs.version }}
+          packaging: ${{ inputs.cpack-generator }}
+
+      - name: Rename openDAQ framework package to artifact
+        env:
+          OPENDAQ_FRAMEWORK_FILENAME: ${{ steps.opendaq-framework-filename.outputs.filename }}
+          OPENDAQ_FRAMEWORK_EXT: ${{ steps.opendaq-framework-filename.outputs.packaging }}
+          OPENDAQ_VERSION: ${{ steps.opendaq-framework-version.outputs.name }}
+        shell: bash
+        run: |
+          echo "Working directory: $(pwd)"
+          echo "Contents of build/_packages:"
+          ls -la build/_packages || true
+
+          echo "Find test:"
+          find build/_packages -type f -print
+
+          echo "Find with iname:"
+          find build/_packages -type f -iname 'opendaq*' -print
+
+          echo "$(ls -la build/_packages/)"
+          source=$(find build/_packages -type f -iname 'opendaq*' | head -n1)
+          target=$OPENDAQ_FRAMEWORK_FILENAME
+          echo "source=$source"
+          echo "target=$target"
+          cp "$source" "./$target"
+          echo "$(ls -la)"
 
       - name: Upload artifact
         id: opendaq-upload-artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artefact-name }}
-          path: build/_packages/*
-          retention-days: 7
+          name: ${{ steps.opendaq-framework-filename.outputs.filename }}
+          path: ${{ steps.opendaq-framework-filename.outputs.filename }}
+          retention-days: 30
 
       - name: Print compiler cache stats
         shell: bash

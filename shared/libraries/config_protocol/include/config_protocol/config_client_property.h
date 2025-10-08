@@ -182,6 +182,10 @@ inline ErrCode ConfigClientPropertyImpl::Deserialize(ISerializedObject* serializ
         const auto builder = PropertyBuilder(name);
         ReadBuilderDeserializeValues(builder, serialized, context, factoryCallback);
 
+        const auto propertyType = builder.getValueType();
+        if (propertyType == CoreType::ctFunc || propertyType == CoreType::ctProc)
+            builder.setReadOnly(true);
+
         auto params = ConfigPropertyBuildParams();
         errCode = serialized->readBool(String("HasOnReadListeners"), &params.hasOnReadListeners);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);

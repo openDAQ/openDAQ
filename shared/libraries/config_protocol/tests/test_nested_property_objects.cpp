@@ -376,6 +376,22 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerUpdate)
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 5));
 }
 
+TEST_F(ConfigNestedPropertyObjectTest, TestRemoteFunctionIsReadOnly)
+{
+    auto serverFuncProp = serverDevice.getProperty("ObjectProperty.child1.child1_2.child1_2_1.Function");
+    auto clientFuncProp = clientDevice.getProperty("ObjectProperty.child1.child1_2.child1_2_1.Function");
+
+    ASSERT_FALSE(serverFuncProp.getReadOnly());
+    ASSERT_TRUE(clientFuncProp.getReadOnly());
+
+    auto serverProcProp = serverDevice.getProperty("ObjectProperty.child1.child1_2.child1_2_1.Procedure");
+    auto clientProcProp = clientDevice.getProperty("ObjectProperty.child1.child1_2.child1_2_1.Procedure");
+
+    ASSERT_FALSE(serverProcProp.getReadOnly());
+    ASSERT_TRUE(clientProcProp.getReadOnly());
+}
+
+
 TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientFunctionCall)
 {
     const PropertyObjectPtr child = clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1");

@@ -1,0 +1,75 @@
+name: Build and Upload Artifacts and trigger downstream
+
+on:
+  push:
+    branches:
+      - jira/*
+  pull_request:
+    branches:
+      - jira/*
+
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  artifacts-prepare:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+              -DCMAKE_C_COMPILER=gcc
+              -DCMAKE_CXX_COMPILER=g++
+            cmake-generator: Ninja
+            cpack-generator: DEB
+          - os: macos-13
+            cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+              -DCMAKE_C_COMPILER=clang
+              -DCMAKE_CXX_COMPILER=clang++
+            cmake-generator: Ninja
+            cpack-generator: TGZ
+          - os: windows-latest
+            cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+              -DCMAKE_C_COMPILER=cl
+              -DCMAKE_CXX_COMPILER=cl
+            cmake-generator: Ninja
+            cpack-generator: NSIS
+
+    uses: openDAQ/openDAQ/.github/workflows/package-artifact-build.yml@jira/TBBAS-2538_add_ci_package_artefacts_workflow
+    with:
+      artefact-name: ${{ matrix.os }}
+      runner: ${{ matrix.os }}
+      cmake-compiler: ${{ matrix.cmake-compiler }}
+      cmake-config: Release
+      cmake-defines: "-DOPENDAQ_ENABLE_TESTS=OFF"
+      cmake-generator: ${{ matrix.cmake-generator }}
+      cpack-generator: ${{ matrix.cpack-generator }}
+
+  artifacts-test:
+    needs: artifacts-prepare
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            file-name: opendaq-v3.31.0-ubuntu24.04-x86_64.deb
+          - os: windows-latest
+            file-name: opendaq-v3.31.0-win64.exe
+
+    uses: openDAQ/SimpleDeviceModule/.github/workflows/build-tests.yml@jira/TBBAS-2595_create_shared_workflow
+    with:
+      runner: ${{ matrix.os }}
+      branch: 'jira/TBBAS-2595_create_shared_workflow'
+      artifact-run-id: ${{ github.run_id }}
+      artifact-name: ${{ matrix.file-name }}
+      file-name: ${{ matrix.file-name }}
+    permissions:
+      contents: read

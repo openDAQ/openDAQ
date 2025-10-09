@@ -71,8 +71,12 @@ namespace object_utils
         bool try_lock() { return true; }
     };
 
-    static const auto UnrestrictedPermissions =
-        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+    inline const auto UnrestrictedPermissions = []() { 
+        daqDisableObjectTracking();
+        auto permissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+        daqEnableObjectTracking();
+        return permissions;
+    }();
 }
 
 class RecursiveConfigLockGuard : public std::enable_shared_from_this<RecursiveConfigLockGuard>

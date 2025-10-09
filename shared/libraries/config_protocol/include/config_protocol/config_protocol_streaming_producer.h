@@ -28,6 +28,7 @@ namespace daq::config_protocol
 
 using HandleDaqPacketCallback = std::function<void(PacketPtr&& /*packet*/, SignalNumericIdType /*signalNumericId*/)>;
 using SendPreprocessedPacketsCallback = std::function<void()>;
+using DowngradePacketStreamingCallback = std::function<void(Int /*jsonSerializerVersion*/)>;
 
 class ConfigProtocolStreamingProducer
 {

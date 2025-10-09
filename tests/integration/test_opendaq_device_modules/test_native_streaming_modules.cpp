@@ -181,8 +181,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
 
 TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
 {
-    if (test_helpers::Ipv6IsDisabled())
-        return;
+    bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
@@ -199,25 +198,37 @@ TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
+            
+            if (capability.getProtocolName() != "OpenDAQNativeStreaming")
+                continue;
 
-            if (capability.getProtocolName() == "OpenDAQNativeStreaming")
+            bool hasIPv4 = false;
+            bool hasIPv6 = false;
+            int cnt = 0;
+            for (const auto& addresInfo : capability.getAddressInfo())
             {
-                const auto ipv4Info = capability.getAddressInfo()[0];
-                const auto ipv6Info = capability.getAddressInfo()[1];
-                ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-                ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                ASSERT_EQ(addresInfo.getConnectionString(), capability.getConnectionStrings()[cnt]);
+                ASSERT_EQ(addresInfo.getAddress(), capability.getAddresses()[cnt]);
+                if (addresInfo.getType() == "IPv4")
+                {
+                    hasIPv4 = true;
+                    ASSERT_EQ(addresInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                }
+                else if (addresInfo.getType() == "IPv6")
+                {
+                    hasIPv6 = true;
+                    ASSERT_EQ(addresInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                }
                 
-                ASSERT_EQ(ipv4Info.getType(), "IPv4");
-                ASSERT_EQ(ipv6Info.getType(), "IPv6");
+                if (hasIPv4 && (hasIPv6 || !checkIPv6))
+                    return;
 
-                ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-                ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
-                
-                ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-                ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
+                cnt++;
             }
         }      
     }
+
+    ASSERT_TRUE(false) << "Device not found";
 }
 
 #endif

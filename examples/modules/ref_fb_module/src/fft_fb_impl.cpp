@@ -37,8 +37,7 @@ FFTFbImpl::~FFTFbImpl()
 
 void FFTFbImpl::initProperties()
 {
-
-    auto blockSizeProp = IntPropertyBuilder("BlockSize", defaultBlockSize).build();
+    auto blockSizeProp = IntPropertyBuilder("BlockSize", defaultBlockSize).setMinValue(1).build();
     objPtr.addProperty(blockSizeProp);
     objPtr.getOnPropertyValueWrite("BlockSize") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };

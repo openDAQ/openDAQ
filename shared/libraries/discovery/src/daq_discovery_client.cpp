@@ -144,7 +144,7 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
 
 bool DiscoveryClient::verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const
 {
-    if (discoveredDevice.ipv4Address.empty() && discoveredDevice.ipv6Address.empty())
+    if (discoveredDevice.ipv4Addresses.empty() && discoveredDevice.ipv6Addresses.empty())
         return false;
 
     std::unordered_set<std::string> requiredCapsCopy = requiredCaps;

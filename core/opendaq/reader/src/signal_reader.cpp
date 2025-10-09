@@ -82,7 +82,8 @@ void SignalReader::readDescriptorFromPort()
             catch (const std::exception& e)
             {
                 invalid = true;
-                LOG_D("Failed to handle descriptor read from port: {}", e.what());
+                LOG_D("Failed to handle descriptor read from port: {}", e.what())
+                (void)e;
             }
         }
     }
@@ -205,8 +206,9 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
             }
             catch (const std::exception& e)
             {
-                LOG_D("Failed to change descriptor: {}", e.what());
+                LOG_D("Failed to change descriptor: {}", e.what())
                 validDomain = false;
+                (void)e;
             }
         }
 

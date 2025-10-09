@@ -102,6 +102,8 @@ GenericConfigClientDeviceImpl<TDeviceBase>::GenericConfigClientDeviceImpl(const 
                                                                           const StringPtr& className)
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
 {
+    if (this->clientComm->getProtocolVersion() < 9)
+        this->updateOperationModeNoCoreEvent(OperationModeType::Operation);
 }
 
 template <class TDeviceBase>

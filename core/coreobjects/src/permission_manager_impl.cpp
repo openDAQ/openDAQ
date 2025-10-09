@@ -12,7 +12,13 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace detail
 {
-    static const auto DefaultPermissions = PermissionsBuilder().inherit(true).build();
+    static const auto DefaultPermissions = []()
+    {
+        daqDisableObjectTracking();
+        auto permissions = PermissionsBuilder().inherit(true).build();
+        daqEnableObjectTracking();
+        return permissions;
+    }();
 }
 
 PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)

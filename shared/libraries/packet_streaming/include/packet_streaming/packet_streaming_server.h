@@ -43,7 +43,8 @@ class PacketStreamingServer
 public:
     PacketStreamingServer(size_t cacheablePacketPayloadSizeMax,
                           size_t releaseThreshold,
-                          bool attachTimestampToPacketBuffer);
+                          bool attachTimestampToPacketBuffer,
+                          Int jsonSerializerVersion = 0);
 
     void addDaqPacket(const uint32_t signalId, const PacketPtr& packet);
     void addDaqPacket(const uint32_t signalId, PacketPtr&& packet);

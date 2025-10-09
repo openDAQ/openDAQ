@@ -196,14 +196,18 @@ TEST_F(QuickStartTest, QuickStartAppReaderNativePseudoDevice)
 {
     SKIP_TEST_MAC_CI;
 
-    InstancePtr server = docs_test_helpers::setupSimulatorServers();
+    daq::InstancePtr server = docs_test_helpers::setupSimulatorServers();
+
+    daq::InputPortPtr port;
     daq::InstancePtr instance = daq::Instance();
+    port = daq::InputPort(instance.getContext(), nullptr, "readsig");
 
     daq::DevicePtr device = instance.addDevice("daq.ns://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals()[0], ReadTimeoutType::Any);
+    StreamReaderPtr reader = daq::StreamReaderFromPort(port, SampleType::Float64, SampleType::UInt64);
+    port.connect(device.getSignalsRecursive()[0]);
 
     {
         daq::SizeT count = 0;

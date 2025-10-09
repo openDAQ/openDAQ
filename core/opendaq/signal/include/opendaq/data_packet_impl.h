@@ -314,7 +314,8 @@ void DataPacketImpl<TInterface, TInterfaces ...>::initPacket()
     hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(true)->hasScalingCalc();
 
     const auto referenceDomainInfo = descriptor.getReferenceDomainInfo();
-    hasReferenceDomainOffset = referenceDomainInfo.assigned() && referenceDomainInfo.getReferenceDomainOffset().assigned();
+    hasReferenceDomainOffset = referenceDomainInfo.assigned() && referenceDomainInfo.getReferenceDomainOffset().assigned() &&
+                               referenceDomainInfo.getReferenceDomainOffset() != 0;
 
     hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc && !hasReferenceDomainOffset;
 }
@@ -476,8 +477,8 @@ DataPacketImpl<TInterface, TInterfaces...>::DataPacketImpl(const DataPacketPtr& 
     hasRawDataOnly = false;
 
     const auto referenceDomainInfo = descriptor.getReferenceDomainInfo();
-    hasReferenceDomainOffset =
-        referenceDomainInfo.assigned() && referenceDomainInfo.getReferenceDomainOffset().assigned();
+    hasReferenceDomainOffset = referenceDomainInfo.assigned() && referenceDomainInfo.getReferenceDomainOffset().assigned() &&
+                               referenceDomainInfo.getReferenceDomainOffset() != 0;
 }
 
 template <typename TInterface, typename... TInterfaces>
@@ -544,7 +545,8 @@ ErrCode DataPacketImpl<TInterface, TInterfaces...>::getData(void** address)
         if (sampleCount == 0)
             *address = nullptr;
         else
-            daqTry(
+        {
+            ErrCode err = daqTry(
                 [&]()
                 {
                     if (hasScalingCalc)
@@ -578,6 +580,9 @@ ErrCode DataPacketImpl<TInterface, TInterfaces...>::getData(void** address)
                     *address = scaledData;
                     return OPENDAQ_SUCCESS;
                 });
+
+            OPENDAQ_RETURN_IF_FAILED(err);
+        }
     }
 
     readLock.unlock();

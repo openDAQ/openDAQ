@@ -38,7 +38,6 @@ if (DAQMODULES_OPENDAQ_SERVER_MODULE)
     if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
         message(STATUS "    - Websocket server module")
         add_subdirectory(websocket_streaming_server_module)
-        add_subdirectory(new_websocket_streaming_server_module)
     endif()
 
     if (OPENDAQ_ENABLE_NATIVE_STREAMING)

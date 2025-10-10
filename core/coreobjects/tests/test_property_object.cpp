@@ -985,7 +985,7 @@ TEST_F(PropertyObjectTest, NestedChildPropOnPropertyWrite)
     propObj.addProperty(childProp1);
 
     int counter = 0;
-    auto callback = ([&counter](PropertyObjectPtr&, PropertyValueEventArgsPtr& a) { counter++; });
+    auto callback = ([&counter](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { counter++; });
 
     propObj.getOnPropertyValueWrite("Kind.Referenced") += callback;
     propObj.getOnPropertyValueWrite("Kind.Kind.Referenced") += callback;
@@ -1015,7 +1015,7 @@ TEST_F(PropertyObjectTest, NestedChildPropOnPropertyRead)
     propObj.addProperty(childProp1);
 
     int counter = 0;
-    auto callback = ([&counter](PropertyObjectPtr&, PropertyValueEventArgsPtr& a) { counter++; });
+    auto callback = ([&counter](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { counter++; });
 
     propObj.getOnPropertyValueRead("Kind.Referenced") += callback;
     propObj.getOnPropertyValueRead("Kind.Kind.Referenced") += callback;

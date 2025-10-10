@@ -1,7 +1,6 @@
 #include <opcua_client_module/opcua_client_module_impl.h>
 #include <opcua_client_module/version.h>
 #include <coretypes/version_info_factory.h>
-#include <chrono>
 #include <opcuatms_client/tms_client.h>
 #include <opendaq/custom_log.h>
 #include <coreobjects/property_object_factory.h>
@@ -9,6 +8,8 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/search_filter_factory.h>
 #include <regex>
+#include <opendaq/component_status_container_private_ptr.h>
+#include <opendaq/connection_status_container_private_ptr.h>
 #include <opendaq/address_info_factory.h>
 #include <coreobjects/property_factory.h>
 
@@ -92,7 +93,13 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     DeviceInfoPtr deviceInfo = device.getInfo();
     deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("connectionString", connectionString);
     ServerCapabilityConfigPtr connectionInfo = deviceInfo.getConfigurationConnectionInfo();
-    
+
+    const auto connectionStatusInitValue = Enumeration("ConnectionStatusType", "Connected", context.getTypeManager());
+    const auto connectionStatusContainer = device.getConnectionStatusContainer().asPtr<IConnectionStatusContainerPrivate>();
+    connectionStatusContainer.addConfigurationConnectionStatus(deviceInfo.getConnectionString(), connectionStatusInitValue);
+    const auto statusContainer = device.getStatusContainer().asPtr<IComponentStatusContainerPrivate>();
+    statusContainer.addStatus("ConnectionStatus", connectionStatusInitValue);
+
     const auto addressInfo = AddressInfoBuilder().setAddress(host)
                                                  .setReachabilityStatus(AddressReachabilityStatus::Reachable)
                                                  .setType(hostType)

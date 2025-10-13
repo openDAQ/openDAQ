@@ -77,13 +77,13 @@ class WebsocketClientDeviceTestP : public WebsocketClientDeviceTest, public test
 public:
     bool addSignals(const ListPtr<ISignal>& signals,
                     const StreamingServerPtr& server,
-                    const ContextPtr& context)
+                    const DevicePtr& device)
     {
         SizeT addedSigCount = 0;
         std::promise<void> addSigPromise;
         std::future<void> addSigFuture = addSigPromise.get_future();
 
-        auto eventHandler = [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+        auto eventHandler = [&](ComponentPtr comp, CoreEventArgsPtr args)
         {
             auto params = args.getParameters();
             if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
@@ -98,25 +98,25 @@ public:
             }
         };
 
-        context.getOnCoreEvent() += eventHandler;
+        device.getItem("Sig").getOnComponentCoreEvent() += eventHandler;
 
         server->addSignals(signals);
 
         bool result = (addSigFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
 
-        context.getOnCoreEvent() -= eventHandler;
+        device.getItem("Sig").getOnComponentCoreEvent() -= eventHandler;
         return result;
     }
 
     bool removeSignals(const ListPtr<ISignal>& signals,
                        const StreamingServerPtr& server,
-                       const ContextPtr& context)
+                       const DevicePtr& device)
     {
         SizeT removedSigCount = 0;
         std::promise<void> rmSigPromise;
         std::future<void> rmSigFuture = rmSigPromise.get_future();
 
-        auto eventHandler = [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+        auto eventHandler = [&](ComponentPtr comp, CoreEventArgsPtr args)
         {
             if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
             {
@@ -126,14 +126,14 @@ public:
             }
         };
 
-        context.getOnCoreEvent() += eventHandler;
+        device.getItem("Sig").getOnComponentCoreEvent() += eventHandler;
 
         for (const auto& signal : signals)
             server->removeComponentSignals(signal.getGlobalId());
 
         bool result = (rmSigFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
 
-        context.getOnCoreEvent() -= eventHandler;
+        device.getItem("Sig").getOnComponentCoreEvent() -= eventHandler;
         return result;
     }
 };
@@ -164,7 +164,7 @@ TEST_P(WebsocketClientDeviceTestP, SignalWithDomain)
 
     if (signalsAddedAfterConnect)
     {
-        ASSERT_TRUE(addSignals(signals, server, clientDevice.getContext()));
+        ASSERT_TRUE(addSignals(signals, server, clientDevice));
     }
 
     // Check the mirrored signal
@@ -218,11 +218,11 @@ TEST_P(WebsocketClientDeviceTestP, SignalWithDomain)
     ASSERT_TRUE(BaseObjectPtr::Equals(clientDevice.getSignals()[0].getDomainSignal().getDescriptor(),
                                       testValueSignal.getDomainSignal().getDescriptor()));
 
-    ASSERT_TRUE(removeSignals({testDomainSignal}, server, clientDevice.getContext()));
+    ASSERT_TRUE(removeSignals({testDomainSignal}, server, clientDevice));
     ASSERT_EQ(clientDevice.getSignals().getCount(), 1u);
     ASSERT_FALSE(clientDevice.getSignals()[0].getDomainSignal().assigned());
 
-    ASSERT_TRUE(removeSignals({testValueSignal}, server, clientDevice.getContext()));
+    ASSERT_TRUE(removeSignals({testValueSignal}, server, clientDevice));
     ASSERT_EQ(clientDevice.getSignals().getCount(), 0u);
 }
 
@@ -250,7 +250,7 @@ TEST_P(WebsocketClientDeviceTestP, SingleDomainSignal)
 
     if (signalsAddedAfterConnect)
     {
-        ASSERT_TRUE(addSignals(signals, server, clientDevice.getContext()));
+        ASSERT_TRUE(addSignals(signals, server, clientDevice));
     }
 
     // The mirrored signal exists and has descriptor
@@ -258,7 +258,7 @@ TEST_P(WebsocketClientDeviceTestP, SingleDomainSignal)
     ASSERT_TRUE(clientDevice.getSignals()[0].getDescriptor().assigned());
     ASSERT_FALSE(clientDevice.getSignals()[0].getDomainSignal().assigned());
 
-    ASSERT_TRUE(removeSignals(signals, server, clientDevice.getContext()));
+    ASSERT_TRUE(removeSignals(signals, server, clientDevice));
     ASSERT_EQ(clientDevice.getSignals().getCount(), 0u);
 }
 
@@ -286,7 +286,7 @@ TEST_P(WebsocketClientDeviceTestP, SingleUnsupportedSignal)
 
     if (signalsAddedAfterConnect)
     {
-        ASSERT_TRUE(addSignals(signals, server, clientDevice.getContext()));
+        ASSERT_TRUE(addSignals(signals, server, clientDevice));
     }
 
     // The mirrored signal exists but does not have descriptor
@@ -294,7 +294,7 @@ TEST_P(WebsocketClientDeviceTestP, SingleUnsupportedSignal)
     ASSERT_FALSE(clientDevice.getSignals()[0].getDescriptor().assigned());
     ASSERT_FALSE(clientDevice.getSignals()[0].getDomainSignal().assigned());
 
-    ASSERT_TRUE(removeSignals(signals, server, clientDevice.getContext()));
+    ASSERT_TRUE(removeSignals(signals, server, clientDevice));
     ASSERT_EQ(clientDevice.getSignals().getCount(), 0u);
 }
 
@@ -323,7 +323,7 @@ TEST_P(WebsocketClientDeviceTestP, SignalsWithSharedDomain)
 
     if (signalsAddedAfterConnect)
     {
-        ASSERT_TRUE(addSignals(signals, server, clientDevice.getContext()));
+        ASSERT_TRUE(addSignals(signals, server, clientDevice));
     }
 
     ASSERT_EQ(clientDevice.getSignals().getCount(), 3u);
@@ -354,12 +354,12 @@ TEST_P(WebsocketClientDeviceTestP, SignalsWithSharedDomain)
     ASSERT_EQ(clientDevice.getSignals()[2].getDomainSignal(), clientDevice.getSignals()[1]);
     ASSERT_EQ(clientDevice.getSignals()[0].getDomainSignal(), clientDevice.getSignals()[1]);
 
-    ASSERT_TRUE(removeSignals({timeSignal}, server, clientDevice.getContext()));
+    ASSERT_TRUE(removeSignals({timeSignal}, server, clientDevice));
     ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
     ASSERT_FALSE(clientDevice.getSignals()[0].getDomainSignal().assigned());
     ASSERT_FALSE(clientDevice.getSignals()[1].getDomainSignal().assigned());
 
-    ASSERT_TRUE(removeSignals({dataSignal1, dataSignal2}, server, clientDevice.getContext()));
+    ASSERT_TRUE(removeSignals({dataSignal1, dataSignal2}, server, clientDevice));
     ASSERT_EQ(clientDevice.getSignals().getCount(), 0u);
 }
 

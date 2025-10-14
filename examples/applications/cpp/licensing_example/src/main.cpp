@@ -5,6 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include <opendaq/opendaq.h>
+#include <licensing_example/module_authenticator_impl_win.h>
 
 using namespace daq;
 
@@ -16,7 +17,6 @@ const std::string resourcePath = RESOURCE_PATH;
 * The dict can be retrieved later and shows the file used to "authenticate" each module.
 * A real implementation would have multiple paths to certificate files, then use something like the windows crypto/trust API to verify each DLL file loaded.
 * The user could then check which certificate was used for which file.
-*/
 
 class ModuleAuthenticatorImpl : public ModuleAuthenticator
 {
@@ -69,6 +69,7 @@ private:
 
     std::vector<std::string> validModules;
 };
+*/
 
 /*
 * A brief example showcasing the use for a licensed module in openDAQ.
@@ -128,18 +129,21 @@ int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create an Instance, loading modules at MODULE_PATH
     const StringPtr path = StringPtr(resourcePath + "Certificate.txt");
-    const StringPtr key = StringPtr("myAuthenticatorKey");
+
+    // Add your signature hash here
+    const StringPtr key = StringPtr("my_cert_thumbprint");
+
     const ModuleAuthenticatorPtr authenticator =
-        daq::createWithImplementation<IModuleAuthenticator, ModuleAuthenticatorImpl>(path, key);
+        daq::createWithImplementation<IModuleAuthenticator, daq::ModuleAuthenticatorImpl>(path);
 
     const InstancePtr instance =
-        daq::InstanceBuilder().setModuleAuthenticator(authenticator).setLoadAuthenticatedModulesOnly(true).setModulePath(MODULE_PATH).build();
+        daq::InstanceBuilder().setModuleAuthenticator(authenticator).setLoadAuthenticatedModulesOnly(false).setModulePath(MODULE_PATH).build();
 
     std::cout << std::endl << "Loaded modules:" << std::endl;
     auto vendorKeys = instance.getModuleManager().getVendorKeys();
 
     // Setup your paths here..
-    std::string licPath = resourcePath + "license.lic";
+    std::string licPath = resourcePath + "/license.lic";
     // Make sure you open up the quick_start_simulator example app to get a reference device!
     
     // ------------------- Find and connect to a simulator device ------------------- //
@@ -181,7 +185,7 @@ int main(int /*argc*/, const char* /*argv*/[])
             if (module.getModuleInfo().getName() == "LicensingModule")
             {
                 DictPtr<IString, IString> licenseConfig = module.getLicenseConfig();
-                licenseConfig.set("VendorSecret", "my_secret_key");
+                licenseConfig.set("VendorKey", "my_secret_key");
                 licenseConfig.set("LicensePath", licPath);
                 succeeded = module.loadLicense(licenseConfig);
             }

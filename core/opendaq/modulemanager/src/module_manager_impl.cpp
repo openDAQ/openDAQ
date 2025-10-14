@@ -231,7 +231,7 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         try
         {
             Bool validBinary = false;
-            StringPtr moduleKey;
+            StringPtr moduleKey("");
             if (moduleAuthenticator != nullptr)
             {
                 moduleAuthenticator->authenticateModuleBinary(&validBinary, &moduleKey, StringPtr(modulePath.string()));
@@ -240,10 +240,8 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
             if (validBinary || !authenticatedModulesOnly)
             {
                 libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
-                if (authenticatedModulesOnly)
-                {
-                    moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
-                }
+                moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
+                
                 newModulesAdded = true;
             }
             else {
@@ -380,7 +378,7 @@ ErrCode ModuleManagerImpl::setAuthenticatedOnly(Bool authOnly)
 ErrCode ModuleManagerImpl::setModuleAuthenticator(IModuleAuthenticator* authenticator)
 {
     OPENDAQ_PARAM_NOT_NULL(authenticator);
-
+    
     moduleAuthenticator = authenticator;
     return OPENDAQ_SUCCESS;
 }

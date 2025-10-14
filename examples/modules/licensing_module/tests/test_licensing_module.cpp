@@ -189,7 +189,6 @@ TEST_F(LicensingModuleTestWithSignal, ValidAuthentication)
 
     validAuthenticationWorks = !fb.isEmpty();
     ASSERT_TRUE(validAuthenticationWorks);
-    
 }
 
 TEST_F(LicensingModuleTestWithSignal, InvalidAuthentication)

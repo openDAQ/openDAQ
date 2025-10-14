@@ -1,6 +1,7 @@
 set(LIB_NAME licensing_module)
 set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 
+
 set(SRC_Include common.h
 				module_dll.h
                 licensing_module_impl.h
@@ -25,7 +26,6 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/module_dll.h
                             license_checker_impl.cpp
                             passthrough_fb_impl.cpp
 )
-
 
 add_library(${LIB_NAME} SHARED ${SRC_Include}
                                ${SRC_Srcs}

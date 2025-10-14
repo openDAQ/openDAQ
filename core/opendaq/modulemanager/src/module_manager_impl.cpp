@@ -50,7 +50,10 @@ static ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<Modu
 static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
-    : modulesLoaded(false)
+    : authenticatedModulesOnly(false)
+    , moduleAuthenticator(nullptr)
+    , moduleKeys(Dict<IString, IString>())
+    , modulesLoaded(false)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
 {
@@ -123,7 +126,12 @@ ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 ErrCode ModuleManagerImpl::addModule(IModule* module)
 {
     OPENDAQ_PARAM_NOT_NULL(module);
-    
+
+    if (authenticatedModulesOnly)
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Cannot add modules directly without verification!");
+    }
+
     orphanedModules.tryUnload();
 
     const auto found = std::find_if(
@@ -145,6 +153,14 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
 
 ErrCode ModuleManagerImpl::loadModules(IContext* context)
 {
+    if (authenticatedModulesOnly)
+    {
+        if (moduleAuthenticator == nullptr)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
+        }
+    }
+
     if (!modulesLoaded)
     {
         this->context = ContextPtr::Borrow(context);
@@ -214,8 +230,25 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
 
         try
         {
-            libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
-            newModulesAdded = true;
+            Bool validBinary = false;
+            StringPtr moduleKey;
+            if (moduleAuthenticator != nullptr)
+            {
+                moduleAuthenticator->authenticateModuleBinary(&validBinary, &moduleKey, StringPtr(modulePath.string()));
+            }
+
+            if (validBinary || !authenticatedModulesOnly)
+            {
+                libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
+                if (authenticatedModulesOnly)
+                {
+                    moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
+                }
+                newModulesAdded = true;
+            }
+            else {
+                LOG_W("Cannot not load module {}, failed to authenticate!", modulePath.string());
+            }
         }
         catch (const daq::DaqException& e)
         {
@@ -293,7 +326,30 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
 
     try
     {
+        StringPtr moduleKey;
+        if (authenticatedModulesOnly)
+        {
+            if (moduleAuthenticator == nullptr)
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
+            }
+
+            Bool valid;
+            moduleAuthenticator->authenticateModuleBinary(&valid, &moduleKey, path);
+
+            if (!valid)
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Module ({}) authentication failed!", path);
+            }
+        }
+
         libraries.push_back(loadModuleInternal(loggerComponent, fileSystemPath, context));
+
+        if (authenticatedModulesOnly)
+        {
+            moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
+        }
+
         *module = libraries.back().module.addRefAndReturn();
     }
     catch (const daq::DaqException& e)
@@ -311,6 +367,30 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
         LOG_W(R"(Unknown error occurred loading module "{}")", pathString)
         return OPENDAQ_ERR_GENERALERROR;
     }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::setAuthenticatedOnly(Bool authOnly)
+{
+    authenticatedModulesOnly = authOnly;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::setModuleAuthenticator(IModuleAuthenticator* authenticator)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticator);
+
+    moduleAuthenticator = authenticator;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ModuleManagerImpl::getVendorKeys(IDict** vendorKeys)
+{
+    OPENDAQ_PARAM_NOT_NULL(vendorKeys);
+
+    DictPtr<IString, IString> dict(moduleKeys);
+    *vendorKeys = dict.detach();
 
     return OPENDAQ_SUCCESS;
 }
@@ -375,14 +455,37 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
         }
         statuses.clear();
     }
-
-    setAddressesReachable(ipv4Addresses, "IPv4", list);
-
-    // TODO: Check ipv6 for reachability
+    
+    // TODO: Ping IPv6 addresses as well
+    setAddressesReachable(ipv4Addresses, list);
 }
 
-void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info)
+static bool ipv6Available(boost::asio::io_context& io)
 {
+    using boost::asio::ip::tcp;
+    
+    boost::system::error_code ec;
+    tcp::socket sock(io);
+
+    // Try to open an IPv6 socket
+    sock.open(tcp::v6(), ec);
+    if (ec) {
+        return false;  // couldn't open IPv6 socket
+    }
+
+    // Try binding to [::]:0
+    tcp::endpoint ep(tcp::v6(), 0);
+    sock.bind(ep, ec);
+    return !ec;
+}
+
+void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>& addr, ListPtr<IDeviceInfo>& info)
+{
+    // IPv6 addresses are unknown or unreachable, depending on host machine having IPv6 enabled
+    AddressReachabilityStatus ipv6Reachability = ipv6Available(ioContext)
+                                                     ? AddressReachabilityStatus::Unknown
+                                                     : AddressReachabilityStatus::Unreachable;
+
     for (const auto& devInfo : info)
     {
         for (const auto& cap : devInfo.getServerCapabilities())
@@ -393,28 +496,30 @@ void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>&
                 const auto address = addressInfo.getAddress();
                 const auto addressType = addressInfo.getType();
 
-                if (addr.count(address) && addressType == type)
+                // Ping for IPv4 addresses is available, but not for IPv6
+                if (addr.count(address) && addressType == "IPv4")
                 {
                     AddressReachabilityStatus reachability = addr.at(address)
                                                                  ? AddressReachabilityStatus::Reachable
                                                                  : AddressReachabilityStatus::Unreachable;
                     addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(reachability);
+                }
+                else if (addressType == "IPv6")
+                {
+                    addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(ipv6Reachability);
+                }
+            }
 
-                    if (reachability == AddressReachabilityStatus::Unreachable && cap.getConnectionString() == addressInfo.getConnectionString())
-                    {
-                        for (const auto& addressInfoInner : cap.getAddressInfo())
-                        {
-                            if (addressInfoInner == addressInfo)
-                                continue;
-
-                            if (addressInfoInner.getReachabilityStatus() != AddressReachabilityStatus::Unreachable)
-                            {
-                                cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfoInner.getConnectionString());
-                                break;
-                            }
-                        }
-                    }
-
+            for (const auto& addressInfo : addressInfos)
+            {
+                auto reachability = addressInfo.getReachabilityStatus();
+                if (reachability == AddressReachabilityStatus::Unknown)
+                {
+                    cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfo.getConnectionString());
+                }
+                else if (reachability == AddressReachabilityStatus::Reachable)
+                {
+                    cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfo.getConnectionString());
                     break;
                 }
             }
@@ -430,7 +535,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
     std::vector<std::pair<AsyncEnumerationResult, ModulePtr>> enumerationResults;
 
-    // runs in parallel with getting avaiable devices from modules
+    // runs in parallel with getting available devices from modules
     std::future<DictPtr<IString, IDeviceInfo>> devicesWithIpModSupportAsyncResult = std::async([this]
     {
         return this->discoverDevicesWithIpModification();
@@ -652,7 +757,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             OPENDAQ_RETURN_IF_FAILED(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
-            if (devicePtr.assigned() && devicePtr.assigned())
+            if (devicePtr.assigned())
             {
                 onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
                 if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
@@ -1153,10 +1258,54 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
     return localInfo;
 }
 
+StringPtr ModuleManagerImpl::getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const
+{
+    AddressReachabilityStatus resolvedStatus = AddressReachabilityStatus::Unreachable;
+    StringPtr connectionString;
+
+    for (const auto& addrInfo : capability.getAddressInfo())
+    {
+        if (addrInfo.getType() == primaryAddressType)
+        {
+            switch (auto status = addrInfo.getReachabilityStatus())
+            {
+                case AddressReachabilityStatus::Unknown:
+                    connectionString = resolvedStatus == AddressReachabilityStatus::Unknown
+                                           ? connectionString
+                                           : addrInfo.getConnectionString();
+
+                    resolvedStatus = status;
+                    break;
+                case AddressReachabilityStatus::Reachable:
+                    return addrInfo.getConnectionString();
+                case AddressReachabilityStatus::Unreachable:
+                    connectionString = connectionString.assigned() ? connectionString : addrInfo.getConnectionString();
+                    break;
+            }
+        }
+    }
+
+    if (connectionString.assigned() && resolvedStatus == AddressReachabilityStatus::Unknown)
+    {
+        return connectionString;
+    }
+
+    if (connectionString.assigned() && resolvedStatus == AddressReachabilityStatus::Unreachable)
+    {
+        LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses with given address type were available.", connectionString);
+        return connectionString;
+    }
+
+    LOG_W("Selected server capability of device does not provide any addresses of primary {} type",
+          primaryAddressType);
+
+    return {};
+}
+
 StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString,
                                                           const DeviceInfoPtr& discoveredDeviceInfo,
                                                           const PropertyObjectPtr& generalConfig,
-                                                          const LoggerComponentPtr& loggerComponent)
+                                                          const LoggerComponentPtr& loggerComponent) const
 {
     const auto capabilities = discoveredDeviceInfo.getServerCapabilities();
     if (capabilities.getCount() == 0)
@@ -1176,18 +1325,30 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
     }
 
     const StringPtr primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
+
     if (primaryAddressType == "IPv4" || primaryAddressType == "IPv6")
     {
-        for (const auto& addrInfo : selectedCapability.getAddressInfo())
-        {
-            if (addrInfo.getType() == primaryAddressType)
-                return addrInfo.getConnectionString();
-        }
-        LOG_W("Selected server capability of device with connection string \"{}\" does not provide any addresses of primary {} type",
-              inputConnectionString,
-              primaryAddressType);
+        auto connectionString = getConnectionStringWithType(selectedCapability, primaryAddressType);
+        if (connectionString.assigned())
+            return connectionString;
     }
-    return selectedCapability.getConnectionString();
+    auto connectionString = selectedCapability.getConnectionString();
+
+#if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_WARN
+    for (const auto& addressInfo : selectedCapability.getAddressInfo())
+    {
+        if (addressInfo.getConnectionString() == connectionString)
+        {
+            auto reachabilityStatus = addressInfo.getReachabilityStatus();
+            if (reachabilityStatus == AddressReachabilityStatus::Unreachable)
+            {
+                LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.",  connectionString);
+            }
+        }
+    }
+#endif
+
+    return connectionString;
 }
 
 DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const
@@ -1351,6 +1512,7 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
         target.freeze();
 }
 
+
 PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
 {
     auto obj = PropertyObject();
@@ -1394,8 +1556,18 @@ void ModuleManagerImpl::overrideConfigProperties(PropertyObjectPtr& targetConfig
         if (sourceConfig.hasProperty(name))
         {
             const auto sourcePropValue = sourceConfig.getPropertyValue(name);
+            auto property = targetConfig.getProperty(name);
             if (targetConfig.getPropertyValue(name) != sourcePropValue)
-                targetConfig.setPropertyValue(name, sourcePropValue);
+            {
+                if (property.getValueType() == ctObject)
+                {
+                    targetConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, sourcePropValue);
+                }
+                else
+                {
+                    targetConfig.setPropertyValue(name, sourcePropValue);
+                }
+            }
         }
     }
 }
@@ -1687,8 +1859,6 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
     if (!fs::is_directory(searchFolder, errCode))
         DAQ_THROW_EXCEPTION(InvalidParameterException, fmt::format(R"(The specified path "{}" is not a folder.)", searchFolder));
 
-    fs::recursive_directory_iterator dirIterator(searchFolder);
-
     [[maybe_unused]]
     Finally onExit([workingDir = fs::current_path()]
     {
@@ -1696,6 +1866,7 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
     });
 
     fs::current_path(searchFolder);
+    fs::recursive_directory_iterator dirIterator(fs::current_path());
 
     const auto endIter = fs::recursive_directory_iterator();
     while (dirIterator != endIter)
@@ -1838,13 +2009,11 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, ModuleManager,
-    IString*, path
-)
+    IString*, path)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, ModuleManager,
     IModuleManager, createModuleManagerMultiplePaths,
-    IList*, paths
-)
+    IList*, paths)
 
 END_NAMESPACE_OPENDAQ

@@ -17,6 +17,7 @@ set(SRC_Include common.h
                 fft_fb_impl.h
                 power_reader_fb_impl.h
                 struct_decoder_fb_impl.h
+                time_delay_fb_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
@@ -29,22 +30,25 @@ set(SRC_Srcs module_dll.cpp
              fft_fb_impl.cpp
              power_reader_fb_impl.cpp
              struct_decoder_fb_impl.cpp
+             time_delay_fb_impl.cpp
 )
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     message(STATUS "Renderer function block enabled") 
     set(SRC_Include ${SRC_Include} renderer_fb_impl.h
+                                   video_player_fb_impl.h
                                    polyline.h
                                    polyline_impl.h
                                    polyline_impl_generic.h
                                    polyline_impl_line.h)
                                    
-    set(SRC_Srcs ${SRC_Srcs} renderer_fb_impl.cpp 
+    set(SRC_Srcs ${SRC_Srcs} renderer_fb_impl.cpp
+                             video_player_fb_impl.cpp
                              polyline.cpp
                              polyline_impl.cpp
                              polyline_impl_generic.cpp
                              polyline_impl_line.cpp
-                             ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h)                             
+                             ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h)
 else()
     message(STATUS "Renderer function block disabled") 
 endif()
@@ -63,6 +67,7 @@ set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             ${MODULE_HEADERS_DIR}/fft_fb_impl.h
                             ${MODULE_HEADERS_DIR}/power_reader_fb_impl.h
                             ${MODULE_HEADERS_DIR}/struct_decoder_fb_impl.h
+                            ${MODULE_HEADERS_DIR}/time_delay_fb_impl.h
                             module_dll.cpp
                             power_fb_impl.cpp
                             statistics_fb_impl.cpp
@@ -71,12 +76,15 @@ set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             trigger_fb_impl.cpp
                             fft_fb_impl.cpp
                             power_reader_fb_impl.cpp
-                            struct_decoder_fb_impl.cpp)
+                            struct_decoder_fb_impl.cpp
+                            time_delay_fb_impl.cpp)
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     set(MODULE_FILES ${MODULE_FILES} ${MODULE_HEADERS_DIR}/renderer_fb_impl.h
+                                     ${MODULE_HEADERS_DIR}/video_player_fb_impl.h
                                      ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h
                                      renderer_fb_impl.cpp
+                                     video_player_fb_impl.cpp
     )
 
     source_group("polyline" FILES ${MODULE_HEADERS_DIR}/polyline.h
@@ -107,6 +115,7 @@ if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     target_compile_definitions(${LIB_NAME} PRIVATE OPENDAQ_ENABLE_RENDERER)
     target_link_libraries(${LIB_NAME} PRIVATE sfml-graphics
                                               sfml-window
+                                              sfml-system
                                               date::date)
 endif()
 

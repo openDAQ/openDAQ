@@ -275,7 +275,7 @@ void ReadSignal::sendPacket()
     auto* data = static_cast<double*>(packet.getRawData());
     for (auto i = 0; i < packetSize; ++i)
     {
-        data[i] = offset + i;
+        data[i] = static_cast<double>(offset + i);
     }
 
     signal.sendPacket(packet);
@@ -288,8 +288,8 @@ void printData(std::int64_t samples, T& times, U& values)
     using namespace std::chrono;
     using namespace reader;
 
-    int numSignals = std::size(times);
-    for (int sigIndex = 0; sigIndex < numSignals; ++sigIndex)
+    size_t numSignals = std::size(times);
+    for (size_t sigIndex = 0; sigIndex < numSignals; ++sigIndex)
     {
         fmt::print("--------\n");
         fmt::print("Signal {}\n", sigIndex);

@@ -44,6 +44,8 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     , referenceDomainId(init.referenceDomainId)
     , acqActive(true)
 {
+    objPtr.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
+
     initProperties();
     waveformChangedInternal();
     signalTypeChangedInternal();
@@ -163,7 +165,7 @@ void RefChannelImpl::initProperties()
     objPtr.addProperty(getCurrentAndSetCounterProp);
     objPtr.setPropertyValue("GetAndSetCounter", Function([this](Int val)
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
         const auto cnt = counter;
         this->setCounter(val, false);
         return cnt;
@@ -276,7 +278,7 @@ void RefChannelImpl::signalTypeChangedInternal()
 
 void RefChannelImpl::resetCounter()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     counter = 0;
 }
 
@@ -284,7 +286,7 @@ void RefChannelImpl::setCounter(uint64_t cnt, bool shouldLock)
 {
     if (shouldLock)
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
 	    counter = cnt;
     }
     else
@@ -299,7 +301,6 @@ uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) co
 
 void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    auto lock = this->getAcquisitionLock();
     if (!acqActive)
         return;
 
@@ -385,7 +386,7 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
 
         if (!dataPacket.assigned())
         {
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "We have created an empty packet, OH NO");
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Packet creation failed!");
         }
 
         double* buffer;
@@ -522,7 +523,6 @@ void RefChannelImpl::createSignals()
 
 void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
 {
-    const auto lock = getRecursiveConfigLock();
     globalSampleRate = coerceSampleRate(newGlobalSampleRate);
     signalTypeChanged();
 }

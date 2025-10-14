@@ -185,6 +185,7 @@ option(DAQMODULES_OPENDAQ_SERVER_MODULE "Building of ${SDK_NAME} server modules"
 option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
 option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
+option(DAQMODULES_SIMULATOR_DEVICE_MODULE "Building of simulator device module" OFF)
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
 option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder module" OFF)
 option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" OFF)
@@ -192,6 +193,9 @@ option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
 option(DAQMODULES_PROPERTIES_MODULE "Enable properties example module" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
+if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER AND APPLE)
+    enable_language(OBJC OBJCXX)
+endif()
 
 # logging
 
@@ -234,8 +238,9 @@ if (COMMAND get_mode)
     message(STATUS "CMake Mode is ${CMAKE_MODE}")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM Clang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|IntelLLVM)$")
+    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM")
+    message(STATUS "Compiler is LLVM")
 endif ()
 
 if (UNIX AND (CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUXX))
@@ -441,7 +446,7 @@ if (OPENDAQ_FORCE_LLD_LINKER)
     message(STATUS "Forcing the use of LLVM LLD linker. Make sure it is installed and available.")
 endif()
 
-if (MSVC)
+if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
     # As above CMAKE_CXX_STANDARD but for VS
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++17>)
 
@@ -485,14 +490,6 @@ if (MSVC)
         # assignment within conditional expression
         # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-4-c4706
         /wd4706
-        # loss of data / precision, unsigned <--> signed
-        #
-        # 'argument' : conversion from 'type1' to 'type2', possible loss of data
-        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4244
-        /wd4244
-        # 'var' : conversion from 'size_t' to 'type', possible loss of data
-        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4267
-        /wd4267
     )
         add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:${flag}>)
     endforeach()
@@ -703,6 +700,28 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         -Wno-missing-field-initializers"
     )
 
+    # Append Intel-LLVM-specific suppressions
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Rno-debug-disables-optimization \
+            -Wno-deprecated-literal-operator \
+            -Wno-self-assign-overloaded"
+        )
+    endif()
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
+        message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
+        # cmd-line options might be mixed - suppress warnings
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Wno-unknown-argument \
+            -Wno-unused-command-line-argument"
+        )
+        # suppress warning in MSVC toolchain header file
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Wno-delete-non-abstract-non-virtual-dtor"
+        )
+    endif ()
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANG_FLAGS}")
 
@@ -712,9 +731,9 @@ endif()
 
 add_subdirectory(core)
 add_subdirectory(modules)
-add_subdirectory(bindings)
 add_subdirectory(shared)
 add_subdirectory(examples)
+add_subdirectory(bindings)
 add_subdirectory(docs)
 add_subdirectory(simulator)
 

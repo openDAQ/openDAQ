@@ -34,6 +34,7 @@
 #include <opendaq/mirrored_device.h>
 #include <set>
 #include <cctype>
+#include <coretypes/coretype_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -201,14 +202,6 @@ namespace deviceInfoDetails
     };
 }
 
-inline std::string ToLowerCase(const std::string &input) 
-{
-    std::string result = input;
-    std::transform(result.begin(), result.end(), result.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    return result;
-}
-
 template <typename TInterface, typename ... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     : Super()
@@ -235,7 +228,10 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     if (changeableDefaultPropertyNames.assigned())
     {
         for (const auto& propName : changeableDefaultPropertyNames)
-            this->changeableDefaultPropertyNames.insert(ToLowerCase(propName));
+        {
+            std::string propNameStr = propName.toStdString();
+            this->changeableDefaultPropertyNames.insert(coretype_utils::toLowerCase(propNameStr));
+        }
     }
 
     createAndSetStringProperty("manufacturer", "");
@@ -823,7 +819,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::Deserialize(ISerialized
 template <typename TInterface, typename ... Interfaces>
 bool DeviceInfoConfigImpl<TInterface, Interfaces...>::isPropertyChangeable(const StringPtr& propertyName)
 {
-    return changeableDefaultPropertyNames.count(ToLowerCase(propertyName)) == 1;
+    std::string propNameStr = propertyName.toStdString();
+    return changeableDefaultPropertyNames.count(coretype_utils::toLowerCase(propNameStr)) == 1;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1210,7 +1207,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     if (parent.supportsInterface<IMirroredDevice>())
         return errCode;
     
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     for (const StringPtr& propertyName: {String("userName"), String("location")})
     {
         PropertyPtr property;

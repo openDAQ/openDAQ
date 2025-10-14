@@ -11,17 +11,38 @@ BEGIN_NAMESPACE_OPENDAQ
 
 using namespace testing;
 
+class TestDeviceImpl : public MirroredDevice
+{
+public:
+    TestDeviceImpl(const ContextPtr& ctx,
+                   const ComponentPtr& parent,
+                   const StringPtr& localId)
+        : MirroredDevice(ctx, parent, localId)
+    {}
+
+protected:
+    StringPtr onGetRemoteId() const override
+    {
+        return String("TestId");
+    }
+};
+
 class MirroredDeviceTest : public testing::Test
 {
 public:
     MirroredDeviceTest()
         : context(NullContext())
-        , device(createWithImplementation<IMirroredDeviceConfig, MirroredDevice>(context, nullptr, "TestDevice"))
+        , device(createWithImplementation<IMirroredDeviceConfig, TestDeviceImpl>(context, nullptr, "TestDevice"))
     {}
 
     ContextPtr context;
     MirroredDeviceConfigPtr device;
 };
+
+TEST_F(MirroredDeviceTest, GetRemoteId)
+{
+    ASSERT_EQ(device.getRemoteId(), "TestId");
+}
 
 TEST_F(MirroredDeviceTest, GetStreamingSources)
 {

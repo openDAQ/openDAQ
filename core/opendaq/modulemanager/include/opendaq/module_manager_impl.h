@@ -32,6 +32,7 @@
 #include <opendaq/module_ptr.h>
 #include <tsl/ordered_map.h>
 #include <daq_discovery/daq_discovery_client.h>
+#include <opendaq/module_authenticator_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 struct ModuleLibrary;
@@ -46,6 +47,9 @@ public:
     ErrCode INTERFACE_FUNC addModule(IModule* module) override;
     ErrCode INTERFACE_FUNC loadModules(IContext* context) override;
     ErrCode INTERFACE_FUNC loadModule(IString* path, IModule** module) override;
+    ErrCode INTERFACE_FUNC setAuthenticatedOnly(Bool authenticatedOnly) override;
+    ErrCode INTERFACE_FUNC setModuleAuthenticator(IModuleAuthenticator* authenticator) override;
+    ErrCode INTERFACE_FUNC getVendorKeys(IDict** vendorKeys) override;
 
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
@@ -75,10 +79,11 @@ private:
 
     DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
     DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
-    static StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
-                                                  const DeviceInfoPtr& discoveredDeviceInfo,
-                                                  const PropertyObjectPtr& generalConfig,
-                                                  const LoggerComponentPtr& loggerComponent);
+    StringPtr getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const;
+    StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
+                                           const DeviceInfoPtr& discoveredDeviceInfo,
+                                           const PropertyObjectPtr& generalConfig,
+                                           const LoggerComponentPtr& loggerComponent) const;
     DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
 
@@ -95,7 +100,7 @@ private:
     void completeServerCapabilities(const DevicePtr& device) const;
 
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
-    static void setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info);
+    void setAddressesReachable(const std::map<std::string, bool>& addr, ListPtr<IDeviceInfo>& info);
     static PropertyObjectPtr populateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig);
 
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const;
@@ -105,6 +110,10 @@ private:
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
     void onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo);
+
+    bool authenticatedModulesOnly;
+    ModuleAuthenticatorPtr moduleAuthenticator;
+    DictPtr<IString, IString> moduleKeys;
 
     bool modulesLoaded;
     std::vector<std::string> paths;

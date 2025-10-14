@@ -137,7 +137,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 17);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 18);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -802,8 +802,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
 
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
 {
-    if (test_helpers::Ipv6IsDisabled())
-        return;
+    bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
@@ -820,30 +819,36 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
+            
+            if (capability.getProtocolName() != "OpenDAQNativeConfiguration")
+                continue;
 
-            if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+            bool hasIPv4 = false;
+            bool hasIPv6 = false;
+            int cnt = 0;
+            for (const auto& addressInfo : capability.getAddressInfo())
             {
-                const auto ipv4Info = capability.getAddressInfo()[0];
-                const auto ipv6Info = capability.getAddressInfo()[1];
-                ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-                ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[cnt]);
+                ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[cnt]);
+                if (addressInfo.getType() == "IPv4")
+                {
+                    hasIPv4 = true;
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                }
+                else if (addressInfo.getType() == "IPv6")
+                {
+                    hasIPv6 = true;
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                }
                 
-                ASSERT_EQ(ipv4Info.getType(), "IPv4");
-                ASSERT_EQ(ipv6Info.getType(), "IPv6");
+                if (hasIPv4 && (hasIPv6 || !checkIPv6))
+                    return;
 
-                ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-                ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
-                
-                ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-                ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
-                return;
-            }
-            else
-            {
-                ASSERT_EQ(capability.getProtocolName(), "OpenDAQNativeStreaming");
+                cnt++;
             }
         }      
     }
+
     ASSERT_TRUE(false) << "Device not found";
 }
 
@@ -963,9 +968,6 @@ TEST_F(NativeDeviceModulesTest, TestProtocolVersion)
 
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
-    if (test_helpers::Ipv6IsDisabled())
-        return;
-
     auto deviceInfo = DeviceInfo("testdevice://");
     deviceInfo.setManufacturer("openDAQ");
     deviceInfo.setSerialNumber("TestSerial");
@@ -974,41 +976,45 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configurator/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
-
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
-
+    
     auto client = Instance();
     DevicePtr device = FindNativeDeviceByPath(client, path);
     ASSERT_TRUE(device.assigned());
 
     const auto caps = device.getInfo().getServerCapabilities();
     ASSERT_EQ(caps.getCount(), 2u);
+    int cnt = 0;
 
     for (const auto& capability : caps)
     {
-        if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-        {
-            const auto ipv4Info = capability.getAddressInfo()[0];
-            const auto ipv6Info = capability.getAddressInfo()[1];
-            ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
-            
-            ASSERT_EQ(ipv4Info.getType(), "IPv4");
-            ASSERT_EQ(ipv6Info.getType(), "IPv6");
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
 
-            ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
-            
-            ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
-            return;
-        }
-        else
+        if (capability.getProtocolName() != "OpenDAQNativeConfiguration")
+            continue;
+
+        int index = 0;
+        for (const auto& addressInfo : capability.getAddressInfo())
         {
-            ASSERT_EQ(capability.getProtocolName(), "OpenDAQNativeStreaming");
+            ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[index]);
+            ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
+            if (addressInfo.getType() == "IPv4")
+            {
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                cnt++;
+            }
+            else if (addressInfo.getType() == "IPv6")
+            {
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                cnt++;
+            }
+            
+            index++;
         }
     }
-    ASSERT_TRUE(false) << "Device not found";
+    
+    ASSERT_GT(cnt, 0);
 }
 
 TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
@@ -1021,7 +1027,7 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
     auto signalsServer = server.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(signals.getCount(), 8u);
     auto signalsVisible = client.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(signalsVisible.getCount(), 5u);
+    ASSERT_EQ(signalsVisible.getCount(), 4u);
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
     auto fbs = devices[0].getFunctionBlocks();
@@ -2011,7 +2017,7 @@ TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
         auto signals = testDevice.getSignals(search::Recursive(search::Any()));
         ASSERT_EQ(signals.getCount(), 8u);
         auto signalsVisible = testDevice.getSignals(search::Recursive(search::Visible()));
-        ASSERT_EQ(signalsVisible.getCount(), 5u);
+        ASSERT_EQ(signalsVisible.getCount(), 4u);
         auto devices = testDevice.getDevices();
         ASSERT_EQ(devices.getCount(), 1u);
         auto fbs = testDevice.getFunctionBlocks();
@@ -2038,6 +2044,81 @@ TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
 
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "Off");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("TestStatus"), "MsgOff");
+}
+
+TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfigDeviceLocked)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    server.getRootDevice().lock();
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), True);
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    std::promise<StringPtr> reconnectionStatusPromise;
+    std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ConnectionStatusChanged)
+        {
+            ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
+            if (args.getParameters().get("StatusName") == "ConfigurationStatus")
+            {
+                ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
+                EXPECT_EQ(args.getParameters().get("ConnectionString"), "daq.nd://127.0.0.1");
+                ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
+                EXPECT_EQ(args.getParameters().get("StreamingObject"), nullptr);
+                ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+                reconnectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
+            }
+        }
+    };
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "On");
+
+    // destroy server to emulate disconnection
+    server.release();
+
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Reconnecting");
+
+    // reset future / promise
+    reconnectionStatusPromise = std::promise<StringPtr>();
+    reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+
+    // re-create updated server
+    server = CreateServerInstance(CreateUpdatedServerInstance());
+
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+
+    auto channels = client.getDevices()[0].getChannels(search::Recursive(search::Any()));
+    ASSERT_EQ(channels.getCount(), 3u);
+
+    auto fbs = client.getDevices()[0].getFunctionBlocks(search::Recursive(search::Any()));
+    ASSERT_EQ(fbs.getCount(), 1u);
+    ASSERT_EQ(fbs[0].getFunctionBlockType().getId(), "RefFBModuleScaling");
+
+    ASSERT_TRUE(client.getContext().getTypeManager().hasType("TestEnumType"));
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "Off");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("TestStatus"), "MsgOff");
+
+    auto signals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : signals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
+
+    auto info = client.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.assigned());
+    ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
 }
 
 TEST_F(NativeDeviceModulesTest, Update)
@@ -3146,9 +3227,10 @@ TEST_F(NativeDeviceModulesTest, DISABLED_UseOldProtocolVersionLocationUsername)
     server.detach();
 }
 
-using NativeC2DStreamingTest = testing::Test;
+// native config protocol version as a param
+using NativeC2DStreamingTest = testing::TestWithParam<uint16_t>;
 
-TEST_F(NativeC2DStreamingTest, DISABLED_ConnectSignalWithOldProtocolVersion)
+TEST_P(NativeC2DStreamingTest, DISABLED_ConnectSignalWithOldProtocolVersion)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -3164,11 +3246,11 @@ TEST_F(NativeC2DStreamingTest, DISABLED_ConnectSignalWithOldProtocolVersion)
                      "Client-to-device streaming operations are not supported by the protocol version currently in use");
 }
 
-TEST_F(NativeC2DStreamingTest, ConnectAndRead)
+TEST_P(NativeC2DStreamingTest, ConnectAndRead)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     const auto mirroredDevice = client.getDevices()[0];
     const auto clientRefDevice = client.addDevice("daqref://device0");
@@ -3212,7 +3294,81 @@ TEST_F(NativeC2DStreamingTest, ConnectAndRead)
     }
 }
 
-TEST_F(NativeC2DStreamingTest, ServerCoreEvents)
+TEST_P(NativeC2DStreamingTest, DISABLED_ConnectAndRenderSignal)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(GetParam());
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+
+    auto renderer = server.addFunctionBlock("ref_fb_module_renderer");
+
+    // read output signal of function block to which external signal connected
+    auto fbSignal = server.getFunctionBlocks()[0].getSignals()[0];
+    renderer.getInputPorts()[0].connect(fbSignal);
+
+    // read mirrored external signal directly
+    auto mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+    renderer.getInputPorts()[1].connect(mirroredExternalSignal);
+
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+}
+
+TEST_P(NativeC2DStreamingTest, ConnectAndReadGeneralized)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(GetParam());
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+
+    // read output signal of function block to which external signal connected
+    {
+        auto fbSignal = server.getFunctionBlocks()[0].getSignals()[0];
+        StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(fbSignal, ReadTimeoutType::Any);
+        {
+            daq::SizeT count = 0;
+            reader.read(nullptr, &count, 100);
+        }
+        double samples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT count = 100;
+            reader.read(samples, &count, 1000);
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
+    }
+
+    // read mirrored external signal directly
+    {
+        auto mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+        StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(mirroredExternalSignal, ReadTimeoutType::Any);
+        {
+            daq::SizeT count = 0;
+            reader.read(nullptr, &count, 100);
+        }
+        double samples[100];
+        for (int i = 0; i < 5; ++i)
+        {
+            daq::SizeT count = 100;
+            reader.read(samples, &count, 1000);
+            EXPECT_GT(count, 0u) << "iteration " << i;
+        }
+    }
+}
+
+TEST_P(NativeC2DStreamingTest, ServerCoreEvents)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -3255,7 +3411,7 @@ TEST_F(NativeC2DStreamingTest, ServerCoreEvents)
     std::future<void> signalDisconnectedFuture = signalDisconnectedPromise.get_future();
     std::future<void> signalRemovedFuture = signalRemovedPromise.get_future();
 
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
     auto mirroredDevice = client.getDevices()[0];
     const auto clientRefDevice = client.addDevice("daqref://device0");
     clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
@@ -3287,11 +3443,11 @@ TEST_F(NativeC2DStreamingTest, ServerCoreEvents)
     ASSERT_TRUE(signalRemovedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
 }
 
-TEST_F(NativeC2DStreamingTest, ClientLostConnection)
+TEST_P(NativeC2DStreamingTest, ClientLostConnection)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     ASSERT_EQ(server.getRootDevice().getInfo().getConnectedClientsInfo().getCount(), 2u);
 
@@ -3333,11 +3489,11 @@ TEST_F(NativeC2DStreamingTest, ClientLostConnection)
     }
 }
 
-TEST_F(NativeC2DStreamingTest, ServerLostConnection)
+TEST_P(NativeC2DStreamingTest, ServerLostConnection)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     auto mirroredDevice = client.getDevices()[0];
     const auto clientRefDevice = client.addDevice("daqref://device0");
@@ -3369,11 +3525,11 @@ TEST_F(NativeC2DStreamingTest, ServerLostConnection)
     ASSERT_EQ(server.getServers()[0].getSignals(search::Any()).getCount(), 0u);
 }
 
-TEST_F(NativeC2DStreamingTest, StreamingData)
+TEST_P(NativeC2DStreamingTest, StreamingData)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(GetParam());
 
     const auto mirroredDevice = client.getDevices()[0];
     const auto clientLocalDevice = client.addDevice("daqmock://phys_device");
@@ -3415,6 +3571,10 @@ TEST_F(NativeC2DStreamingTest, StreamingData)
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(test_helpers::packetsEqual(clientReceivedPackets, serverReceivedPackets));
 }
+
+// version 17 falls to basic C2Ds
+// version 18 uses generalized C2Ds
+INSTANTIATE_TEST_SUITE_P(NativeC2DStreamingTestGroup, NativeC2DStreamingTest, testing::Values(17, 18));
 
 TEST_F(NativeDeviceModulesTest, AddNestedFB)
 {

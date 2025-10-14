@@ -81,7 +81,7 @@ private:
     LoggerComponentPtr loggerComponent;
     std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
-    std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
+    std::unordered_map<uint64_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     WeakRefPtr<IDevice> deviceRef;
     EnumerationPtr connectionStatus;
     bool acceptNotificationPackets;

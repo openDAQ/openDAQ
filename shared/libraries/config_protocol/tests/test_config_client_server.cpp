@@ -19,6 +19,7 @@
 #include <coreobjects/user_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/exceptions.h>
+#include <opendaq/mock/advanced_components_setup_utils.h>
 
 using namespace daq;
 using namespace config_protocol;
@@ -49,7 +50,8 @@ public:
             std::make_unique<ConfigProtocolServer>(device,
                                                    std::bind(&ConfigProtocolTest::serverNotificationReady, this, std::placeholders::_1),
                                                    anonymousUser,
-                                                   ClientType::Control);
+                                                   ClientType::Control,
+                                                   test_utils::dummyExtSigFolder(NullContext()));
         client =
             std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
                 NullContext(),

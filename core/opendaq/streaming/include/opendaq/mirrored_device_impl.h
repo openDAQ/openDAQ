@@ -45,6 +45,7 @@ public:
 
     // IMirroredDevice
     ErrCode INTERFACE_FUNC getStreamingSources(IList** streamingSources) override;
+    ErrCode INTERFACE_FUNC getRemoteId(IString** id) const override;
 
     // IMirroredDeviceConfig
     ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streamingSource) override;
@@ -59,6 +60,7 @@ protected:
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
     virtual bool isAddedToLocalComponentTree();
+    virtual StringPtr onGetRemoteId() const = 0;
 
 private:
     std::vector<StreamingPtr> streamingSources;
@@ -88,7 +90,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::getStreamingSources(IList** streaming
 
     auto streamingSourcesPtr = List<IStreaming>();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     for (const auto& streaming : this->streamingSources)
     {
         streamingSourcesPtr.pushBack(streaming);
@@ -99,6 +101,19 @@ ErrCode MirroredDeviceBase<Interfaces...>::getStreamingSources(IList** streaming
 }
 
 template <typename... Interfaces>
+ErrCode MirroredDeviceBase<Interfaces...>::getRemoteId(IString** id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    StringPtr signalRemoteId;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
+
+    *id = signalRemoteId.detach();
+
+    return errCode;
+}
+
+template <typename... Interfaces>
 ErrCode MirroredDeviceBase<Interfaces...>::addStreamingSource(IStreaming* streamingSource)
 {
     OPENDAQ_PARAM_NOT_NULL(streamingSource);
@@ -106,7 +121,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::addStreamingSource(IStreaming* stream
     const auto streamingPtr = StreamingPtr::Borrow(streamingSource);
     const auto connectionString = streamingPtr.getConnectionString();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto it = std::find_if(streamingSources.begin(),
                            streamingSources.end(),
@@ -153,7 +168,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
 
@@ -204,6 +219,8 @@ void MirroredDeviceBase<Interfaces...>::removed()
     // disconnects all streaming connections
     streamingSources.clear();
 
+    streamingSourceManager.reset();
+
     Super::removed();
 }
 
@@ -229,7 +246,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
 template <typename... Interfaces>
 StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto it = std::find_if(streamingSources.begin(),
                            streamingSources.end(),

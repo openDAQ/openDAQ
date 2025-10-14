@@ -143,7 +143,7 @@ TEST_F(WavReaderTest, ReadFile)
     reader.readWithDomain(data.data(), time.data(), &count, 10000);
     ASSERT_EQ(count, 100);
 
-    while (bool framesAvailable = !fb.getPropertyValue("EOF"))
+    while (!static_cast<bool>(fb.getPropertyValue("EOF")))
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }

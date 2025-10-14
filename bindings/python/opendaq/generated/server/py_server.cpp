@@ -82,4 +82,13 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cl
         },
         py::arg("search_filter") = nullptr,
         "Gets a list of the server's signals.");
+    cls.def_property_readonly("streaming",
+        [](daq::IServer *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            return objectPtr.getStreaming().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets a streaming source associated with server.");
 }

@@ -101,6 +101,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     notificationMethodsList = old->notificationMethodsList;
     context = old->context;
     portsConnected = old->portsConnected;
+    externalListener = old->externalListener;
     
     this->internalAddRef();
     try

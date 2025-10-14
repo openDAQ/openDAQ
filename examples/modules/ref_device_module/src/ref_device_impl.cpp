@@ -84,7 +84,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id,
 RefDeviceImpl::~RefDeviceImpl()
 {
     {
-        auto lock = this->getAcquisitionLock();
+        auto lock = this->getAcquisitionLock2();
         stopAcq = true;
     }
     cv.notify_one();
@@ -214,8 +214,8 @@ void RefDeviceImpl::initClock()
 
 void RefDeviceImpl::initIoFolder()
 {
-    aiFolder = this->addIoFolder("AI", ioFolder);
-    canFolder = this->addIoFolder("CAN", ioFolder);
+    aiFolder = this->addIoFolder("AI", ioFolder, LockingStrategy::InheritLock);
+    canFolder = this->addIoFolder("CAN", ioFolder, LockingStrategy::InheritLock);
 }
 
 void RefDeviceImpl::initSyncComponent()
@@ -452,7 +452,7 @@ void RefDeviceImpl::enableProtectedChannel()
 
 void RefDeviceImpl::updateGlobalSampleRate()
 {
-    auto lock = getRecursiveConfigLock();
+    auto lock = getRecursiveConfigLock2();
 
     configureTimeSignal();
     updateSamplesGenerated();
@@ -510,7 +510,7 @@ StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint)
 ListPtr<ILogFileInfo> RefDeviceImpl::onGetLogFileInfos()
 {
     {
-        auto lock = getAcquisitionLock();
+        auto lock = getAcquisitionLock2();
         if (!loggingEnabled)
         {
             return List<ILogFileInfo>();
@@ -548,7 +548,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::onGetLogFileInfos()
 StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
 {
     {
-        auto lock = getAcquisitionLock();
+        auto lock = getAcquisitionLock2();
         if (!loggingEnabled)
             return "";
 
@@ -593,7 +593,7 @@ void RefDeviceImpl::onOperationModeChanged(OperationModeType modeType)
 
 void RefDeviceImpl::createSignals()
 {
-    timeSignal = createAndAddSignal("Time", nullptr, true);
+    timeSignal = createAndAddSignal("Time", nullptr, false);
     timeSignal.getTags().asPtr<ITagsPrivate>(true).add("DeviceDomain");
 }
 

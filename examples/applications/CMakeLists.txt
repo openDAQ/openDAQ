@@ -273,5 +273,26 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     else()
         message(WARNING "OPENDAQ_GENERATE_C_BINDINGS, DAQMODULES_OPENDAQ_CLIENT_MODULE, DAQMODULES_REF_FB_MODULE, DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER and OPENDAQ_ENABLE_NATIVE_STREAMING or OPENDAQ_ENABLE_OPCUA must be ON to enable c_application_tutorial")
     endif()
+    
+    if (DAQMODULES_PROPERTIES_MODULE)
+        add_library(prop_utils INTERFACE)
+        target_include_directories(prop_utils INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/cpp/common)
+        
+        add_executable(properties_basic_types cpp/properties_basic_types/properties_app_basic_types.cpp)
+        target_link_libraries(properties_basic_types PRIVATE daq::opendaq prop_utils)
+        target_compile_options(properties_basic_types PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/bigobj>)
+        
+        add_executable(properties_container_types cpp/properties_container_types/properties_app_container_types.cpp)
+        target_link_libraries(properties_container_types PRIVATE daq::opendaq prop_utils)
+        target_compile_options(properties_container_types PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/bigobj>)
+        
+        add_executable(properties_objects_and_classes cpp/properties_objects_and_classes/properties_app_objects_and_classes.cpp)
+        target_link_libraries(properties_objects_and_classes PRIVATE daq::opendaq prop_utils)
+        target_compile_options(properties_objects_and_classes PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/bigobj>)
+        
+        add_executable(properties_reference_properties cpp/properties_reference_properties/properties_app_reference_properties.cpp)
+        target_link_libraries(properties_reference_properties PRIVATE daq::opendaq prop_utils)
+        target_compile_options(properties_reference_properties PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/bigobj>)
+    endif()
 
 endif()

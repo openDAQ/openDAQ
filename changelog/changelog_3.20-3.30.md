@@ -44,7 +44,6 @@
 - [#893](https://github.com/openDAQ/openDAQ/pull/893) Rework disabled permission manager, making module code independent of the OPENDAQ_ENABLE_ACCESS_CONTROL option
 - [#835](https://github.com/openDAQ/openDAQ/pull/835) Removes the opendaq_dev target.
 - [#829](https://github.com/openDAQ/openDAQ/pull/829) Add search functionality to Antora documentation to significantly improve user experience.
-- [#804](https://github.com/openDAQ/openDAQ/pull/804) Add Properties examples.
 - [#883](https://github.com/openDAQ/openDAQ/pull/883) Renaming enum TimeSource into TimeProtocol, so that it more accurately reflects its values.
 
 ## Required application changes

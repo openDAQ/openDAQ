@@ -201,6 +201,7 @@ jobs:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
         run: |
           ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          ctest --output-on-failure --preset run_tmp_tests -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
           if (Test-Path -Path "${{ env.dotnet_test_path }}") {
             if (! (Test-Path -Path "${{ env.test_path }}")) { mkdir "${{ env.test_path }}" }
             Copy-Item "${{ env.dotnet_test_path }}/*.*" "${{ env.test_path }}"

@@ -322,6 +322,23 @@
                     "name": "test_py_opendaq"
                 }
             }
+        },
+        {
+            "name": "run_tmp_tests",
+            "description": "Run test multiple times",
+            "configurePreset": "ci",
+            "output": {
+                "outputOnFailure": true
+            },
+            "environment": {
+                "GTEST_FILTER": "*WebsocketClientDeviceTestP*",
+                "GTEST_REPEAT": "500"
+            },
+            "filter": {
+                "include": {
+                    "name": "test_websocket_streaming"
+                }
+            }
         }
     ]
 }

@@ -35,8 +35,8 @@ public:
 
     ~VectorExtractorImpl() override = default;
 
-private:
     static daq::FunctionBlockTypePtr CreateType();
+private:
 
     void onDataReceived();
 

@@ -322,6 +322,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
     
+        if (static_cast<bool>(active) == this->active)
+            return OPENDAQ_IGNORED;
+
         if (lockedAttributes.count("Active"))
         {
             if (context.assigned() && context.getLogger().assigned())
@@ -334,9 +337,6 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 
             return OPENDAQ_IGNORED;
         }
-
-        if (static_cast<bool>(active) == this->active)
-            return OPENDAQ_IGNORED;
 
         if (active && isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);

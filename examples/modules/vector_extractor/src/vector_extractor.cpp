@@ -66,7 +66,7 @@ void VectorExtractorImpl::onDataReceived()
         const auto valuePacket = DataPacketWithDomain(domainPacket, outputSignal.getDescriptor(), cnt);
         // The cast happens here
 
-
+        castingFunction(valuePacket.getDataDescriptor(), &bufferData, valuePacket.getData());
 
         outputDomainSignal.sendPacket(domainPacket);
         outputSignal.sendPacket(valuePacket);
@@ -135,7 +135,7 @@ void VectorExtractorImpl::onPacketReceived(const daq::InputPortPtr& port)
 
 void VectorExtractorImpl::onDisconnected(const daq::InputPortPtr& port)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     signals.clear();
 
@@ -194,6 +194,7 @@ void VectorExtractorImpl::processSignalDescriptorsChangedEventPacket(const daq::
 {
     const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
         daq::parseDataDescriptorEventPacket(eventPacket);
+    // This need further examination...
     if (valueDescriptorChanged)
         this->inputDataDescriptor = newValueDescriptor;
     if (domainDescriptorChanged)
@@ -204,7 +205,7 @@ void VectorExtractorImpl::processSignalDescriptorsChangedEventPacket(const daq::
 
 void VectorExtractorImpl::createReader()
 {
-    reader.release();
+    reader.dispose();
 
     reader = StreamReader(inputPort);
 
@@ -240,8 +241,9 @@ void VectorExtractorImpl::configure()
             throw std::runtime_error("Invalid sample type");
         }
 
-        // These SampleTypes should be reassessed
-
+        /*
+        * Note: This is now outside of scope because the input paradigm has shifted away from raw CAN dataframes
+        * 
         constexpr std::array<daq::SampleType, 11> validFieldTypes{
             daq::SampleType::Int8,
             daq::SampleType::Int16,
@@ -264,15 +266,13 @@ void VectorExtractorImpl::configure()
             {
                 throw std::runtime_error(fmt::format("Field \"{}\" has invalid sample type", field.getName()));
             }
-        }
+        } */
 
-        // 
-        // Here an output and unit check need to be constructed
-        // 
-
+        // Changes need to be handled in they come from outside, use of function arguments should be fine
         outputDataDescriptor = daq::DataDescriptorBuilder()
-                                    .setSampleType(daq::SampleType::UInt8)
+                                    .setSampleType(outputType)
                                     .build();
+
         outputDomainDescriptor = inputDomainDescriptor;
 
         outputSignal.setDescriptor(outputDataDescriptor);
@@ -293,6 +293,8 @@ void VectorExtractorImpl::configure()
     }
 }
 
+
+// Q: Why is this one no longer used in sem_reader_fb??
 void VectorExtractorImpl::initStatues() const
 {
     const auto inputStatusType =
@@ -395,6 +397,11 @@ void VectorExtractorImpl::createSignals()
     outputSignal = createAndAddSignal("RPM_counter");
     outputDomainSignal = createAndAddSignal("VectorDecoderTime", inputDomainDescriptor, false);
     outputSignal.setDomainSignal(outputDomainSignal);
+}
+
+void castingFunction(const DataDescriptorPtr& dataDescriptor, const void* bufferData, void* destinationData)
+{
+    // Logic using bit_cast from <bit> lib
 }
 
 END_NAMESPACE_VECTOR_EXTRACTOR_MODULE

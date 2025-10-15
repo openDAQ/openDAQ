@@ -82,6 +82,8 @@ private:
 
     void initStatues() const;
 
+    void castingFunction(const DataDescriptorPtr& dataDescriptor, const void* bufferData, void* destinationData);
+
     void createReader();
 
     bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);

@@ -29,13 +29,15 @@ BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 class AudioDeviceImpl final : public Device
 {
 public:
-    explicit AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maContext, const ma_device_id& id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit AudioDeviceImpl(const ModuleInfoPtr& moduleInfo, const std::shared_ptr<MiniaudioContext>& maContext, const ma_device_id& id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~AudioDeviceImpl() override;
 
-    static DeviceInfoPtr CreateDeviceInfo(const std::shared_ptr<MiniaudioContext>& maContext, const ma_device_info& deviceInfo);
+    static DeviceInfoPtr CreateDeviceInfo(const ModuleInfoPtr& moduleInfo,
+                                          const std::shared_ptr<MiniaudioContext>& maContext,
+                                          const ma_device_info& deviceInfo);
     static ma_device_id getIdFromConnectionString(std::string connectionString);
     static std::string getConnectionStringFromId(ma_backend backend, ma_device_id id);
-    static DeviceTypePtr createType();
+    static DeviceTypePtr createType(const ModuleInfoPtr& moduleInfo);
 
     // IDevice
     DeviceInfoPtr onGetInfo() override;
@@ -54,6 +56,7 @@ private:
     Int samplesCaptured;
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;
+    ModuleInfoPtr moduleInfo;
 
     void initProperties();
     void start();

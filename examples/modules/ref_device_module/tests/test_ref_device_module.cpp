@@ -124,6 +124,15 @@ TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringCorrect)
     ASSERT_NO_THROW(device = module.createDevice("daqref://device1", nullptr));
 }
 
+TEST_F(RefDeviceModuleTest, DeviceVersion)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+
+    ASSERT_EQ(device.getInfo().getDeviceType().getModuleInfo().getVersionInfo(), module.getModuleInfo().getVersionInfo());
+}
+
 TEST_F(RefDeviceModuleTest, DeviceDomainResolution)
 {
     auto module = CreateModule();

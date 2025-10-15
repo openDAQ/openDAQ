@@ -3,17 +3,19 @@
 #include <opendaq/work_factory.h>
 #include <opendaq/event_packet_params.h>
 #include <coreobjects/callable_info_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace VideoPlayer
 {
 
-VideoPlayerFbImpl::VideoPlayerFbImpl(const ContextPtr& ctx, 
+VideoPlayerFbImpl::VideoPlayerFbImpl(const ModuleInfoPtr& moduleInfo,
+                                     const ContextPtr& ctx, 
                                      const ComponentPtr& parent, 
                                      const StringPtr& localId,
                                      const PropertyObjectPtr& config)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
     , texture()
     , sprite(texture)
     , font(ARIAL_TTF, sizeof(ARIAL_TTF))
@@ -32,12 +34,16 @@ VideoPlayerFbImpl::VideoPlayerFbImpl(const ContextPtr& ctx,
     timestampText.setOutlineThickness(2);
 }
 
-FunctionBlockTypePtr VideoPlayerFbImpl::CreateType()
+FunctionBlockTypePtr VideoPlayerFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
-    return FunctionBlockType("RefFBModuleVideoPlayer",
-                             "Video Player",
-                             "Video playback and visualization"
+    auto fbType = FunctionBlockType("RefFBModuleVideoPlayer",
+                                    "Video Player",
+                                    "Video playback and visualization"
     );
+
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+
+    return fbType;
 }
 
 void VideoPlayerFbImpl::initProperties()

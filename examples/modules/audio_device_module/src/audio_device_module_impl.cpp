@@ -46,7 +46,7 @@ ListPtr<IDeviceInfo> AudioDeviceModule::onGetAvailableDevices()
     auto availableDevices = List<IDeviceInfo>();
     for (size_t i = 0; i < captureDeviceCount; i++)
     {
-        auto info = AudioDeviceImpl::CreateDeviceInfo(maContext, pCaptureDeviceInfos[i]);
+        auto info = AudioDeviceImpl::CreateDeviceInfo(moduleInfo, maContext, pCaptureDeviceInfos[i]);
         availableDevices.pushBack(info);
     }
 
@@ -61,7 +61,7 @@ DictPtr<IString, IDeviceType> AudioDeviceModule::onGetAvailableDeviceTypes()
 {
     auto result = Dict<IString, IDeviceType>();
 
-    auto deviceType = AudioDeviceImpl::createType();
+    auto deviceType = AudioDeviceImpl::createType(moduleInfo);
     result.set(deviceType.getId(), deviceType);
 
     return result;
@@ -77,7 +77,7 @@ DevicePtr AudioDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
     std::string localId = fmt::format("MiniAudioDev{}", deviceIndex++);
 
-    auto devicePtr = createWithImplementation<IDevice, AudioDeviceImpl>(maContext, id, context, parent, StringPtr(localId));
+    auto devicePtr = createWithImplementation<IDevice, AudioDeviceImpl>(moduleInfo, maContext, id, context, parent, StringPtr(localId));
     return devicePtr;
 }
 
@@ -85,8 +85,8 @@ DictPtr<IString, IFunctionBlockType> AudioDeviceModule::onGetAvailableFunctionBl
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
-    auto typeWriter = WAVWriterFbImpl::CreateType();
-    auto typeReader = WAVReaderFbImpl::CreateType();
+    auto typeWriter = WAVWriterFbImpl::CreateType(moduleInfo);
+    auto typeReader = WAVReaderFbImpl::CreateType(moduleInfo);
 
     types.set(typeWriter.getId(), typeWriter);
     types.set(typeReader.getId(), typeReader);
@@ -96,14 +96,14 @@ DictPtr<IString, IFunctionBlockType> AudioDeviceModule::onGetAvailableFunctionBl
 
 FunctionBlockPtr AudioDeviceModule::onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
 {
-    if (id == WAVWriterFbImpl::CreateType().getId())
+    if (id == WAVWriterFbImpl::CreateType(moduleInfo).getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, WAVWriterFbImpl>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, WAVWriterFbImpl>(moduleInfo, context, parent, localId);
         return fb;
     }
-    if (id == WAVReaderFbImpl::CreateType().getId())
+    if (id == WAVReaderFbImpl::CreateType(moduleInfo).getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, WAVReaderFbImpl>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, WAVReaderFbImpl>(moduleInfo, context, parent, localId);
         return fb;
     }
 

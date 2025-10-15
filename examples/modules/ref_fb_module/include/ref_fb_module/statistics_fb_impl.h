@@ -99,8 +99,12 @@ enum class DomainSignalType
 class StatisticsFbImpl final : public FunctionBlock
 {
 public:
-    StatisticsFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
-    static FunctionBlockTypePtr CreateType();
+    StatisticsFbImpl(const ModuleInfoPtr& moduleInfo,
+                     const ContextPtr& ctx,
+                     const ComponentPtr& parent,
+                     const StringPtr& localId,
+                     const PropertyObjectPtr& config);
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
 private:
     struct FreeDeleter

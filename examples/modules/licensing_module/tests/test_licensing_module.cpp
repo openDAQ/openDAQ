@@ -18,6 +18,7 @@
 #include <opendaq/reader_factory.h>
 
 #include <iostream>
+#include <thread>
 
 const std::string resourcesPath = TEST_RESOURCE_PATH;
 

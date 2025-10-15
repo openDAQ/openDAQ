@@ -58,6 +58,7 @@ void VectorExtractorImpl::onDataReceived()
     SizeT cnt = reader.getAvailableCount();
     std::unique_ptr bufferData = std::make_unique<uint8_t[]>(cnt);
 
+
     //auto status = reader.readWithDomain();
 }
 
@@ -158,6 +159,22 @@ void VectorExtractorImpl::processSignalDescriptorsChangedEventPacket(const daq::
         this->inputDomainDescriptor = newDomainDescriptor;
 
     configure();
+}
+
+void VectorExtractorImpl::createReader()
+{
+    reader.release();
+
+    reader = StreamReader(inputPort);
+
+    reader.setExternalListener(this->objPtr);
+    auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
+    reader.setOnDataAvailable([this, thisWeakRef = std::move(thisWeakRef)]
+        {
+            const auto thisFb = thisWeakRef.getRef();
+            if (thisFb.assigned())
+                this->onDataReceived();
+        });
 }
 
 void VectorExtractorImpl::configure()

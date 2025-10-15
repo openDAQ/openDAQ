@@ -58,7 +58,7 @@ private:
     size_t structSize;
 
     SampleType outputType;
-    uint8_t beginningOfSpace;
+    uint8_t beginningIndex;
 
     StreamReaderPtr reader;
 
@@ -78,7 +78,17 @@ private:
 
     void configure();
 
+    void readProperties();
+
     void initStatues() const;
+
+    void createReader();
+
+    bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);
+
+    bool getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);
+
+    bool descriptorNotNull(const DataDescriptorPtr& descriptor);
 
     void setInputStatus(const daq::StringPtr& value) const;
 

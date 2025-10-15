@@ -58,8 +58,49 @@ void VectorExtractorImpl::onDataReceived()
     SizeT cnt = reader.getAvailableCount();
     std::unique_ptr bufferData = std::make_unique<uint8_t[]>(cnt);
 
+    auto status = reader.read(&bufferData, &cnt);
 
-    //auto status = reader.readWithDomain();
+    if (cnt > 0)
+    {
+        const auto domainPacket = DataPacket(outputDomainSignal.getDescriptor(), cnt, status.getOffset());
+        const auto valuePacket = DataPacketWithDomain(domainPacket, outputSignal.getDescriptor(), cnt);
+        // The cast happens here
+
+
+
+        outputDomainSignal.sendPacket(domainPacket);
+        outputSignal.sendPacket(valuePacket);
+    }
+
+    if (status.getReadStatus() == ReadStatus::Event)
+    {
+        const auto eventPacket = status.getEventPacket();
+        if (eventPacket.assigned())
+        {
+            DataDescriptorPtr domainDescriptor;
+            DataDescriptorPtr dataDescriptor;
+
+            bool domainChanged = false;
+
+            getDataDescriptor(status.getEventPacket(), dataDescriptor);
+            domainChanged |= descriptorNotNull(dataDescriptor);
+
+            getDomainDescriptor(status.getEventPacket(), domainDescriptor);
+
+
+            if (dataDescriptor.assigned() || domainDescriptor.assigned() || domainChanged)
+            {
+                outputDataDescriptor = dataDescriptor;
+                outputDomainDescriptor = domainDescriptor;
+                configure();
+            }
+        }
+
+        if (!status.getValid())
+        {
+            reader = StreamReaderFromExisting(reader, SampleType::UInt8, SampleType ::Int64);
+        }
+    }
 }
 
 void VectorExtractorImpl::onPacketReceived(const daq::InputPortPtr& port)

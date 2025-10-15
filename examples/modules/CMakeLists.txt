@@ -65,3 +65,5 @@ if (DAQMODULES_PARQUET_RECORDER_MODULE)
     endif()
     add_subdirectory(parquet_recorder_module)
 endif()
+
+add_subdirectory(vector_extractor)

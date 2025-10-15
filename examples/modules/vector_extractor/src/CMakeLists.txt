@@ -1,25 +1,25 @@
-set(LIB_NAME asam_cmp_decoder_module)
+set(LIB_NAME vector_extractor_module)
 set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 
 set(SRC_Include common.h
                 module_dll.h
-                asam_cmp_decoder_module.h
-                refFB64ByteVectorSignalDecoder.h
+                vector_extractor_module.h
+                vector_extractor.h
 )
 
 set(SRC_Srcs module_dll.cpp
-             asam_cmp_decoder_module.cpp
-             refFB64ByteVectorSignalDecoder.cpp
+             vector_extractor_module.cpp
+             vector_extractor.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
-source_group("module" FILES ${MODULE_HEADERS_DIR}/asam_cmp_decoder_module.h
+source_group("module" FILES ${MODULE_HEADERS_DIR}/vector_extractor_module.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
-                            ${MODULE_HEADERS_DIR}/refFB64ByteVectorSignalDecoder.h
+                            ${MODULE_HEADERS_DIR}/vector_extractor.h
                             module_dll.cpp
-                            asam_cmp_decoder_module.cpp
-                            refFB64ByteVectorSignalDecoder.cpp
+                            vector_extractor_module.cpp
+                            vector_extractor.cpp
 )
 
 

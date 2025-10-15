@@ -35,18 +35,20 @@ using namespace daq::websocket_streaming;
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE
 
-const FunctionBlockTypePtr WsStreamingClientOutletFb::TYPE{
-    FunctionBlockType_Create(
+FunctionBlockTypePtr WsStreamingClientOutletFb::createType()
+{
+    return FunctionBlockType_Create(
         StringPtr{WsStreamingClientOutletFb::ID},
         StringPtr{WsStreamingClientOutletFb::ID},
         StringPtr{"Exposes signals provided by a WebSocket Streaming client"},
-        PropertyObject())};
+        PropertyObject());
+}
 
 WsStreamingClientOutletFb::WsStreamingClientOutletFb(
         const ContextPtr& context,
         const ComponentPtr& parent,
         wss::connection_ptr connection)
-    : FunctionBlock{TYPE, context, parent, calculateLocalId(connection)}
+    : FunctionBlock{createType(), context, parent, calculateLocalId(connection)}
     , _connection{connection}
 {
     _onConnectionDisconnected = _connection->on_disconnected.connect(

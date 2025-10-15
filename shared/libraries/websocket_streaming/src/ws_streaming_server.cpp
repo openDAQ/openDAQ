@@ -109,6 +109,11 @@ WsStreamingServer::WsStreamingServer(
     _server.add_listener(config.getPropertyValue("WebsocketStreamingPort"));
     _server.add_listener(config.getPropertyValue("WebsocketControlPort"), true);
 
+    _onClientConnected = _server.on_client_connected.connect(
+        std::bind(&WsStreamingServer::onClientConnected, this, _1));
+    _onClientDisconnected = _server.on_client_disconnected.connect(
+        std::bind(&WsStreamingServer::onClientDisconnected, this, _1, _2));
+
     _server.run();
 
     rescan();
@@ -143,6 +148,9 @@ PropertyObjectPtr WsStreamingServer::getDiscoveryConfig()
 
 void WsStreamingServer::onStopServer()
 {
+    _onClientConnected.disconnect();
+    _onClientDisconnected.disconnect();
+
     context.getOnCoreEvent() -= event(&WsStreamingServer::onCoreEvent);
 
     // openDAQ can (but probably should not) call onStopServer() more than once.
@@ -245,6 +253,35 @@ void WsStreamingServer::createListener(const SignalPtr& signal)
     });
 
     _server.add_local_signal(streamableSignal.localSignal);
+}
+
+void WsStreamingServer::onClientConnected(
+    const wss::connection_ptr& connection)
+{
+    SizeT clientNumber = 0;
+    if (_rootDevice.assigned() && !_rootDevice.isRemoved())
+    {
+        _rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
+            &clientNumber,
+            ConnectedClientInfo(connection->socket().remote_endpoint().address().to_string(),
+                ProtocolType::Streaming,
+                "OpenDAQLTStreaming",
+                "",
+                ""));
+    }
+    _registeredClientIds.insert({connection.get(), clientNumber});
+}
+
+void WsStreamingServer::onClientDisconnected(
+    const wss::connection_ptr& connection,
+    const boost::system::error_code& ec)
+{
+    if (auto it = _registeredClientIds.find(connection.get()); it != _registeredClientIds.end())
+    {
+        if (_rootDevice.assigned() && !_rootDevice.isRemoved() && it->second != 0)
+            _rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).removeConnectedClient(it->second);
+        _registeredClientIds.erase(it);
+    }
 }
 
 void WsStreamingServer::onCoreEvent(

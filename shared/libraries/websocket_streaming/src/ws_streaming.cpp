@@ -60,7 +60,7 @@ WsStreaming::WsStreaming(
     auto wsConnectionString = connectionString.toStdString();
     boost::replace_all(wsConnectionString, createType().getConnectionStringPrefix().toStdString() + "://", "ws://");
 
-        // Start the ws-streaming connection attempt.
+    // Start the ws-streaming connection attempt.
     LOG_I("Connecting to {}", wsConnectionString);
     wsClient.async_connect(wsConnectionString,
         std::bind(&WsStreaming::onConnected, this, _1, _2));
@@ -68,6 +68,17 @@ WsStreaming::WsStreaming(
     // Start a background thread to pump the Boost.Asio I/O context. The run() function will
     // return when there is no more work or when ioContext.stop() is called in the destructor.
     thread = std::thread{[this] { ioContext.run(); }};
+
+    // Wait here until the connection is either established or failed.
+    auto ec = promise.get_future().get();
+
+    if (ec)
+    {
+        ioContext.stop();
+        thread.join();
+        throw NotFoundException(
+            "Failed to connect to " + connectionString.toStdString() + ": " + std::to_string(ec.value()));
+    }
 }
 
 WsStreaming::~WsStreaming()
@@ -151,6 +162,8 @@ void WsStreaming::onConnected(
     const boost::system::error_code& ec,
     wss::connection_ptr connection)
 {
+    promise.set_value(ec);
+
     if (ec)
         return;
 
@@ -306,8 +319,10 @@ void WsStreaming::onRemoteSignalUnavailable(wss::remote_signal_ptr signal)
 {
     if (auto signalIt = signals.find(signal->id()); signalIt != signals.end())
     {
+        bool wasPublished = signalIt->second->isPublished;
         signals.erase(signalIt);
-        removeFromAvailableSignals(signal->id());
+        if (wasPublished)
+            removeFromAvailableSignals(signal->id());
     }
 
     onSignalUnavailable(signal);

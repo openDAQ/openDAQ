@@ -22,6 +22,7 @@
 #include <thread>
 
 #include <boost/asio/io_context.hpp>
+#include <boost/signals2/connection.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <opendaq/opendaq.h>
@@ -77,6 +78,13 @@ class WsStreamingServer : public Server
 
         void createListener(const SignalPtr& signal);
 
+        void onClientConnected(
+            const wss::connection_ptr& connection);
+
+        void onClientDisconnected(
+            const wss::connection_ptr& connection,
+            const boost::system::error_code& ec);
+
         void onCoreEvent(
             ComponentPtr& component,
             CoreEventArgsPtr& args);
@@ -124,6 +132,10 @@ class WsStreamingServer : public Server
         std::thread _thread;
         std::map<std::string, StreamableSignal> _localSignals;
         Int _port;
+
+        boost::signals2::scoped_connection _onClientConnected;
+        boost::signals2::scoped_connection _onClientDisconnected;
+        std::map<wss::connection *, SizeT> _registeredClientIds;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

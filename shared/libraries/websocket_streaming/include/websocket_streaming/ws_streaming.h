@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <future>
 #include <map>
 #include <memory>
 #include <string>
@@ -161,6 +162,8 @@ class WsStreaming : public Streaming
         wss::connection_ptr wsConnection;
 
         std::map<std::string, std::shared_ptr<WsStreamingRemoteSignalEntry>> signals;
+
+        std::promise<boost::system::error_code> promise;
 };
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

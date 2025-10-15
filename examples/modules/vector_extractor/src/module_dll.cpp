@@ -1,9 +1,9 @@
-#include <asam_cmp_decoder_module/module_dll.h>
-#include <asam_cmp_decoder_module/asam_cmp_decoder_module.h>
+#include <vector_extractor/module_dll.h>
+#include <vector_extractor/vector_extractor_module.h>
 
 #include <opendaq/module_factory.h>
 
-using namespace daq::modules::asam_cmp_decoder_module;
+using namespace daq::modules::vector_extractor;
 
-DEFINE_MODULE_EXPORTS(AsamCmpDecoderModule)
+DEFINE_MODULE_EXPORTS(vector_extractor)
 

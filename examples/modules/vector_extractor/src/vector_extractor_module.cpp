@@ -1,39 +1,39 @@
 #include <coretypes/version_info_factory.h>
 #include <opendaq/custom_log.h>
-#include <asam_cmp_decoder_module/refFB64ByteVectorSignalDecoder.h>
-#include <asam_cmp_decoder_module/asam_cmp_decoder_module.h>
-#include <asam_cmp_decoder_module/version.h>
+#include <vector_extractor/vector_extractor.h>
+#include <vector_extractor/vector_extractor_module.h>
+#include <vector_extractor/version.h>
 #include <iostream>
 
-BEGIN_NAMESPACE_ASAM_CMP_DECODER_MODULE
+BEGIN_NAMESPACE_VECTOR_EXTRACTOR_MODULE
 
-AsamCmpDecoderModule::AsamCmpDecoderModule(ContextPtr context)
-    : Module("AsamCmpDecoderModule",
-             VersionInfo(ASAM_CMP_DECODER_MODULE_MAJOR_VERSION, ASAM_CMP_DECODER_MODULE_MINOR_VERSION, ASAM_CMP_DECODER_MODULE_PATCH_VERSION),
+VectorExtractorModule::VectorExtractorModule(ContextPtr context)
+    : Module("VectorExtractorModule",
+             VersionInfo(VECTOR_EXTRACTOR_MODULE_MAJOR_VERSION, VECTOR_EXTRACTOR_MODULE_MINOR_VERSION, VECTOR_EXTRACTOR_MODULE_PATCH_VERSION),
              std::move(context),
-             "AsamCmpDecoderModule")
+             "VectorExtractorModule")
 {
 }
 
-DictPtr<IString, IFunctionBlockType> AsamCmpDecoderModule::onGetAvailableFunctionBlockTypes()
+DictPtr<IString, IFunctionBlockType> VectorExtractorModule::onGetAvailableFunctionBlockTypes()
 {
     auto types = Dict<IString, IFunctionBlockType>();
 
-    const auto ref64 = RefFB64ByteVectorSignalDecoderImpl::CreateType();
+    const auto ref64 = VectorExtractorImpl::CreateType();
     types.set(ref64.getId(), ref64);
 
     return types;
 }
 
-FunctionBlockPtr AsamCmpDecoderModule::onCreateFunctionBlock(const StringPtr& id,
+FunctionBlockPtr VectorExtractorModule::onCreateFunctionBlock(const StringPtr& id,
                                                       const ComponentPtr& parent,
                                                       const StringPtr& localId,
                                                       const PropertyObjectPtr& config)
 {
-    if (id == RefFB64ByteVectorSignalDecoderImpl::CreateType().getId())
+    if (id == VectorExtractorImpl::CreateType().getId())
     {
         FunctionBlockPtr fb =
-            createWithImplementation<IFunctionBlock, RefFB64ByteVectorSignalDecoderImpl>(
+            createWithImplementation<IFunctionBlock, VectorExtractorImpl>(
                 context, parent, localId);
         return fb;
     }
@@ -42,4 +42,4 @@ FunctionBlockPtr AsamCmpDecoderModule::onCreateFunctionBlock(const StringPtr& id
     throw NotFoundException("Function block not found");
 }
 
-END_NAMESPACE_ASAM_CMP_DECODER_MODULE
+END_NAMESPACE_VECTOR_EXTRACTOR_MODULE

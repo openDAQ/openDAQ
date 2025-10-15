@@ -18,22 +18,22 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/opendaq.h>
-#include <asam_cmp_decoder_module/common.h>
+#include <vector_extractor/common.h>
 
-BEGIN_NAMESPACE_ASAM_CMP_DECODER_MODULE
+BEGIN_NAMESPACE_VECTOR_EXTRACTOR_MODULE
 
 static const char* InputDisconnected = "Disconnected";
 static const char* InputConnected = "Connected";
 static const char* InputInvalid = "Invalid";
 
-class RefFB64ByteVectorSignalDecoderImpl final : public daq::FunctionBlock
+class VectorExtractorImpl final : public daq::FunctionBlock
 {
 public:
-    explicit RefFB64ByteVectorSignalDecoderImpl(const daq::ContextPtr& ctx,
+    explicit VectorExtractorImpl(const daq::ContextPtr& ctx,
                                                 const daq::ComponentPtr& parent,
                                                 const daq::StringPtr& localId);
 
-    ~RefFB64ByteVectorSignalDecoderImpl() override = default;
+    ~VectorExtractorImpl() override = default;
 
 private:
     static daq::FunctionBlockTypePtr CreateType();
@@ -83,5 +83,5 @@ private:
     void copySamples(uint8_t* dest, uint8_t* source, const size_t fieldSampleSize, size_t sampleCount) const;
 };
 
-END_NAMESPACE_ASAM_CMP_DECODER_MODULE
+END_NAMESPACE_VECTOR_EXTRACTOR_MODULE
 

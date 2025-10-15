@@ -15,20 +15,20 @@
  */
 
 #pragma once
-#include <asam_cmp_decoder_module/common.h>
+#include <vector_extractor/common.h>
 
 #include <opendaq/module_impl.h>
 
-BEGIN_NAMESPACE_ASAM_CMP_DECODER_MODULE
+BEGIN_NAMESPACE_VECTOR_EXTRACTOR_MODULE
 
-class AsamCmpDecoderModule final : public Module
+class VectorExtractorModule final : public Module
 {
 public:
-    explicit AsamCmpDecoderModule(ContextPtr context);
+    explicit VectorExtractorModule(ContextPtr context);
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config) override;
 };
 
-END_NAMESPACE_ASAM_CMP_DECODER_MODULE
+END_NAMESPACE_VECTOR_EXTRACTOR_MODULE
 

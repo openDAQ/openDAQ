@@ -1,8 +1,8 @@
-#include <asam_cmp_decoder_module/refFB64ByteVectorSignalDecoder.h>
+#include <vector_extractor/vector_extractor.h>
 
-BEGIN_NAMESPACE_ASAM_CMP_DECODER_MODULE
+BEGIN_NAMESPACE_VECTOR_EXTRACTOR_MODULE
 
-RefFB64ByteVectorSignalDecoderImpl::RefFB64ByteVectorSignalDecoderImpl(const daq::ContextPtr& ctx,
+VectorExtractorImpl::VectorExtractorImpl(const daq::ContextPtr& ctx,
                                                                         const daq::ComponentPtr& parent,
                                                                         const daq::StringPtr& localId)
     : daq::FunctionBlock(CreateType(), ctx, parent, localId)
@@ -26,17 +26,17 @@ RefFB64ByteVectorSignalDecoderImpl::RefFB64ByteVectorSignalDecoderImpl(const daq
 
 // The length of the data should be devisible by all available data types (afaik 64 bytes should do it (it is used now))
 
-daq::FunctionBlockTypePtr RefFB64ByteVectorSignalDecoderImpl::CreateType()
+daq::FunctionBlockTypePtr VectorExtractorImpl::CreateType()
 {
-    return daq::FunctionBlockType("RefFB64ByteVectorSignalDecoder", "CAN FD data decoder", "CAN FD data array decoder");
+    return daq::FunctionBlockType("VectorExtractor", "CAN FD data decoder", "CAN FD data array decoder");
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::onDataReceived()
+void VectorExtractorImpl::onDataReceived()
 {
 
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::onPacketReceived(const daq::InputPortPtr& port)
+void VectorExtractorImpl::onPacketReceived(const daq::InputPortPtr& port)
 {
     auto lock = this->getAcquisitionLock();
 
@@ -66,7 +66,7 @@ void RefFB64ByteVectorSignalDecoderImpl::onPacketReceived(const daq::InputPortPt
     }
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::onDisconnected(const daq::InputPortPtr& port)
+void VectorExtractorImpl::onDisconnected(const daq::InputPortPtr& port)
 {
     auto lock = this->getRecursiveConfigLock();
 
@@ -77,12 +77,12 @@ void RefFB64ByteVectorSignalDecoderImpl::onDisconnected(const daq::InputPortPtr&
     setInputStatus(InputDisconnected);
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::createInputPorts()
+void VectorExtractorImpl::createInputPorts()
 {
     inputPort = daq::FunctionBlock::createAndAddInputPort("Input", daq::PacketReadyNotification::SchedulerQueueWasEmpty);
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::processDataPacket(const daq::DataPacketPtr& packet) const
+void VectorExtractorImpl::processDataPacket(const daq::DataPacketPtr& packet) const
 {
     if (!configured)
         return;
@@ -115,7 +115,7 @@ void RefFB64ByteVectorSignalDecoderImpl::processDataPacket(const daq::DataPacket
     }
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::processEventPacket(const daq::EventPacketPtr& packet)
+void VectorExtractorImpl::processEventPacket(const daq::EventPacketPtr& packet)
 {
     if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
     {
@@ -123,7 +123,7 @@ void RefFB64ByteVectorSignalDecoderImpl::processEventPacket(const daq::EventPack
     }
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::processSignalDescriptorsChangedEventPacket(const daq::EventPacketPtr& eventPacket)
+void VectorExtractorImpl::processSignalDescriptorsChangedEventPacket(const daq::EventPacketPtr& eventPacket)
 {
     const auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
         daq::parseDataDescriptorEventPacket(eventPacket);
@@ -135,7 +135,7 @@ void RefFB64ByteVectorSignalDecoderImpl::processSignalDescriptorsChangedEventPac
     configure();
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::configure()
+void VectorExtractorImpl::configure()
 {
     if (!inputDataDescriptor.assigned() || !inputDomainDescriptor.assigned())
     {
@@ -210,7 +210,7 @@ void RefFB64ByteVectorSignalDecoderImpl::configure()
     }
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::initStatues() const
+void VectorExtractorImpl::initStatues() const
 {
     const auto inputStatusType =
         daq::EnumerationType("InputStatusType", daq::List<daq::IString>(InputDisconnected, InputConnected, InputInvalid));
@@ -236,7 +236,7 @@ void RefFB64ByteVectorSignalDecoderImpl::initStatues() const
     thisStatusContainer.addStatus("InputStatus", inputStatusValue);
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::setInputStatus(const daq::StringPtr& value) const
+void VectorExtractorImpl::setInputStatus(const daq::StringPtr& value) const
 {
     const auto thisStatusContainer = this->statusContainer.asPtr<daq::IComponentStatusContainerPrivate>();
 
@@ -245,12 +245,12 @@ void RefFB64ByteVectorSignalDecoderImpl::setInputStatus(const daq::StringPtr& va
 }
 
 template <typename T>
-static void RefFB64ByteVectorSignalDecoderImpl::copySample(uint8_t* dest, const uint8_t* source)
+static void VectorExtractorImpl::copySample(uint8_t* dest, const uint8_t* source)
 {
     *(reinterpret_cast<T*>(dest)) = *(reinterpret_cast<const T*>(source));
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::copySamples(uint8_t* dest,
+void VectorExtractorImpl::copySamples(uint8_t* dest,
                                                         uint8_t* source,
                                                         const size_t fieldSampleSize,
                                                         size_t sampleCount) const
@@ -307,12 +307,12 @@ void RefFB64ByteVectorSignalDecoderImpl::copySamples(uint8_t* dest,
     }
 }
 
-void RefFB64ByteVectorSignalDecoderImpl::createSignals()
+void VectorExtractorImpl::createSignals()
 {
     outputSignal = createAndAddSignal("RPM_counter");
-    outputDomainSignal = createAndAddSignal("RefFB64ByteVectorSignalDecoderTime", inputDomainDescriptor, false);
+    outputDomainSignal = createAndAddSignal("VectorDecoderTime", inputDomainDescriptor, false);
     outputSignal.setDomainSignal(outputDomainSignal);
 }
 
-END_NAMESPACE_ASAM_CMP_DECODER_MODULE
+END_NAMESPACE_VECTOR_EXTRACTOR_MODULE
 

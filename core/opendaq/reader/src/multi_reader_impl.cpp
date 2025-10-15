@@ -423,6 +423,10 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
     {
         setPortsActiveState(false);
     }
+    else
+    {
+        setPortsActiveState(true);
+    }
 }
 
 void MultiReaderImpl::updateCommonSampleRateAndDividers()
@@ -1335,6 +1339,17 @@ ErrCode MultiReaderImpl::getActive(Bool* isActive)
     *isActive = this->isActive;
 
     return OPENDAQ_SUCCESS;
+}
+
+void MultiReaderImpl::internalDispose(bool)
+{
+    this->portBinder = nullptr;
+    this->signals.clear();
+    this->externalListener = nullptr;
+    this->readCallback = nullptr;
+    this->invalid = true;
+    this->isActive = false;
+    this->portsConnected = false;
 }
 
 #pragma region ReaderConfig

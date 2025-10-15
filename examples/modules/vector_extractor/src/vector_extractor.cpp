@@ -26,6 +26,28 @@ VectorExtractorImpl::VectorExtractorImpl(const daq::ContextPtr& ctx,
 
 // The length of the data should be devisible by all available data types (afaik 64 bytes should do it (it is used now))
 
+void VectorExtractorImpl::initProperties()
+{
+    const auto typeSelected =
+        SelectionProperty("OutputType", List<SampleType>(SampleType::UInt8, SampleType::UInt16, SampleType::UInt32, SampleType::UInt64), 0);
+    objPtr.addProperty(typeSelected);
+    objPtr.getOnPropertyValueWrite("OutpuType") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
+
+    const auto indexOfMemoryBeginning = IntProperty("BeginningSpace", 0);
+    objPtr.addProperty(indexOfMemoryBeginning);
+    objPtr.getOnPropertyValueWrite("BeginningSpace") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
+
+    readProperties();
+}
+
+void VectorExtractorImpl::readProperties()
+{
+    outputType = objPtr.getPropertyValue("typeSelected");
+    beginningIndex = objPtr.getPropertyValue("BeginningSpace");
+}
+
 daq::FunctionBlockTypePtr VectorExtractorImpl::CreateType()
 {
     return daq::FunctionBlockType("VectorExtractor", "CAN FD data decoder", "CAN FD data array decoder");
@@ -33,7 +55,10 @@ daq::FunctionBlockTypePtr VectorExtractorImpl::CreateType()
 
 void VectorExtractorImpl::onDataReceived()
 {
+    SizeT cnt = reader.getAvailableCount();
+    std::unique_ptr bufferData = std::make_unique<uint8_t[]>(cnt);
 
+    //auto status = reader.readWithDomain();
 }
 
 void VectorExtractorImpl::onPacketReceived(const daq::InputPortPtr& port)

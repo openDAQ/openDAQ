@@ -57,9 +57,14 @@ private:
 
     size_t structSize;
 
-    ReaderPtr reader;
+    SampleType outputType;
+    uint8_t beginningOfSpace;
+
+    StreamReaderPtr reader;
 
     bool configured;
+
+    void initProperties();
 
     void createInputPorts();
 
@@ -81,6 +86,8 @@ private:
     static void copySample(uint8_t* dest, const uint8_t* source);
 
     void copySamples(uint8_t* dest, uint8_t* source, const size_t fieldSampleSize, size_t sampleCount) const;
+
+    void propertyChanged(bool configure);
 };
 
 END_NAMESPACE_VECTOR_EXTRACTOR_MODULE

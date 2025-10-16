@@ -2876,6 +2876,67 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfo)
     ASSERT_EQ(deviceInfo.getPropertyValue("ClientCustomProperty"), "newValue");
 }
 
+TEST_F(NativeDeviceModulesTest, SaveLoadGateway)
+{
+    // built struct 
+    // - client dev
+    //   - devs
+    //.     - gateway device
+    //        - devs
+    //          - server device
+    //             - signals
+    //               - sig1
+    //               - sig2
+    //        - fbs
+    //           - statistic fb
+    //              - input ports
+    //                 - input port0 - connected to gatewayDev/devs/srvDev/sigs/sig1       
+
+    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    const auto serverConfig = PropertyObject();
+    serverConfig.addProperty(IntProperty("NativeStreamingPort", 7414));
+    server.addServer("OpenDAQNativeStreaming", serverConfig);
+
+    auto gateway = InstanceBuilder().build();
+    const auto gatewayConfig = PropertyObject();
+    gatewayConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
+    auto gatewayServer = gateway.addServer("OpenDAQNativeStreaming", gatewayConfig);
+
+    auto client = InstanceBuilder().build();
+    auto clGateway = client.addDevice("daq.nd://127.0.0.1:7415");
+
+    auto clGatewaySrv = clGateway.addDevice("daq.nd://127.0.0.1:7414");
+    auto clGatewayFb = clGateway.addFunctionBlock("RefFBModuleStatistics");
+    auto clGatewaySrvSig = clGatewaySrv.getSignalsRecursive()[0];
+    clGatewayFb.getInputPorts()[0].connect(clGatewaySrvSig);
+
+    // save configuration from the top layer                
+    const auto saveConfig = client.saveConfiguration();
+
+    // removing statistic fb
+    clGateway.removeFunctionBlock(clGatewayFb);
+    clGatewayFb = nullptr;
+
+    // restoring function block with loading configuration
+    client.loadConfiguration(saveConfig);
+    
+    ASSERT_EQ(gateway.getFunctionBlocks().getCount(), 1);
+    auto gatewayFb = gateway.getFunctionBlocks()[0];
+    auto gatewayFbIp = gatewayFb.getInputPorts()[0];
+    ASSERT_TRUE(gatewayFbIp.assigned());
+    auto gatewayFbIpCn = gatewayFbIp.getConnection();
+    auto gatewayFbIpCnSig = gatewayFbIpCn.getSignal();
+    ASSERT_TRUE(gatewayFbIpCnSig.assigned());
+    
+    ASSERT_EQ(clGateway.getFunctionBlocks().getCount(), 1);
+    clGatewayFb = clGateway.getFunctionBlocks()[0];
+    ASSERT_EQ(clGatewayFb.getInputPorts().getCount(), 1);
+    auto clGatewayFbIp = clGatewayFb.getInputPorts()[0];
+    ASSERT_TRUE(clGatewayFbIp.assigned());
+    auto clGatewayFbIpCn = clGatewayFbIp.getConnection();
+    ASSERT_TRUE(clGatewayFbIpCn.assigned()); // no connection
+}
+
 StringPtr getFileLastModifiedTime(const std::string& path)
 {
     auto ftime = fs::last_write_time(path);

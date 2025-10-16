@@ -241,15 +241,12 @@ void VectorExtractorImpl::setInputStatus(const daq::StringPtr& value) const
 }
 
 template <typename T>
-static void VectorExtractorImpl::copySample(uint8_t* dest, const uint8_t* source)
+void VectorExtractorImpl::copySample(uint8_t* dest, const uint8_t* source)
 {
     *(reinterpret_cast<T*>(dest)) = *(reinterpret_cast<const T*>(source));
 }
 
-void VectorExtractorImpl::copySamples(uint8_t* dest,
-                                                        uint8_t* source,
-                                                        const size_t fieldSampleSize,
-                                                        size_t sampleCount) const
+void VectorExtractorImpl::copySamples(uint8_t* dest, uint8_t* source, const size_t fieldSampleSize, size_t sampleCount) const
 {
     switch (fieldSampleSize)
     {
@@ -336,7 +333,7 @@ void VectorExtractorImpl::castingFunction(const DataDescriptorPtr& dataDescripto
         case (SampleType::UInt64):
         {
             auto ff = reinterpret_cast<uint64_t*>(destinationData);
-            for (int i = 0; i < count; i++)
+            for (SizeT i = 0; i < count; i++)
                 ff[i] = ((uint64_t)check[i*sizeOfSample + beginningIndex] << 56) |
                         ((uint64_t)check[i * sizeOfSample + beginningIndex + 1] << 48) |
                         ((uint64_t)check[i * sizeOfSample + beginningIndex + 2] << 40) |

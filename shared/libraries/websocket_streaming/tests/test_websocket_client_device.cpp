@@ -140,7 +140,6 @@ public:
 
 TEST_P(WebsocketClientDeviceTestP, SignalWithDomain)
 {
-    SKIP_TEST_MAC_CI;
     const bool signalsAddedAfterConnect = GetParam();
 
     // Create server signals

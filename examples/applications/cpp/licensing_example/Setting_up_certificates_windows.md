@@ -37,7 +37,7 @@ NOTE: When done developing, it's better to clean up any test certificate from th
 Setting up the code signing certificate is similar to setting up the root:
 
 ```powershell
-$testCert = New-SelfSignedCertificate -Type CodeSigningCert -CertStoreLocation Cert:\CurrentUser\My -DnsName "SignedByRootCA" -KeyExportPolicy Exportable -KeyLength 2048 -KeyUsage DigitalSignature,KeyEncipherment -Signer $rootCert
+$testCert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "OpenDAQ Test Certificate" -CertStoreLocation Cert:\CurrentUser\My -DnsName "SignedByRootCA" -KeyExportPolicy Exportable -KeyLength 2048 -KeyUsage DigitalSignature,KeyEncipherment -Signer $rootCert
 ```
 
 The key difference here is setting the `-Signer` to our root certificate.

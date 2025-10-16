@@ -260,7 +260,7 @@ ErrCode DataDescriptorImpl::validate()
             if (referenceDomainInfo.assigned())
             {
                 auto offset = referenceDomainInfo.getReferenceDomainOffset();
-                if (offset.assigned() && offset != 0 && sampleType >= SampleType::Int64)
+                if (offset.assigned() && offset != 0 && sampleType >= SampleType::RangeInt64)
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE,
                                                "Non-integer sample type descriptors can not have a reference domain offset.");
             }

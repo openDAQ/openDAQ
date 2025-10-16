@@ -140,18 +140,18 @@ class WsStreaming : public Streaming
 
         void onRemoteSignalAvailable(wss::remote_signal_ptr signal);
 
-        void onRemoteSignalSubscribed(std::shared_ptr<WsStreamingRemoteSignalEntry> entry);
+        void onRemoteSignalSubscribed(std::weak_ptr<WsStreamingRemoteSignalEntry> weakEntry);
 
-        void onRemoteSignalMetadataChanged(std::shared_ptr<WsStreamingRemoteSignalEntry> entry);
+        void onRemoteSignalMetadataChanged(std::weak_ptr<WsStreamingRemoteSignalEntry> weakEntry);
 
         void onRemoteSignalDataReceived(
-            std::shared_ptr<WsStreamingRemoteSignalEntry> entry,
+            std::weak_ptr<WsStreamingRemoteSignalEntry> weakEntry,
             std::int64_t domain_value,
             std::size_t sample_count,
             const void *data,
             std::size_t size);
 
-        void onRemoteSignalUnsubscribed(std::shared_ptr<WsStreamingRemoteSignalEntry> entry);
+        void onRemoteSignalUnsubscribed(std::weak_ptr<WsStreamingRemoteSignalEntry> weakEntry);
 
         void onRemoteSignalUnavailable(wss::remote_signal_ptr signal);
 

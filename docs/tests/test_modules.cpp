@@ -86,7 +86,7 @@ TEST_F(ModulesTest, CreateComponents)
             nativeStreamingServerModule = mod;
 #endif
 #if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-        else if (mod.getModuleInfo().getName() == "OpenDAQWebsocketStreamingServerModule")
+        else if (mod.getModuleInfo().getName() == "OpenDAQWebSocketStreamingServerModule")
             websocketStreamingServerModule = mod;
 #endif
     }

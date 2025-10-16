@@ -58,7 +58,8 @@ WsStreaming::WsStreaming(
     // The ws-streaming library wants a URL like ws://1.2.3.4:7418/foo.
     // So we simply need to replace the daq.lt:// prefix with ws://.
     auto wsConnectionString = connectionString.toStdString();
-    boost::replace_all(wsConnectionString, createType().getConnectionStringPrefix().toStdString() + "://", "ws://");
+    boost::replace_all(wsConnectionString, "daq.lt://", "ws://");
+    boost::replace_all(wsConnectionString, "daq.ws://", "ws://");
 
     // Start the ws-streaming connection attempt.
     LOG_I("Connecting to {}", wsConnectionString);
@@ -183,10 +184,12 @@ void WsStreaming::onRemoteSignalAvailable(wss::remote_signal_ptr signal)
     auto entry = std::make_shared<WsStreamingRemoteSignalEntry>();
     entry->ptr = signal;
 
-    entry->onSubscribed         = signal->on_subscribed         .connect(std::bind(&WsStreaming::onRemoteSignalSubscribed,      this, entry));
-    entry->onMetadataChanged    = signal->on_metadata_changed   .connect(std::bind(&WsStreaming::onRemoteSignalMetadataChanged, this, entry));
-    entry->onDataReceived       = signal->on_data_received      .connect(std::bind(&WsStreaming::onRemoteSignalDataReceived,    this, entry, _1, _2, _3, _4));
-    entry->onUnsubscribed       = signal->on_unsubscribed       .connect(std::bind(&WsStreaming::onRemoteSignalUnsubscribed,    this, entry));
+    std::weak_ptr<WsStreamingRemoteSignalEntry> weakEntry = entry;
+
+    entry->onSubscribed         = signal->on_subscribed         .connect(std::bind(&WsStreaming::onRemoteSignalSubscribed,      this, weakEntry));
+    entry->onMetadataChanged    = signal->on_metadata_changed   .connect(std::bind(&WsStreaming::onRemoteSignalMetadataChanged, this, weakEntry));
+    entry->onDataReceived       = signal->on_data_received      .connect(std::bind(&WsStreaming::onRemoteSignalDataReceived,    this, weakEntry, _1, _2, _3, _4));
+    entry->onUnsubscribed       = signal->on_unsubscribed       .connect(std::bind(&WsStreaming::onRemoteSignalUnsubscribed,    this, weakEntry));
 
     signals[signal->id()] = std::move(entry);
 
@@ -195,8 +198,12 @@ void WsStreaming::onRemoteSignalAvailable(wss::remote_signal_ptr signal)
     signal->subscribe();
 }
 
-void WsStreaming::onRemoteSignalSubscribed(std::shared_ptr<WsStreamingRemoteSignalEntry> entry)
+void WsStreaming::onRemoteSignalSubscribed(std::weak_ptr<WsStreamingRemoteSignalEntry> weakEntry)
 {
+    auto entry = weakEntry.lock();
+    if (!entry)
+        return;
+
     LOG_I("Signal subscribed: {}", entry->ptr->id());
 
     if (entry->isPublished)
@@ -206,8 +213,12 @@ void WsStreaming::onRemoteSignalSubscribed(std::shared_ptr<WsStreamingRemoteSign
     }
 }
 
-void WsStreaming::onRemoteSignalMetadataChanged(std::shared_ptr<WsStreamingRemoteSignalEntry> entry)
+void WsStreaming::onRemoteSignalMetadataChanged(std::weak_ptr<WsStreamingRemoteSignalEntry> weakEntry)
 {
+    auto entry = weakEntry.lock();
+    if (!entry)
+        return;
+
     LOG_I("Signal metadata changed: {}", entry->ptr->id());
 
     try
@@ -250,12 +261,16 @@ void WsStreaming::onRemoteSignalMetadataChanged(std::shared_ptr<WsStreamingRemot
 }
 
 void WsStreaming::onRemoteSignalDataReceived(
-    std::shared_ptr<WsStreamingRemoteSignalEntry> entry,
+    std::weak_ptr<WsStreamingRemoteSignalEntry> weakEntry,
     std::int64_t domainValue,
     std::size_t sampleCount,
     const void *data,
     std::size_t size)
 {
+    auto entry = weakEntry.lock();
+    if (!entry)
+        return;
+
     if (!entry->isSubscribed)
         return;
 
@@ -306,8 +321,12 @@ void WsStreaming::onRemoteSignalDataReceived(
     onPacket(entry->ptr->id(), packet);
 }
 
-void WsStreaming::onRemoteSignalUnsubscribed(std::shared_ptr<WsStreamingRemoteSignalEntry> entry)
+void WsStreaming::onRemoteSignalUnsubscribed(std::weak_ptr<WsStreamingRemoteSignalEntry> weakEntry)
 {
+    auto entry = weakEntry.lock();
+    if (!entry)
+        return;
+
     if (entry->isSubscribed)
     {
         entry->isSubscribed = false;

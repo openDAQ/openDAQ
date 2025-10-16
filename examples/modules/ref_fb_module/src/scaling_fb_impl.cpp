@@ -15,14 +15,15 @@
 #include "opendaq/sample_type_traits.h"
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reusable_data_packet_ptr.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Scaling
 {
 
-ScalingFbImpl::ScalingFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+ScalingFbImpl::ScalingFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
 {
     initComponentStatus();
     createInputPorts();
@@ -88,9 +89,11 @@ void ScalingFbImpl::readProperties()
     outputName = static_cast<std::string>(objPtr.getPropertyValue("OutputName"));
 }
 
-FunctionBlockTypePtr ScalingFbImpl::CreateType()
+FunctionBlockTypePtr ScalingFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
-    return FunctionBlockType("RefFBModuleScaling", "Scaling", "Signal scaling");
+    auto fbType = FunctionBlockType("RefFBModuleScaling", "Scaling", "Signal scaling");
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 void ScalingFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,

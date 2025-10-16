@@ -582,7 +582,7 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     if (typeId == "Device" || typeId == "Instance")
     {
         BaseObjectPtr obj;
-        checkErrorInfo(ConfigClientDeviceImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        checkErrorInfo(ConfigClientDeviceImpl::Deserialize<ConfigClientDeviceImpl>(serObj, context, factoryCallback, &obj));
         return obj;
     }
 

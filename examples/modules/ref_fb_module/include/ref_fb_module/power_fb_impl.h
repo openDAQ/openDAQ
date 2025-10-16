@@ -30,13 +30,13 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 class PowerFbImpl final : public FunctionBlock
 {
 public:
-    explicit PowerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit PowerFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~PowerFbImpl() override = default;
 
     void onConnected(const InputPortPtr& port) override;
     void onDisconnected(const InputPortPtr& port) override;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
 private:
     InputPortPtr voltageInputPort;

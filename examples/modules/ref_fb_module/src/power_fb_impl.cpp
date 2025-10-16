@@ -14,13 +14,14 @@
 #include <opendaq/range_factory.h>
 #include <opendaq/sample_type_traits.h>
 #include <coreobjects/eval_value_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
-    namespace Power
+namespace Power
 {
 
-PowerFbImpl::PowerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+PowerFbImpl::PowerFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
 {
     initComponentStatus();
     createInputPorts();
@@ -86,9 +87,11 @@ void PowerFbImpl::readProperties()
     powerLowValue = objPtr.getPropertyValue("CustomLowValue");
 }
 
-FunctionBlockTypePtr PowerFbImpl::CreateType()
+FunctionBlockTypePtr PowerFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
-    return FunctionBlockType("RefFBModulePower", "Power", "Calculates power");
+    auto fbType = FunctionBlockType("RefFBModulePower", "Power", "Calculates power");
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 void PowerFbImpl::onPacketReceived(const InputPortPtr& port)

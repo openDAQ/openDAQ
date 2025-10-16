@@ -109,6 +109,8 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
 
                         const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
 
+                        Super::deserializeVersion(serialized, fbType);
+
                         bool isRecorder = false;
                         if (serialized.hasKey("isRecorder"))
                             isRecorder = serialized.readBool("isRecorder");

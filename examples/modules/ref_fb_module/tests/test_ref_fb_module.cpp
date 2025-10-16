@@ -220,6 +220,14 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     }
 }
 
+TEST_F(RefFbModuleTest, ScalingVersion)
+{
+    auto module = CreateModule();
+    
+    auto fb = module.createFunctionBlock("RefFBModuleScaling", nullptr, "fb");
+    ASSERT_EQ(fb.getFunctionBlockType().getModuleInfo().getVersionInfo(), module.getModuleInfo().getVersionInfo());
+}
+
 TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
 {
     const auto module = CreateModule();

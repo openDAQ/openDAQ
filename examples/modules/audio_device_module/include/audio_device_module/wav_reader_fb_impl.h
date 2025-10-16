@@ -21,6 +21,7 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/stream_reader_ptr.h>
+#include <opendaq/component_type_private.h>
 
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
@@ -28,10 +29,10 @@ BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 class WAVReaderFbImpl : public FunctionBlock
 {
 public:
-    explicit WAVReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit WAVReaderFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~WAVReaderFbImpl() override;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
 
 private:

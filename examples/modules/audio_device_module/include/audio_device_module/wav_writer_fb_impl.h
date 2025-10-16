@@ -28,10 +28,10 @@ BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 class WAVWriterFbImpl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
 {
 public:
-    explicit WAVWriterFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit WAVWriterFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~WAVWriterFbImpl() override;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 private:
     InputPortConfigPtr inputPort;
     std::string fileName;

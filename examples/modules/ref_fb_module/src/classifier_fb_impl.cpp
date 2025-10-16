@@ -16,14 +16,18 @@
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/dimension_factory.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Classifier
 {
 
-ClassifierFbImpl::ClassifierFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+ClassifierFbImpl::ClassifierFbImpl(const ModuleInfoPtr& moduleInfo,
+                                   const ContextPtr& ctx,
+                                   const ComponentPtr& parent,
+                                   const StringPtr& localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
 {
     initComponentStatus();
     createInputPorts();
@@ -133,9 +137,11 @@ void ClassifierFbImpl::readProperties()
     }
 }
 
-FunctionBlockTypePtr ClassifierFbImpl::CreateType()
+FunctionBlockTypePtr ClassifierFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
-    return FunctionBlockType("RefFBModuleClassifier", "Classifier", "Signal classifing");
+    auto fbType = FunctionBlockType("RefFBModuleClassifier", "Classifier", "Signal classifing");
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 bool ClassifierFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor, const DataDescriptorPtr& inputDomainDataDescriptor)

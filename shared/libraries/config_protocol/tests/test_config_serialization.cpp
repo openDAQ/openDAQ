@@ -762,7 +762,7 @@ TEST_F(ConfigProtocolSerializationTest, Device)
                                      if (typeId == "Device")
                                      {
                                          BaseObjectPtr obj;
-                                         checkErrorInfo(ConfigClientDeviceImpl::Deserialize(serObj, context, factoryCallback, &obj));
+                                         checkErrorInfo(ConfigClientDeviceImpl::Deserialize<ConfigClientDeviceImpl>(serObj, context, factoryCallback, &obj));
                                          configComponentInstantiated++;
                                          return obj;
                                      }

@@ -30,11 +30,17 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 class RefDeviceImpl final : public Device
 {
 public:
-    explicit RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name = nullptr);
+    explicit RefDeviceImpl(const ModuleInfoPtr& moduleInfo,
+                           size_t id,
+                           const PropertyObjectPtr& config,
+                           const ContextPtr& ctx,
+                           const ComponentPtr& parent,
+                           const StringPtr& localId,
+                           const StringPtr& name = nullptr);
     ~RefDeviceImpl() override;
 
-    static DeviceInfoPtr CreateDeviceInfo(size_t id, const StringPtr& serialNumber = nullptr);
-    static DeviceTypePtr CreateType();
+    static DeviceInfoPtr CreateDeviceInfo(const ModuleInfoPtr& moduleInfo, size_t id, const StringPtr& serialNumber = nullptr);
+    static DeviceTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
     // IDevice
     DeviceInfoPtr onGetInfo() override;
@@ -99,6 +105,8 @@ private:
     FolderConfigPtr aiFolder;
     FolderConfigPtr canFolder;
     ComponentPtr syncComponent;
+
+    ModuleInfoPtr moduleInfo;
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;

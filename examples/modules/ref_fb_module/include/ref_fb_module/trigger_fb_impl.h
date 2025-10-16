@@ -29,10 +29,14 @@ namespace Trigger
 class TriggerFbImpl final : public FunctionBlock
 {
 public:
-    explicit TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
+    explicit TriggerFbImpl(const ModuleInfoPtr& moduleInfo,
+                           const ContextPtr& ctx,
+                           const ComponentPtr& parent,
+                           const StringPtr& localId,
+                           const PropertyObjectPtr& config);
     ~TriggerFbImpl() override = default;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
 private:
     InputPortPtr inputPort;

@@ -71,6 +71,7 @@ public:
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
+    template <class Implementation>
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -379,6 +380,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
 }
 
 template <class TDeviceBase>
+template <class Implementation>
 ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObject* serialized,
                                                                 IBaseObject* context,
                                                                 IFunction* factoryCallback,
@@ -388,7 +390,11 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObjec
 
     const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
-        *obj = Super::template DeserializeConfigComponent<IDevice, ConfigClientDeviceImpl>(serialized, context, factoryCallback).detach();
+        auto device = Super::template DeserializeConfigComponent<IDevice, Implementation>(serialized, context, factoryCallback).template asPtr<IDevice>();
+
+        Super::deserializeVersion(serialized, device.getInfo());
+
+        *obj = device.detach();
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;

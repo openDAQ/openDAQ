@@ -32,14 +32,14 @@ ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
 
     if (serialNumber.assigned())
     {
-        auto info = RefDeviceImpl::CreateDeviceInfo(0, serialNumber);
+        auto info = RefDeviceImpl::CreateDeviceInfo(moduleInfo, 0, serialNumber);
         availableDevices.pushBack(info);
     }
     else
     {
         for (size_t i = 0; i < 2; i++)
         {
-            auto info = RefDeviceImpl::CreateDeviceInfo(i);
+            auto info = RefDeviceImpl::CreateDeviceInfo(moduleInfo, i);
             availableDevices.pushBack(info);
         }
     }
@@ -51,7 +51,7 @@ DictPtr<IString, IDeviceType> RefDeviceModule::onGetAvailableDeviceTypes()
 {
     auto result = Dict<IString, IDeviceType>();
 
-    auto deviceType = RefDeviceImpl::CreateType();
+    auto deviceType = RefDeviceImpl::CreateType(moduleInfo);
     result.set(deviceType.getId(), deviceType);
 
     return result;
@@ -102,7 +102,7 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     if (!localId.assigned())
         localId = fmt::format("RefDev{}", id);
 
-    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(id, config, context, parent, localId, name);
+    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(moduleInfo, id, config, context, parent, localId, name);
     devices[id] = devicePtr;
     return devicePtr;
 }

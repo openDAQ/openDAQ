@@ -33,10 +33,10 @@ namespace Classifier
 class ClassifierFbImpl final : public FunctionBlock
 {
 public:
-    explicit ClassifierFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit ClassifierFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~ClassifierFbImpl() override = default;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
 private:
     InputPortPtr inputPort;

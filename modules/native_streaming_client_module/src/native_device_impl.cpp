@@ -460,21 +460,6 @@ void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper
     this->connectionStatusContainer.addConfigurationConnectionStatus(deviceInfo.getConnectionString(), statusInitValue);
 }
 
-ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
-                                      IBaseObject* context,
-                                      IFunction* factoryCallback,
-                                      IBaseObject** obj)
-{
-    OPENDAQ_PARAM_NOT_NULL(context);
-
-    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
-    {
-        *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
 void NativeDeviceImpl::removed()
 {
     disconnectAndCleanUp();

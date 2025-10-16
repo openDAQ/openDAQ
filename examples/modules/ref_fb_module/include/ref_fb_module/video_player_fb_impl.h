@@ -67,12 +67,13 @@ private:
 class VideoPlayerFbImpl final : public FunctionBlock
 {
 public:
-    explicit VideoPlayerFbImpl(const ContextPtr& ctx, 
-                            const ComponentPtr& parent, 
-                            const StringPtr& localId, 
-                            const PropertyObjectPtr& config);
+    explicit VideoPlayerFbImpl(const ModuleInfoPtr& moduleInfo,
+                               const ContextPtr& ctx, 
+                               const ComponentPtr& parent, 
+                               const StringPtr& localId, 
+                               const PropertyObjectPtr& config);
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
     void onPacketReceived(const InputPortPtr& port) override;
     void handleDataPacket(const DataPacketPtr& packet);

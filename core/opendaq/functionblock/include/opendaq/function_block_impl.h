@@ -27,6 +27,8 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/component_update_context_ptr.h>
 #include <opendaq/recorder.h>
+#include <opendaq/component_type_private.h>
+#include <opendaq/module_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -116,6 +118,7 @@ protected:
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
                                                   const BaseObjectPtr& context,
                                                   const FunctionPtr& factoryCallback);
+    static void deserializeVersion(const SerializedObjectPtr& serialized, const FunctionBlockTypePtr& fbType);
 private:
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
     ListPtr<IFunctionBlock> getFunctionBlocksRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -596,6 +599,15 @@ void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(c
     auto typeId = type.getId();
     serializer.writeString(typeId.getCharPtr(), typeId.getLength());
 
+    if (type.getModuleInfo().assigned() && type.getModuleInfo().getVersionInfo().assigned())
+    {
+        const auto version = type.getModuleInfo().getVersionInfo();
+        const auto versionStr = fmt::format("{}.{}.{}", version.getMajor(), version.getMinor(), version.getPatch());
+
+        serializer.key("__version");
+        serializer.writeString(versionStr.c_str(), versionStr.size());
+    }
+
     if(!forUpdate) {
         serializer.key("isRecorder");
         FunctionBlockPtr thisPtr = this->template borrowPtr<FunctionBlockPtr>();
@@ -681,6 +693,23 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObj
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
+
+template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::deserializeVersion(
+    const SerializedObjectPtr& serialized,
+    const FunctionBlockTypePtr& fbType)
+{
+    if (serialized.hasKey("__version"))
+    {
+        const auto version = Super::parseVersionString(serialized.readString("__version"));
+        if (version.assigned())
+        {
+            const auto moduleInfo = ModuleInfo(version, "__unknown", "_unknown");
+            checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+        }
+    }
+}
+
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlock)
 

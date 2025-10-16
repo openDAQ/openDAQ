@@ -197,6 +197,8 @@ protected:
 
     virtual void onOperationModeChanged(OperationModeType modeType);
 
+    static VersionInfoPtr parseVersionString(const std::string& input);
+
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
 };
@@ -1336,6 +1338,69 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
             LOG_I("{}", logString)
         }
     }
+}
+
+template <class Intf, class... Intfs>
+VersionInfoPtr ComponentImpl<Intf, Intfs...>::parseVersionString(const std::string& input)
+{
+    std::stringstream ss(input);
+    std::string token;
+    int major, minor, patch;
+
+    if (std::getline(ss, token, '.'))
+    {
+        try
+        {
+            major = std::stoi(token);
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+    }
+    else
+    {
+        return {};
+    }
+
+    if (std::getline(ss, token, '.'))
+    {
+        try
+        {
+            minor = std::stoi(token);
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+    }
+    else
+    {
+        return {};
+    }
+
+    if (std::getline(ss, token))
+    {
+        try
+        {
+            patch = std::stoi(token);
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+    }
+    else
+    {
+        return {};
+    }
+
+    if (std::getline(ss, token))
+    {
+        return {};
+    }
+
+    return VersionInfo(major, minor, patch);
 }
 
 using StandardComponent = ComponentImpl<>;

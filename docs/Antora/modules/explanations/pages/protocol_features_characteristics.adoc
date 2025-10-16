@@ -307,6 +307,9 @@ The above table shows what features are enabled by what protocol. However, in re
 | Configure properties
 | Struct and enumeration properties must exactly match an OPC UA struct/enumeration type for them to be configurable. Additionally, property changes that result in a modified component tree structure might cause unintended behaviour, as the mirrored device structure will not reflect the actual state.
 
+| Active client connections
+| Information about active client connections is not available over OPC UA.
+
 | **Signals**
 |
 

@@ -36,11 +36,13 @@ public:
     ~VectorExtractorImpl() override = default;
 
     static daq::FunctionBlockTypePtr CreateType();
+
+    static bool descriptorNotNull(const DataDescriptorPtr& descriptor);
+    static bool getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc);
+    static bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);
+
 private:
 
-    void onDataReceived();
-
-    void onPacketReceived(const daq::InputPortPtr& port) override;
 
     void onDisconnected(const daq::InputPortPtr& port) override;
 
@@ -66,31 +68,21 @@ private:
 
     void initProperties();
 
+    void initStatues() const;
+
     void createInputPorts();
 
-    void createSignals();
-
-    void processDataPacket(const daq::DataPacketPtr& packet) const;
-
-    void processEventPacket(const daq::EventPacketPtr& packet);
-
-    void processSignalDescriptorsChangedEventPacket(const daq::EventPacketPtr& eventPacket);
-
-    void configure();
+    void propertyChanged(bool configure);
 
     void readProperties();
 
-    void initStatues() const;
-
-    void castingFunction(const DataDescriptorPtr& dataDescriptor, void* bufferData, void* destinationData, SizeT count);
+    void createSignals();
 
     void createReader();
 
-    bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);
+    void configure();
 
-    bool getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);
-
-    bool descriptorNotNull(const DataDescriptorPtr& descriptor);
+    void onDataReceived();
 
     void setInputStatus(const daq::StringPtr& value) const;
 
@@ -99,7 +91,7 @@ private:
 
     void copySamples(uint8_t* dest, uint8_t* source, const size_t fieldSampleSize, size_t sampleCount) const;
 
-    void propertyChanged(bool configure);
+    void castingFunction(const DataDescriptorPtr& dataDescriptor, void* bufferData, void* destinationData, SizeT count);
 };
 
 END_NAMESPACE_VECTOR_EXTRACTOR_MODULE

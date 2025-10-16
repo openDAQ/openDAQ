@@ -5,5 +5,5 @@
 
 using namespace daq::modules::vector_extractor;
 
-DEFINE_MODULE_EXPORTS(vector_extractor)
+DEFINE_MODULE_EXPORTS(VectorExtractorModule)
 

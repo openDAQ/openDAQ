@@ -240,6 +240,13 @@ void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr&
             if (!obj.hasKey("__type"))
                 continue;
 
+                
+            if (Impl::globalId == "/openDAQDevice/Dev/openDAQDevice/FB")
+            {
+                auto loggerComponent = Impl::context.getLogger().getOrAddComponent(Impl::globalId);
+                LOG_W("we are here");
+            }
+
             const StringPtr type = obj.readString("__type");
             const auto thisPtr = this->template borrowPtr<ComponentPtr>();
             const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(

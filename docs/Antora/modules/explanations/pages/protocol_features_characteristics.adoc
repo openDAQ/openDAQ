@@ -277,6 +277,12 @@ The above table shows what features are enabled by what protocol. However, in re
 | **Feature**
 | **Limitation**
 
+| **Properties**
+|
+
+| Active client connections
+| Information about active client connections is only available via the Native streaming protocol.
+
 | **Signals**
 |
 
@@ -308,7 +314,7 @@ The above table shows what features are enabled by what protocol. However, in re
 | Struct and enumeration properties must exactly match an OPC UA struct/enumeration type for them to be configurable. Additionally, property changes that result in a modified component tree structure might cause unintended behaviour, as the mirrored device structure will not reflect the actual state.
 
 | Active client connections
-| Information about active client connections is not available over OPC UA.
+| Information about active client connections is not available via OPC UA.
 
 | **Signals**
 |
@@ -345,6 +351,9 @@ The above table shows what features are enabled by what protocol. However, in re
 
 | Read reference domain info
 | Reference domain info is currently only supported over Native, not over the LT Streaming protocol. This will cause two data descriptor changed events to be sent when combining Native Configuration and LT Steaming.
+
+| Active client connections
+| Information about active client connections is not available via the LT protocol.
 
 |===
 

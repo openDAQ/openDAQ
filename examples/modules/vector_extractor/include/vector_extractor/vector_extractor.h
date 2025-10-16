@@ -82,7 +82,7 @@ private:
 
     void initStatues() const;
 
-    void castingFunction(const DataDescriptorPtr& dataDescriptor, const void* bufferData, void* destinationData);
+    void castingFunction(const DataDescriptorPtr& dataDescriptor, void* bufferData, void* destinationData, SizeT count);
 
     void createReader();
 

@@ -14,22 +14,10 @@ VectorExtractorImpl::VectorExtractorImpl(const daq::ContextPtr& ctx,
 }
 
 
-// Init Properties (add beginning of memory and the type of output)
-// #include <bit> (for std::bit_cast)
-// Implement reader
-
-// Fix the configuration
-
-// Rewrite onPacketReceived into onDataReceived
-
-// Check if we are missing any important functions from the default FunctionBlock class
-
-// The length of the data should be devisible by all available data types (afaik 64 bytes should do it (it is used now))
-
 void VectorExtractorImpl::initProperties()
 {
     const auto typeSelected =
-        SelectionProperty("OutputType", List<SampleType>(SampleType::UInt8, SampleType::UInt16, SampleType::UInt32, SampleType::UInt64), 0);
+        SelectionProperty("OutputType", List<SampleType>(SampleType::UInt8, SampleType::UInt16, SampleType::UInt32, SampleType::UInt64), 1);
     objPtr.addProperty(typeSelected);
     objPtr.getOnPropertyValueWrite("OutpuType") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
@@ -64,9 +52,10 @@ void VectorExtractorImpl::onDataReceived()
     {
         const auto domainPacket = DataPacket(outputDomainSignal.getDescriptor(), cnt, status.getOffset());
         const auto valuePacket = DataPacketWithDomain(domainPacket, outputSignal.getDescriptor(), cnt);
-        // The cast happens here
 
-        castingFunction(valuePacket.getDataDescriptor(), &bufferData, valuePacket.getData());
+        // Missing check for smaples being divisable
+
+        castingFunction(valuePacket.getDataDescriptor(), &bufferData, valuePacket.getData(), cnt);
 
         outputDomainSignal.sendPacket(domainPacket);
         outputSignal.sendPacket(valuePacket);
@@ -294,7 +283,7 @@ void VectorExtractorImpl::configure()
 }
 
 
-// Q: Why is this one no longer used in sem_reader_fb??
+// Q: Why is this one no longer used in sum_reader_fb??
 void VectorExtractorImpl::initStatues() const
 {
     const auto inputStatusType =
@@ -399,9 +388,51 @@ void VectorExtractorImpl::createSignals()
     outputSignal.setDomainSignal(outputDomainSignal);
 }
 
-void castingFunction(const DataDescriptorPtr& dataDescriptor, const void* bufferData, void* destinationData)
+void VectorExtractorImpl::castingFunction(const DataDescriptorPtr& dataDescriptor, void* bufferData, void* destinationData, SizeT count)
 {
-    // Logic using bit_cast from <bit> lib
+    auto type = dataDescriptor.getSampleType();
+
+    // This is a bit C-like solution to casting and don't particulary like it, but ok...
+
+    auto check = reinterpret_cast<uint8_t*>(bufferData);
+
+    auto sizeOfSample = inputDataDescriptor.getRawSampleSize();
+
+    switch (type)
+    {
+        case (SampleType::UInt16):
+        {
+            auto ff = reinterpret_cast<uint16_t*>(destinationData);
+            for (int i = 0; i< count; i++)
+                ff[i] = (check[i*sizeOfSample + beginningIndex] << 8) |
+                        (check[i*sizeOfSample + beginningIndex + 1] << 0);
+            break;
+        }
+        case (SampleType::UInt32):
+        {
+            auto ff = reinterpret_cast<uint32_t*>(destinationData);
+            for (int i = 0; i< count; i++)
+                ff[i] = (check[i*sizeOfSample + beginningIndex] << 24) |
+                        (check[i*sizeOfSample + beginningIndex + 1] << 16) |
+                        (check[i*sizeOfSample + beginningIndex + 2] << 8) |
+                        (check[i*sizeOfSample + beginningIndex + 3] << 0);
+            break;
+        }
+        case (SampleType::UInt64):
+        {
+            auto ff = reinterpret_cast<uint64_t*>(destinationData);
+            for (int i = 0; i < count; i++)
+                ff[i] = (check[i*sizeOfSample + beginningIndex] << 56) |
+                        (check[i*sizeOfSample + beginningIndex + 1] << 48) |
+                        (check[i*sizeOfSample + beginningIndex + 2] << 40) |
+                        (check[i*sizeOfSample + beginningIndex + 3] << 32) |
+                        (check[i*sizeOfSample + beginningIndex + 4] << 24) |
+                        (check[i*sizeOfSample + beginningIndex + 5] << 16) |
+                        (check[i*sizeOfSample + beginningIndex + 6] << 8) |
+                        (check[i*sizeOfSample + beginningIndex + 7] << 0);
+            break;
+        }
+    }
 }
 
 END_NAMESPACE_VECTOR_EXTRACTOR_MODULE

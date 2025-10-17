@@ -342,8 +342,10 @@ void WsStreamingServer::rescan()
             ++it;
     }
 
-    for (const auto& signal : _rootDevice.getSignalsRecursive())
-        createListener(signal);
+    auto items = _rootDevice.getItems(search::Recursive(search::Any()));
+    for (const auto& item : items)
+        if (auto signal = item.asPtrOrNull<daq::ISignal>(); signal.assigned())
+            createListener(signal);
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

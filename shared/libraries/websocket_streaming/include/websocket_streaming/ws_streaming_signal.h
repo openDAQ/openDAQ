@@ -27,6 +27,8 @@ class WsStreamingSignal : public MirroredSignal
 {
     public:
 
+        static StringPtr createLocalId(const StringPtr& streamingId);
+
         explicit WsStreamingSignal(
             const ContextPtr& context,
             const ComponentPtr& parent,
@@ -44,8 +46,6 @@ class WsStreamingSignal : public MirroredSignal
     
     private:
     
-        static StringPtr createLocalId(const StringPtr& streamingId);
-
         StringPtr streamingId;
 };
 

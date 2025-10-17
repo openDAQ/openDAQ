@@ -25,6 +25,15 @@
 
 BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 
+StringPtr WsStreamingSignal::createLocalId(const StringPtr& streamingId)
+{
+    std::string localId = streamingId;
+
+    std::replace(localId.begin(), localId.end(), '/', '#');
+
+    return String(localId);
+}
+
 WsStreamingSignal::WsStreamingSignal(
         const ContextPtr& context,
         const ComponentPtr& parent,
@@ -52,15 +61,6 @@ SignalPtr WsStreamingSignal::onGetDomainSignal()
 DataDescriptorPtr WsStreamingSignal::onGetDescriptor()
 {
     return mirroredDataDescriptor.addRefAndReturn();
-}
-
-StringPtr WsStreamingSignal::createLocalId(const StringPtr& streamingId)
-{
-    std::string localId = streamingId;
-
-    std::replace(localId.begin(), localId.end(), '/', '#');
-
-    return String(localId);
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

@@ -89,8 +89,8 @@ class WsStreamingDevice : public Device
 
         void onSignalAvailable(
             wss::remote_signal_ptr signal,
-            const DataDescriptorPtr& valueDescriptor,
-            const DataDescriptorPtr& domainDescriptor);
+            wss::remote_signal_ptr domainSignal,
+            const DataDescriptorPtr& descriptor);
 
         void onSignalUnavailable(
             wss::remote_signal_ptr signal);

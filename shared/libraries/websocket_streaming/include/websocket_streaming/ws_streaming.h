@@ -105,14 +105,14 @@ class WsStreaming : public Streaming
          * signal. Refer to the class documentation for details.
          *
          * @param signal The ws-streaming library's remote signal object.
-         * @param valueDescriptor The openDAQ descriptor for the signal.
-         * @param domainDescriptor The openDAQ descriptor of the associated domain signal, or
-         *     an unassigned pointer if there is no associated domain signal.
+         * @param domainSignal The ws-streaming library's remote signal object for the descriptor,
+         *     or nullptr if there is no associated domain signal.
+         * @param descriptor The openDAQ descriptor for the signal.
          */
         boost::signals2::signal<
             void(wss::remote_signal_ptr signal,
-                const DataDescriptorPtr& valueDescriptor,
-                const DataDescriptorPtr& domainDescriptor)
+                wss::remote_signal_ptr domainSignal,
+                const DataDescriptorPtr& descriptor)
         > onSignalAvailable;
 
         /**
@@ -125,6 +125,8 @@ class WsStreaming : public Streaming
         > onSignalUnavailable;
 
     protected:
+
+        static PropertyObjectPtr createDefaultConfig();
 
         void onSetActive(bool active) override;
         void onAddSignal(const MirroredSignalConfigPtr& signal) override;

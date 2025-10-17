@@ -94,21 +94,30 @@ DeviceInfoPtr WsStreamingDevice::onGetInfo()
 
 void WsStreamingDevice::onSignalAvailable(
     wss::remote_signal_ptr signal,
-    const DataDescriptorPtr& valueDescriptor,
-    const DataDescriptorPtr& domainDescriptor)
+    wss::remote_signal_ptr domainSignal,
+    const DataDescriptorPtr& descriptor)
 {
-    auto openDaqDomainSignal = createWithImplementation<IMirroredSignalPrivate, WsStreamingSignal>(
-        context,
-        signals,
-        signal->id() + ".Time");
-    openDaqDomainSignal.setMirroredDataDescriptor(domainDescriptor);
+    daq::MirroredSignalConfigPtr openDaqDomainSignal;
+
+    if (domainSignal)
+    {
+        auto localId = WsStreamingSignal::createLocalId(domainSignal->id());
+        for (const auto& s : thisPtr<daq::DevicePtr>().getSignals())
+            if (s.getLocalId() == localId)
+                openDaqDomainSignal = s;
+        if (!openDaqDomainSignal.assigned())
+            throw NotFoundException(
+                "Streaming signal '" + signal->id() + "' refers to unregistered domain signal '" + domainSignal->id() + "'");
+    }
 
     auto openDaqSignal = createWithImplementation<IMirroredSignalPrivate, WsStreamingSignal>(
         context,
         signals,
         signal->id());
-    openDaqSignal.setMirroredDataDescriptor(valueDescriptor);
-    openDaqSignal.setMirroredDomainSignal(openDaqDomainSignal);
+    openDaqSignal.setMirroredDataDescriptor(descriptor);
+
+    if (openDaqDomainSignal.assigned())
+        openDaqSignal.setMirroredDomainSignal(openDaqDomainSignal);
 
     streaming.addSignals({openDaqSignal});
 

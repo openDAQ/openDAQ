@@ -44,6 +44,7 @@ StreamingTypePtr WsStreaming::createType()
         .setId("OpenDAQLTStreaming")
         .setName("openDAQ WebSocket Streaming")
         .setDescription("Streaming from devices using the WebSocket Streaming Protocol")
+        .setDefaultConfig(createDefaultConfig())
         .setConnectionStringPrefix("daq.lt")
         .build();
 }
@@ -89,6 +90,13 @@ WsStreaming::~WsStreaming()
     LOG_I("Stopping Boost.Asio I/O context thread");
     ioContext.stop();
     thread.join();
+}
+
+PropertyObjectPtr WsStreaming::createDefaultConfig()
+{
+    auto obj = PropertyObject();
+    obj.addProperty(IntProperty("Port", 7414));
+    return obj;
 }
 
 void WsStreaming::onSetActive(bool active)
@@ -150,7 +158,6 @@ void WsStreaming::onUnsubscribeSignal(const StringPtr& signalId)
 
         LOG_I("Found signal, unsubscribing");
         signalIt->second->ptr->unsubscribe();
-        signalIt->second->isSubscribed = false;
     }
 
     else
@@ -254,8 +261,10 @@ void WsStreaming::onRemoteSignalMetadataChanged(std::weak_ptr<WsStreamingRemoteS
         LOG_I("Signal {} is now ready, publishing it", entry->ptr->id());
         entry->isPublished = true;
         addToAvailableSignals(entry->ptr->id());
-        onSignalAvailable(entry->ptr, entry->descriptor,
-            entry->domainEntry ? entry->domainEntry->descriptor : nullptr);
+        onSignalAvailable(
+            entry->ptr,
+            entry->domainEntry ? entry->domainEntry->ptr : nullptr,
+            entry->descriptor);
         entry->ptr->unsubscribe();
     }
 }
@@ -326,6 +335,8 @@ void WsStreaming::onRemoteSignalUnsubscribed(std::weak_ptr<WsStreamingRemoteSign
     auto entry = weakEntry.lock();
     if (!entry)
         return;
+
+    LOG_I("Signal unsubscribed: {}", entry->ptr->id());
 
     if (entry->isSubscribed)
     {

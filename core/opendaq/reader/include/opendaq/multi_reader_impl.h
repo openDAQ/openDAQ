@@ -80,6 +80,8 @@ public:
     ErrCode INTERFACE_FUNC setActive(Bool isActive) override;
     ErrCode INTERFACE_FUNC getActive(Bool* isActive) override;
 
+    void internalDispose(bool disposing) override;
+
 private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;

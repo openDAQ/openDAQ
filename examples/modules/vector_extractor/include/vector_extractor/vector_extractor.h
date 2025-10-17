@@ -91,6 +91,7 @@ private:
 
     void copySamples(uint8_t* dest, uint8_t* source, const size_t fieldSampleSize, size_t sampleCount) const;
 
+    template<typename T>
     void castingFunction(const DataDescriptorPtr& dataDescriptor, void* bufferData, void* destinationData, SizeT count);
 };
 

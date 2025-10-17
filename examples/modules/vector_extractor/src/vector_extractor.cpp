@@ -179,9 +179,29 @@ void VectorExtractorImpl::onDataReceived()
         const auto domainPacket = DataPacket(outputDomainSignal.getDescriptor(), cnt, status.getOffset());
         const auto valuePacket = DataPacketWithDomain(domainPacket, outputSignal.getDescriptor(), cnt);
 
-        // Missing check for smaples being divisable
-
-        castingFunction(valuePacket.getDataDescriptor(), &bufferData, valuePacket.getData(), cnt);
+        switch (outputType)
+        {
+            case SampleType::UInt8:
+            {
+                castingFunction<uint8_t>(valuePacket.getDataDescriptor(), &bufferData, valuePacket.getData(), cnt);
+                break;
+            }
+            case SampleType::UInt16:
+            {
+                castingFunction<uint16_t>(valuePacket.getDataDescriptor(), &bufferData, valuePacket.getData(), cnt);
+                break;
+            }
+            case SampleType::UInt32:
+            {
+                castingFunction<uint32_t>(valuePacket.getDataDescriptor(), &bufferData, valuePacket.getData(), cnt);
+                break;
+            }
+            case SampleType::UInt64:
+            {
+                castingFunction<uint64_t>(valuePacket.getDataDescriptor(), &bufferData, valuePacket.getData(), cnt);
+                break;
+            }
+        }
 
         outputDomainSignal.sendPacket(domainPacket);
         outputSignal.sendPacket(valuePacket);
@@ -300,52 +320,25 @@ void VectorExtractorImpl::copySamples(uint8_t* dest, uint8_t* source, const size
     }
 }
 
-void VectorExtractorImpl::castingFunction(const DataDescriptorPtr& dataDescriptor, void* bufferData, void* destinationData, SizeT count)
+template<typename T>
+void VectorExtractorImpl::castingFunction(const DataDescriptorPtr& dataDesc, void* bufferData, void* destinationData, SizeT count)
 {
-    auto type = dataDescriptor.getSampleType();
+    static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
 
-    // This is a bit C-like solution to casting and don't particulary like it, but ok...
+    const SizeT residue = inputDataDescriptor.getRawSampleSize() - beginningIndex;
 
-    auto check = reinterpret_cast<uint8_t*>(bufferData);
-
-    auto sizeOfSample = inputDataDescriptor.getRawSampleSize();
-
-    switch (type)
+    if (residue < sizeof(T))
     {
-        case (SampleType::UInt16):
-        {
-            auto ff = reinterpret_cast<uint16_t*>(destinationData);
-            for (SizeT i = 0; i< count; i++)
-                ff[i] = (check[i*sizeOfSample + beginningIndex] << 8) |
-                        (check[i*sizeOfSample + beginningIndex + 1] << 0);
-            break;
-        }
-        case (SampleType::UInt32):
-        {
-            auto ff = reinterpret_cast<uint32_t*>(destinationData);
-            for (SizeT i = 0; i< count; i++)
-                ff[i] = (check[i*sizeOfSample + beginningIndex] << 24) |
-                        (check[i*sizeOfSample + beginningIndex + 1] << 16) |
-                        (check[i*sizeOfSample + beginningIndex + 2] << 8) |
-                        (check[i*sizeOfSample + beginningIndex + 3] << 0);
-            break;
-        }
-        case (SampleType::UInt64):
-        {
-            auto ff = reinterpret_cast<uint64_t*>(destinationData);
-            for (SizeT i = 0; i < count; i++)
-                ff[i] = ((uint64_t)check[i*sizeOfSample + beginningIndex] << 56) |
-                        ((uint64_t)check[i * sizeOfSample + beginningIndex + 1] << 48) |
-                        ((uint64_t)check[i * sizeOfSample + beginningIndex + 2] << 40) |
-                        ((uint64_t)check[i * sizeOfSample + beginningIndex + 3] << 32) |
-                        ((uint64_t)check[i * sizeOfSample + beginningIndex + 4] << 24) |
-                        ((uint64_t)check[i * sizeOfSample + beginningIndex + 5] << 16) |
-                        ((uint64_t)check[i * sizeOfSample + beginningIndex + 6] << 8) |
-                        ((uint64_t)check[i * sizeOfSample + beginningIndex + 7] << 0);
-            break;
-        }
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Due to the setting of the Beginning index, the conversion is no longer possible.");
+    }
+    auto ff = reinterpret_cast<T*>(destinationData);
+    auto from = reinterpret_cast<uint8_t*>(bufferData);
+    for (size_t i = 0; i < count; i++)
+    {
+        std::memcpy(ff + i, from + beginningIndex + i * inputDataDescriptor.getRawSampleSize(), sizeof(T));
     }
 }
+
 
 END_NAMESPACE_VECTOR_EXTRACTOR_MODULE
 

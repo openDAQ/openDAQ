@@ -76,6 +76,9 @@ public:
     ErrCode INTERFACE_FUNC remoteUpdate(ISerializedObject* serialized) override;
     ErrCode INTERFACE_FUNC setRemoteUpdating(Bool remoteUpdating) override;
 
+    // IUpdatable
+    ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
+
 protected:
     bool deserializationComplete;
 
@@ -496,6 +499,31 @@ template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setRemoteUpdating(Bool remoteUpdating)
 {
     this->remoteUpdating = remoteUpdating;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::serializeForUpdate(ISerializer* serializer)
+{
+    const auto protocolVersion = clientComm->getProtocolVersion();
+    if (protocolVersion < 19)
+    {
+        const ErrCode errCode = Impl::serializeForUpdate(serializer);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
+    }
+
+    StringPtr remoteSerializedConfig = clientComm->serializeForUpdate(this->remoteGlobalId);
+
+    ErrCode errCode = serializer->startObject();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    errCode = serializer->key("remoteConfig");
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    errCode = remoteSerializedConfig.asPtr<ISerializable>(true)->serialize(serializer);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     return OPENDAQ_SUCCESS;
 }
 

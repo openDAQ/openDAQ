@@ -378,6 +378,11 @@ BooleanPtr ConfigProtocolClientComm::getIsRecording(const std::string& globalId)
     return sendComponentCommand(globalId, ClientCommand("GetIsRecording", 14));
 }
 
+StringPtr ConfigProtocolClientComm::serializeForUpdate(const std::string& globalId)
+{
+    return sendComponentCommand(globalId, ClientCommand("GetSerializedForUpdate", 19));
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
 {
     auto dict = Dict<IString, IBaseObject>();

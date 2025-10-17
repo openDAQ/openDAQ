@@ -725,7 +725,7 @@ ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::getSignalSerializeId(IString** serializeId)
 {
-    return this->getRemoteId(serializeId);
+    return this->getGlobalId(serializeId);
 }
 
 END_NAMESPACE_OPENDAQ

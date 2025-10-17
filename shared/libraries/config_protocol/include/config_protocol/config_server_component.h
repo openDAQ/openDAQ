@@ -49,6 +49,7 @@ public:
     static BaseObjectPtr addFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr removeFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr getComponentConfig(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr serializeForUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
 
 private:
     static void applyProps(uint16_t protocolVersion, const PropertyObjectPtr& obj, const ListPtr<IDict>& props);
@@ -436,6 +437,24 @@ inline BaseObjectPtr ConfigServerComponent::getComponentConfig(const RpcContext&
 
     if (const auto & componentPrivate = component.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
         return componentPrivate.getComponentConfig();
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerComponent::serializeForUpdate(const RpcContext& context,
+                                                               const ComponentPtr& component,
+                                                               const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectObject(component, context.user, Permission::Read);
+    if (const auto & updatable = component.asPtrOrNull<IUpdatable>(true); updatable.assigned())
+    {
+        auto serializer = JsonSerializer(True);
+
+        checkErrorInfo(updatable->serializeForUpdate(serializer));
+
+        StringPtr configuration;
+        checkErrorInfo(serializer->getOutput(&configuration));
+        return configuration;
+    }
     return nullptr;
 }
 

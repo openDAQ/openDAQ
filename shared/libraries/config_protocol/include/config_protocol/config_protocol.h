@@ -187,12 +187,12 @@ inline std::set<uint16_t> createListOfSupportedVersions(uint16_t maxVersion)
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    return createListOfSupportedVersions(18);
+    return createListOfSupportedVersions(19);
 }
 
 inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
-    return 18;
+    return 19;
 }
 
 }

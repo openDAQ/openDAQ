@@ -40,6 +40,14 @@ if (MSVC)
     )
 endif()
 
+if (LINUX)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GPGME REQUIRED gpgme)
+
+    target_include_directories(${LIC_EXAMPLE} PRIVATE ${GPGME_INCLUDE_DIRS})
+    target_link_libraries(${LIC_EXAMPLE} PRIVATE ${GPGME_LIBRARIES})
+endif()
+
 target_include_directories(${LIC_EXAMPLE} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
                                                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include/>
 )

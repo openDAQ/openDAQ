@@ -128,10 +128,10 @@ void tryReadSignalData(const daq::InstancePtr& instance, daq::SignalPtr& inputSi
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Create an Instance, loading modules at MODULE_PATH
-    const StringPtr path = StringPtr(resourcePath + "Certificate.txt");
+    const StringPtr path = StringPtr(resourcePath);
 
     // Add your signature hash here
-    const StringPtr key = StringPtr("my_cert_thumbprint");
+    const StringPtr key = StringPtr("84331B1E06F3D0A4AE25AC50E87412B42CBE05B4");
 
     const ModuleAuthenticatorPtr authenticator =
         daq::createWithImplementation<IModuleAuthenticator, daq::ModuleAuthenticatorImpl>(path);
@@ -141,11 +141,30 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     std::cout << std::endl << "Loaded modules:" << std::endl;
     auto vendorKeys = instance.getModuleManager().getVendorKeys();
+    
+    std::cout << "Vendor Keys:" << vendorKeys.getCount() << std::endl;
+    if(vendorKeys == nullptr){
+        std::cout << "  No Dict!" << std::endl;
 
+    }else if(vendorKeys.getCount() == 0){
+        std::cout << "  No Keys!" << std::endl;
+    }else{
+        std::cout << "  Keys!" << std::endl;
+
+        for(const auto& key : vendorKeys.getKeys()){
+            std::cout << " - Key: " << key.toStdString() << std::endl;
+        }    
+
+        for(const auto& val : vendorKeys.getValues()){
+            std::cout << " - Value: " << val.toStdString() << std::endl;
+        }
+    }
     // Setup your paths here..
     std::string licPath = resourcePath + "/license.lic";
     // Make sure you open up the quick_start_simulator example app to get a reference device!
     
+    std::cerr << "License path: \"" << licPath << "\"" << std::endl;
+
     // ------------------- Find and connect to a simulator device ------------------- //
     const auto availableDevices = instance.getAvailableDevices();
     daq::DevicePtr device;
@@ -182,12 +201,16 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         if (key.equals(vendorKeys.get(module.getModuleInfo().getId())))
         {
+            std::cerr << "Attempting to authenticate module: \"" << module.getModuleInfo().getName() << "\"" << std::endl;
+
             if (module.getModuleInfo().getName() == "LicensingModule")
             {
                 DictPtr<IString, IString> licenseConfig = module.getLicenseConfig();
                 licenseConfig.set("VendorKey", "my_secret_key");
                 licenseConfig.set("LicensePath", licPath);
                 succeeded = module.loadLicense(licenseConfig);
+                std::cerr << "Authenticated: " << succeeded << std::endl;
+                
             }
         }
         if (succeeded)

@@ -52,5 +52,5 @@
             Func<SampleType::Float64>(__VA_ARGS__);       \
             break;                                        \
         default:                                          \
-            assert(false);                                \
+            LOG_W("Sample Type not supported");           \
     }

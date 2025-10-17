@@ -156,6 +156,8 @@ public:
 
     uint16_t getProtocolVersion() const;
 
+    StringPtr serializeForUpdate(const std::string& globalId);
+
 private:
     ContextPtr daqContext;
     std::atomic<uint64_t> id;

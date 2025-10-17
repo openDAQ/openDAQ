@@ -87,7 +87,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
@@ -155,6 +155,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("AddFunctionBlock", &ConfigServerComponent::addFunctionBlock);
     addHandler<ComponentPtr>("RemoveFunctionBlock", &ConfigServerComponent::removeFunctionBlock);
     addHandler<ComponentPtr>("GetComponentConfig", &ConfigServerComponent::getComponentConfig);
+    addHandler<ComponentPtr>("GetSerializedForUpdate", &ConfigServerComponent::serializeForUpdate);
 
     addHandler<DevicePtr>("GetInfo", &ConfigServerDevice::getInfo);
     addHandler<DevicePtr>("GetTicksSinceOrigin", &ConfigServerDevice::getTicksSinceOrigin);

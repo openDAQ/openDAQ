@@ -3663,7 +3663,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeFor
     errCode = serializePropertyValues(serializer);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    serializer->endObject();
+    errCode = serializer->endObject();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     return OPENDAQ_SUCCESS;
 }
 

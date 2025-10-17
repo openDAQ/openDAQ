@@ -27,6 +27,7 @@
 
 ## Bug fixes
 
+- [#955](https://github.com/openDAQ/openDAQ/pull/955) Fix large log files download
 - [#941](https://github.com/openDAQ/openDAQ/pull/941) Fix getting on property value read write event for nestead proporties 
 - [#936](https://github.com/openDAQ/openDAQ/pull/936) Fix compatibility issue with SDK v3.10 in client-to-device-streaming
 - [#930](https://github.com/openDAQ/openDAQ/pull/930) Fixes the operation mode of 3.10 native-client devices with no op-mode support to be "Operation" by default

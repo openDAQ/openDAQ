@@ -78,9 +78,6 @@ public:
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
 
-    // ISignalPrivate
-    ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
-
 protected:
     EventPacketPtr createDataDescriptorChangedEventPacket() override;
     void onListenedStatusChanged(bool listened) override;
@@ -720,12 +717,6 @@ ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;
-}
-
-template <typename... Interfaces>
-ErrCode MirroredSignalBase<Interfaces...>::getSignalSerializeId(IString** serializeId)
-{
-    return this->getGlobalId(serializeId);
 }
 
 END_NAMESPACE_OPENDAQ

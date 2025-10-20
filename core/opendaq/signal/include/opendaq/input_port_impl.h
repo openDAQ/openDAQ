@@ -656,7 +656,7 @@ void GenericInputPortImpl<TInterface, Interfaces...>::serializeCustomObjectValue
     if (signal.assigned())
     {
         serializer.key("signalId");
-        const auto signalSerializedId = signal.template asPtr<ISignalPrivate>(true).getSignalSerializeId();
+        const auto signalSerializedId = signal.getGlobalId();
         serializer.writeString(signalSerializedId);
     }
 }

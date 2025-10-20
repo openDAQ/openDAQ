@@ -2533,6 +2533,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadConfiguration)
     ASSERT_EQ(nestedFb.getCount(), 1u);
     ASSERT_EQ(nestedFb[0].getFunctionBlockType().getId(), "RefFBModuleTrigger");
 
+    ASSERT_EQ(restoredClient.getDevices().getCount(), 1);
     auto signals = restoredClient.getDevices()[0].getSignals(search::Recursive(search::Any()));
     for (const auto& signal : signals)
     {
@@ -2915,7 +2916,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadGateway)
         clGatewayFb.getInputPorts()[0].connect(clGatewaySrvSig);
     }
 
-    // save configuration from the top layer                
+    // save configuration from the top layer
     const auto saveConfig = client.saveConfiguration();
 
     // removing statistic fb

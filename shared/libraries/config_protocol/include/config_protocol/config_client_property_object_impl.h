@@ -415,7 +415,15 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObje
     const ErrCode errCode = daqTry([this, &obj]()
     {
         StringPtr serialized;
-        checkErrorInfo(obj->toJson(&serialized));
+        
+        StringPtr remoteConfigKey = "remoteConfig";
+        Bool hasRemoteConfig = False;
+        obj->hasKey(remoteConfigKey, &hasRemoteConfig);
+
+        if (hasRemoteConfig)
+            checkErrorInfo(obj->readString(remoteConfigKey, &serialized));
+        else
+            checkErrorInfo(obj->toJson(&serialized));
         clientComm->update(remoteGlobalId, serialized, this->path);
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -515,13 +523,16 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::serializeForUpdate(ISerializer
 
     StringPtr remoteSerializedConfig = clientComm->serializeForUpdate(this->remoteGlobalId);
 
-    ErrCode errCode = serializer->startObject();
+    ErrCode errCode = serializer->startTaggedObject(this);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = serializer->key("remoteConfig");
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     errCode = remoteSerializedConfig.asPtr<ISerializable>(true)->serialize(serializer);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    errCode = serializer->endObject();
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;

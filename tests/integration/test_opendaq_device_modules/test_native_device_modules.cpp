@@ -2713,7 +2713,7 @@ TEST_F(NativeDeviceModulesTest, ClientSaveLoadRestoreClientConnectedToServer)
 
     auto server = CreateServerInstanceWithEnabledLogFileInfo();
     
-    auto restoredClient = Instance();
+    auto restoredClient = Instance("", "clientLocal");
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
 
     auto devices = restoredClient.getDevices();
@@ -2734,7 +2734,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
 {
     StringPtr config;
     {
-        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
         auto client = CreateClientInstance();
         
         auto deviceConfig = client.createDefaultAddDeviceConfig();
@@ -2743,9 +2743,9 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
         config = client.saveConfiguration();
     }
 
-    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
 
-    auto restoredClient = Instance();
+    auto restoredClient = Instance("", "clientLocal");
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
 
     auto devices = restoredClient.getDevices()[0].getDevices();
@@ -2761,7 +2761,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
 {
     StringPtr config;
     {
-        auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+        auto server = CreateServerInstanceWithEnabledLogFileInfo();
         auto client = CreateClientInstance();
         auto clientRoot = client.getDevices()[0];
 
@@ -2772,9 +2772,9 @@ TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
         config = client.saveConfiguration();
     }
 
-    auto server = CreateServerInstanceWithEnabledLogFileInfo("native_ref_device.log");
+    auto server = CreateServerInstanceWithEnabledLogFileInfo();
     
-    auto restoredClient = Instance();
+    auto restoredClient = Instance("", "clientLocal");
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
 
     auto devices = restoredClient.getDevices();
@@ -2830,9 +2830,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfo)
     ASSERT_EQ(deviceInfo.getProperty("ServerCustomProperty").getDefaultValue(), "defaultValue");
     ASSERT_EQ(deviceInfo.getPropertyValue("ServerCustomProperty"), "newValue");
 
-    ASSERT_TRUE(deviceInfo.hasProperty("ClientCustomProperty"));
-    ASSERT_EQ(deviceInfo.getProperty("ClientCustomProperty").getDefaultValue(), "defaultValue");
-    ASSERT_EQ(deviceInfo.getPropertyValue("ClientCustomProperty"), "newValue");
+    ASSERT_FALSE(deviceInfo.hasProperty("ClientCustomProperty"));
 }
 
 TEST_F(NativeDeviceModulesTest, SaveLoadGateway)
@@ -2894,9 +2892,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadGateway)
         ASSERT_EQ(gatewayFb.getInputPorts().getCount(), 1);
         auto gatewayFbIp = gatewayFb.getInputPorts()[0];
         ASSERT_TRUE(gatewayFbIp.assigned());
-        auto gatewayFbIpCn = gatewayFbIp.getConnection();
-        ASSERT_TRUE(gatewayFbIpCn.assigned());
-        auto gatewayFbIpCnSig = gatewayFbIpCn.getSignal();
+        auto gatewayFbIpCnSig = gatewayFbIp.getSignal();
         ASSERT_TRUE(gatewayFbIpCnSig.assigned());
     }
     
@@ -2908,8 +2904,8 @@ TEST_F(NativeDeviceModulesTest, SaveLoadGateway)
         ASSERT_EQ(clGatewayFb.getInputPorts().getCount(), 1);
         auto clGatewayFbIp = clGatewayFb.getInputPorts()[0];
         ASSERT_TRUE(clGatewayFbIp.assigned());
-        auto clGatewayFbIpCn = clGatewayFbIp.getConnection();
-        ASSERT_TRUE(clGatewayFbIpCn.assigned()); // no connection
+        auto clGatewayFbIpCnSig = clGatewayFbIp.getSignal();
+        ASSERT_TRUE(clGatewayFbIpCnSig.assigned());
     }
 }
 

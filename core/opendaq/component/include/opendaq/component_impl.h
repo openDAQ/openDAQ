@@ -138,6 +138,7 @@ protected:
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
+    virtual void serializeConnectionValues(const SerializerPtr& serializer);
 
     ContextPtr context;
 
@@ -1115,7 +1116,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /*forUpdate*/)
+void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     if (!active)
     {
@@ -1153,6 +1154,15 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         statusContainer.serialize(serializer);
     }
 
+    if (forUpdate)
+    {
+        serializeConnectionValues(serializer);
+    }
+}
+
+template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::serializeConnectionValues(const SerializerPtr& serializer)
+{
     if (componentConfig.assigned())
     {
         serializer.key("ComponentConfig");

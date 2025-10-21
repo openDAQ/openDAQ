@@ -81,6 +81,8 @@ protected:
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
 
+    ErrCode serializeCustomValuesForUpdate(ISerializer* serializer) override;
+
 private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
@@ -373,6 +375,17 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
             *modeType = OperationModeTypeFromString(this->clientComm->getOperationMode(this->remoteGlobalId)); 
         else
             checkErrorInfo(Super::getOperationMode(modeType));   
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::serializeCustomValuesForUpdate(ISerializer* serializer)
+{
+    const ErrCode errCode = daqTry([this, &serializer]
+    {
+        this->serializeConnectionValues(serializer);
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;

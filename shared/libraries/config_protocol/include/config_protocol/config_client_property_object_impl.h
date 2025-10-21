@@ -86,6 +86,8 @@ protected:
     virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
     PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop) override;
 
+    virtual ErrCode serializeCustomValuesForUpdate(ISerializer* serializer);
+
 /*
     void beginApplyUpdate() override;
     void endApplyUpdate() override;
@@ -532,9 +534,18 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::serializeForUpdate(ISerializer
     errCode = remoteSerializedConfig.asPtr<ISerializable>(true)->serialize(serializer);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    errCode = serializeCustomValuesForUpdate(serializer);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     errCode = serializer->endObject();
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::serializeCustomValuesForUpdate(ISerializer* /* serializer */)
+{
     return OPENDAQ_SUCCESS;
 }
 
@@ -861,7 +872,6 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyObjectUpdateEnd(const Cor
         }
 
         obj.endUpdate();
-
     }
     else
     {
@@ -900,7 +910,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyAdded(const CoreEventArgs
         obj.addProperty(prop);
     }
     else
+    {
         checkErrorInfo(Impl::addProperty(prop));
+    }
 }
 
 template <class Impl>
@@ -951,6 +963,7 @@ PropertyObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getObjectAtPath(cons
         return thisPtr.getPropertyValue(path);
     return thisPtr;
 }
+
 template <class Impl>
 BaseObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getFullPropName(const std::string& propName) const
 {
@@ -981,7 +994,6 @@ bool ConfigClientPropertyObjectBaseImpl<Impl>::isBasePropertyObject(const Proper
             && !propObj.supportsInterface<IAddressInfo>()
             && !propObj.supportsInterface<IConnectedClientInfo>();
 }
-
 
 template <class Impl>
 std::string ConfigClientPropertyObjectBaseImpl<Impl>::getPathInternal()

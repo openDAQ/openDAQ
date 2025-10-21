@@ -202,6 +202,8 @@ protected:
                                   LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
+    void serializeConnectionValues(const SerializerPtr& serializer) override;
+
     void updateFunctionBlock(const std::string& fbId,
                              const SerializedObjectPtr& serializedFunctionBlock,
                              const BaseObjectPtr& context) override;
@@ -1811,8 +1813,8 @@ inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(c
 
         if (!this->coreEventMuted && this->coreEvent.assigned())
         {
-             this->triggerCoreEvent(CoreEventArgsComponentAdded(folder));
-             folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+            this->triggerCoreEvent(CoreEventArgsComponentAdded(folder));
+            folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         }
 
         return folder;
@@ -1882,31 +1884,6 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             }
         }
     }
-    else
-    {
-        if (deviceInfo.assigned())
-        {
-            auto connectionString = deviceInfo.getConnectionString();
-            if (connectionString.getLength() != 0)
-            {
-                serializer.key("connectionString");
-                serializer.writeString(deviceInfo.getConnectionString());
-            }
-
-            auto manufacturer = deviceInfo.getManufacturer();
-            auto serialNumber = deviceInfo.getSerialNumber();
-            bool isRemote = deviceInfo.getServerCapabilities().getCount();
-
-            if (isRemote && manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
-            {
-                serializer.key("manufacturer");
-                serializer.writeString(manufacturer);
-
-                serializer.key("serialNumber");
-                serializer.writeString(serialNumber);
-            }
-        }
-    }
 
     if (deviceInfo.assigned())
     {
@@ -1927,6 +1904,38 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     {
         serializer.key("connectionStatuses");
         connectionStatusContainer.serialize(serializer);
+    }
+}
+
+template <typename TInterface, typename ... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::serializeConnectionValues(const SerializerPtr& serializer)
+{
+    Super::serializeConnectionValues(serializer);
+
+    DeviceInfoPtr deviceInfo;
+    checkErrorInfo(this->getInfo(&deviceInfo));
+
+    if (deviceInfo.assigned())
+    {
+        auto connectionString = deviceInfo.getConnectionString();
+        if (connectionString.getLength() != 0)
+        {
+            serializer.key("connectionString");
+            serializer.writeString(deviceInfo.getConnectionString());
+        }
+
+        auto manufacturer = deviceInfo.getManufacturer();
+        auto serialNumber = deviceInfo.getSerialNumber();
+        bool isRemote = deviceInfo.getServerCapabilities().getCount();
+
+        if (isRemote && manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
+        {
+            serializer.key("manufacturer");
+            serializer.writeString(manufacturer);
+
+            serializer.key("serialNumber");
+            serializer.writeString(serialNumber);
+        }
     }
 }
 

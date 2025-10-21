@@ -148,10 +148,10 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getComponentConfig(IPropertyObject*
 
     return daqTry([this, config] 
     { 
-        if (this->clientComm->getProtocolVersion() < 16)
-            *config = this->clientComm->getComponentConfig(this->remoteGlobalId).detach();
-        else
-            checkErrorInfo(Impl::getComponentConfig(config));   
+        if (!this->componentConfig.assigned())
+            this->componentConfig = this->clientComm->getComponentConfig(this->remoteGlobalId);
+
+        checkErrorInfo(Impl::getComponentConfig(config));   
     });
 }
 

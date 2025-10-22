@@ -221,7 +221,7 @@ public:
     }
 
     // returns true is object need to be written
-    bool unregisetPropertyUpdating(const std::string& name)
+    bool unregisterPropertyUpdating(const std::string& name)
     {
         auto it = updatePropertyStack.find(name);
         if (it == updatePropertyStack.end())
@@ -834,7 +834,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     {
         if (newValue.assigned() && !shouldWriteLocalValue(name, newValue))
         {
-            updatePropertyStack.unregisetPropertyUpdating(name);
+            updatePropertyStack.unregisterPropertyUpdating(name);
             return OPENDAQ_IGNORED;
         }
     }
@@ -872,7 +872,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
         valueWriteEvents[AnyWriteEventName](objPtr, args);
     }
 
-    bool shouldUpdate = updatePropertyStack.unregisetPropertyUpdating(name);
+    bool shouldUpdate = updatePropertyStack.unregisterPropertyUpdating(name);
     // If the event execution failed, forward the error code
     OPENDAQ_RETURN_IF_FAILED(errCode);
 

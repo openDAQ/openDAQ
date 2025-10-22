@@ -1910,6 +1910,9 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 template <typename TInterface, typename ... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::serializeConnectionValues(const SerializerPtr& serializer)
 {
+    if (isRootDevice)
+        return;
+
     Super::serializeConnectionValues(serializer);
 
     DeviceInfoPtr deviceInfo;

@@ -49,6 +49,13 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredDeviceConfig, IMirroredDevice)
      * @param streamingConnectionString The connection string of streaming source to be removed.
      */
     virtual ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) = 0;
+
+    /*!
+     * @brief Serializes the device configuration locally (without requesting server state).
+     * This is used during reconnection to preserve client-side configuration.
+     * @param serializer The serializer to use for serialization.
+     */
+    virtual ErrCode INTERFACE_FUNC serializeForUpdateLocally(ISerializer* serializer) = 0;
 };
 
 /*!@}*/

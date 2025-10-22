@@ -15,14 +15,17 @@
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/reader_config_ptr.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
-
 namespace PowerReader
 {
 
-PowerReaderFbImpl::PowerReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+PowerReaderFbImpl::PowerReaderFbImpl(const ModuleInfoPtr& moduleInfo,
+                                     const ContextPtr& ctx,
+                                     const ComponentPtr& parent,
+                                     const StringPtr& localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
 {
     initComponentStatus();
     createInputPorts();
@@ -96,9 +99,11 @@ void PowerReaderFbImpl::readProperties()
     tickOffsetToleranceUs = std::chrono::milliseconds(objPtr.getPropertyValue("TickOffsetToleranceUs"));
 }
 
-FunctionBlockTypePtr PowerReaderFbImpl::CreateType()
+FunctionBlockTypePtr PowerReaderFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
-    return FunctionBlockType("RefFBModulePowerReader", "Power with reader", "Calculates power using multi reader");
+    auto fbType = FunctionBlockType("RefFBModulePowerReader", "Power with reader", "Calculates power using multi reader");
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 bool PowerReaderFbImpl::descriptorNotNull(const DataDescriptorPtr& descriptor)

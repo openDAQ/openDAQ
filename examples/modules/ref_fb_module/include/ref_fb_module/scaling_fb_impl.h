@@ -32,10 +32,10 @@ namespace Scaling
 class ScalingFbImpl final : public FunctionBlock
 {
 public:
-    explicit ScalingFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit ScalingFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~ScalingFbImpl() override = default;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
 private:
     InputPortPtr inputPort;

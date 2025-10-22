@@ -9,10 +9,11 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/device_domain_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
-AudioDeviceImpl::AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maContext, const ma_device_id& id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+AudioDeviceImpl::AudioDeviceImpl(const ModuleInfoPtr& moduleInfo, const std::shared_ptr<MiniaudioContext>& maContext, const ma_device_id& id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : GenericDevice<>(ctx, parent, localId)
     , maId(id)
     , maContext(maContext)
@@ -21,6 +22,7 @@ AudioDeviceImpl::AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maCont
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent("AudioDeviceModule")
                           : throw ArgumentNullException("Logger must not be null"))
+    , moduleInfo(moduleInfo)
 {
     // time signal is owned by device, because in case of multiple channels they should share the same time signal
     timeSignal = createAndAddSignal("time", nullptr, false);
@@ -40,11 +42,11 @@ AudioDeviceImpl::~AudioDeviceImpl()
     stop();
 }
 
-DeviceInfoPtr AudioDeviceImpl::CreateDeviceInfo(const std::shared_ptr<MiniaudioContext>& maContext, const ma_device_info& deviceInfo)
+DeviceInfoPtr AudioDeviceImpl::CreateDeviceInfo(const ModuleInfoPtr& moduleInfo, const std::shared_ptr<MiniaudioContext>& maContext, const ma_device_info& deviceInfo)
 {
     auto devInfo = DeviceInfo(getConnectionStringFromId(maContext->getPtr()->backend, deviceInfo.id));
     devInfo.setName(deviceInfo.name);
-    devInfo.setDeviceType(createType());
+    devInfo.setDeviceType(createType(moduleInfo));
 
     return devInfo;
 }
@@ -58,7 +60,7 @@ DeviceInfoPtr AudioDeviceImpl::onGetInfo()
     {
         LOG_W("Miniaudio get device information failed: {}", ma_result_description(result));
     }
-    return CreateDeviceInfo(maContext, info);
+    return CreateDeviceInfo(moduleInfo, maContext, info);
 }
 
 uint64_t AudioDeviceImpl::onGetTicksSinceOrigin()
@@ -253,9 +255,11 @@ std::string AudioDeviceImpl::getConnectionStringFromId(ma_backend backend, ma_de
     return connStr;
 }
 
-DeviceTypePtr AudioDeviceImpl::createType()
+DeviceTypePtr AudioDeviceImpl::createType(const ModuleInfoPtr& moduleInfo)
 {
-    return DeviceType("MiniAudio", "Audio device", "", "miniaudio");
+    auto deviceType = DeviceType("MiniAudio", "Audio device", "", "miniaudio");
+    checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return deviceType;
 }
 
 ma_device_id AudioDeviceImpl::getIdFromConnectionString(std::string connectionString)

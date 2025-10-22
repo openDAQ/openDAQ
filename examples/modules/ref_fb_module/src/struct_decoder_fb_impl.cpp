@@ -11,8 +11,10 @@
 #include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/search_filter_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
+
 namespace StructDecoder
 {
 
@@ -20,8 +22,11 @@ static const char* InputDisconnected = "Disconnected";
 static const char* InputConnected = "Connected";
 static const char* InputInvalid = "Invalid";
 
-StructDecoderFbImpl::StructDecoderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+StructDecoderFbImpl::StructDecoderFbImpl(const ModuleInfoPtr& moduleInfo,
+                                         const ContextPtr& ctx,
+                                         const ComponentPtr& parent,
+                                         const StringPtr& localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
     , configured(false)
 {
     initComponentStatus();
@@ -29,9 +34,11 @@ StructDecoderFbImpl::StructDecoderFbImpl(const ContextPtr& ctx, const ComponentP
     initStatuses();
 }
 
-FunctionBlockTypePtr StructDecoderFbImpl::CreateType()
+FunctionBlockTypePtr StructDecoderFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
-    return FunctionBlockType("RefFBModuleStructDecoder", "Struct decoder", "Decodes signals with struct data type and outputs signal for each struct component.");
+    auto fbType = FunctionBlockType("RefFBModuleStructDecoder", "Struct decoder", "Decodes signals with struct data type and outputs signal for each struct component.");
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 void StructDecoderFbImpl::processSignalDescriptorsChangedEventPacket(const EventPacketPtr& eventPacket)

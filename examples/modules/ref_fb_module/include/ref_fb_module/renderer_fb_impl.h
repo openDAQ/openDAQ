@@ -121,13 +121,13 @@ struct SignalContext
 class RendererFbImpl final : public FunctionBlock
 {
 public:
-    explicit RendererFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
+    explicit RendererFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
     ~RendererFbImpl() override;
 
     void onConnected(const InputPortPtr& port) override;
     void onDisconnected(const InputPortPtr& port) override;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
 protected:
     void removed() override;

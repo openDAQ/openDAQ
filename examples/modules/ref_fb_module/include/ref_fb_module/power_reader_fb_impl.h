@@ -31,10 +31,13 @@ namespace PowerReader
 class PowerReaderFbImpl final : public FunctionBlock
 {
 public:
-    explicit PowerReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit PowerReaderFbImpl(const ModuleInfoPtr& moduleInfo,
+                               const ContextPtr& ctx,
+                               const ComponentPtr& parent,
+                               const StringPtr& localId);
     ~PowerReaderFbImpl() override = default;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
     static bool descriptorNotNull(const DataDescriptorPtr& descriptor);
     static void getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc);
     static bool getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc);

@@ -4,8 +4,11 @@
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
-WAVReaderFbImpl::WAVReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+WAVReaderFbImpl::WAVReaderFbImpl(const ModuleInfoPtr& moduleInfo,
+                                 const ContextPtr& ctx,
+                                 const ComponentPtr& parent,
+                                 const StringPtr& localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
     , filePath("")
     , decoderInitialized(false)
     , reading(false)
@@ -78,12 +81,15 @@ void WAVReaderFbImpl::sendPacket(DataPacketPtr packet)
     outputSignal.sendPacket(packet);
 }
 
-FunctionBlockTypePtr WAVReaderFbImpl::CreateType()
+FunctionBlockTypePtr WAVReaderFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
-    return FunctionBlockType(
+    auto fbType = FunctionBlockType(
         "AudioDeviceModuleWavReader",
         "WAVReader",
         "Readers and creates input signals from WAV files");
+
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 bool WAVReaderFbImpl::initializeDecoder()

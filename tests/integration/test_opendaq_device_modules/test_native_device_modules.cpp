@@ -3595,6 +3595,18 @@ TEST_F(NativeDeviceModulesTest, AddNestedFB)
     ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
 }
 
+TEST_F(NativeDeviceModulesTest, StatisticsFunctionBlockVersion)
+{
+    const auto server = CreateServerInstance();
+    ASSERT_EQ(server.getFunctionBlocks()[0].getFunctionBlockType().getId(), "RefFBModuleStatistics");
+
+    const auto client = Instance();
+    auto dev = client.addDevice("daq.nd://127.0.0.1");
+    auto fb = dev.getFunctionBlocks()[0];
+    ASSERT_EQ(fb.getFunctionBlockType().getId(), "RefFBModuleStatistics");
+    ASSERT_EQ(fb.getFunctionBlockType().getModuleInfo().getVersionInfo(), server.getFunctionBlocks()[0].getFunctionBlockType().getModuleInfo().getVersionInfo());
+}
+
 TEST_F(NativeDeviceModulesTest, TestEnumerationPropertyRemote)
 {
     InstancePtr serverInstance;

@@ -291,7 +291,7 @@ ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& da
               streamingProducer,
               [](ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
               {
-                  return TRootDeviceImpl::Deserialize(serialized, context, factoryCallback, obj);
+                  return TRootDeviceImpl::template Deserialize<TRootDeviceImpl>(serialized, context, factoryCallback, obj);
               }))
 {
 }

@@ -12,20 +12,21 @@
 #include <opendaq/thread_name.h>
 #include <date/date.h>
 #include <iomanip>
+#include <opendaq/component_type_private.h>
 #include <opendaq/work_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/reader_utils.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
-
 namespace Renderer
 {
 
-RendererFbImpl::RendererFbImpl(const ContextPtr& ctx, 
+RendererFbImpl::RendererFbImpl(const ModuleInfoPtr& moduleInfo,
+                               const ContextPtr& ctx, 
                                const ComponentPtr& parent, 
                                const StringPtr& localId,
                                const PropertyObjectPtr& config)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
     , rendererStopRequested(false)
     , resolutionChangedFlag(false)
     , inputPortCount(0)
@@ -66,7 +67,7 @@ RendererFbImpl::~RendererFbImpl()
     LOGP_D("Render thread stopped")
 }
 
-FunctionBlockTypePtr RendererFbImpl::CreateType()
+FunctionBlockTypePtr RendererFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
     auto defaultConfig = PropertyObject();
 #ifdef __APPLE__
@@ -75,12 +76,14 @@ FunctionBlockTypePtr RendererFbImpl::CreateType()
     defaultConfig.addProperty(BoolProperty("UseMainLoopForRenderer", false));
 #endif
 
-    return FunctionBlockType(
+    auto fbType = FunctionBlockType(
         "RefFBModuleRenderer",
         "Renderer",
         "Signal visualization",
         defaultConfig
     );
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 void RendererFbImpl::removed()

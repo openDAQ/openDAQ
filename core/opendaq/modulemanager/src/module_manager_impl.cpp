@@ -360,12 +360,12 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
     catch (const std::exception& e)
     {
         LOG_W(R"(Error loading module "{}": {})", pathString, e.what())
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, e.what());
     }
     catch (...)
     {
         LOG_W(R"(Unknown error occurred loading module "{}")", pathString)
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;

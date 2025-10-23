@@ -1,0 +1,84 @@
+#include <coretypes/version_info_factory.h>
+#include <opendaq/custom_log.h>
+#include <property_system_example_module/properties_fb_basic_types.h>
+#include <property_system_example_module/properties_fb_container_types.h>
+#include <property_system_example_module/properties_fb_objects_and_classes.h>
+#include <property_system_example_module/properties_fb_reference_properties.h>
+#include <property_system_example_module/property_system_example_module.h>
+#include <property_system_example_module/version.h>
+
+BEGIN_NAMESPACE_PROPERTIES_MODULE
+
+PropertySystemExampleModule::PropertySystemExampleModule(ContextPtr ctx)
+    : Module("PropertySystemExampleModule",
+             VersionInfo(PROPERTY_SYSTEM_EXAMPLE_MODULE_MAJOR_VERSION,
+                         PROPERTY_SYSTEM_EXAMPLE_MODULE_MINOR_VERSION,
+                         PROPERTY_SYSTEM_EXAMPLE_MODULE_PATCH_VERSION),
+             std::move(ctx),
+             "PropertySystemExampleModule")
+{
+    // Object class - used for defining a class-like structure with properties
+    auto typeManager = context.getTypeManager();
+
+    auto inheritedObjClassProp = PropertyObjectClassBuilder("InheritedClass")
+                                     .addProperty(IntProperty("Integer", 10))
+                                     .addProperty(SelectionProperty("Selection", List<IString>("Banana", "Apple", "Kiwi"), 1))
+                                     .build();
+    typeManager.addType(inheritedObjClassProp);
+
+    // Object class - can also use inheritance
+    auto objClassProp =
+        PropertyObjectClassBuilder(typeManager, "Class").addProperty(StringProperty("Foo", "Bar")).setParentName("InheritedClass").build();
+    typeManager.addType(objClassProp);
+}
+
+DictPtr<IString, IFunctionBlockType> PropertySystemExampleModule::onGetAvailableFunctionBlockTypes()
+{
+    auto types = Dict<IString, IFunctionBlockType>();
+
+    const auto basicTypes = ExampleFBPropertyBasicTypes::CreateType();
+    types.set(basicTypes.getId(), basicTypes);
+
+    const auto containerTypes = ExampleFBPropertyContainerTypes::CreateType();
+    types.set(containerTypes.getId(), containerTypes);
+
+    const auto objectsAndClasses = ExampleFBPropertyObjectsAndClasses::CreateType();
+    types.set(objectsAndClasses.getId(), objectsAndClasses);
+
+    const auto referenceProperties = ExampleFBPropertyReferenceProperties::CreateType();
+    types.set(referenceProperties.getId(), referenceProperties);
+
+    return types;
+}
+
+FunctionBlockPtr PropertySystemExampleModule::onCreateFunctionBlock(const StringPtr& id,
+                                                                    const ComponentPtr& parent,
+                                                                    const StringPtr& localId,
+                                                                    const PropertyObjectPtr& /*config*/)
+{
+    if (id == ExampleFBPropertyBasicTypes::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, ExampleFBPropertyBasicTypes>(context, parent, localId);
+        return fb;
+    }
+    if (id == ExampleFBPropertyContainerTypes::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, ExampleFBPropertyContainerTypes>(context, parent, localId);
+        return fb;
+    }
+    if (id == ExampleFBPropertyObjectsAndClasses::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, ExampleFBPropertyObjectsAndClasses>(context, parent, localId);
+        return fb;
+    }
+    if (id == ExampleFBPropertyReferenceProperties::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, ExampleFBPropertyReferenceProperties>(context, parent, localId);
+        return fb;
+    }
+
+    LOG_W("Function block \"{}\" not found", id)
+    throw NotFoundException("Function block not found");
+}
+
+END_NAMESPACE_PROPERTIES_MODULE

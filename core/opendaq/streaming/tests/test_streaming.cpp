@@ -133,15 +133,15 @@ TEST_F(StreamingTest, StreamedClientSignals)
     SignalPtr signal = Signal(context, nullptr, String("Signal"));
 
     EXPECT_CALL(streaming.mock(), onRegisterStreamedClientSignal(signal)).Times(Exactly(1));
-    ASSERT_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->registerStreamedClientSignals(List<ISignal>(signal)),
+    ASSERT_ERROR_CODE_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->registerStreamedClientSignals(List<ISignal>(signal)),
               OPENDAQ_SUCCESS);
-    ASSERT_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->registerStreamedClientSignals(List<ISignal>(signal)),
+    ASSERT_ERROR_CODE_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->registerStreamedClientSignals(List<ISignal>(signal)),
               OPENDAQ_SUCCESS);
 
     EXPECT_CALL(streaming.mock(), onUnregisterStreamedClientSignal(signal)).Times(Exactly(1));
-    ASSERT_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->unregisterStreamedClientSignals(List<ISignal>(signal)),
+    ASSERT_ERROR_CODE_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->unregisterStreamedClientSignals(List<ISignal>(signal)),
               OPENDAQ_SUCCESS);
-    ASSERT_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->unregisterStreamedClientSignals(List<ISignal>(signal)),
+    ASSERT_ERROR_CODE_EQ(streaming.ptr.asPtr<IStreamingPrivate>()->unregisterStreamedClientSignals(List<ISignal>(signal)),
               OPENDAQ_ERR_NOTFOUND);
 }
 

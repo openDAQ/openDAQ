@@ -23,6 +23,7 @@
 #include <opendaq/ids_parser.h>
 #include <opendaq/deserialize_component_ptr.h>
 #include <opendaq/mirrored_signal_private_ptr.h>
+#include <opendaq/mirrored_device_config_ptr.h>
 #include <config_protocol/config_client_object.h>
 #include <coretypes/cloneable.h>
 #include <coreobjects/core_event_args_factory.h>
@@ -155,6 +156,8 @@ public:
                                         const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
 
     uint16_t getProtocolVersion() const;
+
+    StringPtr serializeForUpdate(const std::string& globalId);
 
 private:
     ContextPtr daqContext;
@@ -432,7 +435,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
         else
             serializer = JsonSerializerWithVersion(2);
 
-        rootDevice.asPtr<IUpdatable>().serializeForUpdate(serializer);
+        checkErrorInfo(rootDevice.asPtr<IMirroredDeviceConfig>()->serializeForUpdateLocally(serializer));
         StringPtr serializedClientRootDevice = serializer.getOutput();
 
         const auto deserializer = JsonDeserializer();

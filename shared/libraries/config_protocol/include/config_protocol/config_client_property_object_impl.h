@@ -83,7 +83,7 @@ protected:
     virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
     PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop) override;
 
-/*
+    /*
     void beginApplyUpdate() override;
     void endApplyUpdate() override;
     */
@@ -412,7 +412,15 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObje
     const ErrCode errCode = daqTry([this, &obj]()
     {
         StringPtr serialized;
-        checkErrorInfo(obj->toJson(&serialized));
+        
+        StringPtr remoteConfigKey = "remoteConfig";
+        Bool hasRemoteConfig = False;
+        obj->hasKey(remoteConfigKey, &hasRemoteConfig);
+
+        if (hasRemoteConfig)
+            checkErrorInfo(obj->readString(remoteConfigKey, &serialized));
+        else
+            checkErrorInfo(obj->toJson(&serialized));
         clientComm->update(remoteGlobalId, serialized, this->path);
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -822,7 +830,6 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyObjectUpdateEnd(const Cor
         }
 
         obj.endUpdate();
-
     }
     else
     {
@@ -861,7 +868,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyAdded(const CoreEventArgs
         obj.addProperty(prop);
     }
     else
+    {
         checkErrorInfo(Impl::addProperty(prop));
+    }
 }
 
 template <class Impl>
@@ -912,6 +921,7 @@ PropertyObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getObjectAtPath(cons
         return thisPtr.getPropertyValue(path);
     return thisPtr;
 }
+
 template <class Impl>
 BaseObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::getFullPropName(const std::string& propName) const
 {
@@ -942,7 +952,6 @@ bool ConfigClientPropertyObjectBaseImpl<Impl>::isBasePropertyObject(const Proper
             && !propObj.supportsInterface<IAddressInfo>()
             && !propObj.supportsInterface<IConnectedClientInfo>();
 }
-
 
 template <class Impl>
 std::string ConfigClientPropertyObjectBaseImpl<Impl>::getPathInternal()

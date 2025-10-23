@@ -71,6 +71,9 @@ public:
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
+    // IUpdatable
+    ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -376,6 +379,40 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::serializeForUpdate(ISerializer* serializer)
+{
+    const auto protocolVersion = this->clientComm->getProtocolVersion();
+    if (protocolVersion < 19)
+    {
+        // For older protocol versions, use local serialization
+        return Super::serializeForUpdate(serializer);
+    }
+
+    // For protocol version >= 19, request serialized config from server
+    StringPtr remoteSerializedConfig = this->clientComm->serializeForUpdate(this->remoteGlobalId);
+
+    ErrCode errCode = serializer->startTaggedObject(this);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    errCode = serializer->key("remoteConfig");
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    errCode = remoteSerializedConfig.asPtr<ISerializable>(true)->serialize(serializer);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    errCode = daqTry([this, &serializer]
+    {
+        this->serializeConnectionValues(serializer);
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    errCode = serializer->endObject();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class TDeviceBase>

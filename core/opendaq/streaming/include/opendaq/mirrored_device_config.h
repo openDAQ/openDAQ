@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/mirrored_device.h>
 #include <opendaq/streaming_ptr.h>
+#include <coretypes/serializer.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

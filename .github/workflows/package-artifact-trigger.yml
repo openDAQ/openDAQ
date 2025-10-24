@@ -1,0 +1,128 @@
+name: Build and Upload Artifacts and trigger downstream
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  artifacts-prepare:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+              -DCMAKE_C_COMPILER=gcc
+              -DCMAKE_CXX_COMPILER=g++
+            cmake-defines: ''
+            cmake-generator: Ninja
+            cmake-preset: ''
+            cmake-parallel: ''
+            cpack-generator: DEB
+          - os: macos-13
+            cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+              -DCMAKE_C_COMPILER=clang
+              -DCMAKE_CXX_COMPILER=clang++
+            cmake-defines: ''
+            cmake-generator: Ninja
+            cmake-preset: ''
+            cmake-parallel: ''
+            cpack-generator: TGZ
+          - os: windows-latest
+            cmake-compiler:
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+              -DCMAKE_C_COMPILER=cl
+              -DCMAKE_CXX_COMPILER=cl
+            cmake-defines: ''
+            cmake-generator: Ninja
+            cmake-preset: ''
+            cmake-parallel: ''
+            cpack-generator: NSIS
+
+    steps:
+      - name: Checkout openDAQ repository
+        uses: actions/checkout@v4
+
+      - name: Setup compiler cache directory
+        id: ccache-config
+        shell: bash
+        run: |
+          # Default for Linux/macOS
+          CCACHE_PATH="$GITHUB_WORKSPACE/.ccache"
+
+          # Windows-specific settings
+          if command -v cygpath &> /dev/null; then
+            CCACHE_PATH="$(cygpath -w "$GITHUB_WORKSPACE/.ccache")"
+            BASEDIR_PATH="$(cygpath -w "$GITHUB_WORKSPACE")"
+            echo "CCACHE_BASEDIR=$BASEDIR_PATH" >> "$GITHUB_ENV"
+            echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
+          fi
+
+          echo "CCACHE_DIR=$CCACHE_PATH" >> "$GITHUB_ENV"
+          echo "dir=$CCACHE_PATH" >> "$GITHUB_OUTPUT"
+          echo "Using CCACHE_DIR: $CCACHE_PATH"
+
+      - name: Restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.ccache-config.outputs.dir }}
+          key: ccache-${{ runner.os }}-${{ hashFiles('**/*.c','**/*.cpp') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+
+      - name: Build and package openDAQ
+        uses: ./.github/actions/build-artifact
+        with:
+          cmake-compiler: ${{ matrix.cmake-compiler }}
+          cmake-config-name: Release
+          cmake-defines: >-
+            -DOPENDAQ_ENABLE_TESTS=OFF
+            -DOPENDAQ_BUILD_DOCUMENTATION=OFF
+            -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
+            -DDAQMODULES_REF_FB_MODULE=OFF
+            -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+            -DDAQMODULES_REF_DEVICE_MODULE=OFF
+            -DDAQMODULES_AUDIO_DEVICE_MODULE=OFF
+            -DDAQMODULES_OPENDAQ_CLIENT_MODULE=OFF
+            -DDAQMODULES_OPENDAQ_SERVER_MODULE=OFF
+            -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
+            -DOPENDAQ_ENABLE_OPCUA=OFF
+            -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
+            -DOPENDAQ_ENABLE_NATIVE_STREAMING=OFF
+            ${{ matrix.cmake-defines }}
+          cmake-generator: ${{ matrix.cmake-generator }}
+          cmake-preset: ${{ matrix.cmake-preset }}
+          cmake-parallel: ${{ matrix.cmake-parallel }}
+          cpack-generator: ${{ matrix.cpack-generator }}
+
+  artifacts-test:
+    needs: artifacts-prepare
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            file-name: opendaq-3.31.0-ubuntu24.04-x86_64.deb
+          - os: windows-latest
+            file-name: opendaq-3.31.0-win64.exe
+
+    uses: openDAQ/SimpleDeviceModule/.github/workflows/ci-framework.yml@jira/TBBAS-2554_add_example_module_ci_framework
+    with:
+      runner: ${{ matrix.os }}
+      branch: 'jira/TBBAS-2554_add_example_module_ci_framework'
+      artifact-run-id: ${{ github.run_id }}
+      artifact-name: ${{ matrix.file-name }}
+      file-name: ${{ matrix.file-name }}
+    permissions:
+      contents: read

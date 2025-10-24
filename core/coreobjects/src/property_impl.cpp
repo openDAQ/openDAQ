@@ -266,7 +266,7 @@ ErrCode PropertyImpl::getKeyTypeInternal(CoreType* type, bool lock)
 
     *type = ctUndefined;
     BaseObjectPtr defVal;
-    auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
+    auto err = this->getDefaultValueInternal(&defVal, lock);
     OPENDAQ_RETURN_IF_FAILED(err);
 
     if (!defVal.assigned())
@@ -309,11 +309,11 @@ ErrCode PropertyImpl::getItemTypeInternal(CoreType* type, bool lock)
         *type = ctUndefined;
 
         BaseObjectPtr defVal;
-        auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
+        auto err = this->getDefaultValueInternal(&defVal, lock);
         OPENDAQ_RETURN_IF_FAILED(err);
 
         BaseObjectPtr selVal;
-        err = lock ? this->getSelectionValues(&selVal) : this->getSelectionValuesNoLock(&selVal);
+        err = getSelectionValuesInternal(&selVal, lock);
         OPENDAQ_RETURN_IF_FAILED(err);
 
         BaseObjectPtr value = defVal;
@@ -757,14 +757,9 @@ ErrCode PropertyImpl::getStructTypeInternal(IStructType** structType, bool lock)
         {
             defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
         }
-        else if (lock)
-        {
-            const ErrCode errCode = this->getDefaultValue(&defaultStruct);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
-        }
         else
         {
-            const ErrCode errCode = this->getDefaultValueNoLock(&defaultStruct);
+            const ErrCode errCode = this->getDefaultValueInternal(&defaultStruct, lock);
             OPENDAQ_RETURN_IF_FAILED(errCode);
         }
         *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();

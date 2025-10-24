@@ -46,6 +46,7 @@
 #include <tsl/ordered_map.h>
 #include <atomic>
 #include <map>
+#include <unordered_map>
 #include <thread>
 #include <utility>
 #include <coretypes/recursive_search_ptr.h>
@@ -169,36 +170,10 @@ class PropertyUpdateStack
 {
     struct PropertyUpdateStackItem
     {
-        PropertyUpdateStackItem(const BaseObjectPtr& value)
-            : value(value)
-            , stackLevel(1)
-            , isPushed(true)
-        {
-        }
-
-        bool setValue(const BaseObjectPtr& value)
-        {
-            if (this->value == value)
-                return false;
-
-            this->value = value;
-            this->isPushed = true;
-            this->stackLevel++;
-            return true;
-        }
-
-        bool unregister()
-        {
-            bool result = this->isPushed;
-            this->isPushed = false;
-            this->stackLevel--;
-            return result;
-        }
-
-        size_t getStackLevel() const
-        {
-            return this->stackLevel;
-        }
+        PropertyUpdateStackItem(const BaseObjectPtr& value);
+        bool setValue(const BaseObjectPtr& value);
+        bool unregister();
+        size_t getStackLevel() const;
 
         BaseObjectPtr value;
         size_t stackLevel;
@@ -209,53 +184,17 @@ public:
     PropertyUpdateStack() = default;
 
     // return true if property is registered
-    bool registerPropertyUpdating(const std::string& name, const BaseObjectPtr& value)
-    {
-        auto [it, inserted] = updatePropertyStack.try_emplace(name, value);
-
-        if (inserted)
-            return true;
-
-        auto& propertItem = it->second;
-        return propertItem.setValue(value);
-    }
+    bool registerPropertyUpdating(const std::string& name, const BaseObjectPtr& value);
 
     // returns true is object need to be written
-    bool unregisetPropertyUpdating(const std::string& name)
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
+    bool unregisetPropertyUpdating(const std::string& name);
 
-        auto& propertItem = it->second;
-        bool result = propertItem.unregister();
-        if (propertItem.getStackLevel() == 0)
-            updatePropertyStack.erase(it);
-        return result;
-    }
+    bool isBaseStackLevel(const std::string& name) const;
 
-    bool isBaseStackLevel(const std::string& name) const
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        return it->second.getStackLevel() == 1;
-    }
-
-    bool getPropertyValue(const std::string& name, BaseObjectPtr& value) const
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        // if value is not assigned, it means, that property is on clearing stage (clearPropertyValue)
-        value = it->second.value;
-        return true;
-    }
+    bool getPropertyValue(const std::string& name, BaseObjectPtr& value) const;
 
 private:
-    std::map<std::string, PropertyUpdateStackItem> updatePropertyStack;
+    std::unordered_map<std::string, PropertyUpdateStackItem> updatePropertyStack;
 };
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -787,12 +726,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
     auto err = daqTry([&]() -> auto
     {
         prop = getUnboundProperty(childName);
-
         prop = checkForRefPropAndGetBoundProp(prop);
         name = prop.getName();
-        return OPENDAQ_SUCCESS;
     });
-
     OPENDAQ_RETURN_IF_FAILED(err);
 
     if (!prop.assigned())
@@ -810,7 +746,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
         value = childPropAsPropertyObject.getPropertyValue(subName);
     });
     OPENDAQ_RETURN_IF_FAILED(err);
-    return err;
+
+    return OPENDAQ_SUCCESS;
 }
 
 #if defined(__GNUC__) && __GNUC__ >= 12
@@ -861,15 +798,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
             propEvent(objPtr, args);
     }
 
-    if (valueWriteEvents.find(name) != valueWriteEvents.end())
+    if (auto it = valueWriteEvents.find(name); it != valueWriteEvents.end())
     {
-        if (valueWriteEvents[name].hasListeners())
-            errCode = daqTry([&] { valueWriteEvents[name](objPtr, args); });
+        if (it->second.hasListeners())
+            errCode = daqTry([&] { it->second(objPtr, args); });
     }
 
-    if (valueWriteEvents[AnyWriteEventName].hasListeners())
+    if (auto it = valueWriteEvents.find(AnyWriteEventName); it != valueWriteEvents.end() && it->second.hasListeners())
     {
-        valueWriteEvents[AnyWriteEventName](objPtr, args);
+        it->second(objPtr, args);
     }
 
     bool shouldUpdate = updatePropertyStack.unregisetPropertyUpdating(name);
@@ -913,17 +850,17 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
     }
 
     const auto name = prop.getName();
-    if (valueReadEvents.find(name) != valueReadEvents.end())
+    if (auto it = valueReadEvents.find(name); it != valueReadEvents.end())
     {
-        if (valueReadEvents[name].hasListeners())
+        if (it->second.hasListeners())
         {
-            valueReadEvents[name](objPtr, args);
+            it->second(objPtr, args);
         }
     }
 
-    if (valueReadEvents[AnyReadEventName].hasListeners())
+    if (auto it = valueReadEvents.find(AnyReadEventName); it != valueReadEvents.end() && it->second.hasListeners())
     {
-        valueReadEvents[AnyReadEventName](objPtr, args);
+        it->second(objPtr, args);
     }
 
     return args.getValue();
@@ -1385,18 +1322,15 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::shouldWriteLoca
 template <class PropObjInterface, class... Interfaces>
 bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite)
 {
-    auto it = propValues.find(name);
-    if (it != propValues.end())
+    if (auto it = propValues.find(name); it != propValues.end())
     {
         if (it->second == value)
             return false;
         it->second = value;
+        return true;
     }
-    else if (forceWrite)
-    {
-        propValues.emplace(name, value);
-    }
-    else
+
+    if (!forceWrite)
     {
         bool shouldWrite = true;
         try
@@ -1407,12 +1341,11 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::writeLocalValue
         {
         }
 
-        if (shouldWrite)
-            propValues.emplace(name, value);
-        else
+        if (!shouldWrite)
             return false;
     }
 
+    propValues.emplace(name, value);
     return true;
 }
 
@@ -2414,13 +2347,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnPropert
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", name));
     }
 
-    if (valueWriteEvents.find(name) == valueWriteEvents.end())
-    {
-        PropertyValueEventEmitter emitter;
-        valueWriteEvents.emplace(name, emitter);
-    }
-
-    *event = valueWriteEvents[name].addRefAndReturn();
+    auto [it, inserted] = valueWriteEvents.try_emplace(name);
+    *event = it->second.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -2447,7 +2375,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnPropert
         valueReadEvents.emplace(name, emitter);
     }
 
-    *event = valueReadEvents[name].addRefAndReturn();
+    auto [it, inserted] = valueReadEvents.try_emplace(name);
+    *event = it->second.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

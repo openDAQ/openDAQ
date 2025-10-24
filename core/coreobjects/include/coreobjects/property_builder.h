@@ -548,6 +548,18 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IEnumeration*, defaultValue
 )
 
+/*!
+ * @brief Creates a PropertyBuilder from an existing Property.
+ * @param property The existing property to copy settings from.
+ *
+ * Creates a PropertyBuilder with all settings copied from the provided Property.
+ * This allows modifying properties by creating a builder from them.
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, PropertyBuilderFromExisting, IPropertyBuilder,
+    IProperty*, property
+)
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

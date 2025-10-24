@@ -78,6 +78,8 @@ public:
     // EnumerationProperty()
     PropertyBuilderImpl(const StringPtr& name, IEnumeration* defaultValue);
 
+    PropertyBuilderImpl(IProperty* property);
+
     ErrCode INTERFACE_FUNC build(IProperty** property) override;
     ErrCode INTERFACE_FUNC setValueType(CoreType type) override;
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override;

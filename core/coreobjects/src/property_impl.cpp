@@ -1260,26 +1260,7 @@ ErrCode PropertyImpl::clone(IProperty** clonedProperty)
         if (cloneableDefaultValue.assigned())
             defaultValueObj = cloneableDefaultValue.clone();
 
-        auto prop = PropertyBuilder(name)
-                    .setValueType(valueType)
-                    .setDescription(description)
-                    .setUnit(unit)
-                    .setMinValue(minValue)
-                    .setMaxValue(maxValue)
-                    .setDefaultValue(defaultValueObj)
-                    .setVisible(visible)
-                    .setReadOnly(readOnly)
-                    .setSelectionValues(selectionValues)
-                    .setSuggestedValues(suggestedValues)
-                    .setReferencedProperty(refProp)
-                    .setCoercer(coercer)
-                    .setValidator(validator)
-                    .setCallableInfo(callableInfo)
-                    .setOnPropertyValueRead(onValueRead)
-                    .setOnPropertyValueWrite(onValueWrite)
-                    .setOnSelectionValuesRead(onSelectionValuesRead)
-                    .setOnSuggestedValuesRead(onSuggestedValuesRead)
-                    .build();
+        auto prop = PropertyBuilderFromExisting(this).build();
 
         *clonedProperty = prop.detach();
     });
@@ -1519,10 +1500,7 @@ PropertyPtr PropertyImpl::bindAndGetRefProp(bool lock)
 
 template <typename TPtr>
 TPtr PropertyImpl::bindAndGet(const BaseObjectPtr& metadata, bool lock) const
-{
-    if (!metadata.assigned())
-        return nullptr;
-        
+{       
     auto eval = metadata.asPtrOrNull<IEvalValue>();
     if (!eval.assigned())
         return metadata;
@@ -1536,10 +1514,7 @@ TPtr PropertyImpl::bindAndGet(const BaseObjectPtr& metadata, bool lock) const
 
 BaseObjectPtr PropertyImpl::getUnresolved(const BaseObjectPtr& localMetadata) const
 {
-    if (!localMetadata.assigned())
-        return nullptr;
-
-    if (const auto eval = localMetadata.asPtrOrNull<IEvalValue>(); eval.assigned())
+    if (const auto eval = localMetadata.asPtrOrNull<IEvalValue>(true); eval.assigned())
     {
         const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
         if (ownerPtr.assigned())

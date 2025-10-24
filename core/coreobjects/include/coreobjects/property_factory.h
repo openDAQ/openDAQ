@@ -483,6 +483,19 @@ inline PropertyPtr PropertyFromBuilder(const PropertyBuilderPtr& builder)
     return obj;
 }
 
+/*!
+ * @brief Creates a PropertyBuilder from an existing Property.
+ * @param property The existing property to copy settings from.
+ *
+ * Creates a PropertyBuilder with all settings copied from the provided Property.
+ * This allows modifying properties by creating a builder from them.
+ */
+inline PropertyBuilderPtr PropertyBuilderFromExisting(const PropertyPtr& property)
+{
+    PropertyBuilderPtr obj(PropertyBuilderFromExisting_Create(property));
+    return obj;
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

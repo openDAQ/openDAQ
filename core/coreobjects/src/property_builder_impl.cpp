@@ -2,6 +2,8 @@
 #include <coretypes/exceptions.h>
 #include <coretypes/validation.h>
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_internal_ptr.h>
+#include <coretypes/event_ptr.h>
 
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -143,6 +145,39 @@ PropertyBuilderImpl::PropertyBuilderImpl(const StringPtr& name, IEnumeration* de
     : PropertyBuilderImpl(name, BaseObjectPtr(defaultValue))
 {
     this->valueType = ctEnumeration;
+}
+
+PropertyBuilderImpl::PropertyBuilderImpl(IProperty* property)
+{
+    if (property == nullptr)
+        DAQ_THROW_EXCEPTION(ArgumentNullException);
+
+    const auto propertyPtr = PropertyPtr::Borrow(property);
+    const auto propertyInternal = propertyPtr.asPtr<IPropertyInternal>();
+
+    checkErrorInfo(property->getName(&this->name));
+    checkErrorInfo(property->getValueType(&this->valueType));
+    checkErrorInfo(property->getDescription(&this->description));
+    checkErrorInfo(property->getUnit(&this->unit));
+    checkErrorInfo(property->getMinValue(&this->minValue));
+    checkErrorInfo(property->getMaxValue(&this->maxValue));
+
+    checkErrorInfo(propertyInternal->getDefaultValueUnresolved(&this->defaultValue));
+    this->visible = propertyPtr.getVisible();
+    this->readOnly = propertyPtr.getReadOnly();
+    checkErrorInfo(property->getSelectionValues(&this->selectionValues));
+    checkErrorInfo(property->getSuggestedValues(&this->suggestedValues));
+    checkErrorInfo(propertyInternal->getReferencedPropertyUnresolved(&this->refProp));
+
+    checkErrorInfo(property->getCoercer(&this->coercer));
+    checkErrorInfo(property->getValidator(&this->validator));
+    checkErrorInfo(property->getCallableInfo(&this->callableInfo));
+
+    checkErrorInfo(propertyInternal->getClassOnPropertyValueRead(&this->onValueRead));
+    checkErrorInfo(propertyInternal->getClassOnPropertyValueWrite(&this->onValueWrite));
+
+    checkErrorInfo(propertyPtr->getOnSelectionValuesRead(&this->onSuggestedValuesRead));
+    checkErrorInfo(propertyPtr->getOnSuggestedValuesRead(&this->onSelectionValuesRead));
 }
 
 ErrCode INTERFACE_FUNC PropertyBuilderImpl::build(IProperty** property)
@@ -562,6 +597,12 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     IPropertyBuilder, createEnumerationPropertyBuilder,
     IString*, name,
     IEnumeration*, defaultValue
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
+    LIBRARY_FACTORY, PropertyBuilder,
+    IPropertyBuilder, createPropertyBuilderFromExisting,
+    IProperty*, property
 )
 
 END_NAMESPACE_OPENDAQ

@@ -48,7 +48,7 @@ bool PropertyUpdateStack::registerPropertyUpdating(const std::string& name, cons
     return propertItem.setValue(value);
 }
 
-bool PropertyUpdateStack::unregisetPropertyUpdating(const std::string& name)
+bool PropertyUpdateStack::unregisterPropertyUpdating(const std::string& name)
 {
     auto it = updatePropertyStack.find(name);
     if (it == updatePropertyStack.end())

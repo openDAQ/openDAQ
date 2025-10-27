@@ -166,7 +166,7 @@ private:
     std::lock_guard<TMutex> lockGuard;
 };
 
-class PropertyUpdateStack
+class PUBLIC_EXPORT PropertyUpdateStack
 {
     struct PropertyUpdateStackItem
     {
@@ -187,7 +187,7 @@ public:
     bool registerPropertyUpdating(const std::string& name, const BaseObjectPtr& value);
 
     // returns true is object need to be written
-    bool unregisetPropertyUpdating(const std::string& name);
+    bool unregisterPropertyUpdating(const std::string& name);
 
     bool isBaseStackLevel(const std::string& name) const;
 
@@ -771,7 +771,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     {
         if (newValue.assigned() && !shouldWriteLocalValue(name, newValue))
         {
-            updatePropertyStack.unregisetPropertyUpdating(name);
+            updatePropertyStack.unregisterPropertyUpdating(name);
             return OPENDAQ_IGNORED;
         }
     }
@@ -809,7 +809,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
         it->second(objPtr, args);
     }
 
-    bool shouldUpdate = updatePropertyStack.unregisetPropertyUpdating(name);
+    bool shouldUpdate = updatePropertyStack.unregisterPropertyUpdating(name);
     // If the event execution failed, forward the error code
     OPENDAQ_RETURN_IF_FAILED(errCode);
 

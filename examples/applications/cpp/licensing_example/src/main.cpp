@@ -11,65 +11,6 @@ using namespace daq;
 
 const std::string resourcePath = RESOURCE_PATH;
 
-/*
-* An example imlementation of a ModuleAuthenticator. The example takes in a "certificate" file, which contains the names of the valid modules.
-* When loading modules with the module manager, only the files matching these names are loaded and stored into the list (dict) of valid modules.
-* The dict can be retrieved later and shows the file used to "authenticate" each module.
-* A real implementation would have multiple paths to certificate files, then use something like the windows crypto/trust API to verify each DLL file loaded.
-* The user could then check which certificate was used for which file.
-
-class ModuleAuthenticatorImpl : public ModuleAuthenticator
-{
-public:
-    explicit ModuleAuthenticatorImpl(const StringPtr& path, const StringPtr& key)
-        : certificatePath(path)
-        , key(key)
-        , validModules()
-    {
-        std::string endsWith(".module.dll");
-
-        char* pathStr;
-        certificatePath->toString(&pathStr);
-
-        std::ifstream stream;
-        stream.open(pathStr, std::ifstream::in);
-
-        if (stream.good())
-        {
-            for (std::string line; std::getline(stream, line);)
-            {
-                if (line.compare(line.size() - endsWith.size(), endsWith.size(), endsWith) == 0)
-                {
-                    validModules.push_back(line);
-                }
-            }
-        }
-    }
-
-    Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath) override
-    {
-        std::string pathToModule(binaryPath);
-
-        for (const std::string& moduleName : validModules)
-        {
-            if (pathToModule.compare(pathToModule.size() - moduleName.size(), moduleName.size(), moduleName) == 0)
-            {
-                vendorKey = key;
-                
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-private:
-    StringPtr certificatePath;
-    StringPtr key;
-
-    std::vector<std::string> validModules;
-};
-*/
 
 /*
 * A brief example showcasing the use for a licensed module in openDAQ.
@@ -131,11 +72,17 @@ int main(int /*argc*/, const char* /*argv*/[])
     const StringPtr path = StringPtr(resourcePath);
 
     // Add your signature hash here
+    // On Linux, this can be obtained with gpg --verify *.asc *.so
+    // On Windows, this can be obtained directly from the cert object (see setup instructions) 
     const StringPtr key = StringPtr("84331B1E06F3D0A4AE25AC50E87412B42CBE05B4");
 
+    // The Windows example uses the resourcePath as the path for the certificates.
+    // The Linux example doesn't use the certPath for ModuleAuthenticatorImpl, but assumes that the .asc and .so files are 
+    // in the same location for conveniences' sake.
     const ModuleAuthenticatorPtr authenticator =
-        daq::createWithImplementation<IModuleAuthenticator, daq::ModuleAuthenticatorImpl>(path);
-
+    daq::createWithImplementation<IModuleAuthenticator, daq::ModuleAuthenticatorImpl>(path);
+    
+    // Create an Instance, loading modules at MODULE_PATH
     const InstancePtr instance =
         daq::InstanceBuilder().setModuleAuthenticator(authenticator).setLoadAuthenticatedModulesOnly(false).setModulePath(MODULE_PATH).build();
 
@@ -149,20 +96,26 @@ int main(int /*argc*/, const char* /*argv*/[])
     }else if(vendorKeys.getCount() == 0){
         std::cout << "  No Keys!" << std::endl;
     }else{
-        std::cout << "  Keys!" << std::endl;
-
+        std::vector<std::string> keys{};
+        std::vector<std::string> vals{};
         for(const auto& key : vendorKeys.getKeys()){
-            std::cout << " - Key: " << key.toStdString() << std::endl;
+            keys.push_back(key.toStdString());
         }    
 
         for(const auto& val : vendorKeys.getValues()){
-            std::cout << " - Value: " << val.toStdString() << std::endl;
+            if(val.toStdString() == ""){
+                vals.push_back(" --Null-- ");
+            }else{
+                vals.push_back(val.toStdString());
+            }
+        }
+        for(size_t i = 0; i < keys.size(); i++){
+            std::cout << " - Key: " << keys[i] << " - Value: " << vals[i] << std::endl;
         }
     }
     // Setup your paths here..
     std::string licPath = resourcePath + "/license.lic";
     // Make sure you open up the quick_start_simulator example app to get a reference device!
-    
     std::cerr << "License path: \"" << licPath << "\"" << std::endl;
 
     // ------------------- Find and connect to a simulator device ------------------- //

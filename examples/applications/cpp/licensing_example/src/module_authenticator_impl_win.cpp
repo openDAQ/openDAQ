@@ -79,8 +79,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
     // Make sure to close the file handle as it's no longer needed!
     CloseHandle(hFile);
     hFile = NULL;
-    std::cerr << "Certificate trust code: " << (trustResultCode != ERROR_SUCCESS) << " " << (trustResultCode != CERT_E_UNTRUSTEDROOT) << " "
-              << (trustResultCode != CERT_E_EXPIRED) << std::endl;
+
     if (trustResultCode != ERROR_SUCCESS && trustResultCode != CERT_E_UNTRUSTEDROOT  // Accept self-signed certificates for this demo...
         && trustResultCode != CERT_E_EXPIRED)                                        // Accept expired certificates for this demo...
     {

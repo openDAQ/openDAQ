@@ -10,6 +10,7 @@ VectorExtractorImpl::VectorExtractorImpl(const daq::ContextPtr& ctx,
     initComponentStatus();
     createInputPorts();
     createSignals();
+    initProperties();
     initStatues();
 }
 
@@ -45,16 +46,13 @@ bool VectorExtractorImpl::getDomainDescriptor(const EventPacketPtr& eventPacket,
 
 void VectorExtractorImpl::initProperties()
 {
-    const auto typeSelected = SelectionProperty(
-        "OutputType", List<SampleType>(3U, 5U, 7U, 9U), 1);
-    objPtr.addProperty(typeSelected);
-    objPtr.getOnPropertyValueWrite("OutpuType") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
+    objPtr.addProperty(SelectionPropertyBuilder("OutputType", List<SampleType>(3U, 5U, 7U, 9U), 1).build());
+    objPtr.getOnPropertyValueWrite("OutputType") +=
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
-    const auto indexOfMemoryBeginning = IntProperty("BeginningSpace", 0);
-    objPtr.addProperty(indexOfMemoryBeginning);
+    objPtr.addProperty(IntPropertyBuilder("BeginningSpace", 0).build());
     objPtr.getOnPropertyValueWrite("BeginningSpace") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
+        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
 
     readProperties();
 }
@@ -99,7 +97,7 @@ void VectorExtractorImpl::createInputPorts()
 
 void VectorExtractorImpl::readProperties()
 {
-    outputType = objPtr.getPropertyValue("typeSelected");
+    outputType = objPtr.getPropertyValue("OutputType");
     beginningIndex = objPtr.getPropertyValue("BeginningSpace");
 }
 
@@ -199,6 +197,11 @@ void VectorExtractorImpl::onDataReceived()
             case SampleType::UInt64:
             {
                 castingFunction<uint64_t>(valuePacket.getDataDescriptor(), &bufferData, valuePacket.getData(), cnt);
+                break;
+            }
+            default:
+            {
+                castingFunction<uint8_t>(valuePacket.getDataDescriptor(), &bufferData, valuePacket.getData(), cnt);
                 break;
             }
         }

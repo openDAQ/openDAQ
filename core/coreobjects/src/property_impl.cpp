@@ -1509,7 +1509,7 @@ ErrCode PropertyImpl::validateDuringConstruction()
     return err;
 }
 
-inline PropertyObjectPtr PropertyImpl::getOwner() const
+PropertyObjectPtr PropertyImpl::getOwner() const
 {
     if (owner.assigned())
         return owner.getRef();

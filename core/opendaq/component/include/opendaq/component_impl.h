@@ -199,6 +199,9 @@ protected:
 
     static VersionInfoPtr parseVersionString(const std::string& input);
 
+    ErrCode serializeWithoutMetadata(const SerializerPtr& serializer, const PropertyObjectPtr& serializedObject);
+    Bool shouldSerializeWithoutMetadata(const PropertyObjectPtr& propertyObject);
+
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
 };
@@ -1159,10 +1162,125 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
 
     if (componentConfig.assigned())
     {
-        serializer.key("ComponentConfig");
-        componentConfig.serialize(serializer);
+        if(forUpdate) {
+            const auto thisPtr = this->template borrowPtr<ComponentPtr>();
+            const auto devicePtr = thisPtr.template asPtrOrNull<IDevice>(true);
+            const auto fbPtr = thisPtr.template asPtrOrNull<IFunctionBlock>(true);
+            if(devicePtr.assigned() || fbPtr.assigned()) {
+                fmt::print("Serializing component config without metadata for device or FB {}\n", thisPtr.getGlobalId());
+                if(shouldSerializeWithoutMetadata(componentConfig)) {
+                    fmt::print("Property {} should be serialized without metadata\n", thisPtr.getGlobalId());
+                    serializer.key("ComponentConfig2");
+                    serializeWithoutMetadata(serializer, componentConfig);
+                } else {
+                    fmt::print("No properties require serialization without metadata for component {}\n", thisPtr.getGlobalId());
+                }
+                fmt::print("serial {}\n", serializer.getOutput().toStdString());
+            } else {
+                fmt::print("Serializing component config with metadata for component {}\n", thisPtr.getGlobalId());
+                serializer.key("ComponentConfig");
+                componentConfig.asPtr<IUpdatable>().serializeForUpdate(serializer);
+            }
+        } else {
+            serializer.key("ComponentConfig");
+            componentConfig.serialize(serializer);
+        }
     }
 }
+
+template <class Intf, class... Intfs>
+Bool ComponentImpl<Intf, Intfs...>::shouldSerializeWithoutMetadata(const PropertyObjectPtr& propertyObject)
+{
+    Bool result = false;
+
+    if (!propertyObject.assigned())
+        return result;
+
+    for (const auto& property : propertyObject.getAllProperties())
+    {
+        const auto& value = property.getValue();
+
+        if (value.assigned())
+        {
+            if (value.getCoreType() == ctObject)
+            {
+                if (const auto nestedObject = value.asPtrOrNull<IPropertyObject>(true); nestedObject.assigned())
+                {
+                    result |= shouldSerializeWithoutMetadata(nestedObject);
+                }
+            }
+            else
+            {
+                const auto& defaultValue = property.getDefaultValue();
+                result |= (value != defaultValue);
+            }
+            if (result)
+            {
+                return result;
+            }
+        }
+     }
+
+    return result;
+}
+
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::serializeWithoutMetadata(const SerializerPtr& serializer, const PropertyObjectPtr& serializedObject)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+    OPENDAQ_PARAM_NOT_NULL(serializedObject);
+
+    serializer.startObject();
+    // serializer.startTaggedObject(serializedObject);
+    // bool valuesObjectStarted = false;
+
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    for (const auto& property : serializedObject.getAllProperties())
+    {
+        const auto& value = property.getValue();
+        if (value.assigned())
+        {
+            if (value.getCoreType() == ctObject)
+            {
+                if (const auto propertyObject = value.asPtrOrNull<IPropertyObject>(true); propertyObject.assigned())
+                {
+                    if (shouldSerializeWithoutMetadata(propertyObject))
+                    {
+                        // if(!valuesObjectStarted) {
+                        //     serializer.key("propValues");
+                        //     serializer.startObject();
+                        //     valuesObjectStarted = true;
+                        // }
+                        serializer.key(property.getName());
+                        errCode = serializeWithoutMetadata(serializer, propertyObject);
+                    }
+                }
+            }
+            else if (const auto& defaultValue = property.getDefaultValue(); value != defaultValue)
+            {
+                if (const auto serializableValue = value.asPtrOrNull<ISerializable>(); serializableValue.assigned())
+                {
+                    // if(!valuesObjectStarted) {
+                    //         serializer.key("propValues");
+                    //         serializer.startObject();
+                    //         valuesObjectStarted = true;
+                    // }
+                    serializer.key(property.getName());
+                    serializableValue.serialize(serializer);
+                }
+            }
+        }
+    }
+
+    // if(valuesObjectStarted) {
+    //     serializer.endObject();
+    // }
+
+    serializer.endObject();
+    return errCode;
+}
+
+
 
 template <class Intf, class... Intfs>
 BaseObjectPtr ComponentImpl<Intf, Intfs...>::getDeserializedParameter(const StringPtr&)

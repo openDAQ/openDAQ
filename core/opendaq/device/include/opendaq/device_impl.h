@@ -261,6 +261,8 @@ private:
     OperationModeType operationMode {OperationModeType::Idle};
     ListPtr<IInteger> availableOperationModes;
     ModuleInfoPtr getModuleInfoFromDeviceType();
+
+    ErrCode updateConfigurationObject(const PropertyObjectPtr& config, const SerializedObjectPtr& serializedConfig);
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -2016,6 +2018,13 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             deviceConfig = serializedDevice.readObject("deviceConfig");
         else if (serializedDevice.hasKey("ComponentConfig"))
             deviceConfig = serializedDevice.readObject("ComponentConfig");
+        else if (serializedDevice.hasKey("ComponentConfig2"))
+        {
+            const auto serializedDeviceConfig = serializedDevice.readSerializedObject("ComponentConfig2");
+            deviceConfig = daq::PropertyObject();
+            this->createDefaultAddDeviceConfig(&deviceConfig);
+            updateConfigurationObject(deviceConfig, serializedDeviceConfig);
+        }
 
         if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
         {
@@ -2071,6 +2080,30 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
     {
         LOG_W("Failed to update device: {}", e.what());
     }
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::updateConfigurationObject(const PropertyObjectPtr& config, const SerializedObjectPtr& serializedConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    OPENDAQ_PARAM_NOT_NULL(serializedConfig);
+    
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    for(const auto& key : serializedConfig.getKeys()) {
+        if (config.hasProperty(key)) {
+            const auto property = config.getProperty(key);
+            const auto valueType = property.getValueType();
+            if(valueType == ctObject) {
+                const auto serializedSubObject = serializedConfig.readSerializedObject(key);
+                const auto subObject = property.getValue();
+                errCode = updateConfigurationObject(subObject, serializedSubObject);
+            } else {
+                errCode = this->setPropertyFromSerialized(key, config, serializedConfig);
+            }
+        }
+    }
+
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>

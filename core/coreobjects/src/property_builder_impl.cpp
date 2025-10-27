@@ -147,38 +147,6 @@ PropertyBuilderImpl::PropertyBuilderImpl(const StringPtr& name, IEnumeration* de
     this->valueType = ctEnumeration;
 }
 
-PropertyBuilderImpl::PropertyBuilderImpl(IProperty* property)
-{
-    if (property == nullptr)
-        DAQ_THROW_EXCEPTION(ArgumentNullException);
-
-    const auto propertyPtr = PropertyPtr::Borrow(property);
-    const auto propertyInternal = propertyPtr.asPtr<IPropertyInternal>();
-
-    checkErrorInfo(property->getName(&this->name));
-    checkErrorInfo(property->getValueType(&this->valueType));
-    checkErrorInfo(property->getDescription(&this->description));
-    checkErrorInfo(property->getUnit(&this->unit));
-    checkErrorInfo(property->getMinValue(&this->minValue));
-    checkErrorInfo(property->getMaxValue(&this->maxValue));
-
-    checkErrorInfo(propertyInternal->getDefaultValueUnresolved(&this->defaultValue));
-    this->visible = propertyPtr.getVisible();
-    this->readOnly = propertyPtr.getReadOnly();
-    checkErrorInfo(property->getSelectionValues(&this->selectionValues));
-    checkErrorInfo(property->getSuggestedValues(&this->suggestedValues));
-    checkErrorInfo(propertyInternal->getReferencedPropertyUnresolved(&this->refProp));
-
-    checkErrorInfo(property->getCoercer(&this->coercer));
-    checkErrorInfo(property->getValidator(&this->validator));
-    checkErrorInfo(property->getCallableInfo(&this->callableInfo));
-
-    checkErrorInfo(propertyInternal->getClassOnPropertyValueRead(&this->onValueRead));
-    checkErrorInfo(propertyInternal->getClassOnPropertyValueWrite(&this->onValueWrite));
-
-    checkErrorInfo(propertyPtr->getOnSelectionValuesRead(&this->onSuggestedValuesRead));
-    checkErrorInfo(propertyPtr->getOnSuggestedValuesRead(&this->onSelectionValuesRead));
-}
 
 ErrCode INTERFACE_FUNC PropertyBuilderImpl::build(IProperty** property)
 {
@@ -283,11 +251,10 @@ ErrCode INTERFACE_FUNC PropertyBuilderImpl::setDefaultValue(IBaseObject* value)
     {
         const auto valuePtr = BaseObjectPtr::Borrow(value);
         if (valuePtr.assigned() && !valuePtr.supportsInterface(IPropertyObject::Id))
-            if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(); freezable.assigned())
-            {
-                const auto err = freezable->freeze();
-                OPENDAQ_RETURN_IF_FAILED(err);
-            }
+        {
+            if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(true); freezable.assigned())
+                OPENDAQ_RETURN_IF_FAILED(freezable->freeze());
+        }
     }
 
     this->defaultValue = value;
@@ -599,10 +566,12 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     IEnumeration*, defaultValue
 )
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
-    LIBRARY_FACTORY, PropertyBuilder,
-    IPropertyBuilder, createPropertyBuilderFromExisting,
-    IProperty*, property
-)
+extern "C" daq::ErrCode LIBRARY_FACTORY createPropertyBuilderFromExisting(IPropertyBuilder** objTmp, IProperty* property)
+{
+    OPENDAQ_PARAM_NOT_NULL(objTmp);
+    OPENDAQ_PARAM_NOT_NULL(property);
+    const auto propertyInternal = PropertyInternalPtr::Borrow(property);
+    return propertyInternal->getBuilderFromThis(objTmp);
+}
 
 END_NAMESPACE_OPENDAQ

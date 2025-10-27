@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coreobjects/property_object.h>
+#include <coreobjects/property_builder.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -145,6 +146,8 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getHasOnReadListeners(Bool* hasListeners) = 0;
     virtual ErrCode INTERFACE_FUNC getHasOnGetSuggestedValuesListeners(Bool* hasListeners) = 0;
     virtual ErrCode INTERFACE_FUNC getHasOnGetSelectionValuesListeners(Bool* hasListeners) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getBuilderFromThis(IPropertyBuilder** builder) = 0;
 };
 /*!@}*/
 

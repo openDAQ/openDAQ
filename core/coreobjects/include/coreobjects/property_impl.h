@@ -186,6 +186,7 @@ public:
     ErrCode INTERFACE_FUNC getSelectionValuesUnresolved(IBaseObject** values) override;
     ErrCode INTERFACE_FUNC getReferencedPropertyUnresolved(IEvalValue** propertyEval) override;
     ErrCode INTERFACE_FUNC getValueTypeUnresolved(CoreType* coreType) override;
+    ErrCode INTERFACE_FUNC getBuilderFromThis(IPropertyBuilder** builder) override;
 
     // IOwnable
     ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;

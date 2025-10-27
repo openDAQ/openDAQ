@@ -1251,21 +1251,12 @@ ErrCode PropertyImpl::Deserialize(ISerializedObject* serializedObj, IBaseObject*
 ErrCode PropertyImpl::clone(IProperty** clonedProperty)
 {
     OPENDAQ_PARAM_NOT_NULL(clonedProperty);
-    
-    const ErrCode errCode = daqTry([&]
-    {
-        auto defaultValueObj = defaultValue;
 
-        auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
-        if (cloneableDefaultValue.assigned())
-            defaultValueObj = cloneableDefaultValue.clone();
+    PropertyBuilderPtr builder;
+    OPENDAQ_RETURN_IF_FAILED(this->getBuilderFromThis(&builder));
 
-        auto prop = PropertyBuilderFromExisting(this).build();
-
-        *clonedProperty = prop.detach();
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
+    OPENDAQ_RETURN_IF_FAILED(builder->build(clonedProperty));
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode PropertyImpl::cloneWithOwner(IPropertyObject* owner, IProperty** clonedProperty)
@@ -1443,6 +1434,45 @@ ErrCode PropertyImpl::getValueTypeUnresolved(CoreType* coreType)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode PropertyImpl::getBuilderFromThis(IPropertyBuilder** builder)
+{
+    OPENDAQ_PARAM_NOT_NULL(builder);
+
+    const ErrCode errCode = daqTry([&]
+    {
+        auto defaultValueObj = defaultValue;
+
+        auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
+        if (cloneableDefaultValue.assigned())
+            defaultValueObj = cloneableDefaultValue.clone();
+
+        auto propBuilder = PropertyBuilder(name)
+                            .setValueType(valueType)
+                            .setDescription(description)
+                            .setUnit(unit)
+                            .setMinValue(minValue)
+                            .setMaxValue(maxValue)
+                            .setDefaultValue(defaultValueObj)
+                            .setVisible(visible)
+                            .setReadOnly(readOnly)
+                            .setSelectionValues(selectionValues)
+                            .setSuggestedValues(suggestedValues)
+                            .setReferencedProperty(refProp)
+                            .setCoercer(coercer)
+                            .setValidator(validator)
+                            .setCallableInfo(callableInfo)
+                            .setOnPropertyValueRead(onValueRead)
+                            .setOnPropertyValueWrite(onValueWrite)
+                            .setOnSelectionValuesRead(onSelectionValuesRead)
+                            .setOnSuggestedValuesRead(onSuggestedValuesRead);
+        
+        *builder = propBuilder.detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+
 //
 // IOwnable
 //
@@ -1471,7 +1501,6 @@ ErrCode PropertyImpl::setOwner(IPropertyObject* owner)
     return OPENDAQ_SUCCESS;
 }
 
-
 ErrCode PropertyImpl::validateDuringConstruction()
 {
     this->internalAddRefNoCheck();
@@ -1480,8 +1509,7 @@ ErrCode PropertyImpl::validateDuringConstruction()
     return err;
 }
 
-
-PropertyObjectPtr PropertyImpl::getOwner() const
+inline PropertyObjectPtr PropertyImpl::getOwner() const
 {
     if (owner.assigned())
         return owner.getRef();
@@ -1505,8 +1533,7 @@ TPtr PropertyImpl::bindAndGet(const BaseObjectPtr& metadata, bool lock) const
     if (!eval.assigned())
         return metadata;
 
-    const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
-    if (ownerPtr.assigned())
+    if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
         eval = eval.cloneWithOwner(ownerPtr);
 
     return lock ? eval.getResult() : eval.getResultNoLock();
@@ -1516,8 +1543,7 @@ BaseObjectPtr PropertyImpl::getUnresolved(const BaseObjectPtr& localMetadata) co
 {
     if (const auto eval = localMetadata.asPtrOrNull<IEvalValue>(true); eval.assigned())
     {
-        const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
-        if (ownerPtr.assigned())
+        if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
             return eval.cloneWithOwner(ownerPtr);
     }
 

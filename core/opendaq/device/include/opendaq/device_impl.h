@@ -1946,7 +1946,11 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     if (syncComponent.assigned())
     {
         serializer.key("Synchronization");
-        syncComponent.serialize(serializer);
+        if(forUpdate) {
+            syncComponent.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        } else {
+            syncComponent.serialize(serializer);
+        }
     }
 
     serializer.key("UserLock");

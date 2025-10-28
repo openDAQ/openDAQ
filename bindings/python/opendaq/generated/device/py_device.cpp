@@ -349,26 +349,25 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
             return objectPtr.isLocked();
         },
         "Returns true if device is locked. Once locked, no properties of the device can be changed via the protocol layer.");
-    cls.def_property_readonly("log_file_infos",
+    cls.def_property_readonly(
+        "log_file_infos",
         [](daq::IDevice* object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
             auto baseList = objectPtr.getLogFileInfos();
 
-            // Create a list of LogFileInfoPtr
-            daq::ListPtr<daq::ILogFileInfo> infoList;
+            auto infoList = daq::List<daq::ILogFileInfo>();
             for (const auto& baseObj : baseList)
             {
-                infoList.pushBack(baseObj.asPtr<daq::ILogFileInfo>());
+                if (baseObj.supportsInterface<daq::ILogFileInfo>())
+                    infoList.pushBack(baseObj.asPtr<daq::ILogFileInfo>());
             }
 
-            // Return the properly typed list
             return infoList.detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets a list of available log files."
-    );
+        "Gets a list of available log files.");
     cls.def("get_log",
         [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, daq::Int size, daq::Int offset)
         {

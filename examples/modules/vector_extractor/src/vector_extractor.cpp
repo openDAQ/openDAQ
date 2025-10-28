@@ -95,9 +95,10 @@ void VectorExtractorImpl::createInputPorts()
     inputPort = daq::FunctionBlock::createAndAddInputPort("Input", daq::PacketReadyNotification::SchedulerQueueWasEmpty);
 }
 
+
 void VectorExtractorImpl::readProperties()
 {
-    outputType = objPtr.getPropertyValue("OutputType");
+    outputType = outputType = static_cast<SampleType>(objPtr.getPropertySelectionValue("OutputType"));
     beginningIndex = objPtr.getPropertyValue("BeginningSpace");
 }
 

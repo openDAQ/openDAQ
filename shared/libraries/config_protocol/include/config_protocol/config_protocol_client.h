@@ -435,7 +435,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
         else
             serializer = JsonSerializerWithVersion(2);
 
-        checkErrorInfo(rootDevice.asPtr<IMirroredDeviceConfig>()->serializeForUpdateLocally(serializer));
+        checkErrorInfo(rootDevice.asPtr<IMirroredDeviceConfig>()->serializeForLocalUpdate(serializer));
         StringPtr serializedClientRootDevice = serializer.getOutput();
 
         const auto deserializer = JsonDeserializer();

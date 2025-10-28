@@ -56,7 +56,7 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredDeviceConfig, IMirroredDevice)
      * This is used during reconnection to preserve client-side configuration.
      * @param serializer The serializer to use for serialization.
      */
-    virtual ErrCode INTERFACE_FUNC serializeForUpdateLocally(ISerializer* serializer) = 0;
+    virtual ErrCode INTERFACE_FUNC serializeForLocalUpdate(ISerializer* serializer) = 0;
 };
 
 /*!@}*/

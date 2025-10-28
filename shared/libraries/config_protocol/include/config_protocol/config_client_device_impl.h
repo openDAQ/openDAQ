@@ -405,7 +405,7 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::serializeForUpdate(IS
 
     errCode = daqTry([this, &serializer]
     {
-        this->serializeConnectionValues(serializer);
+        this->serializeComponentCreationValues(serializer);
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
 

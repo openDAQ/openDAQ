@@ -58,12 +58,12 @@ void defineIMirroredDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredDe
         },
         py::arg("streaming_connection_string"),
         "Removes streaming source for device e.g. when the streaming source is no longer available.");
-    cls.def("serialize_for_update_locally",
+    cls.def("serialize_for_local_update",
         [](daq::IMirroredDeviceConfig *object, daq::ISerializer* serializer)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::MirroredDeviceConfigPtr::Borrow(object);
-            objectPtr.serializeForUpdateLocally(serializer);
+            objectPtr.serializeForLocalUpdate(serializer);
         },
         py::arg("serializer"),
         "Serializes the device configuration locally (without requesting server state). This is used during reconnection to preserve client-side configuration.");

@@ -202,7 +202,7 @@ protected:
                                   LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
-    void serializeConnectionValues(const SerializerPtr& serializer) override;
+    void serializeComponentCreationValues(const SerializerPtr& serializer) override;
 
     void updateFunctionBlock(const std::string& fbId,
                              const SerializedObjectPtr& serializedFunctionBlock,
@@ -1908,12 +1908,12 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 }
 
 template <typename TInterface, typename ... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::serializeConnectionValues(const SerializerPtr& serializer)
+void GenericDevice<TInterface, Interfaces...>::serializeComponentCreationValues(const SerializerPtr& serializer)
 {
     if (isRootDevice)
         return;
 
-    Super::serializeConnectionValues(serializer);
+    Super::serializeComponentCreationValues(serializer);
 
     DeviceInfoPtr deviceInfo;
     checkErrorInfo(this->getInfo(&deviceInfo));

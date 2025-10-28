@@ -50,7 +50,7 @@ public:
     // IMirroredDeviceConfig
     ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streamingSource) override;
     ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
-    ErrCode INTERFACE_FUNC serializeForUpdateLocally(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC serializeForLocalUpdate(ISerializer* serializer) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
@@ -209,7 +209,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
 }
 
 template <typename... Interfaces>
-ErrCode MirroredDeviceBase<Interfaces...>::serializeForUpdateLocally(ISerializer* serializer)
+ErrCode MirroredDeviceBase<Interfaces...>::serializeForLocalUpdate(ISerializer* serializer)
 {
     return Super::serializeForUpdate(serializer);
 }

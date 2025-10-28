@@ -83,6 +83,9 @@ protected:
     virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
     PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop) override;
 
+
+    void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
+
     /*
     void beginApplyUpdate() override;
     void endApplyUpdate() override;
@@ -431,6 +434,11 @@ template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::update(ISerializedObject* obj, IBaseObject* config)
 {
    return updateInternal(obj, nullptr);
+}
+
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
+{
 }
 
 template <class Impl>

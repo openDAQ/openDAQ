@@ -322,7 +322,7 @@ jobs:
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-            apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev
+            apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev libgpgme-dev
             cc: gcc
             cxx: g++
             cpack: DEB

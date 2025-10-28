@@ -261,8 +261,6 @@ private:
     OperationModeType operationMode {OperationModeType::Idle};
     ListPtr<IInteger> availableOperationModes;
     ModuleInfoPtr getModuleInfoFromDeviceType();
-
-    ErrCode updateConfigurationObject(const PropertyObjectPtr& config, const SerializedObjectPtr& serializedConfig);
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -1974,6 +1972,21 @@ void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::st
         PropertyObjectPtr config;
         if (serializedFunctionBlock.hasKey("ComponentConfig"))
             config = serializedFunctionBlock.readObject("ComponentConfig");
+
+        else if (serializedFunctionBlock.hasKey("ComponentConfig2"))
+        {
+            const SerializedObjectPtr serializedConfig = serializedFunctionBlock.readSerializedObject("ComponentConfig2");
+            const ModuleManagerPtr moduleManager = this->context.getModuleManager().template asPtr<IModuleManager>();
+            
+            for(const auto& module : moduleManager.getModules()) {
+                if(module.getAvailableFunctionBlockTypes().hasKey(typeId)) {
+                    const FunctionBlockTypePtr fbType = module.getAvailableFunctionBlockTypes()[typeId];
+                    config = fbType.createDefaultConfig();
+                    this->updateComponentConfig(config, serializedConfig);
+                    break;
+                }
+            }
+        }
         else
             config = PropertyObject();
 
@@ -2023,7 +2036,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             const auto serializedDeviceConfig = serializedDevice.readSerializedObject("ComponentConfig2");
             deviceConfig = daq::PropertyObject();
             this->createDefaultAddDeviceConfig(&deviceConfig);
-            updateConfigurationObject(deviceConfig, serializedDeviceConfig);
+            this->updateComponentConfig(deviceConfig, serializedDeviceConfig);
         }
 
         if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
@@ -2080,30 +2093,6 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
     {
         LOG_W("Failed to update device: {}", e.what());
     }
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::updateConfigurationObject(const PropertyObjectPtr& config, const SerializedObjectPtr& serializedConfig)
-{
-    OPENDAQ_PARAM_NOT_NULL(config);
-    OPENDAQ_PARAM_NOT_NULL(serializedConfig);
-    
-    ErrCode errCode = OPENDAQ_SUCCESS;
-    for(const auto& key : serializedConfig.getKeys()) {
-        if (config.hasProperty(key)) {
-            const auto property = config.getProperty(key);
-            const auto valueType = property.getValueType();
-            if(valueType == ctObject) {
-                const auto serializedSubObject = serializedConfig.readSerializedObject(key);
-                const auto subObject = property.getValue();
-                errCode = updateConfigurationObject(subObject, serializedSubObject);
-            } else {
-                errCode = this->setPropertyFromSerialized(key, config, serializedConfig);
-            }
-        }
-    }
-
-    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>

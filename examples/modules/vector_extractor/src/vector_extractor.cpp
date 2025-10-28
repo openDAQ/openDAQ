@@ -98,7 +98,7 @@ void VectorExtractorImpl::createInputPorts()
 
 void VectorExtractorImpl::readProperties()
 {
-    outputType = outputType = static_cast<SampleType>(objPtr.getPropertySelectionValue("OutputType"));
+    outputType = static_cast<SampleType>(objPtr.getPropertySelectionValue("OutputType"));
     beginningIndex = objPtr.getPropertyValue("BeginningSpace");
 }
 

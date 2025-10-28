@@ -31,7 +31,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
     {
         LOG_E("Path \"{}\" is not a file path!", binaryPath.toString());
 
-        return OPENDAQ_ERR_INVALID_ARGUMENT; 
+        return false; 
     }
 
     HCATADMIN hCatAdmin = NULL;
@@ -41,7 +41,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
         const auto win32ErrCode = GetLastError();
         LOG_E("Failed to initialize the Windows Crypto API! (Win32 error code: {})!", win32ErrCode);
 
-        return OPENDAQ_ERR_VALIDATE_FAILED; 
+        return false; 
     }
 
     HANDLE hFile = CreateFileW(path.c_str(),
@@ -56,7 +56,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
         const auto win32ErrCode = GetLastError();
         LOG_E("Failed to open the license module file! (Win32 error code: {})", win32ErrCode);
 
-        return OPENDAQ_ERR_VALIDATE_FAILED;
+        return false;
     }
 
     WINTRUST_DATA wd = {};
@@ -87,7 +87,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
         const auto win32ErrCode = GetLastError();
         LOG_E("The user is most likely trying to a use a compromised license dll ! (Win Crypto Return code: {})", win32ErrCode);
 
-        return OPENDAQ_ERR_INVALID_OPERATION;
+        return false;
     }
 
     // Now verify the signature of the license module
@@ -97,7 +97,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
         const auto win32ErrCode = GetLastError();
         LOG_E("Failed to access the certificate state data! (Win32 error code: {})", win32ErrCode);
 
-        return OPENDAQ_ERR_VALIDATE_FAILED;
+        return false;
     }
 
     const int idxSigner = 0;
@@ -107,7 +107,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
         const auto win32ErrCode = GetLastError();
         LOG_E("Failed to access the certificate signer data! (Win32 error code: {})", win32ErrCode);
 
-        return OPENDAQ_ERR_VALIDATE_FAILED;
+        return false;
     }
 
     PCCERT_CONTEXT pCertificate = CertDuplicateCertificateContext(pCPSigner->pasCertChain->pCert);
@@ -116,7 +116,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
         const auto win32ErrCode = GetLastError();
         LOG_E("Failed to access the certificate context! (Win32 error code: {})", win32ErrCode);
 
-        return OPENDAQ_ERR_VALIDATE_FAILED;
+        return false;
     }
 
     DWORD size = 0;
@@ -128,7 +128,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
         const auto win32ErrCode = GetLastError();
         LOG_E("Failed to access the certificate hash property! (Win32 error code: {})", win32ErrCode);
 
-        return OPENDAQ_ERR_VALIDATE_FAILED;
+        return false;
     }
 
     std::string certificate_name;
@@ -163,10 +163,15 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
     const auto current_license_hash = getPrintableHash(current_license_hashBuffer);
 
     vendorKey = String(current_license_hash);
+
+    return true;
 }
 
 Bool ModuleAuthenticatorImpl::onSetLogger(const LoggerPtr& logger)
 {
+    if (!logger.assigned())
+        return false;
+
     this->logger = logger;
     this->loggerComponent = logger.addComponent("ModuleAuthenticator");
 

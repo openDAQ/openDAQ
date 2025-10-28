@@ -57,7 +57,11 @@ Given the `licensing_module-64-3.module.dll` (or `licensing_module-64-3-debug.mo
 signtool.exe sign /v /n "OpenDAQ Test Certificate" /f "testcert.pfx" /p "password" /fd SHA256 /t http://timestamp.digicert.com "path/to/licensing_module-64-3.module.dll"
 ```
 
-If you check the *Properties* of the DLL file and go to *Digital Signatures*, it should contain the signature.
+If you check the *Properties* of the DLL file and go to *Digital Signatures*, it should contain the signature. You can also verify it has a valid signature with the following command:
+
+```
+signtool.exe verify /v /pa "path/to/licensing_module-64-3.module.dll"
+```
 
 Finally, make sure to retrieve the thumbprint of your signature, as the example uses it as a second security step (in `main.cpp L134`):
 

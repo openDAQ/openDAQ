@@ -22,6 +22,8 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
 {
     LOG_I("Authenticating module binary: \"{}\"", binaryPath);
 
+    vendorKey = String("");
+
     std::string pathStr = binaryPath.toStdString();
     std::filesystem::path path(pathStr);
 
@@ -80,8 +82,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
     CloseHandle(hFile);
     hFile = NULL;
 
-    if (trustResultCode != ERROR_SUCCESS && trustResultCode != CERT_E_UNTRUSTEDROOT  // Accept self-signed certificates for this demo...
-        && trustResultCode != CERT_E_EXPIRED)                                        // Accept expired certificates for this demo...
+    if (trustResultCode != ERROR_SUCCESS)
     {
         const auto win32ErrCode = GetLastError();
         LOG_E("The user is most likely trying to a use a compromised license dll ! (Win Crypto Return code: {})", win32ErrCode);

@@ -74,7 +74,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Add your signature hash here
     // On Linux, this can be obtained with gpg --verify *.asc *.so
     // On Windows, this can be obtained directly from the cert object (see setup instructions) 
-    const StringPtr key = StringPtr("84331B1E06F3D0A4AE25AC50E87412B42CBE05B4");
+    const StringPtr key = StringPtr("my_cert_thumbprint");
 
     // The Windows example uses the resourcePath as the path for the certificates.
     // The Linux example doesn't use the certPath for ModuleAuthenticatorImpl, but assumes that the .asc and .so files are 

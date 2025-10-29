@@ -99,7 +99,7 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
     const ModulePtr deviceModule(MockDeviceModule_Create(context));
     moduleManager.addModule(deviceModule);
 
-    auto instance = InstanceCustom(context, "clientLocal");
+    auto instance = InstanceCustom(context, "openDAQDevice");
 
     auto config = instance.createDefaultAddDeviceConfig();
 

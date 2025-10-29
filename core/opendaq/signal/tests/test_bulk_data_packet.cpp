@@ -190,8 +190,7 @@ TEST_P(BulkDataPacketTest, ValuePacketWithExplicit)
     ASSERT_EQ(valuePacket.getDomainPacket().getDataDescriptor(), domainDescriptor);
 }
 
-INSTANTIATE_TEST_CASE_P(BulkDataPacketTests,
-                        BulkDataPacketTest,
-                        ::testing::Values(1, 4, 16, 64, 128),
-                        [](testing::TestParamInfo<size_t> paramInfo) { return fmt::format("align{}", paramInfo.param); });
-
+INSTANTIATE_TEST_SUITE_P(BulkDataPacketTests,
+                         BulkDataPacketTest,
+                         ::testing::Values(1, 4, 16, 64, 128),
+                         [](testing::TestParamInfo<size_t> paramInfo) { return fmt::format("align{}", paramInfo.param); });

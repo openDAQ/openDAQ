@@ -360,12 +360,12 @@ ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
     catch (const std::exception& e)
     {
         LOG_W(R"(Error loading module "{}": {})", pathString, e.what())
-        return OPENDAQ_ERR_GENERALERROR;
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, e.what());
     }
     catch (...)
     {
         LOG_W(R"(Unknown error occurred loading module "{}")", pathString)
-        return OPENDAQ_ERR_GENERALERROR;
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
     }
 
     return OPENDAQ_SUCCESS;
@@ -1049,7 +1049,9 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
             localIdStr = fmt::format("{}_{}", typeId, maxNum + 1);
         }
 
-        return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
+        const ErrCode errCode = module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
+        OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to create function block {}", typeId));
+        return errCode;
     }
 
     return DAQ_MAKE_ERROR_INFO(
@@ -1188,6 +1190,7 @@ ErrCode ModuleManagerImpl::requestIpConfig(IString* iface, IString* manufacturer
 
     PropertyObjectPtr ipConfig;
     auto errCode = discoveryClient.requestIpConfiguration(manufacturer, serialNumber, iface, ipConfig);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     *config = ipConfig.detach();
 
     return errCode;
@@ -1317,7 +1320,7 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
     for (const auto & capability : capabilities)
     {
         const auto priority = getServerCapabilityPriority(capability);
-        if (priority  > selectedPriority)
+        if (priority > selectedPriority)
         {
             selectedCapability = capability;
             selectedPriority = priority;

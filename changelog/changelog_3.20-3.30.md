@@ -27,6 +27,7 @@
 
 ## Bug fixes
 
+- [#963](https://github.com/openDAQ/openDAQ/pull/963) Fix save load not showing connected input ports on client
 - [#955](https://github.com/openDAQ/openDAQ/pull/955) Fix large log files download
 - [#941](https://github.com/openDAQ/openDAQ/pull/941) Fix getting on property value read write event for nestead proporties 
 - [#936](https://github.com/openDAQ/openDAQ/pull/936) Fix compatibility issue with SDK v3.10 in client-to-device-streaming

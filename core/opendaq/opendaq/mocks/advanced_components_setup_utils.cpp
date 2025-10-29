@@ -437,7 +437,7 @@ MockRecorderFb1Impl::MockRecorderFb1Impl(const ContextPtr& ctx, const ComponentP
 ErrCode MockRecorderFb1Impl::startRecording()
 {
     if (this->isRecording)
-        return OPENDAQ_ERR_INVALIDSTATE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
 
     this->isRecording = true;
     return OPENDAQ_SUCCESS;
@@ -446,7 +446,7 @@ ErrCode MockRecorderFb1Impl::startRecording()
 ErrCode MockRecorderFb1Impl::stopRecording()
 {
     if (!this->isRecording)
-        return OPENDAQ_ERR_INVALIDSTATE;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
 
     this->isRecording = false;
     return OPENDAQ_SUCCESS;

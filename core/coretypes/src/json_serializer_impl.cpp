@@ -37,9 +37,10 @@ ErrCode JsonSerializerImpl<TWriter>::startTaggedObject(ISerializable* serializab
 template <typename TWriter>
 ErrCode JsonSerializerImpl<TWriter>::startObject()
 {
-    bool boolean = writer.StartObject();
+    if (writer.StartObject())
+        return OPENDAQ_SUCCESS;
 
-    return boolean ? OPENDAQ_SUCCESS :  OPENDAQ_ERR_GENERALERROR;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
 }
 
 template <typename TWriter>
@@ -109,6 +110,7 @@ ErrCode JsonSerializerImpl<TWriter>::keyStr(IString* name)
 
     SizeT length;
     errCode = name->getLength(&length);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (length == 0)
     {
@@ -193,7 +195,7 @@ ErrCode JsonSerializerImpl<TWriter>::writeString(ConstCharPtr string, SizeT leng
 }
 
 template <typename TWriter>
-ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::getUser(daq::IBaseObject** user)
+ErrCode JsonSerializerImpl<TWriter>::getUser(daq::IBaseObject** user)
 {
     OPENDAQ_PARAM_NOT_NULL(user);
 
@@ -202,7 +204,7 @@ ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::getUser(daq::IBaseObject** u
 }
 
 template <typename TWriter>
-ErrCode INTERFACE_FUNC JsonSerializerImpl<TWriter>::setUser(daq::IBaseObject* user)
+ErrCode JsonSerializerImpl<TWriter>::setUser(daq::IBaseObject* user)
 {
     this->userContext = user;
     return OPENDAQ_SUCCESS;

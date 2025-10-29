@@ -39,17 +39,30 @@ static bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescripto
     return false;
 }
 
-SumReaderFbImpl::SumReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+SumReaderFbImpl::SumReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
     initComponentStatus();
     updateInputPorts();
     createSignals();
+
+    if (config.assigned())
+        notificationMode = static_cast<PacketReadyNotification>(config.getPropertyValue("ReaderNotificationMode"));
+    else
+        notificationMode = PacketReadyNotification::Scheduler;
 }
 
 FunctionBlockTypePtr SumReaderFbImpl::CreateType()
 {
-    return FunctionBlockType("RefFBModuleSumReader", "Sum with reader", "Calculates equal-rate signal sum using multi reader");
+    auto config = PropertyObject();
+    config.addProperty(SparseSelectionProperty(
+        "ReaderNotificationMode",
+        Dict<IInteger, IString>({
+            {static_cast<Int>(PacketReadyNotification::SameThread), "SameThread"},
+            {static_cast<Int>(PacketReadyNotification::Scheduler), "Scheduler"}}),
+        2));
+
+    return FunctionBlockType("RefFBModuleSumReader", "Sum with reader", "Calculates equal-rate signal sum using multi reader", config);
 }
 
 std::string SumReaderFbImpl::getNextPortID() const
@@ -101,7 +114,7 @@ void SumReaderFbImpl::updateInputPorts()
     if (!disconnectedPort.assigned())
     {
         std::string id = getNextPortID();
-        auto inputPort = createAndAddInputPort(id, PacketReadyNotification::Scheduler);
+        auto inputPort = createAndAddInputPort(id, notificationMode);
         inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
         disconnectedPort = inputPort;
     }
@@ -112,11 +125,17 @@ void SumReaderFbImpl::updateReader()
 {
     // Disposing the reader is necessary to release port ownership
     reader.dispose();
+    if (connectedPorts.empty())
+    {
+        reader = nullptr;
+        return;
+    }
+
     auto builder = MultiReaderBuilder()
                  .setDomainReadType(SampleType::Int64)
                  .setValueReadType(SampleType::Float64)
                  .setAllowDifferentSamplingRates(false)
-                 .setInputPortNotificationMethod(PacketReadyNotification::Scheduler);
+                 .setInputPortNotificationMethod(notificationMode);
 
     for (const auto& port : connectedPorts)
         builder.addInputPort(port);
@@ -146,7 +165,7 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
         {
             throw std::runtime_error("Missing input value descriptors!");
         }
-        
+
         UnitPtr unit = valueDescriptors[0].getUnit();
 
         double lowValue = 0;
@@ -158,6 +177,10 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
 
             if (descriptor.getUnit() != unit)
                 throw std::runtime_error("Input value descriptor units must be equal!");
+
+            int sampleType = static_cast<int>(descriptor.getSampleType());
+            if (sampleType > static_cast<int>(SampleType::Int64) || sampleType == 0)
+                throw std::runtime_error("Non-integer sample type inputs are not accepted!");
 
             auto range = descriptor.getValueRange();
             if (range.assigned())
@@ -189,6 +212,14 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
     }
 }
 
+void SumReaderFbImpl::reconfigure()
+{
+    auto descriptorList = List<IDataDescriptor>();
+    for (const auto& descriptor : cachedDescriptors)
+        descriptorList.pushBack(descriptor.second);
+    configure(sumDomainDataDescriptor, descriptorList);
+}
+
 void SumReaderFbImpl::onConnected(const InputPortPtr& inputPort)
 {
     auto lock = this->getAcquisitionLock2();
@@ -205,6 +236,7 @@ void SumReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
     LOG_D("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
     updateInputPorts();
     updateReader();
+    reconfigure();
 }
 
 void SumReaderFbImpl::onDataReceived()
@@ -263,6 +295,7 @@ void SumReaderFbImpl::onDataReceived()
                     {
                         valueSigChanged = true;
                         valueDescriptors.pushBack(valueDescriptor);
+                        cachedDescriptors[portGlobalId] = valueDescriptor;
                     }
 
                     domainChanged |= descriptorNotNull(domainDescriptor);
@@ -270,7 +303,6 @@ void SumReaderFbImpl::onDataReceived()
 
                 if (!descriptorNotNull(valueDescriptor))
                     valueDescriptors.pushBack(cachedDescriptors[portGlobalId]);
-
             }
                 
             getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);

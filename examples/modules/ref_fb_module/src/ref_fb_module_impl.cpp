@@ -121,7 +121,7 @@ FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
     }
     if (id == SumReader::SumReaderFbImpl::CreateType().getId())
     {
-        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, SumReader::SumReaderFbImpl>(context, parent, localId);
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, SumReader::SumReaderFbImpl>(context, parent, localId, config);
         return fb;
     }
     if (id == StructDecoder::StructDecoderFbImpl::CreateType().getId())

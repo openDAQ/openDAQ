@@ -31,7 +31,7 @@ namespace SumReader
 class SumReaderFbImpl final : public FunctionBlock
 {
 public:
-    explicit SumReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit SumReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
     ~SumReaderFbImpl() override = default;
 
     static FunctionBlockTypePtr CreateType();
@@ -43,6 +43,7 @@ private:
     void updateInputPorts();
     void updateReader();
     void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
+    void reconfigure();
 
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;
@@ -57,9 +58,10 @@ private:
 
     SignalConfigPtr sumSignal;
     SignalConfigPtr sumDomainSignal;
+
+    PacketReadyNotification notificationMode;
     MultiReaderPtr reader;
 };
-
 }
 
 END_NAMESPACE_REF_FB_MODULE

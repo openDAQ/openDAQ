@@ -98,8 +98,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     }else{
         std::vector<std::string> keys{};
         std::vector<std::string> vals{};
-        for(const auto& key : vendorKeys.getKeys()){
-            keys.push_back(key.toStdString());
+        for(const auto& vendorKey : vendorKeys.getKeys()){
+            keys.push_back(vendorKey.toStdString());
         }    
 
         for(const auto& val : vendorKeys.getValues()){

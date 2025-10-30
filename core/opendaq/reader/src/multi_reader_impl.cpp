@@ -50,7 +50,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode,
-                                 ReadTimeoutType timeoutType,// Why is this unused?
+                                 ReadTimeoutType,// Why is this unused?
                                  std::int64_t requiredCommonSampleRate,
                                  Bool startOnFullUnitOfDomain,
                                  SizeT minReadCount)
@@ -1418,6 +1418,15 @@ ErrCode MultiReaderImpl::markAsInvalid()
     std::unique_lock lock(mutex);
     invalid = true;
 
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::getIsValid(Bool* isValid)
+{
+    OPENDAQ_PARAM_NOT_NULL(isValid);
+
+    std::unique_lock lock(mutex);
+    *isValid = !invalid;
     return OPENDAQ_SUCCESS;
 }
 

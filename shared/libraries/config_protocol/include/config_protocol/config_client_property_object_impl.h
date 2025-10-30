@@ -240,7 +240,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
             auto v = getValueFromServer(propertyNamePtr, setValue);
 
             if (setValue)
-                Impl::setPropertyValue(propertyNamePtr, v);
+                Impl::setProtectedPropertyValue(propertyNamePtr, v);
             *value = v.detach();
             return OPENDAQ_SUCCESS;
         }
@@ -268,7 +268,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IStr
             auto v = getValueFromServer(propertyNamePtr, setValue);
 
             if (setValue)
-                Impl::setPropertyValue(propertyNamePtr, v);
+                Impl::setProtectedPropertyValue(propertyNamePtr, v);
         }
         
         return Impl::getPropertySelectionValue(propertyNamePtr, value);

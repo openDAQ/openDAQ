@@ -75,13 +75,18 @@ protected:
     }
 
 
-    void sendData(SizeT sampleCount, SizeT offset, bool sendInvalid, std::pair<size_t, size_t> signalRange)
+    void sendData(SizeT sampleCount,
+                  SizeT offset,
+                  bool sendInvalid,
+                  std::pair<size_t, size_t> signalRange,
+                  ListPtr<ISignalConfig> extraSignals = List<ISignalConfig>(),
+                  ListPtr<ISignalConfig> extraDomainSignals = List<ISignalConfig>())
     {
         DataPacketPtr domainPacket = DataPacket(timeDescriptor, sampleCount, offset);
         DataPacketPtr valuePacket = DataPacketWithDomain(domainPacket, validDescriptor, sampleCount);
 
         double* sumValueData = static_cast<double*>(valuePacket.getRawData());
-        for (auto i = 0; i < sampleCount; ++i)
+        for (size_t i = 0; i < sampleCount; ++i)
             sumValueData[i] = 1;
 
         timeSignal.sendPacket(domainPacket);
@@ -94,6 +99,16 @@ protected:
             for (size_t i = signalRange.first; i < signalRange.second; ++i)
                 invalidSignals[i].sendPacket(valuePacket);
         }
+
+        for (const auto& signal : extraSignals)
+        {
+            signal.sendPacket(valuePacket);
+        }
+
+        for (const auto& signal : extraDomainSignals)
+        {
+            signal.sendPacket(domainPacket);
+        }
     }
 };
 
@@ -103,6 +118,7 @@ TEST_F(SumTest, Create)
 
     auto fb = module.createFunctionBlock("RefFBModuleSumReader", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
 }
 
 TEST_F(SumTest, ConnectSignal)
@@ -129,11 +145,9 @@ TEST_F(SumTest, DisconnectSignals)
     ASSERT_EQ(fb.getInputPorts().getCount(), 11);
 
     for (const auto& ip : fb.getInputPorts())
-    {
         ip.disconnect();
-        ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
-    }
-
+    
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
     ASSERT_EQ(fb.getInputPorts().getCount(), 1);
 }
 
@@ -158,6 +172,7 @@ TEST_F(SumTest, InvalidSignalsRecovery)
     }
 
     ASSERT_EQ(fb.getInputPorts().getCount(), 21);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
 
     auto ip = fb.getInputPorts();
     for (int i = static_cast<int>(fb.getInputPorts().getCount()) - 2; i > 0; i-=2)
@@ -268,4 +283,48 @@ TEST_F(SumTest, SumSignalsInvalidRecovery)
     {
         ASSERT_DOUBLE_EQ(val, 10);
     }
+}
+
+TEST_F(SumTest, ReplaceValidWithInvalid)
+{
+    for (size_t i = 0; i < validSignals.getCount(); ++i)
+        fb.getInputPorts()[i].connect(validSignals[i]);
+
+    ASSERT_NO_THROW(fb.getInputPorts()[0].connect(invalidSignals[0]));
+}
+
+TEST_F(SumTest, IncompatibleDomainsReconnect)
+{
+    auto incompatibleDomainDescriptor = DataDescriptorBuilder()
+                     .setSampleType(SampleType::Int64)
+                     .setTickResolution(Ratio(1, 1000))
+                     .setOrigin("1970-01-01T00:00:00")
+                     .setRule(LinearDataRule(2, 0))
+                     .setUnit(Unit("s", -1, "second", "time"))
+                     .build();
+
+    auto incompatibleDomainSignal = SignalWithDescriptor(context, incompatibleDomainDescriptor, nullptr, "invalidDomainSig", nullptr);
+    auto incompatibleSignal = SignalWithDescriptor(context, validDescriptor, nullptr, "invalidSig", nullptr);
+
+    incompatibleSignal.setDomainSignal(incompatibleDomainSignal);
+
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    fb.getInputPorts()[1].connect(incompatibleSignal);
+
+    auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
+    sendData(100,
+             0,
+             false,
+             std::make_pair(0, 1),
+             List<ISignalConfig>(incompatibleSignal),
+             List<ISignalConfig>(incompatibleDomainSignal));
+
+    auto count = reader.getAvailableCount();
+    ASSERT_EQ(count, 0);
+
+    fb.getInputPorts()[1].connect(validSignals[1]);
+    sendData(100, 100, false, std::make_pair(0, 2));
+    
+    count = reader.getAvailableCount();
+    ASSERT_EQ(count, 100);
 }

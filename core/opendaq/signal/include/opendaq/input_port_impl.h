@@ -126,7 +126,6 @@ private:
     void disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal, bool triggerCoreEvent);
     void notifyPacketEnqueuedSameThread();
     void notifyPacketEnqueuedScheduler();
-    void finishUpdate();
 
     SignalPtr getSignalNoLock();
 };
@@ -220,6 +219,7 @@ void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr
 
         this->triggerCoreEvent(args);
     }
+    serializedSignalId.release();
 }
 
 template <class... Interfaces>
@@ -469,12 +469,6 @@ ErrCode GenericInputPortImpl<Interfaces...>::connectSignalSchedulerNotification(
 }
 
 template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::finishUpdate()
-{
-    serializedSignalId.release();
-}
-
-template <class... Interfaces>
 void GenericInputPortImpl<Interfaces...>::removed()
 {
     if (customData.assigned())
@@ -628,7 +622,7 @@ ErrCode GenericInputPortImpl<Interfaces...>::connectInternal(ISignal* signal, bo
                 return DAQ_MAKE_ERROR_INFO(err);
             }
         }
-
+        serializedSignalId = signalPtr.asPtr<ISignalPrivate>(true).getSignalSerializeId();
         const auto events = signalPtr.asPtrOrNull<ISignalEvents>(true);
         if (events.assigned())
         {
@@ -683,11 +677,10 @@ void GenericInputPortImpl<Interfaces...>::serializeCustomObjectValues(const Seri
 
     auto signal = getSignalNoLock();
 
-    if (signal.assigned())
+    if (serializedSignalId.assigned())
     {
         serializer.key("signalId");
-        const auto signalSerializedId = signal.template asPtr<ISignalPrivate>(true).getSignalSerializeId();
-        serializer.writeString(signalSerializedId);
+        serializer.writeString(serializedSignalId);
     }
 }
 
@@ -702,13 +695,9 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
         StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
         contextPtr.setInputPortConnection(parentId, this->localId, obj.readString("signalId"));
     }
-    else
-    {
-        serializedSignalId.release();
-    }
 }
 
-template <class ... Interfaces>
+template <class... Interfaces>
 void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
     if (this->getSignalNoLock().assigned())
@@ -718,15 +707,24 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
     ComponentPtr parent;
     this->getParent(&parent);
     StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
-    auto signal = contextPtr.getSignal(parentId, this->localId);
 
+    const auto connections = contextPtr.getInputPortConnections(parentId);
+    if (connections.hasKey(this->localId))
+    {
+        serializedSignalId = connections[this->localId];
+    }
+    else if (serializedSignalId.assigned())
+    {
+        contextPtr.setInputPortConnection(parentId, this->localId, serializedSignalId);
+    }
+
+    auto signal = contextPtr.getSignal(parentId, this->localId);
     if (signal.assigned())
     {
         try
         {
             const auto thisPtr = this->template borrowPtr<InputPortPtr>();
             thisPtr.connect(signal);
-            finishUpdate();
         }
         catch (const DaqException&)
         {

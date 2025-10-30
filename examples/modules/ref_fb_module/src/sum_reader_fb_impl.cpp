@@ -323,10 +323,12 @@ void SumReaderFbImpl::onDataReceived()
 
             if (!status.getValid())
             {
-                // TODO: Add check for reader validity after re-creation once method is available
-                // TODO: Add automatic reader recovery and status updates
                 LOG_D("Sum Reader FB: Attempting reader recovery")
                 reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+                if (!reader.asPtr<IReaderConfig>().getIsValid())
+                {
+                    setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
+                }
             }
         }
     }

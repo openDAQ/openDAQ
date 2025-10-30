@@ -130,8 +130,19 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 															 logger_example_util)
 
 	# end of Logger examples
-    
-	add_subdirectory(cpp/licensing_example)
+	
+	set(LICENSING_EXAMPLE_REQUIREMENTS_MET ON)
+	if(LINUX)
+		find_package(PkgConfig REQUIRED)
+		pkg_check_modules(GPGME QUIET gpgme)
+		if(NOT GPGME_FOUND)
+			message("Cannot build licensing example, GPGme not found!")
+			set(LICENSING_EXAMPLE_REQUIREMENTS_MET OFF)
+		endif()
+	endif()
+	if(LICENSING_EXAMPLE_REQUIREMENTS_MET)
+		add_subdirectory(cpp/licensing_example)
+	endif()
 	
     if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND OPENDAQ_ENABLE_NATIVE_STREAMING)
         add_executable(client_authentication cpp/client_authentication/client_authentication.cpp)

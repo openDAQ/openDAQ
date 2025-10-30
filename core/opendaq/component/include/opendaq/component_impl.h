@@ -1207,7 +1207,7 @@ Bool ComponentImpl<Intf, Intfs...>::shouldSerializeComponentConfig(const Propert
             else
             {
                 const auto& defaultValue = property.getDefaultValue();
-                result |= (value != defaultValue);
+                result |= static_cast<Bool>(value != defaultValue);
             }
             if (result)
             {

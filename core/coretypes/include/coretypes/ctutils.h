@@ -179,6 +179,28 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
     return ss.str();
 }
 
+inline std::string getErrorInfoMessage(ErrCode errCode)
+{
+    if (OPENDAQ_SUCCEEDED(errCode))
+        return "";
+
+    std::string message;
+    daq::IString* errorMessage = nullptr;
+    ErrCode err = daqGetErrorInfoMessage(&errorMessage);
+    if (errorMessage)
+    {
+        if (err == errCode)
+        {
+            daq::ConstCharPtr msgCharPtr = nullptr;
+            errorMessage->getCharPtr(&msgCharPtr);
+            errorMessage->releaseRef();
+            return msgCharPtr;
+        }
+    }
+
+    return "";
+}
+
 inline void checkErrorInfo(ErrCode errCode)
 {
     if (OPENDAQ_SUCCEEDED(errCode))

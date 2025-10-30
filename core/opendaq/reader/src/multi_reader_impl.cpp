@@ -72,7 +72,14 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
 
         auto ports = createOrAdoptPorts(list);
         configureAndStorePorts(ports, valueReadType, domainReadType, mode);
-        checkErrorInfo(isDomainValid(ports));
+
+        auto err = isDomainValid(ports);
+        if (OPENDAQ_FAILED(err))
+        {
+            invalid = true;
+            LOG_D("Multi reader signal domains are not valid: {}", getErrorInfoMessage(err));
+            clearErrorInfo();
+        }
     }
     catch (...)
     {
@@ -146,7 +153,14 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
 
         auto ports = createOrAdoptPorts(sourceComponents);
         configureAndStorePorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
-        checkErrorInfo(isDomainValid(ports));
+
+        auto err = isDomainValid(ports);
+        if (OPENDAQ_FAILED(err))
+        {
+            invalid = true;
+            LOG_D("Multi reader signal domains are not valid: {}", getErrorInfoMessage(err));
+            clearErrorInfo();
+        }
     }
     catch (...)
     {
@@ -449,7 +463,7 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
             if (!lastSampleRate.has_value())
                 lastSampleRate = signal.sampleRate;
 
-            if (tickOffsetTolerance.assigned() && lastSampleRate.value() != signal.sampleRate)
+            if (lastSampleRate.value() != signal.sampleRate)
             {
                 sameSampleRates = false;
                 if (!allowDifferentRates)
@@ -459,7 +473,12 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
                     return;
                 }
 
-                LOG_D("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
+                if (tickOffsetTolerance.assigned())
+                {
+                    LOG_D("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
+                    invalid = true;
+                    return;
+                }
             }
         }
     }

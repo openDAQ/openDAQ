@@ -1,9 +1,5 @@
 set(LIC_EXAMPLE licensing_example)
 
-if(UNIX AND NOT APPLE)
-    set(LINUX TRUE)
-endif()
-
 if (LINUX)
 	set(MODULE_AUTHENTICATOR_HEADER module_authenticator_impl_linux.h)
 	set(MODULE_AUTHENTICATOR_SOURCE module_authenticator_impl_linux.cpp)

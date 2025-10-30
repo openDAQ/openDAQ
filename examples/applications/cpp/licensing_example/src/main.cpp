@@ -80,7 +80,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // The Linux example doesn't use the certPath for ModuleAuthenticatorImpl, but assumes that the .asc and .so files are 
     // in the same location for conveniences' sake.
     const ModuleAuthenticatorPtr authenticator =
-    daq::createWithImplementation<IModuleAuthenticator, daq::ModuleAuthenticatorImpl>(path);
+        daq::createWithImplementation<IModuleAuthenticator, daq::ModuleAuthenticatorImplExample>(path);
     
     // Create an Instance, loading modules at MODULE_PATH
     const InstancePtr instance =

@@ -10,7 +10,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ModuleAuthenticatorImpl::ModuleAuthenticatorImpl(const StringPtr& certPath)
+ModuleAuthenticatorImplExample::ModuleAuthenticatorImplExample(const StringPtr& certPath)
     : logger(nullptr)
     , loggerComponent(nullptr)
 {
@@ -18,7 +18,7 @@ ModuleAuthenticatorImpl::ModuleAuthenticatorImpl(const StringPtr& certPath)
     certsPath = std::filesystem::path(pathStr);
 }
 
-Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath)
+Bool ModuleAuthenticatorImplExample::onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath)
 {
     LOG_I("Authenticating module binary: \"{}\"", binaryPath);
 
@@ -167,7 +167,7 @@ Bool ModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vendorKey, c
     return true;
 }
 
-Bool ModuleAuthenticatorImpl::onSetLogger(const LoggerPtr& logger)
+Bool ModuleAuthenticatorImplExample::onSetLogger(const LoggerPtr& logger)
 {
     if (!logger.assigned())
         return false;

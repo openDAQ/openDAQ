@@ -24,10 +24,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ModuleAuthenticatorImpl : public ModuleAuthenticator
+class ModuleAuthenticatorImplExample : public ModuleAuthenticator
 {
 public:
-    explicit ModuleAuthenticatorImpl(const StringPtr& certsPath);
+    explicit ModuleAuthenticatorImplExample(const StringPtr& certsPath);
 
     Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath) override final;
     Bool onSetLogger(const LoggerPtr& logger) override final;

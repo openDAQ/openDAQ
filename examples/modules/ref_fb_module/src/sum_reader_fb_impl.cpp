@@ -88,13 +88,15 @@ void SumReaderFbImpl::createSignals()
     sumSignal.setDomainSignal(sumDomainSignal);
 }
 
-void SumReaderFbImpl::updateInputPorts()
+bool SumReaderFbImpl::updateInputPorts()
 {
+    bool rebuildReader = false;
     if (disconnectedPort.assigned() && disconnectedPort.getConnection().assigned())
     {
         connectedPorts.emplace_back(disconnectedPort);
         cachedDescriptors.insert(std::make_pair(disconnectedPort.getGlobalId(), NullDataDescriptor()));
         disconnectedPort.release();
+        rebuildReader = true;
     }
 
     for (auto it = connectedPorts.begin(); it != connectedPorts.end(); )
@@ -104,6 +106,7 @@ void SumReaderFbImpl::updateInputPorts()
             cachedDescriptors.erase(it->getGlobalId().toStdString());
             this->inputPorts.removeItem(*it);
             it = connectedPorts.erase(it);
+            rebuildReader = true;
         }
         else
         {
@@ -118,6 +121,15 @@ void SumReaderFbImpl::updateInputPorts()
         inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
         disconnectedPort = inputPort;
     }
+
+    if (connectedPorts.empty())
+    {
+        setComponentStatusWithMessage(ComponentStatus::Warning, "No signals connected!");
+        reader = nullptr;
+        return false;
+    }
+
+    return rebuildReader;
 }
 
 // Reader must currently be rebuilt to add/remove input ports
@@ -125,12 +137,6 @@ void SumReaderFbImpl::updateReader()
 {
     // Disposing the reader is necessary to release port ownership
     reader.dispose();
-    if (connectedPorts.empty())
-    {
-        reader = nullptr;
-        return;
-    }
-
     auto builder = MultiReaderBuilder()
                  .setDomainReadType(SampleType::Int64)
                  .setValueReadType(SampleType::Float64)
@@ -225,8 +231,11 @@ void SumReaderFbImpl::onConnected(const InputPortPtr& inputPort)
     auto lock = this->getAcquisitionLock2();
 
     LOG_D("Sum Reader FB: Input port {} connected", inputPort.getLocalId())
-    updateInputPorts();
-    updateReader();
+
+    if (updateInputPorts())
+    {
+        updateReader();
+    }
 }
 
 void SumReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
@@ -234,9 +243,11 @@ void SumReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
     auto lock = this->getAcquisitionLock2();
 
     LOG_D("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
-    updateInputPorts();
-    updateReader();
-    reconfigure();
+    if (updateInputPorts())
+    {
+        updateReader();
+        reconfigure();
+    }
 }
 
 void SumReaderFbImpl::onDataReceived()
@@ -309,12 +320,14 @@ void SumReaderFbImpl::onDataReceived()
 
             if (valueSigChanged || domainChanged)
                 configure(domainDescriptor, valueDescriptors);
-        }
 
-        if (!status.getValid())
-        {
-            LOG_D("Sum Reader FB: Attempting reader recovery")
-            reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+            if (!status.getValid())
+            {
+                // TODO: Add check for reader validity after re-creation once method is available
+                // TODO: Add automatic reader recovery and status updates
+                LOG_D("Sum Reader FB: Attempting reader recovery")
+                reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+            }
         }
     }
 }

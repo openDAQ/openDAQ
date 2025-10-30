@@ -40,7 +40,7 @@ private:
     std::string getNextPortID() const;
     
     void createSignals();
-    void updateInputPorts();
+    bool updateInputPorts();
     void updateReader();
     void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
     void reconfigure();

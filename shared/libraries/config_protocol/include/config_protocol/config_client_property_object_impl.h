@@ -240,7 +240,10 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
             auto v = getValueFromServer(propertyNamePtr, setValue);
 
             if (setValue)
-                Impl::setProtectedPropertyValue(propertyNamePtr, v);
+            {
+                const ErrCode errCode = Impl::setProtectedPropertyValue(propertyNamePtr, v);
+                OPENDAQ_RETURN_IF_FAILED(errCode);
+            }
             *value = v.detach();
             return OPENDAQ_SUCCESS;
         }
@@ -268,9 +271,12 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IStr
             auto v = getValueFromServer(propertyNamePtr, setValue);
 
             if (setValue)
-                Impl::setProtectedPropertyValue(propertyNamePtr, v);
+            {
+                const ErrCode errCode = Impl::setProtectedPropertyValue(propertyNamePtr, v);
+                OPENDAQ_RETURN_IF_FAILED(errCode);
+            }
         }
-        
+    
         return Impl::getPropertySelectionValue(propertyNamePtr, value);
     });
 }

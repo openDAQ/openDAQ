@@ -625,7 +625,7 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::connectInternal(ISignal
                 errCode = events->listenerConnectedScheduled(connection);
             OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED, "Failed to notify signal connection");
         }
-        serializedSignalId = signalPtr.asPtr<ISignalPrivate>(true).getSignalSerializeId();
+        serializedSignalId.release();
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to connect signal");
@@ -646,12 +646,15 @@ void GenericInputPortImpl<TInterface, Interfaces...>::serializeCustomObjectValue
 {
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
-    auto signal = getSignalNoLock();
-
     if (serializedSignalId.assigned())
     {
         serializer.key("signalId");
         serializer.writeString(serializedSignalId);
+    }
+    else if (const auto signal = getSignalNoLock(); signal.assigned())
+    {
+        serializer.key("signalId");
+        serializer.writeString(signal. template asPtr<ISignalPrivate>(true).getSignalSerializeId());
     }
 }
 
@@ -659,15 +662,13 @@ template <typename TInterface, typename...  Interfaces>
 void GenericInputPortImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     if (obj.hasKey("signalId"))
-        serializedSignalId = obj.readString("signalId");
-
-    if (serializedSignalId.assigned())
     {
+        serializedSignalId = obj.readString("signalId");
         ComponentUpdateContextPtr contextPtr = context.asPtr<IComponentUpdateContext>(true);
         ComponentPtr parent;
         this->getParent(&parent);
         StringPtr parentId = parent.assigned() ? parent.getGlobalId() : "";
-        contextPtr.setInputPortConnection(parentId, this->localId, obj.readString("signalId"));
+        contextPtr.setInputPortConnection(parentId, this->localId, serializedSignalId);
     }
 }
 

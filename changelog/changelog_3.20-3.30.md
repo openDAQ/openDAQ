@@ -27,6 +27,7 @@
 
 ## Bug fixes
 
+- [#965](https://github.com/openDAQ/openDAQ/pull/965) Fix read-only remote property update
 - [#955](https://github.com/openDAQ/openDAQ/pull/955) Fix large log files download
 - [#943](https://github.com/openDAQ/openDAQ/pull/943) Set of multi reader fixes. Allow releasing input port ownership from multi reader. Adds SumReader FB that showcases dynamic input port usage with multi reader.
 - [#941](https://github.com/openDAQ/openDAQ/pull/941) Fix getting on property value read write event for nestead proporties 

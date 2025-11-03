@@ -27,8 +27,10 @@
 
 ## Bug fixes
 
+- [#965](https://github.com/openDAQ/openDAQ/pull/965) Fix read-only remote property update
 - [#963](https://github.com/openDAQ/openDAQ/pull/963) Fix save load not showing connected input ports on client
 - [#955](https://github.com/openDAQ/openDAQ/pull/955) Fix large log files download
+- [#943](https://github.com/openDAQ/openDAQ/pull/943) Set of multi reader fixes. Allow releasing input port ownership from multi reader. Adds SumReader FB that showcases dynamic input port usage with multi reader.
 - [#941](https://github.com/openDAQ/openDAQ/pull/941) Fix getting on property value read write event for nestead proporties 
 - [#936](https://github.com/openDAQ/openDAQ/pull/936) Fix compatibility issue with SDK v3.10 in client-to-device-streaming
 - [#930](https://github.com/openDAQ/openDAQ/pull/930) Fixes the operation mode of 3.10 native-client devices with no op-mode support to be "Operation" by default

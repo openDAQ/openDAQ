@@ -155,7 +155,7 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_TRUE(functionBlockTypes.assigned());
 
-    ASSERT_EQ(functionBlockTypes.getCount(), 10u);
+    ASSERT_EQ(functionBlockTypes.getCount(), 11u);
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleRenderer"));
     ASSERT_EQ("RefFBModuleRenderer", functionBlockTypes.get("RefFBModuleRenderer").getId());
@@ -183,6 +183,9 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleVideoPlayer"));
     ASSERT_EQ("RefFBModuleVideoPlayer", functionBlockTypes.get("RefFBModuleVideoPlayer").getId());
+
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleSumReader"));
+    ASSERT_EQ("RefFBModuleSumReader", functionBlockTypes.get("RefFBModuleSumReader").getId());
 
     // Check module info for module
     ModuleInfoPtr moduleInfo;

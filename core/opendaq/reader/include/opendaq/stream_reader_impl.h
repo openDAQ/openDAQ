@@ -87,6 +87,7 @@ public:
 
     ErrCode INTERFACE_FUNC getReadTimeoutType(ReadTimeoutType* timeout) override;
     ErrCode INTERFACE_FUNC markAsInvalid() override;
+    ErrCode INTERFACE_FUNC getIsValid(Bool* isValid) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;

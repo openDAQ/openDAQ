@@ -3758,3 +3758,32 @@ TEST_F(NativeDeviceModulesTest, AddDevicesParallelPartialSuccess)
 
     ASSERT_EQ(client.getDevices().getCount(), 2u);
 }
+
+
+TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
+{
+
+    auto leaf = InstanceBuilder().setRootDevice("daqref://device0").build();
+    {
+        const auto serverConfig = PropertyObject();
+        serverConfig.addProperty(IntProperty("NativeStreamingPort", 7414));
+        leaf.addServer("OpenDAQNativeStreaming", serverConfig);
+    }
+
+    auto gateway = InstanceBuilder().build();
+    {
+        // gateway.addDevice("daq.nd://127.0.0.1:7414");
+
+        const auto serverConfig = PropertyObject();
+        serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
+        gateway.addServer("OpenDAQNativeStreaming", serverConfig);
+    }
+
+    auto client = InstanceBuilder().build();
+    {
+        auto config = gateway.createDefaultAddDeviceConfig();
+        const PropertyObjectPtr general = config.getPropertyValue("General");
+        general.setPropertyValue("StreamingConnectionHeuristic", 1);
+        client.addDevice("daq.nd://127.0.0.1:7415", config);
+    }
+}

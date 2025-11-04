@@ -649,9 +649,20 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             dev.freeze();
     }
 
-    *availableDevices = availableDevicesPtr.detach();
-
     availableDevicesGroup = groupedDevices;
+
+    auto visibleDevices = List<IDeviceInfo>();
+    for (const auto & [_, deviceInfo]: groupedDevices)
+    {
+        bool deviceHidden = false;
+        if (deviceInfo.hasProperty("hidden"))
+            deviceHidden = deviceInfo.getPropertyValue("hidden");
+
+        if (!deviceHidden)
+            visibleDevices.pushBack(deviceInfo);
+    }
+
+    *availableDevices = visibleDevices.detach();
     lastScanTime = std::chrono::steady_clock::now();
     return OPENDAQ_SUCCESS;
 }

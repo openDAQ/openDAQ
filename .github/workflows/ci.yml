@@ -44,7 +44,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 210
+    timeout-minutes: 270
     strategy:
       fail-fast: false
       matrix:

@@ -20,6 +20,7 @@
 
 ## Python
 
+- [#966](https://github.com/openDAQ/openDAQ/pull/966) Add Python 3.14 bindings support
 - [#944](https://github.com/openDAQ/openDAQ/pull/944) Prevent error when removing a device with a subdevice in Python GUI application
 - [#841](https://github.com/openDAQ/openDAQ/pull/841) Fix Python GUI app crash for Python versions below 3.11 by mimicking `enum.StrEnum` functionality via `enum.Enum`.
 - [#811](https://github.com/openDAQ/openDAQ/pull/811) Add color coding and message display for Component statuses in Python GUI demo application.

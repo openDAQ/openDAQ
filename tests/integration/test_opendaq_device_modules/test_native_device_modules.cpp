@@ -3824,6 +3824,6 @@ TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
         // Check that active streaming does not use IPv6 address without interface suffix
         std::string activeStreamingStr = activeStreaming.toStdString();
         ASSERT_TRUE(activeStreamingStr.find("daq.ns://[") == std::string::npos)
-            << "Active streaming uses IPv6 address without interface suffix: " << activeStreamingStr;
+            << "Active streaming uses IPv6 address instead of IPv4: " << activeStreamingStr;
     }
 }

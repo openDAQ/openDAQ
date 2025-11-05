@@ -26,7 +26,7 @@
 - [#807](https://github.com/openDAQ/openDAQ/pull/807) Enable Device operation mode switching in Python GUI Demo Application.
 
 ## Bug fixes
-
+- [#969](https://github.com/openDAQ/openDAQ/pull/969) Prioritize discovery addresses for leaf device streaming to get correct IPv6 interface suffixes
 - [#965](https://github.com/openDAQ/openDAQ/pull/965) Fix read-only remote property update
 - [#955](https://github.com/openDAQ/openDAQ/pull/955) Fix large log files download
 - [#943](https://github.com/openDAQ/openDAQ/pull/943) Set of multi reader fixes. Allow releasing input port ownership from multi reader. Adds SumReader FB that showcases dynamic input port usage with multi reader.

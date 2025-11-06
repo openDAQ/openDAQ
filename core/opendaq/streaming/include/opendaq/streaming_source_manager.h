@@ -477,16 +477,18 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
     // Build a map of discovered addresses by protocol ID for quick lookup
     std::unordered_map<std::string, ListPtr<IAddressInfo>> discoveredAddressesByProtocol;
     const auto deviceInfo = device.getInfo();
-    if (deviceInfo.getManufacturer().assigned() && deviceInfo.getManufacturer().getLength() > 0 &&
-        deviceInfo.getSerialNumber().assigned() && deviceInfo.getSerialNumber().getLength() > 0)
+    const StringPtr deviceManufacturer = deviceInfo.getManufacturer();
+    const StringPtr deviceSerialNumber = deviceInfo.getSerialNumber();
+    
+    if (deviceManufacturer.assigned() && deviceManufacturer.getLength() > 0 &&
+        deviceSerialNumber.assigned() && deviceSerialNumber.getLength() > 0)
     {
         // Try to get discovery info for this device to prioritize real/discovered addresses
         DeviceInfoPtr discoveryInfo;
-        auto errCode = managerUtils->getDiscoveryInfo(&discoveryInfo, deviceInfo.getManufacturer(), deviceInfo.getSerialNumber());
+        const auto errCode = managerUtils->getDiscoveryInfo(&discoveryInfo, deviceManufacturer, deviceSerialNumber);
         if (OPENDAQ_FAILED(errCode))
             daqClearErrorInfo();
 
-        
         if (discoveryInfo.assigned())
         {
             LOG_D("Device {} using discovery info for streaming address prioritization", device.getGlobalId());

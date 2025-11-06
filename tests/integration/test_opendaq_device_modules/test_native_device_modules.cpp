@@ -3802,7 +3802,7 @@ TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
                 break;
             }
         }
-        ASSERT_TRUE(deviceFound) << "device with serial number " << serialNumber << " not fount";
+        ASSERT_TRUE(deviceFound) << "device with serial number " << serialNumber << " not found";
     }
     // check that hidden device is not visible
     {
@@ -3816,10 +3816,10 @@ TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
         const PropertyObjectPtr general = config.getPropertyValue("General");
         general.setPropertyValue("StreamingConnectionHeuristic", 1);
         general.setPropertyValue("PrimaryAddressType", "IPv4");
-        auto gateway = client.addDevice("daq.nd://127.0.0.1:7415", config);
-        auto leaf = gateway.getDevices()[0];
-        auto leafSignal = leaf.getSignalsRecursive()[0];
-        auto activeStreaming  = leafSignal.asPtr<IMirroredSignalConfig>().getActiveStreamingSource();
+        auto clGateway = client.addDevice("daq.nd://127.0.0.1:7415", config);
+        auto clGatewayLeaf = clGateway.getDevices()[0];
+        auto clGatewayLeafSignal = clGatewayLeaf.getSignalsRecursive()[0];
+        auto activeStreaming  = clGatewayLeafSignal.asPtr<IMirroredSignalConfig>().getActiveStreamingSource();
 
         // Check that active streaming does not use IPv6 address without interface suffix
         std::string activeStreamingStr = activeStreaming.toStdString();

@@ -179,27 +179,38 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
     return ss.str();
 }
 
-inline void checkErrorInfo(ErrCode errCode)
+inline std::string getErrorInfoMessage(ErrCode errCode, bool clearErrorInfo = false)
 {
     if (OPENDAQ_SUCCEEDED(errCode))
-        return;
+        return "";
 
     std::string message;
-    daq::IString* errorMessage = nullptr;
+    IString* errorMessage = nullptr;
     ErrCode err = daqGetErrorInfoMessage(&errorMessage);
     if (errorMessage)
     {
         if (err == errCode)
         {
-            daq::ConstCharPtr msgCharPtr = nullptr;
+            ConstCharPtr msgCharPtr = nullptr;
             errorMessage->getCharPtr(&msgCharPtr);
             message = msgCharPtr;
-            daqClearErrorInfo();
+
+            if (clearErrorInfo)
+                daqClearErrorInfo();
         }
+
         errorMessage->releaseRef();
     }
 
-    daq::throwExceptionFromErrorCode(errCode, message);
+    return message;
+}
+
+inline void checkErrorInfo(ErrCode errCode)
+{
+    if (OPENDAQ_SUCCEEDED(errCode))
+        return;
+
+    throwExceptionFromErrorCode(errCode, getErrorInfoMessage(errCode, true));
 }
 
 inline void checkErrorInfoExcept(ErrCode errCode, ErrCode exceptErrCode)

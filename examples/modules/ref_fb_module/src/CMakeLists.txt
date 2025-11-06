@@ -16,6 +16,7 @@ set(SRC_Include common.h
                 trigger_fb_impl.h
                 fft_fb_impl.h
                 power_reader_fb_impl.h
+                sum_reader_fb_impl.h
                 struct_decoder_fb_impl.h
                 time_delay_fb_impl.h
 )
@@ -29,6 +30,7 @@ set(SRC_Srcs module_dll.cpp
              trigger_fb_impl.cpp
              fft_fb_impl.cpp
              power_reader_fb_impl.cpp
+             sum_reader_fb_impl.cpp
              struct_decoder_fb_impl.cpp
              time_delay_fb_impl.cpp
 )

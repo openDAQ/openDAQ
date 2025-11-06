@@ -106,7 +106,8 @@ run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device      
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_type
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info_builder
-run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info
+# manually added WA to return unassigned path as None
+# run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info_builder
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           connection_status_container_private
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           connected_client_info

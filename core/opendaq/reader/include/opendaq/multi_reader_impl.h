@@ -69,6 +69,7 @@ public:
     ErrCode INTERFACE_FUNC getInputPorts(IList** ports) override;
     ErrCode INTERFACE_FUNC getReadTimeoutType(ReadTimeoutType* timeoutType) override;
     ErrCode INTERFACE_FUNC markAsInvalid() override;
+    ErrCode INTERFACE_FUNC getIsValid(Bool* isValid) override;
 
     ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) override;
     ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
@@ -79,6 +80,8 @@ public:
 
     ErrCode INTERFACE_FUNC setActive(Bool isActive) override;
     ErrCode INTERFACE_FUNC getActive(Bool* isActive) override;
+
+    void internalDispose(bool disposing) override;
 
 private:
     using Clock = std::chrono::steady_clock;

@@ -231,7 +231,7 @@ RangePtr PowerReaderFbImpl::getValueRange(const DataDescriptorPtr& voltageDataDe
     const auto voltageRange = voltageDataDescriptor.getValueRange();
     const auto currentRange = currentDataDescriptor.getValueRange();
     if (!voltageRange.assigned() || !currentRange.assigned())
-        return nullptr;
+        return powerRange;
 
     const Float voltageHigh = voltageRange.getHighValue();
     const Float voltageLow = voltageRange.getLowValue();
@@ -283,7 +283,6 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         const auto powerDataDescriptorBuilder =
             DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("W", -1, "watt", "power"));
 
-        RangePtr powerRange;
         if (useCustomOutputRange)
             powerRange = Range(powerLowValue, powerHighValue);
         else

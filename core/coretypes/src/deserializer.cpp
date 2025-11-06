@@ -41,7 +41,7 @@ public:
         }
         catch (...)
         {
-            return OPENDAQ_ERR_GENERALERROR;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
         }
 
         return OPENDAQ_SUCCESS;

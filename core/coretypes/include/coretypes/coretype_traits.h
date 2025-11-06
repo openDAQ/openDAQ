@@ -309,9 +309,15 @@ struct CoreTypeHelper<std::wstring>
         mbstowcs(dest, t_str.c_str(), l);
         return dest;
 #else
+#if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
         typedef std::codecvt_utf8<wchar_t> ConvertType;
         std::wstring_convert<ConvertType, wchar_t> converter;
-
+#if defined(__clang__)
+    #pragma clang diagnostic pop
+#endif
         return converter.from_bytes(t_str);
 #endif
     }

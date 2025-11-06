@@ -53,7 +53,7 @@ TEST_F(InputPortTest, AcceptsSignal)
         .WillOnce(DoAll(SetArgPointee<2>(False), Return(OPENDAQ_SUCCESS)));
     EXPECT_CALL(signal.mock(), isRemoved(_)).WillRepeatedly(DoAll(SetArgPointee<0>(False), Return(OPENDAQ_SUCCESS)));
     EXPECT_TRUE(inputPort.acceptsSignal(signal));
-    EXPECT_FALSE(inputPort.acceptsSignal(signal));
+    EXPECT_FALSE(inputPort.acceptsSignal(signal));  
 }
 
 TEST_F(InputPortTest, ConnectAndDisconnect)
@@ -63,6 +63,7 @@ TEST_F(InputPortTest, ConnectAndDisconnect)
     EXPECT_CALL(notifications.mock(), connected(inputPort.getObject())).WillOnce(Return(OPENDAQ_SUCCESS));
     EXPECT_CALL(signal.mock(), listenerConnected).Times(1);
     EXPECT_CALL(signal.mock(), isRemoved(_)).WillRepeatedly(DoAll(SetArgPointee<0>(False), Return(OPENDAQ_SUCCESS)));
+    EXPECT_CALL(signal.mock(), getSignalSerializeId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("sig"));
     EXPECT_NO_THROW(inputPort.connect(signal));
     auto connection = inputPort.getConnection();
     EXPECT_EQ(connection, connection);

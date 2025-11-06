@@ -1148,7 +1148,7 @@ ErrCode StreamingImpl<Interfaces...>::unregisterStreamedClientSignals(IList* sig
         }
         else
         {
-            return OPENDAQ_ERR_NOTFOUND;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
         }
     }
     return OPENDAQ_SUCCESS;

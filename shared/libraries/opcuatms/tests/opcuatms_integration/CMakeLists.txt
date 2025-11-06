@@ -40,6 +40,7 @@ target_link_libraries(${TEST_APP} PRIVATE daq::opcuatms_test_utils
                                           daq::opcuatms_server
                                           daq::opcuatms_client
                                           daq::opendaq_mocks
+                                          spdlog::spdlog
                                           ${BCRYPT_LIB}
                                           Taskflow::Taskflow
 )

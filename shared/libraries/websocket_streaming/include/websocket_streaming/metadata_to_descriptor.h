@@ -15,10 +15,23 @@
  */
 
 #pragma once
-#include <coretypes/common.h>
 
-#define BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE \
-    BEGIN_NAMESPACE_OPENDAQ_MODULE(websocket_streaming_server_module)
+#include <opendaq/data_descriptor_ptr.h>
 
-#define END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING_SERVER_MODULE \
-    END_NAMESPACE_OPENDAQ_MODULE
+#include <ws-streaming/metadata.hpp>
+
+#include <websocket_streaming/common.h>
+
+BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
+
+/*!
+ * @brief Translates WebSocket Streaming metadata to an openDAQ data descriptor.
+ *
+ * @param metadata The WebSocket Streaming metadata to translate.
+ *
+ * @return A WebSocket Streaming metadata object.
+ */
+DataDescriptorPtr metadataToDescriptor(
+    const wss::metadata& metadata);
+
+END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

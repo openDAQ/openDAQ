@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <testutils/testutils.h>
+#include <chrono>
 #include <thread>
 #include <opendaq/opendaq.h>
 #include "docs_test_helpers.h"
@@ -158,8 +159,11 @@ TEST_F_UNSTABLE_SKIPPED(QuickStartTest, QuickStartAppReaderWebsocket)
     daq::DevicePtr device = instance.addDevice("daq.lt://127.0.0.1");
     ASSERT_TRUE(device.assigned());
 
+    // Wait for signals to become available
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals()[0], ReadTimeoutType::Any);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals()[1], ReadTimeoutType::Any);
 
     {
         daq::SizeT count = 0;

@@ -16,7 +16,6 @@
 #include <opendaq/signal_factory.h>
 #include <coreobjects/unit.h>
 #include <opendaq/data_descriptor_ptr.h>
-#include "websocket_streaming/signal_descriptor_converter.h"
 #include <opendaq/range_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/scaling_factory.h>
@@ -26,6 +25,7 @@
 #include <opendaq/signal_ptr.h>
 #include "streaming_protocol/Logging.hpp"
 #include <streaming_protocol/Defines.h>
+#include <websocket_streaming/common.h>
 
 namespace bsp = daq::streaming_protocol;
 

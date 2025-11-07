@@ -67,6 +67,15 @@ DECLARE_OPENDAQ_INTERFACE(IReaderConfig, IBaseObject)
      * except reusing its info and configuration in a new reader.
      */
     virtual ErrCode INTERFACE_FUNC markAsInvalid() = 0;
+
+    /*
+     * @brief Gets the valid state of the reader.
+     * @param[out] isValid True if reader is in a valid state; false otherwise.
+     *
+     * Invalid readers do not allow for further data processing of connected signals. Any additional operations can
+     * no longer be performed with the reader, they can only be re-used for new reader construction.
+     */
+    virtual ErrCode INTERFACE_FUNC getIsValid(Bool* isValid) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

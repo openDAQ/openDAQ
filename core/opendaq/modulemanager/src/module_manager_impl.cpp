@@ -649,9 +649,20 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             dev.freeze();
     }
 
-    *availableDevices = availableDevicesPtr.detach();
-
     availableDevicesGroup = groupedDevices;
+
+    auto visibleDevices = List<IDeviceInfo>();
+    for (const auto & [_, deviceInfo]: groupedDevices)
+    {
+        bool deviceHidden = false;
+        if (deviceInfo.hasProperty("hidden"))
+            deviceHidden = deviceInfo.getPropertyValue("hidden");
+
+        if (!deviceHidden)
+            visibleDevices.pushBack(deviceInfo);
+    }
+
+    *availableDevices = visibleDevices.detach();
     lastScanTime = std::chrono::steady_clock::now();
     return OPENDAQ_SUCCESS;
 }
@@ -1202,6 +1213,33 @@ ErrCode ModuleManagerImpl::completeDeviceCapabilities(IDevice* device)
     const ErrCode errCode = wrapHandler(this, &ModuleManagerImpl::onCompleteCapabilities, device, nullptr);
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* manufacturer, IString* serialNumber)
+{
+    OPENDAQ_PARAM_NOT_NULL(deviceInfo);
+    OPENDAQ_PARAM_NOT_NULL(manufacturer);
+    OPENDAQ_PARAM_NOT_NULL(serialNumber);
+
+    StringPtr manufacturerPtr = StringPtr::Borrow(manufacturer);
+    StringPtr serialNumberPtr = StringPtr::Borrow(serialNumber);
+
+    if (!availableDevicesGroup.assigned())
+    {
+        auto lock = std::lock_guard(availableDevicesSearchSync);
+        const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
+    }
+
+    for (const auto& [_, info] : availableDevicesGroup)
+    {
+        if (info.getManufacturer() == manufacturerPtr && info.getSerialNumber() == serialNumberPtr)
+        {
+            *deviceInfo = info.addRefAndReturn();
+            return OPENDAQ_SUCCESS;
+        }
+    }
+    return OPENDAQ_NOTFOUND;
 }
 
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)

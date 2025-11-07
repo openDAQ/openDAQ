@@ -50,7 +50,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode,
-                                 ReadTimeoutType timeoutType,// Why is this unused?
+                                 ReadTimeoutType,// Why is this unused?
                                  std::int64_t requiredCommonSampleRate,
                                  Bool startOnFullUnitOfDomain,
                                  SizeT minReadCount)
@@ -72,7 +72,14 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
 
         auto ports = createOrAdoptPorts(list);
         configureAndStorePorts(ports, valueReadType, domainReadType, mode);
-        checkErrorInfo(isDomainValid(ports));
+
+        auto err = isDomainValid(ports);
+        if (OPENDAQ_FAILED(err))
+        {
+            invalid = true;
+            LOG_D("Multi reader signal domains are not valid: {}", getErrorInfoMessage(err));
+            clearErrorInfo();
+        }
     }
     catch (...)
     {
@@ -146,7 +153,14 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
 
         auto ports = createOrAdoptPorts(sourceComponents);
         configureAndStorePorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
-        checkErrorInfo(isDomainValid(ports));
+
+        auto err = isDomainValid(ports);
+        if (OPENDAQ_FAILED(err))
+        {
+            invalid = true;
+            LOG_D("Multi reader signal domains are not valid: {}", getErrorInfoMessage(err));
+            clearErrorInfo();
+        }
     }
     catch (...)
     {
@@ -423,6 +437,10 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
     {
         setPortsActiveState(false);
     }
+    else
+    {
+        setPortsActiveState(true);
+    }
 }
 
 void MultiReaderImpl::updateCommonSampleRateAndDividers()
@@ -445,7 +463,7 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
             if (!lastSampleRate.has_value())
                 lastSampleRate = signal.sampleRate;
 
-            if (tickOffsetTolerance.assigned() && lastSampleRate.value() != signal.sampleRate)
+            if (lastSampleRate.value() != signal.sampleRate)
             {
                 sameSampleRates = false;
                 if (!allowDifferentRates)
@@ -455,7 +473,12 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
                     return;
                 }
 
-                LOG_D("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
+                if (tickOffsetTolerance.assigned())
+                {
+                    LOG_D("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
+                    invalid = true;
+                    return;
+                }
             }
         }
     }
@@ -1121,7 +1144,7 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
         }
     }
 
-    if (nextPacketIsEvent || dataPacketsOrEventReady())
+    if ((invalid && nextPacketIsEvent) || (!invalid && dataPacketsOrEventReady()))
     {
         ProcedurePtr callback = readCallback;
         lock.unlock();
@@ -1337,6 +1360,17 @@ ErrCode MultiReaderImpl::getActive(Bool* isActive)
     return OPENDAQ_SUCCESS;
 }
 
+void MultiReaderImpl::internalDispose(bool)
+{
+    this->portBinder = nullptr;
+    this->signals.clear();
+    this->externalListener = nullptr;
+    this->readCallback = nullptr;
+    this->invalid = true;
+    this->isActive = false;
+    this->portsConnected = false;
+}
+
 #pragma region ReaderConfig
 
 ErrCode MultiReaderImpl::getValueTransformFunction(IFunction** transform)
@@ -1384,6 +1418,15 @@ ErrCode MultiReaderImpl::markAsInvalid()
     std::unique_lock lock(mutex);
     invalid = true;
 
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderImpl::getIsValid(Bool* isValid)
+{
+    OPENDAQ_PARAM_NOT_NULL(isValid);
+
+    std::unique_lock lock(mutex);
+    *isValid = !invalid;
     return OPENDAQ_SUCCESS;
 }
 

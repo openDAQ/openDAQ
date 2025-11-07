@@ -20,13 +20,18 @@
 
 ## Python
 
+- [#966](https://github.com/openDAQ/openDAQ/pull/966) Add Python 3.14 bindings support
 - [#944](https://github.com/openDAQ/openDAQ/pull/944) Prevent error when removing a device with a subdevice in Python GUI application
 - [#841](https://github.com/openDAQ/openDAQ/pull/841) Fix Python GUI app crash for Python versions below 3.11 by mimicking `enum.StrEnum` functionality via `enum.Enum`.
 - [#811](https://github.com/openDAQ/openDAQ/pull/811) Add color coding and message display for Component statuses in Python GUI demo application.
 - [#807](https://github.com/openDAQ/openDAQ/pull/807) Enable Device operation mode switching in Python GUI Demo Application.
 
 ## Bug fixes
-
+- [#969](https://github.com/openDAQ/openDAQ/pull/969) Prioritize discovery addresses for leaf device streaming to get correct IPv6 interface suffixes
+- [#965](https://github.com/openDAQ/openDAQ/pull/965) Fix read-only remote property update
+- [#955](https://github.com/openDAQ/openDAQ/pull/955) Fix large log files download
+- [#943](https://github.com/openDAQ/openDAQ/pull/943) Set of multi reader fixes. Allow releasing input port ownership from multi reader. Adds SumReader FB that showcases dynamic input port usage with multi reader.
+- [#941](https://github.com/openDAQ/openDAQ/pull/941) Fix getting on property value read write event for nestead proporties 
 - [#936](https://github.com/openDAQ/openDAQ/pull/936) Fix compatibility issue with SDK v3.10 in client-to-device-streaming
 - [#930](https://github.com/openDAQ/openDAQ/pull/930) Fixes the operation mode of 3.10 native-client devices with no op-mode support to be "Operation" by default
 - [#925](https://github.com/openDAQ/openDAQ/pull/925) Set of discovery fixes for DNS resolution and enabling of multi-network card devices.

@@ -15,6 +15,7 @@
 #include <ref_fb_module/power_reader_fb_impl.h>
 #include <ref_fb_module/struct_decoder_fb_impl.h>
 #include <ref_fb_module/time_delay_fb_impl.h>
+#include <ref_fb_module/sum_reader_fb_impl.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -57,6 +58,9 @@ DictPtr<IString, IFunctionBlockType> RefFBModule::onGetAvailableFunctionBlockTyp
 
     const auto typePowerReader = PowerReader::PowerReaderFbImpl::CreateType(moduleInfo);
     types.set(typePowerReader.getId(), typePowerReader);
+
+    const auto typeSumReader = SumReader::SumReaderFbImpl::CreateType();
+    types.set(typeSumReader.getId(), typeSumReader);
 
     const auto typeStructDecoder = StructDecoder::StructDecoderFbImpl::CreateType(moduleInfo);
     types.set(typeStructDecoder.getId(), typeStructDecoder);
@@ -117,6 +121,11 @@ FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
     if (id == PowerReader::PowerReaderFbImpl::CreateType(moduleInfo).getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, PowerReader::PowerReaderFbImpl>(moduleInfo, context, parent, localId);
+        return fb;
+    }
+    if (id == SumReader::SumReaderFbImpl::CreateType().getId())
+    {
+        FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, SumReader::SumReaderFbImpl>(context, parent, localId, config);
         return fb;
     }
     if (id == StructDecoder::StructDecoderFbImpl::CreateType(moduleInfo).getId())

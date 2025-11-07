@@ -102,7 +102,12 @@ PacketBuffer::~PacketBuffer()
 
 PacketHeader* PacketBuffer::allocateHeaderAndPayload(size_t payloadSize)
 {
-    const auto ptr = static_cast<PacketHeader*>(std::malloc(sizeof(PacketHeader) + payloadSize));
+    const auto packetBufferSize = sizeof(PacketHeader) + payloadSize;
+
+    if (packetBufferSize > MAX_PACKET_BUFFER_SIZE)
+        throw ConfigProtocolException("Configuration protocol packet buffer size exceeds limit");
+
+    const auto ptr = static_cast<PacketHeader*>(std::malloc(packetBufferSize));
     if (ptr == nullptr)
         throw ConfigProtocolException("Out of memory");
     ptr->headerSize = sizeof(PacketHeader);

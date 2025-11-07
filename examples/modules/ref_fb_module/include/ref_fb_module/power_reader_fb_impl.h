@@ -50,6 +50,7 @@ private:
     DataDescriptorPtr voltageDescriptor;
     DataDescriptorPtr currentDescriptor;
     DataDescriptorPtr domainDescriptor;
+    RangePtr powerRange;
 
     DataDescriptorPtr powerDataDescriptor;
     DataDescriptorPtr powerDomainDataDescriptor;
@@ -71,7 +72,7 @@ private:
     void createInputPorts();
     void createReader();
     void createSignals();
-    static RangePtr getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor);
+    RangePtr getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor);
     void onDataReceived();
 
     void checkPortConnections() const;

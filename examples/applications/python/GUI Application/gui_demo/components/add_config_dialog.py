@@ -5,6 +5,13 @@ from ..app_context import AppContext
 from .dialog import Dialog
 from .generic_properties_treeview import PropertiesTreeview
 
+def remove_properties(section, properties):
+    for p in properties:
+        if section.has_property(p):
+            section.remove_property(p)
+        else:
+            print(f"Property {p=} does not exist")
+
 class AddConfigDialog(Dialog):
     def __init__(self, parent, context: AppContext, device_info, parent_device):
         super().__init__(parent, 'Add with config', context)
@@ -38,13 +45,30 @@ class AddConfigDialog(Dialog):
         self.device_config = None
         self.destroy()
 
+    def close(self):
+        # When escape is pressed adding the device is cancelled
+        self.cancel()
+
     def create_add_device_config(self):
+        supported_protocols = self.compute_supported_protocols()
+
+        # Default add device config assumes all kinds of server capabilities
+        config = self.context.instance.create_default_add_device_config()
+
+        self.filter_device_section(config, supported_protocols)
+        self.filter_streaming_section(config, supported_protocols)
+        self.filter_general_section(config, supported_protocols)
+
+        return config
+
+    def compute_supported_protocols(self):
         server_capabilities = self.device_info.server_capabilities
 
         # Device is either remote with 1 (or more) server capabilities or local with a single supported prefix
         supported_prefixes = list()
         if len(server_capabilities) > 0:
-            supported_prefixes = [c.prefix for c in server_capabilities]
+            for c in server_capabilities:
+                supported_prefixes.append(c.prefix)
         else:
             supported_prefixes = [self.device_info.connection_string.split("://")[0]]
 
@@ -57,18 +81,42 @@ class AddConfigDialog(Dialog):
 
             if dt_dict["Prefix"] in supported_prefixes:
                 supported_protocols.append(protocol_id)
+        return supported_protocols
 
-        # Default add device config assumes all kinds of server capabilities
-        config = self.context.instance.create_default_add_device_config()
-
-        device_section = config.get_property("Device").value
+    def filter_device_section(self, config, supported_protocols):
+        device_section = config.get_property_value("Device")
         for property in self.context.properties_of_component(device_section):
             if property.name not in supported_protocols:
                 device_section.remove_property(property.name)
 
-        streaming_section = config.get_property("Streaming").value
+    def filter_streaming_section(self, config, supported_protocols):
+        streaming_section = config.get_property_value("Streaming")
         for property in self.context.properties_of_component(streaming_section):
             if property.name not in supported_protocols:
                 streaming_section.remove_property(property.name)
 
-        return config
+    def filter_general_section(self, config, supported_protocols):
+        general_section = config.get_property_value("General")
+
+        if "OpenDAQNativeConfiguration" not in supported_protocols:
+            remove_properties(general_section, ["Username", "Password", "ClientType", "ExclusiveControlDropOthers"])
+
+        # Find TCP/IP and streaming capabilities
+        has_tcp_ip = False
+        has_streaming = False
+        for c in self.device_info.server_capabilities:
+            if c.get_property_value("ConnectionType") == "TCP/IP":
+                has_tcp_ip = True
+            if c.get_property_value("ProtocolType") in ["Streaming", "ConfigurationAndStreaming"]:
+                has_streaming = True
+
+        if not has_tcp_ip:
+            remove_properties(general_section, ["PrimaryAddressType"])
+
+        if not has_streaming:
+            remove_properties(
+                general_section,
+                ["StreamingConnectionHeuristic",
+                 "PrioritizedStreamingProtocols",
+                 "AllowedStreamingProtocols",
+                 "AutomaticallyConnectStreaming"])

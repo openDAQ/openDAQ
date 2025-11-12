@@ -17,7 +17,8 @@ env:
   s3sdk_path: releases/${{ github.ref_name }}/SDK
   s3wheels_linux_x86_64_path: releases/${{ github.ref_name }}/Python Wheels (Linux x86_64)
   s3wheels_win_amd64_path: releases/${{ github.ref_name }}/Python Wheels (Windows amd64)
-  s3wheels_macos_path: releases/${{ github.ref_name }}/Python Wheels (MacOS)
+  s3wheels_macos_x86_64_path: releases/${{ github.ref_name }}/Python Wheels (MacOS x86_64)
+  s3wheels_macos_arm_path: releases/${{ github.ref_name }}/Python Wheels (MacOS ARM)
   s3dotnet_path: releases/${{ github.ref_name }}/dotNET Bindings
   s3docpath: releases/${{ github.ref_name }}/Specifications and documentation
   s3simulatorpath: releases/${{ github.ref_name }}/Simulator
@@ -580,7 +581,7 @@ jobs:
           path: ${{ env.wheels_path }}
           retention-days: 7
 
-  deploy_macos_wheels:
+  deploy_macos_wheels_x86_64:
     name: ${{ matrix.name }}
     runs-on: macos-13
 
@@ -592,7 +593,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macos-13 clang Release
+          - name: macos-13 clang Release x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_osx_deployment_target: 10.15
@@ -643,8 +644,86 @@ jobs:
               rm -rf venv
           done
 
-      - name: Clear build dir
-        run: rm -rf build/*
+      - name: Get short SHA
+        if: github.ref == 'refs/heads/main'
+        id: short-sha
+        uses: benjlevesque/short-sha@v3.0
+
+      - name: Rename Wheels (main)
+        working-directory: ./wheels
+        if: github.ref == 'refs/heads/main'
+        run: |
+          for filename in *.whl; do
+            new_filename=$(echo "$filename" | sed "s/-cp/+${{ steps.short-sha.outputs.sha }}-cp/")
+            mv "$filename" "$new_filename"
+          done
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload Wheels to S3
+        working-directory: ./wheels
+        run: |
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_x86_64_path }}" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_x86_64_path }}" --recursive
+
+      - name: Upload Wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wheels (${{ matrix.name }})
+          path: wheels
+          retention-days: 7
+
+  deploy_macos_wheels_ARM:
+    name: ${{ matrix.name }}
+    runs-on: macos-14
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 400
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-14 clang Release ARM
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            cmake_osx_deployment_target: 10.15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
+
+      - name: Install ninja-build
+        uses: seanmiddleditch/gha-setup-ninja@v5
+        with:
+          version: 1.10.2
+
+      - name: Set up Pythons
+        uses: actions/setup-python@v5
+        with:
+          python-version: |
+              3.8
+              3.9
+              3.10
+              3.11
+              3.12
+              3.13
+              3.14
+
+      - name: Make dirs
+        run: |
+          mkdir -p build
+          mkdir wheels
 
       - name: Build wheels arm64
         working-directory: ./build
@@ -684,8 +763,8 @@ jobs:
       - name: Upload Wheels to S3
         working-directory: ./wheels
         run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_path }}" --recursive --exclude '*' --include '*.whl'
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_path }}" --recursive
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_arm_path }}" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_arm_path }}" --recursive
 
       - name: Upload Wheels
         uses: actions/upload-artifact@v4
@@ -693,7 +772,7 @@ jobs:
           name: Wheels (${{ matrix.name }})
           path: wheels
           retention-days: 7
-
+          
   simulator-build:
     runs-on: Ubuntu-24.04-8-core
     name: Simulator build

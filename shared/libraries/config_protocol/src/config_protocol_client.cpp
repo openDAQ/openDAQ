@@ -925,6 +925,29 @@ void ConfigProtocolClientComm::disconnectExternalSignals()
                                  });
 }
 
+static DevicePtr getRootDeviceOfGlobalId(const DevicePtr& rootDevice, const std::string& globalId)
+{
+	if (globalId.find("/") != 0)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Global id must start with /");
+
+    const std::string globalIdWithoutSlash = globalId.substr(1);
+
+    std::string startStr;
+    std::string restStr;
+    const bool hasSubComponentStr = IdsParser::splitRelativeId(globalIdWithoutSlash, startStr, restStr);
+    if (!hasSubComponentStr)
+        return nullptr;
+
+    if (startStr == rootDevice.getLocalId())
+        return rootDevice;
+
+	for (const auto& device : rootDevice.getDevices(search::Recursive(search::Any())))
+		if (device.getLocalId() == startStr)
+			return device;
+			
+	return nullptr;
+}
+
 void ConfigProtocolClientComm::connectInputPorts(const ComponentPtr& component)
 {
     const auto dev = getRootDevice();
@@ -934,12 +957,18 @@ void ConfigProtocolClientComm::connectInputPorts(const ComponentPtr& component)
     forEachComponent<IInputPort>(component,
                                  [&dev](const InputPortPtr& inputPort)
                                  {
-                                     const auto signalId = inputPort.asPtr<IDeserializeComponent>(true).
-                                                                     getDeserializedParameter("signalId");
+                                     const auto signalId = inputPort.asPtr<IDeserializeComponent>(true).getDeserializedParameter("signalId");
                                      const auto configClientInputPort = inputPort.asPtr<IConfigClientInputPort>(true);
                                      if (signalId.assigned())
                                      {
-                                         const auto signal = findSignalByRemoteGlobalId(dev, signalId);
+                                         auto signalRootDevice = getRootDeviceOfGlobalId(dev, signalId);
+                                         if (!signalRootDevice.assigned())
+                                         {
+                                             configClientInputPort->assignSignal(nullptr);
+                                             return;
+                                         }
+
+                                         const auto signal = findSignalByRemoteGlobalId(signalRootDevice, signalId);
                                          checkErrorInfo(configClientInputPort->assignSignal(signal));
                                      }
                                      else

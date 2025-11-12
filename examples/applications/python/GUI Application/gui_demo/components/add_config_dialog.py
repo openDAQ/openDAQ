@@ -64,24 +64,25 @@ class AddConfigDialog(Dialog):
     def compute_supported_protocols(self):
         server_capabilities = self.device_info.server_capabilities
 
-        # Device is either remote with 1 (or more) server capabilities or local with a single supported prefix
-        supported_prefixes = list()
+        # Remote devices have protocol IDs defined in server capabilities
         if len(server_capabilities) > 0:
+            supported_protocols = list()
             for c in server_capabilities:
-                supported_prefixes.append(c.prefix)
-        else:
-            supported_prefixes = [self.device_info.connection_string.split("://")[0]]
+                supported_protocols.append(c.protocol_id)
+            return supported_protocols
+
+        # For local devices
+        supported_prefix = self.device_info.connection_string.split("://")[0]
 
         available_device_types = self.parent_device.available_device_types
 
-        # Protocols supported on the device
-        supported_protocols = list()
+        # Find protocol ID matching the connection string prefix
         for protocol_id, device_type in available_device_types.items():
             dt_dict = device_type.as_dictionary
 
-            if dt_dict["Prefix"] in supported_prefixes:
-                supported_protocols.append(protocol_id)
-        return supported_protocols
+            if dt_dict["Prefix"] == supported_prefix:
+                return [protocol_id]
+        return []
 
     def filter_device_section(self, config, supported_protocols):
         device_section = config.get_property_value("Device")

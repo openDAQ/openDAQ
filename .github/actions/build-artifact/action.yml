@@ -1,0 +1,219 @@
+name: Build and Upload openDAQ Artifacts
+description: Build openDAQ framework and create distribution packages
+
+inputs:
+  cmake-compiler:
+    description: "CMake compiler configuration (e.g., '-DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER_LAUNCHER=ccache')"
+    required: true
+  cmake-config-name:
+    description: "CMake build configuration name (Release, Debug, RelWithDebInfo, MinSizeRel)"
+    required: false
+    default: Release
+  cmake-defines:
+    description: "CMake configuration flags (e.g., '-DOPENDAQ_ENABLE_TESTS=OFF -DOPENDAQ_BUILD_DOCUMENTATION=OFF')"
+    required: true
+  cmake-generator:
+    description: "CMake build system generator (e.g., 'Ninja', 'Unix Makefiles', 'Visual Studio 17 2022')"
+    required: true
+  cmake-preset:
+    description: "CMake preset command (e.g., '--preset \"x64/gcc/full/debug\"'). Pass full command, not just preset name."
+    required: false
+    default: ''
+  cmake-parallel:
+    description: "CMake parallel build flags (e.g., '-j 4' or '--parallel 4')"
+    required: false
+    default: ''
+  cpack-generator:
+    description: "CPack package generator (e.g., 'DEB', 'RPM', 'NSIS', 'TGZ', 'ZIP')"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies Linux
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        echo "::group::Installing Linux dependencies"
+        sudo apt-get update
+        sudo apt-get install -y \
+            ccache \
+            freeglut3-dev \
+            libfreetype6-dev \
+            libgl1-mesa-dev \
+            libudev-dev \
+            libx11-dev \
+            libxcursor-dev \
+            libxi-dev \
+            libxrandr-dev \
+            mesa-common-dev \
+            mono-complete \
+            python3-pip \
+            python3.12-dev
+        echo "::endgroup::"
+        echo "✓ Linux dependencies installed"
+
+    - name: Install dependencies Windows
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Write-Host "::group::Installing Windows dependencies"
+        choco install ccache ninja nsis vswhere -y
+        Write-Host "::endgroup::"
+        Write-Host "✓ Windows dependencies installed"
+
+    - name: Install dependencies MacOS
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        echo "::group::Installing macOS dependencies"
+        brew install ccache
+        echo "::endgroup::"
+        echo "✓ macOS dependencies installed"
+
+    - name: Setup MSVC environment
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Write-Host "::group::Setting up MSVC environment"
+        $vsPath = vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if (-not $vsPath) {
+          Write-Host "::error::Visual Studio not found"
+          exit 1
+        }
+        Write-Host "Visual Studio found at: $vsPath"
+
+        $vcvarsall = Join-Path $vsPath 'VC\Auxiliary\Build\vcvarsall.bat'
+        if (-not (Test-Path $vcvarsall)) {
+          Write-Host "::error::vcvarsall.bat not found at $vcvarsall"
+          exit 1
+        }
+        Write-Host "Using vcvarsall.bat: $vcvarsall"
+
+        $envVars = @{}
+        cmd /c "`"$vcvarsall`" x64 && set" | ForEach-Object {
+          if ($_ -match "^(.*?)=(.*)$") {
+            $name = $matches[1]
+            $value = $matches[2]
+            $envVars[$name] = $value
+            echo "$name=$value" >> $env:GITHUB_ENV
+          }
+        }
+        Write-Host "::endgroup::"
+
+        Write-Host "✓ MSVC environment configured"
+        Write-Host "Key variables:"
+        Write-Host "  Platform: $($envVars['Platform'])"
+        Write-Host "  VSCMD_ARG_TGT_ARCH: $($envVars['VSCMD_ARG_TGT_ARCH'])"
+        Write-Host "  VisualStudioVersion: $($envVars['VisualStudioVersion'])"
+        Write-Host "  VCToolsVersion: $($envVars['VCToolsVersion'])"
+        Write-Host "Total variables set: $($envVars.Count)"
+
+    - name: Configure openDAQ CMake build
+      shell: bash
+      run: |
+        echo "CMake Configuration:"
+        echo "  Generator: ${{ inputs.cmake-generator }}"
+        echo "  Config: ${{ inputs.cmake-config-name }}"
+        echo "  Preset: ${{ inputs.cmake-preset }}"
+        echo ""
+        echo "::group::CMake Configuration Output"
+        cmake -S . -B build -G "${{ inputs.cmake-generator }}" ${{ inputs.cmake-preset }} ${{ inputs.cmake-defines }} ${{ inputs.cmake-compiler }} -DCMAKE_BUILD_TYPE=${{ inputs.cmake-config-name }}
+        echo "::endgroup::"
+        echo "✓ CMake configuration completed"
+
+    - name: Perform openDAQ CMake build
+      shell: bash
+      run: |
+        echo "CMake Build:"
+        echo "  Config: ${{ inputs.cmake-config-name }}"
+        echo "  Parallel: ${{ inputs.cmake-parallel }}"
+        echo ""
+        echo "::group::CMake Build Output"
+        cmake --build build --config ${{ inputs.cmake-config-name }} ${{ inputs.cmake-parallel }}
+        echo "::endgroup::"
+        echo "✓ Build completed successfully"
+
+    - name: Package openDAQ CPack
+      shell: bash
+      run: |
+        echo "CPack Packaging:"
+        echo "  Generator: ${{ inputs.cpack-generator }}"
+        echo ""
+        echo "::group::CPack Output"
+        cpack --config build/CPackConfig.cmake -G ${{ inputs.cpack-generator }}
+        echo "::endgroup::"
+        echo "✓ Package created successfully"
+
+    - name: Read openDAQ version
+      id: opendaq-framework-version
+      shell: bash
+      run: |
+        version=$(cat opendaq_version)
+        version="v${version%%dev}"
+        echo "Head openDAQ version: $version"
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    - name: Compose openDAQ framework filename
+      id: opendaq-framework-filename
+      uses: openDAQ/actions/framework-compose-filename@jira/TBBAS-2680-opendaq-gh-actions-github-api-wrapper-unit-tests
+      with:
+        version: ${{ steps.opendaq-framework-version.outputs.version }}
+        packaging: ${{ inputs.cpack-generator }}
+
+    - name: Rename openDAQ framework package to artifact
+      shell: bash
+      env:
+        OPENDAQ_FRAMEWORK_FILENAME: ${{ steps.opendaq-framework-filename.outputs.filename }}
+      run: |
+        echo "Preparing Artifact:"
+        echo "  Target: $OPENDAQ_FRAMEWORK_FILENAME"
+        echo ""
+
+        echo "::group::Searching for package file"
+        echo "Search directory: build/_packages"
+        echo "Search pattern: opendaq*"
+        ls -lah build/_packages/ || echo "Directory not found or empty"
+        echo "::endgroup::"
+
+        source=$(find build/_packages -type f -iname 'opendaq*' | head -n1)
+
+        if [ -z "$source" ]; then
+          echo "::error::No package file found matching pattern 'opendaq*' in build/_packages"
+          exit 1
+        fi
+
+        echo "Found: $source ($(du -h "$source" | cut -f1))"
+
+        target="$OPENDAQ_FRAMEWORK_FILENAME"
+        cp "$source" "./$target"
+
+        if [ -f "./$target" ]; then
+          echo "✓ Artifact prepared successfully"
+          ls -lh "./$target"
+        else
+          echo "::error::Failed to copy artifact from '$source' to '$target'"
+          exit 1
+        fi
+
+    - name: Upload artifact
+      id: opendaq-upload-artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.opendaq-framework-filename.outputs.filename }}
+        path: ${{ steps.opendaq-framework-filename.outputs.filename }}
+        retention-days: 30
+
+    - name: Verify artifact upload
+      shell: bash
+      run: |
+        echo "✓ Artifact uploaded successfully"
+        echo "  Name: ${{ steps.opendaq-framework-filename.outputs.filename }}"
+        echo "  Retention: 30 days"
+
+    - name: Print compiler cache stats
+      shell: bash
+      run: |
+        echo "::group::Compiler cache statistics"
+        ccache -s -v
+        echo "::endgroup::"

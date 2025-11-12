@@ -78,8 +78,13 @@ class AddDeviceDialog(Dialog):
         self.conn_string_entry.bind('<Return>', self.handle_entry_enter)
         self.conn_string_entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
-        ttk.Button(add_device_frame, text='Quick add',
-                   command=self.handle_add_device).pack(side=tk.RIGHT)
+        self.add_device_option = tk.StringVar(add_device_frame)
+        add_device_options = ['no config', 'with config']
+        ttk.OptionMenu(add_device_frame, self.add_device_option, 'no config',
+                       *add_device_options).pack(side=tk.RIGHT)
+
+        ttk.Button(add_device_frame, text='Add',
+                   command=self.handle_add_clicked).pack(side=tk.RIGHT)
 
         add_device_frame.pack(side=tk.BOTTOM, fill=tk.X,
                               padx=(5, 0), pady=(5, 0))
@@ -103,6 +108,9 @@ class AddDeviceDialog(Dialog):
     def select_parent_device(self, device_id: str):
         if self.parent_device_tree.exists(device_id):
             self.parent_device_tree.selection_set(device_id)
+
+    def is_add_with_config(self):
+        return self.add_device_option.get() == 'with config'
 
     def handle_parent_device_selected(self, event):
         selected_item = utils.treeview_get_first_selection(
@@ -128,6 +136,9 @@ class AddDeviceDialog(Dialog):
         self.conn_string_entry.insert(0, connection_string[1])
 
     def handle_device_tree_double_click(self, event):
+        self.process_add_device(self.is_add_with_config())
+
+    def process_add_device(self, open_config_dialog: bool):
         nearest_device = self.dialog_parent_device
         if nearest_device is None:
             return
@@ -139,12 +150,13 @@ class AddDeviceDialog(Dialog):
             return
 
         config = None
-        add_config_dialog = AddConfigDialog(
-            self, self.context, selected_device_info, self.dialog_parent_device)
-        add_config_dialog.show()
-        config = add_config_dialog.device_config
-        if config is None:
-            return
+        if open_config_dialog:
+            add_config_dialog = AddConfigDialog(
+                self, self.context, selected_device_info, self.dialog_parent_device)
+            add_config_dialog.show()
+            config = add_config_dialog.device_config
+            if config is None:
+                return
 
         self.add_device(selected_device_info.connection_string, config)
 
@@ -153,7 +165,9 @@ class AddDeviceDialog(Dialog):
 
         menu = tk.Menu(self, tearoff=0)
         menu.add_command(
-            label='Add with config', command=lambda: self.handle_device_tree_double_click(None))
+            label='Quick add', command=lambda: self.process_add_device(open_config_dialog=False))
+        menu.add_command(
+            label='Add with config', command=lambda: self.process_add_device(open_config_dialog=True))
         menu.add_command(label='Device Info',
                          command=self.handle_show_device_info)
         menu.tk_popup(event.x_root, event.y_root)
@@ -172,12 +186,11 @@ class AddDeviceDialog(Dialog):
                 utils.show_error('Error adding device', f'{connection_string}: {str(e)}', self)
                 return
 
-    def handle_add_device(self):
-        connection_string = self.conn_string_entry.get()
-        self.add_device(connection_string, None)
+    def handle_add_clicked(self):
+        self.process_add_device(self.is_add_with_config())
 
     def handle_entry_enter(self, event):
-        self.handle_add_device()
+        self.process_add_device(self.is_add_with_config())
 
     def find_available_device(self, parent_device: daq.IDevice, selected_item_iid):
         if parent_device is None or selected_item_iid is None:

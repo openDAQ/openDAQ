@@ -227,7 +227,7 @@ bool WAVReaderFbImpl::initializeSignal()
                            .setSampleType(SampleType::Int64)
                            .setTickResolution(Ratio(1, decoder.outputSampleRate))
                            .setRule(LinearDataRule(1, 0))
-                           .setUnit(Unit("s", -1, "second", "time"))
+                           .setUnit(Unit("s", -1, "seconds", "time"))
                            .setName("Time")
                            .build();
 

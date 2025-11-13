@@ -153,7 +153,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainUnit)
 
     auto unit = domain.getUnit();
     ASSERT_EQ(unit.getSymbol(), "s");
-    ASSERT_EQ(unit.getName(), "second");
+    ASSERT_EQ(unit.getName(), "seconds");
     ASSERT_EQ(unit.getQuantity(), "time");
 }
 

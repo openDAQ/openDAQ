@@ -42,7 +42,7 @@ inline StructTypePtr DeviceDomainStructType()
     return StructType(
         "DeviceDomain",
         List<IString>("TickResolution", "Origin", "Unit", "ReferenceDomainInfo"),
-        List<IBaseObject>(Ratio(1, 1), "", Unit("s", -1, "second", "time"), nullptr),
+        List<IBaseObject>(Ratio(1, 1), "", Unit("s", -1, "seconds", "time"), nullptr),
         List<IType>(RatioStructType(), SimpleType(ctString), UnitStructType(), ReferenceDomainInfoStructType()));
 }
 

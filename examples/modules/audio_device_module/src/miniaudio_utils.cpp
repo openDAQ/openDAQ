@@ -79,10 +79,6 @@ ma_device_id getIdFromConnectionString(const std::string& connectionString)
     {
         deviceId.jack = std::stoul(id, nullptr, 16);
     }
-    else
-    {
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Unsupported Miniaudio backend {}.", backendId);
-    }
 
     return deviceId;
 }
@@ -156,7 +152,7 @@ std::string getConnectionStringFromId(ma_backend backend, ma_device_id id)
     return connectionString;
 }
 
-void getMiniAudioDeviceInfo(ma_device_info** ppCaptureDeviceInfos, ma_uint32* pCaptureDeviceCount, ma_context* maContext)
+void getMiniAudioDevices(ma_device_info** ppCaptureDeviceInfos, ma_uint32* pCaptureDeviceCount, ma_context* maContext)
 {
     ma_result result;
 #ifdef MA_WIN32
@@ -166,6 +162,21 @@ void getMiniAudioDeviceInfo(ma_device_info** ppCaptureDeviceInfos, ma_uint32* pC
     result = ma_context_get_devices(maContext, nullptr, nullptr, ppCaptureDeviceInfos, pCaptureDeviceCount);
     if (result != MA_SUCCESS)
         DAQ_THROW_EXCEPTION(GeneralErrorException, "Miniaudio failed to retrieve device information: {}", ma_result_description(result));
+
+#ifdef MA_WIN32
+    CoUninitialize();
+#endif
+}
+
+void getMiniAudioDeviceInfo(ma_device* pDevice, ma_device_info* pDeviceInfo)
+{
+#ifdef MA_WIN32
+    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+#endif
+
+    ma_result result = ma_device_get_info(pDevice, ma_device_type_capture, pDeviceInfo);
+    if (result != MA_SUCCESS)
+        DAQ_THROW_EXCEPTION(CreateFailedException, "Failed to get Miniaudio device information: {}", ma_result_description(result));
 
 #ifdef MA_WIN32
     CoUninitialize();

@@ -774,17 +774,17 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                 onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
                 if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
                     componentPrivate.setComponentConfig(addDeviceConfig);
-            }
 
-            ModuleInfoPtr moduleInfo;
-            err = library.module->getModuleInfo(&moduleInfo);
-            OPENDAQ_RETURN_IF_FAILED(err);
+                ModuleInfoPtr moduleInfo;
+                err = library.module->getModuleInfo(&moduleInfo);
+                OPENDAQ_RETURN_IF_FAILED(err);
 
-            if (auto info = devicePtr.getInfo(); info.assigned())
-            {
-                auto deviceInfoType = info.getDeviceType();
-                if (deviceInfoType.assigned())
-                    deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+                if (auto info = devicePtr.getInfo(); info.assigned())
+                {
+                    auto deviceInfoType = info.getDeviceType();
+                    if (deviceInfoType.assigned())
+                        deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+                }
             }
 
             return err;
@@ -1076,13 +1076,16 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         OPENDAQ_RETURN_IF_FAILED(err);
 
         FunctionBlockPtr fbPtr = FunctionBlockPtr::Borrow(*functionBlock);
-        ModuleInfoPtr moduleInfo;
-        err = library.module->getModuleInfo(&moduleInfo);
-        OPENDAQ_RETURN_IF_FAILED(err);
+        if (fbPtr.assigned())
+        {
+            ModuleInfoPtr moduleInfo;
+            err = library.module->getModuleInfo(&moduleInfo);
+            OPENDAQ_RETURN_IF_FAILED(err);
 
-        auto fbType = fbPtr.getFunctionBlockType();
-        if (fbType.assigned())
-            fbType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+            auto fbType = fbPtr.getFunctionBlockType();
+            if (fbType.assigned())
+                fbType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+        }
 
         return OPENDAQ_SUCCESS;
     }

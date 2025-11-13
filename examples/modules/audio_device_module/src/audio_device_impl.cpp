@@ -88,10 +88,7 @@ void AudioDeviceImpl::createAudioChannel()
 void AudioDeviceImpl::setDeviceInfo()
 {
     ma_device_info info;
-    ma_result result = ma_device_get_info(&maDevice, ma_device_type_capture, &info);
-    if (result != MA_SUCCESS)
-        DAQ_THROW_EXCEPTION(CreateFailedException, "Failed to get Miniaudio device information: {}", ma_result_description(result));
-
+    ma_utils::getMiniAudioDeviceInfo(&maDevice, &info);
     this->deviceInfo = CreateDeviceInfo(maContext, info);
 }
 

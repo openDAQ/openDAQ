@@ -29,7 +29,7 @@ ListPtr<IDeviceInfo> AudioDeviceModule::onGetAvailableDevices()
     ma_uint32 captureDeviceCount;
     
     std::scoped_lock lock(sync);
-    ma_utils::getMiniAudioDeviceInfo(&pCaptureDeviceInfos, &captureDeviceCount, maContext->getPtr());
+    ma_utils::getMiniAudioDevices(&pCaptureDeviceInfos, &captureDeviceCount, maContext->getPtr());
 
     auto availableDevices = List<IDeviceInfo>();
     for (size_t i = 0; i < captureDeviceCount; i++)

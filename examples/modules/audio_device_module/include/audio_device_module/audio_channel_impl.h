@@ -27,6 +27,7 @@ DECLARE_OPENDAQ_INTERFACE(IAudioChannel, IBaseObject)
     virtual void configure(const ma_device& device) = 0;
     virtual void reset() = 0;
     virtual void generatePackets(const void* data, size_t sampleCount) = 0;
+    virtual uint64_t getSamplesGenerated() = 0;
 };
 
 class AudioChannelImpl final : public ChannelImpl<IAudioChannel>
@@ -38,6 +39,7 @@ public:
     void configure(const ma_device& device) override;
     void reset() override;
     void generatePackets(const void* data, size_t sampleCount) override;
+    uint64_t getSamplesGenerated() override;
 
 private:
     void initSignals();

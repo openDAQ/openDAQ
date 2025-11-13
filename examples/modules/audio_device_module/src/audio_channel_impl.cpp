@@ -1,5 +1,4 @@
 #include <audio_device_module/audio_channel_impl.h>
-#include <audio_device_module/audio_device_utils.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/range_factory.h>
@@ -10,7 +9,7 @@ AudioChannelImpl::AudioChannelImpl(const ContextPtr& ctx, const ComponentPtr& pa
     : ChannelImpl(FunctionBlockType("AudioChannel", "Audio", ""), ctx, parent, localId)
     , samplesGenerated(0)
 {
-    this->loggerComponent = utils::getLoggerComponent(context.getLogger());
+    loggerComponent = context.getLogger().getOrAddComponent("AudioDeviceModule");
     objPtr.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
     initSignals();
 }
@@ -27,7 +26,7 @@ void AudioChannelImpl::configure(const ma_device& device)
                               .setSampleType(SampleType::Int64)
                               .setTickResolution(Ratio(1, device.sampleRate))
                               .setRule(LinearDataRule(1, 0))
-                              .setUnit(Unit("s", -1, "second", "time"))
+                              .setUnit(Unit("s", -1, "seconds", "time"))
                               .build();
 
     timeSignal.setDescriptor(dataDescriptor);
@@ -60,6 +59,12 @@ void AudioChannelImpl::generatePackets(const void* data, size_t sampleCount)
         LOG_W("Miniaudio device failed to generate packets: {}", e.what());
         throw;
     }
+}
+
+uint64_t AudioChannelImpl::getSamplesGenerated()
+{
+    auto lock = getAcquisitionLock2();
+    return samplesGenerated;
 }
 
 void AudioChannelImpl::initSignals()

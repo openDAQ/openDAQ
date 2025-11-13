@@ -9,7 +9,6 @@ set(SRC_Include common.h
                 wav_writer_fb_impl.h
                 wav_reader_fb_impl.h
                 miniaudio_utils.h
-                audio_device_utils.h
 )
 
 set(SRC_Srcs module_dll.cpp
@@ -19,7 +18,6 @@ set(SRC_Srcs module_dll.cpp
              wav_writer_fb_impl.cpp
              wav_reader_fb_impl.cpp
              miniaudio_utils.cpp
-             audio_device_utils.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
@@ -27,11 +25,9 @@ prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 source_group("common" FILES ${MODULE_HEADERS_DIR}/audio_device_module_common.h
                             ${MODULE_HEADERS_DIR}/audio_device_module_impl.h
                             ${MODULE_HEADERS_DIR}/miniaudio_utils.h
-                            ${MODULE_HEADERS_DIR}/audio_device_utils.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
                             audio_device_module_impl.cpp
                             miniaudio_utils.cpp
-                            audio_device_utils.cpp
                             module_dll.cpp
 )
 

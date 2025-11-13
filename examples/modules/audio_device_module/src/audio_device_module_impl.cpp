@@ -6,12 +6,10 @@
 #include <coretypes/version_info_factory.h>
 #include <miniaudio/miniaudio.h>
 #include <opendaq/custom_log.h>
-#include <audio_device_module/audio_device_utils.h>
 
 #ifdef _WIN32
 #include <combaseapi.h>
 #endif
-
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
@@ -20,7 +18,7 @@ AudioDeviceModule::AudioDeviceModule(const ContextPtr& context)
              VersionInfo(AUDIO_DEVICE_MODULE_MAJOR_VERSION, AUDIO_DEVICE_MODULE_MINOR_VERSION, AUDIO_DEVICE_MODULE_PATCH_VERSION),
              context,
              "AudioDeviceModule")
-      , maContext(std::make_shared<MiniaudioContext>())
+      , maContext(std::make_shared<ma_utils::MiniaudioContext>())
       , deviceIndex(0)
 {
 }
@@ -32,7 +30,7 @@ ListPtr<IDeviceInfo> AudioDeviceModule::onGetAvailableDevices()
     
     std::scoped_lock lock(sync);
 
-    getMiniAudioDeviceInfo(&pCaptureDeviceInfos, &captureDeviceCount);
+    ma_utils::getMiniAudioDeviceInfo(&pCaptureDeviceInfos, &captureDeviceCount, maContext->getPtr());
     auto availableDevices = List<IDeviceInfo>();
     for (size_t i = 0; i < captureDeviceCount; i++)
         availableDevices.pushBack(AudioDeviceImpl::CreateDeviceInfo(maContext, pCaptureDeviceInfos[i]));
@@ -50,11 +48,9 @@ DevicePtr AudioDeviceModule::onCreateDevice(const StringPtr& connectionString,
                                             const ComponentPtr& parent,
                                             const PropertyObjectPtr& /*config*/)
 {
-    auto id = utils::getIdFromConnectionString(connectionString);
+    auto id = ma_utils::getIdFromConnectionString(connectionString);
 
     std::scoped_lock lock(sync);
-
-    // TODO: Get better local ID
     std::string localId = fmt::format("MiniAudioDev{}", deviceIndex++);
 
     auto devicePtr = createWithImplementation<IDevice, AudioDeviceImpl>(maContext, id, context, parent, StringPtr(localId));
@@ -89,25 +85,6 @@ FunctionBlockPtr AudioDeviceModule::onCreateFunctionBlock(const StringPtr& id, c
 
     LOG_W("Function block \"{}\" not found", id);
     DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found");
-}
-
-void AudioDeviceModule::getMiniAudioDeviceInfo(ma_device_info** ppCaptureDeviceInfos, ma_uint32* pCaptureDeviceCount) const
-{
-    ma_result result;
-#ifdef MA_WIN32
-    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-#endif
-
-    result = ma_context_get_devices(maContext->getPtr(), nullptr, nullptr, ppCaptureDeviceInfos, pCaptureDeviceCount);
-    if (result != MA_SUCCESS)
-    {
-        LOG_W("Miniaudio get devices failed: {}", ma_result_description(result));
-        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to retrieve device information");
-    }
-
-#ifdef MA_WIN32
-    CoUninitialize();
-#endif
 }
 
 END_NAMESPACE_AUDIO_DEVICE_MODULE

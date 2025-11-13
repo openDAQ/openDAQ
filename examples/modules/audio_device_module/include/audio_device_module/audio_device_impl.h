@@ -26,7 +26,7 @@ BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 class AudioDeviceImpl final : public Device
 {
 public:
-    explicit AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maContext,
+    explicit AudioDeviceImpl(const std::shared_ptr<ma_utils::MiniaudioContext>& maContext,
                              const ma_device_id& id,
                              const ContextPtr& ctx,
                              const ComponentPtr& parent,
@@ -34,12 +34,15 @@ public:
     ~AudioDeviceImpl() override;
     
     static DeviceTypePtr createType();
-    static DeviceInfoPtr CreateDeviceInfo(const std::shared_ptr<MiniaudioContext>& maContext, const ma_device_info& deviceInfo);
+    static DeviceInfoPtr CreateDeviceInfo(const std::shared_ptr<ma_utils::MiniaudioContext>& maContext, const ma_device_info& deviceInfo);
+
+protected:
+    uint64_t onGetTicksSinceOrigin() override;
 
 private:
     ma_device maDevice;
     ma_device_id maId;
-    std::shared_ptr<MiniaudioContext> maContext;
+    std::shared_ptr<ma_utils::MiniaudioContext> maContext;
     
     ChannelPtr channel;
     bool started;

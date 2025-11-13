@@ -30,6 +30,8 @@
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
+namespace ma_utils
+{
 class MiniaudioContext
 {
 public:
@@ -37,8 +39,14 @@ public:
     ~MiniaudioContext();
 
     ma_context* getPtr();
+
 private:
     ma_context context;
 };
 
+ma_device_id getIdFromConnectionString(const std::string& connectionString);
+std::string getConnectionStringFromId(ma_backend backend, ma_device_id id);
+void getMiniAudioDeviceInfo(ma_device_info** ppCaptureDeviceInfos, ma_uint32* pCaptureDeviceCount, ma_context* maContext);
+
+}
 END_NAMESPACE_AUDIO_DEVICE_MODULE

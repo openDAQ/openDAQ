@@ -1093,7 +1093,6 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
     );
 }
 
-// TODO: Add module info to streaming type
 ErrCode ModuleManagerImpl::createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
@@ -1174,7 +1173,6 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
     return OPENDAQ_SUCCESS;
 }
 
-// TODO: Add module info to server type
 ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig)
 {
     OPENDAQ_PARAM_NOT_NULL(serverTypeId);

@@ -35,6 +35,8 @@ public:
     FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config) override;
 
 private:
+    void getMiniAudioDeviceInfo(ma_device_info** ppCaptureDeviceInfos, ma_uint32* pCaptureDeviceCount) const;
+
     std::mutex sync;
     std::shared_ptr<MiniaudioContext> maContext;
     size_t deviceIndex;

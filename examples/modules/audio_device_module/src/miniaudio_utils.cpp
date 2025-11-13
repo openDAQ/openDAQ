@@ -22,5 +22,4 @@ ma_context* MiniaudioContext::getPtr()
     return &context;
 }
 
-
 END_NAMESPACE_AUDIO_DEVICE_MODULE

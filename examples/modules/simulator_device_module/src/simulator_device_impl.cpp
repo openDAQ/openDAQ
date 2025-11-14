@@ -318,7 +318,7 @@ RatioPtr SimulatorDeviceImpl::getResolution()
 
 UnitPtr SimulatorDeviceImpl::getDomainUnit()
 {
-    return UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build();
+    return UnitBuilder().setName("seconds").setSymbol("s").setQuantity("time").build();
 }
 
 END_NAMESPACE_SIMULATOR_DEVICE_MODULE

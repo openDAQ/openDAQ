@@ -302,7 +302,7 @@ TEST_F(ConfigProtocolIntegrationTest, DomainInfo)
 
     ASSERT_EQ(clientSubDevice.getDomain().getOrigin(), "N/A");
     ASSERT_EQ(clientSubDevice.getDomain().getTickResolution(), Ratio(1, 100));
-    ASSERT_EQ(clientSubDevice.getDomain().getUnit(), Unit("s", -1, "second", "time"));
+    ASSERT_EQ(clientSubDevice.getDomain().getUnit(), Unit("s", -1, "seconds", "time"));
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetTicksSinceOrigin)

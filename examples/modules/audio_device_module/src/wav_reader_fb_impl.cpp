@@ -4,11 +4,10 @@
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
-WAVReaderFbImpl::WAVReaderFbImpl(const ModuleInfoPtr& moduleInfo,
-                                 const ContextPtr& ctx,
+WAVReaderFbImpl::WAVReaderFbImpl(const ContextPtr& ctx,
                                  const ComponentPtr& parent,
                                  const StringPtr& localId)
-    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
+    : FunctionBlock(CreateType(), ctx, parent, localId)
     , filePath("")
     , decoderInitialized(false)
     , reading(false)
@@ -76,20 +75,14 @@ DataPacketPtr WAVReaderFbImpl::buildPacket(const void* data, size_t sampleCount)
     }
 }
 
-void WAVReaderFbImpl::sendPacket(DataPacketPtr packet)
+void WAVReaderFbImpl::sendPacket(DataPacketPtr packet) const
 {
     outputSignal.sendPacket(packet);
 }
 
-FunctionBlockTypePtr WAVReaderFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
+FunctionBlockTypePtr WAVReaderFbImpl::CreateType()
 {
-    auto fbType = FunctionBlockType(
-        "AudioDeviceModuleWavReader",
-        "WAVReader",
-        "Readers and creates input signals from WAV files");
-
-    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
-    return fbType;
+    return FunctionBlockType("AudioDeviceModuleWavReader", "WAVReader", "Readers and creates input signals from WAV files");
 }
 
 bool WAVReaderFbImpl::initializeDecoder()
@@ -143,12 +136,12 @@ void WAVReaderFbImpl::uninitializeDecoder()
     }
 }
 
-bool WAVReaderFbImpl::decoderReady()
+bool WAVReaderFbImpl::decoderReady() const
 {
     return ma_device_get_state(&device) == ma_device_state::ma_device_state_stopped;
 }
 
-bool WAVReaderFbImpl::decoderReading()
+bool WAVReaderFbImpl::decoderReading() const
 {
     return ma_device_get_state(&device) == ma_device_state::ma_device_state_started;
 }
@@ -227,7 +220,7 @@ bool WAVReaderFbImpl::initializeSignal()
                            .setSampleType(SampleType::Int64)
                            .setTickResolution(Ratio(1, decoder.outputSampleRate))
                            .setRule(LinearDataRule(1, 0))
-                           .setUnit(Unit("s", -1, "second", "time"))
+                           .setUnit(Unit("s", -1, "seconds", "time"))
                            .setName("Time")
                            .build();
 

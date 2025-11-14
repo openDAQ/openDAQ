@@ -22,23 +22,26 @@ set(SRC_Srcs module_dll.cpp
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
-source_group("module" FILES ${MODULE_HEADERS_DIR}/audio_device_module_common.h
+source_group("common" FILES ${MODULE_HEADERS_DIR}/audio_device_module_common.h
                             ${MODULE_HEADERS_DIR}/audio_device_module_impl.h
-                            ${MODULE_HEADERS_DIR}/audio_channel_impl.h
-                            ${MODULE_HEADERS_DIR}/audio_device_impl.h
-                            ${MODULE_HEADERS_DIR}/wav_writer_fb_impl.h
-                            ${MODULE_HEADERS_DIR}/wav_reader_fb_impl.h
                             ${MODULE_HEADERS_DIR}/miniaudio_utils.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
-                            module_dll.cpp
                             audio_device_module_impl.cpp
-                            audio_device_impl.cpp
-                            audio_channel_impl.cpp
-                            wav_writer_fb_impl.cpp
-                            wav_reader_fb_impl.cpp
                             miniaudio_utils.cpp
+                            module_dll.cpp
 )
 
+source_group("audio_device" FILES ${MODULE_HEADERS_DIR}/audio_channel_impl.h
+                                  ${MODULE_HEADERS_DIR}/audio_device_impl.h
+                                  audio_device_impl.cpp
+                                  audio_channel_impl.cpp
+)
+
+source_group("wav_reader_writer" FILES ${MODULE_HEADERS_DIR}/wav_writer_fb_impl.h
+                                       ${MODULE_HEADERS_DIR}/wav_reader_fb_impl.h
+                                       wav_writer_fb_impl.cpp
+                                       wav_reader_fb_impl.cpp
+)
 
 add_library(${LIB_NAME} SHARED ${SRC_Include}
                                ${SRC_Srcs}

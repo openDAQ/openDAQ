@@ -32,6 +32,7 @@
 #include <opendaq/client_type.h>
 #include <opendaq/network_interface_factory.h>
 #include <opendaq/component_private_ptr.h>
+#include <opendaq/component_type_private_ptr.h>
 
 #include <opendaq/thread_name.h>
 
@@ -764,7 +765,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
-            const auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
+            auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
             OPENDAQ_RETURN_IF_FAILED(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
@@ -773,6 +774,17 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                 onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
                 if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
                     componentPrivate.setComponentConfig(addDeviceConfig);
+
+                ModuleInfoPtr moduleInfo;
+                err = library.module->getModuleInfo(&moduleInfo);
+                OPENDAQ_RETURN_IF_FAILED(err);
+
+                if (auto info = devicePtr.getInfo(); info.assigned())
+                {
+                    auto deviceInfoType = info.getDeviceType();
+                    if (deviceInfoType.assigned())
+                        deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+                }
             }
 
             return err;
@@ -1060,7 +1072,22 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
             localIdStr = fmt::format("{}_{}", typeId, maxNum + 1);
         }
 
-        return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
+        auto err = module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
+        OPENDAQ_RETURN_IF_FAILED(err);
+
+        FunctionBlockPtr fbPtr = FunctionBlockPtr::Borrow(*functionBlock);
+        if (fbPtr.assigned())
+        {
+            ModuleInfoPtr moduleInfo;
+            err = library.module->getModuleInfo(&moduleInfo);
+            OPENDAQ_RETURN_IF_FAILED(err);
+
+            auto fbType = fbPtr.getFunctionBlockType();
+            if (fbType.assigned())
+                fbType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+        }
+
+        return OPENDAQ_SUCCESS;
     }
 
     return DAQ_MAKE_ERROR_INFO(

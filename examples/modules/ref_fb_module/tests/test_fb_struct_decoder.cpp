@@ -39,7 +39,7 @@ protected:
         const auto timeDescriptor = DataDescriptorBuilder()
                                         .setSampleType(SampleType::Int64)
                                         .setTickResolution(Ratio(1, 1000))
-                                        .setUnit(Unit("s", -1, "second", "time"))
+                                        .setUnit(Unit("s", -1, "seconds", "time"))
                                         .setRule(LinearDataRule(1, 0))
                                         .build();
 
@@ -185,7 +185,7 @@ TEST_F(StructDecoderTest, ConnectScalar)
     const auto timeDescriptor = DataDescriptorBuilder()
                                     .setSampleType(SampleType::Int64)
                                     .setTickResolution(Ratio(1, 1000))
-                                    .setUnit(Unit("s", -1, "second", "time"))
+                                    .setUnit(Unit("s", -1, "seconds", "time"))
                                     .setRule(LinearDataRule(1, 0))
                                     .build();
 

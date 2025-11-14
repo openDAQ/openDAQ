@@ -287,7 +287,7 @@ MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& pare
     fb.getInputPorts()[0].connect(sig);
     fb.getInputPorts(search::Not(search::Visible()))[0].connect(sig);
 
-    setDeviceDomain(DeviceDomain(Ratio(1, 100), "N/A" , Unit("s", -1, "second", "time")));
+    setDeviceDomain(DeviceDomain(Ratio(1, 100), "N/A" , Unit("s", -1, "seconds", "time")));
 
     PropertyObjectPtr config = PropertyObject();
     config.addProperty(StringProperty("TestProp", "TestValue"));

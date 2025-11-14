@@ -213,7 +213,7 @@ void RefDeviceImpl::initClock()
     this->setDeviceDomain(
         DeviceDomain(RefChannelImpl::getResolution(),
                      RefChannelImpl::getEpoch(),
-                     UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(),
+                     UnitBuilder().setName("seconds").setSymbol("s").setQuantity("time").build(),
                      ReferenceDomainInfoBuilder().setReferenceDomainId(refDomainId).setReferenceDomainOffset(0).build()));
 }
 

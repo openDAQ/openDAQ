@@ -19,28 +19,25 @@
 #include <miniaudio/miniaudio.h>
 #include <opendaq/data_packet_ptr.h>
 #include <opendaq/function_block_impl.h>
-#include <opendaq/input_port_config_ptr.h>
 #include <opendaq/stream_reader_ptr.h>
-#include <opendaq/component_type_private.h>
-
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 class WAVReaderFbImpl : public FunctionBlock
 {
 public:
-    explicit WAVReaderFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit WAVReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~WAVReaderFbImpl() override;
 
-    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
+    static FunctionBlockTypePtr CreateType();
 
 
 private:
     bool initializeDecoder();
     bool reinitializeDecoder();
     void uninitializeDecoder();
-    bool decoderReady();
-    bool decoderReading();
+    bool decoderReady() const;
+    bool decoderReading() const;
 
     void initProperties();
     bool initializeSignal();
@@ -52,7 +49,7 @@ private:
     void stopRead();
 
     DataPacketPtr buildPacket(const void* data, size_t sampleCount);
-    void sendPacket(DataPacketPtr packet);
+    void sendPacket(DataPacketPtr packet) const;
 
     static void miniaudioDataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);
 

@@ -57,7 +57,7 @@ protected:
                          .setTickResolution(Ratio(1, 1000))
                          .setOrigin("1970-01-01T00:00:00")
                          .setRule(LinearDataRule(1, 0))
-                         .setUnit(Unit("s", -1, "second", "time"))
+                         .setUnit(Unit("s", -1, "seconds", "time"))
                          .build();
 
         validSignals = List<ISignal>();
@@ -300,7 +300,7 @@ TEST_F(SumTest, IncompatibleDomainsReconnect)
                      .setTickResolution(Ratio(1, 1000))
                      .setOrigin("1970-01-01T00:00:00")
                      .setRule(LinearDataRule(2, 0))
-                     .setUnit(Unit("s", -1, "second", "time"))
+                     .setUnit(Unit("s", -1, "seconds", "time"))
                      .build();
 
     auto incompatibleDomainSignal = SignalWithDescriptor(context, incompatibleDomainDescriptor, nullptr, "invalidDomainSig", nullptr);

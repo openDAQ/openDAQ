@@ -18,19 +18,16 @@
 #include <audio_device_module/common.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/signal_config_ptr.h>
-#include <opendaq/sample_type.h>
-#include <optional>
-#include <random>
 #include <miniaudio/miniaudio.h>
-#include <opendaq/data_packet_ptr.h>
-#include <mutex>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 DECLARE_OPENDAQ_INTERFACE(IAudioChannel, IBaseObject)
 {
-    virtual void configure(const ma_device& device, const SignalPtr& timeSignal) = 0;
-    virtual void addData(const DataPacketPtr& domainPacket, const void* data, size_t sampleCount) = 0;
+    virtual void configure(const ma_device& device) = 0;
+    virtual void reset() = 0;
+    virtual void generatePackets(const void* data, size_t sampleCount) = 0;
+    virtual uint64_t getSamplesGenerated() = 0;
 };
 
 class AudioChannelImpl final : public ChannelImpl<IAudioChannel>
@@ -39,11 +36,18 @@ public:
     explicit AudioChannelImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~AudioChannelImpl() override;
 
-    void configure(const ma_device& device, const SignalPtr& timeSignal) override;
-    void addData(const DataPacketPtr& domainPacket, const void* data, size_t sampleCount) override;
+    void configure(const ma_device& device) override;
+    void reset() override;
+    void generatePackets(const void* data, size_t sampleCount) override;
+    uint64_t getSamplesGenerated() override;
 
 private:
+    void initSignals();
+
+    SignalConfigPtr timeSignal;
     SignalConfigPtr outputSignal;
+
+    uint64_t samplesGenerated;
 };
 
 END_NAMESPACE_AUDIO_DEVICE_MODULE

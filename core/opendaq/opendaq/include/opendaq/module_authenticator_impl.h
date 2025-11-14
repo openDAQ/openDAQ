@@ -25,6 +25,8 @@ class ModuleAuthenticator : public ImplementationOf<IModuleAuthenticator>
 public:
     ErrCode INTERFACE_FUNC authenticateModuleBinary(Bool* binaryValid, IString** vendorKey, IString* binaryPath) override;
     virtual Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath);
+    ErrCode INTERFACE_FUNC setLogger(Bool* success, ILogger* logger) override;
+    virtual Bool onSetLogger(const LoggerPtr& logger);
 };
 
 inline ErrCode INTERFACE_FUNC ModuleAuthenticator::authenticateModuleBinary(Bool* binaryValid, IString** vendorKey, IString* binaryPath)
@@ -51,6 +53,26 @@ inline Bool ModuleAuthenticator::onAuthenticateModuleBinary(StringPtr& vendorKey
     vendorKey = key.detach();
 
     return len > 0;
+}
+
+inline ErrCode INTERFACE_FUNC ModuleAuthenticator::setLogger(Bool* success, ILogger* logger)
+{
+    OPENDAQ_PARAM_NOT_NULL(logger);
+
+    Bool successLocal;
+    const ErrCode errCode = wrapHandlerReturn(this, &ModuleAuthenticator::onSetLogger, successLocal, logger);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *success = successLocal;
+    return errCode;
+}
+
+inline Bool ModuleAuthenticator::onSetLogger(const LoggerPtr& logger)
+{
+    if (logger != nullptr)
+        return true;
+
+    return false;
 }
 
 END_NAMESPACE_OPENDAQ

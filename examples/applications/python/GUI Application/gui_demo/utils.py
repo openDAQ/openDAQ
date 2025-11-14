@@ -167,7 +167,7 @@ def signal_time_domain_check(sig):
         if (unit is not None and unit.quantity.casefold() == "time".casefold()) and (unit.symbol.casefold() == "s".casefold()):
             if len(desc.origin) != 0:
                 return desc.origin
-        
+
     return None
 
 def parse_iso_string(date_string: str) -> datetime:
@@ -195,7 +195,7 @@ def get_last_value_for_signal(output_signal):
                     desc = sig.descriptor
                     last_value_in_seconds = int(last_value) * desc.tick_resolution.numerator / desc.tick_resolution.denominator
                     last_value = origin + timedelta(seconds=last_value_in_seconds)
-            
+
         except RuntimeError as e:
             print(f'Error reading last value: {e}')
     return last_value
@@ -312,4 +312,36 @@ def is_device_connected(device: daq.IDevice):
         return connection_status.name == "Connected"
     except:
         return True
+
+def update_properties(target: daq.IPropertyObject, source: daq.IPropertyObject):
+    """Update target properties with values from source IPropertyObject.
+    Assuming both have the same structure, this should result in target
+    being identical copy of source."""
+
+    def update_dict(target_dict, source_dict):
+        for k in target_dict.keys:
+            if source_dict.has_key(k):
+                target_dict.set(k, source_dict.get(k))
+
+    def update_list(target_list, source_list):
+        target_list.clear()
+        for item in source_list:
+            target_list.push_back(item)
+
+    for property in target.all_properties:
+            if not source.has_property(property.name):
+                print(f"WARNING: IPropertyObj mismatch, source does not contain property {property.name}")
+                continue
+
+            if property.value_type == daq.CoreType.ctObject:
+                update_properties(property.value, source.get_property_value(property.name))
+            elif property.value_type == daq.CoreType.ctStruct:
+                # Skip as structs are immutable
+                pass
+            elif property.value_type == daq.CoreType.ctList:
+                update_list(property.value, source.get_property_value(property.name))
+            elif property.value_type == daq.CoreType.ctDict:
+                update_dict(property.value, source.get_property_value(property.name))
+            else:
+                property.value = source.get_property_value(property.name)
 

@@ -154,7 +154,7 @@ class AddDeviceDialog(Dialog):
             add_config_dialog = AddConfigDialog(
                 self, self.context, selected_device_info, self.dialog_parent_device)
             add_config_dialog.show()
-            config = add_config_dialog.device_config
+            config = add_config_dialog.config
             if config is None:
                 return
 

@@ -16,6 +16,7 @@
 
 #pragma once
 #include <audio_device_module/common.h>
+#include <opendaq/logger_component_ptr.h>
 
 #if defined(__clang__)
     #pragma clang diagnostic push
@@ -32,8 +33,10 @@ BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 namespace ma_utils
 {
+
 class MiniaudioContext
 {
+
 public:
     MiniaudioContext();
     ~MiniaudioContext();
@@ -49,6 +52,10 @@ std::string getConnectionStringFromId(ma_backend backend, ma_device_id id);
 
 void getMiniAudioDevices(ma_device_info** ppCaptureDeviceInfos, ma_uint32* pCaptureDeviceCount, ma_context* maContext);
 void getMiniAudioDeviceInfo(ma_device* pDevice, ma_device_info* pDeviceInfo);
+
+bool initAudioDevice(ma_context* pContext, const ma_device_config* pConfig, ma_device* pDevice, const LoggerComponentPtr& loggerComponent);
+void uninitializeDevice(ma_device* pDevice);
+bool startAudioDevice(ma_device* pDevice, const LoggerComponentPtr& loggerComponent);
 
 }
 END_NAMESPACE_AUDIO_DEVICE_MODULE

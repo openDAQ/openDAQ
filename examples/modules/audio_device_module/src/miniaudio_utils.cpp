@@ -1,4 +1,4 @@
-#define MA_COINIT_VALUE COINIT_APARTMENTTHREADED
+#define MA_COINIT_VALUE COINIT_MULTITHREADED
 #define MA_NO_NODE_GRAPH
 #define MA_NO_RESOURCE_MANAGER
 #define MINIAUDIO_IMPLEMENTATION
@@ -6,11 +6,35 @@
 #include <audio_device_module/miniaudio_utils.h>
 #include <boost/locale.hpp>
 #include <coretypes/exceptions.h>
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 namespace ma_utils
 {
+
+class ComGuard
+{
+public:
+    ComGuard()
+    {
+#ifdef MA_WIN32
+        HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+        shouldUninit = (hr == S_OK);
+#endif
+    }
+
+    ~ComGuard()
+    {
+#ifdef MA_WIN32
+        if (shouldUninit)
+            CoUninitialize();
+#endif
+    }
+
+private:
+    bool shouldUninit = false;
+};
 
 MiniaudioContext::MiniaudioContext()
 {
@@ -154,33 +178,51 @@ std::string getConnectionStringFromId(ma_backend backend, ma_device_id id)
 
 void getMiniAudioDevices(ma_device_info** ppCaptureDeviceInfos, ma_uint32* pCaptureDeviceCount, ma_context* maContext)
 {
-    ma_result result;
-#ifdef MA_WIN32
-    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-#endif
-
-    result = ma_context_get_devices(maContext, nullptr, nullptr, ppCaptureDeviceInfos, pCaptureDeviceCount);
+    ComGuard guard;
+    ma_result result = ma_context_get_devices(maContext, nullptr, nullptr, ppCaptureDeviceInfos, pCaptureDeviceCount);
     if (result != MA_SUCCESS)
         DAQ_THROW_EXCEPTION(GeneralErrorException, "Miniaudio failed to retrieve device information: {}", ma_result_description(result));
-
-#ifdef MA_WIN32
-    CoUninitialize();
-#endif
 }
 
 void getMiniAudioDeviceInfo(ma_device* pDevice, ma_device_info* pDeviceInfo)
 {
-#ifdef MA_WIN32
-    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-#endif
-
+    ComGuard guard;
     ma_result result = ma_device_get_info(pDevice, ma_device_type_capture, pDeviceInfo);
     if (result != MA_SUCCESS)
         DAQ_THROW_EXCEPTION(CreateFailedException, "Failed to get Miniaudio device information: {}", ma_result_description(result));
+}
 
-#ifdef MA_WIN32
-    CoUninitialize();
-#endif
+bool initAudioDevice(ma_context* pContext, const ma_device_config* pConfig, ma_device* pDevice, const LoggerComponentPtr& loggerComponent)
+{
+    ComGuard guard;
+    ma_result result;
+    if ((result = ma_device_init(pContext, pConfig, pDevice)) != MA_SUCCESS)
+    {
+        LOG_W("Miniaudio device init failed: {}", ma_result_description(result));
+        return false;
+    }
+
+    return true;
+}
+
+void uninitializeDevice(ma_device* pDevice)
+{
+    ComGuard guard;
+    ma_device_uninit(pDevice);
+}
+
+bool startAudioDevice(ma_device* pDevice, const LoggerComponentPtr& loggerComponent)
+{
+    ComGuard guard;
+    ma_result result;
+    if ((result = ma_device_start(pDevice)) != MA_SUCCESS)
+    {
+        LOG_W("Miniaudio device start failed: {}", ma_result_description(result));
+        ma_device_uninit(pDevice);
+        return false;
+    }
+
+    return true;
 }
 
 }

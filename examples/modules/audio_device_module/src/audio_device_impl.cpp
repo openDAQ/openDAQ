@@ -4,19 +4,9 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/device_domain_factory.h>
+#include <miniaudio/miniaudio.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
-
-namespace data
-{
-
-static void MiniaudioDataCallback(ma_device* pDevice, void*, const void* pInput, ma_uint32 frameCount)
-{
-    auto audioChannel = static_cast<AudioChannelImpl*>(pDevice->pUserData);
-    audioChannel->generatePackets(pInput, frameCount);
-}
-
-}
 
 AudioDeviceImpl::AudioDeviceImpl(const std::shared_ptr<ma_utils::MiniaudioContext>& maContext,
                                  const ma_device_id& id,
@@ -99,35 +89,33 @@ void AudioDeviceImpl::sampleRateChanged(uint32_t sampleRate)
     start();
 }
 
+static void MiniaudioDataCallback(ma_device* pDevice, void*, const void* pInput, ma_uint32 frameCount)
+{
+    auto audioChannel = static_cast<AudioChannelImpl*>(pDevice->pUserData);
+    audioChannel->generatePackets(pInput, frameCount);
+}
+
 void AudioDeviceImpl::start()
 {
     if (started || disposeCalled)
         return;
-
-    ma_result result;
+    
     ma_device_config devConfig = ma_device_config_init(ma_device_type_capture);
     devConfig.capture.pDeviceID = &maId;
     devConfig.capture.channels = 1;
     devConfig.capture.format = ma_format_f32;
     devConfig.sampleRate = sampleRate;
-    devConfig.dataCallback = data::MiniaudioDataCallback;
+    devConfig.dataCallback = MiniaudioDataCallback;
     devConfig.pUserData = reinterpret_cast<void*>(channel.getObject());
 
-    if ((result = ma_device_init(maContext->getPtr(), &devConfig, &maDevice)) != MA_SUCCESS)
-    {
-        LOG_W("Miniaudio device init failed: {}", ma_result_description(result));
+    if (!ma_utils::initAudioDevice(maContext->getPtr(), &devConfig, &maDevice, loggerComponent))
         return;
-    }
 
     channel.asPtr<IAudioChannel>()->configure(maDevice);
     channel.asPtr<IAudioChannel>()->reset();
 
-    if ((result = ma_device_start(&maDevice)) != MA_SUCCESS)
-    {
-        LOG_W("Miniaudio device start failed: {}", ma_result_description(result));
-        ma_device_uninit(&maDevice);
+    if (!ma_utils::startAudioDevice(&maDevice, loggerComponent))
         return;
-    }
 
     started = true;
 }
@@ -137,7 +125,7 @@ void AudioDeviceImpl::stop()
     if (!started)
         return;
 
-    ma_device_uninit(&maDevice);
+    ma_utils::uninitializeDevice(&maDevice);
     started = false;
 }
 

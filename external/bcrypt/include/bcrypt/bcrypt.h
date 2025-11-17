@@ -14,7 +14,9 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
-#define BCRYPT_HASHSIZE	(64)
+#if !defined(BCRYPT_HASHSIZE)
+    #define BCRYPT_HASHSIZE	(64)
+#endif
 
 #ifdef __cplusplus
 extern "C" {

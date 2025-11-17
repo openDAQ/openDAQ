@@ -62,8 +62,8 @@ TEST_F(StructDecoderTest, ConnectAndReadStruct)
     const auto statusContainer = fb.getStatusContainer();
     ASSERT_EQ(statusContainer.getStatus("InputStatus").getValue(), "Disconnected");
 
-    ASSERT_EQ(fb.getSignals().getCount(), 0);
-    ASSERT_EQ(fb.getInputPorts().getCount(), 1);
+    ASSERT_EQ(fb.getSignals().getCount(), 0u);
+    ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
 
     SignalConfigPtr valueSignal;
     SignalConfigPtr timeSignal;
@@ -72,14 +72,14 @@ TEST_F(StructDecoderTest, ConnectAndReadStruct)
     fb.getInputPorts()[0].connect(valueSignal);
 
     auto signals = fb.getSignals(search::Any());
-    ASSERT_EQ(signals.getCount(), 3);
+    ASSERT_EQ(signals.getCount(), 3u);
 
     ASSERT_EQ(signals[0].getDescriptor(), timeSignal.getDescriptor());
     ASSERT_EQ(signals[1].getDescriptor(), valueSignal.getDescriptor().getStructFields()[0]);
     ASSERT_EQ(signals[2].getDescriptor(), valueSignal.getDescriptor().getStructFields()[1]);
 
     signals = fb.getSignals();
-    ASSERT_EQ(signals.getCount(), 2);
+    ASSERT_EQ(signals.getCount(), 2u);
 
     ASSERT_EQ(signals[0].getDescriptor(), valueSignal.getDescriptor().getStructFields()[0]);
     ASSERT_EQ(signals[1].getDescriptor(), valueSignal.getDescriptor().getStructFields()[1]);
@@ -125,7 +125,7 @@ TEST_F(StructDecoderTest, ConnectAndReadStruct)
     status = multiReader.read(valuesPerSignal, &count, 5000);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
-    ASSERT_EQ(count, 2);
+    ASSERT_EQ(count, 2u);
     ASSERT_THAT(valuesFloat, testing::ElementsAre(2.0, 3.0));
     ASSERT_EQ(valuesIntArray[0][0], 21);
     ASSERT_EQ(valuesIntArray[0][1], 22);
@@ -145,8 +145,8 @@ TEST_F(StructDecoderTest, ConnectAndDisconnect)
     const auto statusContainer = fb.getStatusContainer();
     ASSERT_EQ(statusContainer.getStatus("InputStatus").getValue(), "Disconnected");
 
-    ASSERT_EQ(fb.getSignals().getCount(), 0);
-    ASSERT_EQ(fb.getInputPorts().getCount(), 1);
+    ASSERT_EQ(fb.getSignals().getCount(), 0u);
+    ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
 
     SignalConfigPtr valueSignal;
     SignalConfigPtr timeSignal;
@@ -155,12 +155,12 @@ TEST_F(StructDecoderTest, ConnectAndDisconnect)
     fb.getInputPorts()[0].connect(valueSignal);
 
     auto signals = fb.getSignals(search::Any());
-    ASSERT_EQ(signals.getCount(), 3);
+    ASSERT_EQ(signals.getCount(), 3u);
 
     fb.getInputPorts()[0].disconnect();
 
     signals = fb.getSignals(search::Any());
-    ASSERT_EQ(signals.getCount(), 0);
+    ASSERT_EQ(signals.getCount(), 0u);
 }
 
 TEST_F(StructDecoderTest, ConnectScalar)
@@ -175,8 +175,8 @@ TEST_F(StructDecoderTest, ConnectScalar)
     const auto statusContainer = fb.getStatusContainer();
     ASSERT_EQ(statusContainer.getStatus("InputStatus").getValue(), "Disconnected");
 
-    ASSERT_EQ(fb.getSignals().getCount(), 0);
-    ASSERT_EQ(fb.getInputPorts().getCount(), 1);
+    ASSERT_EQ(fb.getSignals().getCount(), 0u);
+    ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
 
     const auto dataDescriptor = DataDescriptorBuilder()
                                     .setSampleType(SampleType::Float32)
@@ -197,7 +197,7 @@ TEST_F(StructDecoderTest, ConnectScalar)
     fb.getInputPorts()[0].connect(valueSignal);
 
     const auto signals = fb.getSignals(search::Any());
-    ASSERT_EQ(signals.getCount(), 0);
+    ASSERT_EQ(signals.getCount(), 0u);
 
     ASSERT_EQ(statusContainer.getStatus("InputStatus").getValue(), "Invalid");
 }

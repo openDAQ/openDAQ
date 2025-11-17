@@ -199,29 +199,36 @@ public:
 
 // Lambda
 
-template <typename TFunctor, typename std::enable_if<!std::is_bind_expression<TFunctor>::value>::type* = nullptr>
+template <typename TFunctor, std::enable_if_t<!std::is_bind_expression_v<TFunctor>>* = nullptr>
 ErrCode createProcedureWrapper(IProcedure** obj, [[maybe_unused]] TFunctor proc)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    const ErrCode errCode = daqTry([&]()
+
+    ErrCode errCode = OPENDAQ_ERR_GENERALERROR;
+    if constexpr (std::is_same_v<TFunctor, std::nullptr_t>)
     {
-        if constexpr (std::is_same_v<TFunctor, std::nullptr_t>)
+        errCode = daqTry([&]()
         {
             *obj = new ProcedureNull();
-        }
-        else
+            (*obj)->addRef();
+        });
+    }
+    else
+    {
+        errCode = daqTry([&]()
         {
             *obj = new ProcedureImpl<TFunctor>(std::move(proc));
-        }
-        (*obj)->addRef();
-    });
+            (*obj)->addRef();
+        });
+    }
+
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to create procedure wrapper for lambda");
     return errCode;
 }
 
 // Handle std::bind()
 
-template <typename TFunctor, typename std::enable_if<std::is_bind_expression<TFunctor>::value>::type* = nullptr>
+template <typename TFunctor, std::enable_if_t<std::is_bind_expression_v<TFunctor>>* = nullptr>
 ErrCode createProcedureWrapper(IProcedure** obj, TFunctor proc)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);

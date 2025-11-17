@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox as tkMessageBox
 
 import opendaq as daq
 
@@ -139,26 +140,43 @@ class AddDeviceDialog(Dialog):
         self.process_add_device(self.is_add_with_config())
 
     def process_add_device(self, open_config_dialog: bool):
+        if open_config_dialog:
+            self.add_device_with_config()
+        else:
+            self.add_device_without_config()
+
+    def add_device_with_config(self):
         nearest_device = self.dialog_parent_device
         if nearest_device is None:
+            tkMessageBox.showerror("Warning", "Cannot open config, parent device is not selected", "warning")
             return
+        # Get connection string from tree selection
         selected_item_iid = utils.treeview_get_first_selection(
             self.device_tree)
 
+        # When no item is selected, try to match entered connection string to one of the available devices
+        if selected_item_iid is None:
+            selected_item_iid = self.conn_string_entry.get()
+
         selected_device_info = self.find_available_device(self.dialog_parent_device, selected_item_iid)
         if selected_device_info is None or not daq.IDeviceInfo.can_cast_from(selected_device_info):
+            tkMessageBox.showerror("Warning", "Cannot open config, device is not selected", icon="warning")
             return
 
-        config = None
-        if open_config_dialog:
-            add_config_dialog = AddConfigDialog(
-                self, self.context, selected_device_info, self.dialog_parent_device)
-            add_config_dialog.show()
-            config = add_config_dialog.config
-            if config is None:
-                return
+        add_config_dialog = AddConfigDialog(
+            self, self.context, selected_device_info, self.dialog_parent_device)
+        add_config_dialog.show()
+
+        config = add_config_dialog.config
+        if config is None:
+            # Configuration was canelled
+            return
 
         self.add_device(selected_device_info.connection_string, config)
+
+    def add_device_without_config(self):
+        conn_string = self.conn_string_entry.get()
+        self.add_device(conn_string, None)
 
     def handle_right_click(self, event):
         utils.treeview_select_item(self.device_tree, event)

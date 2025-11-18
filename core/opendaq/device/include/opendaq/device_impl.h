@@ -1976,6 +1976,21 @@ void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::st
         PropertyObjectPtr config;
         if (serializedFunctionBlock.hasKey("ComponentConfig"))
             config = serializedFunctionBlock.readObject("ComponentConfig");
+
+        else if (serializedFunctionBlock.hasKey("ComponentConfig2"))
+        {
+            const SerializedObjectPtr serializedConfig = serializedFunctionBlock.readSerializedObject("ComponentConfig2");
+            const ModuleManagerPtr moduleManager = this->context.getModuleManager().template asPtr<IModuleManager>();
+            
+            for(const auto& module : moduleManager.getModules()) {
+                if(module.getAvailableFunctionBlockTypes().hasKey(typeId)) {
+                    const FunctionBlockTypePtr fbType = module.getAvailableFunctionBlockTypes()[typeId];
+                    config = fbType.createDefaultConfig();
+                    this->updateComponentConfig(config, serializedConfig);
+                    break;
+                }
+            }
+        }
         else
             config = PropertyObject();
 
@@ -2020,6 +2035,13 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             deviceConfig = serializedDevice.readObject("deviceConfig");
         else if (serializedDevice.hasKey("ComponentConfig"))
             deviceConfig = serializedDevice.readObject("ComponentConfig");
+        else if (serializedDevice.hasKey("ComponentConfig2"))
+        {
+            const auto serializedDeviceConfig = serializedDevice.readSerializedObject("ComponentConfig2");
+            deviceConfig = daq::PropertyObject();
+            this->createDefaultAddDeviceConfig(&deviceConfig);
+            this->updateComponentConfig(deviceConfig, serializedDeviceConfig);
+        }
 
         if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
         {

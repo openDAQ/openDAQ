@@ -11,6 +11,8 @@
 
 ## Misc
 
+- [#804](https://github.com/openDAQ/openDAQ/pull/804) Add Properties examples.
+
 ## Required application changes
 
 ## Required module changes

@@ -8,32 +8,30 @@ set(SRC_Headers bb_memcheck_listener.h
                 base_test_listener.h
 )
 
-set(SRC_Cpp bb_memcheck_listener.cpp
-            memcheck_listener.cpp
-            test_comparators.cpp
-            base_test_listener.cpp
-)
-
 prepend_include(testutils SRC_Headers)
 
-add_library(${MODULE_NAME} STATIC ${SRC_Headers}
-                                  ${SRC_Cpp}
-)
-
+add_library(${MODULE_NAME} INTERFACE)
 add_library(${SDK_TARGET_NAMESPACE}::${MODULE_NAME} ALIAS ${MODULE_NAME})
 
-target_include_directories(${MODULE_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include
+target_include_directories(${MODULE_NAME}
+    INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+        $<INSTALL_INTERFACE:include/testutils>
 )
 
-target_compile_definitions(${MODULE_NAME} PUBLIC ${OPENDAQ_TEST_COMPILE_DEFINES}
-)
+target_compile_definitions(${MODULE_NAME} INTERFACE ${OPENDAQ_TEST_COMPILE_DEFINES})
 
 target_compile_features(${MODULE_NAME} INTERFACE cxx_std_17)
 
-target_link_libraries(${MODULE_NAME} PUBLIC daq::coretypes
-                                            daq::coreobjects
-                                            daq::opendaq
-                                            testlibs
+target_link_libraries(${MODULE_NAME} INTERFACE daq::coretypes
+                                               daq::coreobjects
+                                               daq::opendaq
 )
 
+install(TARGETS ${MODULE_NAME}
+        EXPORT ${SDK_NAME}
+)
 
+install(FILES ${SRC_Headers}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/testutils
+)

@@ -8,7 +8,7 @@ set(TEST_SOURCES test_ref_device_module.cpp
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
-target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
+target_link_libraries(${TEST_APP} PRIVATE daq::test_utils testlibs
                                           ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
 )
 

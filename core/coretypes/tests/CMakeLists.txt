@@ -62,7 +62,7 @@ set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)
 
 target_link_libraries(${TEST_APP}
         PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
-                ${SDK_TARGET_NAMESPACE}::test_utils
+                ${SDK_TARGET_NAMESPACE}::test_utils testlibs
 )
 
 add_test(NAME ${TEST_APP}

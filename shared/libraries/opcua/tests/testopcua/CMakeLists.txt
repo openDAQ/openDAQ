@@ -12,7 +12,7 @@ add_executable(${TEST_APP} ${TEST_SOURCES})
 target_link_libraries(${TEST_APP} PRIVATE opcuashared
                                           opcuaserver
                                           opcuaclient
-                                          daq::test_utils
+                                          daq::test_utils testlibs
 )
 
 if (MSVC)

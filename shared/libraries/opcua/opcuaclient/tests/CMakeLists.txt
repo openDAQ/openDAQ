@@ -24,7 +24,7 @@ add_executable(${TEST_APP} ${SRC_Cpp}
 )
 
 target_link_libraries(${TEST_APP} PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
-                                          daq::test_utils
+                                          daq::test_utils testlibs
                                           daq::opcuaserver #remove after moving test_opcuaclientbasedsacqcontrol to opcua server/client integration tests
 )
 

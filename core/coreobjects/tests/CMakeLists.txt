@@ -55,7 +55,7 @@ target_compile_definitions(${TEST_APP} PRIVATE ${OPENDAQ_TEST_COMPILE_DEFINES})
 
 target_link_libraries(${TEST_APP}
         PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
-                ${SDK_TARGET_NAMESPACE}::test_utils
+                ${SDK_TARGET_NAMESPACE}::test_utils testlibs
 )
 
 target_include_directories(${TEST_APP} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include

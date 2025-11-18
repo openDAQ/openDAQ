@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import messagebox as tkMessageBox
 
 import opendaq as daq
 
@@ -148,7 +147,7 @@ class AddDeviceDialog(Dialog):
     def add_device_with_config(self):
         nearest_device = self.dialog_parent_device
         if nearest_device is None:
-            tkMessageBox.showerror("Warning", "Cannot open config, parent device is not selected", "warning")
+            utils.show_error("Configuration error", "Cannot open config, parent device is not selected", self)
             return
         # Get connection string from tree selection
         selected_item_iid = utils.treeview_get_first_selection(
@@ -160,7 +159,7 @@ class AddDeviceDialog(Dialog):
 
         selected_device_info = self.find_available_device(self.dialog_parent_device, selected_item_iid)
         if selected_device_info is None or not daq.IDeviceInfo.can_cast_from(selected_device_info):
-            tkMessageBox.showerror("Warning", "Cannot open config, device is not selected", icon="warning")
+            utils.show_error("Configuration error", "Cannot open config, device is not selected", self)
             return
 
         add_config_dialog = AddConfigDialog(
@@ -168,11 +167,12 @@ class AddDeviceDialog(Dialog):
         add_config_dialog.show()
 
         config = add_config_dialog.config
-        if config is None:
-            # Configuration was canelled
+        conn_string = add_config_dialog.connection_string
+        if config is None or conn_string is None:
+            # Configuration was cancelled
             return
 
-        self.add_device(selected_device_info.connection_string, config)
+        self.add_device(conn_string, config)
 
     def add_device_without_config(self):
         conn_string = self.conn_string_entry.get()

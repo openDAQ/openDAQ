@@ -18,8 +18,6 @@ def remove_properties(section, properties):
     for p in properties:
         if section.has_property(p):
             section.remove_property(p)
-        else:
-            print(f"Property {p=} does not exist")
 
 class AddConfigDialog(Dialog):
     def __init__(self, parent, context: AppContext, device_info, parent_device):
@@ -40,7 +38,7 @@ class AddConfigDialog(Dialog):
         left_frame = ttk.Frame(self)
 
         self.device_combobox = self.add_combobox(left_frame, "Device configuration:")
-        self.device_combobox.bind("<<ComboboxSelected>>", self.handle_device_select)
+        self.device_combobox.bind("<<ComboboxSelected>>", self.handle_device_protocol_select)
         self.streaming_checklist = self.add_checkbox_list(left_frame, "Streaming configurations:")
         self.streaming_checklist.register_callback(self.handle_checklist_changed)
 
@@ -53,13 +51,20 @@ class AddConfigDialog(Dialog):
         self.tabs.bind('<<NotebookTabChanged>>', self.on_tab_change)
         self.tabs.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Button(right_frame, text='Add device',
-                   command=self.handle_add_button_clicked).pack(side=tk.BOTTOM, anchor=tk.E, padx=10, pady=10, ipadx=20)
+        bottom_frame = ttk.Frame(right_frame)
+        bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
+
+        self.status_label = ttk.Label(bottom_frame, text="")
+        self.status_label.pack(side=tk.LEFT, anchor=tk.W, fill=tk.X, expand=True)
+
+        self.add_device_button = ttk.Button(bottom_frame, text='Add device', command=self.handle_add_button_clicked)
+        self.add_device_button.pack(side=tk.RIGHT, anchor=tk.E, padx=10, pady=10, ipadx=20)
 
         right_frame.grid(row=0, column=1)
         right_frame.grid_configure(sticky=tk.NSEW)
 
         # Filter and save config, initialize left panel
+        self.connection_string = None
         self.config = self.create_add_device_config()
         self.update_selection_widgets()
 
@@ -71,13 +76,14 @@ class AddConfigDialog(Dialog):
         self.general_tab = self.create_general_tab()
         self.streaming_tabs = []
 
+        self.update_connection_string()
+
         self.update_general_tab()
         self.update_device_tab()
         self.update_streaming_tabs()
 
     def handle_add_button_clicked(self):
         self.sync_device_and_streaming_configs()
-        self.finalize_general_section()
         self.destroy()
 
     def cancel(self):
@@ -86,7 +92,6 @@ class AddConfigDialog(Dialog):
 
     def close(self):
         # When escape is pressed adding the device is cancelled
-        print("Close")
         self.cancel()
 
     # MARK: Add widgets
@@ -111,17 +116,20 @@ class AddConfigDialog(Dialog):
         return checkbox_list
 
     # MARK: Handle widget events
-    def handle_device_select(self, event=None):
+    def handle_device_protocol_select(self, event=None):
         value = self.device_combobox.get()
         if not value or len(value) == 0:
             self.selected_device_config = None
             return
 
         self.selected_device_config = value
+
+        self.update_connection_string()
         self.update_device_tab()
 
     def handle_checklist_changed(self, checked_labels: list):
         self.selected_streaming_configs = checked_labels
+        self.update_connection_string()
         self.update_streaming_tabs()
 
         general_section = self.config.get_property_value(_GENERAL)
@@ -224,6 +232,41 @@ class AddConfigDialog(Dialog):
         for property in self.context.properties_of_component(streaming_section):
             self.streaming_checklist.insert(property.name)
 
+    def update_connection_string(self):
+        """Update connection string used to add device. This function also
+        performs a quick validation of the UI state and sets the status message."""
+
+        self.add_device_button.config(state="!disabled")
+        # A configuration protocol is selected
+        if self.selected_device_config != _NO_CONFIG_STR:
+            server_capabilities = self.device_info.server_capabilities
+            if len(server_capabilities) == 0:
+                self.connection_string = self.device_info.connection_string
+                self.status_label.configure(text=f"[OK] Connecting to local device: {self.connection_string}")
+                return
+
+            # Remote devices have protocol IDs defined in server capabilities
+            for c in server_capabilities:
+                if c.protocol_id == self.selected_device_config:
+                    self.connection_string = c.connection_string
+                    self.status_label.configure(text=f"[OK] Configuration connection to: {self.connection_string}")
+                    return
+
+        # No config and 0 or >= 2 streaming connections selected, unclear how to connect
+        if len(self.selected_streaming_configs) != 1:
+            self.connection_string = None
+            self.add_device_button.config(state="disabled")
+            self.status_label.configure(text="[Invalid] Select a configuration protocol or exactly one streaming protocol.")
+            return
+
+        streaming_protocol = self.selected_streaming_configs[0]
+        server_capabilities = self.device_info.server_capabilities
+        for c in server_capabilities:
+            if c.protocol_id == streaming_protocol:
+                self.connection_string = c.connection_string
+                self.status_label.configure(text=f"[OK] Streaming connection to: {self.connection_string}")
+                break
+
     def create_add_device_config(self):
         supported_protocols = self.compute_supported_protocols()
 
@@ -306,14 +349,6 @@ class AddConfigDialog(Dialog):
         for streaming in self.context.properties_of_component(streaming_section):
             for device in self.context.properties_of_component(device_section):
                 if device.name == streaming.name:
-                    print(f"\n\nSync {device.name}")
                     # Recursively update
                     utils.update_properties(device.value, streaming.value)
-                    print("\n\n")
                     break
-
-    def finalize_general_section(self):
-        general_section = self.config.get_property_value(_GENERAL)
-
-        # TODO: Extend general_config
-        # general_section.set_property("SelectedDeviceConfig", self.selected_device_config)

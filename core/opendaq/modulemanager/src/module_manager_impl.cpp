@@ -191,7 +191,18 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     if (envPath != nullptr)
     {
         LOG_D("Environment variable OPENDAQ_MODULES_PATH found, moduler search folder overriden to {}", envPath)
-        paths = {envPath};
+
+#if defined(_WIN32) || defined(_WIN64)
+        const char sep = ';';
+#else
+        const char sep = ':';
+#endif
+
+        std::stringstream ss(envPath);
+        std::string token;
+
+        while (std::getline(ss, token, sep))
+            paths.push_back(token);
     }
     else
     {

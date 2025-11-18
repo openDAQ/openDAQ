@@ -53,9 +53,9 @@ Bool LicensingModule::onLoadLicense(IDict* licenseConfig)
 {
     auto ptr = DictPtr<IString, IString>::Borrow(licenseConfig);
     std::string path = ptr.get("LicensePath");
-    std::string vendorKey = ptr.get("VendorSecret");
+    std::string vendorKey = ptr.get("VendorKey");
 
-    std::string secretKey = "my_secretKey";
+    std::string secretKey = "my_secret_key";
 
     _authenticated = vendorKey == secretKey;
 

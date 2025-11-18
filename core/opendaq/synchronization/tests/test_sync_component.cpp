@@ -131,14 +131,14 @@ TEST_F(SyncComponentTest, testSelectedSourceListChanged)
     ASSERT_EQ(syncComponentPrivate->addInterface(interface3), OPENDAQ_SUCCESS);
 
     auto interfaceNames = syncComponent.getInterfaces();
-    ASSERT_EQ(interfaceNames.getCount(), 2);
+    ASSERT_EQ(interfaceNames.getCount(), 2u);
 
     syncComponent.setSelectedSource(1);
     ASSERT_EQ(syncComponentPrivate->removeInterface(String("InterfaceClockSync")), OPENDAQ_SUCCESS);
     ASSERT_EQ(syncComponent.getSelectedSource(), 0);
     
     interfaceNames = syncComponent.getInterfaces();
-    ASSERT_EQ(interfaceNames.getCount(), 1);
+    ASSERT_EQ(interfaceNames.getCount(), 1u);
     ASSERT_TRUE(interfaceNames.hasKey("PtpSyncInterface"));
 }
 

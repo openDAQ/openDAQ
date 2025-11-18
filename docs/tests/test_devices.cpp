@@ -58,7 +58,7 @@ TEST_F(DevicesTest, SettingSyncComponent)
     // lets clean it up and create a new PTP interface
     syncComponentPrivate.removeInterface("PtpSyncInterface");
     syncComponentPrivate.removeInterface("InterfaceClockSync");
-    ASSERT_EQ(syncComponent.getInterfaces().getCount(), 0);
+    ASSERT_EQ(syncComponent.getInterfaces().getCount(), 0u);
 
     // Create a new PTP interface from property objects class `PtpSyncInterface`
     PropertyObjectPtr ptpSyncInterface = PropertyObject(typeManager, "PtpSyncInterface");
@@ -97,7 +97,7 @@ TEST_F(DevicesTest, SettingSyncComponent)
 
     // Get the new PTP interface
     auto interfaces = syncComponent.getInterfaces();
-    ASSERT_EQ(interfaces.getCount(), 1);
+    ASSERT_EQ(interfaces.getCount(), 1u);
     ASSERT_TRUE(interfaces.hasKey("PtpSyncInterface"));
     PropertyObjectPtr newPtpSyncInterface = interfaces.get("PtpSyncInterface");
 

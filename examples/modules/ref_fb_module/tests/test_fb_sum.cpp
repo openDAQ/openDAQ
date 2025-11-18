@@ -142,13 +142,13 @@ TEST_F(SumTest, DisconnectSignals)
     for (size_t i = 0; i < validSignals.getCount(); ++i)
         fb.getInputPorts()[i].connect(validSignals[i]);
 
-    ASSERT_EQ(fb.getInputPorts().getCount(), 11);
+    ASSERT_EQ(fb.getInputPorts().getCount(), 11u);
 
     for (const auto& ip : fb.getInputPorts())
         ip.disconnect();
     
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
-    ASSERT_EQ(fb.getInputPorts().getCount(), 1);
+    ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
 }
 
 TEST_F(SumTest, InvalidSignals)
@@ -159,7 +159,7 @@ TEST_F(SumTest, InvalidSignals)
         fb.getInputPorts()[i * 2 + 1].connect(invalidSignals[i]);
     }
     
-    ASSERT_EQ(fb.getInputPorts().getCount(), 21);
+    ASSERT_EQ(fb.getInputPorts().getCount(), 21u);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
 }
 
@@ -171,14 +171,14 @@ TEST_F(SumTest, InvalidSignalsRecovery)
         fb.getInputPorts()[i * 2 + 1].connect(invalidSignals[i]);
     }
 
-    ASSERT_EQ(fb.getInputPorts().getCount(), 21);
+    ASSERT_EQ(fb.getInputPorts().getCount(), 21u);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
 
     auto ip = fb.getInputPorts();
     for (int i = static_cast<int>(fb.getInputPorts().getCount()) - 2; i > 0; i-=2)
         ip[i].disconnect();
     
-    ASSERT_EQ(fb.getInputPorts().getCount(), 11);
+    ASSERT_EQ(fb.getInputPorts().getCount(), 11u);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
 }
 
@@ -192,13 +192,13 @@ TEST_F(SumTest, SumSignals)
     sendData(100, 0, false, std::make_pair(0, 10));
 
     SizeT count = reader.getAvailableCount();
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     auto status = reader.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     
     count = reader.getAvailableCount();
-    ASSERT_EQ(count, 100);
+    ASSERT_EQ(count, 100u);
     
     double data[100];
     status = reader.read(&data, &count);
@@ -224,7 +224,7 @@ TEST_F(SumTest, SumSignalsReconnect)
     sendData(100, 0, false, std::make_pair(5, 10));
 
     SizeT count = reader.getAvailableCount();
-    ASSERT_EQ(count, 100);
+    ASSERT_EQ(count, 100u);
     double data[100];
     auto status = reader.read(&data, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
@@ -240,7 +240,7 @@ TEST_F(SumTest, SumSignalsReconnect)
     sendData(100, 100, false, std::make_pair(0, 10));
 
     count = reader.getAvailableCount();
-    ASSERT_EQ(count, 100);
+    ASSERT_EQ(count, 100u);
     status = reader.read(&data, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
@@ -263,7 +263,7 @@ TEST_F(SumTest, SumSignalsInvalidRecovery)
     sendData(100, 0, true, std::make_pair(0, 10));
 
     auto count = reader.getAvailableCount();
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // Disconnect invalid signals
     auto ip = fb.getInputPorts();
@@ -273,7 +273,7 @@ TEST_F(SumTest, SumSignalsInvalidRecovery)
     sendData(100, 100, false, std::make_pair(0, 10));
 
     count = reader.getAvailableCount();
-    ASSERT_EQ(count, 100);
+    ASSERT_EQ(count, 100u);
 
     double data[100];
     auto status = reader.read(&data, &count);
@@ -320,11 +320,11 @@ TEST_F(SumTest, IncompatibleDomainsReconnect)
              List<ISignalConfig>(incompatibleDomainSignal));
 
     auto count = reader.getAvailableCount();
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     fb.getInputPorts()[1].connect(validSignals[1]);
     sendData(100, 100, false, std::make_pair(0, 2));
     
     count = reader.getAvailableCount();
-    ASSERT_EQ(count, 100);
+    ASSERT_EQ(count, 100u);
 }

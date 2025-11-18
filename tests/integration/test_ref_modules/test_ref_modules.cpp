@@ -359,7 +359,7 @@ TEST_F(RefModulesTest, OptionViaConnectionString)
 
     const auto numOfChannels = device.getChannelsRecursive().getCount();
 
-    ASSERT_EQ(numOfChannels, 4);
+    ASSERT_EQ(numOfChannels, 4u);
 }
 
 TEST_F(RefModulesTest, FindComponentDevice)
@@ -538,7 +538,7 @@ TEST_F(RefModulesTest, SerializeDevicePower)
     powerFb.getInputPorts()[1].connect(device1Signal);
 
     const auto configuration = instance.saveConfiguration();
-    ASSERT_GT(configuration.getLength(), 0); // Ensure that the configuration is not empty
+    ASSERT_GT(configuration.getLength(), 0u); // Ensure that the configuration is not empty
 }
 
 TEST_F(RefModulesTest, UpdateDevicePower)
@@ -591,7 +591,7 @@ TEST_F(RefModulesTest, UpdateDevicePower)
     device1Signal.release();
 //    rendererFb.release();
 
-    ASSERT_GT(configuration.getLength(), 0); // Ensure that the configuration is not empty
+    ASSERT_GT(configuration.getLength(), 0u); // Ensure that the configuration is not empty
 
     instance = Instance();
 

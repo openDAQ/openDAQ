@@ -14,11 +14,6 @@ _DEVICE = "Device"
 _STREAMING = "Streaming"
 _GENERAL = "General"
 
-def remove_properties(section, properties):
-    for p in properties:
-        if section.has_property(p):
-            section.remove_property(p)
-
 class AddConfigDialog(Dialog):
     def __init__(self, parent, context: AppContext, device_info, parent_device):
         super().__init__(parent, 'Add with config', context)
@@ -303,19 +298,24 @@ class AddConfigDialog(Dialog):
         return []
 
     def filter_device_section(self, config, supported_protocols):
-        device_section = config.get_property_value("Device")
+        device_section = config.get_property_value(_DEVICE)
         for property in self.context.properties_of_component(device_section):
             if property.name not in supported_protocols:
                 device_section.remove_property(property.name)
 
     def filter_streaming_section(self, config, supported_protocols):
-        streaming_section = config.get_property_value("Streaming")
+        streaming_section = config.get_property_value(_STREAMING)
         for property in self.context.properties_of_component(streaming_section):
             if property.name not in supported_protocols:
                 streaming_section.remove_property(property.name)
 
     def filter_general_section(self, config, supported_protocols):
-        general_section = config.get_property_value("General")
+        general_section = config.get_property_value(_GENERAL)
+
+        def remove_properties(section, properties):
+            for p in properties:
+                if section.has_property(p):
+                    section.remove_property(p)
 
         if "OpenDAQNativeConfiguration" not in supported_protocols:
             remove_properties(general_section, ["Username", "Password", "ClientType", "ExclusiveControlDropOthers"])

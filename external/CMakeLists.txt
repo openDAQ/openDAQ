@@ -2,7 +2,7 @@ set_mode(ANCIENT)
 set(CMAKE_FOLDER "external")
 
 include(FetchContent)
-include(opendaq_dependency.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/opendaq_dependency.cmake)
 
 list(APPEND CMAKE_MESSAGE_CONTEXT external)
 set(CURR_MESSAGE_CONTEXT ${CMAKE_MESSAGE_CONTEXT})

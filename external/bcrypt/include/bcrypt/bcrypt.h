@@ -14,6 +14,12 @@
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
+/*
+ * <martin.kraner@dewesoft.com>
+ * Modified to:
+ * - fix BCRYPT_HASHSIZE redefinition warning
+*/
+
 #if !defined(BCRYPT_HASHSIZE)
     #define BCRYPT_HASHSIZE	(64)
 #endif

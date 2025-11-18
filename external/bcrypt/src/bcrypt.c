@@ -11,6 +11,15 @@
  * with this software. If not, see
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
+
+/*
+ * <martin.kraner@dewesoft.com>
+ * Modified to:
+ * - fix BCRYPT_HASHSIZE redefinition warning
+ * - fix unused variable warning
+ * - gate clang pragmas under and #ifdef
+*/
+
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -41,7 +50,7 @@
     #include <windows.h>
     #include <io.h>
     #include <wincrypt.h> /* CryptAcquireContext, CryptGenRandom */
-    #else
+#else
     #include "bcrypt.h"
     #include "ow-crypt.h"
 #endif

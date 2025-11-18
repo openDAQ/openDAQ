@@ -12,9 +12,9 @@ set(WARNINGS_AS_ERRORS OFF CACHE BOOL "SFML treat warnings as errors")
 
 opendaq_dependency(
     NAME                sfml
-    REQUIRED_VERSION    3.0.1
+    REQUIRED_VERSION    3.0.2
     GIT_REPOSITORY      https://github.com/SFML/SFML.git
-    GIT_REF             3.0.1
+    GIT_REF             3.0.2
     EXPECT_TARGET       sfml-graphics
 )
 

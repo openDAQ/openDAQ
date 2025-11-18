@@ -18,7 +18,6 @@
 #include <audio_device_module/common.h>
 #include <audio_device_module/miniaudio_utils.h>
 #include <opendaq/module_impl.h>
-#include <miniaudio/miniaudio.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
@@ -35,8 +34,9 @@ public:
     FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config) override;
 
 private:
+
     std::mutex sync;
-    std::shared_ptr<MiniaudioContext> maContext;
+    std::shared_ptr<ma_utils::MiniaudioContext> maContext;
     size_t deviceIndex;
 };
 

@@ -55,7 +55,6 @@ private:
     void sampleRateChanged(uint32_t sampleRate);
     void start();
     void stop();
-
 };
 
 END_NAMESPACE_AUDIO_DEVICE_MODULE

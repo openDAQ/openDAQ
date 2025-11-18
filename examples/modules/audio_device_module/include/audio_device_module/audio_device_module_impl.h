@@ -18,7 +18,6 @@
 #include <audio_device_module/common.h>
 #include <audio_device_module/miniaudio_utils.h>
 #include <opendaq/module_impl.h>
-#include <miniaudio/miniaudio.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 

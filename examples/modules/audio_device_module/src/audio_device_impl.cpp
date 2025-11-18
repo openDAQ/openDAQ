@@ -1,7 +1,6 @@
 #include <audio_device_module/audio_device_impl.h>
 #include <audio_device_module/audio_channel_impl.h>
 #include <opendaq/device_info_factory.h>
-#include <opendaq/custom_log.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/device_domain_factory.h>
 #include <miniaudio/miniaudio.h>

@@ -793,6 +793,16 @@ install(FILES cmake/DaqInternal.cmake
         COMPONENT ${SDK_NAME}_Development
 )
 
+install(FILES cmake/opendaq_dependency.cmake
+        DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
+
+install(FILES cmake/patch.cmake
+        DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
+
 install(FILES cmake/version/version.h.in cmake/version/version.rc.in
         DESTINATION share/cmake/version
         COMPONENT ${SDK_NAME}_Development

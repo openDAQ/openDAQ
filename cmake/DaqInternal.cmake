@@ -62,7 +62,7 @@ function(opendaq_prepare_test_runner TEST_TARGET)
     set_target_properties(${TEST_RUNNER} PROPERTIES DEBUG_POSTFIX _debug)
 
     target_link_libraries(${TEST_RUNNER} PRIVATE ${MAIN_TARGET}
-                                                 ${SDK_TARGET_NAMESPACE}::test_utils
+                                                 ${SDK_TARGET_NAMESPACE}::test_utils testlibs
     )
 
     if (MSVC)

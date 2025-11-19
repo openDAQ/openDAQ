@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -217,7 +217,11 @@ protected:
                             const SerializedObjectPtr& item,
                             const BaseObjectPtr& context);
 
-    static void deserializeVersion(const SerializedObjectPtr& serialized, const DeviceInfoPtr& deviceInfo);
+    static void DeserializeVersion(const SerializedObjectPtr& serialized,
+                                   const BaseObjectPtr& context,
+                                   const FunctionPtr& factoryCallback,
+                                   const DeviceInfoPtr& deviceInfo);
+
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
@@ -1852,10 +1856,9 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     if (moduleInfo.assigned() && moduleInfo.getVersionInfo().assigned())
     {
         const auto version = moduleInfo.getVersionInfo();
-        const auto versionStr = fmt::format("{}.{}.{}", version.getMajor(), version.getMinor(), version.getPatch());
 
         serializer.key("__version");
-        serializer.writeString(versionStr.c_str(), versionStr.size());
+        version.serialize(serializer);
     }
 
     Super::serializeCustomObjectValues(serializer, forUpdate);
@@ -2102,16 +2105,21 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
                            "IoFolder",
                            "",
                            [this, &item, &context](const std::string& itemId, const SerializedObjectPtr& obj)
-                           { updateIoFolderItem(item, itemId, obj, context); });
+                           {
+                               updateIoFolderItem(item, itemId, obj, context);
+                           });
     }
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::deserializeVersion(const SerializedObjectPtr& serialized, const DeviceInfoPtr& deviceInfo)
+void GenericDevice<TInterface, Interfaces...>::DeserializeVersion(const SerializedObjectPtr& serialized,
+                                                                  const BaseObjectPtr& context,
+                                                                  const FunctionPtr& factoryCallback,
+                                                                  const DeviceInfoPtr& deviceInfo)
 {
-    if (serialized.hasKey("__version"))
+    if (serialized.hasKey("__version") && serialized.getType("__version") == ctObject)
     {
-        const auto version = Super::parseVersionString(serialized.readString("__version"));
+        const auto version = serialized.readObject("__version", context, factoryCallback);
         if (version.assigned())
         {
             if (deviceInfo.assigned())
@@ -2119,7 +2127,13 @@ void GenericDevice<TInterface, Interfaces...>::deserializeVersion(const Serializ
                 auto devType = deviceInfo.getDeviceType();
                 auto hasDevType = devType.assigned();
                 if (!hasDevType)
-                    devType = DeviceTypeBuilder().setName("__unknown").setId("__unknown").setConnectionStringPrefix("__unknown").build();
+                {
+                    devType = DeviceTypeBuilder()
+                        .setName("__unknown")
+                        .setId("__unknown")
+                        .setConnectionStringPrefix("__unknown")
+                        .build();
+                }
 
                 auto moduleInfo = devType.getModuleInfo();
                 if (!moduleInfo.assigned())
@@ -2132,7 +2146,6 @@ void GenericDevice<TInterface, Interfaces...>::deserializeVersion(const Serializ
         }
     }
 }
-
 
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,

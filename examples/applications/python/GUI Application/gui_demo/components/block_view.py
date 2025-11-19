@@ -22,11 +22,16 @@ class BlockView(ttk.Frame):
         self.event_port = EventPort(self, event_callback=self.refresh)
 
         active = False
+        local_active = False
+        parent_active = False
+        
         name = 'None'
 
         if node and daq.IComponent.can_cast_from(self.node):
             node = daq.IComponent.cast_from(self.node)
             active = node.active
+            local_active = node.local_active
+            parent_active = node.parent_active
             name = node.name
         self.configure(relief=tk.SOLID, border=0.5, padding=5)
 
@@ -77,8 +82,16 @@ class BlockView(ttk.Frame):
         self.edit_button.pack(side=tk.RIGHT)
         self.active_var = tk.IntVar(self, value=active)
         self.checkbox = ttk.Checkbutton(
-            self.header_frame, text='Active', command=self.handle_active_toggle, variable=self.active_var)
+            self.header_frame, text='Active', command=self.handle_active_toggle, variable=self.active_var, state=tk.NORMAL if parent_active else tk.DISABLED)
         self.checkbox.pack(side=tk.RIGHT)
+
+        self.local_active_var = tk.IntVar(self, value=local_active)
+        self.checkbox_local_active = ttk.Checkbutton(self.header_frame, text='LocalActive', variable=self.local_active_var, state=tk.DISABLED)
+        self.checkbox_local_active.pack(side=tk.RIGHT)
+
+        self.parent_active_var = tk.IntVar(self, value=parent_active)
+        self.checkbox_parent_active = ttk.Checkbutton(self.header_frame, text='ParentActive', variable=self.parent_active_var, state=tk.DISABLED)
+        self.checkbox_parent_active.pack(side=tk.RIGHT)
 
         self.expanded_frame = ttk.Frame(self, padding=5)
 
@@ -289,4 +302,6 @@ class BlockView(ttk.Frame):
             ctx = daq.IComponent.cast_from(self.node)
             ctx.active = not ctx.active
             self.active_var.set(ctx.active)
+            self.local_active_var.set(ctx.local_active)
+            self.parent_active_var.set(ctx.parent_active)
             self.event_port.emit()

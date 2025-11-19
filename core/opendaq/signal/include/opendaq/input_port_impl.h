@@ -664,6 +664,8 @@ void GenericInputPortImpl<TInterface, Interfaces...>::serializeCustomObjectValue
 template <typename TInterface, typename...  Interfaces>
 void GenericInputPortImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
+    this->readAndSetActive(obj);
+
     if (obj.hasKey("signalId"))
     {
         ComponentUpdateContextPtr contextPtr = context.asPtr<IComponentUpdateContext>(true);

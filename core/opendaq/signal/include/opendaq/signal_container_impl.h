@@ -100,7 +100,7 @@ protected:
                               const BaseObjectPtr& context);
 
     template <class F>
-    void updateFolder(const SerializedObjectPtr& obj, const std::string& folderType, const std::string& itemType, F&& f);
+    void updateFolder(const FolderConfigPtr& folder, const SerializedObjectPtr& obj, const std::string& folderType, const std::string& itemType, F&& f);
 
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
@@ -141,13 +141,13 @@ public:
                         const StringPtr& className = nullptr,
                         const StringPtr& name = nullptr);
     
-    // IComponent
-    ErrCode INTERFACE_FUNC setActive(Bool active) override;
-
     virtual ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
     ErrCode INTERFACE_FUNC isEmpty(Bool* empty) override;
     ErrCode INTERFACE_FUNC hasItem(IString* localId, Bool* value) override;
+
+protected:
+    void notifyActiveChanged() override;
 };
 
 template <class Intf, class... Intfs>
@@ -209,23 +209,6 @@ SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& conte
 }
 
 template <class Intf, class ... Intfs>
-ErrCode SignalContainerImpl<Intf, Intfs...>::setActive(Bool active)
-{
-    const ErrCode err = Super::setActive(active);
-    OPENDAQ_RETURN_IF_FAILED(err);
-    if (err == OPENDAQ_IGNORED)
-        return err;
-
-    const ErrCode errCode = daqTry([&]
-    {
-        this->setActiveRecursive(this->components, active);
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-template <class Intf, class ... Intfs>
 ErrCode SignalContainerImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(items);
@@ -278,6 +261,12 @@ ErrCode SignalContainerImpl<Intf, Intfs...>::hasItem(IString* localId, Bool* val
 
     *value = False;
     return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+void SignalContainerImpl<Intf, Intfs...>::notifyActiveChanged()
+{
+    this->notifyItemsActiveChanged(this->components);
 }
 
 template <class Intf, class... Intfs>
@@ -450,6 +439,8 @@ FolderConfigPtr GenericSignalContainerImpl<Intf, Intfs...>::addFolder(const std:
             folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         }
 
+        folder.template asPtr<IComponentPrivate>(true).setParentActive(this->active);
+
         return folder;
     }
 
@@ -488,6 +479,8 @@ ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addComponent(const std:
             component.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         }
 
+        component.template asPtr<IComponentPrivate>(true).setParentActive(this->active);
+
         return component;
     }
 
@@ -519,6 +512,8 @@ ComponentPtr GenericSignalContainerImpl<Intf, Intfs...>::addExistingComponent(co
             this->triggerCoreEvent(args);
             component.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         }
+
+        component.template asPtr<IComponentPrivate>(true).setParentActive(this->active);
 
         return component;
     }
@@ -625,7 +620,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
             for (const auto& fb : functionBlocks.getItems())
                 onRemoveFunctionBlock(fb);
 
-        updateFolder(fbFolder,
+        updateFolder(this->functionBlocks,
+                     fbFolder,
                      "Folder",
                      "FunctionBlock",
                      [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
@@ -639,7 +635,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
         const auto sigFolder = obj.readSerializedObject("Sig");
         sigFolder.checkObjectType("Folder");
 
-        updateFolder(sigFolder,
+        updateFolder(this->signals,
+                     sigFolder,
                      "Folder",
                      "Signal",
                      [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
@@ -728,12 +725,16 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::updateOperationMode(Operatio
 
 template <class Intf, class... Intfs>
 template <class F>
-void GenericSignalContainerImpl<Intf, Intfs...>::updateFolder(const SerializedObjectPtr& obj,
+void GenericSignalContainerImpl<Intf, Intfs...>::updateFolder(const FolderConfigPtr& folder, 
+                                                              const SerializedObjectPtr& obj,
                                                               const std::string& folderType,
                                                               const std::string& itemType,
                                                               F&& f)
 {
+    assert(obj.assigned());
     obj.checkObjectType(folderType);
+    assert(folder.assigned());
+    folder.asPtr<IComponentPrivate>(true).updateActiveAttr(obj);
 
     auto serializedItems = this->getSerializedItems(obj);
     for (const auto& serializedItem : serializedItems)

@@ -84,9 +84,6 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getActive(Bool* active)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
 {
-    if (this->coreEventMuted)
-        return Impl::setActive(active);
-
     const ErrCode errCode = daqTry([this, &active]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); 

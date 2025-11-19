@@ -290,11 +290,17 @@ TEST_F(TreeTraversalTest, SetActive)
 
     device.setActive(false);
     for (const auto& comp : components)
+    {
+        ASSERT_TRUE(comp.getLocalActive());
         ASSERT_FALSE(comp.getActive());
+    }
     
     device.setActive(true);
     for (const auto& comp : components)
+    {
+        ASSERT_TRUE(comp.getLocalActive());
         ASSERT_TRUE(comp.getActive());
+    }
 }
 
 TEST_F(TreeTraversalTest, IncompatibleFilters)

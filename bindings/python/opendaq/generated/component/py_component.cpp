@@ -84,7 +84,7 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
             const auto objectPtr = daq::ComponentPtr::Borrow(object);
             objectPtr.setActive(active);
         },
-        "Returns true if the component is active; false otherwise. / Sets the component to be either active or inactive. Also recursively sets the `active` field of all child components if component is a folder.");
+        "Returns true if the component is active; false otherwise. / Sets the component's local active state to be either active or inactive. Component's effective active state depends on its parent's active state as well.");
     cls.def_property_readonly("context",
         [](daq::IComponent *object)
         {
@@ -198,4 +198,20 @@ void defineIComponent(pybind11::module_ m, PyDaqIntf<daq::IComponent, daq::IProp
             return objectPtr.getOperationMode();
         },
         "Gets the operation mode of the device.");
+    cls.def_property_readonly("local_active",
+        [](daq::IComponent *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.getLocalActive();
+        },
+        "Returns true if the component is local active; false otherwise.");
+    cls.def_property_readonly("parent_active",
+        [](daq::IComponent *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentPtr::Borrow(object);
+            return objectPtr.getParentActive();
+        },
+        "Returns true if the component's parent is active; false otherwise.");
 }

@@ -147,6 +147,11 @@ public:
         for (const auto& signal : this->signals.getItems(daq::search::InterfaceId(daq::ISignal::Id)))
             signal.setActive(active);
     }
+
+    bool clearFunctionBlocksOnUpdate() override
+    {
+        return false;
+    }
 };
 
 
@@ -228,6 +233,7 @@ TEST_F(DeviceTest, IOFolderSubItems)
 
     daq::MockChannel::Strict ch;
     EXPECT_CALL(ch.mock(), getLocalId(testing::_)).WillOnce(daq::Get{daq::String("Ch")});
+    EXPECT_CALL(ch.mock(), setParentActive(daq::True)).WillOnce(testing::Return(OPENDAQ_SUCCESS));
     ASSERT_NO_THROW(ioFolder.addItem(*ch));
 }
 
@@ -650,6 +656,43 @@ TEST_F(DeviceTest, CheckNotSupportedOpMode)
 
     ASSERT_EQ(device->setOperationMode(daq::OperationModeType::SafeOperation), OPENDAQ_IGNORED);
     ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::Operation);
+}
+
+TEST_F(DeviceTest, UpdateActive)
+{
+    const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev");
+
+    auto aiFolder = dev.getInputsOutputsFolder().getItem("AI").asPtr<daq::IFolder>(true);
+    auto aiSignal = aiFolder.getItem("Ch").asPtr<daq::IChannel>(true).getSignals().getItemAt(0).asPtr<daq::ISignal>(true);
+
+    ASSERT_TRUE(dev.getFunctionBlocks()[0].getInputPorts()[0].getActive());
+    ASSERT_TRUE(dev.getFunctionBlocks()[0].getInputPorts()[0].getLocalActive());
+    ASSERT_TRUE(aiSignal.getActive());
+    ASSERT_TRUE(aiSignal.getLocalActive());
+
+    dev.setActive(daq::False);
+    ASSERT_FALSE(dev.getFunctionBlocks()[0].getInputPorts()[0].getActive());
+    ASSERT_TRUE(dev.getFunctionBlocks()[0].getInputPorts()[0].getLocalActive());
+    ASSERT_FALSE(aiSignal.getActive());
+    ASSERT_TRUE(aiSignal.getLocalActive());
+
+    const auto serializer = daq::JsonSerializer(daq::True);
+    dev.asPtr<daq::IUpdatable>(true).serializeForUpdate(serializer);
+    const auto str1 = serializer.getOutput();
+
+    dev.setActive(daq::True);
+    ASSERT_TRUE(dev.getFunctionBlocks()[0].getInputPorts()[0].getActive());
+    ASSERT_TRUE(dev.getFunctionBlocks()[0].getInputPorts()[0].getLocalActive());
+    ASSERT_TRUE(aiSignal.getActive());
+    ASSERT_TRUE(aiSignal.getLocalActive());
+
+    const auto deserializer = daq::JsonDeserializer();
+    deserializer.update(dev.asPtr<daq::IUpdatable>(true), str1, nullptr);
+
+    ASSERT_FALSE(dev.getFunctionBlocks()[0].getInputPorts()[0].getActive());
+    ASSERT_TRUE(dev.getFunctionBlocks()[0].getInputPorts()[0].getLocalActive());
+    ASSERT_FALSE(aiSignal.getActive());
+    ASSERT_TRUE(aiSignal.getLocalActive());
 }
 
 TEST_F(DeviceTest, DefaultFolderLockingStrategy)

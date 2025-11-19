@@ -9,6 +9,8 @@
 #include <opendaq/component_factory.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/tags_private_ptr.h>
+#include <opendaq/folder_ptr.h>
+#include <opendaq/folder_impl.h>
 
 using namespace testing;
 
@@ -63,12 +65,14 @@ TEST_F(FolderTest, Items)
     daq::MockComponent::Strict component1;
     EXPECT_CALL(component1.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("comp1"));
     EXPECT_CALL(component1.mock(), getVisible(_)).WillRepeatedly(daq::GetBool(true));
+    EXPECT_CALL(component1.mock(), setParentActive(daq::True)).WillOnce(Return(OPENDAQ_SUCCESS));
     folder.addItem(component1);
     ASSERT_EQ(folder.getItems().getCount(), 1u);
 
     daq::MockComponent::Strict component2;
     EXPECT_CALL(component2.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("comp2"));
     EXPECT_CALL(component2.mock(), getVisible(_)).WillRepeatedly(daq::GetBool(true));
+    EXPECT_CALL(component2.mock(), setParentActive(daq::True)).WillOnce(Return(OPENDAQ_SUCCESS));
     folder.addItem(component2);
     ASSERT_EQ(folder.getItems().getCount(), 2u);
 
@@ -92,12 +96,14 @@ TEST_F(FolderTest, Remove)
     daq::MockComponent::Strict component1;
     EXPECT_CALL(component1.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("comp1"));
     EXPECT_CALL(component1.mock(), getVisible(_)).WillRepeatedly(daq::GetBool(true));
+    EXPECT_CALL(component1.mock(), setParentActive(daq::True)).WillOnce(Return(OPENDAQ_SUCCESS));
     folder.addItem(component1);
     ASSERT_EQ(folder.getItems().getCount(), 1u);
 
     daq::MockComponent::Strict component2;
     EXPECT_CALL(component2.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("comp2"));
     EXPECT_CALL(component2.mock(), getVisible(_)).WillRepeatedly(daq::GetBool(true));
+    EXPECT_CALL(component2.mock(), setParentActive(daq::True)).WillOnce(Return(OPENDAQ_SUCCESS));
     folder.addItem(component2);
     ASSERT_EQ(folder.getItems().getCount(), 2u);
 
@@ -113,6 +119,7 @@ TEST_F(FolderTest, Duplicate)
     EXPECT_CALL(component1.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("comp1"));
     EXPECT_CALL(component1.mock(), getGlobalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("folder/comp1"));
     EXPECT_CALL(component1.mock(), getVisible(_)).WillRepeatedly(daq::GetBool(true));
+    EXPECT_CALL(component1.mock(), setParentActive(daq::True)).WillOnce(Return(OPENDAQ_SUCCESS));
     folder.addItem(component1);
     ASSERT_THROW(folder.addItem(component1), daq::DuplicateItemException);
 
@@ -126,11 +133,13 @@ TEST_F(FolderTest, Clear)
     daq::MockComponent::Strict component1;
     EXPECT_CALL(component1.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("comp1"));
     EXPECT_CALL(component1.mock(), getVisible(_)).WillRepeatedly(daq::GetBool(true));
+    EXPECT_CALL(component1.mock(), setParentActive(daq::True)).WillOnce(Return(OPENDAQ_SUCCESS));
     folder.addItem(component1);
 
     daq::MockComponent::Strict component2;
     EXPECT_CALL(component2.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("comp2"));
     EXPECT_CALL(component2.mock(), getVisible(_)).WillRepeatedly(daq::GetBool(true));
+    EXPECT_CALL(component2.mock(), setParentActive(daq::True)).WillOnce(Return(OPENDAQ_SUCCESS));
     folder.addItem(component2);
 
     folder.clear();
@@ -144,6 +153,7 @@ TEST_F(FolderTest, NotEmpty)
     daq::MockComponent::Strict component1;
     EXPECT_CALL(component1.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("comp1"));
     EXPECT_CALL(component1.mock(), getVisible(_)).WillRepeatedly(daq::GetBool(true));
+    EXPECT_CALL(component1.mock(), setParentActive(daq::True)).WillOnce(Return(OPENDAQ_SUCCESS));
     folder.addItem(component1);
 
     ASSERT_FALSE(folder.isEmpty());
@@ -163,6 +173,7 @@ TEST_F(FolderTest, HasItem)
     daq::MockComponent::Strict component1;
     EXPECT_CALL(component1.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("comp1"));
     EXPECT_CALL(component1.mock(), getVisible(_)).WillRepeatedly(daq::GetBool(true));
+    EXPECT_CALL(component1.mock(), setParentActive(daq::True)).WillOnce(Return(OPENDAQ_SUCCESS));
     folder.addItem(component1);
 
     ASSERT_FALSE(folder.hasItem("comp2"));
@@ -262,6 +273,157 @@ TEST_F(FolderTest, BeginUpdateEndUpdate)
     ASSERT_EQ(folder.getPropertyValue("FolderProp"), "s");
     ASSERT_EQ(component.getPropertyValue("ComponentProp"), "cs");
 }
+
+TEST_F(FolderTest, SetActive)
+{
+    auto folder = daq::Folder(context, nullptr, "folder");
+
+    daq::MockComponent::Strict component1;
+    EXPECT_CALL(component1.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>("comp1"));
+    EXPECT_CALL(component1.mock(), getVisible(_)).WillRepeatedly(daq::GetBool(true));
+    EXPECT_CALL(component1.mock(), setParentActive(daq::True)).WillOnce(Return(OPENDAQ_SUCCESS));
+    folder.addItem(component1);
+
+    EXPECT_CALL(component1.mock(), setParentActive(daq::False)).WillOnce(Return(OPENDAQ_SUCCESS));
+    folder.setActive(daq::False);
+}
+
+TEST_F(FolderTest, SetActiveNested)
+{
+    auto folder = daq::Folder(context, nullptr, "folder");
+    auto folder1 = daq::Folder(context, folder, "folder1");
+    folder.addItem(folder1);
+    auto comp = daq::Component(context, folder1, "comp");
+    folder1.addItem(comp);
+
+    ASSERT_TRUE(comp.getActive());
+    ASSERT_TRUE(comp.getLocalActive());
+    folder.setActive(daq::False);
+    ASSERT_FALSE(comp.getActive());
+    ASSERT_TRUE(comp.getLocalActive());
+    folder.setActive(daq::True);
+    ASSERT_TRUE(comp.getActive());
+    ASSERT_TRUE(comp.getLocalActive());
+}
+
+using FolderActiveTest = testing::TestWithParam<std::tuple<bool, bool, bool>>;
+
+TEST_P(FolderActiveTest, SerializeAndDeserializeActive)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder0 = daq::Folder(ctx, nullptr, "folder");
+    const auto folder1 = daq::Folder(ctx, folder0, "folder1");
+    folder0.addItem(folder1);
+    const auto component = daq::Component(ctx, folder1, "component");
+    folder1.addItem(component);
+
+    folder0.setActive(std::get<0>(GetParam()));
+    folder1.setActive(std::get<1>(GetParam()));
+    component.setActive(std::get<2>(GetParam()));
+
+    const auto serializer = daq::JsonSerializer(daq::True);
+    folder0.serialize(serializer);
+    const auto str1 = serializer.getOutput();
+
+    const auto deserializer = daq::JsonDeserializer();
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(ctx, nullptr, nullptr, "folder0");
+
+    const daq::FolderPtr newFolder0 = deserializer.deserialize(str1, deserializeContext, nullptr);
+    ASSERT_EQ(folder0.getActive(), newFolder0.getActive());
+    const auto newFolder1 = newFolder0.getItems()[0].asPtr<daq::IFolder>(true);
+    ASSERT_EQ(folder1.getActive(), newFolder1.getActive());
+    const auto newComponent = newFolder1.getItems()[0];
+    ASSERT_EQ(component.getActive(), newComponent.getActive());
+}
+
+class CustomFolder : public daq::FolderImpl<>
+{
+public:
+    using daq::FolderImpl<>::FolderImpl;
+
+protected:
+    void updateObject(const daq::SerializedObjectPtr& obj, const daq::BaseObjectPtr& context) override
+    {
+        daq::FolderImpl<>::updateObject(obj, context);
+
+        auto serializedItems = this->getSerializedItems(obj);
+        for (const auto& serializedItem : serializedItems)
+        {
+            const auto localId = serializedItem.first;
+            const auto updatableComponent = this->items[localId].template asPtr<IUpdatable>(true);
+            updatableComponent.updateInternal(serializedItem.second, context);
+        }
+
+    }
+};
+
+TEST_P(FolderActiveTest, UpdateActive)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder0 = daq::createWithImplementation<daq::IFolderConfig, CustomFolder>(ctx, nullptr, "folder0");
+    const auto folder1 = daq::createWithImplementation<daq::IFolderConfig, CustomFolder>(ctx, folder0, "folder1");
+    folder0.addItem(folder1);
+    const auto component = daq::Component(ctx, folder1, "component");
+    folder1.addItem(component);
+
+    ASSERT_TRUE(folder0.getActive());
+    ASSERT_TRUE(folder1.getActive());
+    ASSERT_TRUE(component.getActive());
+
+    folder0.setActive(std::get<0>(GetParam()));
+    folder1.setActive(std::get<1>(GetParam()));
+    component.setActive(std::get<2>(GetParam()));
+
+    ASSERT_EQ(folder0.getLocalActive(), std::get<0>(GetParam()));
+    ASSERT_EQ(folder1.getLocalActive(), std::get<1>(GetParam()));
+    ASSERT_EQ(component.getLocalActive(), std::get<2>(GetParam()));
+
+    ASSERT_EQ(folder0.getActive(), std::get<0>(GetParam()));
+    ASSERT_EQ(folder1.getActive(), std::get<1>(GetParam()) && std::get<0>(GetParam()));
+    ASSERT_EQ(component.getActive(), std::get<2>(GetParam()) && std::get<1>(GetParam()) && std::get<0>(GetParam()));
+
+    const auto serializer = daq::JsonSerializer(daq::True);
+    folder0.asPtr<daq::IUpdatable>(true).serializeForUpdate(serializer);
+    const auto str1 = serializer.getOutput();
+
+    folder0.setActive(true);
+    folder1.setActive(true);
+    component.setActive(true);
+    ASSERT_TRUE(folder0.getLocalActive() && folder0.getActive());
+    ASSERT_TRUE(folder1.getLocalActive() && folder1.getActive());
+    ASSERT_TRUE(component.getLocalActive() && component.getActive());
+
+    const auto deserializer = daq::JsonDeserializer();
+    deserializer.update(folder0.asPtr<daq::IUpdatable>(true), str1, nullptr);
+
+    ASSERT_EQ(folder0.getLocalActive(), std::get<0>(GetParam()));
+    ASSERT_EQ(folder1.getLocalActive(), std::get<1>(GetParam()));
+    ASSERT_EQ(component.getLocalActive(), std::get<2>(GetParam()));
+
+    ASSERT_EQ(folder0.getActive(), std::get<0>(GetParam()));
+    ASSERT_EQ(folder1.getActive(), std::get<1>(GetParam()) && std::get<0>(GetParam()));
+    ASSERT_EQ(component.getActive(), std::get<2>(GetParam()) && std::get<1>(GetParam()) && std::get<0>(GetParam()));
+}
+
+static std::vector<std::tuple<bool, bool, bool>> GenerateAllPermutations()
+{
+    std::vector<std::tuple<bool, bool, bool>> permutations;
+    for (int i = 0; i < 8; ++i)
+    {
+        bool a = (i & 4) != 0;
+        bool b = (i & 2) != 0;
+        bool c = (i & 1) != 0;
+        permutations.emplace_back(a, b, c);
+    }
+    return permutations;
+}
+
+INSTANTIATE_TEST_CASE_P(
+    FolderActiveTestInstance,
+    FolderActiveTest,
+    testing::ValuesIn(GenerateAllPermutations())
+);
 
 using namespace daq;
 

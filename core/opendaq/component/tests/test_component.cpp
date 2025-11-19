@@ -46,8 +46,10 @@ TEST_F(ComponentTest, Active)
 {
     auto comp = ComponentPtr::Adopt(Component_Create(context->getObject(), nullptr, StringPtr("child"), nullptr));
     ASSERT_TRUE(comp.getActive());
+    ASSERT_TRUE(comp.getLocalActive());
     comp.setActive(false);
     ASSERT_FALSE(comp.getActive());
+    ASSERT_FALSE(comp.getLocalActive());
 }
 
 TEST_F(ComponentTest, Context)

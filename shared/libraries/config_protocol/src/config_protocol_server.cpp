@@ -565,10 +565,16 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::PropertyRemoved:
         case CoreEventId::SignalConnected:
         case CoreEventId::ComponentAdded:
-        case CoreEventId::AttributeChanged:
         case CoreEventId::PropertyOrderChanged:
             packedEvent.pushBack(processCoreEventArgs(args));
             break;
+        case CoreEventId::AttributeChanged:
+        {
+            const auto processedArgs = processAttributeChangedCoreEventArgs(args);
+            if (processedArgs.assigned())
+                packedEvent.pushBack(processedArgs);
+            break;
+        }
         case CoreEventId::ComponentUpdateEnd:
             packedEvent.pushBack(processUpdateEndCoreEvent(component, args));
             break;
@@ -625,6 +631,22 @@ CoreEventArgsPtr ConfigProtocolServer::processCoreEventArgs(const CoreEventArgsP
     }
 
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), cloned);
+}
+
+CoreEventArgsPtr ConfigProtocolServer::processAttributeChangedCoreEventArgs(const CoreEventArgsPtr& args)
+{
+    auto processedArgs = processCoreEventArgs(args);
+    auto params = processedArgs.getParameters();
+    assert(params.hasKey("AttributeName"));
+    if (params.get("AttributeName") == "Active")
+    {
+        assert(params.hasKey("Active"));
+        assert(params.hasKey("Local"));
+        if (!(static_cast<bool>(params.get("Local"))))
+            return nullptr;
+    }
+
+    return processedArgs;
 }
 
 CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)

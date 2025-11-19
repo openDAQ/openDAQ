@@ -21,11 +21,12 @@
 #include <gmock/gmock.h>
 #include <coretypes/gmock/mock_ptr.h>
 #include <coreobjects/property_object_impl.h>
+#include <opendaq/component_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 template <class Class, class TInterface>
-struct MockGenericComponent : GenericPropertyObjectImpl<TInterface>
+struct MockGenericComponent : GenericPropertyObjectImpl<TInterface, IComponentPrivate>
 {
     typedef MockPtr<
         TInterface,
@@ -51,9 +52,22 @@ struct MockGenericComponent : GenericPropertyObjectImpl<TInterface>
     MOCK_METHOD(daq::ErrCode, findComponent, (IString* id, IComponent** outComponent), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getStatusContainer, (daq::IComponentStatusContainer** statusContainer), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getOperationMode, (daq::OperationModeType* modeType), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getLocalActive, (daq::Bool* localActive), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getParentActive, (daq::Bool* parentActive), (override MOCK_CALL));
+
+    MOCK_METHOD(daq::ErrCode, lockAttributes, (daq::IList * attributes), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, lockAllAttributes, (), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, unlockAttributes, (daq::IList * attributes), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, unlockAllAttributes, (), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, triggerComponentCoreEvent, (ICoreEventArgs * args), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, updateOperationMode, (OperationModeType modeType), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, setComponentConfig, (IPropertyObject * config), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getComponentConfig, (IPropertyObject * *config), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, setParentActive, (Bool parentActive), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, updateActiveAttr, (ISerializedObject* obj), (override MOCK_CALL));
 
     MockGenericComponent()
-        : GenericPropertyObjectImpl<TInterface>()
+        : GenericPropertyObjectImpl<TInterface, IComponentPrivate>()
     {
     }
 };

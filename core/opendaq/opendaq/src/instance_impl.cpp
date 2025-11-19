@@ -424,6 +424,16 @@ ErrCode InstanceImpl::getActive(Bool* active)
     return rootDevice->getActive(active);
 }
 
+ErrCode InstanceImpl::getLocalActive(Bool* localActive)
+{
+    return rootDevice->getLocalActive(localActive);
+}
+
+ErrCode InstanceImpl::getParentActive(Bool* parentActive)
+{
+    return rootDevice->getParentActive(parentActive);
+}
+
 ErrCode InstanceImpl::setActive(Bool active)
 {
     return rootDevice->setActive(active);

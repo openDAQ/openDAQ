@@ -115,6 +115,8 @@ public:
     ErrCode INTERFACE_FUNC getOnComponentCoreEvent(IEvent** event) override;
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** statusContainer) override;
     ErrCode INTERFACE_FUNC findComponent(IString* id, IComponent** outComponent) override;
+    ErrCode INTERFACE_FUNC getLocalActive(Bool* localActive) override;
+    ErrCode INTERFACE_FUNC getParentActive(Bool* parentActive) override;
 
     // IFolder
     ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter) override;

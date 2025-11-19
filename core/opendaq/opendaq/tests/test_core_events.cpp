@@ -1152,31 +1152,42 @@ TEST_F(CoreEventTest, CoreEventException)
 
 TEST_F(CoreEventTest, ActiveChanged)
 {
-    int changeCount = 0;
+    int localChangeCount = 0;
+    int parentChangeCount = 0;
     getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
             ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::AttributeChanged));
             ASSERT_EQ(args.getEventName(), "AttributeChanged");
             ASSERT_TRUE(args.getParameters().hasKey("Active"));
-            changeCount++;
+            ASSERT_TRUE(args.getParameters().hasKey("Local"));
+            const bool local = args.getParameters().get("Local");
+            if (local)
+                localChangeCount++;
+            else
+                parentChangeCount++;
         };
 
     instance.setActive(false);
     instance.setActive(false);
     instance.setActive(true);
+    ASSERT_EQ(localChangeCount, 2);
+    ASSERT_GT(parentChangeCount, 2);
+    int prevParentChangeCount = parentChangeCount;
 
     instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
     instance.setActive(false);
     instance.setActive(true);
     instance.getRootDevice().asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+    ASSERT_EQ(localChangeCount, 2);
+    ASSERT_EQ(parentChangeCount, prevParentChangeCount);
 
     const auto sig = instance.getSignalsRecursive()[0];
     sig.setActive(false);
     sig.setActive(false);
     sig.setActive(true);
-
-    ASSERT_EQ(changeCount, 4);
+    ASSERT_EQ(localChangeCount, 4);
+    ASSERT_EQ(parentChangeCount, prevParentChangeCount);
 }
 
 TEST_F(CoreEventTest, DomainSignalChanged)

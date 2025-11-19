@@ -274,17 +274,19 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getStatusSignal(ISignal** 
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
+    Super::updateObject(obj, context);
+
     if (obj.hasKey("IP"))
     {
         const auto ipFolder = obj.readSerializedObject("IP");
-        this->updateFolder(ipFolder,
+        this->updateFolder(
+                    this->inputPorts,
+                     ipFolder,
                      "Folder",                    
                      "InputPort",
                      [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
                      { updateInputPort(localId, obj, context); });
     }
-
-    return Super::updateObject(obj, context);
 }
 
 template <class Intf, class... Intfs>
@@ -292,6 +294,12 @@ void FunctionBlockImpl<Intf, Intfs...>::updateInputPort(const std::string& local
                                                         const SerializedObjectPtr& obj,
                                                         const BaseObjectPtr& context)
 {
+    if (inputPorts.hasItem(localId))
+    {
+        InputPortPtr inputPort = inputPorts.getItem(localId);
+        inputPort.asPtr<IComponentPrivate>(true).updateActiveAttr(obj);
+    }
+    
     InputPortPtr inputPort = InputPort(this->context, inputPorts, localId);
     const auto updatableIp = inputPort.asPtr<IUpdatable>(true);
 

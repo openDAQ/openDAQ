@@ -57,6 +57,8 @@ struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEve
     MOCK_METHOD(daq::ErrCode, setName, (daq::IString* name), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setDescription, (daq::IString* name), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getDescription, (daq::IString** name), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getLocalActive, (daq::Bool* localActive), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getParentActive, (daq::Bool* parentActive), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, listenerConnected, (daq::IConnection* connection), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, listenerConnectedScheduled, (daq::IConnection* connection), (override MOCK_CALL));

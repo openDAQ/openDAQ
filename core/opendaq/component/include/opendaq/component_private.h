@@ -81,6 +81,18 @@ DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
      * @param config The configuration of the component.
      */
     virtual ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) = 0;
+
+    /*!
+     * @brief Called by parent component to notify the component it is active/inactive
+     * @param parentActive True This/parent components is active.
+     */
+    virtual ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) = 0;
+
+    /*!
+     * @brief Called by folder component to set it's active state
+     * @param update Serializable object.
+     */
+    virtual ErrCode INTERFACE_FUNC updateActiveAttr(ISerializedObject * update) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

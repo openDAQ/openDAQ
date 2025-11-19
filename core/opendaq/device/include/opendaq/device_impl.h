@@ -1834,6 +1834,8 @@ inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(c
              folder.template asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         }
 
+        folder.template asPtr<IComponentPrivate>(true).setParentActive(this->active);
+
         return folder;
     }
 
@@ -2098,7 +2100,8 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
         const auto updatableFolder = item.asPtr<IUpdatable>(true);
         updatableFolder.updateInternal(serializedItem, context);
 
-        this->updateFolder(serializedItem,
+        this->updateFolder(parentIoFolder,
+                           serializedItem,
                            "IoFolder",
                            "",
                            [this, &item, &context](const std::string& itemId, const SerializedObjectPtr& obj)
@@ -2220,7 +2223,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         const auto devicesFolder = obj.readSerializedObject("Dev");
         devicesFolder.checkObjectType("Folder");
 
-        this->updateFolder(devicesFolder,
+        this->updateFolder(this->devices,
+                           devicesFolder,
                            "Folder",
                            "Device",
                            [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
@@ -2232,7 +2236,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         const auto ioFolder = obj.readSerializedObject("IO");
         ioFolder.checkObjectType("IoFolder");
 
-        this->updateFolder(ioFolder,
+        this->updateFolder(this->ioFolder,
+                           ioFolder,
                            "IoFolder",
                            "",
                            [this, &context](const std::string& localId, const SerializedObjectPtr& obj)

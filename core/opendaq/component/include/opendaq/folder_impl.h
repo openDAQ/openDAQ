@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,9 +40,6 @@ public:
                const ComponentPtr& parent,
                const StringPtr& localId,
                const StringPtr& className = nullptr);
-
-    // IComponent
-    ErrCode INTERFACE_FUNC setActive(Bool active) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
@@ -91,7 +88,7 @@ protected:
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
     virtual void syncComponentOperationMode(const ComponentPtr& component);
-
+    void notifyActiveChanged() override;
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
     void clearInternal();
@@ -117,26 +114,6 @@ FolderImpl<Intf, Intfs...>::FolderImpl(const ContextPtr& context,
                                        const StringPtr& className)
     : FolderImpl(IComponent::Id, context, parent, localId, className)
 {
-}
-
-template <class Intf, class ... Intfs>
-ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
-{
-    const ErrCode err = Super::setActive(active);
-    OPENDAQ_RETURN_IF_FAILED(err);
-    if (err == OPENDAQ_IGNORED)
-        return err;
-
-    const ErrCode errCode = daqTry([&]
-    {
-        std::vector<ComponentPtr> itemsVec;
-        for (const auto& [_, item] : this->items)
-            itemsVec.emplace_back(item);
-        this->setActiveRecursive(itemsVec, active);
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
 }
 
 template <class Intf, class... Intfs>
@@ -232,6 +209,15 @@ void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& 
     componentPrivate->updateOperationMode(modeType);
 }
 
+template <class Intf, class ... Intfs>
+void FolderImpl<Intf, Intfs...>::notifyActiveChanged()
+{
+    std::vector<ComponentPtr> itemsVec;
+    for (const auto& [_, item] : this->items)
+        itemsVec.emplace_back(item);
+    this->notifyItemsActiveChanged(itemsVec);
+}
+
 template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 {
@@ -251,6 +237,8 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 
         OPENDAQ_RETURN_IF_FAILED(err);
     }
+
+    component.asPtr<IComponentPrivate>(true).setParentActive(this->active);
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
@@ -471,6 +459,7 @@ bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Type of item not allowed in the folder");
 
     const auto res = items.emplace(component.getLocalId(), component);
+//    component.asPtr<IComponentPrivate>().setParentActive(this->active);
     
     return res.second;
 }

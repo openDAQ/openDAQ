@@ -213,8 +213,6 @@ ErrCode SignalContainerImpl<Intf, Intfs...>::setActive(Bool active)
 {
     const ErrCode err = Super::setActive(active);
     OPENDAQ_RETURN_IF_FAILED(err);
-    if (err == OPENDAQ_IGNORED)
-        return err;
 
     const ErrCode errCode = daqTry([&]
     {

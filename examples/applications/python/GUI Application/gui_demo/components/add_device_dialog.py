@@ -68,6 +68,7 @@ class AddDeviceDialog(Dialog):
 
         device_tree.bind('<Double-1>', self.handle_device_tree_double_click)
         device_tree.bind('<Button-3>', self.handle_right_click)
+        device_tree.bind('<<TreeviewSelect>>', self.handle_device_selected)
         device_tree.pack(fill=tk.BOTH, expand=True)
         device_tree_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -83,7 +84,7 @@ class AddDeviceDialog(Dialog):
                        *add_device_options).pack(side=tk.RIGHT)
 
         ttk.Button(add_device_frame, text='Add',
-                   command=self.handle_add_device).pack(side=tk.RIGHT)
+                   command=self.handle_add_clicked).pack(side=tk.RIGHT)
 
         add_device_frame.pack(side=tk.BOTTOM, fill=tk.X,
                               padx=(5, 0), pady=(5, 0))
@@ -124,36 +125,67 @@ class AddDeviceDialog(Dialog):
             self.update_child_devices(
                 self.device_tree, parent_device)
 
+    def handle_device_selected(self, event):
+        selected_item_iid = utils.treeview_get_first_selection(
+            self.device_tree)
+        if selected_item_iid is None:
+            return
+
+        connection_string = self.device_tree.item(selected_item_iid, 'values')
+        self.conn_string_entry.delete(0, tk.END)
+        self.conn_string_entry.insert(0, connection_string[1])
+
     def handle_device_tree_double_click(self, event):
+        self.process_add_device(self.is_add_with_config())
+
+    def process_add_device(self, open_config_dialog: bool):
+        if open_config_dialog:
+            self.add_device_with_config()
+        else:
+            self.add_device_without_config()
+
+    def add_device_with_config(self):
         nearest_device = self.dialog_parent_device
         if nearest_device is None:
+            utils.show_error("Configuration error", "Cannot open config, parent device is not selected", self)
             return
-        selected_item = utils.treeview_get_first_selection(
+        # Get connection string from tree selection
+        selected_item_iid = utils.treeview_get_first_selection(
             self.device_tree)
-        if selected_item is None:
+
+        # When no item is selected, try to match entered connection string to one of the available devices
+        if selected_item_iid is None:
+            selected_item_iid = self.conn_string_entry.get()
+
+        selected_device_info = self.find_available_device(self.dialog_parent_device, selected_item_iid)
+        if selected_device_info is None or not daq.IDeviceInfo.can_cast_from(selected_device_info):
+            utils.show_error("Configuration error", "Cannot open config, device is not selected", self)
             return
-        item = self.device_tree.item(selected_item)
 
-        connection_string = item['values'][1]
+        add_config_dialog = AddConfigDialog(
+            self, self.context, selected_device_info, self.dialog_parent_device)
+        add_config_dialog.show()
 
-        config = None
+        config = add_config_dialog.config
+        conn_string = add_config_dialog.connection_string
+        if config is None or conn_string is None:
+            # Configuration was cancelled
+            return
 
-        if self.is_add_with_config():
-            add_config_dialog = AddConfigDialog(
-                self, self.context, connection_string)
-            add_config_dialog.show()
-            config = add_config_dialog.device_config
-            if config is None:
-                return
+        self.add_device(conn_string, config)
 
-        self.add_device(connection_string, config)
+    def add_device_without_config(self):
+        conn_string = self.conn_string_entry.get()
+        self.add_device(conn_string, None)
 
     def handle_right_click(self, event):
         utils.treeview_select_item(self.device_tree, event)
 
         menu = tk.Menu(self, tearoff=0)
         menu.add_command(
-            label='Connect', command=lambda: self.handle_device_tree_double_click(None))
+            label='Quick add', command=lambda: self.process_add_device(open_config_dialog=False))
+        menu.add_command(
+            label='Add with config', command=lambda: self.process_add_device(open_config_dialog=True))
         menu.add_command(label='Device Info',
                          command=self.handle_show_device_info)
         menu.tk_popup(event.x_root, event.y_root)
@@ -172,21 +204,19 @@ class AddDeviceDialog(Dialog):
                 utils.show_error('Error adding device', f'{connection_string}: {str(e)}', self)
                 return
 
-    def handle_add_device(self):
-        config = None
-        connection_string = self.conn_string_entry.get()
-        if self.is_add_with_config() and connection_string:
-            add_config_dialog = AddConfigDialog(
-                self, self.context, connection_string)
-            add_config_dialog.show()
-            config = add_config_dialog.device_config
-            if config is None:
-                return
-
-        self.add_device(connection_string, config)
+    def handle_add_clicked(self):
+        self.process_add_device(self.is_add_with_config())
 
     def handle_entry_enter(self, event):
-        self.handle_add_device()
+        self.process_add_device(self.is_add_with_config())
+
+    def find_available_device(self, parent_device: daq.IDevice, selected_item_iid):
+        if parent_device is None or selected_item_iid is None:
+            return None
+
+        found_devices = list(filter(
+            lambda d: d.connection_string == selected_item_iid, parent_device.available_devices))
+        return found_devices[0] if len(found_devices) > 0 else None
 
     def handle_show_device_info(self):
         selected_item_iid = utils.treeview_get_first_selection(
@@ -194,15 +224,7 @@ class AddDeviceDialog(Dialog):
         if selected_item_iid is None:
             return
 
-        def find_device(parent_device: daq.IDevice, selected_item_iid):
-            if parent_device is None or selected_item_iid is None:
-                return None
-
-            found_devices = list(filter(
-                lambda d: d.connection_string == selected_item_iid, parent_device.available_devices))
-            return found_devices[0] if len(found_devices) > 0 else None
-
-        device_info = find_device(self.dialog_parent_device, selected_item_iid)
+        device_info = self.find_available_device(self.dialog_parent_device, selected_item_iid)
         if device_info is None or not daq.IDeviceInfo.can_cast_from(device_info):
             return
 

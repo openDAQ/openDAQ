@@ -28,43 +28,37 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
  */
 class BasicCsvRecorderModule final : public Module
 {
-    public:
+public:
+    /*!
+     * @brief The name of this module.
+     */
+    static constexpr const char* MODULE_NAME = "BasicCsvRecorderModule";
 
-        /*!
-         * @brief The name of this module.
-         */
-        static constexpr const char *MODULE_NAME = "BasicCsvRecorderModule";
+    /*!
+     * @brief Constructs a new module.
+     * @param context The openDAQ context object.
+     */
+    BasicCsvRecorderModule(ContextPtr context);
 
-        /*!
-         * @brief Constructs a new module.
-         * @param context The openDAQ context object.
-         */
-        BasicCsvRecorderModule(ContextPtr context);
+    /*!
+     * @brief Returns a dictionary of the function block types supported by this module.
+     * @returns A dictionary of the function block types supported by this module.
+     */
+    DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
 
-        /*!
-         * @brief Returns a dictionary of the function block types supported by this module.
-         * @returns A dictionary of the function block types supported by this module.
-         */
-        DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
-
-        /*!
-         * @brief Creates and returns a new function block.
-         * @param id The identifier of the type of function block to create.
-         * @param parent The component object which will contain the function block.
-         * @param localId The local identifier of the function block.
-         * @param config A property object containing configuration data for the function block.
-         * @throws NotFoundException This module does not support the specified function block
-         *     type.
-         */
-        FunctionBlockPtr onCreateFunctionBlock(
-            const StringPtr& id,
-            const ComponentPtr& parent,
-            const StringPtr& localId,
-            const PropertyObjectPtr& config) override;
-
-    private:
-
-        FunctionBlockTypePtr basicCsvRecorderType;
+    /*!
+     * @brief Creates and returns a new function block.
+     * @param id The identifier of the type of function block to create.
+     * @param parent The component object which will contain the function block.
+     * @param localId The local identifier of the function block.
+     * @param config A property object containing configuration data for the function block.
+     * @throws NotFoundException This module does not support the specified function block
+     *     type.
+     */
+    FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id,
+                                           const ComponentPtr& parent,
+                                           const StringPtr& localId,
+                                           const PropertyObjectPtr& config) override;
 };
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

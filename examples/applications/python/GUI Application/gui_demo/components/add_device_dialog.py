@@ -131,6 +131,7 @@ class AddDeviceDialog(Dialog):
         if selected_item_iid is None:
             return
 
+        # Fill the textbox with connection string from the device
         connection_string = self.device_tree.item(selected_item_iid, 'values')
         self.conn_string_entry.delete(0, tk.END)
         self.conn_string_entry.insert(0, connection_string[1])
@@ -147,19 +148,18 @@ class AddDeviceDialog(Dialog):
     def add_device_with_config(self):
         nearest_device = self.dialog_parent_device
         if nearest_device is None:
-            utils.show_error("Configuration error", "Cannot open config, parent device is not selected", self)
+            utils.show_error("Configuration error", "Parent device is not selected. Cannot open config.", self)
             return
-        # Get connection string from tree selection
-        selected_item_iid = utils.treeview_get_first_selection(
-            self.device_tree)
 
-        # When no item is selected, try to match entered connection string to one of the available devices
-        if selected_item_iid is None:
-            selected_item_iid = self.conn_string_entry.get()
+        # Device selection is handled by the connection string entry. It is updated whenever a tree-item is selected,
+        # but the user may modify the connection string.
+        selected_item_iid = self.conn_string_entry.get()
 
+        # Match entered connection string to one of the available devices.
         selected_device_info = self.find_available_device(self.dialog_parent_device, selected_item_iid)
         if selected_device_info is None or not daq.IDeviceInfo.can_cast_from(selected_device_info):
-            utils.show_error("Configuration error", "Cannot open config, device is not selected", self)
+            utils.show_error(
+                "Configuration error", "Connection string does not match any device. Cannot open config.", self)
             return
 
         add_config_dialog = AddConfigDialog(

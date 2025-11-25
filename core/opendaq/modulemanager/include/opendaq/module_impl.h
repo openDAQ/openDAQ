@@ -38,6 +38,7 @@
 #include <coretypes/dictobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 class Module : public ImplementationOf<IModule>
 {
 public:

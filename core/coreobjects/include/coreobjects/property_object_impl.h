@@ -71,8 +71,12 @@ namespace object_utils
         bool try_lock() { return true; }
     };
 
-    static const auto UnrestrictedPermissions =
-        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+    inline const auto UnrestrictedPermissions = []() { 
+        daqDisableObjectTracking();
+        auto permissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+        daqEnableObjectTracking();
+        return permissions;
+    }();
 }
 
 class RecursiveConfigLockGuard : public std::enable_shared_from_this<RecursiveConfigLockGuard>
@@ -1476,7 +1480,7 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkFor
         return prop;
     }
 
-    PropertyInternalPtr boundProp = prop.asPtr<IPropertyInternal>().cloneWithOwner(objPtr);
+    PropertyInternalPtr boundProp = prop.asPtr<IPropertyInternal>(true).cloneWithOwner(objPtr);
     auto refProp = boundProp.getReferencedPropertyNoLock();
     if (refProp.assigned())
     {
@@ -2399,24 +2403,36 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnPropert
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(event);
 
-    Bool hasProp;
-    StringPtr name = propertyName;
+    StringPtr name = StringPtr::Borrow( propertyName);
 
+    if (isChildProperty(name))
+    {
+        StringPtr subName;
+        splitOnFirstDot(name, name, subName);
+
+        BaseObjectPtr childProp;
+        ErrCode errCode = getPropertyValueInternal(name, &childProp);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject>(true);
+        errCode = childPropAsPropertyObject->getOnPropertyValueWrite(subName, event);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
+    }
+
+    Bool hasProp;
     ErrCode err = this->hasProperty(name, &hasProp);
     OPENDAQ_RETURN_IF_FAILED(err);
 
     if (!hasProp)
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", name));
-    }
 
-    if (valueWriteEvents.find(name) == valueWriteEvents.end())
-    {
-        PropertyValueEventEmitter emitter;
-        valueWriteEvents.emplace(name, emitter);
-    }
+    PropertyInternalPtr prop = getUnboundProperty(name);
+    if (prop.getReferencedPropertyUnresolved().assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "getOnPropertyValueWrite is not allowed for the reference properties");
 
-    *event = valueWriteEvents[name].addRefAndReturn();
+    auto [it, _] = valueWriteEvents.try_emplace(name);
+    *event = it->second.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -2426,9 +2442,24 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnPropert
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(event);
 
-    Bool hasProp;
-    StringPtr name = propertyName;
+    StringPtr name = StringPtr::Borrow(propertyName);
 
+    if (isChildProperty(name))
+    {
+        StringPtr subName;
+        splitOnFirstDot(name, name, subName);
+
+        BaseObjectPtr childProp;
+        ErrCode errCode = getPropertyValueInternal(name, &childProp);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject>(true);
+        errCode = childPropAsPropertyObject->getOnPropertyValueRead(subName, event);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
+    }
+
+    Bool hasProp;
     ErrCode err = this->hasProperty(name, &hasProp);
     OPENDAQ_RETURN_IF_FAILED(err);
 
@@ -2437,13 +2468,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getOnPropert
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", name));
     }
 
-    if (valueReadEvents.find(name) == valueReadEvents.end())
-    {
-        PropertyValueEventEmitter emitter;
-        valueReadEvents.emplace(name, emitter);
-    }
+    PropertyInternalPtr prop = getUnboundProperty(name);
+    if (prop.getReferencedPropertyUnresolved().assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "getOnPropertyValueRead is not allowed for the reference properties");
 
-    *event = valueReadEvents[name].addRefAndReturn();
+    auto [it, _] = valueReadEvents.try_emplace(name);
+    *event = it->second.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -3415,7 +3445,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
         return obj->hasProperty(childStr, hasProperty);
     }
     
-
     if (localProperties.find(propertyName) != localProperties.cend())
     {
         *hasProperty = true;

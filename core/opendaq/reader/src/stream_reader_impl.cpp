@@ -367,6 +367,15 @@ ErrCode StreamReaderImpl::markAsInvalid()
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode StreamReaderImpl::getIsValid(Bool* isValid)
+{
+    OPENDAQ_PARAM_NOT_NULL(isValid);
+
+    std::unique_lock lock(mutex);
+    *isValid = !invalid;
+    return OPENDAQ_SUCCESS;
+}
+
 void StreamReaderImpl::inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader)
 {
     reader = createReaderForType(newDescriptor.getSampleType(), reader->getTransformFunction());

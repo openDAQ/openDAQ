@@ -242,6 +242,16 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
             transportClientHandlerTemp->sendStreamingPacket(signalNumericId, std::move(packet));
         }
     };
+    DowngradePacketStreamingCallback downgradePacketStreamingCallback =
+        [this](Int jsonSerializerVersion)
+    {
+        // use a temporary copy of the transport client
+        // to allow safe disposal of the member variable during device removal.
+        if (auto transportClientHandlerTemp = this->transportClientHandler; transportClientHandlerTemp)
+        {
+            transportClientHandlerTemp->downgradePacketStreamingServer(jsonSerializerVersion);
+        }
+    };
     configProtocolClient =
         std::make_unique<ConfigProtocolClient<NativeDeviceImpl>>(
             context,
@@ -249,7 +259,8 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
             sendNoReplyRequestCallback,
             handleDaqPacketCallback,
             nullptr,
-            nullptr
+            nullptr,
+            downgradePacketStreamingCallback
         );
 
     ProcessConfigProtocolPacketCb receiveConfigPacketCb =
@@ -447,21 +458,6 @@ void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
     this->connectionStatusContainer.addConfigurationConnectionStatus(deviceInfo.getConnectionString(), statusInitValue);
-}
-
-ErrCode NativeDeviceImpl::Deserialize(ISerializedObject* serialized,
-                                      IBaseObject* context,
-                                      IFunction* factoryCallback,
-                                      IBaseObject** obj)
-{
-    OPENDAQ_PARAM_NOT_NULL(context);
-
-    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
-    {
-        *obj = Super::Super::template DeserializeConfigComponent<IDevice, NativeDeviceImpl>(serialized, context, factoryCallback).detach();
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
 }
 
 void NativeDeviceImpl::removed()

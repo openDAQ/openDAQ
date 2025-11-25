@@ -231,7 +231,8 @@ public:
                                   const SendNoReplyRequestCallback& sendNoReplyRequestCallback,
                                   const HandleDaqPacketCallback& handleDaqPacketCallback,
                                   const SendPreprocessedPacketsCallback& sendPreprocessedPacketsCb,
-                                  const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
+                                  const ServerNotificationReceivedCallback& serverNotificationReceivedCallback,
+                                  const DowngradePacketStreamingCallback& downgradePacketStreamingCallback = nullptr);
 
     // called from client module
     DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = GetLatestConfigProtocolVersion());
@@ -253,6 +254,7 @@ private:
     ServerNotificationReceivedCallback serverNotificationReceivedCallback;
     DeserializerPtr deserializer;
     ConfigProtocolStreamingProducerPtr streamingProducer;
+    DowngradePacketStreamingCallback downgradePacketStreamingCallback;
 
     ConfigProtocolClientCommPtr clientComm;
     
@@ -273,12 +275,14 @@ ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& da
                                                             const SendNoReplyRequestCallback& sendNoReplyRequestCallback,
                                                             const HandleDaqPacketCallback& handleDaqPacketCallback,
                                                             const SendPreprocessedPacketsCallback& sendPreprocessedPacketsCb,
-                                                            const ServerNotificationReceivedCallback& serverNotificationReceivedCallback)
+                                                            const ServerNotificationReceivedCallback& serverNotificationReceivedCallback,
+                                                            const DowngradePacketStreamingCallback& downgradePacketStreamingCallback)
     : daqContext(daqContext)
     , sendRequestCallback(sendRequestCallback)
     , serverNotificationReceivedCallback(serverNotificationReceivedCallback)
     , deserializer(JsonDeserializer())
     , streamingProducer(std::make_shared<ConfigProtocolStreamingProducer>(daqContext, handleDaqPacketCallback, sendPreprocessedPacketsCb))
+    , downgradePacketStreamingCallback(downgradePacketStreamingCallback)
     , clientComm(
           std::make_shared<ConfigProtocolClientComm>(
               daqContext,
@@ -287,7 +291,7 @@ ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& da
               streamingProducer,
               [](ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
               {
-                  return TRootDeviceImpl::Deserialize(serialized, context, factoryCallback, obj);
+                  return TRootDeviceImpl::template Deserialize<TRootDeviceImpl>(serialized, context, factoryCallback, obj);
               }))
 {
 }
@@ -346,6 +350,10 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     // enable signal reading within basic client-to-device streaming
     if (protocolVersion < 18)
         streamingProducer->enableReading();
+
+    // downgrade packet streaming serializer to version 1
+    if (protocolVersion < 10 && downgradePacketStreamingCallback)
+        downgradePacketStreamingCallback(1);
 }
 
 template<class TRootDeviceImpl>

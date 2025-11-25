@@ -64,6 +64,7 @@ public:
     ErrCode INTERFACE_FUNC requestIpConfig(IString* iface, IString* manufacturer, IString* serialNumber, IPropertyObject** config) override;
     ErrCode INTERFACE_FUNC completeDeviceCapabilities(IDevice* device) override;
     ErrCode INTERFACE_FUNC createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) override;
+    ErrCode INTERFACE_FUNC getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* manufacturer, IString* serialNumber) override;
 
 private:
     
@@ -79,10 +80,11 @@ private:
 
     DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
     DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
-    static StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
-                                                  const DeviceInfoPtr& discoveredDeviceInfo,
-                                                  const PropertyObjectPtr& generalConfig,
-                                                  const LoggerComponentPtr& loggerComponent);
+    StringPtr getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const;
+    StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
+                                           const DeviceInfoPtr& discoveredDeviceInfo,
+                                           const PropertyObjectPtr& generalConfig,
+                                           const LoggerComponentPtr& loggerComponent) const;
     DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
     static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
 
@@ -99,7 +101,7 @@ private:
     void completeServerCapabilities(const DevicePtr& device) const;
 
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
-    static void setAddressesReachable(const std::map<std::string, bool>& addr, const std::string& type, ListPtr<IDeviceInfo>& info);
+    void setAddressesReachable(const std::map<std::string, bool>& addr, ListPtr<IDeviceInfo>& info);
     static PropertyObjectPtr populateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig);
 
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const;

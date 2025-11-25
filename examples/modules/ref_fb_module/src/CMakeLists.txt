@@ -16,6 +16,7 @@ set(SRC_Include common.h
                 trigger_fb_impl.h
                 fft_fb_impl.h
                 power_reader_fb_impl.h
+                sum_reader_fb_impl.h
                 struct_decoder_fb_impl.h
                 time_delay_fb_impl.h
 )
@@ -29,6 +30,7 @@ set(SRC_Srcs module_dll.cpp
              trigger_fb_impl.cpp
              fft_fb_impl.cpp
              power_reader_fb_impl.cpp
+             sum_reader_fb_impl.cpp
              struct_decoder_fb_impl.cpp
              time_delay_fb_impl.cpp
 )
@@ -107,21 +109,27 @@ add_library(${LIB_NAME} SHARED ${SRC_Include}
 
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
-target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
-                                  PRIVATE kissfft::kissfft
+target_link_libraries(${LIB_NAME}
+    PUBLIC
+        daq::opendaq
+    PRIVATE
+        kissfft::kissfft
 )
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     target_compile_definitions(${LIB_NAME} PRIVATE OPENDAQ_ENABLE_RENDERER)
-    target_link_libraries(${LIB_NAME} PRIVATE sfml-graphics
-                                              sfml-window
-                                              sfml-system
-                                              date::date)
+    target_link_libraries(${LIB_NAME}
+        PRIVATE
+            sfml-graphics
+            date::date
+    )
 endif()
 
-target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
-                                              $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
-                                              $<INSTALL_INTERFACE:include>
+target_include_directories(${LIB_NAME}
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
+        $<INSTALL_INTERFACE:include>
 )
 
 if (MSVC)

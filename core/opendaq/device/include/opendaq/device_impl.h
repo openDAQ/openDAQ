@@ -47,6 +47,9 @@
 #include <opendaq/connection_status_container_impl.h>
 #include <opendaq/device_network_config.h>
 #include <opendaq/option_helpers.h>
+#include <opendaq/component_type_builder_factory.h>
+#include <opendaq/module_info_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -214,6 +217,7 @@ protected:
                             const SerializedObjectPtr& item,
                             const BaseObjectPtr& context);
 
+    static void deserializeVersion(const SerializedObjectPtr& serialized, const DeviceInfoPtr& deviceInfo);
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
@@ -256,6 +260,7 @@ private:
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Idle};
     ListPtr<IInteger> availableOperationModes;
+    ModuleInfoPtr getModuleInfoFromDeviceType();
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -291,7 +296,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     syncComponentObj.template asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
     syncComponent = this->addExistingComponent(syncComponentObj.detach());
 
-    servers = this->template addFolder<IComponent>("Srv", nullptr, LockingStrategy::ForwardOwnerLockOwn);
+    servers = this->template addFolder<IServer>("Srv", nullptr, LockingStrategy::ForwardOwnerLockOwn);
 
     devices.asPtr<IComponentPrivate>().lockAllAttributes();
     ioFolder.asPtr<IComponentPrivate>().lockAllAttributes();
@@ -1668,6 +1673,18 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
     return status;
 }
 
+template <typename TInterface, typename ... Interfaces>
+ModuleInfoPtr GenericDevice<TInterface, Interfaces...>::getModuleInfoFromDeviceType()
+{
+    if (deviceInfo.assigned())
+    {
+        const auto deviceType = deviceInfo.getDeviceType();
+        if (deviceType.assigned())
+            return deviceType.getModuleInfo();
+    }
+    return nullptr;
+}
+
 template <typename TInterface, typename... Interfaces>
 DevicePtr GenericDevice<TInterface, Interfaces...>::getParentDevice()
 {
@@ -1831,6 +1848,16 @@ inline IoFolderConfigPtr GenericDevice<TInterface, Interfaces...>::addIoFolder(c
 template <typename TInterface, typename ... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
+    const auto moduleInfo = getModuleInfoFromDeviceType();
+    if (moduleInfo.assigned() && moduleInfo.getVersionInfo().assigned())
+    {
+        const auto version = moduleInfo.getVersionInfo();
+        const auto versionStr = fmt::format("{}.{}.{}", version.getMajor(), version.getMinor(), version.getPatch());
+
+        serializer.key("__version");
+        serializer.writeString(versionStr.c_str(), versionStr.size());
+    }
+
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
     this->serializeFolder(serializer, ioFolder, "IO", forUpdate);
@@ -1919,7 +1946,11 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     if (syncComponent.assigned())
     {
         serializer.key("Synchronization");
-        syncComponent.serialize(serializer);
+        if(forUpdate) {
+            syncComponent.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        } else {
+            syncComponent.serialize(serializer);
+        }
     }
 
     serializer.key("UserLock");
@@ -2074,6 +2105,34 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
                            { updateIoFolderItem(item, itemId, obj, context); });
     }
 }
+
+template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::deserializeVersion(const SerializedObjectPtr& serialized, const DeviceInfoPtr& deviceInfo)
+{
+    if (serialized.hasKey("__version"))
+    {
+        const auto version = Super::parseVersionString(serialized.readString("__version"));
+        if (version.assigned())
+        {
+            if (deviceInfo.assigned())
+            {
+                auto devType = deviceInfo.getDeviceType();
+                auto hasDevType = devType.assigned();
+                if (!hasDevType)
+                    devType = DeviceTypeBuilder().setName("__unknown").setId("__unknown").setConnectionStringPrefix("__unknown").build();
+
+                auto moduleInfo = devType.getModuleInfo();
+                if (!moduleInfo.assigned())
+                    moduleInfo = ModuleInfo(version, "__unknown", "_unknown");
+
+                checkErrorInfo(devType.template asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+                if (!hasDevType)
+                    deviceInfo.template asPtr<IDeviceInfoConfig>(true).setDeviceType(devType);
+            }
+        }
+    }
+}
+
 
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,

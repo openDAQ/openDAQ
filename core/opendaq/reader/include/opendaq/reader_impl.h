@@ -238,6 +238,16 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    ErrCode INTERFACE_FUNC getIsValid(Bool* isValid) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(isValid);
+
+        std::scoped_lock lock(mutex);
+        *isValid = !invalid;
+        return OPENDAQ_SUCCESS;
+    }
+
+
     // ISampleReader
 
     /*!

@@ -19,6 +19,7 @@
 #include <sstream>
 #include <utility>
 #include <opendaq/thread_name.h>
+#include <opendaq/component_type_private.h>
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
 #ifdef __linux__
@@ -31,7 +32,8 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
 StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
 
-RefDeviceImpl::RefDeviceImpl(size_t id,
+RefDeviceImpl::RefDeviceImpl(const ModuleInfoPtr& moduleInfo,
+                             size_t id,
                              const PropertyObjectPtr& config,
                              const ContextPtr& ctx,
                              const ComponentPtr& parent,
@@ -44,6 +46,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id,
     , microSecondsFromEpochToDeviceStart(0)
     , acqLoopTime(0)
     , stopAcq(false)
+    , moduleInfo(moduleInfo)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent(REF_MODULE_NAME)
@@ -92,7 +95,7 @@ RefDeviceImpl::~RefDeviceImpl()
     acqThread.join();
 }
 
-DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
+DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(const ModuleInfoPtr& moduleInfo, size_t id, const StringPtr& serialNumber)
 {
     auto devInfo = DeviceInfoWithChanegableFields({"userName", "location"});
     devInfo.setName(fmt::format("Device {}", id));
@@ -100,7 +103,7 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
     devInfo.setSerialNumber(serialNumber.assigned() && serialNumber.getLength() != 0 ? serialNumber : String(fmt::format("DevSer{}", id)));
-    devInfo.setDeviceType(CreateType());
+    devInfo.setDeviceType(CreateType(moduleInfo));
 
     std::string currentTime = ToIso8601(std::chrono::system_clock::now());
     devInfo.addProperty(StringProperty("SetupDate", currentTime));
@@ -108,7 +111,7 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serial
     return devInfo;
 }
 
-DeviceTypePtr RefDeviceImpl::CreateType()
+DeviceTypePtr RefDeviceImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
     const auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(IntProperty("NumberOfChannels", 2));
@@ -120,16 +123,18 @@ DeviceTypePtr RefDeviceImpl::CreateType()
     defaultConfig.addProperty(StringProperty("Name", ""));
     defaultConfig.addProperty(BoolProperty("UsePacketBuffer", False));
 
-    return DeviceType("daqref",
-                      "Reference device",
-                      "Reference device",
-                      "daqref",
-                      defaultConfig);
+    auto deviceType = DeviceType("daqref",
+                                 "Reference device",
+                                 "Reference device",
+                                 "daqref",
+                                 defaultConfig);
+    checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return deviceType;
 }
 
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    return RefDeviceImpl::CreateDeviceInfo(id, serialNumber);
+    return RefDeviceImpl::CreateDeviceInfo(moduleInfo, id, serialNumber);
 }
 
 uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
@@ -208,7 +213,7 @@ void RefDeviceImpl::initClock()
     this->setDeviceDomain(
         DeviceDomain(RefChannelImpl::getResolution(),
                      RefChannelImpl::getEpoch(),
-                     UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build(),
+                     UnitBuilder().setName("seconds").setSymbol("s").setQuantity("time").build(),
                      ReferenceDomainInfoBuilder().setReferenceDomainId(refDomainId).setReferenceDomainOffset(0).build()));
 }
 

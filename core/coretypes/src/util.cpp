@@ -12,7 +12,7 @@ daq::ErrCode PUBLIC_EXPORT daqInterfaceIdToString(const daq::IntfID& iid, daq::C
     {
         auto result = fmt::format_to_n(dest,
                                        38,
-                                       "{{{:08X}-{:04X}-{:04X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:2X}{:02X}{:02X}}}",
+                                       "{{{:08X}-{:04X}-{:04X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}}}",
                                        iid.Data1,
                                        iid.Data2,
                                        iid.Data3,

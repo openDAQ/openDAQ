@@ -54,7 +54,7 @@ TEST_F(ComponentsTest, ComponentStatuses)
     auto status = scalingFb.getStatusContainer().getStatus("ComponentStatus");
     auto message = scalingFb.getStatusContainer().getStatusMessage("ComponentStatus");
 
-    ASSERT_GT(statuses.getCount(), 0);
+    ASSERT_GT(statuses.getCount(), 0u);
     ASSERT_TRUE(status == Enumeration("ComponentStatusType", "Ok", instance.getContext().getTypeManager()));
     ASSERT_EQ(status, Enumeration("ComponentStatusType", "Ok", instance.getContext().getTypeManager()));
     ASSERT_EQ(message, "");

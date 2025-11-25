@@ -11,6 +11,8 @@
 
 ## Misc
 
+- [#974](https://github.com/openDAQ/openDAQ/pull/974) Reorganizes the audio device implementation for greater clarity. Adds automatic device/FB version info setting.
+
 ## Required application changes
 
 ## Required module changes

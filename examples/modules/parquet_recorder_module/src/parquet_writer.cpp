@@ -14,7 +14,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE
 
-static inline std::string sequencePostfix(unsigned sequence, unsigned width = 4)
+static inline std::string sequencePostfix(unsigned sequence, unsigned width = 10)
 {
     std::ostringstream oss;
     oss << "_" << std::setw(width) << std::setfill('0') << sequence;
@@ -29,16 +29,23 @@ static std::string getFilename(const fs::path& path, const SignalPtr& signal)
     std::transform(id.begin(), id.end(), id.begin(), [](auto c) { return std::isalnum(c) ? c : '_'; });
     boost::trim_if(id, boost::is_any_of("_ "));
 
-    std::string name;
+    fs::path retPath;
     unsigned sequence = 0;
     do
     {
         if (sequence == std::numeric_limits<unsigned>::max())
             throw InvalidStateException("Too many files with the same base name in directory: " + path.string());
-        name = id + sequencePostfix(sequence++) + extension;
-    } while (fs::exists(path / name));
+        retPath = path / (id + sequencePostfix(sequence++) + extension);
+        try
+        {
+            retPath = fs::absolute(retPath);
+        }
+        catch (const fs::filesystem_error&)
+        {
+        }
+    } while (fs::exists(retPath));
 
-    return name;
+    return retPath.string();
 }
 
 ParquetWriter::ParquetWriter(fs::path path, SignalPtr signal, daq::LoggerComponentPtr logger_component, daq::SchedulerPtr scheduler)
@@ -261,14 +268,21 @@ void ParquetWriter::writePackets(const DataPacketPtr& data, const DataPacketPtr&
         return;
     }
 
-    status = writer->WriteRecordBatch(*batch);
-    if (!status.ok())
+    if (writer)
     {
-        LOG_E("Failed to write record batch to Parquet file: {}", status.ToString());
+        status = writer->WriteRecordBatch(*batch);
+        if (!status.ok())
+        {
+            LOG_E("Failed to write record batch to Parquet file: {}", status.ToString());
+        }
+        else
+        {
+            LOG_D("ParquetWriter::writePackets: Successfully wrote record batch with ID: {} and sample count: {}", data.getPacketId(), sampleCount);
+        }
     }
     else
     {
-        LOG_D("ParquetWriter::writePackets: Successfully wrote record batch with ID: {} and sample count: {}", data.getPacketId(), sampleCount);
+        LOG_E("Writer for {} is not initialized", filename);
     }
 }
 
@@ -343,7 +357,8 @@ void ParquetWriter::openFile()
     LOG_D("ParquetWriter::openFile: Opening Parquet file for writing at path: {}", path.string());
 
     // Set up Parquet file output
-    outfile = arrow::io::FileOutputStream::Open(getFilename(path, signal)).ValueOr(nullptr);
+    filename = getFilename(path, signal);
+    outfile = arrow::io::FileOutputStream::Open(filename).ValueOr(nullptr);
     if (outfile && schema)
     {
         auto arrowPropertiesBuilder = parquet::ArrowWriterProperties::Builder();

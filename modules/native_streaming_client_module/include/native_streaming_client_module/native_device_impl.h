@@ -121,9 +121,6 @@ public:
     void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) override;
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 
-    // ISerializable
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
-
     // IComponentPrivate
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 

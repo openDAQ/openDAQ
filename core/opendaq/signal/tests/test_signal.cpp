@@ -573,7 +573,7 @@ TEST_F(SignalTest, SendPackets)
     auto packet1 = PacketMock();
 
     signal.sendPackets(List<IPacket>(packet0, packet1));
-    ASSERT_EQ(connImpl->packetsEnqueued, 3);
+    ASSERT_EQ(connImpl->packetsEnqueued, 3u);
 
     ASSERT_TRUE(connImpl->packetEnqueued);
 }
@@ -610,7 +610,7 @@ TEST_F(SignalTest, SendAndReleasePackets)
 
     signal.sendPackets(std::move(packets));
 
-    ASSERT_EQ(connImpl->packetsEnqueued, 3);
+    ASSERT_EQ(connImpl->packetsEnqueued, 3u);
     ASSERT_TRUE(connImpl->packetEnqueued);
 }
 

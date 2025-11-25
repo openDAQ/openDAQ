@@ -109,8 +109,8 @@ void MultiCsvRecorderImpl::initProperties()
 {
     this->tags.add(Tags::RECORDER);
 
-    // objPtr.addProperty(StringProperty(Props::PATH, ""));
-    // objPtr.getOnPropertyValueWrite(Props::PATH) += std::bind(&MultiCsvRecorderImpl::reconfigure, this);
+    objPtr.addProperty(StringProperty(Props::PATH, ""));
+    objPtr.getOnPropertyValueWrite(Props::PATH) += std::bind(&MultiCsvRecorderImpl::onPathChanged, this);
 }
 
 std::string MultiCsvRecorderImpl::getNextPortID() const
@@ -187,6 +187,8 @@ void MultiCsvRecorderImpl::updateReader()
 
     reader = builder.build();
 
+    // TODO: Check if reader is valid - different sample rates or sth
+
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
     reader.setOnDataAvailable(
@@ -223,6 +225,16 @@ void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor, 
         setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
         reader.setActive(False);
     }
+
+    if (this->statusContainer.getStatus("ComponentStatus") == ComponentStatus::Warning || !filePath.has_value())
+    {
+        writer = std::nullopt;
+        return;
+    }
+    // TODO: Compute CSV header info
+
+    // Replace the csv writer (can it ever survive a reconfigure?)
+    writer.emplace(filePath.value());
 }
 
 void MultiCsvRecorderImpl::reconfigure()
@@ -233,11 +245,17 @@ void MultiCsvRecorderImpl::reconfigure()
     configure(sumDomainDataDescriptor, descriptorList);
 }
 
+void MultiCsvRecorderImpl::onPathChanged()
+{
+    filePath = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
+    reconfigure();
+}
+
 void MultiCsvRecorderImpl::onConnected(const InputPortPtr& inputPort)
 {
     auto lock = this->getAcquisitionLock2();
 
-    LOG_D("Sum Reader FB: Input port {} connected", inputPort.getLocalId())
+    LOG_I("Sum Reader FB: Input port {} connected", inputPort.getLocalId())
 
     if (updateInputPorts())
     {
@@ -249,7 +267,7 @@ void MultiCsvRecorderImpl::onDisconnected(const InputPortPtr& inputPort)
 {
     auto lock = this->getAcquisitionLock2();
 
-    LOG_D("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
+    LOG_I("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
     if (updateInputPorts())
     {
         updateReader();
@@ -274,7 +292,10 @@ void MultiCsvRecorderImpl::onDataReceived()
 
     if (cnt > 0)
     {
-        // TODO: Do something with the received data
+        if (recordingActive && writer.has_value())
+        {
+            writer.value().writeSamples(std::move(data), cnt);
+        }
     }
 
     if (status.getReadStatus() == ReadStatus::Event)

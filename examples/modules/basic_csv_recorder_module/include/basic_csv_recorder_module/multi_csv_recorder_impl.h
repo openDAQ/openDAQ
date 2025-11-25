@@ -16,14 +16,19 @@
 
 #pragma once
 
+#include <fstream>
 #include <map>
 #include <memory>
+#include <optional>
+#include <queue>
+#include <thread>
 
+#include <coretypes/filesystem.h>
 #include <opendaq/function_block_impl.h>
 #include <opendaq/opendaq.h>
 
-#include <basic_csv_recorder_module/basic_csv_recorder_thread.h>
 #include <basic_csv_recorder_module/common.h>
+#include <basic_csv_recorder_module/multi_csv_writer.h>
 
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
@@ -33,6 +38,12 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 class MultiCsvRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
 {
 public:
+    struct SyncedSampleData
+    {
+        bool exit;
+        std::vector<double> data;
+    };
+
     static constexpr const char* TYPE_ID = "MultiCsvRecorder";
 
     struct Tags
@@ -54,6 +65,8 @@ public:
      */
     MultiCsvRecorderImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
 
+    ~MultiCsvRecorderImpl() = default;
+
     static FunctionBlockTypePtr createType();
 
     ErrCode INTERFACE_FUNC startRecording() override;
@@ -72,6 +85,7 @@ private:
     void updateReader();
     void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
     void reconfigure();
+    void onPathChanged();
 
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;
@@ -88,6 +102,8 @@ private:
     MultiReaderPtr reader;
 
     bool recordingActive = false;
+    std::optional<fs::path> filePath = std::nullopt;
+    std::optional<MultiCsvWriter> writer = std::nullopt;
 };
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

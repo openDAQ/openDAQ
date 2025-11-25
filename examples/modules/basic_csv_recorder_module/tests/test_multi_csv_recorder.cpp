@@ -49,6 +49,7 @@ protected:
 
         // Create function block
         fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb", config);
+        fb->setPropertyValue(StringPtr("Path"), StringPtr("C:/Users/tomaz/work/test.csv"));
 
         validDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
@@ -86,7 +87,7 @@ protected:
 
         double* sumValueData = static_cast<double*>(valuePacket.getRawData());
         for (size_t i = 0; i < sampleCount; ++i)
-            sumValueData[i] = 1;
+            sumValueData[i] = i;
 
         timeSignal.sendPacket(domainPacket);
         for (size_t i = signalRange.first; i < signalRange.second; ++i)
@@ -145,4 +146,16 @@ TEST_F(MultiCsvTest, DisconnectSignals)
 
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
     ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
+}
+
+TEST_F(MultiCsvTest, WriteSamples)
+{
+    for (size_t i = 0; i < validSignals.getCount(); ++i)
+        fb.getInputPorts()[i].connect(validSignals[i]);
+
+    fb.asPtr<IRecorder>(true).startRecording();
+
+    sendData(100, 0, false, std::make_pair(0, 10));
+
+    // Check the log file
 }

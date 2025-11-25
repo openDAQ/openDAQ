@@ -21,7 +21,7 @@ add_executable(${LIC_EXAMPLE} ${SRC_Headers}
                               ${SRC_Cpp}
 )
 
-if (MSVC)
+if (WIN32)
     target_compile_options(${LIC_EXAMPLE} 
         PRIVATE 
             /bigobj 
@@ -32,7 +32,7 @@ if (MSVC)
     target_link_libraries(${LIC_EXAMPLE}
         PRIVATE 
             wintrust        # Required for License Certificate verification
-            Crypt32         # Required for License Certificate verification
+            crypt32         # Required for License Certificate verification
     )
 endif()
 

@@ -244,6 +244,7 @@ void IcmpPing::handleReceive(std::size_t length)
     std::istream is(&replyBuffer);
     IPv4Header ipv4Header;
     ICMPHeader icmpHeader;
+
     is >> ipv4Header >> icmpHeader;
 
     // We can receive all ICMP packets received by the host, so we need to
@@ -263,10 +264,12 @@ void IcmpPing::handleReceive(std::size_t length)
         auto sourceAddr = ipv4Header.getSourceAddress();
         auto sourceStr = sourceAddr.to_string();
 
+        responseAddresses.emplace(sourceStr);
+
         auto destinationAddr = ipv4Header.getDestinationAddress();
         auto destinationStr = destinationAddr.to_string();
 
-        LOG_T("[{}] {} bytes from {}: icmp_seq={}, ttl={}, time={} ms\n",
+        LOG_T("[{}] {} bytes from {}: icmp_seq={}, ttl={}, time={} ms",
             fmt::streamed(std::this_thread::get_id()),
             length - ipv4Header.getHeaderLength(),
             sourceAddr,
@@ -275,13 +278,24 @@ void IcmpPing::handleReceive(std::size_t length)
             chrono::duration_cast<chrono::milliseconds>(elapsed).count()
         );
 
-        LOG_T("\nReceived reply: canceling all async operations\n\n");
+        LOG_T("Received reply: canceling all async operations");
         found = true;
         stop();
     }
 
     if (!stopReceive)
         startReceive();
+}
+
+std::unordered_set<std::string> IcmpPing::getReplyAddresses() const
+{
+    return responseAddresses;
+}
+
+void IcmpPing::clearReplies()
+{
+    numReplies = 0;
+    responseAddresses.clear();
 }
 
 uint16_t IcmpPing::GetIdentifier()

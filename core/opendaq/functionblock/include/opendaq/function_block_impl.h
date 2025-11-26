@@ -29,6 +29,7 @@
 #include <opendaq/recorder.h>
 #include <opendaq/component_type_private.h>
 #include <opendaq/module_info_factory.h>
+#include "opendaq/module_manager_ptr.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -358,6 +359,20 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std
         PropertyObjectPtr config;
         if (serializedFunctionBlock.hasKey("ComponentConfig"))
             config = serializedFunctionBlock.readObject("ComponentConfig");
+        else if (serializedFunctionBlock.hasKey("ComponentConfig2"))
+        {
+            const SerializedObjectPtr serializedConfig = serializedFunctionBlock.readSerializedObject("ComponentConfig2");
+            const ModuleManagerPtr moduleManager = this->context.getModuleManager().template asPtr<IModuleManager>();
+            
+            for(const auto& module : moduleManager.getModules()) {
+                if(module.getAvailableFunctionBlockTypes().hasKey(typeId)) {
+                    const FunctionBlockTypePtr& fbType = module.getAvailableFunctionBlockTypes()[typeId];
+                    config = fbType.createDefaultConfig();
+                    this->updateComponentConfig(config, serializedConfig);
+                    break;
+                }
+            }
+        }
         else
             config = PropertyObject();
         

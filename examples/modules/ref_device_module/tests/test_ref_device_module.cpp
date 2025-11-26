@@ -950,7 +950,10 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
 
 TEST_F(RefDeviceModuleTest, AddRemoveAddDevice)
 {
-    const auto instance = Instance();
+    auto module = CreateModule();
+
+    const auto instance = Instance("[[none]]");
+    instance.getModuleManager().addModule(module);
 
     auto dev0 = instance.addDevice("daqref://device0");
     auto dev1 = instance.addDevice("daqref://device1");

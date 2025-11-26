@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coretypes/version_info_ptr.h>
+#include <coretypes/development_version_info_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -41,6 +42,67 @@ inline StructTypePtr VersionInfoStructType()
                       List<IString>("Major", "Minor", "Patch"),
                       List<IBaseObject>(0, 0, 0),
                       List<IType>(SimpleType(ctInt), SimpleType(ctInt), SimpleType(ctInt)));
+}
+
+/////////////////
+/// DevelopmentVersion
+/////////////////
+
+/*!
+ * @brief Creates a new Version Info object.
+ * @param major The major version component.
+ * @param minor The minor version component.
+ * @param patch The patch version component.
+ * @param tweak The tweak version component.
+ * @param branch The VCS branch of the source-code.
+ * @param hash The VCS unique identifier hash/digest.
+ * @return The Version Info object.
+ */
+
+inline DevelopmentVersionInfoPtr DevelopmentVersionInfo(SizeT major, SizeT minor, SizeT patch, SizeT tweak = 0, StringPtr branch = "", StringPtr hash = "")
+{
+    return DevelopmentVersionInfo_Create(
+        major,
+        minor,
+        patch,
+        tweak,
+        branch,
+        hash
+    );
+}
+
+/*!
+ * @brief Creates the Struct type object that defines the Version Info struct.
+ */
+inline StructTypePtr DevelopmentVersionInfoStructType()
+{
+    return StructType(
+        "DevelopmentVersionInfo",
+         List<IString>(
+             "Major",
+             "Minor",
+             "Patch",
+             "Tweak",
+             "Branch",
+             "Hash"
+         ),
+         List<IBaseObject>(
+             0,
+             0,
+             0,
+             0,
+             "",
+             ""
+         ),
+         List<IType>(
+             SimpleType(ctInt),
+             SimpleType(ctInt),
+             SimpleType(ctInt),
+             SimpleType(ctInt),
+             SimpleType(ctString),
+             SimpleType(ctString)
+        )
+    );
 }
 
 /*!@}*/

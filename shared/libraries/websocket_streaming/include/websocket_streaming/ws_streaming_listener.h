@@ -34,6 +34,8 @@ class WsStreamingListener
             ISignal *signal,
             wss::local_signal *localSignal);
 
+        ~WsStreamingListener() override;
+
         void start();
 
         virtual ErrCode INTERFACE_FUNC acceptsSignal(IInputPort *port, ISignal *signal, Bool *accept) override;
@@ -44,6 +46,7 @@ class WsStreamingListener
     private:
 
         void onDataPacketReceived(DataPacketPtr packet);
+        void onEventPacketReceived(EventPacketPtr packet);
 
     private:
 

@@ -315,6 +315,8 @@ public:
                                         : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
         const auto config = createDeviceConfig(gatewayInstance, streamingProtocolIds, MIN_CONNECTIONS);
         gatewayInstance.addDevice(createStructureDeviceConnectionString(leafDeviceIndex), config);
+        // Wait for signals to become available in LT
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     InstancePtr addSecondLeafDevice(const InstancePtr& gatewayInstance, const InstancePtr& clientInstance, bool& success)
@@ -368,6 +370,8 @@ public:
                                         : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
         auto config = createDeviceConfig(instance, streamingProtocolIds, heuristicValue);
         auto gatewayDevice = instance.addDevice(createStructureDeviceConnectionString(0), config);
+        // Wait for signals to become available in LT
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
         return instance;
     }

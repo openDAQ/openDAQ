@@ -19,6 +19,8 @@
 #include <opendaq/opendaq.h>
 
 #include <ws-streaming/local_signal.hpp>
+#include <opendaq/event_packet_utils.h>
+#include <opendaq/event_packet_params.h>
 
 #include <websocket_streaming/descriptor_to_metadata.h>
 
@@ -46,6 +48,11 @@ WsStreamingListener::WsStreamingListener(
         descriptorToMetadata(
             signal,
             _lastDescriptor));
+}
+
+WsStreamingListener::~WsStreamingListener()
+{
+    _port.disconnect();
 }
 
 void WsStreamingListener::start()
@@ -85,6 +92,8 @@ ErrCode WsStreamingListener::packetReceived(IInputPort *port)
 
         if (packet.getType() == PacketType::Data)
             onDataPacketReceived(packet);
+        else if (packet.getType() == PacketType::Event)
+            onEventPacketReceived(packet.asPtr<IEventPacket>(true));
     }
 
     return OPENDAQ_SUCCESS;
@@ -116,6 +125,27 @@ void WsStreamingListener::onDataPacketReceived(DataPacketPtr packet)
             packet.getSampleCount(),
             packet.getRawData(),
             packet.getRawDataSize());
+}
+
+void WsStreamingListener::onEventPacketReceived(EventPacketPtr packet)
+{
+    if (packet.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+    {
+        bool valueDescriptorChanged;
+        DataDescriptorPtr newValueDescriptor;
+        std::tie(valueDescriptorChanged, std::ignore, newValueDescriptor, std::ignore) =
+            parseDataDescriptorEventPacket(packet);
+
+        if (valueDescriptorChanged && newValueDescriptor != _lastDescriptor)
+        {
+            _localSignal.set_metadata(
+                descriptorToMetadata(
+                    _signal,
+                    newValueDescriptor));
+
+            _lastDescriptor = newValueDescriptor;
+        }
+    }
 }
 
 END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING

@@ -1,0 +1,12 @@
+diff --git a/src/connection.cpp b/src/connection.cpp
+index b0a1c52..8e20254 100644
+--- a/src/connection.cpp
++++ b/src/connection.cpp
+@@ -266,6 +266,7 @@ void wss::connection::on_local_signal_metadata_changed(
+         }
+     }
+ 
++    entry.value_index = 0;
+     _peer->send_metadata(entry.signo, "signal", entry.signal.metadata().json());
+ }
+ 

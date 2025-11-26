@@ -435,9 +435,19 @@ TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    auto signals = client.getSignals(search::Recursive(search::Visible()));
+    // Wait for signals to become available in LT
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
     const auto renderer = client.addFunctionBlock("RefFBModuleRenderer");
-    renderer.getInputPorts()[0].connect(signals[0]);
+
+    daq::MirroredSignalConfigPtr signal;
+    for (const auto& s : client.getSignalsRecursive())
+        if (s.getLocalId() == "#local#Dev#RefDev1#IO#AI#RefCh0#Sig#AI0")
+            signal = s;
+
+    ASSERT_TRUE(signal.assigned());
+
+    renderer.getInputPorts()[0].connect(signal);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 }

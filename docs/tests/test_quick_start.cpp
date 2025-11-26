@@ -162,8 +162,14 @@ TEST_F_UNSTABLE_SKIPPED(QuickStartTest, QuickStartAppReaderWebsocket)
     // Wait for signals to become available
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
+    daq::MirroredSignalConfigPtr signal;
+    for (const auto& s : device.getSignalsRecursive())
+        if (s.getLocalId() == "#RefDev1#IO#AI#RefCh0#Sig#AI0")
+            signal = s;
+    ASSERT_TRUE(signal.assigned());
+
     using namespace std::chrono_literals;
-    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(device.getSignals()[1], ReadTimeoutType::Any);
+    StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
 
     {
         daq::SizeT count = 0;

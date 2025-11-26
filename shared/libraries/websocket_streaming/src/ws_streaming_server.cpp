@@ -344,7 +344,7 @@ void WsStreamingServer::rescan()
 
     auto items = _rootDevice.getItems(search::Recursive(search::Any()));
     for (const auto& item : items)
-        if (auto signal = item.asPtrOrNull<daq::ISignal>(); signal.assigned())
+        if (auto signal = item.asPtrOrNull<daq::ISignal>(); signal.assigned() && signal.getDescriptor().assigned())
             createListener(signal);
 }
 

@@ -90,6 +90,7 @@ WsStreaming::~WsStreaming()
     LOG_I("Stopping Boost.Asio I/O context thread");
     ioContext.stop();
     thread.join();
+    wsConnection->close();
 }
 
 PropertyObjectPtr WsStreaming::createDefaultConfig()
@@ -121,7 +122,7 @@ void WsStreaming::onSubscribeSignal(const StringPtr& signalId)
         // waiting for its initial metadata). This should not happen.
         if (!signalIt->second->isPublished)
         {
-            LOG_I("Found signal, but refusing to subscribe it because it's not published yet");
+            LOG_W("Found signal, but refusing to subscribe it because it's not published yet");
             return;
         }
 
@@ -139,7 +140,7 @@ void WsStreaming::onSubscribeSignal(const StringPtr& signalId)
 
     else
     {
-        LOG_I("No such signal");
+        LOG_E("No such signal");
     }
 }
 
@@ -152,7 +153,7 @@ void WsStreaming::onUnsubscribeSignal(const StringPtr& signalId)
         // Don't unsubscribe a signal if it's not actually subscribed.
         if (!signalIt->second->isSubscribed)
         {
-            LOG_I("Found signal, but refusing to unsubscribe it because it's not subscribed");
+            LOG_W("Found signal, but refusing to unsubscribe it because it's not subscribed");
             return;
         }
 
@@ -162,7 +163,7 @@ void WsStreaming::onUnsubscribeSignal(const StringPtr& signalId)
 
     else
     {
-        LOG_I("No such signal");
+        LOG_E("No such signal");
     }
 }
 
@@ -250,12 +251,29 @@ void WsStreaming::onRemoteSignalMetadataChanged(std::weak_ptr<WsStreamingRemoteS
 
     catch (const std::exception& ex)
     {
-        LOG_I("Cannot understand new metadata for signal {}: {}: {}",
+        LOG_E("Cannot understand new metadata for signal {}: {}: {}",
             entry->ptr->id(), ex.what(), entry->ptr->metadata().json().dump());
         entry->descriptor = nullptr;
         entry->domainEntry = nullptr;
     }
 
+    if (entry->descriptor.assigned() && entry->isPublished)
+    {
+        auto packet = DataDescriptorChangedEventPacket(entry->descriptor, nullptr);
+        onPacket(entry->ptr->id(), packet);
+
+        // changed signal is time signal
+        if (entry->ptr->id() == entry->ptr->metadata().table_id())
+        {
+            packet = DataDescriptorChangedEventPacket(nullptr, entry->descriptor);
+            for (const auto& [id, dataSignalEntry] : signals)
+            {
+                if (dataSignalEntry->ptr->metadata().table_id() == entry->ptr->id() &&
+                    dataSignalEntry != entry)
+                    onPacket(dataSignalEntry->ptr->id(), packet);
+            }
+        }
+    }
     if (entry->descriptor.assigned() && !entry->isPublished)
     {
         LOG_I("Signal {} is now ready, publishing it", entry->ptr->id());

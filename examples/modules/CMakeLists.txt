@@ -18,7 +18,7 @@ if (POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
-if (DAQMODULES_LICENSING_MODULE)
+if (DAQMODULES_LICENSING_MODULE AND NOT APPLE)
 	message(STATUS "    - Reference licensing implementation module")
 	set(LICENSING_MODULE_REQUIREMENTS_MET ON)
 	if(LINUX)

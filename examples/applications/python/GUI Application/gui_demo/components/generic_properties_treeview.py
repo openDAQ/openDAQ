@@ -228,6 +228,75 @@ class PropertiesTreeview(ttk.Treeview):
         finally:
             entry.destroy()
 
+    def save_struct_value(self, entry, parent, name):
+        new_raw = entry.get()
+
+        try:
+            old_struct = parent.value
+            old_dict = old_struct.as_dictionary
+
+            # Convert to same Python type
+            old_val = old_dict[name]
+            ty = type(old_val)
+
+            if ty is bool:
+                s = new_raw.strip().lower()
+                if s in ("1", "true", "yes", "on"):
+                    new_val = True
+                elif s in ("0", "false", "no", "off"):
+                    new_val = False
+                else:
+                    raise ValueError(f"Invalid bool literal {new_raw}")
+            else:
+                new_val = ty(new_raw)
+
+            # Special handling for protected struct types
+            struct_type_name = old_struct.struct_type.name
+
+            if struct_type_name == "Range":
+                # Range(lowValue, highValue)
+                low = old_dict["LowValue"]
+                high = old_dict["HighValue"]
+
+                if name == "LowValue":
+                    low = new_val
+                elif name == "HighValue":
+                    high = new_val
+
+                new_struct = daq.Range(low, high)
+
+            else:
+                # Generic struct → clone and rebuild
+                new_dict = daq.Dict()
+                for k, v in old_dict.items():
+                    new_dict[k] = new_val if k == name else v
+
+                tm = self.context.instance.context.type_manager
+
+                new_struct = daq.Struct(
+                    daq.String(struct_type_name),
+                    new_dict,
+                    tm
+                )
+
+            parent.value = new_struct
+            self.refresh()
+
+        except Exception as e:
+            print("Failed to set value:", e)
+
+        finally:
+            entry.destroy()
+
+    def edit_struct_property(self, selected_item_id, name, parent):
+        x, y, width, height = self.bbox(selected_item_id, '#1')
+        entry = ttk.Entry(self)
+        entry.place(x=x, y=y, width=width, height=height)
+        entry.insert(0, parent.value.get(name))
+        entry.focus()
+        entry.bind('<Return>', lambda e: self.save_struct_value(entry, parent, name))
+        entry.bind('<FocusOut>', lambda e: self.save_struct_value(entry, parent, name))
+
     def edit_simple_property(self, selected_item_id, property_value, path):
         x, y, width, height = self.bbox(selected_item_id, '#1')
         entry = ttk.Entry(self)
@@ -242,10 +311,14 @@ class PropertiesTreeview(ttk.Treeview):
         if selected_item_id is None:
             return
 
-        property_name = self.item(selected_item_id, 'text')
+        name = self.item(selected_item_id, 'text')
         path = utils.get_item_path(self, selected_item_id)
         prop = utils.get_property_for_path(self.context, path, self.node)
+
         if not prop:
+            parent = utils.get_property_for_path(self.context, path[:-1], self.node)
+            if daq.IStruct.can_cast_from(parent.value):
+                self.edit_struct_property(selected_item_id, name, parent)
             return
 
         if prop.value_type == daq.CoreType.ctFunc:
@@ -265,7 +338,7 @@ class PropertiesTreeview(ttk.Treeview):
             prop.value = not prop.value
             self.refresh() # is needed
         elif prop.value_type == daq.CoreType.ctInt and prop.selection_values is not None:
-            prop.value = utils.show_selection('Enter the new value for {}:'.format(property_name),
+            prop.value = utils.show_selection('Enter the new value for {}:'.format(name),
                                               prop.value, prop.selection_values)
             self.refresh() # is needed
         elif prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):

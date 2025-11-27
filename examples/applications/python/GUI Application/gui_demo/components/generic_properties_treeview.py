@@ -239,22 +239,12 @@ class PropertiesTreeview(ttk.Treeview):
             old_val = old_dict[name]
             ty = type(old_val)
 
-            if ty is bool:
-                s = new_raw.strip().lower()
-                if s in ("1", "true", "yes", "on"):
-                    new_val = True
-                elif s in ("0", "false", "no", "off"):
-                    new_val = False
-                else:
-                    raise ValueError(f"Invalid bool literal {new_raw}")
-            else:
-                new_val = ty(new_raw)
+            new_val = ty(new_raw)
 
             # Special handling for protected struct types
             struct_type_name = old_struct.struct_type.name
 
             if struct_type_name == "Range":
-                # Range(lowValue, highValue)
                 low = old_dict["LowValue"]
                 high = old_dict["HighValue"]
 
@@ -264,6 +254,23 @@ class PropertiesTreeview(ttk.Treeview):
                     high = new_val
 
                 new_struct = daq.Range(low, high)
+
+            elif struct_type_name == "Unit":
+                symbol = old_dict["Symbol"]
+                id = old_dict["Id"]
+                unit_name = old_dict["Name"]
+                quantity = old_dict["Quantity"]
+
+                if name == "Symbol":
+                    symbol = new_val
+                elif name == "Id":
+                    id = new_val
+                elif name == "Name":
+                    unit_name = new_val
+                elif name == "Quantity":
+                    quantity = new_val
+
+                new_struct = daq.Unit(id, symbol, unit_name, quantity)
 
             else:
                 # Generic struct → clone and rebuild

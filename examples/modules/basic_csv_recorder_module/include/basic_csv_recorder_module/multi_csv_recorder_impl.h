@@ -38,12 +38,6 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 class MultiCsvRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
 {
 public:
-    struct SyncedSampleData
-    {
-        bool exit;
-        std::vector<double> data;
-    };
-
     static constexpr const char* TYPE_ID = "MultiCsvRecorder";
 
     struct Tags

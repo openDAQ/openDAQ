@@ -21,14 +21,16 @@ add_executable(${LIC_EXAMPLE} ${SRC_Headers}
                               ${SRC_Cpp}
 )
 
-if (WIN32)
+if (MSVC)
     target_compile_options(${LIC_EXAMPLE} 
         PRIVATE 
             /bigobj 
             /wd4100     #Avoid 'unreferenced formal parameter' compiler warning  (Otherwise will not compile in VS in Release build...)
             /ZI         #Enable Hot Reload per default (see: ) https://learn.microsoft.com/en-us/visualstudio/debugger/edit-and-continue-visual-cpp?view=vs-2022#BKMK_Enable_or_disable_automatic_invocation_of_Edit_and_Continue
     )
+endif()
 
+if (WIN32)
     target_link_libraries(${LIC_EXAMPLE}
         PRIVATE 
             wintrust        # Required for License Certificate verification

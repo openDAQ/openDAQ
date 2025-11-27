@@ -157,6 +157,7 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     {
         std::string id = getNextPortID();
         auto inputPort = createAndAddInputPort(id, notificationMode);
+        // TODO: CreateAndAddInputPort makes the same call. Why is this neccessary?
         inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
         disconnectedPort = inputPort;
     }
@@ -196,11 +197,6 @@ void MultiCsvRecorderImpl::updateReader()
             if (thisFb.assigned())
                 this->onDataReceived();
         });
-
-    if (!reader.asPtr<IReaderConfig>(true).getIsValid())
-    {
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Unable to create a valid reader.");
-    }
 }
 
 void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors)
@@ -265,16 +261,11 @@ void MultiCsvRecorderImpl::onConnected(const InputPortPtr& inputPort)
 {
     auto lock = this->getAcquisitionLock2();
 
-    LOG_I("Sum Reader FB: Input port {} connected", inputPort.getLocalId())
+    LOG_I("Multi CSV Recorder: Input port {} connected", inputPort.getLocalId())
 
     if (updateInputPorts())
     {
         updateReader();
-    }
-
-    if (!reader.asPtr<IReaderConfig>(true).getIsValid())
-    {
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Connected a signal with invalid domain.");
     }
 }
 

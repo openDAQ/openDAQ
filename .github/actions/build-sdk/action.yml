@@ -1,0 +1,171 @@
+name: Build openDAQ SDK
+description: Configure, build and test openDAQ SDK
+
+inputs:
+  cmake-generator:
+    description: 'CMake generator (e.g., "Ninja", "Visual Studio 17 2022")'
+    required: false
+    default: ''
+  cmake-config-preset:
+    description: 'CMake configure preset name'
+    required: false
+    default: ''
+  cmake-config-args:
+    description: 'Additional CMake configure arguments (e.g., -D flags)'
+    required: false
+    default: ''
+  cmake-build-type:
+    description: 'Build configuration (Release, Debug). Required for multi-config generators (Visual Studio)'
+    required: false
+    default: ''
+  enable-tests:
+    description: 'Run tests after build'
+    required: false
+    default: 'false'
+
+outputs:
+  gtest-xml-path:
+    description: 'Path to GTest XML reports directory'
+    value: ${{ steps.test.outputs.gtest-xml-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check inputs
+      shell: bash
+      env:
+        CMAKE_GENERATOR: ${{ inputs.cmake-generator }}
+      run: |
+        if [ -z "$CMAKE_GENERATOR" ]; then
+          echo "::error::✗ The cmake-generator input is not set."
+          exit 1
+        fi
+
+    # NOTE: Keep python-version list in sync with PYTHON_VERSIONS in "Install Python dependencies" step
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: |
+            3.8
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
+            3.14
+
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '4.0'
+
+    - name: Install NSIS
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: choco install nsis -y --no-progress
+
+    - name: Install ninja-build
+      if: inputs.cmake-generator == 'Ninja'
+      uses: seanmiddleditch/gha-setup-ninja@v5
+
+    # https://github.com/actions/runner-images/issues/10001
+    - name: Setup MSVC toolchain
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Remove outdated clang
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: mv 'C:\Program Files\LLVM' 'C:\Program Files\LLVM_old'
+
+    - name: Install Python dependencies
+      shell: bash
+      env:
+        PYTHON_CMD: ${{ runner.os == 'Windows' && 'py -' || 'python' }}
+      run: |
+        echo "PYTHON_CMD=$PYTHON_CMD"
+        echo "RUNNER_OS=$RUNNER_OS"
+        PYTHON_VERSIONS=(3.8 3.9 3.10 3.11 3.12 3.13 3.14)
+        echo "PYTHON_VERSIONS=${PYTHON_VERSIONS[*]}"
+        for version in "${PYTHON_VERSIONS[@]}"; do
+          echo "Installing numpy for Python $version"
+          echo "Running: $PYTHON_CMD$version -m pip install numpy"
+          $PYTHON_CMD$version -m pip install numpy
+        done
+        echo "Done installing Python dependencies"
+
+    - name: Configure
+      id: cmake-config
+      shell: bash
+      env:
+        CMAKE_BUILD_TYPE: ${{ inputs.cmake-build-type }}
+        CMAKE_GENERATOR: ${{ inputs.cmake-generator }}
+        CI_GIT_BRANCH: ${{ github.head_ref }}
+      run: |
+        CMAKE_BUILD_PATH="build"
+        mkdir -p "$CMAKE_BUILD_PATH"
+        CMAKE_BUILD_PATH=$(cd "$CMAKE_BUILD_PATH" && pwd)
+        echo "build-path=$CMAKE_BUILD_PATH" >> "$GITHUB_OUTPUT"
+
+        CMAKE_ARGS=""
+        if [ -n "${{ inputs.cmake-config-preset }}" ]; then
+          CMAKE_ARGS="--preset ${{ inputs.cmake-config-preset }}"
+        fi
+
+        # Visual Studio specific options
+        if [[ "$CMAKE_GENERATOR" == "Visual Studio"* ]]; then
+          CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON"
+        fi
+
+        if [ -n "$CMAKE_BUILD_TYPE" ]; then
+          CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE"
+        fi
+
+        CMAKE_ARGS="$CMAKE_ARGS -DCI_GIT_BRANCH=$CI_GIT_BRANCH"
+
+        echo "::group::CMake Configure"
+        cmake -B "$CMAKE_BUILD_PATH" -G "$CMAKE_GENERATOR" $CMAKE_ARGS ${{ inputs.cmake-config-args }}
+        echo "::endgroup::"
+
+    - name: Build
+      shell: bash
+      env:
+        SHORT_SHA: ci # .NET bindings version suffix (e.g., 1.0.0-beta-ci)
+        CMAKE_BUILD_TYPE: ${{ inputs.cmake-build-type }}
+        CMAKE_BUILD_PATH: ${{ steps.cmake-config.outputs.build-path }}
+      run: |
+        CMAKE_BUILD_ARGS=""
+        if [ -n "$CMAKE_BUILD_TYPE" ]; then
+          CMAKE_BUILD_ARGS="--config $CMAKE_BUILD_TYPE"
+        fi
+
+        echo "::group::CMake Build"
+        cmake --build "$CMAKE_BUILD_PATH" $CMAKE_BUILD_ARGS
+        echo "::endgroup::"
+
+    - name: Test
+      id: test
+      if: inputs.enable-tests == 'true'
+      shell: bash
+      env:
+        CMAKE_BUILD_TYPE: ${{ inputs.cmake-build-type }}
+        CMAKE_BUILD_PATH: ${{ steps.cmake-config.outputs.build-path }}
+      run: |
+        GTEST_XML_PATH="$CMAKE_BUILD_PATH/test_results"
+        mkdir -p "$GTEST_XML_PATH"
+
+        if command -v cygpath &> /dev/null; then
+          GTEST_XML_PATH=$(cygpath -w "$GTEST_XML_PATH")
+        fi
+
+        export GTEST_OUTPUT="xml:$GTEST_XML_PATH/"
+        echo "gtest-xml-path=$GTEST_XML_PATH" >> "$GITHUB_OUTPUT"
+
+        CTEST_ARGS=""
+        if [ -n "$CMAKE_BUILD_TYPE" ]; then
+          CTEST_ARGS="--build-config $CMAKE_BUILD_TYPE"
+        fi
+
+        echo "::group::CTest"
+        ctest --test-dir "$CMAKE_BUILD_PATH" --preset run_tests --output-on-failure $CTEST_ARGS
+        echo "::endgroup::"

@@ -68,9 +68,21 @@ class PropertiesTreeview(ttk.Treeview):
                 self.item(iid, tags=('readonly',))
 
     def fill_struct(self, parent_iid, node, read_only):
+        # Special-case: protected struct types (e.g., ComplexNumber)
+        if isinstance(node, complex):
+            # Display as real/imag
+            iid = self.insert(parent_iid, tk.END, text="Real", values=(node.real,))
+            iid2 = self.insert(parent_iid, tk.END, text="Imag", values=(node.imag,))
+            return
+
+        # Normal struct (IStruct)
+        if not hasattr(node, "as_dictionary"):
+            # Avoid crash; display raw value
+            self.insert(parent_iid, tk.END, text="(value)", values=(str(node),))
+            return
+
         for key, value in node.as_dictionary.items():
-            iid = self.insert('' if not parent_iid else parent_iid,
-                             tk.END, text=key, values=(value,))
+            iid = self.insert(parent_iid, tk.END, text=key, values=(value,))
             if read_only:
                 self.item(iid, tags=('readonly',))
 
@@ -228,6 +240,7 @@ class PropertiesTreeview(ttk.Treeview):
         finally:
             entry.destroy()
 
+    # TODO: hacky
     def save_struct_value(self, entry, parent, name):
         new_raw = entry.get()
 
@@ -273,7 +286,7 @@ class PropertiesTreeview(ttk.Treeview):
                 new_struct = daq.Unit(id, symbol, unit_name, quantity)
 
             else:
-                # Generic struct → clone and rebuild
+                # Generic struct, clone and rebuild
                 new_dict = daq.Dict()
                 for k, v in old_dict.items():
                     new_dict[k] = new_val if k == name else v
@@ -320,13 +333,17 @@ class PropertiesTreeview(ttk.Treeview):
 
         name = self.item(selected_item_id, 'text')
         path = utils.get_item_path(self, selected_item_id)
-        prop = utils.get_property_for_path(self.context, path, self.node)
 
-        if not prop:
+        # handle struct
+        if len(path) > 1:
             parent = utils.get_property_for_path(self.context, path[:-1], self.node)
-            if daq.IStruct.can_cast_from(parent.value):
+            if type(parent.value) is complex:
+                return # complex isn't editable yet
+            elif parent.value_type == daq.CoreType.ctStruct:
                 self.edit_struct_property(selected_item_id, name, parent)
             return
+
+        prop = utils.get_property_for_path(self.context, path, self.node)
 
         if prop.value_type == daq.CoreType.ctFunc:
             f = daq.IFunction.cast_from(prop.value)

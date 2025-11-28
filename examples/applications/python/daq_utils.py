@@ -66,16 +66,33 @@ def print_struct(struct_, depth=0):
         else:
             print_indented('- ' + names[i] + ': ' + str(values[i]), depth)
 
-# Sets up an openDAQ simulator device. It uses the reference device as its root
-# and instantiates an openDAQ native server. The simulator has mdns discovery enabled.
-def setup_simulator():
+def setup_simulator(**kwargs):
+    """
+    Sets up an openDAQ simulator device. It uses the reference device as its root
+    and instantiates a server for each of supported protocols. The simulator has mdns discovery enabled.
+    The simulator setup may be customized by passing keyword arguments:
+    - name: str - name of the device (defaults to 'Reference device simulator')
+    - local_id: str - local ID of the device (defaults to 'RefDevSimulator')
+    - serial_number: str - serial number of the device (defaults to 'sim01')
+    - protocols: List[str] - protocols that the device supports (defaults to ['OpenDAQNativeStreaming'])
+    """
     config = daq.PropertyObject()
-    config.add_property(daq.StringProperty(daq.String(
-        'Name'), daq.String('Reference device simulator'), daq.Boolean(True)))
-    config.add_property(daq.StringProperty(daq.String(
-        'LocalId'), daq.String('RefDevSimulator'), daq.Boolean(True)))
-    config.add_property(daq.StringProperty(daq.String(
-        'SerialNumber'), daq.String('sim01'), daq.Boolean(True)))
+
+    config.add_property(
+        daq.StringProperty(
+            daq.String('Name'),
+            daq.String(kwargs.get('name', 'Reference device simulator')),
+            daq.Boolean(True)))
+    config.add_property(
+        daq.StringProperty(
+            daq.String('LocalId'),
+            daq.String(kwargs.get('local_id', 'RefDevSimulator')),
+            daq.Boolean(True)))
+    config.add_property(
+        daq.StringProperty(
+            daq.String('SerialNumber'),
+            daq.String(kwargs.get('serial_number', 'sim01')),
+            daq.Boolean(True)))
 
     instance_builder = daq.InstanceBuilder()
     instance_builder.add_discovery_server("mdns")
@@ -84,7 +101,11 @@ def setup_simulator():
     server_instance = instance_builder.build()
 
     server_config = daq.PropertyObject()
-    server_instance.add_server('OpenDAQNativeStreaming', server_config).enable_discovery()
+
+    protocols = kwargs.get('protocols', ['OpenDAQNativeStreaming'])
+    print("protocols", protocols)
+    for protocol_name in protocols:
+        server_instance.add_server(protocol_name, server_config).enable_discovery()
 
     return server_instance
 

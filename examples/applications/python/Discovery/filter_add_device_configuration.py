@@ -1,34 +1,11 @@
 import opendaq as daq
-import time
+import os
+import sys
 
-# Sets up an openDAQ simulator device. It uses the reference device as its root
-# and instantiates a server for each specified protocol. The simulator has mdns discovery enabled.
-def setup_simulator(name, protocols):
-    config = daq.PropertyObject()
-    config.add_property(daq.StringProperty(daq.String(
-        'Name'), daq.String(name), daq.Boolean(True)))
-    config.add_property(daq.StringProperty(daq.String(
-        'LocalId'), daq.String('FilterDevSimulator'), daq.Boolean(True)))
-    config.add_property(daq.StringProperty(daq.String(
-        'SerialNumber'), daq.String('sim02'), daq.Boolean(True)))
+py_include = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(py_include)
 
-    instance_builder = daq.InstanceBuilder()
-    instance_builder.add_discovery_server("mdns")
-    instance_builder.set_root_device('daqref://device0', config)
-    instance_builder.module_path = daq.OPENDAQ_MODULES_DIR
-    server_instance = instance_builder.build()
-
-    server_config = daq.PropertyObject()
-    for protocol_name in protocols:
-        server_instance.add_server(protocol_name, server_config).enable_discovery()
-    return server_instance
-
-def get_available_devices(parent):
-    try:
-        available_devices = parent.available_devices
-        return available_devices
-    except:
-        return []
+import daq_utils
 
 def compute_supported_protocols(device_info, instance):
     server_capabilities = device_info.server_capabilities
@@ -107,24 +84,18 @@ def filter_general_section(config, device_info, supported_protocols):
                 "AllowedStreamingProtocols",
                 "AutomaticallyConnectStreaming"])
 
-def print_configuration(config, level=0):
-    _indent = level * "  "
-    for _prop in config.visible_properties:
-        if _prop.value_type == daq.CoreType.ctObject:
-            print(_indent, f"{_prop.name}:")
-            print_configuration(_prop.value, level + 1)
-        else:
-            print(_indent, f"{_prop.name} = '{_prop.value}'")
-
-
 if __name__ == "__main__":
     # Setup a device simulator that can be discovered via opendaq
-    device_name = 'Filtering Device Simulator'
-    _sim = setup_simulator(device_name, ['OpenDAQNativeStreaming', 'OpenDAQLTStreaming', 'OpenDAQOPCUA'])
+    device_name = 'Filtering Device Simulator1'
+    _sim = daq_utils.setup_simulator(
+        name=device_name,
+        local_id='FilterDevSimulator',
+        serial_number='sim02',
+        protocols=['OpenDAQNativeStreaming', 'OpenDAQLTStreaming', 'OpenDAQOPCUA'])
 
     # Create an OpenDAQ instance and get available devices
     instance = daq.Instance()
-    available_devices = get_available_devices(instance)
+    available_devices = instance.available_devices
 
     # Select the device we created and get its info object
     device_info = None
@@ -152,7 +123,8 @@ if __name__ == "__main__":
     # General section includes configuration entries from all available modules.
     filter_general_section(configuration, device_info, supported_protocols)
 
+    print("Filtered configuration:")
     # Inspect the results of the filtering by printing the config to the command line.
     # By changing the list of protocols ins the call to setup_simulator, we can observe how
     # different device capabilities affect filtering of the add_device_config.
-    print_configuration(configuration)
+    daq_utils.print_property_object(configuration)

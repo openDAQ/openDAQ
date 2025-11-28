@@ -317,31 +317,21 @@ def update_properties(target: daq.IPropertyObject, source: daq.IPropertyObject):
     """Update target properties with values from source IPropertyObject.
     Assuming both have the same structure, this should result in target
     being identical copy of source."""
-
-    def update_dict(target_dict, source_dict):
-        for k in target_dict.keys:
-            if source_dict.has_key(k):
-                target_dict.set(k, source_dict.get(k))
-
-    def update_list(target_list, source_list):
-        target_list.clear()
-        for item in source_list:
-            target_list.push_back(item)
-
     for property in target.all_properties:
-            if not source.has_property(property.name):
-                print(f"WARNING: IPropertyObj mismatch, source does not contain property {property.name}")
-                continue
+        prop_name = property.name
+        if not source.has_property(prop_name):
+            continue
 
-            if property.value_type == daq.CoreType.ctObject:
-                update_properties(property.value, source.get_property_value(property.name))
-            elif property.value_type == daq.CoreType.ctStruct:
-                # Skip as structs are immutable
-                pass
-            elif property.value_type == daq.CoreType.ctList:
-                update_list(property.value, source.get_property_value(property.name))
-            elif property.value_type == daq.CoreType.ctDict:
-                update_dict(property.value, source.get_property_value(property.name))
-            else:
-                property.value = source.get_property_value(property.name)
+        source_prop = source.get_property(prop_name)
+        target_prop = target.get_property(prop_name)
 
+        if source_prop.value_type != target_prop.value_type:
+            continue
+
+        if target_prop.read_only:
+            continue
+
+        if source_prop.value_type == daq.CoreType.ctObject:
+            update_properties(target_prop.value, source_prop.value)
+        else:
+            target.set_property_value(prop_name, source_prop.value)

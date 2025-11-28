@@ -32,9 +32,9 @@ class AddConfigDialog(Dialog):
 
         left_frame = ttk.Frame(self)
 
-        self.device_combobox = self.add_combobox(left_frame, "Device configuration:")
+        self.device_combobox = self.add_combobox(left_frame, "Configuration protocols:")
         self.device_combobox.bind("<<ComboboxSelected>>", self.handle_device_protocol_select)
-        self.streaming_checklist = self.add_checkbox_list(left_frame, "Streaming configurations:")
+        self.streaming_checklist = self.add_checkbox_list(left_frame, "Streaming protocols:")
         self.streaming_checklist.register_callback(self.handle_checklist_changed)
 
         left_frame.grid(row=0, column=0)
@@ -67,8 +67,8 @@ class AddConfigDialog(Dialog):
         self.selected_device_config = self.device_combobox.get()
         self.selected_streaming_configs = []
 
-        self.device_tab = self.create_device_tab()
         self.general_tab = self.create_general_tab()
+        self.device_tab = self.create_device_tab()
         self.streaming_tabs = []
 
         self.update_connection_string()
@@ -76,6 +76,10 @@ class AddConfigDialog(Dialog):
         self.update_general_tab()
         self.update_device_tab()
         self.update_streaming_tabs()
+
+        # Update streaming tabs and general section as all available streamings are checked
+        self.handle_checklist_changed(self.streaming_checklist.get_checked())
+        self.tabs.select(self.general_tab)
 
     def handle_add_button_clicked(self):
         self.sync_device_and_streaming_configs()
@@ -148,7 +152,7 @@ class AddConfigDialog(Dialog):
         device_tab.pack(fill=tk.BOTH, expand=True)
 
         self.tabs.add(device_tab, text=_DEVICE)
-        self.tabs.insert(0, device_tab)
+        self.tabs.insert(1, device_tab)
         self.tabs.hide(device_tab)
         return device_tab
 
@@ -159,10 +163,12 @@ class AddConfigDialog(Dialog):
                 self.tabs.hide(self.device_tab)
             return
 
+        tab_title = self.selected_device_config.replace("OpenDAQ", "").replace("Configuration", " Configuration")
+        self.tabs.tab(self.device_tab, text=tab_title)
+
         device_section = self.config.get_property_value(_DEVICE)
         self.device_tab.edit(device_section.get_property(self.selected_device_config), self.context)
         self.tabs.add(self.device_tab) # unhide
-        self.tabs.select(self.device_tab)
 
     def update_streaming_tabs(self):
         for tab in self.streaming_tabs:
@@ -176,33 +182,27 @@ class AddConfigDialog(Dialog):
             new_tab = AddDeviceConfigView(self)
             new_tab.edit(streaming_section.get_property(property_name), self.context)
 
-            tab_title = property_name.strip("OpenDAQ").replace("Streaming", " Streaming")
+            tab_title = property_name.replace("OpenDAQ", "").replace("Streaming", " Streaming")
             self.tabs.add(new_tab, text=tab_title)
             self.tabs.insert(tk.END, new_tab)
             self.streaming_tabs.append(new_tab)
-
-        # TODO: Would be great to somehow open the last one that was checked - but this would require the checkbox
-        # widget to tell us whether the event was to check or uncheck and which entry
-        if len(self.streaming_tabs) > 0:
-            self.tabs.select(self.streaming_tabs[0])
 
     def create_general_tab(self):
         general_tab = AddDeviceConfigView(self.tabs)
         general_tab.pack(fill=tk.BOTH, expand=True)
 
         self.tabs.add(general_tab, text=_GENERAL)
-        self.tabs.insert(1, general_tab)
+        self.tabs.insert(0, general_tab)
         self.tabs.hide(general_tab)
         return general_tab
 
     def update_general_tab(self):
         self.general_tab.edit(self.config.get_property(_GENERAL), self.context)
         self.tabs.add(self.general_tab)
-        self.tabs.select(self.general_tab)
 
     def update_selection_widgets(self):
         self.update_combobox()
-        self.update_checklist(self.config.get_property_value(_STREAMING))
+        self.update_checklist(self.config.get_property_value(_STREAMING), True)
 
     def update_combobox(self):
         # Lookup streaming options
@@ -223,9 +223,9 @@ class AddConfigDialog(Dialog):
         default_idx = min(1, len(device_options) - 1)
         self.device_combobox.set(device_options[default_idx])
 
-    def update_checklist(self, streaming_section):
+    def update_checklist(self, streaming_section, select_all):
         for property in self.context.properties_of_component(streaming_section):
-            self.streaming_checklist.insert(property.name)
+            self.streaming_checklist.insert(property.name, select_all)
 
     def update_connection_string(self):
         """Update connection string used to add device. This function also
@@ -237,21 +237,25 @@ class AddConfigDialog(Dialog):
             server_capabilities = self.device_info.server_capabilities
             if len(server_capabilities) == 0:
                 self.connection_string = self.device_info.connection_string
-                self.status_label.configure(text=f"[OK] Connecting to local device: {self.connection_string}")
+                self.status_label.configure(
+                    text=f"[OK] Connecting to local device: {self.connection_string}", style="StatusOk.TLabel")
                 return
 
             # Remote devices have protocol IDs defined in server capabilities
             for c in server_capabilities:
                 if c.protocol_id == self.selected_device_config:
                     self.connection_string = c.connection_string
-                    self.status_label.configure(text=f"[OK] Configuration connection to: {self.connection_string}")
+                    self.status_label.configure(
+                        text=f"[OK] Configuration connection to: {self.connection_string}", style="StatusOk.TLabel")
                     return
 
         # No config and 0 or >= 2 streaming connections selected, unclear how to connect
         if len(self.selected_streaming_configs) != 1:
             self.connection_string = None
             self.add_device_button.config(state="disabled")
-            self.status_label.configure(text="[Invalid] Select a configuration protocol or exactly one streaming protocol.")
+            self.status_label.configure(
+                text="[ERROR] Select a configuration protocol or exactly one streaming protocol.",
+                style="StatusError.TLabel")
             return
 
         streaming_protocol = self.selected_streaming_configs[0]
@@ -259,7 +263,8 @@ class AddConfigDialog(Dialog):
         for c in server_capabilities:
             if c.protocol_id == streaming_protocol:
                 self.connection_string = c.connection_string
-                self.status_label.configure(text=f"[OK] Streaming connection to: {self.connection_string}")
+                self.status_label.configure(
+                    text=f"[OK] Streaming connection to: {self.connection_string}", style="StatusOk.TLabel")
                 break
 
     def create_add_device_config(self):

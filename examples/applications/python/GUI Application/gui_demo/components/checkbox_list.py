@@ -30,9 +30,9 @@ class CheckboxList(ttk.Frame):
         bbox[3] -= offset
         self.canvas.configure(scrollregion=tuple(bbox))
 
-    def insert(self, label):
+    def insert(self, label, selected):
         """Add a new checkbutton item at the end."""
-        var = tk.BooleanVar(value=False)
+        var = tk.BooleanVar(value=selected)
         chk = ttk.Checkbutton(self.frame, text=label, variable=var, command=self.handle_checking)
         chk.pack(anchor="w", fill="x", padx=4, pady=1)
         self._vars[label] = var

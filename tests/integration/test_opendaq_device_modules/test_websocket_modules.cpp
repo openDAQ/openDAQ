@@ -79,6 +79,8 @@ public:
     {
         auto instance = Instance();
         auto refDevice = instance.addDevice("daq.lt://127.0.0.1/");
+        // Wait for signals to become available in LT
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         return instance;
     }
 };
@@ -306,9 +308,6 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
 
-    // Wait for signals to become available
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
     auto signals = client.getSignals(search::Recursive(search::Visible()));
     ASSERT_EQ(signals.getCount(), 5u);
 }
@@ -335,9 +334,6 @@ TEST_F(WebsocketModulesTest, SignalConfig_Server)
 
     auto client = CreateClientInstance();
 
-    // Wait for signals to become available
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
     auto clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Visible()));
 
     ASSERT_EQ(serverSignal.getDescriptor().getName(), newSignalName);
@@ -355,9 +351,6 @@ TEST_F(WebsocketModulesTest, DataDescriptor)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-
-    // Wait for signals to become available
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
     auto serverSignals = server.getSignals(search::Recursive(search::Any()));
@@ -384,9 +377,6 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-
-    // Wait for signals to become available
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     daq::MirroredSignalConfigPtr signal;
     for (const auto& s : client.getSignalsRecursive())
@@ -434,9 +424,6 @@ TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-
-    // Wait for signals to become available in LT
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     const auto renderer = client.addFunctionBlock("RefFBModuleRenderer");
 
@@ -551,9 +538,6 @@ TEST_F(WebsocketModulesTest, RemoveSignals)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-
-    // Wait for signals to become available
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
 
@@ -684,9 +668,6 @@ TEST_F(WebsocketModulesTest, UpdateRemoveSignals)
     serverRefDevice.setPropertyValue("NumberOfChannels", 3);
 
     auto client = CreateClientInstance();
-
-    // Wait for signals to become available
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
 

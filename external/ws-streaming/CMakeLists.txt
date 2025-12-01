@@ -8,4 +8,5 @@ opendaq_dependency(
     EXPECT_TARGET       ws-streaming::ws-streaming
     PATCH_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0001-Reset-value-index.patch
+        ${CMAKE_CURRENT_SOURCE_DIR}/patches/0002-Weak-captures.patch
 )

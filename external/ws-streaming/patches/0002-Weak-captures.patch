@@ -1,0 +1,306 @@
+diff --git a/include/ws-streaming/listener.hpp b/include/ws-streaming/listener.hpp
+index fc402d3..1d2494a 100644
+--- a/include/ws-streaming/listener.hpp
++++ b/include/ws-streaming/listener.hpp
+@@ -105,9 +105,13 @@ namespace wss
+ 
+             void do_accept()
+             {
+-                using namespace std::placeholders;
+                 acceptor.async_accept(
+-                    std::bind(&listener::finish_accept, this->shared_from_this(), _1, _2));
++                    [self_weak = this->weak_from_this()](auto&& ec, auto&& socket) {
++                        if (auto self = self_weak.lock()) {
++                            self->finish_accept(ec, std::forward<decltype(socket)>(socket));
++                        }
++                    }
++                );
+             }
+ 
+             void finish_accept(
+diff --git a/src/connection.cpp b/src/connection.cpp
+index b0a1c52..5da4f70 100644
+--- a/src/connection.cpp
++++ b/src/connection.cpp
+@@ -51,9 +51,25 @@ void wss::connection::register_external_command_interface(
+ 
+ void wss::connection::run()
+ {
+-    _on_peer_data_received = _peer->on_data_received.connect(std::bind(&connection::on_peer_data_received, shared_from_this(), _1, _2, _3));
+-    _on_peer_metadata_received = _peer->on_metadata_received.connect(std::bind(&connection::on_peer_metadata_received, shared_from_this(), _1, _2, _3));
+-    _on_peer_closed = _peer->on_closed.connect(std::bind(&connection::on_peer_closed, shared_from_this(), _1));
++    auto self_weak = weak_from_this();
++
++    _on_peer_data_received = _peer->on_data_received.connect(
++        [self_weak](unsigned signo, const std::uint8_t* data, std::size_t size) {
++            if (auto self = self_weak.lock())
++                self->on_peer_data_received(signo, data, size);
++        });
++
++    _on_peer_metadata_received = _peer->on_metadata_received.connect(
++        [self_weak](unsigned signo, const std::string& method, const nlohmann::json& params) {
++            if (auto self = self_weak.lock())
++                self->on_peer_metadata_received(signo, method, params);
++        });
++
++    _on_peer_closed = _peer->on_closed.connect(
++        [self_weak](const boost::system::error_code& ec) {
++            if (auto self = self_weak.lock())
++                self->on_peer_closed(ec);
++        });
+ 
+     _peer->run();
+ 
+@@ -63,9 +79,28 @@ void wss::connection::run()
+ 
+ void wss::connection::run(const void *data, std::size_t size)
+ {
+-    _on_peer_data_received = _peer->on_data_received.connect(std::bind(&connection::on_peer_data_received, shared_from_this(), _1, _2, _3));
+-    _on_peer_metadata_received = _peer->on_metadata_received.connect(std::bind(&connection::on_peer_metadata_received, shared_from_this(), _1, _2, _3));
+-    _on_peer_closed = _peer->on_closed.connect(std::bind(&connection::on_peer_closed, shared_from_this(), _1));
++    auto self_weak = weak_from_this();
++
++    _on_peer_data_received = _peer->on_data_received.connect(
++        [self_weak](unsigned signo, const std::uint8_t* data, std::size_t size)
++        {
++            if (auto self = self_weak.lock())
++                self->on_peer_data_received(signo, data, size);
++        });
++
++    _on_peer_metadata_received = _peer->on_metadata_received.connect(
++        [self_weak](unsigned signo, const std::string& method, const nlohmann::json& params)
++        {
++            if (auto self = self_weak.lock())
++                self->on_peer_metadata_received(signo, method, params);
++        });
++
++    _on_peer_closed = _peer->on_closed.connect(
++        [self_weak](const boost::system::error_code& ec)
++        {
++            if (auto self = self_weak.lock())
++                self->on_peer_closed(ec);
++        });
+ 
+     _peer->run(data, size);
+ 
+@@ -615,21 +650,25 @@ bool wss::connection::subscribe(
+         "signal",
+         metadata);
+ 
++    auto self_weak = weak_from_this();
++    auto signal_weak = std::weak_ptr<detail::registered_local_signal>(signal);
++
+     signal->on_data_published = signal->signal.on_data_published.connect(
+-        std::bind(
+-            &connection::on_local_signal_data_published,
+-            shared_from_this(),
+-            signal,
+-            _1,
+-            _2,
+-            _3,
+-            _4));
++        [self_weak, signal_weak](std::int64_t domain_value,
++                                 std::size_t sample_count,
++                                 const void* data,
++                                 std::size_t size) {
++            if (auto self = self_weak.lock())
++                if (auto s = signal_weak.lock())
++                    self->on_local_signal_data_published(s, domain_value, sample_count, data, size);
++        });
+ 
+     signal->on_metadata_changed = signal->signal.on_metadata_changed.connect(
+-        std::bind(
+-            &connection::on_local_signal_metadata_changed,
+-            shared_from_this(),
+-            std::ref(*signal)));
++        [self_weak, signal_weak]() {
++            if (auto self = self_weak.lock())
++                if (auto s = signal_weak.lock())
++                    self->on_local_signal_metadata_changed(*s);
++        });
+ 
+     return true;
+ }
+diff --git a/src/detail/http_client.cpp b/src/detail/http_client.cpp
+index a64aa03..cc3a4d8 100644
+--- a/src/detail/http_client.cpp
++++ b/src/detail/http_client.cpp
+@@ -53,11 +53,12 @@ void wss::detail::http_client::async_request(
+     _resolver.async_resolve(
+         hostname,
+         port,
+-        std::bind(
+-            &http_client::finish_resolve,
+-            shared_from_this(),
+-            std::placeholders::_1,
+-            std::placeholders::_2));
++        [self_weak = weak_from_this()](const boost::system::error_code& ec,
++                    const boost::asio::ip::tcp::resolver::results_type& results)
++        {
++            if (auto self = self_weak.lock())
++                self->finish_resolve(ec, results);
++        });
+ }
+ 
+ void wss::detail::http_client::cancel()
+@@ -75,10 +76,11 @@ void wss::detail::http_client::finish_resolve(
+ 
+     _stream.async_connect(
+         results,
+-        std::bind(
+-            &http_client::finish_connect,
+-            shared_from_this(),
+-            std::placeholders::_1));
++        [self_weak = weak_from_this()](const boost::system::error_code& ec, auto endpoint)
++        {
++            if (auto self = self_weak.lock())
++                self->finish_connect(ec); // finish_connect only takes ec
++        });
+ }
+ 
+ void wss::detail::http_client::finish_connect(
+@@ -92,10 +94,11 @@ void wss::detail::http_client::finish_connect(
+     boost::beast::http::async_write(
+         _stream,
+         _request,
+-        std::bind(
+-            &http_client::finish_write,
+-            shared_from_this(),
+-            std::placeholders::_1));
++        [self_weak = weak_from_this()](const boost::system::error_code& ec, std::size_t bytes_transferred)
++        {
++            if (auto self = self_weak.lock())
++                self->finish_write(ec);
++        });
+ }
+ 
+ void wss::detail::http_client::finish_write(
+@@ -110,10 +113,11 @@ void wss::detail::http_client::finish_write(
+         _stream,
+         _buffer,
+         _response,
+-        std::bind(
+-            &http_client::finish_read,
+-            shared_from_this(),
+-            std::placeholders::_1));
++        [self_weak = weak_from_this()](const boost::system::error_code& ec, std::size_t bytes_transferred)
++        {
++            if (auto self = self_weak.lock())
++                self->finish_read(ec);
++        });
+ }
+ 
+ void wss::detail::http_client::finish_read(
+diff --git a/src/detail/http_client_servicer.cpp b/src/detail/http_client_servicer.cpp
+index eeb1352..8d0e956 100644
+--- a/src/detail/http_client_servicer.cpp
++++ b/src/detail/http_client_servicer.cpp
+@@ -40,9 +40,10 @@ void wss::detail::http_client_servicer::stop()
+ {
+     boost::asio::post(
+         stream.get_executor(),
+-        [self = shared_from_this()]()
++        [self_weak = weak_from_this()]()
+         {
+-            self->close();
++            if (auto self = self_weak.lock())
++                self->close();
+         });
+ }
+ 
+@@ -54,11 +55,11 @@ void wss::detail::http_client_servicer::do_read()
+         stream,
+         buffer,
+         req = {},
+-        std::bind(
+-            &http_client_servicer::finish_read,
+-            shared_from_this(),
+-            _1,
+-            _2));
++        [self_weak = weak_from_this()](const boost::system::error_code& ec, std::size_t bytes_transferred)
++        {
++            if (auto self = self_weak.lock())
++                self->finish_read(ec, bytes_transferred);
++        });
+ }
+ 
+ void wss::detail::http_client_servicer::do_write(
+@@ -68,12 +69,11 @@ void wss::detail::http_client_servicer::do_write(
+     boost::beast::async_write(
+         stream,
+         std::move(msg),
+-        std::bind(
+-            &http_client_servicer::finish_write,
+-            shared_from_this(),
+-            action,
+-            _1,
+-            _2));
++        [self_weak = weak_from_this(), action](const boost::system::error_code& ec, std::size_t bytes_transferred)
++        {
++            if (auto self = self_weak.lock())
++                self->finish_write(action, ec, bytes_transferred);
++        });
+ }
+ 
+ void wss::detail::http_client_servicer::finish_read(
+diff --git a/src/detail/peer.cpp b/src/detail/peer.cpp
+index 0a24fd2..1371ba9 100644
+--- a/src/detail/peer.cpp
++++ b/src/detail/peer.cpp
+@@ -48,9 +48,10 @@ void wss::detail::peer::run(const void *data, std::size_t size)
+     if (size > _rx_buffer.size())
+         boost::asio::post(
+             _socket.get_executor(),
+-            [self = shared_from_this()]()
++            [self_weak = weak_from_this()]()
+             {
+-                self->close(boost::asio::error::no_buffer_space);
++                if (auto self = self_weak.lock())
++                    self->close(boost::asio::error::no_buffer_space);
+             });
+ 
+     std::memcpy(
+@@ -62,9 +63,10 @@ void wss::detail::peer::run(const void *data, std::size_t size)
+ 
+     boost::asio::post(
+         _socket.get_executor(),
+-        [self = shared_from_this()]()
++        [self_weak = weak_from_this()]()
+         {
+-            self->process_buffer();
++            if (auto self = self_weak.lock())
++                self->process_buffer();
+         });
+ }
+ 
+@@ -115,20 +117,22 @@ void wss::detail::peer::do_wait_rx()
+ {
+     _socket.async_wait(
+         boost::asio::socket_base::wait_read,
+-        std::bind(
+-            &peer::finish_wait_rx,
+-            shared_from_this(),
+-            _1));
++        [self_weak = weak_from_this()](const boost::system::error_code& ec)
++        {
++            if (auto self = self_weak.lock())
++                self->finish_wait_rx(ec);
++        });
+ }
+ 
+ void wss::detail::peer::do_wait_tx()
+ {
+     _socket.async_wait(
+         boost::asio::socket_base::wait_write,
+-        std::bind(
+-            &peer::finish_wait_tx,
+-            shared_from_this(),
+-            _1));
++        [self_weak = weak_from_this()](const boost::system::error_code& ec)
++        {
++            if (auto self = self_weak.lock())
++                self->finish_wait_tx(ec);
++        });
+ 
+     _waiting_tx = true;
+ }

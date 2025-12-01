@@ -15,7 +15,6 @@ BEGIN_NAMESPACE_OPENDAQ
 IcmpPing::IcmpPing(boost::asio::io_context& ioContext, const daq::LoggerPtr& logger, int maxHops)
     : loggerComponent(logger.getOrAddComponent("IcmpPing"))
     , stopReceive(false)
-    , found(false)
     , maxHops(maxHops)
     , numRemotes(0)
     , numSent(0)
@@ -61,7 +60,6 @@ void IcmpPing::start(const std::vector<boost::asio::ip::address_v4>& remotes, co
     socket.get_option(unicastHopsDefault);
     // LOG("Socket ping TTL default M: {} U: {}\n", mulitcastHopsDefault.value(), unicastHopsDefault.value());
 
-    found = false;
     numReplies = 0;
     sequenceNumber = 0;
 
@@ -137,13 +135,6 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
 
     for (std::size_t i = 0; i < numRemotes; ++i)
     {
-        if (found)
-        {
-            // LOG("Notifying CV on found\n");
-            numSent = numRemotes;
-            cv.notify_one();
-            break;
-        }
 
         if (i != 0 && i % 1000 == 0)
             std::this_thread::sleep_for(50ms);
@@ -191,7 +182,7 @@ bool IcmpPing::waitSend()
                 [this, ptr = shared_from_this()]
                 {
                     // LOG("CV Check: {}/{} [{}]\n", numSent, numRemotes, found);
-                    return numRemotes == numSent || found || stopReceive;
+                    return numRemotes == numSent || stopReceive;
                 });
 
         // LOG("All pings have sent\n");
@@ -230,7 +221,7 @@ void IcmpPing::startReceive()
 
 void IcmpPing::handleReceive(std::size_t length)
 {
-    if (stopReceive || found)
+    if (stopReceive)
     {
         // LOG("Already found: exiting...\n");
         return;
@@ -277,10 +268,6 @@ void IcmpPing::handleReceive(std::size_t length)
             ipv4Header.getTimeToLive(),
             chrono::duration_cast<chrono::milliseconds>(elapsed).count()
         );
-
-        LOG_T("Received reply: canceling all async operations");
-        found = true;
-        stop();
     }
 
     if (!stopReceive)

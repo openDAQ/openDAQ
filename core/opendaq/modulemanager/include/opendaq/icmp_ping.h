@@ -66,7 +66,6 @@ private:
     daq::LoggerComponentPtr loggerComponent;
 
     std::atomic<bool> stopReceive;
-    std::atomic<bool> found;
     int32_t maxHops;
 
     std::size_t numRemotes;

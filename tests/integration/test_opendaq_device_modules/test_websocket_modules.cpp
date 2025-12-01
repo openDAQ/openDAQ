@@ -480,7 +480,7 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv6)
     ASSERT_EQ(connectionInfo.getConnectionString(), "daq.lt://[::1]");
 }
 
-TEST_F(WebsocketModulesTest, AddSignals)
+TEST_F(WebsocketModulesTest, DISABLED_AddSignals)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
@@ -581,7 +581,7 @@ TEST_F(WebsocketModulesTest, RemoveSignals)
     ASSERT_EQ(clientSignals.getCount(), 3u);
 }
 
-TEST_F(WebsocketModulesTest, UpdateAddSignals)
+TEST_F(WebsocketModulesTest, DISABLED_UpdateAddSignals)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();

@@ -51,16 +51,17 @@ def filter_streaming_section(config, supported_protocols):
             streaming_section.remove_property(property.name)
 
 def filter_general_section(config, device_info, supported_protocols):
-    general_section = config.get_property_value("General")
+    general_section = config.get_property("General")
+    hidden_property_paths = []
 
-    def remove_properties(section, properties):
+    def add_to_hidden(section: daq.IProperty, properties):
         for p in properties:
-            if section.has_property(p):
-                section.remove_property(p)
+            if section.value.has_property(p):
+                hidden_property_paths.append(f"{section.name}.{p}")
 
     # These properties can only be used if the device supports OpenDAQNative protocols.
     if "OpenDAQNativeConfiguration" not in supported_protocols:
-        remove_properties(general_section, ["Username", "Password", "ClientType", "ExclusiveControlDropOthers"])
+        add_to_hidden(general_section, ["Username", "Password", "ClientType", "ExclusiveControlDropOthers"])
 
     # Find TCP/IP and streaming capabilities
     has_tcp_ip = False
@@ -73,16 +74,18 @@ def filter_general_section(config, device_info, supported_protocols):
 
     # Remove if device doesn't provide TCP/IP connections
     if not has_tcp_ip:
-        remove_properties(general_section, ["PrimaryAddressType"])
+        add_to_hidden(general_section, ["PrimaryAddressType"])
 
     # Remove streaming related settings if device is not capable of streaming connections.
     if not has_streaming:
-        remove_properties(
+        add_to_hidden(
             general_section,
             ["StreamingConnectionHeuristic",
                 "PrioritizedStreamingProtocols",
                 "AllowedStreamingProtocols",
                 "AutomaticallyConnectStreaming"])
+
+    return hidden_property_paths
 
 if __name__ == "__main__":
     # Setup a device simulator that can be discovered via opendaq
@@ -121,10 +124,10 @@ if __name__ == "__main__":
     filter_streaming_section(configuration, supported_protocols)
 
     # General section includes configuration entries from all available modules.
-    filter_general_section(configuration, device_info, supported_protocols)
+    hidden_properties = filter_general_section(configuration, device_info, supported_protocols)
 
     print("Filtered configuration:")
     # Inspect the results of the filtering by printing the config to the command line.
     # By changing the list of protocols ins the call to setup_simulator, we can observe how
     # different device capabilities affect filtering of the add_device_config.
-    daq_utils.print_property_object(configuration)
+    daq_utils.print_property_object(configuration, 0, hidden_properties)

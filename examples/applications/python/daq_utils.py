@@ -46,12 +46,18 @@ def print_component(folder, depth=0, recurse=True):
 
 # Prints all property values of a property object. Recurses through nested
 # object-type properties.
-def print_property_object(obj, depth=0):
+def print_property_object(obj, depth=0, hidden=[]):
     for prop in obj.visible_properties:
+        name = prop.name
+        if name in hidden:
+            continue
+
         value = prop.value
         print_indented('- ' + prop.name + ': ' + str(value), depth)
         if prop.value_type == daq.CoreType.ctObject:
-            print_property_object(value, depth + 1)
+            # Only pass names of children to a recurse call. Remove the prefix denoting the property.
+            hidden_children = [s.removeprefix(f"{name}.") for s in hidden if s.startswith(f"{name}.")]
+            print_property_object(value, depth + 1, hidden_children)
 
 # Prints the names and values of a struct object's fields. Recurses through
 # nested struct-type fields.

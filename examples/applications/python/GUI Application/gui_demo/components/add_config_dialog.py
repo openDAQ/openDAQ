@@ -13,6 +13,8 @@ _NO_CONFIG_STR = "-- Streaming only --"
 _DEVICE = "Device"
 _STREAMING = "Streaming"
 _GENERAL = "General"
+_ASP = "AllowedStreamingProtocols"
+_ACS = "AutomaticallyConnectStreaming"
 
 class AddConfigDialog(Dialog):
     def __init__(self, parent, context: AppContext, device_info, parent_device):
@@ -132,15 +134,13 @@ class AddConfigDialog(Dialog):
         self.update_streaming_tabs()
 
         general_section = self.config.get_property_value(_GENERAL)
-        _ASP = "AllowedStreamingProtocols"
         if general_section.has_property(_ASP):
             allowed_protocols = general_section.get_property(_ASP)
-            data = allowed_protocols.value
-            data.clear()
+            allowed = daq.List()
             for label in self.selected_streaming_configs:
-                data.append(utils.value_to_coretype(
+                allowed.append(utils.value_to_coretype(
                     label, allowed_protocols.item_type))
-            allowed_protocols.value = data
+            allowed_protocols.value = allowed
             self.general_tab.editor.refresh()
 
     def on_tab_change(self, e):
@@ -197,7 +197,7 @@ class AddConfigDialog(Dialog):
         return general_tab
 
     def update_general_tab(self):
-        self.general_tab.edit(self.config.get_property(_GENERAL), self.context)
+        self.general_tab.edit(self.config.get_property(_GENERAL), self.context, self.hidden_general_entries)
         self.tabs.add(self.general_tab)
 
     def update_selection_widgets(self):
@@ -275,7 +275,7 @@ class AddConfigDialog(Dialog):
 
         self.filter_device_section(config, supported_protocols)
         self.filter_streaming_section(config, supported_protocols)
-        self.filter_general_section(config, supported_protocols)
+        self.hidden_general_entries = self.filter_general_section(config, supported_protocols)
 
         return config
 
@@ -316,14 +316,20 @@ class AddConfigDialog(Dialog):
 
     def filter_general_section(self, config, supported_protocols):
         general_section = config.get_property_value(_GENERAL)
+        hidden_property_paths = []
 
-        def remove_properties(section, properties):
+        def add_to_hidden(section, properties):
             for p in properties:
                 if section.has_property(p):
-                    section.remove_property(p)
+                    hidden_property_paths.append(p)
+
+        # Hide options that are covered with the UI interaction
+        # The user edits allowed streaming protocols through checklist and
+        # automatically connect streaming will connect if any allowed
+        add_to_hidden(general_section, [_ASP, _ACS])
 
         if "OpenDAQNativeConfiguration" not in supported_protocols:
-            remove_properties(general_section, ["Username", "Password", "ClientType", "ExclusiveControlDropOthers"])
+            add_to_hidden(general_section, ["Username", "Password", "ClientType", "ExclusiveControlDropOthers"])
 
         # Find TCP/IP and streaming capabilities
         has_tcp_ip = False
@@ -335,15 +341,15 @@ class AddConfigDialog(Dialog):
                 has_streaming = True
 
         if not has_tcp_ip:
-            remove_properties(general_section, ["PrimaryAddressType"])
+            add_to_hidden(general_section, ["PrimaryAddressType"])
 
         if not has_streaming:
-            remove_properties(
+            add_to_hidden(
                 general_section,
                 ["StreamingConnectionHeuristic",
-                 "PrioritizedStreamingProtocols",
-                 "AllowedStreamingProtocols",
-                 "AutomaticallyConnectStreaming"])
+                 "PrioritizedStreamingProtocols"])
+
+        return hidden_property_paths
 
     def sync_device_and_streaming_configs(self):
         device_section = self.config.get_property_value(_DEVICE)

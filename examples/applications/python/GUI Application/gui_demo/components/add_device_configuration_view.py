@@ -16,10 +16,11 @@ class AddDeviceConfigView(ttk.Frame):
         self.editor = tk.Listbox(self)
         self.editor.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-    def edit(self, node, context):
+    def edit(self, node, context, hidden=[]):
         self.title = node.name
         self.config = node.value
         self.context = context
+        self.hidden = hidden
 
         self.update_title()
         self.update_editor()
@@ -42,6 +43,6 @@ class AddDeviceConfigView(ttk.Frame):
         if self.config is None:
             self.editor = tk.Listbox(self)
         else:
-            self.editor = PropertiesTreeview(self, self.config, self.context)
+            self.editor = PropertiesTreeview(self, self.config, self.context, hidden=self.hidden)
 
         self.editor.pack(side=tk.TOP, fill=tk.BOTH, expand=True)

@@ -28,7 +28,7 @@ env:
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   dotnet_test_path: ${{ github.workspace }}/build/bindings/CSharp/test_results
   python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
+  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13 3.14
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
@@ -44,7 +44,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 210
+    timeout-minutes: 270
     strategy:
       fail-fast: false
       matrix:
@@ -108,6 +108,7 @@ jobs:
               3.11
               3.12
               3.13
+              3.14
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
@@ -216,7 +217,7 @@ jobs:
           CTEST_PRESET: ${{ env.ctest_preset }}
         run: |
           call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
-          ctest --output-on-failure --preset %CTEST_PRESET% -C Release --test-dir build --verbose
+          ctest --output-on-failure --preset %CTEST_PRESET% -C Release --test-dir build
 
       - name: Upload test results
         if: always()
@@ -402,7 +403,7 @@ jobs:
           if [ -f /opt/intel/oneapi/setvars.sh ]; then
               source /opt/intel/oneapi/setvars.sh
           fi
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()
@@ -648,7 +649,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 180
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
@@ -688,6 +689,7 @@ jobs:
               3.11
               3.12
               3.13
+              3.14
 
       - name: Make dirs
         run: |
@@ -774,6 +776,7 @@ jobs:
               3.11
               3.12
               3.13
+              3.14
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2

@@ -48,6 +48,13 @@ enum class OperationModeType: EnumType
     SafeOperation
 };
 
+enum class ComponentStatus : EnumType
+{
+    Ok = 0,
+    Warning,
+    Error
+};
+
 /*!
  * @brief Acts as a base interface for components, such as device, function block, channel and signal.
  *

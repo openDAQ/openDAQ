@@ -75,8 +75,16 @@ void SignalReader::readDescriptorFromPort()
         auto eventPacket = packet.asPtr<IEventPacket>(true);
         if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
         {
-            handleDescriptorChanged(connection.dequeue());
-            return;
+            try
+            {
+                handleDescriptorChanged(connection.dequeue());
+            }
+            catch (const std::exception& e)
+            {
+                invalid = true;
+                LOG_D("Failed to handle descriptor read from port: {}", e.what())
+                (void)e;
+            }
         }
     }
 }
@@ -176,22 +184,31 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
                 synced = SyncStatus::Unsynchronized;
             }
 
-            auto newSampleRate = reader::getSampleRate(newDomainDescriptor);
-            if (sampleRate == -1)
+            try
             {
-                sampleRate = newSampleRate;
-            }
-            else if (sampleRate != newSampleRate)
-            {
-                validDomain = false;
-            }
+                auto newSampleRate = reader::getSampleRate(newDomainDescriptor);
+                if (sampleRate == -1)
+                {
+                    sampleRate = newSampleRate;
+                }
+                else if (sampleRate != newSampleRate)
+                {
+                    validDomain = false;
+                }
 
-            packetDelta = 0;
-            const auto domainRule = newDomainDescriptor.getRule();
-            if (domainRule.getType() == DataRuleType::Linear)
+                packetDelta = 0;
+                const auto domainRule = newDomainDescriptor.getRule();
+                if (domainRule.getType() == DataRuleType::Linear)
+                {
+                    const auto domainRuleParams = domainRule.getParameters();
+                    packetDelta = domainRuleParams.get("delta");
+                }
+            }
+            catch (const std::exception& e)
             {
-                const auto domainRuleParams = domainRule.getParameters();
-                packetDelta = domainRuleParams.get("delta");
+                LOG_D("Failed to change descriptor: {}", e.what())
+                validDomain = false;
+                (void)e;
             }
         }
 

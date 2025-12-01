@@ -13,14 +13,15 @@
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/dimension_factory.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace FFT
 {
 
-FFTFbImpl::FFTFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+FFTFbImpl::FFTFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
 {
     initComponentStatus();
     initProperties();
@@ -61,9 +62,11 @@ void FFTFbImpl::readProperties()
     inputDomainData.resize(maxBlockReadCount * blockSize);
 }
 
-FunctionBlockTypePtr FFTFbImpl::CreateType()
+FunctionBlockTypePtr FFTFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
-    return FunctionBlockType("RefFBModuleFFT", "FFT", "Fast Fourier Transform");
+    auto fbType = FunctionBlockType("RefFBModuleFFT", "FFT", "Fast Fourier Transform");
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 bool FFTFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor, const DataDescriptorPtr& inputDomainDataDescriptor)

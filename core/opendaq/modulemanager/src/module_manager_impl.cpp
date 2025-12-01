@@ -32,6 +32,7 @@
 #include <opendaq/client_type.h>
 #include <opendaq/network_interface_factory.h>
 #include <opendaq/component_private_ptr.h>
+#include <opendaq/component_type_private_ptr.h>
 
 #include <opendaq/thread_name.h>
 
@@ -190,7 +191,18 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     if (envPath != nullptr)
     {
         LOG_D("Environment variable OPENDAQ_MODULES_PATH found, moduler search folder overriden to {}", envPath)
-        paths = {envPath};
+
+#if defined(_WIN32) || defined(_WIN64)
+        const char sep = ';';
+#else
+        const char sep = ':';
+#endif
+
+        std::stringstream ss(envPath);
+        std::string token;
+
+        while (std::getline(ss, token, sep))
+            paths.push_back(token);
     }
     else
     {
@@ -649,9 +661,20 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             dev.freeze();
     }
 
-    *availableDevices = availableDevicesPtr.detach();
-
     availableDevicesGroup = groupedDevices;
+
+    auto visibleDevices = List<IDeviceInfo>();
+    for (const auto & [_, deviceInfo]: groupedDevices)
+    {
+        bool deviceHidden = false;
+        if (deviceInfo.hasProperty("hidden"))
+            deviceHidden = deviceInfo.getPropertyValue("hidden");
+
+        if (!deviceHidden)
+            visibleDevices.pushBack(deviceInfo);
+    }
+
+    *availableDevices = visibleDevices.detach();
     lastScanTime = std::chrono::steady_clock::now();
     return OPENDAQ_SUCCESS;
 }
@@ -753,7 +776,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
 
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
-            const auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
+            auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
             OPENDAQ_RETURN_IF_FAILED(err);
 
             const auto devicePtr = DevicePtr::Borrow(*device);
@@ -762,6 +785,17 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                 onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
                 if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
                     componentPrivate.setComponentConfig(addDeviceConfig);
+
+                ModuleInfoPtr moduleInfo;
+                err = library.module->getModuleInfo(&moduleInfo);
+                OPENDAQ_RETURN_IF_FAILED(err);
+
+                if (auto info = devicePtr.getInfo(); info.assigned())
+                {
+                    auto deviceInfoType = info.getDeviceType();
+                    if (deviceInfoType.assigned())
+                        deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+                }
             }
 
             return err;
@@ -1049,7 +1083,22 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
             localIdStr = fmt::format("{}_{}", typeId, maxNum + 1);
         }
 
-        return module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
+        auto err = module->createFunctionBlock(functionBlock, typeId, parent, String(localIdStr), config);
+        OPENDAQ_RETURN_IF_FAILED(err);
+
+        FunctionBlockPtr fbPtr = FunctionBlockPtr::Borrow(*functionBlock);
+        if (fbPtr.assigned())
+        {
+            ModuleInfoPtr moduleInfo;
+            err = library.module->getModuleInfo(&moduleInfo);
+            OPENDAQ_RETURN_IF_FAILED(err);
+
+            auto fbType = fbPtr.getFunctionBlockType();
+            if (fbType.assigned())
+                fbType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+        }
+
+        return OPENDAQ_SUCCESS;
     }
 
     return DAQ_MAKE_ERROR_INFO(
@@ -1202,6 +1251,33 @@ ErrCode ModuleManagerImpl::completeDeviceCapabilities(IDevice* device)
     const ErrCode errCode = wrapHandler(this, &ModuleManagerImpl::onCompleteCapabilities, device, nullptr);
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* manufacturer, IString* serialNumber)
+{
+    OPENDAQ_PARAM_NOT_NULL(deviceInfo);
+    OPENDAQ_PARAM_NOT_NULL(manufacturer);
+    OPENDAQ_PARAM_NOT_NULL(serialNumber);
+
+    StringPtr manufacturerPtr = StringPtr::Borrow(manufacturer);
+    StringPtr serialNumberPtr = StringPtr::Borrow(serialNumber);
+
+    if (!availableDevicesGroup.assigned())
+    {
+        auto lock = std::lock_guard(availableDevicesSearchSync);
+        const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
+    }
+
+    for (const auto& [_, info] : availableDevicesGroup)
+    {
+        if (info.getManufacturer() == manufacturerPtr && info.getSerialNumber() == serialNumberPtr)
+        {
+            *deviceInfo = info.addRefAndReturn();
+            return OPENDAQ_SUCCESS;
+        }
+    }
+    return OPENDAQ_NOTFOUND;
 }
 
 uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)

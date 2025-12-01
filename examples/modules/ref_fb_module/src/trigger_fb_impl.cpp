@@ -1,6 +1,7 @@
 #include <opendaq/event_packet_params.h>
 #include <ref_fb_module/dispatch.h>
 #include <ref_fb_module/trigger_fb_impl.h>
+#include <opendaq/component_type_private.h>
 #include "opendaq/packet_factory.h"
 #include "opendaq/sample_type_traits.h"
 
@@ -9,8 +10,12 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace Trigger
 {
 
-TriggerFbImpl::TriggerFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+TriggerFbImpl::TriggerFbImpl(const ModuleInfoPtr& moduleInfo,
+                             const ContextPtr& ctx,
+                             const ComponentPtr& parent,
+                             const StringPtr& localId,
+                             const PropertyObjectPtr& config)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
 {
     initComponentStatus();
 
@@ -45,12 +50,14 @@ void TriggerFbImpl::readProperties()
     threshold = objPtr.getPropertyValue("Threshold");
 }
 
-FunctionBlockTypePtr TriggerFbImpl::CreateType()
+FunctionBlockTypePtr TriggerFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
     auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
 
-    return FunctionBlockType("RefFBModuleTrigger", "Trigger", "Trigger", defaultConfig);
+    auto fbType = FunctionBlockType("RefFBModuleTrigger", "Trigger", "Trigger", defaultConfig);
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 void TriggerFbImpl::processSignalDescriptorChanged(const DataDescriptorPtr& inputDataDescriptor,

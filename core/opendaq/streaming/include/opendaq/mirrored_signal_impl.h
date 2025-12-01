@@ -86,12 +86,17 @@ protected:
     void onListenedStatusChanged(bool listened) override;
     void removed() override;
     virtual bool clearDescriptorOnUnsubscribe();
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
+    DevicePtr getOwnerDevice(const ComponentPtr& parent);
 
     std::mutex signalMutex;
 
     DataDescriptorPtr mirroredDataDescriptor;
     DataDescriptorPtr mirroredDomainDataDescriptor;
     MirroredSignalConfigPtr mirroredDomainSignal;
+    StringPtr ownerSignalGlobalId;
 
 private:
     ErrCode subscribeInternal();
@@ -204,6 +209,34 @@ template <typename ... Interfaces>
 bool MirroredSignalBase<Interfaces...>::clearDescriptorOnUnsubscribe()
 {
     return false;
+}
+
+template <typename... Interfaces>
+void MirroredSignalBase<Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                      const BaseObjectPtr& context,
+                                                                      const FunctionPtr& factoryCallback)
+{
+    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    if (serializedObject.hasKey("OwnerSignalGlobalId"))
+        this->ownerSignalGlobalId = serializedObject.readString("OwnerSignalGlobalId");
+}
+
+template <typename ... Interfaces>
+DevicePtr MirroredSignalBase<Interfaces...>::getOwnerDevice(const ComponentPtr& parent)
+{
+    auto parentAsDevice = parent.asPtrOrNull<IDevice>(); 
+	if (parentAsDevice.assigned() && parentAsDevice.getInfo().getServerCapabilities().getCount())
+		return parentAsDevice;
+
+	auto newParent = parent.getParent();
+	if (newParent.assigned())
+		return getOwnerDevice(newParent);
+	
+	if (parentAsDevice.assigned())
+		return parentAsDevice;
+
+    return nullptr;
 }
 
 template <typename... Interfaces>
@@ -725,7 +758,34 @@ ErrCode MirroredSignalBase<Interfaces...>::setStreamed(Bool streamed)
 template <typename... Interfaces>
 ErrCode MirroredSignalBase<Interfaces...>::getSignalSerializeId(IString** serializeId)
 {
-    return this->getRemoteId(serializeId);
+    OPENDAQ_PARAM_NOT_NULL(serializeId);
+
+    // Fallback for older servers
+	if (!ownerSignalGlobalId.assigned())
+	{
+        ErrCode err = daqTry(
+            [this]
+            {
+                DevicePtr ownerDevice = this->getOwnerDevice(this->parent.getRef());
+                if (!ownerDevice.assigned())
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "Signal owner device not found");
+                std::string ownerLocalId = ownerDevice.getLocalId();
+
+                std::string globalIdStr = this->globalId;
+                auto pos = globalIdStr.find(ownerLocalId);
+                if (pos == std::string::npos)
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "Signal owner device not found");
+
+                const std::string afterDevice = globalIdStr.substr(pos + ownerLocalId.size());
+                ownerSignalGlobalId = "/" + ownerLocalId + afterDevice;
+                return OPENDAQ_SUCCESS;
+            });
+
+        OPENDAQ_RETURN_IF_FAILED(err);
+	}
+
+    *serializeId = ownerSignalGlobalId.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

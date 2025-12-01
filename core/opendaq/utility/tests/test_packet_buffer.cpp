@@ -191,7 +191,7 @@ TEST_F(PacketBufferTest, FullBufferRead)
         destination4 = buffer.createPacket(mem, desc, domain);
     }
 
-    ASSERT_EQ(buffer.getAvailableSampleCount(desc), 80);
+    ASSERT_EQ(buffer.getAvailableSampleCount(desc), 80u);
 }
 
 TEST_F(PacketBufferTest, LinearRuleFail)
@@ -274,7 +274,7 @@ TEST_F(PacketBufferTest, DynamicPacketDestruction)
     }
 
     // The buffer should be empty (left + right should be full buffer)
-    ASSERT_EQ((buffer.getAvailableSampleCount(desc)), 80);
+    ASSERT_EQ((buffer.getAvailableSampleCount(desc)), 80u);
 }
 
 TEST_F(PacketBufferTest, MultithreadBasicFunctionallity)
@@ -305,7 +305,7 @@ TEST_F(PacketBufferTest, MultithreadBasicFunctionallity)
 
     SizeT out = buffer.getMaxAvailableContinousSampleCount(desc);
 
-    ASSERT_EQ(out, 10);
+    ASSERT_EQ(out, 10u);
 }
 
 TEST_F(PacketBufferTest, ResetTest)
@@ -329,7 +329,7 @@ TEST_F(PacketBufferTest, ResetTest)
     packet.release();
     thread_.join();
 
-    ASSERT_EQ(buffer.getAvailableSampleCount(desc), 100);
+    ASSERT_EQ(buffer.getAvailableSampleCount(desc), 100u);
 }
 
 TEST_F(PacketBufferTest, FullDynamicFunctionallityWorkflow)
@@ -363,5 +363,5 @@ TEST_F(PacketBufferTest, FullDynamicFunctionallityWorkflow)
         t3.join();
     }
 
-    ASSERT_EQ(buffer.getMaxAvailableContinousSampleCount(desc), 80);
+    ASSERT_EQ(buffer.getMaxAvailableContinousSampleCount(desc), 80u);
 }

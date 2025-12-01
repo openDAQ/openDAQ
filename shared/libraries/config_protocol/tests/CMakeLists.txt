@@ -15,6 +15,7 @@ set(TEST_SOURCES
     test_nested_property_objects.cpp
     test_remote_update.cpp
     test_c2d_streaming.cpp
+    test_gateway_devices.cpp
 )
 
 if (OPENDAQ_ENABLE_ACCESS_CONTROL)

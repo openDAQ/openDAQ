@@ -216,6 +216,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("activeClientConnections", PropertyObject()).setReadOnly(true).build());
+    Super::addProperty(BoolPropertyBuilder("hidden", false).setVisible(false).build());
 }
 
 template <typename TInterface, typename... Interfaces>

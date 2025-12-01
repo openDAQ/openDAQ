@@ -155,7 +155,7 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_TRUE(functionBlockTypes.assigned());
 
-    ASSERT_EQ(functionBlockTypes.getCount(), 10u);
+    ASSERT_EQ(functionBlockTypes.getCount(), 12u);
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleRenderer"));
     ASSERT_EQ("RefFBModuleRenderer", functionBlockTypes.get("RefFBModuleRenderer").getId());
@@ -183,6 +183,12 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleVideoPlayer"));
     ASSERT_EQ("RefFBModuleVideoPlayer", functionBlockTypes.get("RefFBModuleVideoPlayer").getId());
+
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleSumReader"));
+    ASSERT_EQ("RefFBModuleSumReader", functionBlockTypes.get("RefFBModuleSumReader").getId());
+
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleTimeDelay"));
+    ASSERT_EQ("RefFBModuleTimeDelay", functionBlockTypes.get("RefFBModuleTimeDelay").getId());
 
     // Check module info for module
     ModuleInfoPtr moduleInfo;
@@ -215,6 +221,14 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
         ASSERT_EQ(versionInfoFunctionBlockType.getMinor(), REF_FB_MODULE_MINOR_VERSION);
         ASSERT_EQ(versionInfoFunctionBlockType.getPatch(), REF_FB_MODULE_PATCH_VERSION);
     }
+}
+
+TEST_F(RefFbModuleTest, ScalingVersion)
+{
+    auto module = CreateModule();
+    
+    auto fb = module.createFunctionBlock("RefFBModuleScaling", nullptr, "fb");
+    ASSERT_EQ(fb.getFunctionBlockType().getModuleInfo().getVersionInfo(), module.getModuleInfo().getVersionInfo());
 }
 
 TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)

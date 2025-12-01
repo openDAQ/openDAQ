@@ -2473,7 +2473,7 @@ TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
     client.getAvailableDevices();
     const MirroredDeviceConfigPtr dev = client.addDevice("daq.nd://127.0.0.1:7420/");
     const auto sources = dev.getStreamingSources();
-    ASSERT_EQ(sources.getCount(), 1);
+    ASSERT_EQ(sources.getCount(), 1u);
     ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://127.0.0.1:7420/");
 }
 
@@ -2903,7 +2903,7 @@ TEST_F(NativeDeviceModulesTest, GetAvailableLogFileInfos)
         auto logFile = logFiles[0];
 
         ASSERT_EQ(logFile.getName(), loggerPath);
-        ASSERT_NE(logFile.getSize(), 0);
+        ASSERT_NE(logFile.getSize(), 0u);
         ASSERT_EQ(logFile.getLastModified(), logFileLastModified);
 
         StringPtr firstSymb = clientDevice.getLog(loggerPath, 1, 0);
@@ -3559,8 +3559,8 @@ TEST_P(NativeC2DStreamingTest, StreamingData)
 
     // Expect to receive all data packets,
     // +1 signal initial descriptor changed event packet
-    const int packetsToGenerate = 10;
-    const int packetsToRead = packetsToGenerate + 1;
+    const std::size_t packetsToGenerate = 10;
+    const std::size_t packetsToRead = packetsToGenerate + 1;
 
     clientLocalDevice.setPropertyValue("GeneratePackets", packetsToRead);
 
@@ -3593,6 +3593,18 @@ TEST_F(NativeDeviceModulesTest, AddNestedFB)
     ASSERT_NO_THROW(fb.removeFunctionBlock(nestedFb));
     ASSERT_TRUE(nestedFb.isRemoved());
     ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
+}
+
+TEST_F(NativeDeviceModulesTest, StatisticsFunctionBlockVersion)
+{
+    const auto server = CreateServerInstance();
+    ASSERT_EQ(server.getFunctionBlocks()[0].getFunctionBlockType().getId(), "RefFBModuleStatistics");
+
+    const auto client = Instance();
+    auto dev = client.addDevice("daq.nd://127.0.0.1");
+    auto fb = dev.getFunctionBlocks()[0];
+    ASSERT_EQ(fb.getFunctionBlockType().getId(), "RefFBModuleStatistics");
+    ASSERT_EQ(fb.getFunctionBlockType().getModuleInfo().getVersionInfo(), server.getFunctionBlocks()[0].getFunctionBlockType().getModuleInfo().getVersionInfo());
 }
 
 TEST_F(NativeDeviceModulesTest, TestEnumerationPropertyRemote)
@@ -3757,4 +3769,73 @@ TEST_F(NativeDeviceModulesTest, AddDevicesParallelPartialSuccess)
     ASSERT_EQ(errCodes.get("daqref://device1"), OPENDAQ_SUCCESS);
 
     ASSERT_EQ(client.getDevices().getCount(), 2u);
+}
+
+
+TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
+{
+    const StringPtr manufacturer = "openDAQ";
+    const StringPtr serialNumber = "GatewayStreamingConnection";
+    const StringPtr connectionString = "daq://" + manufacturer + "_" + serialNumber;
+
+    const PropertyObjectPtr leafDeviceConfig = PropertyObject();
+    leafDeviceConfig.addProperty(StringProperty("SerialNumber", serialNumber));
+
+    auto leaf = InstanceBuilder().setRootDevice("daqref://device0", leafDeviceConfig)
+                                                   .addDiscoveryServer("mdns")
+                                                   .build();
+    {
+        const auto serverConfig = PropertyObject();
+        serverConfig.addProperty(IntProperty("NativeStreamingPort", 7414));
+        leaf.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+    }
+
+    auto gateway = InstanceBuilder().build();
+    {
+        PropertyObjectPtr config = PropertyObject();
+        config.addProperty(StringProperty("PrimaryAddressType", "IPv6"));
+        gateway.addDevice(connectionString, config);
+
+        const auto serverConfig = PropertyObject();
+        serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
+        gateway.addServer("OpenDAQNativeStreaming", serverConfig);
+    }
+
+    auto client = InstanceBuilder().build();
+    
+    // check that not hidden device is visible
+    {   
+        bool deviceFound = false;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            if (deviceInfo.getSerialNumber() == serialNumber)
+            {
+                deviceFound = true;
+                break;
+            }
+        }
+        ASSERT_TRUE(deviceFound) << "device with serial number " << serialNumber << " not found";
+    }
+    // check that hidden device is not visible
+    {
+        leaf.getInfo().setPropertyValue("hidden", true);
+        for (const auto& deviceInfo : client.getAvailableDevices())
+            ASSERT_NE(deviceInfo.getSerialNumber(), serialNumber);
+    }
+    // make steaming connection
+    {
+        auto config = gateway.createDefaultAddDeviceConfig();
+        const PropertyObjectPtr general = config.getPropertyValue("General");
+        general.setPropertyValue("StreamingConnectionHeuristic", 1);
+        general.setPropertyValue("PrimaryAddressType", "IPv4");
+        auto clGateway = client.addDevice("daq.nd://127.0.0.1:7415", config);
+        auto clGatewayLeaf = clGateway.getDevices()[0];
+        auto clGatewayLeafSignal = clGatewayLeaf.getSignalsRecursive()[0];
+        auto activeStreaming  = clGatewayLeafSignal.asPtr<IMirroredSignalConfig>().getActiveStreamingSource();
+
+        // Check that active streaming does not use IPv6 address without interface suffix
+        std::string activeStreamingStr = activeStreaming.toStdString();
+        ASSERT_TRUE(activeStreamingStr.find("daq.ns://[") == std::string::npos)
+            << "Active streaming uses IPv6 address instead of IPv4: " << activeStreamingStr;
+    }
 }

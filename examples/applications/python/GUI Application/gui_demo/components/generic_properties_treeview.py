@@ -83,7 +83,8 @@ class PropertiesTreeview(ttk.Treeview):
             return
 
         for key, value in node.as_dictionary.items():
-            iid = self.insert(parent_iid, tk.END, text=key, values=(value,))
+            iid = self.insert('' if not parent_iid else parent_iid,
+                             tk.END, text=key, values=(value,))
             if read_only:
                 self.item(iid, tags=('readonly',))
 

@@ -46,6 +46,9 @@ public:
     bool waitSend();
 
     std::size_t getNumReplies() const noexcept;
+    std::unordered_set<std::string> getReplyAddresses() const;
+
+    void clearReplies();
 
     IcmpPing& operator=(IcmpPing&& other) noexcept = delete;
     IcmpPing& operator=(const IcmpPing& other) = delete;
@@ -63,7 +66,6 @@ private:
     daq::LoggerComponentPtr loggerComponent;
 
     std::atomic<bool> stopReceive;
-    std::atomic<bool> found;
     int32_t maxHops;
 
     std::size_t numRemotes;
@@ -82,7 +84,9 @@ private:
     std::chrono::steady_clock::time_point timeSent;
     boost::asio::streambuf replyBuffer{};
     uint16_t sequenceNumber;
+
     std::size_t numReplies;
+    std::unordered_set<std::string> responseAddresses;
 };
 
 END_NAMESPACE_OPENDAQ

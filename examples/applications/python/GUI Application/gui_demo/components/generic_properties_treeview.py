@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from fractions import Fraction
 
 import opendaq as daq
 
@@ -240,7 +241,7 @@ class PropertiesTreeview(ttk.Treeview):
         finally:
             entry.destroy()
 
-    # TODO: hacky
+    # TODO: hacky due to special handling for range and unit
     def save_struct_value(self, entry, parent, name):
         new_raw = entry.get()
 
@@ -337,8 +338,8 @@ class PropertiesTreeview(ttk.Treeview):
         # handle struct
         if len(path) > 1:
             parent = utils.get_property_for_path(self.context, path[:-1], self.node)
-            if type(parent.value) is complex:
-                return # complex isn't editable yet
+            if type(parent.value) is complex or type(parent.value) is Fraction:
+                return # complex and fraction/ratio isn't editable yet
             elif parent.value_type == daq.CoreType.ctStruct:
                 self.edit_struct_property(selected_item_id, name, parent)
             return

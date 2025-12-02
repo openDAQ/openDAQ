@@ -261,9 +261,19 @@ void WsStreamingServer::onClientConnected(
     SizeT clientNumber = 0;
     if (_rootDevice.assigned() && !_rootDevice.isRemoved())
     {
+        std::string endpointAddress;
+        try
+        {
+            auto remoteEp = connection->socket().remote_endpoint();
+            endpointAddress = remoteEp.address().to_string();
+        }
+        catch (const std::exception& e)
+        {
+            return;
+        }
         _rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(
             &clientNumber,
-            ConnectedClientInfo(connection->socket().remote_endpoint().address().to_string(),
+            ConnectedClientInfo(endpointAddress,
                 ProtocolType::Streaming,
                 "OpenDAQLTStreaming",
                 "",

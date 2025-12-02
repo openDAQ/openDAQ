@@ -153,17 +153,29 @@ class AddDeviceDialog(Dialog):
 
         # Device selection is handled by the connection string entry. It is updated whenever a tree-item is selected,
         # but the user may modify the connection string.
-        selected_item_iid = self.conn_string_entry.get()
+        conn_string = self.conn_string_entry.get()
 
-        # Match entered connection string to one of the available devices.
-        selected_device_info = self.find_available_device(self.dialog_parent_device, selected_item_iid)
-        if selected_device_info is None or not daq.IDeviceInfo.can_cast_from(selected_device_info):
+        implied_protocol = self.get_implied_protocol(conn_string)
+        if implied_protocol == "":
             utils.show_error(
-                "Configuration error", "Connection string does not match any device. Cannot open config.", self)
+                "Error", "Invalid connection string.", self)
             return
 
-        add_config_dialog = AddConfigDialog(
-            self, self.context, selected_device_info, self.dialog_parent_device)
+        add_config_dialog = None
+
+        # Try to match entered connection string to one of the discovered devices.
+        selected_device_info = self.find_available_device(self.dialog_parent_device, conn_string)
+        if selected_device_info is not None and daq.IDeviceInfo.can_cast_from(selected_device_info):
+            add_config_dialog = AddConfigDialog.for_discoverable(
+                self, self.context, self.dialog_parent_device, selected_device_info)
+        else:
+            if implied_protocol == "SmartConnectionString":
+                utils.show_error(
+                    "Error", "Invalid connection string: 'daq://' not allowed for non-discoverable devices.", self)
+                return
+            add_config_dialog = AddConfigDialog.from_connection_string(
+                self, self.context, self.dialog_parent_device, conn_string, implied_protocol)
+
         add_config_dialog.show()
 
         config = add_config_dialog.config
@@ -268,3 +280,25 @@ class AddDeviceDialog(Dialog):
                     traverse_devices_recursive(tree, parent_id, item)
 
         traverse_devices_recursive(tree, parent_id, component)
+
+    def get_implied_protocol(self, connection_string: str):
+        sep = "://"
+        if sep not in connection_string:
+            return ""
+        parts = connection_string.split(sep)
+        if len(parts) != 2:
+            return ""
+
+        prefix = parts[0]
+        if prefix == "daq":
+            return "SmartConnectionString"
+
+        # Find protocol ID matching the connection string prefix
+        for protocol_id, device_type in self.dialog_parent_device.available_device_types.items():
+            dt_dict = device_type.as_dictionary
+
+            if dt_dict["Prefix"] == prefix:
+                # Prefix is valid
+                return protocol_id
+
+        return ""

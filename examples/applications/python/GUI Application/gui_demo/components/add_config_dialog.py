@@ -17,11 +17,86 @@ _ASP = "AllowedStreamingProtocols"
 _ACS = "AutomaticallyConnectStreaming"
 
 class AddConfigDialog(Dialog):
-    def __init__(self, parent, context: AppContext, device_info, parent_device):
+    @classmethod
+    def for_discoverable(cls, parent, context: AppContext, parent_device, device_info):
+        """Populate server capabilities and tcp/ip and streaming from device_info."""
+        discoverable = True
+        server_capabilities = {}
+
+        # Find TCP/IP and streaming capabilities
+        has_tcp_ip = False
+        has_streaming = False
+        for c in device_info.server_capabilities:
+            server_capabilities[c.protocol_id] = c.connection_string
+            if c.get_property_value("ConnectionType") == "TCP/IP":
+                has_tcp_ip = True
+            if c.get_property_value("ProtocolType") in ["Streaming", "ConfigurationAndStreaming"]:
+                has_streaming = True
+
+        daq_connection_string = device_info.connection_string
+        return cls(
+            parent,
+            context,
+            parent_device,
+            discoverable,
+            server_capabilities,
+            daq_connection_string,
+            has_streaming,
+            has_tcp_ip)
+
+    @classmethod
+    def from_connection_string(cls, parent, context: AppContext, parent_device, connection_string, implied_protocol):
+        """Show user sensible settings based on entered connection string with minimal assumptions."""
+        discoverable = False
+        server_capabilities = {}
+        server_capabilities[implied_protocol] = connection_string
+
+        streaming_protocols = []
+        module_manager: daq.IModuleManager = parent_device.context.module_manager
+        for _module in module_manager.modules:
+            for streaming in _module.available_streaming_types:
+                streaming_protocols.append(streaming)
+
+        if implied_protocol not in streaming_protocols:
+            # When connection string implies non-streaming protocol, the user can select streaming protocols
+            for streaming in streaming_protocols:
+                server_capabilities[streaming] = ""
+        # else: the only server capability is the streaming protocol implied by the connection string
+
+        # We can't know, must assume true
+        has_streaming = True
+        has_tcp_ip = True
+        return cls(
+            parent,
+            context,
+            parent_device,
+            discoverable,
+            server_capabilities,
+            connection_string,
+            has_streaming,
+            has_tcp_ip)
+
+    def __init__(
+            self,
+            parent,
+            context: AppContext,
+            parent_device,
+            discoverable,
+            server_capabilities,
+            connection_string,
+            has_streaming,
+            has_tcp_ip):
         super().__init__(parent, 'Add with config', context)
         self.context = context
-        self.device_info = device_info
         self.parent_device = parent_device
+        # self.device_info = device_info
+
+        self.discoverable = discoverable
+        self.server_capabilities = server_capabilities
+        self.default_connection_string = connection_string
+        self.has_streaming = has_streaming
+        self.has_tcp_ip = has_tcp_ip
+
         self.geometry('{}x{}'.format(
             1200 * self.context.ui_scaling_factor, 600 * self.context.ui_scaling_factor))
 
@@ -45,7 +120,6 @@ class AddConfigDialog(Dialog):
         right_frame = ttk.Frame(self)
 
         self.tabs = ttk.Notebook(right_frame)
-        self.tabs.bind('<<NotebookTabChanged>>', self.on_tab_change)
         self.tabs.pack(fill=tk.BOTH, expand=True)
 
         bottom_frame = ttk.Frame(right_frame)
@@ -143,9 +217,6 @@ class AddConfigDialog(Dialog):
             allowed_protocols.value = allowed
             self.general_tab.editor.refresh()
 
-    def on_tab_change(self, e):
-        pass
-
     # MARK: Update notebook tabs
     def create_device_tab(self):
         device_tab = AddDeviceConfigView(self.tabs)
@@ -212,12 +283,17 @@ class AddConfigDialog(Dialog):
             streaming_options.append(property.name)
 
         device_section = self.config.get_property_value(_DEVICE)
-        device_options = [_NO_CONFIG_STR]
+        device_options = []
 
         for property in self.context.properties_of_component(device_section):
             # Avoid duplication in device combobox and streaming checklist
             if property.name not in streaming_options:
                 device_options.append(property.name)
+
+        # -- Streaming only -- option when streaming is available and for streaming connections to non-discoverable devices
+        if len(streaming_options) > 0 and (self.discoverable or len(device_options) == 0):
+            device_options.insert(0, _NO_CONFIG_STR)
+
         self.device_combobox["values"] = device_options
 
         default_idx = min(1, len(device_options) - 1)
@@ -234,17 +310,16 @@ class AddConfigDialog(Dialog):
         self.add_device_button.config(state="!disabled")
         # A configuration protocol is selected
         if self.selected_device_config != _NO_CONFIG_STR:
-            server_capabilities = self.device_info.server_capabilities
-            if len(server_capabilities) == 0:
-                self.connection_string = self.device_info.connection_string
+            if len(self.server_capabilities) == 0:
+                self.connection_string = self.default_connection_string
                 self.status_label.configure(
                     text=f"[OK] Connecting to local device: {self.connection_string}", style="StatusOk.TLabel")
                 return
 
             # Remote devices have protocol IDs defined in server capabilities
-            for c in server_capabilities:
-                if c.protocol_id == self.selected_device_config:
-                    self.connection_string = c.connection_string
+            for protocol_id, conn_str in self.server_capabilities.items():
+                if protocol_id == self.selected_device_config:
+                    self.connection_string = conn_str
                     self.status_label.configure(
                         text=f"[OK] Configuration connection to: {self.connection_string}", style="StatusOk.TLabel")
                     return
@@ -259,10 +334,9 @@ class AddConfigDialog(Dialog):
             return
 
         streaming_protocol = self.selected_streaming_configs[0]
-        server_capabilities = self.device_info.server_capabilities
-        for c in server_capabilities:
-            if c.protocol_id == streaming_protocol:
-                self.connection_string = c.connection_string
+        for protocol_id, conn_str in self.server_capabilities.items():
+            if protocol_id == streaming_protocol:
+                self.connection_string = conn_str
                 self.status_label.configure(
                     text=f"[OK] Streaming connection to: {self.connection_string}", style="StatusOk.TLabel")
                 break
@@ -280,17 +354,15 @@ class AddConfigDialog(Dialog):
         return config
 
     def compute_supported_protocols(self):
-        server_capabilities = self.device_info.server_capabilities
-
         # Remote devices have protocol IDs defined in server capabilities
-        if len(server_capabilities) > 0:
+        if len(self.server_capabilities) > 0:
             supported_protocols = list()
-            for c in server_capabilities:
-                supported_protocols.append(c.protocol_id)
+            for protocol_id in self.server_capabilities:
+                supported_protocols.append(protocol_id)
             return supported_protocols
 
         # For local devices
-        supported_prefix = self.device_info.connection_string.split("://")[0]
+        supported_prefix = self.default_connection_string.split("://")[0]
 
         available_device_types = self.parent_device.available_device_types
 
@@ -331,19 +403,10 @@ class AddConfigDialog(Dialog):
         if "OpenDAQNativeConfiguration" not in supported_protocols:
             add_to_hidden(general_section, ["Username", "Password", "ClientType", "ExclusiveControlDropOthers"])
 
-        # Find TCP/IP and streaming capabilities
-        has_tcp_ip = False
-        has_streaming = False
-        for c in self.device_info.server_capabilities:
-            if c.get_property_value("ConnectionType") == "TCP/IP":
-                has_tcp_ip = True
-            if c.get_property_value("ProtocolType") in ["Streaming", "ConfigurationAndStreaming"]:
-                has_streaming = True
-
-        if not has_tcp_ip:
+        if not self.has_tcp_ip:
             add_to_hidden(general_section, ["PrimaryAddressType"])
 
-        if not has_streaming:
+        if not self.has_streaming:
             add_to_hidden(
                 general_section,
                 ["StreamingConnectionHeuristic",

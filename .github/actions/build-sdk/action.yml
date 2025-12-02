@@ -22,6 +22,10 @@ inputs:
     description: 'Run tests after build'
     required: false
     default: 'false'
+  python-versions:
+    description: 'Python version(s) to install (newline-separated for multiple versions)'
+    required: false
+    default: ''
 
 outputs:
   gtest-xml-path:
@@ -41,18 +45,21 @@ runs:
           exit 1
         fi
 
-    # NOTE: Keep python-version list in sync with PYTHON_VERSIONS in "Install Python dependencies" step
+    - name: Prepare Python versions
+      id: python-versions
+      if: inputs.python-versions != ''
+      shell: bash
+      run: |
+        VERSIONS=$(echo '${{ inputs.python-versions }}' | tr ' ' '\n' | grep -v '^$')
+        echo "list<<EOF" >> $GITHUB_OUTPUT
+        echo "$VERSIONS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
     - name: Set up Python
+      if: inputs.python-versions != ''
       uses: actions/setup-python@v5
       with:
-        python-version: |
-            3.8
-            3.9
-            3.10
-            3.11
-            3.12
-            3.13
-            3.14
+        python-version: ${{ steps.python-versions.outputs.list }}
 
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v2
@@ -79,16 +86,14 @@ runs:
       run: mv 'C:\Program Files\LLVM' 'C:\Program Files\LLVM_old'
 
     - name: Install Python dependencies
+      if: inputs.python-versions != ''
       shell: bash
       env:
         PYTHON_CMD: ${{ runner.os == 'Windows' && 'py -' || 'python' }}
       run: |
-        echo "PYTHON_CMD=$PYTHON_CMD"
-        echo "RUNNER_OS=$RUNNER_OS"
-        PYTHON_VERSIONS=(3.8 3.9 3.10 3.11 3.12 3.13 3.14)
-        echo "PYTHON_VERSIONS=${PYTHON_VERSIONS[*]}"
-        for version in "${PYTHON_VERSIONS[@]}"; do
-          echo "Installing numpy for Python $version"
+        PYTHON_VERSIONS='${{ inputs.python-versions }}'
+        echo "Installing numpy for Python versions: $PYTHON_VERSIONS"
+        for version in $PYTHON_VERSIONS; do
           echo "Running: $PYTHON_CMD$version -m pip install numpy"
           $PYTHON_CMD$version -m pip install numpy
         done

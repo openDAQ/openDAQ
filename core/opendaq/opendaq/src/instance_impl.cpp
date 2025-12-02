@@ -144,8 +144,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
         moduleManager->setModuleAuthenticator(moduleAuthenticator);
         if (moduleAuthenticator != nullptr)
         {
-            Bool success;
-            moduleAuthenticator->setLogger(&success, logger);
+            moduleAuthenticator->setLogger(logger);
         }
 
         builderPtr->setModuleManager(moduleManager);

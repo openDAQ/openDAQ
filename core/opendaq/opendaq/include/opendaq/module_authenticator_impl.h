@@ -22,11 +22,14 @@ BEGIN_NAMESPACE_OPENDAQ
 
 class ModuleAuthenticator : public ImplementationOf<IModuleAuthenticator>
 {
+protected:
+    LoggerPtr logger;
+    LoggerComponentPtr loggerComponent;
+
 public:
     ErrCode INTERFACE_FUNC authenticateModuleBinary(Bool* binaryValid, IString** vendorKey, IString* binaryPath) override;
     virtual Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath);
-    ErrCode INTERFACE_FUNC setLogger(Bool* success, ILogger* logger) override;
-    virtual Bool onSetLogger(const LoggerPtr& logger);
+    ErrCode INTERFACE_FUNC setLogger(ILogger* logger) override;
 };
 
 inline ErrCode INTERFACE_FUNC ModuleAuthenticator::authenticateModuleBinary(Bool* binaryValid, IString** vendorKey, IString* binaryPath)
@@ -55,24 +58,14 @@ inline Bool ModuleAuthenticator::onAuthenticateModuleBinary(StringPtr& vendorKey
     return len > 0;
 }
 
-inline ErrCode INTERFACE_FUNC ModuleAuthenticator::setLogger(Bool* success, ILogger* logger)
+inline ErrCode INTERFACE_FUNC ModuleAuthenticator::setLogger(ILogger* logger)
 {
     OPENDAQ_PARAM_NOT_NULL(logger);
 
-    Bool successLocal;
-    const ErrCode errCode = wrapHandlerReturn(this, &ModuleAuthenticator::onSetLogger, successLocal, logger);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
+    this->logger = logger;
+    this->loggerComponent = this->logger.getOrAddComponent("ModuleAuthenticator");
 
-    *success = successLocal;
-    return errCode;
-}
-
-inline Bool ModuleAuthenticator::onSetLogger(const LoggerPtr& logger)
-{
-    if (logger != nullptr)
-        return true;
-
-    return false;
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

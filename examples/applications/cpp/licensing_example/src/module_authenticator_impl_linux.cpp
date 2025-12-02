@@ -9,8 +9,6 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 ModuleAuthenticatorImplExample::ModuleAuthenticatorImplExample(const StringPtr& certPath)
-    : logger(nullptr)
-    , loggerComponent(nullptr)
 {
     std::string pathStr = certPath.toStdString();
     certsPath = std::filesystem::path(pathStr);
@@ -93,17 +91,6 @@ Bool ModuleAuthenticatorImplExample::onAuthenticateModuleBinary(StringPtr& vendo
     gpgme_release(ctx);
 
     setlocale(LC_CTYPE, original_locale.c_str());
-
-    return true;
-}
-
-Bool ModuleAuthenticatorImplExample::onSetLogger(const LoggerPtr& logger)
-{
-    if(!logger.assigned())
-        return false;
-        
-    this->logger = logger;
-    this->loggerComponent = logger.addComponent("ModuleAuthenticator");
 
     return true;
 }

@@ -51,10 +51,9 @@ DECLARE_OPENDAQ_INTERFACE(IModuleAuthenticator, IBaseObject)
      * the logger needs to be added seperately. To allow for this, the call needs to be added to the API, as
      * the instance doesn't know the type of ModuleAuthenticatorImpl it's using.
      *
-     * @param[out] success Successfuly added.
      * @param logger The instance's logger.
      */
-    virtual ErrCode INTERFACE_FUNC setLogger(Bool* success, ILogger * logger) = 0;
+    virtual ErrCode INTERFACE_FUNC setLogger(ILogger* logger) = 0;
 };
 /*!@}*/
 

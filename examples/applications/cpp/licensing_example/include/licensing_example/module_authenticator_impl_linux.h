@@ -30,13 +30,9 @@ public:
     explicit ModuleAuthenticatorImplExample(const StringPtr& certsPath);
 
     Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath) override final;
-    Bool onSetLogger(const LoggerPtr& logger) override final;
 
 private:
     std::filesystem::path certsPath;
-
-    LoggerPtr logger;
-    LoggerComponentPtr loggerComponent;
 };
 
 END_NAMESPACE_OPENDAQ

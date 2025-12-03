@@ -51,9 +51,10 @@ protected:
         fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb", config);
         fb->setPropertyValue(StringPtr("Path"), StringPtr("C:/Users/tomaz/work/test.csv"));
 
-        validDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+        validDescriptor = DataDescriptorBuilder().setName("Voltage").setSampleType(SampleType::Float64).build();
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
         timeDescriptor = DataDescriptorBuilder()
+                             .setName("Time")
                              .setSampleType(SampleType::Int64)
                              .setTickResolution(Ratio(1, 1000))
                              .setOrigin("1970-01-01T00:00:00")
@@ -158,4 +159,41 @@ TEST_F(MultiCsvTest, WriteSamples)
     sendData(100, 0, false, std::make_pair(0, 10));
 
     // Check the log file
+}
+
+TEST_F(MultiCsvTest, DetectSampleRateDiff)
+{
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    fb.asPtr<IRecorder>(true).startRecording();
+
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+
+    sendData(100, 0, false, std::make_pair(0, 10));
+    fb.asPtr<IRecorder>(true).stopRecording();
+
+    DataDescriptorPtr halfRateTimeDescriptor;
+    SignalConfigPtr halfRateTimeSignal;
+    SignalConfigPtr halfRateSignal;
+
+    halfRateTimeDescriptor = DataDescriptorBuilder()
+                                 .setName("Time")
+                                 .setSampleType(SampleType::Int64)
+                                 .setTickResolution(Ratio(1, 1000))
+                                 .setOrigin("1970-01-01T00:00:00")
+                                 .setRule(LinearDataRule(2, 0))
+                                 .setUnit(Unit("s", -1, "seconds", "time"))
+                                 .build();
+
+    halfRateTimeSignal = SignalWithDescriptor(context, halfRateTimeDescriptor, nullptr, fmt::format("halftime_sig"));
+    halfRateSignal = SignalWithDescriptor(context, validDescriptor, nullptr, fmt::format("halfrate_sig"));
+    halfRateSignal.setDomainSignal(halfRateTimeSignal);
+
+    fb.getInputPorts()[1].connect(halfRateSignal);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+
+    SizeT sampleCount = 100;
+    SizeT offset = 0;
+    DataPacketPtr dPacket = DataPacket(halfRateTimeDescriptor, sampleCount / 4, offset / 4);
+    DataPacketPtr vPacket = DataPacketWithDomain(dPacket, validDescriptor, sampleCount / 4);
+    halfRateSignal.sendPacket(vPacket);
 }

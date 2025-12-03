@@ -157,6 +157,7 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     {
         std::string id = getNextPortID();
         auto inputPort = createAndAddInputPort(id, notificationMode);
+        // TODO: CreateAndAddInputPort makes the same call. Why is this neccessary?
         inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
         disconnectedPort = inputPort;
     }
@@ -187,8 +188,6 @@ void MultiCsvRecorderImpl::updateReader()
 
     reader = builder.build();
 
-    // TODO: Check if reader is valid - different sample rates or sth
-
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
     reader.setOnDataAvailable(
@@ -215,14 +214,21 @@ void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor, 
             throw std::runtime_error("Missing input value descriptors!");
         }
 
-        sumDomainDataDescriptor = domainDescriptor;
+        recorderDomainDataDescriptor = domainDescriptor;
 
-        setComponentStatus(ComponentStatus::Ok);
-        reader.setActive(True);
+        if (reader.asPtr<IReaderConfig>(true).getIsValid())
+        {
+            setComponentStatus(ComponentStatus::Ok);
+            reader.setActive(True);
+        }
+        else
+        {
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Configure unsuccessful, signal reader invalid.");
+        }
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to configure CSV recorder: {}", e.what()));
         reader.setActive(False);
     }
 
@@ -242,7 +248,7 @@ void MultiCsvRecorderImpl::reconfigure()
     auto descriptorList = List<IDataDescriptor>();
     for (const auto& descriptor : cachedDescriptors)
         descriptorList.pushBack(descriptor.second);
-    configure(sumDomainDataDescriptor, descriptorList);
+    configure(recorderDomainDataDescriptor, descriptorList);
 }
 
 void MultiCsvRecorderImpl::onPathChanged()
@@ -255,7 +261,7 @@ void MultiCsvRecorderImpl::onConnected(const InputPortPtr& inputPort)
 {
     auto lock = this->getAcquisitionLock2();
 
-    LOG_I("Sum Reader FB: Input port {} connected", inputPort.getLocalId())
+    LOG_I("Multi CSV Recorder: Input port {} connected", inputPort.getLocalId())
 
     if (updateInputPorts())
     {
@@ -290,6 +296,7 @@ void MultiCsvRecorderImpl::onDataReceived()
 
     const MultiReaderStatusPtr status = reader.read(data.data(), &cnt);
 
+    // Write samples if read successful
     if (cnt > 0)
     {
         if (recordingActive && writer.has_value())
@@ -298,53 +305,58 @@ void MultiCsvRecorderImpl::onDataReceived()
         }
     }
 
-    if (status.getReadStatus() == ReadStatus::Event)
+    // Return if there is no event to handle
+    if (status.getReadStatus() != ReadStatus::Event)
     {
-        const auto eventPackets = status.getEventPackets();
-        if (eventPackets.getCount() > 0)
+        return;
+    }
+
+    const auto eventPackets = status.getEventPackets();
+    if (eventPackets.getCount() == 0)
+    {
+        return;
+    }
+
+    DataDescriptorPtr domainDescriptor;
+    ListPtr<IDataDescriptor> valueDescriptors = List<IDataDescriptor>();
+
+    bool domainChanged = false;
+    bool valueSigChanged = false;
+
+    for (const auto& port : connectedPorts)
+    {
+        auto portGlobalId = port.getGlobalId();
+        DataDescriptorPtr valueDescriptor;
+        if (eventPackets.hasKey(portGlobalId))
         {
-            DataDescriptorPtr domainDescriptor;
-            ListPtr<IDataDescriptor> valueDescriptors = List<IDataDescriptor>();
+            getDataDescriptors(eventPackets.get(portGlobalId), valueDescriptor, domainDescriptor);
 
-            bool domainChanged = false;
-            bool valueSigChanged = false;
-
-            for (const auto& port : connectedPorts)
+            if (descriptorNotNull(valueDescriptor))
             {
-                auto portGlobalId = port.getGlobalId();
-                DataDescriptorPtr valueDescriptor;
-                if (eventPackets.hasKey(portGlobalId))
-                {
-                    getDataDescriptors(eventPackets.get(portGlobalId), valueDescriptor, domainDescriptor);
-
-                    if (descriptorNotNull(valueDescriptor))
-                    {
-                        valueSigChanged = true;
-                        valueDescriptors.pushBack(valueDescriptor);
-                        cachedDescriptors[portGlobalId] = valueDescriptor;
-                    }
-
-                    domainChanged |= descriptorNotNull(domainDescriptor);
-                }
-
-                if (!descriptorNotNull(valueDescriptor))
-                    valueDescriptors.pushBack(cachedDescriptors[portGlobalId]);
+                valueSigChanged = true;
+                valueDescriptors.pushBack(valueDescriptor);
+                cachedDescriptors[portGlobalId] = valueDescriptor;
             }
 
-            getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
+            domainChanged |= descriptorNotNull(domainDescriptor);
+        }
 
-            if (valueSigChanged || domainChanged)
-                configure(domainDescriptor, valueDescriptors);
+        if (!descriptorNotNull(valueDescriptor))
+            valueDescriptors.pushBack(cachedDescriptors[portGlobalId]);
+    }
 
-            if (!status.getValid())
-            {
-                LOG_D("Sum Reader FB: Attempting reader recovery")
-                reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
-                if (!reader.asPtr<IReaderConfig>().getIsValid())
-                {
-                    setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
-                }
-            }
+    getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
+
+    if (valueSigChanged || domainChanged)
+        configure(domainDescriptor, valueDescriptors);
+
+    if (!status.getValid())
+    {
+        LOG_D("Multi CSV Recorder: Attempting reader recovery")
+        reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+        if (!reader.asPtr<IReaderConfig>().getIsValid())
+        {
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
         }
     }
 }

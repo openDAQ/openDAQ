@@ -267,7 +267,7 @@ void WsStreamingServer::onClientConnected(
             auto remoteEp = connection->socket().remote_endpoint();
             endpointAddress = remoteEp.address().to_string();
         }
-        catch (const std::exception& e)
+        catch (const std::exception& /*e*/)
         {
             return;
         }

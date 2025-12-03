@@ -197,7 +197,7 @@ public:
         }
     }
 
-    void testSignalStreamingSources(const InstancePtr& client, const InstancePtr& gateway, bool minHops)
+    virtual void testSignalStreamingSources(const InstancePtr& client, const InstancePtr& gateway, bool minHops)
     {
         auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
         auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
@@ -459,6 +459,41 @@ INSTANTIATE_TEST_SUITE_P(
 
 class SubDevicesReconnectionTest : public SubDevicesTest
 {
+public:
+    void addLtServer(InstancePtr& instance, uint16_t streamingPort, uint16_t controlPort) override
+    {
+    }
+
+    void testSignalStreamingSources(const InstancePtr& client, const InstancePtr& gateway, bool minHops) override
+    {
+        auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
+        auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
+        ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
+        for (size_t index = 0; index < clientSignals.getCount(); ++index)
+        {
+            auto clientSignal = clientSignals[index].template asPtr<IMirroredSignalConfig>();
+            auto gatewaySignal = gatewaySignals[index].template asPtr<IMirroredSignalConfig>();
+
+            if (minHops)
+            {
+                ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 2u) << clientSignal.getGlobalId();
+                ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 1u) << gatewaySignal.getGlobalId();
+                ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
+                ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0])
+                    << "client sig " << clientSignal.getGlobalId()
+                    << " streaming source " << clientSignal.getActiveStreamingSource();
+            }
+            else
+            {
+                ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 1u) << clientSignal.getGlobalId();
+                ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 1u) << gatewaySignal.getGlobalId();
+                ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
+                ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[0])
+                    << "client sig " << clientSignal.getGlobalId()
+                    << " streaming source " << clientSignal.getActiveStreamingSource();
+            }
+        }
+    }
 };
 
 TEST_P(SubDevicesReconnectionTest, LeafStreamingToClientAfterReconnect)

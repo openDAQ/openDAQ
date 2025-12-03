@@ -242,7 +242,6 @@ class PropertiesTreeview(ttk.Treeview):
         finally:
             entry.destroy()
 
-    # TODO: hacky due to special handling for range and unit
     def save_struct_value(self, entry, parent, name):
         new_raw = entry.get()
 
@@ -259,42 +258,17 @@ class PropertiesTreeview(ttk.Treeview):
             # Special handling for protected struct types
             struct_type_name = old_struct.struct_type.name
 
+            # Generic struct, clone and rebuild
+            new_dict = daq.Dict()
+            for k, v in old_dict.items():
+                new_dict[k] = new_val if k == name else v
+
             if struct_type_name == "Range":
-                low = old_dict["LowValue"]
-                high = old_dict["HighValue"]
-
-                if name == "LowValue":
-                    low = new_val
-                elif name == "HighValue":
-                    high = new_val
-
-                new_struct = daq.Range(low, high)
-
+                new_struct = daq.Range(new_dict["LowValue"], new_dict["HighValue"])
             elif struct_type_name == "Unit":
-                symbol = old_dict["Symbol"]
-                id = old_dict["Id"]
-                unit_name = old_dict["Name"]
-                quantity = old_dict["Quantity"]
-
-                if name == "Symbol":
-                    symbol = new_val
-                elif name == "Id":
-                    id = new_val
-                elif name == "Name":
-                    unit_name = new_val
-                elif name == "Quantity":
-                    quantity = new_val
-
-                new_struct = daq.Unit(id, symbol, unit_name, quantity)
-
+                new_struct = daq.Unit(new_dict["Id"], new_dict["Symbol"], new_dict["Name"], new_dict["Quantity"])
             else:
-                # Generic struct, clone and rebuild
-                new_dict = daq.Dict()
-                for k, v in old_dict.items():
-                    new_dict[k] = new_val if k == name else v
-
                 tm = self.context.instance.context.type_manager
-
                 new_struct = daq.Struct(
                     daq.String(struct_type_name),
                     new_dict,
@@ -306,7 +280,6 @@ class PropertiesTreeview(ttk.Treeview):
 
         except Exception as e:
             print("Failed to set value:", e)
-
         finally:
             entry.destroy()
 

@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from fractions import Fraction
 
 import opendaq as daq
 
@@ -68,6 +69,18 @@ class PropertiesTreeview(ttk.Treeview):
                 self.item(iid, tags=('readonly',))
 
     def fill_struct(self, parent_iid, node, read_only):
+        # Special-case: ComplexNumber
+        if isinstance(node, complex):
+            # Display as real/imag
+            iid = self.insert(parent_iid, tk.END, text="Real", values=(node.real,))
+            iid2 = self.insert(parent_iid, tk.END, text="Imag", values=(node.imag,))
+            return
+
+        # Avoid crash; display raw value
+        if not hasattr(node, "as_dictionary"):
+            self.insert(parent_iid, tk.END, text="(value)", values=(str(node),))
+            return
+
         for key, value in node.as_dictionary.items():
             iid = self.insert('' if not parent_iid else parent_iid,
                              tk.END, text=key, values=(value,))
@@ -228,6 +241,55 @@ class PropertiesTreeview(ttk.Treeview):
         finally:
             entry.destroy()
 
+    def save_struct_value(self, entry, parent, name):
+        new_raw = entry.get()
+
+        try:
+            old_struct = parent.value
+            old_dict = old_struct.as_dictionary
+
+            # Convert to same Python type
+            old_val = old_dict[name]
+            ty = type(old_val)
+
+            new_val = ty(new_raw)
+
+            # Special handling for protected struct types
+            struct_type_name = old_struct.struct_type.name
+
+            new_dict = daq.Dict()
+            for k, v in old_dict.items():
+                new_dict[k] = new_val if k == name else v
+
+            if struct_type_name == "Range":
+                new_struct = daq.Range(new_dict["LowValue"], new_dict["HighValue"])
+            elif struct_type_name == "Unit":
+                new_struct = daq.Unit(new_dict["Id"], new_dict["Symbol"], new_dict["Name"], new_dict["Quantity"])
+            else:
+                tm = self.context.instance.context.type_manager
+                new_struct = daq.Struct(
+                    daq.String(struct_type_name),
+                    new_dict,
+                    tm
+                )
+
+            parent.value = new_struct
+            self.refresh()
+
+        except Exception as e:
+            print("Failed to set value:", e)
+        finally:
+            entry.destroy()
+
+    def edit_struct_property(self, selected_item_id, name, parent):
+        x, y, width, height = self.bbox(selected_item_id, '#1')
+        entry = ttk.Entry(self)
+        entry.place(x=x, y=y, width=width, height=height)
+        entry.insert(0, parent.value.get(name))
+        entry.focus()
+        entry.bind('<Return>', lambda e: self.save_struct_value(entry, parent, name))
+        entry.bind('<FocusOut>', lambda e: self.save_struct_value(entry, parent, name))
+
     def edit_simple_property(self, selected_item_id, property_value, path):
         x, y, width, height = self.bbox(selected_item_id, '#1')
         entry = ttk.Entry(self)
@@ -242,8 +304,18 @@ class PropertiesTreeview(ttk.Treeview):
         if selected_item_id is None:
             return
 
-        property_name = self.item(selected_item_id, 'text')
+        name = self.item(selected_item_id, 'text')
         path = utils.get_item_path(self, selected_item_id)
+
+        # handle struct
+        if len(path) > 1:
+            parent = utils.get_property_for_path(self.context, path[:-1], self.node)
+            if type(parent.value) is complex or type(parent.value) is Fraction:
+                return # complex and fraction/ratio isn't editable yet
+            elif parent.value_type == daq.CoreType.ctStruct:
+                self.edit_struct_property(selected_item_id, name, parent)
+                return
+
         prop = utils.get_property_for_path(self.context, path, self.node)
         if not prop:
             return
@@ -265,7 +337,7 @@ class PropertiesTreeview(ttk.Treeview):
             prop.value = not prop.value
             self.refresh() # is needed
         elif prop.value_type == daq.CoreType.ctInt and prop.selection_values is not None:
-            prop.value = utils.show_selection('Enter the new value for {}:'.format(property_name),
+            prop.value = utils.show_selection('Enter the new value for {}:'.format(name),
                                               prop.value, prop.selection_values)
             self.refresh() # is needed
         elif prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):

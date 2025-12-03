@@ -69,16 +69,15 @@ class PropertiesTreeview(ttk.Treeview):
                 self.item(iid, tags=('readonly',))
 
     def fill_struct(self, parent_iid, node, read_only):
-        # Special-case: protected struct types (e.g., ComplexNumber)
+        # Special-case: ComplexNumber
         if isinstance(node, complex):
             # Display as real/imag
             iid = self.insert(parent_iid, tk.END, text="Real", values=(node.real,))
             iid2 = self.insert(parent_iid, tk.END, text="Imag", values=(node.imag,))
             return
 
-        # Normal struct (IStruct)
+        # Avoid crash; display raw value
         if not hasattr(node, "as_dictionary"):
-            # Avoid crash; display raw value
             self.insert(parent_iid, tk.END, text="(value)", values=(str(node),))
             return
 
@@ -258,7 +257,6 @@ class PropertiesTreeview(ttk.Treeview):
             # Special handling for protected struct types
             struct_type_name = old_struct.struct_type.name
 
-            # Generic struct, clone and rebuild
             new_dict = daq.Dict()
             for k, v in old_dict.items():
                 new_dict[k] = new_val if k == name else v

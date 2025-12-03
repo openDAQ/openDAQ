@@ -101,6 +101,8 @@ TEST_F(WebsocketModulesTest, ConnectAndDisconnectBackwardCompatibility)
     auto server = CreateServerInstance();
     auto client = Instance();
     client.addDevice("daq.ws://127.0.0.1/", nullptr);
+    // Wait for signals to become available in LT
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 TEST_F(WebsocketModulesTest, ConnectViaIpv6)
@@ -113,6 +115,8 @@ TEST_F(WebsocketModulesTest, ConnectViaIpv6)
     auto server = CreateServerInstance();
     auto client = Instance();
     client.addDevice("daq.lt://[::1]", nullptr);
+    // Wait for signals to become available in LT
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
@@ -317,6 +321,8 @@ TEST_F(WebsocketModulesTest, RemoveDevice)
     auto server = CreateServerInstance();
     auto client = Instance();
     auto device = client.addDevice("daq.lt://127.0.0.1/");
+    // Wait for signals to become available in LT
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     ASSERT_NO_THROW(client.removeDevice(device));
     ASSERT_TRUE(device.isRemoved());
@@ -465,6 +471,8 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv6)
     auto server = CreateServerInstance();
     auto client = Instance();
     client.addDevice("daq.lt://[::1]", nullptr);
+    // Wait for signals to become available in LT
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);

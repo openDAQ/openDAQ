@@ -31,14 +31,10 @@ public:
     DataDescriptorPtr validDescriptor;
     DataDescriptorPtr invalidDescriptor;
     DataDescriptorPtr timeDescriptor;
-    DataDescriptorPtr halfRateTimeDescriptor;
 
     ListPtr<ISignalConfig> validSignals;
     ListPtr<ISignalConfig> invalidSignals;
     SignalConfigPtr timeSignal;
-
-    SignalConfigPtr halfRateTimeSignal;
-    SignalConfigPtr halfRateSignal;
 
 protected:
     void SetUp() override
@@ -55,9 +51,10 @@ protected:
         fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb", config);
         fb->setPropertyValue(StringPtr("Path"), StringPtr("C:/Users/tomaz/work/test.csv"));
 
-        validDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+        validDescriptor = DataDescriptorBuilder().setName("Voltage").setSampleType(SampleType::Float64).build();
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
         timeDescriptor = DataDescriptorBuilder()
+                             .setName("Time")
                              .setSampleType(SampleType::Int64)
                              .setTickResolution(Ratio(1, 1000))
                              .setOrigin("1970-01-01T00:00:00")
@@ -65,21 +62,9 @@ protected:
                              .setUnit(Unit("s", -1, "seconds", "time"))
                              .build();
 
-        halfRateTimeDescriptor = DataDescriptorBuilder()
-                                     .setSampleType(SampleType::Int64)
-                                     .setTickResolution(Ratio(1, 250))
-                                     .setOrigin("1970-01-01T00:00:00")
-                                     .setRule(LinearDataRule(1, 0))
-                                     .setUnit(Unit("s", -1, "seconds", "time"))
-                                     .build();
-
         validSignals = List<ISignal>();
         invalidSignals = List<ISignal>();
         timeSignal = SignalWithDescriptor(context, timeDescriptor, nullptr, "time_sig");
-
-        halfRateTimeSignal = SignalWithDescriptor(context, halfRateTimeDescriptor, nullptr, fmt::format("halftime_sig"));
-        halfRateSignal = SignalWithDescriptor(context, validDescriptor, nullptr, fmt::format("halfrate_sig"));
-        halfRateSignal.setDomainSignal(halfRateTimeSignal);
 
         for (size_t i = 0; i < 10; ++i)
         {
@@ -94,7 +79,6 @@ protected:
     void sendData(SizeT sampleCount,
                   SizeT offset,
                   bool sendInvalid,
-                  bool sendHalfRate,
                   std::pair<size_t, size_t> signalRange,
                   ListPtr<ISignalConfig> extraSignals = List<ISignalConfig>(),
                   ListPtr<ISignalConfig> extraDomainSignals = List<ISignalConfig>())
@@ -109,13 +93,6 @@ protected:
         timeSignal.sendPacket(domainPacket);
         for (size_t i = signalRange.first; i < signalRange.second; ++i)
             validSignals[i].sendPacket(valuePacket);
-
-        if (sendHalfRate)
-        {
-            DataPacketPtr dPacket = DataPacket(halfRateTimeDescriptor, sampleCount / 4, offset / 4);
-            DataPacketPtr vPacket = DataPacketWithDomain(dPacket, validDescriptor, sampleCount / 4);
-            halfRateSignal.sendPacket(vPacket);
-        }
 
         if (sendInvalid)
         {
@@ -179,7 +156,7 @@ TEST_F(MultiCsvTest, WriteSamples)
 
     fb.asPtr<IRecorder>(true).startRecording();
 
-    sendData(100, 0, false, false, std::make_pair(0, 10));
+    sendData(100, 0, false, std::make_pair(0, 10));
 
     // Check the log file
 }
@@ -191,8 +168,32 @@ TEST_F(MultiCsvTest, DetectSampleRateDiff)
 
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
 
-    sendData(100, 0, false, false, std::make_pair(0, 10));
+    sendData(100, 0, false, std::make_pair(0, 10));
     fb.asPtr<IRecorder>(true).stopRecording();
+
+    DataDescriptorPtr halfRateTimeDescriptor;
+    SignalConfigPtr halfRateTimeSignal;
+    SignalConfigPtr halfRateSignal;
+
+    halfRateTimeDescriptor = DataDescriptorBuilder()
+                                 .setName("Time")
+                                 .setSampleType(SampleType::Int64)
+                                 .setTickResolution(Ratio(1, 250))
+                                 .setOrigin("1970-01-01T00:00:00")
+                                 .setRule(LinearDataRule(1, 0))
+                                 .setUnit(Unit("s", -1, "seconds", "time"))
+                                 .build();
+
+    halfRateTimeSignal = SignalWithDescriptor(context, halfRateTimeDescriptor, nullptr, fmt::format("halftime_sig"));
+    halfRateSignal = SignalWithDescriptor(context, validDescriptor, nullptr, fmt::format("halfrate_sig"));
+    halfRateSignal.setDomainSignal(halfRateTimeSignal);
+
     fb.getInputPorts()[1].connect(halfRateSignal);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+
+    SizeT sampleCount = 100;
+    SizeT offset = 0;
+    DataPacketPtr dPacket = DataPacket(halfRateTimeDescriptor, sampleCount / 4, offset / 4);
+    DataPacketPtr vPacket = DataPacketWithDomain(dPacket, validDescriptor, sampleCount / 4);
+    halfRateSignal.sendPacket(vPacket);
 }

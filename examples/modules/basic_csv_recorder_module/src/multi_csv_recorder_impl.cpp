@@ -214,7 +214,7 @@ void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor, 
             throw std::runtime_error("Missing input value descriptors!");
         }
 
-        sumDomainDataDescriptor = domainDescriptor;
+        recorderDomainDataDescriptor = domainDescriptor;
 
         if (reader.asPtr<IReaderConfig>(true).getIsValid())
         {
@@ -248,7 +248,7 @@ void MultiCsvRecorderImpl::reconfigure()
     auto descriptorList = List<IDataDescriptor>();
     for (const auto& descriptor : cachedDescriptors)
         descriptorList.pushBack(descriptor.second);
-    configure(sumDomainDataDescriptor, descriptorList);
+    configure(recorderDomainDataDescriptor, descriptorList);
 }
 
 void MultiCsvRecorderImpl::onPathChanged()
@@ -296,6 +296,7 @@ void MultiCsvRecorderImpl::onDataReceived()
 
     const MultiReaderStatusPtr status = reader.read(data.data(), &cnt);
 
+    // Write samples if read successful
     if (cnt > 0)
     {
         if (recordingActive && writer.has_value())
@@ -304,6 +305,7 @@ void MultiCsvRecorderImpl::onDataReceived()
         }
     }
 
+    // Return if there is no event to handle
     if (status.getReadStatus() != ReadStatus::Event)
     {
         return;

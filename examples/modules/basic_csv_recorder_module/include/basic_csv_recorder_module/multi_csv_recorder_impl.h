@@ -89,8 +89,7 @@ private:
     InputPortPtr disconnectedPort;
 
     std::unordered_map<std::string, DataDescriptorPtr> cachedDescriptors;
-    DataDescriptorPtr sumDataDescriptor;
-    DataDescriptorPtr sumDomainDataDescriptor;
+    DataDescriptorPtr recorderDomainDataDescriptor;
 
     PacketReadyNotification notificationMode;
     MultiReaderPtr reader;

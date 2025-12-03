@@ -5,6 +5,8 @@
 #include <opendaq/opendaq.h>
 #include <testutils/memcheck_listener.h>
 
+#include <fstream>
+
 using namespace daq;
 
 static ModulePtr createModule(const ContextPtr& context)
@@ -37,6 +39,8 @@ public:
     ListPtr<ISignalConfig> invalidSignals;
     SignalConfigPtr timeSignal;
 
+    std::string outputPath;
+
 protected:
     void SetUp() override
     {
@@ -50,7 +54,8 @@ protected:
 
         // Create function block
         fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb", config);
-        fb->setPropertyValue(StringPtr("Path"), StringPtr("C:/Users/tomaz/work/test.csv"));
+        outputPath = testing::TempDir() + "output.csv";
+        fb->setPropertyValue(StringPtr("Path"), StringPtr(outputPath));
 
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
         timeDescriptor = DataDescriptorBuilder()
@@ -127,13 +132,13 @@ protected:
 TEST_F(MultiCsvTest, Create)
 {
     ASSERT_TRUE(fb.assigned());
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
 }
 
 TEST_F(MultiCsvTest, ConnectSignal)
 {
     ASSERT_NO_THROW(fb.getInputPorts()[0].connect(validSignals[0]));
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
 }
 
 TEST_F(MultiCsvTest, ConnectSignals)
@@ -143,7 +148,7 @@ TEST_F(MultiCsvTest, ConnectSignals)
         ASSERT_NO_THROW(fb.getInputPorts()[0].connect(validSignals[i]));
     }
 
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
 }
 
 TEST_F(MultiCsvTest, DisconnectSignals)
@@ -151,13 +156,13 @@ TEST_F(MultiCsvTest, DisconnectSignals)
     for (size_t i = 0; i < validSignals.getCount(); ++i)
         fb.getInputPorts()[i].connect(validSignals[i]);
 
-    ASSERT_EQ(fb.getInputPorts().getCount(), 11u);
+    EXPECT_EQ(fb.getInputPorts().getCount(), 11u);
 
     for (const auto& ip : fb.getInputPorts())
         ip.disconnect();
 
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
-    ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+    EXPECT_EQ(fb.getInputPorts().getCount(), 1u);
 }
 
 TEST_F(MultiCsvTest, WriteSamples)
@@ -169,7 +174,27 @@ TEST_F(MultiCsvTest, WriteSamples)
 
     sendData(100, 0, false, std::make_pair(0, 10));
 
+    // fb.asPtr<IRecorder>(true).stopRecording();
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
     // Check the log file
+    std::ifstream readIn(this->outputPath);
+
+    ASSERT_TRUE(readIn.is_open());
+
+    std::string line;
+    std::getline(readIn, line);
+    std::string headerLine("# Domain: name=\"Time (s / 1000)\";origin=1970-01-01T00:00:00;period=1/1000;unit=seconds");
+    EXPECT_EQ(line, headerLine);
+
+    std::getline(readIn, line);
+    std::string columns("\"AI_0 (V)\",\"AI_1 (V)\",\"AI_2 (V)\",\"AI_3 (V)\",\"AI_4 (V)\",\"AI_5 (V)\",\"AI_6 (V)\",\"AI_7 (V)\",\"AI_8 "
+                        "(V)\",\"AI_9 (V)\"");
+    EXPECT_EQ(line, columns);
+
+    std::getline(readIn, line);
+    std::string firstSamples("-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87");
+    EXPECT_EQ(line, firstSamples);
 }
 
 TEST_F(MultiCsvTest, DetectSampleRateDiff)
@@ -177,7 +202,7 @@ TEST_F(MultiCsvTest, DetectSampleRateDiff)
     fb.getInputPorts()[0].connect(validSignals[0]);
     fb.asPtr<IRecorder>(true).startRecording();
 
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
 
     sendData(100, 0, false, std::make_pair(0, 10));
     fb.asPtr<IRecorder>(true).stopRecording();
@@ -200,7 +225,7 @@ TEST_F(MultiCsvTest, DetectSampleRateDiff)
     halfRateSignal.setDomainSignal(halfRateTimeSignal);
 
     fb.getInputPorts()[1].connect(halfRateSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
 
     SizeT sampleCount = 100;
     SizeT offset = 0;

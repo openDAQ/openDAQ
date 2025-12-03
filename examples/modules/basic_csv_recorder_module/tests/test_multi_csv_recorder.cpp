@@ -178,9 +178,9 @@ TEST_F(MultiCsvTest, DetectSampleRateDiff)
     halfRateTimeDescriptor = DataDescriptorBuilder()
                                  .setName("Time")
                                  .setSampleType(SampleType::Int64)
-                                 .setTickResolution(Ratio(1, 250))
+                                 .setTickResolution(Ratio(1, 1000))
                                  .setOrigin("1970-01-01T00:00:00")
-                                 .setRule(LinearDataRule(1, 0))
+                                 .setRule(LinearDataRule(2, 0))
                                  .setUnit(Unit("s", -1, "seconds", "time"))
                                  .build();
 

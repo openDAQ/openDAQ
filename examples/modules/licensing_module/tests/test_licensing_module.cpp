@@ -18,6 +18,7 @@
 #include <opendaq/reader_factory.h>
 
 #include <iostream>
+#include <thread>
 
 const std::string resourcesPath = TEST_RESOURCE_PATH;
 
@@ -189,21 +190,26 @@ TEST_F(LicensingModuleTestWithSignal, ValidAuthentication)
 
     validAuthenticationWorks = !fb.isEmpty();
     ASSERT_TRUE(validAuthenticationWorks);
-    
 }
 
 TEST_F(LicensingModuleTestWithSignal, InvalidAuthentication)
 {
     authenticateAndLicenseInvalid();
 
-    ASSERT_THROW(createPassthroughFb(), NotFoundException);
+    createPassthroughFb();
+    setupPipeline();
+
+    ASSERT_FALSE(canReadSignal());
 }
 
 TEST_F(LicensingModuleTestWithSignal, NoAuthentication)
 {
     authenticateInvalidAndLicenseValid();
 
-    ASSERT_THROW(createPassthroughFb(), NotFoundException);
+    createPassthroughFb();
+    setupPipeline();
+
+    ASSERT_FALSE(canReadSignal());
 }
 
 TEST_F(LicensingModuleTestWithSignal, MultipleAuthentication)
@@ -211,8 +217,6 @@ TEST_F(LicensingModuleTestWithSignal, MultipleAuthentication)
     if (!validAuthenticationWorks)
         GTEST_SKIP();
 
-    ASSERT_THROW(createPassthroughFb(), NotFoundException);
-
     authenticateAndLicenseValid();
 
     createPassthroughFb();
@@ -220,12 +224,17 @@ TEST_F(LicensingModuleTestWithSignal, MultipleAuthentication)
 
     authenticateAndLicenseInvalid();
 
-    ASSERT_THROW(createPassthroughFb(), NotFoundException);
-    
+    createPassthroughFb();
+    setupPipeline();
+
+    ASSERT_FALSE(canReadSignal());
+
     authenticateAndLicenseValid();
 
     createPassthroughFb();
-    ASSERT_TRUE(!fb.isEmpty());
+    setupPipeline();
+
+    ASSERT_TRUE(canReadSignal());
 }
 
 TEST_F(LicensingModuleTestWithSignal, ValidLicense)

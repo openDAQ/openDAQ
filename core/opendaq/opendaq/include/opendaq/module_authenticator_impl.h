@@ -22,9 +22,14 @@ BEGIN_NAMESPACE_OPENDAQ
 
 class ModuleAuthenticator : public ImplementationOf<IModuleAuthenticator>
 {
+protected:
+    LoggerPtr logger;
+    LoggerComponentPtr loggerComponent;
+
 public:
     ErrCode INTERFACE_FUNC authenticateModuleBinary(Bool* binaryValid, IString** vendorKey, IString* binaryPath) override;
     virtual Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath);
+    ErrCode INTERFACE_FUNC setLogger(ILogger* logger) override;
 };
 
 inline ErrCode INTERFACE_FUNC ModuleAuthenticator::authenticateModuleBinary(Bool* binaryValid, IString** vendorKey, IString* binaryPath)
@@ -51,6 +56,16 @@ inline Bool ModuleAuthenticator::onAuthenticateModuleBinary(StringPtr& vendorKey
     vendorKey = key.detach();
 
     return len > 0;
+}
+
+inline ErrCode INTERFACE_FUNC ModuleAuthenticator::setLogger(ILogger* logger)
+{
+    OPENDAQ_PARAM_NOT_NULL(logger);
+
+    this->logger = logger;
+    this->loggerComponent = this->logger.getOrAddComponent("ModuleAuthenticator");
+
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

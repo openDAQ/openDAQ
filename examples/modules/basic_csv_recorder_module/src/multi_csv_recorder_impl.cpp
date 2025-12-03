@@ -241,6 +241,7 @@ void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor, 
 
     // Replace the csv writer (can it ever survive a reconfigure?)
     writer.emplace(filePath.value());
+    writer.value().setHeaderInformation(recorderDomainDataDescriptor, valueDescriptors);
 }
 
 void MultiCsvRecorderImpl::reconfigure()

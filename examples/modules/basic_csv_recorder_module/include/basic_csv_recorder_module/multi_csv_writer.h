@@ -34,25 +34,32 @@ public:
     MultiCsvWriter(const fs::path& filename);
     ~MultiCsvWriter();
 
-    void setHeaderInformation();
+    void setHeaderInformation(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
     void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count);
 
 private:
     struct JaggedBuffer
     {
         int count;
-        std::vector<std::unique_ptr<double[]>> buffer;
+        std::vector<std::unique_ptr<double[]>> buffers;
     };
 
     void threadLoop();
+
+    void writeHeaders();
 
     std::mutex mutex;
     std::condition_variable cv;
 
     bool exitFlag;
+    bool headersWritten;
     std::queue<JaggedBuffer> queue;
     std::thread writerThread;
     std::ofstream outFile;
+
+    std::string domainName;
+    std::vector<std::string> valueNames;
+    std::string domainMetadata;
 };
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

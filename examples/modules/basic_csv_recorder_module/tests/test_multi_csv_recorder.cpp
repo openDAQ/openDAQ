@@ -32,6 +32,7 @@ public:
     DataDescriptorPtr invalidDescriptor;
     DataDescriptorPtr timeDescriptor;
 
+    ListPtr<IDataDescriptor> validDescriptors;
     ListPtr<ISignalConfig> validSignals;
     ListPtr<ISignalConfig> invalidSignals;
     SignalConfigPtr timeSignal;
@@ -51,7 +52,6 @@ protected:
         fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb", config);
         fb->setPropertyValue(StringPtr("Path"), StringPtr("C:/Users/tomaz/work/test.csv"));
 
-        validDescriptor = DataDescriptorBuilder().setName("Voltage").setSampleType(SampleType::Float64).build();
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
         timeDescriptor = DataDescriptorBuilder()
                              .setName("Time")
@@ -62,14 +62,23 @@ protected:
                              .setUnit(Unit("s", -1, "seconds", "time"))
                              .build();
 
+        validDescriptors = List<IDataDescriptor>();
         validSignals = List<ISignal>();
         invalidSignals = List<ISignal>();
         timeSignal = SignalWithDescriptor(context, timeDescriptor, nullptr, "time_sig");
 
         for (size_t i = 0; i < 10; ++i)
         {
+            std::ostringstream stream;
+            stream << "AI_" << i;
+            validDescriptor = DataDescriptorBuilder()
+                                  .setName(stream.str())
+                                  .setSampleType(SampleType::Float64)
+                                  .setUnit(Unit("V", -1, "volts", "voltage"))
+                                  .build();
             validSignals.pushBack(SignalWithDescriptor(context, validDescriptor, nullptr, fmt::format("sig{}", i)));
             invalidSignals.pushBack(SignalWithDescriptor(context, invalidDescriptor, nullptr, fmt::format("sig{}", i)));
+            validDescriptors.pushBack(validDescriptor);
 
             validSignals[i].setDomainSignal(timeSignal);
             invalidSignals[i].setDomainSignal(timeSignal);
@@ -84,23 +93,25 @@ protected:
                   ListPtr<ISignalConfig> extraDomainSignals = List<ISignalConfig>())
     {
         DataPacketPtr domainPacket = DataPacket(timeDescriptor, sampleCount, offset);
-        DataPacketPtr valuePacket = DataPacketWithDomain(domainPacket, validDescriptor, sampleCount);
-
-        double* sumValueData = static_cast<double*>(valuePacket.getRawData());
-        for (size_t i = 0; i < sampleCount; ++i)
-            sumValueData[i] = i;
 
         timeSignal.sendPacket(domainPacket);
         for (size_t i = signalRange.first; i < signalRange.second; ++i)
-            validSignals[i].sendPacket(valuePacket);
+        {
+            DataPacketPtr packet = DataPacketWithDomain(domainPacket, validDescriptors.getItemAt(i), sampleCount);
+            double* sumValueData = static_cast<double*>(packet.getRawData());
+            for (size_t j = 0; j < sampleCount; ++j)
+                sumValueData[j] = i + j - 0.13;
+            validSignals[i].sendPacket(packet);
+        }
 
         if (sendInvalid)
         {
             DataPacketPtr invalidValuePacket = DataPacketWithDomain(domainPacket, invalidDescriptor, sampleCount);
             for (size_t i = signalRange.first; i < signalRange.second; ++i)
-                invalidSignals[i].sendPacket(valuePacket);
+                invalidSignals[i].sendPacket(invalidValuePacket);
         }
 
+        DataPacketPtr valuePacket = DataPacketWithDomain(domainPacket, validDescriptor, sampleCount);
         for (const auto& signal : extraSignals)
         {
             signal.sendPacket(valuePacket);

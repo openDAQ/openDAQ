@@ -346,6 +346,8 @@ class PropertiesTreeview(ttk.Treeview):
                 return
 
         prop = utils.get_property_for_path(self.context, path, self.node)
+        if not prop:
+            return
 
         if prop.value_type == daq.CoreType.ctFunc:
             f = daq.IFunction.cast_from(prop.value)

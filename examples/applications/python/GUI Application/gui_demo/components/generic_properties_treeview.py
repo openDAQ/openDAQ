@@ -343,7 +343,7 @@ class PropertiesTreeview(ttk.Treeview):
                 return # complex and fraction/ratio isn't editable yet
             elif parent.value_type == daq.CoreType.ctStruct:
                 self.edit_struct_property(selected_item_id, name, parent)
-            return
+                return
 
         prop = utils.get_property_for_path(self.context, path, self.node)
 

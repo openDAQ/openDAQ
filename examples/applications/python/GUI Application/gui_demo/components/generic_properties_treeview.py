@@ -13,6 +13,7 @@ from .metadata_dialog import MetadataDialog
 
 class PropertiesTreeview(ttk.Treeview):
     def __init__(self, parent, node=None, context: AppContext = None, **kwargs):
+        self.hidden = kwargs.pop("hidden", [])
         ttk.Treeview.__init__(self, parent, columns=('value', *context.metadata_fields), show='tree headings', **kwargs)
 
         self.context = context
@@ -52,7 +53,7 @@ class PropertiesTreeview(ttk.Treeview):
         self.delete(*self.get_children())
         if self.node is not None:
             if daq.IPropertyObject.can_cast_from(self.node):
-                self.fill_properties('', daq.IPropertyObject.cast_from(self.node))
+                self.fill_properties('', daq.IPropertyObject.cast_from(self.node), self.hidden)
 
     def fill_list(self, parent_iid, l, read_only):
         for i, value in enumerate(l):
@@ -87,7 +88,7 @@ class PropertiesTreeview(ttk.Treeview):
             if read_only:
                 self.item(iid, tags=('readonly',))
 
-    def fill_properties(self, parent_iid, node):
+    def fill_properties(self, parent_iid, node, hidden):
         def printed_value(value_type, value):
             if value_type == daq.CoreType.ctBool:
                 return utils.yes_no[value]
@@ -95,6 +96,10 @@ class PropertiesTreeview(ttk.Treeview):
                 return value
 
         for property_info in self.context.properties_of_component(node):
+            if property_info.name in hidden:
+                # This property was marked as hidden
+                continue
+
             if property_info.selection_values is not None:
                 if len(property_info.selection_values) > 0:
                     property_value = printed_value(
@@ -123,13 +128,22 @@ class PropertiesTreeview(ttk.Treeview):
                 print(e)
 
             unit_symbol = property_info.unit.symbol if property_info.unit is not None else ''
-            iid = self.insert('' if not parent_iid else parent_iid, tk.END, open=True, text=property_info.name, values=(f'{property_value} {unit_symbol}', *meta_fields))
+
+            # Insert a treeview entry widget for the property
+            iid = self.insert(
+                '' if not parent_iid else parent_iid,
+                tk.END,
+                open=True,
+                text=property_info.name,
+                values=(f'{property_value} {unit_symbol}', *meta_fields))
+
             if property_info.read_only:
                 self.item(iid, tags=('readonly',))
 
             if property_info.value_type == daq.CoreType.ctObject:
+                hidden_children = [s.removeprefix(f"{property_info.name}.") for s in hidden if s.startswith(f"{property_info.name}.")]
                 self.fill_properties(
-                    iid, node.get_property_value(property_info.name))
+                    iid, node.get_property_value(property_info.name), hidden_children)
             elif property_info.value_type == daq.CoreType.ctStruct:
                 self.fill_struct(
                     iid, node.get_property_value(property_info.name), property_info.read_only)

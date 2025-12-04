@@ -33,7 +33,7 @@ protected:
 #       endif
     }
 
-    void OnTestEnd(const testing::TestInfo& info) override
+    void OnTestEnd(const testing::TestInfo& /*info*/) override
     {
     }
 };

@@ -15,7 +15,7 @@ _STREAMING = "Streaming"
 _GENERAL = "General"
 _ASP = "AllowedStreamingProtocols"
 _ACS = "AutomaticallyConnectStreaming"
-_PAT = "PrimaryAdressType"
+_PAT = "PrimaryAddressType"
 
 class AddConfigDialog(Dialog):
     @classmethod

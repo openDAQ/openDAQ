@@ -295,6 +295,41 @@ class PropertiesTreeview(ttk.Treeview):
         finally:
             entry.destroy()
 
+    def edit_enumeration_property(self, item_id, prop):
+        enum: daq.IEnumeration = prop.value
+        enum_type = enum.enumeration_type
+        items = enum_type.as_dictionary.items()
+        keys = [k for k, _ in items]
+        current_value = enum.value
+        current_key = keys[current_value]
+        x, y, width, height = self.bbox(item_id, '#1')
+        var = tk.StringVar(self, value=current_key)
+        option = tk.OptionMenu(self, var, *keys)
+        option.place(x=x, y=y, width=width, height=height)
+        def post_menu():
+            ox = option.winfo_rootx()
+            oy = option.winfo_rooty() + option.winfo_height()
+            option["menu"].post(ox, oy)
+        self.after_idle(post_menu)
+        def callback(*_):
+            selected_key = var.get()
+            option["menu"].unpost()
+            try:
+                enum_obj = daq.Enumeration(
+                    daq.String(enum_type.name),
+                    daq.String(selected_key),
+                    self.context.instance.context.type_manager,
+                )
+                prop.value = enum_obj
+            except Exception as e:
+                print("Failed to set enum:", e)
+            finally:
+                option.destroy()
+                self.refresh()
+        var.trace_add("write", callback)
+        option.focus_set()
+        option.bind("<FocusOut>", lambda e: (option.destroy(), self.refresh()))
+
     def edit_struct_property(self, selected_item_id, name, parent):
         x, y, width, height = self.bbox(selected_item_id, '#1')
         entry = ttk.Entry(self)
@@ -331,7 +366,12 @@ class PropertiesTreeview(ttk.Treeview):
                 return
 
         prop = utils.get_property_for_path(self.context, path, self.node)
+
         if not prop:
+            return
+
+        if prop.value_type == daq.CoreType.ctEnumeration:
+            self.edit_enumeration_property(selected_item_id, prop)
             return
 
         if prop.value_type == daq.CoreType.ctFunc:
@@ -359,3 +399,4 @@ class PropertiesTreeview(ttk.Treeview):
             self.refresh() # TODO needed? check
         elif prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt):
             self.edit_simple_property(selected_item_id, prop.value, path)
+

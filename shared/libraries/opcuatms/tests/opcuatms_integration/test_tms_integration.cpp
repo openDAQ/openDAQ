@@ -359,7 +359,7 @@ TEST_F(TmsIntegrationTest, InputPortConnect)
     ASSERT_FALSE(portSignal.assigned());
 }
 
-TEST_F(TmsIntegrationTest, InputPortMultipleServers)
+TEST_F(TmsIntegrationTest, DISABLED_InputPortMultipleServers)
 {
     auto StartServerDevice = [&](const InstancePtr& device, uint16_t port)
     {

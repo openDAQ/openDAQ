@@ -19,7 +19,7 @@ target_link_libraries(${TEST_APP} PRIVATE
     daq::opendaq
     daq::opendaq_mocks
     daq::streaming_protocol
-    ${SDK_TARGET_NAMESPACE}::test_utils
+    ${SDK_TARGET_NAMESPACE}::test_utils testlibs
 )
 
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)

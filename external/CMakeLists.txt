@@ -1,11 +1,12 @@
 set_mode(ANCIENT)
 set(CMAKE_FOLDER "external")
 
-include(FetchContent)
-include(opendaq_dependency.cmake)
-
 list(APPEND CMAKE_MESSAGE_CONTEXT external)
 set(CURR_MESSAGE_CONTEXT ${CMAKE_MESSAGE_CONTEXT})
+
+message(STATUS "Include opendaq_dependency macro from ${PROJ_DIR}/cmake/opendaq_dependency.cmake")
+include(FetchContent)
+include(${PROJ_DIR}/cmake/opendaq_dependency.cmake)
 
 if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
     # As above CMAKE_CXX_STANDARD but for VS

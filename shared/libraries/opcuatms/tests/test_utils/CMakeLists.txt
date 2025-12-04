@@ -13,7 +13,7 @@ add_library(${SDK_TARGET_NAMESPACE}::${MODULE_NAME} ALIAS ${MODULE_NAME})
 target_include_directories(${MODULE_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(${MODULE_NAME} PUBLIC daq::test_utils
+target_link_libraries(${MODULE_NAME} PUBLIC daq::test_utils testlibs
                                             daq::opcuaclient
                                             daq::opcuaserver
                                             daq::opendaq

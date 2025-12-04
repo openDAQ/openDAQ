@@ -8,7 +8,7 @@ add_executable(${TEST_APP}
 
 target_link_libraries(${TEST_APP} PRIVATE
     ${BASE_NAME}
-    daq::test_utils
+    daq::test_utils testlibs
     GTest::GTest GTest::Main
 )
 

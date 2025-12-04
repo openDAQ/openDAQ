@@ -19,7 +19,7 @@ set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)
 
 target_link_libraries(${TEST_APP}
         PRIVATE daq::copendaq
-        daq::test_utils
+        daq::test_utils testlibs
 )
 
 add_test(NAME ${TEST_APP}

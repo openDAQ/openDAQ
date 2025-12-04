@@ -15,7 +15,7 @@ set(TEST_SOURCES setup_regression.h
 
 add_executable(${TEST_APP} ${TEST_SOURCES})
 
-target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
+target_link_libraries(${TEST_APP} PRIVATE daq::test_utils testlibs
                                           daq::opendaq
 )
 

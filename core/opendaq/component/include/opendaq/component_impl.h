@@ -131,6 +131,7 @@ protected:
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
+    ErrCode setActiveInternal(Bool active);
 
     ContextPtr context;
 
@@ -305,8 +306,8 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
     return OPENDAQ_SUCCESS;
 }
 
-template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::setActiveInternal(Bool active)
 {
     if (this->frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
@@ -316,7 +317,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-    
+
         if (static_cast<bool>(active) == this->active)
             return OPENDAQ_IGNORED;
 
@@ -348,6 +349,12 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
     }
 
     return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
+{
+    return setActiveInternal(active);
 }
 
 template <class Intf, class ... Intfs>
@@ -1043,16 +1050,10 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
 template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active)
 {
-    const bool muted = this->coreEventMuted;
     const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
-    if (!muted)
-        propInternalPtr.disableCoreEventTrigger();
 
     for (const auto& item : items)
         item.setActive(active);
-    
-    if (!muted)
-        propInternalPtr.enableCoreEventTrigger();
 }
 
 template <class Intf, class... Intfs>

@@ -15,6 +15,7 @@ _STREAMING = "Streaming"
 _GENERAL = "General"
 _ASP = "AllowedStreamingProtocols"
 _ACS = "AutomaticallyConnectStreaming"
+_PAT = "PrimaryAdressType"
 
 class AddConfigDialog(Dialog):
     @classmethod
@@ -398,13 +399,10 @@ class AddConfigDialog(Dialog):
         # Hide options that are covered with the UI interaction
         # The user edits allowed streaming protocols through checklist and
         # automatically connect streaming will connect if any allowed
-        add_to_hidden(general_section, [_ASP, _ACS])
+        add_to_hidden(general_section, [_ASP, _ACS, _PAT])
 
         if "OpenDAQNativeConfiguration" not in supported_protocols:
             add_to_hidden(general_section, ["Username", "Password", "ClientType", "ExclusiveControlDropOthers"])
-
-        if not self.has_tcp_ip:
-            add_to_hidden(general_section, ["PrimaryAddressType"])
 
         if not self.has_streaming:
             add_to_hidden(

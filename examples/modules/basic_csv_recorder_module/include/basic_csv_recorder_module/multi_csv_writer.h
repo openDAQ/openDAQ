@@ -35,18 +35,19 @@ public:
     ~MultiCsvWriter();
 
     void setHeaderInformation(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
-    void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count);
+    void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int offset);
 
 private:
     struct JaggedBuffer
     {
         int count;
         std::vector<std::unique_ptr<double[]>> buffers;
+        Int offset;
     };
 
     void threadLoop();
 
-    void writeHeaders();
+    void writeHeaders(Int offset);
 
     std::mutex mutex;
     std::condition_variable cv;

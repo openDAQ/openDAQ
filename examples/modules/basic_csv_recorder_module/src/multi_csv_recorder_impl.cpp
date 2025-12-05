@@ -1,4 +1,5 @@
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <set>
 #include <string>
@@ -84,7 +85,9 @@ ErrCode MultiCsvRecorderImpl::stopRecording()
 {
     auto lock = getRecursiveConfigLock();
     recordingActive = false;
-    reconfigure();
+    // TODO: rethink what should happen
+    // reconfigure();
+    writer = std::nullopt;
 
     return OPENDAQ_SUCCESS;
 }
@@ -298,12 +301,11 @@ void MultiCsvRecorderImpl::onDataReceived()
     const MultiReaderStatusPtr status = reader.read(data.data(), &cnt);
 
     // Write samples if read successful
-    if (cnt > 0)
+    if (recordingActive && writer.has_value() && cnt > 0)
     {
-        if (recordingActive && writer.has_value())
-        {
-            writer.value().writeSamples(std::move(data), cnt);
-        }
+        Int packOff = status.asPtr<IReaderStatus>().getOffset().getIntValue();
+
+        writer.value().writeSamples(std::move(data), cnt, packOff);
     }
 
     // Return if there is no event to handle

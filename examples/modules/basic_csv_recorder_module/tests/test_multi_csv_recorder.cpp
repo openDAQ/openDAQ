@@ -172,7 +172,7 @@ TEST_F(MultiCsvTest, WriteSamples)
 
     fb.asPtr<IRecorder>(true).startRecording();
 
-    sendData(100, 0, false, std::make_pair(0, 10));
+    sendData(100, 1764927450173817, false, std::make_pair(0, 10));
 
     // fb.asPtr<IRecorder>(true).stopRecording();
     std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -184,7 +184,8 @@ TEST_F(MultiCsvTest, WriteSamples)
 
     std::string line;
     std::getline(readIn, line);
-    std::string headerLine("# Domain: name=\"Time (s / 1000)\";origin=1970-01-01T00:00:00;period=1/1000;unit=seconds");
+    std::string headerLine(
+        "# Domain: name=\"Time (s / 1000)\";origin=1970-01-01T00:00:00;period=1/1000;unit=seconds;offset=1764927450173817");
     EXPECT_EQ(line, headerLine);
 
     std::getline(readIn, line);

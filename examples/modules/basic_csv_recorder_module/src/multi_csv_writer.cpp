@@ -1,8 +1,6 @@
-#include <opendaq/custom_log.h>
-
-#include <boost/algorithm/string.hpp>
-
 #include <basic_csv_recorder_module/multi_csv_writer.h>
+#include <opendaq/custom_log.h>
+#include <boost/algorithm/string.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
@@ -83,6 +81,10 @@ std::string getDomainName(const DataDescriptorPtr& descriptor)
 std::string getValueName(const DataDescriptorPtr& descriptor, SizeT serialNumber)
 {
     if (!descriptor.assigned())
+        return "Value";
+
+    StringPtr name = descriptor.getName();
+    if (!name.assigned() || name.getLength() == 0)
         return "Value";
 
     std::ostringstream stream;
@@ -197,11 +199,11 @@ void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescrip
     }
 }
 
-void MultiCsvWriter::writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count)
+void MultiCsvWriter::writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int offset)
 {
     std::unique_lock lock(mutex);
     exitFlag = false;
-    queue.emplace(JaggedBuffer{count, std::move(jaggedArray)});
+    queue.emplace(JaggedBuffer{count, std::move(jaggedArray), offset});
     lock.unlock();
     cv.notify_all();
 }
@@ -224,7 +226,7 @@ void MultiCsvWriter::threadLoop()
 
         if (!headersWritten)
         {
-            writeHeaders();
+            writeHeaders(samples.offset);
             headersWritten = true;
         }
 
@@ -247,9 +249,9 @@ void MultiCsvWriter::threadLoop()
     }
 }
 
-void MultiCsvWriter::writeHeaders()
+void MultiCsvWriter::writeHeaders(Int offset)
 {
-    outFile << "# Domain: " << "name=" << quote(domainName) << ";" << domainMetadata << "\n";
+    outFile << "# Domain: " << "name=" << quote(domainName) << ";" << domainMetadata << ";offset=" << offset << "\n";
     for (size_t i = 0; i < valueNames.size(); ++i)
     {
         outFile << quote(valueNames[i]);

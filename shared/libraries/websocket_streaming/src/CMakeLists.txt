@@ -1,49 +1,35 @@
 set(BASE_NAME websocket_streaming)
+
 set(LIB_NAME ${SDK_TARGET_NAME}_${BASE_NAME})
 
-set(SRC_Cpp signal_descriptor_converter.cpp
-            streaming_client.cpp
-            streaming_server.cpp
-            input_signal.cpp
-            output_signal.cpp
-            async_packet_reader.cpp
-            websocket_streaming_server.cpp
-            websocket_client_device_impl.cpp
-            websocket_client_signal_impl.cpp
-            websocket_streaming_impl.cpp
+set(SRC_Cpp
+    descriptor_to_metadata.cpp
+    metadata_to_descriptor.cpp
+    remote_signal_handler.cpp
+    ws_streaming_device.cpp
+    ws_streaming_listener.cpp
+    ws_streaming_server.cpp
+    ws_streaming_signal.cpp
+    ws_streaming.cpp
 )
 
 set(SRC_PublicHeaders
-    websocket_streaming.h
-    signal_info.h
-    signal_descriptor_converter.h
-    streaming_client.h
-    streaming_server.h
-    input_signal.h
-    output_signal.h
-    async_packet_reader.h
-    websocket_streaming_server.h
-    websocket_client_device_impl.h
-    websocket_client_device_factory.h
-    websocket_client_signal_impl.h
-    websocket_client_signal_factory.h
-    websocket_streaming_impl.h
-    websocket_streaming_factory.h
+    common.h
+    descriptor_to_metadata.h
+    metadata_to_descriptor.h
+    remote_signal_handler.h
+    ws_streaming_device.h
+    ws_streaming_listener.h
+    ws_streaming_remote_signal_entry.h
+    ws_streaming_server.h
+    ws_streaming_signal.h
+    ws_streaming.h
 )
 
 set(INCLUDE_DIR ../include/websocket_streaming)
 prepend_include(${INCLUDE_DIR} SRC_PublicHeaders)
 
-
-set(SRC_PrivateHeaders
-)
-
-
-add_library(${LIB_NAME} STATIC ${SRC_Cpp}
-                               ${SRC_PublicHeaders}
-                               ${SRC_PrivateHeaders}
-)
-
+add_library(${LIB_NAME} STATIC ${SRC_Cpp} ${SRC_PublicHeaders})
 add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${LIB_NAME})
 
 if(BUILD_64Bit OR BUILD_ARM)
@@ -52,24 +38,17 @@ else()
     set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE OFF)
 endif()
 
-target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
-                                              $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
-
-                                              $<INSTALL_INTERFACE:include>
+target_include_directories(${LIB_NAME}
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
+        $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(${LIB_NAME} PUBLIC daq::streaming_protocol
-                                         daq::opendaq
+target_link_libraries(${LIB_NAME}
+    PUBLIC
+        daq::opendaq
+        ws-streaming::ws-streaming
 )
-
-# Fix daq::streaming_protocol` not properly propagating linking requirements on Windows
-if (WIN32)
-    target_link_libraries(${LIB_NAME}
-        PUBLIC
-            ws2_32
-            wsock32
-    )
-endif()
 
 if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)

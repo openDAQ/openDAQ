@@ -167,7 +167,7 @@ def signal_time_domain_check(sig):
         if (unit is not None and unit.quantity.casefold() == "time".casefold()) and (unit.symbol.casefold() == "s".casefold()):
             if len(desc.origin) != 0:
                 return desc.origin
-        
+
     return None
 
 def parse_iso_string(date_string: str) -> datetime:
@@ -195,7 +195,7 @@ def get_last_value_for_signal(output_signal):
                     desc = sig.descriptor
                     last_value_in_seconds = int(last_value) * desc.tick_resolution.numerator / desc.tick_resolution.denominator
                     last_value = origin + timedelta(seconds=last_value_in_seconds)
-            
+
         except RuntimeError as e:
             print(f'Error reading last value: {e}')
     return last_value
@@ -313,3 +313,25 @@ def is_device_connected(device: daq.IDevice):
     except:
         return True
 
+def update_properties(target: daq.IPropertyObject, source: daq.IPropertyObject):
+    """Update target properties with values from source IPropertyObject.
+    Assuming both have the same structure, this should result in target
+    being identical copy of source."""
+    for property in target.all_properties:
+        prop_name = property.name
+        if not source.has_property(prop_name):
+            continue
+
+        source_prop = source.get_property(prop_name)
+        target_prop = target.get_property(prop_name)
+
+        if source_prop.value_type != target_prop.value_type:
+            continue
+
+        if target_prop.read_only:
+            continue
+
+        if source_prop.value_type == daq.CoreType.ctObject:
+            update_properties(target_prop.value, source_prop.value)
+        else:
+            target.set_property_value(prop_name, source_prop.value)

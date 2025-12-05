@@ -59,7 +59,7 @@ class DisplayType(enum.Enum):
         elif index == 4:
             return DisplayType.TOPOLOGY
         return DisplayType.UNSPECIFIED
-        
+
 class ContextParams:
     module_path: str = ''
 
@@ -68,9 +68,9 @@ class App(tk.Tk):
     # MARK: -- INIT
     def __init__(self, args):
         super().__init__()
-         
+
         context_params = ContextParams()
-        
+
         try:
             if args.module_path != '':
                 context_params.module_path = args.module_path
@@ -78,7 +78,7 @@ class App(tk.Tk):
                 context_params.module_path = None
         except ValueError:
             context_params.module_path = None
-            
+
         self.context = AppContext(context_params)
         self.context.on_needs_refresh = lambda: self.on_refresh_event(None)
         self.event_port = EventPort(self, event_callback=self.on_refresh_event)
@@ -93,7 +93,7 @@ class App(tk.Tk):
         except ValueError:
             self.context.connection_string = None
 
-            
+
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
             1500 * self.context.ui_scaling_factor, 800 * self.context.ui_scaling_factor))
@@ -153,6 +153,18 @@ class App(tk.Tk):
         style.configure('Treeview.Heading', font='Arial 10 bold')
         style.configure('Treeview.Column', padding=(
             5 * self.context.ui_scaling_factor))
+
+        # Style for status text labels
+        style.configure("StatusOk.TLabel",
+                foreground="green",
+                font=("TkDefaultFont", 10, "bold"))
+        style.configure("StatusError.TLabel",
+                    foreground="red",
+                    font=("TkDefaultFont", 10, "bold"))
+        style.configure("StatusWarning.TLabel",
+                    foreground="goldenrod",
+                    font=("TkDefaultFont", 10, "bold"))
+
         default_font = tkfont.nametofont('TkDefaultFont')
         default_font.configure(size=9 * self.context.ui_scaling_factor)
 
@@ -160,7 +172,7 @@ class App(tk.Tk):
             os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         self.init_opendaq()
-        
+
         if args.config != '':
             self._load_config(args.config)
 
@@ -490,21 +502,21 @@ class App(tk.Tk):
                 event.widget.selection_set(iid)
         else:
             event.widget.selection_set()
-            
+
     def create_property_object_menu(self, node):
         popup = tk.Menu(self.tree, tearoff=0)
-        
+
         popup.add_command(label='Begin update', command=self.handle_begin_update)
         popup.add_command(label='End update', command=self.handle_end_update)
-        
+
         return popup
-    
+
     def create_component_menu(self, node):
         return self.create_property_object_menu(node)
-    
+
     def create_function_block_menu(self, node):
         popup = self.create_property_object_menu(node)
-        
+
         if node.available_function_block_types:
             popup.add_command(
                 label='Add Function block',
@@ -515,12 +527,12 @@ class App(tk.Tk):
                 label='Remove',
                 command=lambda: self.handle_tree_menu_remove_function_block(node)
             )
- 
+
         return popup
-    
+
     def create_device_menu(self, node):
         popup = self.create_property_object_menu(node)
-        
+
         popup.add_command(label='Lock', command=self.handle_lock)
         popup.add_command(label='Unlock', command=self.handle_unlock)
 
@@ -537,22 +549,22 @@ class App(tk.Tk):
                 command=lambda: self.handle_tree_menu_remove_device(node)
             )
 
-        return popup        
+        return popup
 
     def handle_tree_right_button_release(self, event):
         iid = utils.treeview_get_first_selection(self.tree)
-        
+
         node = None
         if iid:
             node = utils.find_component(iid, self.context.instance)
-        
+
         popup = None
         if node:
             if daq.IFunctionBlock.can_cast_from(node):
                 popup = self.create_function_block_menu(daq.IFunctionBlock.cast_from(node))
             elif daq.IDevice.can_cast_from(node):
                 popup = self.create_device_menu(daq.IDevice.cast_from(node))
-                
+
         if popup is None:
             popup = self.create_property_object_menu(node)
 
@@ -840,7 +852,7 @@ class App(tk.Tk):
         children = self.tree.get_children(node)
         for child in children:
             self._set_node_lock_status_recursive(child, locked)
-            
+
     def _load_config(self, config):
         file = open(config, 'r')
         if file is None:
@@ -867,7 +879,7 @@ if __name__ == '__main__':
         '--config', help='Saved config', type=str, default='')
     parser.add_argument(
         '--module_path', help='Additional modules path', type=str, default='')
-    parser.add_argument('-v', '--version', action='version', 
+    parser.add_argument('-v', '--version', action='version',
         version=f'{os.path.dirname(__file__)} {daq.__dict__.get("__version__", "@VERSION@").replace("@VERSION@", "Unknown version")}')
 
     app = App(parser.parse_args())

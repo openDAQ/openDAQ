@@ -153,7 +153,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainUnit)
 
     auto unit = domain.getUnit();
     ASSERT_EQ(unit.getSymbol(), "s");
-    ASSERT_EQ(unit.getName(), "second");
+    ASSERT_EQ(unit.getName(), "seconds");
     ASSERT_EQ(unit.getQuantity(), "time");
 }
 
@@ -1010,7 +1010,7 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
         auto logFile = logFiles[0];
         
         ASSERT_EQ(logFile.getName(), loggerPath);
-        ASSERT_NE(logFile.getSize(), 0);
+        ASSERT_NE(logFile.getSize(), 0u);
 #ifndef __APPLE__
         ASSERT_EQ(logFile.getLastModified(), logFileLastModified);  // Skip this on MacOS due to time rounding issues
 #endif

@@ -423,7 +423,7 @@ TEST_F(InstanceTest, Serialize)
     instance.serialize(serializer);
 
     auto str = serializer.getOutput();
-    ASSERT_GT(str.getLength(), 0); // Ensure that the configuration is not empty
+    ASSERT_GT(str.getLength(), 0u); // Ensure that the configuration is not empty
 }
 
 TEST_F(InstanceTest, InstanceBuilderSetGet)
@@ -1229,7 +1229,7 @@ TEST_F(InstanceTest, ModuleManagerGrouping)
     moduleManager.addModule(MockDeviceModule_Create(instance.getContext()));
 
     const auto devs = instance.getAvailableDevices();
-    ASSERT_EQ(devs.getCount(), 3);
+    ASSERT_EQ(devs.getCount(), 3u);
 
     for (const auto& dev : devs)
     {

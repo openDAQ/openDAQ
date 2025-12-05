@@ -302,7 +302,7 @@ TEST_F(ConfigProtocolIntegrationTest, DomainInfo)
 
     ASSERT_EQ(clientSubDevice.getDomain().getOrigin(), "N/A");
     ASSERT_EQ(clientSubDevice.getDomain().getTickResolution(), Ratio(1, 100));
-    ASSERT_EQ(clientSubDevice.getDomain().getUnit(), Unit("s", -1, "second", "time"));
+    ASSERT_EQ(clientSubDevice.getDomain().getUnit(), Unit("s", -1, "seconds", "time"));
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetTicksSinceOrigin)
@@ -746,7 +746,7 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     auto availableDevicesServer = serverDevice.getAvailableDevices();
     auto availableDevicesClient = clientDevice.getAvailableDevices();
 
-    ASSERT_EQ(availableDevicesClient.getCount(), 3);
+    ASSERT_EQ(availableDevicesClient.getCount(), 3u);
 
     auto c = availableDevicesClient[2];
     auto s = availableDevicesServer[2];
@@ -762,8 +762,8 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
 
 void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice, bool testAddDevicesMethod = false)
 {
-    ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
-    ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 2u);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 2u);
 
     DevicePtr dev;
     if (testAddDevicesMethod)
@@ -800,8 +800,8 @@ void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice, bool testAddD
 
     ASSERT_NE(dev, nullptr);
 
-    ASSERT_EQ(clientDevice.getDevices().getCount(), 3);
-    ASSERT_EQ(serverDevice.getDevices().getCount(), 3);
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 3u);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 3u);
 
     auto newDevCli = clientDevice.getDevices()[2];
     ASSERT_EQ(dev, newDevCli);
@@ -851,13 +851,13 @@ TEST_F(ConfigProtocolIntegrationTest, AddDevicesCoreEventTrigger)
 
 void removeDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
 {
-    ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
-    ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 2u);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 2u);
 
     clientDevice.removeDevice(clientDevice.getDevices()[0]);
 
-    ASSERT_EQ(clientDevice.getDevices().getCount(), 1);
-    ASSERT_EQ(serverDevice.getDevices().getCount(), 1);
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 1u);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 1u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, RemoveDeviceDisableCoreEventTrigger)
@@ -876,7 +876,7 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
     auto availableDeviceTypesServer = serverDevice.getDevices()[0].getAvailableDeviceTypes();
     auto availableDeviceTypesClient = clientDevice.getDevices()[0].getAvailableDeviceTypes();
 
-    ASSERT_EQ(availableDeviceTypesClient.getCount(), 1);
+    ASSERT_EQ(availableDeviceTypesClient.getCount(), 1u);
 
     auto c = availableDeviceTypesClient.get("mockDev1");
     auto s = availableDeviceTypesServer.get("mockDev1");
@@ -905,15 +905,15 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceTypesModuleInfo)
 
     ASSERT_EQ(moduleInfoS.getId(), "module_id");
     ASSERT_EQ(moduleInfoS.getName(), "module_name");
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5);
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6);
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5u);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6u);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7u);
 
     ASSERT_EQ(moduleInfoC.getId(), "module_id");
     ASSERT_EQ(moduleInfoC.getName(), "module_name");
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5);
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6);
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5u);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6u);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, FunctionBlockTypesModuleInfo)
@@ -929,15 +929,15 @@ TEST_F(ConfigProtocolIntegrationTest, FunctionBlockTypesModuleInfo)
 
     ASSERT_EQ(moduleInfoS.getId(), "module_id");
     ASSERT_EQ(moduleInfoS.getName(), "module_name");
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5);
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6);
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5u);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6u);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7u);
 
     ASSERT_EQ(moduleInfoC.getId(), "module_id");
     ASSERT_EQ(moduleInfoC.getName(), "module_name");
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5);
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6);
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5u);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6u);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, RecorderFunctionBlock)

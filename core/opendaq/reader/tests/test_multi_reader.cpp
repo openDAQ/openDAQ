@@ -2223,7 +2223,7 @@ TEST_F(MultiReaderTest, MultiReaderBuilderFromSignalsTimeouts)
     auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(count, 10);
+    ASSERT_EQ(count, 10u);
     ASSERT_LT(diff, 5000);
 
     sendThread.join();
@@ -2260,7 +2260,7 @@ TEST_F(MultiReaderTest, MultiReaderTimeoutWhenDataAvailable)
     sig2.createAndSendPacket(0);
 
     std::this_thread::sleep_for(1s);
-    ASSERT_EQ(multireader.getAvailableCount(), 10);
+    ASSERT_EQ(multireader.getAvailableCount(), 10u);
 
     count = SizeT(sig0.packetSize);
     start = std::chrono::steady_clock::now();
@@ -2270,7 +2270,7 @@ TEST_F(MultiReaderTest, MultiReaderTimeoutWhenDataAvailable)
 
     std::cout << "Diff = " << diff << std::endl;
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(count, 10);
+    ASSERT_EQ(count, 10u);
     ASSERT_LT(diff, 5000);
 }
 
@@ -2379,7 +2379,7 @@ TEST_F(MultiReaderTest, DISABLED_MultiReaderGapDetection)
     status = multi.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
-    ASSERT_EQ(status.getEventPackets().getCount(), 1);
+    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
     ASSERT_TRUE(status.getEventPackets().hasKey("/readsig0"));
 
     auto event = status.getEventPackets().get("/readsig0");
@@ -4020,7 +4020,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // receive data packets
     count = NUM_SAMPLES;
@@ -4036,7 +4036,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // send packets to inactive reader
     sendPackets(packetIndex++);  // 2
@@ -4044,7 +4044,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // send event packet
     auto signal = signalReader.signal;
@@ -4063,7 +4063,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // set multireader active again
     multiReader.setActive(true);
@@ -4110,7 +4110,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveCopyInactive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // set inactive, try read and copy reader
     multiReader.setActive(false);
@@ -4119,7 +4119,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveCopyInactive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     auto multiReaderNew = MultiReaderFromExisting(multiReader);
 
@@ -4132,7 +4132,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveCopyInactive)
     status = multiReaderNew.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // set new multireader active and try to read samples
     multiReaderNew.setActive(true);
@@ -4220,20 +4220,20 @@ TEST_F(MultiReaderTest, MultiReaderActiveGapPacket)
     count = NUM_SAMPLES;
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // 10 samples until gap event
-    ASSERT_EQ(multiReader.getAvailableCount(), 10);
+    ASSERT_EQ(multiReader.getAvailableCount(), 10u);
 
     multiReader.setActive(false);
 
-    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
 
     // read nothing, gap packet was dropped
     count = NUM_SAMPLES;
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // change descriptor
     auto signal = signalReader0.signal;
@@ -4247,7 +4247,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveGapPacket)
     count = NUM_SAMPLES;
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // set active again
     multiReader.setActive(true);
@@ -4322,7 +4322,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     auto count = NUM_SAMPLES;
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-                    ASSERT_EQ(count, 0);
+                    ASSERT_EQ(count, 0u);
                     auto events = status.getEventPackets();
                     for (auto i = SizeT{0}; i < events.getCount(); ++i)
                     {
@@ -4353,15 +4353,15 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                 }
                 case 2:
                 {
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
                     auto count = NUM_SAMPLES;
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-                    ASSERT_EQ(count, 0);
-                    ASSERT_EQ(multiReader.getAvailableCount(), 10);
+                    ASSERT_EQ(count, 0u);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 10u);
 
                     auto events = status.getEventPackets();
-                    ASSERT_GE(events.getCount(), 1);
+                    ASSERT_GE(events.getCount(), 1u);
 
                     auto sigId = fmt::format("/readsig{}", 0);
                     ASSERT_TRUE(events.hasKey(sigId));
@@ -4383,15 +4383,15 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                 }
                 case 3:
                 {
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
                     auto count = NUM_SAMPLES;
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-                    ASSERT_EQ(count, 0);
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(count, 0u);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
 
                     auto events = status.getEventPackets();
-                    ASSERT_GE(events.getCount(), 1);
+                    ASSERT_GE(events.getCount(), 1u);
 
                     auto sigId = fmt::format("/readsig{}", 0);
                     ASSERT_TRUE(events.hasKey(sigId));
@@ -4411,15 +4411,15 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                 }
                 case 4:
                 {
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
                     auto count = NUM_SAMPLES;
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-                    ASSERT_EQ(count, 0);
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(count, 0u);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
 
                     auto events = status.getEventPackets();
-                    ASSERT_GE(events.getCount(), 1);
+                    ASSERT_GE(events.getCount(), 1u);
 
                     auto sigId = fmt::format("/readsig{}", 0);
                     ASSERT_TRUE(events.hasKey(sigId));
@@ -4441,11 +4441,11 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                 }
                 case 5:
                 {
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
                     auto count = NUM_SAMPLES;
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-                    ASSERT_EQ(count, 0);
+                    ASSERT_EQ(count, 0u);
 
                     count = NUM_SAMPLES;
                     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
@@ -4524,7 +4524,7 @@ TEST_F(MultiReaderTest, ExpectSR)
                         .setSampleType(SampleType::Int64)
                         .setRule(LinearDataRule(0, 10))
                         .setTickResolution(Ratio(1, 1000))
-                        .setUnit(Unit("s", -1, "second", "time"))
+                        .setUnit(Unit("s", -1, "seconds", "time"))
                         .build();
 
     const auto valueSignal = SignalWithDescriptor(ctx, valueDesc, nullptr, "value");
@@ -4723,7 +4723,7 @@ TEST_P(MinReadCountTest, MinReadCount)
     SizeT count{10};
     MultiReaderStatusPtr status;
 
-    ASSERT_EQ(multi.getAvailableCount(), 0);
+    ASSERT_EQ(multi.getAvailableCount(), 0u);
 
     ASSERT_THROW(multi.read(valuesPerSignal, &count, timeoutMs), InvalidParameterException);
     count = 10;
@@ -4735,37 +4735,37 @@ TEST_P(MinReadCountTest, MinReadCount)
     sig1.createAndSendPacket(1);
     sig2.createAndSendPacket(1);
 
-    ASSERT_EQ(multi.getAvailableCount(), 0);
+    ASSERT_EQ(multi.getAvailableCount(), 0u);
     count = 0;
     status = multi.read(nullptr, &count, timeoutMs);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
 
-    ASSERT_EQ(multi.getAvailableCount(), 20);
+    ASSERT_EQ(multi.getAvailableCount(), 20u);
 
     count = 20;
     multi.read(valuesPerSignal, &count, timeoutMs);
 
-    ASSERT_EQ(count, 20);
+    ASSERT_EQ(count, 20u);
 
     sig0.createAndSendPacket(2);
     sig1.createAndSendPacket(2);
     sig2.createAndSendPacket(2);
 
-    ASSERT_EQ(multi.getAvailableCount(), 0);
+    ASSERT_EQ(multi.getAvailableCount(), 0u);
 
     sig0.setValueDescriptor(setupDescriptor(SampleType::Int32));
 
-    ASSERT_EQ(multi.getAvailableCount(), 0);
+    ASSERT_EQ(multi.getAvailableCount(), 0u);
 
     count = 0;
     status = multi.read(nullptr, &count, timeoutMs);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
     count = 0;
     status = multi.read(nullptr, &count, timeoutMs);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 }
 
 INSTANTIATE_TEST_SUITE_P(MinReadCountSuite, MinReadCountTest, testing::Values(0, 1000));
@@ -4822,7 +4822,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceeded)
     count = 10;
     status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     ASSERT_FALSE(multiReader.getActive());
 
     for (SizeT i = 0; i < kSignalCount; ++i)
@@ -4884,7 +4884,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceededByOffset)
     count = 10;
     status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     ASSERT_EQ(multiReader.getActive(), false);
 
     for (SizeT i = 0; i < kSignalCount; ++i)

@@ -46,12 +46,18 @@ def print_component(folder, depth=0, recurse=True):
 
 # Prints all property values of a property object. Recurses through nested
 # object-type properties.
-def print_property_object(obj, depth=0):
+def print_property_object(obj, depth=0, hidden=[]):
     for prop in obj.visible_properties:
+        name = prop.name
+        if name in hidden:
+            continue
+
         value = prop.value
         print_indented('- ' + prop.name + ': ' + str(value), depth)
         if prop.value_type == daq.CoreType.ctObject:
-            print_property_object(value, depth + 1)
+            # Only pass names of children to a recurse call. Remove the prefix denoting the property.
+            hidden_children = [s.removeprefix(f"{name}.") for s in hidden if s.startswith(f"{name}.")]
+            print_property_object(value, depth + 1, hidden_children)
 
 # Prints the names and values of a struct object's fields. Recurses through
 # nested struct-type fields.
@@ -66,16 +72,33 @@ def print_struct(struct_, depth=0):
         else:
             print_indented('- ' + names[i] + ': ' + str(values[i]), depth)
 
-# Sets up an openDAQ simulator device. It uses the reference device as its root
-# and instantiates an openDAQ native server. The simulator has mdns discovery enabled.
-def setup_simulator():
+def setup_simulator(**kwargs):
+    """
+    Sets up an openDAQ simulator device. It uses the reference device as its root
+    and instantiates a server for each of supported protocols. The simulator has mdns discovery enabled.
+    The simulator setup may be customized by passing keyword arguments:
+    - name: str - name of the device (defaults to 'Reference device simulator')
+    - local_id: str - local ID of the device (defaults to 'RefDevSimulator')
+    - serial_number: str - serial number of the device (defaults to 'sim01')
+    - protocols: List[str] - protocols that the device supports (defaults to ['OpenDAQNativeStreaming'])
+    """
     config = daq.PropertyObject()
-    config.add_property(daq.StringProperty(daq.String(
-        'Name'), daq.String('Reference device simulator'), daq.Boolean(True)))
-    config.add_property(daq.StringProperty(daq.String(
-        'LocalId'), daq.String('RefDevSimulator'), daq.Boolean(True)))
-    config.add_property(daq.StringProperty(daq.String(
-        'SerialNumber'), daq.String('sim01'), daq.Boolean(True)))
+
+    config.add_property(
+        daq.StringProperty(
+            daq.String('Name'),
+            daq.String(kwargs.get('name', 'Reference device simulator')),
+            daq.Boolean(True)))
+    config.add_property(
+        daq.StringProperty(
+            daq.String('LocalId'),
+            daq.String(kwargs.get('local_id', 'RefDevSimulator')),
+            daq.Boolean(True)))
+    config.add_property(
+        daq.StringProperty(
+            daq.String('SerialNumber'),
+            daq.String(kwargs.get('serial_number', 'sim01')),
+            daq.Boolean(True)))
 
     instance_builder = daq.InstanceBuilder()
     instance_builder.add_discovery_server("mdns")
@@ -84,7 +107,11 @@ def setup_simulator():
     server_instance = instance_builder.build()
 
     server_config = daq.PropertyObject()
-    server_instance.add_server('OpenDAQNativeStreaming', server_config).enable_discovery()
+
+    protocols = kwargs.get('protocols', ['OpenDAQNativeStreaming'])
+    print("protocols", protocols)
+    for protocol_name in protocols:
+        server_instance.add_server(protocol_name, server_config).enable_discovery()
 
     return server_instance
 

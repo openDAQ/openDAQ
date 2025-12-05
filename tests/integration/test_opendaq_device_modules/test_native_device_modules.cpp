@@ -2473,7 +2473,7 @@ TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
     client.getAvailableDevices();
     const MirroredDeviceConfigPtr dev = client.addDevice("daq.nd://127.0.0.1:7420/");
     const auto sources = dev.getStreamingSources();
-    ASSERT_EQ(sources.getCount(), 1);
+    ASSERT_EQ(sources.getCount(), 1u);
     ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://127.0.0.1:7420/");
 }
 
@@ -2903,7 +2903,7 @@ TEST_F(NativeDeviceModulesTest, GetAvailableLogFileInfos)
         auto logFile = logFiles[0];
 
         ASSERT_EQ(logFile.getName(), loggerPath);
-        ASSERT_NE(logFile.getSize(), 0);
+        ASSERT_NE(logFile.getSize(), 0u);
         ASSERT_EQ(logFile.getLastModified(), logFileLastModified);
 
         StringPtr firstSymb = clientDevice.getLog(loggerPath, 1, 0);
@@ -3559,8 +3559,8 @@ TEST_P(NativeC2DStreamingTest, StreamingData)
 
     // Expect to receive all data packets,
     // +1 signal initial descriptor changed event packet
-    const int packetsToGenerate = 10;
-    const int packetsToRead = packetsToGenerate + 1;
+    const std::size_t packetsToGenerate = 10;
+    const std::size_t packetsToRead = packetsToGenerate + 1;
 
     clientLocalDevice.setPropertyValue("GeneratePackets", packetsToRead);
 

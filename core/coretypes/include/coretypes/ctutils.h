@@ -25,6 +25,7 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
 #include <numeric>
+#include <cctype>
 
 #include "xxhash.h"
 

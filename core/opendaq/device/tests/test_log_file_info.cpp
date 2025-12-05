@@ -17,7 +17,7 @@ TEST_F(LogFileInfoTest, BuilderDefaultValues)
     ASSERT_EQ(logInfoBuilder.getId(), nullptr);
     ASSERT_EQ(logInfoBuilder.getDescription(), nullptr);
     ASSERT_EQ(logInfoBuilder.getEncoding(), nullptr);
-    ASSERT_EQ(logInfoBuilder.getSize(), 0);
+    ASSERT_EQ(logInfoBuilder.getSize(), 0u);
     ASSERT_EQ(logInfoBuilder.getLastModified(), nullptr);
 }
 
@@ -37,7 +37,7 @@ TEST_F(LogFileInfoTest, BuilderSetGet)
     ASSERT_EQ(logInfoBuilder.getId(), "log_file_id");
     ASSERT_EQ(logInfoBuilder.getDescription(), "log_file_description");
     ASSERT_EQ(logInfoBuilder.getEncoding(), "utf-8");
-    ASSERT_EQ(logInfoBuilder.getSize(), 100);
+    ASSERT_EQ(logInfoBuilder.getSize(), 100u);
     ASSERT_EQ(logInfoBuilder.getLastModified(), "2022-01-01T00:00:00Z");
 }
 
@@ -57,7 +57,7 @@ TEST_F(LogFileInfoTest, CreateFromBuilder)
     ASSERT_EQ(logInfo.getId(), "log_file_path/log_file_name");
     ASSERT_EQ(logInfo.getDescription(), "log_file_description");
     ASSERT_EQ(logInfo.getEncoding(), "utf-8");
-    ASSERT_EQ(logInfo.getSize(), 0);
+    ASSERT_EQ(logInfo.getSize(), 0u);
     ASSERT_EQ(logInfo.getLastModified(), "2022-01-01T00:00:00Z");
 }
 
@@ -89,7 +89,7 @@ TEST_F(LogFileInfoTest, MissedLocalPath)
     ASSERT_EQ(logInfo.getId(), "log_file_name");
     ASSERT_EQ(logInfo.getDescription(), "log_file_description");
     ASSERT_EQ(logInfo.getEncoding(), "utf-8");
-    ASSERT_EQ(logInfo.getSize(), 0);
+    ASSERT_EQ(logInfo.getSize(), 0u);
 }
 
 TEST_F(LogFileInfoTest, MissedLastModified)

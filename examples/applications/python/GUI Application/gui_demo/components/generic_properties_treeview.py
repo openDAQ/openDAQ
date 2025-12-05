@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from fractions import Fraction
 
 import opendaq as daq
 
@@ -12,6 +13,7 @@ from .metadata_dialog import MetadataDialog
 
 class PropertiesTreeview(ttk.Treeview):
     def __init__(self, parent, node=None, context: AppContext = None, **kwargs):
+        self.hidden = kwargs.pop("hidden", [])
         ttk.Treeview.__init__(self, parent, columns=('value', *context.metadata_fields), show='tree headings', **kwargs)
 
         self.context = context
@@ -51,7 +53,7 @@ class PropertiesTreeview(ttk.Treeview):
         self.delete(*self.get_children())
         if self.node is not None:
             if daq.IPropertyObject.can_cast_from(self.node):
-                self.fill_properties('', daq.IPropertyObject.cast_from(self.node))
+                self.fill_properties('', daq.IPropertyObject.cast_from(self.node), self.hidden)
 
     def fill_list(self, parent_iid, l, read_only):
         for i, value in enumerate(l):
@@ -68,13 +70,25 @@ class PropertiesTreeview(ttk.Treeview):
                 self.item(iid, tags=('readonly',))
 
     def fill_struct(self, parent_iid, node, read_only):
+        # Special-case: ComplexNumber
+        if isinstance(node, complex):
+            # Display as real/imag
+            iid = self.insert(parent_iid, tk.END, text="Real", values=(node.real,))
+            iid2 = self.insert(parent_iid, tk.END, text="Imag", values=(node.imag,))
+            return
+
+        # Avoid crash; display raw value
+        if not hasattr(node, "as_dictionary"):
+            self.insert(parent_iid, tk.END, text="(value)", values=(str(node),))
+            return
+
         for key, value in node.as_dictionary.items():
             iid = self.insert('' if not parent_iid else parent_iid,
                              tk.END, text=key, values=(value,))
             if read_only:
                 self.item(iid, tags=('readonly',))
 
-    def fill_properties(self, parent_iid, node):
+    def fill_properties(self, parent_iid, node, hidden):
         def printed_value(value_type, value):
             if value_type == daq.CoreType.ctBool:
                 return utils.yes_no[value]
@@ -82,6 +96,10 @@ class PropertiesTreeview(ttk.Treeview):
                 return value
 
         for property_info in self.context.properties_of_component(node):
+            if property_info.name in hidden:
+                # This property was marked as hidden
+                continue
+
             if property_info.selection_values is not None:
                 if len(property_info.selection_values) > 0:
                     property_value = printed_value(
@@ -110,13 +128,22 @@ class PropertiesTreeview(ttk.Treeview):
                 print(e)
 
             unit_symbol = property_info.unit.symbol if property_info.unit is not None else ''
-            iid = self.insert('' if not parent_iid else parent_iid, tk.END, open=True, text=property_info.name, values=(f'{property_value} {unit_symbol}', *meta_fields))
+
+            # Insert a treeview entry widget for the property
+            iid = self.insert(
+                '' if not parent_iid else parent_iid,
+                tk.END,
+                open=True,
+                text=property_info.name,
+                values=(f'{property_value} {unit_symbol}', *meta_fields))
+
             if property_info.read_only:
                 self.item(iid, tags=('readonly',))
 
             if property_info.value_type == daq.CoreType.ctObject:
+                hidden_children = [s.removeprefix(f"{property_info.name}.") for s in hidden if s.startswith(f"{property_info.name}.")]
                 self.fill_properties(
-                    iid, node.get_property_value(property_info.name))
+                    iid, node.get_property_value(property_info.name), hidden_children)
             elif property_info.value_type == daq.CoreType.ctStruct:
                 self.fill_struct(
                     iid, node.get_property_value(property_info.name), property_info.read_only)
@@ -228,6 +255,55 @@ class PropertiesTreeview(ttk.Treeview):
         finally:
             entry.destroy()
 
+    def save_struct_value(self, entry, parent, name):
+        new_raw = entry.get()
+
+        try:
+            old_struct = parent.value
+            old_dict = old_struct.as_dictionary
+
+            # Convert to same Python type
+            old_val = old_dict[name]
+            ty = type(old_val)
+
+            new_val = ty(new_raw)
+
+            # Special handling for protected struct types
+            struct_type_name = old_struct.struct_type.name
+
+            new_dict = daq.Dict()
+            for k, v in old_dict.items():
+                new_dict[k] = new_val if k == name else v
+
+            if struct_type_name == "Range":
+                new_struct = daq.Range(new_dict["LowValue"], new_dict["HighValue"])
+            elif struct_type_name == "Unit":
+                new_struct = daq.Unit(new_dict["Id"], new_dict["Symbol"], new_dict["Name"], new_dict["Quantity"])
+            else:
+                tm = self.context.instance.context.type_manager
+                new_struct = daq.Struct(
+                    daq.String(struct_type_name),
+                    new_dict,
+                    tm
+                )
+
+            parent.value = new_struct
+            self.refresh()
+
+        except Exception as e:
+            print("Failed to set value:", e)
+        finally:
+            entry.destroy()
+
+    def edit_struct_property(self, selected_item_id, name, parent):
+        x, y, width, height = self.bbox(selected_item_id, '#1')
+        entry = ttk.Entry(self)
+        entry.place(x=x, y=y, width=width, height=height)
+        entry.insert(0, parent.value.get(name))
+        entry.focus()
+        entry.bind('<Return>', lambda e: self.save_struct_value(entry, parent, name))
+        entry.bind('<FocusOut>', lambda e: self.save_struct_value(entry, parent, name))
+
     def edit_simple_property(self, selected_item_id, property_value, path):
         x, y, width, height = self.bbox(selected_item_id, '#1')
         entry = ttk.Entry(self)
@@ -242,8 +318,18 @@ class PropertiesTreeview(ttk.Treeview):
         if selected_item_id is None:
             return
 
-        property_name = self.item(selected_item_id, 'text')
+        name = self.item(selected_item_id, 'text')
         path = utils.get_item_path(self, selected_item_id)
+
+        # handle struct
+        if len(path) > 1:
+            parent = utils.get_property_for_path(self.context, path[:-1], self.node)
+            if type(parent.value) is complex or type(parent.value) is Fraction:
+                return # complex and fraction/ratio isn't editable yet
+            elif parent.value_type == daq.CoreType.ctStruct:
+                self.edit_struct_property(selected_item_id, name, parent)
+                return
+
         prop = utils.get_property_for_path(self.context, path, self.node)
         if not prop:
             return
@@ -265,7 +351,7 @@ class PropertiesTreeview(ttk.Treeview):
             prop.value = not prop.value
             self.refresh() # is needed
         elif prop.value_type == daq.CoreType.ctInt and prop.selection_values is not None:
-            prop.value = utils.show_selection('Enter the new value for {}:'.format(property_name),
+            prop.value = utils.show_selection('Enter the new value for {}:'.format(name),
                                               prop.value, prop.selection_values)
             self.refresh() # is needed
         elif prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):

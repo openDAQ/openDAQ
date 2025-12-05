@@ -77,7 +77,9 @@ private:
 
     bool updateInputPorts();
     void updateReader();
-    void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
+    void configure(const DataDescriptorPtr& domainDescriptor,
+                   const ListPtr<IDataDescriptor>& valueDescriptors,
+                   const ListPtr<IString>& signalNames);
     void reconfigure();
     void onPathChanged();
 
@@ -89,6 +91,7 @@ private:
     InputPortPtr disconnectedPort;
 
     std::unordered_map<std::string, DataDescriptorPtr> cachedDescriptors;
+    std::unordered_map<std::string, StringPtr> cachedSignalNames;
     DataDescriptorPtr recorderDomainDataDescriptor;
 
     PacketReadyNotification notificationMode;

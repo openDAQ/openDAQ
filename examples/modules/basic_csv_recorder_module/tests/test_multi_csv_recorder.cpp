@@ -74,10 +74,8 @@ protected:
 
         for (size_t i = 0; i < 10; ++i)
         {
-            std::ostringstream stream;
-            stream << "AI_" << i;
             validDescriptor = DataDescriptorBuilder()
-                                  .setName(stream.str())
+                                  .setName(fmt::format("AI_{}", i))
                                   .setSampleType(SampleType::Float64)
                                   .setUnit(Unit("V", -1, "volts", "voltage"))
                                   .build();
@@ -189,8 +187,8 @@ TEST_F(MultiCsvTest, WriteSamples)
     EXPECT_EQ(line, headerLine);
 
     std::getline(readIn, line);
-    std::string columns("\"AI_0 (V)\",\"AI_1 (V)\",\"AI_2 (V)\",\"AI_3 (V)\",\"AI_4 (V)\",\"AI_5 (V)\",\"AI_6 (V)\",\"AI_7 (V)\",\"AI_8 "
-                        "(V)\",\"AI_9 (V)\"");
+    std::string columns("\"sig0 (V)\",\"sig1 (V)\",\"sig2 (V)\",\"sig3 (V)\",\"sig4 (V)\",\"sig5 (V)\",\"sig6 (V)\",\"sig7 (V)\",\"sig8 "
+                        "(V)\",\"sig9 (V)\"");
     EXPECT_EQ(line, columns);
 
     std::getline(readIn, line);

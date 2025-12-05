@@ -78,17 +78,13 @@ std::string getDomainName(const DataDescriptorPtr& descriptor)
  *
  * @return The name of the signal.
  */
-std::string getValueName(const DataDescriptorPtr& descriptor, SizeT serialNumber)
+std::string getValueName(const StringPtr& signalName, const DataDescriptorPtr& descriptor)
 {
-    if (!descriptor.assigned())
-        return "Value";
-
-    StringPtr name = descriptor.getName();
-    if (!name.assigned() || name.getLength() == 0)
+    if (!signalName.assigned())
         return "Value";
 
     std::ostringstream stream;
-    stream << descriptor.getName();
+    stream << signalName;
     appendUnitInfo(stream, descriptor);
     return stream.str();
 }
@@ -184,18 +180,25 @@ MultiCsvWriter::~MultiCsvWriter()
     writerThread.join();
 }
 
-void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors)
+void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescriptor,
+                                          const ListPtr<IDataDescriptor>& valueDescriptors,
+                                          const ListPtr<IString>& signalNames)
 {
+    if (valueDescriptors.getCount() != signalNames.getCount())
+    {
+        valueNames.clear();
+        return;
+    }
+
     domainName = getDomainName(domainDescriptor);
     domainMetadata = getDomainMetadataLine(domainDescriptor);
 
     valueNames.clear();
     valueNames.reserve(valueDescriptors.getCount());
-    SizeT i = 0;
-    for (const auto& desc : valueDescriptors)
+
+    for (SizeT i = 0; i < valueDescriptors.getCount(); ++i)
     {
-        valueNames.push_back(getValueName(desc, i));
-        ++i;
+        valueNames.push_back(getValueName(signalNames.getItemAt(i), valueDescriptors.getItemAt(i)));
     }
 }
 

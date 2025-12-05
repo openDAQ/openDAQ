@@ -202,9 +202,10 @@ void MultiCsvRecorderImpl::updateReader()
         });
 }
 
-void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors)
+void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor,
+                                     const ListPtr<IDataDescriptor>& valueDescriptors,
+                                     const ListPtr<IString>& signalNames)
 {
-    // TODO: These value descripters need to be compiled into a header
     try
     {
         if (!domainDescriptor.assigned() || domainDescriptor == NullDataDescriptor())
@@ -240,19 +241,28 @@ void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor, 
         writer = std::nullopt;
         return;
     }
-    // TODO: Compute CSV header info
+
+    if (valueDescriptors.getCount() == 0 || signalNames.getCount() == 0)
+    {
+        writer = std::nullopt;
+        return;
+    }
 
     // Replace the csv writer (can it ever survive a reconfigure?)
     writer.emplace(filePath.value());
-    writer.value().setHeaderInformation(recorderDomainDataDescriptor, valueDescriptors);
+    writer.value().setHeaderInformation(recorderDomainDataDescriptor, valueDescriptors, signalNames);
 }
 
 void MultiCsvRecorderImpl::reconfigure()
 {
     auto descriptorList = List<IDataDescriptor>();
+    auto signalNameList = List<IString>();
     for (const auto& descriptor : cachedDescriptors)
+    {
         descriptorList.pushBack(descriptor.second);
-    configure(recorderDomainDataDescriptor, descriptorList);
+        signalNameList.pushBack(cachedSignalNames[descriptor.first]);
+    }
+    configure(recorderDomainDataDescriptor, descriptorList, signalNameList);
 }
 
 void MultiCsvRecorderImpl::onPathChanged()
@@ -322,6 +332,7 @@ void MultiCsvRecorderImpl::onDataReceived()
 
     DataDescriptorPtr domainDescriptor;
     ListPtr<IDataDescriptor> valueDescriptors = List<IDataDescriptor>();
+    ListPtr<IString> signalNames = List<IString>();
 
     bool domainChanged = false;
     bool valueSigChanged = false;
@@ -339,19 +350,24 @@ void MultiCsvRecorderImpl::onDataReceived()
                 valueSigChanged = true;
                 valueDescriptors.pushBack(valueDescriptor);
                 cachedDescriptors[portGlobalId] = valueDescriptor;
+                SignalPtr signal = port.getSignal();
+                cachedSignalNames[portGlobalId] = signal.getName();
             }
 
             domainChanged |= descriptorNotNull(domainDescriptor);
         }
 
         if (!descriptorNotNull(valueDescriptor))
+        {
             valueDescriptors.pushBack(cachedDescriptors[portGlobalId]);
+            signalNames.pushBack(cachedSignalNames[portGlobalId]);
+        }
     }
 
     getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
 
     if (valueSigChanged || domainChanged)
-        configure(domainDescriptor, valueDescriptors);
+        configure(domainDescriptor, valueDescriptors, signalNames);
 
     if (!status.getValid())
     {

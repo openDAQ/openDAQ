@@ -34,7 +34,9 @@ public:
     MultiCsvWriter(const fs::path& filename);
     ~MultiCsvWriter();
 
-    void setHeaderInformation(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
+    void setHeaderInformation(const DataDescriptorPtr& domainDescriptor,
+                              const ListPtr<IDataDescriptor>& valueDescriptors,
+                              const ListPtr<IString>& signalNames);
     void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int offset);
 
 private:

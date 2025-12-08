@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 import opendaq as daq
+from .properties_view import PropertiesView
 
 from .. import utils
 from ..app_context import AppContext
@@ -77,6 +78,10 @@ class AddFunctionBlockDialog(Dialog):
         self.grid_columnconfigure(1, weight=2)
         self.grid_columnconfigure((0, 1), uniform='uniform')
 
+        ttk.Button(tree_frame, text='Add with config', command=lambda: self.handle_button(True)).pack(side=tk.RIGHT)
+        ttk.Button(tree_frame, text='Quick add', command=lambda: self.handle_button(False)).pack(side=tk.RIGHT)
+
+
     def initial_update(self):
         self.update_dialog()
 
@@ -140,15 +145,53 @@ class AddFunctionBlockDialog(Dialog):
                     parent_component) else daq.IFunctionBlock.cast_from(parent_component)
                 self.update_function_blocks()
 
-    def handle_fb_tree_double_click(self, event):
+    def handle_button(self, config : bool):
+        self.add_device(config)
+
+    def handle_fb_tree_double_click(self, dummy):
+        self.add_device(False)
+
+    def add_device(self, configurable: bool):
         selected_item = utils.treeview_get_first_selection(self.fb_tree)
         if selected_item is None:
             return
 
         item = self.fb_tree.item(selected_item)
-
         function_block_id = item['values'][0]
-        self.parent_component.add_function_block(function_block_id)
+
+        if configurable:
+            fb_type = self.parent_component.available_function_block_types[function_block_id]
+            component_type = daq.IComponentType.cast_from(fb_type)
+            configuration = component_type.create_default_config()
+
+            if len(configuration.all_properties) == 0:
+                self.parent_component.add_function_block(function_block_id)
+                self.event_port.emit()
+                self.update_dialog()
+                return
+
+            win = tk.Toplevel(self)
+            win.title('Function Block configuration')
+            win.geometry("600x400")
+            win.attributes("-topmost", True)
+
+            frame = tk.Frame(win)
+            frame.pack(fill=tk.BOTH, expand=True)
+
+            def apply():
+                self.parent_component.add_function_block(function_block_id, configuration)
+                win.destroy()
+                self.event_port.emit()
+                self.update_dialog()
+
+            tree = PropertiesView(frame, configuration, self.context)
+            tree.pack(fill=tk.BOTH, expand=True)
+
+            ttk.Button(win, text="Create", command=apply).pack(side=tk.BOTTOM)
+
+            return
+        else:
+            self.parent_component.add_function_block(function_block_id)
 
         self.event_port.emit()
         self.update_dialog()

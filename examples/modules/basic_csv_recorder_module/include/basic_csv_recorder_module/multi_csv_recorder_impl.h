@@ -48,6 +48,8 @@ public:
     struct Props
     {
         static constexpr const char* PATH = "Path";
+        static constexpr const char* BASENAME = "Basename";
+        static constexpr const char* TIMESTAMP_ENABLED = "TimestampEnabled";
     };
 
     /*!
@@ -81,7 +83,7 @@ private:
                    const ListPtr<IDataDescriptor>& valueDescriptors,
                    const ListPtr<IString>& signalNames);
     void reconfigure();
-    void onPathChanged();
+    void onPropertiesChanged();
 
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;
@@ -98,7 +100,11 @@ private:
     MultiReaderPtr reader;
 
     bool recordingActive = false;
+
     std::optional<fs::path> filePath = std::nullopt;
+    std::string fileBasename;
+    bool timestampEnabled;
+
     std::optional<MultiCsvWriter> writer = std::nullopt;
 };
 

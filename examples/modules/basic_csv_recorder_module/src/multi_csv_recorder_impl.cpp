@@ -41,6 +41,41 @@ bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& d
     }
     return false;
 }
+
+fs::path getNextCsvFilename(const fs::path& dir, const std::string& basename, bool timestampEnabled)
+{
+    std::string timestamp = "";
+    if (timestampEnabled)
+    {
+        // Get system time
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+
+        // Convert to local time in a safe, cross-platform way
+        std::tm tm{};
+#ifdef _WIN32
+        localtime_s(&tm, &t);
+#else
+        localtime_r(&t, &tm);
+#endif
+
+        // Format using iostreams
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%Y%m%d_%H%M%S");
+        timestamp = "_" + oss.str();
+    }
+
+    fs::path fname = basename + timestamp + ".csv";
+    // If file exists, add numeric suffix
+    int index = 1;
+    while (fs::exists(dir / fname))
+    {
+        fname = basename + timestamp + fmt::format("_{:03}", index) + ".csv";
+        index++;
+    }
+
+    return (dir / fname).string();
+}
 }
 
 FunctionBlockTypePtr MultiCsvRecorderImpl::createType()
@@ -63,6 +98,8 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
 {
     initComponentStatus();
     initProperties();
+    fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
+    timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::TIMESTAMP_ENABLED));
 
     if (config.assigned())
         notificationMode = static_cast<PacketReadyNotification>(config.getPropertyValue("ReaderNotificationMode"));
@@ -85,8 +122,7 @@ ErrCode MultiCsvRecorderImpl::stopRecording()
 {
     auto lock = getRecursiveConfigLock();
     recordingActive = false;
-    // TODO: rethink what should happen
-    // reconfigure();
+    // Close the reader
     writer = std::nullopt;
 
     return OPENDAQ_SUCCESS;
@@ -112,8 +148,14 @@ void MultiCsvRecorderImpl::initProperties()
 {
     this->tags.add(Tags::RECORDER);
 
-    objPtr.addProperty(StringProperty(Props::PATH, ""));
-    objPtr.getOnPropertyValueWrite(Props::PATH) += std::bind(&MultiCsvRecorderImpl::onPathChanged, this);
+    objPtr.addProperty(StringProperty(Props::PATH, "default_value"));
+    objPtr.getOnPropertyValueWrite(Props::PATH) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
+
+    objPtr.addProperty(StringProperty(Props::BASENAME, "output"));
+    objPtr.getOnPropertyValueWrite(Props::BASENAME) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
+
+    objPtr.addProperty(BoolProperty(Props::TIMESTAMP_ENABLED, True));
+    objPtr.getOnPropertyValueWrite(Props::TIMESTAMP_ENABLED) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
 }
 
 std::string MultiCsvRecorderImpl::getNextPortID() const
@@ -233,7 +275,8 @@ void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor,
     catch (const std::exception& e)
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to configure CSV recorder: {}", e.what()));
-        reader.setActive(False);
+        if (reader.assigned())
+            reader.setActive(False);
     }
 
     if (this->statusContainer.getStatus("ComponentStatus") == ComponentStatus::Warning || !filePath.has_value())
@@ -248,8 +291,10 @@ void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor,
         return;
     }
 
+    fs::path outputFile = getNextCsvFilename(filePath.value(), fileBasename, timestampEnabled);
+
     // Replace the csv writer (can it ever survive a reconfigure?)
-    writer.emplace(filePath.value());
+    writer.emplace(outputFile);
     writer.value().setHeaderInformation(recorderDomainDataDescriptor, valueDescriptors, signalNames);
 }
 
@@ -265,10 +310,14 @@ void MultiCsvRecorderImpl::reconfigure()
     configure(recorderDomainDataDescriptor, descriptorList, signalNameList);
 }
 
-void MultiCsvRecorderImpl::onPathChanged()
+void MultiCsvRecorderImpl::onPropertiesChanged()
 {
     filePath = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
-    reconfigure();
+    fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
+    timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::TIMESTAMP_ENABLED));
+
+    if (reader.assigned())
+        reconfigure();
 }
 
 void MultiCsvRecorderImpl::onConnected(const InputPortPtr& inputPort)

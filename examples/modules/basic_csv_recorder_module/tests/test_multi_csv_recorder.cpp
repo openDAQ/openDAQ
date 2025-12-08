@@ -1,4 +1,5 @@
 #include <basic_csv_recorder_module/module_dll.h>
+#include <coretypes/filesystem.h>
 #include <opendaq/context_internal_ptr.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/module_ptr.h>
@@ -39,7 +40,7 @@ public:
     ListPtr<ISignalConfig> invalidSignals;
     SignalConfigPtr timeSignal;
 
-    std::string outputPath;
+    std::string outputFolder;
 
 protected:
     void SetUp() override
@@ -54,8 +55,11 @@ protected:
 
         // Create function block
         fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb", config);
-        outputPath = testing::TempDir() + "output.csv";
-        fb->setPropertyValue(StringPtr("Path"), StringPtr(outputPath));
+
+        outputFolder = testing::TempDir() + "test_output";
+
+        fb.setPropertyValue("Path", outputFolder);
+        fb.setPropertyValue("TimestampEnabled", false);
 
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
         ReferenceDomainInfoPtr refDomainInfo =
@@ -168,6 +172,11 @@ TEST_F(MultiCsvTest, DisconnectSignals)
 
 TEST_F(MultiCsvTest, WriteSamples)
 {
+    // Remove the folder to:
+    // a) test creation of missing folders
+    // b) make sure the file without any serial number suffixes is the lates one.
+    EXPECT_NO_THROW(fs::remove_all(outputFolder));
+
     for (size_t i = 0; i < validSignals.getCount(); ++i)
         fb.getInputPorts()[i].connect(validSignals[i]);
 
@@ -179,7 +188,7 @@ TEST_F(MultiCsvTest, WriteSamples)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Check the log file
-    std::ifstream readIn(this->outputPath);
+    std::ifstream readIn(this->outputFolder + "\\output.csv");
 
     ASSERT_TRUE(readIn.is_open());
 

@@ -2,125 +2,46 @@
 #include <opendaq/custom_log.h>
 #include <boost/algorithm/string.hpp>
 
+#include <iostream>
+
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
 namespace
 {
-/**
- * If a signal has a Unit attached to its descriptor, writes the unit's symbol (or name, if the
- * symbol is empty) to an output stream in parentheses. If a tick resolution is specified, the
- * resolution is also included after the unit.
- *
- * @param stream The output stream to write to.
- * @param signal The signal whose unit name to write.
- *
- * @return @p stream.
- */
-std::ostream& appendUnitInfo(std::ostream& stream, const DataDescriptorPtr& descriptor)
+std::string unitInfo(const DataDescriptorPtr& descriptor)
 {
-    bool parentheses = false;
-
-    if (auto unit = descriptor.getUnit(); unit.assigned())
+    auto unit = descriptor.getUnit();
+    if (!unit.assigned())
     {
-        parentheses = true;
-        if (auto symbol = unit.getSymbol(); symbol.assigned())
-            stream << " (" << symbol;
-        else if (auto unitName = unit.getName(); unitName.assigned())
-            stream << " (" << unitName;
-        else
-            parentheses = false;
+        return "";
     }
 
-    if (auto ratio = descriptor.getTickResolution(); ratio.assigned())
-    {
-        Int numerator = ratio.getNumerator();
-        Int denominator = ratio.getDenominator();
+    if (auto symbol = unit.getSymbol(); symbol.assigned())
+        return fmt::format("({})", symbol);
+    else if (auto unitName = unit.getName(); unitName.assigned())
+        return fmt::format("({})", unitName);
 
-        if (numerator != 1)
-            stream << " * " << numerator;
-        if (denominator != 1)
-            stream << " / " << denominator;
-    }
-
-    if (parentheses)
-        stream << ')';
-
-    return stream;
+    return "";
 }
 
-/**
- * Gets the name of the signal's associated domain signal, for use as a CSV header. If the signal
- * has an associated domain signal, that signal's name is returned. If the signal additionally has
- * a Unit assigned to its descriptor, the unit's symbol (or name, if no symbol) is appended in
- * parentheses. Otherwise, "Domain" is returned.
- *
- * @param descriptor The data descriptor of the domain signal.
- *
- * @return The name of the domain signal associated with @p signal, or if there is no associated
- *     domain signal, "Domain".
- */
 std::string getDomainName(const DataDescriptorPtr& descriptor)
 {
     if (!descriptor.assigned())
-        return "Domain";
+        return "N/A";
 
     std::ostringstream stream;
     stream << descriptor.getName();
-    appendUnitInfo(stream, descriptor);
     return stream.str();
 }
 
-/**
- * Gets the name of the signal, for use as a CSV header. If the signal has a Unit assigned to its
- * descriptor, the unit's symbol (or name, if no symbol) is appended in parentheses.
- *
- * @param descriptor The data descriptor of the value signal.
- *
- * @return The name of the signal.
- */
 std::string getValueName(const StringPtr& signalName, const DataDescriptorPtr& descriptor)
 {
     if (!signalName.assigned())
         return "Value";
 
     std::ostringstream stream;
-    stream << signalName;
-    appendUnitInfo(stream, descriptor);
+    stream << signalName << " " << unitInfo(descriptor);
     return stream.str();
-}
-
-std::string getDomainMetadataLine(const DataDescriptorPtr& domainDescriptor)
-{
-    std::list<std::string> parts;
-
-    if (auto origin = domainDescriptor.getOrigin(); origin.assigned())
-        parts.push_back("origin=" + origin);
-
-    auto resolution = domainDescriptor.getTickResolution();
-    auto rule = domainDescriptor.getRule();
-    if (resolution.assigned() && rule.assigned())
-    {
-        std::int64_t numerator = resolution.getNumerator();
-        std::int64_t denominator = resolution.getDenominator();
-
-        auto params = rule.getParameters();
-        if (rule.getType() == DataRuleType::Linear && params.assigned() && params.hasKey("delta"))
-        {
-            std::int64_t delta = params["delta"];
-            std::int64_t totalNumerator = delta * numerator;
-            std::int64_t commonDivisor = std::gcd(totalNumerator, denominator);
-
-            parts.push_back("period=" + std::to_string(totalNumerator / commonDivisor) + "/" + std::to_string(denominator / commonDivisor));
-        }
-        else
-        {
-            parts.push_back("resolution=" + std::to_string(resolution.getNumerator()) + '/' + std::to_string(resolution.getDenominator()));
-        }
-    }
-    if (auto unit = domainDescriptor.getUnit(); unit.assigned())
-        parts.push_back("unit=" + unit.getName());
-
-    return boost::algorithm::join(parts, ";");
 }
 
 std::string getValueMetadataLine(const DataDescriptorPtr& descriptor)
@@ -191,7 +112,7 @@ void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescrip
     }
 
     domainName = getDomainName(domainDescriptor);
-    domainMetadata = getDomainMetadataLine(domainDescriptor);
+    metadata = getDomainMetadata(domainDescriptor);
 
     valueNames.clear();
     valueNames.reserve(valueDescriptors.getCount());
@@ -202,11 +123,11 @@ void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescrip
     }
 }
 
-void MultiCsvWriter::writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int offset)
+void MultiCsvWriter::writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int packetOffset)
 {
     std::unique_lock lock(mutex);
     exitFlag = false;
-    queue.emplace(JaggedBuffer{count, std::move(jaggedArray), offset});
+    queue.emplace(JaggedBuffer{count, std::move(jaggedArray), packetOffset});
     lock.unlock();
     cv.notify_all();
 }
@@ -229,7 +150,7 @@ void MultiCsvWriter::threadLoop()
 
         if (!headersWritten)
         {
-            writeHeaders(samples.offset);
+            writeHeaders(samples.packetOffset);
             headersWritten = true;
         }
 
@@ -252,9 +173,17 @@ void MultiCsvWriter::threadLoop()
     }
 }
 
-void MultiCsvWriter::writeHeaders(Int offset)
+void MultiCsvWriter::writeHeaders(Int firstPacketOffset)
 {
-    outFile << "# Domain: " << "name=" << quote(domainName) << ";" << domainMetadata << ";offset=" << offset << "\n";
+    Int startingTick = metadata.ruleStart + metadata.referenceDomainOffset + firstPacketOffset;
+    std::string metadataHeader = fmt::format("# domain_name={};unit={};resolution={};delta={};starting_tick={};origin={};",
+                                             domainName,
+                                             metadata.unitName,
+                                             metadata.tickResolution,
+                                             metadata.ruleDelta,
+                                             startingTick,
+                                             metadata.origin);
+    outFile << metadataHeader << "\n";
     for (size_t i = 0; i < valueNames.size(); ++i)
     {
         outFile << quote(valueNames[i]);
@@ -265,6 +194,48 @@ void MultiCsvWriter::writeHeaders(Int offset)
         }
     }
     outFile << "\n";
+}
+
+MultiCsvWriter::DomainMetadata MultiCsvWriter::getDomainMetadata(const DataDescriptorPtr& domainDescriptor)
+{
+    DomainMetadata metadata{StringPtr("N/A"), StringPtr("N/A"), Ratio(1, 1), 0, 1, 0, TimeProtocol::Unknown};
+
+    if (auto domainOrigin = domainDescriptor.getOrigin(); domainOrigin.assigned())
+    {
+        metadata.origin = domainOrigin;
+    }
+    if (auto refDomainInfo = domainDescriptor.getReferenceDomainInfo(); refDomainInfo.assigned())
+    {
+        if (auto refDomOffset = refDomainInfo.getReferenceDomainOffset(); refDomOffset.assigned())
+        {
+            metadata.referenceDomainOffset = refDomOffset;
+        }
+        metadata.referenceDomainTimeProtocol = refDomainInfo.getReferenceTimeProtocol();
+    }
+
+    auto resolution = domainDescriptor.getTickResolution();
+    auto rule = domainDescriptor.getRule();
+    if (resolution.assigned() && rule.assigned())
+    {
+        metadata.tickResolution = resolution;
+
+        auto params = rule.getParameters();
+        if (rule.getType() == DataRuleType::Linear && params.assigned() && params.hasKey("delta"))
+        {
+            if (params.hasKey("start"))
+            {
+                metadata.ruleStart = params["start"];
+            }
+
+            metadata.ruleDelta = params["delta"];
+        }
+    }
+    if (auto unit = domainDescriptor.getUnit(); unit.assigned())
+    {
+        metadata.unitName = unit.getName();
+    }
+
+    return metadata;
 }
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

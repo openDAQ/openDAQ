@@ -313,9 +313,8 @@ void MultiCsvRecorderImpl::onDataReceived()
     // Write samples if read successful
     if (recordingActive && writer.has_value() && cnt > 0)
     {
-        Int packOff = status.asPtr<IReaderStatus>().getOffset().getIntValue();
-
-        writer.value().writeSamples(std::move(data), cnt, packOff);
+        Int packetOffset = status.asPtr<IReaderStatus>().getOffset().getIntValue();
+        writer.value().writeSamples(std::move(data), cnt, packetOffset);
     }
 
     // Return if there is no event to handle

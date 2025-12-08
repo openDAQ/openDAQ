@@ -37,19 +37,32 @@ public:
     void setHeaderInformation(const DataDescriptorPtr& domainDescriptor,
                               const ListPtr<IDataDescriptor>& valueDescriptors,
                               const ListPtr<IString>& signalNames);
-    void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int offset);
+    void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int packetOfset);
 
 private:
     struct JaggedBuffer
     {
         int count;
         std::vector<std::unique_ptr<double[]>> buffers;
-        Int offset;
+        Int packetOffset;
+    };
+
+    struct DomainMetadata
+    {
+        StringPtr origin;
+        StringPtr unitName;
+        RatioPtr tickResolution;
+        IntPtr ruleStart;
+        IntPtr ruleDelta;
+        IntPtr referenceDomainOffset;
+        TimeProtocol referenceDomainTimeProtocol;
     };
 
     void threadLoop();
 
-    void writeHeaders(Int offset);
+    void writeHeaders(Int firstPacketOffset);
+    DomainMetadata getDomainMetadata(const DataDescriptorPtr& domainDescriptor);
+    std::string getMetadataHeader(const DomainMetadata& metadata);
 
     std::mutex mutex;
     std::condition_variable cv;
@@ -62,7 +75,9 @@ private:
 
     std::string domainName;
     std::vector<std::string> valueNames;
+
     std::string domainMetadata;
+    DomainMetadata metadata;
 };
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

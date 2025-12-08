@@ -58,6 +58,8 @@ protected:
         fb->setPropertyValue(StringPtr("Path"), StringPtr(outputPath));
 
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
+        ReferenceDomainInfoPtr refDomainInfo =
+            ReferenceDomainInfoBuilder().setReferenceDomainOffset(0).setReferenceTimeProtocol(TimeProtocol::Utc).build();
         timeDescriptor = DataDescriptorBuilder()
                              .setName("Time")
                              .setSampleType(SampleType::Int64)
@@ -65,6 +67,7 @@ protected:
                              .setOrigin("1970-01-01T00:00:00")
                              .setRule(LinearDataRule(1, 0))
                              .setUnit(Unit("s", -1, "seconds", "time"))
+                             .setReferenceDomainInfo(refDomainInfo)
                              .build();
 
         validDescriptors = List<IDataDescriptor>();
@@ -173,7 +176,7 @@ TEST_F(MultiCsvTest, WriteSamples)
     sendData(100, 1764927450173817, false, std::make_pair(0, 10));
 
     // fb.asPtr<IRecorder>(true).stopRecording();
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Check the log file
     std::ifstream readIn(this->outputPath);
@@ -183,7 +186,7 @@ TEST_F(MultiCsvTest, WriteSamples)
     std::string line;
     std::getline(readIn, line);
     std::string headerLine(
-        "# Domain: name=\"Time (s / 1000)\";origin=1970-01-01T00:00:00;period=1/1000;unit=seconds;offset=1764927450173817");
+        "# domain_name=Time;unit=seconds;resolution=1/1000;delta=1;starting_tick=1764927450173817;origin=1970-01-01T00:00:00;");
     EXPECT_EQ(line, headerLine);
 
     std::getline(readIn, line);

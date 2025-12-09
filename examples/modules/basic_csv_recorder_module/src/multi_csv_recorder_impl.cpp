@@ -179,6 +179,8 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     {
         connectedPorts.emplace_back(disconnectedPort);
         cachedDescriptors.insert(std::make_pair(disconnectedPort.getGlobalId(), NullDataDescriptor()));
+        SignalPtr signal = disconnectedPort.getSignal();
+        cachedSignalNames.insert(std::make_pair(disconnectedPort.getGlobalId(), signal.getName()));
         disconnectedPort.release();
         rebuildReader = true;
     }
@@ -187,7 +189,8 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     {
         if (!it->getConnection().assigned())
         {
-            cachedDescriptors.erase(it->getGlobalId().toStdString());
+            cachedDescriptors.erase(it->getGlobalId());
+            cachedSignalNames.erase(it->getGlobalId());
             this->inputPorts.removeItem(*it);
             it = connectedPorts.erase(it);
             rebuildReader = true;
@@ -202,8 +205,6 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     {
         std::string id = getNextPortID();
         auto inputPort = createAndAddInputPort(id, notificationMode);
-        // TODO: CreateAndAddInputPort makes the same call. Why is this neccessary?
-        inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
         disconnectedPort = inputPort;
     }
 
@@ -265,15 +266,7 @@ void MultiCsvRecorderImpl::configureWriter(const DataDescriptorPtr& domainDescri
         const bool readerIsValid = reader.asPtr<IReaderConfig>(true).getIsValid();
         if (!readerIsValid)
         {
-            setComponentStatusWithMessage(ComponentStatus::Warning, "configureWriter unsuccessful, signal reader invalid.");
-            // Close file
-            writer = std::nullopt;
-            return;
-        }
-
-        // TODO: Probably shouldn't call configure in this case
-        if (valueDescriptors.getCount() == 0 || signalNames.getCount() == 0)
-        {
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Configure unsuccessful, signal reader invalid.");
             // Close file
             writer = std::nullopt;
             return;
@@ -291,8 +284,7 @@ void MultiCsvRecorderImpl::configureWriter(const DataDescriptorPtr& domainDescri
     catch (const std::exception& e)
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to configure CSV recorder: {}", e.what()));
-        if (reader.assigned())
-            reader.setActive(False);
+        reader.setActive(False);
     }
 }
 
@@ -305,7 +297,10 @@ void MultiCsvRecorderImpl::reconfigureWriter()
         descriptorList.pushBack(descriptor.second);
         signalNameList.pushBack(cachedSignalNames[descriptor.first]);
     }
-    configureWriter(recorderDomainDataDescriptor, descriptorList, signalNameList);
+    if (descriptorList.getCount() > 0)
+    {
+        configureWriter(recorderDomainDataDescriptor, descriptorList, signalNameList);
+    }
 }
 
 void MultiCsvRecorderImpl::onPropertiesChanged()
@@ -314,8 +309,7 @@ void MultiCsvRecorderImpl::onPropertiesChanged()
     fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
     timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::TIMESTAMP_ENABLED));
 
-    if (reader.assigned())
-        reconfigureWriter();
+    reconfigureWriter();
 }
 
 void MultiCsvRecorderImpl::onConnected(const InputPortPtr& inputPort)
@@ -354,12 +348,6 @@ void MultiCsvRecorderImpl::onDataReceived()
         return;
     }
 
-    const auto eventPackets = status.getEventPackets();
-    if (eventPackets.getCount() == 0)
-    {
-        return;
-    }
-
     DataDescriptorPtr domainDescriptor;
     ListPtr<IDataDescriptor> valueDescriptors = List<IDataDescriptor>();
     ListPtr<IString> signalNames = List<IString>();
@@ -367,6 +355,7 @@ void MultiCsvRecorderImpl::onDataReceived()
     bool domainChanged = false;
     bool valueSigChanged = false;
 
+    const auto eventPackets = status.getEventPackets();
     for (const auto& port : connectedPorts)
     {
         auto portGlobalId = port.getGlobalId();
@@ -379,8 +368,6 @@ void MultiCsvRecorderImpl::onDataReceived()
             {
                 valueSigChanged = true;
                 cachedDescriptors[portGlobalId] = valueDescriptor;
-                SignalPtr signal = port.getSignal();
-                cachedSignalNames[portGlobalId] = signal.getName();
             }
 
             domainChanged |= descriptorNotNull(domainDescriptor);

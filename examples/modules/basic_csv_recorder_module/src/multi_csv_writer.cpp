@@ -24,34 +24,17 @@ std::string unitInfo(const DataDescriptorPtr& descriptor)
     return "";
 }
 
-std::string getDomainName(const DataDescriptorPtr& descriptor)
-{
-    if (!descriptor.assigned())
-        return "N/A";
-
-    std::ostringstream stream;
-    stream << descriptor.getName();
-    return stream.str();
-}
-
 std::string getValueName(const StringPtr& signalName, const DataDescriptorPtr& descriptor)
 {
     if (!signalName.assigned())
         return "Value";
 
-    std::ostringstream stream;
-    stream << signalName << " " << unitInfo(descriptor);
-    return stream.str();
-}
-
-std::string getValueMetadataLine(const DataDescriptorPtr& descriptor)
-{
-    std::list<std::string> parts;
-
-    if (auto unit = descriptor.getUnit(); unit.assigned())
-        parts.push_back("unit=" + unit.getName());
-
-    return boost::algorithm::join(parts, ";");
+    std::string unit = unitInfo(descriptor);
+    if (unit.length() == 0)
+    {
+        return signalName;
+    }
+    return fmt::format("{} {}", signalName.toStdString(), unit);
 }
 
 /*!
@@ -119,7 +102,6 @@ void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescrip
         return;
     }
 
-    domainName = getDomainName(domainDescriptor);
     metadata = getDomainMetadata(domainDescriptor);
 
     valueNames.clear();
@@ -184,10 +166,10 @@ void MultiCsvWriter::threadLoop()
 void MultiCsvWriter::writeHeaders(Int firstPacketOffset)
 {
     Int startingTick = metadata.ruleStart + metadata.referenceDomainOffset + firstPacketOffset;
-    std::string metadataHeader = fmt::format("# domain_name={};unit={};resolution={};delta={};starting_tick={};origin={};",
-                                             domainName,
+    std::string metadataHeader = fmt::format("# domain;unit={};resolution={}/{};delta={};starting_tick={};origin={};",
                                              metadata.unitName,
-                                             metadata.tickResolution,
+                                             metadata.tickResolution.first,
+                                             metadata.tickResolution.second,
                                              metadata.ruleDelta,
                                              startingTick,
                                              metadata.origin);
@@ -206,11 +188,11 @@ void MultiCsvWriter::writeHeaders(Int firstPacketOffset)
 
 MultiCsvWriter::DomainMetadata MultiCsvWriter::getDomainMetadata(const DataDescriptorPtr& domainDescriptor)
 {
-    DomainMetadata metadata{StringPtr("N/A"), StringPtr("N/A"), Ratio(1, 1), 0, 1, 0, TimeProtocol::Unknown};
+    DomainMetadata metadata{"N/A", "N/A", {1, 1}, 0, 1, 0, TimeProtocol::Unknown};
 
     if (auto domainOrigin = domainDescriptor.getOrigin(); domainOrigin.assigned())
     {
-        metadata.origin = domainOrigin;
+        metadata.origin = domainOrigin.toStdString();
     }
     if (auto refDomainInfo = domainDescriptor.getReferenceDomainInfo(); refDomainInfo.assigned())
     {
@@ -225,7 +207,7 @@ MultiCsvWriter::DomainMetadata MultiCsvWriter::getDomainMetadata(const DataDescr
     auto rule = domainDescriptor.getRule();
     if (resolution.assigned() && rule.assigned())
     {
-        metadata.tickResolution = resolution;
+        metadata.tickResolution = {resolution.getNumerator(), resolution.getDenominator()};
 
         auto params = rule.getParameters();
         if (rule.getType() == DataRuleType::Linear && params.assigned() && params.hasKey("delta"))
@@ -240,7 +222,7 @@ MultiCsvWriter::DomainMetadata MultiCsvWriter::getDomainMetadata(const DataDescr
     }
     if (auto unit = domainDescriptor.getUnit(); unit.assigned())
     {
-        metadata.unitName = unit.getName();
+        metadata.unitName = unit.getName().toStdString();
     }
 
     return metadata;

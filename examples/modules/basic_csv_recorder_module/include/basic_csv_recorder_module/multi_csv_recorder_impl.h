@@ -79,9 +79,17 @@ private:
 
     bool updateInputPorts();
     void updateReader();
+
+    /**
+     * @brief Attempts to open a new CSV writer with provided data.
+     */
     void configureWriter(const DataDescriptorPtr& domainDescriptor,
                          const ListPtr<IDataDescriptor>& valueDescriptors,
                          const ListPtr<IString>& signalNames);
+
+    /**
+     * @brief Collects cached data and calls configure writer.
+     */
     void reconfigureWriter();
     void onPropertiesChanged();
 

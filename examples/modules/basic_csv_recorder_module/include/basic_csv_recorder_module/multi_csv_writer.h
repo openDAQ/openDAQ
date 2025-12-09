@@ -49,12 +49,12 @@ private:
 
     struct DomainMetadata
     {
-        StringPtr origin;
-        StringPtr unitName;
-        RatioPtr tickResolution;
-        IntPtr ruleStart;
-        IntPtr ruleDelta;
-        IntPtr referenceDomainOffset;
+        std::string origin;
+        std::string unitName;
+        std::pair<std::int64_t, std::int64_t> tickResolution;  // {numerator, denominator}
+        std::int64_t ruleStart;
+        std::int64_t ruleDelta;
+        std::int64_t referenceDomainOffset;
         TimeProtocol referenceDomainTimeProtocol;
     };
 

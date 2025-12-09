@@ -23,6 +23,24 @@ bool descriptorNotNull(const DataDescriptorPtr& descriptor)
     return descriptor.assigned() && descriptor != NullDataDescriptor();
 }
 
+bool valueDescriptorsEqual(const DataDescriptorPtr& current, const DataDescriptorPtr& previous)
+{
+    if (current.assigned() && previous.assigned())
+    {
+        return MultiCsvWriter::unitLabel(current) == MultiCsvWriter::unitLabel(previous);
+    }
+    return !current.assigned() && !previous.assigned();
+}
+
+bool domainDescriptorsEqual(const DataDescriptorPtr& current, const DataDescriptorPtr& previous)
+{
+    if (current.assigned() && previous.assigned())
+    {
+        return MultiCsvWriter::getDomainMetadata(current) == MultiCsvWriter::getDomainMetadata(previous);
+    }
+    return !current.assigned() && !previous.assigned();
+}
+
 void getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc)
 {
     if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
@@ -366,11 +384,11 @@ void MultiCsvRecorderImpl::onDataReceived()
 
             if (descriptorNotNull(valueDescriptor))
             {
-                valueSigChanged = true;
+                valueSigChanged |= valueDescriptorsEqual(valueDescriptor, cachedDescriptors[portGlobalId]);
                 cachedDescriptors[portGlobalId] = valueDescriptor;
             }
 
-            domainChanged |= descriptorNotNull(domainDescriptor);
+            // NOTE: Domain descriptors of individual signals don't affect csv header
         }
 
         // Build a collection of all descriptors and corresponding signal names
@@ -378,7 +396,10 @@ void MultiCsvRecorderImpl::onDataReceived()
         signalNames.pushBack(cachedSignalNames[portGlobalId]);
     }
 
-    getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
+    if (getDomainDescriptor(status.getMainDescriptor(), domainDescriptor))
+    {
+        domainChanged |= domainDescriptorsEqual(domainDescriptor, recorderDomainDataDescriptor);
+    }
 
     if (valueSigChanged || domainChanged)
         configureWriter(domainDescriptor, valueDescriptors, signalNames);

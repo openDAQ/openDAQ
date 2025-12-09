@@ -31,22 +31,6 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 class MultiCsvWriter
 {
 public:
-    MultiCsvWriter(const fs::path& file);
-    ~MultiCsvWriter();
-
-    void setHeaderInformation(const DataDescriptorPtr& domainDescriptor,
-                              const ListPtr<IDataDescriptor>& valueDescriptors,
-                              const ListPtr<IString>& signalNames);
-    void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int packetOfset);
-
-private:
-    struct JaggedBuffer
-    {
-        int count;
-        std::vector<std::unique_ptr<double[]>> buffers;
-        Int packetOffset;
-    };
-
     struct DomainMetadata
     {
         std::string origin;
@@ -56,12 +40,32 @@ private:
         std::int64_t ruleDelta;
         std::int64_t referenceDomainOffset;
         TimeProtocol referenceDomainTimeProtocol;
+
+        bool operator==(const DomainMetadata& rhs);
+    };
+
+    MultiCsvWriter(const fs::path& file);
+    ~MultiCsvWriter();
+
+    void setHeaderInformation(const DataDescriptorPtr& domainDescriptor,
+                              const ListPtr<IDataDescriptor>& valueDescriptors,
+                              const ListPtr<IString>& signalNames);
+    void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int packetOfset);
+
+    static std::string unitLabel(const DataDescriptorPtr& descriptor);
+    static DomainMetadata getDomainMetadata(const DataDescriptorPtr& domainDescriptor);
+
+private:
+    struct JaggedBuffer
+    {
+        int count;
+        std::vector<std::unique_ptr<double[]>> buffers;
+        Int packetOffset;
     };
 
     void threadLoop();
 
     void writeHeaders(Int firstPacketOffset);
-    DomainMetadata getDomainMetadata(const DataDescriptorPtr& domainDescriptor);
     std::string getMetadataHeader(const DomainMetadata& metadata);
 
     std::mutex mutex;

@@ -194,8 +194,7 @@ TEST_F(MultiCsvTest, WriteSamples)
 
     std::string line;
     std::getline(readIn, line);
-    std::string headerLine(
-        "# domain_name=Time;unit=seconds;resolution=1/1000;delta=1;starting_tick=1764927450173817;origin=1970-01-01T00:00:00;");
+    std::string headerLine("# domain;unit=seconds;resolution=1/1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=1764927450173817;");
     EXPECT_EQ(line, headerLine);
 
     std::getline(readIn, line);

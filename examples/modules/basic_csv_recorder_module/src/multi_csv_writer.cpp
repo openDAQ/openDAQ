@@ -8,33 +8,17 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
 namespace
 {
-std::string unitInfo(const DataDescriptorPtr& descriptor)
-{
-    auto unit = descriptor.getUnit();
-    if (!unit.assigned())
-    {
-        return "";
-    }
-
-    if (auto symbol = unit.getSymbol(); symbol.assigned())
-        return fmt::format("({})", symbol);
-    else if (auto unitName = unit.getName(); unitName.assigned())
-        return fmt::format("({})", unitName);
-
-    return "";
-}
-
 std::string getValueName(const StringPtr& signalName, const DataDescriptorPtr& descriptor)
 {
     if (!signalName.assigned())
         return "Value";
 
-    std::string unit = unitInfo(descriptor);
+    std::string unit = MultiCsvWriter::unitLabel(descriptor);
     if (unit.length() == 0)
     {
         return signalName;
     }
-    return fmt::format("{} {}", signalName.toStdString(), unit);
+    return fmt::format("{} ({})", signalName.toStdString(), unit);
 }
 
 /*!
@@ -60,6 +44,13 @@ std::string quote(const std::string& header)
 }
 }
 
+bool MultiCsvWriter::DomainMetadata::operator==(const DomainMetadata& rhs)
+{
+    return origin == rhs.origin && unitName == rhs.unitName && tickResolution == rhs.tickResolution && ruleStart == rhs.ruleStart &&
+           ruleDelta == rhs.ruleDelta && referenceDomainOffset == rhs.referenceDomainOffset &&
+           referenceDomainTimeProtocol == rhs.referenceDomainTimeProtocol;
+}
+
 MultiCsvWriter::MultiCsvWriter(const fs::path& file)
     : exitFlag(false)
     , headersWritten(false)
@@ -72,7 +63,6 @@ MultiCsvWriter::MultiCsvWriter(const fs::path& file)
     }
 
     outFile.exceptions(std::ios::failbit | std::ios::badbit);
-    outFile.open(filepath);
 }
 
 MultiCsvWriter::~MultiCsvWriter()
@@ -84,10 +74,12 @@ MultiCsvWriter::~MultiCsvWriter()
 
     writerThread.join();
 
-    outFile.close();
     // If nothing was written, remove the file
     if (!headersWritten)
     {
+        if (outFile.is_open())
+            outFile.close();
+
         fs::remove(filepath);
     }
 }
@@ -120,6 +112,21 @@ void MultiCsvWriter::writeSamples(std::vector<std::unique_ptr<double[]>>&& jagge
     queue.emplace(JaggedBuffer{count, std::move(jaggedArray), packetOffset});
     lock.unlock();
     cv.notify_all();
+}
+
+std::string MultiCsvWriter::unitLabel(const DataDescriptorPtr& descriptor)
+{
+    auto unit = descriptor.getUnit();
+    if (!unit.assigned())
+    {
+        return "";
+    }
+
+    if (auto symbol = unit.getSymbol(); symbol.assigned())
+        return symbol.toStdString();
+    else if (auto unitName = unit.getName(); unitName.assigned())
+        return unitName.toStdString();
+    return "";
 }
 
 void MultiCsvWriter::threadLoop()
@@ -165,14 +172,16 @@ void MultiCsvWriter::threadLoop()
 
 void MultiCsvWriter::writeHeaders(Int firstPacketOffset)
 {
+    outFile.open(filepath);
+
     Int startingTick = metadata.ruleStart + metadata.referenceDomainOffset + firstPacketOffset;
-    std::string metadataHeader = fmt::format("# domain;unit={};resolution={}/{};delta={};starting_tick={};origin={};",
+    std::string metadataHeader = fmt::format("# domain;unit={};resolution={}/{};delta={};origin={};starting_tick={};",
                                              metadata.unitName,
                                              metadata.tickResolution.first,
                                              metadata.tickResolution.second,
                                              metadata.ruleDelta,
-                                             startingTick,
-                                             metadata.origin);
+                                             metadata.origin,
+                                             startingTick);
     outFile << metadataHeader << "\n";
     for (size_t i = 0; i < valueNames.size(); ++i)
     {

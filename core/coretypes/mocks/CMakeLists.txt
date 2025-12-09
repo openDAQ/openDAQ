@@ -22,7 +22,7 @@ add_library(${MOCK_LIB_NAME} STATIC ${MOCK_HEADERS} ${MOCK_SOURCES} ${GMOCK_HEAD
 add_library(${SDK_TARGET_NAMESPACE}::${MOCK_LIB_NAME} ALIAS ${MOCK_LIB_NAME})
 
 target_link_libraries(${MOCK_LIB_NAME} PRIVATE daq::coretypes
-                                               daq::test_utils testlibs
+                                               daq::test_utils
 )
 
 target_include_directories(${MOCK_LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

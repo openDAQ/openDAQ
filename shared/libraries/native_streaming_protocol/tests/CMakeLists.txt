@@ -16,7 +16,7 @@ set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)
 
 target_link_libraries(${TEST_APP} PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
                                           daq::config_protocol
-                                          daq::test_utils testlibs
+                                          daq::test_utils
 					  daq::opendaq
 					  daq::opendaq_mocks
 )

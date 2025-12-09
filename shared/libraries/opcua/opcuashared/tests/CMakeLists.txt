@@ -20,7 +20,7 @@ set(TEST_SOURCES
 add_executable(${TEST_APP} ${TEST_SOURCES})
 
 target_link_libraries(${TEST_APP} PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
-                                          daq::test_utils testlibs
+                                          daq::test_utils
 )
 
 if (MSVC)

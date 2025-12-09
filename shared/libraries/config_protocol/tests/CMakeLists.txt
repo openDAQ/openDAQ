@@ -26,7 +26,7 @@ add_executable(${TEST_APP} ${TEST_SOURCES})
 
 target_link_libraries(${TEST_APP} PRIVATE
     ${SDK_TARGET_NAMESPACE}::${BASE_NAME}
-    ${SDK_TARGET_NAMESPACE}::test_utils testlibs
+    ${SDK_TARGET_NAMESPACE}::test_utils
     daq::opendaq
     daq::opendaq_mocks
 )

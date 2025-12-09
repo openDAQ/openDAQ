@@ -8,7 +8,7 @@ set(TEST_SOURCES test_new_websocket_streaming_server_module.cpp
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
-target_link_libraries(${TEST_APP} PRIVATE daq::test_utils testlibs
+target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opendaq_mocks
                                           ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
                                           Taskflow::Taskflow

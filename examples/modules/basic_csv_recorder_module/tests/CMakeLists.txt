@@ -8,7 +8,7 @@ set(TEST_SOURCES test_basic_csv_recorder_module.cpp
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
-target_link_libraries(${TEST_APP} PRIVATE daq::test_utils testlibs
+target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
 )
 

@@ -15,7 +15,7 @@ if (WIN32)
 endif()
 
 target_link_libraries(${TEST_APP} PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
-                                          daq::test_utils testlibs
+                                          daq::test_utils
                                           ${BCRYPT_LIB}
 )
 

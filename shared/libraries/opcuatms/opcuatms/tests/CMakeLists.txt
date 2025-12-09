@@ -17,7 +17,7 @@ add_executable(${TEST_APP} testapp.cpp
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)
 
 target_link_libraries(${TEST_APP} PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
-                                          daq::test_utils testlibs
+                                          daq::test_utils
 )
 
 add_test(NAME ${TEST_APP}

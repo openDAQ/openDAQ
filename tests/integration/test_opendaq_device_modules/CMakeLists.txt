@@ -16,7 +16,7 @@ set(TEST_SOURCES test_native_device_modules.cpp
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
-target_link_libraries(${TEST_APP} PRIVATE daq::test_utils testlibs
+target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opendaq
                                           daq::opcuatms_client
                                           daq::native_stream_cl_module

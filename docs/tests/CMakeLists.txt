@@ -28,7 +28,7 @@ add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
 target_link_libraries(${TEST_APP} PRIVATE daq::opendaq
-                                          daq::test_utils testlibs
+                                          daq::test_utils
 )
 
 add_dependencies(${TEST_APP} daq::ref_fb_module

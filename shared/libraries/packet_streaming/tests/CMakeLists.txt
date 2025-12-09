@@ -12,7 +12,7 @@ add_executable(${TEST_APP}
 target_link_libraries(${TEST_APP} PRIVATE
     ${SDK_TARGET_NAMESPACE}::${BASE_NAME}
     daq::opendaq
-    ${SDK_TARGET_NAMESPACE}::test_utils testlibs
+    ${SDK_TARGET_NAMESPACE}::test_utils
 )
 
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)

@@ -22,7 +22,7 @@ add_library(${MOCK_LIB_NAME} STATIC ${GMOCK_HEADERS} ${MOCK_HEADERS} ${MOCK_SOUR
 add_library(${SDK_TARGET_NAMESPACE}::${MOCK_LIB_NAME} ALIAS ${MOCK_LIB_NAME})
 
 target_link_libraries(${MOCK_LIB_NAME} PRIVATE daq::coreobjects
-                                               daq::test_utils testlibs
+                                               daq::test_utils
                                        PUBLIC  daq::types_mocks
 )
 

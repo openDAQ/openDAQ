@@ -79,15 +79,17 @@ private:
 
     bool updateInputPorts();
     void updateReader();
-    void configure(const DataDescriptorPtr& domainDescriptor,
-                   const ListPtr<IDataDescriptor>& valueDescriptors,
-                   const ListPtr<IString>& signalNames);
-    void reconfigure();
+    void configureWriter(const DataDescriptorPtr& domainDescriptor,
+                         const ListPtr<IDataDescriptor>& valueDescriptors,
+                         const ListPtr<IString>& signalNames);
+    void reconfigureWriter();
     void onPropertiesChanged();
 
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;
     void onDataReceived();
+
+    MultiReaderStatusPtr attemptReadData();
 
     std::vector<InputPortPtr> connectedPorts;
     InputPortPtr disconnectedPort;

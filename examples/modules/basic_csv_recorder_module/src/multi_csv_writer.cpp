@@ -77,18 +77,19 @@ std::string quote(const std::string& header)
 }
 }
 
-MultiCsvWriter::MultiCsvWriter(const fs::path& filename)
+MultiCsvWriter::MultiCsvWriter(const fs::path& file)
     : exitFlag(false)
     , headersWritten(false)
+    , filepath(file)
     , writerThread([this]() { this->threadLoop(); })
 {
-    if (filename.has_parent_path())
+    if (filepath.has_parent_path())
     {
-        fs::create_directories(filename.parent_path());
+        fs::create_directories(filepath.parent_path());
     }
 
     outFile.exceptions(std::ios::failbit | std::ios::badbit);
-    outFile.open(filename);
+    outFile.open(filepath);
 }
 
 MultiCsvWriter::~MultiCsvWriter()
@@ -99,6 +100,13 @@ MultiCsvWriter::~MultiCsvWriter()
     cv.notify_all();
 
     writerThread.join();
+
+    outFile.close();
+    // If nothing was written, remove the file
+    if (!headersWritten)
+    {
+        fs::remove(filepath);
+    }
 }
 
 void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescriptor,

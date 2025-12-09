@@ -31,7 +31,7 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 class MultiCsvWriter
 {
 public:
-    MultiCsvWriter(const fs::path& filename);
+    MultiCsvWriter(const fs::path& file);
     ~MultiCsvWriter();
 
     void setHeaderInformation(const DataDescriptorPtr& domainDescriptor,
@@ -70,7 +70,8 @@ private:
     bool exitFlag;
     bool headersWritten;
     std::queue<JaggedBuffer> queue;
-    std::thread writerThread;
+
+    fs::path filepath;
     std::ofstream outFile;
 
     std::string domainName;
@@ -78,6 +79,8 @@ private:
 
     std::string domainMetadata;
     DomainMetadata metadata;
+
+    std::thread writerThread;
 };
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

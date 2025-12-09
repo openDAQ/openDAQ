@@ -174,7 +174,7 @@ TEST_F(MultiCsvTest, WriteSamples)
 {
     // Remove the folder to:
     // a) test creation of missing folders
-    // b) make sure the file without any serial number suffixes is the lates one.
+    // b) make sure the file without any serial number suffixes is the latest one.
     EXPECT_NO_THROW(fs::remove_all(outputFolder));
 
     for (size_t i = 0; i < validSignals.getCount(); ++i)

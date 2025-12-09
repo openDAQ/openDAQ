@@ -146,12 +146,12 @@ class AddFunctionBlockDialog(Dialog):
                 self.update_function_blocks()
 
     def handle_button(self, config : bool):
-        self.add_device(config)
+        self.add_fb(config)
 
     def handle_fb_tree_double_click(self, dummy):
-        self.add_device(False)
+        self.add_fb(False)
 
-    def add_device(self, configurable: bool):
+    def add_fb(self, configurable: bool):
         selected_item = utils.treeview_get_first_selection(self.fb_tree)
         if selected_item is None:
             return
@@ -166,30 +166,27 @@ class AddFunctionBlockDialog(Dialog):
 
             if len(configuration.all_properties) == 0:
                 self.parent_component.add_function_block(function_block_id)
-                self.event_port.emit()
-                self.update_dialog()
+            else:
+                win = tk.Toplevel(self)
+                win.title('Function Block configuration')
+                win.geometry("600x400")
+                win.attributes("-topmost", True)
+
+                frame = tk.Frame(win)
+                frame.pack(fill=tk.BOTH, expand=True)
+
+                def apply():
+                    self.parent_component.add_function_block(function_block_id, configuration)
+                    win.destroy()
+                    self.event_port.emit()
+                    self.update_dialog()
+
+                tree = PropertiesView(frame, configuration, self.context)
+                tree.pack(fill=tk.BOTH, expand=True)
+
+                ttk.Button(win, text="Add", command=apply).pack(side=tk.BOTTOM)
+
                 return
-
-            win = tk.Toplevel(self)
-            win.title('Function Block configuration')
-            win.geometry("600x400")
-            win.attributes("-topmost", True)
-
-            frame = tk.Frame(win)
-            frame.pack(fill=tk.BOTH, expand=True)
-
-            def apply():
-                self.parent_component.add_function_block(function_block_id, configuration)
-                win.destroy()
-                self.event_port.emit()
-                self.update_dialog()
-
-            tree = PropertiesView(frame, configuration, self.context)
-            tree.pack(fill=tk.BOTH, expand=True)
-
-            ttk.Button(win, text="Create", command=apply).pack(side=tk.BOTTOM)
-
-            return
         else:
             self.parent_component.add_function_block(function_block_id)
 

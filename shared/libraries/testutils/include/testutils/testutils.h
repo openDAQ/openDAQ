@@ -21,6 +21,7 @@
 #include <coretypes/complex_number_type.h>
 #include <coretypes/coretype_traits.h>
 #include <type_traits>
+#include <testutils/base_test_listener.h>
 
 /*
  *  TEST_F_OPTIONAL(fixture, testName)

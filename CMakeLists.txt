@@ -815,6 +815,16 @@ install(EXPORT ${SDK_NAME}
         COMPONENT ${SDK_NAME}_Development
 )
 
+if (DEFINED mdns_SOURCE_DIR)
+    message(STATUS "Installing mdns.h from: ${mdns_SOURCE_DIR}")
+    install(
+        FILES "${mdns_SOURCE_DIR}/mdns.h"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+else ()
+    message(ERROR "Can't install mdns.h")
+endif()
+
 set(OPENDAQ_CONFIGURED_ONCE TRUE CACHE INTERNAL "A flag showing that CMake has configured at least once.")
 
 include(cmake/Packing.cmake)

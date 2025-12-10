@@ -198,12 +198,133 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static bool packetsEqual(const ListPtr<IPacket>& listA, const ListPtr<IPacket>& listB, bool skipEventPackets = false)
+    static DataDescriptorPtr getLTAlignedDescriptor(const DataDescriptorPtr& descA,
+                                                    const DataDescriptorPtr& descB)
+    {
+        // no post scaling and desc metadata transferred within modern LT modules
+        auto alignedDescB =
+            DataDescriptorBuilderCopy(descB)
+                .setMetadata(descA.getMetadata())
+                .setPostScaling(descA.getPostScaling())
+                .build();
+
+        return alignedDescB;
+    }
+
+    [[maybe_unused]]
+    static bool equalPackets(const DataPacketPtr& packetA,
+                             const DataPacketPtr& packetB,
+                             const LoggerComponentPtr& loggerComponent)
+    {
+        bool result = true;
+
+        auto dumpPacketData = [](const DataPacketPtr& packet)
+        {
+            const void* address = packet.getData();
+            auto count = packet.getDataSize();
+            auto* bytes = static_cast<const uint8_t*>(address);
+
+            fmt::memory_buffer buf;
+            for (std::size_t i = 0; i < count; ++i) {
+                fmt::format_to(std::back_inserter(buf), "{:02X} ", bytes[i]);
+            }
+
+            return fmt::to_string(buf);
+        };
+
+        auto dumpA = dumpPacketData(packetA);
+        auto dumpB = dumpPacketData(packetB);
+        if (dumpA != dumpB)
+        {
+            LOG_E("Data in packets differs: A: \n{}\n, B:\n{}\n", dumpA, dumpB);
+            result = false;
+        }
+        else if (packetA.getDomainPacket().assigned() && packetB.getDomainPacket().assigned() &&
+                 packetA.getDomainPacket().getOffset() != packetB.getDomainPacket().getOffset())
+        {
+            LOG_E("Domain packets in packets differs: A: \n{}\n, B:\n{}\n",
+                  packetA.getDomainPacket().getOffset().toString(),
+                  packetB.getDomainPacket().getOffset().toString());
+            result = false;
+        }
+
+        return result;
+    }
+
+    [[maybe_unused]]
+    static bool equalDescriptors(const DataDescriptorPtr& descA,
+                                 const DataDescriptorPtr& descB,
+                                 const LoggerComponentPtr& loggerComponent,
+                                 bool skipLTMissingDescFields = false)
+    {
+        if (!BaseObjectPtr::Equals(descA, descB))
+        {
+            if (descA.assigned() && descB.assigned())
+            {
+                if (skipLTMissingDescFields)
+                {
+                    auto alignedDescB = getLTAlignedDescriptor(descA, descB);
+                    if (BaseObjectPtr::Equals(descA, alignedDescB))
+                        return true;
+                }
+                auto serializer = JsonSerializer(True);
+                descA.serialize(serializer);
+                auto valueDataDescStrA = serializer.getOutput();
+                serializer.reset();
+                descB.serialize(serializer);
+                auto valueDataDescStrB = serializer.getOutput();
+                serializer.reset();
+
+                LOG_E("decs A - \nvalue:\n\"{}\"", valueDataDescStrA);
+                LOG_E("decs B - \nvalue:\n\"{}\"", valueDataDescStrB);
+            }
+            else
+            {
+                LOG_E("decs A - \nvalue:\n\"{}\"", descA.assigned() ? descA.toString() : "null");
+                LOG_E("decs B - \nvalue:\n\"{}\"", descB.assigned() ? descB.toString() : "null");
+            }
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    [[maybe_unused]]
+    static bool packetsEqual(
+        const ListPtr<IPacket>& inputListA,
+        const ListPtr<IPacket>& inputListB,
+        bool skipEventPackets = false,
+        bool skipLTMissingDescFields = false)
     {
         auto context = NullContext();
         auto loggerComponent = context.getLogger().getOrAddComponent("packetsEqual");
 
         bool result = true;
+        ListPtr<IPacket> listA;
+        ListPtr<IPacket> listB;
+
+        if (skipEventPackets)
+        {
+            // keep only data packets
+            listA = List<IPacket>();
+            listB = List<IPacket>();
+
+            for (const auto& item : inputListA)
+                if (item.getType() == PacketType::Data)
+                    listA.pushBack(item);
+
+            for (const auto& item : inputListB)
+                if (item.getType() == PacketType::Data)
+                    listB.pushBack(item);
+        }
+        else
+        {
+            listA = inputListA;
+            listB = inputListB;
+        }
+
         if (listA.getCount() != listB.getCount())
         {
             LOG_E("Compared packets count differs: A {}, B {}", listA.getCount(), listB.getCount());
@@ -219,8 +340,6 @@ namespace test_helpers
                 if (listA.getItemAt(i).getType() == PacketType::Event &&
                     listB.getItemAt(i).getType() == PacketType::Event)
                 {
-                    if (skipEventPackets)
-                        continue;
                     auto eventPacketA = listA.getItemAt(i).asPtr<IEventPacket>(true);
                     auto eventPacketB = listB.getItemAt(i).asPtr<IEventPacket>(true);
 
@@ -228,36 +347,79 @@ namespace test_helpers
                     {
                         LOG_E("Event id of packets at index {} differs: A - \"{}\", B - \"{}\"",
                               i, eventPacketA.getEventId(), eventPacketB.getEventId());
+                        result = false;
                     }
                     else if(eventPacketA.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED &&
                              eventPacketB.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
                     {
                         const DataDescriptorPtr valueDataDescA = eventPacketA.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                        const DataDescriptorPtr domainDataDescA = eventPacketA.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-
                         const DataDescriptorPtr valueDataDescB = eventPacketB.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-                        const DataDescriptorPtr domainDataDescB = eventPacketB.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                        bool valueDescEqual = equalDescriptors(valueDataDescA, valueDataDescB, loggerComponent, skipLTMissingDescFields);
+                        if (!valueDescEqual)
+                        {
+                            LOG_E("Event parameter value descriptors of packets at index {} differs:", i);
+                            result = false;
+                        }
 
-                        LOG_E("Event parameters of packets at index {} differs:", i);
-                        LOG_E("packet A - \nvalue:\n\"{}\"\ndomain:\n\"{}\"",
-                              valueDataDescA.assigned() ? valueDataDescA.toString() : "null",
-                              domainDataDescA.assigned() ? domainDataDescA.toString() : "null");
-                        LOG_E("packet B - \nvalue:\n\"{}\"\ndomain:\n\"{}\"",
-                              valueDataDescB.assigned() ? valueDataDescB.toString() : "null",
-                              domainDataDescB.assigned() ? domainDataDescB.toString() : "null");
+                        const DataDescriptorPtr domainDataDescA = eventPacketA.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                        const DataDescriptorPtr domainDataDescB = eventPacketB.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                        bool domainDescEqual = equalDescriptors(domainDataDescA, domainDataDescB, loggerComponent, skipLTMissingDescFields);
+                        if (!domainDescEqual)
+                        {
+                            LOG_E("Event parameter domain descriptors of packets at index {} differs:", i);
+                            result = false;
+                        }
                     }
                     else
                     {
                         LOG_E("Event packets at index {} differs: A - \"{}\", B - \"{}\"",
                               i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
+                        result = false;
+                    }
+                }
+                else if (listA.getItemAt(i).getType() == PacketType::Data &&
+                         listB.getItemAt(i).getType() == PacketType::Data)
+                {
+                    DataPacketPtr packetA = listA.getItemAt(i);
+                    DataPacketPtr packetB = listB.getItemAt(i);
+
+                    const DataDescriptorPtr valueDataDescA = packetA.getDataDescriptor();
+                    const DataDescriptorPtr valueDataDescB = packetB.getDataDescriptor();
+                    if (equalDescriptors(valueDataDescA, valueDataDescB, loggerComponent, skipLTMissingDescFields))
+                    {
+                        if (packetA.getDomainPacket().assigned() && packetB.getDomainPacket().assigned())
+                        {
+                            auto domainPacketDescA = packetA.getDomainPacket().getDataDescriptor();
+                            auto domainPacketDescB = packetB.getDomainPacket().getDataDescriptor();
+
+                            if (!equalDescriptors(domainPacketDescA,
+                                                  domainPacketDescB,
+                                                  loggerComponent,
+                                                  skipLTMissingDescFields))
+                            {
+                                LOG_E("Descriptors in domain packets of data packets at index {} differs", i);
+                            }
+                        }
+
+                        if (!skipLTMissingDescFields && !BaseObjectPtr::Equals(packetA, packetB) ||
+                            !equalPackets(packetA, packetB, loggerComponent))
+                        {
+                            LOG_E("Data packets at index {} differs", i);
+                            result = false;
+                        }
+                    }
+                    else
+                    {
+                        LOG_E("Data descriptors in data packets at index {} differs", i);
+                        result = false;
                     }
                 }
                 else
                 {
-                    LOG_E("Data packets at index {} differs: A - \"{}\", B - \"{}\"",
+                    LOG_E("Type of packets at index {} differs: A - \"{}\", B - \"{}\"",
                           i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
+                    result = false;
                 }
-                result = false;
             }
         }
 

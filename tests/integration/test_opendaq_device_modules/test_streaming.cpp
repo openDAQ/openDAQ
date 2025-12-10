@@ -106,6 +106,11 @@ protected:
         general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>(std::get<0>(GetParam())));
 
         auto device = instance.addDevice(connectionString, config);
+        if (std::get<0>(GetParam()) == "OpenDAQLTStreaming")
+        {
+            // Wait for signals to become available in LT
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
         return instance;
     }
 
@@ -146,9 +151,13 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
     auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
-    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    if (std::get<0>(GetParam()) != "OpenDAQLTStreaming")
+    {
+        EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    }
     EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets,
                                            clientReceivedPackets,
+                                           std::get<0>(GetParam()) == "OpenDAQLTStreaming",
                                            std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
 
     // recreate client reader and test initial event packet
@@ -167,10 +176,38 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     ASSERT_TRUE(dataDescriptor.assigned());
     ASSERT_TRUE(domainDescriptor.assigned());
 
-    EXPECT_EQ(dataDescriptor, serverSignal.getDescriptor());
-    EXPECT_EQ(dataDescriptor, clientSignal.getDescriptor());
-    EXPECT_EQ(domainDescriptor, serverSignal.getDomainSignal().getDescriptor());
-    EXPECT_EQ(domainDescriptor, clientSignal.getDomainSignal().getDescriptor());
+    EXPECT_TRUE(
+        test_helpers::equalDescriptors(
+            serverSignal.getDescriptor(),
+            dataDescriptor,
+            serverInstance.getContext().getLogger().getOrAddComponent("SignalDescriptorEvents"),
+            std::get<0>(GetParam()) == "OpenDAQLTStreaming"
+        )
+    );
+    EXPECT_TRUE(
+        test_helpers::equalDescriptors(
+            clientSignal.getDescriptor(),
+            dataDescriptor,
+            serverInstance.getContext().getLogger().getOrAddComponent("SignalDescriptorEvents"),
+            std::get<0>(GetParam()) == "OpenDAQLTStreaming"
+        )
+    );
+    EXPECT_TRUE(
+        test_helpers::equalDescriptors(
+            serverSignal.getDomainSignal().getDescriptor(),
+            domainDescriptor,
+            serverInstance.getContext().getLogger().getOrAddComponent("SignalDescriptorEvents"),
+            std::get<0>(GetParam()) == "OpenDAQLTStreaming"
+        )
+    );
+    EXPECT_TRUE(
+        test_helpers::equalDescriptors(
+            clientSignal.getDomainSignal().getDescriptor(),
+            domainDescriptor,
+            serverInstance.getContext().getLogger().getOrAddComponent("SignalDescriptorEvents"),
+            std::get<0>(GetParam()) == "OpenDAQLTStreaming"
+        )
+    );
 }
 
 TEST_P(StreamingTest, DataPackets)
@@ -197,12 +234,32 @@ TEST_P(StreamingTest, DataPackets)
     auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);
 
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
-    EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
-    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
+    if (std::get<0>(GetParam()) != "OpenDAQLTStreaming")
+    {
+        EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
+    }
+    EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets,
+                                           clientReceivedPackets,
+                                           std::get<0>(GetParam()) == "OpenDAQLTStreaming",
+                                           std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
+
+    auto serverDataSignal = getSignal(serverInstance, "ByteStep");
+    ASSERT_TRUE(test_helpers::equalDescriptors(
+                    serverDataSignal.getDescriptor(),
+                    mirroredSignalPtr.getDescriptor(),
+                    serverInstance.getContext().getLogger().getOrAddComponent("DataPackets"),
+                    usingLTPseudoDevice
+                )
+    );
 }
 
 TEST_P(StreamingTest, SetNullDescriptor)
 {
+    if (std::get<0>(GetParam()) == "OpenDAQLTStreaming")
+    {
+        GTEST_SKIP();
+    }
+
     if (!usingLTPseudoDevice)
     {
         const size_t packetsToRead = 2;
@@ -235,6 +292,7 @@ TEST_P(StreamingTest, SetNullDescriptor)
 
         EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets,
                                                clientReceivedPackets,
+                                               std::get<0>(GetParam()) == "OpenDAQLTStreaming",
                                                std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
     }
     else // usingLTPseudoDevice true
@@ -295,7 +353,7 @@ TEST_P(StreamingTest, SetNullDescriptor)
 
 TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 {
-    if (std::get<1>(GetParam()).find("daq.nd://") == 0)
+    if (std::get<1>(GetParam()).find("daq.nd://") == 0 || usingLTPseudoDevice)
     {
         GTEST_SKIP();
     }

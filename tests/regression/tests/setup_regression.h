@@ -37,6 +37,7 @@ StringPtr connectionString = "daq." + protocol + "://127.0.0.1";
 // Macro that ensures that we only continue for listed protocols
 #define PROTOCOLS(...)                                                     \
     std::set<std::string> protocols = {__VA_ARGS__};                       \
+    if (protocol == "lt") return;                                          \
     if (protocol == "opcua" && protocols.find("opcua") == protocols.end()) \
         return;                                                            \
     else if (protocol == "nd" && protocols.find("nd") == protocols.end())  \

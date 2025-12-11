@@ -10,9 +10,9 @@ endif()
 opendaq_dependency(
     NAME                xxHash
     PKGCONFIG_NAME      libxxhash
-    REQUIRED_VERSION    0.8.1
+    REQUIRED_VERSION    0.8.3
     GIT_REPOSITORY      https://github.com/Cyan4973/xxHash.git
-    GIT_REF             v0.8.1
+    GIT_REF             v0.8.3
     SOURCE_SUBDIR       cmake_unofficial
     EXPECT_TARGET       xxHash::xxhash
     PATCH_FILES         "${PATCH_FILES}"

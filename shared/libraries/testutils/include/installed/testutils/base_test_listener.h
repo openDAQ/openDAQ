@@ -16,11 +16,6 @@
 
 #pragma once
 #include <gtest/gtest.h>
-#include <testutils/base_test_listener.h>
 
-class BaseTestListener : public ::testing::EmptyTestEventListener
-{
-protected:
-    void OnTestStart(const testing::TestInfo& info) override;
-    void OnTestEnd(const testing::TestInfo& info) override;
-};
+using BaseTestListener = ::testing::EmptyTestEventListener;
+

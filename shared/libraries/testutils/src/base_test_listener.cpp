@@ -13,6 +13,6 @@ void BaseTestListener::OnTestStart(const testing::TestInfo& info)
 #endif
 }
 
-void BaseTestListener::OnTestEnd(const testing::TestInfo& info)
+void BaseTestListener::OnTestEnd(const testing::TestInfo& /*info*/)
 {
 }

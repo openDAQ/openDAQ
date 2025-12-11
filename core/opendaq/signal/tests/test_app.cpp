@@ -1,6 +1,6 @@
 #include <coretypes/stringobject_factory.h>
 #include <testutils/testutils.h>
-#include <testutils/bb_memcheck_listener.h>
+#include <testutils/daq_memcheck_listener.h>
 #include <opendaq/module_manager_init.h>
 
 int main(int argc, char** args)

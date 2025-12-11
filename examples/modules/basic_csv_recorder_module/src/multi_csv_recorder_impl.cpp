@@ -117,7 +117,7 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
     initComponentStatus();
     initProperties();
     fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
-    timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::TIMESTAMP_ENABLED));
+    timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::FILE_TIMESTAMP_ENABLED));
 
     if (config.assigned())
         notificationMode = static_cast<PacketReadyNotification>(config.getPropertyValue("ReaderNotificationMode"));
@@ -172,8 +172,11 @@ void MultiCsvRecorderImpl::initProperties()
     objPtr.addProperty(StringProperty(Props::BASENAME, "output"));
     objPtr.getOnPropertyValueWrite(Props::BASENAME) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
 
-    objPtr.addProperty(BoolProperty(Props::TIMESTAMP_ENABLED, True));
-    objPtr.getOnPropertyValueWrite(Props::TIMESTAMP_ENABLED) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
+    objPtr.addProperty(BoolProperty(Props::FILE_TIMESTAMP_ENABLED, True));
+    objPtr.getOnPropertyValueWrite(Props::FILE_TIMESTAMP_ENABLED) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
+
+    objPtr.addProperty(BoolProperty(Props::WRITE_DOMAIN, False));
+    objPtr.getOnPropertyValueWrite(Props::WRITE_DOMAIN) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
 }
 
 std::string MultiCsvRecorderImpl::getNextPortID() const
@@ -297,7 +300,7 @@ void MultiCsvRecorderImpl::configureWriter(const DataDescriptorPtr& domainDescri
 
         // Replace the csv writer (can it ever survive a reconfigure?)
         writer.emplace(outputFile);
-        writer.value().setHeaderInformation(recorderDomainDataDescriptor, valueDescriptors, signalNames);
+        writer.value().setHeaderInformation(recorderDomainDataDescriptor, valueDescriptors, signalNames, writeDomain);
     }
     catch (const std::exception& e)
     {
@@ -325,7 +328,8 @@ void MultiCsvRecorderImpl::onPropertiesChanged()
 {
     filePath = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
     fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
-    timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::TIMESTAMP_ENABLED));
+    timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::FILE_TIMESTAMP_ENABLED));
+    writeDomain = static_cast<bool>(objPtr.getPropertyValue(Props::WRITE_DOMAIN));
 
     reconfigureWriter();
 }
@@ -420,19 +424,19 @@ MultiReaderStatusPtr MultiCsvRecorderImpl::attemptReadData()
     SizeT cnt = reader.getAvailableCount();
 
     auto numPorts = connectedPorts.size();
-    std::vector<std::unique_ptr<double[]>> data;
-    data.reserve(numPorts);
+    std::vector<std::unique_ptr<double[]>> samples;
+    samples.reserve(numPorts);
 
     for (size_t i = 0; i < numPorts; ++i)
-        data.push_back(std::make_unique<double[]>(cnt));
+        samples.push_back(std::make_unique<double[]>(cnt));
 
-    const MultiReaderStatusPtr status = reader.read(data.data(), &cnt);
+    MultiReaderStatusPtr status = reader.read(samples.data(), &cnt);
 
     // Write samples if read successful
     if (recordingActive && writer.has_value() && cnt > 0)
     {
         Int packetOffset = status.asPtr<IReaderStatus>().getOffset().getIntValue();
-        writer.value().writeSamples(std::move(data), cnt, packetOffset);
+        writer.value().writeSamples(std::move(samples), cnt, packetOffset);
     }
     return status;
 }

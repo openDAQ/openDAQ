@@ -86,7 +86,8 @@ MultiCsvWriter::~MultiCsvWriter()
 
 void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescriptor,
                                           const ListPtr<IDataDescriptor>& valueDescriptors,
-                                          const ListPtr<IString>& signalNames)
+                                          const ListPtr<IString>& signalNames,
+                                          bool writeDomain)
 {
     if (valueDescriptors.getCount() != signalNames.getCount())
     {
@@ -103,9 +104,10 @@ void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescrip
     {
         valueNames.push_back(getValueName(signalNames.getItemAt(i), valueDescriptors.getItemAt(i)));
     }
+    writeDomainColumn = writeDomain;
 }
 
-void MultiCsvWriter::writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int packetOffset)
+void MultiCsvWriter::writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, size_t count, Int packetOffset)
 {
     std::unique_lock lock(mutex);
     exitFlag = false;
@@ -147,7 +149,7 @@ void MultiCsvWriter::threadLoop()
 
         if (!headersWritten)
         {
-            writeHeaders(samples.packetOffset);
+            writeHeaders(samples.packetOffset, writeDomainColumn);
             headersWritten = true;
         }
 
@@ -155,6 +157,10 @@ void MultiCsvWriter::threadLoop()
         // Write to file
         for (size_t i = 0; i < samples.count; ++i)
         {
+            if (writeDomainColumn)
+            {
+                outFile << (samples.packetOffset + i * metadata.ruleDelta) << ",";
+            }
             for (size_t signal = 0; signal < signalNum; ++signal)
             {
                 double* signalSamplesPtr = samples.buffers[signal].get();
@@ -170,7 +176,7 @@ void MultiCsvWriter::threadLoop()
     }
 }
 
-void MultiCsvWriter::writeHeaders(Int firstPacketOffset)
+void MultiCsvWriter::writeHeaders(Int firstPacketOffset, bool writeDomainColumn)
 {
     outFile.open(filepath);
 
@@ -183,6 +189,10 @@ void MultiCsvWriter::writeHeaders(Int firstPacketOffset)
                                              metadata.origin,
                                              startingTick);
     outFile << metadataHeader << "\n";
+    if (writeDomainColumn)
+    {
+        outFile << "Domain,";
+    }
     for (size_t i = 0; i < valueNames.size(); ++i)
     {
         outFile << quote(valueNames[i]);

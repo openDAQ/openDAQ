@@ -49,7 +49,8 @@ public:
     {
         static constexpr const char* PATH = "Path";
         static constexpr const char* BASENAME = "Basename";
-        static constexpr const char* TIMESTAMP_ENABLED = "TimestampEnabled";
+        static constexpr const char* FILE_TIMESTAMP_ENABLED = "FileTimestampEnabled";
+        static constexpr const char* WRITE_DOMAIN = "WriteDomain";
     };
 
     /*!
@@ -114,6 +115,7 @@ private:
     std::optional<fs::path> filePath = std::nullopt;
     std::string fileBasename;
     bool timestampEnabled;
+    bool writeDomain;
 
     std::optional<MultiCsvWriter> writer = std::nullopt;
 };

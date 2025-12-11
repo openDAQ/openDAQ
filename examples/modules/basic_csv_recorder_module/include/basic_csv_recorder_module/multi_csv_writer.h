@@ -49,8 +49,9 @@ public:
 
     void setHeaderInformation(const DataDescriptorPtr& domainDescriptor,
                               const ListPtr<IDataDescriptor>& valueDescriptors,
-                              const ListPtr<IString>& signalNames);
-    void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count, Int packetOfset);
+                              const ListPtr<IString>& signalNames,
+                              bool writeDomain);
+    void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, size_t count, Int packetOfset);
 
     static std::string unitLabel(const DataDescriptorPtr& descriptor);
     static DomainMetadata getDomainMetadata(const DataDescriptorPtr& domainDescriptor);
@@ -58,14 +59,14 @@ public:
 private:
     struct JaggedBuffer
     {
-        int count;
+        size_t count;
         std::vector<std::unique_ptr<double[]>> buffers;
         Int packetOffset;
     };
 
     void threadLoop();
 
-    void writeHeaders(Int firstPacketOffset);
+    void writeHeaders(Int firstPacketOffset, bool writeDomainColumn);
     std::string getMetadataHeader(const DomainMetadata& metadata);
 
     std::mutex mutex;
@@ -75,6 +76,7 @@ private:
     bool headersWritten;
     std::queue<JaggedBuffer> queue;
 
+    bool writeDomainColumn;
     fs::path filepath;
     std::ofstream outFile;
 

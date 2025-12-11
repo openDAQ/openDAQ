@@ -59,7 +59,7 @@ protected:
         outputFolder = testing::TempDir() + "test_output";
 
         fb.setPropertyValue("Path", outputFolder);
-        fb.setPropertyValue("TimestampEnabled", false);
+        fb.setPropertyValue("FileTimestampEnabled", false);
 
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
         ReferenceDomainInfoPtr refDomainInfo =
@@ -204,6 +204,45 @@ TEST_F(MultiCsvTest, WriteSamples)
 
     std::getline(readIn, line);
     std::string firstSamples("-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87");
+    EXPECT_EQ(line, firstSamples);
+}
+
+TEST_F(MultiCsvTest, WriteSamplesWithDomain)
+{
+    // Remove the folder to:
+    // a) test creation of missing folders
+    // b) make sure the file without any serial number suffixes is the latest one.
+    EXPECT_NO_THROW(fs::remove_all(outputFolder));
+    fb.setPropertyValue("WriteDomain", true);
+
+    for (size_t i = 0; i < validSignals.getCount(); ++i)
+        fb.getInputPorts()[i].connect(validSignals[i]);
+
+    fb.asPtr<IRecorder>(true).startRecording();
+
+    sendData(100, 1764927450173817, false, std::make_pair(0, 10));
+
+    // fb.asPtr<IRecorder>(true).stopRecording();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Check the log file
+    std::ifstream readIn(this->outputFolder + "\\output.csv");
+
+    ASSERT_TRUE(readIn.is_open());
+
+    std::string line;
+    std::getline(readIn, line);
+    std::string headerLine("# domain;unit=seconds;resolution=1/1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=1764927450173817;");
+    EXPECT_EQ(line, headerLine);
+
+    std::getline(readIn, line);
+    std::string columns(
+        "Domain,\"sig0 (V)\",\"sig1 (V)\",\"sig2 (V)\",\"sig3 (V)\",\"sig4 (V)\",\"sig5 (V)\",\"sig6 (V)\",\"sig7 (V)\",\"sig8 "
+        "(V)\",\"sig9 (V)\"");
+    EXPECT_EQ(line, columns);
+
+    std::getline(readIn, line);
+    std::string firstSamples("1764927450173817,-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87");
     EXPECT_EQ(line, firstSamples);
 }
 

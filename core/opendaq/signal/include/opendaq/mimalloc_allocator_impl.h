@@ -16,7 +16,7 @@
 
 #pragma once
 #include <opendaq/allocator.h>
-#include <opendaq/signal_descriptor.h>
+#include <opendaq/data_descriptor.h>
 #include <coretypes/common.h>
 #include <coretypes/intfs.h>
 
@@ -26,7 +26,7 @@ class MiMallocAllocatorImpl : public ImplementationOf<IAllocator>
 {
 public:
     ErrCode INTERFACE_FUNC allocate(
-        const ISignalDescriptor *descriptor,
+        const IDataDescriptor *descriptor,
         daq::SizeT bytes,
         daq::SizeT align,
         VoidPtr* address) override;

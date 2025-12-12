@@ -1200,7 +1200,16 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     if (!coreEvent.assigned())
     {
         parent.getContext()->getOnCoreEvent(&coreEvent);
-        ProcedurePtr procedure = [this](const CoreEventArgsPtr& args) { this->triggerCoreEventMethod(args); };
+
+        auto thisWeakRef = this->template getWeakRefInternal<IDeviceInfoConfig>();
+        ProcedurePtr procedure = [this, thisWeakRef](const CoreEventArgsPtr& args)
+        {
+            const auto thisRef = thisWeakRef.getRef();
+            if (!thisRef.assigned())
+                return;
+            this->triggerCoreEventMethod(args);
+        };
+
         this->setCoreEventTrigger(procedure);
         this->enableCoreEventTrigger(); // enables core event trigger for nested property objects
     }

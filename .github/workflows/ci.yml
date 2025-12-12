@@ -198,17 +198,46 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Ubuntu Latest gcc-12 Release
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DCMAKE_C_COMPILER=gcc-12 -DCMAKE_CXX_COMPILER=g++-12 -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
-            apt_packages: g++-12
-
+          - name: Ubuntu Latest gcc-9 Release
+            additional-packages: g++-9
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+          - name: Ubuntu Latest gcc-14 Release
+            additional-packages: g++-14
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
           - name: Ubuntu Latest clang-14 Release
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14
-            apt_packages: clang-14
+            additional-packages: clang-14
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14
+          - name: Ubuntu Latest clang-16 Release
+            additional-packages: clang-16
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16
+          - name: Ubuntu Latest gcc-9 Debug
+            additional-packages: g++-9
+            cmake-generator: Ninja
+            cmake-build-type: Debug
+            cmake-defines: -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+          - name: Ubuntu Latest gcc-14 Debug
+            additional-packages: g++-14
+            cmake-generator: Ninja
+            cmake-build-type: Debug
+            cmake-defines: -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
+          - name: Ubuntu Latest clang-14 Debug
+            additional-packages: clang-14
+            cmake-generator: Ninja
+            cmake-build-type: Debug
+            cmake-defines: -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14
+          - name: Ubuntu Latest clang-16 Debug
+            additional-packages: clang-16
+            cmake-generator: Ninja
+            cmake-build-type: Debug
+            cmake-defines: -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16
 
     steps:
       - name: Checkout
@@ -218,11 +247,11 @@ jobs:
         id: build-and-test
         uses: ./.github/actions/build-sdk
         with:
-          cmake-generator: ${{ matrix.cmake_generator }}
+          additional-dependencies: ${{ matrix.additional-packages }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
           cmake-config-preset: ${{ env.cmake_preset }}
-          cmake-config-args: ${{ matrix.cmake_defines }}
-          cmake-build-type: ${{ matrix.cmake_build_type }}
-          additional-dependencies: ${{ matrix.apt_packages }}
+          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-generator: ${{ matrix.cmake-generator }}
           enable-tests: true
 
       - name: Upload test results

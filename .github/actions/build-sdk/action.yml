@@ -70,8 +70,7 @@ runs:
       run: |
         sudo apt-get update && sudo apt-get install -y --no-install-recommends \
           ${{ inputs.additional-dependencies || '' }} \
-          lld \
-          mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
+          lld mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
           libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 
     - name: Install ninja-build

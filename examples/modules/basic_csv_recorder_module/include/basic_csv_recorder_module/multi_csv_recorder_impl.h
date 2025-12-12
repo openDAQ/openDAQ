@@ -99,6 +99,7 @@ private:
     void onDataReceived();
 
     MultiReaderStatusPtr attemptReadData();
+    bool attemptRecoverReader();
 
     std::vector<InputPortPtr> connectedPorts;
     InputPortPtr disconnectedPort;

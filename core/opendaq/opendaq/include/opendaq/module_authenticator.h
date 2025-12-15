@@ -43,6 +43,17 @@ DECLARE_OPENDAQ_INTERFACE(IModuleAuthenticator, IBaseObject)
      * @param[out] vendorKey Key for the vendor to identify if their certificate was used to authenticate the module.
      */
     virtual ErrCode INTERFACE_FUNC authenticateModuleBinary(Bool* binaryValid, IString** vendorKey, IString* binaryPath) = 0;
+
+    /*!
+     * @brief API call to add allow the openDAQ instance to add it's logger after during construction.
+     *
+     * Because the IModuleAuthenticator is constructed before the openDAQ IInstance and passed to the instance builder,
+     * the logger needs to be added seperately. To allow for this, the call needs to be added to the API, as
+     * the instance doesn't know the type of ModuleAuthenticatorImpl it's using.
+     *
+     * @param logger The instance's logger.
+     */
+    virtual ErrCode INTERFACE_FUNC setLogger(ILogger* logger) = 0;
 };
 /*!@}*/
 

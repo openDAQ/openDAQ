@@ -3,6 +3,7 @@
 #include <testutils/daq_memcheck_listener.h>
 #include <opendaq/opendaq_init.h>
 
+
 int main(int argc, char** args)
 {
     daq::daqInitializeCoreObjectsTesting();

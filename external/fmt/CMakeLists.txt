@@ -1,4 +1,5 @@
 set(FMT_INSTALL ON CACHE BOOL "" FORCE)
+set(FMT_WERROR OFF CACHE BOOL "" FORCE)
 
 if (CMAKE_COMPILER_IS_GNUCXX
     AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 10.0
@@ -14,3 +15,5 @@ opendaq_dependency(
     GIT_REF             12.1.0
     EXPECT_TARGET       fmt::fmt
 )
+
+

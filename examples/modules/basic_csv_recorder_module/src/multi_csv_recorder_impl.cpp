@@ -1,4 +1,5 @@
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <set>
 #include <string>
@@ -22,6 +23,24 @@ bool descriptorNotNull(const DataDescriptorPtr& descriptor)
     return descriptor.assigned() && descriptor != NullDataDescriptor();
 }
 
+bool valueDescriptorsEqual(const DataDescriptorPtr& current, const DataDescriptorPtr& previous)
+{
+    if (current.assigned() && previous.assigned())
+    {
+        return MultiCsvWriter::unitLabel(current) == MultiCsvWriter::unitLabel(previous);
+    }
+    return !current.assigned() && !previous.assigned();
+}
+
+bool domainDescriptorsEqual(const DataDescriptorPtr& current, const DataDescriptorPtr& previous)
+{
+    if (current.assigned() && previous.assigned())
+    {
+        return MultiCsvWriter::getDomainMetadata(current) == MultiCsvWriter::getDomainMetadata(previous);
+    }
+    return !current.assigned() && !previous.assigned();
+}
+
 void getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc)
 {
     if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
@@ -39,6 +58,41 @@ bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& d
         return true;
     }
     return false;
+}
+
+fs::path getNextCsvFilename(const fs::path& dir, const std::string& basename, bool timestampEnabled)
+{
+    std::string timestamp = "";
+    if (timestampEnabled)
+    {
+        // Get system time
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+
+        // Convert to local time in a safe, cross-platform way
+        std::tm tm{};
+#ifdef _WIN32
+        localtime_s(&tm, &t);
+#else
+        localtime_r(&t, &tm);
+#endif
+
+        // Format using iostreams
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%Y%m%d_%H%M%S");
+        timestamp = "_" + oss.str();
+    }
+
+    fs::path fname = basename + timestamp + ".csv";
+    // If file exists, add numeric suffix
+    int index = 1;
+    while (fs::exists(dir / fname))
+    {
+        fname = basename + timestamp + fmt::format("_{:03}", index) + ".csv";
+        index++;
+    }
+
+    return (dir / fname).string();
 }
 }
 
@@ -62,6 +116,8 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
 {
     initComponentStatus();
     initProperties();
+    fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
+    timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::FILE_TIMESTAMP_ENABLED));
 
     if (config.assigned())
         notificationMode = static_cast<PacketReadyNotification>(config.getPropertyValue("ReaderNotificationMode"));
@@ -74,8 +130,14 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
 ErrCode MultiCsvRecorderImpl::startRecording()
 {
     auto lock = getRecursiveConfigLock();
+    reconfigureWriter();
+    if (!filePath.has_value() || !writer.has_value())
+    {
+        LOG_I("Start recording FAILED.")
+        return OPENDAQ_ERR_INVALIDSTATE;
+    }
+    LOG_I("Recording to: {}", writer.value().getFilename());
     recordingActive = true;
-    reconfigure();
 
     return OPENDAQ_SUCCESS;
 }
@@ -83,8 +145,7 @@ ErrCode MultiCsvRecorderImpl::startRecording()
 ErrCode MultiCsvRecorderImpl::stopRecording()
 {
     auto lock = getRecursiveConfigLock();
-    recordingActive = false;
-    reconfigure();
+    stopRecordingInternal();
 
     return OPENDAQ_SUCCESS;
 }
@@ -109,8 +170,17 @@ void MultiCsvRecorderImpl::initProperties()
 {
     this->tags.add(Tags::RECORDER);
 
-    objPtr.addProperty(StringProperty(Props::PATH, ""));
-    objPtr.getOnPropertyValueWrite(Props::PATH) += std::bind(&MultiCsvRecorderImpl::onPathChanged, this);
+    objPtr.addProperty(StringProperty(Props::DIR, ""));
+    objPtr.getOnPropertyValueWrite(Props::DIR) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
+
+    objPtr.addProperty(StringProperty(Props::BASENAME, "output"));
+    objPtr.getOnPropertyValueWrite(Props::BASENAME) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
+
+    objPtr.addProperty(BoolProperty(Props::FILE_TIMESTAMP_ENABLED, True));
+    objPtr.getOnPropertyValueWrite(Props::FILE_TIMESTAMP_ENABLED) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
+
+    objPtr.addProperty(BoolProperty(Props::WRITE_DOMAIN, False));
+    objPtr.getOnPropertyValueWrite(Props::WRITE_DOMAIN) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
 }
 
 std::string MultiCsvRecorderImpl::getNextPortID() const
@@ -134,6 +204,8 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     {
         connectedPorts.emplace_back(disconnectedPort);
         cachedDescriptors.insert(std::make_pair(disconnectedPort.getGlobalId(), NullDataDescriptor()));
+        SignalPtr signal = disconnectedPort.getSignal();
+        cachedSignalNames.insert(std::make_pair(disconnectedPort.getGlobalId(), signal.getName()));
         disconnectedPort.release();
         rebuildReader = true;
     }
@@ -142,7 +214,8 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     {
         if (!it->getConnection().assigned())
         {
-            cachedDescriptors.erase(it->getGlobalId().toStdString());
+            cachedDescriptors.erase(it->getGlobalId());
+            cachedSignalNames.erase(it->getGlobalId());
             this->inputPorts.removeItem(*it);
             it = connectedPorts.erase(it);
             rebuildReader = true;
@@ -157,7 +230,6 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     {
         std::string id = getNextPortID();
         auto inputPort = createAndAddInputPort(id, notificationMode);
-        inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
         disconnectedPort = inputPort;
     }
 
@@ -187,8 +259,6 @@ void MultiCsvRecorderImpl::updateReader()
 
     reader = builder.build();
 
-    // TODO: Check if reader is valid - different sample rates or sth
-
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
     reader.setOnDataAvailable(
@@ -200,9 +270,10 @@ void MultiCsvRecorderImpl::updateReader()
         });
 }
 
-void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors)
+void MultiCsvRecorderImpl::configureWriter(const DataDescriptorPtr& domainDescriptor,
+                                           const ListPtr<IDataDescriptor>& valueDescriptors,
+                                           const ListPtr<IString>& signalNames)
 {
-    // TODO: These value descripters need to be compiled into a header
     try
     {
         if (!domainDescriptor.assigned() || domainDescriptor == NullDataDescriptor())
@@ -215,47 +286,64 @@ void MultiCsvRecorderImpl::configure(const DataDescriptorPtr& domainDescriptor, 
             throw std::runtime_error("Missing input value descriptors!");
         }
 
-        sumDomainDataDescriptor = domainDescriptor;
+        recorderDomainDataDescriptor = domainDescriptor;
+
+        if (!reader.asPtr<IReaderConfig>(true).getIsValid())
+        {
+            throw std::runtime_error("Signal reader invalid.");
+        }
 
         setComponentStatus(ComponentStatus::Ok);
         reader.setActive(True);
+
+        if (!filePath.has_value())
+        {
+            return;
+        }
+        fs::path outputFile = getNextCsvFilename(filePath.value(), fileBasename, timestampEnabled);
+
+        // Replace the csv writer (can it ever survive a reconfigure?)
+        writer.emplace(outputFile);
+        writer.value().setHeaderInformation(recorderDomainDataDescriptor, valueDescriptors, signalNames, writeDomain);
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
+        stopRecordingInternal();
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to configure CSV recorder: {}", e.what()));
         reader.setActive(False);
     }
-
-    if (this->statusContainer.getStatus("ComponentStatus") == ComponentStatus::Warning || !filePath.has_value())
-    {
-        writer = std::nullopt;
-        return;
-    }
-    // TODO: Compute CSV header info
-
-    // Replace the csv writer (can it ever survive a reconfigure?)
-    writer.emplace(filePath.value());
 }
 
-void MultiCsvRecorderImpl::reconfigure()
+void MultiCsvRecorderImpl::reconfigureWriter()
 {
     auto descriptorList = List<IDataDescriptor>();
+    auto signalNameList = List<IString>();
     for (const auto& descriptor : cachedDescriptors)
+    {
         descriptorList.pushBack(descriptor.second);
-    configure(sumDomainDataDescriptor, descriptorList);
+        signalNameList.pushBack(cachedSignalNames[descriptor.first]);
+    }
+    if (descriptorList.getCount() > 0)
+    {
+        configureWriter(recorderDomainDataDescriptor, descriptorList, signalNameList);
+    }
 }
 
-void MultiCsvRecorderImpl::onPathChanged()
+void MultiCsvRecorderImpl::onPropertiesChanged()
 {
-    filePath = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
-    reconfigure();
+    filePath = static_cast<std::string>(objPtr.getPropertyValue(Props::DIR));
+    fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
+    timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::FILE_TIMESTAMP_ENABLED));
+    writeDomain = static_cast<bool>(objPtr.getPropertyValue(Props::WRITE_DOMAIN));
+
+    reconfigureWriter();
 }
 
 void MultiCsvRecorderImpl::onConnected(const InputPortPtr& inputPort)
 {
     auto lock = this->getAcquisitionLock2();
 
-    LOG_I("Sum Reader FB: Input port {} connected", inputPort.getLocalId())
+    LOG_I("Multi CSV Recorder: Input port {} connected", inputPort.getLocalId())
 
     if (updateInputPorts())
     {
@@ -271,7 +359,7 @@ void MultiCsvRecorderImpl::onDisconnected(const InputPortPtr& inputPort)
     if (updateInputPorts())
     {
         updateReader();
-        reconfigure();
+        reconfigureWriter();
     }
 }
 
@@ -279,74 +367,106 @@ void MultiCsvRecorderImpl::onDataReceived()
 {
     auto lock = this->getAcquisitionLock2();
 
+    const MultiReaderStatusPtr status = attemptReadData();
+
+    // Return if there is no event to handle
+    if (status.getReadStatus() != ReadStatus::Event)
+    {
+        return;
+    }
+
+    DataDescriptorPtr domainDescriptor;
+    ListPtr<IDataDescriptor> valueDescriptors = List<IDataDescriptor>();
+    ListPtr<IString> signalNames = List<IString>();
+
+    bool domainChanged = false;
+    bool valueSigChanged = false;
+
+    const auto eventPackets = status.getEventPackets();
+    for (const auto& port : connectedPorts)
+    {
+        auto portGlobalId = port.getGlobalId();
+        DataDescriptorPtr valueDescriptor;
+        if (eventPackets.hasKey(portGlobalId))
+        {
+            getDataDescriptors(eventPackets.get(portGlobalId), valueDescriptor, domainDescriptor);
+
+            if (descriptorNotNull(valueDescriptor))
+            {
+                valueSigChanged |= !valueDescriptorsEqual(valueDescriptor, cachedDescriptors[portGlobalId]);
+                cachedDescriptors[portGlobalId] = valueDescriptor;
+            }
+
+            // NOTE: Domain descriptors of individual signals don't affect csv header
+        }
+
+        // Build a collection of all descriptors and corresponding signal names
+        valueDescriptors.pushBack(cachedDescriptors[portGlobalId]);
+        signalNames.pushBack(cachedSignalNames[portGlobalId]);
+    }
+
+    if (getDomainDescriptor(status.getMainDescriptor(), domainDescriptor))
+    {
+        domainChanged |= !domainDescriptorsEqual(domainDescriptor, recorderDomainDataDescriptor);
+    }
+
+    bool recoveredReader = false;
+    if (!status.getValid())
+    {
+        recoveredReader = attemptRecoverReader();
+        if (!recoveredReader)
+        {
+            stopRecordingInternal();
+            setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
+        }
+        else
+        {
+            std::cout << "Back to valid reader\n";
+        }
+    }
+
+    if (valueSigChanged || domainChanged || recoveredReader)
+        configureWriter(domainDescriptor, valueDescriptors, signalNames);
+}
+
+void MultiCsvRecorderImpl::stopRecordingInternal()
+{
+    if (recordingActive)
+    {
+        LOG_I("Recording stopped.")
+    }
+    // Close the file
+    writer = std::nullopt;
+    recordingActive = false;
+}
+
+MultiReaderStatusPtr MultiCsvRecorderImpl::attemptReadData()
+{
     SizeT cnt = reader.getAvailableCount();
 
     auto numPorts = connectedPorts.size();
-    std::vector<std::unique_ptr<double[]>> data;
-    data.reserve(numPorts);
+    std::vector<std::unique_ptr<double[]>> samples;
+    samples.reserve(numPorts);
 
     for (size_t i = 0; i < numPorts; ++i)
-        data.push_back(std::make_unique<double[]>(cnt));
+        samples.push_back(std::make_unique<double[]>(cnt));
 
-    const MultiReaderStatusPtr status = reader.read(data.data(), &cnt);
+    MultiReaderStatusPtr status = reader.read(samples.data(), &cnt);
 
-    if (cnt > 0)
+    // Write samples if read successful
+    if (recordingActive && writer.has_value() && cnt > 0)
     {
-        if (recordingActive && writer.has_value())
-        {
-            writer.value().writeSamples(std::move(data), cnt);
-        }
+        Int packetOffset = status.asPtr<IReaderStatus>().getOffset().getIntValue();
+        writer.value().writeSamples(std::move(samples), cnt, packetOffset);
     }
+    return status;
+}
 
-    if (status.getReadStatus() == ReadStatus::Event)
-    {
-        const auto eventPackets = status.getEventPackets();
-        if (eventPackets.getCount() > 0)
-        {
-            DataDescriptorPtr domainDescriptor;
-            ListPtr<IDataDescriptor> valueDescriptors = List<IDataDescriptor>();
-
-            bool domainChanged = false;
-            bool valueSigChanged = false;
-
-            for (const auto& port : connectedPorts)
-            {
-                auto portGlobalId = port.getGlobalId();
-                DataDescriptorPtr valueDescriptor;
-                if (eventPackets.hasKey(portGlobalId))
-                {
-                    getDataDescriptors(eventPackets.get(portGlobalId), valueDescriptor, domainDescriptor);
-
-                    if (descriptorNotNull(valueDescriptor))
-                    {
-                        valueSigChanged = true;
-                        valueDescriptors.pushBack(valueDescriptor);
-                        cachedDescriptors[portGlobalId] = valueDescriptor;
-                    }
-
-                    domainChanged |= descriptorNotNull(domainDescriptor);
-                }
-
-                if (!descriptorNotNull(valueDescriptor))
-                    valueDescriptors.pushBack(cachedDescriptors[portGlobalId]);
-            }
-
-            getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
-
-            if (valueSigChanged || domainChanged)
-                configure(domainDescriptor, valueDescriptors);
-
-            if (!status.getValid())
-            {
-                LOG_D("Sum Reader FB: Attempting reader recovery")
-                reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
-                if (!reader.asPtr<IReaderConfig>().getIsValid())
-                {
-                    setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
-                }
-            }
-        }
-    }
+bool MultiCsvRecorderImpl::attemptRecoverReader()
+{
+    LOG_D("Multi CSV Recorder: Attempting reader recovery")
+    reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+    return reader.asPtr<IReaderConfig>().getIsValid();
 }
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

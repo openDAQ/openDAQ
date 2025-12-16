@@ -38,12 +38,6 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 class MultiCsvRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
 {
 public:
-    struct SyncedSampleData
-    {
-        bool exit;
-        std::vector<double> data;
-    };
-
     static constexpr const char* TYPE_ID = "MultiCsvRecorder";
 
     struct Tags
@@ -53,7 +47,10 @@ public:
 
     struct Props
     {
-        static constexpr const char* PATH = "Path";
+        static constexpr const char* DIR = "Directory";
+        static constexpr const char* BASENAME = "Basename";
+        static constexpr const char* FILE_TIMESTAMP_ENABLED = "FileTimestampEnabled";
+        static constexpr const char* WRITE_DOMAIN = "WriteDomain";
     };
 
     /*!
@@ -83,26 +80,45 @@ private:
 
     bool updateInputPorts();
     void updateReader();
-    void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
-    void reconfigure();
-    void onPathChanged();
+
+    /**
+     * @brief Attempts to open a new CSV writer with provided data.
+     */
+    void configureWriter(const DataDescriptorPtr& domainDescriptor,
+                         const ListPtr<IDataDescriptor>& valueDescriptors,
+                         const ListPtr<IString>& signalNames);
+
+    /**
+     * @brief Collects cached data and calls configure writer.
+     */
+    void reconfigureWriter();
+    void onPropertiesChanged();
 
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;
     void onDataReceived();
+    void stopRecordingInternal();
+
+    MultiReaderStatusPtr attemptReadData();
+    bool attemptRecoverReader();
 
     std::vector<InputPortPtr> connectedPorts;
     InputPortPtr disconnectedPort;
 
     std::unordered_map<std::string, DataDescriptorPtr> cachedDescriptors;
-    DataDescriptorPtr sumDataDescriptor;
-    DataDescriptorPtr sumDomainDataDescriptor;
+    std::unordered_map<std::string, StringPtr> cachedSignalNames;
+    DataDescriptorPtr recorderDomainDataDescriptor;
 
     PacketReadyNotification notificationMode;
     MultiReaderPtr reader;
 
     bool recordingActive = false;
+
     std::optional<fs::path> filePath = std::nullopt;
+    std::string fileBasename;
+    bool timestampEnabled;
+    bool writeDomain;
+
     std::optional<MultiCsvWriter> writer = std::nullopt;
 };
 

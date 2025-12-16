@@ -31,28 +31,64 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 class MultiCsvWriter
 {
 public:
-    MultiCsvWriter(const fs::path& filename);
+    struct DomainMetadata
+    {
+        std::string origin;
+        std::string unitName;
+        std::pair<std::int64_t, std::int64_t> tickResolution;  // {numerator, denominator}
+        std::int64_t ruleStart;
+        std::int64_t ruleDelta;
+        std::int64_t referenceDomainOffset;
+        TimeProtocol referenceDomainTimeProtocol;
+
+        bool operator==(const DomainMetadata& rhs);
+    };
+
+    MultiCsvWriter(const fs::path& file);
     ~MultiCsvWriter();
 
-    void setHeaderInformation();
-    void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, int count);
+    void setHeaderInformation(const DataDescriptorPtr& domainDescriptor,
+                              const ListPtr<IDataDescriptor>& valueDescriptors,
+                              const ListPtr<IString>& signalNames,
+                              bool writeDomain);
+    void writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, size_t count, Int packetOfset);
+
+    static std::string unitLabel(const DataDescriptorPtr& descriptor);
+    static DomainMetadata getDomainMetadata(const DataDescriptorPtr& domainDescriptor);
+
+    std::string getFilename();
 
 private:
     struct JaggedBuffer
     {
-        int count;
-        std::vector<std::unique_ptr<double[]>> buffer;
+        size_t count;
+        std::vector<std::unique_ptr<double[]>> buffers;
+        Int packetOffset;
     };
 
     void threadLoop();
+
+    void writeHeaders(Int firstPacketOffset, bool writeDomainColumn);
+    std::string getMetadataHeader(const DomainMetadata& metadata);
 
     std::mutex mutex;
     std::condition_variable cv;
 
     bool exitFlag;
+    bool headersWritten;
     std::queue<JaggedBuffer> queue;
-    std::thread writerThread;
+
+    bool writeDomainColumn;
+    fs::path filepath;
     std::ofstream outFile;
+
+    std::string domainName;
+    std::vector<std::string> valueNames;
+
+    std::string domainMetadata;
+    DomainMetadata metadata;
+
+    std::thread writerThread;
 };
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

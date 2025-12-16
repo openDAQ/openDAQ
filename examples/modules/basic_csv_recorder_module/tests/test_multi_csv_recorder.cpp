@@ -1,9 +1,12 @@
 #include <basic_csv_recorder_module/module_dll.h>
+#include <coretypes/filesystem.h>
 #include <opendaq/context_internal_ptr.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/opendaq.h>
 #include <testutils/memcheck_listener.h>
+
+#include <fstream>
 
 using namespace daq;
 
@@ -36,6 +39,8 @@ public:
     ListPtr<ISignalConfig> invalidSignals;
     SignalConfigPtr timeSignal;
 
+    std::string outputFolder;
+
 protected:
     void SetUp() override
     {
@@ -49,18 +54,27 @@ protected:
 
         // Create function block
         fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb", config);
-        fb->setPropertyValue(StringPtr("Path"), StringPtr("C:/Users/tomaz/work/test.csv"));
 
-        validDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+        outputFolder = testing::TempDir() + "test_output";
+
+        fb.setPropertyValue("Path", outputFolder);
+        fb.setPropertyValue("FileTimestampEnabled", false);
+
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
+        ReferenceDomainInfoPtr refDomainInfo =
+            ReferenceDomainInfoBuilder().setReferenceDomainOffset(0).setReferenceTimeProtocol(TimeProtocol::Utc).build();
         timeDescriptor = DataDescriptorBuilder()
+                             .setName("Time")
                              .setSampleType(SampleType::Int64)
                              .setTickResolution(Ratio(1, 1000))
                              .setOrigin("1970-01-01T00:00:00")
                              .setRule(LinearDataRule(1, 0))
                              .setUnit(Unit("s", -1, "seconds", "time"))
+                             .setReferenceDomainInfo(refDomainInfo)
                              .build();
 
+        validDescriptor =
+            DataDescriptorBuilder().setName("value").setSampleType(SampleType::Float64).setUnit(Unit("V", -1, "volts", "voltage")).build();
         validSignals = List<ISignal>();
         invalidSignals = List<ISignal>();
         timeSignal = SignalWithDescriptor(context, timeDescriptor, nullptr, "time_sig");
@@ -75,39 +89,25 @@ protected:
         }
     }
 
-    void sendData(SizeT sampleCount,
-                  SizeT offset,
-                  bool sendInvalid,
-                  std::pair<size_t, size_t> signalRange,
-                  ListPtr<ISignalConfig> extraSignals = List<ISignalConfig>(),
-                  ListPtr<ISignalConfig> extraDomainSignals = List<ISignalConfig>())
+    void sendData(SizeT sampleCount, SizeT offset, bool sendInvalid, std::pair<size_t, size_t> signalRange)
     {
         DataPacketPtr domainPacket = DataPacket(timeDescriptor, sampleCount, offset);
-        DataPacketPtr valuePacket = DataPacketWithDomain(domainPacket, validDescriptor, sampleCount);
-
-        double* sumValueData = static_cast<double*>(valuePacket.getRawData());
-        for (size_t i = 0; i < sampleCount; ++i)
-            sumValueData[i] = i;
 
         timeSignal.sendPacket(domainPacket);
         for (size_t i = signalRange.first; i < signalRange.second; ++i)
-            validSignals[i].sendPacket(valuePacket);
+        {
+            DataPacketPtr packet = DataPacketWithDomain(domainPacket, validDescriptor, sampleCount);
+            double* sumValueData = static_cast<double*>(packet.getRawData());
+            for (size_t j = 0; j < sampleCount; ++j)
+                sumValueData[j] = i + j - 0.13;
+            validSignals[i].sendPacket(packet);
+        }
 
         if (sendInvalid)
         {
             DataPacketPtr invalidValuePacket = DataPacketWithDomain(domainPacket, invalidDescriptor, sampleCount);
             for (size_t i = signalRange.first; i < signalRange.second; ++i)
-                invalidSignals[i].sendPacket(valuePacket);
-        }
-
-        for (const auto& signal : extraSignals)
-        {
-            signal.sendPacket(valuePacket);
-        }
-
-        for (const auto& signal : extraDomainSignals)
-        {
-            signal.sendPacket(domainPacket);
+                invalidSignals[i].sendPacket(invalidValuePacket);
         }
     }
 };
@@ -115,13 +115,13 @@ protected:
 TEST_F(MultiCsvTest, Create)
 {
     ASSERT_TRUE(fb.assigned());
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
 }
 
 TEST_F(MultiCsvTest, ConnectSignal)
 {
     ASSERT_NO_THROW(fb.getInputPorts()[0].connect(validSignals[0]));
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
 }
 
 TEST_F(MultiCsvTest, ConnectSignals)
@@ -131,7 +131,7 @@ TEST_F(MultiCsvTest, ConnectSignals)
         ASSERT_NO_THROW(fb.getInputPorts()[0].connect(validSignals[i]));
     }
 
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
 }
 
 TEST_F(MultiCsvTest, DisconnectSignals)
@@ -139,23 +139,192 @@ TEST_F(MultiCsvTest, DisconnectSignals)
     for (size_t i = 0; i < validSignals.getCount(); ++i)
         fb.getInputPorts()[i].connect(validSignals[i]);
 
-    ASSERT_EQ(fb.getInputPorts().getCount(), 11u);
+    EXPECT_EQ(fb.getInputPorts().getCount(), 11u);
 
     for (const auto& ip : fb.getInputPorts())
         ip.disconnect();
 
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
-    ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+    EXPECT_EQ(fb.getInputPorts().getCount(), 1u);
 }
 
 TEST_F(MultiCsvTest, WriteSamples)
 {
+    // Remove the folder to:
+    // a) test creation of missing folders
+    // b) make sure the file without any serial number suffixes is the latest one.
+    EXPECT_NO_THROW(fs::remove_all(outputFolder));
+
     for (size_t i = 0; i < validSignals.getCount(); ++i)
         fb.getInputPorts()[i].connect(validSignals[i]);
 
     fb.asPtr<IRecorder>(true).startRecording();
 
-    sendData(100, 0, false, std::make_pair(0, 10));
+    sendData(100, 1764927450173817, false, std::make_pair(0, 10));
 
-    // Check the log file
+    fb.asPtr<IRecorder>(true).stopRecording();
+
+    // Check the file contents
+    std::ifstream readIn(this->outputFolder + "\\output.csv");
+
+    ASSERT_TRUE(readIn.is_open());
+
+    std::string line;
+    std::getline(readIn, line);
+    std::string headerLine("# domain;unit=seconds;resolution=1/1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=1764927450173817;");
+    EXPECT_EQ(line, headerLine);
+
+    std::getline(readIn, line);
+    std::string columns("\"sig0 (V)\",\"sig1 (V)\",\"sig2 (V)\",\"sig3 (V)\",\"sig4 (V)\",\"sig5 (V)\",\"sig6 (V)\",\"sig7 (V)\",\"sig8 "
+                        "(V)\",\"sig9 (V)\"");
+    EXPECT_EQ(line, columns);
+
+    std::getline(readIn, line);
+    std::string firstSamples("-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87");
+    EXPECT_EQ(line, firstSamples);
+}
+
+TEST_F(MultiCsvTest, WriteSamplesWithDomain)
+{
+    EXPECT_NO_THROW(fs::remove_all(outputFolder));
+    fb.setPropertyValue("WriteDomain", true);
+
+    for (size_t i = 0; i < validSignals.getCount(); ++i)
+        fb.getInputPorts()[i].connect(validSignals[i]);
+
+    fb.asPtr<IRecorder>(true).startRecording();
+
+    sendData(100, 1764927450173817, false, std::make_pair(0, 10));
+
+    fb.asPtr<IRecorder>(true).stopRecording();
+
+    // Check the file contents
+    std::ifstream readIn(this->outputFolder + "\\output.csv");
+
+    ASSERT_TRUE(readIn.is_open());
+
+    std::string line;
+    std::getline(readIn, line);
+    std::string headerLine("# domain;unit=seconds;resolution=1/1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=1764927450173817;");
+    EXPECT_EQ(line, headerLine);
+
+    std::getline(readIn, line);
+    std::string columns(
+        "Domain,\"sig0 (V)\",\"sig1 (V)\",\"sig2 (V)\",\"sig3 (V)\",\"sig4 (V)\",\"sig5 (V)\",\"sig6 (V)\",\"sig7 (V)\",\"sig8 "
+        "(V)\",\"sig9 (V)\"");
+    EXPECT_EQ(line, columns);
+
+    std::getline(readIn, line);
+    std::string firstSamples("1764927450173817,-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87");
+    EXPECT_EQ(line, firstSamples);
+}
+
+TEST_F(MultiCsvTest, DetectSampleRateDiff)
+{
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    fb.asPtr<IRecorder>(true).startRecording();
+
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+
+    sendData(100, 0, false, std::make_pair(0, 10));
+    fb.asPtr<IRecorder>(true).stopRecording();
+
+    DataDescriptorPtr halfRateTimeDescriptor;
+    SignalConfigPtr halfRateTimeSignal;
+    SignalConfigPtr halfRateSignal;
+
+    halfRateTimeDescriptor = DataDescriptorBuilder()
+                                 .setName("Time")
+                                 .setSampleType(SampleType::Int64)
+                                 .setTickResolution(Ratio(1, 1000))
+                                 .setOrigin("1970-01-01T00:00:00")
+                                 .setRule(LinearDataRule(2, 0))
+                                 .setUnit(Unit("s", -1, "seconds", "time"))
+                                 .build();
+
+    halfRateTimeSignal = SignalWithDescriptor(context, halfRateTimeDescriptor, nullptr, fmt::format("halftime_sig"));
+    halfRateSignal = SignalWithDescriptor(context, validDescriptor, nullptr, fmt::format("halfrate_sig"));
+    halfRateSignal.setDomainSignal(halfRateTimeSignal);
+
+    fb.getInputPorts()[1].connect(halfRateSignal);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+
+    SizeT sampleCount = 100;
+    SizeT offset = 0;
+    DataPacketPtr dPacket = DataPacket(halfRateTimeDescriptor, sampleCount / 4, offset / 4);
+    DataPacketPtr vPacket = DataPacketWithDomain(dPacket, validDescriptor, sampleCount / 4);
+    halfRateSignal.sendPacket(vPacket);
+}
+
+TEST_F(MultiCsvTest, DetectDescriptorChange)
+{
+    EXPECT_NO_THROW(fs::remove_all(outputFolder));
+    fb.setPropertyValue("WriteDomain", true);
+
+    for (size_t i = 0; i < validSignals.getCount(); ++i)
+        fb.getInputPorts()[i].connect(validSignals[i]);
+
+    fb.asPtr<IRecorder>(true).startRecording();
+
+    sendData(7, 1764927450173817, false, std::make_pair(0, 10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    ReferenceDomainInfoPtr rdInfo =
+        ReferenceDomainInfoBuilder().setReferenceDomainOffset(0).setReferenceTimeProtocol(TimeProtocol::Utc).build();
+    DataDescriptorPtr changedDescriptor = DataDescriptorBuilder()
+                                              .setName("Time")
+                                              .setSampleType(SampleType::Int64)
+                                              .setTickResolution(Ratio(1, 1000))
+                                              .setOrigin("1970-01-01T00:00:00")
+                                              .setRule(LinearDataRule(4, 0))  // Delta changes to 4
+                                              .setUnit(Unit("s", -1, "seconds", "time"))
+                                              .setReferenceDomainInfo(rdInfo)
+                                              .build();
+
+    timeSignal.setDescriptor(changedDescriptor);
+
+    sendData(10, 1764927450173828, false, std::make_pair(0, 10));
+
+    fb.asPtr<IRecorder>(true).stopRecording();
+
+    // Check the file contents
+    std::ifstream readIn(this->outputFolder + "\\output.csv");
+
+    ASSERT_TRUE(readIn.is_open());
+
+    std::string line;
+    std::string reference;
+
+    std::getline(readIn, line);
+    reference = "# domain;unit=seconds;resolution=1/1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=1764927450173817;";
+    EXPECT_EQ(line, reference);
+
+    std::getline(readIn, line);
+    const std::string columns =
+        "Domain,\"sig0 (V)\",\"sig1 (V)\",\"sig2 (V)\",\"sig3 (V)\",\"sig4 (V)\",\"sig5 (V)\",\"sig6 (V)\",\"sig7 (V)\",\"sig8 "
+        "(V)\",\"sig9 (V)\"";
+    EXPECT_EQ(line, columns);
+
+    std::getline(readIn, line);
+    reference = "1764927450173817,-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87";
+    EXPECT_EQ(line, reference);
+
+    // After descriptor change a second file is created with different contents
+    std::ifstream readIn2(this->outputFolder + "\\output_001.csv");
+    ASSERT_TRUE(readIn2.is_open());
+
+    std::getline(readIn2, line);
+    reference = "# domain;unit=seconds;resolution=1/1000;delta=4;origin=1970-01-01T00:00:00;starting_tick=1764927450173828;";
+    EXPECT_EQ(line, reference);
+
+    std::getline(readIn2, line);
+    EXPECT_EQ(line, columns);
+
+    std::getline(readIn2, line);
+    reference = "1764927450173828,-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87";
+    EXPECT_EQ(line, reference);
+
+    std::getline(readIn2, line);
+    reference = "1764927450173832,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87,9.87";
+    EXPECT_EQ(line, reference);
 }

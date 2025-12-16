@@ -47,7 +47,7 @@ public:
 
     struct Props
     {
-        static constexpr const char* PATH = "Path";
+        static constexpr const char* DIR = "Directory";
         static constexpr const char* BASENAME = "Basename";
         static constexpr const char* FILE_TIMESTAMP_ENABLED = "FileTimestampEnabled";
         static constexpr const char* WRITE_DOMAIN = "WriteDomain";
@@ -97,6 +97,7 @@ private:
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;
     void onDataReceived();
+    void stopRecordingInternal();
 
     MultiReaderStatusPtr attemptReadData();
     bool attemptRecoverReader();

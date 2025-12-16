@@ -56,6 +56,8 @@ public:
     static std::string unitLabel(const DataDescriptorPtr& descriptor);
     static DomainMetadata getDomainMetadata(const DataDescriptorPtr& domainDescriptor);
 
+    std::string getFilename();
+
 private:
     struct JaggedBuffer
     {

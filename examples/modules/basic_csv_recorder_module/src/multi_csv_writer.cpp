@@ -73,15 +73,6 @@ MultiCsvWriter::~MultiCsvWriter()
     cv.notify_all();
 
     writerThread.join();
-
-    // If nothing was written, remove the file
-    if (!headersWritten)
-    {
-        if (outFile.is_open())
-            outFile.close();
-
-        fs::remove(filepath);
-    }
 }
 
 void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescriptor,
@@ -150,7 +141,6 @@ void MultiCsvWriter::threadLoop()
         if (!headersWritten)
         {
             writeHeaders(samples.packetOffset, writeDomainColumn);
-            headersWritten = true;
         }
 
         const size_t signalNum = samples.buffers.size();
@@ -203,6 +193,7 @@ void MultiCsvWriter::writeHeaders(Int firstPacketOffset, bool writeDomainColumn)
         }
     }
     outFile << "\n";
+    headersWritten = true;
 }
 
 MultiCsvWriter::DomainMetadata MultiCsvWriter::getDomainMetadata(const DataDescriptorPtr& domainDescriptor)
@@ -245,6 +236,11 @@ MultiCsvWriter::DomainMetadata MultiCsvWriter::getDomainMetadata(const DataDescr
     }
 
     return metadata;
+}
+
+std::string MultiCsvWriter::getFilename()
+{
+    return filepath.string();
 }
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

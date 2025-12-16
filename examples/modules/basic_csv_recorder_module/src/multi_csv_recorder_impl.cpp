@@ -130,8 +130,14 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
 ErrCode MultiCsvRecorderImpl::startRecording()
 {
     auto lock = getRecursiveConfigLock();
-    recordingActive = true;
     reconfigureWriter();
+    if (!filePath.has_value() || !writer.has_value())
+    {
+        LOG_I("Start recording FAILED.")
+        return OPENDAQ_ERR_INVALIDSTATE;
+    }
+    LOG_I("Recording to: {}", writer.value().getFilename());
+    recordingActive = true;
 
     return OPENDAQ_SUCCESS;
 }
@@ -139,9 +145,7 @@ ErrCode MultiCsvRecorderImpl::startRecording()
 ErrCode MultiCsvRecorderImpl::stopRecording()
 {
     auto lock = getRecursiveConfigLock();
-    recordingActive = false;
-    // Close the file
-    writer = std::nullopt;
+    stopRecordingInternal();
 
     return OPENDAQ_SUCCESS;
 }
@@ -166,8 +170,8 @@ void MultiCsvRecorderImpl::initProperties()
 {
     this->tags.add(Tags::RECORDER);
 
-    objPtr.addProperty(StringProperty(Props::PATH, ""));
-    objPtr.getOnPropertyValueWrite(Props::PATH) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
+    objPtr.addProperty(StringProperty(Props::DIR, ""));
+    objPtr.getOnPropertyValueWrite(Props::DIR) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
 
     objPtr.addProperty(StringProperty(Props::BASENAME, "output"));
     objPtr.getOnPropertyValueWrite(Props::BASENAME) += std::bind(&MultiCsvRecorderImpl::onPropertiesChanged, this);
@@ -292,6 +296,10 @@ void MultiCsvRecorderImpl::configureWriter(const DataDescriptorPtr& domainDescri
         setComponentStatus(ComponentStatus::Ok);
         reader.setActive(True);
 
+        if (!filePath.has_value())
+        {
+            return;
+        }
         fs::path outputFile = getNextCsvFilename(filePath.value(), fileBasename, timestampEnabled);
 
         // Replace the csv writer (can it ever survive a reconfigure?)
@@ -300,8 +308,7 @@ void MultiCsvRecorderImpl::configureWriter(const DataDescriptorPtr& domainDescri
     }
     catch (const std::exception& e)
     {
-        // Close file
-        writer = std::nullopt;
+        stopRecordingInternal();
         setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to configure CSV recorder: {}", e.what()));
         reader.setActive(False);
     }
@@ -324,7 +331,7 @@ void MultiCsvRecorderImpl::reconfigureWriter()
 
 void MultiCsvRecorderImpl::onPropertiesChanged()
 {
-    filePath = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
+    filePath = static_cast<std::string>(objPtr.getPropertyValue(Props::DIR));
     fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
     timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::FILE_TIMESTAMP_ENABLED));
     writeDomain = static_cast<bool>(objPtr.getPropertyValue(Props::WRITE_DOMAIN));
@@ -408,13 +415,29 @@ void MultiCsvRecorderImpl::onDataReceived()
     {
         recoveredReader = attemptRecoverReader();
         if (!recoveredReader)
+        {
+            stopRecordingInternal();
             setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
+        }
         else
+        {
             std::cout << "Back to valid reader\n";
+        }
     }
 
     if (valueSigChanged || domainChanged || recoveredReader)
         configureWriter(domainDescriptor, valueDescriptors, signalNames);
+}
+
+void MultiCsvRecorderImpl::stopRecordingInternal()
+{
+    if (recordingActive)
+    {
+        LOG_I("Recording stopped.")
+    }
+    // Close the file
+    writer = std::nullopt;
+    recordingActive = false;
 }
 
 MultiReaderStatusPtr MultiCsvRecorderImpl::attemptReadData()

@@ -8,10 +8,6 @@ set(TEST_SOURCES
     test_sync_component.cpp
 )
 
-if (OPENDAQ_MIMALLOC_SUPPORT)
-    list(APPEND TEST_SOURCES test_mimalloc.cpp)
-endif()
-
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                             SOURCES
                             test_app.cpp

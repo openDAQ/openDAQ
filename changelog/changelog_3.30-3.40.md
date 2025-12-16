@@ -17,6 +17,14 @@
 ## Misc
 
 - [#974](https://github.com/openDAQ/openDAQ/pull/974) Reorganizes the audio device implementation for greater clarity. Adds automatic device/FB version info setting.
+- [#967](https://github.com/openDAQ/openDAQ/pull/967), [#994](https://github.com/openDAQ/openDAQ/pull/994) Update external libraries:
+    - gtest from 1.12.1 to 1.17.0
+    - date from 3.0.1 to 3.0.4
+    - pybind11 from 2.13.1 to 3.0.1
+    - sfml from 3.0.1 to 3.0.2
+    - spdlog from 1.13.0.0 to 1.16.0
+    - tsl-ordered-map from 1.0.0 to 1.2.0
+    - mimalloc from 2.1.1 to 3.0.11
 
 ## Required application changes
 

@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from dataclasses import dataclass
 
 import opendaq as daq
 
@@ -16,6 +17,15 @@ _GENERAL = "General"
 _ASP = "AllowedStreamingProtocols"
 _ACS = "AutomaticallyConnectStreaming"
 _PAT = "PrimaryAddressType"
+_DEFAULT_ADDR = "-- Default --"
+_IPV4 = "IPv4"
+_IPV6 = "IPv6"
+
+@dataclass
+class ServerCapabilityInternal:
+    connection_string: str
+    ipv4_connection_string: str
+    ipv6_connection_string: str
 
 class AddConfigDialog(Dialog):
     @classmethod
@@ -28,7 +38,22 @@ class AddConfigDialog(Dialog):
         has_tcp_ip = False
         has_streaming = False
         for c in device_info.server_capabilities:
-            server_capabilities[c.protocol_id] = c.connection_string
+            capability = ServerCapabilityInternal(c.connection_string, None, None)
+
+            if c.has_property("AddressInfo"):
+                address_info = c.get_property_value("AddressInfo")
+                for p in address_info.visible_properties:
+                    address = p.value
+                    address_type = address.get_property_value("Type")
+                    address_string = address.get_property_value("ConnectionString")
+
+                    if address_type == "IPv4":
+                        capability.ipv4_connection_string = address_string
+                    elif address_type == "IPv6":
+                        capability.ipv6_connection_string = address_string
+
+            server_capabilities[c.protocol_id] = capability
+
             if c.get_property_value("ConnectionType") == "TCP/IP":
                 has_tcp_ip = True
             if c.get_property_value("ProtocolType") in ["Streaming", "ConfigurationAndStreaming"]:
@@ -50,7 +75,7 @@ class AddConfigDialog(Dialog):
         """Show user sensible settings based on entered connection string with minimal assumptions."""
         discoverable = False
         server_capabilities = {}
-        server_capabilities[implied_protocol] = connection_string
+        server_capabilities[implied_protocol] = ServerCapabilityInternal(connection_string, None, None)
 
         streaming_protocols = []
         module_manager: daq.IModuleManager = parent_device.context.module_manager
@@ -61,7 +86,7 @@ class AddConfigDialog(Dialog):
         if implied_protocol not in streaming_protocols:
             # When connection string implies non-streaming protocol, the user can select streaming protocols
             for streaming in streaming_protocols:
-                server_capabilities[streaming] = ""
+                server_capabilities[streaming] = ServerCapabilityInternal(None, None, None)
         # else: the only server capability is the streaming protocol implied by the connection string
 
         # We can't know, must assume true
@@ -90,7 +115,6 @@ class AddConfigDialog(Dialog):
         super().__init__(parent, 'Add with config', context)
         self.context = context
         self.parent_device = parent_device
-        # self.device_info = device_info
 
         self.discoverable = discoverable
         self.server_capabilities = server_capabilities
@@ -110,8 +134,10 @@ class AddConfigDialog(Dialog):
 
         left_frame = ttk.Frame(self)
 
-        self.device_combobox = self.add_combobox(left_frame, "Configuration protocols:")
-        self.device_combobox.bind("<<ComboboxSelected>>", self.handle_device_protocol_select)
+        self.protocol_combobox = self.add_combobox(left_frame, "Configuration protocols:")
+        self.protocol_combobox.bind("<<ComboboxSelected>>", self.handle_device_protocol_select)
+        self.address_combobox = self.add_combobox(left_frame, "Address type:")
+        self.address_combobox.bind("<<ComboboxSelected>>", self.handle_address_type_select)
         self.streaming_checklist = self.add_checkbox_list(left_frame, "Streaming protocols:")
         self.streaming_checklist.register_callback(self.handle_checklist_changed)
 
@@ -141,12 +167,14 @@ class AddConfigDialog(Dialog):
         self.update_selection_widgets()
 
         # Initialize members related to editor tabs
-        self.selected_device_config = self.device_combobox.get()
+        self.selected_device_config = self.protocol_combobox.get()
         self.selected_streaming_configs = []
 
         self.general_tab = self.create_general_tab()
         self.device_tab = self.create_device_tab()
         self.streaming_tabs = []
+
+        self.selected_address_type = self.address_combobox.get()
 
         self.update_connection_string()
 
@@ -169,6 +197,21 @@ class AddConfigDialog(Dialog):
     def close(self):
         # When escape is pressed adding the device is cancelled
         self.cancel()
+
+    def to_error_state(self, message):
+        self.add_device_button.config(state="disabled")
+        self.set_status_label(f"[ERROR] {message}", style="StatusError.TLabel")
+
+    def to_warning_state(self, message):
+        self.add_device_button.config(state="disabled")
+        self.set_status_label(f"[WARNING] {message}", style="StatusWarning.TLabel")
+
+    def to_valid_state(self, message):
+        self.add_device_button.config(state="!disabled")
+        self.set_status_label(f"[OK] {message}", style="StatusOk.TLabel")
+
+    def set_status_label(self, message, style):
+        self.status_label.configure(text=message, style=style)
 
     # MARK: Add widgets
     def add_combobox(self, frame, title):
@@ -193,7 +236,7 @@ class AddConfigDialog(Dialog):
 
     # MARK: Handle widget events
     def handle_device_protocol_select(self, event=None):
-        value = self.device_combobox.get()
+        value = self.protocol_combobox.get()
         if not value or len(value) == 0:
             self.selected_device_config = None
             return
@@ -202,6 +245,10 @@ class AddConfigDialog(Dialog):
 
         self.update_connection_string()
         self.update_device_tab()
+
+    def handle_address_type_select(self, event=None):
+        self.selected_address_type = self.address_combobox.get()
+        self.update_connection_string()
 
     def handle_checklist_changed(self, checked_labels: list):
         self.selected_streaming_configs = checked_labels
@@ -273,10 +320,11 @@ class AddConfigDialog(Dialog):
         self.tabs.add(self.general_tab)
 
     def update_selection_widgets(self):
-        self.update_combobox()
+        self.update_device_combobox()
+        self.update_primary_address_combobox()
         self.update_checklist(self.config.get_property_value(_STREAMING), True)
 
-    def update_combobox(self):
+    def update_device_combobox(self):
         # Lookup streaming options
         streaming_section = self.config.get_property_value(_STREAMING)
         streaming_options = []
@@ -295,10 +343,17 @@ class AddConfigDialog(Dialog):
         if len(streaming_options) > 0 and (self.discoverable or len(device_options) == 0):
             device_options.insert(0, _NO_CONFIG_STR)
 
-        self.device_combobox["values"] = device_options
+        self.protocol_combobox["values"] = device_options
 
         default_idx = min(1, len(device_options) - 1)
-        self.device_combobox.set(device_options[default_idx])
+        self.protocol_combobox.set(device_options[default_idx])
+
+    def update_primary_address_combobox(self):
+        vals = [_DEFAULT_ADDR]
+        if self.discoverable and len(self.server_capabilities) > 0:
+            vals += [_IPV4, _IPV6]
+        self.address_combobox["values"] = vals
+        self.address_combobox.set(_DEFAULT_ADDR)
 
     def update_checklist(self, streaming_section, select_all):
         for property in self.context.properties_of_component(streaming_section):
@@ -308,39 +363,65 @@ class AddConfigDialog(Dialog):
         """Update connection string used to add device. This function also
         performs a quick validation of the UI state and sets the status message."""
 
-        self.add_device_button.config(state="!disabled")
+        def choose_connection_string(address_type: str, server_capability: ServerCapabilityInternal):
+            if address_type == _IPV4 and server_capability.ipv4_connection_string:
+                return server_capability.ipv4_connection_string
+            elif address_type == _IPV6 and server_capability.ipv6_connection_string:
+                return server_capability.ipv6_connection_string
+            elif address_type == _DEFAULT_ADDR and server_capability.connection_string:
+                return server_capability.connection_string
+            return None
+
         # A configuration protocol is selected
         if self.selected_device_config != _NO_CONFIG_STR:
             if len(self.server_capabilities) == 0:
                 self.connection_string = self.default_connection_string
-                self.status_label.configure(
-                    text=f"[OK] Connecting to local device: {self.connection_string}", style="StatusOk.TLabel")
+                self.to_valid_state(f"Connecting to local device: {self.connection_string}")
                 return
 
             # Remote devices have protocol IDs defined in server capabilities
-            for protocol_id, conn_str in self.server_capabilities.items():
+            sc_match = None
+            for protocol_id, sc_internal in self.server_capabilities.items():
                 if protocol_id == self.selected_device_config:
-                    self.connection_string = conn_str
-                    self.status_label.configure(
-                        text=f"[OK] Configuration connection to: {self.connection_string}", style="StatusOk.TLabel")
-                    return
+                    sc_match = sc_internal
+                    break
+
+            if sc_match is None:
+                self.to_error_state("Selected protocol unavailable.")
+
+            s = choose_connection_string(self.selected_address_type, sc_match)
+
+            if s is not None:
+                self.connection_string = s
+                self.to_valid_state(f"Configuration connection to: {self.connection_string}")
+            else:
+                self.to_error_state(f"Connection string not available for address type: {self.selected_address_type}.")
+            return
 
         # No config and 0 or >= 2 streaming connections selected, unclear how to connect
         if len(self.selected_streaming_configs) != 1:
             self.connection_string = None
-            self.add_device_button.config(state="disabled")
-            self.status_label.configure(
-                text="[ERROR] Select a configuration protocol or exactly one streaming protocol.",
-                style="StatusError.TLabel")
+            self.to_error_state("Select a configuration protocol or exactly one streaming protocol.")
             return
 
         streaming_protocol = self.selected_streaming_configs[0]
-        for protocol_id, conn_str in self.server_capabilities.items():
+        sc_match = None
+        for protocol_id, sc_internal in self.server_capabilities.items():
             if protocol_id == streaming_protocol:
-                self.connection_string = conn_str
-                self.status_label.configure(
-                    text=f"[OK] Streaming connection to: {self.connection_string}", style="StatusOk.TLabel")
+                sc_match = sc_internal
                 break
+
+        if sc_match is None:
+            self.to_error_state("Selected streaming protocol unavailable.")
+
+        s = choose_connection_string(self.selected_address_type, sc_match)
+        if s is not None:
+            self.connection_string = s
+            self.to_valid_state(f"Streaming connection to: {self.connection_string}")
+            return
+
+        # Should not have reached this
+        self.to_warning_state("Invalid configuration.")
 
     def create_add_device_config(self):
         supported_protocols = self.compute_supported_protocols()

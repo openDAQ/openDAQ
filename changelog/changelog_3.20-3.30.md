@@ -28,6 +28,7 @@
 
 ## Bug fixes
 
+- [#999](https://github.com/openDAQ/openDAQ/pull/999) Fix IPv6 link-local address discovery when mDNS responses come from IPv4 addresses 
 - [#972](https://github.com/openDAQ/openDAQ/pull/972) Fixes signal->input port connection propagation through gateway native protocol devices.
 - [#969](https://github.com/openDAQ/openDAQ/pull/969) Prioritize discovery addresses for leaf device streaming to get correct IPv6 interface suffixes
 - [#965](https://github.com/openDAQ/openDAQ/pull/965) Fix read-only remote property update

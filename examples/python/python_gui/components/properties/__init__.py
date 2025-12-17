@@ -3,7 +3,7 @@ from .string_property import StringPropertyView
 from .int_property import IntPropertyView
 from .float_property import FloatPropertyView
 from .bool_property import BoolPropertyView
-from .object_property import ObjectPropertyView
+from .object_property import NestedObjectPropertyView
 from .dict_property import DictPropertyView
 from .list_property import ListPropertyView
 from .func_property import FuncPropertyView
@@ -15,7 +15,7 @@ __all__ = [
     'IntPropertyView',
     'FloatPropertyView',
     'BoolPropertyView',
-    'ObjectPropertyView',
+    'NestedObjectPropertyView',
     'DictPropertyView',
     'ListPropertyView',
     'FuncPropertyView',

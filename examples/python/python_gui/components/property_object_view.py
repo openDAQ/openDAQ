@@ -43,6 +43,7 @@ class PropertyObjectView(ttk.Treeview):
         self.bind("<Double-1>", self.on_double_click)
         self.bind("<Button-3>", self.on_right_click)
         self.bind("<Button-2>", self.on_right_click)  # macOS
+        self.bind("<F5>", self.on_refresh)
 
         self.build_tree("", self.property_object)
 
@@ -125,6 +126,23 @@ class PropertyObjectView(ttk.Treeview):
             self.item(item_id, values=(formatted_value,))
         except Exception as e:
             print(f"Error updating property {prop_name}: {e}")
+
+    def on_refresh(self, event=None):
+        """Refresh all property values (F5 handler)"""
+        self.refresh_all_values()
+
+    def refresh_all_values(self):
+        """Refresh all displayed property values from the property object"""
+        for item_id, view in self._item_to_view.items():
+            if not self.exists(item_id):
+                continue
+
+            try:
+                # Update the displayed value in the tree
+                formatted_value = view.format_value()
+                self.item(item_id, values=(formatted_value,))
+            except Exception as e:
+                print(f"Error refreshing property value for item {item_id}: {e}")
 
     # -------------------- Theme helpers --------------------
 

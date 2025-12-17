@@ -312,12 +312,12 @@ class MainWindow(tk.Tk):
         parent.grid_columnconfigure(0, weight=1)
         parent.grid_rowconfigure(2, weight=1)
 
-        top = tk.Frame(parent, bg=C["panel"])
-        top.grid(row=0, column=0, sticky="ew")
-        top.grid_columnconfigure(0, weight=1)
+        # top = tk.Frame(parent, bg=C["panel"])
+        # top.grid(row=0, column=0, sticky="ew")
+        # top.grid_columnconfigure(0, weight=1)
 
-        # маленькая tool button, без гигантской серой рамки
-        ttk.Button(top, text="⚙", style="Tool.TButton").grid(row=0, column=1, padx=12, pady=10, sticky="e")
+        # # маленькая tool button, без гигантской серой рамки
+        # ttk.Button(top, text="⚙", style="Tool.TButton").grid(row=0, column=1, padx=12, pady=10, sticky="e")
 
         sep = tk.Frame(parent, height=1, bg=C["border"])
         sep.grid(row=1, column=0, sticky="ew")

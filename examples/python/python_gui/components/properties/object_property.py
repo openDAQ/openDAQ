@@ -2,7 +2,12 @@ from opendaq import IPropertyObject
 from .base import PropertyView
 
 
-class ObjectPropertyView(PropertyView):
+class NestedObjectPropertyView(PropertyView):
+    """Property view for nested IPropertyObject properties.
+
+    Note: This is NOT the same as PropertyObjectView (which is a full ttk.Treeview widget).
+    This class just recursively adds nested object's properties to the parent tree.
+    """
     def editable(self) -> bool:
         return False
 

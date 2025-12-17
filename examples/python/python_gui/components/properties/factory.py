@@ -4,7 +4,7 @@ from .string_property import StringPropertyView
 from .int_property import IntPropertyView
 from .float_property import FloatPropertyView
 from .bool_property import BoolPropertyView
-from .object_property import ObjectPropertyView
+from .object_property import NestedObjectPropertyView
 from .dict_property import DictPropertyView
 from .list_property import ListPropertyView
 from .func_property import FuncPropertyView
@@ -14,7 +14,7 @@ from .struct_property import StructPropertyView
 def make_property_view(prop, context=None) -> PropertyView:
     t = prop.value_type
     if t == CoreType.ctObject:
-        return ObjectPropertyView(prop, context)
+        return NestedObjectPropertyView(prop, context)
     if t == CoreType.ctDict:
         return DictPropertyView(prop, context)
     if t == CoreType.ctList:

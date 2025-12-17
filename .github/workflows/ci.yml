@@ -207,7 +207,7 @@ jobs:
             additional-packages: g++-14
             cmake-generator: Ninja
             cmake-build-type: Release
-            cmake-defines: -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
+            cmake-defines: -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14 "-DCMAKE_CXX_FLAGS=-Wno-error=overloaded-virtual"
           - name: Ubuntu Latest clang-14 Release
             additional-packages: clang-14
             cmake-generator: Ninja

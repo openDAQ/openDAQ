@@ -710,6 +710,36 @@ if (WIN32)
     add_compile_definitions(WIN32_LEAN_AND_MEAN)
 endif()
 
+# --- SBOM generation (cmake-sbom) ---
+option(OPENDAQ_ENABLE_SBOM "Generate SPDX SBOM during install" OFF)
+
+if (OPENDAQ_ENABLE_SBOM)
+  include(FetchContent)
+
+  # Fetch cmake-sbom (modules live in its /cmake directory)
+  # Use SOURCE_SUBDIR to prevent it from being added as a subproject
+  FetchContent_Declare(cmake_sbom
+    GIT_REPOSITORY https://github.com/DEMCON/cmake-sbom.git
+    GIT_TAG        v1.4.0
+    GIT_SHALLOW    TRUE
+    SOURCE_SUBDIR  cmake            # important: prevents add_subdirectory()
+  )
+  FetchContent_MakeAvailable(cmake_sbom)
+
+  list(APPEND CMAKE_MODULE_PATH "${cmake_sbom_SOURCE_DIR}/cmake")
+  include(sbom)
+
+  # Start SBOM collection early so opendaq_dependency() can call sbom_add(PACKAGE ...)
+  sbom_generate(
+    SUPPLIER     "openDAQ"
+    SUPPLIER_URL "https://opendaq.com"
+    PROJECT      "${SDK_NAME}"
+    VERSION      "${OPENDAQ_PACKAGE_VERSION_WITH_SHA}"
+    # OUTPUT     "opendaq.spdx"   # optional; default is in CMAKE_INSTALL_PREFIX
+  )
+endif()
+
+
 # libraries needed before the core is read
 add_subdirectory(external)
 
@@ -860,3 +890,7 @@ endif()
 set(OPENDAQ_CONFIGURED_ONCE TRUE CACHE INTERNAL "A flag showing that CMake has configured at least once.")
 
 include(cmake/Packing.cmake)
+
+if (OPENDAQ_ENABLE_SBOM)
+  sbom_finalize()
+endif()

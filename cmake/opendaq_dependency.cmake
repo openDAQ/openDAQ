@@ -1,3 +1,73 @@
+# Add a dependency package to SBOM, but only once per configure run.
+#
+# This function ensures that each package is added to the Software Bill of Materials (SBOM) exactly
+# once, even if the same package is referenced multiple times during the CMake configure process.
+#
+# The function uses a global CMake property (OPENDAQ_SBOM_PACKAGES) to track which packages have
+# already been added during the current configure run. If a package name is found in this list,
+# the function returns early without adding it again.
+#
+# Parameters:
+#   NAME (required): The package name/identifier
+#   VERSION (optional): Package version string
+#   DOWNLOAD_LOCATION (optional): URL or location where the package was obtained
+#   LICENSE (optional): License identifier for the package
+#   COMMIT (optional): Git commit hash if applicable
+#
+function(opendaq_sbom_add_package_once)
+    # Early return if SBOM functionality is not available (cmake-sbom not loaded)
+    if (NOT COMMAND sbom_add)
+        return()
+    endif()
+
+    # Parse function arguments
+    cmake_parse_arguments(SBOM "" "NAME;VERSION;DOWNLOAD_LOCATION;LICENSE;COMMIT" "" ${ARGN})
+
+    # NAME is required to identify the package
+    if (NOT SBOM_NAME)
+        message(FATAL_ERROR "opendaq_sbom_add_package_once: NAME is required")
+    endif()
+
+    # Retrieve the list of packages already added to SBOM in this configure run
+    get_property(_seen GLOBAL PROPERTY OPENDAQ_SBOM_PACKAGES)
+    if (NOT _seen)
+        set(_seen "")
+    endif()
+
+    # Check if this package has already been added
+    list(FIND _seen "${SBOM_NAME}" _idx)
+    if (NOT _idx EQUAL -1)
+        # Package already in the list, skip adding it again
+        return()
+    endif()
+
+    # Build the argument list for sbom_add, starting with the package name
+    set(_args PACKAGE "${SBOM_NAME}")
+
+    # Add optional parameters if provided
+    if (SBOM_VERSION)
+        list(APPEND _args VERSION "${SBOM_VERSION}")
+    endif()
+
+    if (SBOM_DOWNLOAD_LOCATION)
+        list(APPEND _args DOWNLOAD_LOCATION "${SBOM_DOWNLOAD_LOCATION}")
+    endif()
+
+    if (SBOM_LICENSE)
+        list(APPEND _args LICENSE "${SBOM_LICENSE}")
+    endif()
+
+    if (SBOM_COMMIT)
+        list(APPEND _args COMMIT "${SBOM_COMMIT}")
+    endif()
+
+    # Add the package to the SBOM
+    sbom_add(${_args})
+
+    # Record this package name in the global property to prevent duplicate additions
+    set_property(GLOBAL APPEND PROPERTY OPENDAQ_SBOM_PACKAGES "${SBOM_NAME}")
+endfunction()
+
 set(opendaq_dependency__internal_dir ${CMAKE_CURRENT_LIST_DIR} CACHE INTERNAL "")
 
 #
@@ -239,5 +309,56 @@ macro(opendaq_dependency)
             message(FATAL_ERROR "Fetched dependency ${OPENDAQ_DEP_NAME} does not provide expected targets/commands!")
         endif()
     endif()
+
+    # --- SBOM integration (cmake-sbom) ---
+    if (COMMAND sbom_add)
+
+        # Best-effort version:
+        set(_sbom_version "")
+        if (${OPENDAQ_DEP_FIND_PACKAGE_NAME}_FOUND)
+            if (DEFINED ${OPENDAQ_DEP_FIND_PACKAGE_NAME}_VERSION)
+                set(_sbom_version "${${OPENDAQ_DEP_FIND_PACKAGE_NAME}_VERSION}")
+            elseif(DEFINED ${OPENDAQ_DEP_FIND_PACKAGE_NAME}_VERSION_STRING)
+                set(_sbom_version "${${OPENDAQ_DEP_FIND_PACKAGE_NAME}_VERSION_STRING}")
+            endif()
+        endif()
+
+        if (NOT _sbom_version AND OPENDAQ_DEP_GIT_REF)
+            set(_sbom_version "${OPENDAQ_DEP_GIT_REF}")
+        elseif (NOT _sbom_version AND OPENDAQ_DEP_REQUIRED_VERSION)
+            set(_sbom_version "${OPENDAQ_DEP_REQUIRED_VERSION}")
+        endif()
+
+        # normalize tags like v1.2.3 -> 1.2.3
+        if (_sbom_version)
+            string(REGEX REPLACE "^v" "" _sbom_version "${_sbom_version}")
+        endif()
+
+        # Best-effort download location:
+        set(_sbom_download "")
+        if (OPENDAQ_DEP_GIT_REPOSITORY)
+            set(_sbom_download "${OPENDAQ_DEP_GIT_REPOSITORY}")
+        endif()
+
+        # Best-effort license (override-able):
+        set(_sbom_license "NOASSERTION")
+
+        # Optional per-call override (you'll add these args if you want, see below)
+        if (DEFINED OPENDAQ_DEP_SBOM_LICENSE AND NOT "${OPENDAQ_DEP_SBOM_LICENSE}" STREQUAL "")
+            set(_sbom_license "${OPENDAQ_DEP_SBOM_LICENSE}")
+        endif()
+
+        if (DEFINED OPENDAQ_DEP_SBOM_DOWNLOAD_LOCATION AND NOT "${OPENDAQ_DEP_SBOM_DOWNLOAD_LOCATION}" STREQUAL "")
+            set(_sbom_download "${OPENDAQ_DEP_SBOM_DOWNLOAD_LOCATION}")
+        endif()
+
+        opendaq_sbom_add_package_once(
+            NAME "${OPENDAQ_DEP_NAME}"
+            VERSION "${_sbom_version}"
+            DOWNLOAD_LOCATION "${_sbom_download}"
+            LICENSE "${_sbom_license}"
+        )
+    endif()
+
 
 endmacro()

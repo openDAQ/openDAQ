@@ -18,5 +18,5 @@ class BoolPropertyView(PropertyView):
             tree.set(item_id, "value", self.format_value())
         except Exception:
             pass
-        # Return None to prevent default editor from opening
-        return None
+        # Return True to indicate event was handled (prevents editor from opening)
+        return True

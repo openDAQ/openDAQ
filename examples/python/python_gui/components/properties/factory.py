@@ -8,26 +8,28 @@ from .object_property import ObjectPropertyView
 from .dict_property import DictPropertyView
 from .list_property import ListPropertyView
 from .func_property import FuncPropertyView
+from .struct_property import StructPropertyView
 
 
-def make_property_view(prop) -> PropertyView:
+def make_property_view(prop, context=None) -> PropertyView:
     t = prop.value_type
     if t == CoreType.ctObject:
-        return ObjectPropertyView(prop)
+        return ObjectPropertyView(prop, context)
     if t == CoreType.ctDict:
-        return DictPropertyView(prop)
+        return DictPropertyView(prop, context)
     if t == CoreType.ctList:
-        return ListPropertyView(prop)
+        return ListPropertyView(prop, context)
     if t == CoreType.ctFunc:
-        return FuncPropertyView(prop)
-
+        return FuncPropertyView(prop, context)
+    if t == CoreType.ctStruct:
+        return StructPropertyView(prop, context)
     if t == CoreType.ctBool:
-        return BoolPropertyView(prop)
+        return BoolPropertyView(prop, context)
     if t == CoreType.ctInt:
-        return IntPropertyView(prop)
+        return IntPropertyView(prop, context)
     if t == CoreType.ctFloat:
-        return FloatPropertyView(prop)
+        return FloatPropertyView(prop, context)
     if t == CoreType.ctString:
-        return StringPropertyView(prop)
+        return StringPropertyView(prop, context)
 
-    return PropertyView(prop)
+    return PropertyView(prop, context)

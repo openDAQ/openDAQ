@@ -3,8 +3,9 @@ from tkinter import ttk
 
 
 class PropertyView:
-    def __init__(self, prop):
+    def __init__(self, prop, context=None):
         self.prop = prop
+        self.context = context
 
     def editable(self) -> bool:
         return not self.prop.read_only
@@ -27,7 +28,7 @@ class PropertyView:
     def apply_text(self, text: str):
         self.prop.value = self.parse(text)
 
-    def build_tree(self, _tree, _parent_id):
+    def build_tree(self, _tree, _parent_id, _current_path: str = ""):
         """Build child items in tree. Override in subclasses if needed."""
         pass
 

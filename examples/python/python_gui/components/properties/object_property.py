@@ -9,10 +9,10 @@ class ObjectPropertyView(PropertyView):
     def format_value(self) -> str:
         return f"IPropertyObject {{{self.prop.name}}}"
 
-    def build_tree(self, tree, parent_id):
+    def build_tree(self, tree, parent_id, current_path: str = ""):
         """Build tree for nested IPropertyObject"""
         try:
             nested_obj = IPropertyObject.cast_from(self.prop.value)
-            tree.build_tree(parent_id, nested_obj)
+            tree.build_tree(parent_id, nested_obj, current_path)
         except Exception:
             pass

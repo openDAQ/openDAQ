@@ -1,11 +1,15 @@
 import tkinter as tk
 from tkinter import ttk
 from .base import PropertyView
+from .value_editor_helper import (
+    create_value_editor, get_editor_value,
+    convert_text_to_value, is_enumeration, apply_enumeration_value
+)
 
 
 class DictPropertyView(PropertyView):
-    def __init__(self, prop):
-        super().__init__(prop)
+    def __init__(self, prop, context=None):
+        super().__init__(prop, context)
         self._item_keys = {}  # item_id -> original_key
 
     def format_value(self) -> str:
@@ -18,7 +22,7 @@ class DictPropertyView(PropertyView):
         except Exception:
             return "Dictionary"
 
-    def build_tree(self, tree, parent_id):
+    def build_tree(self, tree, parent_id, current_path: str = ""):
         """Build tree items for dictionary entries"""
         try:
             dict_value = self.prop.value
@@ -47,20 +51,25 @@ class DictPropertyView(PropertyView):
 
     def create_item_editor(self, parent, item_id: str, edit_key: bool) -> tk.Widget:
         """Create editor for dict item key or value"""
-        e = ttk.Entry(parent)
         key = self._item_keys.get(item_id)
         dict_value = self.prop.value
 
         if edit_key:
+            # Keys are always strings - use entry
+            e = ttk.Entry(parent)
             e.insert(0, str(key))
+            e.selection_range(0, tk.END)
+            return e
         else:
+            # Values - use smart editor
             try:
                 value = dict_value[key] if key in dict_value else ""
-                e.insert(0, str(value))
+                return create_value_editor(parent, value)
             except Exception:
+                e = ttk.Entry(parent)
                 e.insert(0, "")
-        e.selection_range(0, tk.END)
-        return e
+                e.selection_range(0, tk.END)
+                return e
 
     def apply_item_key_change(self, item_id: str, new_key_text: str):
         """Change the key in dictionary"""
@@ -84,7 +93,20 @@ class DictPropertyView(PropertyView):
             return
 
         dict_value = self.prop.value
-        dict_value[key] = new_value_text
+        if key in dict_value:
+            old_value = dict_value[key]
+
+            # Handle enumeration specially
+            if is_enumeration(old_value):
+                new_value = apply_enumeration_value(old_value, new_value_text, self.context)
+            else:
+                # Convert to appropriate type
+                new_value = convert_text_to_value(new_value_text, old_value)
+
+            dict_value[key] = new_value
+        else:
+            dict_value[key] = new_value_text
+
         # Apply changes to property
         self.prop.value = dict_value
 
@@ -143,7 +165,7 @@ class DictPropertyView(PropertyView):
 
         # This is a dict item
         if commit:
-            text = self.get_editor_text(editor)
+            text = get_editor_value(editor)
             edit_column = getattr(tree, '_dict_edit_column', {}).get(item_id, 'value')
 
             if edit_column == 'key':

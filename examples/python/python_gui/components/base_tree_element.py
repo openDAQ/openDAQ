@@ -87,5 +87,4 @@ class BaseTreeElement:
 
     def on_create_right_click_menu(self, main_content: tk.Frame) -> None:
         popup = tk.Menu(self.tree, tearoff=0)
-        popup.add_command(label='remove', command=lambda: self.parent.remove_child(self))
         return popup

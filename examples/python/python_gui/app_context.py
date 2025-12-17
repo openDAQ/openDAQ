@@ -26,12 +26,32 @@ class EditorState:
 
 class AppContext(object):
     def __init__(self, params):
-        self.show_invisible_components = False
+        self.__show_invisible_components = False
+        self.__show_invisible_components_changed_callbacks = []
         self.show_component_types = None
         self.editor_state = EditorState()
 
         self.icons = self.__load_icons(os.path.join(os.path.dirname(__file__), 'icons'))
         self.daq_instance = self.__init_opendaq(params)
+
+    def set_show_invisible_components(self, show: bool):
+        if self.__show_invisible_components == show:
+            return
+
+        self.__show_invisible_components = show
+        for callback in self.__show_invisible_components_changed_callbacks:
+            callback(show)
+
+    @property
+    def show_invisible_components(self) -> bool:
+        return self.__show_invisible_components
+
+    def set_show_invisible_components_changed_callback(self, callback):
+        self.__show_invisible_components_changed_callbacks.append(callback)
+
+    def remove_show_invisible_components_changed_callback(self, callback):
+        if callback in self.__show_invisible_components_changed_callbacks:
+            self.__show_invisible_components_changed_callbacks.remove(callback)
 
     def __load_icons(self, directory):
         images = {}
@@ -41,9 +61,12 @@ class AppContext(object):
         return images
     
     def __init_opendaq(self, params):
-        instance = opendaq.Instance()
+        builder = opendaq.InstanceBuilder()
+        builder.using_scheduler_main_loop = True
+        instance = builder.build()
         device = instance.add_device("daqref://device0")
         device.add_function_block("ref_fb_module_statistics")
+        device.add_device("daq://SonyUK_04678a918b41557e")
 
         # Add test dict property
         try:

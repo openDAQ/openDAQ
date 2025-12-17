@@ -1,6 +1,7 @@
 from components.base_tree_element import *
 import opendaq as daq
 from components.property_object_view import PropertyObjectView
+from components.collapsible_frame import CollapsibleFrame
 
 
 class ComponentTreeElement(BaseTreeElement):
@@ -37,8 +38,11 @@ class ComponentTreeElement(BaseTreeElement):
             self.__set_name(value)
 
     def on_selected(self, main_content: tk.Frame) -> None:
-        self.property_view = PropertyObjectView(main_content, self.context, self.daq_component)
-        self.property_view.pack(fill="both", expand=True, padx=5, pady=(0, 5))
+        properties_section = CollapsibleFrame(main_content, "Properties", self.context, start_collapsed=False)
+        properties_section.pack(fill="both", expand=True)
+
+        self.property_view = PropertyObjectView(properties_section.content, self.context, self.daq_component)
+        self.property_view.pack(fill="both", expand=True, padx=5)
 
 
 

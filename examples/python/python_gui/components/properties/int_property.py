@@ -1,12 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
-from opendaq import IDict
+from opendaq import IDict, IList, IIterable
 from .base import PropertyView
 
 
 class IntPropertyView(PropertyView):
-    def __init__(self, prop):
-        super().__init__(prop)
+    def __init__(self, prop, context=None):
+        super().__init__(prop, context)
         self.selection_map = None
 
     def create_editor(self, parent) -> tk.Widget:
@@ -40,8 +40,7 @@ class IntPropertyView(PropertyView):
                 if key == cur_value:
                     cur_label = label
         else:
-            # List: index is the selection value, item is the label
-            values = [str(v) for v in sv]
+            values = list(sv)
             for idx, label in enumerate(values):
                 self.selection_map[label] = idx
             if 0 <= cur_value < len(values):
@@ -82,3 +81,34 @@ class IntPropertyView(PropertyView):
             return str(list(sv)[cur])
 
         return str(self.prop.value)
+
+    def handle_double_click(self, tree, item_id, column):
+        """Cycle through selection values on double click"""
+        sv = self._get_selection_values()
+        if not sv:
+            return None  # No selection values, use default editor
+
+        try:
+            cur_value = int(self.prop.value)
+
+            if IDict.can_cast_from(sv):
+                # Dict: cycle through keys
+                keys = [int(str(k), 0) for k in sv.keys()]
+                try:
+                    cur_idx = keys.index(cur_value)
+                    next_idx = (cur_idx + 1) % len(keys)
+                    self.prop.value = keys[next_idx]
+                except ValueError:
+                    # Current value not in keys, set to first
+                    if keys:
+                        self.prop.value = keys[0]
+            else:
+                # List: cycle through indices
+                list_len = len(list(sv))
+                next_value = (cur_value + 1) % list_len
+                self.prop.value = next_value
+
+            tree.set(item_id, "value", self.format_value())
+            return True  # Event handled
+        except Exception:
+            return None  # Fall back to default editor

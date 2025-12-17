@@ -1,11 +1,15 @@
 import tkinter as tk
 from tkinter import ttk
 from .base import PropertyView
+from .value_editor_helper import (
+    create_value_editor, get_editor_value,
+    convert_text_to_value, is_enumeration, apply_enumeration_value
+)
 
 
 class ListPropertyView(PropertyView):
-    def __init__(self, prop):
-        super().__init__(prop)
+    def __init__(self, prop, context=None):
+        super().__init__(prop, context)
         self._item_indices = {}  # item_id -> index
 
     def format_value(self) -> str:
@@ -18,7 +22,7 @@ class ListPropertyView(PropertyView):
         except Exception:
             return "List"
 
-    def build_tree(self, tree, parent_id):
+    def build_tree(self, tree, parent_id, current_path: str = ""):
         """Build tree items for list entries"""
         try:
             list_value = self.prop.value
@@ -47,17 +51,19 @@ class ListPropertyView(PropertyView):
 
     def create_item_editor(self, parent, item_id: str) -> tk.Widget:
         """Create editor for list item value"""
-        e = ttk.Entry(parent)
         index = self._item_indices.get(item_id)
         list_value = self.prop.value
 
         try:
             value = list_value[index] if 0 <= index < len(list_value) else ""
-            e.insert(0, str(value))
+            # Use smart editor based on value type
+            return create_value_editor(parent, value)
         except Exception:
+            # Fallback to entry
+            e = ttk.Entry(parent)
             e.insert(0, "")
-        e.selection_range(0, tk.END)
-        return e
+            e.selection_range(0, tk.END)
+            return e
 
     def apply_item_value_change(self, item_id: str, new_value_text: str):
         """Change the value in list"""
@@ -67,9 +73,21 @@ class ListPropertyView(PropertyView):
 
         list_value = self.prop.value
         if 0 <= index < len(list_value):
-            list_value[index] = new_value_text
+            old_value = list_value[index]
+            print(f"List: changing index {index}, old value: {old_value}, new text: {new_value_text}")
+
+            # Handle enumeration specially
+            if is_enumeration(old_value):
+                new_value = apply_enumeration_value(old_value, new_value_text, self.context)
+            else:
+                # Convert to appropriate type
+                new_value = convert_text_to_value(new_value_text, old_value)
+
+            print(f"List: setting index {index} to {new_value}")
+            list_value[index] = new_value
             # Apply changes to property
             self.prop.value = list_value
+            print(f"List: property value set, checking: {self.prop.value[index]}")
 
     def format_item_index(self, item_id: str) -> str:
         """Format index for display"""
@@ -118,7 +136,7 @@ class ListPropertyView(PropertyView):
 
         # This is a list item
         if commit:
-            text = self.get_editor_text(editor)
+            text = get_editor_value(editor)
             self.apply_item_value_change(item_id, text)
             tree.set(item_id, "value", self.format_item_value(item_id))
 
@@ -146,22 +164,6 @@ class ListPropertyView(PropertyView):
             return True
 
         return False
-
-    def _add_item_front(self, tree, parent_id):
-        """Add new item to the front of the list"""
-        list_value = self.prop.value
-
-        # Add to front of list - create new list with empty string at front
-        new_list = [""] + [list_value[i] for i in range(len(list_value))]
-        list_value.clear()
-        for item in new_list:
-            list_value.append(item)
-
-        # Apply changes to property
-        self.prop.value = list_value
-
-        # Rebuild tree
-        self._rebuild_tree(tree, parent_id)
 
     def _add_item_back(self, tree, parent_id):
         """Add new item to the back of the list"""
@@ -197,56 +199,6 @@ class ListPropertyView(PropertyView):
 
         # Rebuild tree
         self._rebuild_tree(tree, parent_id)
-
-    def _move_item_up(self, tree, item_id):
-        """Move item up in the list"""
-        index = self._item_indices.get(item_id)
-        if index is None or index <= 0:
-            return
-
-        list_value = self.prop.value
-        # Swap with previous item
-        list_value[index], list_value[index - 1] = list_value[index - 1], list_value[index]
-        # Apply changes to property
-        self.prop.value = list_value
-
-        # Get parent
-        parent_id = tree.parent(item_id)
-
-        # Rebuild tree
-        self._rebuild_tree(tree, parent_id)
-
-        # Select the moved item (now at index-1)
-        for child_id in tree.get_children(parent_id):
-            if self._item_indices.get(child_id) == index - 1:
-                tree.selection_set(child_id)
-                tree.see(child_id)
-                break
-
-    def _move_item_down(self, tree, item_id):
-        """Move item down in the list"""
-        index = self._item_indices.get(item_id)
-        list_value = self.prop.value
-        if index is None or index >= len(list_value) - 1:
-            return
-
-        # Swap with next item
-        list_value[index], list_value[index + 1] = list_value[index + 1], list_value[index]
-        # Apply changes to property
-        self.prop.value = list_value
-
-        # Get parent
-        parent_id = tree.parent(item_id)
-
-        # Rebuild tree
-        self._rebuild_tree(tree, parent_id)
-
-        # Select the moved item (now at index+1)
-        for child_id in tree.get_children(parent_id):
-            if self._item_indices.get(child_id) == index + 1:
-                tree.selection_set(child_id)
-                tree.see(child_id)
-                break
 
     def _rebuild_tree(self, tree, parent_id):
         """Rebuild the entire list in the tree"""

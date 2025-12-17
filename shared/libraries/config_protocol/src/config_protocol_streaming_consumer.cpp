@@ -85,7 +85,7 @@ bool ConfigProtocolStreamingConsumer::isSignalOfConnectedClient(const StringPtr&
 
 MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getExternalSignal(const StringPtr& signalId)
 {
-    return externalSignalsFolder.findComponent(ConfigMirroredExternalSignalImpl::getLocalId(signalId));
+    return externalSignalsFolder.findComponent(ConfigMirroredExternalSignalImpl::createLocalId(signalId));
 }
 
 bool ConfigProtocolStreamingConsumer::isForwardedCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& eventArgs)

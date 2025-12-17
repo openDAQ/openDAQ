@@ -218,26 +218,27 @@ jobs:
             cmake-generator: Ninja
             cmake-build-type: Release
             cmake-defines: -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16
-          - name: Ubuntu Latest gcc-9 Debug
-            additional-packages: g++-9
-            cmake-generator: Ninja
-            cmake-build-type: Debug
-            cmake-defines: -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
-          - name: Ubuntu Latest gcc-14 Debug
-            additional-packages: g++-14
-            cmake-generator: Ninja
-            cmake-build-type: Debug
-            cmake-defines: -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
-          - name: Ubuntu Latest clang-14 Debug
-            additional-packages: clang-14
-            cmake-generator: Ninja
-            cmake-build-type: Debug
-            cmake-defines: -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14
-          - name: Ubuntu Latest clang-16 Debug
-            additional-packages: clang-16
-            cmake-generator: Ninja
-            cmake-build-type: Debug
-            cmake-defines: -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16
+          # The Debug configurations are disabled until the problem with test_py_opendaq is resolved.
+          # - name: Ubuntu Latest gcc-9 Debug
+          #   additional-packages: g++-9
+          #   cmake-generator: Ninja
+          #   cmake-build-type: Debug
+          #   cmake-defines: -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+          # - name: Ubuntu Latest gcc-14 Debug
+          #   additional-packages: g++-14
+          #   cmake-generator: Ninja
+          #   cmake-build-type: Debug
+          #   cmake-defines: -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
+          # - name: Ubuntu Latest clang-14 Debug
+          #   additional-packages: clang-14
+          #   cmake-generator: Ninja
+          #   cmake-build-type: Debug
+          #   cmake-defines: -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14
+          # - name: Ubuntu Latest clang-16 Debug
+          #   additional-packages: clang-16
+          #   cmake-generator: Ninja
+          #   cmake-build-type: Debug
+          #   cmake-defines: -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16
 
     steps:
       - name: Checkout

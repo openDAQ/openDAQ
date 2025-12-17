@@ -56,8 +56,6 @@ runs:
 
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '4.0'
 
     - name: Install Windows dependencies
       if: runner.os == 'Windows'

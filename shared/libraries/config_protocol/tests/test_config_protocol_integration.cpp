@@ -35,7 +35,8 @@ public:
             serverDevice,
             std::bind(&ConfigProtocolIntegrationTest::serverNotificationReady, this, std::placeholders::_1),
             anonymousUser,
-            ClientType::Control);
+            ClientType::Control,
+            test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
         clientContext = NullContext();
         client =
@@ -301,7 +302,7 @@ TEST_F(ConfigProtocolIntegrationTest, DomainInfo)
 
     ASSERT_EQ(clientSubDevice.getDomain().getOrigin(), "N/A");
     ASSERT_EQ(clientSubDevice.getDomain().getTickResolution(), Ratio(1, 100));
-    ASSERT_EQ(clientSubDevice.getDomain().getUnit(), Unit("s", -1, "second", "time"));
+    ASSERT_EQ(clientSubDevice.getDomain().getUnit(), Unit("s", -1, "seconds", "time"));
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetTicksSinceOrigin)
@@ -726,16 +727,18 @@ TEST_F(ConfigProtocolIntegrationTest, AcceptsSignal)
                         clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(clientSignal));
     ASSERT_TRUE(clientAcceptsClientSignal);
 
-    auto serverSignal = serverDevice.getSignals()[0];
-    daq::Bool clientAcceptsServerSignal = True;
-    ASSERT_NO_THROW(clientAcceptsServerSignal =
-                        clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(serverSignal));
-    ASSERT_FALSE(clientAcceptsServerSignal);
+    auto parentlessSignal = Signal(clientSignal.getContext(), nullptr, "test");
+    daq::Bool clientAcceptsParentlessSignal = False;
+    ASSERT_NO_THROW(clientAcceptsParentlessSignal =
+                        clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(parentlessSignal));
+    ASSERT_TRUE(clientAcceptsParentlessSignal);
 
-    auto falseSignal = Signal(clientSignal.getContext(), nullptr, "test");
-    ASSERT_THROW_MSG(clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(falseSignal),
-                     NativeClientCallNotAvailableException,
-                     "Signal is not from the same component tree");
+    // such connection likely creates unsafe loopback with undefined behavior, but signal is still accepted
+    auto serverSignal = serverDevice.getSignals()[0];
+    daq::Bool clientAcceptsServerSignal = False;
+    ASSERT_NO_THROW(clientAcceptsServerSignal =
+                    clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignal(serverSignal));
+    ASSERT_TRUE(clientAcceptsServerSignal);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
@@ -743,7 +746,7 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     auto availableDevicesServer = serverDevice.getAvailableDevices();
     auto availableDevicesClient = clientDevice.getAvailableDevices();
 
-    ASSERT_EQ(availableDevicesClient.getCount(), 3);
+    ASSERT_EQ(availableDevicesClient.getCount(), 3u);
 
     auto c = availableDevicesClient[2];
     auto s = availableDevicesServer[2];
@@ -757,19 +760,51 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     ASSERT_EQ(c.getManufacturer(), s.getManufacturer());
 }
 
-void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
+void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice, bool testAddDevicesMethod = false)
 {
-    ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
-    ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 2u);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 2u);
 
     DevicePtr dev;
-    ASSERT_NO_THROW(dev = clientDevice.addDevice("mock://test"));
+    if (testAddDevicesMethod)
+    {
+        auto connectionArgs =
+            Dict<IString, IPropertyObject>(
+                {
+                    {"mock://test", nullptr},
+                    {"unknown://unknown", nullptr}
+                }
+            );
+        auto errCodes = Dict<IString, IInteger>();
+        auto errorInfos = Dict<IString, IErrorInfo>();
+        DictPtr<IString, IDevice> devices;
+        ASSERT_EQ(clientDevice->addDevices(&devices, connectionArgs, errCodes, errorInfos),
+                  OPENDAQ_PARTIAL_SUCCESS);
+
+        ASSERT_EQ(devices.getCount(), 2u);
+        ASSERT_EQ(errCodes.getCount(), 2u);
+        ASSERT_EQ(errorInfos.getCount(), 2u);
+
+        dev = devices.get("mock://test");
+        ASSERT_EQ(errCodes.get("mock://test"), OPENDAQ_SUCCESS);
+        ASSERT_FALSE(errorInfos.get("mock://test").assigned());
+
+        ASSERT_FALSE(devices.get("unknown://unknown").assigned());
+        ASSERT_EQ(errCodes.get("unknown://unknown"), OPENDAQ_ERR_NOTFOUND);
+        ASSERT_TRUE(errorInfos.get("unknown://unknown").assigned());
+    }
+    else
+    {
+        ASSERT_NO_THROW(dev = clientDevice.addDevice("mock://test"));
+    }
+
     ASSERT_NE(dev, nullptr);
 
-    ASSERT_EQ(clientDevice.getDevices().getCount(), 3);
-    ASSERT_EQ(serverDevice.getDevices().getCount(), 3);
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 3u);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 3u);
 
     auto newDevCli = clientDevice.getDevices()[2];
+    ASSERT_EQ(dev, newDevCli);
     auto newDevSer = serverDevice.getDevices()[2];
 
     ASSERT_EQ(newDevCli.getGlobalId(), "/root_dev/Dev/newDevice");
@@ -803,15 +838,26 @@ TEST_F(ConfigProtocolIntegrationTest, AddDeviceCoreEventTrigger)
     addDeviceTest(clientDevice, serverDevice);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, AddDevicesDisableCoreEventTrigger)
+{
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    addDeviceTest(clientDevice, serverDevice, true);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, AddDevicesCoreEventTrigger)
+{
+    addDeviceTest(clientDevice, serverDevice, true);
+}
+
 void removeDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice)
 {
-    ASSERT_EQ(clientDevice.getDevices().getCount(), 2);
-    ASSERT_EQ(serverDevice.getDevices().getCount(), 2);
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 2u);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 2u);
 
     clientDevice.removeDevice(clientDevice.getDevices()[0]);
 
-    ASSERT_EQ(clientDevice.getDevices().getCount(), 1);
-    ASSERT_EQ(serverDevice.getDevices().getCount(), 1);
+    ASSERT_EQ(clientDevice.getDevices().getCount(), 1u);
+    ASSERT_EQ(serverDevice.getDevices().getCount(), 1u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, RemoveDeviceDisableCoreEventTrigger)
@@ -830,7 +876,7 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
     auto availableDeviceTypesServer = serverDevice.getDevices()[0].getAvailableDeviceTypes();
     auto availableDeviceTypesClient = clientDevice.getDevices()[0].getAvailableDeviceTypes();
 
-    ASSERT_EQ(availableDeviceTypesClient.getCount(), 1);
+    ASSERT_EQ(availableDeviceTypesClient.getCount(), 1u);
 
     auto c = availableDeviceTypesClient.get("mockDev1");
     auto s = availableDeviceTypesServer.get("mockDev1");
@@ -859,15 +905,15 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceTypesModuleInfo)
 
     ASSERT_EQ(moduleInfoS.getId(), "module_id");
     ASSERT_EQ(moduleInfoS.getName(), "module_name");
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5);
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6);
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5u);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6u);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7u);
 
     ASSERT_EQ(moduleInfoC.getId(), "module_id");
     ASSERT_EQ(moduleInfoC.getName(), "module_name");
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5);
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6);
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5u);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6u);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, FunctionBlockTypesModuleInfo)
@@ -883,15 +929,15 @@ TEST_F(ConfigProtocolIntegrationTest, FunctionBlockTypesModuleInfo)
 
     ASSERT_EQ(moduleInfoS.getId(), "module_id");
     ASSERT_EQ(moduleInfoS.getName(), "module_name");
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5);
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6);
-    ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMajor(), 5u);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getMinor(), 6u);
+    ASSERT_EQ(moduleInfoS.getVersionInfo().getPatch(), 7u);
 
     ASSERT_EQ(moduleInfoC.getId(), "module_id");
     ASSERT_EQ(moduleInfoC.getName(), "module_name");
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5);
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6);
-    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMajor(), 5u);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getMinor(), 6u);
+    ASSERT_EQ(moduleInfoC.getVersionInfo().getPatch(), 7u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, RecorderFunctionBlock)
@@ -911,4 +957,14 @@ TEST_F(ConfigProtocolIntegrationTest, RecorderFunctionBlock)
     ASSERT_NO_THROW(recorderPtr.stopRecording());
     ASSERT_FALSE(recorderPtr.getIsRecording());
     ASSERT_THROW(recorderPtr.stopRecording(), InvalidStateException);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ComponentConfig)
+{
+    auto deviceComponentConfig = clientDevice.getDevices()[0].asPtr<IComponentPrivate>().getComponentConfig();
+    auto fbComponentConfig = clientDevice.getDevices()[0].getFunctionBlocks()[0].asPtr<IComponentPrivate>().getComponentConfig();
+    ASSERT_TRUE(deviceComponentConfig.assigned());
+    ASSERT_TRUE(fbComponentConfig.assigned());
+    ASSERT_TRUE(deviceComponentConfig.hasProperty("TestProp"));
+    ASSERT_TRUE(fbComponentConfig.hasProperty("TestProp"));
 }

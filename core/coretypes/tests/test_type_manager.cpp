@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <coretypes/coretypes.h>
 #include <cctype>
+#include <algorithm>
+#include <coretypes/coretype_utils.h>
 
 using namespace daq;
 
@@ -157,7 +159,7 @@ TEST_F(TypeManagerTest, ProtectedStructNames)
     for (const auto& name : protectedNames)
     {
         std::string uppercase = name;
-        std::transform(uppercase.begin(), uppercase.end(), uppercase.begin(), [](char c) { return std::toupper(c); });
+        uppercase = coretype_utils::toUpperCase(uppercase);
 
         const auto type1 = StructType(name, List<IString>("field"), List<IType>(SimpleType(ctString)));
         const auto type2 = StructType(uppercase, List<IString>("field"), List<IType>(SimpleType(ctString)));

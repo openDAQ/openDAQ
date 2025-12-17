@@ -23,6 +23,7 @@ NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
     , ioContextPtr(ioContextPtr)
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientImpl"))
     , reconnectionTimer(std::make_shared<boost::asio::steady_timer>(*ioContextPtr))
+    , signalNumericIdCounter(0)
 {
     manageTransportLayerProps();
     resetStreamingHandlers();
@@ -116,6 +117,120 @@ void NativeStreamingClientImpl::setConfigHandlers(const ProcessConfigProtocolPac
 {
     this->configPacketHandler = configPacketHandler;
     this->connectionStatusChangedConfigCb = connectionStatusChangedCb;
+}
+
+SignalNumericIdType NativeStreamingClientImpl::registerSignal(const SignalPtr& signal)
+{
+    auto signalStringId = signal.getGlobalId().toStdString();
+
+    std::scoped_lock lock(registeredSignalsSync);
+    if (auto iter = registeredSignals.find(signalStringId); iter == registeredSignals.end())
+    {
+        auto signalNumericId = ++signalNumericIdCounter;
+        registeredSignals.insert({signalStringId, ClientSignal(signalStringId, signalNumericId, signal)});
+        return signalNumericId;
+    }
+    else
+    {
+        throw NativeStreamingProtocolException("Client signal is already registered");
+    }
+}
+
+void NativeStreamingClientImpl::addClientSignal(const SignalPtr& signal)
+{
+    auto signalNumericId = registerSignal(signal);
+    if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
+        sessionHandlerTemp->sendSignalAvailable(signalNumericId, signal);
+}
+
+void NativeStreamingClientImpl::removeClientSignal(const SignalPtr& signal)
+{
+    auto signalStringId = signal.getGlobalId().toStdString();
+
+    std::scoped_lock lock(registeredSignalsSync);
+    if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
+    {
+        auto signalNumericId = iter->second.signalNumericId;
+        registeredSignals.erase(iter);
+        if (auto sessionHandlerTemp = this->sessionHandler; sessionHandlerTemp)
+            sessionHandlerTemp->sendSignalUnavailable(signalNumericId, signal);
+    }
+    else
+    {
+        throw NativeStreamingProtocolException("Client signal was not registered");
+    }
+}
+
+bool NativeStreamingClientImpl::handleSignalSubscription(const SignalNumericIdType& signalNumericId,
+                                                         const SignalPtr& signal,
+                                                         bool subscribe)
+{
+    std::scoped_lock lock(registeredSignalsSync);
+    const auto signalStringId = signal.getGlobalId();
+
+    if (subscribe)
+    {
+        LOG_D("Client received subscribe command for signal: {}, numeric Id {}", signalStringId, signalNumericId);
+        try
+        {
+            signalSubscribedHandler(signal);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed subscribing of signal: {}, numeric Id {}; {}",
+                  signalStringId, signalNumericId, e.what());
+            return false;
+        }
+    }
+    else
+    {
+        LOG_D("Client received unsubscribe command for signal: {}, numeric Id {}",
+              signalStringId, signalNumericId);
+        try
+        {
+            signalUnsubscribedHandler(signal);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed unsubscribing of signal: {}, numeric Id {}; {}",
+                  signalStringId, signalNumericId, e.what());
+            return false;
+        }
+    }
+    return true;
+}
+
+void NativeStreamingClientImpl::sendPacket(const std::string& signalStringId, PacketPtr&& packet)
+{
+    std::scoped_lock lock(registeredSignalsSync);
+    if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
+    {
+        auto signalNumericId = iter->second.signalNumericId;
+        sendOneStreamingPacket(signalNumericId, std::move(packet));
+    }
+}
+
+SignalPtr NativeStreamingClientImpl::findClientSignal(const std::string& signalStringId)
+{
+    std::scoped_lock lock(registeredSignalsSync);
+
+    if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
+        return iter->second.signal;
+    else
+        throw NativeStreamingProtocolException(fmt::format("Client signal {} is not registered in streaming", signalStringId));
+}
+
+void NativeStreamingClientImpl::resetStreamingToDeviceHandlers()
+{
+    this->signalSubscribedHandler = [](const SignalPtr&) {};
+    this->signalUnsubscribedHandler = [](const SignalPtr&) {};
+}
+
+void NativeStreamingClientImpl::setStreamingToDeviceHandlers(const OnSignalSubscribedCallback& signalSubscribedHandler,
+                                                             const OnSignalUnsubscribedCallback& signalUnsubscribedHandler)
+{
+    this->signalSubscribedHandler = signalSubscribedHandler;
+    this->signalUnsubscribedHandler = signalUnsubscribedHandler;
 }
 
 void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::error_code& ec)
@@ -281,6 +396,15 @@ void NativeStreamingClientImpl::sendAvailableStreamingPackets()
     }
 }
 
+void NativeStreamingClientImpl::downgradePacketStreamingServer(Int jsonSerializerVersion)
+{
+    packetStreamingServerPtr =
+        std::make_shared<packet_streaming::PacketStreamingServer>(packet_streaming::PACKET_ZERO_PAYLOAD_SIZE,
+                                                                  packet_streaming::PACKET_RELEASE_THRESHOLD_DEFAULT,
+                                                                  false,
+                                                                  jsonSerializerVersion);
+}
+
 void NativeStreamingClientImpl::onSessionError(const std::string& errorMessage, SessionPtr session)
 {
     LOG_W("Closing connection caused by: {}", errorMessage);
@@ -302,7 +426,10 @@ void NativeStreamingClientImpl::onPacketBufferReceived(const packet_streaming::P
         auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
         while (packet.assigned())
         {
-            packetHandler(signalIds.at(signalNumericId), packet);
+            // Due to server-side optimizations, it’s possible to receive a packet for a signal that has just been removed.
+            // Therefore, we cautiously check whether the signal ID is still registered on the client side before processing.
+            if (const auto it = signalIds.find(signalNumericId); it != signalIds.end())
+                packetHandler(it->second, packet);
             std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
         }
     }
@@ -327,7 +454,8 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
         [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId,
                                                const StringPtr& signalStringId,
                                                const StringPtr& serializedSignal,
-                                               bool available)
+                                               bool available,
+                                               const std::string& /*clientId*/)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
             thisPtr->handleSignal(signalNumericId, signalStringId, serializedSignal, available);
@@ -341,10 +469,34 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
     };
 
     OnSubscriptionAckCallback subscriptionAckCallback =
-        [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId, bool subscribed)
+        [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId,
+                                               bool subscribed,
+                                               const std::string& /*clientId*/)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
-            thisPtr->signalSubscriptionAckCallback(thisPtr->signalIds.at(signalNumericId), subscribed);
+        {
+            std::scoped_lock lock(thisPtr->registeredSignalsSync);
+            if (const auto it = thisPtr->signalIds.find(signalNumericId); it != thisPtr->signalIds.end())
+                thisPtr->signalSubscriptionAckCallback(it->second, subscribed);
+        }
+    };
+
+    OnFindSignalCallback findSignalHandler = [thisWeakPtr = this->weak_from_this()](const std::string& signalId)
+    {
+        if (const auto thisPtr = thisWeakPtr.lock())
+            return thisPtr->findClientSignal(signalId);
+        throw NativeStreamingProtocolException("Client handler object destroyed");
+    };
+
+    OnSignalSubscriptionCallback signalSubscriptionHandler =
+        [thisWeakPtr = this->weak_from_this()](const SignalNumericIdType& signalNumericId,
+                                               const SignalPtr& signal,
+                                               bool subscribe,
+                                               const std::string& /*clientId*/)
+    {
+        if (const auto thisPtr = thisWeakPtr.lock())
+            return thisPtr->handleSignalSubscription(signalNumericId, signal, subscribe);
+        return false;
     };
 
     sessionHandler = std::make_shared<ClientSessionHandler>(context,
@@ -353,6 +505,8 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
                                                             signalReceivedHandler,
                                                             protocolInitDoneHandler,
                                                             subscriptionAckCallback,
+                                                            findSignalHandler,
+                                                            signalSubscriptionHandler,
                                                             errorHandler);
 
     ProcessConfigProtocolPacketCb configPacketReceivedHandler =
@@ -371,7 +525,6 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
     };
     sessionHandler->setPacketBufferReceivedHandler(packetBufferReceivedHandler);
 
-    // FIXME keep and reuse packet server when packet retransmission feature will be enabled
     packetStreamingServerPtr =
         std::make_shared<packet_streaming::PacketStreamingServer>(packet_streaming::PACKET_ZERO_PAYLOAD_SIZE,
                                                                   packet_streaming::PACKET_RELEASE_THRESHOLD_DEFAULT,
@@ -464,9 +617,9 @@ void NativeStreamingClientImpl::initClient(std::string host,
 }
 
 void NativeStreamingClientImpl::handleSignal(const SignalNumericIdType& signalNumericId,
-                                                const StringPtr& signalStringId,
-                                                const StringPtr& serializedSignal,
-                                                bool available)
+                                             const StringPtr& signalStringId,
+                                             const StringPtr& serializedSignal,
+                                             bool available)
 {
     {
         std::scoped_lock lock(registeredSignalsSync);
@@ -482,7 +635,7 @@ void NativeStreamingClientImpl::handleSignal(const SignalNumericIdType& signalNu
                       signalNumericId,
                       it->second,
                       signalStringId);
-                DAQ_THROW_EXCEPTION(DuplicateItemException);
+                return;
             }
         }
         else
@@ -503,6 +656,7 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
     : ioContextPtr(std::make_shared<boost::asio::io_context>())
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
     , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, authenticationObject, ioContextPtr))
+    , toDeviceStreamingEnabled(true)
 {
     startTransportOperations();
 }
@@ -543,6 +697,11 @@ void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signa
     clientHandlerPtr->sendOneStreamingPacket(signalNumericId, std::move(packet));
 }
 
+void NativeStreamingClientHandler::downgradePacketStreamingServer(Int jsonSerializerVersion)
+{
+    clientHandlerPtr->downgradePacketStreamingServer(jsonSerializerVersion);
+}
+
 std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoContext()
 {
     return ioContextPtr;
@@ -550,7 +709,7 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoCont
 
 void NativeStreamingClientHandler::resetStreamingHandlers()
 {
-    clientHandlerPtr->resetConfigHandlers();
+    clientHandlerPtr->resetStreamingHandlers();
 }
 
 void NativeStreamingClientHandler::setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
@@ -577,6 +736,37 @@ void NativeStreamingClientHandler::setConfigHandlers(const ProcessConfigProtocol
                                                      const OnConnectionStatusChangedCallback& connectionStatusChangedCb)
 {
     clientHandlerPtr->setConfigHandlers(configPacketHandler, connectionStatusChangedCb);
+}
+
+void NativeStreamingClientHandler::addClientSignal(const SignalPtr& signal)
+{
+    clientHandlerPtr->addClientSignal(signal);
+}
+
+void NativeStreamingClientHandler::removeClientSignal(const SignalPtr& signal)
+{
+    clientHandlerPtr->removeClientSignal(signal);
+}
+
+void NativeStreamingClientHandler::sendPacket(const std::string& signalStringId, PacketPtr&& packet)
+{
+    clientHandlerPtr->sendPacket(signalStringId, std::move(packet));
+}
+
+void NativeStreamingClientHandler::resetStreamingToDeviceHandlers()
+{
+    clientHandlerPtr->resetStreamingToDeviceHandlers();
+}
+
+void NativeStreamingClientHandler::setStreamingToDeviceHandlers(const OnSignalSubscribedCallback& signalSubscribedHandler,
+                                                                const OnSignalUnsubscribedCallback& signalUnsubscribedHandler)
+{
+    clientHandlerPtr->setStreamingToDeviceHandlers(signalSubscribedHandler, signalUnsubscribedHandler);
+}
+
+bool NativeStreamingClientHandler::supportsToDeviceStreaming()
+{
+   return toDeviceStreamingEnabled;
 }
 
 void NativeStreamingClientHandler::startTransportOperations()

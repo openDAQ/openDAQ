@@ -74,3 +74,39 @@ TEST_F(ArgumentInfoTest, SerializeDeserialize)
     ASSERT_EQ(argInfo.getName(), argInfo1.getName());
     ASSERT_EQ(argInfo.getType(), argInfo1.getType());
 }
+
+TEST_F(ArgumentInfoTest, SerializeDeserializeList)
+{
+    auto argInfo = ListArgumentInfo("List", ctFloat);
+
+    const auto serializer = JsonSerializer();
+    argInfo.serialize(serializer);
+
+    const auto jsonStr = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const ArgumentInfoPtr argInfoDeserialized = deserializer.deserialize(jsonStr);
+    ASSERT_EQ(argInfo.getName(), argInfoDeserialized.getName());
+    ASSERT_EQ(argInfo.getType(), argInfoDeserialized.getType());
+    ASSERT_EQ(argInfo.getKeyType(), argInfoDeserialized.getKeyType());
+    ASSERT_EQ(argInfo.getItemType(), argInfoDeserialized.getItemType());
+}
+
+TEST_F(ArgumentInfoTest, SerializeDeserializeDict)
+{
+    auto argInfo = DictArgumentInfo("Dict", ctInt, ctFloat);
+
+    const auto serializer = JsonSerializer();
+    argInfo.serialize(serializer);
+
+    const auto jsonStr = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+
+    const ArgumentInfoPtr argInfoDeserialized = deserializer.deserialize(jsonStr);
+    ASSERT_EQ(argInfo.getName(), argInfoDeserialized.getName());
+    ASSERT_EQ(argInfo.getType(), argInfoDeserialized.getType());
+    ASSERT_EQ(argInfo.getKeyType(), argInfoDeserialized.getKeyType());
+    ASSERT_EQ(argInfo.getItemType(), argInfoDeserialized.getItemType());
+}

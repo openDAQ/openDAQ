@@ -12,6 +12,7 @@
 #include <open62541/daqbsp_nodeids.h>
 #include <open62541/daqbt_nodeids.h>
 #include <open62541/types_generated.h>
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -25,6 +26,7 @@ TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object
     : Super(object, server, context, tmsContext)
     , ignoredProps(ignoredProps)
 {
+    loggerComponent = daqContext.getLogger().getOrAddComponent("OPCUAServerPropertyObject");
 }
 
 TmsServerPropertyObject::TmsServerPropertyObject(const PropertyObjectPtr& object,
@@ -98,7 +100,19 @@ void TmsServerPropertyObject::addChildNodes()
                 continue;
             if (prop.getValueType() == ctFunc || prop.getValueType() == ctProc)
             {
-                addMethodPropertyNode(prop, propOrder[propName]);
+                const auto args = prop.getCallableInfo().getArguments();
+                bool isCompatibleArg = true;
+                for (SizeT i = 0; (args.assigned() && i < args.getCount()); i++)
+                {
+                    const auto type = args.getItemAt(i).getType();
+                    // The OPC UA server does not yet support list or dictionary type arguments
+                    isCompatibleArg = (type != ctList && type != ctDict);
+                    if (!isCompatibleArg)
+                        break;
+                }
+
+                if (isCompatibleArg)
+                    addMethodPropertyNode(prop, propOrder[propName]);
                 continue;
             }
 
@@ -242,6 +256,7 @@ void TmsServerPropertyObject::registerEvalValueNode(const std::string& nodeName,
     childEvalValues.insert({childNodeId, serverObject});
 }
 
+// TODO: Procedure/Function properties with list/dictionary types are not yet supported over OPC UA!
 void TmsServerPropertyObject::addMethodPropertyNode(const PropertyPtr& prop, uint32_t numberInList)
 {
     const auto name = prop.getName();
@@ -283,9 +298,13 @@ void TmsServerPropertyObject::addMethodPropertyNode(const PropertyPtr& prop, uin
 
         methodProps.insert({methodNodeId, {name, prop.getValueType()}});
     }
-    catch(...)
+    catch(const std::exception& e)
     {
-        // TODO: Log failure to add method node
+        LOG_W("Failed to add method property node {}: {}", name, e.what());
+    }
+    catch (...)
+    {
+        LOG_W("Failed to add method property node {}.", name);
     }
 }
 

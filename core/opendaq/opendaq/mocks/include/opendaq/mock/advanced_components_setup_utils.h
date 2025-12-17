@@ -26,6 +26,7 @@ namespace daq::test_utils
     DevicePtr createTestDevice(const std::string& localId = "root_dev");
     ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     PropertyObjectPtr createMockNestedPropertyObject();
+    FolderPtr dummyExtSigFolder(const ContextPtr& ctx);
 
     class MockFb1Impl final : public FunctionBlock
     {
@@ -114,6 +115,20 @@ namespace daq::test_utils
         {
             auto info = DeviceInfo("", this->localId);
             info.setLocation("loc");
+            info.addProperty(StringProperty("OnReadCallback", ""));
+            info.getOnPropertyValueRead("OnReadCallback") += [this](const PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+            {
+                if (callCntDeviceInfo % 2 == 0)
+                {
+                    args.setValue("bar");
+                }
+                else
+                {
+                    args.setValue("foo");
+                }
+                callCntDeviceInfo++;
+            };
+
             return info.detach();
         }
 
@@ -131,19 +146,49 @@ namespace daq::test_utils
             return availableDevices;
         }
 
+        DictPtr<IString, IDevice> onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                               DictPtr<IString, IInteger> errCodes,
+                                               DictPtr<IString, IErrorInfo> errorInfos) override
+        {
+            auto addedDevices = Dict<IString, IDevice>();
+            for (const auto& [connectionString, _] : connectionArgs)
+            {
+                if (connectionString == "mock://test")
+                {
+                    auto dev = createTestSubDevice();
+                    this->devices.addItem(dev);
+                    addedDevices[connectionString] = dev;
+                    if (errCodes.assigned())
+                        errCodes[connectionString] = OPENDAQ_SUCCESS;
+                    if (errorInfos.assigned())
+                        errorInfos[connectionString] = nullptr;
+                }
+                else
+                {
+                    addedDevices[connectionString] = nullptr;
+                    ObjectPtr<IErrorInfo> errorInfo;
+                    ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+                    daqGetErrorInfo(&errorInfo);
+                    daqClearErrorInfo();
+
+                    if (errCodes.assigned())
+                        errCodes[connectionString] = errCode;
+                    if (errorInfos.assigned())
+                        errorInfos[connectionString] = errorInfo;
+                }
+            }
+            return addedDevices;
+        }
+
         DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/ = nullptr) override
         {
             if (connectionString == "mock://test")
             {
-                auto dev = createWithImplementation<IDevice, MockDevice2Impl>(this->context, this->devices, "newDevice");
-
-                dev.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(dev.getSignalsRecursive()[0]);
-
+                auto dev = createTestSubDevice();
                 this->devices.addItem(dev);
-
                 return dev;
             }
-            return nullptr;
+            throw NotFoundException();
         }
 
         void onRemoveDevice(const DevicePtr& device) override
@@ -151,6 +196,17 @@ namespace daq::test_utils
             devices.removeItem(device);
         }
 
+    private:
+        DevicePtr createTestSubDevice()
+        {
+            auto dev = createWithImplementation<IDevice, MockDevice2Impl>(this->context, this->devices, "newDevice");
+            dev.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].connect(dev.getSignalsRecursive()[0]);
+            return dev;
+        }
+
+        int callCnt = 0;
+        int callCntSelection = 0;
+        int callCntDeviceInfo = 0;
     };
 
     class MockSrvImpl final : public Server

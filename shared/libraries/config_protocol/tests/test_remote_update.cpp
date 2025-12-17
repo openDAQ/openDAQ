@@ -6,9 +6,9 @@
 #include <opendaq/mock/mock_fb_module.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/mock/advanced_components_setup_utils.h>
-#include "config_protocol/config_protocol_server.h"
-#include "config_protocol/config_protocol_client.h"
-#include "config_protocol/config_client_device_impl.h"
+#include <config_protocol/config_protocol_server.h>
+#include <config_protocol/config_protocol_client.h>
+#include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/user_factory.h>
 
 using namespace daq;
@@ -28,7 +28,8 @@ public:
             std::make_unique<ConfigProtocolServer>(serverDevice,
                                                    std::bind(&ConfigRemoteUpdateTest::serverNotificationReady, this, std::placeholders::_1),
                                                    anonymousUser,
-                                                   ClientType::Control);
+                                                   ClientType::Control,
+                                                   test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
         clientContext = NullContext();
         client =

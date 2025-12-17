@@ -37,7 +37,7 @@ begin
   try
     Result := FCallEvent(Params, Res);
   except
-    on E: ERTException do
+    on E: EDaqException do
       Exit(E.Code);
     on E: Exception do
       Exit(OPENDAQ_ERR_GENERALERROR);

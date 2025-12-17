@@ -13,8 +13,7 @@ unit OpenDAQ.VersionInfo;
 interface
 uses
   OpenDAQ.CoreTypes,
-  OpenDAQ.ObjectPtr,
-  OpenDAQ.ProxyValue;
+  OpenDAQ.ObjectPtr;
 
 type
   {$MINENUMSIZE 4}
@@ -65,7 +64,6 @@ type
 implementation
 uses
   OpenDAQ.CoreTypes.Config,
-  OpenDAQ.CoreTypes.Errors,
   OpenDAQ.Exceptions,
   OpenDAQ.SmartPtrRegistry;
 
@@ -87,7 +85,7 @@ var
   Err: ErrCode;
 begin
   Err := CreateVersionInfo(RawInterface, Major, Minor, Patch);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   inherited Create(RawInterface);
 end;
@@ -101,7 +99,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetMajor(Major);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Major;
 end;
@@ -115,7 +113,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetMinor(Minor);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Minor;
 end;
@@ -129,7 +127,7 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');
 
   Err := FObject.GetPatch(Patch);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 
   Result := Patch;
 end;

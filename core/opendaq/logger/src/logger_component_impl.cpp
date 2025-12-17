@@ -8,6 +8,8 @@
 
 #include <functional>
 #include <utility>
+#include <algorithm>
+#include <coretypes/coretype_utils.h>
 
 #include <spdlog/async.h>
 #include <spdlog/spdlog.h>
@@ -94,7 +96,7 @@ ErrCode LoggerComponentImpl::getLevel(LogLevel* level)
 ErrCode LoggerComponentImpl::logMessage(SourceLocation location, ConstCharPtr msg, LogLevel level)
 {
     spdlogLogger->log(
-        spdlog::source_loc(location.fileName, location.line, location.funcName), static_cast<spdlog::level::level_enum>(level), msg);
+        spdlog::source_loc(location.fileName, static_cast<int>(location.line), location.funcName), static_cast<spdlog::level::level_enum>(level), msg);
     return OPENDAQ_SUCCESS;
 }
 
@@ -137,10 +139,10 @@ ErrCode LoggerComponentImpl::toString(CharPtr* str)
 LogLevel LoggerComponentImpl::getDefaultLogLevel()
 {
     int logLevel = -1;
-    auto& loggerNameStr = spdlogLogger->name();
+    const auto& loggerNameStr = spdlogLogger->name();
 
-    std::string uppercaseLoggerNameStr;
-    std::transform(loggerNameStr.begin(), loggerNameStr.end(), std::back_inserter(uppercaseLoggerNameStr), ::toupper);
+    std::string uppercaseLoggerNameStr = loggerNameStr;
+    uppercaseLoggerNameStr = coretype_utils::toUpperCase(uppercaseLoggerNameStr);
 
     std::string componentEnv = "OPENDAQ_" + uppercaseLoggerNameStr + "_LOG_LEVEL";
     char* env = std::getenv(componentEnv.c_str());

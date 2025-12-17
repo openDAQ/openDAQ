@@ -10,6 +10,7 @@ set(TEST_SOURCES test_awaitable.cpp
                  test_scheduler_mt.cpp
                  test_task.cpp
                  test_work.cpp
+                 test_task_internals.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
@@ -19,26 +20,13 @@ opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                            ${TEST_HEADERS}
 )
 
-##############################
-# LIB test
-
-set(TEST_SOURCES_INTERNAL test_scheduler_internals.cpp
-                          test_task_internals.cpp
-)
-
-opendaq_prepare_internal_runner(TEST_APP_INTERNAL FOR ${MODULE_NAME}
-                           SOURCES
-                               test_app.cpp
-                               ${TEST_SOURCES_INTERNAL}
+target_link_libraries(${TEST_APP} PRIVATE 
+    $<BUILD_INTERFACE:Taskflow::Taskflow>
 )
 
 if (MSVC)
-    target_compile_options(${TEST_APP_INTERNAL} PRIVATE /wd4324)
+    target_compile_options(${TEST_APP} PRIVATE /wd4324)
 endif()
-
-target_link_libraries(${TEST_APP_INTERNAL} PRIVATE 
-    $<BUILD_INTERFACE:Taskflow::Taskflow>
-)
 
 ##############################
 # CTest setup
@@ -46,11 +34,6 @@ target_link_libraries(${TEST_APP_INTERNAL} PRIVATE
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
-)
-
-add_test(NAME ${TEST_APP_INTERNAL}
-        COMMAND $<TARGET_FILE_NAME:${TEST_APP_INTERNAL}>
-        WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP_INTERNAL}>
 )
 
 if (OPENDAQ_ENABLE_COVERAGE)

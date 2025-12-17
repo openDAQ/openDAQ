@@ -138,7 +138,10 @@ ErrCode TmsClientDeviceImpl::getAvailableOperationModes(IList** availableOpModes
     OPENDAQ_PARAM_NOT_NULL(availableOpModes); 
     
     if (!this->hasReference("OperationModeOptions"))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+    {
+        LOG_D("OperationModes are not supported by the server")
+        return Super::getAvailableOperationModes(availableOpModes);
+    }
 
     const auto nodeId = getNodeId("OperationModeOptions");
     auto opModesNodeStrList = VariantConverter<IString>::ToDaqList(client->readValue(nodeId));
@@ -184,7 +187,10 @@ ErrCode TmsClientDeviceImpl::getOperationMode(OperationModeType* modeType)
     OPENDAQ_PARAM_NOT_NULL(modeType);
 
     if (!this->hasReference("OperationMode"))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "OperationModes are not supported by the server");
+    {
+        LOG_D("OperationModes are not supported by the server")
+        return Super::getOperationMode(modeType);
+    }
     
     const auto nodeId = getNodeId("OperationMode");
     const auto variant = client->readValue(nodeId);
@@ -227,6 +233,13 @@ void TmsClientDeviceImpl::findAndCreateSubdevices()
 }
 
 DevicePtr TmsClientDeviceImpl::onAddDevice(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
+{
+    throw OpcUaClientCallNotAvailableException();
+}
+
+DictPtr<IString, IDevice> TmsClientDeviceImpl::onAddDevices(const DictPtr<IString, IPropertyObject>& /*connectionArgs*/,
+                                                            DictPtr<IString, IInteger> /*errCodes*/,
+                                                            DictPtr<IString, IErrorInfo> /*errorInfos*/)
 {
     throw OpcUaClientCallNotAvailableException();
 }
@@ -361,6 +374,11 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
     }
 
+    deviceInfo.getOnPropertyValueRead("name") += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
+        {
+            args.setValue(this->client->readDisplayName(this->nodeId));
+        };
+
     for (const auto & entry : deviceInfoChangeableFields)
     {
         const auto& propName = entry.first;
@@ -383,7 +401,6 @@ DeviceInfoPtr TmsClientDeviceImpl::onGetInfo()
         }
         catch (...)
         {
-
         }
     }
 
@@ -663,6 +680,11 @@ void TmsClientDeviceImpl::removed()
 bool TmsClientDeviceImpl::isAddedToLocalComponentTree()
 {
     return this->clientContext->getRootDevice() == this->thisPtr<DevicePtr>();
+}
+
+StringPtr TmsClientDeviceImpl::onGetRemoteId() const
+{
+    return String(remoteComponentId).detach();
 }
 
 void TmsClientDeviceImpl::findAndCreateCustomComponents()

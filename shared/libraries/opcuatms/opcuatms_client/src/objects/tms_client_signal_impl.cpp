@@ -21,8 +21,6 @@ TmsClientSignalImpl::TmsClientSignalImpl(
 )
     : TmsClientComponentBaseImpl(ctx, parent, localId, clientContext, nodeId)
 {
-    deviceSignalId = nodeId.getIdentifier();
-
     if (hasReference("Value"))
     {
         const auto valueNodeId = clientContext->getReferenceBrowser()->getChildNodeId(nodeId, "Value");
@@ -110,13 +108,13 @@ ErrCode TmsClientSignalImpl::setDomainSignal(ISignal* signal)
 ErrCode TmsClientSignalImpl::getRelatedSignals(IList** signals)
 {
     ListPtr<ISignal> signalsPtr;
-    ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetRelatedSignals, signalsPtr);
-    *signals = signalsPtr.detach();
+    const ErrCode errCode = wrapHandlerReturn(this, &TmsClientSignalImpl::onGetRelatedSignals, signalsPtr);
     if (OPENDAQ_FAILED(errCode))
     {
         daqClearErrorInfo();
         LOG_W("Failed to get related signals on OpcUA client signal \"{}\"", this->globalId);
     }
+    *signals = signalsPtr.detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -168,7 +166,7 @@ Bool TmsClientSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)
 
 StringPtr TmsClientSignalImpl::onGetRemoteId() const
 {
-    return String(deviceSignalId);
+    return String(remoteComponentId).detach();
 }
 
 ErrCode TmsClientSignalImpl::getLastValue(IBaseObject** value)

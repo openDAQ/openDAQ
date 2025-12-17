@@ -57,11 +57,14 @@ public:
     ErrCode INTERFACE_FUNC setAuthenticationProvider(IAuthenticationProvider* authenticationProvider) override;
     ErrCode INTERFACE_FUNC getAuthenticationProvider(IAuthenticationProvider** authenticationProvider) override;
 
+    ErrCode INTERFACE_FUNC setScheduler(IScheduler* scheduler) override;
+    ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler) override;
+
     ErrCode INTERFACE_FUNC setSchedulerWorkerNum(SizeT numWorkers) override;
     ErrCode INTERFACE_FUNC getSchedulerWorkerNum(SizeT* numWorkers) override;
 
-    ErrCode INTERFACE_FUNC setScheduler(IScheduler* scheduler) override;
-    ErrCode INTERFACE_FUNC getScheduler(IScheduler** scheduler) override;
+    ErrCode INTERFACE_FUNC setUsingSchedulerMainLoop(Bool useMainLoop) override;
+    ErrCode INTERFACE_FUNC getUsingSchedulerMainLoop(Bool* useMainLoop) override;
 
     ErrCode INTERFACE_FUNC setDefaultRootDeviceLocalId(IString* localId) override;
     ErrCode INTERFACE_FUNC getDefaultRootDeviceLocalId(IString** localId) override;
@@ -80,6 +83,12 @@ public:
     ErrCode INTERFACE_FUNC getDiscoveryServers(IList** serverNames) override;
     ErrCode INTERFACE_FUNC addDiscoveryServer(IString* serverName) override;
 
+    ErrCode INTERFACE_FUNC setModuleAuthenticator(IModuleAuthenticator* authenticator) override;
+    ErrCode INTERFACE_FUNC getModuleAuthenticator(IModuleAuthenticator** authenticator) override;
+
+    ErrCode INTERFACE_FUNC setLoadAuthenticatedModulesOnly(Bool authenticatedOnly) override;
+    ErrCode INTERFACE_FUNC getLoadAuthenticatedModulesOnly(Bool* authenticatedOnly) override;
+
 private:
     static DictPtr<IString, IBaseObject> GetDefaultOptions();
 
@@ -97,9 +106,11 @@ private:
 
     SchedulerPtr scheduler;
     ModuleManagerPtr moduleManager;
+    ModuleAuthenticatorPtr moduleAuthenticator;
     AuthenticationProviderPtr authenticationProvider;
     ContextPtr context{nullptr};
 
+    Bool authenticatedModulesOnly{false};
     Bool useStandardProviders{false};
     ListPtr<IConfigProvider> providers;
     DictPtr<IString, IBaseObject> options;

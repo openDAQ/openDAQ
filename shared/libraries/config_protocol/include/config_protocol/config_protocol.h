@@ -70,6 +70,7 @@ using DeleterCallback = std::function<void(void*)>;
 
 class PacketBuffer
 {
+    static constexpr size_t MAX_PACKET_BUFFER_SIZE = 0x0FFFFFFF; // limitation of transport layer
 public:
     PacketBuffer();
     PacketBuffer(const PacketBuffer&) = delete;
@@ -187,12 +188,12 @@ inline std::set<uint16_t> createListOfSupportedVersions(uint16_t maxVersion)
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    return createListOfSupportedVersions(15);
+    return createListOfSupportedVersions(18);
 }
 
 inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
-    return 15;
+    return 18;
 }
 
 }

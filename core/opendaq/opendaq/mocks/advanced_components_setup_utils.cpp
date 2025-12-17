@@ -28,7 +28,6 @@ DevicePtr createTestDevice(const std::string& localId)
                                .addProperty(StringProperty("MockString", "String"))
                                .addProperty(ObjectProperty("MockChild", obj))
                                .build();
-
     typeManager.addType(mockClass);
 
     const auto rootDevice = createWithImplementation<IDevice, MockDevice2Impl>(context, nullptr, localId);
@@ -171,6 +170,11 @@ PropertyObjectPtr createMockNestedPropertyObject()
     return parent;
 }
 
+FolderPtr dummyExtSigFolder(const ContextPtr& ctx)
+{
+    return Folder<ISignal>(ctx, nullptr, "dummy");
+}
+
 MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId, "MockClass")
 {
@@ -187,6 +191,11 @@ MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, cons
     addedComponentPrivate.unlockAttributes(List<IString>("Visible"));
     hiddenInputPort.setVisible(false);
     addedComponentPrivate.lockAttributes(List<IString>("Visible"));
+
+    
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(StringProperty("TestProp", "TestValue"));
+    this->componentConfig = config.detach();
 }
 
 DictPtr<IString, IFunctionBlockType> MockFb1Impl::onGetAvailableFunctionBlockTypes()
@@ -278,7 +287,11 @@ MockDevice1Impl::MockDevice1Impl(const ContextPtr& ctx, const ComponentPtr& pare
     fb.getInputPorts()[0].connect(sig);
     fb.getInputPorts(search::Not(search::Visible()))[0].connect(sig);
 
-    setDeviceDomain(DeviceDomain(Ratio(1, 100), "N/A" , Unit("s", -1, "second", "time")));
+    setDeviceDomain(DeviceDomain(Ratio(1, 100), "N/A" , Unit("s", -1, "seconds", "time")));
+
+    PropertyObjectPtr config = PropertyObject();
+    config.addProperty(StringProperty("TestProp", "TestValue"));
+    this->componentConfig = config.detach();
 }
 
 DictPtr<IString, IFunctionBlockType> MockDevice1Impl::onGetAvailableFunctionBlockTypes()
@@ -360,6 +373,28 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
 	objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());
     
     objPtr.addProperty(StringPropertyBuilder("StrProp", "-").build());
+    objPtr.addProperty(StringPropertyBuilder("StringSuggestedValues", "Orange").setSuggestedValues(List<IString>("Apple", "Orange", "Mango")).build());
+
+    objPtr.addProperty(StringProperty("OnReadCallback", ""));
+    objPtr.addProperty(SelectionProperty("OnReadCallbackSelection", List<IString>("Apple", "Blueberry", "Mango"), 0));
+    
+    objPtr.getOnPropertyValueRead("OnReadCallbackSelection") += [this](const PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+    {
+        args.setValue(callCntSelection++ % 3);
+    };
+
+    objPtr.getOnPropertyValueRead("OnReadCallback") += [this](const PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+    {
+        if (callCnt % 2 == 0)
+        {
+            args.setValue("bar");
+        }
+        else
+        {
+            args.setValue("foo");
+        }
+        callCnt++;
+    };
 
     const auto statusType = EnumerationType("StatusType", List<IString>("Status0", "Status1"));
     try

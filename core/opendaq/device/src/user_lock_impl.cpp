@@ -16,7 +16,7 @@ ErrCode INTERFACE_FUNC UserLockImpl::lock(IUser* user)
 {
     UserPtr userPtr = UserPtr::Borrow(user);
 
-    if (userPtr.assigned() && userPtr.asPtr<IUserInternal>().isAnonymous())
+    if (userPtr.assigned() && userPtr.asPtr<IUserInternal>(true).isAnonymous())
         userPtr = nullptr;
 
     if (userLock.has_value() && userLock != userPtr)

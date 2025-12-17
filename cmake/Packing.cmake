@@ -82,25 +82,6 @@ endif()
 
 include(CPack)
 
-##
-## Define the types (Runtime/Development), groups and components to install
-##
-
-## Install Types
-
-cpack_add_install_type(Development
-    DISPLAY_NAME
-        "Developer"
-)
-
-cpack_add_install_type(Runtime
-    DISPLAY_NAME
-        "End user"
-)
-
-# Hack to get CPack to generate "InstType /NOCUSTOM"
-# Which allows only preset configurations (unable to check/uncheck individual options)
-cpack_add_install_type(/NOCUSTOM)
 
 ## Install Groups
 
@@ -134,16 +115,17 @@ cpack_add_component(openDAQ_Development
     HIDDEN
     GROUP
         libopendaq-dev
-    INSTALL_TYPES
-        Development
 )
-
-set(COMPONENTS
+    
+set(REQUIRED_COMPONENTS
     coretypes
     coreobjects
     corecontainers
     opendaq
-    empty_module
+)
+
+set(OPTIONAL_COMPONENTS
+    copendaq
     ref_device_module
     ref_fb_module
     audio_device_module
@@ -157,46 +139,57 @@ set(COMPONENTS
     basic_csv_recorder_module
 )
 
-foreach(component IN LISTS COMPONENTS)
-    cpack_add_component(openDAQ_${component}_Runtime
+foreach(COMPONENT IN LISTS REQUIRED_COMPONENTS)
+    cpack_add_component(openDAQ_${COMPONENT}_Runtime
         REQUIRED
         DISPLAY_NAME
-            ${component}
+            ${COMPONENT}
         GROUP
             libopendaq
-        INSTALL_TYPES
-            Runtime
     )
-    cpack_add_component(openDAQ_${component}_Development
+    cpack_add_component(openDAQ_${COMPONENT}_Development
+		REQUIRED
         DISPLAY_NAME
-            ${component}
+            ${COMPONENT}
         GROUP
             libopendaq-dev
-        INSTALL_TYPES
-            Development
         DEPENDS
-            openDAQ_${component}_Runtime
-            openDAQ_Development
+            openDAQ_${COMPONENT}_Runtime
+    )
+endforeach()
+
+foreach(COMPONENT IN LISTS OPTIONAL_COMPONENTS)
+    cpack_add_component(openDAQ_${COMPONENT}_Runtime
+        DISPLAY_NAME
+            ${COMPONENT}
+        GROUP
+            libopendaq
+    )
+    cpack_add_component(openDAQ_${COMPONENT}_Development
+        DISPLAY_NAME
+            ${COMPONENT}
+        GROUP
+            libopendaq-dev
+        DEPENDS
+            openDAQ_${COMPONENT}_Runtime
     )
 endforeach()
 
 # temporary only
 cpack_add_component(External
+    REQUIRED
     DISPLAY_NAME
         External
     GROUP
         libopendaq-external
-    INSTALL_TYPES
-        Development
 )
+
 # SFML seems to be using the 'devel' component
 cpack_add_component(devel
     DISPLAY_NAME
         SFML
     GROUP
         libopendaq-external
-    INSTALL_TYPES
-        Development
 )
 
 # We could add names and descriptions for all the components above

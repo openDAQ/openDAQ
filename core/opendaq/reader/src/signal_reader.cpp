@@ -75,8 +75,16 @@ void SignalReader::readDescriptorFromPort()
         auto eventPacket = packet.asPtr<IEventPacket>(true);
         if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
         {
-            handleDescriptorChanged(connection.dequeue());
-            return;
+            try
+            {
+                handleDescriptorChanged(connection.dequeue());
+            }
+            catch (const std::exception& e)
+            {
+                invalid = true;
+                LOG_D("Failed to handle descriptor read from port: {}", e.what())
+                (void)e;
+            }
         }
     }
 }
@@ -176,22 +184,31 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
                 synced = SyncStatus::Unsynchronized;
             }
 
-            auto newSampleRate = reader::getSampleRate(newDomainDescriptor);
-            if (sampleRate == -1)
+            try
             {
-                sampleRate = newSampleRate;
-            }
-            else if (sampleRate != newSampleRate)
-            {
-                validDomain = false;
-            }
+                auto newSampleRate = reader::getSampleRate(newDomainDescriptor);
+                if (sampleRate == -1)
+                {
+                    sampleRate = newSampleRate;
+                }
+                else if (sampleRate != newSampleRate)
+                {
+                    validDomain = false;
+                }
 
-            packetDelta = 0;
-            const auto domainRule = newDomainDescriptor.getRule();
-            if (domainRule.getType() == DataRuleType::Linear)
+                packetDelta = 0;
+                const auto domainRule = newDomainDescriptor.getRule();
+                if (domainRule.getType() == DataRuleType::Linear)
+                {
+                    const auto domainRuleParams = domainRule.getParameters();
+                    packetDelta = domainRuleParams.get("delta");
+                }
+            }
+            catch (const std::exception& e)
             {
-                const auto domainRuleParams = domainRule.getParameters();
-                packetDelta = domainRuleParams.get("delta");
+                LOG_D("Failed to change descriptor: {}", e.what())
+                validDomain = false;
+                (void)e;
             }
         }
 
@@ -253,18 +270,21 @@ bool SignalReader::isFirstPacketEvent()
     {
         if (packet.getType() == PacketType::Data)
         {
-            connection.dequeue();
-            info.dataPacket = packet;
+            info.dataPacket = connection.dequeue();
             info.prevSampleIndex = 0;
             return false;
         }
-        else if (packet.getType() == PacketType::Event)
+
+        if (packet.getType() == PacketType::Event)
         {
             return true;
         }
+
+        // For undefined packet types
         connection.dequeue();
         packet = connection.peek();
     }
+
     return false;
 }
 
@@ -345,18 +365,20 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
     {
         synced = SyncStatus::Unsynchronized;
         bool firstData {false};
-        handlePacket(packetToReturn, firstData);
+        const ErrCode errCode = handlePacket(packetToReturn, firstData);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
     }
 
     return packetToReturn;
 }
 
-void SignalReader::skipUntilLastEventPacket()
+bool SignalReader::skipUntilLastEventPacket()
 {
     info.reset();
 
     if (!connection.assigned())
-        return;
+        return false;
 
     bool hasEventPacket = false;
     while (connection.hasEventPacket())
@@ -383,6 +405,8 @@ void SignalReader::skipUntilLastEventPacket()
 
     if (!hasEventPacket)
         connection.dequeueAll();
+
+    return hasEventPacket;
 }
 
 bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp)
@@ -401,7 +425,7 @@ bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock
     }
 
     SizeT startPackets = info.prevSampleIndex;
-    Int droppedPackets = 0;
+    [[maybe_unused]] Int droppedPackets = 0;
 
     while (info.dataPacket.assigned())
     {
@@ -469,14 +493,15 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
                 }
                 catch (...)
                 {
-                    errCode = OPENDAQ_ERR_GENERALERROR;
+                    errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to handle descriptor change");
                 }
 
                 if (OPENDAQ_FAILED(errCode))
                 {
                     invalid = true;
 
-                    return DAQ_MAKE_ERROR_INFO(
+                    return DAQ_EXTEND_ERROR_INFO(
+                        errCode,
                         OPENDAQ_ERR_INVALID_DATA,
                         "Exception occurred while processing a signal descriptor change"
                     );
@@ -513,7 +538,10 @@ ErrCode SignalReader::readPackets()
         }
 
         if (packet.assigned())
+        {
             errCode = handlePacket(packet, firstData);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
     }
 
     return errCode;
@@ -567,9 +595,7 @@ ErrCode SignalReader::readPacketData()
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
             if (!trySetDomainSampleType(domainPacket))
-            {
-                return errCode;
-            }
+                return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             daqClearErrorInfo();
             errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
         }
@@ -594,17 +620,16 @@ ErrCode SignalReader::readPacketData()
 
 bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const
 {
-    ObjectPtr<IErrorInfo> errInfo;
-    daqGetErrorInfo(&errInfo);
+    ObjectPtr<IErrorInfo> errorInfo;
+    daqGetErrorInfo(&errorInfo);
     daqClearErrorInfo();
 
     auto dataDescriptor = domainPacket.getDataDescriptor();
-    if (!domainReader->handleDescriptorChanged(dataDescriptor, readMode))
-    {
-        daqSetErrorInfo(errInfo);
-        return false;
-    }
-    return true;
+    if (domainReader->handleDescriptorChanged(dataDescriptor, readMode))
+        return true;
+
+    daqSetErrorInfo(errorInfo);
+    return false;
 }
 
 END_NAMESPACE_OPENDAQ

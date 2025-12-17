@@ -318,10 +318,7 @@ intProp.MinValue = 0;
 intProp.MaxValue = 15;
 propObj.AddProperty(intProp.Build());
 
-var suggestedValues = CoreTypesFactory.CreateList<BaseObject>();
-suggestedValues.Add((FloatObject)1.23);
-suggestedValues.Add((FloatObject)3.21);
-suggestedValues.Add((FloatObject)5.67);
+var suggestedValues = CoreTypesFactory.CreateList<BaseObject>(1.23, 3.21, 5.67);
 var floatProp = CoreObjectsFactory.CreateFloatPropertyBuilder("Float", 3.21);
 floatProp.SuggestedValues = suggestedValues;
 
@@ -420,10 +417,7 @@ C#::
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-var list = CoreTypesFactory.CreateList<BaseObject>();
-list.Add("Apple");
-list.Add("Banana");
-list.Add("Kiwi");
+var list = CoreTypesFactory.CreateList<BaseObject>("Apple", "Banana", "Kiwi");
 
 propObj.AddProperty(CoreObjectsFactory.CreateSelectionProperty("ListSelection", list, 0, true));
 
@@ -607,10 +601,7 @@ C#::
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-var list = CoreTypesFactory.CreateList<BaseObject>();
-list.Add("Banana");
-list.Add("Apple");
-list.Add("Kiwi");
+var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
 
 propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list, true));
 
@@ -745,12 +736,17 @@ OPC UA layer. Thus, they will not appear on connected-to devices.
 Function and Procedure type Properties can't have a default value.
 
 .Function and Procedure Properties example
+
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 auto propObj = PropertyObject();
 
-auto arguments = List<IArgumentInfo>(ArgumentInfo("Val1", ctInt), ArgumentInfo("Val2", ctInt), true);
-propObj.addProperty(FunctionProperty("SumFunction", FunctionInfo(ctInt, arguments)));
+auto arguments = List<IArgumentInfo>(ArgumentInfo("Val1", ctInt), ArgumentInfo("Val2", ctInt));
+propObj.addProperty(FunctionProperty("SumFunction", FunctionInfo(ctInt, arguments, true)));
 
 auto func = Function([](IntegerPtr val1, IntegerPtr val2)
 {
@@ -763,6 +759,53 @@ FunctionPtr sumFunc = propObj.getPropertyValue("SumFunction");
 // Prints out 42
 std::cout << sumFunc(12, 30) << std::endl;
 ----
+C#::
++
+[source,csharp]
+----
+var propObj = CoreObjectsFactory.CreatePropertyObject();
+
+var arguments = CoreTypesFactory.CreateList(CoreObjectsFactory.CreateArgumentInfo("Val1", CoreType.ctInt),
+                                            CoreObjectsFactory.CreateArgumentInfo("Val2", CoreType.ctInt));
+
+propObj.AddProperty(PropertyFactory.FunctionProperty("SumFunction",
+                                                     CoreObjectsFactory.CreateCallableInfo(arguments.CastList(),
+                                                                                           CoreType.ctInt,
+                                                                                           constFlag: true)));
+
+var func = CoreTypesFactory.CreateFunction(SumLongs);
+propObj.SetPropertyValue("SumFunction", func);
+
+Function sumFunc = propObj.GetPropertyValue("SumFunction").Cast<Function>();
+
+// Prints out 42
+Console.WriteLine((long)sumFunc.Call(((ListObject<IntegerObject>)CoreTypesFactory.CreateList<IntegerObject>(12, 30))
+                                                                                 .Cast<BaseObject>()));
+
+//implement a FuncCallDelegate function
+ErrorCode SumLongs(BaseObject? parameters, out BaseObject? result)
+{
+    //initialize output
+    result = null;
+
+    //expecting two long parameters
+    using var paramsList = parameters?.CastList<IntegerObject>();
+    if ((paramsList == null) || (paramsList.Count != 2))
+    {
+        Console.WriteLine($"-> 'parameters' is not a 'ListObject<IntegerObject>' with 2 entries");
+
+        //tell API that it was not OK
+        return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+    }
+
+    //returning the sum of the given integer parameters as result
+    result = (long)paramsList[0] + (long)paramsList[1];
+
+    //tell API that everything was OK
+    return ErrorCode.OPENDAQ_SUCCESS;
+}
+----
+====
 
 ==== Struct Properties
 
@@ -893,6 +936,10 @@ In this article, we'll focus on how `EvalValue` objects are used to set up
 a Property Object describing a configuration of dependent Properties. Below, we see an example
 of a simulated channel that can output either a "Sine" or "Counter" signal.
 
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 PropertyObjectPtr simulatedChannel = PropertyObject();
@@ -940,6 +987,13 @@ counterSettings.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Res
 
 simulatedChannel.addProperty(ObjectProperty("CounterSettings", counterSettings));
 ----
+C#::
++
+[NOTE]
+The `EvalValue` usage of the C++ example is not supported in the current version of the .NET Bindings. +
+E.g. this is not possible (conversion of `EvalValue` to `Unit`): +
+`amplitudeProp.Unit = CoreObjectsFactory.CreateEvalValue("Unit(%AmplitudeUnit:SelectedValue)");`
+====
 
 ==== Referencing another Property
 
@@ -998,9 +1052,7 @@ C#::
 ----
 PropertyObject simulatedChannel = CoreObjectsFactory.CreatePropertyObject();
 
-var list = CoreTypesFactory.CreateList<BaseObject>();
-list.Add("Sine");
-list.Add("Counter");
+var list = CoreTypesFactory.CreateList<BaseObject>("Sine", "Counter");
 
 simulatedChannel.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Waveform", list, 0, true));
 simulatedChannel.AddProperty(CoreObjectsFactory.CreateReferenceProperty("Settings", CoreObjectsFactory.CreateEvalValue("if($Waveform == 0, %SineSettings, %CounterSettings)")));
@@ -1088,10 +1140,9 @@ loop_threshold.visible = opendaq.EvalValue(opendaq.String('$Mode == 1'))
 ----
 C#::
 +
-[source,csharp]
-----
-// Not supported in .NET
-----
+[NOTE]
+The `EvalValue` usage of the C++ example is not supported in the current version of the .NET Bindings. +
+I.e. it is not possible to convert an `EvalValue` to `BoolObject`.
 ====
 
 We configure the unit of the `"Amplitude"` Property based on the `"AmplitudeUnit"` selected value, using
@@ -1135,10 +1186,11 @@ amplitude_prop.unit = opendaq.EvalValue(opendaq.String('Unit(%AmplitudeUnit:Sele
 ----
 C#::
 +
-[source,csharp]
-----
-// Not supported in .NET
-----
+C#::
++
+[NOTE]
+The `EvalValue` usage of the C++ example is not supported in the current version of the .NET Bindings. +
+I.e. it is not possible to convert an `EvalValue` to `Unit`.
 ====
 
 As showcased above, the combination of the `EvalValue` system with the option of 
@@ -1361,11 +1413,7 @@ var allProps = propObj.AllProperties;
 // Contains the Properties "String", "FloatRef"
 var visibleProps = propObj.VisibleProperties;
 
-var order = CoreTypesFactory.CreateList<StringObject>();
-order.Add("FloatRef");
-order.Add("Float");
-order.Add("Int");
-order.Add("String");
+var order = CoreTypesFactory.CreateList<StringObject>("FloatRef", "Float", "Int", "String");
 propObj.SetPropertyOrder(order);
 
 // Contains the Properties in the order "FloatRef", "Float", "Int", String"
@@ -1534,9 +1582,7 @@ C#::
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-var list = CoreTypesFactory.CreateList<BaseObject>();
-list.Add("Banana");
-list.Add("Kiwi");
+var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Kiwi");
 
 propObj.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
 
@@ -1588,18 +1634,14 @@ C#::
 ----
 var propObj = CoreObjectsFactory.CreatePropertyObject();
 
-var list = CoreTypesFactory.CreateList<BaseObject>();
-list.Add("Banana");
-list.Add("Kiwi");
+var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Kiwi");
 
 propObj.AddProperty(CoreObjectsFactory.CreateListProperty("List", list, true));
 
 // Prints "Banana"
 Console.WriteLine((string)propObj.GetPropertyValue("List[0]"));
 
-var list2 = CoreTypesFactory.CreateList<BaseObject>();
-list2.Add("Pear");
-list2.Add("Strawberry");
+var list2 = CoreTypesFactory.CreateList<BaseObject>("Pear", "Strawberry");
 
 // Sets a new value to the List Property.
 propObj.SetPropertyValue("List", (BaseObject)list2);
@@ -1715,6 +1757,10 @@ The event calls all functions of subscribers when triggered with a reference to 
 and an `Event arguments` object as function arguments. The Event arguments allow for overriding the
 read/written value.
 
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 auto propObj = PropertyObject();
@@ -1748,6 +1794,11 @@ std::cout << propObj.getPropertyValue("Int") << std::endl;
 // Prints out 1
 std::cout << propObj.getPropertyValue("IntReadCount") << std::endl;
 ----
+C#::
++
+[NOTE]
+Events are currently not supported in the current version of the .NET Bindings.
+====
 
 Keen-eyed readers might observe that the same getters/metadata fields also exist on Properties. 
 The events on Properties function the exact same as on Property Objects but should be used with care
@@ -1801,10 +1852,7 @@ PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectCl
 
 propClass.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 10, true));
 
-var list = CoreTypesFactory.CreateList<BaseObject>();
-list.Add("Banana");
-list.Add("Apple");
-list.Add("Kiwi");
+var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
 
 propClass.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
 ----
@@ -1870,10 +1918,7 @@ PropertyObjectClassBuilder propClass = CoreObjectsFactory.CreatePropertyObjectCl
 
 propClass.AddProperty(CoreObjectsFactory.CreateIntProperty("Integer", 10, true));
 
-var list = CoreTypesFactory.CreateList<BaseObject>();
-list.Add("Banana");
-list.Add("Apple");
-list.Add("Kiwi");
+var list = CoreTypesFactory.CreateList<BaseObject>("Banana", "Apple", "Kiwi");
 
 propClass.AddProperty(CoreObjectsFactory.CreateSelectionProperty("Selection", list, 1, true));
 
@@ -1969,8 +2014,12 @@ As stated in the events section, users should be careful when adding events to P
 that are part of classes, as the same callback will be invoked independently of the Property
 object that triggered the event.
 
-The example below illustrates a possible case of error-prone behaviour.
+The example below illustrates a possible case of error-prone behavior.
 
+[tabs]
+====
+Cpp::
++
 [source,cpp]
 ----
 int readCount = 0;
@@ -1997,3 +2046,8 @@ std::cout << propObj1.getPropertyValue("ReadCount") << std::endl;
 // Prints out 2
 std::cout << propObj2.getPropertyValue("ReadCount") << std::endl;
 ----
+C#::
++
+[NOTE]
+Events are not supported in the current version of the .NET Bindings.
+====

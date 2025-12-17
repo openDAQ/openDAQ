@@ -27,8 +27,11 @@
 #include <coretypes/cloneable.h>
 #include <coreobjects/core_event_args_factory.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/component_private_ptr.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <coreobjects/property_object_class_internal_ptr.h>
+#include <opendaq/mirrored_input_port_private_ptr.h>
+#include <algorithm>
 
 namespace daq::config_protocol
 {
@@ -68,6 +71,10 @@ public:
     void setPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
     void setProtectedPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
     BaseObjectPtr getPropertyValue(const std::string& globalId, const std::string& propertyName);
+
+    BaseObjectPtr getSelectionValues(const std::string& globalId, const std::string& path, const std::string& propertyName);
+    ListPtr<IBaseObject> getSuggestedValues(const std::string& globalId, const std::string& path, const std::string& propertyName);
+
     void clearPropertyValue(const std::string& globalId, const std::string& propertyName);
     void clearProtectedPropertyValue(const std::string& globalId, const std::string& propertyName);
     void update(const std::string& globalId, const std::string& serialized, const std::string& path);
@@ -96,6 +103,11 @@ public:
                                  const StringPtr& connectionString,
                                  const PropertyObjectPtr& config,
                                  const ComponentPtr& parentComponent);
+    DictPtr<IString, IComponentHolder> addDevices(const std::string& globalId,
+                                                  const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                                  Bool doGetErrCodes,
+                                                  Bool doGetErrorInfos,
+                                                  const ComponentPtr& parentComponent);
     void removeDevice(const std::string& globalId, const StringPtr& deviceLocalId);
     void connectSignal(const std::string& globalId, const std::string& globaSignallId);
     void disconnectSignal(const std::string& globalId);
@@ -133,8 +145,14 @@ public:
                                              const BaseObjectPtr& context,
                                              const FunctionPtr& factoryCallback);
     bool isComponentNested(const StringPtr& componentGlobalId);
-    void connectExternalSignalToServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
-    void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal, const StringPtr& inputPortRemoteGlobalId);
+    void connectExternalSignalToServerInputPort(const SignalPtr& signal,
+                                                const StringPtr& inputPortRemoteGlobalId,
+                                                const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
+    void disconnectExternalSignalFromServerInputPort(const SignalPtr& signal,
+                                                     const StringPtr& inputPortRemoteGlobalId,
+                                                     const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
+    void changeInputPortStreamingSource(const StringPtr& inputPortRemoteGlobalId,
+                                        const MirroredInputPortPrivatePtr& mirroredInputPortPrivate);
 
     uint16_t getProtocolVersion() const;
 
@@ -193,6 +211,7 @@ private:
     void setProtocolVersion(uint16_t protocolVersion);
     std::tuple<uint32_t, StringPtr, StringPtr> getExternalSignalParams(const SignalPtr& signal,
                                                                        const ConfigProtocolStreamingProducerPtr& streamingProducer);
+    StringPtr getSerializedSignal(const SignalPtr& signal);
 };
 
 using ConfigProtocolClientCommPtr = std::shared_ptr<ConfigProtocolClientComm>;
@@ -212,7 +231,8 @@ public:
                                   const SendNoReplyRequestCallback& sendNoReplyRequestCallback,
                                   const HandleDaqPacketCallback& handleDaqPacketCallback,
                                   const SendPreprocessedPacketsCallback& sendPreprocessedPacketsCb,
-                                  const ServerNotificationReceivedCallback& serverNotificationReceivedCallback);
+                                  const ServerNotificationReceivedCallback& serverNotificationReceivedCallback,
+                                  const DowngradePacketStreamingCallback& downgradePacketStreamingCallback = nullptr);
 
     // called from client module
     DevicePtr connect(const ComponentPtr& parent = nullptr, uint16_t protocolVersion = GetLatestConfigProtocolVersion());
@@ -234,6 +254,7 @@ private:
     ServerNotificationReceivedCallback serverNotificationReceivedCallback;
     DeserializerPtr deserializer;
     ConfigProtocolStreamingProducerPtr streamingProducer;
+    DowngradePacketStreamingCallback downgradePacketStreamingCallback;
 
     ConfigProtocolClientCommPtr clientComm;
     
@@ -254,12 +275,14 @@ ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& da
                                                             const SendNoReplyRequestCallback& sendNoReplyRequestCallback,
                                                             const HandleDaqPacketCallback& handleDaqPacketCallback,
                                                             const SendPreprocessedPacketsCallback& sendPreprocessedPacketsCb,
-                                                            const ServerNotificationReceivedCallback& serverNotificationReceivedCallback)
+                                                            const ServerNotificationReceivedCallback& serverNotificationReceivedCallback,
+                                                            const DowngradePacketStreamingCallback& downgradePacketStreamingCallback)
     : daqContext(daqContext)
     , sendRequestCallback(sendRequestCallback)
     , serverNotificationReceivedCallback(serverNotificationReceivedCallback)
     , deserializer(JsonDeserializer())
     , streamingProducer(std::make_shared<ConfigProtocolStreamingProducer>(daqContext, handleDaqPacketCallback, sendPreprocessedPacketsCb))
+    , downgradePacketStreamingCallback(downgradePacketStreamingCallback)
     , clientComm(
           std::make_shared<ConfigProtocolClientComm>(
               daqContext,
@@ -268,7 +291,7 @@ ConfigProtocolClient<TRootDeviceImpl>::ConfigProtocolClient(const ContextPtr& da
               streamingProducer,
               [](ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
               {
-                  return TRootDeviceImpl::Deserialize(serialized, context, factoryCallback, obj);
+                  return TRootDeviceImpl::template Deserialize<TRootDeviceImpl>(serialized, context, factoryCallback, obj);
               }))
 {
 }
@@ -323,6 +346,14 @@ void ConfigProtocolClient<TRootDeviceImpl>::protocolHandshake(uint16_t protocolV
     clientComm->setProtocolVersion(protocolVersion);
     const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
     LOG_I("Config protocol version {} used", protocolVersion);
+
+    // enable signal reading within basic client-to-device streaming
+    if (protocolVersion < 18)
+        streamingProducer->enableReading();
+
+    // downgrade packet streaming serializer to version 1
+    if (protocolVersion < 10 && downgradePacketStreamingCallback)
+        downgradePacketStreamingCallback(1);
 }
 
 template<class TRootDeviceImpl>
@@ -356,11 +387,12 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
             const ErrCode errCode = localTypeManager->addType(type);
             if (OPENDAQ_FAILED(errCode))
             {
-                ObjectPtr<IErrorInfo> errorInfo;
-                daqGetErrorInfo(&errorInfo);
                 StringPtr message;
-                if (errorInfo.assigned())
-                    errorInfo->getMessage(&message);
+                const ErrCode err = daqGetErrorInfoMessage(&message);
+                if (err == errCode)
+                    daqClearErrorInfo();
+                else
+                    message = nullptr;
 
                 const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
                 LOG_W("Couldn't add type {} to local type manager: {}", type.getName(), message.assigned() ? message: "Unknown error");
@@ -392,7 +424,7 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
     protocolHandshake(clientComm->getProtocolVersion());
     enumerateTypes();
 
-    if (restoreClientConfigOnReconnect)
+    if (restoreClientConfigOnReconnect && !rootDevice.isLocked())
     {
         SerializerPtr serializer;
         if (getProtocolVersion() < 10)
@@ -432,6 +464,7 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
 
     const ComponentHolderPtr deviceHolder = clientComm->requestRootDevice(parent);
     auto device = deviceHolder.getComponent();
+    device.asPtr<IComponentPrivate>().setComponentConfig(nullptr);
 
     clientComm->setRootDevice(device);
     clientComm->connectDomainSignals(device);

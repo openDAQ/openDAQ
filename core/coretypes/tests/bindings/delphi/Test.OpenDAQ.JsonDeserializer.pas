@@ -80,8 +80,8 @@ type
     procedure FactoryReturnsError;
   end;
 
-function SerializedObjectFactory(SerObj: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
-function ErrorFactory(SerObj: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode; cdecl;
+function SerializedObjectFactory(SerObj: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
+function ErrorFactory(SerObj: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode; cdecl;
 
 implementation
 
@@ -89,12 +89,12 @@ uses
   DS.UT.DSUnitTestEngineUnit, WinApi.Windows, OpenDAQ.CoreTypes.Errors, SysUtils;
 
 
-function SerializedObjectFactory(SerObj: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function SerializedObjectFactory(SerObj: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 begin
   Result := OPENDAQ_SUCCESS;
 end;
 
-function ErrorFactory(SerObj: ISerializedObject; Context: IBaseObject; out Obj: IBaseObject): ErrCode;
+function ErrorFactory(SerObj: ISerializedObject; Context: IBaseObject; FactoryCallback: IFunction; out Obj: IBaseObject): ErrCode;
 begin
   Result := OPENDAQ_ERR_GENERALERROR;
 end;
@@ -117,7 +117,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '...');
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, BaseObj), OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, BaseObj), OPENDAQ_ERR_DESERIALIZE_PARSE_ERROR);
 end;
 
 procedure TTest_JsonDeserializer.BoolTrue;
@@ -129,7 +129,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, 'true');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(BoolObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(BoolObj));
   BoolObj.GetValue(BoolVal);
   Assert.IsTrue(BoolVal);
 end;
@@ -143,7 +143,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, 'false');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(BoolObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(BoolObj));
   BoolObj.GetValue(BoolVal);
   Assert.IsFalse(BoolVal);
 end;
@@ -157,7 +157,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '0.0');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(FloatObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(FloatObj));
   FloatObj.GetValue(FloatVal);
   Assert.AreEqual(FloatVal, Double(0.0));
 end;
@@ -172,7 +172,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '1.7976931348623157e308');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(FloatObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(FloatObj));
   FloatObj.GetValue(FloatVal);
   Assert.AreEqual(FloatVal, Double(FloatMax));
 end;
@@ -187,7 +187,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '2.2250738585072014e-308');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(FloatObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(FloatObj));
   FloatObj.GetValue(FloatVal);
   Assert.AreEqual(FloatVal, Double(FloatMin));
 end;
@@ -201,7 +201,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '0');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(IntObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(IntObj));
   Intobj.GetValue(IntVal);
   Assert.AreEqual(IntVal, Int64(0));
 end;
@@ -216,7 +216,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '9223372036854775807');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(IntObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(IntObj));
   Intobj.GetValue(IntVal);
   Assert.AreEqual(IntVal, IntMax);
 end;
@@ -231,7 +231,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '-9223372036854775808');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(IntObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(IntObj));
   Intobj.GetValue(IntVal);
   Assert.AreEqual(IntVal, IntMin);
 end;
@@ -246,7 +246,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '" !\"#$%&''()*+''-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(StrObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(StrObj));
   StrObj.GetCharPtr(@Str);
   Assert.AreEqual(string(Str), Expected);
 end;
@@ -261,7 +261,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '[]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(0));
 end;
@@ -277,7 +277,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '["Item1"]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(1));
 
@@ -298,7 +298,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '["Item1", "Item2"]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(2));
 
@@ -323,7 +323,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '[true]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(1));
 
@@ -343,7 +343,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '[false]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(1));
 
@@ -363,7 +363,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '[false,true]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(2));
 
@@ -387,7 +387,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '[0.0]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(1));
 
@@ -410,7 +410,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '[0.0,2.2250738585072014e-308,1.7976931348623157e308]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(3));
 
@@ -436,7 +436,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '[0]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(1));
 
@@ -459,7 +459,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '[0,-9223372036854775808,9223372036854775807]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(3));
 
@@ -496,7 +496,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807,"Test1"]');
-  Deserializer.Deserialize(StringObj, nil, IBaseObject(ListObj));
+  Deserializer.Deserialize(StringObj, nil, nil, IBaseObject(ListObj));
   ListObj.GetCount(Count);
   Assert.AreEqual(Count, SizeT(11));
 
@@ -553,7 +553,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '{"__type":"unknown"}');
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, BaseObj), OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, BaseObj), OPENDAQ_ERR_FACTORY_NOT_REGISTERED);
 end;
 
 procedure TTest_JsonDeserializer.ObjectTypeTagNotInt;
@@ -564,7 +564,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '{"__type":0.0}');
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, BaseObj), OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, BaseObj), OPENDAQ_ERR_DESERIALIZE_UNKNOWN_TYPE);
 end;
 
 procedure TTest_JsonDeserializer.NoObjectType;
@@ -575,7 +575,7 @@ var
 begin
   CreateJsonDeserializer(Deserializer);
   CreateString(StringObj, '{"test":0}');
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, BaseObj), OPENDAQ_ERR_DESERIALIZE_NO_TYPE);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, BaseObj), OPENDAQ_ERR_DESERIALIZE_NO_TYPE);
 end;
 
 procedure TTest_JsonDeserializer.DeserializeNullString;
@@ -584,7 +584,7 @@ var
   BaseObj: IBaseObject;
 begin
   CreateJsonDeserializer(Deserializer);
-  Assert.AreEqual(Deserializer.Deserialize(nil, nil, BaseObj), OPENDAQ_ERR_ARGUMENT_NULL);
+  Assert.AreEqual(Deserializer.Deserialize(nil, nil, nil, BaseObj), OPENDAQ_ERR_ARGUMENT_NULL);
 end;
 
 procedure TTest_JsonDeserializer.RegisterFactory;
@@ -672,7 +672,7 @@ begin
 
   Str := '{"__type":"' + Id + '"}';
   CreateString(StringObj, PAnsiChar(Str));
-  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, BaseObj), OPENDAQ_ERR_GENERALERROR);
+  Assert.AreEqual(Deserializer.Deserialize(StringObj, nil, nil, BaseObj), OPENDAQ_ERR_GENERALERROR);
   DaqUnregisterSerializerFactory(PAnsiChar(Id));
 end;
 

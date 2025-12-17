@@ -26,6 +26,7 @@
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scaling_calc_private.h>
 #include <opendaq/signal_exceptions.h>
+#include <opendaq/mem_pool_allocator.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -180,13 +181,17 @@ inline BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& d
 inline BaseObjectPtr buildObjectFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager)
 {
     void * rawAddr = addr;
-    std::unique_ptr<char[]> rawData;
 
     auto scalingCalc = descriptor.asPtr<IScalingCalcPrivate>(true);
     if (scalingCalc->hasScalingCalc())
     {
-        rawData = std::make_unique<char[]>(descriptor.getSampleSize());
-        rawAddr = rawData.get();
+        using MemPoolAllocator = details::MemPoolAllocator<uint8_t>;
+        using StaticMemPool = details::StaticMemPool<uint8_t, 32>;
+
+        StaticMemPool memPool;
+        std::vector<uint8_t, MemPoolAllocator> rawData{MemPoolAllocator(memPool)};
+        rawData.reserve(descriptor.getSampleSize());
+        rawAddr = rawData.data();
         scalingCalc->scaleData(addr, 1, &rawAddr);
     }
 
@@ -207,13 +212,18 @@ inline BaseObjectPtr buildObjectFromDescriptor(void*& addr, const DataDescriptor
     }
     return buildFromDescriptor(rawAddr, descriptor, typeManager);
 }
+
+struct CreatePacketNoMemoryTag
+{
+};
+
 }
 
-template <typename TInterface = IDataPacket>
-class DataPacketImpl : public GenericDataPacketImpl<TInterface, IReusableDataPacket>
+template <typename TInterface = IDataPacket, typename ... TInterfaces>
+class DataPacketImpl : public GenericDataPacketImpl<TInterface, IReusableDataPacket, TInterfaces ...>
 {
 public:
-    using Super = GenericDataPacketImpl<TInterface, IReusableDataPacket>;
+    using Super = GenericDataPacketImpl<TInterface, IReusableDataPacket, TInterfaces ...>;
 
     explicit DataPacketImpl(IDataPacket* domainPacket,
                             IDataDescriptor* descriptor,
@@ -222,12 +232,18 @@ public:
 
     explicit DataPacketImpl(IDataDescriptor* descriptor, SizeT sampleCount, INumber* offset);
 
-    explicit DataPacketImpl(const DataPacketPtr& domainPacket,
-                            const DataDescriptorPtr& descriptor,
+    explicit DataPacketImpl(PacketDetails::CreatePacketNoMemoryTag,
+                            IDataPacket* domainPacket,
+                            IDataDescriptor* descriptor,
                             SizeT sampleCount,
-                            const NumberPtr& offset,
+                            INumber* offset);
+
+    explicit DataPacketImpl(IDataPacket* domainPacket,
+                            IDataDescriptor* descriptor,
+                            SizeT sampleCount,
+                            INumber* offset,
                             void* externalMemory,
-                            const DeleterPtr& deleter,
+                            IDeleter* deleter,
                             SizeT bufferSize = std::numeric_limits<SizeT>::max());
 
     explicit DataPacketImpl(const DataPacketPtr& domainPacket,
@@ -261,7 +277,8 @@ public:
                                  Bool canReallocMemory,
                                  Bool* success) override;
 
-private:
+protected:
+    void internalDispose([[maybe_unused]] bool disposing) override;
     bool isDataEqual(const DataPacketPtr& dataPacket) const;
     void freeMemory();
     void freeScaledData();
@@ -287,8 +304,8 @@ private:
     bool hasReferenceDomainOffset;
 };
 
-template <typename TInterface>
-void DataPacketImpl<TInterface>::initPacket()
+template <typename TInterface, typename... TInterfaces>
+void DataPacketImpl<TInterface, TInterfaces ...>::initPacket()
 {
     if (descriptor.getSampleType() == SampleType::Struct && rawSampleSize != sampleSize)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Packets with struct implicit descriptor not supported");
@@ -297,20 +314,21 @@ void DataPacketImpl<TInterface>::initPacket()
     hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(true)->hasScalingCalc();
 
     const auto referenceDomainInfo = descriptor.getReferenceDomainInfo();
-    hasReferenceDomainOffset = referenceDomainInfo.assigned() && referenceDomainInfo.getReferenceDomainOffset().assigned();
+    hasReferenceDomainOffset = referenceDomainInfo.assigned() && referenceDomainInfo.getReferenceDomainOffset().assigned() &&
+                               referenceDomainInfo.getReferenceDomainOffset() != 0;
 
     hasRawDataOnly = !hasScalingCalc && !hasDataRuleCalc && !hasReferenceDomainOffset;
 }
 
-template <typename TInterface>
-DataPacketImpl<TInterface>::DataPacketImpl(IDataPacket* domainPacket,
-                                           IDataDescriptor* descriptor,
-                                           SizeT sampleCount,
-                                           INumber* offset)
+template <typename TInterface, typename... TInterfaces>
+DataPacketImpl<TInterface, TInterfaces...>::DataPacketImpl(IDataPacket* domainPacket,
+                                                           IDataDescriptor* descriptor,
+                                                           SizeT sampleCount,
+                                                           INumber* offset)
     : Super(domainPacket)
     , descriptor(descriptor)
     , offset(offset)
-    , sampleCount(sampleCount)
+    , sampleCount(static_cast<uint32_t>(sampleCount))
     , hasScalingCalc(false)
     , hasDataRuleCalc(false)
     , hasRawDataOnly(true)
@@ -323,10 +341,10 @@ DataPacketImpl<TInterface>::DataPacketImpl(IDataPacket* domainPacket,
     if (descriptor == nullptr)
         DAQ_THROW_EXCEPTION(ArgumentNullException, "Data descriptor in packet is null.");
 
-    sampleSize = this->descriptor.getSampleSize();
-    rawSampleSize = this->descriptor.getRawSampleSize();
-    dataSize = sampleCount * sampleSize;
-    rawDataSize = sampleCount * rawSampleSize;
+    sampleSize = static_cast<uint32_t>(this->descriptor.getSampleSize());
+    rawSampleSize = static_cast<uint32_t>(this->descriptor.getRawSampleSize());
+    dataSize = this->sampleCount * sampleSize;
+    rawDataSize = this->sampleCount * rawSampleSize;
 
     if (rawDataSize > 0)
     {
@@ -340,19 +358,19 @@ DataPacketImpl<TInterface>::DataPacketImpl(IDataPacket* domainPacket,
     initPacket();
 }
 
-template <typename TInterface>
-DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
-                                           const DataDescriptorPtr& descriptor,
-                                           SizeT sampleCount,
-                                           const NumberPtr& offset,
-                                           void* externalMemory,
-                                           const DeleterPtr& deleter,
-                                           SizeT bufferSize)
+template <typename TInterface, typename... TInterfaces>
+DataPacketImpl<TInterface, TInterfaces...>::DataPacketImpl(IDataPacket* domainPacket,
+                                                           IDataDescriptor* descriptor,
+                                                           SizeT sampleCount,
+                                                           INumber* offset,
+                                                           void* externalMemory,
+                                                           IDeleter* deleter,
+                                                           SizeT bufferSize)
     : Super(domainPacket)
     , deleter(deleter)
     , descriptor(descriptor)
     , offset(offset)
-    , sampleCount(sampleCount)
+    , sampleCount(static_cast<uint32_t>(sampleCount))
     , hasScalingCalc(false)
     , hasDataRuleCalc(false)
     , hasRawDataOnly(true)
@@ -362,20 +380,18 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     scaledData = nullptr;
     data = nullptr;
 
-    if (!descriptor.assigned())
+    if (!this->descriptor.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException, "Data descriptor in packet is null.");
 
-    if (!deleter.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException, "Deleter must be assigned.");
 
-    sampleSize = descriptor.getSampleSize();
-    rawSampleSize = descriptor.getRawSampleSize();
-    dataSize = sampleCount * sampleSize;
+    sampleSize = static_cast<uint32_t>(this->descriptor.getSampleSize());
+    rawSampleSize = static_cast<uint32_t>(this->descriptor.getRawSampleSize());
+    dataSize = this->sampleCount * sampleSize;
 
     if (bufferSize == std::numeric_limits<SizeT>::max())
-        rawDataSize = sampleCount * rawSampleSize;
+        rawDataSize = this->sampleCount * rawSampleSize;
     else
-        rawDataSize = bufferSize;
+        rawDataSize = static_cast<uint32_t>(bufferSize);
 
     memorySize = rawDataSize;
     data = externalMemory;
@@ -383,22 +399,55 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     initPacket();
 }
 
-template <typename TInterface>
-DataPacketImpl<TInterface>::DataPacketImpl(IDataDescriptor* descriptor, SizeT sampleCount, INumber* offset)
-    : DataPacketImpl<TInterface>(nullptr, descriptor, sampleCount, offset)
+template <typename TInterface, typename... TInterfaces>
+DataPacketImpl<TInterface, TInterfaces...>::DataPacketImpl(IDataDescriptor* descriptor, SizeT sampleCount, INumber* offset)
+    : DataPacketImpl<TInterface, TInterfaces...>(nullptr, descriptor, sampleCount, offset)
 {
 }
 
-template <typename TInterface>
-DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
-                                           const DataDescriptorPtr& descriptor,
-                                           SizeT sampleCount,
-                                           void* initialValue,
-                                           void* otherValues,
-                                           SizeT otherValueCount)
+template <typename TInterface, typename... TInterfaces>
+DataPacketImpl<TInterface, TInterfaces...>::DataPacketImpl(PacketDetails::CreatePacketNoMemoryTag,
+                                                           IDataPacket* domainPacket,
+                                                           IDataDescriptor* descriptor,
+                                                           SizeT sampleCount,
+                                                           INumber* offset)
     : Super(domainPacket)
     , descriptor(descriptor)
-    , sampleCount(sampleCount)
+    , offset(offset)
+    , sampleCount(static_cast<uint32_t>(sampleCount))
+    , hasScalingCalc(false)
+    , hasDataRuleCalc(false)
+    , hasRawDataOnly(true)
+    , externalMemory(false)
+    , hasReferenceDomainOffset(false)
+{
+    scaledData = nullptr;
+    data = nullptr;
+
+    if (descriptor == nullptr)
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Data descriptor in packet is null.");
+
+    sampleSize = static_cast<uint32_t>(this->descriptor.getSampleSize());
+    rawSampleSize = static_cast<uint32_t>(this->descriptor.getRawSampleSize());
+    dataSize = this->sampleCount * sampleSize;
+    rawDataSize = this->sampleCount * rawSampleSize;
+
+    memorySize = rawDataSize;
+    externalMemory = true;
+
+    initPacket();
+}
+
+template <typename TInterface, typename... TInterfaces>
+DataPacketImpl<TInterface, TInterfaces...>::DataPacketImpl(const DataPacketPtr& domainPacket,
+                                                           const DataDescriptorPtr& descriptor,
+                                                           SizeT sampleCount,
+                                                           void* initialValue,
+                                                           void* otherValues,
+                                                           SizeT otherValueCount)
+    : Super(domainPacket)
+    , descriptor(descriptor)
+    , sampleCount(static_cast<uint32_t>(sampleCount))
     , hasRawDataOnly(true)
     , externalMemory(false)
 {
@@ -411,11 +460,11 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     if (ruleType != DataRuleType::Constant)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Data rule must be constant.");
 
-    sampleSize = descriptor.getSampleSize();
-    dataSize = sampleCount * sampleSize;
+    sampleSize = static_cast<uint32_t>(descriptor.getSampleSize());
+    dataSize = this->sampleCount * sampleSize;
     const auto structSize = sampleSize + sizeof(uint32_t);
 
-    rawDataSize = sampleSize + structSize * otherValueCount;
+    rawDataSize = static_cast<uint32_t>(sampleSize + structSize * otherValueCount);
     data = std::malloc(rawDataSize);
     std::memcpy(data, initialValue, sampleSize);
     if (otherValueCount > 0)
@@ -428,18 +477,18 @@ DataPacketImpl<TInterface>::DataPacketImpl(const DataPacketPtr& domainPacket,
     hasRawDataOnly = false;
 
     const auto referenceDomainInfo = descriptor.getReferenceDomainInfo();
-    hasReferenceDomainOffset =
-        referenceDomainInfo.assigned() && referenceDomainInfo.getReferenceDomainOffset().assigned();
+    hasReferenceDomainOffset = referenceDomainInfo.assigned() && referenceDomainInfo.getReferenceDomainOffset().assigned() &&
+                               referenceDomainInfo.getReferenceDomainOffset() != 0;
 }
 
-template <typename TInterface>
-DataPacketImpl<TInterface>::~DataPacketImpl()
+template <typename TInterface, typename... TInterfaces>
+DataPacketImpl<TInterface, TInterfaces...>::~DataPacketImpl()
 {
     freeMemory();
 }
 
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getDataDescriptor(IDataDescriptor** descriptor)
+template <typename TInterface, typename... TInterfaces>
+ErrCode DataPacketImpl<TInterface, TInterfaces...>::getDataDescriptor(IDataDescriptor** descriptor)
 {
     OPENDAQ_PARAM_NOT_NULL(descriptor);
 
@@ -447,8 +496,8 @@ ErrCode DataPacketImpl<TInterface>::getDataDescriptor(IDataDescriptor** descript
     return OPENDAQ_SUCCESS;
 }
 
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getSampleCount(SizeT* sampleCount)
+template <typename TInterface, typename... TInterfaces>
+ErrCode DataPacketImpl<TInterface, TInterfaces...>::getSampleCount(SizeT* sampleCount)
 {
     OPENDAQ_PARAM_NOT_NULL(sampleCount);
 
@@ -456,8 +505,8 @@ ErrCode DataPacketImpl<TInterface>::getSampleCount(SizeT* sampleCount)
     return OPENDAQ_SUCCESS;
 }
 
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getOffset(INumber** offset)
+template <typename TInterface, typename... TInterfaces>
+ErrCode DataPacketImpl<TInterface, TInterfaces...>::getOffset(INumber** offset)
 {
     OPENDAQ_PARAM_NOT_NULL(offset);
 
@@ -465,8 +514,8 @@ ErrCode DataPacketImpl<TInterface>::getOffset(INumber** offset)
     return OPENDAQ_SUCCESS;
 }
 
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getRawData(void** address)
+template <typename TInterface, typename... TInterfaces>
+ErrCode DataPacketImpl<TInterface, TInterfaces...>::getRawData(void** address)
 {
     OPENDAQ_PARAM_NOT_NULL(address);
 
@@ -474,8 +523,8 @@ ErrCode DataPacketImpl<TInterface>::getRawData(void** address)
     return OPENDAQ_SUCCESS;
 }
 
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getData(void** address)
+template <typename TInterface, typename... TInterfaces>
+ErrCode DataPacketImpl<TInterface, TInterfaces...>::getData(void** address)
 {
     OPENDAQ_PARAM_NOT_NULL(address);
 
@@ -496,7 +545,8 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
         if (sampleCount == 0)
             *address = nullptr;
         else
-            daqTry(
+        {
+            ErrCode err = daqTry(
                 [&]()
                 {
                     if (hasScalingCalc)
@@ -530,14 +580,17 @@ ErrCode DataPacketImpl<TInterface>::getData(void** address)
                     *address = scaledData;
                     return OPENDAQ_SUCCESS;
                 });
+
+            OPENDAQ_RETURN_IF_FAILED(err);
+        }
     }
 
     readLock.unlock();
     return OPENDAQ_SUCCESS;
 }
 
-template <typename TInterface>
-ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::getDataSize(SizeT* dataSize)
+template <typename TInterface, typename... TInterfaces>
+ErrCode INTERFACE_FUNC DataPacketImpl<TInterface, TInterfaces...>::getDataSize(SizeT* dataSize)
 {
     OPENDAQ_PARAM_NOT_NULL(dataSize);
 
@@ -545,8 +598,8 @@ ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::getDataSize(SizeT* dataSize)
     return OPENDAQ_SUCCESS;
 }
 
-template <typename TInterface>
-ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::getRawDataSize(SizeT* rawDataSize)
+template <typename TInterface, typename... TInterfaces>
+ErrCode INTERFACE_FUNC DataPacketImpl<TInterface, TInterfaces...>::getRawDataSize(SizeT* rawDataSize)
 {
     OPENDAQ_PARAM_NOT_NULL(rawDataSize);
 
@@ -554,8 +607,8 @@ ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::getRawDataSize(SizeT* rawData
     return OPENDAQ_SUCCESS;
 }
 
-template <typename TInterface>
-ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::equals(IBaseObject* other, Bool* equals) const
+template <typename TInterface, typename... TInterfaces>
+ErrCode INTERFACE_FUNC DataPacketImpl<TInterface, TInterfaces...>::equals(IBaseObject* other, Bool* equals) const
 {
     if (equals == nullptr)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
@@ -564,38 +617,39 @@ ErrCode INTERFACE_FUNC DataPacketImpl<TInterface>::equals(IBaseObject* other, Bo
     if (other == nullptr)
         return OPENDAQ_SUCCESS;
 
-    return daqTry(
-        [this, &other, &equals]()
-        {
-            ErrCode errCode = Super::equals(other, equals);
-            checkErrorInfo(errCode);
+    const ErrCode errCode = daqTry([this, &other, &equals]()
+    {
+        ErrCode errCode = Super::equals(other, equals);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
-            if (!(*equals))
-                return errCode;
-
-            *equals = false;
-            const DataPacketPtr packetOther = BaseObjectPtr::Borrow(other).asPtrOrNull<IDataPacket>(true);
-            if (packetOther == nullptr)
-                return errCode;
-
-            if (!BaseObjectPtr::Equals(this->domainPacket, packetOther.getDomainPacket()))
-                return errCode;
-            if (!BaseObjectPtr::Equals(this->descriptor, packetOther.getDataDescriptor()))
-                return errCode;
-            if (this->sampleCount != packetOther.getSampleCount())
-                return errCode;
-            if (this->offset != packetOther.getOffset())
-                return errCode;
-            if (!this->isDataEqual(packetOther))
-                return errCode;
-
-            *equals = true;
+        if (!(*equals))
             return errCode;
-        });
+
+        *equals = false;
+        const DataPacketPtr packetOther = BaseObjectPtr::Borrow(other).asPtrOrNull<IDataPacket>(true);
+        if (packetOther == nullptr)
+            return errCode;
+
+        if (!BaseObjectPtr::Equals(this->domainPacket, packetOther.getDomainPacket()))
+            return errCode;
+        if (!BaseObjectPtr::Equals(this->descriptor, packetOther.getDataDescriptor()))
+            return errCode;
+        if (this->sampleCount != packetOther.getSampleCount())
+            return errCode;
+        if (this->offset != packetOther.getOffset())
+            return errCode;
+        if (!this->isDataEqual(packetOther))
+            return errCode;
+
+        *equals = true;
+        return errCode;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
-template <typename TInterface>
-bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) const
+template <typename TInterface, typename... TInterfaces>
+bool DataPacketImpl<TInterface, TInterfaces...>::isDataEqual(const DataPacketPtr& dataPacket) const
 {
     if (rawDataSize != dataPacket.getRawDataSize())
     {
@@ -607,14 +661,15 @@ bool DataPacketImpl<TInterface>::isDataEqual(const DataPacketPtr& dataPacket) co
 
     return data == dataPacket.getRawData() || std::memcmp(data, dataPacket.getRawData(), rawDataSize) == 0;
 }
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getRawLastValue(void** value)
+
+template <typename TInterface, typename... TInterfaces>
+ErrCode DataPacketImpl<TInterface, TInterfaces...>::getRawLastValue(void** value)
 {
     return getRawValueByIndex(value, sampleCount - 1);
 }
 
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getRawValueByIndex(void** value, SizeT sampleIndex)
+template <typename TInterface, typename... TInterfaces>
+ErrCode DataPacketImpl<TInterface, TInterfaces...>::getRawValueByIndex(void** value, SizeT sampleIndex)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
     OPENDAQ_PARAM_NOT_NULL(*value);
@@ -624,7 +679,7 @@ ErrCode DataPacketImpl<TInterface>::getRawValueByIndex(void** value, SizeT sampl
     if (sampleIndex >= sampleCount)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
 
-    return daqTry([this, &value, sampleIndex]
+    const ErrCode errCode = daqTry([this, &value, sampleIndex]
     {
         if (hasRawDataOnly)
         {
@@ -644,40 +699,43 @@ ErrCode DataPacketImpl<TInterface>::getRawValueByIndex(void** value, SizeT sampl
                 descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateSample(offset, sampleIndex, data, rawDataSize, value);
         }
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
+template <typename TInterface, typename... TInterfaces>
+ErrCode DataPacketImpl<TInterface, TInterfaces...>::getLastValue(IBaseObject** value, ITypeManager* typeManager)
 {
     return getValueByIndex(value, sampleCount - 1, typeManager);
 }
 
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::getValueByIndex(IBaseObject** value, SizeT sampleIndex, ITypeManager* typeManager)
+template <typename TInterface, typename... TInterfaces>
+ErrCode DataPacketImpl<TInterface, TInterfaces...>::getValueByIndex(IBaseObject** value, SizeT sampleIndex, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    auto rawValue = std::make_unique<char[]>(sampleSize);
-    void* rawValueData = rawValue.get();
+    using MemPoolAllocator = details::MemPoolAllocator<uint8_t>;
+    using StaticMemPool = details::StaticMemPool<uint8_t, 32>;
+
+    StaticMemPool memPool;
+    std::vector<uint8_t, MemPoolAllocator> rawValue{MemPoolAllocator(memPool)};
+    rawValue.reserve(sampleSize);
+
+    void* rawValueData = rawValue.data();
     const ErrCode errCode = getRawValueByIndex(&rawValueData, sampleIndex);
 
     OPENDAQ_RETURN_IF_FAILED(errCode);
-    if (!rawValue)
-        return OPENDAQ_IGNORED;
 
-    return daqTry([&]
-    {
-        *value = PacketDetails::buildObjectFromDescriptor(rawValueData, descriptor, typeManager).detach();
-    });
+    return daqTry([&] { *value = PacketDetails::buildObjectFromDescriptor(rawValueData, descriptor, typeManager).detach(); });
 }
 
-template <typename TInterface>
-ErrCode DataPacketImpl<TInterface>::reuse(IDataDescriptor* newDescriptor,
-                                          SizeT newSampleCount,
-                                          INumber* newOffset,
-                                          IDataPacket* newDomainPacket,
-                                          Bool canReallocMemory,
-                                          Bool* success)
+template <typename TInterface, typename... TInterfaces>
+ErrCode DataPacketImpl<TInterface, TInterfaces...>::reuse(IDataDescriptor* newDescriptor,
+                                                          SizeT newSampleCount,
+                                                          INumber* newOffset,
+                                                          IDataPacket* newDomainPacket,
+                                                          Bool canReallocMemory,
+                                                          Bool* success)
 {
     OPENDAQ_PARAM_NOT_NULL(success);
 
@@ -705,7 +763,7 @@ ErrCode DataPacketImpl<TInterface>::reuse(IDataDescriptor* newDescriptor,
         freeMemory();
         scaledData = nullptr;
 
-        memorySize = newRawDataSize;
+        memorySize = static_cast<uint32_t>(newRawDataSize);
         data = std::malloc(newRawDataSize);
 
         if (data == nullptr)
@@ -718,9 +776,9 @@ ErrCode DataPacketImpl<TInterface>::reuse(IDataDescriptor* newDescriptor,
 
     this->packetId = generatePacketId();
 
-    sampleCount = newSampleCount;
-    rawSampleSize = newRawSampleSize;
-    rawDataSize = newRawDataSize;
+    sampleCount = static_cast<uint32_t>(newSampleCount);
+    rawSampleSize = static_cast<uint32_t>(newRawSampleSize);
+    rawDataSize = static_cast<uint32_t>(newRawDataSize);
     if (newDescriptorPtr.assigned())
         descriptor = newDescriptorPtr;
     if (newOffset != nullptr)
@@ -728,25 +786,35 @@ ErrCode DataPacketImpl<TInterface>::reuse(IDataDescriptor* newDescriptor,
     if (newDomainPacket != nullptr)
         this->domainPacket = newDomainPacket;
 
-    sampleSize = descriptor.getSampleSize();
+    sampleSize = static_cast<uint32_t>(descriptor.getSampleSize());
     dataSize = sampleCount * sampleSize;
 
     *success = True;
     return OPENDAQ_SUCCESS;
 }
 
-template <typename TInterface>
-void DataPacketImpl<TInterface>::freeScaledData()
+template <typename TInterface, typename... TInterfaces>
+void DataPacketImpl<TInterface, TInterfaces...>::internalDispose(bool disposing)
+{
+    Super::internalDispose(disposing);
+
+    descriptor.release();
+    offset.release();
+}
+
+template <typename TInterface, typename... TInterfaces>
+void DataPacketImpl<TInterface, TInterfaces...>::freeScaledData()
 {
     std::free(scaledData);
 }
 
-template <typename TInterface>
-void DataPacketImpl<TInterface>::freeMemory()
+template <typename TInterface, typename... TInterfaces>
+void DataPacketImpl<TInterface, TInterfaces...>::freeMemory()
 {
     if (externalMemory)
     {
-        deleter.deleteMemory(data);
+        if (deleter.assigned())
+            deleter.deleteMemory(data);
     }
     else
     {

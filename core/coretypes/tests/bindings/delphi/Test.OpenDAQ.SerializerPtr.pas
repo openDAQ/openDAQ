@@ -267,7 +267,7 @@ begin
   Serializable := EmptyList as ISerializablePtr;
   Serializable.Serialize(Serializer as ISerializer);
 
-  Assert.AreEqual(Serializer.GetOutputString(), '[]');
+  Assert.AreEqual(Serializer.GetOutputString(), '{"__type":"List","values":[]}');
 end;
 
 procedure TTest_BB_SerializerPtr.StringListOne();
@@ -283,7 +283,7 @@ begin
   Serializable := ArrayOneItem as ISerializablePtr;
   Serializable.Serialize(Serializer as ISerializer);
 
-  Assert.AreEqual(Serializer.GetOutputString(), '["Item1"]');
+  Assert.AreEqual(Serializer.GetOutputString(), '{"__type":"List","values":["Item1"]}');
 end;
 
 procedure TTest_BB_SerializerPtr.StringListMultiple();
@@ -301,7 +301,7 @@ begin
   Serializable := ArrayMultipleItems as ISerializablePtr;
   Serializable.Serialize(Serializer as ISerializer);
 
-  Assert.AreEqual(Serializer.GetOutputString(), '["Item1","Item2"]');
+  Assert.AreEqual(Serializer.GetOutputString(), '{"__type":"List","values":["Item1","Item2"]}');
 end;
 
 procedure TTest_BB_SerializerPtr.FloatListOne();
@@ -317,7 +317,7 @@ begin
   Serializable := ArrayOneItem as ISerializablePtr;
   Serializable.Serialize(Serializer as ISerializer);
 
-  Assert.AreEqual(Serializer.GetOutputString(), '[0.0]');
+  Assert.AreEqual(Serializer.GetOutputString(), '{"__type":"List","values":[0.0]}');
 end;
 
 procedure TTest_BB_SerializerPtr.FloatListMultiple();
@@ -338,7 +338,7 @@ begin
   Serializable := ArrayMultipleItems as ISerializablePtr;
   Serializable.Serialize(Serializer as ISerializer);
 
-  Assert.AreEqual(Serializer.GetOutputString(), '[0.0,2.2250738585072014e-308,1.7976931348623157e308]');
+  Assert.AreEqual(Serializer.GetOutputString(), '{"__type":"List","values":[0.0,2.2250738585072014e-308,1.7976931348623157e308]}');
 end;
 
 procedure TTest_BB_SerializerPtr.IntListOne();
@@ -354,7 +354,7 @@ begin
   Serializable := ArrayOneItem as ISerializablePtr;
   Serializable.Serialize(Serializer as ISerializer);
 
-  Assert.AreEqual(Serializer.GetOutputString(), '[0]');
+  Assert.AreEqual(Serializer.GetOutputString(), '{"__type":"List","values":[0]}');
 end;
 
 procedure TTest_BB_SerializerPtr.IntListMultiple();
@@ -374,7 +374,7 @@ begin
   Serializable := ArrayMultipleItems as ISerializablePtr;
   Serializable.Serialize(Serializer as ISerializer);
 
-  Assert.AreEqual(Serializer.GetOutputString(), '[0,-9223372036854775808,9223372036854775807]');
+  Assert.AreEqual(Serializer.GetOutputString(), '{"__type":"List","values":[0,-9223372036854775808,9223372036854775807]}');
 end;
 
 procedure TTest_BB_SerializerPtr.IntFloatList();
@@ -403,7 +403,7 @@ begin
   Serializable := MixedArray as ISerializablePtr;
   Serializable.Serialize(Serializer as ISerializer);
 
-  Assert.AreEqual(Serializer.GetOutputString(), '[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807]');
+  Assert.AreEqual(Serializer.GetOutputString(), '{"__type":"List","values":[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807]}');
 end;
 
 procedure TTest_BB_SerializerPtr.MixedList();
@@ -433,7 +433,7 @@ begin
   Serializable := MixedArray as ISerializablePtr;
   Serializable.Serialize(Serializer as ISerializer);
 
-  Assert.AreEqual(Serializer.GetOutputString(), '[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807,"Test1"]');
+  Assert.AreEqual(Serializer.GetOutputString(), '{"__type":"List","values":[0.0,0,-2.5,1.5,1,-2,2.2250738585072014e-308,1.7976931348623157e308,-9223372036854775808,9223372036854775807,"Test1"]}');
 end;
 
 procedure TTest_BB_SerializerPtr.StartTaggedNull();

@@ -26,6 +26,7 @@
 #include <opendaq/module_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  */
@@ -126,6 +127,30 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      */
     // [templateType(streamingTypes, IString, IStreamingType)]
     virtual ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) = 0;
+
+    // [templateType(licenseConfig, IString, IString)]
+    /*!
+    * @brief Used for loading a license, when the module requires one. Licenses can specify the degree to which the module is unlocked to the user
+    *        (i.e. which and/or how many concurrent function blocks from this modules are accessible with the license).
+    * @param[out] succeeded License was accepted.
+    * @param licenseConfig Any information relevant to load the license (i.e. a path to the license file).
+    */
+    virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeeded, IDict* licenseConfig) = 0;
+
+    // [templateType(licenseConfig, IString, IString)]
+    /*!
+     * @brief Used to retrieve the license config template.
+     * @param[out] licenseConfig Previously used config.
+     */
+    virtual ErrCode INTERFACE_FUNC getLicenseConfig(IDict** licenseConfig) = 0;
+
+    /*!
+     * @brief Check whether the module license is loaded.
+     * @param[out] loaded True, if the module license is loaded.
+     *
+     * Always return True if no license is required by the module.
+     */
+    virtual ErrCode INTERFACE_FUNC licenseLoaded(Bool* loaded) = 0;
 };
 /*!@}*/
 

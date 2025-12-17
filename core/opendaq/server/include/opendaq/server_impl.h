@@ -27,6 +27,7 @@
 #include <opendaq/discovery_server_ptr.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/signal_container_impl.h>
+#include <opendaq/streaming_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -85,7 +86,9 @@ public:
                 discoveryServer.template asPtr<IDiscoveryServer>().unregisterService(id);
             }
         }
-        return wrapHandler(this, &Self::onStopServer);
+        const ErrCode errCode = wrapHandler(this, &Self::onStopServer);
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to stop server");
+        return errCode;
     }
 
     ErrCode INTERFACE_FUNC getSignals(IList** signals, ISearchFilter* searchFilter = nullptr) override
@@ -100,6 +103,18 @@ public:
 
         const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
         return this->signals->getItems(signals, searchFilter);
+    }
+
+    ErrCode INTERFACE_FUNC getStreaming(IStreaming** streaming) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(streaming);
+
+        StreamingPtr streamingPtr;
+        const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetStreaming, streamingPtr);
+
+        *streaming = streamingPtr.detach();
+
+        return errCode;
     }
 
     // ISerializable
@@ -121,38 +136,40 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(obj);
 
-        return daqTry([&obj, &serialized, &context, &factoryCallback]()
-            {
-                *obj = Super::DeserializeComponent(
-                    serialized,
-                    context,
-                    factoryCallback,
-                    [](const SerializedObjectPtr& serialized,
-                       const ComponentDeserializeContextPtr& deserializeContext,
-                       const StringPtr& /*className*/) -> BaseObjectPtr
+        const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializeComponent(
+                serialized,
+                context,
+                factoryCallback,
+                [](const SerializedObjectPtr& serialized,
+                    const ComponentDeserializeContextPtr& deserializeContext,
+                    const StringPtr& /*className*/) -> BaseObjectPtr
+                {
+                    const auto id = serialized.readString("id");
+                    DevicePtr parentDevice;
+
+                    const auto parentFolder = deserializeContext.getParent();
+                    if (parentFolder.assigned())
                     {
-                        const auto id = serialized.readString("id");
-                        DevicePtr parentDevice;
+                        if (parentFolder.getLocalId() == "Srv" &&
+                            parentFolder.getParent().assigned() &&
+                            parentFolder.getParent().supportsInterface<IDevice>())
+                            parentDevice = parentFolder.getParent().asPtr<IDevice>();
+                        else
+                            DAQ_THROW_EXCEPTION(GeneralErrorException, "The server-component can be placed only under device's servers folder");
+                    }
 
-                        const auto parentFolder = deserializeContext.getParent();
-                        if (parentFolder.assigned())
-                        {
-                            if (parentFolder.getLocalId() == "Srv" &&
-                                parentFolder.getParent().assigned() &&
-                                parentFolder.getParent().supportsInterface<IDevice>())
-                                parentDevice = parentFolder.getParent().asPtr<IDevice>();
-                            else
-                                DAQ_THROW_EXCEPTION(GeneralErrorException, "The server-component can be placed only under device's servers folder");
-                        }
-
-                        return createWithImplementation<IServer, Server>(
-                            id,
-                            nullptr,
-                            parentDevice,
-                            deserializeContext.getContext(),
-                            parentFolder);
-                    }).detach();
-            });
+                    return createWithImplementation<IServer, Server>(
+                        id,
+                        nullptr,
+                        parentDevice,
+                        deserializeContext.getContext(),
+                        parentFolder);
+                }).detach();
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
 protected:
@@ -164,6 +181,11 @@ protected:
 
     virtual void onStopServer()
     {
+    }
+
+    virtual StreamingPtr onGetStreaming()
+    {
+        return nullptr;
     }
 
     void removed() override

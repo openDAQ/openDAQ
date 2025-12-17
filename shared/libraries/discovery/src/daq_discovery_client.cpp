@@ -123,30 +123,28 @@ ErrCode DiscoveryClient::requestIpConfiguration(const StringPtr& manufacturer,
     requestProperties["ifaceName"] = ifaceName.toStdString();
 
     TxtProperties responseProperties;
-    auto errCode =
+    ErrCode errCode =
         mdnsClient->requestCurrentIpConfiguration(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_NAME, requestProperties, responseProperties);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    if (OPENDAQ_SUCCEEDED(errCode))
+    errCode = daqTry([&]()
     {
-        errCode = daqTry([&]()
+        if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
+            responseProperties["serialNumber"] != serialNumber.toStdString() ||
+            responseProperties["ifaceName"] != ifaceName.toStdString())
         {
-            if (responseProperties["manufacturer"] != manufacturer.toStdString() ||
-                responseProperties["serialNumber"] != serialNumber.toStdString() ||
-                responseProperties["ifaceName"] != ifaceName.toStdString())
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response");
-            }
-            config = IpModificationUtils::populateIpConfigProperties(responseProperties);
-            return OPENDAQ_SUCCESS;
-        });
-    }
-
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Incorrect device or interface requisites in server response");
+        }
+        config = IpModificationUtils::populateIpConfigProperties(responseProperties);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
 
 bool DiscoveryClient::verifyDiscoveredDevice(const MdnsDiscoveredDevice& discoveredDevice) const
 {
-    if (discoveredDevice.ipv4Address.empty() && discoveredDevice.ipv6Address.empty())
+    if (discoveredDevice.ipv4Addresses.empty() && discoveredDevice.ipv6Addresses.empty())
         return false;
 
     std::unordered_set<std::string> requiredCapsCopy = requiredCaps;

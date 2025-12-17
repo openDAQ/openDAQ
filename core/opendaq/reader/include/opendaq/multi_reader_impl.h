@@ -18,7 +18,6 @@
 #include <opendaq/read_info.h>
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/signal_reader.h>
-#include <coreobjects/property_object_factory.h>
 #include <opendaq/multi_reader_builder_ptr.h>
 #include <opendaq/reader_factory.h>
 
@@ -40,16 +39,12 @@ public:
                     SampleType valueReadType,
                     SampleType domainReadType);
 
-    MultiReaderImpl(const ReaderConfigPtr& readerConfig,
-                    SampleType valueReadType,
-                    SampleType domainReadType,
-                    ReadMode mode);
-
     MultiReaderImpl(const MultiReaderBuilderPtr& builder);
 
     ~MultiReaderImpl() override;
 
     ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
+    ErrCode INTERFACE_FUNC setExternalListener(IInputPortNotifications* listener) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC getDomainReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC setValueTransformFunction(IFunction* transform) override;
@@ -74,6 +69,7 @@ public:
     ErrCode INTERFACE_FUNC getInputPorts(IList** ports) override;
     ErrCode INTERFACE_FUNC getReadTimeoutType(ReadTimeoutType* timeoutType) override;
     ErrCode INTERFACE_FUNC markAsInvalid() override;
+    ErrCode INTERFACE_FUNC getIsValid(Bool* isValid) override;
 
     ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) override;
     ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
@@ -85,46 +81,64 @@ public:
     ErrCode INTERFACE_FUNC setActive(Bool isActive) override;
     ErrCode INTERFACE_FUNC getActive(Bool* isActive) override;
 
+    void internalDispose(bool disposing) override;
+
 private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
 
-    ListPtr<IInputPortConfig> checkPreconditions(const ListPtr<IComponent>& list, bool overrideMethod, bool& fromInputPorts);
-    void updateCommonSampleRateAndDividers();
+    // Checks for list size > 0, caches context of 1st component
+    void checkListSizeAndCacheContext(const ListPtr<IComponent>& list);
+    // Returns true if all ports are connected
+    bool allPortsConnected() const;
+    // Sets up port notifications and binds ports
+    void configureAndStorePorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
+    // Returns list of ports used by reader; Creates ports when reader is created with signals;
+    ListPtr<IInputPortConfig> createOrAdoptPorts(const ListPtr<IComponent>& list) const;
+
+    // Multi reader signals must have the symbol "s" and quantity "time"
+    static ErrCode checkDomainUnits(const ListPtr<InputPortConfigPtr>& ports);
+    ErrCode checkReferenceDomainInfo(const ListPtr<InputPortConfigPtr>& ports) const;
+    ErrCode isDomainValid(const ListPtr<IInputPortConfig>& list) const;
+
     ListPtr<ISignal> getSignals() const;
 
     void setStartInfo();
-    void connectPorts(const ListPtr<IInputPortConfig>& inputPorts, 
-                      SampleType valueRead, 
-                      SampleType domainRead, 
-                      ReadMode mode,
-                      bool fromInputPorts);
-    SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
-    DictPtr<IString, IEventPacket> readUntilFirstDataPacket();
-    ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
-    bool hasEventOrGapInQueue();
 
+    bool eventOrGapInQueue() const;
+    bool dataPacketsOrEventReady();
+    SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
+    
+    ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
+    void sync();
     SyncStatus getSyncStatus() const;
 
+    void readSamples(SizeT samples);
+    void readSamplesAndSetRemainingSamples(SizeT samples);
+    NumberPtr calculateOffset() const;
+
+    // Check for event packets; Synchronize; Skip if event/packet in queue and available samples < minReadCount
+    MultiReaderStatusPtr readAndSynchronize(bool zeroDataRead, SizeT& availableSamples, SyncStatus& syncStatus);
     MultiReaderStatusPtr readPackets();
+    DictPtr<IString, IEventPacket> readUntilFirstDataPacketAndGetEvents();
+    void updateCommonSampleRateAndDividers();
 
     void prepare(void** outValues, SizeT count, std::chrono::milliseconds timeoutTime);
     void prepareWithDomain(void** outValues, void** domain, SizeT count, std::chrono::milliseconds timeoutTime);
 
     [[nodiscard]] Duration durationFromStart() const;
-    void readSamples(SizeT samples);
-
-    void readSamplesAndSetRemainingSamples(SizeT samples);
 
     void readDomainStart();
-    void sync();
-
     void setActiveInternal(Bool isActive);
+    void setPortsActiveState(Bool active);
 
-    MultiReaderStatusPtr createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, const NumberPtr& offset = nullptr);
+    MultiReaderStatusPtr createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, const NumberPtr& offset = nullptr) const;
 
     std::mutex mutex;
+    std::mutex packetReceivedMutex;
     bool invalid{false};
+    // TODO: Rename this
+    bool nextPacketIsEvent{false};
     std::string errorMessage;
 
     SizeT remainingSamplesToRead{};
@@ -143,30 +157,30 @@ private:
     std::int64_t commonSampleRate = -1;
     std::int32_t sampleRateDividerLcm = 1;
     bool sameSampleRates = false;
+    Bool allowDifferentRates = true;
 
     std::vector<SignalReader> signals;
     PropertyObjectPtr portBinder;
     ProcedurePtr readCallback;
+    WeakRefPtr<IInputPortNotifications> externalListener;
 
     LoggerComponentPtr loggerComponent;
 
     bool startOnFullUnitOfDomain;
 
     NotifyInfo notify{};
-    bool portConnected{};
-    bool portDisconnected{};
+    bool portsConnected{};
 
     DataDescriptorPtr mainValueDescriptor;
     DataDescriptorPtr mainDomainDescriptor;
-
-    void isDomainValid(const ListPtr<IInputPortConfig>& list);
-    void checkEarlyPreconditionsAndCacheContext(const ListPtr<IComponent>& list);
 
     ContextPtr context;
     struct ReferenceDomainBin;
     bool isActive{true};
 
     SizeT minReadCount;
+    PacketReadyNotification notificationMethod;
+    ListPtr<PacketReadyNotification> notificationMethodsList;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -39,7 +39,7 @@ inline DataPacketPtr BinaryDataPacket(
     const DataDescriptorPtr& descriptor,
     uint64_t sampleSize)
 {
-    DataPacketPtr obj(BinaryDataPacket_Create(domainPacket, descriptor, sampleSize));
+    DataPacketPtr obj(BinaryDataPacket_Create(domainPacket, descriptor, static_cast<SizeT>(sampleSize)));
     return obj;
 }
 
@@ -62,7 +62,7 @@ inline DataPacketPtr BinaryDataPacketWithExternalMemory(
     void* data,
     const DeleterPtr& deleter)
 {
-    DataPacketPtr obj(BinaryDataPacketWithExternalMemory_Create(domainPacket, descriptor, sampleSize, data, deleter));
+    DataPacketPtr obj(BinaryDataPacketWithExternalMemory_Create(domainPacket, descriptor, static_cast<SizeT>(sampleSize), data, deleter));
     return obj;
 }
 

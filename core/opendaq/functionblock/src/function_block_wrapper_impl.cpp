@@ -27,7 +27,7 @@ ErrCode FunctionBlockWrapperImpl::includeObject(IString* objectName,
 {
     const auto objectNameStr = StringPtr::Borrow(objectName).toStdString();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (includeObjectsByDefault)
     {
@@ -58,7 +58,7 @@ ErrCode FunctionBlockWrapperImpl::excludeObject(IString* objectName,
 {
     const auto objectNameStr = StringPtr::Borrow(objectName).toStdString();
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (!includeObjectsByDefault)
     {
@@ -157,31 +157,35 @@ ErrCode FunctionBlockWrapperImpl::setPropertySelectionValues(IString* propertyNa
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
-    return wrapHandler(
-        [this, &propertyName, &enumValues]()
+    const ErrCode errCode = daqTry([this, &propertyName, &enumValues]()
+    {
+        const auto propertyNameStr = StringPtr::Borrow(propertyName);
+
+        if (!isPropertyVisible(propertyNameStr))
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+
+        if (!functionBlock.hasProperty(propertyNameStr))
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+
+        const auto enumValuesPtr = ListPtr<IInteger>::Borrow(enumValues);
+
+        if (enumValuesPtr.assigned())
         {
-            const auto propertyNameStr = StringPtr::Borrow(propertyName);
-
-            if (!isPropertyVisible(propertyNameStr))
-                DAQ_THROW_EXCEPTION(NotFoundException);
-
-            if (!functionBlock.hasProperty(propertyNameStr))
-                DAQ_THROW_EXCEPTION(NotFoundException);
-
-            const auto enumValuesPtr = ListPtr<IInteger>::Borrow(enumValues);
-
-            if (enumValuesPtr.assigned())
-            {
-                std::unordered_set<size_t> evl;
-                for (const auto& v : enumValuesPtr)
-                    evl.insert(v);
-                enumValuesMap.insert_or_assign(propertyNameStr, std::move(evl));
-            }
-            else
-                enumValuesMap.erase(propertyNameStr);
-        });
+            std::unordered_set<size_t> evl;
+            for (const auto& v : enumValuesPtr)
+                evl.insert(v);
+            enumValuesMap.insert_or_assign(propertyNameStr, std::move(evl));
+        }
+        else
+        {
+            enumValuesMap.erase(propertyNameStr);
+        }
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set property selection values");
+    return errCode;
 }
 
 ErrCode FunctionBlockWrapperImpl::getWrappedFunctionBlock(IFunctionBlock** functionBlock)
@@ -226,7 +230,7 @@ ErrCode FunctionBlockWrapperImpl::getInputPorts(IList** ports, ISearchFilter* se
 
     const auto innerPorts = functionBlock.getInputPorts(searchFilter);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto portList = getObjects<IInputPort>(innerPorts,
                                                  includedInputPorts,
@@ -243,7 +247,7 @@ ErrCode FunctionBlockWrapperImpl::getSignals(IList** signals, ISearchFilter* sea
 
     const auto innerSignals = functionBlock.getSignals(searchFilter);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto signalList = getObjects<ISignal>(innerSignals,
                                            includedSignals,
@@ -260,7 +264,7 @@ ErrCode FunctionBlockWrapperImpl::getFunctionBlocks(IList** functionBlocks, ISea
 
     const auto innerFbs = functionBlock.getFunctionBlocks(searchFilter);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto fbList = getObjects<IFunctionBlock>(
         innerFbs,
@@ -295,53 +299,55 @@ ErrCode FunctionBlockWrapperImpl::setPropertyValue(IString* propertyName, IBaseO
 
     auto propertyNameStr = StringPtr::Borrow(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
-    return wrapHandler(
-        [this, &propertyNameStr, &value]()
+    const ErrCode errCode = daqTry([this, &propertyNameStr, &value]()
+    {
+        auto valuePtr = BaseObjectPtr::Borrow(value);
+
+        if (isChildProperty(propertyNameStr))
         {
-            auto valuePtr = BaseObjectPtr::Borrow(value);
+            StringPtr childName;
+            StringPtr subName;
+            splitOnFirstDot(propertyNameStr, childName, subName);
+            if (!isPropertyVisible(childName))
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+        }
+        else
+        {
+            if (!isPropertyVisible(propertyNameStr))
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
-            if (isChildProperty(propertyNameStr))
+            if (!isSelectionAvailable(propertyNameStr, valuePtr))
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "Selection value not available");
+
+            auto cIt = coercers.find(propertyNameStr);
+            if (cIt != coercers.end())
             {
-                StringPtr childName;
-                StringPtr subName;
-                splitOnFirstDot(propertyNameStr, childName, subName);
-                if (!isPropertyVisible(childName))
-                    DAQ_THROW_EXCEPTION(NotFoundException);
-            }
-            else
-            {
-                if (!isPropertyVisible(propertyNameStr))
-                    DAQ_THROW_EXCEPTION(NotFoundException);
-
-                if (!isSelectionAvailable(propertyNameStr, valuePtr))
-                    DAQ_THROW_EXCEPTION(NotFoundException, "Selection value not available");
-
-                auto cIt = coercers.find(propertyNameStr);
-                if (cIt != coercers.end())
-                {
-                    auto coercer = cIt->second;
-                    valuePtr = coercer.coerce(borrowPtr<PropertyObjectPtr>(), valuePtr);
-                }
-
-                auto it = validators.find(propertyNameStr);
-                if (it != validators.end())
-                {
-                    auto validator = it->second;
-                    validator.validate(borrowPtr<PropertyObjectPtr>(), valuePtr);
-                }
+                auto coercer = cIt->second;
+                valuePtr = coercer.coerce(borrowPtr<PropertyObjectPtr>(), valuePtr);
             }
 
-            functionBlock.setPropertyValue(propertyNameStr, valuePtr);
-        });
+            auto it = validators.find(propertyNameStr);
+            if (it != validators.end())
+            {
+                auto validator = it->second;
+                validator.validate(borrowPtr<PropertyObjectPtr>(), valuePtr);
+            }
+        }
+
+        functionBlock.setPropertyValue(propertyNameStr, valuePtr);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set property value");
+    return errCode;
 }
 
 ErrCode FunctionBlockWrapperImpl::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->getPropertyValue(propertyName, value);
@@ -353,7 +359,7 @@ ErrCode FunctionBlockWrapperImpl::getPropertySelectionValue(IString* propertyNam
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->getPropertySelectionValue(propertyName, value);
@@ -365,7 +371,7 @@ ErrCode FunctionBlockWrapperImpl::clearPropertyValue(IString* propertyName)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->clearPropertyValue(propertyName);
@@ -377,7 +383,7 @@ ErrCode FunctionBlockWrapperImpl::hasProperty(IString* propertyName, Bool* hasPr
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (isPropertyVisible(propertyName))
         return functionBlock->hasProperty(propertyName, hasProperty);
@@ -419,20 +425,20 @@ ErrCode FunctionBlockWrapperImpl::getProperty(IString* propertyName, IProperty**
 
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
-    return wrapHandler(
-        [this, &propertyNamePtr, &property]()
+    const ErrCode errCode = daqTry([this, &propertyNamePtr, &property]()
+    {
+        if (isPropertyVisible(propertyNamePtr))
         {
-            if (isPropertyVisible(propertyNamePtr))
-            {
-                auto prop = wrapProperty(propertyNamePtr);
-
-                *property = prop.detach();
-            }
-            else
-                DAQ_THROW_EXCEPTION(NotFoundException);
-        });
+            auto prop = wrapProperty(propertyNamePtr);
+            *property = prop.detach();
+            return OPENDAQ_SUCCESS;
+        }
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get property");
+    return errCode;
 }
 
 ErrCode FunctionBlockWrapperImpl::addProperty(IProperty* property)
@@ -449,7 +455,7 @@ ErrCode FunctionBlockWrapperImpl::getProperties(const ListPtr<IProperty>& innerP
 {
     assert(properties != nullptr);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     const auto propertyList = getObjects<IProperty>(innerProperties,
                                                     includedProperties,

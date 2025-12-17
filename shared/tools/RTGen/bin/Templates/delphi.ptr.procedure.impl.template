@@ -6,5 +6,5 @@ begin
     raise ERTInvalidParameterException.Create('Interface object is nil.');$PtrNullChecks$
 
   Err := FObject.$Name$($ArgumentNames$);
-  CheckRtErrorInfo(Err);
+  CheckDaqErrorInfo(Err);
 end;

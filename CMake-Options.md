@@ -30,17 +30,20 @@ The following options might be used to customize the build passing them in the *
 |-|-|-|-|-|
 | `OPENDAQ_GENERATE_DELPHI_BINDINGS` | Bool | `OFF` | Generate Delphi bindings | Delphi bindings only available in Windows |
 | `OPENDAQ_GENERATE_CSHARP_BINDINGS` | Bool | `OFF` | Generate CSharp bindings | - |
+| `OPENDAQ_GENERATE_C_BINDINGS` | Bool | `OFF` | Generate C bindings | - |
 | `OPENDAQ_GENERATE_PYTHON_BINDINGS` | Bool | `OFF` | Generate Python bindings | - |
 | `OPENDAQ_GENERATE_PYTHON_BINDINGS_STUBS` | Bool | `OFF` | Generate Python bindings stubs for auto-completion | Only relevant if `OPENDAQ_GENERATE_PYTHON_BINDINGS` is ON |
 
 ## Modules-build options
 | Option name | Type | Default value | Description | Conditions, if any |
 |-|-|-|-|-|
+| `DAQMODULES_LICENSING_MODULE` | Bool | `OFF` | Build reference licensing module | - |
 | `DAQMODULES_OPENDAQ_CLIENT_MODULE` | Bool | `OFF` | Build openDAQ client modules | - |
 | `DAQMODULES_OPENDAQ_SERVER_MODULE` | Bool | `OFF` | Build openDAQ server modules | - |
 | `DAQMODULES_EMPTY_MODULE` | Bool | `OFF` | Build demo empty module | - |
 | `DAQMODULES_AUDIO_DEVICE_MODULE` | Bool | `OFF` | Build audio device module | - |
 | `DAQMODULES_REF_DEVICE_MODULE` | Bool | `OFF` | Build reference device module | - |
+| `DAQMODULES_SIMULATOR_DEVICE_MODULE` | Bool | `OFF` | Build simulator device module | - |
 | `DAQMODULES_REF_FB_MODULE` | Bool | `OFF` | Build reference function block module | - |
 | `DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER` | Bool | `ON` | Enable renderer function block | Only relevant if `DAQMODULES_REF_FB_MODULE` is ON |
 

@@ -16,11 +16,11 @@
 
 #pragma once
 #include <opcuatms_client/objects/tms_client_component_impl.h>
-#include <opendaq/input_port_impl.h>
+#include <opendaq/mirrored_input_port_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TmsClientInputPortImpl : public TmsClientComponentBaseImpl<GenericInputPortImpl<ITmsClientComponent>>
+class TmsClientInputPortImpl : public TmsClientComponentBaseImpl<MirroredInputPortBase<ITmsClientComponent>>
 {
 public:
     explicit TmsClientInputPortImpl(const ContextPtr& ctx,
@@ -31,11 +31,14 @@ public:
 
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
+    ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
     ErrCode INTERFACE_FUNC getConnection(IConnection** connection) override;
     ErrCode INTERFACE_FUNC getRequiresSignal(Bool* value) override;
     ErrCode INTERFACE_FUNC setRequiresSignal(Bool value) override;
+
+    StringPtr onGetRemoteId() const override; // fixme move to protected
 
 protected:
     SignalPtr onGetSignal();

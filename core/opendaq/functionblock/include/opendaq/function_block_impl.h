@@ -27,6 +27,8 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/component_update_context_ptr.h>
 #include <opendaq/recorder.h>
+#include <opendaq/component_type_private.h>
+#include <opendaq/module_info_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -93,7 +95,8 @@ protected:
                                              PacketReadyNotification notificationMethod,
                                              BaseObjectPtr customData = nullptr,
                                              bool requestGapPackets = false,
-                                             const PermissionsPtr& permissions = nullptr);
+                                             const PermissionsPtr& permissions = nullptr,
+                                             LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
 
     void addInputPort(const InputPortPtr& inputPort);
     void removeInputPort(const InputPortConfigPtr& inputPort);
@@ -115,6 +118,7 @@ protected:
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
                                                   const BaseObjectPtr& context,
                                                   const FunctionPtr& factoryCallback);
+    static void deserializeVersion(const SerializedObjectPtr& serialized, const FunctionBlockTypePtr& fbType);
 private:
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
     ListPtr<IFunctionBlock> getFunctionBlocksRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -135,7 +139,7 @@ FunctionBlockImpl<TInterface, Interfaces...>::FunctionBlockImpl(const FunctionBl
                                                            : throw ArgumentNullException("Logger must not be null"))
 {
     this->defaultComponents.insert("IP");
-    inputPorts = this->template addFolder<IInputPort>("IP", nullptr);
+    inputPorts = this->template addFolder<IInputPort>("IP", nullptr, LockingStrategy::ForwardOwnerLockOwn);
     inputPorts.asPtr<IComponentPrivate>().lockAllAttributes();
     inputPorts.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
 }
@@ -160,11 +164,13 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getSignals(IList** signals
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
-        return daqTry([&]
+        const ErrCode errCode = daqTry([&]
         {
             *signals = getSignalsRecursiveInternal(searchFilter).detach();
             return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     return this->signals->getItems(signals, searchFilter);
@@ -174,7 +180,7 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getSignalsRecursive(IList** signals, ISearchFilter* searchFilter)
 {
     OPENDAQ_PARAM_NOT_NULL(signals);
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         SearchFilterPtr filter;
         if (!searchFilter)
@@ -185,6 +191,8 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getSignalsRecursive(IList*
         *signals = getSignalsRecursiveInternal(filter).detach();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -218,11 +226,13 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getInputPorts(IList** port
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
-        return daqTry([&]
+        const ErrCode errCode = daqTry([&]
         {
             *ports = getInputPortsRecursiveInternal(searchFilter).detach();
             return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     return this->inputPorts->getItems(ports, searchFilter);
@@ -255,9 +265,9 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getStatusSignal(ISignal** 
 
     SignalPtr statusSig;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetStatusSignal, statusSig);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *statusSignal = statusSig.detach();
-
     return errCode;
 }
 
@@ -327,7 +337,11 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const Ba
             break;
     }
 
-    contextPtr.removeInputPortConnection(inputPorts.getGlobalId());
+    const ErrCode errCode = contextPtr->removeInputPortConnection(inputPorts.getGlobalId());
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+        daqClearErrorInfo();
+    else
+        checkErrorInfo(errCode);
     Super::onUpdatableUpdateEnd(context);
 }
 
@@ -341,8 +355,16 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std
     {
         auto typeId = serializedFunctionBlock.readString("typeId");
 
-        auto config = PropertyObject();
-        config.addProperty(StringProperty("LocalId", fbId));
+        PropertyObjectPtr config;
+        if (serializedFunctionBlock.hasKey("ComponentConfig"))
+            config = serializedFunctionBlock.readObject("ComponentConfig");
+        else
+            config = PropertyObject();
+        
+        if (!config.hasProperty("LocalId"))
+            config.addProperty(StringProperty("LocalId", fbId));
+        else
+            config.setPropertyValue("LocalId", fbId);
 
         auto fb = onAddFunctionBlock(typeId, config);
         updatableFb = fb.template asPtr<IUpdatable>(true);
@@ -382,11 +404,13 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlocks(IList** 
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
-        return daqTry([&]
+        const ErrCode errCode = daqTry([&]
         {
             *functionBlocks = getFunctionBlocksRecursiveInternal(searchFilter).detach();
             return OPENDAQ_SUCCESS;
         });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
     }
 
     return this->functionBlocks->getItems(functionBlocks, searchFilter);
@@ -419,6 +443,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockT
 
     DictPtr<IString, IFunctionBlockType> dict;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableFunctionBlockTypes, dict);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *functionBlockTypes = dict.detach();
     return errCode;
@@ -440,6 +465,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunction
     const auto typeIdPtr = StringPtr::Borrow(typeId);
     const auto PropertyObjectPtr = PropertyObjectPtr::Borrow(config);
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeIdPtr, PropertyObjectPtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *functionBlock = functionBlockPtr.detach();
     return errCode;
@@ -458,14 +484,14 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunct
 
     const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
-
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
     this->functionBlocks.removeItem(functionBlock);
 }
 
@@ -476,9 +502,9 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::acceptsSignal(IInputPort* 
 
     Bool accepted;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAcceptsSignal, accepted, port, signal);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *accept = accepted;
-
     return errCode;
 }
 
@@ -492,6 +518,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::connected(IInputPort* port)
 {
     const ErrCode errCode = wrapHandler(this, &Self::onConnected, port);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
 
@@ -503,7 +530,9 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onConnected(const InputPortPt
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::disconnected(IInputPort* port)
 {
-    return wrapHandler(this, &Self::onDisconnected, port);
+    const ErrCode errCode = wrapHandler(this, &Self::onDisconnected, port);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -516,9 +545,12 @@ InputPortConfigPtr FunctionBlockImpl<TInterface, Interfaces...>::createAndAddInp
                                                                                        PacketReadyNotification notificationMethod,
                                                                                        BaseObjectPtr customData,
                                                                                        bool requestGapPackets,
-                                                                                       const PermissionsPtr& permissions)
+                                                                                       const PermissionsPtr& permissions,
+                                                                                       LockingStrategy lockingStrategy)
 {
     InputPortConfigPtr inputPort = InputPort(this->context, inputPorts, localId, requestGapPackets);
+    if (lockingStrategy != LockingStrategy::OwnLock)
+        inputPort.asPtr<IPropertyObjectInternal>().setLockingStrategy(lockingStrategy);
 
     inputPort.setListener(this->template borrowPtr<InputPortNotificationsPtr>());
     inputPort.setNotificationMethod(notificationMethod);
@@ -567,12 +599,20 @@ void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(c
     auto typeId = type.getId();
     serializer.writeString(typeId.getCharPtr(), typeId.getLength());
 
-    serializer.key("isRecorder");
-    FunctionBlockPtr thisPtr = this->template borrowPtr<FunctionBlockPtr>();
-    if (thisPtr.supportsInterface<IRecorder>())
-        serializer.writeBool(true);
-    else
-        serializer.writeBool(false);
+    if (type.getModuleInfo().assigned() && type.getModuleInfo().getVersionInfo().assigned())
+    {
+        const auto version = type.getModuleInfo().getVersionInfo();
+        const auto versionStr = fmt::format("{}.{}.{}", version.getMajor(), version.getMinor(), version.getPatch());
+
+        serializer.key("__version");
+        serializer.writeString(versionStr.c_str(), versionStr.size());
+    }
+
+    if(!forUpdate) {
+        serializer.key("isRecorder");
+        FunctionBlockPtr thisPtr = this->template borrowPtr<FunctionBlockPtr>();
+        serializer.writeBool(thisPtr.supportsInterface<IRecorder>());
+    }
 
     Super::serializeCustomObjectValues(serializer, forUpdate);
     this->serializeFolder(serializer, inputPorts, "IP", forUpdate);
@@ -582,7 +622,9 @@ template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::packetReceived(IInputPort* port)
 {
     const auto portPtr = InputPortPtr::Borrow(port);
-    return wrapHandler(this, &Self::onPacketReceived, portPtr);
+    const ErrCode errCode = wrapHandler(this, &Self::onPacketReceived, portPtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -644,11 +686,30 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObj
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
         *obj = DeserializeFunctionBlock<FunctionBlock>(serialized, context, factoryCallback).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
+
+template <typename TInterface, typename... Interfaces>
+void FunctionBlockImpl<TInterface, Interfaces...>::deserializeVersion(
+    const SerializedObjectPtr& serialized,
+    const FunctionBlockTypePtr& fbType)
+{
+    if (serialized.hasKey("__version"))
+    {
+        const auto version = Super::parseVersionString(serialized.readString("__version"));
+        if (version.assigned())
+        {
+            const auto moduleInfo = ModuleInfo(version, "__unknown", "_unknown");
+            checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+        }
+    }
+}
+
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlock)
 

@@ -20,6 +20,7 @@
 #include <opendaq/config_provider.h>
 #include <coreobjects/authentication_provider.h>
 #include <opendaq/discovery_server.h>
+#include <opendaq/module_authenticator.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -341,6 +342,41 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
      * openDAQ supports the "mdns" server by default, but must be added to the instance builder to be enabled.
      */
     virtual ErrCode INTERFACE_FUNC addDiscoveryServer(IString* serverName) = 0;
+
+    // [returnSelf]
+    /*!
+    * @brief Enables or disables usage of the scheduler's main loop.
+    * @param useMainLoop Whether to construct the scheduler with main loop support.
+    * 
+    * If enabled, the scheduler will be constructed with the main worker, allowing use of the main loop. 
+    * Note that enabling this does not automatically start the main loop. To start it, you must call 
+    * `IScheduler::runMainLoop()` or `IScheduler::runMainLoopIteration()`.
+    */
+    virtual ErrCode INTERFACE_FUNC setUsingSchedulerMainLoop(Bool useMainLoop) = 0;
+
+    /*!
+    * @brief Checks whether the scheduler will be created with main loop support.
+    * @param[out] useMainLoop True if the scheduler will be configured with main loop support; otherwise, false.
+    */
+    virtual ErrCode INTERFACE_FUNC getUsingSchedulerMainLoop(Bool* useMainLoop) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Set verification class for modules. The class will check each module DLL and verify it's authenticity before it is loaded.
+     * @param authenticator Verifier object.
+     */
+    virtual ErrCode INTERFACE_FUNC setModuleAuthenticator(IModuleAuthenticator* authenticator) = 0;
+
+    /*!
+     * @brief Gets the authenticator object.
+     * @param[out] authenticator Verifier object. Will return nullptr if not set.
+     */
+    virtual ErrCode INTERFACE_FUNC getModuleAuthenticator(IModuleAuthenticator** authenticator) = 0;
+
+    // [returnSelf]
+    virtual ErrCode INTERFACE_FUNC setLoadAuthenticatedModulesOnly(Bool authOnly) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getLoadAuthenticatedModulesOnly(Bool* authOnly) = 0;
 };
 /*!@}*/
 

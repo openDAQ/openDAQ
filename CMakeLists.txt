@@ -135,6 +135,7 @@ cmake_dependent_option(OPCUA_ENABLE_ENCRYPTION "Enable OpcUa encryption" OFF "OP
 option(OPENDAQ_GENERATE_DELPHI_BINDINGS "Generate Delphi bindings" OFF)
 option(OPENDAQ_GENERATE_PYTHON_BINDINGS "Generate Python bindings" OFF)
 option(OPENDAQ_GENERATE_CSHARP_BINDINGS "Generate CSharp bindings" OFF)
+option(OPENDAQ_GENERATE_C_BINDINGS "Generate C bindings" OFF)
 
 # Runtime and default 3rd party library linking
 option(OPENDAQ_LINK_RUNTIME_STATICALLY "Link the C++ runtime staticaly (embedd it)" OFF)
@@ -153,11 +154,21 @@ option(OPENDAQ_DISABLE_DEBUG_POSTFIX "Disable debug ('-debug') postfix" OFF)
 option(OPENDAQ_DEBUG_WARNINGS_AS_ERRORS "Treat debug warnings as errors" OFF)
 option(OPENDAQ_RELEASE_WARNINGS_AS_ERRORS "Treat release warnings as errors" ON)
 option(OPENDAQ_USE_CCACHE "Use compiler cache driver if available" ON)
+option(OPENDAQ_ENABLE_ERROR_GUARD "Enable error guard" OFF)
+
+if(NOT OPENDAQ_ENABLE_ERROR_GUARD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(OPENDAQ_ENABLE_ERROR_GUARD ON CACHE BOOL "Enable error guard" FORCE)
+endif()
+
+if(OPENDAQ_ENABLE_ERROR_GUARD)
+    add_compile_definitions(OPENDAQ_ENABLE_ERROR_GUARD)
+endif()
 
 # Dependent options
 cmake_dependent_option(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS "Enable delphi bindings tests" ON "OPENDAQ_GENERATE_DELPHI_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS "Enable python bindings tests" ON "OPENDAQ_GENERATE_PYTHON_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS "Enable csharp bindings tests" ON "OPENDAQ_GENERATE_CSHARP_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
+cmake_dependent_option(OPENDAQ_ENABLE_C_BINDINGS_TESTS "Enable C bindings tests" ON "OPENDAQ_GENERATE_C_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 if (NOT APPLE AND UNIX)
     cmake_dependent_option(OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS "Enable websocket streaming integration tests" ON "OPENDAQ_ENABLE_TESTS;OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
 endif()
@@ -174,10 +185,16 @@ option(DAQMODULES_OPENDAQ_SERVER_MODULE "Building of ${SDK_NAME} server modules"
 option(DAQMODULES_EMPTY_MODULE "Building of demo module" OFF)
 option(DAQMODULES_AUDIO_DEVICE_MODULE "Building of audio device module" OFF)
 option(DAQMODULES_REF_DEVICE_MODULE "Building of reference device module" OFF)
+option(DAQMODULES_SIMULATOR_DEVICE_MODULE "Building of simulator device module" OFF)
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
 option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder module" OFF)
+option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" OFF)
+option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
+if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER AND APPLE)
+    enable_language(OBJC OBJCXX)
+endif()
 
 # logging
 
@@ -220,8 +237,9 @@ if (COMMAND get_mode)
     message(STATUS "CMake Mode is ${CMAKE_MODE}")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM Clang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|IntelLLVM)$")
+    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM")
+    message(STATUS "Compiler is LLVM")
 endif ()
 
 if (UNIX AND (CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUXX))
@@ -427,7 +445,7 @@ if (OPENDAQ_FORCE_LLD_LINKER)
     message(STATUS "Forcing the use of LLVM LLD linker. Make sure it is installed and available.")
 endif()
 
-if (MSVC)
+if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
     # As above CMAKE_CXX_STANDARD but for VS
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++17>)
 
@@ -471,14 +489,6 @@ if (MSVC)
         # assignment within conditional expression
         # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-4-c4706
         /wd4706
-        # loss of data / precision, unsigned <--> signed
-        #
-        # 'argument' : conversion from 'type1' to 'type2', possible loss of data
-        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4244
-        /wd4244
-        # 'var' : conversion from 'size_t' to 'type', possible loss of data
-        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4267
-        /wd4267
     )
         add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:${flag}>)
     endforeach()
@@ -568,7 +578,7 @@ find_package(Threads REQUIRED)
 
 find_package(Filesystem REQUIRED COMPONENTS Final Experimental)
 
-if(OPENDAQ_GENERATE_DELPHI_BINDINGS OR OPENDAQ_GENERATE_PYTHON_BINDINGS OR OPENDAQ_GENERATE_CSHARP_BINDINGS)
+if(OPENDAQ_GENERATE_DELPHI_BINDINGS OR OPENDAQ_GENERATE_PYTHON_BINDINGS OR OPENDAQ_GENERATE_CSHARP_BINDINGS OR OPENDAQ_GENERATE_C_BINDINGS)
     set(OPENDAQ_GENERATE_BINDINGS On)
 endif()
 
@@ -689,6 +699,28 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         -Wno-missing-field-initializers"
     )
 
+    # Append Intel-LLVM-specific suppressions
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Rno-debug-disables-optimization \
+            -Wno-deprecated-literal-operator \
+            -Wno-self-assign-overloaded"
+        )
+    endif()
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
+        message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
+        # cmd-line options might be mixed - suppress warnings
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Wno-unknown-argument \
+            -Wno-unused-command-line-argument"
+        )
+        # suppress warning in MSVC toolchain header file
+        set(CLANG_FLAGS "${CLANG_FLAGS} \
+            -Xclang -Wno-delete-non-abstract-non-virtual-dtor"
+        )
+    endif ()
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANG_FLAGS}")
 
@@ -698,15 +730,14 @@ endif()
 
 add_subdirectory(core)
 add_subdirectory(modules)
-add_subdirectory(bindings)
 add_subdirectory(shared)
-add_subdirectory(app)
 add_subdirectory(examples)
+add_subdirectory(bindings)
 add_subdirectory(docs)
 add_subdirectory(simulator)
 
-if (OPENDAQ_ENABLE_REGRESSION_TESTS)
-    add_subdirectory(regression)
+if (OPENDAQ_ENABLE_TESTS)
+    add_subdirectory(tests)
 endif()
 
 if (NOT BUILDING_AS_SUBMODULE)

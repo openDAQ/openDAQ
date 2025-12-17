@@ -26,7 +26,6 @@
 #include <opendaq/tags_private_ptr.h>
 #include <opendaq/tags_ptr.h>
 #include <opendaq/folder_ptr.h>
-#include <mutex>
 #include <opendaq/component_keys.h>
 #include <tsl/ordered_set.h>
 #include <opendaq/custom_log.h>
@@ -37,6 +36,7 @@
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_impl.h>
 #include <cctype>
+#include <coretypes/coretype_utils.h>
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
 #include <coreobjects/permission_manager_factory.h>
@@ -58,13 +58,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
 
-enum class ComponentStatus : EnumType
-{
-    Ok = 0,
-    Warning,
-    Error
-};
-
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>
 {
@@ -77,6 +70,9 @@ public:
                   const StringPtr& localId,
                   const StringPtr& className = nullptr,
                   const StringPtr& name = nullptr);
+
+    // IPropertyObjectInternal
+    ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
 
     // IComponent
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
@@ -194,6 +190,8 @@ protected:
 
     virtual void onOperationModeChanged(OperationModeType modeType);
 
+    static VersionInfoPtr parseVersionString(const std::string& input);
+
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
 };
@@ -264,6 +262,21 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 }
 
 template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger()
+{
+    if (this->lockingStrategy == LockingStrategy::InheritLock)
+    {
+        PropertyObjectInternalPtr lockOwnerPtr;
+        OPENDAQ_RETURN_IF_FAILED(this->getMutexOwner(&lockOwnerPtr));
+
+        this->setLockOwner(lockOwnerPtr);
+        this->setMutex(lockOwnerPtr.getMutex());
+    }
+
+    return Super::enableCoreEventTrigger();
+}
+
+template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs ...>::getLocalId(IString** localId)
 {
     OPENDAQ_PARAM_NOT_NULL(localId);
@@ -286,7 +299,7 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     *active = this->active;
     return OPENDAQ_SUCCESS;
@@ -299,11 +312,14 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
 
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
     
+        if (static_cast<bool>(active) == this->active)
+            return OPENDAQ_IGNORED;
+
         if (lockedAttributes.count("Active"))
         {
             if (context.assigned() && context.getLogger().assigned())
@@ -316,9 +332,6 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 
             return OPENDAQ_IGNORED;
         }
-
-        if (static_cast<bool>(active) == this->active)
-            return OPENDAQ_IGNORED;
 
         if (active && isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
@@ -383,7 +396,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
 
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
@@ -434,7 +447,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
 
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
@@ -495,7 +508,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
-        auto lock = this->getRecursiveConfigLock();
+        auto lock = this->getRecursiveConfigLock2();
 
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
@@ -543,7 +556,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     if (!attributes)
         return OPENDAQ_SUCCESS;
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
@@ -551,9 +564,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
     {
-        std::string str = strPtr;
-        std::transform(str.begin(), str.end(), str.begin(), [](char c){ return std::tolower(c); });
-        str[0] = std::toupper(str[0]);
+        std::string str = strPtr.toStdString();
+        str = coretype_utils::toLowerCase(str);
+        str[0] = coretype_utils::toUpperCase(str[0]);
         lockedAttributes.insert(str);
     }
 
@@ -563,7 +576,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::lockAllAttributes()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
@@ -577,7 +590,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
     if (!attributes)
         return OPENDAQ_SUCCESS;
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
@@ -585,9 +598,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
     {
-        std::string str = strPtr;
-        std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){ return std::tolower(c); });
-        str[0] = std::toupper(str[0]);
+        std::string str = strPtr.toStdString();
+        str = coretype_utils::toLowerCase(str);
+        str[0] = coretype_utils::toUpperCase(str[0]);
         lockedAttributes.erase(str);
     }
 
@@ -597,7 +610,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::unlockAllAttributes()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
@@ -611,7 +624,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getLockedAttributes(IList** attributes)
 {
     OPENDAQ_PARAM_NOT_NULL(attributes);
     
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
@@ -669,9 +682,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::findProperties(IList** properties, ISearc
 {
     OPENDAQ_PARAM_NOT_NULL(properties);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
-    return daqTry([&properties, &propertyFilter, &componentFilter, this]
+    const ErrCode errCode = daqTry([&properties, &propertyFilter, &componentFilter, this]
     {
         auto componentFilterPtr = SearchFilterPtr::Borrow(componentFilter);
         auto thisComponent = this->template borrowPtr<ComponentPtr>();
@@ -711,6 +724,8 @@ ErrCode ComponentImpl<Intf, Intfs...>::findProperties(IList** properties, ISearc
         *properties = foundProperties.detach();
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Intf, class ... Intfs>
@@ -721,16 +736,15 @@ void ComponentImpl<Intf, Intfs...>::onOperationModeChanged(OperationModeType /* 
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeType)
 {
-    auto lock = this->getRecursiveConfigLock();
-    return wrapHandler(this, &Self::onOperationModeChanged, modeType);
+    auto lock = this->getRecursiveConfigLock2();
+    const ErrCode errCode = wrapHandler(this, &Self::onOperationModeChanged, modeType);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setComponentConfig(IPropertyObject* config)
 {
-    if (componentConfig.assigned())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Component config already set");
-
     componentConfig = config;
     return OPENDAQ_SUCCESS;
 }
@@ -758,7 +772,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
     OPENDAQ_PARAM_NOT_NULL(outComponent);
     OPENDAQ_PARAM_NOT_NULL(id);
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         std::string str = StringPtr(id);
         if (str != "" && str[0] == '/')
@@ -775,12 +789,14 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
 
         return *outComponent == nullptr ? OPENDAQ_NOTFOUND : OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template<class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs ...>::remove()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if (isComponentRemoved)
         return OPENDAQ_IGNORED;
@@ -815,12 +831,14 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::updateInternal(ISerialized
     const auto objPtr = SerializedObjectPtr::Borrow(obj);
     const auto contextPtr = BaseObjectPtr::Borrow(context);
 
-    return daqTry([&objPtr, &contextPtr, this]
+    const ErrCode errCode = daqTry([&objPtr, &contextPtr, this]
     {
         const auto err = Super::updateInternal(objPtr, contextPtr);
         updateObject(objPtr, contextPtr);
         return err;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Intf, class ... Intfs>
@@ -846,9 +864,9 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config));
     ErrCode errCode = updateInternal(obj, context);
     if (OPENDAQ_SUCCEEDED(errCode))
-    {
         errCode = this->updateEnded(context);
-    }
+    else
+        errCode = DAQ_EXTEND_ERROR_INFO(errCode, "Component update failed");
 
     if (!muted && this->coreEvent.assigned())
     {
@@ -866,11 +884,13 @@ ErrCode ComponentImpl<Intf, Intfs...>::deserializeValues(ISerializedObject* seri
     auto contextPtr = BaseObjectPtr::Borrow(context);
     auto callbackFactoryPtr = FunctionPtr::Borrow(callbackFactory);
 
-    return daqTry([&serializedObjectPtr, &contextPtr, &callbackFactoryPtr, this]
+    const ErrCode errCode = daqTry([&serializedObjectPtr, &contextPtr, &callbackFactoryPtr, this]
     {
         deserializeCustomObjectValues(serializedObjectPtr, contextPtr, callbackFactoryPtr);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Intf, class ... Intfs>
@@ -885,11 +905,13 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::getDeserializedParameter(I
     OPENDAQ_PARAM_NOT_NULL(parameter);
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    return daqTry([this, &parameter, &value]
+    const ErrCode errCode = daqTry([this, &parameter, &value]
     {
         const auto parameterPtr = StringPtr::Borrow(parameter);
         *value = getDeserializedParameter(parameterPtr).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode; 
 }
 
 template <class Intf, class ... Intfs>
@@ -913,7 +935,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
         *obj = DeserializeComponent(
             serialized,
@@ -928,6 +950,8 @@ ErrCode ComponentImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized
                     className);
             }).detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Intf, class... Intfs>
@@ -1036,16 +1060,18 @@ ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serial
 {
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-    auto errCode = Super::serializeCustomValues(serializer, forUpdate);
+    ErrCode errCode = Super::serializeCustomValues(serializer, forUpdate);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    return daqTry(
+    errCode = daqTry(
     [&serializerPtr, forUpdate, this]
     {
         serializeCustomObjectValues(serializerPtr, forUpdate);
 
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class Intf, class... Intfs>
@@ -1116,23 +1142,18 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         tags.serialize(serializer);
     }
 
-    if (statusContainer.getStatuses().getCount() > 0)
-    {
-        serializer.key("statuses");
-        statusContainer.serialize(serializer);
+    if(!forUpdate) {
+        if (statusContainer.getStatuses().getCount() > 0)
+        {
+            serializer.key("statuses");
+            statusContainer.serialize(serializer);
+        }
     }
 
-    if (forUpdate)
+    if (componentConfig.assigned())
     {
-        PropertyObjectPtr componentConfig = this->componentConfig;
-        if (!componentConfig.assigned())
-            this->getComponentConfig(&componentConfig);
-
-        if (componentConfig.assigned())
-        {
-            serializer.key("ComponentConfig");
-            componentConfig.serialize(serializer);
-        }
+        serializer.key("ComponentConfig");
+        componentConfig.serialize(serializer);
     }
 }
 
@@ -1166,9 +1187,7 @@ ComponentPtr ComponentImpl<Intf, Intfs...>::findComponentInternal(const Componen
             return findComponentInternal(subComponent, restStr);
     }
     else if (errCode == OPENDAQ_ERR_NOTFOUND)
-    {
         daqClearErrorInfo();
-    }
     else
         checkErrorInfo(errCode);
 
@@ -1206,8 +1225,8 @@ void ComponentImpl<Intf, Intfs...>::triggerCoreEvent(const CoreEventArgsPtr& arg
 
 template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
-                                                            const BaseObjectPtr& context,
-                                                            const FunctionPtr& /*factoryCallback*/)
+                                                                  const BaseObjectPtr& context,
+                                                                  const FunctionPtr& /*factoryCallback*/)
 {
     if (serializedObject.hasKey("active"))
         active = serializedObject.readBool("active");
@@ -1312,6 +1331,69 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
             LOG_I("{}", logString)
         }
     }
+}
+
+template <class Intf, class... Intfs>
+VersionInfoPtr ComponentImpl<Intf, Intfs...>::parseVersionString(const std::string& input)
+{
+    std::stringstream ss(input);
+    std::string token;
+    int major, minor, patch;
+
+    if (std::getline(ss, token, '.'))
+    {
+        try
+        {
+            major = std::stoi(token);
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+    }
+    else
+    {
+        return {};
+    }
+
+    if (std::getline(ss, token, '.'))
+    {
+        try
+        {
+            minor = std::stoi(token);
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+    }
+    else
+    {
+        return {};
+    }
+
+    if (std::getline(ss, token))
+    {
+        try
+        {
+            patch = std::stoi(token);
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+    }
+    else
+    {
+        return {};
+    }
+
+    if (std::getline(ss, token))
+    {
+        return {};
+    }
+
+    return VersionInfo(major, minor, patch);
 }
 
 using StandardComponent = ComponentImpl<>;

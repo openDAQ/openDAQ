@@ -66,7 +66,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         // Get the list of available devices
         var deviceInfos = daqInstance.AvailableDevices;
 
-        Assert.That(deviceInfos.Count, Is.GreaterThan(0));
+        Assert.That(deviceInfos, Has.Count.GreaterThan(0));
 
         foreach (var deviceInfo in deviceInfos)
         {
@@ -112,7 +112,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got 'null'");
@@ -131,7 +131,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL);
         }
 
         //expecting one boolean parameter
@@ -141,7 +141,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not a 'BoolObject'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got {boolObj.Value}");
@@ -160,7 +160,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL);
         }
 
         //expecting one string parameter
@@ -170,7 +170,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not a 'StringObject'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got \"{stringObj.CharPtr}\"");
@@ -189,7 +189,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL);
         }
 
         //expecting one string parameter
@@ -199,7 +199,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not a 'ListObject<StringObject>'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got {stringListObj.Count} strings:");
@@ -223,7 +223,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL);
         }
 
         //expecting one boolean parameter
@@ -233,7 +233,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not a 'BoolObject'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got {boolObj.Value}");
@@ -258,7 +258,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is 'null'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_ARGUMENT_NULL);
         }
 
         //expecting one string parameter
@@ -268,7 +268,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             Console.WriteLine($"-> 'parameters' is not a 'ListObject<IntegerObject>'");
 
             //tell API that it was not OK
-            return ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER;
+            return CoreTypesFactory.MakeErrorInfo(ErrorCode.OPENDAQ_ERR_INVALIDPARAMETER);
         }
 
         Console.WriteLine($"-> got {integerListObj.Count} integers:");
@@ -347,7 +347,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         var obj = CoreTypesFactory.CreateBaseObject();
 
         Assert.That(list.IsDisposed, Is.False);
-        Assert.That(list.Count, Is.EqualTo(0));
+        Assert.That(list, Has.Count.EqualTo(0));
         Assert.That(obj.IsDisposed, Is.False);
 
         ((ListObject<BaseObject>)list).PrintReferenceCount();
@@ -355,7 +355,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         Console.WriteLine("> adding to list...");
         list.Add(obj);
-        Assert.That(list.Count, Is.EqualTo(1));
+        Assert.That(list, Has.Count.EqualTo(1));
 
         ((ListObject<BaseObject>)list).PrintReferenceCount();
         obj.PrintReferenceCount();
@@ -400,7 +400,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             var list = CoreTypesFactory.CreateList<StringObject>("item 1", "item 2", "item 3", "item 4");
 
             Assert.That(list, Is.Not.Null);
-            Assert.That(list.Count, Is.EqualTo(4));
+            Assert.That(list, Has.Count.EqualTo(4));
             Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
             Assert.Multiple(() =>
             {
@@ -423,7 +423,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
 
         Assert.That(errorcode, Is.EqualTo(ErrorCode.OPENDAQ_SUCCESS));
         Assert.That(list, Is.Not.Null);
-        Assert.That(list.Count, Is.EqualTo(4));
+        Assert.That(list, Has.Count.EqualTo(4));
         Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
         Assert.Multiple(() =>
         {
@@ -448,7 +448,34 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             var list = CoreTypesFactory.CreateList(items);
 
             Assert.That(list, Is.Not.Null);
-            Assert.That(list.Count, Is.EqualTo(4));
+            Assert.That(list, Has.Count.EqualTo(4));
+            Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That((string)list[0], Is.EqualTo("item 1"));
+                Assert.That((string)list[1], Is.EqualTo("item 2"));
+                Assert.That((string)list[2], Is.EqualTo("item 3"));
+                Assert.That((string)list[3], Is.EqualTo("item 4"));
+            });
+        });
+    }
+
+    [Test]
+    public void Test_0005_ListObjectWithDiscreteAddingTest()
+    {
+        Console.WriteLine("> creating string-list with discrete adding");
+
+        Assert.DoesNotThrow(() =>
+        {
+            var list = CoreTypesFactory.CreateList<StringObject>();
+
+            list.Add("item 1");
+            list.Add("item 2");
+            list.Add("item 3");
+            list.Add("item 4");
+
+            Assert.That(list, Is.Not.Null);
+            Assert.That(list, Has.Count.EqualTo(4));
             Assert.That(list[0].CanCastTo<StringObject>(), Is.True);
             Assert.Multiple(() =>
             {
@@ -670,7 +697,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.Multiple(() =>
         {
             Assert.That(availableFunctionBlockInfos, Is.Not.Null);
-            Assert.That(availableFunctionBlockInfos.Count, Is.GreaterThanOrEqualTo(1));
+            Assert.That(availableFunctionBlockInfos, Has.Count.GreaterThanOrEqualTo(1));
         });
 
         Console.WriteLine($"  {availableFunctionBlockInfos.Count} function blocks available");
@@ -759,12 +786,12 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into array 'samples'
-                reader.Read(samples, ref count, timeoutMs: 5000);
+                using var status = reader.Read(samples, ref count, timeoutMs: 5000);
                 readSamplesCount += count;
 
                 sw.Stop();
 
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status?.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
@@ -846,12 +873,12 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++>  {loopNo + 1,2} : AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into array 'samples'
-                reader.Read(samples, ref count);
+                using var status = reader.Read(samples, ref count);
                 readSamplesCount += count;
 
                 sw.Stop();
 
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status?.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
@@ -915,7 +942,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         using (var reader = OpenDAQFactory.CreateBlockReader<TValue>(signal, blockSize))
         {
             Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
-            Console.WriteLine($"  Reading {loopCount} times {maxCount} blocks � {blockSize} values (waiting {sleepTime}ms before reading)");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} blocks with {blockSize} values (waiting {sleepTime}ms before reading)");
 
             Stopwatch sw = new Stopwatch();
 
@@ -933,14 +960,14 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 nuint availableCount = reader.AvailableCount;
 
                 //read up to 'count' blocks, storing the amount read into array 'samples'
-                reader.Read(samples, ref count, 5000);
+                using var status = reader.Read(samples, ref count, 5000);
                 readBlockCount += count;
                 Debug.Print($"+++>     read {count} blocks");
 
                 sw.Stop();
 
                 nuint valueCount = count * blockSize;
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status?.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,2} blocks ({valueCount,3} values) {valueString}");
             }
         }
@@ -967,9 +994,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(signalCount, Is.GreaterThanOrEqualTo(2));
 
         //take the first two signals
-        using var signalList = CoreTypesFactory.CreateList<Signal>();
-        signalList.Add(signals[0]);
-        signalList.Add(signals[1]);
+        using var signalList = CoreTypesFactory.CreateList(signals[0], signals[1]);
 
         Console.WriteLine($"  using signal 0 '{signals[0].Name}'");
         Console.WriteLine($"  using signal 1 '{signals[1].Name}'");
@@ -1004,12 +1029,12 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into array 'samples'
-                reader.Read(samples, ref count/*, timeoutMs: 5000*/);
+                using var status = reader.Read(samples, ref count/*, timeoutMs: 5000*/);
                 readSamplesCount += count;
 
                 sw.Stop();
 
-                string valueString  = (count == 0) ? string.Empty : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000})";
+                string valueString  = (count == 0) ? $"(ReadStatus = {status?.ReadStatus})" : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000})";
                 string valueString2 = (count == 0) ? string.Empty : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
                 Console.WriteLine($"                                                       {valueString2}");
@@ -1076,12 +1101,12 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into arrays 'samples' and 'timeStamps'
-                reader.ReadWithDomain(samples, timeStamps, ref count, timeoutMs: 5000);
+                using var status = reader.ReadWithDomain(samples, timeStamps, ref count, timeoutMs: 5000);
                 readSamplesCount += count;
 
                 sw.Stop();
 
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
@@ -1145,10 +1170,10 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++>  {loopNo + 1,2} : AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into arrays 'samples' and 'timeStamps'
-                reader.ReadWithDomain(samples, timeStamps, ref count);
+                using var status = reader.ReadWithDomain(samples, timeStamps, ref count);
                 readSamplesCount += count;
                 sw.Stop();
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
             }
         }
@@ -1194,7 +1219,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         using (var reader = OpenDAQFactory.CreateBlockReader<double>(signal, blockSize))
         {
             Console.WriteLine($"  ValueReadType = {reader.ValueReadType}, DomainReadType = {reader.DomainReadType}");
-            Console.WriteLine($"  Reading {loopCount} times {maxCount} blocks � {blockSize} values (waiting {sleepTime}ms before reading)");
+            Console.WriteLine($"  Reading {loopCount} times {maxCount} blocks with {blockSize} values (waiting {sleepTime}ms before reading)");
 
             Stopwatch sw = new Stopwatch();
 
@@ -1213,14 +1238,14 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' blocks, storing the amount read into arrays 'samples' and 'timeStamps'
-                reader.ReadWithDomain(samples, timeStamps, ref count, 5000);
+                using var status = reader.ReadWithDomain(samples, timeStamps, ref count, 5000);
                 readBlockCount += count;
                 Debug.Print($"+++>     read {count} blocks");
 
                 sw.Stop();
 
                 nuint valueCount = count * blockSize;
-                string valueString = (count == 0) ? string.Empty : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
+                string valueString = (count == 0) ? $"(ReadStatus = {status.ReadStatus})" : $"(0: {samples[0]:+0.000;-0.000; 0.000} ... {valueCount - 1}: {samples[valueCount - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0]:0.0000000} ... {factor * timeStamps[count - 1]:0.0000000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,2} blocks ({valueCount,3} values) {valueString}");
             }
         }
@@ -1244,9 +1269,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         Assert.That(signalCount, Is.GreaterThanOrEqualTo(2));
 
         //take the first two signals
-        using var signalList = CoreTypesFactory.CreateList<Signal>();
-        signalList.Add(signals[0]);
-        signalList.Add(signals[1]);
+        using var signalList = CoreTypesFactory.CreateList(signals[0], signals[1]);
 
         Console.WriteLine($"  using signal 0 '{signals[0].Name}'");
         Console.WriteLine($"  using signal 1 '{signals[1].Name}'");
@@ -1287,14 +1310,14 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
                 Debug.Print($"+++> {loopNo + 1,2}: AvailableCount={availableCount,-3}");
 
                 //read up to 'count' samples, storing the amount read into arrays 'samples' and 'timeStamps'
-                //reader.Read(samples, ref count, timeoutMs: 5000);
-                reader.ReadWithDomain(samples, timeStamps, ref count, timeoutMs: 5000);
+                //using var status = reader.Read(samples, ref count, timeoutMs: 5000);
+                using var status = reader.ReadWithDomain(samples, timeStamps, ref count, timeoutMs: 5000);
                 readSamplesCount += count;
 
                 sw.Stop();
 
-                string valueString  = (count == 0) ? string.Empty : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0][0]:0.0000000} ... {factor * timeStamps[0][count - 1]:0.0000000})";
-                string valueString2 = (count == 0) ? string.Empty : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[1][0]:0.0000000} ... {factor * timeStamps[1][count - 1]:0.0000000})";
+                string valueString  = (count == 0) ? $"(ReadStatus = {status?.ReadStatus})" : $"(0: {samples[0][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[0][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[0][0]:0.0000000} ... {factor * timeStamps[0][count - 1]:0.0000000})";
+                string valueString2 = (count == 0) ? string.Empty                           : $"(0: {samples[1][0]:+0.000;-0.000; 0.000} ... {count - 1,3}: {samples[1][count - 1]:+0.000;-0.000; 0.000} @ {factor * timeStamps[1][0]:0.0000000} ... {factor * timeStamps[1][count - 1]:0.0000000})";
                 Console.WriteLine($"  Loop {loopNo + 1,2} {sw.Elapsed.TotalMilliseconds,7:0.000}ms before AvailableCount={availableCount,-3} but read {count,3} values {valueString}");
                 Console.WriteLine($"                                                       {valueString2}");
             }
@@ -1444,7 +1467,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
             }
             else if (status?.ReadStatus == ReadStatus.Event)
             {
-                Console.WriteLine($"            event occurred'");
+                Console.WriteLine($"            event occurred");
             }
             else
             {
@@ -1551,11 +1574,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         var procedure = CoreTypesFactory.CreateProcedure(MyStringListCallbackProcedure);
 
         Console.WriteLine("CreateList");
-        var stringList = CoreTypesFactory.CreateList<StringObject>();
-
-        stringList.Add("string 1");
-        stringList.Add("string 2");
-        stringList.Add("string 3");
+        var stringList = CoreTypesFactory.CreateList<StringObject>("string 1", "string 2", "string 3");
 
         Console.WriteLine("Dispatch(stringList)");
         procedure.Dispatch((ListObject<StringObject>)stringList);
@@ -1615,12 +1634,7 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         var function = CoreTypesFactory.CreateFunction(MyIntegerToStringListCallbackFunction);
 
         Console.WriteLine("CreateList");
-        var integerList = CoreTypesFactory.CreateList<IntegerObject>();
-
-        integerList.Add(1);
-        integerList.Add(2);
-        integerList.Add(3);
-        integerList.Add(4);
+        var integerList = CoreTypesFactory.CreateList<IntegerObject>(1, 2, 3, 4);
 
         Console.WriteLine("Call(integerList)");
         var result = function.Call((ListObject<IntegerObject>)integerList)?.CastList<StringObject>();
@@ -1660,10 +1674,10 @@ public class OpenDAQ_CITests : OpenDAQTestsBase
         using var device = ConnectFirstDaqRefDevice(daqInstance);
         Assert.That(device, Is.Not.Null);
 
-        using var componentFilter = CoreTypesFactory.CreateRecursiveSearchFilter(OpenDAQFactory.CreateLocalIdSearchFilter("RefCh0"));
+        using var componentFilter = SearchFactory.Recursive(SearchFactory.LocalId("RefCh0"));
         Assert.That(componentFilter, Is.Not.Null);
 
-        using var propertyFilter = CoreObjectsFactory.CreateNamePropertyFilter("^Amplitude$");
+        using var propertyFilter = SearchFactory.NameProperty("^Amplitude$");
         Assert.That(propertyFilter, Is.Not.Null);
 
         var properties = device.FindProperties(propertyFilter, componentFilter);

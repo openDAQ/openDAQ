@@ -33,6 +33,7 @@ public:
     ErrCode INTERFACE_FUNC enqueueAndStealRef(IPacket* packet) override;
     ErrCode INTERFACE_FUNC enqueueMultipleAndStealRef(IList* packet) override;
     ErrCode INTERFACE_FUNC enqueueOnThisThread(IPacket* packet) override;
+    ErrCode INTERFACE_FUNC enqueueWithScheduler(IPacket* packet) override;
     ErrCode INTERFACE_FUNC dequeue(IPacket** packet) override;
     ErrCode INTERFACE_FUNC dequeueAll(IList** packet) override;
     ErrCode INTERFACE_FUNC peek(IPacket** packet) override;
@@ -96,6 +97,11 @@ inline ErrCode ConfigClientConnectionImpl::enqueueOnThisThread(IPacket* packet)
     return OPENDAQ_IGNORED;
 }
 
+inline ErrCode ConfigClientConnectionImpl::enqueueWithScheduler(IPacket* packet)
+{
+    return OPENDAQ_IGNORED;
+}
+
 inline ErrCode ConfigClientConnectionImpl::dequeue(IPacket** packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
@@ -132,11 +138,12 @@ inline ErrCode ConfigClientConnectionImpl::getSignal(ISignal** signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
-    return daqTry(
-        [this, &signal]
-        {
-            *signal = this->signalRef.getRef().detach();
-        });
+    const ErrCode errCode = daqTry([this, &signal]
+    {
+        *signal = this->signalRef.getRef().detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode ConfigClientConnectionImpl::getInputPort(IInputPort** inputPort)

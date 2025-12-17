@@ -33,16 +33,16 @@
 #include <opendaq/component_update_context_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-template <class... Interfaces>
+template <typename TInterface, typename...  Interfaces>
 class GenericInputPortImpl;
 
-using InputPortImpl = GenericInputPortImpl<>;
+using InputPortImpl = GenericInputPortImpl<IInputPortConfig>;
 
-template <class ... Interfaces>
-class GenericInputPortImpl : public ComponentImpl<IInputPortConfig, IInputPortPrivate, Interfaces ...>
+template <typename TInterface, typename...  Interfaces>
+class GenericInputPortImpl : public ComponentImpl<TInterface, IInputPortPrivate, Interfaces ...>
 {
 public:
-    using Super = ComponentImpl<IInputPortConfig, IInputPortPrivate, Interfaces ...>;
+    using Super = ComponentImpl<TInterface, IInputPortPrivate, Interfaces ...>;
 
     explicit GenericInputPortImpl(const ContextPtr& context,
                                   const ComponentPtr& parent,
@@ -57,8 +57,10 @@ public:
     ErrCode INTERFACE_FUNC getRequiresSignal(Bool* requiresSignal) override;
 
     ErrCode INTERFACE_FUNC setNotificationMethod(PacketReadyNotification method) override;
+    ErrCode INTERFACE_FUNC getNotificationMethod(PacketReadyNotification* method) override;
     ErrCode INTERFACE_FUNC notifyPacketEnqueued(Bool queueWasEmpty) override;
     ErrCode INTERFACE_FUNC notifyPacketEnqueuedOnThisThread() override;
+    ErrCode INTERFACE_FUNC notifyPacketEnqueuedWithScheduler() override;
     ErrCode INTERFACE_FUNC setListener(IInputPortNotifications* port) override;
 
     ErrCode INTERFACE_FUNC getCustomData(IBaseObject** data) override;
@@ -69,6 +71,7 @@ public:
 
     // IInputPortPrivate
     ErrCode INTERFACE_FUNC disconnectWithoutSignalNotification() override;
+    ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
 
     // IOwnable
     ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;
@@ -83,6 +86,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
+    ErrCode connectInternal(ISignal* signal, bool scheduled);
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
 
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
@@ -95,7 +99,6 @@ protected:
                                        const FunctionPtr& factoryCallback) override;
 
     virtual ConnectionPtr createConnection(const SignalPtr& signal);
-
     ConnectionPtr getConnectionNoLock();
     void removed() override;
     
@@ -125,11 +128,11 @@ private:
     SignalPtr getSignalNoLock();
 };
 
-template <class... Interfaces>
-GenericInputPortImpl<Interfaces ...>::GenericInputPortImpl(const ContextPtr& context,
-                             const ComponentPtr& parent,
-                             const StringPtr& localId,
-                             bool gapCheckingEnabled)
+template <typename TInterface, typename...  Interfaces>
+GenericInputPortImpl<TInterface, Interfaces...>::GenericInputPortImpl(const ContextPtr& context,
+                                                                      const ComponentPtr& parent,
+                                                                      const StringPtr& localId,
+                                                                      bool gapCheckingEnabled)
     : Super(context, parent, localId)
     , requiresSignal(true)
     , gapCheckingEnabled(gapCheckingEnabled)
@@ -142,8 +145,8 @@ GenericInputPortImpl<Interfaces ...>::GenericInputPortImpl(const ContextPtr& con
         scheduler = context.getScheduler();
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::acceptsSignal(ISignal* signal, Bool* accepts)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::acceptsSignal(ISignal* signal, Bool* accepts)
 {
     OPENDAQ_PARAM_NOT_NULL(accepts);
     OPENDAQ_PARAM_NOT_NULL(signal);
@@ -162,8 +165,8 @@ ErrCode GenericInputPortImpl<Interfaces...>::acceptsSignal(ISignal* signal, Bool
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::canConnectSignal(ISignal* signal) const
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::canConnectSignal(ISignal* signal) const
 {
     const auto removablePtr = SignalPtr::Borrow(signal).asPtrOrNull<IRemovable>();
     if (removablePtr.assigned() && removablePtr.isRemoved())
@@ -172,93 +175,14 @@ ErrCode GenericInputPortImpl<Interfaces...>::canConnectSignal(ISignal* signal) c
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::connect(ISignal* signal)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::connect(ISignal* signal)
 {
-    OPENDAQ_PARAM_NOT_NULL(signal);
-
-    try
-    {
-        auto err = canConnectSignal(signal);
-        OPENDAQ_RETURN_IF_FAILED(err);
-
-        auto signalPtr = SignalPtr::Borrow(signal);
-
-        const auto connection = createConnection(signalPtr);
-
-        InputPortNotificationsPtr inputPortListener;
-        {
-            auto lock = this->getRecursiveConfigLock();
-            if (this->isComponentRemoved)
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
-
-            {
-                ConnectionPtr oldConnection = connectionRef.assigned() ? connectionRef.getRef() : nullptr;
-                connectionRef.release();
-                disconnectSignalInternal(std::move(oldConnection), false, true, false);
-            }
-            connectionRef = connection;
-
-            if (listenerRef.assigned())
-                inputPortListener = listenerRef.getRef();
-        }
-
-        if (inputPortListener.assigned())
-        {
-            err = inputPortListener->connected(Super::template borrowInterface<IInputPort>());
-            if (OPENDAQ_FAILED(err))
-            {
-                connectionRef.release();
-                return DAQ_MAKE_ERROR_INFO(err);
-            }
-        }
-
-        const auto events = signalPtr.asPtrOrNull<ISignalEvents>(true);
-        if (events.assigned())
-        {
-            // NORRIS/TODO: what's the correct behavior if this fails? what about when the error is OPENDAQ_ERR_NOTIMPLEMENTED?
-            // - behavior before my change is to propagate the error up to the caller even in the latter case, which seems wrong
-            // - behavior now is that OPENDAQ_ERR_NOTIMPLEMENTED is ignored but other errors are propagated
-            // - do we have (and if not, do we want) helper methods for exception handling like this? something like:
-            //       ignoreErrors([]() { events.listenerConnected(connection); }, OPENDAQ_ERR_HARMLESS1, OPENDAQ_ERR_HARMLESS2);
-
-            try
-            {
-                events.listenerConnected(connection);
-            }
-            catch (const DaqException& e)
-            {
-                if (e.getErrCode() != OPENDAQ_ERR_NOTIMPLEMENTED)
-                    throw;
-            }
-        }
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e, this->getThisAsBaseObject());
-    }
-    catch (const std::exception& e)
-    {
-        return DAQ_ERROR_FROM_STD_EXCEPTION(e, this->getThisAsBaseObject(), OPENDAQ_ERR_GENERALERROR);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
-
-    if (!this->coreEventMuted && this->coreEvent.assigned())
-    {
-        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::SignalConnected,
-                                                                                      Dict<IString, IBaseObject>({{"Signal", signal}}));
-
-        this->triggerCoreEvent(args);
-    }
-
-    return OPENDAQ_SUCCESS;
+    return connectInternal(signal, false);
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal, bool triggerCoreEvent)
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal, bool triggerCoreEvent)
 {
     if (!connection.assigned())
         return;
@@ -295,38 +219,39 @@ void GenericInputPortImpl<Interfaces...>::disconnectSignalInternal(ConnectionPtr
     }
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::disconnect()
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::disconnect()
 {
-    return daqTry(
-        [this]() -> auto
+    const ErrCode errCode = daqTry([this]()
+    {
+        ConnectionPtr connection;
         {
-            ConnectionPtr connection;
-            {
-                auto lock = this->getRecursiveConfigLock();
-                connection = getConnectionNoLock();
-                connectionRef.release();
-            }
+            auto lock = this->getRecursiveConfigLock2();
+            connection = getConnectionNoLock();
+            connectionRef.release();
+        }
 
-            disconnectSignalInternal(std::move(connection), true, true, true);
-            return OPENDAQ_SUCCESS;
-        });
+        disconnectSignalInternal(std::move(connection), true, true, true);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getSignal(ISignal** signal)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getSignal(ISignal** signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     *signal = getSignalNoLock().detach();
 
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-SignalPtr GenericInputPortImpl<Interfaces...>::getSignalNoLock()
+template <typename TInterface, typename...  Interfaces>
+SignalPtr GenericInputPortImpl<TInterface, Interfaces...>::getSignalNoLock()
 {
     if (!connectionRef.assigned())
         return nullptr;
@@ -335,20 +260,22 @@ SignalPtr GenericInputPortImpl<Interfaces...>::getSignalNoLock()
     return connection.assigned() ? connection.getSignal() : nullptr;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getConnection(IConnection** connection)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getConnection(IConnection** connection)
 {
     OPENDAQ_PARAM_NOT_NULL(connection);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
-    return daqTry([this, &connection] { *connection = getConnectionNoLock().detach(); });
+    const ErrCode errCode = daqTry([this, &connection] { *connection = getConnectionNoLock().detach(); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::setNotificationMethod(PacketReadyNotification method)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setNotificationMethod(PacketReadyNotification method)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     if ((method == PacketReadyNotification::Scheduler || method == PacketReadyNotification::SchedulerQueueWasEmpty) && !scheduler.assigned())
     {
@@ -361,8 +288,17 @@ ErrCode GenericInputPortImpl<Interfaces...>::setNotificationMethod(PacketReadyNo
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedSameThread()
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getNotificationMethod(PacketReadyNotification* method)
+{
+    OPENDAQ_PARAM_NOT_NULL(method);
+
+    *method = notifyMethod;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueuedSameThread()
 {
     if (listenerRef.assigned())
     {
@@ -381,69 +317,93 @@ void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedSameThread()
     }
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedScheduler()
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueuedScheduler()
 {
     const auto errCode = scheduler->scheduleWork(notifySchedulerCallback);
     if (OPENDAQ_FAILED(errCode) && (errCode != OPENDAQ_ERR_SCHEDULER_STOPPED))
         checkErrorInfo(errCode);
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueued(Bool queueWasEmpty)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueued(Bool queueWasEmpty)
 {
-    return wrapHandler(
-        [this, &queueWasEmpty]
+    const ErrCode errCode = daqTry([this, &queueWasEmpty]
+    {
+        switch (notifyMethod)
         {
-            switch (notifyMethod)
+            case PacketReadyNotification::SameThread:
             {
-                case PacketReadyNotification::SameThread:
-                {
-                    notifyPacketEnqueuedSameThread();
-                    break;
-                }
-                case PacketReadyNotification::Scheduler:
-                {
-                    notifyPacketEnqueuedScheduler();
-                    break;
-                }
-                case PacketReadyNotification::SchedulerQueueWasEmpty:
-                {
-                    if (!queueWasEmpty)
-                        break;
-
-                    notifyPacketEnqueuedScheduler();
-                    break;
-                }
-                case PacketReadyNotification::None:
-                    break;
+                notifyPacketEnqueuedSameThread();
+                break;
             }
-        });
+            case PacketReadyNotification::Scheduler:
+            {
+                notifyPacketEnqueuedScheduler();
+                break;
+            }
+            case PacketReadyNotification::SchedulerQueueWasEmpty:
+            {
+                if (!queueWasEmpty)
+                    break;
+
+                notifyPacketEnqueuedScheduler();
+                break;
+            }
+            case PacketReadyNotification::None:
+            case PacketReadyNotification::Unspecified:
+                break;
+        }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to notify packet enqueued");
+    return errCode;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::notifyPacketEnqueuedOnThisThread()
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueuedOnThisThread()
 {
-    return wrapHandler(
-        [this]
+    const ErrCode errCode = daqTry([this]
+    {
+        switch (notifyMethod)
         {
-            switch (notifyMethod)
-            {
-                case PacketReadyNotification::SameThread:
-                case PacketReadyNotification::Scheduler:
-                case PacketReadyNotification::SchedulerQueueWasEmpty:
-                    notifyPacketEnqueuedSameThread();
+            case PacketReadyNotification::SameThread:
+            case PacketReadyNotification::Scheduler:
+            case PacketReadyNotification::SchedulerQueueWasEmpty:
+                notifyPacketEnqueuedSameThread();
 
-                case PacketReadyNotification::None:
-                    break;
-            }
-        });
+            case PacketReadyNotification::None:
+            case PacketReadyNotification::Unspecified:
+                break;
+        }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to notify packet enqueued on this thread");
+    return errCode;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications* port)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::notifyPacketEnqueuedWithScheduler()
 {
-    auto lock = this->getRecursiveConfigLock();
+    const ErrCode errCode = daqTry([this]
+    {
+        switch (notifyMethod)
+        {
+            case PacketReadyNotification::SameThread:
+            case PacketReadyNotification::Scheduler:
+            case PacketReadyNotification::SchedulerQueueWasEmpty:
+                notifyPacketEnqueuedScheduler();
+            case PacketReadyNotification::None:
+            case PacketReadyNotification::Unspecified:
+                break;
+        }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to notify packet enqueued with scheduler");
+    return errCode;
+}
+
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setListener(IInputPortNotifications* port)
+{
+    auto lock = this->getRecursiveConfigLock2();
 
     if (auto connection = getConnectionNoLock(); connection.assigned())
     {
@@ -477,54 +437,61 @@ ErrCode GenericInputPortImpl<Interfaces...>::setListener(IInputPortNotifications
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getCustomData(IBaseObject** data)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getCustomData(IBaseObject** data)
 {
     OPENDAQ_PARAM_NOT_NULL(data);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     *data = this->customData.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::setCustomData(IBaseObject* data)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setCustomData(IBaseObject* data)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     this->customData = data;
 
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::disconnectWithoutSignalNotification()
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::disconnectWithoutSignalNotification()
 {
-    return daqTry(
-        [this]() -> auto
+    const ErrCode errCode = daqTry([this]() -> auto
+    {
+        ConnectionPtr connection;
         {
-            ConnectionPtr connection;
-            {
-                auto lock = this->getRecursiveConfigLock();
-                connection = getConnectionNoLock();
-                connectionRef.release();
-            }
+            auto lock = this->getRecursiveConfigLock2();
+            connection = getConnectionNoLock();
+            connectionRef.release();
+        }
 
-            // disconnectWithoutSignalNotification is meant to be called from signal, so don't notify it
-            disconnectSignalInternal(std::move(connection), true, false, true);
-            return OPENDAQ_SUCCESS;
-        });
+        // disconnectWithoutSignalNotification is meant to be called from signal, so don't notify it
+        disconnectSignalInternal(std::move(connection), true, false, true);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::finishUpdate()
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::connectSignalSchedulerNotification(ISignal* signal)
+{
+    return connectInternal(signal, true);
+}
+
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::finishUpdate()
 {
     serializedSignalId.release();
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::removed()
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::removed()
 {
     if (customData.assigned())
     {
@@ -540,8 +507,8 @@ void GenericInputPortImpl<Interfaces...>::removed()
     disconnectSignalInternal(std::move(connection), false, true, true);
 }
 
-template <class... Interfaces>
-ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::setOwner(IPropertyObject* owner)
+template <typename TInterface, typename...  Interfaces>
+ErrCode INTERFACE_FUNC GenericInputPortImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* owner)
 {
     if (this->owner.assigned())
     {
@@ -553,19 +520,19 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::setOwner(IPropertyOb
     return OPENDAQ_SUCCESS;
 }
 
-template <class ... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getActive(Bool* active)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
-    auto lock = this->getAcquisitionLock();
+    auto lock = this->getAcquisitionLock2();
 
     *active = this->active;
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::getSerializeId(ConstCharPtr* id) const
+template <typename TInterface, typename...  Interfaces>
+ErrCode INTERFACE_FUNC GenericInputPortImpl<TInterface, Interfaces...>::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
 
@@ -574,40 +541,113 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<Interfaces...>::getSerializeId(Const
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ConstCharPtr GenericInputPortImpl<Interfaces...>::SerializeId()
+template <typename TInterface, typename...  Interfaces>
+ConstCharPtr GenericInputPortImpl<TInterface, Interfaces...>::SerializeId()
 {
     return "InputPort";
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::Deserialize(ISerializedObject* serialized,
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::Deserialize(ISerializedObject* serialized,
                                                          IBaseObject* context,
                                                          IFunction* factoryCallback,
                                                          IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializeComponent(
-                       serialized,
-                       context,
-                       factoryCallback,
-                       [](const SerializedObjectPtr&,
-                          const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr&)
-                       {
-                           return createWithImplementation<IInputPort, InputPortImpl>(
-                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
-                       })
-                       .detach();
-        });
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = Super::DeserializeComponent(
+                    serialized,
+                    context,
+                    factoryCallback,
+                    [](const SerializedObjectPtr&,
+                        const ComponentDeserializeContextPtr& deserializeContext,
+                        const StringPtr&)
+                    {
+                        return createWithImplementation<IInputPort, InputPortImpl>(
+                            deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
+                    })
+                    .detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::connectInternal(ISignal* signal, bool scheduled)
+{
+    OPENDAQ_PARAM_NOT_NULL(signal);
+
+    const ErrCode errCode = daqTry([&]()
+    {
+        auto err = canConnectSignal(signal);
+        OPENDAQ_RETURN_IF_FAILED(err);
+
+        auto signalPtr = SignalPtr::Borrow(signal);
+
+        const auto connection = createConnection(signalPtr);
+
+        InputPortNotificationsPtr inputPortListener;
+        {
+            auto lock = this->getRecursiveConfigLock2();
+            if (this->isComponentRemoved)
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Cannot connect signal to removed input port");
+
+            {
+                ConnectionPtr oldConnection = connectionRef.assigned() ? connectionRef.getRef() : nullptr;
+                connectionRef.release();
+                disconnectSignalInternal(std::move(oldConnection), false, true, false);
+            }
+            connectionRef = connection;
+
+            if (listenerRef.assigned())
+                inputPortListener = listenerRef.getRef();
+        }
+
+        if (inputPortListener.assigned())
+        {
+            err = inputPortListener->connected(Super::template borrowInterface<IInputPort>());
+            if (OPENDAQ_FAILED(err))
+            {
+                connectionRef.release();
+                return DAQ_MAKE_ERROR_INFO(err);
+            }
+        }
+
+        const auto events = signalPtr.asPtrOrNull<ISignalEvents>(true);
+        if (events.assigned())
+        {
+            // NORRIS/TODO: what's the correct behavior if this fails? what about when the error is OPENDAQ_ERR_NOTIMPLEMENTED?
+            // - behavior before my change is to propagate the error up to the caller even in the latter case, which seems wrong
+            // - behavior now is that OPENDAQ_ERR_NOTIMPLEMENTED is ignored but other errors are propagated
+            // - do we have (and if not, do we want) helper methods for exception handling like this? something like:
+            //       ignoreErrors([]() { events.listenerConnected(connection); }, OPENDAQ_ERR_HARMLESS1, OPENDAQ_ERR_HARMLESS2);
+
+            ErrCode errCode;
+            if (!scheduled)
+                errCode = events->listenerConnected(connection);
+            else
+                errCode = events->listenerConnectedScheduled(connection);
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED, "Failed to notify signal connection");
+        }
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to connect signal");
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(CoreEventId::SignalConnected,
+                                                                                      Dict<IString, IBaseObject>({{"Signal", signal}}));
+
+        this->triggerCoreEvent(args);
+    }
+
+    return errCode;
+}
+
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
@@ -621,8 +661,8 @@ void GenericInputPortImpl<Interfaces...>::serializeCustomObjectValues(const Seri
     }
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     if (obj.hasKey("signalId"))
     {
@@ -638,8 +678,8 @@ void GenericInputPortImpl<Interfaces...>::updateObject(const SerializedObjectPtr
     }
 }
 
-template <class ... Interfaces>
-void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
     if (this->getSignalNoLock().assigned())
         return;
@@ -654,6 +694,7 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
     {
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             const auto thisPtr = this->template borrowPtr<InputPortPtr>();
             thisPtr.connect(signal);
             finishUpdate();
@@ -666,8 +707,8 @@ void GenericInputPortImpl<Interfaces...>::onUpdatableUpdateEnd(const BaseObjectP
     Super::onUpdatableUpdateEnd(context);
 }
 
-template <class... Interfaces>
-BaseObjectPtr GenericInputPortImpl<Interfaces...>::getDeserializedParameter(const StringPtr& parameter)
+template <typename TInterface, typename...  Interfaces>
+BaseObjectPtr GenericInputPortImpl<TInterface, Interfaces...>::getDeserializedParameter(const StringPtr& parameter)
 {
     if (parameter == "signalId")
         return serializedSignalId;
@@ -675,8 +716,8 @@ BaseObjectPtr GenericInputPortImpl<Interfaces...>::getDeserializedParameter(cons
     DAQ_THROW_EXCEPTION(NotFoundException);
 }
 
-template <class... Interfaces>
-void GenericInputPortImpl<Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+template <typename TInterface, typename...  Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                                          const BaseObjectPtr& context,
                                                          const FunctionPtr& factoryCallback)
 {
@@ -688,15 +729,15 @@ void GenericInputPortImpl<Interfaces...>::deserializeCustomObjectValues(const Se
     }
 }
 
-template <class ... Interfaces>
-ConnectionPtr GenericInputPortImpl<Interfaces...>::createConnection(const SignalPtr& signal)
+template <typename TInterface, typename...  Interfaces>
+ConnectionPtr GenericInputPortImpl<TInterface, Interfaces...>::createConnection(const SignalPtr& signal)
 {
     const auto connection = Connection(this->template thisPtr<InputPortPtr>(), signal, this->context);
     return connection;
 }
 
-template <class ... Interfaces>
-ConnectionPtr GenericInputPortImpl<Interfaces...>::getConnectionNoLock()
+template <typename TInterface, typename...  Interfaces>
+ConnectionPtr GenericInputPortImpl<TInterface, Interfaces...>::getConnectionNoLock()
 {
     if (!connectionRef.assigned())
         return nullptr;
@@ -704,28 +745,28 @@ ConnectionPtr GenericInputPortImpl<Interfaces...>::getConnectionNoLock()
     return connectionRef.getRef();
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getRequiresSignal(Bool* requiresSignal)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getRequiresSignal(Bool* requiresSignal)
 {
     OPENDAQ_PARAM_NOT_NULL(requiresSignal);
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     *requiresSignal = this->requiresSignal;
     return OPENDAQ_SUCCESS;
 }
 
-template <class... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::setRequiresSignal(Bool requiresSignal)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setRequiresSignal(Bool requiresSignal)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     this->requiresSignal = requiresSignal;
     return OPENDAQ_SUCCESS;
 }
 
-template <class ... Interfaces>
-ErrCode GenericInputPortImpl<Interfaces...>::getGapCheckingEnabled(Bool* gapCheckingEnabled)
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getGapCheckingEnabled(Bool* gapCheckingEnabled)
 {
     OPENDAQ_PARAM_NOT_NULL(gapCheckingEnabled);
 

@@ -28,7 +28,7 @@ env:
   dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   dotnet_test_path: ${{ github.workspace }}/build/bindings/CSharp/test_results
   python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
+  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13 3.14
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
@@ -44,39 +44,32 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 180
+    timeout-minutes: 270
     strategy:
       fail-fast: false
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
         include:
-          - name: Windows VS 2019 x64 Release
-            runner: windows-2019
-            cmake_generator: "Visual Studio 16 2019"
-            cmake_generator_platform: x64
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
-            cpack: NSIS
           - name: Windows VS 2022 x64 Release
             runner: windows-2022
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            #need to explicitly specify build type for correct arrow building
+            cmake_defines: -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             cpack: NSIS
           - name: Windows VS 2022 x64 Debug
             runner: windows-2022
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Debug
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cmake_defines:
             cpack: NSIS
           - name: Windows VS 2022 Win32 Release
             runner: windows-2022
             cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: Win32
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cmake_defines: -A Win32 -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
             cpack: NSIS
           - name: Windows Clang Release
             runner: windows-2022
@@ -84,6 +77,12 @@ jobs:
             cmake_build_type: Release
             cmake_defines: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
             cpack: NSIS
+          #- name: Windows Intel-LLVM Release
+          #  runner: windows-2022
+          #  cmake_generator: "Ninja"
+          #  cmake_build_type: Release
+          #  cmake_defines: -DCMAKE_C_COMPILER=icx-cl -DCMAKE_CXX_COMPILER=icx-cl -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+          #  cpack: NSIS
 
     outputs:
       # trick for reusable workflow in build_nuget because cannot use env context in "with:"
@@ -98,68 +97,58 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
-        id: cp313
+      - name: Install Intel-LLVM compiler
+        shell: powershell
+        if: matrix.name == 'Windows Intel-LLVM Release'
+        run: |
+          Invoke-WebRequest -Uri "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/47a201d7-d4cd-4079-a2d8-0e66b860aaaa/intel-dpcpp-cpp-compiler-2025.2.0.536_offline.exe" -OutFile oneapi.exe
+          Start-Process oneapi.exe -ArgumentList '--silent', '--eula=accept' -Wait -NoNewWindow
+
+      - name: Build and Test
+        id: build
+        if: matrix.name != 'Windows Intel-LLVM Release'
+        uses: ./.github/actions/build-sdk
         with:
-          python-version: "3.13"
+          cmake-generator: ${{ matrix.cmake_generator }}
+          cmake-config-preset: ${{ env.cmake_preset }}
+          cmake-config-args: ${{ matrix.cmake_defines }}
+          cmake-build-type: ${{ matrix.cmake_build_type }}
+          enable-tests: true
+          python-versions: ${{ env.python_versions }}
 
-      - name: Install ninja-build
-        if: matrix.cmake_generator == 'Ninja'
-        uses: seanmiddleditch/gha-setup-ninja@v5
-
-      # https://github.com/actions/runner-images/issues/10001
-      - name: Setup MSVC toolchain
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Remove outdated clang
-        shell: pwsh
-        run: mv 'C:\Program Files\LLVM' 'C:\Program Files\LLVM_old'
-
-      - name: Install Python dependencies
-        shell: pwsh
+      - name: ConfigureIntel
+        shell: cmd
+        if: matrix.name == 'Windows Intel-LLVM Release'
+        env:
+          CMAKE_PRESET: ${{ env.cmake_preset }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          CMAKE_GENERATOR: ${{ matrix.cmake_generator }}
+          CMAKE_DEFINES: ${{ matrix.cmake_defines }}
         run: |
-          foreach($version in "${{ env.python_versions }}".split(" ")) {
-            Write-Output "Installing numpy for Python $version"
-            Invoke-Expression "py -$version -m pip install numpy"
-          }
-
-      - name: Configure
-        shell: pwsh
-        run: |
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
           mkdir build
           cd build
-          if ( "${{ matrix.cmake_generator_platform }}" -eq "" )
-          {
-            cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} ${{ matrix.cmake_defines }} ..
-          }
-          else
-          {
-            cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} ${{ matrix.cmake_defines }} ..
-          }
+          cmake -G "%CMAKE_GENERATOR%" --preset %CMAKE_PRESET% -DCI_GIT_BRANCH=%GITHUB_HEAD_REF% %CMAKE_DEFINES% ..
 
-      - name: Build
-        shell: pwsh
-        working-directory: ./build
+      - name: BuildIntel
+        shell: cmd
+        if: matrix.name == 'Windows Intel-LLVM Release'
         env:
-          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
+          CMAKE_BUILD_TYPE: ${{ matrix.cmake_build_type }}
+        working-directory: ./build
         run: |
-          # for .NET Bindings build
-          $env:SHORT_SHA = "${{ env.short_sha }}"
-          cmake --build . --config ${{ matrix.cmake_build_type }}
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+          cmake --build . --config %CMAKE_BUILD_TYPE%
 
-      - name: Test
-        shell: pwsh
+      - name: TestIntel
+        shell: cmd
+        if: matrix.name == 'Windows Intel-LLVM Release'
         env:
           GTEST_OUTPUT: "xml:${{ env.test_path }}"
+          CTEST_PRESET: ${{ env.ctest_preset }}
         run: |
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
-          if (Test-Path -Path "${{ env.dotnet_test_path }}") {
-            if (! (Test-Path -Path "${{ env.test_path }}")) { mkdir "${{ env.test_path }}" }
-            Copy-Item "${{ env.dotnet_test_path }}/*.*" "${{ env.test_path }}"
-          } else {
-            Write-Output "*** '${{ env.dotnet_test_path }}' not found, no .NET Bindings tests to copy"
-          }
+          call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
+          ctest --output-on-failure --preset %CTEST_PRESET% -C Release --test-dir build
 
       - name: Upload test results
         if: always()
@@ -214,7 +203,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON
+            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             apt_packages: g++-12
             cc: gcc-12
             cxx: g++-12
@@ -227,21 +216,30 @@ jobs:
           #   cc: gcc-12
           #   cxx: g++-12
           #   cpack: DEB
-          - name: Ubuntu 22.04 gcc-7 Release
+          - name: Ubuntu 22.04 gcc-9 Release
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-            apt_packages: g++-7
-            cc: gcc-7
-            cxx: g++-7
+            apt_packages: g++-9
+            cc: gcc-9
+            cxx: g++-9
           - name: Ubuntu 22.04 clang-14 Release
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             apt_packages: clang++-14
             cc: clang-14
             cxx: clang++-14
+         # - name: Ubuntu 22.04 Intel-LLVM Release
+         #   image: ubuntu:22.04
+         #   cmake_generator: Ninja
+         #   cmake_build_type: Release
+         #   cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+         #   apt_packages: intel-oneapi-compiler-dpcpp-cpp
+         #   cc: icx
+         #   cxx: icpx
           # - name: Ubuntu 22.04 clang-14 libc++ Release
             # image: ubuntu:22.04
             # cmake_generator: Ninja
@@ -255,7 +253,8 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev
+            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+            apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev pkg-config libgpgme-dev
             cc: gcc
             cxx: g++
             cpack: DEB
@@ -285,6 +284,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Add Intel oneAPI apt repo
+        if: matrix.name == 'Ubuntu 22.04 Intel-LLVM Release'
+        run: |
+          apt-get install -y wget gnupg
+          wget -qO- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+            | gpg --dearmor \
+            | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+            | tee /etc/apt/sources.list.d/oneapi.list
+          apt-get update
+
       - name: Install additional dependencies
         run: |
           apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
@@ -292,25 +302,39 @@ jobs:
             lld ninja-build curl \
             python3-dev python3-numpy python3-distutils python3-pip \
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-            libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+            libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 
       - name: Install latest CMake
         run: pip install cmake
 
       - name: Configure
+        shell: bash
         run: |
+          if [ -f /opt/intel/oneapi/setvars.sh ]; then
+              source /opt/intel/oneapi/setvars.sh
+          fi
           mkdir build
           cd build
           cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
 
       - name: Build
         working-directory: ./build
-        run: cmake --build .
+        shell: bash
+        run: |
+          if [ -f /opt/intel/oneapi/setvars.sh ]; then
+              source /opt/intel/oneapi/setvars.sh
+          fi
+          cmake --build .
 
       - name: Test
+        shell: bash
         env:
           GTEST_OUTPUT: "xml:/junit_reports/unit/"
-        run: ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
+        run: |
+          if [ -f /opt/intel/oneapi/setvars.sh ]; then
+              source /opt/intel/oneapi/setvars.sh
+          fi
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()
@@ -393,7 +417,7 @@ jobs:
           trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ${{ env.regression_simulator_folder }}/ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
 
           # Perform tests
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --verbose
 
           EOL
 
@@ -455,7 +479,9 @@ jobs:
             image: quay.io/pypa/manylinux_2_28_x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
+            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             additional_packages:
+            additional_cmake_options: -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             cc: gcc
             cxx: g++
             cpack: ZIP
@@ -484,7 +510,7 @@ jobs:
           yum install -y ${{ matrix.additional_packages }} \
               ninja-build \
               mono-core \
-              freetype-devel libudev-devel libX11-devel libXcursor-devel libXrandr-devel
+              freetype-devel libudev-devel libX11-devel libXi-devel libXcursor-devel libXrandr-devel
 
       - name: Create build dir
         run: mkdir build
@@ -496,7 +522,7 @@ jobs:
           last_version="3.7"
           for version in ${{ env.python_versions }}; do
               echo "Building for Python $version"
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ..
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version ${{ matrix.additional_cmake_options }} ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -516,7 +542,7 @@ jobs:
           python$last_version -m venv build/venv
           . build/venv/bin/activate
           pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
 
       - name: Upload test results
         if: always()
@@ -554,7 +580,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 180
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
@@ -563,6 +589,7 @@ jobs:
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_osx_deployment_target: 10.15
+            additional_cmake_options: -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             runner: macos-13
           # - name: macos-13 clang Debug
             # cmake_generator: Ninja
@@ -572,6 +599,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
 
       - name: Install ninja-build
         uses: seanmiddleditch/gha-setup-ninja@v5
@@ -588,6 +620,7 @@ jobs:
               3.11
               3.12
               3.13
+              3.14
 
       - name: Make dirs
         run: |
@@ -599,7 +632,7 @@ jobs:
         run: |
           last_version="3.8"
           for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DOPENDAQ_PYTHON_VERSION=$version -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON ${{ github.workspace }}
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DOPENDAQ_PYTHON_VERSION=$version ${{ matrix.additional_cmake_options }} ${{ github.workspace }}
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -619,7 +652,7 @@ jobs:
           python$last_version -m venv build/venv
           . build/venv/bin/activate
           pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
 
       - name: Upload test results
         if: always()
@@ -644,7 +677,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 180
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
@@ -655,7 +688,8 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            #need to explicitly specify build type for correct arrow building
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DOPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY=ON -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DCMAKE_BUILD_TYPE=Release -DPYBIND11_FINDPYTHON=ON
             cpack: NSIS
             cmake_preset: package
 
@@ -663,11 +697,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
+      - name: Set up Python
         uses: actions/setup-python@v5
-        id: cp313
         with:
-          python-version: "3.13"
+          python-version: |
+              3.8
+              3.9
+              3.10
+              3.11
+              3.12
+              3.13
+              3.14
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
 
       - name: Install ninja-build
         if: matrix.cmake_generator == 'Ninja'
@@ -702,7 +747,7 @@ jobs:
               Write-Output "Installing $file"
               pip install $file
             }
-            cmake --build . --config ${{ matrix.cmake_build_type }} -t test_py_opendaq
+            ctest --output-on-failure -C ${{ matrix.cmake_build_type }} -R test_py_opendaq . --verbose
             Copy-Item pip/packages/*.whl wheels
             deactivate
             Remove-Item venv -Recurse

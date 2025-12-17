@@ -2,8 +2,9 @@
 
 ## Features
 
-- [#789](https://github.com/openDAQ/openDAQ/pull/789) Optimize Signal Packet Handling by Deferring Last Value Calculation
-- [#768](https://github.com/openDAQ/openDAQ/pull/768) Supporting creating empty error info. Add macroses to checking error code
+- [#834](https://github.com/openDAQ/openDAQ/pull/834) Added method to allow IP connection with scheduler notification.
+- [#789](https://github.com/openDAQ/openDAQ/pull/789) Optimize Signal Packet Handling by Deferring Last Value Calculation.
+- [#768](https://github.com/openDAQ/openDAQ/pull/768) Supporting creating empty error info. Add macroses to checking error code.
 - [#771](https://github.com/openDAQ/openDAQ/pull/771) Improvements to device operation mode, including changes to the Device API for operation mode handling.
 - [#764](https://github.com/openDAQ/openDAQ/pull/764) Add support restoring device info fields
 - [#773](https://github.com/openDAQ/openDAQ/pull/773) Extend IPropertyObject::hasProperty() to accept nested property lookup via "dot" notation.
@@ -39,6 +40,16 @@
 
 ## Bug fixes
 
+- [#876](https://github.com/openDAQ/openDAQ/pull/876) Fix advertising LT streaming capabilities when discovery disabled within new LT server
+- [#863](https://github.com/openDAQ/openDAQ/pull/863) Deserialize component config on native client instead of invoking RPC.
+- [#859](https://github.com/openDAQ/openDAQ/pull/859) Fix and stabilize native device removal and disposal flow.
+- [#850](https://github.com/openDAQ/openDAQ/pull/850) Ignore server notifications unless native device is connected.
+- [#856](https://github.com/openDAQ/openDAQ/pull/856) Fix race condition in native streaming caused by signal removal.
+- [#846](https://github.com/openDAQ/openDAQ/pull/846) Do not bind properties on serialize. Prevents crashes when serializing property object classes.
+- [#842](https://github.com/openDAQ/openDAQ/pull/842) Exclude ComponentConfig from OPC UA Component Properties
+- [#833](https://github.com/openDAQ/openDAQ/pull/833) Fix Invalid MultiReader in PowerReaderFb on Sample Rate Change
+- [#831](https://github.com/openDAQ/openDAQ/pull/831) Uses newly added sendPacketRecursiveLock method to send descriptor changed events on value signals that use the signal of which descriptor was changed as their domain signal.
+- [#827](https://github.com/openDAQ/openDAQ/pull/827) Fix setting irrelevant streaming source as active
 - [#823](https://github.com/openDAQ/openDAQ/pull/823) Fix property order is preserved from server to client via the native protocol
 - [#821](https://github.com/openDAQ/openDAQ/pull/821) Fix CPP 20 and 23 compatibility issues
 - [#816](https://github.com/openDAQ/openDAQ/pull/816) Fix registering the new property object class with the type manager on the native client.
@@ -77,6 +88,7 @@
 
 ## Misc
 
+- [#851](https://github.com/openDAQ/openDAQ/pull/851) Allow parentless signals connection within client-to-device streaming
 - [#758](https://github.com/openDAQ/openDAQ/pull/758) General update of the quick-start documentation for usage of .NET on Windows and Linux.
 - [#742](https://github.com/openDAQ/openDAQ/pull/742) Assign a name to the scheduler, logger, and discovery threads.
 - [#747](https://github.com/openDAQ/openDAQ/pull/747) Fixes CMake 4.0.0 compatibility, fixes ctutils library compilation yielding a Warning for lack of nullptr initialization, adds a CMake option to disable access control at compile time

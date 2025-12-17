@@ -10,6 +10,10 @@ BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
                                        SessionPtr session,
                                        const std::shared_ptr<boost::asio::io_context>& ioContextPtr,
                                        OnSessionErrorCallback errorHandler,
+                                       OnSignalCallback signalReceivedHandler,
+                                       OnSubscriptionAckCallback subscriptionAckHandler,
+                                       OnFindSignalCallback findSignalHandler,
+                                       OnSignalSubscriptionCallback signalSubscriptionHandler,
                                        ConstCharPtr loggerComponentName,
                                        SizeT streamingPacketSendTimeout)
     : session(session)
@@ -22,6 +26,10 @@ BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
     , streamingPacketSendTimeout(streamingPacketSendTimeout != UNLIMITED_PACKET_SEND_TIME
                                      ? std::chrono::milliseconds(streamingPacketSendTimeout)
                                      : std::chrono::milliseconds(0))
+    , signalReceivedHandler(signalReceivedHandler)
+    , subscriptionAckHandler(subscriptionAckHandler)
+    , findSignalHandler(findSignalHandler)
+    , signalSubscriptionHandler(signalSubscriptionHandler)
 {
 }
 
@@ -87,6 +95,7 @@ ReadTask BaseSessionHandler::readConfigurationPacket(const void* data, size_t si
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         decltype(config_protocol::PacketHeader::headerSize) headerSize;
 
         // Get packet buffer header size from received buffer
@@ -247,11 +256,11 @@ void BaseSessionHandler::copyData(void* destination, const void* source, size_t 
 {
     if ( (bytesToCopy + sourceOffset) > sourceSize)
     {
-        throw DaqException(OPENDAQ_ERR_GENERALERROR,
-                           fmt::format(R"(Failed to copy {} bytes from offset {} bytes of received data with size {} bytes)",
-                                       bytesToCopy,
-                                       sourceOffset,
-                                       sourceSize));
+        DAQ_THROW_EXCEPTION(GeneralErrorException,
+                            R"(Failed to copy {} bytes from offset {} bytes of received data with size {} bytes)",
+                            bytesToCopy,
+                            sourceOffset,
+                            sourceSize);
     }
 
     const char* sourcePtr = static_cast<const char*>(source);
@@ -262,11 +271,11 @@ std::string BaseSessionHandler::getStringFromData(const void* source, size_t str
 {
     if ( (stringSize + sourceOffset) > sourceSize)
     {
-        throw DaqException(OPENDAQ_ERR_GENERALERROR,
-                           fmt::format(R"(Failed to get string with size {} bytes from offset {} bytes of received data with size {} bytes)",
-                                       stringSize,
-                                       sourceOffset,
-                                       sourceSize));
+        DAQ_THROW_EXCEPTION(GeneralErrorException,
+                            R"(Failed to get string with size {} bytes from offset {} bytes of received data with size {} bytes)",
+                            stringSize,
+                            sourceOffset,
+                            sourceSize);
     }
 
     const char* sourcePtr = static_cast<const char*>(source);
@@ -285,6 +294,7 @@ ReadTask BaseSessionHandler::readPacketBuffer(const void* data, size_t size)
 
     try
     {
+        auto errorGuard = DAQ_ERROR_GUARD();
         decltype(GenericPacketHeader::size) headerSize;
 
         // Get packet buffer header size from received buffer
@@ -395,6 +405,362 @@ void BaseSessionHandler::createAndPushPacketBufferTasks(packet_streaming::Packet
         WriteHandler packetBufferPayloadHandler = [packetBuffer]() {};
         tasks.push_back(WriteTask(packetBufferPayload, packetBufferPayloadHandler));
     }
+}
+
+void BaseSessionHandler::sendSignalSubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId)
+{
+    std::vector<WriteTask> tasks;
+    tasks.reserve(3);
+
+    // create write task for signal numeric ID
+    tasks.push_back(createWriteNumberTask<SignalNumericIdType>(signalNumericId));
+
+    // create write task for signal string ID
+    tasks.push_back(createWriteStringTask(signalStringId));
+
+    // create write task for transport header
+    size_t payloadSize = calculatePayloadSize(tasks);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_COMMAND, payloadSize);
+    tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(std::move(tasks));
+}
+
+void BaseSessionHandler::sendSignalUnsubscribe(const SignalNumericIdType& signalNumericId, const std::string& signalStringId)
+{
+    std::vector<WriteTask> tasks;
+    tasks.reserve(3);
+
+    // create write task for signal numeric ID
+    tasks.push_back(createWriteNumberTask<SignalNumericIdType>(signalNumericId));
+
+    // create write task for signal string ID
+    tasks.push_back(createWriteStringTask(signalStringId));
+
+    // create write task for transport header
+    size_t payloadSize = calculatePayloadSize(tasks);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_COMMAND, payloadSize);
+    tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(std::move(tasks));
+}
+
+ReadTask BaseSessionHandler::readSignalAvailable(const void* data, size_t size)
+{
+    if (!signalReceivedHandler)
+        return discardPayload(data, size);
+
+    size_t bytesDone = 0;
+
+    SignalNumericIdType signalNumericId;
+    uint16_t signalIdStringSize;
+    StringPtr signalIdString;
+
+    StringPtr serializedSignal;
+
+    try
+    {
+        auto errorGuard = DAQ_ERROR_GUARD();
+        // Get signal numeric ID from received buffer
+        copyData(&signalNumericId, data, sizeof(signalNumericId), bytesDone, size);
+        LOG_T("Received signal numeric ID: {}", signalNumericId);
+        bytesDone += sizeof(signalNumericId);
+
+        // Get size of signal string ID from received buffer
+        copyData(&signalIdStringSize, data, sizeof(signalIdStringSize), bytesDone, size);
+        LOG_T("Received signal string ID size: {}", signalIdStringSize);
+        bytesDone += sizeof(signalIdStringSize);
+
+        // Get signal string ID from received buffer
+        signalIdString = String(getStringFromData(data, signalIdStringSize, bytesDone, size));
+        LOG_T("Received signal string ID: {}", signalIdString);
+        bytesDone += signalIdStringSize;
+
+        // Get serialized signal from received buffer
+        serializedSignal = String(getStringFromData(data, size - bytesDone, bytesDone, size));
+        LOG_T("Received serialized signal:\n{}", serializedSignal);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Protocol error: {}", e.what());
+        errorHandler(std::string("Protocol error - readSignalAvailable - ") + e.what(), session);
+        return createReadStopTask();
+    }
+
+    signalReceivedHandler(signalNumericId, signalIdString, serializedSignal, true, getClientId());
+    return createReadHeaderTask();
+}
+
+ReadTask BaseSessionHandler::readSignalUnavailable(const void* data, size_t size)
+{
+    if (!signalReceivedHandler)
+        return discardPayload(data, size);
+
+    size_t bytesDone = 0;
+
+    SignalNumericIdType signalNumericId;
+    std::string signalIdString;
+
+    try
+    {
+        auto errorGuard = DAQ_ERROR_GUARD();
+        // Get signal numeric ID from received buffer
+        copyData(&signalNumericId, data, sizeof(signalNumericId), bytesDone, size);
+        LOG_T("Received signal numeric ID: {}", signalNumericId);
+        bytesDone += sizeof(signalNumericId);
+
+        // Get signal string ID from received buffer
+        signalIdString = getStringFromData(data, size - bytesDone, bytesDone, size);
+        LOG_T("Received signal string ID: {}", signalIdString);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Protocol error: {}", e.what());
+        errorHandler(std::string("Protocol error - readSignalUnavailable - ") + e.what(), session);
+        return createReadStopTask();
+    }
+
+    signalReceivedHandler(signalNumericId, signalIdString, nullptr, false, getClientId());
+    return createReadHeaderTask();
+}
+
+ReadTask BaseSessionHandler::readSignalSubscribedAck(const void* data, size_t size)
+{
+    if (!subscriptionAckHandler)
+        return discardPayload(data, size);
+
+    SignalNumericIdType signalNumericId;
+
+    try
+    {
+        auto errorGuard = DAQ_ERROR_GUARD();
+        // Get signal numeric ID from received buffer
+        copyData(&signalNumericId, data, sizeof(signalNumericId), 0, size);
+        LOG_T("Received signal numeric ID: {}", signalNumericId);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Protocol error: {}", e.what());
+        errorHandler(std::string("Protocol error - readSignalSubscribedAck - ") + e.what(), session);
+        return createReadStopTask();
+    }
+
+    subscriptionAckHandler(signalNumericId, true, getClientId());
+    return createReadHeaderTask();
+}
+
+ReadTask BaseSessionHandler::readSignalUnsubscribedAck(const void* data, size_t size)
+{
+    if (!subscriptionAckHandler)
+        return discardPayload(data, size);
+
+    SignalNumericIdType signalNumericId;
+
+    try
+    {
+        auto errorGuard = DAQ_ERROR_GUARD();
+        // Get signal numeric ID from received buffer
+        copyData(&signalNumericId, data, sizeof(signalNumericId), 0, size);
+        LOG_T("Received signal numeric ID: {}", signalNumericId);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Protocol error: {}", e.what());
+        errorHandler(std::string("Protocol error - readSignalUnsubscribedAck - ") + e.what(), session);
+        return createReadStopTask();
+    }
+
+    subscriptionAckHandler(signalNumericId, false, getClientId());
+    return createReadHeaderTask();
+}
+
+ReadTask BaseSessionHandler::readSignalSubscribe(const void* data, size_t size)
+{
+    if (!signalSubscriptionHandler || !findSignalHandler)
+        return discardPayload(data, size);
+
+    size_t bytesDone = 0;
+
+    SignalNumericIdType signalNumericId;
+    std::string signalIdString;
+
+    try
+    {
+        auto errorGuard = DAQ_ERROR_GUARD();
+        // Get signal numeric ID from received buffer
+        copyData(&signalNumericId, data, sizeof(signalNumericId), bytesDone, size);
+        LOG_T("Received signal numeric ID: {}", signalNumericId);
+        bytesDone += sizeof(signalNumericId);
+
+        // Get signal string ID from received buffer
+        signalIdString = getStringFromData(data, size - bytesDone, bytesDone, size);
+        LOG_T("Received signal string ID: {}", signalIdString);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Protocol error: {}", e.what());
+        errorHandler(std::string("Protocol error - readSignalSubscribe - ") + e.what(), session);
+        return createReadStopTask();
+    }
+
+    try
+    {
+        auto errorGuard = DAQ_ERROR_GUARD();
+        const auto signal = findSignalHandler(signalIdString);
+        const auto hasAccess = hasUserAccessToSignal(signal);
+
+        if (hasAccess && signalSubscriptionHandler(signalNumericId, signal, true, getClientId()))
+            sendSubscribingDone(signalNumericId);
+    }
+    catch (const NativeStreamingProtocolException& e)
+    {
+        LOG_W("Protocol warning: {}", e.what());
+    }
+
+    return createReadHeaderTask();
+}
+
+ReadTask BaseSessionHandler::readSignalUnsubscribe(const void* data, size_t size)
+{
+    if (!signalSubscriptionHandler || !findSignalHandler)
+        return discardPayload(data, size);
+
+    size_t bytesDone = 0;
+
+    SignalNumericIdType signalNumericId;
+    std::string signalIdString;
+
+    try
+    {
+        auto errorGuard = DAQ_ERROR_GUARD();
+        // Get signal numeric ID from received buffer
+        copyData(&signalNumericId, data, sizeof(signalNumericId), bytesDone, size);
+        LOG_T("Received signal numeric ID: {}", signalNumericId);
+        bytesDone += sizeof(signalNumericId);
+
+        // Get signal string ID from received buffer
+        signalIdString = getStringFromData(data, size - bytesDone, bytesDone, size);
+        LOG_T("Received signal string ID: {}", signalIdString);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("Protocol error: {}", e.what());
+        errorHandler(std::string("Protocol error - readSignalUnsubscribe - ") + e.what(), session);
+        return createReadStopTask();
+    }
+
+    try
+    {
+        auto errorGuard = DAQ_ERROR_GUARD();
+        const auto signal = findSignalHandler(signalIdString);
+        const auto hasAccess = hasUserAccessToSignal(signal);
+
+        if (hasAccess && signalSubscriptionHandler(signalNumericId, signal, false, getClientId()))
+            sendUnsubscribingDone(signalNumericId);
+    }
+    catch (const NativeStreamingProtocolException& e)
+    {
+        LOG_W("Protocol warning: {}", e.what());
+    }
+
+    return createReadHeaderTask();
+}
+
+bool BaseSessionHandler::hasUserAccessToSignal(const SignalPtr& signal)
+{
+    return true;
+}
+
+std::string BaseSessionHandler::getClientId()
+{
+    return std::string();
+}
+
+void BaseSessionHandler::sendSignalAvailable(const SignalNumericIdType& signalNumericId,
+                                             const SignalPtr& signal)
+{
+    if (!hasUserAccessToSignal(signal))
+        return;
+
+    std::vector<WriteTask> tasks;
+    SizeT signalStringIdMaxSize = std::numeric_limits<uint16_t>::max();
+
+    // create write task for signal numeric ID
+    tasks.push_back(createWriteNumberTask<SignalNumericIdType>(signalNumericId));
+
+    auto signalStringId = signal.getGlobalId();
+    // create write task for signal string ID size
+    SizeT signalStringIdSize = signalStringId.getLength();
+    if (signalStringIdSize > signalStringIdMaxSize)
+        throw NativeStreamingProtocolException("Size of signal string id exceeds limit");
+    tasks.push_back(createWriteNumberTask<uint16_t>(static_cast<uint16_t>(signalStringIdSize)));
+    // create write task for signal string ID itself
+    tasks.push_back(createWriteStringTask(signalStringId.toStdString()));
+
+    auto jsonSerializer = JsonSerializer(False);
+    signal.serialize(jsonSerializer);
+    auto serializedSignal = jsonSerializer.getOutput();
+    LOG_T("Serialized signal:\n{}", serializedSignal);
+    tasks.push_back(createWriteStringTask(serializedSignal.toStdString()));
+
+    // create write task for transport header
+    size_t payloadSize = calculatePayloadSize(tasks);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_AVAILABLE, payloadSize);
+    tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(std::move(tasks));
+}
+
+void BaseSessionHandler::sendSignalUnavailable(const SignalNumericIdType& signalNumericId,
+                                               const SignalPtr& signal)
+{
+    if (!hasUserAccessToSignal(signal))
+        return;
+
+    std::vector<WriteTask> tasks;
+
+    // create write task for signal numeric ID
+    tasks.push_back(createWriteNumberTask<SignalNumericIdType>(signalNumericId));
+
+    // create write task for signal string ID
+    tasks.push_back(createWriteStringTask(signal.getGlobalId().toStdString()));
+
+    // create write task for transport header
+    size_t payloadSize = calculatePayloadSize(tasks);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNAVAILABLE, payloadSize);
+    tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(std::move(tasks));
+}
+
+void BaseSessionHandler::sendSubscribingDone(const SignalNumericIdType signalNumericId)
+{
+    std::vector<WriteTask> tasks;
+
+    // create write task for signal numeric ID
+    tasks.push_back(createWriteNumberTask<SignalNumericIdType>(signalNumericId));
+
+    // create write task for transport header
+    size_t payloadSize = calculatePayloadSize(tasks);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_SUBSCRIBE_ACK, payloadSize);
+    tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(std::move(tasks));
+}
+
+void BaseSessionHandler::sendUnsubscribingDone(const SignalNumericIdType signalNumericId)
+{
+    std::vector<WriteTask> tasks;
+
+    // create write task for signal numeric ID
+    tasks.push_back(createWriteNumberTask<SignalNumericIdType>(signalNumericId));
+
+    // create write task for transport header
+    size_t payloadSize = calculatePayloadSize(tasks);
+    auto writeHeaderTask = createWriteHeaderTask(PayloadType::PAYLOAD_TYPE_STREAMING_SIGNAL_UNSUBSCRIBE_ACK, payloadSize);
+    tasks.insert(tasks.begin(), writeHeaderTask);
+
+    session->scheduleWrite(std::move(tasks));
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

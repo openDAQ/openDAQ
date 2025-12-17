@@ -17,7 +17,7 @@ struct GreaterEqual
 {
     static T Multiply(T& value, const RatioPtr& multiplier)
     {
-        return value * multiplier.getNumerator() / multiplier.getDenominator();
+        return value * static_cast<T>(multiplier.getNumerator()) / static_cast<T>(multiplier.getDenominator());
     }
 
     static T Adjust(T value, const RatioPtr& multiplier)
@@ -27,7 +27,7 @@ struct GreaterEqual
 
     static T GetStart(T startValue, std::int64_t offset)
     {
-        return startValue + offset;
+        return startValue + static_cast<T>(offset);
     }
 
     static bool Check(const RatioPtr& multiplier, T readValue, T startValue)
@@ -43,7 +43,7 @@ struct GreaterEqual<T, typename std::enable_if_t<daq::IsTemplateOf<T, daq::Range
 
     static RangeValue Multiply(RangeValue value, const RatioPtr& multiplier)
     {
-        return value * multiplier.getNumerator() / multiplier.getDenominator();
+        return value * static_cast<RangeValue>(multiplier.getNumerator()) / static_cast<RangeValue>(multiplier.getDenominator());
     }
 
     static RangeValue Adjust(T value, const RatioPtr& multiplier)
@@ -261,6 +261,11 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered");
 }
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable : 4244)
+#endif
+
 template <typename TReadType>
 template <typename TDataType>
 SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo,
@@ -305,7 +310,7 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
             // ss1 << toSysTime(adjusted, domainInfo.epoch, domainInfo.readResolution);
             // std::string s1 = ss1.str();
 
-            auto readValue = static_cast<TReadType>(dataStart[i]);
+            TReadType readValue = static_cast<TReadType>(dataStart[i]); // C4244 - possible data loss due to conversion
             if (GreaterEqual<TReadType>::Check(domainInfo.multiplier, readValue, startValue))
             {
                 if (absoluteTimestamp)
@@ -380,13 +385,13 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
         if (std::is_same_v<TReadType, TDataType>)
         {
             // Returns the pointer to the value after the last copied one
-            *outputBuffer = std::copy_n(dataStart, valuesPerSample * toRead, dataOut);
+            *outputBuffer = std::copy_n(dataStart, valuesPerSample * toRead, dataOut); // C4244 - possible data loss due to conversion
         }
         else
         {
             for (std::size_t i = 0; i < toRead * valuesPerSample; ++i)
             {
-                dataOut[i] = (TReadType) dataStart[i];
+                dataOut[i] = static_cast<TReadType>(dataStart[i]); // C4244 - possible data loss due to conversion
             }
 
             // Set the pointer to the value after the last copied one
@@ -403,6 +408,10 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
         );
     }
 }
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 template <>
 template <>

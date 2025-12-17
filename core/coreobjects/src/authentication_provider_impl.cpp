@@ -6,6 +6,7 @@
 #include <coreobjects/user_factory.h>
 #include <bcrypt/BCrypt.hpp>
 #include <coretypes/validation.h>
+#include <regex>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -139,7 +140,7 @@ DictPtr<IString, IUser> JsonStringAuthenticationProviderImpl::parseUsers(rapidjs
 
     const auto userArray = document["users"].GetArray();
 
-    for (size_t i = 0; i < userArray.Size(); i++)
+    for (rapidjson::SizeType i = 0; i < userArray.Size(); ++i)
     {
         if (!userArray[i].IsObject())
             DAQ_THROW_EXCEPTION(ParseFailedException);
@@ -175,7 +176,7 @@ ListPtr<IString> JsonStringAuthenticationProviderImpl::parseUserGroups(const rap
 
     auto groupArray = userObject["groups"].GetArray();
 
-    for (size_t i = 0; i < groupArray.Size(); i++)
+    for (rapidjson::SizeType i = 0; i < groupArray.Size(); ++i)
     {
         if (!groupArray[i].IsString())
             DAQ_THROW_EXCEPTION(ParseFailedException);

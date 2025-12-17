@@ -10,6 +10,7 @@
 #include <config_protocol/config_server_access_control.h>
 #include <opendaq/custom_log.h>
 #include <config_protocol/config_server_recorder.h>
+#include <config_protocol/config_mirrored_ext_sig_impl.h>
 
 namespace daq::config_protocol
 {
@@ -86,7 +87,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::move(GetSupportedConfigProtocolVersions()))
+    , supportedServerVersions(std::set<uint16_t>({17, 18}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
@@ -108,7 +109,7 @@ ConfigProtocolServer::~ConfigProtocolServer()
 template <class SmartPtr>
 void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerFunction<SmartPtr>& handler)
 {
-    auto wrappedHanler = [this, handler](const ParamsDictPtr& params)
+    auto wrappedHandler = [this, handler](const ParamsDictPtr& params)
     {
         RpcContext context;
         context.protocolVersion = this->protocolVersion;
@@ -119,13 +120,13 @@ void ConfigProtocolServer::addHandler(const std::string& name, const RpcHandlerF
         const auto component = findComponent(componentGlobalId);
 
         if (!component.assigned())
-            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
+            DAQ_THROW_EXCEPTION(NotFoundException, "Component not found {}", componentGlobalId);
 
         const auto componentPtr = component.asPtr<typename SmartPtr::DeclaredInterface>();
         return handler(context, componentPtr, params);
     };
 
-    rpcDispatch.insert({name, wrappedHanler});
+    rpcDispatch.insert({name, wrappedHandler});
 }
 
 void ConfigProtocolServer::buildRpcDispatchStructure()
@@ -142,6 +143,8 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue);
     addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue);
     addHandler<ComponentPtr>("ClearProtectedPropertyValue", &ConfigServerComponent::clearProtectedPropertyValue);
+    addHandler<ComponentPtr>("GetSuggestedValues", &ConfigServerComponent::getSuggestedValues);
+    addHandler<ComponentPtr>("GetSelectionValues", &ConfigServerComponent::getSelectionValues);
     addHandler<ComponentPtr>("CallProperty", &ConfigServerComponent::callProperty);
     addHandler<ComponentPtr>("BeginUpdate", &ConfigServerComponent::beginUpdate);
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
@@ -160,6 +163,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("ForceUnlock", &ConfigServerDevice::forceUnlock);
     addHandler<DevicePtr>("getLogFileInfos", &ConfigServerDevice::getLogFileInfos);
     addHandler<DevicePtr>("AddDevice", &ConfigServerDevice::addDevice);
+    addHandler<DevicePtr>("AddDevices", &ConfigServerDevice::addDevices);
     addHandler<DevicePtr>("RemoveDevice", &ConfigServerDevice::removeDevice);
     addHandler<DevicePtr>("GetAvailableDeviceTypes", &ConfigServerDevice::getAvailableDeviceTypes);
     addHandler<DevicePtr>("GetLog", &ConfigServerDevice::getLog);
@@ -175,12 +179,14 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
 
     addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));
+    addHandler<InputPortPtr>("ChangeInputPortStreamingSource", std::bind(&ConfigProtocolServer::changeInputPortStreamingSource, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
     addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
 
     addHandler<RecorderPtr>("StartRecording", &ConfigServerRecorder::startRecording);
     addHandler<RecorderPtr>("StopRecording", &ConfigServerRecorder::stopRecording);
     addHandler<RecorderPtr>("GetIsRecording", &ConfigServerRecorder::getIsRecording);
+
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -280,8 +286,16 @@ PacketBuffer ConfigProtocolServer::processPacketAndGetReply(const PacketBuffer& 
                 const auto jsonRequest = packetBuffer.parseRpcRequestOrReply();
                 const auto jsonReply = processRpcAndGetReply(jsonRequest);
 
-                auto reply = PacketBuffer::createRpcRequestOrReply(requestId, jsonReply.getCharPtr(), jsonReply.getLength());
-                return reply;
+                try
+                {
+                    auto reply = PacketBuffer::createRpcRequestOrReply(requestId, jsonReply.getCharPtr(), jsonReply.getLength());
+                    return reply;
+                }
+                catch (const std::exception& e)
+                {
+                    const auto errorReply = prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), this->serializer);
+                    return PacketBuffer::createRpcRequestOrReply(requestId, errorReply.getCharPtr(), errorReply.getLength());
+                }
             }
         default:
             auto reply = PacketBuffer::createInvalidRequestReply(requestId);
@@ -385,7 +399,7 @@ BaseObjectPtr ConfigProtocolServer::getComponent(const ParamsDictPtr& params) co
     const auto component = findComponent(componentGlobalId);
 
     if (!component.assigned())
-        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found");
+        DAQ_THROW_EXCEPTION(NotFoundException, "Component not found {}", componentGlobalId);
 
     ConfigServerAccessControl::protectObject(component, user, Permission::Read);
     return ComponentHolder(component);
@@ -414,8 +428,82 @@ BaseObjectPtr ConfigProtocolServer::connectExternalSignal(const RpcContext& cont
                                                           const InputPortPtr& inputPort,
                                                           const ParamsDictPtr& params)
 {
-    const SignalPtr signal = streamingConsumer.getOrAddExternalSignal(params);
-    return ConfigServerInputPort::connect(context, inputPort, signal, params);
+
+    // verifies that access to input port is granted for current user before creating mirrored signals
+    ConfigServerInputPort::access(context, inputPort);
+
+    const MirroredSignalConfigPtr externalSignal = streamingConsumer.getOrAddExternalSignal(params);
+    if (protocolVersion >= 18)
+    {
+        const StringPtr activeStreamingProtocolId = params.get("ActiveStreamingProtocolId");
+        const StringPtr activeStreamingSourceDeviceId = params.get("ActiveStreamingSourceDeviceId");
+
+        auto signals = List<IMirroredSignalConfig>();
+        if (const auto domainSignal = externalSignal.getDomainSignal(); domainSignal.assigned())
+            signals.pushBack(domainSignal);
+        signals.pushBack(externalSignal);
+
+        for (const auto& server : rootDevice.getServers())
+        {
+            // add/attach signals to all available streaming sources
+            if (auto streaming = server.getStreaming(); streaming.assigned())
+            {
+                for (const auto& signal : signals)
+                {
+                    ErrCode errCode = daqTry([&]()
+                                             {
+                                                 streaming.addSignals({signal});
+                                             });
+                    if (errCode == OPENDAQ_ERR_DUPLICATEITEM)
+                    {
+                        daqClearErrorInfo();
+                    }
+                    else if (OPENDAQ_FAILED(errCode))
+                    {
+                        checkErrorInfo(errCode);
+                    }
+                }
+
+                if (activeStreamingProtocolId.assigned())
+                {
+                    for (const auto& signal : signals)
+                    {
+                        // may change the active streaming source
+                        signal.setActiveStreamingSource(activeStreamingProtocolId);
+                    }
+                }
+            }
+        }
+        // the subscribe will be automatically done while connect is perfmormed
+    }
+
+    return ConfigServerInputPort::connect(context, inputPort, externalSignal, params);
+}
+
+BaseObjectPtr ConfigProtocolServer::changeInputPortStreamingSource(const RpcContext& context,
+                                                                   const InputPortPtr& inputPort,
+                                                                   const ParamsDictPtr& params)
+{
+    auto externalSignal = inputPort.getSignal();
+    if (externalSignal.assigned() && externalSignal.supportsInterface<IMirroredExternalSignalPrivate>())
+        return nullptr;
+
+    const StringPtr activeStreamingProtocolId = params.get("ActiveStreamingProtocolId");
+    const StringPtr activeStreamingSourceDeviceId = params.get("ActiveStreamingSourceDeviceId");
+
+    if (activeStreamingProtocolId.assigned())
+    {
+        auto signals = List<IMirroredSignalConfig>();
+        if (const auto domainSignal = externalSignal.getDomainSignal(); domainSignal.assigned())
+            signals.pushBack(domainSignal);
+        signals.pushBack(externalSignal);
+
+        for (const auto& signal : signals)
+        {
+            signal.setActiveStreamingSource(activeStreamingProtocolId);
+        }
+    }
+    return nullptr;
 }
 
 BaseObjectPtr ConfigProtocolServer::removeExternalSignals(const ParamsDictPtr& params)

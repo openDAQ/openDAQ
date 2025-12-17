@@ -17,11 +17,13 @@
 #include <opendaq/sync_component_ptr.h>
 #include <opendaq/sync_component_private_ptr.h>
 #include <opendaq/mock/advanced_components_setup_utils.h>
-#include "config_protocol/config_protocol_server.h"
-#include "config_protocol/config_protocol_client.h"
-#include "config_protocol/config_client_device_impl.h"
+#include <config_protocol/config_protocol_server.h>
+#include <config_protocol/config_protocol_client.h>
+#include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <coreobjects/user_factory.h>
+#include <coreobjects/callable_info_factory.h>
+#include <coreobjects/argument_info_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -39,7 +41,8 @@ public:
             serverDevice,
             std::bind(&ConfigNestedPropertyObjectTest::serverNotificationReady, this, std::placeholders::_1),
             anonymousUser,
-            ClientType::Control);
+            ClientType::Control,
+            test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
         clientContext = NullContext();
         client =
@@ -81,6 +84,70 @@ protected:
         // callback is not expected to be called within this test group
         assert(false);
         server->processNoReplyRequest(requestPacket);
+    }
+
+};
+
+class ConfigPropertyObjectNestedDevicesTest : public ConfigNestedPropertyObjectTest
+{
+public:
+    void SetUp() override
+    {
+        ConfigNestedPropertyObjectTest::SetUp();
+        createNestedDeviceTestClient();
+    }
+
+protected:
+    DevicePtr nestedClientDevice;
+    std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> nestedClient;
+    std::unique_ptr<ConfigProtocolServer> nestedServer;
+    ContextPtr nestedClientContext;
+    
+private:
+    // Nested server handling
+    void nestedServerNotificationReady(const PacketBuffer& notificationPacket) const
+    {
+        nestedClient->triggerNotificationPacket(notificationPacket);
+    }
+
+    // Nested client handling
+    PacketBuffer nestedSendRequestAndGetReply(const PacketBuffer& requestPacket) const
+    {
+        auto replyPacket = nestedServer->processRequestAndGetReply(requestPacket);
+        return replyPacket;
+    }
+
+    void nestedSendNoReplyRequest(const PacketBuffer& requestPacket) const
+    {
+        // callback is not expected to be called within this test group
+        assert(false);
+        nestedServer->processNoReplyRequest(requestPacket);
+    }
+
+    void createNestedDeviceTestClient()
+    {
+        const auto anonymousUser = User("", "");
+
+        nestedServer = std::make_unique<ConfigProtocolServer>(
+            clientDevice,
+            std::bind(&ConfigPropertyObjectNestedDevicesTest::nestedServerNotificationReady, this, std::placeholders::_1),
+            anonymousUser,
+            ClientType::Control,
+            test_utils::dummyExtSigFolder(clientDevice.getContext()));
+
+        nestedClientContext = NullContext();
+        nestedClient =
+            std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+                clientContext,
+                std::bind(&ConfigPropertyObjectNestedDevicesTest::nestedSendRequestAndGetReply, this, std::placeholders::_1),
+                std::bind(&ConfigPropertyObjectNestedDevicesTest::nestedSendNoReplyRequest, this, std::placeholders::_1),
+                nullptr,
+                nullptr,
+                nullptr
+            );
+
+        nestedClientDevice = client->connect();
+        nestedClientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
 };
 
@@ -347,8 +414,8 @@ TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
     // check that the client side has the same sync component
     SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
     ASSERT_EQ(clientSyncComponent.getSelectedSource(), 1);
-    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2);
-    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2);
+    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2u);
+    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2u);
     ASSERT_EQ(clientSyncComponent.getInterfaces().getKeyList(), syncComponent.getInterfaces().getKeyList());
     ASSERT_EQ(clientSyncComponent.getSyncLocked(), true);
 
@@ -788,4 +855,308 @@ TEST_F(ConfigNestedPropertyObjectTest, ThrowExeptionRestoringValuePartialy)
     ASSERT_THROW(clientDevice.setPropertyValue("param1", -1), OutOfRangeException);
     ASSERT_EQ(clientDevice.getPropertyValue("param1"), 0);
     ASSERT_EQ(clientDevice.getPropertyValue("param2"), -1);
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, ProcedurePropWithListArg)
+{
+    auto argInfo = ListArgumentInfo("Int", ctInt);
+
+    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfo)));
+    serverDevice.addProperty(prop);
+    auto proc = Procedure(
+        [](const ListPtr<IBaseObject>& list)
+        {
+            for (const auto& val : list)
+                ASSERT_EQ(val.getCoreType(), ctInt);
+    });
+
+    serverDevice.setPropertyValue("ProcedureProp", proc);
+    proc = clientDevice.getPropertyValue("ProcedureProp");
+
+    ASSERT_EQ(clientDevice.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfo);
+
+    auto listArg = List<IBaseObject>(Integer(1), Integer(2));
+    proc(listArg);
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, ProcedurePropWithDictArg)
+{
+    auto argInfo = DictArgumentInfo("Int", ctInt, ctString);
+
+    auto prop = FunctionProperty("ProcedureProp", ProcedureInfo(List<IArgumentInfo>(argInfo)));
+    serverDevice.addProperty(prop);
+    auto proc = Procedure(
+        [](const DictPtr<IInteger, IString>& dict)
+        {
+            for (const auto& [key, val] : dict)
+            {
+                ASSERT_EQ(key.getCoreType(), ctInt);
+                ASSERT_EQ(val.getCoreType(), ctString);
+            }
+        });
+
+    serverDevice.setPropertyValue("ProcedureProp", proc);
+    proc = clientDevice.getPropertyValue("ProcedureProp");
+
+    ASSERT_EQ(clientDevice.getProperty("ProcedureProp").getCallableInfo().getArguments()[0], argInfo);
+
+    auto dictArg = Dict<IInteger, IString>({{0, "foo"}, {1, "bar"}});
+    proc(dictArg);
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, OnGetSelectionValues)
+{
+    auto selectionProp = SelectionProperty("Selection", List<IString>(), 0);
+
+    int cnt = 0;
+    selectionProp.getOnSelectionValuesRead() += [&cnt](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(List<IString>("foo", "bar"));
+        else
+            args.setValue(List<IString>("apple", "pineapple", "blueberry"));
+        cnt++;
+    };
+
+    serverDevice.addProperty(selectionProp);
+
+    auto objProp = clientDevice.getProperty("Selection");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(objProp.getSelectionValues(), List<IString>("apple", "pineapple", "blueberry"));
+        ASSERT_EQ(objProp.getSelectionValues(), List<IString>("foo", "bar"));
+        ASSERT_EQ(cnt, 2 * i);
+    }
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, OnGetSparseSelectionValues)
+{
+    auto selectionProp = SparseSelectionProperty("Selection", Dict<IInteger, IString>(), 0);
+
+    auto dict1 = Dict<IInteger, IString>({{0, "foo"}, {5, "bar"}});
+    auto dict2 = Dict<IInteger, IString>({{0, "foo"}, {5, "bar"}});
+
+    int cnt = 0;
+    selectionProp.getOnSelectionValuesRead() += [&cnt, &dict1, &dict2](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(dict1);
+        else
+            args.setValue(dict2);
+        cnt++;
+    };
+
+    serverDevice.addProperty(selectionProp);
+
+    auto objProp = clientDevice.getProperty("Selection");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        DictPtr<IInteger, IString> values = objProp.getSelectionValues();
+        ASSERT_EQ(values.getKeyList(), dict2.getKeyList());
+        ASSERT_EQ(values.getValueList(), dict2.getValueList());
+
+        values = objProp.getSelectionValues();
+        ASSERT_EQ(values.getValueList(), dict1.getValueList());
+        ASSERT_EQ(values.getKeyList(), dict1.getKeyList());
+
+        ASSERT_EQ(cnt, 2 * i);
+    }
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, OnGetSuggestedValues)
+{
+    auto intProp = IntPropertyBuilder("SuggestedValues", 10).build();
+
+    int cnt = 0;
+    intProp.getOnSuggestedValuesRead() += [&cnt](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(List<IInteger>(0, 10, 20));
+        else
+            args.setValue(List<IInteger>(10, 20, 30));
+        cnt++;
+    };
+
+    serverDevice.addProperty(intProp);
+
+    auto objProp = clientDevice.getProperty("SuggestedValues");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(objProp.getSuggestedValues(), List<IInteger>(10, 20, 30));
+        ASSERT_EQ(objProp.getSuggestedValues(), List<IInteger>(0, 10, 20));
+        ASSERT_EQ(cnt, 2 * i );
+    }
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, OnReadCallback)
+{
+    auto prop = clientDevice.getProperty("OnReadCallback");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(clientDevice.getPropertyValue("OnReadCallback"), "bar");
+        ASSERT_EQ(prop.getValue(), "foo");
+    }
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, OnReadCallbackSelection)
+{
+    auto prop = clientDevice.getProperty("OnReadCallbackSelection");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(clientDevice.getPropertyValue("OnReadCallbackSelection"), 0);
+        ASSERT_EQ(prop.getValue(), 1);
+        ASSERT_EQ(clientDevice.getPropertySelectionValue("OnReadCallbackSelection"), "Mango");
+    }
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, OnReadCallbackDeviceInfo)
+{
+    auto info = clientDevice.getInfo();
+    auto prop = info.getProperty("OnReadCallback");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(info.getPropertyValue("OnReadCallback"), "bar");
+        ASSERT_EQ(prop.getValue(), "foo");
+    }
+}
+
+TEST_F(ConfigNestedPropertyObjectTest, StringSuggestedValues)
+{
+    ASSERT_EQ(clientDevice.getProperty("StringSuggestedValues").getSuggestedValues(), List<IString>("Apple", "Orange", "Mango"));
+
+    ASSERT_NO_THROW(clientDevice.setPropertyValue("StringSuggestedValues", "Tomato"));
+}
+
+TEST_F(ConfigPropertyObjectNestedDevicesTest, OnGetSelectionValuesNestedDevice)
+{
+    auto selectionProp = SelectionProperty("Selection", List<IString>(), 0);
+
+    int cnt = 0;
+    selectionProp.getOnSelectionValuesRead() += [&cnt](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(List<IString>("foo", "bar"));
+        else
+            args.setValue(List<IString>("apple", "pineapple", "blueberry"));
+        cnt++;
+    };
+
+    serverDevice.addProperty(selectionProp);
+
+    auto objProp = nestedClientDevice.getProperty("Selection");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(objProp.getSelectionValues(), List<IString>("apple", "pineapple", "blueberry"));
+        ASSERT_EQ(objProp.getSelectionValues(), List<IString>("foo", "bar"));
+        ASSERT_EQ(cnt, 2 * i);
+    }
+}
+
+TEST_F(ConfigPropertyObjectNestedDevicesTest, OnGetSparseSelectionValuesNestedDevice)
+{
+    auto selectionProp = SparseSelectionProperty("Selection", Dict<IInteger, IString>(), 0);
+
+    auto dict1 = Dict<IInteger, IString>({{0, "foo"}, {5, "bar"}});
+    auto dict2 = Dict<IInteger, IString>({{0, "foo"}, {5, "bar"}});
+
+    int cnt = 0;
+    selectionProp.getOnSelectionValuesRead() += [&cnt, &dict1, &dict2](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(dict1);
+        else
+            args.setValue(dict2);
+        cnt++;
+    };
+
+    serverDevice.addProperty(selectionProp);
+
+    auto objProp = nestedClientDevice.getProperty("Selection");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        DictPtr<IInteger, IString> values = objProp.getSelectionValues();
+        ASSERT_EQ(values.getKeyList(), dict2.getKeyList());
+        ASSERT_EQ(values.getValueList(), dict2.getValueList());
+
+        values = objProp.getSelectionValues();
+        ASSERT_EQ(values.getValueList(), dict1.getValueList());
+        ASSERT_EQ(values.getKeyList(), dict1.getKeyList());
+
+        ASSERT_EQ(cnt, 2 * i);
+    }
+}
+
+TEST_F(ConfigPropertyObjectNestedDevicesTest, OnGetSuggestedValuesNestedDevice)
+{
+    auto intProp = IntPropertyBuilder("SuggestedValues", 10).build();
+
+    int cnt = 0;
+    intProp.getOnSuggestedValuesRead() += [&cnt](const PropertyPtr& prop, const PropertyMetadataReadArgsPtr& args)
+    {
+        ASSERT_EQ(args.getProperty(), prop);
+        if (cnt % 2)
+            args.setValue(List<IInteger>(0, 10, 20));
+        else
+            args.setValue(List<IInteger>(10, 20, 30));
+        cnt++;
+    };
+
+    serverDevice.addProperty(intProp);
+
+    auto objProp = nestedClientDevice.getProperty("SuggestedValues");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(objProp.getSuggestedValues(), List<IInteger>(10, 20, 30));
+        ASSERT_EQ(objProp.getSuggestedValues(), List<IInteger>(0, 10, 20));
+        ASSERT_EQ(cnt, 2 * i );
+    }
+}
+
+TEST_F(ConfigPropertyObjectNestedDevicesTest, OnReadCallbackNestedDevice)
+{
+    auto prop = nestedClientDevice.getProperty("OnReadCallback");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(nestedClientDevice.getPropertyValue("OnReadCallback"), "bar");
+        ASSERT_EQ(prop.getValue(), "foo");
+    }
+}
+
+TEST_F(ConfigPropertyObjectNestedDevicesTest, OnReadCallbackSelectionNestedDevice)
+{
+    auto prop = nestedClientDevice.getProperty("OnReadCallbackSelection");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(nestedClientDevice.getPropertyValue("OnReadCallbackSelection"), 0);
+        ASSERT_EQ(prop.getValue(), 1);
+        ASSERT_EQ(nestedClientDevice.getPropertySelectionValue("OnReadCallbackSelection"), "Mango");
+    }
+}
+
+TEST_F(ConfigPropertyObjectNestedDevicesTest, OnReadCallbackDeviceInfoNestedDevice)
+{
+    auto info = nestedClientDevice.getInfo();
+    auto prop = info.getProperty("OnReadCallback");
+
+    for (int i = 1; i <= 10; ++i)
+    {
+        ASSERT_EQ(info.getPropertyValue("OnReadCallback"), "bar");
+        ASSERT_EQ(prop.getValue(), "foo");
+    }
 }

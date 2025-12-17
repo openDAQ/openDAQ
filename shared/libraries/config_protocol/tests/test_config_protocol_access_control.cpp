@@ -57,7 +57,8 @@ public:
             serverDevice,
             std::bind(&ConfigProtocolAccessControlTest::serverNotificationReady, this, std::placeholders::_1),
             user,
-            ClientType::Control);
+            ClientType::Control,
+            test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
         auto clientContext = NullContext();
         client =
@@ -560,5 +561,26 @@ TEST_F(ConfigProtocolAccessControlTest, Recorder)
 
         ASSERT_NO_THROW(recorderPtr.stopRecording());
         ASSERT_FALSE(recorderPtr.getIsRecording());
+    }
+}
+
+TEST_F(ConfigProtocolAccessControlTest, AddDevices)
+{
+    auto device = createDevice();
+
+    auto connectionArgs =
+        Dict<IString, IPropertyObject>(
+            {
+                {"unknown://unknown1", nullptr},
+                {"unknown://unknown2", nullptr}
+            }
+        );
+
+    setupServerAndClient(device, UserRegular);
+
+    {
+        const auto clientSubDevice = clientDevice.getDevices()[0];
+        ASSERT_THROW(clientSubDevice.addDevices(connectionArgs), AccessDeniedException);
+        ASSERT_THROW(clientSubDevice.addDevice("unknown://unknown"), AccessDeniedException);
     }
 }

@@ -7,6 +7,8 @@
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/tags_private_ptr.h>
 #include <coreobjects/property_object_class_factory.h>
+#include <opendaq/input_port_private_ptr.h>
+#include <opendaq/scheduler_factory.h>
 
 using FunctionBlockTest = testing::Test;
 
@@ -186,4 +188,67 @@ TEST_F(FunctionBlockTest, BeginUpdateEndUpdate)
 
     ASSERT_EQ(fb.getPropertyValue("FbProp"), "s");
     ASSERT_EQ(sig.getPropertyValue("SigProp"), "cs");
+}
+
+class MockFbImpl1 final : public daq::FunctionBlock
+{
+public:
+    MockFbImpl1(const daq::ContextPtr& context)
+        : daq::FunctionBlock(daq::FunctionBlockType("test_uid", "test_name", "test_description"), context, nullptr, "MockFb", "")
+    {
+        createAndAddInputPort("IP", daq::PacketReadyNotification::SameThread);
+        objPtr.addProperty(daq::IntProperty("ConnectIp", 100));
+    }
+    
+    void onPacketReceived(const daq::InputPortPtr& /*port*/) override
+    {
+        auto lock = getAcquisitionLock2();
+    }
+
+    std::unordered_set<std::string> getDefaultComponents()
+    {
+        return this->defaultComponents;
+    }
+};
+
+TEST_F(FunctionBlockTest, SetDomainDescriptorUnderLock)
+{
+    const auto logger = daq::Logger();
+    auto context = daq::Context(daq::Scheduler(logger), logger, daq::TypeManager(), nullptr, nullptr);
+    auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl1>(context);
+
+    auto desc1 = daq::DataDescriptorBuilder().build();
+    auto desc2 = daq::DataDescriptorBuilder().setSampleType(daq::SampleType::Int16).build();
+
+    const auto signal1 = Signal(context, nullptr, "sig");
+    const auto signal2 = Signal(context, nullptr, "domainSig");
+
+    signal1.setDescriptor(desc1);
+    signal2.setDescriptor(desc2);
+
+    fb.getOnPropertyValueWrite("ConnectIp") += [&fb, &signal1, &signal2](daq::PropertyObjectPtr&, const daq::PropertyValueEventArgsPtr& args)
+    {
+        if (static_cast<int>(args.getValue()) % 2 == 0)
+            ASSERT_NO_THROW(fb.getInputPorts()[0].asPtr<daq::IInputPortPrivate>().connectSignalSchedulerNotification(signal1));
+        else
+            ASSERT_NO_THROW(fb.getInputPorts()[0].asPtr<daq::IInputPortPrivate>().connectSignalSchedulerNotification(signal2));
+    };
+
+    for (int i = 0; i < 10; ++i)
+        fb.setPropertyValue("ConnectIp", i);
+}
+
+TEST_F(FunctionBlockTest, DefaultFolderLockingStrategy)
+{
+    const auto logger = daq::Logger();
+    auto context = daq::Context(daq::Scheduler(logger), logger, daq::TypeManager(), nullptr, nullptr);
+    auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl1>(context);
+
+    auto testFbImpl = dynamic_cast<MockFbImpl1*>(fb.getObject());
+    auto defaultComponents = testFbImpl->getDefaultComponents();
+    for (const daq::ComponentPtr& component : fb.getItems())
+    {
+        if (defaultComponents.count(component.getName()))
+            ASSERT_EQ(component.asPtr<daq::IPropertyObjectInternal>().getLockingStrategy(), daq::LockingStrategy::ForwardOwnerLockOwn);
+    }
 }

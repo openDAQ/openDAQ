@@ -19,6 +19,7 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <thread>
+#include <coreobjects/property_factory.h>
 
 using SignalTest = testing::Test;
 
@@ -28,7 +29,7 @@ class ConnectionMockImpl : public ImplementationOf<IConnection>
 {
 public:
     bool packetEnqueued{ false };
-    int packetsEnqueued{0};
+    SizeT packetsEnqueued{0};
 
     ErrCode INTERFACE_FUNC enqueue(IPacket* packet) override
     {
@@ -136,6 +137,11 @@ public:
     ErrCode INTERFACE_FUNC isRemote(Bool* remote) override
     {
         *remote = False;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC enqueueWithScheduler(IPacket* packet) override
+    {
         return OPENDAQ_SUCCESS;
     }
 };
@@ -567,7 +573,7 @@ TEST_F(SignalTest, SendPackets)
     auto packet1 = PacketMock();
 
     signal.sendPackets(List<IPacket>(packet0, packet1));
-    ASSERT_EQ(connImpl->packetsEnqueued, 3);
+    ASSERT_EQ(connImpl->packetsEnqueued, 3u);
 
     ASSERT_TRUE(connImpl->packetEnqueued);
 }
@@ -604,7 +610,7 @@ TEST_F(SignalTest, SendAndReleasePackets)
 
     signal.sendPackets(std::move(packets));
 
-    ASSERT_EQ(connImpl->packetsEnqueued, 3);
+    ASSERT_EQ(connImpl->packetsEnqueued, 3u);
     ASSERT_TRUE(connImpl->packetEnqueued);
 }
 
@@ -902,7 +908,7 @@ TEST_F(SignalTest, GetLastValueNonPublicDisabled)
     ASSERT_FALSE(signal.getLastValue().assigned());
 }
 
-TEST_F(SignalTest, GetLastValueInvisibleDisabled)
+TEST_F(SignalTest, GetLastValueInvisible)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
     signal.template asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Visible"));
@@ -918,7 +924,7 @@ TEST_F(SignalTest, GetLastValueInvisibleDisabled)
         signal.sendPacket(dataPacket);
     }
 
-    ASSERT_FALSE(signal.getLastValue().assigned());
+    ASSERT_TRUE(signal.getLastValue().assigned());
 }
 
 class ListenerImpl : public ImplementationOfWeak<IInputPortNotifications>
@@ -1145,8 +1151,8 @@ TEST_F(SignalTest, GetLastValueComplexFloat32)
     auto lastValuePacket = signal.getLastValue();
     ComplexNumberPtr complexPtr;
     ASSERT_NO_THROW(complexPtr = lastValuePacket.asPtr<IComplexNumber>());
-    ASSERT_FLOAT_EQ(complexPtr.getReal(), 8.1f);
-    ASSERT_FLOAT_EQ(complexPtr.getImaginary(), 9.1f);
+    ASSERT_DOUBLE_EQ(complexPtr.getReal(), 8.1f);
+    ASSERT_DOUBLE_EQ(complexPtr.getImaginary(), 9.1f);
 }
 
 TEST_F(SignalTest, GetLastValueComplexFloat64)
@@ -1920,4 +1926,30 @@ TEST_F(SignalTest, GetLastValueStructDoublyNested)
 
     // Check fifth (doubly nested) member
     ASSERT_FLOAT_EQ(doublyNestedPtr.get("DoublyNestedFloat32"), 6.66f);
+}
+
+TEST_F(SignalTest, SetDomainDescriptorUnderLock)
+{
+    auto context = NullContext();
+    auto desc = DataDescriptorBuilder().build();
+    auto desc1 = DataDescriptorBuilder().setSampleType(SampleType::Int16).build();
+
+    const auto signal = Signal(context, nullptr, "sig");
+    const auto domainSignal = Signal(context, nullptr, "domainSig");
+
+    signal.setDescriptor(desc);
+    domainSignal.setDescriptor(desc);
+    signal.setDomainSignal(domainSignal);
+
+    signal.addProperty(IntProperty("Test", 0));
+    signal.getOnPropertyValueWrite("Test") += [&domainSignal, &desc, &desc1](PropertyObjectPtr&, const PropertyValueEventArgsPtr& args)
+    {
+        if (static_cast<int>(args.getValue()) % 2 == 0)
+            ASSERT_NO_THROW(domainSignal.setDescriptor(desc1));
+        else
+            ASSERT_NO_THROW(domainSignal.setDescriptor(desc));
+    };
+
+    for (int i = 0; i < 10; ++i)
+        signal.setPropertyValue("Test", i);
 }

@@ -121,27 +121,29 @@ ErrCode FunctionBlockWrapperImpl::setOverridenObject(
         std::unordered_map<std::string, TSmartPtr>& objects,
         TInterface* object)
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
-    return wrapHandler(
-        [this, &propertyName, &objects, &object]()
-        {
-            auto propertyNameStr = StringPtr::Borrow(propertyName);
+    const ErrCode errCode = daqTry([this, &propertyName, &objects, &object]()
+    {
+        auto propertyNameStr = StringPtr::Borrow(propertyName);
 
-            if (!isPropertyVisible(propertyNameStr))
-                DAQ_THROW_EXCEPTION(NotFoundException);
+        if (!isPropertyVisible(propertyNameStr))
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
-            if (!functionBlock.hasProperty(propertyNameStr))
-                DAQ_THROW_EXCEPTION(NotFoundException);
+        if (!functionBlock.hasProperty(propertyNameStr))
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
-            auto objectPtr = TSmartPtr::Borrow(object);
+        auto objectPtr = TSmartPtr::Borrow(object);
 
-            if (objectPtr.assigned())
-                objects.insert_or_assign(propertyNameStr, objectPtr);
-            else
-                objects.erase(propertyNameStr);
+        if (objectPtr.assigned())
+            objects.insert_or_assign(propertyNameStr, objectPtr);
+        else
+            objects.erase(propertyNameStr);
+        return OPENDAQ_SUCCESS;
 
-        });
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set overridden object");
+    return errCode;
 }
 
 

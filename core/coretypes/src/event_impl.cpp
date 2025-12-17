@@ -99,11 +99,11 @@ ErrCode EventImpl::trigger(IBaseObject* sender, IEventArgs* args)
         return OPENDAQ_SUCCESS;
     }
 
-    for (const Handler& handler : handlers)
+    for (size_t i = 0; i < handlers.size(); ++i)
     {
-        if (!handler.muted)
+        if (!handlers[i].muted)
         {
-            const ErrCode errCode = handler.eventHandler->handleEvent(sender, args);
+            const ErrCode errCode = handlers[i].eventHandler->handleEvent(sender, args);
             OPENDAQ_RETURN_IF_FAILED(errCode);
             continue;
         }
@@ -118,7 +118,7 @@ ErrCode EventImpl::freeze()
     std::scoped_lock lock(sync);
 
     if (frozen)
-        return  OPENDAQ_IGNORED;
+        return OPENDAQ_IGNORED;
 
     frozen = true;
     return OPENDAQ_SUCCESS;

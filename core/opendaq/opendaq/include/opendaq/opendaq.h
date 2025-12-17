@@ -25,6 +25,9 @@
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/function_block_type_factory.h>
 
+#include <opendaq/module_authenticator_ptr.h>
+#include <opendaq/module_authenticator_impl.h>
+
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/module_ptr.h>
 
@@ -189,4 +192,24 @@
 /*!
  * @ingroup opendaq
  * @defgroup opendaq_streamings Streamings
+ */
+
+/*!
+ * @ingroup opendaq
+ * @defgroup opendaq_components_search_filter Components Search Filter
+ */
+
+/*!
+ * @ingroup opendaq
+ * @defgroup opendaq_update_parameters Update Parameters
+ */
+
+/*!
+ * @ingroup opendaq
+ * @defgroup opendaq_log_file_info Log File Info
+ */
+
+/*!
+ * @ingroup opendaq
+ * @defgroup opendaq_sync_component Sync Component
  */

@@ -4,6 +4,7 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/deleter_factory.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <algorithm>
 
 namespace daq::packet_streaming
 {
@@ -65,8 +66,8 @@ void PacketStreamingClient::addEventPacketBuffer(const PacketBufferPtr& packetBu
 
         const auto dataDescIt = dataDescriptors.find(signalId);
         const auto domainDescIt = domainDescriptors.find(signalId);
-        if (valueDescriptorChanged && dataDescIt != dataDescriptors.end() && dataDescIt->second != newValueDescriptor ||
-            domainDescriptorChanged && domainDescIt != domainDescriptors.end() && domainDescIt->second != newDomainDescriptors ||
+        if ((valueDescriptorChanged && dataDescIt != dataDescriptors.end() && dataDescIt->second != newValueDescriptor) ||
+            (domainDescriptorChanged && domainDescIt != domainDescriptors.end() && domainDescIt->second != newDomainDescriptors) ||
             dataDescIt == dataDescriptors.end() ||
             domainDescIt == domainDescriptors.end())
         {

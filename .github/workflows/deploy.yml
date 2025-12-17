@@ -17,7 +17,8 @@ env:
   s3sdk_path: releases/${{ github.ref_name }}/SDK
   s3wheels_linux_x86_64_path: releases/${{ github.ref_name }}/Python Wheels (Linux x86_64)
   s3wheels_win_amd64_path: releases/${{ github.ref_name }}/Python Wheels (Windows amd64)
-  s3wheels_macos_path: releases/${{ github.ref_name }}/Python Wheels (MacOS)
+  s3wheels_macos_x86_64_path: releases/${{ github.ref_name }}/Python Wheels (MacOS x86_64)
+  s3wheels_macos_arm_path: releases/${{ github.ref_name }}/Python Wheels (MacOS ARM)
   s3dotnet_path: releases/${{ github.ref_name }}/dotNET Bindings
   s3docpath: releases/${{ github.ref_name }}/Specifications and documentation
   s3simulatorpath: releases/${{ github.ref_name }}/Simulator
@@ -25,7 +26,7 @@ env:
   simulator_app_artifact: SimulatorApp
   simulator_package_artifact: SimulatorPackage
   python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13
+  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13 3.14
   windows_x64_artifact: SdkWindows64
   linux_x64_artifact: SdkLinux64
 
@@ -37,7 +38,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 180
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
@@ -48,7 +49,7 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             cmake_generator_platform: x64
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
+            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DPYBIND11_FINDPYTHON=ON
             cpack: NSIS
           - name: Windows VS 2022 Win32 Release
             runner: windows-latest
@@ -68,11 +69,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13
+      - name: Set up Python
         uses: actions/setup-python@v5
-        id: cp313
         with:
-          python-version: "3.13"
+          python-version: |
+              3.8
+              3.9
+              3.10
+              3.11
+              3.12
+              3.13
+              3.14
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
+
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
 
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
@@ -131,7 +146,9 @@ jobs:
 
       - name: Package
         working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+        run: |
+          cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+          cpack -C ${{ matrix.cmake_build_type }} -G ZIP
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -143,14 +160,14 @@ jobs:
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
+          Get-ChildItem -Path .\* -Include *.exe,*.zip | Rename-Item -NewName {$_.FullName.ToLower()}
 
       - name: Rename package (main)
         if: github.ref == 'refs/heads/main'
         shell: pwsh
         working-directory: ${{ env.package_path }}
         run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
+          Get-ChildItem -Path .\* -Include *.exe,*.zip | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
 
       - name: Rename wheels (main)
         if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
@@ -171,9 +188,9 @@ jobs:
           Write-Output "# S3 listing"
           aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --human-readable
           Write-Output "# S3 remove '*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe'"
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe"
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe" --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.zip"
           Write-Output "# S3 copy '*.exe' from '${{ env.package_path }}'"
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*.exe"
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*.exe" --include "*.zip"
 
       - name: Upload Wheels to S3
         if: matrix.cmake_generator_platform != 'Win32'
@@ -228,7 +245,7 @@ jobs:
             image: ubuntu:22.04
             cmake_generator: Ninja
             cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON
+            cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
             build_documentation: true
             cpack: DEB
             apt_packages: g++-10
@@ -281,7 +298,50 @@ jobs:
             lld ninja-build curl \
             python3-pip python3-dev \
             mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-            libx11-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+            libx11-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev \
+            libgl-dev libudev-dev libfreetype6-dev \
+            pkg-config
+
+      - name: Lock base repos to amd64
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          printf "%s\n" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse" \
+            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-backports main restricted universe multiverse" \
+            "deb [arch=amd64] http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse" \
+            > /etc/apt/sources.list
+          apt-get update
+
+      - name: Enable arm64 repos (ports)
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          dpkg --add-architecture arm64
+          printf "%s\n" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-backports main restricted universe multiverse" \
+            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse" \
+            > /etc/apt/sources.list.d/ubuntu-arm64.list
+          apt-get update
+
+      - name: Install ARM64 sysroot & X11 dev (only for arm64)
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          dpkg --add-architecture arm64
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            libc6-dev:arm64 libstdc++-10-dev:arm64 zlib1g-dev:arm64 \
+            libx11-dev:arm64 libxrandr-dev:arm64 libxcursor-dev:arm64 libxi-dev:arm64 libxinerama-dev:arm64 \
+            libx11-xcb-dev:arm64 libgl1-mesa-dev:arm64 libudev-dev:arm64 \
+            libfreetype6-dev:arm64 libjpeg-dev:arm64 pkg-config
+
+      - name: Point pkg-config to ARM64 .pc files (only for arm64)
+        if: ${{ matrix.arch == 'arm64' }}
+        run: |
+          echo "PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
+          pkg-config --modversion x11 xrandr xcursor xi || true
 
       - name: Install documentation dependencies
         if: matrix.build_documentation
@@ -302,7 +362,9 @@ jobs:
 
       - name: Package
         working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+        run: |
+          cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
+          cpack -C ${{ matrix.cmake_build_type }} -G ZIP
 
       - name: Get short SHA
         if: github.ref == 'refs/heads/main'
@@ -317,6 +379,13 @@ jobs:
           rename 's/_arm64/-ubuntu22.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
 
+      - name: Rename zip (main)
+        working-directory: ${{ env.package_path_rel }}
+        if: github.ref == 'refs/heads/main'
+        run: |
+          rename 's/-Linux/-ubuntu22.04-${{ matrix.arch }}_${{ steps.short-sha.outputs.sha }}/' *.zip
+          rename 's/openDAQ/opendaq/' *.zip
+
       - name: Rename package
         working-directory: ${{ env.package_path_rel }}
         if: github.ref != 'refs/heads/main'
@@ -324,6 +393,13 @@ jobs:
           rename 's/_amd64/-ubuntu22.04-x86_64/' *.deb
           rename 's/_arm64/-ubuntu22.04-arm64/' *.deb
           rename 's/opendaq_/opendaq-/' *.deb
+
+      - name: Rename zip
+        working-directory: ${{ env.package_path_rel }}
+        if: github.ref != 'refs/heads/main'
+        run: |
+          rename 's/-Linux/-ubuntu22.04-${{ matrix.arch }}/' *.zip
+          rename 's/openDAQ/opendaq/' *.zip
 
       - name: Read openDAQ version
         id: daq_version
@@ -347,7 +423,7 @@ jobs:
       - name: Upload package to S3
         working-directory: ${{ env.package_path_rel }}
         run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/"  --recursive --exclude '*' --include '*${{ matrix.arch }}*.deb'
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/"  --recursive --exclude '*' --include '*${{ matrix.arch }}*.deb' --include '*${{ matrix.arch }}*.zip'
           aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive
 
       - name: Upload package
@@ -374,9 +450,8 @@ jobs:
 
       - name: Upload examples to S3
         if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
-        working-directory: ./examples
         run: |
-          zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip cpp python
+          zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip examples/applications -x examples/applications/CMakeLists.txt
           aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/  --recursive --exclude '*' --include '*examples.zip'
           aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/
 
@@ -451,7 +526,7 @@ jobs:
           yum install -y ${{ matrix.additional_packages }} \
               ninja-build \
               mono-core \
-              freetype-devel libudev-devel libX11-devel libXcursor-devel libXrandr-devel
+              freetype-devel libudev-devel libX11-devel libXi-devel libXcursor-devel libXrandr-devel
 
       - name: Create build dir
         run: mkdir build
@@ -462,7 +537,7 @@ jobs:
           mkdir wheels
           for version in ${{ env.python_versions }}; do
               echo "Building for Python $version"
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCI_GIT_BRANCH=${{ github.ref }}  -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCI_GIT_BRANCH=${{ github.ref }}  -DOPENDAQ_PYTHON_VERSION=$version -DDAQMODULES_PARQUET_RECORDER_MODULE=ON ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -506,19 +581,19 @@ jobs:
           path: ${{ env.wheels_path }}
           retention-days: 7
 
-  deploy_macos_wheels:
+  deploy_macos_wheels_x86_64:
     name: ${{ matrix.name }}
     runs-on: macos-13
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 300
+    timeout-minutes: 400
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: macos-13 clang Release
+          - name: macos-13 clang Release x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_osx_deployment_target: 10.15
@@ -526,6 +601,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
 
       - name: Install ninja-build
         uses: seanmiddleditch/gha-setup-ninja@v5
@@ -542,6 +622,7 @@ jobs:
               3.11
               3.12
               3.13
+              3.14
 
       - name: Make dirs
         run: |
@@ -552,25 +633,7 @@ jobs:
         working-directory: ./build
         run: |
           for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DOPENDAQ_PYTHON_VERSION=$version ..
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
-              cp -f pip/packages/opendaq*.whl ../wheels
-              deactivate
-              rm -rf venv
-          done
-
-      - name: Clear build dir
-        run: rm -rf build/*
-
-      - name: Build wheels arm64
-        working-directory: ./build
-        run: |
-          for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCMAKE_SYSTEM_NAME=Darwin -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DOPENDAQ_PYTHON_VERSION=$version ..
               cmake --build .
               python$version -m venv venv
               . venv/bin/activate
@@ -604,8 +667,8 @@ jobs:
       - name: Upload Wheels to S3
         working-directory: ./wheels
         run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_path }}" --recursive --exclude '*' --include '*.whl'
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_path }}" --recursive
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_x86_64_path }}" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_x86_64_path }}" --recursive
 
       - name: Upload Wheels
         uses: actions/upload-artifact@v4
@@ -614,6 +677,102 @@ jobs:
           path: wheels
           retention-days: 7
 
+  deploy_macos_wheels_ARM:
+    name: ${{ matrix.name }}
+    runs-on: macos-14
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 400
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-14 clang Release ARM
+            cmake_generator: Ninja
+            cmake_build_type: Release
+            cmake_osx_deployment_target: 10.15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '4.0'
+
+      - name: Install ninja-build
+        uses: seanmiddleditch/gha-setup-ninja@v5
+        with:
+          version: 1.10.2
+
+      - name: Set up Pythons
+        uses: actions/setup-python@v5
+        with:
+          python-version: |
+              3.8
+              3.9
+              3.10
+              3.11
+              3.12
+              3.13
+              3.14
+
+      - name: Make dirs
+        run: |
+          mkdir -p build
+          mkdir wheels
+
+      - name: Build wheels arm64
+        working-directory: ./build
+        run: |
+          for version in ${{ env.python_versions }}; do
+              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCMAKE_SYSTEM_NAME=Darwin -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DCMAKE_SYSTEM_PROCESSOR=arm64 -DARROW_CPU_FLAG=aarch64 -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DOPENDAQ_PYTHON_VERSION=$version ..
+              cmake --build .
+              python$version -m venv venv
+              . venv/bin/activate
+              pip install numpy pybind11-stubgen
+              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
+              cp -f pip/packages/opendaq*.whl ../wheels
+              deactivate
+              rm -rf venv
+          done
+
+      - name: Get short SHA
+        if: github.ref == 'refs/heads/main'
+        id: short-sha
+        uses: benjlevesque/short-sha@v3.0
+
+      - name: Rename Wheels (main)
+        working-directory: ./wheels
+        if: github.ref == 'refs/heads/main'
+        run: |
+          for filename in *.whl; do
+            new_filename=$(echo "$filename" | sed "s/-cp/+${{ steps.short-sha.outputs.sha }}-cp/")
+            mv "$filename" "$new_filename"
+          done
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload Wheels to S3
+        working-directory: ./wheels
+        run: |
+          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_arm_path }}" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_arm_path }}" --recursive
+
+      - name: Upload Wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wheels (${{ matrix.name }})
+          path: wheels
+          retention-days: 7
+          
   simulator-build:
     runs-on: Ubuntu-24.04-8-core
     name: Simulator build

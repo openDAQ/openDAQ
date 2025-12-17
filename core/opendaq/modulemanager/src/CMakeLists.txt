@@ -10,6 +10,7 @@ function(rtgen_component_${BASE_NAME})
 
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Module_PublicHeaders}
+		${SRC_ModuleLicense_PublicHeaders}
         ${SRC_ModuleManager_PublicHeaders}
         ${SRC_ModuleManagerUtils_PublicHeaders}
         ${SRC_ContextInternal_PublicHeaders}
@@ -92,7 +93,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/mdns_discovery_server_impl.h
         ${SDK_SRC_DIR}/mdns_discovery_server_impl.cpp
     )
-									   
+	
 endfunction()
 
 set(SRC_PublicHeaders_Component 
@@ -142,10 +143,6 @@ set(SRC_Cpp_Component
 
 if("${Boost_LIBRARIES}")
     set(BOOST_LIBS ${Boost_LIBRARIES})
-endif()
-
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(STDCFS_LIBS "stdc++fs")
 endif()
 
 if (WIN32)

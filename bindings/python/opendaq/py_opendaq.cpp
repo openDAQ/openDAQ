@@ -20,7 +20,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
         .value("ComplexFloat64", daq::SampleType::ComplexFloat64)
         .value("Binary", daq::SampleType::Binary)
         .value("String", daq::SampleType::String)
-        .value("Struct", daq::SampleType::Struct);
+        .value("Struct", daq::SampleType::Struct)
+        .value("Null", daq::SampleType::Null);
 
     py::enum_<daq::ScaledSampleType>(m, "ScaledSampleType")
         .value("Invalid", daq::ScaledSampleType::Invalid)
@@ -38,6 +39,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIDeviceNetworkConfig = declareIDeviceNetworkConfig(m);
     auto classIInstanceBuilder = declareIInstanceBuilder(m);
     auto classIConfigProvider = declareIConfigProvider(m);
+    auto classIModuleAuthenticator = declareIModuleAuthenticator(m);
     auto classIInstance = declareIInstance(m);
     auto classIContext = declareIContext(m);
     auto classIDeviceDomain = declareIDeviceDomain(m);
@@ -115,6 +117,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classISubscriptionEventArgs = declareISubscriptionEventArgs(m);
     auto classIMirroredDevice = declareIMirroredDevice(m);
     auto classIMirroredDeviceConfig = declareIMirroredDeviceConfig(m);
+    auto classIMirroredInputPortConfig = declareIMirroredInputPortConfig(m);
     auto classMockSignal = declareMockSignal(m);
     auto classIComponentPrivate = declareIComponentPrivate(m);
     auto classIComponentStatusContainer = declareIComponentStatusContainer(m);
@@ -142,6 +145,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIInstanceBuilder(m, classIInstanceBuilder);
     defineIInstance(m, classIInstance);
     defineIConfigProvider(m, classIConfigProvider);
+    defineIModuleAuthenticator(m, classIModuleAuthenticator);
     defineIContext(m, classIContext);
     defineIDeviceDomain(m, classIDeviceDomain);
     defineIDeviceInfo(m, classIDeviceInfo);
@@ -218,6 +222,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineISubscriptionEventArgs(m, classISubscriptionEventArgs);
     defineIMirroredDevice(m, classIMirroredDevice);
     defineIMirroredDeviceConfig(m, classIMirroredDeviceConfig);
+    defineIMirroredInputPortConfig(m, classIMirroredInputPortConfig);
     defineMockSignal(m, classMockSignal);
     defineIComponentPrivate(m, classIComponentPrivate);
     defineIComponentStatusContainer(m, classIComponentStatusContainer);

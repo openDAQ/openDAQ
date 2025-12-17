@@ -51,8 +51,7 @@ public:
     ~NativeDeviceHelper();
 
     void setupProtocolClients(const ContextPtr& context);
-    DevicePtr connectAndGetDevice(const ComponentPtr& parent, uint16_t protocolVersion);
-    uint16_t getProtocolVersion() const;
+    DevicePtr connectAndGetDevice(const ComponentPtr& parent, uint16_t& protocolVersion);
 
     void subscribeToCoreEvent(const ContextPtr& context);
     void unsubscribeFromCoreEvent(const ContextPtr& context);
@@ -72,6 +71,8 @@ private:
     void componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);
     void tryConfigProtocolReconnect();
+    void startAcceptNotificationPackets();
+    void stopAcceptNotificationPackets();
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
@@ -80,14 +81,16 @@ private:
     LoggerComponentPtr loggerComponent;
     std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
-    std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
+    std::unordered_map<uint64_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     WeakRefPtr<IDevice> deviceRef;
     EnumerationPtr connectionStatus;
     bool acceptNotificationPackets;
+    bool subscribedToCoreEvent;
     std::chrono::milliseconds configProtocolRequestTimeout;
     Bool restoreClientConfigOnReconnect;
     const StringPtr connectionString;
-    std::mutex sync;
+    std::mutex requestReplySync;
+    std::mutex flagsSync;
 
     std::shared_ptr<boost::asio::steady_timer> configProtocolReconnectionRetryTimer;
     std::chrono::milliseconds reconnectionPeriod;
@@ -118,9 +121,6 @@ public:
     void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) override;
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 
-    // ISerializable
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
-
     // IComponentPrivate
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
@@ -130,6 +130,7 @@ protected:
 
 private:
     void attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper);
+    void disconnectAndCleanUp();
 
     std::shared_ptr<NativeDeviceHelper> deviceHelper;
 };

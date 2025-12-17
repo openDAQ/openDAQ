@@ -4,6 +4,8 @@
 #include <coretypes/type_manager_ptr.h>
 #include <coretypes/type_ptr.h>
 #include <cctype>
+#include <algorithm>
+#include <coretypes/coretype_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -35,8 +37,8 @@ ErrCode TypeManagerImpl::addType(IType* type)
     if (!typeName.assigned() || typeName == "")
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
-    std::string typeStr = typeName;
-    std::transform(typeStr.begin(), typeStr.end(), typeStr.begin(), [](char c) { return std::tolower(c); });
+    std::string typeStr = typeName.toStdString();
+    typeStr = coretype_utils::toLowerCase(typeStr);
     if (reservedTypeNames.count(typeStr))
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_RESERVED_TYPE_NAME, fmt::format(R"(""Type {} is in the list of protected type names.")", typeStr));
 
@@ -57,12 +59,14 @@ ErrCode TypeManagerImpl::addType(IType* type)
         OPENDAQ_RETURN_IF_FAILED(err);
     }
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         if (coreEventCallback.assigned())
             coreEventCallback(typePtr);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode TypeManagerImpl::removeType(IString* name)
@@ -80,12 +84,14 @@ ErrCode TypeManagerImpl::removeType(IString* name)
         OPENDAQ_RETURN_IF_FAILED(err);
     }
 
-    return daqTry([&]
+    const ErrCode errCode = daqTry([&]
     {
         if (coreEventCallback.assigned())
             coreEventCallback(name);
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode TypeManagerImpl::getType(IString* name, IType** type)
@@ -140,11 +146,12 @@ ErrCode TypeManagerImpl::serialize(ISerializer* serializer)
     ISerializable* serializableFields;
 
     ErrCode errCode = this->types->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableFields));
-
-    if (errCode == OPENDAQ_ERR_NOINTERFACE)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
-
-    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SERIALIZABLE);
+        return DAQ_EXTEND_ERROR_INFO(errCode);
+    }
 
     errCode = serializableFields->serialize(serializer);
 
@@ -169,13 +176,14 @@ ConstCharPtr TypeManagerImpl::SerializeId()
 
 ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*context*/, IFunction* factoryCallback, IBaseObject** obj)
 {
-    try
+    ErrCode result = daqTry([&ser, &factoryCallback, &obj]() -> ErrCode
     {
         TypeManagerPtr typeManagerPtr;
-        createTypeManager(&typeManagerPtr);
+        ErrCode errCode = createTypeManager(&typeManagerPtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         BaseObjectPtr types;
-        ErrCode errCode = ser->readObject("types"_daq, typeManagerPtr.asPtr<IBaseObject>(), factoryCallback, &types);
+        errCode = ser->readObject("types"_daq, typeManagerPtr.asPtr<IBaseObject>(), factoryCallback, &types);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types.asPtr<IDict>().getValues())
@@ -184,17 +192,10 @@ ErrCode TypeManagerImpl::Deserialize(ISerializedObject* ser, IBaseObject* /*cont
             OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_ALREADYEXISTS);
         }
         *obj = typeManagerPtr.detach();
-    }
-    catch (const DaqException& e)
-    {
-        return errorFromException(e);
-    }
-    catch (...)
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
-    }
-
-    return OPENDAQ_SUCCESS;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(result, "Failed to deserialize TypeManager.");
+    return result;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, TypeManager)

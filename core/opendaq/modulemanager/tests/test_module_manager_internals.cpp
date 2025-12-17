@@ -11,6 +11,7 @@
 #include <opendaq/boost_dll.h>
 
 #include "mock/mock_module.h"
+#include "mock/mock_module_authenticator.h"
 
 using namespace daq;
 
@@ -59,7 +60,6 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleErrors)
         InvalidParameterException,
         fmt::format(R"(The openDAQ module file must have an extention "{}")", OPENDAQ_MODULE_SUFFIX)
     );
-
 
     fs::path modulePath = GetMockModulePath(fmt::format(R"(/doesNotExist{})", OPENDAQ_MODULE_SUFFIX));
     LOG_I("Load module: \"{}\"", modulePath.string());
@@ -110,7 +110,7 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckFailed)
         auto module = manager.loadModule(modulePath.string()),
         ModuleIncompatibleDependenciesException,
         fmt::format(
-            "Module \"{}\" failed dependencies check. Error: 0x{:x} [{}]",
+            "Module \"{}\" failed dependencies check.",
             fs::relative(modulePath).string(),
             OPENDAQ_ERR_GENERALERROR,
             "Mock failure"
@@ -193,4 +193,22 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleAfterAddedFromMemory)
     ASSERT_NO_THROW(module = manager.loadModule(modulePath.string()));
     ASSERT_EQ(manager.getModules().getCount(), 2u);
     ASSERT_EQ(manager.getModules()[1], module);
+}
+
+TEST_F(ModuleManagerInternalsTest, TestAuthenticator)
+{
+    StringPtr certPath = StringPtr("mock/path");
+    auto authenticator = createWithImplementation<IModuleAuthenticator, MockModuleAuthenticatorImpl>(certPath);
+    auto manager = ModuleManager("[[none]]");
+    manager->setAuthenticatedOnly(true);
+    manager->setModuleAuthenticator(authenticator);
+    manager.loadModules(NullContext());
+
+    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePath.string());
+
+    ModulePtr module;
+    ASSERT_NO_THROW(module = manager.loadModule(modulePath.string()));
+    ASSERT_EQ(manager.getModules().getCount(), 1u);
+    ASSERT_EQ(manager.getModules()[0], module);
 }

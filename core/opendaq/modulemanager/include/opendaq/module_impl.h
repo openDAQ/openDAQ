@@ -35,8 +35,10 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <coretypes/dictobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 class Module : public ImplementationOf<IModule>
 {
 public:
@@ -63,7 +65,8 @@ public:
         OPENDAQ_PARAM_NOT_NULL(availableDevices);
 
         ListPtr<IDeviceInfo> availableDevicesPtr;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDevices, availableDevicesPtr);
+        const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDevices, availableDevicesPtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *availableDevices = availableDevicesPtr.detach();
         return errCode;
@@ -78,7 +81,8 @@ public:
         OPENDAQ_PARAM_NOT_NULL(deviceTypes);
 
         DictPtr<IString, IDeviceType> types;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
+        const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types)
         {
@@ -123,6 +127,7 @@ public:
 
         DevicePtr createdDevice;
         errCode = wrapHandlerReturn(this, &Module::onCreateDevice, createdDevice, connectionString, parent, mergeConfig(config, deviceType));
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (createdDevice.assigned())
             createdDevice.getInfo();
@@ -140,8 +145,9 @@ public:
         OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
 
         DictPtr<IString, IFunctionBlockType> types;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
-
+        const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+    
         for (const auto& type : types)
         {
             auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
@@ -176,6 +182,7 @@ public:
 
         FunctionBlockPtr block;
         errCode = wrapHandlerReturn(this, &Module::onCreateFunctionBlock, block, id, parent, localId, mergeConfig(config, type));
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (const auto& componentPrivate = block.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
             componentPrivate.setComponentConfig(config);
@@ -194,6 +201,7 @@ public:
 
         DictPtr<IString, IServerType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types)
         {
@@ -228,6 +236,7 @@ public:
 
         ServerPtr serverInstance;
         errCode = wrapHandlerReturn(this, &Module::onCreateServer, serverInstance, serverTypeId, mergeConfig(config, type), rootDevice);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *server = serverInstance.detach();
         return errCode;
@@ -265,6 +274,7 @@ public:
 
         StreamingPtr createdStreaming;
         errCode = wrapHandlerReturn(this, &Module::onCreateStreaming, createdStreaming, connectionString, mergeConfig(config, streamingType));
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *streaming = createdStreaming.detach();
         return errCode;
@@ -275,10 +285,10 @@ public:
         OPENDAQ_PARAM_NOT_NULL(target);
         OPENDAQ_PARAM_NOT_NULL(source);
 
-        Bool succeededVal = false;
-        ErrCode errCode = wrapHandlerReturn(this, &Module::onCompleteServerCapability, succeededVal, source, target);
+        *succeeded = false;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onCompleteServerCapability, *succeeded, source, target);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        *succeeded = succeededVal;
         return errCode;
     }
 
@@ -288,6 +298,7 @@ public:
 
         DictPtr<IString, IStreamingType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& type : types)
         {
@@ -384,6 +395,58 @@ public:
         return false;
     }
 
+    virtual ErrCode INTERFACE_FUNC loadLicense(Bool* succeded, IDict* licenseConfig) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(succeded);
+        OPENDAQ_PARAM_NOT_NULL(licenseConfig);
+
+        Bool loadedLicense;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onLoadLicense, loadedLicense, licenseConfig);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *succeded = loadedLicense;
+        return errCode;
+    }
+
+    virtual Bool onLoadLicense(IDict* licenseConfig)
+    {
+        return true;
+    }
+
+    virtual ErrCode INTERFACE_FUNC getLicenseConfig(IDict** licenseConfig) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(licenseConfig);
+
+        DictPtr<IString, IString> licenseConfigLocal;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetLicenseConfig, licenseConfigLocal);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *licenseConfig = licenseConfigLocal.detach();
+        return errCode;
+    }
+
+    virtual DictPtr<IString, IString> onGetLicenseConfig()
+    {
+        return nullptr;
+    }
+
+    virtual ErrCode INTERFACE_FUNC licenseLoaded(Bool* valid) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(valid);
+
+        Bool validLocal;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onLicenseLoaded, validLocal);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *valid = validLocal;
+        return errCode;
+    }
+
+    virtual Bool onLicenseLoaded()
+    {
+        return true;
+    }
+
 protected:
     ModuleInfoPtr moduleInfo;
 
@@ -460,12 +523,12 @@ private:
 
     PropertyObjectPtr mergeConfig(const PropertyObjectPtr& userConfig, const ComponentTypePtr& type) const
     {
-        
         PropertyObjectPtr configIn = userConfig.assigned() ? userConfig : PropertyObject();
         PropertyObjectPtr configOut;
 
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             configOut = type.assigned() ? type.createDefaultConfig() : PropertyObject();
             populateDefaultConfig(configOut, configIn);
         }

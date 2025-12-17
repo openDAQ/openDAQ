@@ -78,10 +78,7 @@ ErrCode OwningDictImpl::clear()
     for (auto [key, value] : hashTable)
     {
         err = removeOwner(value);
-        if (OPENDAQ_FAILED(err) && err != OPENDAQ_ERR_FROZEN)
-        {
-            return DAQ_MAKE_ERROR_INFO(err);
-        }
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_FROZEN);
     }
 
     err = DictImpl::clear();

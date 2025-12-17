@@ -13,10 +13,9 @@ from argparse import ArgumentParser
 
 
 def read_opendaq_version(version_file):
-    version = ''
     with open(version_file) as f:
-        version = f.readline().strip()
-    return version
+        return f.readline().strip()
+    return ''
 
 
 def auto_python_version(opendaq_filename):
@@ -93,6 +92,15 @@ def find_modules(bin_dir):
     return ret(libs, modules, opendaq)
 
 
+def replace_opendaq_version_stub(filepath):
+    print(f'Replacing @VERSION@ string with {package_version} in {filepath}')
+    with open(filepath, 'r') as f:
+        contents = f.readlines()
+    contents = ''.join(contents).replace('@VERSION@', package_version)
+    with open(filepath, 'wt') as f:
+        f.write(contents)
+
+
 # parsing arguments
 parser = ArgumentParser(
     description='Builds a pip package for the OpenDAQ Python bindings.')
@@ -131,7 +139,7 @@ wheel_tag = auto_wheel_tag(
 path_build_pip_source_dir = os.path.dirname(__file__)
 package_version = read_opendaq_version(
     os.path.join(path_build_pip_source_dir, '..', '..', '..', 'opendaq_version')) if not package_version else package_version
-examples_dir = os.path.join(path_build_pip_source_dir, '..', '..', '..', 'examples', 'python')
+examples_dir = os.path.join(path_build_pip_source_dir, '..', '..', '..', 'examples', 'applications', 'python')
 
 if not modules.libs:
     print(f'Could not find any libraries in {build_bin_dir}')
@@ -173,15 +181,15 @@ for module in modules.modules:
     shutil.copy(os.path.join(build_bin_dir, module),
                 os.path.join(path_stage_package, 'modules'))
 shutil.copy(os.path.join(build_bin_dir, modules.opendaq), path_stage_package)
-shutil.copy(os.path.join(examples_dir, 'gui_demo.py'), os.path.join(path_stage_package, '__main__.py'))
-shutil.copytree(os.path.join(examples_dir, 'gui_demo'), os.path.join(path_stage_package, 'gui_demo'))
+shutil.copy(os.path.join(examples_dir, 'GUI Application/gui_demo.py'), os.path.join(path_stage_package, '__main__.py'))
+shutil.copytree(os.path.join(examples_dir, 'GUI Application/gui_demo'), os.path.join(path_stage_package, 'gui_demo'))
 
 # an empty file signalling to python that auto-complete should be enabled
 pathlib.Path(os.path.join(path_stage_package, 'py.typed')).touch()
 
 # __init__.py
-shutil.copy(os.path.join(path_build_pip_source_dir, 'opendaq',
-            '__init__.py'), path_stage_package)
+shutil.copy(os.path.join(path_build_pip_source_dir, 'opendaq', '__init__.py'), path_stage_package)
+replace_opendaq_version_stub(os.path.join(path_stage_package, '__init__.py'))
 os.makedirs(os.path.join(path_stage_package, 'opendaq'))
 
 
@@ -210,16 +218,8 @@ generate_stubs(stubs_use_cache)
 
 
 # metadata
-def generate_metadata(destination):
-    print(f'Generating {destination}')
-    with open(os.path.join(path_build_pip_source_dir, 'METADATA.in')) as f:
-        contents = f.readlines()
-    contents = ''.join(contents).replace('@VERSION@', package_version)
-    with open(destination, 'wt') as f_out:
-        f_out.write(contents)
-
-
-generate_metadata(os.path.join(path_stage_dist_info, 'METADATA'))
+shutil.copy(os.path.join(path_build_pip_source_dir, 'METADATA.in'), os.path.join(path_stage_dist_info, 'METADATA'))
+replace_opendaq_version_stub(os.path.join(path_stage_dist_info, 'METADATA'))
 
 
 def generate_wheel_file(destination):

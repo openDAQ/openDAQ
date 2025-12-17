@@ -9,26 +9,38 @@
 BEGIN_NAMESPACE_OPENDAQ
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 {
-    return Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({
-                                            {"ModulesPaths", List<IString>("")}, {"AddDeviceRescanTimer", 5000}
-                                        })},
-                                       {"Scheduler", Dict<IString, IBaseObject>({
-                                            {"WorkersNum", 0}
-                                        })},
-                                       {"Logging", Dict<IString, IBaseObject>({
-                                            {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
-                                        })},
-                                       {"RootDevice", Dict<IString, IBaseObject>({
-                                            {"DefaultLocalId", ""},
-                                            {"ConnectionString", ""}
-                                        })},
-                                       {"Modules", Dict<IString, IBaseObject>()}
+    return Dict<IString, IBaseObject>(
+    {
+        {"ModuleManager", Dict<IString, IBaseObject>(
+        {
+            {"ModulesPaths", List<IString>("")},
+            {"AddDeviceRescanTimer", 5000}
+        })},
+        {"Scheduler", Dict<IString, IBaseObject>(
+        {
+            {"WorkersNum", 0},
+            {"UseMainLoop", False}
+        })},
+        {"Logging", Dict<IString, IBaseObject>(
+        {
+            {"GlobalLogLevel", OPENDAQ_LOG_LEVEL_DEFAULT}
+        })},
+        {"RootDevice", Dict<IString, IBaseObject>({
+            {"DefaultLocalId", ""},
+            {"ConnectionString", ""}
+        })},
+        {"Configuration", Dict<IString, IBaseObject>({
+            {"SerializePrettyPrint", False}
+        })},
+        {"Modules", Dict<IString, IBaseObject>(
+        )}
     });
 }
 
 InstanceBuilderImpl::InstanceBuilderImpl()
     : componentsLogLevel(Dict<IString, LogLevel>())
     , sinks(List<ILoggerSink>())
+    , moduleAuthenticator(nullptr)
     , authenticationProvider(AuthenticationProvider())
     , providers(List<IConfigProvider>())
     , options(GetDefaultOptions())
@@ -69,7 +81,6 @@ ErrCode InstanceBuilderImpl::build(IInstance** instance)
     return daqTry([&]()
     {
         *instance = InstanceFromBuilder(builderPtr).detach();
-        return OPENDAQ_SUCCESS;
     });
 }
 
@@ -254,20 +265,6 @@ ErrCode INTERFACE_FUNC InstanceBuilderImpl::getAuthenticationProvider(IAuthentic
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode InstanceBuilderImpl::setSchedulerWorkerNum(SizeT numWorkers)
-{
-    getSchedulerOptions().set("WorkersNum", numWorkers);
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode InstanceBuilderImpl::getSchedulerWorkerNum(SizeT* numWorkers)
-{
-    OPENDAQ_PARAM_NOT_NULL(numWorkers);
-
-    *numWorkers = getSchedulerOptions()["WorkersNum"];
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode InstanceBuilderImpl::setScheduler(IScheduler* scheduler)
 {
     OPENDAQ_PARAM_NOT_NULL(scheduler);
@@ -282,6 +279,32 @@ ErrCode InstanceBuilderImpl::getScheduler(IScheduler** scheduler)
     
     *scheduler = this->scheduler.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setSchedulerWorkerNum(SizeT numWorkers)
+{
+    getSchedulerOptions().set("WorkersNum", numWorkers);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getSchedulerWorkerNum(SizeT* numWorkers)
+{
+    OPENDAQ_PARAM_NOT_NULL(numWorkers);
+
+    *numWorkers = getSchedulerOptions()["WorkersNum"];
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setUsingSchedulerMainLoop(Bool useMainLoop)
+{
+    getSchedulerOptions().set("UseMainLoop", useMainLoop);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getUsingSchedulerMainLoop(Bool* useMainLoop)
+{
+    OPENDAQ_PARAM_NOT_NULL(useMainLoop);
+    return getSchedulerOptions().get("UseMainLoop").asPtr<IBoolean>(true)->getValue(useMainLoop);
 }
 
 ErrCode InstanceBuilderImpl::setDefaultRootDeviceLocalId(IString* localId)
@@ -355,6 +378,7 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
     {
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             auto provider = JsonConfigProvider();
             provider.populateOptions(this->options);
         }
@@ -371,6 +395,7 @@ ErrCode InstanceBuilderImpl::getOptions(IDict** options)
     {
         try
         {
+            auto errorGuard = DAQ_ERROR_GUARD();
             provider.populateOptions(this->options);
         }
         catch (const DaqException& e)
@@ -406,6 +431,36 @@ ErrCode InstanceBuilderImpl::addDiscoveryServer(IString* serverName)
         return OPENDAQ_IGNORED;
 
     discoveryServers.pushBack(serverName);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setModuleAuthenticator(IModuleAuthenticator* authenticator)
+{
+    if (authenticator == nullptr)
+    {
+        return OPENDAQ_IGNORED;
+    }
+    this->moduleAuthenticator = authenticator;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getModuleAuthenticator(IModuleAuthenticator** authenticator)
+{
+    *authenticator = this->moduleAuthenticator.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setLoadAuthenticatedModulesOnly(Bool authenticatedOnly)
+{
+    this->authenticatedModulesOnly = authenticatedOnly;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getLoadAuthenticatedModulesOnly(Bool* authenticatedOnly)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticatedOnly);
+
+    *authenticatedOnly = this->authenticatedModulesOnly;
     return OPENDAQ_SUCCESS;
 }
 

@@ -118,9 +118,9 @@ ErrCode BlockReaderImpl::getAvailableCount(SizeT* count)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
 
-    SizeT available{};
-    ErrCode errCode = wrapHandlerReturn(this, &BlockReaderImpl::getAvailable, available);
-    *count = available;
+    ErrCode errCode = wrapHandlerReturn(this, &BlockReaderImpl::getAvailable, *count);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     return errCode;
 }
 
@@ -155,8 +155,14 @@ ErrCode BlockReaderImpl::connected(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
 
-    std::scoped_lock lock(notify.mutex);
-    inputPort->getConnection(&connection);
+    {
+        std::scoped_lock lock(notify.mutex);
+        port->getConnection(&connection);
+    }
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->connected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -164,8 +170,14 @@ ErrCode BlockReaderImpl::disconnected(IInputPort* inputPort)
 {
     OPENDAQ_PARAM_NOT_NULL(inputPort);
 
-    std::scoped_lock lock(notify.mutex);
-    connection = nullptr;
+    {
+        std::scoped_lock lock(notify.mutex);
+        connection = nullptr;
+    }
+    
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->disconnected(port);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -194,11 +206,12 @@ ErrCode BlockReaderImpl::packetReceived(IInputPort* inputPort)
     }
    
     notify.condition.notify_one();
-
+    
     if (callback.assigned())
-    {
-        return wrapHandler(callback);
-    }
+        OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
+
+    if (externalListener.assigned() && externalListener.getRef().assigned())
+        return externalListener.getRef()->packetReceived(port);
 
     return OPENDAQ_SUCCESS;
 }
@@ -251,9 +264,7 @@ ErrCode BlockReaderImpl::readPacketData()
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
             if (!trySetDomainSampleType(domainPacket))
-            {
-                return errCode;
-            }
+                return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             daqClearErrorInfo();
             errCode = domainReader->readData(domainData, info.prevSampleIndex, &info.domainValues, sampleCountToRead);
         }
@@ -366,6 +377,7 @@ BlockReaderStatusPtr BlockReaderImpl::readPackets()
             ErrCode errCode = readPacketData();
             if (OPENDAQ_FAILED(errCode))
             {
+                daqClearErrorInfo();
                 auto writtenSamplesCount = info.writtenSampleCount - initialWrittenSamplesCount;
                 return BlockReaderStatus(nullptr, true, offset, writtenSamplesCount);
             }

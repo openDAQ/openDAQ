@@ -62,21 +62,22 @@ void NativeStreamingSignalImpl::assignDomainSignal(const SignalPtr& domainSignal
 ErrCode NativeStreamingSignalImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializeComponent(
-                       serialized,
-                       context,
-                       factoryCallback,
-                       [](const SerializedObjectPtr& serialized,
-                          const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr& className)
-                       {
-                           return createWithImplementation<ISignal, NativeStreamingSignalImpl>(
-                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
-                       }).detach();
-        });
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = Super::DeserializeComponent(
+                    serialized,
+                    context,
+                    factoryCallback,
+                    [](const SerializedObjectPtr& serialized,
+                        const ComponentDeserializeContextPtr& deserializeContext,
+                        const StringPtr& className)
+                    {
+                        return createWithImplementation<ISignal, NativeStreamingSignalImpl>(
+                            deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
+                    }).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 void NativeStreamingSignalImpl::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,

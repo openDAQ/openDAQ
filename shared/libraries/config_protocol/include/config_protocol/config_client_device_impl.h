@@ -53,6 +53,9 @@ public:
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    DictPtr<IString, IDevice> onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                           DictPtr<IString, IInteger> errCodes,
+                                           DictPtr<IString, IErrorInfo> errorInfos) override;
     void onRemoveDevice(const DevicePtr& device) override;
     PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
 
@@ -68,11 +71,16 @@ public:
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
+    template <class Implementation>
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    StringPtr onGetRemoteId() const override;
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
 
 private:
     void componentAdded(const CoreEventArgsPtr& args);
@@ -95,6 +103,8 @@ GenericConfigClientDeviceImpl<TDeviceBase>::GenericConfigClientDeviceImpl(const 
                                                                           const StringPtr& className)
     : Super(configProtocolClientComm, remoteGlobalId, ctx, parent, localId, className)
 {
+    if (this->clientComm->getProtocolVersion() < 9)
+        this->updateOperationModeNoCoreEvent(OperationModeType::Operation);
 }
 
 template <class TDeviceBase>
@@ -169,6 +179,71 @@ DevicePtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevice(const StringPt
 }
 
 template <class TDeviceBase>
+DictPtr<IString, IDevice> GenericConfigClientDeviceImpl<TDeviceBase>::onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
+                                                                                   DictPtr<IString, IInteger> errCodes,
+                                                                                   DictPtr<IString, IErrorInfo> errorInfos)
+{
+    const DictPtr<IString, IBaseObject> reply =
+        this->clientComm->addDevices(this->remoteGlobalId, connectionArgs, errCodes.assigned(), errorInfos.assigned(), this->devices);
+
+    if (!reply.hasKey("ErrorCode"))
+        throw ConfigProtocolException("Invalid reply: \"ErrorCode\" is missing");
+
+    if (errCodes.assigned())
+    {
+        const DictPtr<IString, IInteger> remoteErrCodes = reply.getOrDefault("ErrorCodes", Dict<IString, IInteger>());
+        for (const auto& [connectionString, _] : connectionArgs)
+            errCodes[connectionString] = remoteErrCodes.getOrDefault(connectionString, OPENDAQ_SUCCESS);
+    }
+    if (errorInfos.assigned())
+    {
+        const DictPtr<IString, IErrorInfo> remoteErrorInfos = reply.getOrDefault("ErrorInfos", Dict<IString, IErrorInfo>());
+        for (const auto& [connectionString, _] : connectionArgs)
+            errorInfos[connectionString] = remoteErrorInfos.getOrDefault(connectionString, nullptr);
+    }
+
+    const ErrCode errCode = reply["ErrorCode"];
+    if (OPENDAQ_FAILED(errCode))
+    {
+        std::string msg = reply.getOrDefault("ErrorMessage", "");
+        throwExceptionFromErrorCode(errCode, msg);
+    }
+
+    if (!reply.hasKey("AddedDevices"))
+        throw ConfigProtocolException("Invalid reply: \"AddedDevices\" key is missing");
+    const DictPtr<IString, IComponentHolder> devHolders = reply["AddedDevices"];
+    DictPtr<IString, IDevice> devices = Dict<IString, IDevice>();
+
+    for (const auto& [connectionString, _] : connectionArgs)
+    {
+        devices[connectionString] = nullptr;
+        ComponentHolderPtr devHolder = devHolders.getOrDefault(connectionString, nullptr);
+        if (!devHolder.assigned())
+        {
+            DAQLOGF_E(this->loggerComponent,
+                      "The subdevice with specified connection string \"{}\" was not added within remote device.",
+                      connectionString);
+        }
+        DevicePtr dev = devHolder.assigned() ? devHolder.getComponent() : nullptr;
+        if (dev.assigned())
+        {
+            if (!this->devices.hasItem(dev.getLocalId()))
+            {
+                this->clientComm->connectDomainSignals(dev);
+                this->devices.addItem(dev);
+                this->clientComm->connectInputPorts(dev);
+                devices[connectionString] = dev;
+            }
+            else
+            {
+                devices[connectionString] = this->devices.getItem(dev.getLocalId());
+            }
+        }
+    }
+    return devices;
+}
+
+template <class TDeviceBase>
 void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr& device)
 {
     if (!device.assigned())
@@ -208,9 +283,11 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::lock(IUser* user)
         DAQLOGF_I(this->loggerComponent, "The specified user was ignored when locking a remote device. A session user was used instead.");
     }
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
-    return daqTry([this] { this->clientComm->lock(this->remoteGlobalId); });
+    const ErrCode errCode = daqTry([this] { this->clientComm->lock(this->remoteGlobalId); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class TDeviceBase>
@@ -221,75 +298,89 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::unlock(IUser* user)
         DAQLOGF_I(this->loggerComponent, "The specified user was ignored when unlocking a remote device. A session user was used instead.");
     }
 
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto parentDevice = this->getParentDevice();
 
     if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DEVICE_LOCKED);
 
-    return daqTry([this] { this->clientComm->unlock(this->remoteGlobalId); });
+    const ErrCode errCode = daqTry([this] { this->clientComm->unlock(this->remoteGlobalId); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::forceUnlock()
 {
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
 
     auto parentDevice = this->getParentDevice();
 
     if (parentDevice.assigned() && parentDevice.template asPtr<IDevicePrivate>().isLockedInternal())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DEVICE_LOCKED);
 
-    return daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });
+    const ErrCode errCode = daqTry([this] { this->clientComm->forceUnlock(this->remoteGlobalId); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperationModes(IList** availableOpModes)
 {
     OPENDAQ_PARAM_NOT_NULL(availableOpModes);
-    return daqTry([this, availableOpModes] 
+    const ErrCode errCode = daqTry([this, availableOpModes] 
     {
-        if (this->clientComm->getProtocolVersion() < 12)
+        const auto protocolVersion = this->clientComm->getProtocolVersion();
+        if (protocolVersion > 8 && protocolVersion < 12)
             *availableOpModes = this->clientComm->getAvailableOperationModes(this->remoteGlobalId).detach();
         else
             checkErrorInfo(Super::getAvailableOperationModes(availableOpModes));   
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(OperationModeType modeType)
 {
-    return daqTry([this, modeType] 
+    const ErrCode errCode = daqTry([this, modeType] 
     {
         this->clientComm->setOperationMode(this->remoteGlobalId, OperationModeTypeToString(modeType));
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
-
 
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationModeRecursive(OperationModeType modeType)
 {
-    return daqTry([this, modeType] 
+    const ErrCode errCode = daqTry([this, modeType] 
     { 
         this->clientComm->setOperationModeRecursive(this->remoteGlobalId, OperationModeTypeToString(modeType));
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(OperationModeType* modeType)
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
-    return daqTry([this, modeType] 
+    const ErrCode errCode = daqTry([this, modeType] 
     { 
-        if (this->clientComm->getProtocolVersion() < 12)
+        const auto protocolVersion = this->clientComm->getProtocolVersion();
+        if (protocolVersion >= 9 && protocolVersion < 12)
             *modeType = OperationModeTypeFromString(this->clientComm->getOperationMode(this->remoteGlobalId)); 
         else
             checkErrorInfo(Super::getOperationMode(modeType));   
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class TDeviceBase>
+template <class Implementation>
 ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObject* serialized,
                                                                 IBaseObject* context,
                                                                 IFunction* factoryCallback,
@@ -297,10 +388,16 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObjec
 {
     OPENDAQ_PARAM_NOT_NULL(context);
 
-    return daqTry([&obj, &serialized, &context, &factoryCallback]
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
-        *obj = Super::template DeserializeConfigComponent<IDevice, ConfigClientDeviceImpl>(serialized, context, factoryCallback).detach();
+        auto device = Super::template DeserializeConfigComponent<IDevice, Implementation>(serialized, context, factoryCallback).template asPtr<IDevice>();
+
+        Super::deserializeVersion(serialized, device.getInfo());
+
+        *obj = device.detach();
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <class TDeviceBase>
@@ -391,7 +488,8 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
     for (const auto& id : toRemove)
         this->removeComponentById(id);
     
-    const std::set<std::string> ignoredKeys{"__type", "deviceInfo", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues"};
+    const std::set<std::string> ignoredKeys{
+        "__type", "deviceDomain", "deviceUnit", "deviceResolution", "properties", "propValues", "ComponentConfig"};
 
     for (const auto& key : serialized.getKeys())
     {
@@ -414,7 +512,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
             const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
                 this->clientComm, this->remoteGlobalId + "/" + key, this->context, nullptr, thisPtr, key, nullptr);
 
-            const ComponentPtr deserializedObj = this->clientComm->deserializeConfigComponent(
+            const PropertyObjectPtr deserializedObj = this->clientComm->deserializeConfigComponent(
                 type,
                 obj,
                 deserializeContext,
@@ -426,8 +524,14 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
                     return this->clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
                 });
 
+
             if (deserializedObj.assigned())
-                this->addExistingComponent(deserializedObj);
+            {
+                if (key == "deviceInfo")
+                    this->deviceInfo = deserializedObj;
+                else
+                    this->addExistingComponent(deserializedObj);
+            }
         }
     }
 
@@ -436,16 +540,27 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         this->setDeviceDomainNoCoreEvent(serialized.readObject("deviceDomain"));
     }
 
-    if (serialized.hasKey("deviceInfo"))
-    {
-        this->deviceInfo = serialized.readObject("deviceInfo");
-    }
-
     if (serialized.hasKey("OperationMode"))
     {
         Int mode = serialized.readInt("OperationMode");
         this->updateOperationModeNoCoreEvent(static_cast<OperationModeType>(mode));
     }
+}
+
+template <class TDeviceBase>
+StringPtr GenericConfigClientDeviceImpl<TDeviceBase>::onGetRemoteId() const
+{
+    return String(this->remoteGlobalId).detach();
+}
+
+template <class TDeviceBase>
+void GenericConfigClientDeviceImpl<TDeviceBase>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                               const BaseObjectPtr& context,
+                                                                               const FunctionPtr& factoryCallback)
+{
+    TDeviceBase::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+    if (serializedObject.hasKey("ComponentConfig"))
+        this->componentConfig = serializedObject.readObject("ComponentConfig");
 }
 
 template <class TDeviceBase>
@@ -561,6 +676,9 @@ bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyAdded(c
     const PropertyPtr prop = params.get("Property");
     if (propObjPtr.hasProperty(prop.getName()))
         return true;
+
+    if (auto configObj = dynamic_cast<ConfigClientPropertyImpl*>(prop.getObject()); configObj)
+        configObj->setRemoteGlobalId(this->remoteGlobalId);
 
     // fixme - nested property objects of DeviceInfo do not support IConfigClientObject interface
     //ScopedRemoteUpdate update(propObjPtr);

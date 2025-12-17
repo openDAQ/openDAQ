@@ -84,7 +84,7 @@ inline PacketReaderPtr PacketReader(SignalPtr signal)
 
 /*!
  * @brief Creates a reader that eases reading packets from the port.
- * @param input The input port to read the packets from.
+ * @param port The input port to read the packets from.
  */
 inline PacketReaderPtr PacketReaderFromPort(InputPortConfigPtr port)
 {
@@ -100,10 +100,10 @@ inline PacketReaderPtr PacketReaderFromPort(InputPortConfigPtr port)
  * @param timeoutType The type of time-out to use. See @see ReadTimeoutType.
  */
 inline StreamReaderPtr StreamReaderFromPort(InputPortConfigPtr port,
-                                    SampleType valueReadType,
-                                    SampleType domainReadType,
-                                    ReadMode mode = ReadMode::Scaled,
-                                    ReadTimeoutType timeoutType = ReadTimeoutType::All)
+                                            SampleType valueReadType,
+                                            SampleType domainReadType,
+                                            ReadMode mode = ReadMode::Scaled,
+                                            ReadTimeoutType timeoutType = ReadTimeoutType::All)
 {
     return StreamReaderFromPort_Create(port, valueReadType, domainReadType, mode, timeoutType);
 }

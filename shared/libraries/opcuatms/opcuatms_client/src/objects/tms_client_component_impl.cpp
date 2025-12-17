@@ -5,8 +5,9 @@
 #include <opendaq/folder_impl.h>
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/mirrored_signal_impl.h>
-#include <opendaq/input_port_impl.h>
+#include <opendaq/mirrored_input_port_impl.h>
 #include <opendaq/sync_component_impl.h>
+
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
 using namespace daq::opcua;
@@ -210,13 +211,13 @@ bool TmsClientComponentBaseImpl<Impl>::isChildComponent(const ComponentPtr& comp
 template <class Impl>
 PropertyObjectPtr TmsClientComponentBaseImpl<Impl>::findAndCreateComponentConfig()
 {
-    PropertyObjectPtr componentConfig;
-    if (const auto& objIt = this->objectTypeIdMap.find("ComponentConfig"); objIt != this->objectTypeIdMap.cend())
-    {
-        componentConfig = TmsClientPropertyObject(this->daqContext, this->clientContext, objIt->second);
-        this->objectTypeIdMap.erase(objIt);
-    }
-    return componentConfig;
+
+    std::string referenceName = "ComponentConfig";
+    if (!this->hasReference(referenceName))
+        return nullptr;
+
+    auto refNodeId = this->getNodeId(referenceName);
+    return TmsClientPropertyObject(this->daqContext, this->clientContext, refNodeId);
 }
 
 template class TmsClientComponentBaseImpl<ComponentImpl<IComponent, ITmsClientComponent>>;
@@ -226,7 +227,7 @@ template class TmsClientComponentBaseImpl<MirroredDeviceBase<ITmsClientComponent
 template class TmsClientComponentBaseImpl<FunctionBlockImpl<IFunctionBlock, ITmsClientComponent>>;
 template class TmsClientComponentBaseImpl<ChannelImpl<ITmsClientComponent>>;
 template class TmsClientComponentBaseImpl<MirroredSignalBase<ITmsClientComponent>>;
-template class TmsClientComponentBaseImpl<GenericInputPortImpl<ITmsClientComponent>>;
+template class TmsClientComponentBaseImpl<MirroredInputPortBase<ITmsClientComponent>>;
 template class TmsClientComponentBaseImpl<GenericSyncComponentImpl<ISyncComponent, ITmsClientComponent>>;
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

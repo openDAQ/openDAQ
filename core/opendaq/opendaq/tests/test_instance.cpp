@@ -4,6 +4,7 @@
 #include <opendaq/update_parameters_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/module_impl.h>
+#include <testutils/testutils.h>
 
 using InstanceTest = testing::Test;
 
@@ -158,6 +159,89 @@ TEST_F(InstanceTest, RemoveDevice)
         instance.removeDevice(device);
 
     ASSERT_EQ(instance.getDevices().getCount(), 0u);
+}
+
+TEST_F(InstanceTest, AddDevicesParallelSuccess)
+{
+    auto instance = test_helpers::setupInstance();
+
+    auto connectionArgs =
+        Dict<IString, IPropertyObject>(
+            {
+                {"daqmock://phys_device", nullptr},
+                {"daqmock://client_device", nullptr}
+            }
+        );
+    auto devices = instance.addDevices(connectionArgs);
+    ASSERT_EQ(devices.getCount(), 2u);
+    ASSERT_EQ(devices.get("daqmock://phys_device").getInfo().getConnectionString(), "daqmock://phys_device");
+    ASSERT_EQ(devices.get("daqmock://client_device").getInfo().getConnectionString(), "daqmock://client_device");
+
+    ASSERT_EQ(instance.getDevices().getCount(), 2u);
+    ASSERT_EQ(instance.getDevices()[0], devices.get("daqmock://phys_device"));
+    ASSERT_EQ(instance.getDevices()[1], devices.get("daqmock://client_device"));
+
+    auto nestedDevices = instance.getDevices()[0].addDevices(connectionArgs);
+    ASSERT_EQ(nestedDevices.getCount(), 2u);
+    ASSERT_EQ(instance.getDevices()[0].getDevices().getCount(), 2u);
+}
+
+TEST_F(InstanceTest, AddDevicesParallelPartialSuccess)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.addDevice("daqmock://client_device");
+
+    auto connectionArgs =
+        Dict<IString, IPropertyObject>(
+            {
+                {"daqmock://client_device", nullptr},
+                {"daqmock://phys_device", nullptr}
+            }
+        );
+    auto errCodes = Dict<IString, IInteger>();
+    auto errorInfos = Dict<IString, IErrorInfo>();
+    DictPtr<IString, IDevice> devices;
+
+    ASSERT_EQ(instance->addDevices(&devices, connectionArgs, errCodes, errorInfos), OPENDAQ_PARTIAL_SUCCESS);
+
+    ASSERT_EQ(devices.getCount(), 2u);
+    ASSERT_FALSE(devices.get("daqmock://client_device").assigned());
+    ASSERT_TRUE(devices.get("daqmock://phys_device").assigned());
+
+    ASSERT_EQ(errCodes.getCount(), 2u);
+    ASSERT_EQ(errCodes.get("daqmock://client_device"), OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_EQ(errCodes.get("daqmock://phys_device"), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(errorInfos.getCount(), 2u);
+    ASSERT_TRUE(errorInfos.get("daqmock://client_device").assigned());
+    ASSERT_FALSE(errorInfos.get("daqmock://phys_device").assigned());
+
+    ASSERT_EQ(instance.getDevices().getCount(), 2u);
+    ASSERT_EQ(instance.getDevices()[1], devices.get("daqmock://phys_device"));
+}
+
+TEST_F(InstanceTest, AddDevicesParallelFailure)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.addDevice("daqmock://client_device");
+
+    ASSERT_THROW_MSG(instance.addDevices(Dict<IString, IPropertyObject>()), InvalidParameterException, "None connection arguments provided");
+
+    auto connectionArgs =
+        Dict<IString, IPropertyObject>(
+            {
+                {"daqmock://client_device", nullptr},
+                {"unknown://unknown", nullptr}
+            }
+        );
+    auto errCodes = Dict<IString, IInteger>();
+    DictPtr<IString, IDevice> devices;
+    ASSERT_THROW_MSG(devices = instance.addDevices(connectionArgs, errCodes), GeneralErrorException, "No devices were added");
+    ASSERT_EQ(errCodes.getCount(), 2u);
+    ASSERT_EQ(errCodes.get("daqmock://client_device"), OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_EQ(errCodes.get("unknown://unknown"), OPENDAQ_ERR_NOTFOUND);
+
+    ASSERT_EQ(instance.getDevices().getCount(), 1u);
 }
 
 TEST_F(InstanceTest, AddNested)
@@ -339,7 +423,7 @@ TEST_F(InstanceTest, Serialize)
     instance.serialize(serializer);
 
     auto str = serializer.getOutput();
-    std::cout << str << std::endl;
+    ASSERT_GT(str.getLength(), 0u); // Ensure that the configuration is not empty
 }
 
 TEST_F(InstanceTest, InstanceBuilderSetGet)
@@ -493,15 +577,6 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
     instance.setRootDevice("daqmock://phys_device");
     ASSERT_TRUE(instance.getRootDevice().assigned());
     ASSERT_EQ(instance.getRootDevice().getName(), "MockPhysicalDevice");
-}
-
-TEST_F(InstanceTest, AddServerBackwardsCompat)
-{
-    auto instance = Instance();
-
-    ASSERT_NO_THROW(instance.addServer("openDAQ Native Streaming", nullptr));
-    ASSERT_NO_THROW(instance.addServer("openDAQ LT Streaming", nullptr));
-    ASSERT_NO_THROW(instance.addServer("openDAQ OpcUa", nullptr));
 }
 
 TEST_F(InstanceTest, SaveLoadRestoreDevice)
@@ -1154,7 +1229,7 @@ TEST_F(InstanceTest, ModuleManagerGrouping)
     moduleManager.addModule(MockDeviceModule_Create(instance.getContext()));
 
     const auto devs = instance.getAvailableDevices();
-    ASSERT_EQ(devs.getCount(), 3);
+    ASSERT_EQ(devs.getCount(), 3u);
 
     for (const auto& dev : devs)
     {

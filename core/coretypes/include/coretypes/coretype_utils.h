@@ -19,6 +19,8 @@
 #include <coretypes/serialized_object.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/complex_number_factory.h>
+#include <cctype>
+#include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -42,9 +44,9 @@ template <typename T>
 ErrCode read(ISerializedObject* serializedObj, const StringPtr& key, T& valueOut)
 {
     Int outInt;
-    ErrCode status = serializedObj->readInt(key, &outInt);
-    if (OPENDAQ_SUCCEEDED(status))
-        valueOut = T(outInt);
+    const ErrCode status = serializedObj->readInt(key, &outInt);
+    OPENDAQ_RETURN_IF_FAILED(status);
+    valueOut = T(outInt);
     return status;
 }
 
@@ -60,12 +62,13 @@ inline ErrCode read<Float>(ISerializedObject* serializedObj, const StringPtr& ke
     ErrCode status = serializedObj->readFloat(key, &valueOut);
     if (OPENDAQ_SUCCEEDED(status))
         return status;
+    daqClearErrorInfo();
 
     Int intOut;
     status = serializedObj->readInt(key, &intOut);
-    if (OPENDAQ_SUCCEEDED(status))
-        valueOut = Float(intOut);
+    OPENDAQ_RETURN_IF_FAILED(status);
 
+    valueOut = Float(intOut);
     return status;
 }
 
@@ -87,12 +90,10 @@ inline ErrCode read<ComplexFloat64>(ISerializedObject* serializedObj, ComplexFlo
     ErrCode status;
 
     status = serializedObj->readFloat("real"_daq, &valueOut.real);
-    if (OPENDAQ_FAILED(status))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Failed to read real part of complex number");
+    OPENDAQ_RETURN_IF_FAILED(status, OPENDAQ_ERR_INVALIDPARAMETER, "Failed to read real part of complex number");
 
     status = serializedObj->readFloat("imaginary"_daq, &valueOut.imaginary);
-    if (OPENDAQ_FAILED(status))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Failed to read imaginary part of complex number");
+    OPENDAQ_RETURN_IF_FAILED(status, OPENDAQ_ERR_INVALIDPARAMETER, "Failed to read imaginary part of complex number");
 
     return status;
 }
@@ -102,10 +103,10 @@ inline ErrCode read<ComplexFloat64>(ISerializedObject* serializedObj, const Stri
 {
     SerializedObjectPtr obj;
     ErrCode status = serializedObj->readSerializedObject(key, &obj);
+    OPENDAQ_RETURN_IF_FAILED(status);
 
-    if (OPENDAQ_SUCCEEDED(status))
-        status = read<ComplexFloat64>(obj, valueOut);
-
+    status = read<ComplexFloat64>(obj, valueOut);
+    OPENDAQ_RETURN_IF_FAILED(status);
     return status;
 }
 
@@ -120,6 +121,8 @@ inline ErrCode read<ComplexFloat32>(ISerializedObject* serializedObj, const Stri
 {
     ComplexFloat64 tmpOut;
     ErrCode status = read<ComplexFloat64>(serializedObj, key, tmpOut);
+    OPENDAQ_RETURN_IF_FAILED(status);
+
     valueOut.real = (float) tmpOut.real;
     valueOut.imaginary = (float) tmpOut.imaginary;
     return status;
@@ -136,8 +139,9 @@ inline ErrCode read<ConstCharPtr>(ISerializedObject* serializedObj, const String
 {
     StringPtr str;
     ErrCode status = serializedObj->readString(key, &str);
-    if (OPENDAQ_SUCCEEDED(status))
-        valueOut = str.getCharPtr();
+    OPENDAQ_RETURN_IF_FAILED(status);
+
+    valueOut = str.getCharPtr();
     return status;
 }
 
@@ -168,7 +172,7 @@ inline Bool isNearRelative<float>(const float& actual, const float& expected, co
 template <>
 inline Bool isNearRelative<Int>(const Int& actual, const Int& expected, const Float& relativeErr)
 {
-    return isNearRelative<Float>(actual, expected, relativeErr);
+    return isNearRelative<Float>(static_cast<Float>(actual), static_cast<Float>(expected), relativeErr);
 }
 
 template <>
@@ -181,6 +185,42 @@ template <>
 inline Bool isNearRelative<ComplexFloat32>(const ComplexFloat32& actual, const ComplexFloat32& expected, const Float& relativeErr)
 {
     return isNearRelative<ComplexFloat64>(actual, expected, relativeErr);
+}
+
+[[maybe_unused]]
+inline std::string toLowerCase(std::string& str)
+{
+    const auto& loc = std::locale::classic();
+    const auto& f = std::use_facet<std::ctype<char>>(loc);
+    std::transform(str.begin(), str.end(), str.begin(), [&f](char c){ return f.tolower(c); });
+
+    return str;
+}
+
+[[maybe_unused]]
+inline std::string toUpperCase(std::string& str)
+{
+    const auto& loc = std::locale::classic();
+    const auto& f = std::use_facet<std::ctype<char>>(loc);
+    std::transform(str.begin(), str.end(), str.begin(), [&f](char c){ return f.toupper(c); });
+
+    return str;
+}
+
+[[maybe_unused]]
+inline char toLowerCase(char c)
+{
+    const auto& loc = std::locale::classic();
+    const auto& f = std::use_facet<std::ctype<char>>(loc);
+    return f.tolower(c);
+}
+
+[[maybe_unused]]
+inline char toUpperCase(char c)
+{
+    const auto& loc = std::locale::classic();
+    const auto& f = std::use_facet<std::ctype<char>>(loc);
+    return f.toupper(c);
 }
 
 };  // namespace coretype_utils

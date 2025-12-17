@@ -6,7 +6,7 @@ namespace daq::config_protocol
 ConfigMirroredExternalSignalImpl::ConfigMirroredExternalSignalImpl(const ContextPtr& ctx,
                                                                    const ComponentPtr& parent,
                                                                    const StringPtr& remoteGlobalId)
-    : MirroredSignalBase(ctx, parent, createLocalId(remoteGlobalId), nullptr)
+    : MirroredSignalBase(ctx, parent, getLocalId(remoteGlobalId), nullptr)
     , remoteGlobalId(remoteGlobalId)
 {
 }
@@ -16,7 +16,7 @@ StringPtr ConfigMirroredExternalSignalImpl::onGetRemoteId() const
     return remoteGlobalId;
 }
 
-StringPtr ConfigMirroredExternalSignalImpl::createLocalId(const StringPtr& remoteGlobalId)
+StringPtr ConfigMirroredExternalSignalImpl::getLocalId(const StringPtr& remoteGlobalId)
 {
     static constexpr char delimeter = '*';
     std::string localId = remoteGlobalId;
@@ -93,21 +93,22 @@ void ConfigMirroredExternalSignalImpl::assignDomainSignal(const MirroredSignalCo
 ErrCode ConfigMirroredExternalSignalImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    return daqTry(
-        [&obj, &serialized, &context, &factoryCallback]()
-        {
-            *obj = Super::DeserializeComponent(
-                       serialized,
-                       context,
-                       factoryCallback,
-                       [](const SerializedObjectPtr& serialized,
-                          const ComponentDeserializeContextPtr& deserializeContext,
-                          const StringPtr& className)
-                       {
-                           return createWithImplementation<ISignal, ConfigMirroredExternalSignalImpl>(
-                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
-                       }).detach();
-        });
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]()
+    {
+        *obj = Super::DeserializeComponent(
+                    serialized,
+                    context,
+                    factoryCallback,
+                    [](const SerializedObjectPtr& serialized,
+                        const ComponentDeserializeContextPtr& deserializeContext,
+                        const StringPtr& className)
+                    {
+                        return createWithImplementation<ISignal, ConfigMirroredExternalSignalImpl>(
+                            deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId());
+                    }).detach();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 void ConfigMirroredExternalSignalImpl::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,

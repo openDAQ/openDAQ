@@ -47,11 +47,6 @@ public:
                               ReadMode mode,
                               ReadTimeoutType timeoutType);
 
-    explicit StreamReaderImpl(const ReaderConfigPtr& readerConfig,
-                              SampleType valueReadType,
-                              SampleType domainReadType,
-                              ReadMode readMode);
-
     explicit StreamReaderImpl(StreamReaderImpl* old,
                               SampleType valueReadType,
                               SampleType domainReadType);
@@ -63,6 +58,7 @@ public:
     // IReader
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
+    ErrCode INTERFACE_FUNC setExternalListener(IInputPortNotifications* listener) override;
     ErrCode INTERFACE_FUNC getEmpty(Bool* empty) override;
 
     // ISampleReader
@@ -91,6 +87,7 @@ public:
 
     ErrCode INTERFACE_FUNC getReadTimeoutType(ReadTimeoutType* timeout) override;
     ErrCode INTERFACE_FUNC markAsInvalid() override;
+    ErrCode INTERFACE_FUNC getIsValid(Bool* isValid) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -100,11 +97,10 @@ public:
 
 private:
     void readDescriptorFromPort();
-    void connectInputPort(const InputPortConfigPtr& port);
-    void connectSignal(const SignalPtr& signal);
-    void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader) const;
+    void connectInputPort(const InputPortConfigPtr& port, PacketReadyNotification notification = PacketReadyNotification::Scheduler);
+    void connectSignal(const SignalPtr& signal, PacketReadyNotification notification = PacketReadyNotification::SameThread);
+    static void inferReaderReadType(const DataDescriptorPtr& newDescriptor, std::unique_ptr<Reader>& reader);
 
-    EventPacketPtr createInitDataDescriptorChangedEventPacket();
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
 
     [[nodiscard]]
@@ -129,6 +125,7 @@ private:
 
     std::mutex mutex;
     ProcedurePtr readCallback;
+    WeakRefPtr<IInputPortNotifications> externalListener;
 
     bool skipEvents = false;
 };

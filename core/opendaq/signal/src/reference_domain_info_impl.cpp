@@ -17,7 +17,7 @@ DictPtr<IString, IBaseObject> ReferenceDomainInfoImpl::PackBuilder(IReferenceDom
     auto params = Dict<IString, IBaseObject>();
     params.set("ReferenceDomainId", builderPtr.getReferenceDomainId());
     params.set("ReferenceDomainOffset", builderPtr.getReferenceDomainOffset());
-    params.set("ReferenceTimeSource", static_cast<Int>(builderPtr.getReferenceTimeSource()));
+    params.set("ReferenceTimeProtocol", static_cast<Int>(builderPtr.getReferenceTimeProtocol()));
     params.set("UsesOffset", static_cast<Int>(builderPtr.getUsesOffset()));
     return params;
 }
@@ -28,7 +28,7 @@ ReferenceDomainInfoImpl::ReferenceDomainInfoImpl(IReferenceDomainInfoBuilder* re
     const auto dataDescriptorBuilderPtr = ReferenceDomainInfoBuilderPtr(referenceDomainInfoBuilder);
     this->referenceDomainId = dataDescriptorBuilderPtr.getReferenceDomainId();
     this->referenceDomainOffset = dataDescriptorBuilderPtr.getReferenceDomainOffset();
-    this->referenceTimeSource = dataDescriptorBuilderPtr.getReferenceTimeSource();
+    this->referenceTimeProtocol = dataDescriptorBuilderPtr.getReferenceTimeProtocol();
     this->usesOffset = dataDescriptorBuilderPtr.getUsesOffset();
 }
 
@@ -50,11 +50,11 @@ ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceDomainOffset(IIntege
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceTimeSource(TimeSource* referenceTimeSource)
+ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceTimeProtocol(TimeProtocol* referenceTimeProtocol)
 {
-    OPENDAQ_PARAM_NOT_NULL(referenceTimeSource);
+    OPENDAQ_PARAM_NOT_NULL(referenceTimeProtocol);
 
-    *referenceTimeSource = this->referenceTimeSource;
+    *referenceTimeProtocol = this->referenceTimeProtocol;
 
     return OPENDAQ_SUCCESS;
 }
@@ -70,32 +70,33 @@ ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getUsesOffset(UsesOffset* usesOf
 
 ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::equals(IBaseObject* other, Bool* equals) const
 {
-    return daqTry(
-        [this, &other, &equals]()
-        {
-            if (equals == nullptr)
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
+    const ErrCode errCode = daqTry([this, &other, &equals]()
+    {
+        if (equals == nullptr)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Equals out-parameter must not be null");
 
-            *equals = false;
-            if (!other)
-                return OPENDAQ_SUCCESS;
-
-            ReferenceDomainInfoPtr info = BaseObjectPtr::Borrow(other).asPtrOrNull<IReferenceDomainInfo>();
-            if (info == nullptr)
-                return OPENDAQ_SUCCESS;
-
-            if (!BaseObjectPtr::Equals(referenceDomainId, info.getReferenceDomainId()))
-                return OPENDAQ_SUCCESS;
-            if (!BaseObjectPtr::Equals(referenceDomainOffset, info.getReferenceDomainOffset()))
-                return OPENDAQ_SUCCESS;
-            if (referenceTimeSource != info.getReferenceTimeSource())
-                return OPENDAQ_SUCCESS;
-            if (usesOffset != info.getUsesOffset())
-                return OPENDAQ_SUCCESS;
-
-            *equals = true;
+        *equals = false;
+        if (!other)
             return OPENDAQ_SUCCESS;
-        });
+
+        ReferenceDomainInfoPtr info = BaseObjectPtr::Borrow(other).asPtrOrNull<IReferenceDomainInfo>();
+        if (info == nullptr)
+            return OPENDAQ_SUCCESS;
+
+        if (!BaseObjectPtr::Equals(referenceDomainId, info.getReferenceDomainId()))
+            return OPENDAQ_SUCCESS;
+        if (!BaseObjectPtr::Equals(referenceDomainOffset, info.getReferenceDomainOffset()))
+            return OPENDAQ_SUCCESS;
+        if (referenceTimeProtocol != info.getReferenceTimeProtocol())
+            return OPENDAQ_SUCCESS;
+        if (usesOffset != info.getUsesOffset())
+            return OPENDAQ_SUCCESS;
+
+        *equals = true;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 ErrCode ReferenceDomainInfoImpl::serialize(ISerializer* serializer)
@@ -117,7 +118,7 @@ ErrCode ReferenceDomainInfoImpl::serialize(ISerializer* serializer)
         }
 
         serializer->key("referenceTimeSource");
-        serializer->writeInt(static_cast<Int>(referenceTimeSource));
+        serializer->writeInt(static_cast<Int>(referenceTimeProtocol));
 
         serializer->key("usesOffset");
         serializer->writeInt(static_cast<Int>(usesOffset));
@@ -166,8 +167,8 @@ ErrCode ReferenceDomainInfoImpl::Deserialize(ISerializedObject* serialized, IBas
 
     if (serializedObj.hasKey("referenceTimeSource"))
     {
-        auto referenceTimeSource = static_cast<TimeSource>(serializedObj.readInt("referenceTimeSource"));
-        dataDescriptor.setReferenceTimeSource(referenceTimeSource);
+        auto referenceTimeProtocol = static_cast<TimeProtocol>(serializedObj.readInt("referenceTimeSource"));
+        dataDescriptor.setReferenceTimeProtocol(referenceTimeProtocol);
     }
 
     if (serializedObj.hasKey("usesOffset"))

@@ -85,6 +85,7 @@ run_rtgen CoreObjects coreobjects coreobjects core_objects/generated permissions
 run_rtgen opendaq opendaq/opendaq         opendaq opendaq/generated/opendaq          instance
 run_rtgen opendaq opendaq/opendaq         opendaq opendaq/generated/opendaq          instance_builder
 run_rtgen opendaq opendaq/opendaq         opendaq opendaq/generated/opendaq          config_provider
+run_rtgen opendaq opendaq/opendaq         opendaq opendaq/generated/opendaq          module_authenticator
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        removable
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        folder
@@ -105,7 +106,8 @@ run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device      
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_type
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info_builder
-run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info
+# manually added WA to return unassigned path as None
+# run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           log_file_info_builder
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           connection_status_container_private
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           connected_client_info
@@ -173,6 +175,7 @@ run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming   
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        mirrored_device
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        mirrored_device_config
 run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        streaming_type
+run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        mirrored_input_port_config
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        tags
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        tags_private
 run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  sync_component

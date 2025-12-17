@@ -108,17 +108,17 @@ DECLARE_OPENDAQ_INTERFACE(IStreamReaderBuilder, IBaseObject)
     // [returnSelf]
     /*!
      * @brief Sets the read timeout mode
-     * @param mode The timeout mode. 
-     * if "Any" returns immediatly if there is available data otherwise time-out is exceeded.
-     * if "All" waiting until timeout and returns avaiable data if existing. otherwise time-out is exceeded.
+     * @param type The timeout mode. 
+     * if "Any" returns immediately if there is available data otherwise time-out is exceeded.
+     * if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
      */
     virtual ErrCode INTERFACE_FUNC setReadTimeoutType(ReadTimeoutType type) = 0;
 
     /*!
      * @brief Gets the read timeout mode
-     * @param mode The timeout mode. 
-     * if "Any" returns immediatly if there is available data otherwise time-out is exceeded.
-     * if "All" waiting until timeout and returns avaiable data if existing. otherwise time-out is exceeded.
+     * @param type The timeout mode. 
+     * if "Any" returns immediately if there is available data otherwise time-out is exceeded.
+     * if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
      */
     virtual ErrCode INTERFACE_FUNC getReadTimeoutType(ReadTimeoutType* type) = 0;
 
@@ -134,6 +134,19 @@ DECLARE_OPENDAQ_INTERFACE(IStreamReaderBuilder, IBaseObject)
      * @param[out] skipEvents The skip events
      */
     virtual ErrCode INTERFACE_FUNC getSkipEvents(Bool* skipEvents) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the notification method of port created/owned stream reader. The default notification method is SameThread.
+     * @param notificationMethod The notification method to be used. If "None", uses Scheduler for stream reader with signal, and keeps the mode of the input port.
+     */
+    virtual ErrCode INTERFACE_FUNC setInputPortNotificationMethod(PacketReadyNotification notificationMethod) = 0;
+
+    /*!
+     * @brief Gets the notification method of port created/owned stream reader. The default notification method is SameThread.
+     * @param notificationMethod The notification method to be used. If "None", uses Scheduler for stream reader with signal, and keeps the mode of the input port.
+     */
+    virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethod(PacketReadyNotification* notificationMethod) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, StreamReaderBuilder, IStreamReaderBuilder)

@@ -733,7 +733,7 @@ inline ComplexFloat32 getValueFromObject<ComplexFloat32, IComplexNumber>(IComple
 {
     ComplexFloat64 value;
     typeObj->getValue(&value);
-    return ComplexFloat32(value.real, value.imaginary);
+    return ComplexFloat32(static_cast<float>(value.real), static_cast<float>(value.imaginary));
 }
 
 template <typename T>
@@ -757,7 +757,6 @@ static T baseObjectToValue(IBaseObject* obj)
     ErrCode err = obj->borrowInterface(Intf::Id, reinterpret_cast<void**>(&typeObj));
     if (OPENDAQ_FAILED(err))
     {
-        daqClearErrorInfo();
         value = getValueFromConvertible<T>(obj);
     }
     else
@@ -1350,7 +1349,8 @@ ObjectPtr<T>::ObjectPtr(const U& value)
     }
     else if constexpr (!std::is_same_v<T, IBaseObject> && !std::is_same_v<T, CreateInterface>)
     {
-        object = CoreTypeHelper<typename IntfToCoreType<T>::CoreType>::Create(value);
+        using CoreType = typename IntfToCoreType<T>::CoreType;
+        object = CoreTypeHelper<CoreType>::Create(static_cast<CoreType>(value));
     }
     else
     {
@@ -1483,6 +1483,9 @@ T* ObjectPtr<T>::operator->() const
 template <class T>
 ObjectPtr<T>& ObjectPtr<T>::operator=(const ObjectPtr<T>& ptr)
 {
+    if (this == &ptr)
+        return *this;
+    
     if (object && !borrowed)
         object->releaseRef();
 
@@ -1498,6 +1501,9 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(const ObjectPtr<T>& ptr)
 template <class T>
 ObjectPtr<T>& ObjectPtr<T>::operator=(ObjectPtr<T>&& ptr) noexcept
 {
+    if (this == std::addressof(ptr))
+        return *this;
+
     if (object && !borrowed)
         object->releaseRef();
 
@@ -1628,7 +1634,8 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(const U& value)
     }
     else if constexpr (!std::is_same_v<T, IBaseObject> && !std::is_same_v<T, CreateInterface>)
     {
-        object = CoreTypeHelper<typename IntfToCoreType<T>::CoreType>::Create(value);
+        using CoreType = typename IntfToCoreType<T>::CoreType;
+        object = CoreTypeHelper<CoreType>::Create(static_cast<CoreType>(value));
     }
     else
     {
@@ -2022,7 +2029,6 @@ Ptr ObjectPtr<T>::asPtrOrNull(bool borrow) const
     }
 
     res = object->queryInterface(U::Id, reinterpret_cast<void**>(&intf));
-
     if (OPENDAQ_SUCCEEDED(res))
         return Ptr(std::move(intf));
 
@@ -2455,10 +2461,9 @@ ErrCode createObjectFrozen(Interface** intf, Params... params)
 
     auto freezable = ptr.template asOrNull<IFreezable>(true);
     errCode = freezable->freeze();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    if (OPENDAQ_SUCCEEDED(errCode))
-        *intf = ptr.detach();
-
+    *intf = ptr.detach();
     return errCode;
 }
 

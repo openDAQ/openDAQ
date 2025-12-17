@@ -10,6 +10,7 @@ set(SRC_Cpp
     generated/opendaq/py_instance.cpp
     generated/opendaq/py_instance_builder.cpp
     generated/opendaq/py_config_provider.cpp
+    generated/opendaq/py_module_authenticator.cpp
     generated/component/py_component.cpp
     generated/component/py_removable.cpp
     generated/component/py_folder.cpp
@@ -104,6 +105,7 @@ set(SRC_Cpp
     generated/streaming/py_subscription_event_args.cpp
     generated/streaming/py_mirrored_device.cpp
     generated/streaming/py_mirrored_device_config.cpp
+    generated/streaming/py_mirrored_input_port_config.cpp
     generated/synchronization/py_sync_component.cpp
     generated/synchronization/py_sync_component_private.cpp
     generated/modulemanager/py_module_info.cpp

@@ -66,7 +66,7 @@ class AppContext(object):
         instance = builder.build()
         device = instance.add_device("daqref://device0")
         device.add_function_block("ref_fb_module_statistics")
-        device.add_device("daq://SonyUK_04678a918b41557e")
+        device.add_device("daq://SonyUK_Denis")
 
         # Add test dict property
         try:

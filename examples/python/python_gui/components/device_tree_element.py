@@ -14,14 +14,7 @@ class DeviceTreeElement(FolderTreeElement):
     def on_selected(self, main_content: tk.Frame) -> None:
         """Display device properties including info section"""
         # Create accordion group - list to track all collapsible sections
-        accordion_group = []
-
-        # Properties section
-        properties_section = CollapsibleFrame(main_content, "Properties", self.context, start_collapsed=False, accordion_group=accordion_group)
-        properties_section.pack(fill="both", expand=False)
-
-        self.property_view = PropertyObjectView(properties_section.content, self.context, self.daq_component)
-        self.property_view.pack(fill="both", expand=True, padx=5)
+        accordion_group = super().on_selected(main_content)
 
         # Device Info section
         try:
@@ -34,6 +27,7 @@ class DeviceTreeElement(FolderTreeElement):
                 self.info_view.pack(fill="both", expand=True, padx=5)
         except Exception as e:
             print(f"Failed to add device info: {e}")
+        return accordion_group
 
     def add_device(self):
         ''' Add a new device to the tree '''

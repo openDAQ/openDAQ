@@ -37,12 +37,17 @@ class ComponentTreeElement(BaseTreeElement):
         if name == "Name":
             self.__set_name(value)
 
-    def on_selected(self, main_content: tk.Frame) -> None:
-        properties_section = CollapsibleFrame(main_content, "Properties", self.context, start_collapsed=False)
+    def on_selected(self, main_content: tk.Frame):
+        accordion_group = []
+
+        # Properties section
+        properties_section = CollapsibleFrame(main_content, "Properties", self.context, start_collapsed=False, accordion_group=accordion_group)
         properties_section.pack(fill="both", expand=True)
 
         self.property_view = PropertyObjectView(properties_section.content, self.context, self.daq_component)
         self.property_view.pack(fill="both", expand=True, padx=5)
+
+        return accordion_group
 
 
 

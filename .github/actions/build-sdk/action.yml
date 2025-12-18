@@ -2,6 +2,10 @@ name: Build openDAQ SDK
 description: Configure, build and test openDAQ SDK
 
 inputs:
+  additional-dependencies:
+    description: 'Additional packages to install (apt on Linux, choco on Windows)'
+    required: false
+    default: ''
   cmake-generator:
     description: 'CMake generator (e.g., "Ninja", "Visual Studio 17 2022")'
     required: false
@@ -23,7 +27,7 @@ inputs:
     required: false
     default: 'false'
   python-versions:
-    description: 'Python version(s) to install (newline-separated for multiple versions)'
+    description: 'Python version(s) to install (space-separated for multiple versions)'
     required: false
     default: ''
 
@@ -45,31 +49,27 @@ runs:
           exit 1
         fi
 
-    - name: Prepare Python versions
-      id: python-versions
-      if: inputs.python-versions != ''
-      shell: bash
-      run: |
-        VERSIONS=$(echo '${{ inputs.python-versions }}' | tr ' ' '\n' | grep -v '^$')
-        echo "list<<EOF" >> $GITHUB_OUTPUT
-        echo "$VERSIONS" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-
     - name: Set up Python
-      if: inputs.python-versions != ''
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ steps.python-versions.outputs.list }}
+        python-version: '3.14'
 
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '4.0'
 
-    - name: Install NSIS
+    - name: Install Windows dependencies
       if: runner.os == 'Windows'
       shell: pwsh
-      run: choco install nsis -y --no-progress
+      run: choco install nsis ${{ inputs.additional-dependencies }} -y --no-progress
+
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+          ${{ inputs.additional-dependencies || '' }} \
+          lld mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
+          libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 
     - name: Install ninja-build
       if: inputs.cmake-generator == 'Ninja'
@@ -80,23 +80,11 @@ runs:
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Remove outdated clang
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: mv 'C:\Program Files\LLVM' 'C:\Program Files\LLVM_old'
-
     - name: Install Python dependencies
-      if: inputs.python-versions != ''
       shell: bash
-      env:
-        PYTHON_CMD: ${{ runner.os == 'Windows' && 'py -' || 'python' }}
       run: |
-        PYTHON_VERSIONS='${{ inputs.python-versions }}'
-        echo "Installing numpy for Python versions: $PYTHON_VERSIONS"
-        for version in $PYTHON_VERSIONS; do
-          echo "Running: $PYTHON_CMD$version -m pip install numpy"
-          $PYTHON_CMD$version -m pip install numpy
-        done
+        echo "Installing numpy for Python versions: $(python --version)"
+        python -m pip install numpy
         echo "Done installing Python dependencies"
 
     - name: Configure
@@ -146,6 +134,21 @@ runs:
 
         echo "::group::CMake Build"
         cmake --build "$CMAKE_BUILD_PATH" $CMAKE_BUILD_ARGS
+        echo "::endgroup::"
+
+    - name: Grant Linux capabilities to test executables
+      if: runner.os == 'Linux' && inputs.enable-tests == 'true'
+      shell: bash
+      env:
+        CMAKE_BUILD_PATH: ${{ steps.cmake-config.outputs.build-path }}
+      run: |
+        # Grant capability to test binaries that use raw sockets (e.g. ICMP ping for reachability checks)
+        echo "::group::Grant CAP_NET_RAW"
+        test="$CMAKE_BUILD_PATH/bin/test_device_modules"
+        if [ -f "$test" ]; then
+          sudo setcap cap_net_raw=ep "$test"
+          echo "$test - Granted"
+        fi
         echo "::endgroup::"
 
     - name: Test

@@ -4,6 +4,7 @@ import opendaq as daq
 
 from app_context import AppContext
 from components.component_factory import create_tree_element
+from components.hoverable_treeview import HoverableTreeview
 
 
 class MainWindow(tk.Tk):
@@ -14,8 +15,6 @@ class MainWindow(tk.Tk):
         self.geometry("1000x700")
         self.minsize(700, 450)
 
-        self._hover = {"iid": None, "tags": ()}
-
         self.init_styles()
         self.context = AppContext(args)
 
@@ -24,8 +23,6 @@ class MainWindow(tk.Tk):
 
         self.build_tree()
         self.context.set_show_invisible_components_changed_callback(self.on_view_change)
-
-        self._tree_hover_bind(self.tree)
 
         # Start polling openDAQ events
         self.poll_opendaq_events()
@@ -288,7 +285,12 @@ class MainWindow(tk.Tk):
         tree_container.grid_columnconfigure(0, weight=1)
         tree_container.grid_rowconfigure(0, weight=1)
 
-        self.tree = ttk.Treeview(tree_container, show="tree", style="Sidebar.Treeview")
+        self.tree = HoverableTreeview(
+            tree_container,
+            show="tree",
+            style="Sidebar.Treeview",
+            hover_color=self.colors["hover"]
+        )
         self.tree.configure(takefocus=False)  # чтобы не появлялся фокус-ободок
 
         ysb = ttk.Scrollbar(
@@ -405,44 +407,4 @@ class MainWindow(tk.Tk):
             except Exception:
                 pass
 
-    # -------------------- Hover --------------------
-
-    def _tree_hover_bind(self, tree: ttk.Treeview):
-        tree.tag_configure("hover", background=self.colors["hover"])
-        tree.bind("<Motion>", self._on_tree_motion, add=True)
-        tree.bind("<Leave>", self._on_tree_leave, add=True)
-
-    def _on_tree_motion(self, event):
-        tree = event.widget
-        iid = tree.identify_row(event.y)
-
-        if self._hover["iid"] == iid:
-            return
-
-        old = self._hover["iid"]
-        if old:
-            # old мог быть удалён во время rebuild/show_filtered
-            if tree.exists(old):
-                tree.item(old, tags=self._hover["tags"])
-            else:
-                self._hover["iid"] = None
-                self._hover["tags"] = ()
-
-        self._hover["iid"] = iid
-        if not iid or not tree.exists(iid):
-            self._hover["tags"] = ()
-            return
-
-        tags = tree.item(iid, "tags") or ()
-        self._hover["tags"] = tags
-
-        if iid != tree.focus() and "hover" not in tags:
-            tree.item(iid, tags=(*tags, "hover"))
-
-    def _on_tree_leave(self, _event):
-        old = self._hover["iid"]
-        if old and self.tree.exists(old):
-            self.tree.item(old, tags=self._hover["tags"])
-        self._hover["iid"] = None
-        self._hover["tags"] = ()
 

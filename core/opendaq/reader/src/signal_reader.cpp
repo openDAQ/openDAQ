@@ -240,16 +240,14 @@ std::unique_ptr<Comparable> SignalReader::readStartDomain()
         DAQ_THROW_EXCEPTION(InvalidStateException, "Packet must have a domain packet assigned!");
     }
 
-    // Problem: getData() is unneccessarily expensive for linear data rule.
-    // TODO: Calculate this with equation for linear data rule.
-    // if (domainPacket.getDataDescriptor().getRule().getType() == DataRuleType::Linear)
-    // {
-    //     return domainReader->readStartLinear(domainPacket, info.prevSampleIndex, domainInfo);
-    // }
-    // else
-    // {
-    return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
-    // }
+    if (domainPacket.getDataDescriptor().getRule().getType() == DataRuleType::Linear)
+    {
+        return domainReader->readStartLinear(domainPacket, info.prevSampleIndex, domainInfo);
+    }
+    else
+    {
+        return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
+    }
 }
 
 bool SignalReader::isFirstPacketEvent()

@@ -15,10 +15,11 @@
  */
 
 #pragma once
-#include <opendaq/sample_type_traits.h>
 #include <opendaq/data_descriptor_ptr.h>
+#include <opendaq/data_packet_ptr.h>
 #include <opendaq/reader_domain_info.h>
 #include <opendaq/sample_reader.h>
+#include <opendaq/sample_type_traits.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,7 +33,8 @@ public:
 
     virtual ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) = 0;
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) = 0;
-    
+    virtual std::unique_ptr<Comparable> readStartLinear(DataPacketPtr& packet, SizeT offset, const ReaderDomainInfo& domainInfo) = 0;
+
     virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
                               const Comparable& start,
                               void* inputBuffer,
@@ -66,6 +68,11 @@ public:
     }
 
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) override
+    {
+        DAQ_THROW_EXCEPTION(InvalidStateException);
+    }
+
+    virtual std::unique_ptr<Comparable> readStartLinear(DataPacketPtr& packet, SizeT offset, const ReaderDomainInfo& domainInfo) override
     {
         DAQ_THROW_EXCEPTION(InvalidStateException);
     }
@@ -106,6 +113,10 @@ public:
     virtual ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) override;
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) override;
 
+    virtual std::unique_ptr<Comparable> readStartLinear(DataPacketPtr& packet,
+                                                        SizeT sampleIndex,
+                                                        const ReaderDomainInfo& domainInfo) override;
+
     virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
                               const Comparable& start,
                               void* inputBuffer,
@@ -126,6 +137,11 @@ private:
                           void* inputBuffer,
                           SizeT size,
                           std::chrono::system_clock::rep* absoluteTimestamp = nullptr) const;
+
+    ErrCode extractDeltaStart(const daq::DictPtr<daq::IString, daq::IBaseObject>& params, ReadType& delta, ReadType& start);
+
+    template <typename TDataType>
+    ErrCode convertDeltaStart(const daq::DictPtr<daq::IString, daq::IBaseObject>& params, ReadType& delta, ReadType& start) const;
 
     SizeT valuesPerSample{1};
 

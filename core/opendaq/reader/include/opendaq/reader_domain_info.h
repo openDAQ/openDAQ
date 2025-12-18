@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/reader_utils.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/logger_component_ptr.h>
+#include <opendaq/reader_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

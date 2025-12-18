@@ -97,7 +97,8 @@ private:
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;
     void onDataReceived();
-    void stopRecordingInternal();
+    void stopRecordingInternal(bool recover);
+    void startRecordingInternal();
 
     MultiReaderStatusPtr attemptReadData();
     bool attemptRecoverReader();
@@ -113,6 +114,7 @@ private:
     MultiReaderPtr reader;
 
     bool recordingActive = false;
+    bool recoverToActive = false;
 
     std::optional<fs::path> filePath = std::nullopt;
     std::string fileBasename;

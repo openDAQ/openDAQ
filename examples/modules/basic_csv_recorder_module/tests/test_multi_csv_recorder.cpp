@@ -57,7 +57,7 @@ protected:
 
         outputFolder = testing::TempDir() + "test_output";
 
-        fb.setPropertyValue("Path", outputFolder);
+        fb.setPropertyValue("Directory", outputFolder);
         fb.setPropertyValue("FileTimestampEnabled", false);
 
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
@@ -296,13 +296,15 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
     std::string reference;
 
     std::getline(readIn, line);
-    reference = "# domain;unit=seconds;resolution=1/1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=1764927450173817;";
+    reference = "# "
+                "domain;unit=seconds;resolution=1/"
+                "1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=1764927450173817;";
     EXPECT_EQ(line, reference);
 
     std::getline(readIn, line);
-    const std::string columns =
-        "Domain,\"sig0 (V)\",\"sig1 (V)\",\"sig2 (V)\",\"sig3 (V)\",\"sig4 (V)\",\"sig5 (V)\",\"sig6 (V)\",\"sig7 (V)\",\"sig8 "
-        "(V)\",\"sig9 (V)\"";
+    const std::string columns = "Domain,\"sig0 (V)\",\"sig1 (V)\",\"sig2 (V)\",\"sig3 (V)\",\"sig4 (V)\",\"sig5 "
+                                "(V)\",\"sig6 (V)\",\"sig7 (V)\",\"sig8 "
+                                "(V)\",\"sig9 (V)\"";
     EXPECT_EQ(line, columns);
 
     std::getline(readIn, line);
@@ -314,7 +316,9 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
     ASSERT_TRUE(readIn2.is_open());
 
     std::getline(readIn2, line);
-    reference = "# domain;unit=seconds;resolution=1/1000;delta=4;origin=1970-01-01T00:00:00;starting_tick=1764927450173828;";
+    reference = "# "
+                "domain;unit=seconds;resolution=1/"
+                "1000;delta=4;origin=1970-01-01T00:00:00;starting_tick=1764927450173828;";
     EXPECT_EQ(line, reference);
 
     std::getline(readIn2, line);

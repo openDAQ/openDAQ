@@ -137,7 +137,7 @@ ErrCode MultiCsvRecorderImpl::startRecording()
         return OPENDAQ_ERR_INVALIDSTATE;
     }
     LOG_I("Recording to: {}", writer.value().getFilename());
-    recordingActive = true;
+    startRecordingInternal();
 
     return OPENDAQ_SUCCESS;
 }
@@ -145,7 +145,7 @@ ErrCode MultiCsvRecorderImpl::startRecording()
 ErrCode MultiCsvRecorderImpl::stopRecording()
 {
     auto lock = getRecursiveConfigLock();
-    stopRecordingInternal();
+    stopRecordingInternal(false);
 
     return OPENDAQ_SUCCESS;
 }
@@ -305,10 +305,14 @@ void MultiCsvRecorderImpl::configureWriter(const DataDescriptorPtr& domainDescri
         // Replace the csv writer (can it ever survive a reconfigure?)
         writer.emplace(outputFile);
         writer.value().setHeaderInformation(recorderDomainDataDescriptor, valueDescriptors, signalNames, writeDomain);
+
+        // Auto resume recording if recording was stopped internally.
+        if (recoverToActive)
+            startRecordingInternal();
     }
     catch (const std::exception& e)
     {
-        stopRecordingInternal();
+        stopRecordingInternal(true);
         setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to configure CSV recorder: {}", e.what()));
         reader.setActive(False);
     }
@@ -416,12 +420,8 @@ void MultiCsvRecorderImpl::onDataReceived()
         recoveredReader = attemptRecoverReader();
         if (!recoveredReader)
         {
-            stopRecordingInternal();
+            stopRecordingInternal(true);
             setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
-        }
-        else
-        {
-            std::cout << "Back to valid reader\n";
         }
     }
 
@@ -429,15 +429,25 @@ void MultiCsvRecorderImpl::onDataReceived()
         configureWriter(domainDescriptor, valueDescriptors, signalNames);
 }
 
-void MultiCsvRecorderImpl::stopRecordingInternal()
+void MultiCsvRecorderImpl::stopRecordingInternal(bool recover)
 {
-    if (recordingActive)
+    // This is the only method recording should be stopped by. If already stopped, nothing to do.
+    if (!recordingActive)
     {
-        LOG_I("Recording stopped.")
+        return;
     }
+    LOG_I("Recording stopped.")
     // Close the file
     writer = std::nullopt;
+    // Recover flag on only when turning off the recording.
+    recoverToActive = recordingActive && recover;
     recordingActive = false;
+}
+
+void MultiCsvRecorderImpl::startRecordingInternal()
+{
+    recordingActive = true;
+    recoverToActive = false;
 }
 
 MultiReaderStatusPtr MultiCsvRecorderImpl::attemptReadData()

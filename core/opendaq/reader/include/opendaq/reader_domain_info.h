@@ -27,6 +27,7 @@ struct ReaderDomainInfo
     {
     }
 
+    // private:
     void setMaxResolution(const RatioPtr& maxResolution)
     {
         multiplier = Ratio(
@@ -61,6 +62,13 @@ struct ReaderDomainInfo
         }
 
         LOG_T("Adj. offset: {}", offset)
+    }
+
+public:
+    void adjustToCommonEpochResolution(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution)
+    {
+        setEpochOffset(minEpoch, maxResolution);
+        setMaxResolution(maxResolution);
     }
 
     RatioPtr resolution{};

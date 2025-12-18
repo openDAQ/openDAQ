@@ -103,13 +103,26 @@ private:
 
     ListPtr<ISignal> getSignals() const;
 
+    /**
+     * @brief Find the earliest origin and maximum resolution among signal domain descriptors.
+     *
+     * Set earliest origin and max resolution to all signals (sync signal starts).
+     */
     void setStartInfo();
 
     bool eventOrGapInQueue() const;
     bool dataPacketsOrEventReady();
     SizeT getMinSamplesAvailable(bool acrossDescriptorChanges = false) const;
-    
+
     ErrCode synchronize(SizeT& min, SyncStatus& syncStatus);
+    /**
+     * @brief Attempt to sync all SignalReaders to common start.
+     *
+     * Keeps track of absolute time stamps, and if the timestamps differ too much and this check is configured,
+     * it sets SynchronizationFailed state to all signals.
+     *
+     * Note: The sync status is stored exclusively in the SignalReaders.
+     */
     void sync();
     SyncStatus getSyncStatus() const;
 
@@ -128,6 +141,12 @@ private:
 
     [[nodiscard]] Duration durationFromStart() const;
 
+    /**
+     * @brief Update commonStart from domain starts of all signals.
+     *
+     * Request domain start from all the signals and set the lowest one as the common start. According to
+     * configuration optionally round common start to whole domain unit.
+     */
     void readDomainStart();
     void setActiveInternal(Bool isActive);
     void setPortsActiveState(Bool active);

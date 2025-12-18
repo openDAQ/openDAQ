@@ -4,9 +4,9 @@ set(BUILD_TESTING     OFF CACHE BOOL "Enables TaskFlow CTest")
 
 opendaq_dependency(
     NAME                Taskflow
-    REQUIRED_VERSION    3.5.0
+    REQUIRED_VERSION    3.11.0
     GIT_REPOSITORY      https://github.com/taskflow/taskflow.git
-    GIT_REF             v3.5.0
+    GIT_REF             v3.11.0
     ADD_FETCH_ALIAS     Taskflow::Taskflow=Taskflow
     EXPECT_TARGET       Taskflow::Taskflow
     PATCH_FILES

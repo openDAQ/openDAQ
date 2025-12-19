@@ -424,8 +424,15 @@ bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock
     {
         auto domainPacket = info.dataPacket.getDomainPacket();
         // Check if commonStart can be reached within the current packet
-        info.prevSampleIndex = domainReader->getOffsetTo(
-            domainInfo, commonStart, domainPacket.getData(), domainPacket.getSampleCount(), &cachedFirstTimestamp);
+        if (domainPacket.getDataDescriptor().getRule().getType() == DataRuleType::Linear)
+        {
+            info.prevSampleIndex = domainReader->getOffsetToLinear(domainInfo, commonStart, domainPacket, &cachedFirstTimestamp);
+        }
+        else
+        {
+            info.prevSampleIndex = domainReader->getOffsetTo(
+                domainInfo, commonStart, domainPacket.getData(), domainPacket.getSampleCount(), &cachedFirstTimestamp);
+        }
 
         if (info.prevSampleIndex == static_cast<SizeT>(-1))
         {

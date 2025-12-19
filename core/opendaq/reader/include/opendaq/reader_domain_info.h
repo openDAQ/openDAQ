@@ -27,7 +27,7 @@ struct ReaderDomainInfo
     {
     }
 
-    // private:
+private:
     void setMaxResolution(const RatioPtr& maxResolution)
     {
         multiplier = Ratio(

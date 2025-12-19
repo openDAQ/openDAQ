@@ -144,7 +144,7 @@ private:
     /**
      * @brief Update commonStart from domain starts of all signals.
      *
-     * Request domain start from all the signals and set the lowest one as the common start. According to
+     * Request domain start from all the signals and set the highest one as the common start. According to
      * configuration optionally round common start to whole domain unit.
      */
     void readDomainStart();

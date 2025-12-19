@@ -4,6 +4,7 @@
 #include <opendaq/multi_typed_reader.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
+#include <opendaq/reader_utils.h>
 #include <opendaq/sample_type.h>
 #include <opendaq/signal_errors.h>
 #include <opendaq/typed_reader.h>
@@ -25,7 +26,7 @@ struct GreaterEqual
         return Multiply(value, multiplier);
     }
 
-    static T GetStart(T startValue, std::int64_t offset)
+    static T ShiftByOffset(T startValue, std::int64_t offset)
     {
         return startValue + static_cast<T>(offset);
     }
@@ -35,7 +36,6 @@ struct GreaterEqual
         return Multiply(readValue, multiplier) >= startValue;
     }
 };
-
 template <typename T>
 struct GreaterEqual<T, typename std::enable_if_t<daq::IsTemplateOf<T, daq::RangeType>::value>>
 {
@@ -51,7 +51,7 @@ struct GreaterEqual<T, typename std::enable_if_t<daq::IsTemplateOf<T, daq::Range
         return Multiply(value.start, multiplier);
     }
 
-    static T GetStart(T startValue, std::int64_t offset)
+    static T ShiftByOffset(T startValue, std::int64_t offset)
     {
         RangeValue start = startValue.start + offset;
         RangeValue end = -1;
@@ -82,7 +82,7 @@ struct GreaterEqual<T, typename std::enable_if_t<daq::IsTemplateOf<T, daq::Compl
         return Multiply(value, multiplier);
     }
 
-    static T GetStart(T startValue, std::int64_t offset)
+    static T ShiftByOffset(T startValue, std::int64_t offset)
     {
         DAQ_THROW_EXCEPTION(NotSupportedException);
     }
@@ -164,7 +164,7 @@ std::unique_ptr<Comparable> TypedReader<ReadType>::readStart(void* inputBuffer, 
 }
 
 template <typename ReadType>
-std::unique_ptr<Comparable> TypedReader<ReadType>::readStartLinear(DataPacketPtr& packet,
+std::unique_ptr<Comparable> TypedReader<ReadType>::readStartLinear(const DataPacketPtr& packet,
                                                                    SizeT sampleIndex,
                                                                    const ReaderDomainInfo& domainInfo)
 {
@@ -182,7 +182,8 @@ std::unique_ptr<Comparable> TypedReader<ReadType>::readStartLinear(DataPacketPtr
         ReadType delta, start;
         extractDeltaStart(parameters, delta, start);
 
-        // The sample to read is start + packetOffset + offset. Comparable presumably performs the conversion to domainInfo compatible.
+        // The sample to read is start + packetOffset + offset. Comparable performs the conversion to domainInfo compatible.
+        // TODO: ReferenceDomain.offset for clock corrections?
         ReadType startingTick = start + static_cast<ReadType>(packetOffset.getIntValue()) + delta * static_cast<ReadType>(sampleIndex);
 
         return std::make_unique<ComparableValue<ReadType>>(startingTick, domainInfo);
@@ -295,9 +296,57 @@ SizeT TypedReader<ReadType>::getOffsetTo(const ReaderDomainInfo& domainInfo,
 }
 
 template <typename ReadType>
+SizeT TypedReader<ReadType>::getOffsetToLinear(const ReaderDomainInfo& domainInfo,
+                                               const Comparable& start,
+                                               const DataPacketPtr& packet,
+                                               std::chrono::system_clock::rep* firstSampleAbsoluteTime)
+{
+    switch (dataSampleType)
+    {
+        case SampleType::Float32:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::Float32>::Type>(domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::Float64:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::Float64>::Type>(domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::UInt8:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::UInt8>::Type>(domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::Int8:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::Int8>::Type>(domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::Int16:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::Int16>::Type>(domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::UInt16:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::UInt16>::Type>(domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::Int32:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::Int32>::Type>(domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::UInt32:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::UInt32>::Type>(domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::Int64:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::Int64>::Type>(domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::UInt64:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::UInt64>::Type>(domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::RangeInt64:
+            return getOffsetToDataLinear<SampleTypeToType<SampleType::RangeInt64>::Type>(
+                domainInfo, start, packet, firstSampleAbsoluteTime);
+        case SampleType::ComplexFloat32:
+        case SampleType::ComplexFloat64:
+        case SampleType::Binary:
+        case SampleType::String:
+        case SampleType::Struct:
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Using the SampleType {} as a domain is not supported", dataSampleType);
+        case SampleType::Invalid:
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Unknown raw data-type, conversion not possible.");
+        case SampleType::Null:
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Packet with Null sample-type samples encountered");
+        case SampleType::_count:
+            break;
+    }
+
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE, "Packet with invalid sample-type samples encountered");
+}
+
+template <typename ReadType>
 ErrCode TypedReader<ReadType>::extractDeltaStart(const daq::DictPtr<daq::IString, daq::IBaseObject>& params,
                                                  ReadType& delta,
-                                                 ReadType& start)
+                                                 ReadType& start) const
 {
     switch (dataSampleType)
     {
@@ -359,15 +408,13 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
     if (!inputBuffer)
         DAQ_THROW_EXCEPTION(ArgumentNullException);
 
-    using namespace reader;
-
     if constexpr (std::is_convertible_v<TDataType, TReadType>)
     {
         auto* dataStart = static_cast<TDataType*>(inputBuffer);
 
         auto* startV = dynamic_cast<const ComparableValue<TReadType>*>(&start);
         // Should always be non-negative
-        auto startValue = GreaterEqual<TReadType>::GetStart(startV->getValue(), -domainInfo.offset);
+        auto startValue = GreaterEqual<TReadType>::ShiftByOffset(startV->getValue(), -domainInfo.offset);
 
         // std::stringstream ss11;
         // ss11 << toSysTime(startValue, domainInfo.epoch, domainInfo.readResolution);
@@ -399,13 +446,13 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
                 {
                     if constexpr (IsTemplateOf<TReadType, daq::RangeType>::value)
                     {
-                        auto readValueSysTime = toSysTime(readValue.start, domainInfo.epoch, domainInfo.resolution);
+                        auto readValueSysTime = reader::toSysTime(readValue.start, domainInfo.epoch, domainInfo.resolution);
                         *absoluteTimestamp =
                             readValueSysTime.time_since_epoch().count();  // adjustedValueSysTime.time_since_epoch().count();
                     }
                     else if constexpr (!IsTemplateOf<TReadType, daq::Complex_Number>::value)
                     {
-                        auto readValueSysTime = toSysTime(readValue, domainInfo.epoch, domainInfo.resolution);
+                        auto readValueSysTime = reader::toSysTime(readValue, domainInfo.epoch, domainInfo.resolution);
                         *absoluteTimestamp = readValueSysTime.time_since_epoch().count();
                     }
                     else
@@ -422,6 +469,87 @@ SizeT TypedReader<TReadType>::getOffsetToData(const ReaderDomainInfo& domainInfo
         // [[maybe_unused]] auto adjusted = GreaterEqual<TReadType>::Adjust(readValue, domainInfo.multiplier);
 
         return static_cast<SizeT>(-1);
+    }
+    else
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED,
+                                   "Implicit conversion from packet data-type to the read data-type is not supported.");
+    }
+}
+
+template <typename ReadType>
+template <typename TDataType>
+SizeT TypedReader<ReadType>::getOffsetToDataLinear(const ReaderDomainInfo& domainInfo,
+                                                   const Comparable& target,
+                                                   const DataPacketPtr& packet,
+                                                   std::chrono::system_clock::rep* absoluteTimestamp) const
+{
+    if constexpr (std::is_same_v<void*, ReadType> || !std::is_integral_v<ReadType>)
+    {
+        // void reader should never be used to read domain info
+        // Only integral ReadType is supported
+        return static_cast<SizeT>(-1);
+    }
+    else if constexpr (std::is_convertible_v<TDataType, ReadType>)
+    {
+        const DataRulePtr& dataRule = packet.getDataDescriptor().getRule();
+        const auto& parameters = dataRule.getParameters();
+        const SizeT sampleCount = packet.getSampleCount();
+
+        if (sampleCount == 0)
+        {
+            return static_cast<SizeT>(-1);
+        }
+
+        ReadType ruleDelta, ruleStart;
+        extractDeltaStart(parameters, ruleDelta, ruleStart);
+        NumberPtr packetOffset = packet.getOffset();
+
+        // Total packet offset in signal resolution ticks. TODO: add ReferenceDomain.offset
+        ReadType startTick = ruleStart + static_cast<ReadType>(packetOffset.getIntValue());  // In signal resolution ticks
+        // In max resolution ticks since min epoch.
+        auto comparableStartingTick = std::make_unique<ComparableValue<ReadType>>(startTick, domainInfo);
+
+        // Tick of the last sample in signal resolution ticks
+        const SizeT packetSize = packet.getSampleCount();
+        ReadType endTick = startTick + ruleDelta * static_cast<ReadType>(packetSize - 1);
+        // In max resolution ticks since min epoch.
+        auto comparableEndingTick = std::make_unique<ComparableValue<ReadType>>(endTick, domainInfo);
+
+        if (target < *comparableStartingTick || *comparableEndingTick < target)
+        {
+            // Target is outside this packet
+            return static_cast<SizeT>(-1);
+        }
+
+        // TODO: Ask someone what types are possible as domain types.
+        const auto* targetValue = dynamic_cast<const ComparableValue<ReadType>*>(&target);
+        ReadType ticksToTarget = targetValue->getValue() - comparableStartingTick->getValue();
+        ReadType comparableDelta = static_cast<ReadType>(ruleDelta * domainInfo.multiplier.getNumerator() /
+                                                         static_cast<double>(domainInfo.multiplier.getDenominator()));
+        SizeT index = static_cast<SizeT>((ticksToTarget + comparableDelta - 1) / comparableDelta);
+
+        assert(index > packetSize && "Index out of bounds");
+
+        if (absoluteTimestamp)
+        {
+            if constexpr (IsTemplateOf<ReadType, daq::RangeType>::value)
+            {
+                DAQ_THROW_EXCEPTION(NotSupportedException);
+            }
+            else if constexpr (!IsTemplateOf<ReadType, daq::Complex_Number>::value)
+            {
+                // Tick corresponding to index in signal's resolution ticks.
+                ReadType tick = startTick + static_cast<ReadType>(index) * ruleDelta;
+                auto readValueSysTime = reader::toSysTime(tick, domainInfo.epoch, domainInfo.resolution);
+                *absoluteTimestamp = readValueSysTime.time_since_epoch().count();
+            }
+            else
+            {
+                DAQ_THROW_EXCEPTION(NotSupportedException);
+            }
+        }
+        return index;
     }
     else
     {

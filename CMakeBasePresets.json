@@ -204,7 +204,7 @@
         {
             "name": "full/debug",
             "hidden": true,
-            "displayName": "Full - Release",
+            "displayName": "Full - Debug",
             "inherits": [
                 "debug",
                 "full"

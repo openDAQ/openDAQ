@@ -188,7 +188,6 @@ jobs:
   build_linux:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
-    # ${{ }} expression syntax because of leading '!'
     if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
@@ -199,377 +198,69 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Ubuntu 22.04 gcc-12 Release
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_ENABLE_REGRESSION_TESTS=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
-            apt_packages: g++-12
-            cc: gcc-12
-            cxx: g++-12
-            cpack: DEB
-          # - name: Ubuntu 22.04 gcc-12 Debug
-          #   image: ubuntu:22.04
-          #   cmake_generator: Ninja
-          #   cmake_build_type: Debug
-          #   apt_packages: g++-12
-          #   cc: gcc-12
-          #   cxx: g++-12
-          #   cpack: DEB
-          - name: Ubuntu 22.04 gcc-9 Release
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-            apt_packages: g++-9
-            cc: gcc-9
-            cxx: g++-9
-          - name: Ubuntu 22.04 clang-14 Release
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-            apt_packages: clang++-14
-            cc: clang-14
-            cxx: clang++-14
-         # - name: Ubuntu 22.04 Intel-LLVM Release
-         #   image: ubuntu:22.04
-         #   cmake_generator: Ninja
-         #   cmake_build_type: Release
-         #   cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-         #   apt_packages: intel-oneapi-compiler-dpcpp-cpp
-         #   cc: icx
-         #   cxx: icpx
-          # - name: Ubuntu 22.04 clang-14 libc++ Release
-            # image: ubuntu:22.04
-            # cmake_generator: Ninja
-            # cmake_build_type: Release
-            # cmake_defines: -DCMAKE_CXX_FLAGS=-stdlib=libc++
-            # apt_packages: clang++-14 libc++-14-dev libc++abi-14-dev
-            # cc: clang-14
-            # cxx: clang++-14
-            # cpack: ZIP
-          - name: Ubuntu 22.04 preinstalled packages
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-            apt_packages: g++ googletest libfmt-dev libsfml-dev libspdlog-dev libtsl-ordered-map-dev libxxhash-dev pybind11-dev rapidjson-dev pkg-config libgpgme-dev
-            cc: gcc
-            cxx: g++
-            cpack: DEB
-
-    container:
-      image: ${{ matrix.image }}
-      env:
-        TZ: Europe/Berlin
-        DEBIAN_FRONTEND: noninteractive
-        CC: ${{ matrix.cc }}
-        CXX: ${{ matrix.cxx }}
-
-    outputs:
-      # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
-        test_path: ${{ env.test_path }}
-        linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
+          - name: Ubuntu Latest gcc-9 Release
+            additional-packages: g++-9
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+          - name: Ubuntu Latest gcc-14 Release
+            additional-packages: g++-14
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
+          - name: Ubuntu Latest clang-14 Release
+            additional-packages: clang-14
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14
+          - name: Ubuntu Latest clang-16 Release
+            additional-packages: clang-16
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16
+          # The Debug configurations are disabled until the problem with test_py_opendaq is resolved.
+          # - name: Ubuntu Latest gcc-9 Debug
+          #   additional-packages: g++-9
+          #   cmake-generator: Ninja
+          #   cmake-build-type: Debug
+          #   cmake-defines: -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+          # - name: Ubuntu Latest gcc-14 Debug
+          #   additional-packages: g++-14
+          #   cmake-generator: Ninja
+          #   cmake-build-type: Debug
+          #   cmake-defines: -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
+          # - name: Ubuntu Latest clang-14 Debug
+          #   additional-packages: clang-14
+          #   cmake-generator: Ninja
+          #   cmake-build-type: Debug
+          #   cmake-defines: -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14
+          # - name: Ubuntu Latest clang-16 Debug
+          #   additional-packages: clang-16
+          #   cmake-generator: Ninja
+          #   cmake-build-type: Debug
+          #   cmake-defines: -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16
 
     steps:
-      - name: Install basic dependencies
-        run: |
-          apt-get update
-          apt-get install -y git openssh-client
-
-      - name: Disable git safe directory checks
-        run : git config --global --add safe.directory '*'
-
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Add Intel oneAPI apt repo
-        if: matrix.name == 'Ubuntu 22.04 Intel-LLVM Release'
-        run: |
-          apt-get install -y wget gnupg
-          wget -qO- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
-            | gpg --dearmor \
-            | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
-          echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
-            | tee /etc/apt/sources.list.d/oneapi.list
-          apt-get update
-
-      - name: Install additional dependencies
-        run: |
-          apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
-            awscli unzip \
-            lld ninja-build curl \
-            python3-dev python3-numpy python3-distutils python3-pip \
-            mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-            libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
-
-      - name: Install latest CMake
-        run: pip install cmake
-
-      - name: Configure
-        shell: bash
-        run: |
-          if [ -f /opt/intel/oneapi/setvars.sh ]; then
-              source /opt/intel/oneapi/setvars.sh
-          fi
-          mkdir build
-          cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-
-      - name: Build
-        working-directory: ./build
-        shell: bash
-        run: |
-          if [ -f /opt/intel/oneapi/setvars.sh ]; then
-              source /opt/intel/oneapi/setvars.sh
-          fi
-          cmake --build .
-
-      - name: Test
-        shell: bash
-        env:
-          GTEST_OUTPUT: "xml:/junit_reports/unit/"
-        run: |
-          if [ -f /opt/intel/oneapi/setvars.sh ]; then
-              source /opt/intel/oneapi/setvars.sh
-          fi
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} --exclude-regex regression_test -C ${{ matrix.cmake_build_type }} --test-dir build
+      - name: Build and Test
+        id: build-and-test
+        uses: ./.github/actions/build-sdk
+        with:
+          additional-dependencies: ${{ matrix.additional-packages }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          cmake-config-preset: ${{ env.cmake_preset }}
+          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-generator: ${{ matrix.cmake-generator }}
+          enable-tests: true
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Unit Test Results (${{ matrix.name }})
-          path: /junit_reports/unit
-
-      - name: Package
-        if: matrix.cpack != ''
-        working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
-
-      - name: Upload package
-        if: matrix.cpack != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: Packages (${{ matrix.name }})
-          path: ${{ env.package_path }}
-          retention-days: 7
-
-      - name: Upload binaries for .NET Bindings NuGet package
-        # "There can be only one."
-        if: matrix.name == 'Ubuntu 22.04 gcc-12 Release'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.linux_x64_artifact }}
-          path: |
-            ${{ env.build_path }}/bin/*.so
-            !${{ env.build_path }}/**/opendaq.cpython*
-            !${{ env.build_path }}/**/*_test_dll.so
-          # the exclusion filter does not work and the online-help does not explain
-          # most probably a pattern *xxx.yy does not work, only x*
-          #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-          retention-days: 1
-
-      # PROTOCOL REGRESSION TEST BEGIN
-
-      - name: Check AWS secret availability
-        id: check-aws
-        env:
-          AWS_REG: ${{ secrets.AWS_REGION }}
-        run: echo "aws_available=${{ env.AWS_REG != '' }}" >> $GITHUB_OUTPUT
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Download regression simulator binaries .zip from S3 bucket
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-        run: aws s3 cp "s3://${{ env.s3_bucket }}/regression_test/regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" .
-
-      - name: Unzip regression simulator binaries
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-        run: unzip "regression simulator ${{ env.regression_tests_target_tag }} (${{ matrix.name }}).zip" -d ${{ env.regression_simulator_folder }}
-
-      - name: Add execute permissions to regression simulator
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-        run: chmod +x ${{ env.regression_simulator_folder }}/regression_simulator
-
-      - name: Create and give execute permissions to regression test runner script
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-        run: |
-          cat > regression_test_run.sh << EOL
-
-          # Change directory because we expect the libraries to be in the folder we are running simulator from
-          cd ${{ env.regression_simulator_folder }}
-
-          # Run simulator and wait for it to to be ready
-          ./regression_simulator &
-          while [ ! -f ready ]; do sleep 1; done
-
-          # Change directory back
-          cd ..
-
-          # Set trap that will catch failed (8) and successful (0) test and kill simulator gracefully, then exit with trapped code
-          trap "rc=\$?; echo Killing simulator; pid=\$(pgrep -f regression_simulator); rm ${{ env.regression_simulator_folder }}/ready; wait \$pid; echo Simulator killed successfully; exit \$rc" 0 8
-
-          # Perform tests
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --tests-regex regression_test --test-dir build --verbose
-
-          EOL
-
-          # Make runner script executable
-          chmod +x regression_test_run.sh
-
-      - name: Protocol regression test - OPC UA
-        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-        env:
-          GTEST_OUTPUT: "xml:/junit_reports/regression/opcua/"
-          protocol: opcua
-        run: ./regression_test_run.sh
-
-      - name: Protocol regression test - ND
-        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-        env:
-          GTEST_OUTPUT: "xml:/junit_reports/regression/nd/"
-          protocol: nd
-        run: ./regression_test_run.sh
-
-      - name: Protocol regression test - NS
-        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-        env:
-          GTEST_OUTPUT: "xml:/junit_reports/regression/ns/"
-          protocol: ns
-        run: ./regression_test_run.sh
-
-      - name: Protocol regression test - LT
-        if: ${{ (success() || failure()) && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-        env:
-          GTEST_OUTPUT: "xml:/junit_reports/regression/lt/"
-          protocol: lt
-        run: ./regression_test_run.sh
-
-      - name: Upload regression test results
-        if: ${{ always() && matrix.name == 'Ubuntu 22.04 gcc-12 Release' && steps.check-aws.outputs.aws_available == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: Regression Test Results (${{ matrix.name }})
-          path: /junit_reports/regression
-
-      # PROTOCOL REGRESSION TEST END
-
-  build_linux_manylinux:
-    runs-on: ubuntu-latest
-    name: ${{ matrix.name }}
-    # ${{ }} expression syntax because of leading '!'
-    if: ${{ ! github.event.pull_request.draft }}
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: manylinux_2_28 gcc Release
-            image: quay.io/pypa/manylinux_2_28_x86_64
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-            additional_packages:
-            additional_cmake_options: -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
-            cc: gcc
-            cxx: g++
-            cpack: ZIP
-
-    container:
-      image: ${{ matrix.image }}
-      env:
-        TZ: Europe/Berlin
-        CC: ${{ matrix.cc }}
-        CXX: ${{ matrix.cxx }}
-
-    steps:
-      - name: Install basic dependencies
-        run: |
-          yum update -y
-          yum install -y git
-
-      - name: Disable git safe directory checks
-        run : git config --global --add safe.directory '*'
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install build dependencies
-        run: |
-          yum install -y ${{ matrix.additional_packages }} \
-              ninja-build \
-              mono-core \
-              freetype-devel libudev-devel libX11-devel libXi-devel libXcursor-devel libXrandr-devel
-
-      - name: Create build dir
-        run: mkdir build
-
-      - name: Configure and build python packages
-        working-directory: ./build
-        run: |
-          mkdir wheels
-          last_version="3.7"
-          for version in ${{ env.python_versions }}; do
-              echo "Building for Python $version"
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DOPENDAQ_PYTHON_VERSION=$version ${{ matrix.additional_cmake_options }} ..
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r
-              cp -f pip/packages/opendaq*.whl wheels
-              deactivate
-              rm -rf venv
-              last_version=$version
-          done
-          echo "last_version=$last_version" >> "$GITHUB_ENV"
-
-      - name: Test
-        env:
-          GTEST_OUTPUT: "xml:/junit_reports/unit/"
-        run: |
-          python$last_version -m venv build/venv
-          . build/venv/bin/activate
-          pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Unit Test Results (${{ matrix.name }})
-          path: /junit_reports/unit
-
-      - name: Package
-        if: matrix.cpack != ''
-        working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
-
-      - name: Upload package
-        if: matrix.cpack != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: Packages (${{ matrix.name }})
-          path: ${{ env.package_path }}
-          retention-days: 7
-
-      - name: Upload PIP packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: PIP Package (${{ matrix.name }})
-          path: ${{ env.build_path }}/wheels/opendaq*.whl
-          retention-days: 7
+          path: ${{ steps.build-and-test.outputs.gtest-xml-path }}
 
   build_macos:
     name: ${{ matrix.name }}
@@ -826,23 +517,3 @@ jobs:
   #     - name: Build
   #       working-directory: ./build
   #       run: cmake --build .
-
-  # using reusable workflow
-  dotnet_bindings:
-      name: .NET Bindings
-
-      # needs: [build_windows,build_linux,build_macos]
-      needs: [build_windows,build_linux]
-
-      # ${{ }} expression syntax because of leading '!'
-      if: ${{ ! github.event.pull_request.draft }}
-
-      uses: ./.github/workflows/reusable_nuget_creation_and_test.yml
-      with:
-        # cannot use env context here, so use needs.<job>.outputs.<variable> trick
-        windows_test_path: ${{ needs.build_windows.outputs.test_path }}
-        linux_test_path: ${{ needs.build_linux.outputs.test_path }}
-        windows_x64_artifact_name:  ${{ needs.build_windows.outputs.windows_x64_artifact_name }}
-        linux_x64_artifact_name:  ${{ needs.build_linux.outputs.linux_x64_artifact_name }}
-        short_sha: ${{ needs.build_windows.outputs.short_sha }}
-      # -> output.nuget_artifact_name

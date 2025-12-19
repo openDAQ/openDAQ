@@ -3,8 +3,8 @@ set(MIMALLOC_INSTALL ON CACHE BOOL "" FORCE)
 
 opendaq_dependency(
     NAME                mimalloc
-    REQUIRED_VERSION    2.1.1
+    REQUIRED_VERSION    3.0.11
     GIT_REPOSITORY      https://github.com/microsoft/mimalloc.git
-    GIT_REF             2.1.1
+    GIT_REF             v3.0.11
     EXPECT_TARGET       mimalloc-static
 )

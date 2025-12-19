@@ -15,19 +15,13 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
 FunctionBlockTypePtr BasicCsvRecorderImpl::createType()
 {
-    return FunctionBlockType(
-        TYPE_ID,
-        "BasicCsvRecorder",
-        "Basic CSV recording functionality",
-        PropertyObject());
+    return FunctionBlockType(TYPE_ID, "BasicCsvRecorder", "Basic CSV recording functionality", PropertyObject());
 }
 
-BasicCsvRecorderImpl::BasicCsvRecorderImpl(
-    const ContextPtr& context,
-    const ComponentPtr& parent,
-    const StringPtr& localId,
-    const PropertyObjectPtr& config
-)
+BasicCsvRecorderImpl::BasicCsvRecorderImpl(const ContextPtr& context,
+                                           const ComponentPtr& parent,
+                                           const StringPtr& localId,
+                                           const PropertyObjectPtr& config)
     : FunctionBlockImpl<IFunctionBlock, IRecorder>(createType(), context, parent, localId, nullptr)
 {
     this->tags.add(Tags::RECORDER);
@@ -54,10 +48,10 @@ ErrCode BasicCsvRecorderImpl::stopRecording()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode BasicCsvRecorderImpl::getIsRecording(Bool *isRecording)
+ErrCode BasicCsvRecorderImpl::getIsRecording(Bool* isRecording)
 {
     OPENDAQ_PARAM_NOT_NULL(isRecording);
-    
+
     auto lock = getRecursiveConfigLock();
     *isRecording = recordingActive;
 
@@ -129,7 +123,7 @@ void BasicCsvRecorderImpl::reconfigure()
 
         // Keep track of the currently-connected input ports we have seen, so we can later destroy
         // BasicCsvRecorderSignal objects for ports that are gone or no longer connected.
-        std::set<IInputPort *> ports;
+        std::set<IInputPort*> ports;
 
         auto inputPorts = borrowPtr<FunctionBlockPtr>().getInputPorts();
         for (const auto& inputPort : inputPorts)
@@ -144,9 +138,7 @@ void BasicCsvRecorderImpl::reconfigure()
                 // If we don't yet have a BasicCsvRecorderSignal object for this port, create one.
                 auto it = threads.find(inputPort.getObject());
                 if (it == threads.end())
-                    threads.emplace(
-                        inputPort.getObject(),
-                        std::make_shared<BasicCsvRecorderThread>(path, signal, loggerComponent));
+                    threads.emplace(inputPort.getObject(), std::make_shared<BasicCsvRecorderThread>(path, signal, loggerComponent));
             }
         }
 
@@ -176,7 +168,7 @@ void BasicCsvRecorderImpl::reconfigure()
     }
 }
 
-std::shared_ptr<BasicCsvRecorderThread> BasicCsvRecorderImpl::findThreadForSignal(IInputPort *port)
+std::shared_ptr<BasicCsvRecorderThread> BasicCsvRecorderImpl::findThreadForSignal(IInputPort* port)
 {
     std::shared_ptr<BasicCsvRecorderThread> thread;
     auto lock = getAcquisitionLock();

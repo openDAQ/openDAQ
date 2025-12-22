@@ -50,6 +50,10 @@ target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
 target_link_libraries(${LIB_NAME} PRIVATE $<BUILD_INTERFACE:Boost::asio>
 )
 
+if (MINGW)
+    target_link_libraries(${LIB_NAME} PRIVATE ws2_32)
+endif()
+
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../include>
                                               $<INSTALL_INTERFACE:include>

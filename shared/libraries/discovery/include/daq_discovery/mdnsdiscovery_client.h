@@ -1108,7 +1108,7 @@ inline void MDNSDiscoveryClient::sendDiscoveryQuery()
         struct sockaddr_in sock_addr;
         memset(&sock_addr, 0, sizeof(struct sockaddr_in));
         sock_addr.sin_family = AF_INET;
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
         sock_addr.sin_addr = in4addr_any;
 #else
         sock_addr.sin_addr.s_addr = INADDR_ANY;

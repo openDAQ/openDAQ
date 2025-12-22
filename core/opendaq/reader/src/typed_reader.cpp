@@ -9,6 +9,8 @@
 #include <opendaq/signal_errors.h>
 #include <opendaq/typed_reader.h>
 
+#include <iostream>
+
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -177,14 +179,15 @@ std::unique_ptr<Comparable> TypedReader<ReadType>::readStartLinear(const DataPac
     else
     {
         NumberPtr packetOffset = packet.getOffset();
-        const DataRulePtr& linearRule = packet.getDataDescriptor().getRule();
+        const DataRulePtr linearRule = packet.getDataDescriptor().getRule();
         const auto& parameters = linearRule.getParameters();
         ReadType delta, start;
         extractDeltaStart(parameters, delta, start);
 
-        // The sample to read is start + packetOffset + offset. Comparable performs the conversion to domainInfo compatible.
-        // TODO: ReferenceDomain.offset for clock corrections?
-        ReadType startingTick = start + static_cast<ReadType>(packetOffset.getIntValue()) + delta * static_cast<ReadType>(sampleIndex);
+        const IntPtr referenceDomainOffset = packet.getDataDescriptor().getReferenceDomainInfo().getReferenceDomainOffset();
+        int64_t rdOffset = referenceDomainOffset.assigned() ? referenceDomainOffset : 0;
+        ReadType startingTick = start + static_cast<ReadType>(rdOffset) + static_cast<ReadType>(packetOffset.getIntValue()) +
+                                delta * static_cast<ReadType>(sampleIndex);
 
         return std::make_unique<ComparableValue<ReadType>>(startingTick, domainInfo);
     }
@@ -492,21 +495,23 @@ SizeT TypedReader<ReadType>::getOffsetToDataLinear(const ReaderDomainInfo& domai
     }
     else if constexpr (std::is_convertible_v<TDataType, ReadType>)
     {
-        const DataRulePtr& dataRule = packet.getDataDescriptor().getRule();
-        const auto& parameters = dataRule.getParameters();
         const SizeT sampleCount = packet.getSampleCount();
-
         if (sampleCount == 0)
         {
             return static_cast<SizeT>(-1);
         }
 
+        const DataRulePtr& dataRule = packet.getDataDescriptor().getRule();
+        const auto& parameters = dataRule.getParameters();
+        const IntPtr referenceDomainOffset = packet.getDataDescriptor().getReferenceDomainInfo().getReferenceDomainOffset();
+
+        int64_t rdOffset = referenceDomainOffset.assigned() ? referenceDomainOffset : 0;
         ReadType ruleDelta, ruleStart;
         extractDeltaStart(parameters, ruleDelta, ruleStart);
         NumberPtr packetOffset = packet.getOffset();
 
-        // Total packet offset in signal resolution ticks. TODO: add ReferenceDomain.offset
-        ReadType startTick = ruleStart + static_cast<ReadType>(packetOffset.getIntValue());  // In signal resolution ticks
+        // Total packet offset in signal resolution ticks.
+        ReadType startTick = ruleStart + static_cast<ReadType>(rdOffset) + static_cast<ReadType>(packetOffset.getIntValue());
         // In max resolution ticks since min epoch.
         auto comparableStartingTick = std::make_unique<ComparableValue<ReadType>>(startTick, domainInfo);
 
@@ -529,7 +534,7 @@ SizeT TypedReader<ReadType>::getOffsetToDataLinear(const ReaderDomainInfo& domai
                                                          static_cast<double>(domainInfo.multiplier.getDenominator()));
         SizeT index = static_cast<SizeT>((ticksToTarget + comparableDelta - 1) / comparableDelta);
 
-        assert(index > packetSize && "Index out of bounds");
+        assert(index <= packetSize && "Index out of bounds");
 
         if (absoluteTimestamp)
         {

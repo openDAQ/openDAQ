@@ -25,6 +25,7 @@
 #include <opendaq/opendaq.h>
 
 #include <basic_csv_recorder_module/common.h>
+#include <condition_variable>
 
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 

@@ -17,6 +17,7 @@
 
 ## Misc
 
+- [#979](https://github.com/openDAQ/openDAQ/pull/979) Relocate and install dependency management cmake helpers, install daq::test_utils and rename "bb" to "daq" in testultils/daq_memcheck_listener.h
 - [#974](https://github.com/openDAQ/openDAQ/pull/974) Reorganizes the audio device implementation for greater clarity. Adds automatic device/FB version info setting.
 - [#967](https://github.com/openDAQ/openDAQ/pull/967), [#994](https://github.com/openDAQ/openDAQ/pull/994), [#993](https://github.com/openDAQ/openDAQ/pull/993), [#995](https://github.com/openDAQ/openDAQ/pull/995) Update external libraries:
     - gtest from 1.12.1 to 1.17.0

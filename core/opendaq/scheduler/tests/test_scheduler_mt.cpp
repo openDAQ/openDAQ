@@ -1,5 +1,5 @@
 #include <testutils/testutils.h>
-#include <testutils/bb_memcheck_listener.h>
+#include <testutils/daq_memcheck_listener.h>
 #include "test_scheduler.h"
 #include <gmock/gmock.h>
 #include <opendaq/scheduler_ptr.h>

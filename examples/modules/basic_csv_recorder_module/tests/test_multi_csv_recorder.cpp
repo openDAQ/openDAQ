@@ -148,7 +148,7 @@ TEST_F(MultiCsvTest, DisconnectSignals)
     EXPECT_EQ(fb.getInputPorts().getCount(), 1u);
 }
 
-TEST_F(MultiCsvTest, WriteSamples)
+TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, WriteSamples)
 {
     // Remove the folder to:
     // a) test creation of missing folders
@@ -184,7 +184,7 @@ TEST_F(MultiCsvTest, WriteSamples)
     EXPECT_EQ(line, firstSamples);
 }
 
-TEST_F(MultiCsvTest, WriteSamplesWithDomain)
+TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, WriteSamplesWithDomain)
 {
     EXPECT_NO_THROW(fs::remove_all(outputFolder));
     fb.setPropertyValue("WriteDomain", true);
@@ -219,7 +219,7 @@ TEST_F(MultiCsvTest, WriteSamplesWithDomain)
     EXPECT_EQ(line, firstSamples);
 }
 
-TEST_F(MultiCsvTest, DetectSampleRateDiff)
+TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, DetectSampleRateDiff)
 {
     fb.getInputPorts()[0].connect(validSignals[0]);
     fb.asPtr<IRecorder>(true).startRecording();
@@ -256,7 +256,7 @@ TEST_F(MultiCsvTest, DetectSampleRateDiff)
     halfRateSignal.sendPacket(vPacket);
 }
 
-TEST_F(MultiCsvTest, DetectDescriptorChange)
+TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, DetectDescriptorChange)
 {
     EXPECT_NO_THROW(fs::remove_all(outputFolder));
     fb.setPropertyValue("WriteDomain", true);

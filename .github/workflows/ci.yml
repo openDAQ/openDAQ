@@ -74,7 +74,6 @@ jobs:
               -DCMAKE_CXX_COMPILER=g++
               "-DCMAKE_CXX_FLAGS=-Wa,-mbig-obj -Wno-deprecated-declarations -Wno-error=conversion-null"
               "-DCMAKE_C_FLAGS=-Wa,-mbig-obj"
-              -DOPENDAQ_ENABLE_WEBSOCKET_STREAMING=OFF
             cmake-generator: Ninja
 
     steps:

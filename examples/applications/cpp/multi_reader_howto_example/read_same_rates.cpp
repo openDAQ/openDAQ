@@ -47,6 +47,7 @@ void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
                 std::cout << std::to_string(static_cast<double*>(buf)[0]) << "; ";
             std::cout << "\n";
         }
+
         std::this_thread::sleep_for(50ms);
     }
 
@@ -60,17 +61,13 @@ void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
 int main()
 {
     auto instance = Instance();
-    auto config = instance.createDefaultAddDeviceConfig();
-    PropertyObjectPtr general = config.getPropertyValue("General");
-    // general.setPropertyValue("ClientType", (Int) ClientType::ViewOnly);
-
-    auto device = instance.addDevice("daq://Dewesoft_DB24024836");
-    // device.setPropertyValue("NumberOfChannels", 4);
-    auto signals = device.getSignalsRecursive();
+    auto refDevice = instance.addDevice("daqref://device0");
+    refDevice.setPropertyValue("NumberOfChannels", 4);
+    auto signals = refDevice.getSignalsRecursive();
 
     std::cout << "Same rate data, signals, read in a loop:\n";
     readDataSameRatesSignals(signals);
-
+    
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();
     return 0;

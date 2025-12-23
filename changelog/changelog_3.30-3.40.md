@@ -29,6 +29,7 @@
     - mimalloc from 2.1.1 to 3.0.11
     - fmt from 10.2.1 to 12.1.0
     - xxhash from 0.8.1 to 0.8.3
+- [#1007](https://github.com/openDAQ/openDAQ/pull/1007) Add a missing error popup when adding a Function Block fails in Python GUI demo app.
 
 ## Required application changes
 

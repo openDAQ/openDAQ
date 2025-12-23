@@ -11,6 +11,7 @@ set(TEST_SOURCES test_native_device_modules.cpp
                  test_subdevices.cpp
                  test_streaming.cpp
                  test_device_discovery.cpp
+                 test_gateway_property_sync.cpp
 )
 
 add_executable(${TEST_APP} ${TEST_SOURCES}

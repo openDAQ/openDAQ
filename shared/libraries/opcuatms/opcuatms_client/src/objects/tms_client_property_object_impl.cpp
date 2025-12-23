@@ -144,7 +144,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     if (this->isChildProperty(propertyNamePtr))
     {
         PropertyPtr prop;
-        ErrCode err = getProperty(propertyNamePtr, &prop);
+        const ErrCode err = getProperty(propertyNamePtr, &prop);
         OPENDAQ_RETURN_IF_FAILED(err);
 
         if (!prop.assigned())
@@ -152,24 +152,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
         return prop->getValue(value);
     }
 
-    ErrCode errCode = daqTry([&]
-    {
-        if (const auto& introIt = introspectionVariableIdMap.find(propertyNamePtr); introIt != introspectionVariableIdMap.cend())
-        {
-            const auto variant = client->readValue(introIt->second);
-            const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-            const ErrCode errCode = Impl::setProtectedPropertyValue(propertyName, object);
-            OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to get value for introspection property \"{}\"", propertyNamePtr));
-        }
-        else if (referenceVariableIdMap.count(propertyNamePtr))
-        {
-            const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
-            const ErrCode errCode = getPropertyValue(refProp.getName(), value);
-            OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to get value for referenced property \"{}\"", propertyNamePtr));
-            return errCode;
-        }
-        return Impl::getPropertyValue(propertyName, value);
-    });
+    const ErrCode errCode =  Impl::getPropertyValue(propertyName, value);
     if (OPENDAQ_FAILED(errCode))
     {
         daqClearErrorInfo();
@@ -223,9 +206,9 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValue
 }
 
 template <typename Impl>
-ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* /*propertyName*/, IEvent** /*event*/)
+ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* propertyName, IEvent** event)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
+    return Impl::getOnPropertyValueRead(propertyName, event);
 }
 
 template <class Impl>
@@ -549,6 +532,27 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
         daq::checkErrorInfo(addPropertyIgnoreDuplicates(val));
     for (const auto& val : functionPropValues)
         daq::checkErrorInfo(Impl::setProtectedPropertyValue(String(val.first), val.second));
+
+    // Bind read callbacks for introspection properties
+    PropertyObjectPtr thisPtr = this->objPtr;
+    for (const auto& [propName, nodeId] : introspectionVariableIdMap)
+    {   
+        try
+        {
+            // Use pointer to nodeId from map to reduce closure size
+            const auto* nodeIdPtr = &introspectionVariableIdMap.find(propName)->second;
+            thisPtr.getOnPropertyValueRead(propName) += [this, nodeIdPtr](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
+            {
+                const auto variant = client->readValue(*nodeIdPtr);
+                const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
+                args.setValue(object);
+            };
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to bind read callback for property \"{}\" on OpcUA client property object: {}", propName, e.what());
+        }
+    }
 
 }
 

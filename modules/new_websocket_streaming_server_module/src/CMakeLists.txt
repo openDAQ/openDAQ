@@ -33,7 +33,7 @@ if(MSVC)
 endif()
 
 if (MINGW)
-    target_link_libraries(${LIB_NAME} PRIVATE ws2_32)
+    target_link_libraries(${LIB_NAME} PRIVATE ws2_32 wsock32)
 endif()
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

@@ -178,7 +178,7 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoo
                           ? this->logger.getOrAddComponent("Scheduler")
                           : throw ArgumentNullException("Logger must not be null"))
     , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers,
-               std::make_shared<CustomWorkerInterface>()))
+               std::make_unique<CustomWorkerInterface>()))
 {
     if (useMainLoop)
         mainThreadWorker = std::make_unique<MainThreadLoop>(this->logger);
@@ -271,7 +271,21 @@ ErrCode SchedulerImpl::scheduleGraph(ITaskGraph* graph, IAwaitable** awaitable)
     if (flow == nullptr)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED);
 
-    auto awaitable_ = createWithImplementation<IAwaitable, AwaitableImpl<void>>(executor->run(*flow));
+    // Wrap the future to mask exceptions as per documentation
+    // Exceptions that occur during graph execution are silently ignored
+    auto originalFuture = executor->run(*flow);
+    auto maskedFuture = executor->async([originalFuture = std::move(originalFuture)]() mutable {
+        try
+        {
+            originalFuture.get();
+        }
+        catch (...)
+        {
+            // Exceptions are silently ignored as per scheduleGraph documentation
+        }
+    });
+
+    auto awaitable_ = createWithImplementation<IAwaitable, AwaitableImpl<void>>(std::move(maskedFuture));
     *awaitable = awaitable_.detach();
 
     return OPENDAQ_SUCCESS;

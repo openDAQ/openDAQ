@@ -26,11 +26,10 @@ template <typename TReturn = void>
 class AwaitableImpl : public ImplementationOf<IAwaitable>
 {
 public:
-    using Future = tf::Future<TReturn>;
+    using Future = std::future<TReturn>;
 
     explicit AwaitableImpl(Future future);
 
-    ErrCode INTERFACE_FUNC cancel(Bool* canceled) override;
     ErrCode INTERFACE_FUNC wait() override;
     ErrCode INTERFACE_FUNC getResult(IBaseObject** result) override;
     ErrCode INTERFACE_FUNC hasCompleted(Bool* finished) override;
@@ -40,6 +39,6 @@ private:
 };
 
 using Awaitable = AwaitableImpl<>;
-using AwaitableFunc = AwaitableImpl<std::optional<BaseObjectPtr>>;
+using AwaitableFunc = AwaitableImpl<BaseObjectPtr>;
 
 END_NAMESPACE_OPENDAQ

@@ -12,13 +12,6 @@ AwaitableImpl<TReturn>::AwaitableImpl(Future future)
 }
 
 template <typename TReturn>
-ErrCode AwaitableImpl<TReturn>::cancel(Bool* canceled)
-{
-    *canceled = future.cancel();
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename TReturn>
 ErrCode AwaitableImpl<TReturn>::wait()
 {
     if (completed)
@@ -86,6 +79,7 @@ ErrCode AwaitableImpl<TReturn>::hasCompleted(Bool* finished)
 }
 
 template class AwaitableImpl<void>;
-template class AwaitableImpl<std::optional<ObjectPtr<IBaseObject>>>;
+template class AwaitableImpl<ObjectPtr<IBaseObject>>;
+
 
 END_NAMESPACE_OPENDAQ

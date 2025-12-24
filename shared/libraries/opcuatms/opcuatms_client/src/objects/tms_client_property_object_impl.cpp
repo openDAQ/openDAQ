@@ -42,7 +42,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
     if (this->isChildProperty(propertyNamePtr))
     {
         PropertyPtr prop;
-        const ErrCode errCode = getProperty(propertyNamePtr, &prop);
+        const ErrCode errCode = Impl::getProperty(propertyNamePtr, &prop);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (!prop.assigned())
@@ -58,7 +58,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
         if (const auto& it = introspectionVariableIdMap.find(propertyNamePtr); it != introspectionVariableIdMap.cend())
         {
             PropertyPtr prop;
-            const ErrCode errCode = getProperty(propertyName, &prop);
+            const ErrCode errCode = Impl::getProperty(propertyName, &prop);
             OPENDAQ_RETURN_IF_FAILED(errCode);
         
             if (!protectedWrite && prop.getReadOnly())
@@ -132,44 +132,6 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::setProtectedProper
 }
 
 template <typename Impl>
-ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* propertyName, IBaseObject** value)
-{
-    if (propertyName == nullptr)
-    {
-        LOG_W("Failed to get value for property with nullptr name on OpcUA client property object");
-        return OPENDAQ_SUCCESS;
-    }
-    auto propertyNamePtr = StringPtr::Borrow(propertyName);
-
-    if (this->isChildProperty(propertyNamePtr))
-    {
-        PropertyPtr prop;
-        const ErrCode err = getProperty(propertyNamePtr, &prop);
-        OPENDAQ_RETURN_IF_FAILED(err);
-
-        if (!prop.assigned())
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Child property "{}" not found)", propertyNamePtr));
-        return prop->getValue(value);
-    }
-
-    const ErrCode errCode =  Impl::getPropertyValue(propertyName, value);
-    if (OPENDAQ_FAILED(errCode))
-    {
-        daqClearErrorInfo();
-        LOG_W("Failed to get value for property \"{}\" on OpcUA client property object", propertyNamePtr);
-    }
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename Impl>
-ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IString* propertyName, IBaseObject** value)
-{
-    BaseObjectPtr object;
-    TmsClientPropertyObjectBaseImpl::getPropertyValue(propertyName, &object);
-    return Impl::getPropertySelectionValue(propertyName, value);
-}
-
-template <typename Impl>
 ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::clearPropertyValue(IString* propertyName)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
@@ -179,12 +141,6 @@ template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValue(IString* propertyName)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
-}
-
-template <typename Impl>
-ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getProperty(IString* propertyName, IProperty** value)
-{
-    return Impl::getProperty(propertyName, value);
 }
 
 template <typename Impl>
@@ -205,12 +161,6 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValue
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
 }
 
-template <typename Impl>
-ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnPropertyValueRead(IString* propertyName, IEvent** event)
-{
-    return Impl::getOnPropertyValueRead(propertyName, event);
-}
-
 template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueWrite(IEvent** /*event*/)
 {
@@ -221,24 +171,6 @@ template <class Impl>
 ErrCode TmsClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueRead(IEvent** /*event*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OPCUA_CLIENT_CALL_NOT_AVAILABLE);
-}
-
-template <typename Impl>
-ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getVisibleProperties(IList** properties)
-{
-    return Impl::getVisibleProperties(properties);
-}
-
-template <typename Impl>
-ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::hasProperty(IString* propertyName, Bool* hasProperty)
-{
-    return Impl::hasProperty(propertyName, hasProperty);
-}
-
-template <typename Impl>
-ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getAllProperties(IList** properties)
-{
-    return Impl::getAllProperties(properties);
 }
 
 template <typename Impl>
@@ -545,6 +477,7 @@ void TmsClientPropertyObjectBaseImpl<Impl>::browseRawProperties()
             {
                 const auto variant = client->readValue(*nodeIdPtr);
                 const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
+                checkErrorInfo(Impl::setProtectedPropertyValue(args.getProperty().getName(), object));
                 args.setValue(object);
             };
         }

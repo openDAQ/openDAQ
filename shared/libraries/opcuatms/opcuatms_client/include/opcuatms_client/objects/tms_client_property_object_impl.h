@@ -118,20 +118,13 @@ public:
 
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
-    ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
-    ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
     ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
-    ErrCode INTERFACE_FUNC getProperty(IString* propertyName, IProperty** value) override;
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
     ErrCode INTERFACE_FUNC removeProperty(IString* propertyName) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IString* propertyName, IEvent** event) override;
-    ErrCode INTERFACE_FUNC getOnPropertyValueRead(IString* propertyName, IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnAnyPropertyValueWrite(IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnAnyPropertyValueRead(IEvent** event) override;
-    ErrCode INTERFACE_FUNC getVisibleProperties(IList** properties) override;
-    ErrCode INTERFACE_FUNC hasProperty(IString* propertyName, Bool* hasProperty) override;
-    ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;

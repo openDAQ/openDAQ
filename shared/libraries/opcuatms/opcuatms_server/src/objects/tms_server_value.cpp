@@ -32,7 +32,7 @@ opcua::OpcUaNodeId TmsServerValue::getDataTypeId()
         if (descriptor.assigned())
         {
             SampleType sampleType = descriptor.getSampleType();
-            return sampleTypeToOpcUaDataType(sampleType);
+            return SampleTypeToOpcUaDataType(sampleType);
         }
     }
     catch (...)
@@ -44,7 +44,7 @@ opcua::OpcUaNodeId TmsServerValue::getDataTypeId()
     return {};
 }
 
-opcua::OpcUaNodeId TmsServerValue::sampleTypeToOpcUaDataType(SampleType sampleType)
+opcua::OpcUaNodeId TmsServerValue::SampleTypeToOpcUaDataType(SampleType sampleType)
 {
     switch (sampleType)
     {

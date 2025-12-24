@@ -35,6 +35,7 @@ public:
     opcua::OpcUaNodeId getReferenceType() override;
     void addChildNodes() override;
     void bindCallbacks() override;
+    void onCoreEvent(const CoreEventArgsPtr& args) override;
 
     void createNonhierarchicalReferences() override;
 

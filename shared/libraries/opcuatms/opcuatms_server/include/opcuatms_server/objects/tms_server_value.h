@@ -29,9 +29,11 @@ class TmsServerValue : public TmsServerVariable<BaseObjectPtr>
 {
 public:
     using Super = TmsServerVariable<BaseObjectPtr>;
-    
+
     TmsServerValue(const SignalPtr& signal, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
     std::string getBrowseName() override;
+
+    static opcua::OpcUaNodeId SampleTypeToOpcUaDataType(SampleType sampleType);
 
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
@@ -39,8 +41,6 @@ protected:
     void bindCallbacks() override;
 
 private:
-    static opcua::OpcUaNodeId sampleTypeToOpcUaDataType(SampleType sampleType);
-    
     SignalPtr signal;
 };
 

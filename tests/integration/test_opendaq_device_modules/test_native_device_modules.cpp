@@ -3053,30 +3053,22 @@ TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)
     auto serverInfo = server.getInfo();
     auto clientInfo = clientDevice.getInfo();
     
-    server.setPropertyValue("userName", "user1");
-    server.setPropertyValue("location", "location1");
+    serverInfo.setPropertyValue("userName", "user1");
+    serverInfo.setPropertyValue("location", "location1");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    ASSERT_EQ(server.getPropertyValue("userName"), "user1");
-    ASSERT_EQ(server.getPropertyValue("location"), "location1");
     ASSERT_EQ(serverInfo.getPropertyValue("userName"), "user1");
     ASSERT_EQ(serverInfo.getPropertyValue("location"), "location1");
 
-    ASSERT_EQ(clientDevice.getPropertyValue("userName"), "user1");
-    ASSERT_EQ(clientDevice.getPropertyValue("location"), "location1");
     ASSERT_EQ(clientInfo.getPropertyValue("userName"), "user1");
     ASSERT_EQ(clientInfo.getPropertyValue("location"), "location1");
 
-    clientDevice.setPropertyValue("userName", "user2");
-    clientDevice.setPropertyValue("location", "location2");
+    clientInfo.setPropertyValue("userName", "user2");
+    clientInfo.setPropertyValue("location", "location2");
 
-    ASSERT_EQ(clientDevice.getPropertyValue("userName"), "user2");
-    ASSERT_EQ(clientDevice.getPropertyValue("location"), "location2");
     ASSERT_EQ(clientInfo.getPropertyValue("userName"), "user2");
     ASSERT_EQ(clientInfo.getPropertyValue("location"), "location2");
 
-    ASSERT_EQ(server.getPropertyValue("userName"), "user2");
-    ASSERT_EQ(server.getPropertyValue("location"), "location2");
     ASSERT_EQ(serverInfo.getPropertyValue("userName"), "user2");
     ASSERT_EQ(serverInfo.getPropertyValue("location"), "location2");
 }

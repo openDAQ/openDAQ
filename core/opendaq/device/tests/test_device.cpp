@@ -149,22 +149,6 @@ public:
     }
 };
 
-
-TEST_F(DeviceTest, DeviceInfoNameLocationSync)
-{
-    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
-    auto info = device.getInfo();
-
-    ASSERT_EQ(info.getLocation(), "test");
-    ASSERT_EQ(info.getName(), "dev");
-
-    device.setPropertyValue("location", "new_loc");
-    device.setName("new_name");
-
-    ASSERT_EQ(info.getLocation(), "new_loc");
-    ASSERT_EQ(info.getName(), "new_name");
-}
-
 TEST_F(DeviceTest, DeviceInfoForwardCallbacks)
 {
     auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();

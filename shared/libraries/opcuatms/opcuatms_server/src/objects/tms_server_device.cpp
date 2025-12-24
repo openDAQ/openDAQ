@@ -232,37 +232,6 @@ void TmsServerDevice::populateDeviceInfo()
         });
     }
 
-    std::map<std::string, std::string> deviceInfoFieldsMap = 
-    {
-        {"userName", "UserName"},
-        {"location", "Location"}
-    };
-
-    for (const auto& [propName, browseName] : deviceInfoFieldsMap)
-    {
-        const auto& prop = deviceInfo.getProperty(propName);
-        const auto nodeId = getChildNodeId(browseName);
-        auto tmsProperty = std::make_shared<TmsServerProperty>(prop, server, daqContext, tmsContext, browseName);
-        tmsProperty->registerToExistingOpcUaNode(nodeId);
-        deviceInfoProperties.push_back(tmsProperty);
-
-        this->addReadCallback(nodeId, [this, name = propName]
-        {
-            const auto value = object.getInfo().getPropertyValue(name);
-            return VariantConverter<IBaseObject>::ToVariant(value, nullptr, daqContext);
-        });
-
-        if (!prop.getReadOnly())
-        {
-            this->addWriteCallback(nodeId, [this, name = propName](const OpcUaVariant& variant)
-            {
-                const auto value = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-                this->object.getInfo().setPropertyValue(name, value);
-                return UA_STATUSCODE_GOOD;
-            });
-        }
-    }
-
     {
         const auto opModeOptions = ListProperty("OperationModeOptions", List<IString>(), false);
         const auto tmsOpModeOptions = std::make_shared<TmsServerProperty>(opModeOptions, server, daqContext, tmsContext, "OperationModeOptions");
@@ -557,9 +526,6 @@ void TmsServerDevice::addChildNodes()
     auto syncComponentNode = std::make_unique<TmsServerSyncComponent>(syncComponent, server, daqContext, tmsContext);
     syncComponentNode->registerToExistingOpcUaNode(syncComponentNodeId);
     syncComponents.push_back(std::move(syncComponentNode));
-
-    tmsPropertyObject->ignoredProps.emplace("userName");
-    tmsPropertyObject->ignoredProps.emplace("location");
 
     // TODO add "Srv" as a default node
 

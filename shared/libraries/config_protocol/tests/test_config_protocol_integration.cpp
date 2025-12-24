@@ -632,8 +632,8 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
     const auto clientDeviceInfo = clientSubDevice.getInfo();
 
     // set fields on server
-    serverSubDevice.setPropertyValue("userName", "new_name");
-    serverSubDevice.setPropertyValue("location", "new_location");
+    serverDeviceInfo.setPropertyValue("userName", "new_name");
+    serverDeviceInfo.setPropertyValue("location", "new_location");
 
     ASSERT_EQ("new_name", serverDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ("new_location", serverDeviceInfo.getLocation());
@@ -642,8 +642,8 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
     ASSERT_EQ(serverDeviceInfo.getLocation(), clientDeviceInfo.getLocation());
 
     // set fields on client
-    clientSubDevice.setPropertyValue("userName", "new_client_name");
-    clientSubDevice.setPropertyValue("location", "new_client_location");
+    clientDeviceInfo.setPropertyValue("userName", "new_client_name");
+    clientDeviceInfo.setPropertyValue("location", "new_client_location");
 
     ASSERT_EQ("new_client_name", clientDeviceInfo.getPropertyValue("userName"));
     ASSERT_EQ("new_client_location", clientDeviceInfo.getLocation());

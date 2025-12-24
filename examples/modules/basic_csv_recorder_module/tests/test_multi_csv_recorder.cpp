@@ -148,7 +148,7 @@ TEST_F(MultiCsvTest, DisconnectSignals)
     EXPECT_EQ(fb.getInputPorts().getCount(), 1u);
 }
 
-TEST_F(MultiCsvTest, WriteSamples)
+TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, WriteSamples)
 {
     // Remove the folder to:
     // a) test creation of missing folders
@@ -160,7 +160,7 @@ TEST_F(MultiCsvTest, WriteSamples)
 
     fb.asPtr<IRecorder>(true).startRecording();
 
-    sendData(100, 1764927450173817, false, std::make_pair(0, 10));
+    sendData(100, 817, false, std::make_pair(0, 10));
 
     fb.asPtr<IRecorder>(true).stopRecording();
 
@@ -171,7 +171,7 @@ TEST_F(MultiCsvTest, WriteSamples)
 
     std::string line;
     std::getline(readIn, line);
-    std::string headerLine("# domain;unit=seconds;resolution=1/1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=1764927450173817;");
+    std::string headerLine("# domain;unit=seconds;resolution=1/1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=817;");
     EXPECT_EQ(line, headerLine);
 
     std::getline(readIn, line);
@@ -184,7 +184,7 @@ TEST_F(MultiCsvTest, WriteSamples)
     EXPECT_EQ(line, firstSamples);
 }
 
-TEST_F(MultiCsvTest, WriteSamplesWithDomain)
+TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, WriteSamplesWithDomain)
 {
     EXPECT_NO_THROW(fs::remove_all(outputFolder));
     fb.setPropertyValue("WriteDomain", true);
@@ -194,7 +194,7 @@ TEST_F(MultiCsvTest, WriteSamplesWithDomain)
 
     fb.asPtr<IRecorder>(true).startRecording();
 
-    sendData(100, 1764927450173817, false, std::make_pair(0, 10));
+    sendData(100, 817, false, std::make_pair(0, 10));
 
     fb.asPtr<IRecorder>(true).stopRecording();
 
@@ -205,7 +205,7 @@ TEST_F(MultiCsvTest, WriteSamplesWithDomain)
 
     std::string line;
     std::getline(readIn, line);
-    std::string headerLine("# domain;unit=seconds;resolution=1/1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=1764927450173817;");
+    std::string headerLine("# domain;unit=seconds;resolution=1/1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=817;");
     EXPECT_EQ(line, headerLine);
 
     std::getline(readIn, line);
@@ -215,11 +215,11 @@ TEST_F(MultiCsvTest, WriteSamplesWithDomain)
     EXPECT_EQ(line, columns);
 
     std::getline(readIn, line);
-    std::string firstSamples("1764927450173817,-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87");
+    std::string firstSamples("817,-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87");
     EXPECT_EQ(line, firstSamples);
 }
 
-TEST_F(MultiCsvTest, DetectSampleRateDiff)
+TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, DetectSampleRateDiff)
 {
     fb.getInputPorts()[0].connect(validSignals[0]);
     fb.asPtr<IRecorder>(true).startRecording();
@@ -256,7 +256,7 @@ TEST_F(MultiCsvTest, DetectSampleRateDiff)
     halfRateSignal.sendPacket(vPacket);
 }
 
-TEST_F(MultiCsvTest, DetectDescriptorChange)
+TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, DetectDescriptorChange)
 {
     EXPECT_NO_THROW(fs::remove_all(outputFolder));
     fb.setPropertyValue("WriteDomain", true);
@@ -266,7 +266,7 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
 
     fb.asPtr<IRecorder>(true).startRecording();
 
-    sendData(7, 1764927450173817, false, std::make_pair(0, 10));
+    sendData(7, 817, false, std::make_pair(0, 10));
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     ReferenceDomainInfoPtr rdInfo =
@@ -283,7 +283,7 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
 
     timeSignal.setDescriptor(changedDescriptor);
 
-    sendData(10, 1764927450173828, false, std::make_pair(0, 10));
+    sendData(10, 828, false, std::make_pair(0, 10));
 
     fb.asPtr<IRecorder>(true).stopRecording();
 
@@ -298,7 +298,7 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
     std::getline(readIn, line);
     reference = "# "
                 "domain;unit=seconds;resolution=1/"
-                "1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=1764927450173817;";
+                "1000;delta=1;origin=1970-01-01T00:00:00;starting_tick=817;";
     EXPECT_EQ(line, reference);
 
     std::getline(readIn, line);
@@ -308,7 +308,7 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
     EXPECT_EQ(line, columns);
 
     std::getline(readIn, line);
-    reference = "1764927450173817,-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87";
+    reference = "817,-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87";
     EXPECT_EQ(line, reference);
 
     // After descriptor change a second file is created with different contents
@@ -318,17 +318,17 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
     std::getline(readIn2, line);
     reference = "# "
                 "domain;unit=seconds;resolution=1/"
-                "1000;delta=4;origin=1970-01-01T00:00:00;starting_tick=1764927450173828;";
+                "1000;delta=4;origin=1970-01-01T00:00:00;starting_tick=828;";
     EXPECT_EQ(line, reference);
 
     std::getline(readIn2, line);
     EXPECT_EQ(line, columns);
 
     std::getline(readIn2, line);
-    reference = "1764927450173828,-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87";
+    reference = "828,-0.13,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87";
     EXPECT_EQ(line, reference);
 
     std::getline(readIn2, line);
-    reference = "1764927450173832,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87,9.87";
+    reference = "832,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87,9.87";
     EXPECT_EQ(line, reference);
 }

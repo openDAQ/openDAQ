@@ -1,4 +1,6 @@
 #include <opcuatms_server/objects/tms_server_signal.h>
+#include <opcuatms_server/objects/tms_server_analog_value.h>
+#include <opcuatms_server/objects/tms_server_value.h>
 #include <opcuatms/converters/variant_converter.h>
 #include <open62541/daqbsp_nodeids.h>
 #include <open62541/statuscodes.h>
@@ -24,6 +26,19 @@ OpcUaNodeId TmsServerSignal::getReferenceType()
 OpcUaNodeId TmsServerSignal::getTmsTypeId()
 {
     return OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_SIGNALTYPE);
+}
+
+void TmsServerSignal::addChildNodes()
+{
+    // Create Value and AnalogValue nodes manually with correct data type
+    // Store them as members to keep them alive (callbacks depend on them)
+    valueServer = std::make_shared<TmsServerValue>(object, server, daqContext, tmsContext);
+    valueServer->registerOpcUaNode(nodeId);
+    
+    analogValueServer = std::make_shared<TmsServerAnalogValue>(object, server, daqContext, tmsContext);
+    analogValueServer->registerOpcUaNode(nodeId);
+    
+    Super::addChildNodes();
 }
 
 void TmsServerSignal::bindCallbacks()
@@ -53,48 +68,7 @@ void TmsServerSignal::bindCallbacks()
         }
     }
 
-    addReadCallback(valueId,
-                    [this]()
-                    {
-                        ObjectPtr lastValue = object.getLastValue();
-                        if (lastValue != nullptr)
-                            return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
-
-                        return OpcUaVariant();
-                    });
-
-    auto analogValueId = getChildNodeId("AnalogValue");
-    addReadCallback(analogValueId,
-                    [this]()
-                    {
-                        SampleType type = object.getDescriptor().getSampleType();
-                        if (type != SampleType::Float32 && type != SampleType::Float64 && type != SampleType::Int8 &&
-                            type != SampleType::Int16 && type != SampleType::Int32 && type != SampleType::Int64 &&
-                            type != SampleType::UInt8 && type != SampleType::UInt16 && type != SampleType::UInt32 &&
-                            type != SampleType::UInt64 && type != SampleType::RangeInt64 && type != SampleType::ComplexFloat32 &&
-                            type != SampleType::ComplexFloat64)
-                            return OpcUaVariant();
-
-                        ObjectPtr lastValue = object.getLastValue();
-                        if (lastValue != nullptr)
-                            return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
-
-                        return OpcUaVariant();
-                    });
-
-    // TODO: Value, AnalogValue, Status
     Super::bindCallbacks();
-}
-
-bool TmsServerSignal::createOptionalNode(const opcua::OpcUaNodeId& nodeId)
-{
-    const auto name = server->readBrowseNameString(nodeId);
-    if (name == "Value")
-        return true;
-    if (name == "AnalogValue")
-        return true;
-
-    return Super::createOptionalNode(nodeId);
 }
 
 void TmsServerSignal::createNonhierarchicalReferences()

@@ -1,6 +1,7 @@
 #include <opcuatms_server/objects/tms_server_value.h>
 #include <opcuatms/converters/variant_converter.h>
 #include <open62541/daqbsp_nodeids.h>
+#include "opendaq/custom_log.h"
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -82,12 +83,29 @@ opcua::OpcUaNodeId TmsServerValue::SampleTypeToOpcUaDataType(SampleType sampleTy
             return OpcUaNodeId();
     }
 }
+void TmsServerValue::addChildNodes()
+{
+    try
+    {
+        auto params = AddVariableNodeParams("DataDescriptor", nodeId);
+        params.setBrowseName("DataDescriptor");
+        params.setDataType(OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_DATADESCRIPTORSTRUCTURE));
+        params.typeDefinition = OpcUaNodeId(0, UA_NS0ID_BASEDATAVARIABLETYPE);
+        params.referenceTypeId = OpcUaNodeId(UA_NS0ID_HASPROPERTY);
+
+        server->addVariableNode(params);
+    }
+    catch (const std::exception& e)
+    {
+        const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAServerModule");
+        LOG_D("OPC UA Value {} failed create data descriptor node.", this->signal.getGlobalId());
+    }
+
+    Super::addChildNodes();
+}
 
 void TmsServerValue::bindCallbacks()
 {
-    // The data type is already set correctly during node creation via getDataTypeId()
-    // in configureVariableNodeAttributes()
-    
     addReadCallback(nodeId, [this]()
     {
         ObjectPtr lastValue = signal.getLastValue();
@@ -96,7 +114,16 @@ void TmsServerValue::bindCallbacks()
 
         return OpcUaVariant();
     });
-    
+
+    addReadCallback("DataDescriptor", [this]()
+    {
+        DataDescriptorPtr descriptor = signal.getDescriptor();
+        if (descriptor.assigned())
+            return VariantConverter<IBaseObject>::ToVariant(descriptor, nullptr, daqContext);
+        else
+            return OpcUaVariant();
+    });
+
     Super::bindCallbacks();
 }
 

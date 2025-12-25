@@ -43,36 +43,6 @@ void TmsServerSignal::addChildNodes()
     Super::addChildNodes();
 }
 
-void TmsServerSignal::bindCallbacks()
-{
-    auto valueId = getChildNodeId("Value");
-    OpcUaObject<UA_BrowseDescription> bd;
-    bd->nodeId = valueId.copyAndGetDetachedValue();
-    bd->resultMask = UA_BROWSERESULTMASK_ALL;
-    auto result = server->browse(bd);
-
-    for (size_t i = 0; i < result->referencesSize; i++)
-    {
-        auto reference = result->references[i];
-        std::string browseName = opcua::utils::ToStdString(reference.browseName.name);
-        if (browseName == "DataDescriptor")
-        {
-            OpcUaNodeId descriptorId{reference.nodeId.nodeId};
-            addReadCallback(descriptorId,
-                            [this]()
-                            {
-                                DataDescriptorPtr descriptor = object.getDescriptor();
-                                if (descriptor != nullptr)
-                                    return VariantConverter<IBaseObject>::ToVariant(descriptor, nullptr, daqContext);
-                                else
-                                    return OpcUaVariant();
-                            });
-        }
-    }
-
-    Super::bindCallbacks();
-}
-
 void TmsServerSignal::onCoreEvent(const CoreEventArgsPtr& args)
 {
     Super::onCoreEvent(args);

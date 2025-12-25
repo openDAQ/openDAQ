@@ -40,7 +40,18 @@ namespace VariantUtils
     template <typename T>
     inline bool IsType(const UA_Variant& value)
     {
-        return value.type == GetUaDataType<T>();
+        const auto expectedType = GetUaDataType<T>();
+        if (value.type == expectedType)
+            return true;
+
+        if (value.type != nullptr && value.type->typeKind == expectedType->typeKind)
+        {
+            if (value.type->typeName != nullptr && expectedType->typeName != nullptr)
+                return std::strcmp(value.type->typeName, expectedType->typeName) == 0;
+            return true;
+        }
+        
+        return false;
     }
 
     template <typename T>

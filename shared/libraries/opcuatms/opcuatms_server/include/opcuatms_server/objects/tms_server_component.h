@@ -175,13 +175,13 @@ void TmsServerComponent<Ptr>::bindCallbacks()
             }
             catch ([[maybe_unused]] const std::exception& e)
             {
-                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
-                LOG_D("OPC UA Component {} failed to set component name: {}", this->object.getLocalId(), e.what());
+                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAServerModule");
+                LOG_D("OPC UA Component {} failed to set component name: {}", this->object.getGlobalId(), e.what());
             }
             catch (...)
             {
-                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
-                LOG_D("OPC UA Component {} failed to set component name.", this->object.getLocalId());
+                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAServerModule");
+                LOG_D("OPC UA Component {} failed to set component name.", this->object.getGlobalId());
             }
 
             selfChange = false;
@@ -201,13 +201,13 @@ void TmsServerComponent<Ptr>::bindCallbacks()
             }
             catch ([[maybe_unused]] const std::exception& e)
             {
-                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
-                LOG_D("OPC UA Component {} failed to set component description: {}", this->object.getLocalId(), e.what());
+                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAServerModule");
+                LOG_D("OPC UA Component {} failed to set component description: {}", this->object.getGlobalId(), e.what());
             }
             catch (...)
             {
-                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
-                LOG_D("OPC UA Component {} failed to set component description.", this->object.getLocalId());
+                const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAServerModule");
+                LOG_D("OPC UA Component {} failed to set component description.", this->object.getGlobalId());
             }
 
             selfChange = false;
@@ -261,13 +261,13 @@ void TmsServerComponent<Ptr>::onCoreEvent(const CoreEventArgsPtr& args)
         }
         catch ([[maybe_unused]] const std::exception& e)
         {
-            const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
-            LOG_D("OPC UA Component {} failed to set node attribute \"{}\": {}", this->object.getLocalId(), attrName, e.what());
+            const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAServerModule");
+            LOG_D("OPC UA Component {} failed to set node attribute \"{}\": {}", this->object.getGlobalId(), attrName, e.what());
         }
         catch (...)
         {
-            const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAClientModule");
-            LOG_D("OPC UA Component {} failed to set node attribute \"{}\".", this->object.getLocalId(), attrName);
+            const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAServerModule");
+            LOG_D("OPC UA Component {} failed to set node attribute \"{}\".", this->object.getGlobalId(), attrName);
         }
 
         selfChange = false;

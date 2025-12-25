@@ -38,6 +38,7 @@ public:
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
     opcua::OpcUaNodeId getDataTypeId() override;
+    void addChildNodes() override;
     void bindCallbacks() override;
 
 private:

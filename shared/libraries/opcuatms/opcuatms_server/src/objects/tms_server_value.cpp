@@ -95,7 +95,7 @@ void TmsServerValue::addChildNodes()
 
         server->addVariableNode(params);
     }
-    catch (const std::exception& e)
+    catch (const std::exception&)
     {
         const auto loggerComponent = this->daqContext.getLogger().getOrAddComponent("OpenDAQOPCUAServerModule");
         LOG_D("OPC UA Value {} failed create data descriptor node.", this->signal.getGlobalId());

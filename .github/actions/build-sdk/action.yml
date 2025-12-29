@@ -22,14 +22,14 @@ inputs:
     description: 'Build configuration (Release, Debug). Required for multi-config generators (Visual Studio)'
     required: false
     default: ''
+  enable-32bit:
+    description: 'Build for 32-bit architecture'
+    required: false
+    default: 'false'
   enable-tests:
     description: 'Run tests after build'
     required: false
     default: 'false'
-  python-versions:
-    description: 'Python version(s) to install (space-separated for multiple versions)'
-    required: false
-    default: ''
 
 outputs:
   gtest-xml-path:
@@ -53,6 +53,7 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.14'
+        architecture: ${{ inputs.enable-32bit == 'true' && 'x86' || 'x64' }}
 
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v2
@@ -74,6 +75,22 @@ runs:
     - name: Install ninja-build
       if: inputs.cmake-generator == 'Ninja'
       uses: seanmiddleditch/gha-setup-ninja@v5
+
+    - name: Setup MSYS2 MINGW64
+      if: runner.os == 'Windows'
+      id: msys2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: false
+        install: mingw-w64-x86_64-crt-git mingw-w64-x86_64-gcc
+
+    - name: Add MSYS2 MINGW64 to PATH
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        echo "${{ steps.msys2.outputs.msys2-location }}/mingw64/bin" >> $GITHUB_PATH
+        echo "Added MSYS2 MINGW64 to PATH: ${{ steps.msys2.outputs.msys2-location }}/mingw64/bin"
 
     # https://github.com/actions/runner-images/issues/10001
     - name: Setup MSVC toolchain

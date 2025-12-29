@@ -83,7 +83,7 @@ inline LoggerSinkPtr LastMessageLoggerSink()
 inline std::string safeGetEnv(const char* name)
 {
     std::string result;
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
     char* env = nullptr;
     size_t len = 0;
     if (_dupenv_s(&env, &len, name) == 0 && env != nullptr)

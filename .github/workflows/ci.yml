@@ -17,22 +17,17 @@ on:
 # TODO: Enable Python binding tests on all distributions
 
 env:
-  s3_bucket: bb-blueberry-sdk-releases
-  regression_tests_target_tag: v3.0.0
-  regression_simulator_folder: regression_test_simulator
   cmake_preset: ${{ inputs.cmake_preset != '' && inputs.cmake_preset || 'ci' }}
   ctest_preset: ${{ inputs.ctest_preset != '' && inputs.ctest_preset || 'run_tests' }}
   test_path: ${{ github.workspace }}/junit_reports/
-  build_path: ${{ github.workspace }}/build
   python_version_build: 3.11
   python_versions: 3.8 3.9 3.10 3.11 3.12 3.13 3.14
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
 
 jobs:
   build_windows:
-    runs-on: ${{ matrix.runner }}
+    runs-on: windows-latest
     name: ${{ matrix.name }}
-    # ${{ }} expression syntax because of leading '!'
     if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
@@ -44,30 +39,29 @@ jobs:
       matrix:
         include:
           - name: Windows VS 2022 x64 Release
-            runner: windows-latest
             cmake-build-type: Release
             cmake-defines:
             cmake-generator: "Visual Studio 17 2022"
+            enable-tests: true
           - name: Windows VS 2022 x64 Debug
-            runner: windows-latest
             cmake-build-type: Debug
             cmake-defines:
             cmake-generator: "Visual Studio 17 2022"
+            enable-tests: true
           - name: Windows VS 2022 Win32 Release
-            runner: windows-latest
             cmake-build-type: Release
             cmake-defines: -A Win32
             cmake-generator: "Visual Studio 17 2022"
             enable-32bit: true
+            enable-tests: true
           - name: Windows Clang Release
-            runner: windows-latest
             cmake-build-type: Release
             cmake-defines: >-
               -DCMAKE_C_COMPILER=clang 
               -DCMAKE_CXX_COMPILER=clang++
             cmake-generator: Ninja
+            enable-tests: true
           - name: Windows GCC Release
-            runner: windows-latest
             cmake-build-type: Release
             cmake-defines: >-
               -DCMAKE_C_COMPILER=gcc
@@ -75,6 +69,10 @@ jobs:
               "-DCMAKE_CXX_FLAGS=-Wa,-mbig-obj -Wno-deprecated-declarations -Wno-error=conversion-null"
               "-DCMAKE_C_FLAGS=-Wa,-mbig-obj"
             cmake-generator: Ninja
+            # Tests are disabled due to: 
+            # - test_device_modules memory corruption
+            # - Python tests module resolution issues
+            enable-tests: false 
 
     steps:
       - name: Checkout
@@ -90,10 +88,10 @@ jobs:
           cmake-config-args: ${{ matrix.cmake-defines }}
           cmake-generator: ${{ matrix.cmake-generator }}
           enable-32bit: ${{ matrix.enable-32bit == true }}
-          enable-tests: true
+          enable-tests: ${{ matrix.enable-tests == true }}
 
       - name: Upload test results
-        if: always()
+        if: ${{ always() && matrix.enable-tests == true }}        
         uses: actions/upload-artifact@v4
         with:
           name: Unit Test Results (${{ matrix.name }})

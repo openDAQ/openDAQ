@@ -30,6 +30,10 @@ inputs:
     description: 'Run tests after build'
     required: false
     default: 'false'
+  ctest-preset:
+    description: 'CTest preset name'
+    required: false
+    default: ''
 
 outputs:
   gtest-xml-path:
@@ -178,8 +182,12 @@ runs:
         echo "gtest-xml-path=$GTEST_XML_PATH" >> "$GITHUB_OUTPUT"
 
         CTEST_ARGS=""
+        if [ -n "${{ inputs.ctest-preset }}" ]; then
+          CTEST_ARGS="--preset ${{ inputs.ctest-preset }}"
+        fi
+
         if [ -n "$CMAKE_BUILD_TYPE" ]; then
-          CTEST_ARGS="--build-config $CMAKE_BUILD_TYPE"
+          CTEST_ARGS="$CTEST_ARGS --build-config $CMAKE_BUILD_TYPE"
         fi
 
         SUDO_CMD=""
@@ -188,5 +196,5 @@ runs:
         fi
 
         echo "::group::CTest"
-        $SUDO_CMD ctest --test-dir "$CMAKE_BUILD_PATH" --preset run_tests --output-on-failure $CTEST_ARGS
+        $SUDO_CMD ctest --test-dir "$CMAKE_BUILD_PATH" --output-on-failure $CTEST_ARGS
         echo "::endgroup::"

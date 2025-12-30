@@ -10,9 +10,13 @@ on:
       cmake_preset:
         required: false
         type: string
+      ctest_preset:
+        required: false
+        type: string
 
 env:
   cmake_preset: ${{ inputs.cmake_preset != '' && inputs.cmake_preset || 'ci' }}
+  ctest_preset: ${{ inputs.ctest_preset != '' && inputs.ctest_preset || 'run_tests' }}
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
 
 jobs:
@@ -80,6 +84,7 @@ jobs:
           cmake-generator: ${{ matrix.cmake-generator }}
           enable-32bit: ${{ matrix.enable-32bit == true }}
           enable-tests: ${{ matrix.enable-tests == true }}
+          ctest-preset: ${{ env.ctest_preset }}
 
       - name: Upload test results
         if: ${{ always() && matrix.enable-tests == true }}        
@@ -157,6 +162,7 @@ jobs:
           cmake-config-args: ${{ matrix.cmake-defines }}
           cmake-generator: ${{ matrix.cmake-generator }}
           enable-tests: true
+          ctest-preset: ${{ env.ctest_preset }}
 
       - name: Upload test results
         if: always()
@@ -184,7 +190,6 @@ jobs:
             cmake-defines: >-
               -DCMAKE_C_COMPILER=clang
               -DCMAKE_CXX_COMPILER=clang++
-              -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON
               -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
             runner: macos-latest
           - name: MacOS 15 Intel Clang Release
@@ -193,7 +198,6 @@ jobs:
             cmake-defines: >-
               -DCMAKE_C_COMPILER=clang
               -DCMAKE_CXX_COMPILER=clang++
-              -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON
               -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
             runner: macos-15-intel
 
@@ -210,6 +214,7 @@ jobs:
           cmake-config-args: ${{ matrix.cmake-defines }}
           cmake-generator: ${{ matrix.cmake-generator }}
           enable-tests: true
+          ctest-preset: ${{ env.ctest_preset }}
 
       - name: Upload test results
         if: always()

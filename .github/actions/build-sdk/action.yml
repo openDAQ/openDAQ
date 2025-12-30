@@ -59,9 +59,9 @@ runs:
       uses: jwlawson/actions-setup-cmake@v2
 
     - name: Install Windows dependencies
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && inputs.additional-dependencies != ''
       shell: pwsh
-      run: choco install nsis ${{ inputs.additional-dependencies }} -y --no-progress
+      run: choco install ${{ inputs.additional-dependencies }} -y --no-progress
 
     - name: Install Linux dependencies
       if: runner.os == 'Linux'
@@ -71,6 +71,12 @@ runs:
           ${{ inputs.additional-dependencies || '' }} \
           lld mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
           libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+
+    - name: Install macOS dependencies
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install mono ${{ inputs.additional-dependencies }}
 
     - name: Install ninja-build
       if: inputs.cmake-generator == 'Ninja'
@@ -153,21 +159,6 @@ runs:
         cmake --build "$CMAKE_BUILD_PATH" $CMAKE_BUILD_ARGS
         echo "::endgroup::"
 
-    - name: Grant Linux capabilities to test executables
-      if: runner.os == 'Linux' && inputs.enable-tests == 'true'
-      shell: bash
-      env:
-        CMAKE_BUILD_PATH: ${{ steps.cmake-config.outputs.build-path }}
-      run: |
-        # Grant capability to test binaries that use raw sockets (e.g. ICMP ping for reachability checks)
-        echo "::group::Grant CAP_NET_RAW"
-        test="$CMAKE_BUILD_PATH/bin/test_device_modules"
-        if [ -f "$test" ]; then
-          sudo setcap cap_net_raw=ep "$test"
-          echo "$test - Granted"
-        fi
-        echo "::endgroup::"
-
     - name: Test
       id: test
       if: inputs.enable-tests == 'true'
@@ -191,6 +182,11 @@ runs:
           CTEST_ARGS="--build-config $CMAKE_BUILD_TYPE"
         fi
 
+        SUDO_CMD=""
+        if command -v sudo &> /dev/null; then
+          SUDO_CMD="sudo -E"
+        fi
+
         echo "::group::CTest"
-        ctest --test-dir "$CMAKE_BUILD_PATH" --preset run_tests --output-on-failure $CTEST_ARGS
+        $SUDO_CMD ctest --test-dir "$CMAKE_BUILD_PATH" --preset run_tests --output-on-failure $CTEST_ARGS
         echo "::endgroup::"

@@ -14,14 +14,9 @@ on:
         required: false
         type: string
 
-# TODO: Enable Python binding tests on all distributions
-
 env:
   cmake_preset: ${{ inputs.cmake_preset != '' && inputs.cmake_preset || 'ci' }}
   ctest_preset: ${{ inputs.ctest_preset != '' && inputs.ctest_preset || 'run_tests' }}
-  test_path: ${{ github.workspace }}/junit_reports/
-  python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13 3.14
   OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
 
 jobs:
@@ -89,6 +84,7 @@ jobs:
           cmake-generator: ${{ matrix.cmake-generator }}
           enable-32bit: ${{ matrix.enable-32bit == true }}
           enable-tests: ${{ matrix.enable-tests == true }}
+          ctest-preset: ${{ env.ctest_preset }}
 
       - name: Upload test results
         if: ${{ always() && matrix.enable-tests == true }}        
@@ -166,6 +162,7 @@ jobs:
           cmake-config-args: ${{ matrix.cmake-defines }}
           cmake-generator: ${{ matrix.cmake-generator }}
           enable-tests: true
+          ctest-preset: ${{ env.ctest_preset }}
 
       - name: Upload test results
         if: always()
@@ -177,7 +174,6 @@ jobs:
   build_macos:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
-    # ${{ }} expression syntax because of leading '!'
     if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
@@ -188,88 +184,44 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macos-13 clang Release
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_osx_deployment_target: 10.15
-            additional_cmake_options: -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=ON -DOPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
-            runner: macos-13
-          # - name: macos-13 clang Debug
-            # cmake_generator: Ninja
-            # cmake_build_type: Debug
-            # runner: macos-13
+          - name: MacOS Latest Clang Release
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DCMAKE_C_COMPILER=clang
+              -DCMAKE_CXX_COMPILER=clang++
+              -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+            runner: macos-latest
+          - name: MacOS 15 Intel Clang Release
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DCMAKE_C_COMPILER=clang
+              -DCMAKE_CXX_COMPILER=clang++
+              -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+            runner: macos-15-intel
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+      - name: Build and Test
+        id: build-and-test
+        uses: ./.github/actions/build-sdk
         with:
-          cmake-version: '4.0'
-
-      - name: Install ninja-build
-        uses: seanmiddleditch/gha-setup-ninja@v5
-        with:
-          version: 1.10.2
-
-      - name: Set up Pythons
-        uses: actions/setup-python@v5
-        with:
-          python-version: |
-              3.8
-              3.9
-              3.10
-              3.11
-              3.12
-              3.13
-              3.14
-
-      - name: Make dirs
-        run: |
-          mkdir -p build
-          mkdir wheels
-
-      - name: Build wheels x86_64
-        working-directory: ./build
-        run: |
-          last_version="3.8"
-          for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.head_ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DOPENDAQ_PYTHON_VERSION=$version ${{ matrix.additional_cmake_options }} ${{ github.workspace }}
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
-              cp -f pip/packages/opendaq*.whl ../wheels
-              deactivate
-              rm -rf venv
-              last_version=$version
-          done
-          echo "last_version=$last_version" >> "$GITHUB_ENV"
-
-      - name: Test
-        env:
-          GTEST_OUTPUT: "xml:${{ env.test_path }}"
-        run: |
-          python$last_version -m venv build/venv
-          . build/venv/bin/activate
-          pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          cmake-config-preset: ${{ env.cmake_preset }}
+          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-generator: ${{ matrix.cmake-generator }}
+          enable-tests: true
+          ctest-preset: ${{ env.ctest_preset }}
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Unit Test Results (${{ matrix.name }})
-          path: ${{ env.test_path }}
-
-      - name: Upload PIP packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: PIP Package (${{ matrix.name }})
-          path: ./wheels/opendaq*.whl
-          retention-days: 7
+          path: ${{ steps.build-and-test.outputs.gtest-xml-path }}
 
   # build_android:
   #   runs-on: ubuntu-latest-8-cores

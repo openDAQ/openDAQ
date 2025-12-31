@@ -1709,6 +1709,8 @@ TYPED_TEST(StreamReaderTest, SkipSamplesOnePacket)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
 
+    double const multiplier = 2.5;
+
     auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 50);
 
@@ -1721,7 +1723,7 @@ TYPED_TEST(StreamReaderTest, SkipSamplesOnePacket)
     // Fill data packet
     auto dataPtr = static_cast<double*>(dataPacket.getData());
     for (size_t i = 0; i < 50; ++i)
-        dataPtr[i] = i * 11.1;
+        dataPtr[i] = i * multiplier;
 
     this->sendPacket(dataPacket);
 
@@ -1748,16 +1750,20 @@ TYPED_TEST(StreamReaderTest, SkipSamplesOnePacket)
     {
         for (size_t i = 0; i < 10; ++i)
         {
-            ASSERT_EQ(firstBatchSamples[i], TypeParam(typename TypeParam::Type(i * 11.1)));
-            ASSERT_EQ(secondBatchSamples[i], TypeParam(typename TypeParam::Type((40 + i) * 11.1)));
+            TypeParam expectedFirst = TypeParam(typename TypeParam::Type(i * multiplier));
+            TypeParam expectedSecond = TypeParam(typename TypeParam::Type((40 + i) * multiplier));
+            ASSERT_EQ(firstBatchSamples[i], expectedFirst);
+            ASSERT_EQ(secondBatchSamples[i], expectedSecond);
         }
     }
     else
     {
         for (size_t i = 0; i < 10; ++i)
         {
-            ASSERT_EQ(firstBatchSamples[i], (TypeParam)(i * 11.1));
-            ASSERT_EQ(secondBatchSamples[i], (TypeParam) ((40 + i) * 11.1));
+            TypeParam expectedFirst = (TypeParam)(i * multiplier);
+            TypeParam expectedSecond = (TypeParam)((40 + i) * multiplier);
+            ASSERT_EQ(firstBatchSamples[i], expectedFirst);
+            ASSERT_EQ(secondBatchSamples[i], expectedSecond);
         }
     }
 }
@@ -1766,6 +1772,8 @@ TYPED_TEST(StreamReaderTest, SkipSamplesOnePacket)
 TYPED_TEST(StreamReaderTest, SkipSamplesBetweenPackets)
 {
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
+
+    double const multiplier = 2.5;
 
     auto reader = daq::StreamReader<TypeParam, ClockRange>(this->signal);
 
@@ -1779,7 +1787,7 @@ TYPED_TEST(StreamReaderTest, SkipSamplesBetweenPackets)
     auto dataPacket = DataPacket(this->signal.getDescriptor(), 25);
     auto dataPtr = static_cast<double*>(dataPacket.getData());
     for (size_t i = 0; i < 25; ++i)
-        dataPtr[i] = i * 11.1;
+        dataPtr[i] = i * multiplier;
 
     this->sendPacket(dataPacket);
 
@@ -1799,7 +1807,7 @@ TYPED_TEST(StreamReaderTest, SkipSamplesBetweenPackets)
     dataPacket = DataPacket(this->signal.getDescriptor(), 25);
     dataPtr = static_cast<double*>(dataPacket.getData());
     for (size_t i = 0; i < 25; ++i)
-        dataPtr[i] = (i + 25) * 11.1;
+        dataPtr[i] = (i + 25) * multiplier;
 
     this->sendPacket(dataPacket);
 
@@ -1819,16 +1827,20 @@ TYPED_TEST(StreamReaderTest, SkipSamplesBetweenPackets)
     {
         for (size_t i = 0; i < 10; ++i)
         {
-            ASSERT_EQ(firstBatchSamples[i], TypeParam(typename TypeParam::Type(i * 11.1)));
-            ASSERT_EQ(secondBatchSamples[i], TypeParam(typename TypeParam::Type((40 + i) * 11.1)));
+            TypeParam expectedFirst = TypeParam(typename TypeParam::Type(i * multiplier));
+            TypeParam expectedSecond = TypeParam(typename TypeParam::Type((40 + i) * multiplier));
+            ASSERT_EQ(firstBatchSamples[i], expectedFirst);
+            ASSERT_EQ(secondBatchSamples[i], expectedSecond);
         }
     }
     else
     {
         for (size_t i = 0; i < 10; ++i)
         {
-            ASSERT_EQ(firstBatchSamples[i], (TypeParam) (i * 11.1));
-            ASSERT_EQ(secondBatchSamples[i], (TypeParam) ((40 + i) * 11.1));
+            TypeParam expectedFirst = (TypeParam)(i * multiplier);
+            TypeParam expectedSecond = (TypeParam)((40 + i) * multiplier);
+            ASSERT_EQ(firstBatchSamples[i], expectedFirst);
+            ASSERT_EQ(secondBatchSamples[i], expectedSecond);
         }
     }
 }

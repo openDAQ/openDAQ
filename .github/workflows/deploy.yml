@@ -583,7 +583,7 @@ jobs:
 
   deploy_macos_wheels_x86_64:
     name: ${{ matrix.name }}
-    runs-on: macos-13
+    runs-on: macos-15-intel
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
@@ -593,7 +593,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macos-13 clang Release x86_64
+          - name: macos-15 clang Release x86_64
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_osx_deployment_target: 10.15

@@ -13,6 +13,11 @@ string(STRIP ${package_version} package_version)
 
 string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" package_version_major_minor_patch "${package_version}")
 
+set(OPENDAQ_IS_RELEASE_VERSION OFF)
+if(package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    set(OPENDAQ_IS_RELEASE_VERSION ON)
+endif()
+
 set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}")
 
 set(CMAKE_MESSAGE_CONTEXT ${SDK_NAME})
@@ -496,7 +501,7 @@ if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
 	# Maintain binary compatibilty with older msvc runtime environments
 	# https://github.com/microsoft/STL/wiki/Changelog
 	add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
-	
+
     if (NOT OPENDAQ_MSVC_SINGLE_PROCESS_BUILD)
         # Build with multiple processes
         # https://learn.microsoft.com/en-us/cpp/build/reference/mp-build-with-multiple-processes
@@ -767,12 +772,12 @@ configure_package_config_file(
 write_basic_package_version_file(${SDK_NAME}ConfigVersion.cmake
   VERSION ${OPENDAQ_PACKAGE_VERSION}
   COMPATIBILITY ExactVersion )
-  
+
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}Config.cmake
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
         COMPONENT ${SDK_NAME}_Development
 )
-  
+
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}ConfigVersion.cmake
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
         COMPONENT ${SDK_NAME}_Development

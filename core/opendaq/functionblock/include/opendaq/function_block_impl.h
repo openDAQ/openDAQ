@@ -282,10 +282,10 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const Serialized
     {
         const auto ipFolder = obj.readSerializedObject("IP");
         this->updateFolder(ipFolder,
-                     "Folder",                    
-                     "InputPort",
-                     [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
-                     { updateInputPort(localId, obj, context); });
+                           "Folder",
+                           "InputPort",
+                           [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                           { updateInputPort(localId, obj, context); });
     }
 
     return Super::updateObject(obj, context);
@@ -364,7 +364,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std
             config = serializedFunctionBlock.readObject("ComponentConfig");
         else
             config = PropertyObject();
-        
+
         if (!config.hasProperty("LocalId"))
             config.addProperty(StringProperty("LocalId", fbId));
         else
@@ -404,7 +404,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlocks(IList** 
 
     if (!searchFilter)
         return this->functionBlocks->getItems(functionBlocks);
-    
+
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
@@ -706,14 +706,18 @@ void FunctionBlockImpl<TInterface, Interfaces...>::DeserializeVersion(const Seri
                                                                       const FunctionPtr& factoryCallback,
                                                                       const FunctionBlockTypePtr& fbType)
 {
-    if (serialized.hasKey("__version") && serialized.getType("__version") == ctObject)
+    if (!serialized.hasKey("__version"))
+        return;
+
+    // Fall back to parsing version string for backward compatibility
+    const bool versionIsObject = serialized.getType("__version") == ctObject;
+    const auto version = versionIsObject ? serialized.readObject("__version", context, factoryCallback)
+                                         : Super::parseVersionString(serialized.readString("__version"));
+
+    if (version.assigned())
     {
-        const auto version = serialized.readObject("__version", context, factoryCallback);
-        if (version.assigned())
-        {
-            const auto moduleInfo = ModuleInfo(version, "__unknown", "_unknown");
-            checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
-        }
+        const auto moduleInfo = ModuleInfo(version, "__unknown", "_unknown");
+        checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
     }
 }
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlock)

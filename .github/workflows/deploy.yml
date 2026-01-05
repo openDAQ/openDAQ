@@ -624,6 +624,9 @@ jobs:
               3.13
               3.14
 
+      - name: Install brew dependencies
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install mono
+
       - name: Make dirs
         run: |
           mkdir -p build

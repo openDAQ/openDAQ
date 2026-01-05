@@ -36,6 +36,7 @@
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/tags_impl.h>
 #include <cctype>
+#include <coretypes/coretype_utils.h>
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
 #include <coreobjects/permission_manager_factory.h>
@@ -56,13 +57,6 @@ BEGIN_NAMESPACE_OPENDAQ
 #endif
 
 #define COMPONENT_AVAILABLE_ATTRIBUTES {"Name", "Description", "Visible", "Active"}
-
-enum class ComponentStatus : EnumType
-{
-    Ok = 0,
-    Warning,
-    Error
-};
 
 template <class Intf = IComponent, class ... Intfs>
 class ComponentImpl : public GenericPropertyObjectImpl<Intf, IRemovable, IComponentPrivate, IDeserializeComponent, Intfs ...>
@@ -196,6 +190,8 @@ protected:
 
     virtual void onOperationModeChanged(OperationModeType modeType);
 
+    static VersionInfoPtr parseVersionString(const std::string& input);
+
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
 };
@@ -321,6 +317,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
     
+        if (static_cast<bool>(active) == this->active)
+            return OPENDAQ_IGNORED;
+
         if (lockedAttributes.count("Active"))
         {
             if (context.assigned() && context.getLogger().assigned())
@@ -333,9 +332,6 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 
             return OPENDAQ_IGNORED;
         }
-
-        if (static_cast<bool>(active) == this->active)
-            return OPENDAQ_IGNORED;
 
         if (active && isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
@@ -568,9 +564,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::lockAttributes(IList* attributes)
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
     {
-        std::string str = strPtr;
-        std::transform(str.begin(), str.end(), str.begin(), [](char c){ return std::tolower(c); });
-        str[0] = std::toupper(str[0]);
+        std::string str = strPtr.toStdString();
+        str = coretype_utils::toLowerCase(str);
+        str[0] = coretype_utils::toUpperCase(str[0]);
         lockedAttributes.insert(str);
     }
 
@@ -602,9 +598,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::unlockAttributes(IList* attributes)
     const auto attributesPtr = ListPtr<IString>::Borrow(attributes);
     for (const auto& strPtr : attributesPtr)
     {
-        std::string str = strPtr;
-        std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){ return std::tolower(c); });
-        str[0] = std::toupper(str[0]);
+        std::string str = strPtr.toStdString();
+        str = coretype_utils::toLowerCase(str);
+        str[0] = coretype_utils::toUpperCase(str[0]);
         lockedAttributes.erase(str);
     }
 
@@ -1114,7 +1110,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool /*forUpdate*/)
+void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     if (!active)
     {
@@ -1146,10 +1142,12 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         tags.serialize(serializer);
     }
 
-    if (statusContainer.getStatuses().getCount() > 0)
-    {
-        serializer.key("statuses");
-        statusContainer.serialize(serializer);
+    if(!forUpdate) {
+        if (statusContainer.getStatuses().getCount() > 0)
+        {
+            serializer.key("statuses");
+            statusContainer.serialize(serializer);
+        }
     }
 
     if (componentConfig.assigned())
@@ -1333,6 +1331,69 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
             LOG_I("{}", logString)
         }
     }
+}
+
+template <class Intf, class... Intfs>
+VersionInfoPtr ComponentImpl<Intf, Intfs...>::parseVersionString(const std::string& input)
+{
+    std::stringstream ss(input);
+    std::string token;
+    int major, minor, patch;
+
+    if (std::getline(ss, token, '.'))
+    {
+        try
+        {
+            major = std::stoi(token);
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+    }
+    else
+    {
+        return {};
+    }
+
+    if (std::getline(ss, token, '.'))
+    {
+        try
+        {
+            minor = std::stoi(token);
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+    }
+    else
+    {
+        return {};
+    }
+
+    if (std::getline(ss, token))
+    {
+        try
+        {
+            patch = std::stoi(token);
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+    }
+    else
+    {
+        return {};
+    }
+
+    if (std::getline(ss, token))
+    {
+        return {};
+    }
+
+    return VersionInfo(major, minor, patch);
 }
 
 using StandardComponent = ComponentImpl<>;

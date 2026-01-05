@@ -189,5 +189,5 @@ TEST_F(ComplexNumberTest, InterfaceId)
 
 TEST_F(ComplexNumberTest, InterfaceIdString)
 {
-    ASSERT_EQ(daqInterfaceIdString<IComplexNumber>(), "{FB9C2303-3E0E-5213-8C9B-3BD39B EA61C}");
+    ASSERT_EQ(daqInterfaceIdString<IComplexNumber>(), "{FB9C2303-3E0E-5213-8C9B-3BD39B0EA61C}");
 }

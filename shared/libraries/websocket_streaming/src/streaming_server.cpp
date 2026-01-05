@@ -593,8 +593,8 @@ void StreamingServer::handleDataDescriptorChanges(OutputSignalBasePtr& outputSig
 
     if (auto placeholderValueSignal = std::dynamic_pointer_cast<OutputNullSignal>(outputSignal))
     {
-        if (valueDescriptorChanged && newValueDescriptor.assigned() ||
-            domainDescriptorChanged && newDomainDescriptor.assigned())
+        if ((valueDescriptorChanged && newValueDescriptor.assigned()) ||
+            (domainDescriptorChanged && newDomainDescriptor.assigned()))
             updateOutputPlaceholderSignal(outputSignal, outputSignals, writer, subscribed);
     }
     else

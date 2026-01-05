@@ -84,13 +84,20 @@ struct ReadSignal
                       << std::endl;
         }
 
-        auto packet = createPacket(packetSize, offset, *this);
+        auto packet = createPacket(static_cast<SizeT>(packetSize), offset, *this);
         zeroOutPacketData(packet);
 
-        auto* data = static_cast<ValueType*>(packet.getData());
+        ValueType* data = static_cast<ValueType*>(packet.getData());
         for (auto i = 0; i < packetSize; ++i)
-        {
-            data[i] = offset + i;
+        {            
+            using Scalar = std::conditional_t<
+                std::is_same_v<ValueType, Complex_Number<float>>, float,
+                std::conditional_t<
+                    std::is_same_v<ValueType, Complex_Number<double>>, double, ValueType
+                >
+            >;
+
+            data[i] = ValueType(static_cast<Scalar>(offset + i));
         }
 
         if (log)
@@ -2216,7 +2223,7 @@ TEST_F(MultiReaderTest, MultiReaderBuilderFromSignalsTimeouts)
     auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(count, 10);
+    ASSERT_EQ(count, 10u);
     ASSERT_LT(diff, 5000);
 
     sendThread.join();
@@ -2253,7 +2260,7 @@ TEST_F(MultiReaderTest, MultiReaderTimeoutWhenDataAvailable)
     sig2.createAndSendPacket(0);
 
     std::this_thread::sleep_for(1s);
-    ASSERT_EQ(multireader.getAvailableCount(), 10);
+    ASSERT_EQ(multireader.getAvailableCount(), 10u);
 
     count = SizeT(sig0.packetSize);
     start = std::chrono::steady_clock::now();
@@ -2263,7 +2270,7 @@ TEST_F(MultiReaderTest, MultiReaderTimeoutWhenDataAvailable)
 
     std::cout << "Diff = " << diff << std::endl;
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(count, 10);
+    ASSERT_EQ(count, 10u);
     ASSERT_LT(diff, 5000);
 }
 
@@ -2372,7 +2379,7 @@ TEST_F(MultiReaderTest, DISABLED_MultiReaderGapDetection)
     status = multi.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
     ASSERT_TRUE(status.getEventPackets().assigned());
-    ASSERT_EQ(status.getEventPackets().getCount(), 1);
+    ASSERT_EQ(status.getEventPackets().getCount(), 1u);
     ASSERT_TRUE(status.getEventPackets().hasKey("/readsig0"));
 
     auto event = status.getEventPackets().get("/readsig0");
@@ -2595,8 +2602,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEquality02)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEquality03)
@@ -2607,9 +2615,11 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEquality03)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
+
 TEST_F(MultiReaderTest, ReferenceDomainIdEquality04)
 {
     constexpr const auto NUM_SIGNALS = 3;
@@ -2618,8 +2628,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEquality04)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).build()));
     addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEquality05)
@@ -2630,8 +2641,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEquality05)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 133, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality01)
@@ -2642,8 +2654,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality01)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("B").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
-
-    ASSERT_THROW_MSG(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Reference domain is incompatible.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality02)
@@ -2654,8 +2667,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality02)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("B").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
-
-    ASSERT_THROW_MSG(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Reference domain is incompatible.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality03)
@@ -2666,8 +2680,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality03)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("B").build()));
-
-    ASSERT_THROW_MSG(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Reference domain is incompatible.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality04)
@@ -2678,8 +2693,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality04)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("B").build()));
-
-    ASSERT_THROW_MSG(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Reference domain is incompatible.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality05)
@@ -2690,8 +2706,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality05)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("B").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).build()));
-
-    ASSERT_THROW_MSG(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Reference domain is incompatible.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequality06)
@@ -2702,8 +2719,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequality06)
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("B").build()));
     addSignal(0, 113, createDomainSignal("1993", nullptr, nullptr, ReferenceDomainInfoBuilder().setReferenceDomainId("A").build()));
-
-    ASSERT_THROW_MSG(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Reference domain is incompatible.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality01)
@@ -2783,8 +2801,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality03
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality04)
@@ -2813,8 +2832,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality04
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality01)
@@ -2841,8 +2861,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality02)
@@ -2868,9 +2889,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality03)
@@ -2896,9 +2917,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality04)
@@ -2925,9 +2946,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality05)
@@ -2954,9 +2975,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality06)
@@ -2983,9 +3004,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality07)
@@ -3013,8 +3034,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality08)
@@ -3042,8 +3064,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality09)
@@ -3070,9 +3093,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality10)
@@ -3099,9 +3122,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality11)
@@ -3129,8 +3152,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality12)
@@ -3158,9 +3182,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality13)
@@ -3188,8 +3212,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Gps).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality01)
@@ -3215,9 +3240,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality02)
@@ -3244,8 +3269,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality03)
@@ -3271,9 +3297,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality04)
@@ -3300,8 +3326,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("B").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality05)
@@ -3328,9 +3355,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality06)
@@ -3358,8 +3385,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Tai).build()));
-
-    ASSERT_THROW_MSG(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Reference domain is incompatible.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality07)
@@ -3386,9 +3414,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality08)
@@ -3423,8 +3451,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Tai).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality09)
@@ -3459,8 +3488,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality10)
@@ -3511,8 +3541,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality11)
@@ -3562,8 +3593,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality12)
@@ -3659,8 +3691,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality13)
@@ -3756,8 +3789,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                            nullptr,
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
-
-    ASSERT_NO_THROW(MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build());
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_TRUE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequality14)
@@ -3853,8 +3887,8 @@ TEST_F(MultiReaderTest, ReferenceDomainIdInequalityReferenceTimeProtocolInequali
                            nullptr,
                            ReferenceDomainInfoBuilder().setReferenceDomainId(nullptr).setReferenceTimeProtocol(TimeProtocol::Unknown).build()));
 
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality15)
@@ -3897,9 +3931,9 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolInequality
                                  nullptr,
                                  nullptr,
                                  ReferenceDomainInfoBuilder().setReferenceDomainId("A").setReferenceTimeProtocol(TimeProtocol::Gps).build()));
-
-    ASSERT_THROW_MSG(
-        MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build(), InvalidStateException, "Only one known Reference Time Source is allowed per Multi Reader.");
+    
+    ReaderConfigPtr reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+    ASSERT_FALSE(reader.getIsValid());
 }
 
 class MockSignal
@@ -3986,7 +4020,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // receive data packets
     count = NUM_SAMPLES;
@@ -4002,7 +4036,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // send packets to inactive reader
     sendPackets(packetIndex++);  // 2
@@ -4010,7 +4044,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // send event packet
     auto signal = signalReader.signal;
@@ -4029,7 +4063,7 @@ TEST_F(MultiReaderTest, MultiReaderActive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // set multireader active again
     multiReader.setActive(true);
@@ -4076,7 +4110,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveCopyInactive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // set inactive, try read and copy reader
     multiReader.setActive(false);
@@ -4085,7 +4119,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveCopyInactive)
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     auto multiReaderNew = MultiReaderFromExisting(multiReader);
 
@@ -4098,7 +4132,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveCopyInactive)
     status = multiReaderNew.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
 
     ASSERT_EQ(status.getReadStatus(), daq::ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // set new multireader active and try to read samples
     multiReaderNew.setActive(true);
@@ -4186,20 +4220,20 @@ TEST_F(MultiReaderTest, MultiReaderActiveGapPacket)
     count = NUM_SAMPLES;
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // 10 samples until gap event
-    ASSERT_EQ(multiReader.getAvailableCount(), 10);
+    ASSERT_EQ(multiReader.getAvailableCount(), 10u);
 
     multiReader.setActive(false);
 
-    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
 
     // read nothing, gap packet was dropped
     count = NUM_SAMPLES;
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // change descriptor
     auto signal = signalReader0.signal;
@@ -4213,7 +4247,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveGapPacket)
     count = NUM_SAMPLES;
     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 
     // set active again
     multiReader.setActive(true);
@@ -4288,7 +4322,7 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                     auto count = NUM_SAMPLES;
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-                    ASSERT_EQ(count, 0);
+                    ASSERT_EQ(count, 0u);
                     auto events = status.getEventPackets();
                     for (auto i = SizeT{0}; i < events.getCount(); ++i)
                     {
@@ -4319,15 +4353,15 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                 }
                 case 2:
                 {
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
                     auto count = NUM_SAMPLES;
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-                    ASSERT_EQ(count, 0);
-                    ASSERT_EQ(multiReader.getAvailableCount(), 10);
+                    ASSERT_EQ(count, 0u);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 10u);
 
                     auto events = status.getEventPackets();
-                    ASSERT_GE(events.getCount(), 1);
+                    ASSERT_GE(events.getCount(), 1u);
 
                     auto sigId = fmt::format("/readsig{}", 0);
                     ASSERT_TRUE(events.hasKey(sigId));
@@ -4349,15 +4383,15 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                 }
                 case 3:
                 {
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
                     auto count = NUM_SAMPLES;
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-                    ASSERT_EQ(count, 0);
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(count, 0u);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
 
                     auto events = status.getEventPackets();
-                    ASSERT_GE(events.getCount(), 1);
+                    ASSERT_GE(events.getCount(), 1u);
 
                     auto sigId = fmt::format("/readsig{}", 0);
                     ASSERT_TRUE(events.hasKey(sigId));
@@ -4377,15 +4411,15 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                 }
                 case 4:
                 {
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
                     auto count = NUM_SAMPLES;
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-                    ASSERT_EQ(count, 0);
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(count, 0u);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
 
                     auto events = status.getEventPackets();
-                    ASSERT_GE(events.getCount(), 1);
+                    ASSERT_GE(events.getCount(), 1u);
 
                     auto sigId = fmt::format("/readsig{}", 0);
                     ASSERT_TRUE(events.hasKey(sigId));
@@ -4407,11 +4441,11 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
                 }
                 case 5:
                 {
-                    ASSERT_EQ(multiReader.getAvailableCount(), 0);
+                    ASSERT_EQ(multiReader.getAvailableCount(), 0u);
                     auto count = NUM_SAMPLES;
                     auto status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
                     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-                    ASSERT_EQ(count, 0);
+                    ASSERT_EQ(count, 0u);
 
                     count = NUM_SAMPLES;
                     status = multiReader.readWithDomain(valuesPerSignal, domainValuesPerSignal, &count);
@@ -4490,7 +4524,7 @@ TEST_F(MultiReaderTest, ExpectSR)
                         .setSampleType(SampleType::Int64)
                         .setRule(LinearDataRule(0, 10))
                         .setTickResolution(Ratio(1, 1000))
-                        .setUnit(Unit("s", -1, "second", "time"))
+                        .setUnit(Unit("s", -1, "seconds", "time"))
                         .build();
 
     const auto valueSignal = SignalWithDescriptor(ctx, valueDesc, nullptr, "value");
@@ -4689,7 +4723,7 @@ TEST_P(MinReadCountTest, MinReadCount)
     SizeT count{10};
     MultiReaderStatusPtr status;
 
-    ASSERT_EQ(multi.getAvailableCount(), 0);
+    ASSERT_EQ(multi.getAvailableCount(), 0u);
 
     ASSERT_THROW(multi.read(valuesPerSignal, &count, timeoutMs), InvalidParameterException);
     count = 10;
@@ -4701,37 +4735,37 @@ TEST_P(MinReadCountTest, MinReadCount)
     sig1.createAndSendPacket(1);
     sig2.createAndSendPacket(1);
 
-    ASSERT_EQ(multi.getAvailableCount(), 0);
+    ASSERT_EQ(multi.getAvailableCount(), 0u);
     count = 0;
     status = multi.read(nullptr, &count, timeoutMs);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
 
-    ASSERT_EQ(multi.getAvailableCount(), 20);
+    ASSERT_EQ(multi.getAvailableCount(), 20u);
 
     count = 20;
     multi.read(valuesPerSignal, &count, timeoutMs);
 
-    ASSERT_EQ(count, 20);
+    ASSERT_EQ(count, 20u);
 
     sig0.createAndSendPacket(2);
     sig1.createAndSendPacket(2);
     sig2.createAndSendPacket(2);
 
-    ASSERT_EQ(multi.getAvailableCount(), 0);
+    ASSERT_EQ(multi.getAvailableCount(), 0u);
 
     sig0.setValueDescriptor(setupDescriptor(SampleType::Int32));
 
-    ASSERT_EQ(multi.getAvailableCount(), 0);
+    ASSERT_EQ(multi.getAvailableCount(), 0u);
 
     count = 0;
     status = multi.read(nullptr, &count, timeoutMs);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
     count = 0;
     status = multi.read(nullptr, &count, timeoutMs);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
 }
 
 INSTANTIATE_TEST_SUITE_P(MinReadCountSuite, MinReadCountTest, testing::Values(0, 1000));
@@ -4788,7 +4822,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceeded)
     count = 10;
     status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     ASSERT_FALSE(multiReader.getActive());
 
     for (SizeT i = 0; i < kSignalCount; ++i)
@@ -4850,7 +4884,7 @@ TEST_F(MultiReaderTest, TestTickOffsetExceededByOffset)
     count = 10;
     status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     ASSERT_EQ(multiReader.getActive(), false);
 
     for (SizeT i = 0; i < kSignalCount; ++i)

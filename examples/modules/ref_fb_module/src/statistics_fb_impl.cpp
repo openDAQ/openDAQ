@@ -3,17 +3,19 @@
 #include <opendaq/packet_factory.h>
 #include <ref_fb_module/statistics_fb_impl.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace Statistics
 {
 
-StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
+StatisticsFbImpl::StatisticsFbImpl(const ModuleInfoPtr& moduleInfo,
+                                   const ContextPtr& ctx,
                                    const ComponentPtr& parent,
                                    const StringPtr& localId,
                                    const PropertyObjectPtr& config)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
 {
     initComponentStatus();
     initProperties();
@@ -36,15 +38,17 @@ StatisticsFbImpl::StatisticsFbImpl(const ContextPtr& ctx,
     triggerInput.setNotificationMethod(packetReadyNotification);
 }
 
-FunctionBlockTypePtr StatisticsFbImpl::CreateType()
+FunctionBlockTypePtr StatisticsFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
     auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
 
-    return FunctionBlockType("RefFBModuleStatistics",
-                             "Statistics",
-                             "Calculates statistics",
-                             defaultConfig);
+    auto fbType = FunctionBlockType("RefFBModuleStatistics",
+                                    "Statistics",
+                                    "Calculates statistics",
+                                    defaultConfig);
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 DictPtr<IString, IFunctionBlockType> StatisticsFbImpl::onGetAvailableFunctionBlockTypes()

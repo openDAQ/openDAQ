@@ -137,7 +137,7 @@ TEST_F(ErrorInfoTest, MultipleMessages)
     ListPtr<IErrorInfo> errorInfoList;
     daqGetErrorInfoList(&errorInfoList);
     ASSERT_TRUE(errorInfoList.assigned());
-    ASSERT_EQ(errorInfoList.getCount(), 2);
+    ASSERT_EQ(errorInfoList.getCount(), 2u);
 
     for (SizeT i = 0; i < errorInfoList.getCount(); ++i)
     {
@@ -292,14 +292,14 @@ TEST_F(ErrorInfoTest, errorGuardClearing)
             ListPtr<IErrorInfo> errorInfoList;
             errorGuard2->getErrorInfoList(&errorInfoList);
             ASSERT_TRUE(errorInfoList.assigned());
-            ASSERT_EQ(errorInfoList.getCount(), 1);
+            ASSERT_EQ(errorInfoList.getCount(), 1u);
         }
         DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "One more error in error guard");
 
         ListPtr<IErrorInfo> errorInfoList;
         errorGuard->getErrorInfoList(&errorInfoList);
         ASSERT_TRUE(errorInfoList.assigned());
-        ASSERT_EQ(errorInfoList.getCount(), 2);
+        ASSERT_EQ(errorInfoList.getCount(), 2u);
     }
     // scope is cleared, error info should be cleared as well
     ObjectPtr<IErrorInfo> lastError;

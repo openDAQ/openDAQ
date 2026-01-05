@@ -80,12 +80,29 @@ inline LoggerSinkPtr LastMessageLoggerSink()
     return LoggerSinkPtr(LastMessageLoggerSink_Create());
 }
 
+inline std::string safeGetEnv(const char* name)
+{
+    std::string result;
+#if defined(_WIN32) && !defined(__MINGW32__)
+    char* env = nullptr;
+    size_t len = 0;
+    if (_dupenv_s(&env, &len, name) == 0 && env != nullptr)
+    {
+        result = std::string(env);
+        free(env);
+        return result;
+    }
+#else
+    if (const char* env = std::getenv(name); env != nullptr)
+        return std::string(env);
+#endif
+    return result;
+}
 
 inline LogLevel getEnvLogLevel(const std::string& envStr, int defaultLevel)
 {
     int level = defaultLevel;
-    char* env = std::getenv(envStr.c_str());
-    if (env != nullptr)
+    if (std::string env = safeGetEnv(envStr.c_str()); !env.empty())
     {
         try
         {
@@ -105,8 +122,7 @@ inline LogLevel getEnvLogLevel(const std::string& envStr, int defaultLevel)
 inline void getEnvFileSinkLogLevelAndFileName(LogLevel& level, std::string& fileName)
 {
     level = getEnvLogLevel("OPENDAQ_SINK_FILE_LOG_LEVEL", OPENDAQ_LOG_LEVEL_TRACE);
-    char* env = std::getenv("OPENDAQ_SINK_FILE_FILE_NAME");
-    if (env != nullptr)
+    if (std::string env = safeGetEnv("OPENDAQ_SINK_FILE_FILE_NAME"); !env.empty())
         fileName = env;
     else
         fileName.clear();
@@ -169,7 +185,9 @@ inline ListPtr<ILoggerSink> DefaultSinks(const StringPtr& fileName = nullptr)
 inline LogLevel LogLevelFromString(const StringPtr logLevelName)
 {
     std::string name = logLevelName.toStdString();
-    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    std::locale loc = std::locale::classic();
+    const auto& f = std::use_facet<std::ctype<char>>(loc);
+    std::transform(name.begin(), name.end(), name.begin(), [&f](char c){ return f.tolower(c); });
 
     if (name == "trace")
         return LogLevel::Trace;

@@ -256,7 +256,7 @@ ErrCode StreamReaderImpl::packetReceived(IInputPort* port)
         OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
 
     if (externalListener.assigned() && externalListener.getRef().assigned())
-        return externalListener.getRef()->connected(port);
+        return externalListener.getRef()->packetReceived(port);
 
     return OPENDAQ_SUCCESS;
 }
@@ -364,6 +364,15 @@ ErrCode StreamReaderImpl::markAsInvalid()
     std::unique_lock lock(mutex);
     invalid = true;
 
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode StreamReaderImpl::getIsValid(Bool* isValid)
+{
+    OPENDAQ_PARAM_NOT_NULL(isValid);
+
+    std::unique_lock lock(mutex);
+    *isValid = !invalid;
     return OPENDAQ_SUCCESS;
 }
 

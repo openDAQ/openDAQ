@@ -3,17 +3,19 @@
 #include <opendaq/work_factory.h>
 #include <opendaq/event_packet_params.h>
 #include <coreobjects/callable_info_factory.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace VideoPlayer
 {
 
-VideoPlayerFbImpl::VideoPlayerFbImpl(const ContextPtr& ctx, 
+VideoPlayerFbImpl::VideoPlayerFbImpl(const ModuleInfoPtr& moduleInfo,
+                                     const ContextPtr& ctx, 
                                      const ComponentPtr& parent, 
                                      const StringPtr& localId,
                                      const PropertyObjectPtr& config)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
     , texture()
     , sprite(texture)
     , font(ARIAL_TTF, sizeof(ARIAL_TTF))
@@ -22,6 +24,7 @@ VideoPlayerFbImpl::VideoPlayerFbImpl(const ContextPtr& ctx,
     if (!context.getScheduler().isMainLoopSet())
        DAQ_THROW_EXCEPTION(InvalidStateException, "Main loop is not set in the scheduler. Video player requires main loop for rendering.");
 
+    initComponentStatus();
     initProperties();
     initInputPorts();
 
@@ -31,12 +34,16 @@ VideoPlayerFbImpl::VideoPlayerFbImpl(const ContextPtr& ctx,
     timestampText.setOutlineThickness(2);
 }
 
-FunctionBlockTypePtr VideoPlayerFbImpl::CreateType()
+FunctionBlockTypePtr VideoPlayerFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
-    return FunctionBlockType("RefFBModuleVideoPlayer",
-                             "Video Player",
-                             "Video playback and visualization"
+    auto fbType = FunctionBlockType("RefFBModuleVideoPlayer",
+                                    "Video Player",
+                                    "Video playback and visualization"
     );
+
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+
+    return fbType;
 }
 
 void VideoPlayerFbImpl::initProperties()
@@ -172,34 +179,45 @@ void VideoPlayerFbImpl::handleEventPacket(const EventPacketPtr& packet)
     if (!params.hasKey(event_packet_param::DATA_DESCRIPTOR))
         return;
 
-    auto descriptor = params.get(event_packet_param::DATA_DESCRIPTOR).asPtr<IDataDescriptor>();
-
-    if (descriptor.getSampleType() != SampleType::Binary)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Video player requires binary data descriptor");
-
-    std::string frameFormat = descriptor.getUnit().getSymbol();
-    std::transform(frameFormat.begin(), frameFormat.end(), frameFormat.begin(), ::tolower);
-
-    if (frameFormat != "jpeg" &&
-        frameFormat != "png" &&
-        frameFormat != "bmp" &&
-        frameFormat != "targa" &&
-        frameFormat != "hdr")
+    try
     {
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Video player does not support '{}' data descriptor", frameFormat);
+        auto descriptor = params.get(event_packet_param::DATA_DESCRIPTOR).asPtr<IDataDescriptor>();
+
+        if (descriptor.getSampleType() != SampleType::Binary)
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Video player requires binary data descriptor");
+
+        std::string frameFormat = descriptor.getUnit().getSymbol();
+        std::transform(frameFormat.begin(), frameFormat.end(), frameFormat.begin(), ::tolower);
+
+        if (frameFormat != "jpeg" &&
+            frameFormat != "png" &&
+            frameFormat != "bmp" &&
+            frameFormat != "targa" &&
+            frameFormat != "hdr")
+        {
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Video player does not support '{}' data descriptor", frameFormat);
+        }
+        auto scheduler = context.getScheduler();
+        auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
+
+        videoInputPort.setActive(true);
+        setComponentStatus(ComponentStatus::Ok);
+
+        scheduler.scheduleWorkOnMainLoop(Work([this, thisWeakRef = std::move(thisWeakRef)]
+        {   
+            const auto thisFb = thisWeakRef.getRef();
+            if (!thisFb.assigned())
+                return;
+
+            if (!window)
+                startRender();
+        }));
     }
-    auto scheduler = context.getScheduler();
-    auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
-
-    scheduler.scheduleWorkOnMainLoop(Work([this, thisWeakRef = std::move(thisWeakRef)]
-    {   
-        const auto thisFb = thisWeakRef.getRef();
-        if (!thisFb.assigned())
-            return;
-
-        if (!window)
-            startRender();
-    }));
+    catch (const std::exception& e)
+    {
+        videoInputPort.setActive(false);
+        setComponentStatusWithMessage(ComponentStatus::Error, e.what());
+    }
 }
 
 } // namespace VideoPlayer

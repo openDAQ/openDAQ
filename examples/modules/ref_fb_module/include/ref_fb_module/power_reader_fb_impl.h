@@ -31,10 +31,13 @@ namespace PowerReader
 class PowerReaderFbImpl final : public FunctionBlock
 {
 public:
-    explicit PowerReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit PowerReaderFbImpl(const ModuleInfoPtr& moduleInfo,
+                               const ContextPtr& ctx,
+                               const ComponentPtr& parent,
+                               const StringPtr& localId);
     ~PowerReaderFbImpl() override = default;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
     static bool descriptorNotNull(const DataDescriptorPtr& descriptor);
     static void getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc);
     static bool getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc);
@@ -47,12 +50,10 @@ private:
     DataDescriptorPtr voltageDescriptor;
     DataDescriptorPtr currentDescriptor;
     DataDescriptorPtr domainDescriptor;
+    RangePtr powerRange;
 
     DataDescriptorPtr powerDataDescriptor;
     DataDescriptorPtr powerDomainDataDescriptor;
-
-    SampleType voltageSampleType;
-    SampleType currentSampleType;
 
     SignalConfigPtr powerSignal;
     SignalConfigPtr powerDomainSignal;
@@ -71,7 +72,7 @@ private:
     void createInputPorts();
     void createReader();
     void createSignals();
-    static RangePtr getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor);
+    RangePtr getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor);
     void onDataReceived();
 
     void checkPortConnections() const;

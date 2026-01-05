@@ -31,10 +31,13 @@ namespace StructDecoder
 class StructDecoderFbImpl final : public FunctionBlock
 {
 public:
-    explicit StructDecoderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit StructDecoderFbImpl(const ModuleInfoPtr& moduleInfo,
+                                 const ContextPtr& ctx,
+                                 const ComponentPtr& parent,
+                                 const StringPtr& localId);
     ~StructDecoderFbImpl() override = default;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
     void onPacketReceived(const InputPortPtr& port) override;
     void onDisconnected(const InputPortPtr& port) override;

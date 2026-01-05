@@ -802,8 +802,7 @@ TEST_F(NativeDeviceModulesTest, checkDeviceInfoPopulatedWithProvider)
 
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
 {
-    if (test_helpers::Ipv6IsDisabled())
-        return;
+    bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
 
     auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
@@ -820,30 +819,36 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
+            
+            if (capability.getProtocolName() != "OpenDAQNativeConfiguration")
+                continue;
 
-            if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+            bool hasIPv4 = false;
+            bool hasIPv6 = false;
+            int cnt = 0;
+            for (const auto& addressInfo : capability.getAddressInfo())
             {
-                const auto ipv4Info = capability.getAddressInfo()[0];
-                const auto ipv6Info = capability.getAddressInfo()[1];
-                ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-                ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[cnt]);
+                ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[cnt]);
+                if (addressInfo.getType() == "IPv4")
+                {
+                    hasIPv4 = true;
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                }
+                else if (addressInfo.getType() == "IPv6")
+                {
+                    hasIPv6 = true;
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                }
                 
-                ASSERT_EQ(ipv4Info.getType(), "IPv4");
-                ASSERT_EQ(ipv6Info.getType(), "IPv6");
+                if (hasIPv4 && (hasIPv6 || !checkIPv6))
+                    return;
 
-                ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-                ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
-                
-                ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-                ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
-                return;
-            }
-            else
-            {
-                ASSERT_EQ(capability.getProtocolName(), "OpenDAQNativeStreaming");
+                cnt++;
             }
         }      
     }
+
     ASSERT_TRUE(false) << "Device not found";
 }
 
@@ -963,9 +968,6 @@ TEST_F(NativeDeviceModulesTest, TestProtocolVersion)
 
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
-    if (test_helpers::Ipv6IsDisabled())
-        return;
-
     auto deviceInfo = DeviceInfo("testdevice://");
     deviceInfo.setManufacturer("openDAQ");
     deviceInfo.setSerialNumber("TestSerial");
@@ -974,41 +976,45 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_configurator/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
-
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
-
+    
     auto client = Instance();
     DevicePtr device = FindNativeDeviceByPath(client, path);
     ASSERT_TRUE(device.assigned());
 
     const auto caps = device.getInfo().getServerCapabilities();
     ASSERT_EQ(caps.getCount(), 2u);
+    int cnt = 0;
 
     for (const auto& capability : caps)
     {
-        if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-        {
-            const auto ipv4Info = capability.getAddressInfo()[0];
-            const auto ipv6Info = capability.getAddressInfo()[1];
-            ASSERT_EQ(ipv4Info.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-            ASSERT_EQ(ipv6Info.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
-            
-            ASSERT_EQ(ipv4Info.getType(), "IPv4");
-            ASSERT_EQ(ipv6Info.getType(), "IPv6");
+        if (!test_helpers::isSufix(capability.getConnectionString(), path))
+            break;
 
-            ASSERT_EQ(ipv4Info.getConnectionString(), capability.getConnectionStrings()[0]);
-            ASSERT_EQ(ipv6Info.getConnectionString(), capability.getConnectionStrings()[1]);
-            
-            ASSERT_EQ(ipv4Info.getAddress(), capability.getAddresses()[0]);
-            ASSERT_EQ(ipv6Info.getAddress(), capability.getAddresses()[1]);
-            return;
-        }
-        else
+        if (capability.getProtocolName() != "OpenDAQNativeConfiguration")
+            continue;
+
+        int index = 0;
+        for (const auto& addressInfo : capability.getAddressInfo())
         {
-            ASSERT_EQ(capability.getProtocolName(), "OpenDAQNativeStreaming");
+            ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[index]);
+            ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
+            if (addressInfo.getType() == "IPv4")
+            {
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                cnt++;
+            }
+            else if (addressInfo.getType() == "IPv6")
+            {
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                cnt++;
+            }
+            
+            index++;
         }
     }
-    ASSERT_TRUE(false) << "Device not found";
+    
+    ASSERT_GT(cnt, 0);
 }
 
 TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
@@ -1021,7 +1027,7 @@ TEST_F(NativeDeviceModulesTest, GetRemoteDeviceObjects)
     auto signalsServer = server.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(signals.getCount(), 8u);
     auto signalsVisible = client.getSignals(search::Recursive(search::Visible()));
-    ASSERT_EQ(signalsVisible.getCount(), 5u);
+    ASSERT_EQ(signalsVisible.getCount(), 4u);
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
     auto fbs = devices[0].getFunctionBlocks();
@@ -2011,7 +2017,7 @@ TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
         auto signals = testDevice.getSignals(search::Recursive(search::Any()));
         ASSERT_EQ(signals.getCount(), 8u);
         auto signalsVisible = testDevice.getSignals(search::Recursive(search::Visible()));
-        ASSERT_EQ(signalsVisible.getCount(), 5u);
+        ASSERT_EQ(signalsVisible.getCount(), 4u);
         auto devices = testDevice.getDevices();
         ASSERT_EQ(devices.getCount(), 1u);
         auto fbs = testDevice.getFunctionBlocks();
@@ -2038,6 +2044,81 @@ TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
 
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "Off");
     ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("TestStatus"), "MsgOff");
+}
+
+TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfigDeviceLocked)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    server.getRootDevice().lock();
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), True);
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("ConnectionStatus"), "Connected");
+
+    std::promise<StringPtr> reconnectionStatusPromise;
+    std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ConnectionStatusChanged)
+        {
+            ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
+            if (args.getParameters().get("StatusName") == "ConfigurationStatus")
+            {
+                ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
+                EXPECT_EQ(args.getParameters().get("ConnectionString"), "daq.nd://127.0.0.1");
+                ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
+                EXPECT_EQ(args.getParameters().get("StreamingObject"), nullptr);
+                ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
+                reconnectionStatusPromise.set_value(args.getParameters().get("StatusValue").toString());
+            }
+        }
+    };
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "On");
+
+    // destroy server to emulate disconnection
+    server.release();
+
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Reconnecting");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Reconnecting");
+
+    // reset future / promise
+    reconnectionStatusPromise = std::promise<StringPtr>();
+    reconnectionStatusFuture = reconnectionStatusPromise.get_future();
+
+    // re-create updated server
+    server = CreateServerInstance(CreateUpdatedServerInstance());
+
+    ASSERT_TRUE(reconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_EQ(reconnectionStatusFuture.get(), "Connected");
+    ASSERT_EQ(client.getDevices()[0].getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
+
+    auto channels = client.getDevices()[0].getChannels(search::Recursive(search::Any()));
+    ASSERT_EQ(channels.getCount(), 3u);
+
+    auto fbs = client.getDevices()[0].getFunctionBlocks(search::Recursive(search::Any()));
+    ASSERT_EQ(fbs.getCount(), 1u);
+    ASSERT_EQ(fbs[0].getFunctionBlockType().getId(), "RefFBModuleScaling");
+
+    ASSERT_TRUE(client.getContext().getTypeManager().hasType("TestEnumType"));
+
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatus("TestStatus").getValue(), "Off");
+    ASSERT_EQ(client.getDevices()[0].getStatusContainer().getStatusMessage("TestStatus"), "MsgOff");
+
+    auto signals = client.getSignals(search::Recursive(search::Any()));
+    for (const auto& signal : signals)
+    {
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_GT(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
+    }
+
+    auto info = client.getDevices()[0].getInfo();
+    ASSERT_TRUE(info.assigned());
+    ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
 }
 
 TEST_F(NativeDeviceModulesTest, Update)
@@ -2392,7 +2473,7 @@ TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
     client.getAvailableDevices();
     const MirroredDeviceConfigPtr dev = client.addDevice("daq.nd://127.0.0.1:7420/");
     const auto sources = dev.getStreamingSources();
-    ASSERT_EQ(sources.getCount(), 1);
+    ASSERT_EQ(sources.getCount(), 1u);
     ASSERT_EQ(sources[0].getConnectionString(), "daq.ns://127.0.0.1:7420/");
 }
 
@@ -2822,7 +2903,7 @@ TEST_F(NativeDeviceModulesTest, GetAvailableLogFileInfos)
         auto logFile = logFiles[0];
 
         ASSERT_EQ(logFile.getName(), loggerPath);
-        ASSERT_NE(logFile.getSize(), 0);
+        ASSERT_NE(logFile.getSize(), 0u);
         ASSERT_EQ(logFile.getLastModified(), logFileLastModified);
 
         StringPtr firstSymb = clientDevice.getLog(loggerPath, 1, 0);
@@ -3478,8 +3559,8 @@ TEST_P(NativeC2DStreamingTest, StreamingData)
 
     // Expect to receive all data packets,
     // +1 signal initial descriptor changed event packet
-    const int packetsToGenerate = 10;
-    const int packetsToRead = packetsToGenerate + 1;
+    const std::size_t packetsToGenerate = 10;
+    const std::size_t packetsToRead = packetsToGenerate + 1;
 
     clientLocalDevice.setPropertyValue("GeneratePackets", packetsToRead);
 
@@ -3512,6 +3593,18 @@ TEST_F(NativeDeviceModulesTest, AddNestedFB)
     ASSERT_NO_THROW(fb.removeFunctionBlock(nestedFb));
     ASSERT_TRUE(nestedFb.isRemoved());
     ASSERT_EQ(fb.getFunctionBlocks().getCount(), 0u);
+}
+
+TEST_F(NativeDeviceModulesTest, StatisticsFunctionBlockVersion)
+{
+    const auto server = CreateServerInstance();
+    ASSERT_EQ(server.getFunctionBlocks()[0].getFunctionBlockType().getId(), "RefFBModuleStatistics");
+
+    const auto client = Instance();
+    auto dev = client.addDevice("daq.nd://127.0.0.1");
+    auto fb = dev.getFunctionBlocks()[0];
+    ASSERT_EQ(fb.getFunctionBlockType().getId(), "RefFBModuleStatistics");
+    ASSERT_EQ(fb.getFunctionBlockType().getModuleInfo().getVersionInfo(), server.getFunctionBlocks()[0].getFunctionBlockType().getModuleInfo().getVersionInfo());
 }
 
 TEST_F(NativeDeviceModulesTest, TestEnumerationPropertyRemote)
@@ -3676,4 +3769,73 @@ TEST_F(NativeDeviceModulesTest, AddDevicesParallelPartialSuccess)
     ASSERT_EQ(errCodes.get("daqref://device1"), OPENDAQ_SUCCESS);
 
     ASSERT_EQ(client.getDevices().getCount(), 2u);
+}
+
+
+TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
+{
+    const StringPtr manufacturer = "openDAQ";
+    const StringPtr serialNumber = "GatewayStreamingConnection";
+    const StringPtr connectionString = "daq://" + manufacturer + "_" + serialNumber;
+
+    const PropertyObjectPtr leafDeviceConfig = PropertyObject();
+    leafDeviceConfig.addProperty(StringProperty("SerialNumber", serialNumber));
+
+    auto leaf = InstanceBuilder().setRootDevice("daqref://device0", leafDeviceConfig)
+                                                   .addDiscoveryServer("mdns")
+                                                   .build();
+    {
+        const auto serverConfig = PropertyObject();
+        serverConfig.addProperty(IntProperty("NativeStreamingPort", 7414));
+        leaf.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+    }
+
+    auto gateway = InstanceBuilder().build();
+    {
+        PropertyObjectPtr config = PropertyObject();
+        config.addProperty(StringProperty("PrimaryAddressType", "IPv6"));
+        gateway.addDevice(connectionString, config);
+
+        const auto serverConfig = PropertyObject();
+        serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
+        gateway.addServer("OpenDAQNativeStreaming", serverConfig);
+    }
+
+    auto client = InstanceBuilder().build();
+    
+    // check that not hidden device is visible
+    {   
+        bool deviceFound = false;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            if (deviceInfo.getSerialNumber() == serialNumber)
+            {
+                deviceFound = true;
+                break;
+            }
+        }
+        ASSERT_TRUE(deviceFound) << "device with serial number " << serialNumber << " not found";
+    }
+    // check that hidden device is not visible
+    {
+        leaf.getInfo().setPropertyValue("hidden", true);
+        for (const auto& deviceInfo : client.getAvailableDevices())
+            ASSERT_NE(deviceInfo.getSerialNumber(), serialNumber);
+    }
+    // make steaming connection
+    {
+        auto config = gateway.createDefaultAddDeviceConfig();
+        const PropertyObjectPtr general = config.getPropertyValue("General");
+        general.setPropertyValue("StreamingConnectionHeuristic", 1);
+        general.setPropertyValue("PrimaryAddressType", "IPv4");
+        auto clGateway = client.addDevice("daq.nd://127.0.0.1:7415", config);
+        auto clGatewayLeaf = clGateway.getDevices()[0];
+        auto clGatewayLeafSignal = clGatewayLeaf.getSignalsRecursive()[0];
+        auto activeStreaming  = clGatewayLeafSignal.asPtr<IMirroredSignalConfig>().getActiveStreamingSource();
+
+        // Check that active streaming does not use IPv6 address without interface suffix
+        std::string activeStreamingStr = activeStreaming.toStdString();
+        ASSERT_TRUE(activeStreamingStr.find("daq.ns://[") == std::string::npos)
+            << "Active streaming uses IPv6 address instead of IPv4: " << activeStreamingStr;
+    }
 }

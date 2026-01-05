@@ -7,7 +7,6 @@
 #include <native_streaming_client_module/native_streaming_device_impl.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
 #include <native_streaming_client_module/native_device_impl.h>
-#include <regex>
 #include <string>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -71,18 +70,18 @@ NativeStreamingClientModule::~NativeStreamingClientModule()
 
 void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDevice& discoveredDevice, ServerCapabilityConfigPtr& cap, std::string protocolPrefix)
 {
-    if (!discoveredDevice.ipv4Address.empty())
+    for (const auto& ipAddress : discoveredDevice.ipv4Addresses)
     {
-        auto connectionStringIpv4 = NativeStreamingClientModule::CreateUrlConnectionString(
+        auto connectionStringIpv4 = CreateUrlConnectionString(
             protocolPrefix,
-            discoveredDevice.ipv4Address,
+            ipAddress,
             discoveredDevice.servicePort,
             discoveredDevice.getPropertyOrDefault("path", "/")
-        );
+            );
         cap.addConnectionString(connectionStringIpv4);
-        cap.addAddress(discoveredDevice.ipv4Address);
+        cap.addAddress(ipAddress);
 
-        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv4Address)
+        const auto addressInfo = AddressInfoBuilder().setAddress(ipAddress)
                                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                                      .setType("IPv4")
                                                      .setConnectionString(connectionStringIpv4)
@@ -90,18 +89,18 @@ void NativeStreamingClientModule::SetupProtocolAddresses(const MdnsDiscoveredDev
         cap.addAddressInfo(addressInfo);
     }
     
-    if (!discoveredDevice.ipv6Address.empty())
+    for (const auto& ipAddress : discoveredDevice.ipv6Addresses)
     {
-        auto connectionStringIpv6 = NativeStreamingClientModule::CreateUrlConnectionString(
+        auto connectionStringIpv6 = CreateUrlConnectionString(
             protocolPrefix,
-            discoveredDevice.ipv6Address,
+            ipAddress,
             discoveredDevice.servicePort,
             discoveredDevice.getPropertyOrDefault("path", "/")
-        );
+            );
         cap.addConnectionString(connectionStringIpv6);
-        cap.addAddress(discoveredDevice.ipv6Address);
+        cap.addAddress(ipAddress);
 
-        const auto addressInfo = AddressInfoBuilder().setAddress(discoveredDevice.ipv6Address)
+        const auto addressInfo = AddressInfoBuilder().setAddress(ipAddress)
                                                      .setReachabilityStatus(AddressReachabilityStatus::Unknown)
                                                      .setType("IPv6")
                                                      .setConnectionString(connectionStringIpv6)
@@ -464,7 +463,7 @@ bool NativeStreamingClientModule::acceptsConnectionParameters(const StringPtr& c
     }
 
     if (config.assigned() &&
-        (pseudoDevicePrefixFound && !validateConnectionConfig(config) || devicePrefixFound && !validateDeviceConfig(config)))
+        ((pseudoDevicePrefixFound && !validateConnectionConfig(config)) || (devicePrefixFound && !validateDeviceConfig(config))))
     {
         LOG_W("Connection string \"{}\" is accepted but config is incomplete", connectionString);
         return false;

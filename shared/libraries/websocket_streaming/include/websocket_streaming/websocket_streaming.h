@@ -22,6 +22,7 @@
     {
 #define END_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING }
 
+#include <cstdint>
 #include <memory>
 
 namespace daq::streaming_protocol

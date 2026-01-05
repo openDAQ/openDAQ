@@ -25,6 +25,7 @@
 #include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
 #include <numeric>
+#include <cctype>
 
 #include "xxhash.h"
 
@@ -38,8 +39,8 @@ struct std::hash<daq::IntfID>
 
     result_type operator()(const argument_type& id) const noexcept
     {
-        return sizeof(std::size_t) == 4 ? XXH32(&id, sizeof(daq::IntfID), Seed)
-                                        : XXH3_64bits_withSeed(&id, sizeof(daq::IntfID), Seed);
+        return sizeof(std::size_t) == 4 ? static_cast<result_type>(XXH32(&id, sizeof(daq::IntfID), Seed))
+                                        : static_cast<result_type>(XXH3_64bits_withSeed(&id, sizeof(daq::IntfID), Seed));
     }
 };
 
@@ -179,27 +180,38 @@ inline std::string ErrorCodeMessage(ErrCode errCode)
     return ss.str();
 }
 
-inline void checkErrorInfo(ErrCode errCode)
+inline std::string getErrorInfoMessage(ErrCode errCode, bool clearErrorInfo = false)
 {
     if (OPENDAQ_SUCCEEDED(errCode))
-        return;
+        return "";
 
     std::string message;
-    daq::IString* errorMessage = nullptr;
+    IString* errorMessage = nullptr;
     ErrCode err = daqGetErrorInfoMessage(&errorMessage);
     if (errorMessage)
     {
         if (err == errCode)
         {
-            daq::ConstCharPtr msgCharPtr = nullptr;
+            ConstCharPtr msgCharPtr = nullptr;
             errorMessage->getCharPtr(&msgCharPtr);
             message = msgCharPtr;
-            daqClearErrorInfo();
+
+            if (clearErrorInfo)
+                daqClearErrorInfo();
         }
+
         errorMessage->releaseRef();
     }
 
-    daq::throwExceptionFromErrorCode(errCode, message);
+    return message;
+}
+
+inline void checkErrorInfo(ErrCode errCode)
+{
+    if (OPENDAQ_SUCCEEDED(errCode))
+        return;
+
+    throwExceptionFromErrorCode(errCode, getErrorInfoMessage(errCode, true));
 }
 
 inline void checkErrorInfoExcept(ErrCode errCode, ErrCode exceptErrCode)

@@ -474,10 +474,38 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
     std::map<SizeT, StreamingPtr> prioritizedStreamingSourcesMap;
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
 
+    // Build a map of discovered addresses by protocol ID for quick lookup
+    std::unordered_map<std::string, ListPtr<IAddressInfo>> discoveredAddressesByProtocol;
+    const auto deviceInfo = device.getInfo();
+    const StringPtr deviceManufacturer = deviceInfo.getManufacturer();
+    const StringPtr deviceSerialNumber = deviceInfo.getSerialNumber();
+    
+    if (deviceManufacturer.assigned() && deviceManufacturer.getLength() > 0 &&
+        deviceSerialNumber.assigned() && deviceSerialNumber.getLength() > 0)
+    {
+        // Try to get discovery info for this device to prioritize real/discovered addresses
+        DeviceInfoPtr discoveryInfo;
+        const auto errCode = managerUtils->getDiscoveryInfo(&discoveryInfo, deviceManufacturer, deviceSerialNumber);
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
+
+        if (discoveryInfo.assigned())
+        {
+            LOG_D("Device {} using discovery info for streaming address prioritization", device.getGlobalId());
+            for (const auto& discoveryCap : discoveryInfo.getServerCapabilities())
+            {
+                if (discoveryCap.getProtocolType() != ProtocolType::Streaming)
+                    continue;
+
+                const StringPtr protocolId = discoveryCap.getPropertyValue("protocolId");
+                discoveredAddressesByProtocol[protocolId] = discoveryCap.getAddressInfo();
+            }
+        }
+    }
+
     // connect via all allowed streaming capabilities which are not connected yet
     for (const auto& cap : device.getInfo().getServerCapabilities())
     {
-        const StringPtr protocolId = cap.getPropertyValue("protocolId");
         if (cap.getProtocolType() != ProtocolType::Streaming)
             continue;
 
@@ -488,6 +516,7 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
               cap.getConnectionString(),
               cap.getPrefix());
 
+        const StringPtr protocolId = cap.getPropertyValue("protocolId");
         if (!allowedProtocolsOnly.empty() && !allowedProtocolsOnly.count(protocolId.toStdString()))
             continue;
 
@@ -496,7 +525,20 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
             continue;
 
         StreamingPtr streaming;
-        const auto streamingAddress = findMatchingAddress(cap.getAddressInfo(), deviceConnectionAddress);
+
+        // Prioritize discovery addresses if available for this protocol
+        ListPtr<IAddressInfo> addressesToUse;
+        if (discoveredAddressesByProtocol.count(protocolId) > 0)
+        {
+            addressesToUse = discoveredAddressesByProtocol[protocolId];
+            LOG_D("Device {} using discovered addresses for protocol {}", device.getGlobalId(), protocolId);
+        }
+        else
+        {
+            addressesToUse = cap.getAddressInfo();
+        }
+
+        const auto streamingAddress = findMatchingAddress(addressesToUse, deviceConnectionAddress);
         StringPtr connectionString = streamingAddress.assigned() ? streamingAddress.getConnectionString() : cap.getConnectionString();
 
         if (!connectionString.assigned())
@@ -513,10 +555,10 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
             continue;
 
         auto errCode = daqTry([&]()
-                              {
-                                  streaming = managerUtils.createStreaming(connectionString, deviceConfig);
-                                  return OPENDAQ_SUCCESS;
-                              });
+        {
+            streaming = managerUtils.createStreaming(connectionString, deviceConfig);
+            return OPENDAQ_SUCCESS;
+        });
         if (OPENDAQ_FAILED(errCode))
             daqClearErrorInfo();
         if (!streaming.assigned())

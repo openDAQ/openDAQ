@@ -543,7 +543,7 @@ namespace daq::Detail
         {
             if (name[i] == '<')
             {
-                index = i;
+                index = static_cast<int>(i);
                 break;
             }
         }

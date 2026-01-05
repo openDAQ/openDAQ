@@ -67,7 +67,7 @@ protected:
             .setTickResolution(Ratio(1, 1000))
             .setOrigin("1970-01-01T00:00:00")
             .setRule(LinearDataRule(1, 0))
-            .setUnit(Unit("s", -1, "second", "time"))
+            .setUnit(Unit("s", -1, "seconds", "time"))
             .build();
         timeSignal.setDescriptor(timeDescriptor);
 
@@ -176,7 +176,7 @@ TEST_F(PowerReaderTest, Simple)
 
     SizeT count = 100;
     reader.readWithDomain(data.data(), time.data(), &count, 10000);
-    ASSERT_EQ(count, 100);
+    ASSERT_EQ(count, 100u);
 
     std::vector<double> expectedData(100);
     std::generate(expectedData.begin(),
@@ -351,7 +351,7 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
 
     SizeT count = 100;
     reader.readWithDomain(data.data(), time.data(), &count, 10000);
-    ASSERT_EQ(count, 100);
+    ASSERT_EQ(count, 100u);
 
     std::vector<double> expectedData(100);
     std::generate(expectedData.begin(),
@@ -391,7 +391,7 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
 
     SizeT count1 = 100;
     reader.readWithDomain(data1.data(), time1.data(), &count1, 10000);
-    ASSERT_EQ(count1, 100);
+    ASSERT_EQ(count1, 100u);
 
     std::vector<double> expectedData1(100);
     std::generate(expectedData1.begin(),
@@ -471,7 +471,7 @@ TEST_F(PowerReaderTest, Gap)
 
     SizeT count = 200;
     reader.readWithDomain(data.data(), time.data(), &count, 10000);
-    ASSERT_EQ(count, 100);
+    ASSERT_EQ(count, 100u);
 
     // to make comparing 100 samples
     data.resize(100);
@@ -731,7 +731,7 @@ TEST_F(PowerReaderTest, StatisticsStatusConnectedSignals)
     fb.getInputPorts()[0].connect(voltageSignal);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
 
-    fb.getInputPorts()[1].connect(timeSignal);
+    fb.getInputPorts()[1].connect(voltageSignal);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
     fb.getInputPorts()[1].disconnect();
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");

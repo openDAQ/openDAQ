@@ -298,7 +298,7 @@ private:
                 for (size_t ii = 0; ii < mockTriggerPackets[i].size(); ii++)
                     *triggerPacketData++ = static_cast<TT>(mockTriggerPackets[i][ii]);
 
-                ASSERT_EQ(fb.getFunctionBlocks().getCount(), 1);
+                ASSERT_EQ(fb.getFunctionBlocks().getCount(), 1u);
                 FunctionBlockPtr triggerFb = fb.getFunctionBlocks()[0];
 
                 // Nested trigger connect signal

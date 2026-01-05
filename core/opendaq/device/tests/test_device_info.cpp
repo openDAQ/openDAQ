@@ -52,8 +52,9 @@ TEST_F(DeviceInfoTest, DefaultValues)
     ASSERT_FALSE(deviceInfo.getDeviceType().assigned());
     ASSERT_EQ(deviceInfo.getNetworkInterfaces().getCount(), 0u);
     ASSERT_EQ(deviceInfo.getConnectedClientsInfo().getCount(), 0u);
+    ASSERT_FALSE(deviceInfo.getPropertyValue("hidden"));
 
-    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 27u);
+    ASSERT_EQ(deviceInfo.getAllProperties().getCount(), 28u);
 }
 
 TEST_F(DeviceInfoTest, SetGetProperties)
@@ -201,7 +202,7 @@ TEST_F(DeviceInfoTest, CustomProperties)
     ASSERT_NO_THROW(info.addProperty(FloatProperty("Height", 172.4)));
     ASSERT_NO_THROW(info.addProperty(BoolProperty("IsAsleep", true)));
 
-    ASSERT_EQ(info.getCustomInfoPropertyNames().getCount(), 4u);
+    ASSERT_EQ(info.getCustomInfoPropertyNames().getCount(), 5u);
 }
 
 TEST_F(DeviceInfoTest, SerializeDeserialize)

@@ -1,4 +1,4 @@
-#include <testutils/bb_memcheck_listener.h>
+#include <testutils/daq_memcheck_listener.h>
 #include <coreobjects/util.h>
 #include <opendaq/module_manager_init.h>
 #include <opendaq/opendaq_init.h>

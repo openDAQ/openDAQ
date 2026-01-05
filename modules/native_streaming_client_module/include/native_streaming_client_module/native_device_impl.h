@@ -81,7 +81,7 @@ private:
     LoggerComponentPtr loggerComponent;
     std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
-    std::unordered_map<size_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
+    std::unordered_map<uint64_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
     WeakRefPtr<IDevice> deviceRef;
     EnumerationPtr connectionStatus;
     bool acceptNotificationPackets;
@@ -120,9 +120,6 @@ public:
     void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage) override;
     void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) override;
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
-
-    // ISerializable
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;

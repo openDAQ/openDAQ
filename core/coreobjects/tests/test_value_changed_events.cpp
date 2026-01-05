@@ -260,8 +260,8 @@ TEST_F(PropertyValueChangedEventsTest, PropertyEventClassGetter)
     PropertyPtr prop = StringProperty("str", "test");
     prop.getOnPropertyValueWrite() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) {};
     prop.getOnPropertyValueRead() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) {};
-    ASSERT_EQ(prop.getOnPropertyValueWrite().getListenerCount(), 1);
-    ASSERT_EQ(prop.getOnPropertyValueRead().getListenerCount(), 1);
+    ASSERT_EQ(prop.getOnPropertyValueWrite().getListenerCount(), 1u);
+    ASSERT_EQ(prop.getOnPropertyValueRead().getListenerCount(), 1u);
 
     const auto propClass = PropertyObjectClassBuilder("test").addProperty(prop).build();
     const auto manager = TypeManager();
@@ -275,29 +275,29 @@ TEST_F(PropertyValueChangedEventsTest, PropertyEventClassGetter)
     obj1.getProperty("str").getOnPropertyValueWrite() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) {};
     obj1.getProperty("str").getOnPropertyValueRead() += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) {};
     
-    ASSERT_EQ(propClass.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1);
-    ASSERT_EQ(propClass.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1);
+    ASSERT_EQ(propClass.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1u);
+    ASSERT_EQ(propClass.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1u);
 
-    ASSERT_EQ(propClass.getProperty("str").getOnPropertyValueRead().getListenerCount(), 1);
-    ASSERT_EQ(propClass.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 1);
+    ASSERT_EQ(propClass.getProperty("str").getOnPropertyValueRead().getListenerCount(), 1u);
+    ASSERT_EQ(propClass.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 1u);
 
-    ASSERT_EQ(obj1.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1);
-    ASSERT_EQ(obj1.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1);
+    ASSERT_EQ(obj1.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1u);
+    ASSERT_EQ(obj1.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1u);
     
-    ASSERT_EQ(obj1.getProperty("str").getOnPropertyValueRead().getListenerCount(), 1);
-    ASSERT_EQ(obj1.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 1);
+    ASSERT_EQ(obj1.getProperty("str").getOnPropertyValueRead().getListenerCount(), 1u);
+    ASSERT_EQ(obj1.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 1u);
     
-    ASSERT_EQ(obj2.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1);
-    ASSERT_EQ(obj2.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1);
+    ASSERT_EQ(obj2.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1u);
+    ASSERT_EQ(obj2.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1u);
     
-    ASSERT_EQ(obj2.getProperty("str").getOnPropertyValueRead().getListenerCount(), 0);
-    ASSERT_EQ(obj2.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 0);
+    ASSERT_EQ(obj2.getProperty("str").getOnPropertyValueRead().getListenerCount(), 0u);
+    ASSERT_EQ(obj2.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 0u);
 
-    ASSERT_EQ(obj3.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1);
-    ASSERT_EQ(obj3.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1);
+    ASSERT_EQ(obj3.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueRead().getListenerCount(), 1u);
+    ASSERT_EQ(obj3.getProperty("str").asPtr<IPropertyInternal>().getClassOnPropertyValueWrite().getListenerCount(), 1u);
     
-    ASSERT_EQ(obj3.getProperty("str").getOnPropertyValueRead().getListenerCount(), 1);
-    ASSERT_EQ(obj3.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 1);
+    ASSERT_EQ(obj3.getProperty("str").getOnPropertyValueRead().getListenerCount(), 1u);
+    ASSERT_EQ(obj3.getProperty("str").getOnPropertyValueWrite().getListenerCount(), 1u);
 }
 
 

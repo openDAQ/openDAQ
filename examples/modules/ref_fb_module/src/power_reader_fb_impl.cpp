@@ -15,14 +15,17 @@
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/reader_config_ptr.h>
+#include <opendaq/component_type_private.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
-
 namespace PowerReader
 {
 
-PowerReaderFbImpl::PowerReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlock(CreateType(), ctx, parent, localId)
+PowerReaderFbImpl::PowerReaderFbImpl(const ModuleInfoPtr& moduleInfo,
+                                     const ContextPtr& ctx,
+                                     const ComponentPtr& parent,
+                                     const StringPtr& localId)
+    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
 {
     initComponentStatus();
     createInputPorts();
@@ -96,9 +99,11 @@ void PowerReaderFbImpl::readProperties()
     tickOffsetToleranceUs = std::chrono::milliseconds(objPtr.getPropertyValue("TickOffsetToleranceUs"));
 }
 
-FunctionBlockTypePtr PowerReaderFbImpl::CreateType()
+FunctionBlockTypePtr PowerReaderFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
 {
-    return FunctionBlockType("RefFBModulePowerReader", "Power with reader", "Calculates power using multi reader");
+    auto fbType = FunctionBlockType("RefFBModulePowerReader", "Power with reader", "Calculates power using multi reader");
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 bool PowerReaderFbImpl::descriptorNotNull(const DataDescriptorPtr& descriptor)
@@ -226,7 +231,7 @@ RangePtr PowerReaderFbImpl::getValueRange(const DataDescriptorPtr& voltageDataDe
     const auto voltageRange = voltageDataDescriptor.getValueRange();
     const auto currentRange = currentDataDescriptor.getValueRange();
     if (!voltageRange.assigned() || !currentRange.assigned())
-        return nullptr;
+        return powerRange;
 
     const Float voltageHigh = voltageRange.getHighValue();
     const Float voltageLow = voltageRange.getLowValue();
@@ -278,7 +283,6 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         const auto powerDataDescriptorBuilder =
             DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("W", -1, "watt", "power"));
 
-        RangePtr powerRange;
         if (useCustomOutputRange)
             powerRange = Range(powerLowValue, powerHighValue);
         else

@@ -7,6 +7,8 @@ set(TEST_SOURCES test_ref_fb_module.cpp
                  test_fb_statistics.cpp
                  test_fb_power_reader.cpp
                  test_fb_struct_decoder.cpp
+                 test_fb_time_delay.cpp
+                 test_fb_sum.cpp
 )
 
 add_executable(${TEST_APP} ${TEST_SOURCES}

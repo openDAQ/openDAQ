@@ -15,17 +15,25 @@
  */
 
 #pragma once
-#include <testutils/memcheck_listener.h>
-#include <gtest/gtest.h>
+#include <opendaq/module_impl.h>
+#include <opendaq/module_authenticator_impl.h>
+#include <opendaq/context.h>
+#include <opendaq/logger.h>
+#include <opendaq/logger_component.h>
+#include <filesystem>
 
-class DaqMemCheckListener : public MemCheckListener
+
+BEGIN_NAMESPACE_OPENDAQ
+
+class ModuleAuthenticatorImplExample : public ModuleAuthenticator
 {
-protected:
-    void OnTestStart(const testing::TestInfo& info) override;
-    void OnTestEnd(const testing::TestInfo& info) override;
+public:
+    explicit ModuleAuthenticatorImplExample(const StringPtr& certsPath);
+
+    Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath) override final;
 
 private:
-#ifndef NDEBUG
-    size_t objCount = 0;
-#endif
+    std::filesystem::path certsPath;
 };
+
+END_NAMESPACE_OPENDAQ

@@ -396,6 +396,15 @@ void NativeStreamingClientImpl::sendAvailableStreamingPackets()
     }
 }
 
+void NativeStreamingClientImpl::downgradePacketStreamingServer(Int jsonSerializerVersion)
+{
+    packetStreamingServerPtr =
+        std::make_shared<packet_streaming::PacketStreamingServer>(packet_streaming::PACKET_ZERO_PAYLOAD_SIZE,
+                                                                  packet_streaming::PACKET_RELEASE_THRESHOLD_DEFAULT,
+                                                                  false,
+                                                                  jsonSerializerVersion);
+}
+
 void NativeStreamingClientImpl::onSessionError(const std::string& errorMessage, SessionPtr session)
 {
     LOG_W("Closing connection caused by: {}", errorMessage);
@@ -516,7 +525,6 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
     };
     sessionHandler->setPacketBufferReceivedHandler(packetBufferReceivedHandler);
 
-    // FIXME keep and reuse packet server when packet retransmission feature will be enabled
     packetStreamingServerPtr =
         std::make_shared<packet_streaming::PacketStreamingServer>(packet_streaming::PACKET_ZERO_PAYLOAD_SIZE,
                                                                   packet_streaming::PACKET_RELEASE_THRESHOLD_DEFAULT,
@@ -687,6 +695,11 @@ void NativeStreamingClientHandler::sendStreamingRequest()
 void NativeStreamingClientHandler::sendStreamingPacket(SignalNumericIdType signalNumericId, PacketPtr&& packet)
 {
     clientHandlerPtr->sendOneStreamingPacket(signalNumericId, std::move(packet));
+}
+
+void NativeStreamingClientHandler::downgradePacketStreamingServer(Int jsonSerializerVersion)
+{
+    clientHandlerPtr->downgradePacketStreamingServer(jsonSerializerVersion);
 }
 
 std::shared_ptr<boost::asio::io_context> NativeStreamingClientHandler::getIoContext()

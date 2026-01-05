@@ -33,10 +33,10 @@ constexpr size_t maxSampleReadCount = 100000;
 class FFTFbImpl final : public FunctionBlock
 {
 public:
-    explicit FFTFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit FFTFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~FFTFbImpl() override;
 
-    static FunctionBlockTypePtr CreateType();
+    static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
 
 private:
     InputPortPtr inputPort;

@@ -16,6 +16,7 @@
 
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/discovery_server_factory.h>
+#include <opendaq/option_helpers.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -141,6 +142,10 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
         moduleManager->setAuthenticatedOnly(loadAuthenticatedModulesOnly);
         moduleManager->setModuleAuthenticator(moduleAuthenticator);
+        if (moduleAuthenticator != nullptr)
+        {
+            moduleAuthenticator->setLogger(logger);
+        }
 
         builderPtr->setModuleManager(moduleManager);
     }
@@ -589,7 +594,8 @@ ErrCode InstanceImpl::saveConfiguration(IString** configuration)
 
     const ErrCode errCode = daqTry([this, &configuration]()
     {
-        auto serializer = JsonSerializer(True);
+        const auto prettyPrint = getPrettyPrintOnSaveConfig(this->context.getOptions());
+        auto serializer = JsonSerializer(prettyPrint);
 
         const ErrCode errCode = this->serializeForUpdate(serializer);
         OPENDAQ_RETURN_IF_FAILED(errCode);

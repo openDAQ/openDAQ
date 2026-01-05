@@ -2,15 +2,41 @@ set_cmake_folder_context(TARGET_FOLDER_NAME)
 
 if (MSVC)
     add_compile_options(/wd4100)
+
+    # loss of data / precision, unsigned <--> signed
+    #
+    # 'argument' : conversion from 'type1' to 'type2', possible loss of data
+    # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4244
+    add_compile_options(/wd4244)
+
+    # 'var' : conversion from 'size_t' to 'type', possible loss of data
+    # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4267
+    add_compile_options(/wd4267)
 endif()
 
 if (POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
-if (DAQMODULES_LICENSING_MODULE)
-		message(STATUS "    - Reference licensing implementation module")
-        add_subdirectory(licensing_module)
+if (DAQMODULES_LICENSING_MODULE AND NOT APPLE)
+	message(STATUS "    - Reference licensing implementation module")
+	set(LICENSING_MODULE_REQUIREMENTS_MET ON)
+	if(LINUX)
+		find_package(PkgConfig QUIET)
+		if(NOT PKGCONFIG_FOUND)
+			message("Cannot build licensing example, PkgConfig not found!")
+			set(LICENSING_MODULE_REQUIREMENTS_MET OFF)
+		else()
+			pkg_check_modules(GPGME QUIET gpgme)
+			if(NOT GPGME_FOUND)
+				message("Cannot build licensing example, GPGme not found!")
+				set(LICENSING_MODULE_REQUIREMENTS_MET OFF)
+			endif()
+		endif()
+	endif()
+	if(LICENSING_MODULE_REQUIREMENTS_MET)
+		add_subdirectory(licensing_module)
+	endif()
 endif()
 
 if (DAQSIMULATOR_ENABLE_SIMULATOR_APP)

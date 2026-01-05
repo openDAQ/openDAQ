@@ -196,7 +196,7 @@ public:
             OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
 
         if (externalListener.assigned() && externalListener.getRef().assigned())
-            return externalListener.getRef()->disconnected(port);
+            return externalListener.getRef()->packetReceived(port);
 
         return OPENDAQ_SUCCESS;
     }
@@ -237,6 +237,16 @@ public:
 
         return OPENDAQ_SUCCESS;
     }
+
+    ErrCode INTERFACE_FUNC getIsValid(Bool* isValid) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(isValid);
+
+        std::scoped_lock lock(mutex);
+        *isValid = !invalid;
+        return OPENDAQ_SUCCESS;
+    }
+
 
     // ISampleReader
 

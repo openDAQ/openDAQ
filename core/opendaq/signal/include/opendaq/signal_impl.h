@@ -1121,13 +1121,18 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
             const auto domainSignalGlobalId = domainSignalObj.getGlobalId();
             serializer.writeString(domainSignalGlobalId);
         }
-    }
 
-    const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
-    if (dataDescriptorObj.assigned())
-    {
-        serializer.key("dataDescriptor");
-        dataDescriptorObj.serialize(serializer);
+        const DataDescriptorPtr dataDescriptorObj = onGetDescriptor();
+        if (dataDescriptorObj.assigned())
+        {
+            serializer.key("dataDescriptor");
+            dataDescriptorObj.serialize(serializer);
+        }
+
+        StringPtr ownerId;
+        checkErrorInfo(getSignalSerializeId(&ownerId));
+        serializer.key("OwnerSignalGlobalId");
+        serializer.writeString(ownerId);
     }
 
     serializer.key("public");
@@ -1198,8 +1203,8 @@ BaseObjectPtr SignalBase<TInterface, Interfaces...>::getDeserializedParameter(co
 
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
-                                                                    const BaseObjectPtr& context,
-                                                                    const FunctionPtr& factoryCallback)
+                                                                          const BaseObjectPtr& context,
+                                                                          const FunctionPtr& factoryCallback)
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
     if (serializedObject.hasKey("domainSignalId"))
@@ -1247,7 +1252,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::enableKeepLastValue(Bool enabled)
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
 {
-    keepLastPacket = keepLastValue && isPublic && this->visible;
+    keepLastPacket = keepLastValue && isPublic;
 
     if (!keepLastPacket)
     {

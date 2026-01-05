@@ -59,12 +59,4 @@ DECLARE_OPENDAQ_INTERFACE(IPermissionManager, IBaseObject)
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionManager, IPermissionManager*, parent)
 
-/*!
- * @brief Creates a permission manager which never restricts any access to any object.
- */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(LIBRARY_FACTORY,
-                                                            DisabledPermissionManager,
-                                                            IPermissionManager,
-                                                            createDisabledPermissionManager)
-
 END_NAMESPACE_OPENDAQ

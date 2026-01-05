@@ -34,6 +34,14 @@
             }
         },
         {
+            "name": "intel-llvm",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "icx",
+                "CMAKE_CXX_COMPILER": "icpx"
+            }
+        },
+        {
             "name": "ninja",
             "hidden": true,
             "generator": "Ninja"
@@ -104,6 +112,7 @@
                 "DAQMODULES_REF_FB_MODULE": true,
                 "DAQMODULES_AUDIO_DEVICE_MODULE": true,
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": true,
+                "DAQMODULES_LICENSING_MODULE": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
                 "APP_ENABLE_WEBPAGE_EXAMPLES": true,
                 "OPENDAQ_DOCUMENTATION_TESTS": true,
@@ -195,7 +204,7 @@
         {
             "name": "full/debug",
             "hidden": true,
-            "displayName": "Full - Release",
+            "displayName": "Full - Debug",
             "inherits": [
                 "debug",
                 "full"
@@ -270,6 +279,24 @@
             "inherits": [
                 "full/release",
                 "clang",
+                "ninja"
+            ]
+        },
+        {
+            "name": "x64/intel-llvm/full/debug",
+            "displayName": "[IntelLLVM] Full - Debug",
+            "inherits": [
+                "full/debug",
+                "intel-llvm",
+                "ninja"
+            ]
+        },
+        {
+            "name": "x64/intel-llvm/full/release",
+            "displayName": "[IntelLLVM] Full - Release",
+            "inherits": [
+                "full/release",
+                "intel-llvm",
                 "ninja"
             ]
         }

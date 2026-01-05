@@ -8,12 +8,18 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+
 namespace detail
 {
-    static const auto DefaultPermissions = PermissionsBuilder().inherit(true).build();
+    static const auto DefaultPermissions = []()
+    {
+        daqDisableObjectTracking();
+        auto permissions = PermissionsBuilder().inherit(true).build();
+        daqEnableObjectTracking();
+        return permissions;
+    }();
 }
-
-// PermissionManagerImpl
 
 PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& parent)
     : permissions(detail::DefaultPermissions)
@@ -165,63 +171,62 @@ PermissionManagerInternalPtr PermissionManagerImpl::getParentManager()
     return nullptr;
 }
 
-// DisabledPermissionManagerImpl
+#else
 
-DisabledPermissionManagerImpl::DisabledPermissionManagerImpl()
+// permission manager which never restricts any access to any object.
+
+PermissionManagerImpl::PermissionManagerImpl(const PermissionManagerPtr& /*parent*/)
 {
 }
 
-ErrCode DisabledPermissionManagerImpl::setPermissions(IPermissions* /*permissions*/)
+ErrCode PermissionManagerImpl::setPermissions(IPermissions* /*permissions*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::isAuthorized(IUser* /*user*/, Permission /*permission*/, Bool* authorizedOut)
+ErrCode PermissionManagerImpl::isAuthorized(IUser* /*user*/, Permission /*permission*/, Bool* authorizedOut)
 {
     OPENDAQ_PARAM_NOT_NULL(authorizedOut);
     *authorizedOut = true;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::clone(IBaseObject** cloneOut)
+ErrCode PermissionManagerImpl::clone(IBaseObject** cloneOut)
 {
-    auto manager = DisabledPermissionManager();
+    auto manager = PermissionManager();
     *cloneOut = manager.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::setParent(IPermissionManager* /*parentManager*/)
+ErrCode PermissionManagerImpl::setParent(IPermissionManager* /*parentManager*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::addChildManager(IPermissionManager* /*childManager*/)
+ErrCode PermissionManagerImpl::addChildManager(IPermissionManager* /*childManager*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::removeChildManager(IPermissionManager* /*childManager*/)
+ErrCode PermissionManagerImpl::removeChildManager(IPermissionManager* /*childManager*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::getPermissions(IPermissions** /*permisisonConfigOut*/)
+ErrCode PermissionManagerImpl::getPermissions(IPermissions** /*permisisonConfigOut*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DisabledPermissionManagerImpl::updateInheritedPermissions()
+ErrCode PermissionManagerImpl::updateInheritedPermissions()
 {
     return OPENDAQ_SUCCESS;
 }
+
+#endif
 
 // Factories
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, PermissionManager, IPermissionManager*, parent)
-
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
-                                                               DisabledPermissionManagerImpl,
-                                                               IPermissionManager,
-                                                               createDisabledPermissionManager)
 
 END_NAMESPACE_OPENDAQ

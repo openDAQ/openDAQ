@@ -34,6 +34,7 @@
 #include <opendaq/mirrored_device.h>
 #include <set>
 #include <cctype>
+#include <coretypes/coretype_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -203,14 +204,6 @@ namespace deviceInfoDetails
     };
 }
 
-inline std::string ToLowerCase(const std::string &input) 
-{
-    std::string result = input;
-    std::transform(result.begin(), result.end(), result.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    return result;
-}
-
 template <typename TInterface, typename ... Interfaces>
 DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     : Super()
@@ -225,6 +218,7 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     Super::addProperty(ObjectPropertyBuilder("serverCapabilities", PropertyObject()).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("activeClientConnections", PropertyObject()).setReadOnly(true).build());
+    Super::addProperty(BoolPropertyBuilder("hidden", false).setVisible(false).build());
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -237,7 +231,10 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(const Stri
     if (changeableDefaultPropertyNames.assigned())
     {
         for (const auto& propName : changeableDefaultPropertyNames)
-            this->changeableDefaultPropertyNames.insert(ToLowerCase(propName));
+        {
+            std::string propNameStr = propName.toStdString();
+            this->changeableDefaultPropertyNames.insert(coretype_utils::toLowerCase(propNameStr));
+        }
     }
 
     createAndSetStringProperty("manufacturer", "");
@@ -825,7 +822,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::Deserialize(ISerialized
 template <typename TInterface, typename ... Interfaces>
 bool DeviceInfoConfigImpl<TInterface, Interfaces...>::isPropertyChangeable(const StringPtr& propertyName)
 {
-    return changeableDefaultPropertyNames.count(ToLowerCase(propertyName)) == 1;
+    std::string propNameStr = propertyName.toStdString();
+    return changeableDefaultPropertyNames.count(coretype_utils::toLowerCase(propNameStr)) == 1;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1204,7 +1202,16 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     if (!coreEvent.assigned())
     {
         parent.getContext()->getOnCoreEvent(&coreEvent);
-        ProcedurePtr procedure = [this](const CoreEventArgsPtr& args) { this->triggerCoreEventMethod(args); };
+
+        auto thisWeakRef = this->template getWeakRefInternal<IDeviceInfoConfig>();
+        ProcedurePtr procedure = [this, thisWeakRef](const CoreEventArgsPtr& args)
+        {
+            const auto thisRef = thisWeakRef.getRef();
+            if (!thisRef.assigned())
+                return;
+            this->triggerCoreEventMethod(args);
+        };
+
         this->setCoreEventTrigger(procedure);
         this->enableCoreEventTrigger(); // enables core event trigger for nested property objects
     }

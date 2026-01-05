@@ -41,7 +41,7 @@ inline DataPacketPtr DataPacket(const DataDescriptorPtr& descriptor,
                                 uint64_t sampleCount,
                                 const NumberPtr& offset = nullptr)
 {
-    DataPacketPtr obj(DataPacket_Create(descriptor, sampleCount, offset));
+    DataPacketPtr obj(DataPacket_Create(descriptor, static_cast<SizeT>(sampleCount), offset));
     return obj;
 }
 
@@ -59,7 +59,7 @@ inline DataPacketPtr DataPacketWithDomain(const DataPacketPtr& domainPacket,
                                           uint64_t sampleCount,
                                           NumberPtr offset = nullptr)
 {
-    DataPacketPtr obj(DataPacketWithDomain_Create(domainPacket, descriptor, sampleCount, offset));
+    DataPacketPtr obj(DataPacketWithDomain_Create(domainPacket, descriptor, static_cast<SizeT>(sampleCount), offset));
     return obj;
 }
 
@@ -95,7 +95,7 @@ DataPacketPtr ConstantDataPacketWithDomain(const DataPacketPtr& domainPacket,
     DataPacketPtr obj(ConstantDataPacketWithDomain_Create(
         domainPacket,
         descriptor,
-        sampleCount,
+        static_cast<SizeT>(sampleCount),
         reinterpret_cast<void*>(&initialValue),
         reinterpret_cast<void*>(const_cast<ConstantPosAndValue<T>*>(otherValues.data())),
         otherValues.size()));
@@ -126,7 +126,7 @@ inline DataPacketPtr DataPacketWithExternalMemory(const DataPacketPtr& domainPac
 {
     DataPacketPtr obj(DataPacketWithExternalMemory_Create(domainPacket,
                                                           descriptor,
-                                                          sampleCount,
+                                                          static_cast<SizeT>(sampleCount),
                                                           offset,
                                                           data,
                                                           deleter,

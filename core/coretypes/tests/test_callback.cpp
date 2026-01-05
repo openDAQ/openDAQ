@@ -91,7 +91,7 @@ static void testingP0()
 
 static void testingP1(Int val)
 {
-    globalValue = val;
+    globalValue = static_cast<Float>(val);
 }
 
 [[maybe_unused]] static ErrCode testingP1E(Int /*val*/)

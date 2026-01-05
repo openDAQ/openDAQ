@@ -414,8 +414,8 @@ TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
     // check that the client side has the same sync component
     SyncComponentPtr clientSyncComponent = clientDevice.getSyncComponent();
     ASSERT_EQ(clientSyncComponent.getSelectedSource(), 1);
-    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2);
-    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2);
+    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2u);
+    ASSERT_EQ(clientSyncComponent.getInterfaces().getCount(), 2u);
     ASSERT_EQ(clientSyncComponent.getInterfaces().getKeyList(), syncComponent.getInterfaces().getKeyList());
     ASSERT_EQ(clientSyncComponent.getSyncLocked(), true);
 

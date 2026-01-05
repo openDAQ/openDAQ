@@ -11,6 +11,15 @@
  * with this software. If not, see
  * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
+
+/*
+ * <martin.kraner@dewesoft.com>
+ * Modified to:
+ * - fix BCRYPT_HASHSIZE redefinition warning
+ * - fix unused variable warning
+ * - gate clang pragmas under and #ifdef
+*/
+
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -22,26 +31,28 @@
 #endif
 #include <errno.h>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wimplicit-function-declaration"
+#if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wimplicit-function-declaration"
+#endif
 
 #if defined(_WIN32) || defined(_WIN64)
-// On windows we need to generate random bytes differently.
-#if defined(_WIN32) && !defined(_WIN64)
-typedef __int32 ssize_t;
-#elif defined(_WIN32) && defined(_WIN64)
-typedef __int64 ssize_t;
-#endif
-#define BCRYPT_HASHSIZE 60
+    // On windows we need to generate random bytes differently.
+    #if defined(_WIN32) && !defined(_WIN64)
+        typedef __int32 ssize_t;
+    #elif defined(_WIN32) && defined(_WIN64)
+        typedef __int64 ssize_t;
+    #endif
 
-#include "../include/bcrypt/bcrypt.h"
-#include "../include/bcrypt/ow-crypt.h"
+    #include "../include/bcrypt/bcrypt.h"
+    #include "../include/bcrypt/ow-crypt.h"
 
-#include <windows.h>
-#include <wincrypt.h> /* CryptAcquireContext, CryptGenRandom */
+    #include <windows.h>
+    #include <io.h>
+    #include <wincrypt.h> /* CryptAcquireContext, CryptGenRandom */
 #else
-#include "bcrypt.h"
-#include "ow-crypt.h"
+    #include "bcrypt.h"
+    #include "ow-crypt.h"
 #endif
 
 #define RANDBYTES (16)
@@ -119,7 +130,6 @@ static int timing_safe_strcmp(const char *str1, const char *str2)
 
 int bcrypt_gensalt(int factor, char salt[BCRYPT_HASHSIZE])
 {
-	int fd;
 	char input[RANDBYTES];
 	int workf;
 	char *aux;
@@ -127,7 +137,6 @@ int bcrypt_gensalt(int factor, char salt[BCRYPT_HASHSIZE])
 	// Note: Windows does not have /dev/urandom sadly.
 #if defined(_WIN32) || defined(_WIN64)
 	HCRYPTPROV p;
-	ULONG     i;
 
 	// Acquire a crypt context for generating random bytes.
 	if (CryptAcquireContext(&p, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT) == FALSE) {
@@ -143,6 +152,7 @@ int bcrypt_gensalt(int factor, char salt[BCRYPT_HASHSIZE])
 	}
 #else
 	// Get random bytes on Unix/Linux.
+    int fd;
 	fd = open("/dev/urandom", O_RDONLY);
 	if (fd == -1)
 		return 1;
@@ -237,4 +247,6 @@ int main(void)
 }
 #endif
 
-#pragma clang diagnostic pop
+#if defined(__clang__)
+    #pragma clang diagnostic pop
+#endif

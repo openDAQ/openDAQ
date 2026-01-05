@@ -20,49 +20,41 @@
 #include <opendaq/channel_ptr.h>
 #include <opendaq/device_impl.h>
 #include <miniaudio/miniaudio.h>
-#include <opendaq/signal_config_ptr.h>
-#include <opendaq/logger_ptr.h>
-#include <opendaq/logger_component_ptr.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 class AudioDeviceImpl final : public Device
 {
 public:
-    explicit AudioDeviceImpl(const std::shared_ptr<MiniaudioContext>& maContext, const ma_device_id& id, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
+    explicit AudioDeviceImpl(const std::shared_ptr<ma_utils::MiniaudioContext>& maContext,
+                             const ma_device_id& id,
+                             const ContextPtr& ctx,
+                             const ComponentPtr& parent,
+                             const StringPtr& localId);
     ~AudioDeviceImpl() override;
-
-    static DeviceInfoPtr CreateDeviceInfo(const std::shared_ptr<MiniaudioContext>& maContext, const ma_device_info& deviceInfo);
-    static ma_device_id getIdFromConnectionString(std::string connectionString);
-    static std::string getConnectionStringFromId(ma_backend backend, ma_device_id id);
+    
     static DeviceTypePtr createType();
+    static DeviceInfoPtr CreateDeviceInfo(const std::shared_ptr<ma_utils::MiniaudioContext>& maContext, const ma_device_info& deviceInfo);
 
-    // IDevice
-    DeviceInfoPtr onGetInfo() override;
+protected:
     uint64_t onGetTicksSinceOrigin() override;
 
-    void addData(const void* data, size_t sampleCount);
-
 private:
-    ChannelPtr channel;
     ma_device maDevice;
     ma_device_id maId;
-    std::shared_ptr<MiniaudioContext> maContext;
+    std::shared_ptr<ma_utils::MiniaudioContext> maContext;
+    
+    ChannelPtr channel;
     bool started;
-    SignalConfigPtr timeSignal;
     uint32_t sampleRate;
-    Int samplesCaptured;
-    LoggerPtr logger;
-    LoggerComponentPtr loggerComponent;
 
     void initProperties();
+    void createAudioChannel();
+    void setDeviceInfo();
+    
+    void sampleRateChanged(uint32_t sampleRate);
     void start();
     void stop();
-    void readProperties();
-    void createAudioChannel();
-    void propertyChanged();
-    void configureTimeSignal();
-    void configure();
 };
 
 END_NAMESPACE_AUDIO_DEVICE_MODULE

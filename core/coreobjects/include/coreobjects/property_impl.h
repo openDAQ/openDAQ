@@ -323,7 +323,7 @@ public:
 
         *type = ctUndefined;
         BaseObjectPtr defVal;
-        auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
+        auto err = this->getDefaultValueInternal(&defVal, lock);
         OPENDAQ_RETURN_IF_FAILED(err);
 
         if (!defVal.assigned())
@@ -366,11 +366,11 @@ public:
             *type = ctUndefined;
 
             BaseObjectPtr defVal;
-            auto err = lock ? this->getDefaultValue(&defVal) : this->getDefaultValueNoLock(&defVal);
+            auto err = this->getDefaultValueInternal(&defVal, lock);
             OPENDAQ_RETURN_IF_FAILED(err);
 
             BaseObjectPtr selVal;
-            err = lock ? this->getSelectionValues(&selVal) : this->getSelectionValuesNoLock(&selVal);
+            err = this->getSelectionValuesInternal(&selVal, lock);
             OPENDAQ_RETURN_IF_FAILED(err);
 
             BaseObjectPtr value = defVal;
@@ -1046,7 +1046,7 @@ public:
         if (refProp.assigned())
         {
             bool valid = valueType == ctUndefined;
-            valid = valid && !description.assigned() || description == "";
+            valid = (valid && !description.assigned()) || description == "";
             valid = valid && !readOnly;
             valid = valid && !selectionValues.assigned() && !suggestedValues.assigned();
             valid = valid && !coercer.assigned() && !validator.assigned();

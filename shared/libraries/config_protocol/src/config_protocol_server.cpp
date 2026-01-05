@@ -286,8 +286,16 @@ PacketBuffer ConfigProtocolServer::processPacketAndGetReply(const PacketBuffer& 
                 const auto jsonRequest = packetBuffer.parseRpcRequestOrReply();
                 const auto jsonReply = processRpcAndGetReply(jsonRequest);
 
-                auto reply = PacketBuffer::createRpcRequestOrReply(requestId, jsonReply.getCharPtr(), jsonReply.getLength());
-                return reply;
+                try
+                {
+                    auto reply = PacketBuffer::createRpcRequestOrReply(requestId, jsonReply.getCharPtr(), jsonReply.getLength());
+                    return reply;
+                }
+                catch (const std::exception& e)
+                {
+                    const auto errorReply = prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), this->serializer);
+                    return PacketBuffer::createRpcRequestOrReply(requestId, errorReply.getCharPtr(), errorReply.getLength());
+                }
             }
         default:
             auto reply = PacketBuffer::createInvalidRequestReply(requestId);

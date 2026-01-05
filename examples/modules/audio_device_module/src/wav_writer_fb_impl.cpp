@@ -1,12 +1,13 @@
 #include <audio_device_module/wav_writer_fb_impl.h>
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/function_block_type_factory.h>
 #include <cstdint>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
 WAVWriterFbImpl::WAVWriterFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
-    : FunctionBlockImpl<IFunctionBlock, IRecorder>(CreateType(), ctx, parent, localId, nullptr)
+    : FunctionBlockImpl(CreateType(), ctx, parent, localId, nullptr)
     , recording(false)   
 {
     createInputPort();
@@ -15,11 +16,7 @@ WAVWriterFbImpl::WAVWriterFbImpl(const ContextPtr& ctx, const ComponentPtr& pare
 
 FunctionBlockTypePtr WAVWriterFbImpl::CreateType()
 {
-    return FunctionBlockType(
-        "AudioDeviceModuleWavWriter",
-        "WAVWriter",
-        "Writes input signals to WAV files"
-    );
+    return FunctionBlockType("AudioDeviceModuleWavWriter", "WAVWriter","Writes input signals to WAV files");
 }
 
 ErrCode WAVWriterFbImpl::startRecording()

@@ -16,34 +16,34 @@
 
 #pragma once
 #include <opendaq/signal_ptr.h>
-#include <opcuatms_server/objects/tms_server_component.h>
-#include <opcuatms_server/objects/tms_server_analog_value.h>
-#include <opcuatms_server/objects/tms_server_value.h>
+#include <opcuatms_server/objects/tms_server_variable.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
-class TmsServerSignal;
-using TmsServerSignalPtr = std::shared_ptr<TmsServerSignal>;
+// TmsServerValue
 
-class TmsServerSignal : public TmsServerComponent<SignalPtr>
+class TmsServerValue;
+using TmsServerValuePtr = std::shared_ptr<TmsServerValue>;
+
+class TmsServerValue : public TmsServerVariable<BaseObjectPtr>
 {
 public:
-    using Super = TmsServerComponent<SignalPtr>;
+    using Super = TmsServerVariable<BaseObjectPtr>;
 
-    TmsServerSignal(const SignalPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
+    TmsServerValue(const SignalPtr& signal, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
+    std::string getBrowseName() override;
 
-    opcua::OpcUaNodeId getReferenceType() override;
-    void addChildNodes() override;
-    void onCoreEvent(const CoreEventArgsPtr& args) override;
-
-    void createNonhierarchicalReferences() override;
+    static opcua::OpcUaNodeId SampleTypeToOpcUaDataType(SampleType sampleType);
 
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
+    opcua::OpcUaNodeId getDataTypeId() override;
+    void addChildNodes() override;
+    void bindCallbacks() override;
 
 private:
-    TmsServerValuePtr valueServer;
-    TmsServerAnalogValuePtr analogValueServer;
+    SignalPtr signal;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS
+

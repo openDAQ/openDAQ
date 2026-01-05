@@ -17,7 +17,6 @@
 #pragma once
 
 #include "opcuacommon.h"
-#include <mutex>
 #include <cstring>
 #include <opcuashared/opcuanodeid.h>
 
@@ -45,13 +44,14 @@ namespace VariantUtils
         if (value.type == expectedType)
             return true;
 
+#ifdef __APPLE__
         if (value.type != nullptr && value.type->typeKind == expectedType->typeKind)
         {
             if (value.type->typeName != nullptr && expectedType->typeName != nullptr)
                 return std::strcmp(value.type->typeName, expectedType->typeName) == 0;
             return true;
         }
-        
+#endif
         return false;
     }
 

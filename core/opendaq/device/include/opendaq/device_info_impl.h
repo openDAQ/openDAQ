@@ -144,7 +144,6 @@ public:
 
     // IUpdatable
     ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
-    ErrCode INTERFACE_FUNC serializeForUpdate(ISerializer* serializer) override;
 
 protected:
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -159,7 +158,7 @@ protected:
     virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
     ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer) override;
     ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer) override;
-    ErrCode serializeCustomProperties(ISerializer* serializer);
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
     std::set<std::string> changeableDefaultPropertyNames;
     DeviceTypePtr deviceType;
@@ -1306,77 +1305,41 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeForUpdate(ISerializer* serializer)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
 {
+    if (!forUpdate)
+        return OPENDAQ_SUCCESS;
+
     OPENDAQ_PARAM_NOT_NULL(serializer);
 
-    serializer->startTaggedObject(this);
-
-    auto name = this->objPtr.getClassName();
-    if (name.assigned())
+    const ErrCode errCode = daqTry([&serializer, this]
     {
-        serializer->key("className");
-        auto nameSerializable = name.template asPtr<ISerializable>();
-        nameSerializable->serialize(serializer);
-    }
+        if (this->localProperties.size() == 0)
+            return OPENDAQ_NOTFOUND;
 
-    if (this->frozen)
-    {
-        serializer->key("frozen");
-        serializer->writeBool(this->frozen);
-    }
+        auto serializerPtr = SerializerPtr::Borrow(serializer);
 
-    ErrCode errCode = Super::serializeCustomValues(serializer, true);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    errCode = Super::serializePropertyValues(serializer);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    errCode = serializeCustomProperties(serializer);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    serializer->endObject();
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeCustomProperties(ISerializer* serializer)
-{
-    OPENDAQ_PARAM_NOT_NULL(serializer);
-
-    const ErrCode errCode = daqTry(
-        [&serializer, this]
+        serializerPtr.key("properties");
+        serializerPtr.startList();
+        for (const auto& [propName, prop] : this->localProperties)
         {
-            if (this->localProperties.size() == 0)
-                return OPENDAQ_NOTFOUND;
-
-            auto serializerPtr = SerializerPtr::Borrow(serializer);
-
-            serializerPtr.key("properties");
-            serializerPtr.startList();
-            for (const auto& prop : this->localProperties)
-            {
-                if (deviceInfoDetails::defaultDeviceInfoPropertyNames.find(prop.first) !=
-                    deviceInfoDetails::defaultDeviceInfoPropertyNames.end())
-                    continue;
+            if (deviceInfoDetails::defaultDeviceInfoPropertyNames.find(propName) !=
+                deviceInfoDetails::defaultDeviceInfoPropertyNames.end())
+                continue;
 
 #ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
-                bool isObjectProp = prop.second.template asPtr<IPropertyInternal>().getValueTypeUnresolved() == ctObject;
-                if (isObjectProp)
-                {
-                    auto propObject = prop.second.template asPtr<IPropertyObjectInternal>(true);
-                    if (!propObject.hasUserReadAccess(serializerPtr.getUser()))
-                        continue;
-                }
+            auto propObject = prop.template asPtrOrNull<IPropertyObjectInternal>(true);
+            if (propObject.assigned() && !propObject.hasUserReadAccess(serializerPtr.getUser()))
+                continue;
 #endif
 
-                const ErrCode errCode = serializeProperty(prop.second, serializer);
-                OPENDAQ_RETURN_IF_FAILED(errCode);
-            }
-            serializerPtr.endList();
+            const ErrCode errCode = serializeProperty(prop, serializer);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+        serializerPtr.endList();
 
-            return OPENDAQ_SUCCESS;
-        });
+        return OPENDAQ_SUCCESS;
+    });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }

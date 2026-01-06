@@ -1,7 +1,11 @@
 #include <opcuatms_server/objects/tms_server_signal.h>
+#include <opcuatms_server/objects/tms_server_analog_value.h>
+#include <opcuatms_server/objects/tms_server_value.h>
 #include <opcuatms/converters/variant_converter.h>
 #include <open62541/daqbsp_nodeids.h>
 #include <open62541/statuscodes.h>
+#include <open62541/server.h>
+#include <coreobjects/core_event_args_ids.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -26,75 +30,61 @@ OpcUaNodeId TmsServerSignal::getTmsTypeId()
     return OpcUaNodeId(NAMESPACE_DAQBSP, UA_DAQBSPID_SIGNALTYPE);
 }
 
-void TmsServerSignal::bindCallbacks()
+void TmsServerSignal::addChildNodes()
 {
-    auto valueId = getChildNodeId("Value");
-    OpcUaObject<UA_BrowseDescription> bd;
-    bd->nodeId = valueId.copyAndGetDetachedValue();
-    bd->resultMask = UA_BROWSERESULTMASK_ALL;
-    auto result = server->browse(bd);
-
-    for (size_t i = 0; i < result->referencesSize; i++)
-    {
-        auto reference = result->references[i];
-        std::string browseName = opcua::utils::ToStdString(reference.browseName.name);
-        if (browseName == "DataDescriptor")
-        {
-            OpcUaNodeId descriptorId{reference.nodeId.nodeId};
-            addReadCallback(descriptorId,
-                            [this]()
-                            {
-                                DataDescriptorPtr descriptor = object.getDescriptor();
-                                if (descriptor != nullptr)
-                                    return VariantConverter<IBaseObject>::ToVariant(descriptor, nullptr, daqContext);
-                                else
-                                    return OpcUaVariant();
-                            });
-        }
-    }
-
-    addReadCallback(valueId,
-                    [this]()
-                    {
-                        ObjectPtr lastValue = object.getLastValue();
-                        if (lastValue != nullptr)
-                            return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
-
-                        return OpcUaVariant();
-                    });
-
-    auto analogValueId = getChildNodeId("AnalogValue");
-    addReadCallback(analogValueId,
-                    [this]()
-                    {
-                        SampleType type = object.getDescriptor().getSampleType();
-                        if (type != SampleType::Float32 && type != SampleType::Float64 && type != SampleType::Int8 &&
-                            type != SampleType::Int16 && type != SampleType::Int32 && type != SampleType::Int64 &&
-                            type != SampleType::UInt8 && type != SampleType::UInt16 && type != SampleType::UInt32 &&
-                            type != SampleType::UInt64 && type != SampleType::RangeInt64 && type != SampleType::ComplexFloat32 &&
-                            type != SampleType::ComplexFloat64)
-                            return OpcUaVariant();
-
-                        ObjectPtr lastValue = object.getLastValue();
-                        if (lastValue != nullptr)
-                            return VariantConverter<IBaseObject>::ToVariant(lastValue, nullptr, daqContext);
-
-                        return OpcUaVariant();
-                    });
-
-    // TODO: Value, AnalogValue, Status
-    Super::bindCallbacks();
+    // Create Value and AnalogValue nodes manually with correct data type
+    // Store them as members to keep them alive (callbacks depend on them)
+    valueServer = std::make_shared<TmsServerValue>(object, server, daqContext, tmsContext);
+    valueServer->registerOpcUaNode(nodeId);
+    
+    analogValueServer = std::make_shared<TmsServerAnalogValue>(object, server, daqContext, tmsContext);
+    analogValueServer->registerOpcUaNode(nodeId);
+    
+    Super::addChildNodes();
 }
 
-bool TmsServerSignal::createOptionalNode(const opcua::OpcUaNodeId& nodeId)
+void TmsServerSignal::onCoreEvent(const CoreEventArgsPtr& args)
 {
-    const auto name = server->readBrowseNameString(nodeId);
-    if (name == "Value")
-        return true;
-    if (name == "AnalogValue")
-        return true;
+    Super::onCoreEvent(args);
 
-    return Super::createOptionalNode(nodeId);
+    if (args.getEventId() == static_cast<int>(CoreEventId::DataDescriptorChanged))
+    {
+        try
+        {
+            const auto descriptor = object.getDescriptor();
+            if (!descriptor.assigned() || !valueServer)
+                return;
+
+            const auto currentDataType = server->readDataType(valueServer->getNodeId());
+            const auto expectedDataType = TmsServerValue::SampleTypeToOpcUaDataType(descriptor.getSampleType());
+
+            if (currentDataType == expectedDataType)
+                return;
+
+            if (valueServer)
+            {
+                auto valueNodeId = valueServer->getNodeId();
+                if (!valueNodeId.isNull())
+                    server->deleteNode(valueNodeId);
+            }
+
+            if (analogValueServer)
+            {
+                auto analogValueNodeId = analogValueServer->getNodeId();
+                if (!analogValueNodeId.isNull())
+                    server->deleteNode(analogValueNodeId);
+            }
+
+            valueServer = std::make_shared<TmsServerValue>(object, server, daqContext, tmsContext);
+            valueServer->registerOpcUaNode(nodeId);
+
+            analogValueServer = std::make_shared<TmsServerAnalogValue>(object, server, daqContext, tmsContext);
+            analogValueServer->registerOpcUaNode(nodeId);
+        }
+        catch (...)
+        {
+        }
+    }
 }
 
 void TmsServerSignal::createNonhierarchicalReferences()

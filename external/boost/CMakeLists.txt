@@ -113,6 +113,7 @@ if (Boost_FETCHED)
             type_traits 
             utility 
             mp11
+            uuid
         )
 
         if(MSVC)

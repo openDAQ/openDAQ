@@ -192,6 +192,10 @@ protected:
 
     static VersionInfoPtr parseVersionString(const std::string& input);
 
+    ErrCode serializeComponentConfigWithoutMetadata(const SerializerPtr& serializer, const PropertyObjectPtr& serializedObject);
+    Bool shouldSerializeComponentConfig(const PropertyObjectPtr& propertyObject);
+    ErrCode updateComponentConfig(const PropertyObjectPtr& config, const SerializedObjectPtr& serializedConfig);
+
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
 };
@@ -1152,9 +1156,125 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
 
     if (componentConfig.assigned())
     {
-        serializer.key("ComponentConfig");
-        componentConfig.serialize(serializer);
+        if(forUpdate) {
+            const auto thisPtr = this->template borrowPtr<ComponentPtr>();
+            const auto devicePtr = thisPtr.template asPtrOrNull<IDevice>(true);
+            const auto fbPtr = thisPtr.template asPtrOrNull<IFunctionBlock>(true);
+            if(devicePtr.assigned() || fbPtr.assigned()) {
+                if(shouldSerializeComponentConfig(componentConfig)) {
+                    serializer.key("ComponentConfig2");
+                    serializeComponentConfigWithoutMetadata(serializer, componentConfig);
+                }
+            } else {
+                serializer.key("ComponentConfig");
+                componentConfig.asPtr<IUpdatable>().serializeForUpdate(serializer);
+            }
+        } else {
+            serializer.key("ComponentConfig");
+            componentConfig.serialize(serializer);
+        }
     }
+}
+
+template <class Intf, class... Intfs>
+Bool ComponentImpl<Intf, Intfs...>::shouldSerializeComponentConfig(const PropertyObjectPtr& propertyObject)
+{
+    Bool result = false;
+
+    if (!propertyObject.assigned())
+        return result;
+
+    for (const auto& property : propertyObject.getAllProperties())
+    {
+        const auto& value = property.getValue();
+
+        if (value.assigned())
+        {
+            if (value.getCoreType() == ctObject)
+            {
+                if (const auto nestedObject = value.asPtrOrNull<IPropertyObject>(true); nestedObject.assigned())
+                {
+                    result |= shouldSerializeComponentConfig(nestedObject);
+                }
+            }
+            else
+            {
+                const auto& defaultValue = property.getDefaultValue();
+                result |= static_cast<Bool>(value != defaultValue);
+            }
+            if (result)
+            {
+                return result;
+            }
+        }
+     }
+
+    return result;
+}
+
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::serializeComponentConfigWithoutMetadata(const SerializerPtr& serializer, const PropertyObjectPtr& serializedObject)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+    OPENDAQ_PARAM_NOT_NULL(serializedObject);
+
+    serializer.startObject();
+
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    for (const auto& property : serializedObject.getAllProperties())
+    {
+        const auto& value = property.getValue();
+        if (value.assigned())
+        {
+            if (value.getCoreType() == ctObject)
+            {
+                if (const auto propertyObject = value.asPtrOrNull<IPropertyObject>(true); propertyObject.assigned())
+                {
+                    if (shouldSerializeComponentConfig(propertyObject))
+                    {
+                        serializer.key(property.getName());
+                        errCode = serializeComponentConfigWithoutMetadata(serializer, propertyObject);
+                    }
+                }
+            }
+            else if (const auto& defaultValue = property.getDefaultValue(); value != defaultValue)
+            {
+                if (const auto serializableValue = value.asPtrOrNull<ISerializable>(); serializableValue.assigned())
+                {
+                    serializer.key(property.getName());
+                    serializableValue.serialize(serializer);
+                }
+            }
+        }
+    }
+
+    serializer.endObject();
+    return errCode;
+}
+
+template <typename Intf, typename... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::updateComponentConfig(const PropertyObjectPtr& config, const SerializedObjectPtr& serializedConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    OPENDAQ_PARAM_NOT_NULL(serializedConfig);
+
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    for(const auto& key : serializedConfig.getKeys()) {
+        if (config.hasProperty(key)) {
+            const auto property = config.getProperty(key);
+            const auto valueType = property.getValueType();
+            if(valueType == ctObject) {
+                const auto serializedSubObject = serializedConfig.readSerializedObject(key);
+                const auto subObject = property.getValue();
+                errCode = updateComponentConfig(subObject, serializedSubObject);
+                OPENDAQ_RETURN_IF_FAILED(errCode);
+            } else {
+                errCode = this->setPropertyFromSerialized(key, config, serializedConfig);
+                OPENDAQ_RETURN_IF_FAILED(errCode);
+            }
+        }
+    }
+    return errCode;
 }
 
 template <class Intf, class... Intfs>

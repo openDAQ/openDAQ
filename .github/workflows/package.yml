@@ -123,6 +123,10 @@ jobs:
           cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
           cmake --build . --config ${{ matrix.cmake_build_type }}
 
+      - name: Install NSIS
+        if: matrix.cpack == 'NSIS'
+        run: choco install nsis -y --no-progress
+
       - name: Package
         working-directory: ./build
         run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
@@ -389,7 +393,7 @@ jobs:
 
   build_macos:
     name: ${{ matrix.name }}
-    runs-on: macos-13
+    runs-on: macos-15-intel
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
@@ -399,7 +403,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macos-13 clang Release
+          - name: macos-15-intel clang Release
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_osx_deployment_target: 10.15

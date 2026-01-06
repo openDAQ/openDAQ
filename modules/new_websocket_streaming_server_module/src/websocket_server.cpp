@@ -114,12 +114,14 @@ void daq::ws_streaming::server::async_accept_connection(boost::asio::ip::tcp::ac
 
         client->on_finish = [this, client, client_it]()
         {
+            int fd = client->get_socket().native_handle();
             for (const auto& [_, listener_ptr] : listeners)
             {
                 auto& listener = *reinterpret_cast<WebSocketSignalListenerImpl *>(listener_ptr.getObject());
-                listener.removeClient(client->get_socket().native_handle(), false);
+                listener.removeClient(fd, false);
             }
 
+            client->close_socket();
             clients.erase(client_it);
         };
 
@@ -218,18 +220,24 @@ bool daq::ws_streaming::server::on_establish(
     if (!client)
         return false;
 
+    // Clear the on_finish callback of the old client to prevent it from being called
+    // when the socket is moved
+    client->on_finish = nullptr;
+
     auto client_socket = (*client_it)->release();
     auto new_client = std::make_shared<websocket_client_established>(std::move(client_socket));
     auto new_client_it = clients.emplace(clients.end(), new_client);
 
     new_client->on_finish = [this, new_client, new_client_it]()
     {
+        int fd = new_client->get_socket().native_handle();
         for (const auto& [_, listener_ptr] : listeners)
         {
             auto& listener = *reinterpret_cast<WebSocketSignalListenerImpl *>(listener_ptr.getObject());
-            listener.removeClient(new_client->get_socket().native_handle(), false);
+            listener.removeClient(fd, false);
         }
 
+        new_client->close_socket();
         clients.erase(new_client_it);
     };
 
@@ -267,6 +275,9 @@ bool daq::ws_streaming::server::on_establish(
             { { "signalIds", available } }
         },
     })) return false;
+
+    // Remove the old client from the list now that the new one is established
+    clients.erase(client_it);
 
     return true;
 }

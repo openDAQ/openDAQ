@@ -31,7 +31,7 @@ set(ARROW_BUILD_TESTS OFF CACHE BOOL "")
 set(PARQUET_MINIMAL_DEPENDENCY ON CACHE BOOL "")
 set(ARROW_BUILD_TESTS OFF CACHE BOOL "")
 set(Thrift_SOURCE AUTO CACHE STRING "")
-set(Thrift_VERSION 0.20.0 CACHE STRING "")
+set(Thrift_VERSION 0.22.0 CACHE STRING "")
 set(ARROW_OPTIONAL_INSTALL OFF CACHE BOOL "")
 
 if(UNIX AND NOT APPLE)
@@ -41,9 +41,9 @@ endif()
 
 opendaq_dependency(
     NAME                Arrow
-    REQUIRED_VERSION    20.0.0
+    REQUIRED_VERSION    22.0.0
     GIT_REPOSITORY      https://github.com/apache/arrow.git
-    GIT_REF             apache-arrow-20.0.0
+    GIT_REF             apache-arrow-22.0.0
     ADD_FETCH_ALIAS     Arrow::arrow_static=arrow_static
     EXPECT_TARGET       Arrow::arrow_static
     SOURCE_SUBDIR       cpp

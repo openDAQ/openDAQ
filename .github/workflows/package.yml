@@ -412,6 +412,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install mono
+        run: brew install mono
+
       - name: Install ninja-build
         uses: seanmiddleditch/gha-setup-ninja@v5
         with:

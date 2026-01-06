@@ -3436,11 +3436,19 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
         splitOnLastDot(propName, propName, childStr);
 
         ErrCode err = getPropertyValue(propName, &val);
-        OPENDAQ_RETURN_IF_FAILED(err, fmt::format(R"(Failed to retrieve child object with name {})", propName));
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Failed to retrieve child object with name {})", propName));
+        if (err == OPENDAQ_ERR_NOTFOUND)
+        {
+            *hasProperty = False;
+            return OPENDAQ_SUCCESS;
+        }
 
         PropertyObjectPtr obj = val.asPtrOrNull<IPropertyObject>(true);
         if (!obj.assigned())
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, fmt::format(R"(Child with name {} is not a Object-type property)", propName));
+        {
+            *hasProperty = False;
+            return OPENDAQ_SUCCESS;
+        }
 
         return obj->hasProperty(childStr, hasProperty);
     }
@@ -3464,7 +3472,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
         }
     }
 
-    *hasProperty = false;
+    *hasProperty = False;
     return OPENDAQ_SUCCESS;
 }
 

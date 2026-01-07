@@ -27,13 +27,6 @@ project(${SDK_NAME}
     VERSION ${OPENDAQ_PACKAGE_VERSION}
 )
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "2021.1.0")
-        message(STATUS "CMAKE_CXX_COMPILER_VERSION: ${CMAKE_CXX_COMPILER_VERSION}")
-        message(FATAL_ERROR "\nTaskflow (and openDAQ) require icpx at least v2021.1.0")
-    endif()
-endif()
-
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 )
 

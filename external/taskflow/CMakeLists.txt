@@ -11,6 +11,7 @@ opendaq_dependency(
     EXPECT_TARGET       Taskflow::Taskflow
     PATCH_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0003-Ignore-False-Positive-Mem-Leak.patch
+        ${CMAKE_CURRENT_SOURCE_DIR}/patches/0004-IntelLLVM-Support.patch
 )
 
 # Suppress C++20 extensions warning for Taskflow (it uses C++20 features but we compile with C++17)

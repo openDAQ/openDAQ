@@ -19,6 +19,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+// It is wrong to have a class with unused member info - there is nothing comparable about ReaderDomainInfo.
+// This should be called ComparableBase and have no domainInfo. Since it is used as baseclass pointer it is useful
+// not to have template parameters here (although one would expect it).
 class Comparable
 {
 public:
@@ -88,6 +91,11 @@ private:
     [[nodiscard]] virtual int compare(const Comparable& other) const = 0;
 };
 
+// ComparableValue is a confusing name - it is a timestamp with additional domain info.
+// Comparison in exclusively done between the ticks.
+// The starting value is transformed in the constructor to represent number of ticks since
+// minimumEpoch in maxResolution ticks.
+// value = offset + startingValue * (multiplier_num / multiplier_den)
 template <typename ReadType>
 class ComparableValue : public Comparable
 {
@@ -124,8 +132,8 @@ public:
             // microsecond, will differ. It is not like a bug, more like a
             // thing, that needs to be polished. Maybe it is worth to
             // round epochs to the max resolution.
-            // 
-            //assert(signalTime == readTime);
+            //
+            // assert(signalTime == readTime);
         }
 #endif
 

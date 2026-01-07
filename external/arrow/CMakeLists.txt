@@ -31,7 +31,7 @@ set(ARROW_BUILD_TESTS OFF CACHE BOOL "")
 set(PARQUET_MINIMAL_DEPENDENCY ON CACHE BOOL "")
 set(ARROW_BUILD_TESTS OFF CACHE BOOL "")
 set(Thrift_SOURCE AUTO CACHE STRING "")
-set(Thrift_VERSION 0.20.0 CACHE STRING "")
+set(Thrift_VERSION 0.22.0 CACHE STRING "")
 set(ARROW_OPTIONAL_INSTALL OFF CACHE BOOL "")
 
 if(UNIX AND NOT APPLE)
@@ -41,9 +41,9 @@ endif()
 
 opendaq_dependency(
     NAME                Arrow
-    REQUIRED_VERSION    20.0.0
+    REQUIRED_VERSION    22.0.0
     GIT_REPOSITORY      https://github.com/apache/arrow.git
-    GIT_REF             apache-arrow-20.0.0
+    GIT_REF             apache-arrow-22.0.0
     ADD_FETCH_ALIAS     Arrow::arrow_static=arrow_static
     EXPECT_TARGET       Arrow::arrow_static
     SOURCE_SUBDIR       cpp
@@ -58,4 +58,31 @@ if (Arrow_FETCHED)
     target_include_directories(arrow_static INTERFACE
         $<BUILD_INTERFACE:${arrow_SOURCE_DIR}/cpp/src>
         $<BUILD_INTERFACE:${arrow_BINARY_DIR}/src>)
+    
+    # Fix zlib library naming issue: Debug builds produce zlibstaticd.lib but linker expects zlibstatic.lib
+    if(MSVC)
+        # Path to zlib install directory (Arrow's ExternalProject structure)
+        set(ZLIB_LIB_DIR "${arrow_BINARY_DIR}/zlib_ep/src/zlib_ep-install/lib")
+        
+        # Create a custom target that copies zlibstaticd.lib to zlibstatic.lib after zlib_ep builds
+        add_custom_target(zlib_fix_debug_name ALL
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${ZLIB_LIB_DIR}/zlibstaticd.lib"
+                "${ZLIB_LIB_DIR}/zlibstatic.lib"
+            COMMENT "Copying zlibstaticd.lib to zlibstatic.lib for Debug builds"
+        )
+        
+        # Make sure this runs after zlib_ep is built (if the target exists)
+        if(TARGET zlib_ep)
+            add_dependencies(zlib_fix_debug_name zlib_ep)
+        endif()
+        
+        # Make sure Arrow targets depend on this fix
+        if(TARGET arrow_static)
+            add_dependencies(arrow_static zlib_fix_debug_name)
+        endif()
+        if(TARGET parquet_static)
+            add_dependencies(parquet_static zlib_fix_debug_name)
+        endif()
+    endif()
 endif()

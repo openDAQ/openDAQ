@@ -49,6 +49,7 @@
 #include <thread>
 #include <utility>
 #include <coretypes/recursive_search_ptr.h>
+#include <coreobjects/property_object_core.h>
 #include <coreobjects/mutex_factory.h>
 #include <coreobjects/mutex_impl.h>
 
@@ -60,202 +61,6 @@ struct PropertyNameInfo
 {
     StringPtr name;
     Int index{};
-};
-
-namespace object_utils
-{
-    struct NullMutex
-    {
-        void lock() {}
-        void unlock() noexcept {}
-        bool try_lock() { return true; }
-    };
-
-    inline const auto UnrestrictedPermissions = []() { 
-        daqDisableObjectTracking();
-        auto permissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
-        daqEnableObjectTracking();
-        return permissions;
-    }();
-}
-
-class RecursiveConfigLockGuard : public std::enable_shared_from_this<RecursiveConfigLockGuard>
-{
-public:
-    virtual ~RecursiveConfigLockGuard() = default;
-};
-
-template <typename TMutex>
-class GenericRecursiveConfigLockGuard : public RecursiveConfigLockGuard
-{
-public:
-    GenericRecursiveConfigLockGuard(const TMutex& lock, std::thread::id* threadId, int* depth)
-        : id(threadId)
-        , depth(depth)
-        , mutex(lock)
-        , lock(std::lock_guard(mutex))
-    {
-        assert(this->id != nullptr);
-        assert(this->depth != nullptr);
-
-        *id = std::this_thread::get_id();
-        ++(*this->depth);
-    }
-
-    ~GenericRecursiveConfigLockGuard() override
-    {
-        --(*depth);
-        if (*depth == 0)
-            *id = std::thread::id();
-    }
-
-private:
-    std::thread::id* id;
-    int* depth;
-    TMutex mutex;
-    std::lock_guard<TMutex> lock;
-};
-
-struct LockGuardImpl : public ImplementationOf<ILockGuard>
-{
-    LockGuardImpl(IPropertyObject* owner, MutexPtr lock)
-        : owner(owner)
-        , mutex(lock)
-        , lock(std::lock_guard(mutex))
-    {
-    }
-
-private:
-    // to ensure that owner is destroyed after lock
-    PropertyObjectPtr owner;
-    MutexPtr mutex;
-    std::lock_guard<MutexPtr> lock;
-};
-
-template <typename TMutex>
-class RecursiveLockGuardImpl : public ImplementationOf<ILockGuard>
-{
-public:
-    RecursiveLockGuardImpl(IPropertyObject* owner, const TMutex& lock, std::thread::id* threadId, int* depth)
-        : owner(owner) 
-        , id(threadId)
-        , depth(depth)
-        , mutex(lock)
-        , lockGuard(std::lock_guard(mutex))
-    {
-        assert(this->id != nullptr);
-        assert(this->depth != nullptr);
-        *id = std::this_thread::get_id();
-        ++(*this->depth);
-    }
-
-    ~RecursiveLockGuardImpl() override
-    {
-        --(*depth);
-        if (*depth == 0)
-            *id = std::thread::id();
-    }
-
-private:
-    // to ensure that owner is destroyed after lock
-    PropertyObjectPtr owner;
-    std::thread::id* id;
-    int* depth;
-    TMutex mutex;
-    std::lock_guard<TMutex> lockGuard;
-};
-
-class PropertyUpdateStack
-{
-    struct PropertyUpdateStackItem
-    {
-        PropertyUpdateStackItem(const BaseObjectPtr& value)
-            : value(value)
-            , stackLevel(1)
-            , isPushed(true)
-        {
-        }
-
-        bool setValue(const BaseObjectPtr& value)
-        {
-            if (this->value == value)
-                return false;
-
-            this->value = value;
-            this->isPushed = true;
-            this->stackLevel++;
-            return true;
-        }
-
-        bool unregister()
-        {
-            bool result = this->isPushed;
-            this->isPushed = false;
-            this->stackLevel--;
-            return result;
-        }
-
-        size_t getStackLevel() const
-        {
-            return this->stackLevel;
-        }
-
-        BaseObjectPtr value;
-        size_t stackLevel;
-        bool isPushed;
-    };
-
-public:
-    PropertyUpdateStack() = default;
-
-    // return true if property is registered
-    bool registerPropertyUpdating(const std::string& name, const BaseObjectPtr& value)
-    {
-        auto [it, inserted] = updatePropertyStack.try_emplace(name, value);
-
-        if (inserted)
-            return true;
-
-        auto& propertItem = it->second;
-        return propertItem.setValue(value);
-    }
-
-    // returns true is object need to be written
-    bool unregisetPropertyUpdating(const std::string& name)
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        auto& propertItem = it->second;
-        bool result = propertItem.unregister();
-        if (propertItem.getStackLevel() == 0)
-            updatePropertyStack.erase(it);
-        return result;
-    }
-
-    bool isBaseStackLevel(const std::string& name) const
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        return it->second.getStackLevel() == 1;
-    }
-
-    bool getPropertyValue(const std::string& name, BaseObjectPtr& value) const
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        // if value is not assigned, it means, that property is on clearing stage (clearPropertyValue)
-        value = it->second.value;
-        return true;
-    }
-
-private:
-    std::map<std::string, PropertyUpdateStackItem> updatePropertyStack;
 };
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -450,17 +255,9 @@ protected:
     void setMutex(const MutexPtr& mutex);
     void setLockOwner(const PropertyObjectInternalPtr& owner);
     void internalDispose(bool) override;
-    ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
-    ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
-    ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
-    ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
-    ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
     ErrCode setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating = false);
 
     // Serialization
-
-    ErrCode serializePropertyValues(ISerializer* serializer);
-    ErrCode serializeLocalProperties(ISerializer* serializer);
 
     virtual ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate);
     virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
@@ -488,10 +285,6 @@ protected:
 
     // Update
 
-    ErrCode setPropertyFromSerialized(const StringPtr& propName,
-                                      const PropertyObjectPtr& propObj,
-                                      const SerializedObjectPtr& serialized);
-
     virtual void endApplyUpdate();
     virtual void beginApplyUpdate();
     virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
@@ -505,29 +298,10 @@ protected:
                                                        const FunctionPtr& factoryCallback,
                                                        F&& f);
 
-    // Does not bind property to object and does not look up reference property
-    PropertyPtr getUnboundProperty(const StringPtr& name);
-    PropertyPtr getUnboundPropertyOrNull(const StringPtr& name) const;
-
     virtual void callBeginUpdateOnChildren();
     virtual void callEndUpdateOnChildren();
 
     virtual PropertyObjectPtr getPropertyObjectParent();
-
-    bool shouldWriteLocalValue(const StringPtr& name, const BaseObjectPtr& value) const;
-    // Adds the value to the local list of values (`propValues`)
-    bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite = false);
-
-    // Used when cloning object-type property default values of property object classes on construction.
-    // Must be overridden by modules that have their own property object implementation.
-    virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
-    bool checkIsChildObjectProperty(const PropertyPtr& prop);
-    void setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned);
-    void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
-
-    ErrCode beginUpdateInternal(bool deep);
-    ErrCode endUpdateInternal(bool deep);
-    ErrCode getUpdatingInternal(Bool* updating);
 
 private:
     // Mutex that is locked in the getRecursiveConfigLock and getAcquisitionLock methods. Those should
@@ -554,6 +328,38 @@ private:
     PropertyUpdateStack updatePropertyStack;
 
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
+
+    ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
+    ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
+    ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
+    ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
+    ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
+
+    ErrCode setPropertyFromSerialized(const StringPtr& propName,
+                                      const PropertyObjectPtr& propObj,
+                                      const SerializedObjectPtr& serialized);
+
+    ErrCode serializePropertyValues(ISerializer* serializer);
+    ErrCode serializeLocalProperties(ISerializer* serializer);
+
+    // Does not bind property to object and does not look up reference property
+    PropertyPtr getUnboundProperty(const StringPtr& name);
+    PropertyPtr getUnboundPropertyOrNull(const StringPtr& name) const;
+
+    bool shouldWriteLocalValue(const StringPtr& name, const BaseObjectPtr& value) const;
+    // Adds the value to the local list of values (`propValues`)
+    bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite = false);
+
+    // Used when cloning object-type property default values of property object classes on construction.
+    // Must be overridden by modules that have their own property object implementation.
+    virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
+    bool checkIsChildObjectProperty(const PropertyPtr& prop);
+    void setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned);
+    void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
+
+    ErrCode beginUpdateInternal(bool deep);
+    ErrCode endUpdateInternal(bool deep);
+    ErrCode getUpdatingInternal(Bool* updating);
 
     void triggerCoreEventInternal(const CoreEventArgsPtr& args);
 
@@ -834,7 +640,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     {
         if (newValue.assigned() && !shouldWriteLocalValue(name, newValue))
         {
-            updatePropertyStack.unregisetPropertyUpdating(name);
+            updatePropertyStack.unregisterPropertyUpdating(name);
             return OPENDAQ_IGNORED;
         }
     }
@@ -872,7 +678,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
         valueWriteEvents[AnyWriteEventName](objPtr, args);
     }
 
-    bool shouldUpdate = updatePropertyStack.unregisetPropertyUpdating(name);
+    bool shouldUpdate = updatePropertyStack.unregisterPropertyUpdating(name);
     // If the event execution failed, forward the error code
     OPENDAQ_RETURN_IF_FAILED(errCode);
 

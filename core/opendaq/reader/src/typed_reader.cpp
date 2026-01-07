@@ -9,8 +9,6 @@
 #include <opendaq/signal_errors.h>
 #include <opendaq/typed_reader.h>
 
-#include <iostream>
-
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -180,12 +178,21 @@ std::unique_ptr<Comparable> TypedReader<ReadType>::readStartLinear(const DataPac
     {
         NumberPtr packetOffset = packet.getOffset();
         const DataRulePtr linearRule = packet.getDataDescriptor().getRule();
-        const auto& parameters = linearRule.getParameters();
+        const auto parameters = linearRule.getParameters();
         ReadType delta, start;
         extractDeltaStart(parameters, delta, start);
 
-        const IntPtr referenceDomainOffset = packet.getDataDescriptor().getReferenceDomainInfo().getReferenceDomainOffset();
-        int64_t rdOffset = referenceDomainOffset.assigned() ? referenceDomainOffset : 0;
+        int64_t rdOffset = 0;
+        auto refDomainInfo = packet.getDataDescriptor().getReferenceDomainInfo();
+        if (refDomainInfo.assigned())
+        {
+            const IntPtr referenceDomainOffset = refDomainInfo.getReferenceDomainOffset();
+            if (referenceDomainOffset.assigned())
+            {
+                rdOffset = referenceDomainOffset;
+            }
+        }
+
         ReadType startingTick = start + static_cast<ReadType>(rdOffset) + static_cast<ReadType>(packetOffset.getIntValue()) +
                                 delta * static_cast<ReadType>(sampleIndex);
 
@@ -502,10 +509,19 @@ SizeT TypedReader<ReadType>::getOffsetToDataLinear(const ReaderDomainInfo& domai
         }
 
         const DataRulePtr& dataRule = packet.getDataDescriptor().getRule();
-        const auto& parameters = dataRule.getParameters();
-        const IntPtr referenceDomainOffset = packet.getDataDescriptor().getReferenceDomainInfo().getReferenceDomainOffset();
+        const auto parameters = dataRule.getParameters();
 
-        int64_t rdOffset = referenceDomainOffset.assigned() ? referenceDomainOffset : 0;
+        int64_t rdOffset = 0;
+        auto refDomainInfo = packet.getDataDescriptor().getReferenceDomainInfo();
+        if (refDomainInfo.assigned())
+        {
+            const IntPtr referenceDomainOffset = refDomainInfo.getReferenceDomainOffset();
+            if (referenceDomainOffset.assigned())
+            {
+                rdOffset = referenceDomainOffset;
+            }
+        }
+
         ReadType ruleDelta, ruleStart;
         extractDeltaStart(parameters, ruleDelta, ruleStart);
         NumberPtr packetOffset = packet.getOffset();

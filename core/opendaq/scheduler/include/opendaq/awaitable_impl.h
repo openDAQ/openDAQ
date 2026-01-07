@@ -30,6 +30,7 @@ public:
 
     explicit AwaitableImpl(Future future);
 
+    ErrCode INTERFACE_FUNC cancel(Bool* canceled) override;
     ErrCode INTERFACE_FUNC wait() override;
     ErrCode INTERFACE_FUNC getResult(IBaseObject** result) override;
     ErrCode INTERFACE_FUNC hasCompleted(Bool* finished) override;

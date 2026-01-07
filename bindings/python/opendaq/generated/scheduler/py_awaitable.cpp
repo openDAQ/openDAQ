@@ -40,6 +40,14 @@ void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBase
 {
     cls.doc() = "";
 
+    cls.def("cancel",
+        [](daq::IAwaitable *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AwaitablePtr::Borrow(object);
+            return objectPtr.cancel();
+        },
+        "Cancels the outstanding work if it has not already started.");
     cls.def("wait",
         [](daq::IAwaitable *object)
         {

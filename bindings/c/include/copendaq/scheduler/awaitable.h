@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 29.12.2025 11:39:44.
+//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
 
     EXPORTED extern const daqIntfID DAQ_AWAITABLE_INTF_ID;
 
+    daqErrCode EXPORTED daqAwaitable_cancel(daqAwaitable* self, daqBool* canceled);
     daqErrCode EXPORTED daqAwaitable_wait(daqAwaitable* self);
     daqErrCode EXPORTED daqAwaitable_getResult(daqAwaitable* self, daqBaseObject** result);
     daqErrCode EXPORTED daqAwaitable_hasCompleted(daqAwaitable* self, daqBool* completed);

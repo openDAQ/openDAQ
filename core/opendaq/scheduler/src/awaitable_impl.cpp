@@ -12,6 +12,12 @@ AwaitableImpl<TReturn>::AwaitableImpl(Future future)
 }
 
 template <typename TReturn>
+ErrCode AwaitableImpl<TReturn>::cancel(Bool* canceled)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED);
+}
+
+template <typename TReturn>
 ErrCode AwaitableImpl<TReturn>::wait()
 {
     if (completed)

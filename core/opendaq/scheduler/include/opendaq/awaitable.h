@@ -31,6 +31,13 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IAwaitable, IBaseObject)
 {
+    /*!
+     * @brief Cancels the outstanding work if it has not already started.
+     * @param[out] canceled Is @c true if the execution was canceled
+     *                      or @c false if the execution has already completed
+     */
+    virtual ErrCode INTERFACE_FUNC cancel(Bool* canceled) = 0;
+
     /*
      * @brief Blocks until the execution finishes ether by exception or providing the result.
      * @retval OPENDAQ_ERR_EMPTY_AWAITABLE when there is no work associated with the awaitable.

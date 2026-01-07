@@ -252,8 +252,9 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 
                 if (addressType == "IPv4")
                 {
-                    ipv4AddressesMap.emplace(address, false);
-                    ipv4Addresses.emplace_back(boost::asio::ip::make_address_v4(address));
+                    auto [_,inserted] = ipv4AddressesMap.try_emplace(address, false);
+                    if (inserted)
+                        ipv4Addresses.emplace_back(boost::asio::ip::make_address_v4(address));
                 }
                 else if (addressType == "IPv6")
                 {
@@ -267,9 +268,8 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
         const auto icmp = IcmpPing::Create(ioContext, logger);
         icmp->setMaxHops(1);
         icmp->start(ipv4Addresses);
-        icmp->waitSend();
+        icmp->waitSendAndReply();
 
-        std::this_thread::sleep_for(1s);
         auto replies = icmp->getReplyAddresses();
 
         for (auto& ipv4 : ipv4AddressesMap)

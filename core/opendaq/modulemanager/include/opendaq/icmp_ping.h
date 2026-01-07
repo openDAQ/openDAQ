@@ -43,7 +43,7 @@ public:
     void stop();
     void setMaxHops(uint32_t hops);
 
-    bool waitSend();
+    void waitSendAndReply();
 
     std::size_t getNumReplies() const noexcept;
     std::unordered_set<std::string> getReplyAddresses() const;
@@ -70,8 +70,10 @@ private:
 
     std::size_t numRemotes;
     std::atomic<std::size_t> numSent;
-    std::mutex mutex;
-    std::condition_variable cv;
+    std::mutex mutexRequests;
+    std::condition_variable allRequestsSent;
+    std::mutex mutexReplies;
+    std::condition_variable allRepliesReceived;
 
     uint16_t identifier;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work;

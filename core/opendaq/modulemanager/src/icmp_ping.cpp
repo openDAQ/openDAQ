@@ -103,7 +103,8 @@ void IcmpPing::stop()
         LOG_E("Error closing down ICMP socket for [{}] \n", ec.message());
     }
 
-    cv.notify_one();
+    allRequestsSent.notify_one();
+    allRepliesReceived.notify_one();
     // LOG("Closed ICMP socket\n");
 }
 
@@ -148,13 +149,14 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
         {
             if (++numSent == numRemotes)
             {
-                cv.notify_one();
+                allRequestsSent.notify_one();
             }
 
             // auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(steady_timer::clock_type::now() - timeStart).count();
             if (ec)
             {
-                cv.notify_one();
+                allRequestsSent.notify_one();
+                allRepliesReceived.notify_one();
                 // LOG("[{}] Error sending ping to: {} [{}] <{} ms> [{}]\n", i, ip, ec.message(), ms, numSent);
                 LOG_T("[{}] Error sending ping to: {} [{}] [{}]\n", i, ip, ec.message(), numSent.load());
                 return;
@@ -169,26 +171,32 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
     timeSent = steady_timer::clock_type::now();
 }
 
-bool IcmpPing::waitSend()
+void IcmpPing::waitSendAndReply()
 {
-    if (numReplies > 0)
-        return true;
-
-    if (numRemotes == numSent)
     {
-        // LOG("Waiting for pings to be sent\n");
-        std::unique_lock lock(mutex);
-        cv.wait(lock,
-                [this, ptr = shared_from_this()]
-                {
-                    // LOG("CV Check: {}/{} [{}]\n", numSent, numRemotes, found);
-                    return numRemotes == numSent || stopReceive;
-                });
+        LOG_T("Waiting for pings to be sent\n");
+        std::unique_lock lock(mutexRequests);
+        allRequestsSent.wait(lock,
+                             [this, ptr = shared_from_this()]
+                             {
+                                 // LOG("CV Check: {}/{} [{}]\n", numSent, numRemotes, found);
+                                 return numRemotes == numSent || stopReceive;
+                             });
 
-        // LOG("All pings have sent\n");
+        LOG_T("All pings have sent\n");
     }
+    {
+        LOG_T("Waiting for replies to be received\n");
+        std::unique_lock lock(mutexReplies);
+        allRepliesReceived.wait_for(lock,
+                                    std::chrono::seconds(1),
+                                    [this, ptr = shared_from_this()]
+                                    {
+                                        return numRemotes == numReplies || stopReceive;
+                                    });
 
-    return numReplies > 0;
+        LOG_T("All replies received\n");
+    }
 }
 
 void IcmpPing::startReceive()
@@ -209,7 +217,8 @@ void IcmpPing::startReceive()
                                      DAQLOGF_E(ptr->loggerComponent, "Error receiving ping: {} [{}]\n", ec.message(), ec.value());
                                  }
 
-                                 ptr->cv.notify_one();
+                                 ptr->allRequestsSent.notify_one();
+                                 ptr->allRepliesReceived.notify_one();
                                  return;
                              }
                              else
@@ -246,8 +255,6 @@ void IcmpPing::handleReceive(std::size_t length)
         && icmpHeader.getIdentifier() == identifier
         && icmpHeader.getSequenceNumber() == sequenceNumber)
     {
-        numReplies++;
-
         // Print out some information about the reply packet.
         chrono::steady_clock::time_point now = chrono::steady_clock::now();
         chrono::steady_clock::duration elapsed = now - timeSent;
@@ -257,9 +264,6 @@ void IcmpPing::handleReceive(std::size_t length)
 
         responseAddresses.emplace(sourceStr);
 
-        auto destinationAddr = ipv4Header.getDestinationAddress();
-        auto destinationStr = destinationAddr.to_string();
-
         LOG_T("[{}] {} bytes from {}: icmp_seq={}, ttl={}, time={} ms",
             fmt::streamed(std::this_thread::get_id()),
             length - ipv4Header.getHeaderLength(),
@@ -268,6 +272,11 @@ void IcmpPing::handleReceive(std::size_t length)
             ipv4Header.getTimeToLive(),
             chrono::duration_cast<chrono::milliseconds>(elapsed).count()
         );
+
+        if (++numReplies == numRemotes)
+        {
+            allRepliesReceived.notify_one();
+        }
     }
 
     if (!stopReceive)

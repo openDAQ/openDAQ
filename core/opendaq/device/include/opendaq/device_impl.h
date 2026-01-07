@@ -2125,7 +2125,7 @@ void GenericDevice<TInterface, Interfaces...>::DeserializeVersion(const Serializ
     // Fall back to parsing version string for backward compatibility
     const bool versionIsObject = serialized.getType("__version") == ctObject;
     const auto version = versionIsObject ? serialized.readObject("__version", context, factoryCallback)
-                                         : Super::parseVersionString(serialized.readString("__version"));
+                                         : Super::parseVersionString(serialized.readString("__version")).template asPtr<IBaseObject>();
 
     if (!version.assigned())
         return;

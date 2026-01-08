@@ -40,6 +40,7 @@
 ## Bug fixes
 
 - [#1019](https://github.com/openDAQ/openDAQ/pull/1019) Fix OPC UA Value and AnalogValue node data types for signals
+- [#983](https://github.com/openDAQ/openDAQ/pull/983) Fix reachability status for IPv4 addresses where there are multiple devices
 - [#1002](https://github.com/openDAQ/openDAQ/pull/1002) Fix socket file descriptor leak in WebSocket streaming server
 - [#876](https://github.com/openDAQ/openDAQ/pull/876) Fix advertising LT streaming capabilities when discovery disabled within new LT server
 - [#863](https://github.com/openDAQ/openDAQ/pull/863) Deserialize component config on native client instead of invoking RPC.

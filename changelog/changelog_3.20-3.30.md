@@ -28,6 +28,7 @@
 
 ## Bug fixes
 
+- [#1021](https://github.com/openDAQ/openDAQ/pull/1021) Fix reachability status for IPv4 addresses where there are multiple devices
 - [#972](https://github.com/openDAQ/openDAQ/pull/972) Fixes signal->input port connection propagation through gateway native protocol devices.
 - [#969](https://github.com/openDAQ/openDAQ/pull/969) Prioritize discovery addresses for leaf device streaming to get correct IPv6 interface suffixes
 - [#965](https://github.com/openDAQ/openDAQ/pull/965) Fix read-only remote property update

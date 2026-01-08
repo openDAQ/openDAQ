@@ -173,6 +173,10 @@ jobs:
           name: Unit Test Results (${{ matrix.name }})
           path: ${{ env.test_path }}
 
+      - name: Install NSIS
+        if: matrix.cpack == 'NSIS'
+        run: choco install nsis -y --no-progress
+
       - name: Package
         if: matrix.cpack != ''
         working-directory: ./build
@@ -564,19 +568,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macos-13 clang Release
+          - name: macos-15-intel clang Release
             cmake_generator: Ninja
             cmake_build_type: Release
             cmake_osx_deployment_target: 10.15
-            runner: macos-13
-          # - name: macos-13 clang Debug
+            runner: macos-15-intel
+          # - name: macos-15-intel clang Debug
             # cmake_generator: Ninja
             # cmake_build_type: Debug
-            # runner: macos-13
+            # runner: macos-15-intel
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install mono
+        run: brew install mono
 
       - name: Install ninja-build
         uses: seanmiddleditch/gha-setup-ninja@v5
@@ -624,7 +631,7 @@ jobs:
           python$last_version -m venv build/venv
           . build/venv/bin/activate
           pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
+          sudo -E ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build
 
       - name: Upload test results
         if: always()
@@ -687,6 +694,10 @@ jobs:
 
       - name: Create build dir
         run: New-Item build -ItemType Directory
+
+      - name: Install NSIS
+        if: matrix.cpack == 'NSIS'
+        run: choco install nsis -y --no-progress
 
       - name: Configure, build and test Python packages
         working-directory: ./build

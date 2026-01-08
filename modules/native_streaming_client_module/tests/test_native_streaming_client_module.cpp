@@ -10,6 +10,7 @@
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/instance_factory.h>
 
 using NativeStreamingClientModuleTest = testing::Test;
 using namespace daq;
@@ -84,6 +85,7 @@ TEST_F(NativeStreamingClientModuleTest, CreateStreamingWithNullArguments)
     DevicePtr device;
     ASSERT_THROW(device = module.createStreaming(nullptr, nullptr), ArgumentNullException);
 }
+
 //
 //TEST_F(NativeStreamingClientModuleTest, CreateConnectionStringIgnored)
 //{

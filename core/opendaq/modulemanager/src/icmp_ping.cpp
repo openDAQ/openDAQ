@@ -15,7 +15,6 @@ BEGIN_NAMESPACE_OPENDAQ
 IcmpPing::IcmpPing(boost::asio::io_context& ioContext, const daq::LoggerPtr& logger, int maxHops)
     : loggerComponent(logger.getOrAddComponent("IcmpPing"))
     , stopReceive(false)
-    , found(false)
     , maxHops(maxHops)
     , numRemotes(0)
     , numSent(0)
@@ -61,7 +60,6 @@ void IcmpPing::start(const std::vector<boost::asio::ip::address_v4>& remotes, co
     socket.get_option(unicastHopsDefault);
     // LOG("Socket ping TTL default M: {} U: {}\n", mulitcastHopsDefault.value(), unicastHopsDefault.value());
 
-    found = false;
     numReplies = 0;
     sequenceNumber = 0;
 
@@ -105,7 +103,8 @@ void IcmpPing::stop()
         LOG_E("Error closing down ICMP socket for [{}] \n", ec.message());
     }
 
-    cv.notify_one();
+    allRequestsSent.notify_one();
+    allRepliesReceived.notify_one();
     // LOG("Closed ICMP socket\n");
 }
 
@@ -137,13 +136,6 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
 
     for (std::size_t i = 0; i < numRemotes; ++i)
     {
-        if (found)
-        {
-            // LOG("Notifying CV on found\n");
-            numSent = numRemotes;
-            cv.notify_one();
-            break;
-        }
 
         if (i != 0 && i % 1000 == 0)
             std::this_thread::sleep_for(50ms);
@@ -157,13 +149,14 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
         {
             if (++numSent == numRemotes)
             {
-                cv.notify_one();
+                allRequestsSent.notify_one();
             }
 
             // auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(steady_timer::clock_type::now() - timeStart).count();
             if (ec)
             {
-                cv.notify_one();
+                allRequestsSent.notify_one();
+                allRepliesReceived.notify_one();
                 // LOG("[{}] Error sending ping to: {} [{}] <{} ms> [{}]\n", i, ip, ec.message(), ms, numSent);
                 LOG_T("[{}] Error sending ping to: {} [{}] [{}]\n", i, ip, ec.message(), numSent.load());
                 return;
@@ -178,26 +171,32 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
     timeSent = steady_timer::clock_type::now();
 }
 
-bool IcmpPing::waitSend()
+void IcmpPing::waitSendAndReply()
 {
-    if (numReplies > 0)
-        return true;
-
-    if (numRemotes == numSent)
     {
-        // LOG("Waiting for pings to be sent\n");
-        std::unique_lock lock(mutex);
-        cv.wait(lock,
-                [this, ptr = shared_from_this()]
-                {
-                    // LOG("CV Check: {}/{} [{}]\n", numSent, numRemotes, found);
-                    return numRemotes == numSent || found || stopReceive;
-                });
+        LOG_T("Waiting for pings to be sent\n");
+        std::unique_lock lock(mutexRequests);
+        allRequestsSent.wait(lock,
+                             [this, ptr = shared_from_this()]
+                             {
+                                 // LOG("CV Check: {}/{} [{}]\n", numSent, numRemotes, found);
+                                 return numRemotes == numSent || stopReceive;
+                             });
 
-        // LOG("All pings have sent\n");
+        LOG_T("All pings have sent\n");
     }
+    {
+        LOG_T("Waiting for replies to be received\n");
+        std::unique_lock lock(mutexReplies);
+        allRepliesReceived.wait_for(lock,
+                                    std::chrono::seconds(1),
+                                    [this, ptr = shared_from_this()]
+                                    {
+                                        return numRemotes == numReplies || stopReceive;
+                                    });
 
-    return numReplies > 0;
+        LOG_T("All replies received\n");
+    }
 }
 
 void IcmpPing::startReceive()
@@ -218,7 +217,8 @@ void IcmpPing::startReceive()
                                      DAQLOGF_E(ptr->loggerComponent, "Error receiving ping: {} [{}]\n", ec.message(), ec.value());
                                  }
 
-                                 ptr->cv.notify_one();
+                                 ptr->allRequestsSent.notify_one();
+                                 ptr->allRepliesReceived.notify_one();
                                  return;
                              }
                              else
@@ -230,7 +230,7 @@ void IcmpPing::startReceive()
 
 void IcmpPing::handleReceive(std::size_t length)
 {
-    if (stopReceive || found)
+    if (stopReceive)
     {
         // LOG("Already found: exiting...\n");
         return;
@@ -254,8 +254,6 @@ void IcmpPing::handleReceive(std::size_t length)
         && icmpHeader.getIdentifier() == identifier
         && icmpHeader.getSequenceNumber() == sequenceNumber)
     {
-        numReplies++;
-
         // Print out some information about the reply packet.
         chrono::steady_clock::time_point now = chrono::steady_clock::now();
         chrono::steady_clock::duration elapsed = now - timeSent;
@@ -263,10 +261,9 @@ void IcmpPing::handleReceive(std::size_t length)
         auto sourceAddr = ipv4Header.getSourceAddress();
         auto sourceStr = sourceAddr.to_string();
 
-        auto destinationAddr = ipv4Header.getDestinationAddress();
-        auto destinationStr = destinationAddr.to_string();
+        responseAddresses.emplace(sourceStr);
 
-        LOG_T("[{}] {} bytes from {}: icmp_seq={}, ttl={}, time={} ms\n",
+        LOG_T("[{}] {} bytes from {}: icmp_seq={}, ttl={}, time={} ms",
             fmt::streamed(std::this_thread::get_id()),
             length - ipv4Header.getHeaderLength(),
             sourceAddr,
@@ -275,13 +272,25 @@ void IcmpPing::handleReceive(std::size_t length)
             chrono::duration_cast<chrono::milliseconds>(elapsed).count()
         );
 
-        LOG_T("\nReceived reply: canceling all async operations\n\n");
-        found = true;
-        stop();
+        if (++numReplies == numRemotes)
+        {
+            allRepliesReceived.notify_one();
+        }
     }
 
     if (!stopReceive)
         startReceive();
+}
+
+std::unordered_set<std::string> IcmpPing::getReplyAddresses() const
+{
+    return responseAddresses;
+}
+
+void IcmpPing::clearReplies()
+{
+    numReplies = 0;
+    responseAddresses.clear();
 }
 
 uint16_t IcmpPing::GetIdentifier()

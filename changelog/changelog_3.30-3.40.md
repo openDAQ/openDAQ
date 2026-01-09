@@ -20,7 +20,7 @@
 
 - [#979](https://github.com/openDAQ/openDAQ/pull/979) Relocate and install dependency management cmake helpers, install daq::test_utils and rename "bb" to "daq" in testultils/daq_memcheck_listener.h
 - [#974](https://github.com/openDAQ/openDAQ/pull/974) Reorganizes the audio device implementation for greater clarity. Adds automatic device/FB version info setting.
-- [#967](https://github.com/openDAQ/openDAQ/pull/967), [#994](https://github.com/openDAQ/openDAQ/pull/994), [#993](https://github.com/openDAQ/openDAQ/pull/993), [#995](https://github.com/openDAQ/openDAQ/pull/995), [#1001](https://github.com/openDAQ/openDAQ/pull/1001), [1025](https://github.com/openDAQ/openDAQ/pull/1025) Update external libraries:
+- [#967](https://github.com/openDAQ/openDAQ/pull/967), [#994](https://github.com/openDAQ/openDAQ/pull/994), [#993](https://github.com/openDAQ/openDAQ/pull/993), [#995](https://github.com/openDAQ/openDAQ/pull/995), [#1001](https://github.com/openDAQ/openDAQ/pull/1001), [1025](https://github.com/openDAQ/openDAQ/pull/1025), [#1026](https://github.com/openDAQ/openDAQ/pull/1026) Update external libraries:
     - gtest from 1.12.1 to 1.17.0
     - date from 3.0.1 to 3.0.4
     - pybind11 from 2.13.1 to 3.0.1
@@ -32,6 +32,7 @@
     - xxhash from 0.8.1 to 0.8.3
     - taskflow from 3.5.0 to 3.11.0
     - miniaudio from 0.11.11 to 0.11.23
+    - rapidjson from unknown to latest master
 
 ## Required application changes
 

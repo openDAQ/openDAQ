@@ -1,3 +1,7 @@
+#ifdef _WIN32
+#include <combaseapi.h>
+#endif
+
 #define MA_COINIT_VALUE COINIT_MULTITHREADED
 #define MA_NO_NODE_GRAPH
 #define MA_NO_RESOURCE_MANAGER

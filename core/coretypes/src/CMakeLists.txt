@@ -195,6 +195,9 @@ set(SRC_PublicHeaders
     version_info_ptr.h
     version_info_factory.h
 
+    development_version_info.h
+    development_version_info_ptr.h
+
     cloneable.h
     complex_number_type.h
     coretype_utils.h
@@ -206,7 +209,7 @@ set(SRC_PublicHeaders
     struct.h
     struct_ptr.h
     struct_factory.h
-	
+
     struct_builder.h
     struct_builder_impl.h
     struct_builder_ptr.h
@@ -235,7 +238,7 @@ set(SRC_PublicHeaders
     enumeration_type_factory.h
 
     filesystem.h
-    
+
     utility_sync.h
 
     search_filter.h

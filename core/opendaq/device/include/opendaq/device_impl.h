@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -217,7 +217,11 @@ protected:
                             const SerializedObjectPtr& item,
                             const BaseObjectPtr& context);
 
-    static void deserializeVersion(const SerializedObjectPtr& serialized, const DeviceInfoPtr& deviceInfo);
+    static void DeserializeVersion(const SerializedObjectPtr& serialized,
+                                   const BaseObjectPtr& context,
+                                   const FunctionPtr& factoryCallback,
+                                   const DeviceInfoPtr& deviceInfo);
+
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
@@ -390,10 +394,10 @@ ErrCode GenericDevice<TInterface, Interfaces...>::lock(IUser* user)
             ObjectPtr<IErrorInfo> errorInfo;
             daqGetErrorInfo(&errorInfo);
             daqClearErrorInfo();
-            
+
             const auto revertStatus = revertLockedDevices(devices, lockStatuses, i, user, false);
             OPENDAQ_RETURN_IF_FAILED(revertStatus);
-            
+
             daqSetErrorInfo(errorInfo);
             return DAQ_EXTEND_ERROR_INFO(status);
         }
@@ -1168,7 +1172,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(ILi
         std::set<OperationModeType> modes;
         const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableOperationModes, modes);
         OPENDAQ_RETURN_IF_FAILED(errCode);
-        
+
         this->availableOperationModes = List<IInteger>();
         for (auto mode : modes)
             availableOperationModes.pushBack(static_cast<Int>(mode));
@@ -1238,7 +1242,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationModeRecursive(Oper
 {
     ErrCode errCode = setOperationMode(modeType);
     OPENDAQ_RETURN_IF_FAILED(errCode);
-    
+
     for (const DevicePtr & dev: this->devices.getItems())
     {
         errCode = dev->setOperationModeRecursive(modeType);
@@ -1852,10 +1856,9 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     if (moduleInfo.assigned() && moduleInfo.getVersionInfo().assigned())
     {
         const auto version = moduleInfo.getVersionInfo();
-        const auto versionStr = fmt::format("{}.{}.{}", version.getMajor(), version.getMinor(), version.getPatch());
 
         serializer.key("__version");
-        serializer.writeString(versionStr.c_str(), versionStr.size());
+        version.serialize(serializer);
     }
 
     Super::serializeCustomObjectValues(serializer, forUpdate);
@@ -1905,7 +1908,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
                 serializer.key("OperationMode");
                 serializer.writeInt(static_cast<Int>(mode));
             }
-            else 
+            else
             {
                 daqClearErrorInfo();
             }
@@ -2102,37 +2105,46 @@ void GenericDevice<TInterface, Interfaces...>::updateIoFolderItem(const FolderPt
                            "IoFolder",
                            "",
                            [this, &item, &context](const std::string& itemId, const SerializedObjectPtr& obj)
-                           { updateIoFolderItem(item, itemId, obj, context); });
+                           {
+                               updateIoFolderItem(item, itemId, obj, context);
+                           });
     }
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::deserializeVersion(const SerializedObjectPtr& serialized, const DeviceInfoPtr& deviceInfo)
+void GenericDevice<TInterface, Interfaces...>::DeserializeVersion(const SerializedObjectPtr& serialized,
+                                                                  const BaseObjectPtr& context,
+                                                                  const FunctionPtr& factoryCallback,
+                                                                  const DeviceInfoPtr& deviceInfo)
 {
-    if (serialized.hasKey("__version"))
+    if (!deviceInfo.assigned())
+        return;
+    if (!serialized.hasKey("__version"))
+        return;
+
+    if (serialized.getType("__version") != ctObject)
+        return;
+
+    const auto version = serialized.readObject("__version", context, factoryCallback);
+
+    if (!version.assigned())
+        return;
+
+    auto devType = deviceInfo.getDeviceType();
+    auto hasDevType = devType.assigned();
+    if (!hasDevType)
     {
-        const auto version = Super::parseVersionString(serialized.readString("__version"));
-        if (version.assigned())
-        {
-            if (deviceInfo.assigned())
-            {
-                auto devType = deviceInfo.getDeviceType();
-                auto hasDevType = devType.assigned();
-                if (!hasDevType)
-                    devType = DeviceTypeBuilder().setName("__unknown").setId("__unknown").setConnectionStringPrefix("__unknown").build();
-
-                auto moduleInfo = devType.getModuleInfo();
-                if (!moduleInfo.assigned())
-                    moduleInfo = ModuleInfo(version, "__unknown", "_unknown");
-
-                checkErrorInfo(devType.template asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
-                if (!hasDevType)
-                    deviceInfo.template asPtr<IDeviceInfoConfig>(true).setDeviceType(devType);
-            }
-        }
+        devType = DeviceTypeBuilder().setName("__unknown").setId("__unknown").setConnectionStringPrefix("__unknown").build();
     }
-}
 
+    auto moduleInfo = devType.getModuleInfo();
+    if (!moduleInfo.assigned())
+        moduleInfo = ModuleInfo(version, "__unknown", "_unknown");
+
+    checkErrorInfo(devType.template asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    if (!hasDevType)
+        deviceInfo.template asPtr<IDeviceInfoConfig>(true).setDeviceType(devType);
+}
 
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
@@ -2279,7 +2291,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
 {
     ErrCode errCode = Super::enableCoreEventTrigger();
     OPENDAQ_RETURN_IF_FAILED(errCode);
-    
+
     DeviceInfoPtr deviceInfo;
     errCode = this->getInfo(&deviceInfo);
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -2298,7 +2310,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
 
     if (this->deviceInfo.assigned())
         return deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
-    
+
     return errCode;
 }
 

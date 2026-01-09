@@ -1,0 +1,89 @@
+diff --git a/taskflow/core/executor.hpp b/taskflow/core/executor.hpp
+index 816b4ad..a1b2c3d 100644
+--- a/taskflow/core/executor.hpp
++++ b/taskflow/core/executor.hpp
+@@ -622,6 +622,22 @@ class Executor {
+   */
+   size_t num_observers() const noexcept;
+ 
++  /**
++  @brief sets handler for exceptions that are propagated from
++  user-provided task callables and for which the library does not
++  specify any other way of handling them.
++  There is no synchronization when invoking the handler.
++  If exception propagates out of handler it is ignored.
++  This exception handler is considered a fallback to handle exceptions.
++  There is no guarantee that exceptions originating from a particular
++  task will be delivered to the handler passed to this function in
++  future versions of the library. The future versions of the library
++  may introduce different, more specific ways to handle exceptions.
++  @param handler that accepts a caught exception pointer.
++  This member function is not thread-safe.
++  */
++  void set_uncaught_exception_handler(std::function<void(std::exception_ptr)> handler);
++
+   // --------------------------------------------------------------------------
+   // Async Task Methods
+   // --------------------------------------------------------------------------
+@@ -1086,6 +1102,7 @@ class Executor {
+ 
+   std::unique_ptr<WorkerInterface> _worker_interface;
+   std::unordered_set<std::shared_ptr<ObserverInterface>> _observers;
++  std::function<void(std::exception_ptr)> _uncaught_exception_handler;
+   std::unordered_map<std::thread::id, Worker*> _t2w;
+ 
+   void _shutdown();
+@@ -1190,6 +1207,8 @@ inline Executor::Executor(size_t N, std::unique_ptr<WorkerInterface> wix) :
+   if(has_env(TF_ENABLE_PROFILER)) {
+     TFProfManager::get()._manage(make_observer<TFProfObserver>());
+   }
++
++  set_uncaught_exception_handler({});
+ }
+ 
+ // Destructor
+@@ -1530,6 +1549,32 @@ inline size_t Executor::num_observers() const noexcept {
+   return _observers.size();
+ }
+ 
++inline void Executor::set_uncaught_exception_handler(std::function<void(std::exception_ptr)> handler)
++{
++  if (handler)
++  {
++    _uncaught_exception_handler = handler;
++  }
++  else
++  {
++    // Setup default uncaught exception handler to print a message to stderr
++    _uncaught_exception_handler = [](std::exception_ptr eptr) {
++      try
++      {
++          std::rethrow_exception(eptr);
++      }
++      catch (const std::exception& e)
++      {
++        std::fprintf(stderr, "[taskflow] Got uncaught exception: %s\n", e.what());
++      }
++      catch (...)
++      {
++        std::fprintf(stderr, "[taskflow] Got unknown uncaught exception\n");
++      }
++    };
++  }
++}
++
+ // Procedure: _schedule
+ inline void Executor::_schedule(Worker& worker, Node* node) {
+   
+@@ -1844,6 +1889,11 @@ inline void Executor::_observer_epilogue(Worker& worker, Node* node) {
+ // Procedure: _process_exception
+ inline void Executor::_process_exception(Worker&, Node* node) {
+ 
++  // Call the custom exception handler if set
++  if(_uncaught_exception_handler) {
++    _uncaught_exception_handler(std::current_exception());
++  }
++
+   constexpr static auto flag = ESTATE::EXCEPTION | ESTATE::CANCELLED;
+ 
+   // find the anchor and mark the entire path with exception so recursive

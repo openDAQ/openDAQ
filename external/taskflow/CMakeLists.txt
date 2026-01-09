@@ -10,6 +10,8 @@ opendaq_dependency(
     ADD_FETCH_ALIAS     Taskflow::Taskflow=Taskflow
     EXPECT_TARGET       Taskflow::Taskflow
     PATCH_FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/patches/0001-Fix-Executor-async-functions-to-set-except.patch
+        ${CMAKE_CURRENT_SOURCE_DIR}/patches/0002-Implement-fallback-uncaught-exception-handler.patch
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0003-Ignore-False-Positive-Mem-Leak.patch
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0004-IntelLLVM-Support.patch
 )

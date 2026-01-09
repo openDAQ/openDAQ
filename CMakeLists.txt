@@ -719,6 +719,8 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         set(CLANG_FLAGS "${CLANG_FLAGS} \
             -Xclang -Wno-delete-non-abstract-non-virtual-dtor"
         )
+        # Use precise floating-point model to avoid aggressive optimizations
+        set(CLANG_FLAGS "${CLANG_FLAGS} /fp:precise")
     endif ()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")

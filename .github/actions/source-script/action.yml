@@ -1,0 +1,65 @@
+name: 'Source Script'
+description: 'Run scripts and export environment variable changes to GITHUB_ENV'
+inputs:
+  scripts:
+    description: 'Scripts to run that modify environment (one per line, .bat, .cmd, .sh, etc.)'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Source scripts and export env changes
+      shell: pwsh
+      run: |
+        $scripts = @"
+        ${{ inputs.scripts }}
+        "@ -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+
+        # Save current env
+        $before = @{}
+        Get-ChildItem Env: | ForEach-Object { $before[$_.Name] = $_.Value }
+
+        # Run each script
+        foreach ($script in $scripts) {
+          Write-Host "Running: $script"
+
+          $ext = [System.IO.Path]::GetExtension($script).ToLower()
+          if ($ext -in '.bat', '.cmd') {
+            cmd /c "`"$script`"" 2>&1 | Out-Null
+            $output = cmd /c "`"$script`" && set" 2>&1
+          } else {
+            $output = bash -c "source '$script' >/dev/null 2>&1 && env" 2>&1
+          }
+
+          # Update env for next script
+          $output | ForEach-Object {
+            if ($_ -match '^([^=]+)=(.*)$') {
+              [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2], 'Process')
+            }
+          }
+        }
+
+        # Get final env state
+        $after = @{}
+        Get-ChildItem Env: | ForEach-Object { $after[$_.Name] = $_.Value }
+
+        # Export new/changed vars
+        $new = 0; $changed = 0
+        foreach ($key in $after.Keys) {
+          $newVal = $after[$key]
+          $oldVal = $before[$key]
+
+          if ($null -eq $oldVal) {
+            Write-Host "  + $key"
+            $new++
+          } elseif ($oldVal -ne $newVal) {
+            Write-Host "  ~ $key"
+            $changed++
+          } else {
+            continue
+          }
+
+          "$key=$newVal" >> $env:GITHUB_ENV
+        }
+
+        Write-Host "New: $new, Changed: $changed"

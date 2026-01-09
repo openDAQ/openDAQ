@@ -178,7 +178,7 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoo
                           ? this->logger.getOrAddComponent("Scheduler")
                           : throw ArgumentNullException("Logger must not be null"))
     , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers,
-               std::make_shared<CustomWorkerInterface>()))
+               std::make_unique<CustomWorkerInterface>()))
 {
     if (useMainLoop)
         mainThreadWorker = std::make_unique<MainThreadLoop>(this->logger);

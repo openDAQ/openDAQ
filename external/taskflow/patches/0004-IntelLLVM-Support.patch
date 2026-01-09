@@ -1,8 +1,8 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index ccba973..8b2cbf2 100644
+index a1d8cea..37d7f85 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -70,6 +70,11 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+@@ -89,6 +89,11 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
      message(STATUS "CMAKE_CXX_COMPILER_VERSION: ${CMAKE_CXX_COMPILER_VERSION}")
      message(FATAL_ERROR "\nTaskflow requires icpc at least v19.0.1")
    endif()
@@ -14,16 +14,11 @@ index ccba973..8b2cbf2 100644
  else()
    message(FATAL_ERROR "\n\
  Taskflow currently supports the following compilers:\n\
-@@ -78,6 +83,7 @@ Taskflow currently supports the following compilers:\n\
+@@ -97,6 +102,7 @@ Taskflow currently supports the following compilers:\n\
    - MSVC++ v19.14 or above\n\
-   - AppleClang v8 or above\n\
+   - AppleClang v12.0 or above\n\
    - Intel v19.0.1 or above\n\
 +  - IntelLLVM v2021.1.0 or above\n\
  ")
  endif()
  
-@@ -372,4 +378,3 @@ install(
-         ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
- )
--

@@ -1,0 +1,44 @@
+diff --git a/taskflow/core/async.hpp b/taskflow/core/async.hpp
+index 816b4ad..a1b2c3d 100644
+--- a/taskflow/core/async.hpp
++++ b/taskflow/core/async.hpp
+@@ -76,9 +76,20 @@ auto Executor::_async(P&& params, F&& f, Topology* tpg, Node* parent) {
+     _schedule_async_task(animate(
+       NSTATE::NONE, ESTATE::ANCHORED, std::forward<P>(params), tpg, parent, 0, 
+       std::in_place_type_t<Node::Async>{}, 
+-      [p=MoC{std::move(p)}, f=std::forward<F>(f)](Runtime& rt, bool reentered) mutable { 
++      [p=MoC{std::move(p)}, f=std::forward<F>(f)](Runtime& rt, bool reentered) mutable {
+         if(!reentered) {
+-          f(rt);
++          try {
++            f(rt);
++            p.object.set_value();
++          }
++          catch (...) {
++            try {
++              p.object.set_exception(std::current_exception());
++            }
++            catch (...) {
++              // Ignore
++            }
++          }
+         }
+         else {
+           auto& eptr = rt._parent->_exception_ptr;
+@@ -96,7 +107,15 @@ auto Executor::_async(P&& params, F&& f, Topology* tpg, Node* parent) {
+     _schedule_async_task(animate(
+       NSTATE::NONE, ESTATE::NONE, std::forward<P>(params), tpg, parent, 0, 
+       std::in_place_type_t<Node::Async>{}, 
+-      [p=make_moc(std::move(p))]() mutable { p.object(); }
++      [p=make_moc(std::move(p))]() mutable {
++        try {
++          p.object();
++        }
++        catch (...) {
++          // Exception is automatically stored in packaged_task's shared state
++          // No need to manually set it - packaged_task handles this automatically
++        }
++      }
+     ));
+     return fu;
+   }

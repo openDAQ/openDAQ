@@ -4,14 +4,21 @@ set(BUILD_TESTING     OFF CACHE BOOL "Enables TaskFlow CTest")
 
 opendaq_dependency(
     NAME                Taskflow
-    REQUIRED_VERSION    3.5.0
+    REQUIRED_VERSION    3.11.0
     GIT_REPOSITORY      https://github.com/taskflow/taskflow.git
-    GIT_REF             v3.5.0
+    GIT_REF             v3.11.0
     ADD_FETCH_ALIAS     Taskflow::Taskflow=Taskflow
     EXPECT_TARGET       Taskflow::Taskflow
     PATCH_FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/patches/0001-TBBAS-280-Fix-Executor-async-functions-to-set-except.patch
+		${CMAKE_CURRENT_SOURCE_DIR}/patches/0001-Fix-Executor-async-functions-to-set-except.patch
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0002-Implement-fallback-uncaught-exception-handler.patch
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0003-Ignore-False-Positive-Mem-Leak.patch
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0004-IntelLLVM-Support.patch
 )
+
+# Suppress C++20 extensions warning for Taskflow (it uses C++20 features but we compile with C++17)
+if (TARGET Taskflow)
+    if (CMAKE_COMPILER_IS_CLANGXX)
+        target_compile_options(Taskflow INTERFACE -Wno-c++20-extensions)
+    endif()
+endif()

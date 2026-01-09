@@ -26,7 +26,7 @@ template <typename TReturn = void>
 class AwaitableImpl : public ImplementationOf<IAwaitable>
 {
 public:
-    using Future = tf::Future<TReturn>;
+    using Future = std::future<TReturn>;
 
     explicit AwaitableImpl(Future future);
 
@@ -40,6 +40,6 @@ private:
 };
 
 using Awaitable = AwaitableImpl<>;
-using AwaitableFunc = AwaitableImpl<std::optional<BaseObjectPtr>>;
+using AwaitableFunc = AwaitableImpl<BaseObjectPtr>;
 
 END_NAMESPACE_OPENDAQ

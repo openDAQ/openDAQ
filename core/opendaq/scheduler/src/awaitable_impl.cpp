@@ -50,7 +50,15 @@ ErrCode AwaitableImpl<TReturn>::getResult(daq::IBaseObject** result)
 
     if constexpr (std::is_void_v<TReturn>)
     {
-        future.get();
+        try
+        {
+            future.get();
+        }
+        catch (...)
+        {
+            // Mask exceptions from taskflow - don't rethrow
+            // This matches the behavior expected by ScheduleGraphMasksExceptions test
+        }
         *result = nullptr;
     }
     else

@@ -1,0 +1,97 @@
+name: Setup Intel LLVM Compiler
+description: Install and configure Intel LLVM C++ compiler (icx) from oneAPI toolkit
+
+runs:
+  using: composite
+  steps:
+    - name: Download installer
+      if: runner.os == 'Windows'
+      id: download-windows
+      shell: pwsh
+      run: |
+        $url = "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe"
+        $output = "$env:TEMP\oneapi_installer.exe"
+
+        Write-Host "Downloading Intel oneAPI Base Toolkit..."
+        Write-Host "See: https://github.com/oneapi-src/oneapi-ci"
+        Write-Host "URL: $url"
+        Write-Host "Output: $output"
+
+        curl.exe -L -o $output $url --retry 5 --retry-delay 5 --fail --show-error
+
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Download failed with exit code $LASTEXITCODE"
+          exit 1
+        }
+
+        if (-not (Test-Path $output)) {
+          Write-Error "Downloaded file not found: $output"
+          exit 1
+        }
+
+        $size = (Get-Item $output).Length / 1MB
+        Write-Host "Download complete: $([math]::Round($size, 2)) MB"
+
+    - name: Install oneAPI
+      if: runner.os == 'Windows'
+      id: install-windows
+      shell: pwsh
+      run: |
+        Write-Host "Extracting installer..."
+        $extract = Start-Process -Wait -PassThru -FilePath "$env:TEMP\oneapi_installer.exe" `
+          -ArgumentList "-s", "-x", "-f", "$env:TEMP\oneapi_extracted", "--log", "extract.log"
+        if ($extract.ExitCode -ne 0) {
+          Write-Error "Extraction failed with exit code $($extract.ExitCode)"
+          Get-Content extract.log -ErrorAction SilentlyContinue
+          exit 1
+        }
+
+        Write-Host "Installing component: intel.oneapi.win.cpp-dpcpp-common"
+        $installArgs = "-s --action install --eula=accept --components=intel.oneapi.win.cpp-dpcpp-common -p=NEED_VS2017_INTEGRATION=0 -p=NEED_VS2019_INTEGRATION=0 -p=NEED_VS2022_INTEGRATION=0 --log-dir=."
+        Write-Host "Running: bootstrapper.exe $installArgs"
+        $install = Start-Process -Wait -PassThru -FilePath "$env:TEMP\oneapi_extracted\bootstrapper.exe" -ArgumentList $installArgs
+        if ($install.ExitCode -ne 0) {
+          Write-Error "Installation failed with exit code $($install.ExitCode)"
+          Get-ChildItem *.log | ForEach-Object { Write-Host "=== $($_.Name) ==="; Get-Content $_ }
+          exit 1
+        }
+
+        # Verify installation
+        $compilerPath = "C:\Program Files (x86)\Intel\oneAPI\compiler"
+        if (-not (Test-Path $compilerPath)) {
+          Write-Error "Compiler directory not found after installation"
+          Write-Host "Contents of Intel oneAPI directory:"
+          Get-ChildItem "C:\Program Files (x86)\Intel\oneAPI" -ErrorAction SilentlyContinue
+          exit 1
+        }
+        Write-Host "Installation complete"
+        Get-ChildItem $compilerPath
+
+        # Cleanup installer files
+        Remove-Item -Force "$env:TEMP\oneapi_installer.exe" -ErrorAction SilentlyContinue
+        Remove-Item -Recurse -Force "$env:TEMP\oneapi_extracted" -ErrorAction SilentlyContinue
+
+        # Output scripts for environment setup
+        "scripts<<EOF" >> $env:GITHUB_OUTPUT
+        "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat" >> $env:GITHUB_OUTPUT
+        "C:\Program Files (x86)\Intel\oneAPI\compiler\latest\env\vars.bat" >> $env:GITHUB_OUTPUT
+        "EOF" >> $env:GITHUB_OUTPUT
+
+    - name: Export oneAPI environment
+      if: runner.os == 'Windows'
+      uses: ./.github/actions/source-script
+      with:
+        scripts: ${{ steps.install-windows.outputs.scripts }}
+
+    - name: Verify compiler
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Write-Host "Verifying Intel oneAPI compiler..."
+        $icxPath = Get-Command icx -ErrorAction SilentlyContinue
+        if (-not $icxPath) {
+          Write-Error "icx compiler not found in PATH"
+          exit 1
+        }
+        Write-Host "Found: $($icxPath.Source)"
+        icx --version

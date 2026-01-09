@@ -173,18 +173,18 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
 
 void IcmpPing::waitSendAndReply()
 {
-    {
-        LOG_T("Waiting for pings to be sent\n");
-        std::unique_lock lock(mutexRequests);
-        allRequestsSent.wait(lock,
-                             [this, ptr = shared_from_this()]
-                             {
-                                 // LOG("CV Check: {}/{} [{}]\n", numSent, numRemotes, found);
-                                 return numRemotes == numSent || stopReceive;
-                             });
-
-        LOG_T("All pings have sent\n");
-    }
+//    {
+//        LOG_T("Waiting for pings to be sent\n");
+//        std::unique_lock lock(mutexRequests);
+//        allRequestsSent.wait(lock,
+//                             [this, ptr = shared_from_this()]
+//                             {
+//                                 // LOG("CV Check: {}/{} [{}]\n", numSent, numRemotes, found);
+//                                 return numRemotes == numSent || stopReceive;
+//                             });
+//
+//        LOG_T("All pings have sent\n");
+//    }
     {
         LOG_T("Waiting for replies to be received\n");
         std::unique_lock lock(mutexReplies);

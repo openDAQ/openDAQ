@@ -1,12 +1,14 @@
 #include <coreobjects/unit_factory.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/core_opendaq_event_args_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/dimension_factory.h>
 #include <opendaq/range_factory.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/signal_ptr.h>
+#include <opendaq/packet_factory.h>
 #include <gtest/gtest.h>
 #include <opcuaclient/opcuaclient.h>
 #include <opcuatms/exceptions.h>
@@ -623,4 +625,68 @@ TEST_F(TmsSignalTest, GetValue)
     sendValueToSignal<double>(signal, 10.0);
 
     ASSERT_EQ(clientSignal.getLastValue(), 10.0);
+}
+
+TEST_F(TmsSignalTest, ValueAndAnalogValueDataTypeChange)
+{
+    // Create signal with Float64 descriptor
+    auto descriptor1 = DataDescriptorBuilder()
+                           .setSampleType(SampleType::Float64)
+                           .setName("TestSignal")
+                           .build();
+    SignalConfigPtr serverSignal = Signal(ctx, nullptr, "sig");
+    serverSignal.setDescriptor(descriptor1);
+    serverSignal.setActive(true);
+
+    // IMPORTANT: Keep TmsServerSignal alive for the duration of the test
+    // It must be a shared_ptr so that weak_ptr in TmsServerContext can lock it
+    auto tmsServerSignal = std::make_shared<TmsServerSignal>(serverSignal, this->getServer(), ctx, serverContext);
+    auto signalNodeId = tmsServerSignal->registerOpcUaNode();
+
+    // Get Value and AnalogValue node IDs using browser
+    CachedReferenceBrowser browser(client);
+    auto valueNodeId = browser.getChildNodeId(signalNodeId, "Value");
+    auto analogValueNodeId = browser.getChildNodeId(signalNodeId, "AnalogValue");
+
+    // Check initial data types are Float64
+    auto valueDataType1 = client->readDataType(valueNodeId);
+    ASSERT_EQ(valueDataType1, OpcUaNodeId(0, UA_NS0ID_DOUBLE));
+
+    auto analogValueDataType1 = client->readDataType(analogValueNodeId);
+    ASSERT_EQ(analogValueDataType1, OpcUaNodeId(0, UA_NS0ID_DOUBLE));
+
+    // Change descriptor to Int32
+    auto descriptor2 = DataDescriptorBuilder()
+                           .setSampleType(SampleType::Int32)
+                           .setName("TestSignal")
+                           .build();
+    serverSignal.setDescriptor(descriptor2);
+
+    // Manually trigger the DataDescriptorChanged event on TmsServerSignal
+    // Without Instance, core events are not generated automatically
+    auto eventArgs = CoreEventArgsDataDescriptorChanged(descriptor2);
+    tmsServerSignal->onCoreEvent(eventArgs);
+
+    // Create a new browser to get fresh references after node recreation
+    // Old browser may have cached references to deleted nodes
+    CachedReferenceBrowser newBrowser(client);
+    
+    // Get new node IDs after recreation (old ones may be invalid)
+    auto newValueNodeId = newBrowser.getChildNodeId(signalNodeId, "Value");
+    auto newAnalogValueNodeId = newBrowser.getChildNodeId(signalNodeId, "AnalogValue");
+    
+    // Verify that nodes exist
+    ASSERT_TRUE(client->nodeExists(newValueNodeId)) 
+        << "New Value node should exist after recreation";
+    ASSERT_TRUE(client->nodeExists(newAnalogValueNodeId))
+        << "New AnalogValue node should exist after recreation";
+
+    // Check that data types have changed to Int32
+    auto valueDataType2 = client->readDataType(newValueNodeId);
+    ASSERT_EQ(valueDataType2, OpcUaNodeId(0, UA_NS0ID_INT32)) 
+        << "Value node data type should be Int32 after descriptor change. Got: " << valueDataType2.toString();
+
+    auto analogValueDataType2 = client->readDataType(newAnalogValueNodeId);
+    ASSERT_EQ(analogValueDataType2, OpcUaNodeId(0, UA_NS0ID_INT32))
+        << "AnalogValue node data type should be Int32 after descriptor change. Got: " << analogValueDataType2.toString();
 }

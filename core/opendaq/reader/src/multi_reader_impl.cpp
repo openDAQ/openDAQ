@@ -50,7 +50,7 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  SampleType valueReadType,
                                  SampleType domainReadType,
                                  ReadMode mode,
-                                 ReadTimeoutType,// Why is this unused?
+                                 ReadTimeoutType,  // Why is this unused?
                                  std::int64_t requiredCommonSampleRate,
                                  Bool startOnFullUnitOfDomain,
                                  SizeT minReadCount)
@@ -60,15 +60,22 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
     , minReadCount(minReadCount)
     , notificationMethod(PacketReadyNotification::None)
     , notificationMethodsList(List<PacketReadyNotification>())
+    , valueReadType(valueReadType)
+    , domainReadType(domainReadType)
+    , readMode(mode)
+    , typeOfInputs(InputType::Unknown)
 {
     this->internalAddRef();
     try
     {
         checkListSizeAndCacheContext(list);
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
-        notificationMethod = list[0].supportsInterface(ISignal::Id)
-                                 ? PacketReadyNotification::SameThread
-                                 : PacketReadyNotification::Scheduler;
+        typeOfInputs = sourceComponentsType(list);
+
+        if (typeOfInputs == InputType::Signals)
+            notificationMethod = PacketReadyNotification::SameThread;
+        else  // Ports
+            notificationMethod = PacketReadyNotification::Scheduler;
 
         auto ports = createOrAdoptPorts(list);
         configureAndStorePorts(ports, valueReadType, domainReadType, mode);
@@ -91,6 +98,10 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
 // From old
 MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType, SampleType domainReadType)
     : loggerComponent(old->loggerComponent)
+    , valueReadType(old->valueReadType)
+    , domainReadType(old->domainReadType)
+    , readMode(old->readMode)
+    , typeOfInputs(old->typeOfInputs)
 {
     std::scoped_lock lock(old->mutex);
     old->invalid = true;
@@ -109,7 +120,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     context = old->context;
     portsConnected = old->portsConnected;
     externalListener = old->externalListener;
-    
+
     this->internalAddRef();
     try
     {
@@ -138,6 +149,9 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     , minReadCount(builder.getMinReadCount())
     , notificationMethod(builder.getInputPortNotificationMethod())
     , notificationMethodsList(builder.getInputPortNotificationMethods())
+    , valueReadType(builder.getValueReadType())
+    , domainReadType(builder.getDomainReadType())
+    , readMode(builder.getReadMode())
 {
     internalAddRef();
     try
@@ -145,14 +159,11 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
 
         auto sourceComponents = builder.getSourceComponents();
         checkListSizeAndCacheContext(sourceComponents);
-
-        if (notificationMethodsList.getCount() > 0 && sourceComponents.getCount() != notificationMethodsList.getCount())
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "The list of source components is not of same size than the list of notification methods.");
-
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
+        typeOfInputs = sourceComponentsType(sourceComponents);
 
         auto ports = createOrAdoptPorts(sourceComponents);
-        configureAndStorePorts(ports, builder.getValueReadType(), builder.getDomainReadType(), builder.getReadMode());
+        configureAndStorePorts(ports, valueReadType, domainReadType, readMode);
 
         auto err = isDomainValid(ports);
         if (OPENDAQ_FAILED(err))
@@ -190,6 +201,7 @@ void MultiReaderImpl::checkListSizeAndCacheContext(const ListPtr<IComponent>& li
 {
     if (!list.assigned())
         DAQ_THROW_EXCEPTION(NotAssignedException, "List of inputs is not assigned");
+    // TODO: Creating with 0 signals is probably valid now
     if (list.getCount() == 0)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Need at least one signal.");
     context = list[0].getContext();
@@ -346,50 +358,46 @@ ErrCode MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) co
     return OPENDAQ_SUCCESS;
 }
 
+MultiReaderImpl::InputType MultiReaderImpl::sourceComponentsType(const ListPtr<IComponent>& sources) const
+{
+    if (sources.getCount() == 0)
+        return InputType::Unknown;
+
+    if (sources[0].supportsInterface(IInputPort::Id))
+        return InputType::Ports;
+    else if (sources[0].supportsInterface(ISignal::Id))
+        return InputType::Signals;
+    else
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid component type, only IInputPort and ISignal are supported.");
+}
+
 ListPtr<IInputPortConfig> MultiReaderImpl::createOrAdoptPorts(const ListPtr<IComponent>& list) const
 {
-    if (list[0].supportsInterface(IInputPort::Id) && notificationMethodsList.getCount() > 0)
-    {
-        if (notificationMethod == PacketReadyNotification::Unspecified)
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Multi reader created from signals cannot have an unspecified input port notification method.");
-    }
-    
-    bool hasInputPorts = false;
-    bool hasSignals = false;
-
     auto portList = List<IInputPortConfig>();
-    size_t cnt = 0;
     for (const auto& el : list)
     {
         if (auto signal = el.asPtrOrNull<ISignal>(); signal.assigned())
         {
-            if (hasInputPorts)
+            if (typeOfInputs == InputType::Ports)
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
-
-            if (notificationMethodsList.getCount() > 0 && notificationMethodsList[cnt] == PacketReadyNotification::Unspecified)
-                DAQ_THROW_EXCEPTION(InvalidParameterException, "Multi reader created from signals cannot have an unspecified input port notification method.");
 
             auto port = InputPort(context, nullptr, fmt::format("multi_reader_signal_{}", signal.getLocalId()));
             port.getTags().asPtr<ITagsPrivate>().add("MultiReaderInternalPort");
 
-            hasSignals = true;
             port.connect(signal);
             portList.pushBack(port);
         }
         else if (auto port = el.asPtrOrNull<IInputPortConfig>(); port.assigned())
         {
-            if (hasSignals)
+            if (typeOfInputs == InputType::Signals)
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot pass both input ports and signals as items");
 
-            hasInputPorts = true;
             portList.pushBack(port);
         }
         else
         {
             DAQ_THROW_EXCEPTION(InvalidParameterException, "One of the elements of input list is not signal or input port");
         }
-
-        cnt++;
     }
 
     return portList;
@@ -410,6 +418,10 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
                                              SampleType domainRead,
                                              ReadMode mode)
 {
+    if (notificationMethodsList.getCount() > 0 && notificationMethodsList.getCount() != inputPorts.getCount())
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            "The list of source components is not of same size than the list of notification methods.");
+
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
     size_t cnt = 0;
@@ -426,7 +438,16 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
         auto portNotificationMethod = notificationMethodsList.getCount() > 0 ? notificationMethodsList[cnt] : notificationMethod;
 
         if (portNotificationMethod != PacketReadyNotification::Unspecified)
+        {
             port.setNotificationMethod(portNotificationMethod);
+        }
+        else if (typeOfInputs == InputType::Signals)  // and Unspecified
+        {
+            // Multireader from signals cannot have unspecified as the notification method. Multireader from ports may have Unspecified
+            // setting to preserve the notification method.
+            DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                "Multi reader created from signals cannot have an unspecified input port notification method.");
+        }
 
         signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
         cnt++;
@@ -621,6 +642,24 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
     }
 
     *count = cnt;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC MultiReaderImpl::addInput(IComponent* port)
+{
+    OPENDAQ_PARAM_NOT_NULL(port);
+
+    ListPtr<IComponent> list = List<IComponent>();
+    list.pushBack(port);
+
+    auto ports = createOrAdoptPorts(list);
+    configureAndStorePorts(ports, valueReadType, domainReadType, readMode);
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC MultiReaderImpl::removeInput(/*TODO*/)
+{
     return OPENDAQ_SUCCESS;
 }
 
@@ -867,7 +906,7 @@ bool MultiReaderImpl::eventOrGapInQueue() const
                    });
 }
 
-bool MultiReaderImpl::dataPacketsOrEventReady() 
+bool MultiReaderImpl::dataPacketsOrEventReady()
 {
     bool hasEventPacket = false;
     bool hasDataPacket = true;
@@ -1087,7 +1126,7 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
         }
 
     }
-    
+
     if (externalListener.assigned() && externalListener.getRef().assigned())
         return externalListener.getRef()->disconnected(port);
     return OPENDAQ_SUCCESS;
@@ -1129,7 +1168,7 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
             }
         }
 
-        return OPENDAQ_SUCCESS;    
+        return OPENDAQ_SUCCESS;
     }
 
     if (invalid)
@@ -1149,11 +1188,11 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
         ProcedurePtr callback = readCallback;
         lock.unlock();
         notify.condition.notify_one();
-        
+
         if (callback.assigned())
             OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
     }
-    
+
     if (externalListener.assigned() && externalListener.getRef().assigned())
         return externalListener.getRef()->packetReceived(inputPort);
     return OPENDAQ_SUCCESS;

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/sample_reader.h>
 #include <opendaq/multi_reader_status.h>
+#include <opendaq/sample_reader.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -60,7 +60,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param[out] status: Represents the status of the reader.
      * - If the reader is invalid, IReaderStatus::getValid returns false.
      * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
-     * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that
+     * IReaderStatus::getValid is true and there is no encountered events
      */
     virtual ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs = 0, IMultiReaderStatus** status = nullptr) = 0;
 
@@ -145,7 +146,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * Reader will try to synchronize the data from the signals when `getAvailableCount` or any of the read methods is called.
      */
     virtual ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) = 0;
-	
+
     /*!
      * @brief Gets the common sample rate in case input signal have different rates. The value of common sample rate is such
      * that sample rate of any individual signal can be represented as commonSampleRate / Div, where Div is an integer. Unless
@@ -165,6 +166,10 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @brief Gets active or inactive MultiReader state. In inactive state MultiReader will receive only event packets.
      */
     virtual ErrCode INTERFACE_FUNC getActive(Bool* isActive) = 0;
+
+    virtual ErrCode INTERFACE_FUNC addInput(IComponent* input) = 0;
+
+    virtual ErrCode INTERFACE_FUNC removeInput(/*TODO*/) = 0;
 };
 
 /*!@}*/

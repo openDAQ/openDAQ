@@ -1,11 +1,11 @@
 include(openDAQUtils)
 include(DaqInternal)
 
-function(print_var VARIABLE_NAME)
+function(print_var VARIABLE_NAME) # not used
     message(STATUS "${VARIABLE_NAME}: ${${VARIABLE_NAME}}")
 endfunction()
 
-function(get_current_folder OUTFOLDER)
+function(get_current_folder OUTFOLDER) # not used
     file(RELATIVE_PATH FOLDER ${PROJ_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
     set(GROUP ${ARGV1})
 
@@ -20,12 +20,12 @@ function(get_current_folder OUTFOLDER)
     set(${OUTFOLDER} ${FOLDER} PARENT_SCOPE)
 endfunction()
 
-function(get_current_folder_name OUTFOLDER)
+function(get_current_folder_name OUTFOLDER) # used everywhere - core, modules, opendaq org libs, etc.
     get_filename_component(FOLDER ${CMAKE_CURRENT_SOURCE_DIR} NAME)
     set(${OUTFOLDER} ${FOLDER} PARENT_SCOPE)
 endfunction()
 
-function(set_cmake_folder_context OUTFOLDER)
+function(set_cmake_folder_context OUTFOLDER) # used everywhere - core, modules, opendaq org libs, etc.
     get_current_folder_name(TARGET_FOLDER_NAME)
 
     if (ARGC GREATER 1)
@@ -43,7 +43,7 @@ function(set_cmake_folder_context OUTFOLDER)
     set(${OUTFOLDER} ${TARGET_FOLDER_NAME} PARENT_SCOPE)
 endfunction()
 
-function(set_cmake_context)
+function(set_cmake_context) # used internally in shared libs - why ???
     get_current_folder_name(TARGET_FOLDER_NAME)
 
     if (ARGC GREATER 1)
@@ -55,17 +55,52 @@ function(set_cmake_context)
     set(CMAKE_MESSAGE_CONTEXT ${CMAKE_MESSAGE_CONTEXT} PARENT_SCOPE)
 endfunction()
 
-function(set_cmake_folder OUTFOLDER)
+function(set_cmake_folder OUTFOLDER) # used internally in core
     get_current_folder_name(TARGET_FOLDER_NAME)
     set(CMAKE_FOLDER "${CMAKE_FOLDER}/${TARGET_FOLDER_NAME}" PARENT_SCOPE)
 endfunction()
 
-function(prepend_include SUBFOLDER SOURCE_FILES)
+function(prepend_include SUBFOLDER SOURCE_FILES) # super shared used everywhere
     list(TRANSFORM ${SOURCE_FILES} PREPEND "../include/${SUBFOLDER}/")
     set( ${SOURCE_FILES} ${${SOURCE_FILES}} PARENT_SCOPE )
 endfunction()
 
-function(create_version_header LIB_NAME)
+function(opendaq_create_version_header LIB_NAME OUTPUT_DIR HEADER_PREFIX GENERATE_RC GENERATE_HEADER) # used in core and modules - called by create_version_header()
+    set(TEMPLATE_DIR ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/version)
+
+    if (GENERATE_HEADER)
+        set(VERSION_HEADER ${OUTPUT_DIR}/${HEADER_PREFIX}version.h)
+
+        string(TOUPPER ${LIB_NAME} UPPERCASE_LIB_NAME)
+        configure_file(${TEMPLATE_DIR}/version.h.in ${VERSION_HEADER})
+    endif()
+
+    if (WIN32 AND GENERATE_RC)
+        set(VERSION_RC ${OUTPUT_DIR}/version.rc)
+
+        get_target_property(TARGET_SUFFIX ${LIB_NAME} SUFFIX)
+        get_target_property(ORIGINAL_OUTPUT_NAME ${LIB_NAME} OUTPUT_NAME)
+
+        if (TARGET_SUFFIX)
+            set(LIB_TARGET_TYPE ${TARGET_SUFFIX})
+        else()
+            get_target_property(TARGET_TYPE ${LIB_NAME} TYPE)
+            if (TARGET_TYPE STREQUAL "EXECUTABLE")
+                set(LIB_TARGET_TYPE ${CMAKE_EXECUTABLE_SUFFIX})
+            elseif (TARGET_TYPE STREQUAL "STATIC_LIBRARY")
+                set(LIB_TARGET_TYPE ${CMAKE_STATIC_LIBRARY_SUFFIX})
+            else()
+                set(LIB_TARGET_TYPE ${CMAKE_SHARED_LIBRARY_SUFFIX})
+            endif()
+        endif()
+
+        configure_file(${TEMPLATE_DIR}/version.rc.in ${VERSION_RC})
+    endif()
+
+    target_sources(${LIB_NAME} PRIVATE ${VERSION_HEADER} ${VERSION_RC})
+endfunction()
+
+function(create_version_header LIB_NAME) # used in core and modules
     set(INCLUDE_FOLDER_NAME ${TARGET_FOLDER_NAME})
 
     set(options ONLY_RC NO_RC)
@@ -111,7 +146,7 @@ function(create_version_header LIB_NAME)
     )
 endfunction()
 
-function(check_if_files_exist DIR INPUT_FILES)
+function(check_if_files_exist DIR INPUT_FILES) # not used
     foreach (INPUT_FILE ${${INPUT_FILES}})
         set(CUR_FILE ${DIR}/${INPUT_FILE})
         if (NOT EXISTS ${CUR_FILE})
@@ -120,17 +155,17 @@ function(check_if_files_exist DIR INPUT_FILES)
     endforeach()
 endfunction(check_if_files_exist)
 
-function(opendaq_create_dir DIR)
+function(opendaq_create_dir DIR) # used in rtgen
     execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${DIR})
 endfunction(opendaq_create_dir)
 
-macro(add_application_option OPTION_VAR DESCRIPTION DEFAULT_VALUE)
+macro(add_application_option OPTION_VAR DESCRIPTION DEFAULT_VALUE) # not used - but might be used internally by opendaq
     cmake_dependent_option(${OPTION_VAR} ${DESCRIPTION} ${DEFAULT_VALUE} "${SDK_OPTION_PREFIX}_ENABLE_APPLICATION" ON)
 endmacro(add_application_option)
 
 # opendaq_gather_flags
 # Gathers all lists of flags for printing or manipulation
-macro(opendaq_gather_flags with_linker result)
+macro(opendaq_gather_flags with_linker result) #  used in opendaq only in opendaq_set_runtime()
     set(${result} "")
     # add the main flags without a config
     list(APPEND ${result} CMAKE_C_FLAGS)
@@ -171,7 +206,7 @@ endmacro()
 
 # opendaq_set_runtime
 # Sets the runtime (static/dynamic) for msvc/gcc
-macro(opendaq_set_runtime)
+macro(opendaq_set_runtime) # used in opendaq only
     cmake_parse_arguments(ARG "STATIC;DYNAMIC" "" "" ${ARGN})
 
     if(ARG_UNPARSED_ARGUMENTS)
@@ -220,7 +255,7 @@ macro(opendaq_set_runtime)
     endif()
 endmacro()
 
-function(dump_cmake_variables)
+function(dump_cmake_variables) # is not used at all
     get_cmake_property(_variableNames VARIABLES)
     list (SORT _variableNames)
     foreach (_variableName ${_variableNames})
@@ -235,7 +270,7 @@ function(dump_cmake_variables)
     endforeach()
 endfunction()
 
-macro(is_git_repository_root DIRECTORY_PATH FUNC_RESULT)
+macro(is_git_repository_root DIRECTORY_PATH FUNC_RESULT) # is not used at all
     execute_process(COMMAND git rev-parse --resolve-git-dir ${${DIRECTORY_PATH}}/.git
                     OUTPUT_QUIET
                     ERROR_QUIET
@@ -247,7 +282,7 @@ macro(is_git_repository_root DIRECTORY_PATH FUNC_RESULT)
     endif()
 endmacro()
 
-function(opendaq_set_target_postfixes _TARGET_NAME)
+function(opendaq_set_target_postfixes _TARGET_NAME) # used for gtest / gmock aliases only in opendaq
     if (BUILD_64Bit)
         set(_DEBUG_SUFFIX "64_debug")
         set(_RELEASE_SUFFIX "64")
@@ -265,7 +300,7 @@ function(opendaq_set_target_postfixes _TARGET_NAME)
     endif()
 endfunction()
 
-function(use_compiler_cache)
+function(use_compiler_cache) # used for core (but might be used for modules / libs / etc)
     if((NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR) OR (NOT OPENDAQ_USE_CCACHE))
         return()
     endif()
@@ -317,7 +352,7 @@ function(use_compiler_cache)
     endif()
 endfunction()
 
-function(get_custom_fetch_content_params LIBRARY_NAME OUTPARAM)
+function(get_custom_fetch_content_params LIBRARY_NAME OUTPARAM) # shared - use all over projects (opendaq org libs)
     set(FC_SOURCE_DIR ${FETCHCONTENT_EXTERNALS_DIR}/src)
     set(FC_SUBBUILD_DIR ${FETCHCONTENT_EXTERNALS_DIR}/subbuild/${CMAKE_GENERATOR}/${CMAKE_CXX_COMPILER_ID})
 
@@ -334,7 +369,7 @@ function(get_custom_fetch_content_params LIBRARY_NAME OUTPARAM)
     )
 endfunction()
 
-function(add_cmake_targets DIR INOUT_TARGET_LIST)
+function(add_cmake_targets DIR INOUT_TARGET_LIST) # internal - bindings
     #prerequisite is that the directory has already been added/processed
 
     set(_TARGETS ${${INOUT_TARGET_LIST}})

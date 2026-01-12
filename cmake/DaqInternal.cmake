@@ -1,38 +1,3 @@
-function(opendaq_create_version_header LIB_NAME OUTPUT_DIR HEADER_PREFIX GENERATE_RC GENERATE_HEADER)
-    set(TEMPLATE_DIR ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/version)
-
-    if (GENERATE_HEADER)
-        set(VERSION_HEADER ${OUTPUT_DIR}/${HEADER_PREFIX}version.h)
-
-        string(TOUPPER ${LIB_NAME} UPPERCASE_LIB_NAME)
-        configure_file(${TEMPLATE_DIR}/version.h.in ${VERSION_HEADER})
-    endif()
-
-    if (WIN32 AND GENERATE_RC)
-        set(VERSION_RC ${OUTPUT_DIR}/version.rc)
-
-        get_target_property(TARGET_SUFFIX ${LIB_NAME} SUFFIX)
-        get_target_property(ORIGINAL_OUTPUT_NAME ${LIB_NAME} OUTPUT_NAME)
-
-        if (TARGET_SUFFIX)
-            set(LIB_TARGET_TYPE ${TARGET_SUFFIX})
-        else()
-            get_target_property(TARGET_TYPE ${LIB_NAME} TYPE)
-            if (TARGET_TYPE STREQUAL "EXECUTABLE")
-                set(LIB_TARGET_TYPE ${CMAKE_EXECUTABLE_SUFFIX})
-            elseif (TARGET_TYPE STREQUAL "STATIC_LIBRARY")
-                set(LIB_TARGET_TYPE ${CMAKE_STATIC_LIBRARY_SUFFIX})
-            else()
-                set(LIB_TARGET_TYPE ${CMAKE_SHARED_LIBRARY_SUFFIX})
-            endif()
-        endif()
-
-        configure_file(${TEMPLATE_DIR}/version.rc.in ${VERSION_RC})
-    endif()
-
-    target_sources(${LIB_NAME} PRIVATE ${VERSION_HEADER} ${VERSION_RC})
-endfunction()
-
 function(opendaq_forward_include_headers LIB_NAME MODULES)
     foreach(MODULE_NAME ${${MODULES}})
         target_include_directories(

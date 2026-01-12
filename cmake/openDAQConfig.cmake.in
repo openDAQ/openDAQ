@@ -29,5 +29,3 @@ if (NOT xxHash_FOUND)
 endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/openDAQ.cmake)
-include(openDAQUtils)
-include(DaqUtils)

@@ -65,9 +65,9 @@ set(BOOST_INCLUDE_LIBRARIES "${NEEDED_LIBRARIES}"
 
 opendaq_dependency(
     NAME                Boost
-    REQUIRED_VERSION    1.71.0
-    URL                 https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.tar.xz
-    URL_HASH            SHA256=fd60da30be908eff945735ac7d4d9addc7f7725b1ff6fcdcaede5262d511d21e
+    REQUIRED_VERSION    1.90.0
+    URL                 https://github.com/boostorg/boost/releases/download/boost-1.90.0/boost-1.90.0-cmake.tar.xz
+    URL_HASH            SHA256=aca59f889f0f32028ad88ba6764582b63c916ce5f77b31289ad19421a96c555f
     EXPECT_TARGET       Boost::headers
     OVERRIDE_FIND_PACKAGE
 )

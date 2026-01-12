@@ -29,6 +29,9 @@ jobs:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
     timeout-minutes: 270
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
     strategy:
       fail-fast: false
       matrix:
@@ -50,24 +53,33 @@ jobs:
             enable-32bit: true
             enable-tests: true
           - name: Windows Clang Release
+            cc: clang
+            cxx: clang++
             cmake-build-type: Release
-            cmake-defines: >-
-              -DCMAKE_C_COMPILER=clang 
-              -DCMAKE_CXX_COMPILER=clang++
+            cmake-defines:
             cmake-generator: Ninja
             enable-tests: true
           - name: Windows GCC Release
+            cc: gcc
+            cxx: g++
             cmake-build-type: Release
             cmake-defines: >-
-              -DCMAKE_C_COMPILER=gcc
-              -DCMAKE_CXX_COMPILER=g++
               "-DCMAKE_CXX_FLAGS=-Wa,-mbig-obj -Wno-deprecated-declarations -Wno-error=conversion-null"
               "-DCMAKE_C_FLAGS=-Wa,-mbig-obj"
             cmake-generator: Ninja
-            # Tests are disabled due to: 
+            # Tests are disabled due to:
             # - test_device_modules memory corruption
             # - Python tests module resolution issues
-            enable-tests: false 
+            enable-tests: false
+          - name: Windows Intel-LLVM Release
+            cc: icx
+            cxx: icx
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            cmake-generator: Ninja
+            enable-tests: true
 
     steps:
       - name: Checkout
@@ -75,7 +87,6 @@ jobs:
 
       - name: Build and Test
         id: build-and-test
-        if: matrix.name != 'Windows Intel-LLVM Release'
         uses: ./.github/actions/build-sdk
         with:
           cmake-build-type: ${{ matrix.cmake-build-type }}
@@ -102,51 +113,70 @@ jobs:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
     timeout-minutes: 180
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: Ubuntu Latest gcc-9 Release
+            cc: gcc-9
+            cxx: g++-9
             additional-packages: g++-9
             cmake-generator: Ninja
             cmake-build-type: Release
-            cmake-defines: -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+            cmake-defines:
           - name: Ubuntu Latest gcc-14 Release
+            cc: gcc-14
+            cxx: g++-14
             additional-packages: g++-14
             cmake-generator: Ninja
             cmake-build-type: Release
-            cmake-defines: -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
+            cmake-defines:
           - name: Ubuntu Latest clang-14 Release
+            cc: clang-14
+            cxx: clang++-14
             additional-packages: clang-14
             cmake-generator: Ninja
             cmake-build-type: Release
-            cmake-defines: -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14
+            cmake-defines:
           - name: Ubuntu Latest clang-16 Release
+            cc: clang-16
+            cxx: clang++-16
             additional-packages: clang-16
             cmake-generator: Ninja
             cmake-build-type: Release
-            cmake-defines: -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16
+            cmake-defines:
           # The Debug configurations are disabled until the problem with test_py_opendaq is resolved.
           # - name: Ubuntu Latest gcc-9 Debug
+          #   cc: gcc-9
+          #   cxx: g++-9
           #   additional-packages: g++-9
           #   cmake-generator: Ninja
           #   cmake-build-type: Debug
-          #   cmake-defines: -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+          #   cmake-defines:
           # - name: Ubuntu Latest gcc-14 Debug
+          #   cc: gcc-14
+          #   cxx: g++-14
           #   additional-packages: g++-14
           #   cmake-generator: Ninja
           #   cmake-build-type: Debug
-          #   cmake-defines: -DCMAKE_C_COMPILER=gcc-14 -DCMAKE_CXX_COMPILER=g++-14
+          #   cmake-defines:
           # - name: Ubuntu Latest clang-14 Debug
+          #   cc: clang-14
+          #   cxx: clang++-14
           #   additional-packages: clang-14
           #   cmake-generator: Ninja
           #   cmake-build-type: Debug
-          #   cmake-defines: -DCMAKE_C_COMPILER=clang-14 -DCMAKE_CXX_COMPILER=clang++-14
+          #   cmake-defines:
           # - name: Ubuntu Latest clang-16 Debug
+          #   cc: clang-16
+          #   cxx: clang++-16
           #   additional-packages: clang-16
           #   cmake-generator: Ninja
           #   cmake-build-type: Debug
-          #   cmake-defines: -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16
+          #   cmake-defines:
 
     steps:
       - name: Checkout
@@ -180,25 +210,26 @@ jobs:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
       cancel-in-progress: true
     timeout-minutes: 240
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: MacOS Latest Clang Release
+            cc: clang
+            cxx: clang++
             cmake-generator: Ninja
             cmake-build-type: Release
-            cmake-defines: >-
-              -DCMAKE_C_COMPILER=clang
-              -DCMAKE_CXX_COMPILER=clang++
-              -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+            cmake-defines: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
             runner: macos-latest
           - name: MacOS 15 Intel Clang Release
+            cc: clang
+            cxx: clang++
             cmake-generator: Ninja
             cmake-build-type: Release
-            cmake-defines: >-
-              -DCMAKE_C_COMPILER=clang
-              -DCMAKE_CXX_COMPILER=clang++
-              -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+            cmake-defines: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
             runner: macos-15-intel
 
     steps:

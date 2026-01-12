@@ -87,7 +87,7 @@ runs:
       uses: seanmiddleditch/gha-setup-ninja@v5
 
     - name: Setup MSYS2 MINGW64
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && env.CXX == 'g++'
       id: msys2
       uses: msys2/setup-msys2@v2
       with:
@@ -96,7 +96,7 @@ runs:
         install: mingw-w64-x86_64-crt-git mingw-w64-x86_64-gcc
 
     - name: Add MSYS2 MINGW64 to PATH
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && env.CXX == 'g++'
       shell: bash
       run: |
         echo "${{ steps.msys2.outputs.msys2-location }}/mingw64/bin" >> $GITHUB_PATH
@@ -106,6 +106,10 @@ runs:
     - name: Setup MSVC toolchain
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Setup Intel LLVM compiler
+      if: runner.os == 'Windows' && env.CXX == 'icx'
+      uses: ./.github/actions/setup-compiler-icx
 
     - name: Install Python dependencies
       shell: bash

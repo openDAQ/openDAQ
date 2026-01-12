@@ -51,6 +51,7 @@ set(SRC_Cpp
     generated/py_enumeration_type.cpp
     generated/py_enumeration.cpp
     generated/py_version_info.cpp
+    generated/py_development_version_info.cpp
     generated/py_search_filter.cpp
 )
 

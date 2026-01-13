@@ -9,7 +9,7 @@ suppress_ext_lib_warnings()
 if (NOT TARGET daq::testlibs AND OPENDAQ_ENABLE_TEST_UTILS)
     set(CMAKE_MESSAGE_CONTEXT ${CURR_MESSAGE_CONTEXT} googletest)
 
-    if (BUILDING_AS_SUBMODULE)
+    if (OPENDAQ_BUILDING_AS_SUBMODULE)
         set(INSTALL_GTEST Off CACHE BOOL "" FORCE)
     endif()
     set(gtest_force_shared_crt On CACHE BOOL "Force shared CRT")

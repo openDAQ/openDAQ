@@ -1,4 +1,4 @@
-include(openDAQUtils)
+#include(openDAQUtils)
 include(DaqInternal)
 
 function(print_var VARIABLE_NAME) # not used

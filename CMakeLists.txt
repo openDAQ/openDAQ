@@ -9,18 +9,11 @@ set(SDK_TARGET_NAMESPACE daq)
 set(SDK_OPTION_PREFIX OPENDAQ)
 
 file(READ "opendaq_version" package_version)
-string(STRIP ${package_version} package_version)
+string(STRIP "${package_version}" package_version)
 
 string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" package_version_major_minor_patch "${package_version}")
 
 set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}")
-
-set(CMAKE_MESSAGE_CONTEXT ${SDK_NAME})
-set(CMAKE_MESSAGE_CONTEXT_SHOW ON CACHE BOOL "Show CMake message context")
-
-if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-    message(FATAL_ERROR "In-source build is not supported! Please choose a separate build directory e.g.: /build/x64/msvc")
-endif()
 
 project(${SDK_NAME}
     LANGUAGES CXX
@@ -31,7 +24,8 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 )
 add_subdirectory(cmake)
 
-setup_repo(OPENDAQ)
+setup_build_mode(${SDK_OPTION_PREFIX} ${SDK_NAME})
+setup_repo(${SDK_OPTION_PREFIX})
 
 get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
 
@@ -191,24 +185,6 @@ if (COMMAND get_mode)
     message(STATUS "CMake Mode is ${CMAKE_MODE}")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|IntelLLVM)$")
-    set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM")
-    message(STATUS "Compiler is LLVM")
-endif ()
-
-string(TIMESTAMP CONFIGURE_DATE)
-string(TIMESTAMP CURRENT_YEAR "%Y")
-
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm.*$")  #e.g. armv7l
-    set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
-endif()
-
-if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch.*$")  #e.g. aarch64
-    set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
-endif()
-
 include(DaqUtils)
 
 opendaq_is_64bit_build(BUILD_64Bit)
@@ -221,7 +197,7 @@ else()
     set(OPENDAQ_FPIC Off CACHE INTERNAL "Set Position independent code flag")
 endif()
 
-if (NOT BUILDING_AS_SUBMODULE)
+if (NOT OPENDAQ_BUILDING_AS_SUBMODULE)
     message(STATUS "Setting -fPIC to ${OPENDAQ_FPIC}")
 endif()
 
@@ -239,9 +215,6 @@ if (OPENDAQ_ENABLE_COVERAGE)
 endif()
 
 if (OPENDAQ_ENABLE_TESTS)
-    message(STATUS "Unit tests are ENABLED")
-    enable_testing()
-
     if (NOT gtest IN_LIST TESTING_LIBS)
         set(TESTING_LIBS gtest gmock ${TESTING_LIBS})
     endif()
@@ -263,8 +236,6 @@ if (OPENDAQ_ENABLE_TESTS)
             message(FATAL_ERROR "Delphi bindings only available in Windows")
         endif()
     endif()
-else()
-    message(STATUS "Unit tests are DISABLED")
 endif()
 
 if (NOT COMMAND set_mode)

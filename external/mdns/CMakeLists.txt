@@ -1,4 +1,5 @@
 set(MDNS_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(OPENDAQ_ALWAYS_FETCH_MDNS ON CACHE BOOL "" FORCE)
 
 opendaq_dependency(
     NAME                mdns
@@ -8,4 +9,9 @@ opendaq_dependency(
     EXPECT_TARGET       mdns::mdns
     PATCH_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0001-Multicast-commands-ip6-ifindex.patch
+)
+
+install(
+    TARGETS mdns
+    EXPORT ${SDK_NAME}
 )

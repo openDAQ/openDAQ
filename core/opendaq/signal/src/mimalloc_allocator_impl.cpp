@@ -7,7 +7,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 ErrCode MiMallocAllocatorImpl::allocate(
-    const ISignalDescriptor *descriptor,
+    const IDataDescriptor *descriptor,
     SizeT bytes,
     SizeT align,
     VoidPtr* address)

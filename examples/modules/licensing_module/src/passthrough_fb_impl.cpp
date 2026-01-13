@@ -118,6 +118,8 @@ void PassthroughFbImpl::onPacketReceived(const InputPortPtr& port)
             case PacketType::Data:
                 processDataPacket(std::move(packet), outQueue, outDomainQueue);
                 break;
+            case PacketType::None:
+                break;
         }
 
         packet = connection.dequeue();

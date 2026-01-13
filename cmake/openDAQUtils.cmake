@@ -18,7 +18,6 @@ function (opendaq_set_module_properties MODULE_NAME LIB_MAJOR_VERSION)
 
     if (NOT ${OPENDAQ_SET_MODULE_PARAMS_SKIP_INSTALL})
         install(TARGETS ${MODULE_NAME}
-                EXPORT ${SDK_NAME}
                 RUNTIME
                     DESTINATION ${CMAKE_INSTALL_BINDIR}/modules
                     COMPONENT ${SDK_NAME}_${MODULE_NAME}_Runtime

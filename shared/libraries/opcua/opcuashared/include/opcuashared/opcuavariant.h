@@ -17,7 +17,6 @@
 #pragma once
 
 #include "opcuacommon.h"
-#include <mutex>
 #include <opcuashared/opcuanodeid.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA
@@ -40,7 +39,19 @@ namespace VariantUtils
     template <typename T>
     inline bool IsType(const UA_Variant& value)
     {
-        return value.type == GetUaDataType<T>();
+        const auto expectedType = GetUaDataType<T>();
+        if (value.type == expectedType)
+            return true;
+
+#ifdef __APPLE__
+        if (value.type != nullptr && value.type->typeKind == expectedType->typeKind)
+        {
+            if (value.type->typeName != nullptr && expectedType->typeName != nullptr)
+                return std::strcmp(value.type->typeName, expectedType->typeName) == 0;
+            return true;
+        }
+#endif
+        return false;
     }
 
     template <typename T>

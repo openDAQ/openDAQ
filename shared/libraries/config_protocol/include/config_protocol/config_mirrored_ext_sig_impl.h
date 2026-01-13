@@ -47,7 +47,7 @@ public:
     // ISignalPrivate
     ErrCode INTERFACE_FUNC getSignalSerializeId(IString** serializeId) override;
 
-    static StringPtr getLocalId(const StringPtr& remoteGlobalId);
+    static StringPtr createLocalId(const StringPtr& remoteGlobalId);
 
 protected:
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,

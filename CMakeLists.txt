@@ -724,6 +724,8 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         set(CLANG_FLAGS "${CLANG_FLAGS} \
             -Xclang -Wno-delete-non-abstract-non-virtual-dtor"
         )
+        # Use precise floating-point model to avoid aggressive optimizations
+        set(CLANG_FLAGS "${CLANG_FLAGS} /fp:precise")
     endif ()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
@@ -798,6 +800,16 @@ install(FILES cmake/DaqInternal.cmake
         COMPONENT ${SDK_NAME}_Development
 )
 
+install(FILES cmake/opendaq_dependency.cmake
+        DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
+
+install(FILES cmake/patch.cmake
+        DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
+
 install(FILES cmake/version/version.h.in cmake/version/version.rc.in
         DESTINATION share/cmake/version
         COMPONENT ${SDK_NAME}_Development
@@ -809,6 +821,16 @@ install(EXPORT ${SDK_NAME}
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
         COMPONENT ${SDK_NAME}_Development
 )
+
+if (DEFINED mdns_SOURCE_DIR)
+    message(STATUS "mdns dependency found - mdns.h will be installed from: ${mdns_SOURCE_DIR}")
+    install(
+        FILES "${mdns_SOURCE_DIR}/mdns.h"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+else ()
+    message(ERROR "missing mdns dependency")
+endif()
 
 set(OPENDAQ_CONFIGURED_ONCE TRUE CACHE INTERNAL "A flag showing that CMake has configured at least once.")
 

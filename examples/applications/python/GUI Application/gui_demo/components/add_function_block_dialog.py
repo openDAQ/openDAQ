@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 import opendaq as daq
+from .properties_view import PropertiesView
 
 from .. import utils
 from ..app_context import AppContext
@@ -64,6 +65,7 @@ class AddFunctionBlockDialog(Dialog):
 
         # bind double-click to editing
         tree.bind('<Double-1>', self.handle_fb_tree_double_click)
+        tree.bind('<<TreeviewSelect>>', self.handle_fb_type_selected)
 
         tree.pack(fill=tk.BOTH, expand=True)
 
@@ -76,6 +78,11 @@ class AddFunctionBlockDialog(Dialog):
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=2)
         self.grid_columnconfigure((0, 1), uniform='uniform')
+
+        self.add_with_config_button = ttk.Button(tree_frame, text='Add with config', command=lambda: self.handle_button(True))
+        self.add_with_config_button.pack(side=tk.RIGHT)
+        self.quick_add_button = ttk.Button(tree_frame, text='Quick add', command=lambda: self.handle_button(False))
+        self.quick_add_button.pack(side=tk.RIGHT)
 
     def initial_update(self):
         self.update_dialog()
@@ -140,15 +147,76 @@ class AddFunctionBlockDialog(Dialog):
                     parent_component) else daq.IFunctionBlock.cast_from(parent_component)
                 self.update_function_blocks()
 
-    def handle_fb_tree_double_click(self, event):
+    def handle_fb_type_selected(self, e=None):
         selected_item = utils.treeview_get_first_selection(self.fb_tree)
         if selected_item is None:
             return
 
         item = self.fb_tree.item(selected_item)
-
         function_block_id = item['values'][0]
-        self.parent_component.add_function_block(function_block_id)
 
-        self.event_port.emit()
-        self.update_dialog()
+        if not function_block_id:
+            return
+
+        fb_type = self.parent_component.available_function_block_types[function_block_id]
+        component_type = daq.IComponentType.cast_from(fb_type)
+        configuration = component_type.create_default_config()
+
+        if len(configuration.all_properties) == 0:
+            self.add_with_config_button.config(state="disabled")
+        else:
+            self.add_with_config_button.config(state="!disabled")
+
+    def handle_button(self, config : bool):
+        self.add_fb(config)
+
+    def handle_fb_tree_double_click(self, dummy):
+        self.add_fb(False)
+
+
+    def add_fb(self, open_config_dialog: bool):
+        selected_item = utils.treeview_get_first_selection(self.fb_tree)
+        if selected_item is None:
+            return
+
+        item = self.fb_tree.item(selected_item)
+        function_block_id = item['values'][0]
+
+        if not open_config_dialog:
+            self.execute_add_fb(function_block_id)
+            return
+
+        fb_type = self.parent_component.available_function_block_types[function_block_id]
+        component_type = daq.IComponentType.cast_from(fb_type)
+        configuration = component_type.create_default_config()
+
+        if len(configuration.all_properties) == 0:
+            utils.show_error('Empty configuration', f'Selected function block type has no properties to configure.', self)
+            return
+
+        # Open configuration editor window
+        win = tk.Toplevel(self)
+        win.title('Function Block configuration')
+        win.geometry("600x400")
+        win.attributes("-topmost", True)
+
+        frame = tk.Frame(win)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        def apply():
+            self.execute_add_fb(function_block_id, configuration)
+            win.destroy()
+
+        tree = PropertiesView(frame, configuration, self.context)
+        tree.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Button(win, text="Add", command=apply).pack(side=tk.BOTTOM)
+
+    def execute_add_fb(self, fb_id, config=None):
+        try:
+            self.parent_component.add_function_block(fb_id, config)
+            self.event_port.emit()
+            self.update_dialog()
+        except Exception as e:
+            utils.show_error('Error adding function block', f'{fb_id}: {str(e)}', self)
+            return

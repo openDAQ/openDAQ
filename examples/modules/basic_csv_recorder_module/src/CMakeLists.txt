@@ -4,6 +4,8 @@ set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 set(SRC_Include module_dll.h
                 common.h
                 basic_csv_recorder_impl.h
+                multi_csv_recorder_impl.h
+                multi_csv_writer.h
                 basic_csv_recorder_module_impl.h
                 basic_csv_recorder_signal.h
                 basic_csv_recorder_thread.h
@@ -11,6 +13,8 @@ set(SRC_Include module_dll.h
 
 set(SRC_Srcs module_dll.cpp
              basic_csv_recorder_impl.cpp
+             multi_csv_recorder_impl.cpp
+             multi_csv_writer.cpp
              basic_csv_recorder_module_impl.cpp
              basic_csv_recorder_signal.cpp
              basic_csv_recorder_thread.cpp

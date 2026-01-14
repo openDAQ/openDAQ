@@ -8,12 +8,8 @@ set(SDK_TARGET_NAME opendaq)
 set(SDK_TARGET_NAMESPACE daq)
 set(SDK_OPTION_PREFIX OPENDAQ)
 
-file(READ "opendaq_version" package_version)
-string(STRIP "${package_version}" package_version)
-
-string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" package_version_major_minor_patch "${package_version}")
-
-set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}")
+add_subdirectory(cmake)
+setup_repo_version("OPENDAQ_PACKAGE" ${SDK_NAME} "opendaq_version")
 
 project(${SDK_NAME}
     LANGUAGES CXX
@@ -22,7 +18,6 @@ project(${SDK_NAME}
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 )
-add_subdirectory(cmake)
 
 setup_build_mode(${SDK_OPTION_PREFIX} ${SDK_NAME})
 setup_repo(${SDK_OPTION_PREFIX})
@@ -185,7 +180,7 @@ if (COMMAND get_mode)
     message(STATUS "CMake Mode is ${CMAKE_MODE}")
 endif()
 
-include(DaqUtils)
+include(DaqInternal)
 
 opendaq_is_64bit_build(BUILD_64Bit)
 set(BUILD_64Bit ${BUILD_64Bit} CACHE INTERNAL "Build in 64-bit mode")

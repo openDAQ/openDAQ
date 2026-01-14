@@ -6,7 +6,7 @@ set(REPO_NAME EmptyModule)
 set(REPO_OPTION_PREFIX EMPTY_MODULE)
 
 add_subdirectory(cmake)
-setup_module_version(${REPO_OPTION_PREFIX} ${REPO_NAME})
+setup_repo_version("${REPO_OPTION_PREFIX}" ${REPO_NAME} "module_version")
 
 if (NOT DEFINED ${REPO_OPTION_PREFIX}_VERSION AND DEFINED OPENDAQ_PACKAGE_VERSION)
     set(${REPO_OPTION_PREFIX}_VERSION ${OPENDAQ_PACKAGE_VERSION})

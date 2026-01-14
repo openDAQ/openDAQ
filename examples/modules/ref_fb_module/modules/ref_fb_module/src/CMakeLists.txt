@@ -2,7 +2,6 @@ set(LIB_NAME ref_fb_module)
 set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 set(MODULE_BINARY_HEADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/../include/${TARGET_FOLDER_NAME})
 
-include(Resources)
 embed_resource("arial.ttf" ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h "ARIAL_TTF")
 
 set(SRC_Include common.h

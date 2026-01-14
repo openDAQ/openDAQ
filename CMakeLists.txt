@@ -141,11 +141,6 @@ option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder modu
 option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" OFF)
 option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
 
-cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON) # TODO move this to module
-if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER AND APPLE)
-    enable_language(OBJC OBJCXX)
-endif()
-
 # logging start
 include(openDAQLogging)
 

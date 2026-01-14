@@ -1,3 +1,4 @@
+#include <pybind11/pytypes.h>
 #include "py_core_types/py_core_types.h"
 
 PyDaqIntf<daq::IIterator> declareIIterator(pybind11::module_ m)
@@ -8,6 +9,12 @@ PyDaqIntf<daq::IIterator> declareIIterator(pybind11::module_ m)
 void defineIIterator(pybind11::module_ m, PyDaqIntf<daq::IIterator> cls)
 {
     cls.doc() = "Interface to iterate through items of a container object.";
+
+    cls.def("__iter__",
+        [](pybind11::object self)
+        {
+            return self;
+        });
 
     cls.def("__next__",
         [](daq::IIterator* it)

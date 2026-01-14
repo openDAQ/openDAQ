@@ -282,6 +282,8 @@ class TestIterable(opendaq_test.TestCase):
             self.assertEqual(item, i)
             i = i + 1
 
+        self.assertEqual([x for x in l], [1, 2, 3])
+
     def test_from_list(self):
         l = daq.List()
         l.push_back(1)

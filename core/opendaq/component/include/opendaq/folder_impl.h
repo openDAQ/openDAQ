@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -124,8 +124,6 @@ ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
 {
     const ErrCode err = Super::setActive(active);
     OPENDAQ_RETURN_IF_FAILED(err);
-    if (err == OPENDAQ_IGNORED)
-        return err;
 
     const ErrCode errCode = daqTry([&]
     {

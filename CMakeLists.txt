@@ -402,14 +402,14 @@ add_subdirectory(external)
 
 add_subdirectory(core)
 add_subdirectory(modules)
-
-add_subdirectory(external/boost)
-
 add_subdirectory(shared)
 add_subdirectory(examples)
 add_subdirectory(bindings)
 add_subdirectory(docs)
 add_subdirectory(simulator)
+
+# fetch boost at latest point when list of required boost libs is completed
+add_subdirectory(external/boost)
 
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)
@@ -446,11 +446,6 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}Config.cmake
   
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}ConfigVersion.cmake
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
-        COMPONENT ${SDK_NAME}_Development
-)
-
-install(FILES cmake/version/version.h.in cmake/version/version.rc.in
-        DESTINATION share/cmake/version
         COMPONENT ${SDK_NAME}_Development
 )
 

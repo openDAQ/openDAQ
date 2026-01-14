@@ -61,7 +61,7 @@ if(OPENDAQ_ENABLE_OPCUA)
     add_subdirectory(open62541 EXCLUDE_FROM_ALL)
 endif()
 
-#add_subdirectory(boost)
+add_subdirectory(boost)
 add_subdirectory(date)
 add_subdirectory(fmt)
 add_subdirectory(mdns EXCLUDE_FROM_ALL)

@@ -403,8 +403,10 @@ add_subdirectory(bindings)
 add_subdirectory(docs)
 add_subdirectory(simulator)
 
-# fetch boost at latest point when list of required boost libs is completed
-add_subdirectory(external/boost)
+if (NOT OPENDAQ_BUILDING_AS_SUBMODULE)
+    # fetch boost at latest point when list of required boost libs and headers is completed
+    opendaq_setup_boost()
+endif()
 
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)

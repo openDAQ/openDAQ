@@ -22,6 +22,24 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "In-source build is not supported! Please choose a separate build directory e.g.: /build/x64/msvc")
 endif()
 
+# 32-bit Linux cross-compilation setup (must be before project())
+if(OPENDAQ_FORCE_COMPILE_32BIT AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_C_FLAGS_INIT "${CMAKE_C_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
+    set(CMAKE_CXX_FLAGS_INIT "${CMAKE_CXX_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
+    set(CMAKE_ASM_FLAGS_INIT "${CMAKE_ASM_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
+
+    # Help CMake find 32-bit libraries
+    list(APPEND CMAKE_LIBRARY_PATH /usr/lib/i386-linux-gnu)
+
+    if(NOT CMAKE_SYSTEM_NAME)
+        set(CMAKE_SYSTEM_NAME Linux CACHE STRING "" FORCE)
+    endif()
+    
+    if(NOT CMAKE_SYSTEM_PROCESSOR)
+        set(CMAKE_SYSTEM_PROCESSOR i386 CACHE STRING "" FORCE)
+    endif()
+endif()
+
 project(${SDK_NAME}
     LANGUAGES CXX
     VERSION ${OPENDAQ_PACKAGE_VERSION}
@@ -371,7 +389,14 @@ if ((CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANGXX) AND NOT MSVC)
     if(OPENDAQ_FORCE_COMPILE_32BIT)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+        set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -m32")
         set(BUILD_64Bit OFF)
+
+        # Linux GCC 32-bit specific flags
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_COMPILER_IS_GNUCXX)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -ffloat-store")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+        endif()
     endif()
 
     # The flag -fuse-ld=lld is needed on MinGW where the default linker is hardly usable.

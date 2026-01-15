@@ -48,7 +48,7 @@ jobs:
             enable-tests: true
           - name: Windows VS 2022 Win32 Release
             cmake-build-type: Release
-            cmake-defines: -A Win32
+            cmake-defines:
             cmake-generator: "Visual Studio 17 2022"
             enable-32bit: true
             enable-tests: true
@@ -148,6 +148,16 @@ jobs:
             cmake-generator: Ninja
             cmake-build-type: Release
             cmake-defines:
+          - name: Ubuntu Latest gcc x86_32 Release
+            cc: gcc
+            cxx: g++
+            additional-packages:
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF 
+              -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            enable-32bit: true
           # The Debug configurations are disabled until the problem with test_py_opendaq is resolved.
           # - name: Ubuntu Latest gcc-9 Debug
           #   cc: gcc-9
@@ -191,6 +201,7 @@ jobs:
           cmake-config-preset: ${{ env.cmake_preset }}
           cmake-config-args: ${{ matrix.cmake-defines }}
           cmake-generator: ${{ matrix.cmake-generator }}
+          enable-32bit: ${{ matrix.enable-32bit == true }}
           enable-tests: true
           ctest-preset: ${{ env.ctest_preset }}
 

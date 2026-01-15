@@ -21,6 +21,8 @@
 #include <opendaq/multi_reader_builder_ptr.h>
 #include <opendaq/reader_factory.h>
 
+#include <map>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 class MultiReaderImpl : public ImplementationOfWeak<IMultiReader, IReaderConfig, IInputPortNotifications>
@@ -67,8 +69,9 @@ public:
     ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) override;
     ErrCode INTERFACE_FUNC setActive(Bool isActive) override;
     ErrCode INTERFACE_FUNC getActive(Bool* isActive) override;
-    ErrCode INTERFACE_FUNC addInput(IComponent* port) override;
-    ErrCode INTERFACE_FUNC removeInput(/*TODO*/) override;
+    ErrCode INTERFACE_FUNC addInput(IComponent* port, Int* id) override;
+    ErrCode INTERFACE_FUNC removeInput(Int id) override;
+    ErrCode INTERFACE_FUNC getInputIds(IList** ids) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -95,7 +98,10 @@ private:
     // Returns true if all ports are connected
     bool allPortsConnected() const;
     // Sets up port notifications and binds ports
-    void configureAndStorePorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
+    std::vector<Int> configureAndStorePorts(const ListPtr<IInputPortConfig>& inputPorts,
+                                            SampleType valueRead,
+                                            SampleType domainRead,
+                                            ReadMode mode);
     // Returns list of ports used by reader; Creates ports when reader is created with signals;
     ListPtr<IInputPortConfig> createOrAdoptPorts(const ListPtr<IComponent>& list) const;
 
@@ -170,7 +176,7 @@ private:
     bool sameSampleRates = false;
     Bool allowDifferentRates = true;
 
-    std::vector<SignalReader> signals;
+    std::map<Int, SignalReader> signals;
     PropertyObjectPtr portBinder;
     ProcedurePtr readCallback;
     WeakRefPtr<IInputPortNotifications> externalListener;
@@ -198,6 +204,19 @@ private:
     const ReadMode readMode;
 
     InputType typeOfInputs;
+
+    class IdGenerator
+    {
+    public:
+        Int getNextId()
+        {
+            return id++;
+        }
+
+    private:
+        Int id = 0;
+    };
+    IdGenerator idGenerator;
 };
 
 END_NAMESPACE_OPENDAQ

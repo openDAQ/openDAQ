@@ -199,26 +199,44 @@ std::string MultiCsvRecorderImpl::getNextPortID() const
 
 bool MultiCsvRecorderImpl::updateInputPorts()
 {
-    bool rebuildReader = false;
+    bool connectedPortsChanged = false;
     if (disconnectedPort.assigned() && disconnectedPort.getConnection().assigned())
     {
         connectedPorts.emplace_back(disconnectedPort);
         cachedDescriptors.insert(std::make_pair(disconnectedPort.getGlobalId(), NullDataDescriptor()));
         SignalPtr signal = disconnectedPort.getSignal();
         cachedSignalNames.insert(std::make_pair(disconnectedPort.getGlobalId(), signal.getName()));
+
+        if (!reader.assigned())
+        {
+            // Create MultiReader when the first signal is connected - this way it can get context from the first port
+            createReader();
+        }
+        else
+        {
+            const Int id = reader.addInput(disconnectedPort);
+            cachedMultireaderIds.emplace(disconnectedPort.getGlobalId(), id);
+        }
+
         disconnectedPort.release();
-        rebuildReader = true;
+        connectedPortsChanged = true;
     }
 
     for (auto it = connectedPorts.begin(); it != connectedPorts.end();)
     {
         if (!it->getConnection().assigned())
         {
+            if (auto search = cachedMultireaderIds.find(it->getGlobalId()); search != cachedMultireaderIds.end())
+            {
+                reader.removeInput(search->second);
+                cachedMultireaderIds.erase(search);
+            }
+
             cachedDescriptors.erase(it->getGlobalId());
             cachedSignalNames.erase(it->getGlobalId());
             this->inputPorts.removeItem(*it);
             it = connectedPorts.erase(it);
-            rebuildReader = true;
+            connectedPortsChanged = true;
         }
         else
         {
@@ -236,11 +254,10 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     if (connectedPorts.empty())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "No signals connected!");
-        reader = nullptr;
         return false;
     }
 
-    return rebuildReader;
+    return connectedPortsChanged;
 }
 
 // Reader must currently be rebuilt to add/remove input ports
@@ -258,6 +275,39 @@ void MultiCsvRecorderImpl::updateReader()
         builder.addInputPort(port);
 
     reader = builder.build();
+
+    reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
+    auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
+    reader.setOnDataAvailable(
+        [this, thisWeakRef = std::move(thisWeakRef)]
+        {
+            const auto thisFb = thisWeakRef.getRef();
+            if (thisFb.assigned())
+                this->onDataReceived();
+        });
+}
+
+void MultiCsvRecorderImpl::createReader()
+{
+    reader.dispose();
+    auto builder = MultiReaderBuilder()
+                       .setDomainReadType(SampleType::Int64)
+                       .setValueReadType(SampleType::Float64)
+                       .setAllowDifferentSamplingRates(false)
+                       .setInputPortNotificationMethod(notificationMode);
+
+    for (const auto& port : connectedPorts)
+        builder.addInputPort(port);
+
+    reader = builder.build();
+
+    cachedMultireaderIds.clear();
+    ListPtr<Int> portIds = reader.getInputIds();
+    size_t i = 0;
+    for (const auto& port : connectedPorts)
+    {
+        cachedMultireaderIds.emplace(port.getGlobalId(), portIds.getItemAt(i));
+    }
 
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
@@ -351,7 +401,7 @@ void MultiCsvRecorderImpl::onConnected(const InputPortPtr& inputPort)
 
     if (updateInputPorts())
     {
-        updateReader();
+        reconfigureWriter();
     }
 }
 
@@ -362,7 +412,6 @@ void MultiCsvRecorderImpl::onDisconnected(const InputPortPtr& inputPort)
     LOG_I("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
     if (updateInputPorts())
     {
-        updateReader();
         reconfigureWriter();
     }
 }

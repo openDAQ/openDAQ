@@ -167,9 +167,12 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      */
     virtual ErrCode INTERFACE_FUNC getActive(Bool* isActive) = 0;
 
-    virtual ErrCode INTERFACE_FUNC addInput(IComponent* input) = 0;
+    virtual ErrCode INTERFACE_FUNC addInput(IComponent* input, Int* id) = 0;
 
-    virtual ErrCode INTERFACE_FUNC removeInput(/*TODO*/) = 0;
+    virtual ErrCode INTERFACE_FUNC removeInput(Int id) = 0;
+
+    // [templateType(ids, Int)]
+    virtual ErrCode INTERFACE_FUNC getInputIds(IList** ids) = 0;
 };
 
 /*!@}*/

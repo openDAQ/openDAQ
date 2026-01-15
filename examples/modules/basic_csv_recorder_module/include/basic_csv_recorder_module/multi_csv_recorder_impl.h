@@ -80,6 +80,7 @@ private:
 
     bool updateInputPorts();
     void updateReader();
+    void createReader();
 
     /**
      * @brief Attempts to open a new CSV writer with provided data.
@@ -108,6 +109,7 @@ private:
 
     std::unordered_map<std::string, DataDescriptorPtr> cachedDescriptors;
     std::unordered_map<std::string, StringPtr> cachedSignalNames;
+    std::unordered_map<std::string, Int> cachedMultireaderIds;
     DataDescriptorPtr recorderDomainDataDescriptor;
 
     PacketReadyNotification notificationMode;

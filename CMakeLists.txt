@@ -47,28 +47,6 @@ else()
     add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION}")
 endif()
 
-# All install targets from within the project should eventually specify the component name.
-# This changes the default name for all the targets without an explicit name ("Unspecified").
-# The component "Unspecified" is a bit special and makes it hard to be excluded.
-# Ideally we would just avoid installing all external components and we wouldn't need setting this at all.
-set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "External")
-
-if(APPLE)
-    set(LIB_LOAD_ORIGIN @loader_path)
-else()
-    set(LIB_LOAD_ORIGIN $ORIGIN)
-endif()
-
-file(RELATIVE_PATH RPATH_DIR
-    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}
-    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
-)
-
-# allow CMAKE_INSTALL_RPATH to be cleared from the command line
-if (NOT DEFINED CMAKE_INSTALL_RPATH)
-    set(CMAKE_INSTALL_RPATH ${LIB_LOAD_ORIGIN} ${LIB_LOAD_ORIGIN}/${RPATH_DIR})
-endif()
-
 if (NOT MSVC)
     option(OPENDAQ_FORCE_COMPILE_32BIT "Compile 32Bit on non MSVC" OFF)
 endif()
@@ -80,10 +58,10 @@ endif()
 # Feature options
 option(OPENDAQ_ENABLE_PARAMETER_VALIDATION "Enable parameter validation in functions" ON)
 option(OPENDAQ_ENABLE_WEBSOCKET_STREAMING "Enable ${SDK_NAME} websocket streaming" OFF)
+cmake_dependent_option(DAQMODULES_LT_LEGACY_MODULES "Use legacy LT streaming modules" OFF "OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
 option(OPENDAQ_THREAD_SAFE "Enable thread-safe implementations where available" ON)
 option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
-option(OPENDAQ_ALWAYS_FETCH_DEPENDENCIES "Ignore any installed libraries and always build all dependencies from source" ON)
 option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
@@ -246,10 +224,6 @@ endif()
 
 message(STATUS "Default Module extension: ${OPENDAQ_MODULE_SUFFIX}")
 add_compile_definitions(OPENDAQ_MODULE_SUFFIX="${OPENDAQ_MODULE_SUFFIX}")
-
-if ((CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANGXX) AND NOT MSVC)
-    option(OPENDAQ_FORCE_LLD_LINKER "Force the use of the fast LLVM LLD linker" OFF)
-endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX)
     if (OPENDAQ_ENABLE_COVERAGE)

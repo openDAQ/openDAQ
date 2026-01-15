@@ -192,3 +192,55 @@ function(add_cmake_targets DIR INOUT_TARGET_LIST)
     # Set output argument
     set(${INOUT_TARGET_LIST} ${_TARGETS} PARENT_SCOPE)
 endfunction(add_cmake_targets)
+
+# opendaq_fetch_module(
+#     NAME                module_name
+#     GIT_REPOSITORY      https://github.com/org/repo.git
+#     GIT_TAG             v1.2.3 | branch-name
+#     [ GIT_SHALLOW       ON|OFF ]
+#     [ EXCLUDE_FROM_ALL  ON|OFF ]
+# )
+#
+macro(opendaq_fetch_module)
+
+    cmake_parse_arguments(FETCHED_MODULE
+        ""
+        "NAME;GIT_REPOSITORY;GIT_TAG;GIT_SHALLOW;EXCLUDE_FROM_ALL"
+        ""
+        ${ARGN}
+    )
+
+    if (NOT FETCHED_MODULE_NAME)
+        message(FATAL_ERROR "opendaq_fetch_module: NAME is required")
+    endif()
+
+    if (NOT FETCHED_MODULE_GIT_REPOSITORY)
+        message(FATAL_ERROR "opendaq_fetch_module(${FETCHED_MODULE_NAME}): GIT_REPOSITORY is required")
+    endif()
+
+    if (NOT FETCHED_MODULE_GIT_TAG)
+        message(FATAL_ERROR "opendaq_fetch_module(${FETCHED_MODULE_NAME}): GIT_TAG is required")
+    endif()
+
+    set(PARAMS_GIT_SHALLOW ON)
+    if (DEFINED FETCHED_MODULE_GIT_SHALLOW)
+        set(PARAMS_GIT_SHALLOW ${FETCHED_MODULE_GIT_SHALLOW})
+    endif()
+
+    set(PARAMS_EXCLUDE_FROM_ALL OFF)
+    if (DEFINED FETCHED_MODULE_EXCLUDE_FROM_ALL)
+        set(PARAMS_EXCLUDE_FROM_ALL ${FETCHED_MODULE_EXCLUDE_FROM_ALL})
+    endif()
+
+    FetchContent_Declare(${FETCHED_MODULE_NAME}
+        GIT_REPOSITORY ${FETCHED_MODULE_GIT_REPOSITORY}
+        GIT_TAG        ${FETCHED_MODULE_GIT_TAG}
+        GIT_SHALLOW    ${PARAMS_GIT_SHALLOW}
+        GIT_PROGRESS   ON
+        GIT_REMOTE_UPDATE_STRATEGY CHECKOUT
+        EXCLUDE_FROM_ALL ${PARAMS_EXCLUDE_FROM_ALL}
+    )
+
+    FetchContent_MakeAvailable(${FETCHED_MODULE_NAME})
+
+endmacro()

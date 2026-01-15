@@ -200,5 +200,5 @@ runs:
         fi
 
         echo "::group::CTest"
-        $SUDO_CMD ctest --test-dir "$CMAKE_BUILD_PATH" --output-on-failure $CTEST_ARGS
+        $SUDO_CMD ctest --test-dir "$CMAKE_BUILD_PATH" $CTEST_ARGS
         echo "::endgroup::"

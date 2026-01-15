@@ -81,8 +81,7 @@ daq::ErrCode daq::ws_streaming::WebSocketSignalListenerImpl::packetReceived(daq:
 
                     if (!client)
                     {
-                        auto jt = it++;
-                        clients.erase(jt);
+                        it = clients.erase(it);
                         continue;
                     }
 
@@ -108,8 +107,7 @@ daq::ErrCode daq::ws_streaming::WebSocketSignalListenerImpl::packetReceived(daq:
                             {
                                 boost::system::error_code ec;
                                 client->get_socket().shutdown(boost::asio::socket_base::shutdown_both, ec);
-                                auto jt = it++;
-                                clients.erase(jt);
+                                it = clients.erase(it);
                                 continue;
                             }
                         }
@@ -119,8 +117,7 @@ daq::ErrCode daq::ws_streaming::WebSocketSignalListenerImpl::packetReceived(daq:
                     {
                         boost::system::error_code ec;
                         client->get_socket().shutdown(boost::asio::socket_base::shutdown_both, ec);
-                        auto jt = it++;
-                        clients.erase(jt);
+                        it = clients.erase(it);
                         continue;
                     }
 
@@ -169,8 +166,7 @@ daq::ErrCode daq::ws_streaming::WebSocketSignalListenerImpl::packetReceived(daq:
                             boost::system::error_code ec;
                             client->get_socket().shutdown(boost::asio::socket_base::shutdown_both, ec);
                         }
-                        auto jt = it++;
-                        clients.erase(jt);
+                        it = clients.erase(it);
                     }
 
                     else

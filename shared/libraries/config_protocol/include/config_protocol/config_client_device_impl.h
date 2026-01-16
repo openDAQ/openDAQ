@@ -391,8 +391,7 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObjec
     const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
         auto device = Super::template DeserializeConfigComponent<IDevice, Implementation>(serialized, context, factoryCallback).template asPtr<IDevice>();
-
-        Super::deserializeVersion(serialized, device.getInfo());
+        Super::DeserializeVersion(serialized, context, factoryCallback, device.getInfo());
 
         *obj = device.detach();
     });

@@ -46,12 +46,13 @@ core_type_files=(
 #"enumeration_type"
 "search_filter"
 )
-for file in "${core_type_files[@]}" 
+for file in "${core_type_files[@]}"
 do
     run_rtgen CoreTypes coretypes coretypes core_types/generated ${file}
 done
 
 run_rtgen CoreTypes coretypes coretypes core_types/generated version_info
+run_rtgen CoreTypes coretypes coretypes core_types/generated development_version_info
 
 #
 # core objects

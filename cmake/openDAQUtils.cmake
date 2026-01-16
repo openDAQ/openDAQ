@@ -7,11 +7,12 @@ function (opendaq_set_module_properties MODULE_NAME LIB_MAJOR_VERSION)
 	if (NOT DEFINED OPENDAQ_MODULE_SUFFIX)
 		set(OPENDAQ_MODULE_SUFFIX ".module${CMAKE_SHARED_LIBRARY_SUFFIX}")
 	endif()
-	
+
     set_target_properties(${MODULE_NAME} PROPERTIES SUFFIX ${OPENDAQ_MODULE_SUFFIX})
     target_compile_definitions(${MODULE_NAME} PRIVATE BUILDING_SHARED_LIBRARY
                                                       OPENDAQ_TRACK_SHARED_LIB_OBJECT_COUNT
                                                       OPENDAQ_MODULE_EXPORTS
+                                                      OPENDAQ_IS_RELEASE_VERSION=$<BOOL:${OPENDAQ_IS_RELEASE_VERSION}>
     )
     opendaq_set_output_lib_name(${MODULE_NAME} ${LIB_MAJOR_VERSION})
 

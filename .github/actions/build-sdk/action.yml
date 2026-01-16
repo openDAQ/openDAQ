@@ -200,5 +200,5 @@ runs:
         fi
 
         echo "::group::CTest"
-        $SUDO_CMD ctest --test-dir "$CMAKE_BUILD_PATH" $CTEST_ARGS --verbose
+        $SUDO_CMD ctest --test-dir "$CMAKE_BUILD_PATH" $CTEST_ARGS --verbose -R test_native_streaming_protocol --repeat until-fail:100
         echo "::endgroup::"

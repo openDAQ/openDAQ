@@ -68,7 +68,7 @@ target_link_libraries(${LIB_NAME}
 # Should link only what you need $<BUILD_INTERFACE:Boost::locale>
 target_link_libraries(${LIB_NAME} PRIVATE $<BUILD_INTERFACE:Boost::locale>)
 
-if (CMAKE_COMPILER_IS_GNUCXX AND MINGW)
+if (CMAKE_COMPILER_IS_GNUCXX AND (MINGW OR OPENDAQ_FORCE_COMPILE_32BIT))
     target_compile_options(${LIB_NAME} PRIVATE -Wno-error)
 endif()
 

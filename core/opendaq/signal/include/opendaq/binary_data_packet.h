@@ -23,11 +23,15 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @brief Creates a binary value packet that contains exactly one sample.
+ * @param domainPacket The Data packet carrying domain data (can be nullptr).
  * @param descriptor The descriptor of the signal sending the data.
  * @param sampleMemSize The memory size of a sample.
  *
  * Binary value packet should contain exactly one sample of `SampleType::Binary` or `SampleType::String`
  * sample type.
+ *
+ * For String type signals, the string data must be encoded as null-terminated UTF-8 strings and properly
+ * null-terminated within the allocated sample size.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, BinaryDataPacket,
@@ -39,12 +43,18 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
 
 /*!
  * @brief Creates a binary value packet with external memory and a deleter that contains exactly one sample.
+ * @param domainPacket The Data packet carrying domain data (can be nullptr).
  * @param descriptor The descriptor of the signal sending the data.
  * @param sampleMemSize The memory size of a sample.
+ * @param data Pointer to the external memory buffer.
+ * @param deleter Custom deleter callback that is called when the packet is destroyed.
  *
  * Binary value packet should contain exactly one sample of `SampleType::Binary` or `SampleType::String`
  * sample type. Memory should be allocated by the caller and a custom deleter callback
  * should be provided.
+ *
+ * For String type signals, the string data must be encoded as null-terminated UTF-8 strings and properly
+ * null-terminated within the allocated sample size.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, BinaryDataPacketWithExternalMemory,

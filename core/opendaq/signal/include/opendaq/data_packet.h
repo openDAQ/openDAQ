@@ -133,11 +133,15 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
      * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if the type is ComplexFloat32 or ComplexFloat64,
      * to IRange if the type is RangeInt64, to IString if the type is String, to IStruct if the type is Struct, and to IList of the forementioned types if there is exactly
      * one dimension.
+     *
+     * For String type signals, the string data must be encoded as null-terminated UTF-8 strings and properly
+     * null-terminated within the allocated sample size. The method extracts the string value from the packet data
+     * and returns it as an IString object.
      */
     virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) = 0;
 
     /*!
-     * @brief Gets the data packet last value.
+     * @brief Gets the data packet value at the specified index.
      * @param[out] value The IBaseObject value can be a nullptr if there is no value, or if the data type is not supported by the function.
      * @param[in] index Index of the sample to obtain.
      * @param typeManager Optional ITypeManager value can be provided to enable getLastValue for IStruct.
@@ -146,6 +150,10 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
      * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if the type is ComplexFloat32 or
      * ComplexFloat64, to IRange if the type is RangeInt64, to IString if the type is String, to IStruct if the type is Struct, and to IList of the forementioned types if
      * there is exactly one dimension.
+     *
+     * For String type signals, the string data must be encoded as null-terminated UTF-8 strings and properly
+     * null-terminated within the allocated sample size. The method extracts the string value from the packet data
+     * and returns it as an IString object.
      */
     virtual ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager = nullptr) = 0;
 

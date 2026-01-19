@@ -109,7 +109,6 @@ inline BaseObjectPtr dataToObj(void* addr, const SampleType& type)
         }
         case SampleType::String:
         {
-            // String data is encoded as null-terminated UTF-8 strings
             const char* cstr = static_cast<const char*>(addr);
             return String(cstr);
         }

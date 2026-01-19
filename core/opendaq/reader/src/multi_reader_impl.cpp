@@ -658,6 +658,9 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
 ErrCode INTERFACE_FUNC MultiReaderImpl::addInput(IComponent* input, Int* id)
 {
     OPENDAQ_PARAM_NOT_NULL(input);
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = -1;
 
     try
     {
@@ -668,9 +671,15 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::addInput(IComponent* input, Int* id)
         auto ids = configureAndStorePorts(ports, valueReadType, domainReadType, readMode);
         assert(ids.size() == 1 && "Unexpected number of IDs for a single input addition.");
 
-        *id = ids.front();
+        auto err = isDomainValid(ports);
+        if (OPENDAQ_FAILED(err))
+        {
+            invalid = true;
+            LOG_D("Multi reader signal domains are not valid: {}", getErrorInfoMessage(err));
+            clearErrorInfo();
+        }
 
-        // TODO: adding an input may change synchronization state (and others)?
+        *id = ids.front();
     }
     catch (...)
     {

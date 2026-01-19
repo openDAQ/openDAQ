@@ -203,6 +203,7 @@ void MultiReaderImpl::checkListSizeAndCacheContext(const ListPtr<IComponent>& li
 {
     if (!list.assigned())
         DAQ_THROW_EXCEPTION(NotAssignedException, "List of inputs is not assigned");
+    // MultiReader must be constructed with at least one input (port/signal).
     // TODO: Get the context WHEN the first signal is provided, don't require it at creation.
     if (list.getCount() == 0)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Need at least one signal.");
@@ -668,6 +669,8 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::addInput(IComponent* input, Int* id)
         assert(ids.size() == 1 && "Unexpected number of IDs for a single input addition.");
 
         *id = ids.front();
+
+        // TODO: adding an input may change synchronization state (and others)?
     }
     catch (...)
     {
@@ -689,6 +692,7 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::removeInput(Int id)
     {
         setPortsActiveState(true);
     }
+    // TODO: Removing an input may resolve synchronization issues
 
     if (erased > 0)
         return OPENDAQ_SUCCESS;

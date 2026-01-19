@@ -260,33 +260,6 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     return connectedPortsChanged;
 }
 
-// Reader must currently be rebuilt to add/remove input ports
-void MultiCsvRecorderImpl::updateReader()
-{
-    // Disposing the reader is necessary to release port ownership
-    reader.dispose();
-    auto builder = MultiReaderBuilder()
-                       .setDomainReadType(SampleType::Int64)
-                       .setValueReadType(SampleType::Float64)
-                       .setAllowDifferentSamplingRates(false)
-                       .setInputPortNotificationMethod(notificationMode);
-
-    for (const auto& port : connectedPorts)
-        builder.addInputPort(port);
-
-    reader = builder.build();
-
-    reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
-    auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
-    reader.setOnDataAvailable(
-        [this, thisWeakRef = std::move(thisWeakRef)]
-        {
-            const auto thisFb = thisWeakRef.getRef();
-            if (thisFb.assigned())
-                this->onDataReceived();
-        });
-}
-
 void MultiCsvRecorderImpl::createReader()
 {
     reader.dispose();

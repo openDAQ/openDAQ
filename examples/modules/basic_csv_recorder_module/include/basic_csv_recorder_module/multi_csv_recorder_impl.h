@@ -79,7 +79,6 @@ private:
     std::string getNextPortID() const;
 
     bool updateInputPorts();
-    void updateReader();
     void createReader();
 
     /**

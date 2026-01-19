@@ -18,6 +18,7 @@
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/deleter_ptr.h>
 #include <opendaq/generic_data_packet_impl.h>
+#include <cstring>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -195,7 +196,8 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawDataSize(SizeT* rawDataSize)
  * @param[out] value The IBaseObject value. For string signals (SampleType::String), returns IString object.
  * @param typeManager Optional ITypeManager value (not used for binary/string packets).
  *
- * String data is encoded as null-terminated UTF-8 strings. If the descriptor sample type is String,
+ * String data is encoded as null-terminated UTF-8 strings. The string data must be properly
+ * null-terminated within the allocated sample size. If the descriptor sample type is String,
  * the method extracts the string value from the packet data and returns it as an IString object.
  * Other binary types are not supported for value extraction.
  */
@@ -222,7 +224,8 @@ inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue
  * @param index The index of the value to retrieve (must be 0 for binary packets which contain a single sample).
  * @param typeManager Optional ITypeManager value (not used for binary/string packets).
  *
- * String data is encoded as null-terminated UTF-8 strings. If the descriptor sample type is String,
+ * String data is encoded as null-terminated UTF-8 strings. The string data must be properly
+ * null-terminated within the allocated sample size. If the descriptor sample type is String,
  * the method extracts the string value from the packet data and returns it as an IString object.
  * Other binary types are not supported for value extraction.
  */
@@ -262,6 +265,16 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawLastValue(void** value)
     return getRawValueByIndex(value, 0);
 }
 
+/*!
+ * @brief Gets the raw value at the specified index from the binary data packet.
+ * @param[out] value A pointer to a memory location where the raw value will be stored.
+ * @param index The index of the sample to retrieve (must be 0 for binary packets which contain a single sample).
+ *
+ * This method writes the raw value of the sample at the specified index to the provided memory location.
+ * It does not allocate memory and assumes that sufficient memory has already been allocated.
+ * The caller must provide a buffer of at least `sampleSize` bytes. The method does not verify
+ * whether the allocated memory size matches the sample size.
+ */
 template <bool ExternalMemory>
 ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawValueByIndex(void** value, SizeT index)
 {

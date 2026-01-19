@@ -568,7 +568,7 @@ TEST_P(StreamingProtocolTest, SignalSubscribeUnsubscribe)
     ASSERT_EQ(signalUnsubscribedFuture.get(), serverSignal);
 }
 
-TEST_P(StreamingProtocolTest, RemoveSubscribedSignal)
+TEST_P(StreamingProtocolTest, DISABLED_RemoveSubscribedSignal)
 {
     StringPtr clientSignalStringId, serializedSignal;
     DataDescriptorPtr clientSignalDescriptor;

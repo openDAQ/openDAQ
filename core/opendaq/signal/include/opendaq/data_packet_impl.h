@@ -107,6 +107,12 @@ inline BaseObjectPtr dataToObj(void* addr, const SampleType& type)
             const auto data = static_cast<double*>(addr);
             return ComplexNumber(data[0], data[1]);
         }
+        case SampleType::String:
+        {
+            // String data is encoded as null-terminated UTF-8 strings
+            const char* cstr = static_cast<const char*>(addr);
+            return String(cstr);
+        }
         default:
         {
             return BaseObject();

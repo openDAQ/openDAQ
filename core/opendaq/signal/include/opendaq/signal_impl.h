@@ -1326,7 +1326,9 @@ void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPac
     }
 
     lastDataDescriptor = packet.getDataDescriptor();
-    SizeT sampleSize = lastDataDescriptor.getSampleType() == SampleType::Binary ? packet.getRawDataSize() : lastDataDescriptor.getSampleSize();
+    SizeT sampleSize = (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String) 
+                       ? packet.getRawDataSize() 
+                       : lastDataDescriptor.getSampleSize();
     lastRawDataValue.resize(sampleSize);
     void* rawValue = lastRawDataValue.data();
     const ErrCode errCode = packet->getRawLastValue(&rawValue);

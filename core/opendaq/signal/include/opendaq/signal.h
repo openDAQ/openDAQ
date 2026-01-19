@@ -135,7 +135,7 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
      *
      * If a value is assigned, it can be cast based on the signal description to IFloat if the type is Float32 or Float64,
      * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if the type is ComplexFloat32 or ComplexFloat64,
-     * to IRange if the type is RangeInt64, to IStruct if the type is Struct, and to IList of the forementioned types if there is exactly
+     * to IRange if the type is RangeInt64, to IString if the type is String, to IStruct if the type is Struct, and to IList of the forementioned types if there is exactly
      * one dimension.
      */
     virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) = 0;

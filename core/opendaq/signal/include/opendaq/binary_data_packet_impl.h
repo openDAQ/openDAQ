@@ -90,8 +90,11 @@ void BinaryDataPacketImpl<ExternalMemory>::validateDescriptor()
     if (!dataDescriptor.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException);
 
+    if (dataDescriptor.getSampleType() == SampleType::String)
+        return;
+
     if (dataDescriptor.getSampleType() != SampleType::Binary)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Sample type is not Binary.");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Sample type is not Binary or String.");
 }
 #endif
 
@@ -187,22 +190,59 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawDataSize(SizeT* rawDataSize)
     return OPENDAQ_SUCCESS;
 }
 
+/*!
+ * @brief Gets the last value from the binary data packet.
+ * @param[out] value The IBaseObject value. For string signals (SampleType::String), returns IString object.
+ * @param typeManager Optional ITypeManager value (not used for binary/string packets).
+ *
+ * String data is encoded as null-terminated UTF-8 strings. If the descriptor sample type is String,
+ * the method extracts the string value from the packet data and returns it as an IString object.
+ * Other binary types are not supported for value extraction.
+ */
 template <bool ExternalMemory>
 inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue(daq::IBaseObject** value, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    *value = nullptr;
+    if (dataDescriptor.getSampleType() == SampleType::String)
+    {
+        const char* cstr = static_cast<const char*>(data.get());
+        *value = String(cstr).detach();
 
+        return OPENDAQ_SUCCESS;
+    }
+    // Other binary types are not supported for value extraction
+    *value = nullptr;
     return OPENDAQ_IGNORED;
 }
+
+/*!
+ * @brief Gets the value at the specified index from the binary data packet.
+ * @param[out] value The IBaseObject value. For string signals (SampleType::String), returns IString object.
+ * @param index The index of the value to retrieve (must be 0 for binary packets which contain a single sample).
+ * @param typeManager Optional ITypeManager value (not used for binary/string packets).
+ *
+ * String data is encoded as null-terminated UTF-8 strings. If the descriptor sample type is String,
+ * the method extracts the string value from the packet data and returns it as an IString object.
+ * Other binary types are not supported for value extraction.
+ */
 template <bool ExternalMemory>
 ErrCode BinaryDataPacketImpl<ExternalMemory>::getValueByIndex(daq::IBaseObject** value, SizeT index, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    *value = nullptr;
+    if (index != 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "Binary data packets contain only one sample at index 0.");
 
+    if (dataDescriptor.getSampleType() == SampleType::String)
+    {
+        const char* cstr = static_cast<const char*>(data.get());
+        *value = String(cstr).detach();
+
+        return OPENDAQ_SUCCESS;
+    }
+    // Other binary types are not supported for value extraction
+    *value = nullptr;
     return OPENDAQ_IGNORED;
 }
 
@@ -219,13 +259,21 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getOffset(INumber** offset)
 template <bool ExternalMemory>
 ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawLastValue(void** value)
 {
-    return OPENDAQ_IGNORED;
+    return getRawValueByIndex(value, 0);
 }
 
 template <bool ExternalMemory>
 ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawValueByIndex(void** value, SizeT index)
 {
-    return OPENDAQ_IGNORED;
+    OPENDAQ_PARAM_NOT_NULL(value);
+    OPENDAQ_PARAM_NOT_NULL(*value);
+
+    if (index != 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "Binary data packets contain only one sample at index 0.");
+
+    // Copy the raw data into the provided buffer
+    std::memcpy(*value, data.get(), sampleSize);
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

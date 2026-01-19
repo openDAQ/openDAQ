@@ -26,7 +26,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param descriptor The descriptor of the signal sending the data.
  * @param sampleMemSize The memory size of a sample.
  *
- * Binary value packet should contain exactly one sample of `SampleType::Binary`
+ * Binary value packet should contain exactly one sample of `SampleType::Binary` or `SampleType::String`
  * sample type.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
@@ -42,7 +42,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
  * @param descriptor The descriptor of the signal sending the data.
  * @param sampleMemSize The memory size of a sample.
  *
- * Binary value packet should contain exactly one sample of `SampleType::Binary`
+ * Binary value packet should contain exactly one sample of `SampleType::Binary` or `SampleType::String`
  * sample type. Memory should be allocated by the caller and a custom deleter callback
  * should be provided.
  */

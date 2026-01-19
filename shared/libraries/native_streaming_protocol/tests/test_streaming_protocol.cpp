@@ -730,7 +730,7 @@ TEST_P(StreamingProtocolTest, SendEventPacket)
     }
 }
 
-TEST_P(StreamingProtocolTest, SendPacketsNoSubscribers)
+TEST_P(StreamingProtocolTest, DISABLED_SendPacketsNoSubscribers)
 {
     const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
     auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");

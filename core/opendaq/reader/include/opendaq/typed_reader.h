@@ -15,10 +15,11 @@
  */
 
 #pragma once
-#include <opendaq/sample_type_traits.h>
 #include <opendaq/data_descriptor_ptr.h>
+#include <opendaq/data_packet_ptr.h>
 #include <opendaq/reader_domain_info.h>
 #include <opendaq/sample_reader.h>
+#include <opendaq/sample_type_traits.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,12 +33,17 @@ public:
 
     virtual ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) = 0;
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) = 0;
-    
+    virtual std::unique_ptr<Comparable> readStartLinear(const DataPacketPtr& packet, SizeT offset, const ReaderDomainInfo& domainInfo) = 0;
+
     virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
                               const Comparable& start,
                               void* inputBuffer,
                               SizeT size,
                               std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) = 0;
+    virtual SizeT getOffsetToLinear(const ReaderDomainInfo& domainInfo,
+                                    const Comparable& start,
+                                    const DataPacketPtr& packet,
+                                    std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) = 0;
     virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) = 0;
 
     [[nodiscard]] virtual bool isUndefined() const noexcept;
@@ -70,11 +76,23 @@ public:
         DAQ_THROW_EXCEPTION(InvalidStateException);
     }
 
+    std::unique_ptr<Comparable> readStartLinear(const DataPacketPtr& packet, SizeT offset, const ReaderDomainInfo& domainInfo) override
+    {
+        DAQ_THROW_EXCEPTION(InvalidStateException);
+    }
+
     SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
                       const Comparable& start,
                       void* inputBuffer,
                       SizeT size,
                       std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) override
+    {
+        DAQ_THROW_EXCEPTION(InvalidStateException);
+    }
+    SizeT getOffsetToLinear(const ReaderDomainInfo& domainInfo,
+                            const Comparable& start,
+                            const DataPacketPtr& packet,
+                            std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) override
     {
         DAQ_THROW_EXCEPTION(InvalidStateException);
     }
@@ -106,11 +124,20 @@ public:
     virtual ErrCode readData(void* inputBuffer, SizeT offset, void** outputBuffer, SizeT count) override;
     virtual std::unique_ptr<Comparable> readStart(void* inputBuffer, SizeT offset, const ReaderDomainInfo& domainInfo) override;
 
+    virtual std::unique_ptr<Comparable> readStartLinear(const DataPacketPtr& packet,
+                                                        SizeT offset,
+                                                        const ReaderDomainInfo& domainInfo) override;
+
     virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
                               const Comparable& start,
                               void* inputBuffer,
                               SizeT size,
                               std::chrono::system_clock::rep* firstSampleAbsoluteTime) override;
+
+    SizeT getOffsetToLinear(const ReaderDomainInfo& domainInfo,
+                            const Comparable& start,
+                            const DataPacketPtr& packet,
+                            std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) override;
 
     virtual bool handleDescriptorChanged(DataDescriptorPtr& descriptor, ReadMode mode) override;
 
@@ -126,6 +153,17 @@ private:
                           void* inputBuffer,
                           SizeT size,
                           std::chrono::system_clock::rep* absoluteTimestamp = nullptr) const;
+
+    template <typename TDataType>
+    SizeT getOffsetToDataLinear(const ReaderDomainInfo& domainInfo,
+                                const Comparable& start,
+                                const DataPacketPtr& packet,
+                                std::chrono::system_clock::rep* absoluteTimestamp = nullptr) const;
+
+    ErrCode extractDeltaStart(const daq::DictPtr<daq::IString, daq::IBaseObject>& params, ReadType& delta, ReadType& start) const;
+
+    template <typename TDataType>
+    ErrCode convertDeltaStart(const daq::DictPtr<daq::IString, daq::IBaseObject>& params, ReadType& delta, ReadType& start) const;
 
     SizeT valuesPerSample{1};
 

@@ -56,6 +56,8 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+
 protected:
 };
 
@@ -65,7 +67,7 @@ SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl(const St
 {
     this->objPtr.addProperty(StringPropertyBuilder("Name", name).setReadOnly(true).build());
     this->objPtr.addProperty(DictProperty("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}}), false));
-    this->objPtr.addProperty(SparseSelectionProperty("Mode", EvalValue("$ModeOptions"), 3));
+    this->objPtr.addProperty(SelectionProperty("Mode", EvalValue("$ModeOptions"), 3));
 
     auto statusProperty = PropertyObject();
     statusProperty.addProperty(BoolProperty("Synchronized", false));
@@ -148,6 +150,25 @@ ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::Deserialize(ISerialize
             }).detach();
         return OPENDAQ_SUCCESS;
     });
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getInterfaceIds(SizeT* idCount, IntfID** ids)
+{
+    OPENDAQ_PARAM_NOT_NULL(idCount);
+
+    using InterfaceIdsType = typename Super::InterfaceIds;
+    *idCount = InterfaceIdsType::Count() + 1;
+    if (ids == nullptr)
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    **ids = IPropertyObject::Id;
+    (*ids)++;
+
+    InterfaceIdsType::AddInterfaceIds(*ids);
+    return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncInterfaceBase)

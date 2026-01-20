@@ -68,6 +68,8 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+
 protected:
     void init();
 };
@@ -94,7 +96,7 @@ void SyncComponent2Impl<Intf, Intfs...>::init()
     interfaces.addProperty(ObjectProperty(selectedSource.getName(), selectedSource));
     Super::addProperty(ObjectProperty("Interfaces", interfaces));
 
-    Super::addProperty(SparseSelectionProperty("Source", EvalValue("%Interfaces:PropertyNames"), 0));
+    Super::addProperty(SelectionProperty("Source", EvalValue("%Interfaces:PropertyNames"), 0));
     this->objPtr.getOnPropertyValueWrite("Source") += [this](const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
     {
         StringPtr sourceName = objPtr.getPropertySelectionValue("Source");
@@ -247,18 +249,24 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::Deserialize(ISerializedObject* seria
     return errCode;
 }
 
-// // Registration wrapper for template class
-// struct SyncComponent2DeserializeFactory
-// {
-//     SyncComponent2DeserializeFactory()
-//     {
-//         daqRegisterSerializerFactory(
-//             SyncComponent2Impl<ISyncComponent2>::SerializeId(),
-//             SyncComponent2Impl<ISyncComponent2>::Deserialize
-//         );
-//     }
-// };
-// static SyncComponent2DeserializeFactory gSyncComponent2DeserializeFactory;
+template <class Intf, class... Intfs>
+ErrCode SyncComponent2Impl<Intf, Intfs...>::getInterfaceIds(SizeT* idCount, IntfID** ids)
+{
+    OPENDAQ_PARAM_NOT_NULL(idCount);
+
+    using InterfaceIdsType = typename Super::InterfaceIds;
+    *idCount = InterfaceIdsType::Count() + 1;
+    if (ids == nullptr)
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    **ids = IPropertyObject::Id;
+    (*ids)++;
+
+    InterfaceIdsType::AddInterfaceIds(*ids);
+    return OPENDAQ_SUCCESS;
+}
 
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncComponent2Base)

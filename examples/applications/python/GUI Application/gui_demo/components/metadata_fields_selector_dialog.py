@@ -15,8 +15,10 @@ class MetadataFieldsSelectorDialog(Dialog):
         self.event_port = EventPort(parent)
         self.fields = []
         try:
-            my_prop = daq.StringProperty(daq.String(
-                'MyString'), daq.String('foo'), daq.Boolean(True))
+            builder = daq.StringPropertyBuilder(daq.String(
+                'MyString'), daq.String('foo'))
+            builder.description = 'bar'
+            my_prop = builder.build()
             self.fields = utils.get_attributes_of_node(my_prop)
             self.fields.remove('name')
             self.fields.remove('value')

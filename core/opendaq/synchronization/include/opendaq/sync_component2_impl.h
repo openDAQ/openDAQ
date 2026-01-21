@@ -35,16 +35,16 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <typename TInterface = ISyncComponent2, typename... Interfaces>
+template <typename TInterface = IComponent, typename... Interfaces>
 class SyncComponent2Impl;
 
 using SyncComponent2Base = SyncComponent2Impl<>;
 
 template <class Intf, class... Intfs>
-class SyncComponent2Impl : public ComponentImpl<Intf, ISyncComponent2Internal, Intfs...>
+class SyncComponent2Impl : public ComponentImpl<Intf, ISyncComponent2, ISyncComponent2Internal, Intfs...>
 {
 public:
-    using Super = ComponentImpl<Intf, ISyncComponent2Internal, Intfs...>;
+    using Super = ComponentImpl<Intf, ISyncComponent2, ISyncComponent2Internal, Intfs...>;
 
     SyncComponent2Impl(const ContextPtr& context,
                       const ComponentPtr& parent,

@@ -16,21 +16,12 @@
 
 #pragma once
 
-#include <opendaq/component.h>
+#include <coretypes/baseobject.h>
 #include <opendaq/sync_interface.h>
 #include <coretypes/stringobject.h>
 #include <coretypes/dictobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-/*#
- * [interfaceSmartPtr(IComponent, GenericComponentPtr, "<opendaq/component_ptr.h>")]
- * [templated(defaultAliasName: SyncComponent2Ptr)]
- * [interfaceSmartPtr(ISyncComponent2, GenericSyncComponent2Ptr)]
- * [interfaceLibrary(IPropertyObject, "coreobjects")]
- * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
- * [interfaceSmartPtr(ISyncInterface, SyncInterfacePtr)]
- */
 
 /*!
  * @ingroup opendaq_synchronization_path
@@ -41,7 +32,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Interface representing a Synchronization Component 2 in a Test & Measurement system.
  */
-DECLARE_OPENDAQ_INTERFACE(ISyncComponent2, IComponent)
+DECLARE_OPENDAQ_INTERFACE(ISyncComponent2, IBaseObject)
 {
     /*!
      * @brief Retrieves the selected sync source interface.

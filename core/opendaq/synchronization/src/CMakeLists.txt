@@ -57,6 +57,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/interface_clock_sync_impl.h
         ${SDK_SRC_DIR}/sync_component_impl.cpp
         ${SDK_SRC_DIR}/sync_component2_impl.cpp
+        ${SDK_SRC_DIR}/sync_interface_base_impl.cpp
         ${SDK_SRC_DIR}/interface_clock_sync_impl.cpp
     )
     
@@ -85,6 +86,7 @@ set(SRC_PrivateHeaders_Component
 set(SRC_Cpp_Component 
     sync_component_impl.cpp
     sync_component2_impl.cpp
+    sync_interface_base_impl.cpp
     interface_clock_sync_impl.cpp
     PARENT_SCOPE
 )

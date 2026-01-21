@@ -64,6 +64,8 @@ set(SRC_Cpp config_protocol.cpp
             config_mirrored_ext_sig_impl.cpp
             config_protocol_streaming_producer.cpp
             config_protocol_streaming_consumer.cpp
+            config_client_sync_interface_impl.cpp
+            config_client_sync_component2_impl.cpp
 )
 
 prepend_include(${BASE_NAME} SRC_PublicHeaders)

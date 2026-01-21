@@ -25,7 +25,7 @@ namespace daq::config_protocol
 template <class Impl>
 class ConfigClientBaseSyncComponent2Impl;
 
-using ConfigClientSyncComponent2Impl = ConfigClientBaseSyncComponent2Impl<SyncComponent2Impl<ISyncComponent2, IConfigClientObject>>;
+using ConfigClientSyncComponent2Impl = ConfigClientBaseSyncComponent2Impl<SyncComponent2Impl<IComponent, IConfigClientObject>>;
 
 template <class Impl>
 class ConfigClientBaseSyncComponent2Impl : public ConfigClientComponentBaseImpl<Impl>
@@ -45,49 +45,5 @@ protected:
 
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
 };
-
-template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::Deserialize(ISerializedObject* serialized,
-                                                               IBaseObject* context,
-                                                               IFunction* factoryCallback,
-                                                               IBaseObject** obj)
-{
-    OPENDAQ_PARAM_NOT_NULL(context);
-
-    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
-    {
-        *obj = DeserializeSyncComponent2<ISyncComponent2, ConfigClientSyncComponent2Impl>(serialized, context, factoryCallback).detach();
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-template <class Impl>
-template <class Interface, class Implementation>
-BaseObjectPtr ConfigClientBaseSyncComponent2Impl<Impl>::DeserializeSyncComponent2(const SerializedObjectPtr& serialized,
-                                                                                   const BaseObjectPtr& context,
-                                                                                   const FunctionPtr& factoryCallback)
-{
-    return Impl::DeserializeComponent(
-        serialized,
-        context,
-        factoryCallback,
-        [](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
-        {
-            const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
-            return createWithImplementation<Interface, Implementation>(ctx->getClientComm(),
-                                                                       ctx->getRemoteGlobalId(),
-                                                                       deserializeContext.getContext(),
-                                                                       deserializeContext.getParent(),
-                                                                       deserializeContext.getLocalId(),
-                                                                       className);
-        });
-}
-
-template <class Impl>
-void ConfigClientBaseSyncComponent2Impl<Impl>::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
-{
-    ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(sender, args);
-}
 
 } // namespace daq::config_protocol

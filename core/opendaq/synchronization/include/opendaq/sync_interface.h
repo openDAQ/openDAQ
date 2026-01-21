@@ -16,17 +16,10 @@
 
 #pragma once
 
+#include <coretypes/baseobject.h>
 #include <coretypes/stringobject.h>
-#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-/*#
- * [templated(defaultAliasName: SyncInterfacePtr)]
- * [interfaceSmartPtr(ISyncInterface, GenericSyncInterfacePtr)]
- * [interfaceLibrary(IPropertyObject, "coreobjects")]
- * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
- */
 
 /*!
  * @ingroup opendaq_synchronization_path
@@ -37,7 +30,7 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Interface representing a Synchronization Interface.
  */
-DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IPropertyObject)
+DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
 {
     /*!
      * @brief Gets the name of the synchronization interface.

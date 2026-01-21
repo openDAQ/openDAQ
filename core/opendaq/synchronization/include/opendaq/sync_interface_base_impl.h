@@ -28,16 +28,16 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <typename TInterface = ISyncInterface, typename... Interfaces>
+template <typename TInterface = IPropertyObject, typename... Interfaces>
 class SyncInterfaceBaseImpl;
 
 using SyncInterfaceBase = SyncInterfaceBaseImpl<>;
 
 template <typename TInterface, typename... Interfaces>
-class SyncInterfaceBaseImpl : public GenericPropertyObjectImpl<TInterface, ISyncInterfaceInternal, Interfaces...>
+class SyncInterfaceBaseImpl : public GenericPropertyObjectImpl<TInterface, ISyncInterface, ISyncInterfaceInternal, Interfaces...>
 {
 public:
-    using Super = GenericPropertyObjectImpl<TInterface, ISyncInterfaceInternal, Interfaces...>;
+    using Super = GenericPropertyObjectImpl<TInterface, ISyncInterface, ISyncInterfaceInternal, Interfaces...>;
 
     SyncInterfaceBaseImpl();
 

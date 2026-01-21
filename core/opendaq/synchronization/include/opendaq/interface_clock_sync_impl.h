@@ -20,10 +20,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class InterfaceClockSyncImpl : public SyncInterfaceBaseImpl<ISyncInterface>
+class InterfaceClockSyncImpl : public SyncInterfaceBaseImpl<>
 {
 public:
-    using Super = SyncInterfaceBaseImpl<ISyncInterface>;
+    using Super = SyncInterfaceBaseImpl<>;
 
     explicit InterfaceClockSyncImpl();
 };

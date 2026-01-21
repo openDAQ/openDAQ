@@ -26,10 +26,10 @@
 namespace daq::config_protocol
 {
 
-class ConfigClientSyncInterfaceImpl : public ConfigClientPropertyObjectBaseImpl<SyncInterfaceBaseImpl<ISyncInterface, IConfigClientObject, IDeserializeComponent>>
+class ConfigClientSyncInterfaceImpl : public ConfigClientPropertyObjectBaseImpl<SyncInterfaceBaseImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>
 {
 public:
-    using Impl = SyncInterfaceBaseImpl<ISyncInterface, IConfigClientObject, IDeserializeComponent>;
+    using Impl = SyncInterfaceBaseImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>;
     using Super = ConfigClientPropertyObjectBaseImpl<Impl>;
 
     ConfigClientSyncInterfaceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
@@ -45,79 +45,5 @@ public:
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
 };
-
-inline ConfigClientSyncInterfaceImpl::ConfigClientSyncInterfaceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                                                     const std::string& remoteGlobalId)
-    : Super(configProtocolClientComm, remoteGlobalId)
-{
-}
-
-inline ErrCode ConfigClientSyncInterfaceImpl::deserializeValues(ISerializedObject* serializedObject,
-                                                                 IBaseObject* context,
-                                                                 IFunction* callbackFactory)
-{
-    return OPENDAQ_SUCCESS;
-}
-
-inline ErrCode ConfigClientSyncInterfaceImpl::complete()
-{
-    return Super::complete();
-}
-
-inline ErrCode ConfigClientSyncInterfaceImpl::getDeserializedParameter(IString* parameter, IBaseObject** value)
-{
-    OPENDAQ_PARAM_NOT_NULL(parameter);
-    OPENDAQ_PARAM_NOT_NULL(value);
-    return OPENDAQ_NOTFOUND;
-}
-
-inline ErrCode ConfigClientSyncInterfaceImpl::Deserialize(ISerializedObject* serialized,
-                                                          IBaseObject* context,
-                                                          IFunction* factoryCallback,
-                                                          IBaseObject** obj)
-{
-    OPENDAQ_PARAM_NOT_NULL(obj);
-    OPENDAQ_PARAM_NOT_NULL(context);
-
-    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
-    {
-        const auto contextPtr = BaseObjectPtr::Borrow(context);
-        if (!contextPtr.assigned())
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Deserialization context not assigned");
-
-        const auto componentDeserializeContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>(true);
-        if (!componentDeserializeContext.assigned())
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Invalid deserialization context");
-
-        const auto configDeserializeContext = componentDeserializeContext.asPtr<IConfigProtocolDeserializeContext>();
-
-        const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
-        const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
-
-        PropertyObjectPtr propObj = Super::DeserializePropertyObject(
-            serializedPtr,
-            contextPtr,
-            factoryCallbackPtr,
-            [&configDeserializeContext](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
-            {
-                return createWithImplementation<ISyncInterface, ConfigClientSyncInterfaceImpl>(
-                    configDeserializeContext->getClientComm(),
-                    configDeserializeContext->getRemoteGlobalId());
-            });
-
-        const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
-        deserializeComponent.complete();
-
-        *obj = propObj.detach();
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-inline void ConfigClientSyncInterfaceImpl::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
-{
-    Super::handleRemoteCoreObjectInternal(sender, args);
-}
 
 } // namespace daq::config_protocol

@@ -26,6 +26,30 @@ namespace daq::config_protocol
 {
 
 template <class Impl>
+ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::getSelectedSource(ISyncInterface** selectedSource)
+{
+    OPENDAQ_PARAM_NOT_NULL(selectedSource);
+    return daqTry([&]
+    {
+        StringPtr sourceName = this->objPtr.getPropertySelectionValue("Source");
+        *selectedSource = this->objPtr.getPropertyValue(sourceName).template as<ISyncInterface>();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <class Impl>
+ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::setSelectedSource(IString* selectedSourceName)
+{
+    OPENDAQ_PARAM_NOT_NULL(selectedSourceName);
+    return daqTry([&]
+    {
+        const StringPtr selectedSourceNamePtr = StringPtr::Borrow(selectedSourceName);
+        this->objPtr.setPropertySelectionValue("Source", selectedSourceNamePtr);
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <class Impl>
 ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::Deserialize(ISerializedObject* serialized,
                                                               IBaseObject* context,
                                                               IFunction* factoryCallback,

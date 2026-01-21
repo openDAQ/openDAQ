@@ -35,6 +35,10 @@ public:
     using Super = ConfigClientComponentBaseImpl<Impl>;
     using Super::Super;
 
+    // ISyncComponent2
+    ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
+    ErrCode INTERFACE_FUNC setSelectedSource(IString* selectedSourceName) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:

@@ -62,16 +62,19 @@ public:
     // ISyncComponent2Internal
     ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) override;
 
+    // IDeserializeComponent
+    ErrCode INTERFACE_FUNC complete() override;
+
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
-
 protected:
     void init();
+
+    SyncInterfacePtr source;
 };
 
 
@@ -89,11 +92,11 @@ SyncComponent2Impl<Intf, Intfs...>::SyncComponent2Impl(const ContextPtr& context
 template <class Intf, class... Intfs>
 void SyncComponent2Impl<Intf, Intfs...>::init()
 {
-    auto selectedSource = createWithImplementation<ISyncInterface, InterfaceClockSyncImpl>();
-    selectedSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(true);
+    source = createWithImplementation<ISyncInterface, InterfaceClockSyncImpl>();
+    source.asPtr<ISyncInterfaceInternal>(true).setAsSource(true);
 
     auto interfaces = PropertyObject();
-    interfaces.addProperty(ObjectProperty(selectedSource.getName(), selectedSource));
+    interfaces.addProperty(ObjectProperty(source.getName(), source));
     Super::addProperty(ObjectProperty("Interfaces", interfaces));
 
     Super::addProperty(SelectionProperty("Source", EvalValue("%Interfaces:PropertyNames"), 0));
@@ -108,12 +111,8 @@ template <class Intf, class... Intfs>
 ErrCode SyncComponent2Impl<Intf, Intfs...>::getSelectedSource(ISyncInterface** selectedSource)
 {
     OPENDAQ_PARAM_NOT_NULL(selectedSource);
-    return daqTry([&]
-    {
-        StringPtr sourceName = this->objPtr.getPropertySelectionValue("Source");
-        *selectedSource = this->objPtr.getPropertyValue(sourceName).template as<ISyncInterface>();
-        return OPENDAQ_SUCCESS;
-    });
+    *selectedSource = this->source.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>
@@ -123,37 +122,26 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::setSelectedSource(IString* selectedS
     
     return daqTry([&]
     {
-        const StringPtr sourceName = this->objPtr.getPropertySelectionValue("Source");   
-        const StringPtr candidateSourceName = StringPtr::Borrow(selectedSourceName);
+        const StringPtr selectedSourceNamePtr = StringPtr::Borrow(selectedSourceName);
 
-        if (sourceName == candidateSourceName)
+        if (source.getName() == selectedSourceNamePtr)
             return OPENDAQ_SUCCESS;
 
         const PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
 
-        if (!interfaces.hasProperty(sourceName))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format("Interface '{}' not found in interfaces", sourceName));
+        if (!interfaces.hasProperty(selectedSourceNamePtr))
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format("Interface '{}' not found in interfaces", selectedSourceNamePtr));
 
+        OPENDAQ_RETURN_IF_FAILED(this->setPropertySelectionValue(String("Source"), selectedSourceNamePtr), "Failed to set Source property");
         
-        SyncInterfacePtr currentSource = this->objPtr.getPropertyValue(sourceName);
-        if (auto sourceInternal = currentSource.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
+        if (auto sourceInternal = source.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
             sourceInternal.setAsSource(false);
 
-        SyncInterfacePtr newSource = interfaces.getPropertyValue(candidateSourceName);
-        if (auto sourceInternal = newSource.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
+        source = interfaces.getPropertyValue(selectedSourceNamePtr);
+        if (auto sourceInternal = source.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
             sourceInternal.setAsSource(true);
 
-        const auto sourceProperty = this->objPtr.getProperty("Source");
-        for (const auto& [index, name] : sourceProperty.getSelectionValues().template asPtr<IDict, DictPtr<IInteger, IString>>(true))
-        {
-            if (name == sourceName)
-            {
-                OPENDAQ_RETURN_IF_FAILED(this->setPropertyValue(String("Source"), index));
-                return OPENDAQ_SUCCESS;
-            }
-        }
-
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format("Index for interface {} not found", sourceName));
+        return OPENDAQ_SUCCESS;
     });
 }
 
@@ -210,6 +198,23 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::addInterface(ISyncInterface* syncInt
 }
 
 template <class Intf, class... Intfs>
+ErrCode SyncComponent2Impl<Intf, Intfs...>::complete()
+{
+    return daqTry([&]
+    {
+        // Update the source member variable based on the deserialized "Source" property
+        const PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
+        if (interfaces.assigned() && this->objPtr.hasProperty("Source"))
+        {
+            const StringPtr sourceName = this->objPtr.getPropertySelectionValue("Source");
+            OPENDAQ_RETURN_IF_FAILED(this->setSelectedSource(sourceName));
+        }
+        
+        return Super::complete();
+    });
+}
+
+template <class Intf, class... Intfs>
 ErrCode SyncComponent2Impl<Intf, Intfs...>::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
@@ -248,26 +253,6 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::Deserialize(ISerializedObject* seria
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
-
-template <class Intf, class... Intfs>
-ErrCode SyncComponent2Impl<Intf, Intfs...>::getInterfaceIds(SizeT* idCount, IntfID** ids)
-{
-    OPENDAQ_PARAM_NOT_NULL(idCount);
-
-    using InterfaceIdsType = typename Super::InterfaceIds;
-    *idCount = InterfaceIdsType::Count() + 1;
-    if (ids == nullptr)
-    {
-        return OPENDAQ_SUCCESS;
-    }
-
-    **ids = IPropertyObject::Id;
-    (*ids)++;
-
-    InterfaceIdsType::AddInterfaceIds(*ids);
-    return OPENDAQ_SUCCESS;
-}
-
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncComponent2Base)
 

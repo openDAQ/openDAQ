@@ -38,6 +38,7 @@ class SyncInterfaceBaseImpl : public GenericPropertyObjectImpl<TInterface, ISync
 {
 public:
     using Super = GenericPropertyObjectImpl<TInterface, ISyncInterface, ISyncInterfaceInternal, Interfaces...>;
+    using Self = SyncInterfaceBaseImpl<TInterface, Interfaces...>;
 
     SyncInterfaceBaseImpl();
 
@@ -56,23 +57,25 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
-
 protected:
+    Bool synced;
+    StringPtr referenceDomainId;
 };
 
 template <typename TInterface, typename... Interfaces>
 SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl(const StringPtr& name)
     : Super()
+    , synced(False)
+    , referenceDomainId("")
 {
     this->objPtr.addProperty(StringPropertyBuilder("Name", name).setReadOnly(true).build());
     this->objPtr.addProperty(DictProperty("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}}), false));
     this->objPtr.addProperty(SelectionProperty("Mode", EvalValue("$ModeOptions"), 3));
 
     auto statusProperty = PropertyObject();
-    statusProperty.addProperty(BoolProperty("Synchronized", false));
-    statusProperty.addProperty(StringProperty("ReferenceDomainId", ""));
-    this->objPtr.addProperty(ObjectProperty("Status", statusProperty));
+    statusProperty.addProperty(BoolPropertyBuilder("Synchronized", synced).setReadOnly(true).build());
+    statusProperty.addProperty(StringPropertyBuilder("ReferenceDomainId", referenceDomainId).setReadOnly(true).build());
+    this->objPtr.addProperty(ObjectPropertyBuilder("Status", statusProperty).setReadOnly(true).build());
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -85,36 +88,32 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
-    *name = this->objPtr.getPropertyValue("Name").template as<IString>();
-    return OPENDAQ_SUCCESS;
+    return daqTry([&]
+    {
+        *name = this->objPtr.getPropertyValue("Name").template as<IString>();
+    });
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getSynced(Bool* synced)
 {
     OPENDAQ_PARAM_NOT_NULL(synced);
-    return daqTry([&]
-    {
-        *synced = this->objPtr.getPropertyValue("Status.Synchronized");
-        return OPENDAQ_SUCCESS;
-    });
+    *synced = this->synced;
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getReferenceDomainId(IString** referenceDomainId)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
-    return daqTry([&]
-    {
-        *referenceDomainId = this->objPtr.getPropertyValue("Status.ReferenceDomainId").template as<IString>();
-        return OPENDAQ_SUCCESS;
-    });
+    *referenceDomainId = this->referenceDomainId.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::setAsSource(Bool isSource)
 {
-    return OPENDAQ_SUCCESS;
+    return OPENDAQ_IGNORED;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -150,25 +149,6 @@ ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::Deserialize(ISerialize
             }).detach();
         return OPENDAQ_SUCCESS;
     });
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getInterfaceIds(SizeT* idCount, IntfID** ids)
-{
-    OPENDAQ_PARAM_NOT_NULL(idCount);
-
-    using InterfaceIdsType = typename Super::InterfaceIds;
-    *idCount = InterfaceIdsType::Count() + 1;
-    if (ids == nullptr)
-    {
-        return OPENDAQ_SUCCESS;
-    }
-
-    **ids = IPropertyObject::Id;
-    (*ids)++;
-
-    InterfaceIdsType::AddInterfaceIds(*ids);
-    return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncInterfaceBase)

@@ -35,6 +35,13 @@ public:
     ConfigClientSyncInterfaceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                   const std::string& remoteGlobalId);
 
+    // ISyncInterface
+    ErrCode INTERFACE_FUNC getSynced(Bool* synced) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
+
+    // ISyncInterfaceInternal
+    ErrCode INTERFACE_FUNC setAsSource(Bool isSource) override;
+
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
     ErrCode INTERFACE_FUNC complete() override;

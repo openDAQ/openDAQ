@@ -63,12 +63,12 @@ protected:
 };
 
 template <typename TInterface, typename... Interfaces>
-SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl(const StringPtr& name)
+SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl()
     : Super()
     , synced(False)
     , referenceDomainId("")
-{
-    this->objPtr.addProperty(StringPropertyBuilder("Name", name).setReadOnly(true).build());
+{   
+    this->objPtr.addProperty(StringPropertyBuilder("Name", "SyncInterfaceBase").setReadOnly(true).build());
     this->objPtr.addProperty(DictProperty("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}}), false));
     this->objPtr.addProperty(SelectionProperty("Mode", EvalValue("$ModeOptions"), 3));
 
@@ -79,9 +79,10 @@ SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl(const St
 }
 
 template <typename TInterface, typename... Interfaces>
-SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl()
-    : SyncInterfaceBaseImpl("SyncInterfaceBase")
-{   
+SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl(const StringPtr& name)
+    : SyncInterfaceBaseImpl()
+{
+    this->objPtr.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("Name", name);
 }
 
 template <typename TInterface, typename... Interfaces>

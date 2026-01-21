@@ -14,6 +14,7 @@
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/user_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/mock/advanced_components_setup_utils.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -72,7 +73,7 @@ public:
             std::bind(&ConfigSyncComponent2Test::serverNotificationReady, this, std::placeholders::_1),
             anonymousUser,
             ClientType::Control,
-            nullptr);
+            test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(

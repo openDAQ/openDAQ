@@ -392,6 +392,23 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * If a componentFilter is provided but the current component does not match it, the result will be an empty list.
      */
     virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) = 0;
+
+    /*!
+     * @brief Sets the value of a Selection property by providing the selected value instead of the index/key.
+     * @param propertyName The name of the Property.
+     * @param value The selection value to find and set.
+     * @retval OPENDAQ_ERR_NOTFOUND if a Property with given `propertyName` is not part of the Property object.
+     * @retval OPENDAQ_ERR_INVALIDPROPERTY if the Property either has no Selection values, or the Selection values are not a list or dictionary.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if the provided `value` is not found in the Selection values.
+     * @retval OPENDAQ_ERR_ACCESSDENIED if the property is Read-only.
+     * @retval OPENDAQ_ERR_FROZEN if the Property object is frozen.
+     *
+     * This function serves as a shortcut for setting the Property value of a Selection property by providing the actual
+     * selection value rather than its index/key. For example, if the Selection values contain the following list
+     * "["banana", "apple", "pear"]", calling this function with the value "apple" will set the Property value to 1.
+     * For dictionary-based Selection values, the function will find the key corresponding to the provided value.
+     */
+    virtual ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) = 0;
 };
 
 /*!@}*/

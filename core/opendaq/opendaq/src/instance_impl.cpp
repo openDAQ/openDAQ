@@ -647,6 +647,11 @@ ErrCode InstanceImpl::getPropertySelectionValue(IString* propertyName, IBaseObje
     return rootDevice->getPropertySelectionValue(propertyName, value);
 }
 
+ErrCode InstanceImpl::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
+{
+    return rootDevice->setPropertySelectionValue(propertyName, value);
+}
+
 ErrCode InstanceImpl::clearPropertyValue(IString* propertyName)
 {
     return rootDevice->clearPropertyValue(propertyName);

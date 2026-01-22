@@ -19,9 +19,13 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
-    : Super("ClockSyncInterface")
+    : Super("ClockSyncInterface", getModeOptions())
 {
-    this->objPtr.setPropertyValue("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {3, "Off"}}));
+}
+
+DictPtr<IInteger, IString> ClockSyncInterfaceImpl::getModeOptions() const
+{
+    return Dict<IInteger, IString>({{0, "Input"}, {3, "Off"}});
 }
 
 END_NAMESPACE_OPENDAQ

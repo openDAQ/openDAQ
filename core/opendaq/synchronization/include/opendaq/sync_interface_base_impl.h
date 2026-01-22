@@ -42,7 +42,7 @@ public:
 
     SyncInterfaceBaseImpl();
 
-    explicit SyncInterfaceBaseImpl(const StringPtr& name);
+    explicit SyncInterfaceBaseImpl(const StringPtr& name, const DictPtr<IInteger, IString>& options = nullptr);
 
     // ISyncInterface
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -58,6 +58,14 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
+
+    virtual DictPtr<IInteger, IString> getModeOptions() const;
+
+    void setModeOptions(const DictPtr<IInteger, IString>& options);
+    void setMode(const StringPtr& mode);
+    void setReferenceDomainId(const StringPtr& domainId);
+    void setSynced(Bool synced);
+
     Bool synced;
     StringPtr referenceDomainId;
 };
@@ -69,7 +77,7 @@ SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl()
     , referenceDomainId("")
 {   
     this->objPtr.addProperty(StringPropertyBuilder("Name", "SyncInterfaceBase").setReadOnly(true).build());
-    this->objPtr.addProperty(DictProperty("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}}), false));
+    this->objPtr.addProperty(DictProperty("ModeOptions", Self::getModeOptions(), false));
     this->objPtr.addProperty(SelectionProperty("Mode", EvalValue("$ModeOptions"), 3));
 
     auto statusProperty = PropertyObject();
@@ -79,10 +87,13 @@ SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl()
 }
 
 template <typename TInterface, typename... Interfaces>
-SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl(const StringPtr& name)
+SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl(const StringPtr& name, const DictPtr<IInteger, IString>& options)
     : SyncInterfaceBaseImpl()
 {
-    this->objPtr.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("Name", name);
+    if (name.assigned())
+        this->objPtr.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("Name", name);
+    if (options.assigned())
+        this->setModeOptions(options);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -115,6 +126,38 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::setAsSource(Bool isSource)
 {
     return OPENDAQ_IGNORED;
+}
+
+template <typename TInterface, typename... Interfaces>
+DictPtr<IInteger, IString> SyncInterfaceBaseImpl<TInterface, Interfaces...>::getModeOptions() const
+{
+    return Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}});
+}
+
+template <typename TInterface, typename... Interfaces>
+void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setModeOptions(const DictPtr<IInteger, IString>& options)
+{
+    this->objPtr.setPropertyValue("ModeOptions", options);
+}
+
+template <typename TInterface, typename... Interfaces>
+void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setMode(const StringPtr& mode)
+{
+    this->objPtr.setPropertySelectionValue("Mode", mode);
+}
+
+template <typename TInterface, typename... Interfaces>
+void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setReferenceDomainId(const StringPtr& domainId)
+{
+    this->referenceDomainId = domainId;
+    this->objPtr.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("Status.ReferenceDomainId", domainId);
+}
+
+template <typename TInterface, typename... Interfaces>
+void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setSynced(Bool synced)
+{
+    this->synced = synced;
+    this->objPtr.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("Status.Synchronized", synced);
 }
 
 template <typename TInterface, typename... Interfaces>

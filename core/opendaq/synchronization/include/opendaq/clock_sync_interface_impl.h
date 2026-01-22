@@ -26,6 +26,8 @@ public:
     using Super = SyncInterfaceBaseImpl<>;
 
     explicit ClockSyncInterfaceImpl();
+
+    DictPtr<IInteger, IString> getModeOptions() const override;
 };
 
 END_NAMESPACE_OPENDAQ

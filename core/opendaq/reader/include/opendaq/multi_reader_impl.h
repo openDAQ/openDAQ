@@ -179,6 +179,7 @@ private:
     Bool allowDifferentRates = true;
 
     std::map<Int, SignalReader> signals;
+    std::map<Int, SignalReader> unusedSignals;
     PropertyObjectPtr portBinder;
     ProcedurePtr readCallback;
     WeakRefPtr<IInputPortNotifications> externalListener;

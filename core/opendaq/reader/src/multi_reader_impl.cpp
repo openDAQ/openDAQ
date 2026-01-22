@@ -460,7 +460,6 @@ std::vector<Int> MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPor
         cnt++;
     }
 
-    // TODO: All ports connected should only count the active/required ports.
     portsConnected = allPortsConnected();
     if (!portsConnected)
     {
@@ -540,19 +539,20 @@ void MultiReaderImpl::setStartInfo()
     LOG_T("<----")
     LOG_T("Setting start info:")
 
+    // TODO: Check for signals being empty (only unused)
     auto& firstDomain = signals.cbegin()->second.domainInfo;
     RatioPtr maxResolution = firstDomain.resolution;
     system_clock::time_point minEpoch = firstDomain.epoch;
-    for (auto& [_, sigInfo] : signals)
+    for (auto& [_, signal] : signals)
     {
-        if (sigInfo.domainInfo.epoch < minEpoch)
+        if (signal.domainInfo.epoch < minEpoch)
         {
-            minEpoch = sigInfo.domainInfo.epoch;
+            minEpoch = signal.domainInfo.epoch;
         }
 
-        if (static_cast<double>(sigInfo.domainInfo.resolution) < static_cast<double>(maxResolution))
+        if (static_cast<double>(signal.domainInfo.resolution) < static_cast<double>(maxResolution))
         {
-            maxResolution = sigInfo.domainInfo.resolution;
+            maxResolution = signal.domainInfo.resolution;
         }
     }
 
@@ -562,9 +562,9 @@ void MultiReaderImpl::setStartInfo()
     LOG_T("MaxResolution: {}", maxResolution)
     LOG_T("MinEpoch: {}", minEpoch)
 
-    for (auto& [_, sigInfo] : signals)
+    for (auto& [_, signal] : signals)
     {
-        sigInfo.setStartInfo(minEpoch, maxResolution);
+        signal.setStartInfo(minEpoch, maxResolution);
     }
 }
 
@@ -606,6 +606,10 @@ ErrCode MultiReaderImpl::setValueTransformFunction(IFunction* transform)
     {
         signal.valueReader->setTransformFunction(transform);
     }
+    for (auto& [_, signal] : unusedSignals)
+    {
+        signal.valueReader->setTransformFunction(transform);
+    }
 
     return OPENDAQ_SUCCESS;
 }
@@ -615,6 +619,10 @@ ErrCode MultiReaderImpl::setDomainTransformFunction(IFunction* transform)
     std::scoped_lock lock(mutex);
 
     for (auto& [_, signal] : signals)
+    {
+        signal.domainReader->setTransformFunction(transform);
+    }
+    for (auto& [_, signal] : unusedSignals)
     {
         signal.domainReader->setTransformFunction(transform);
     }
@@ -719,6 +727,66 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::getInputIds(IList** ids)
     }
 
     *ids = assignedIds.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUnused(Int id, Bool unused)
+{
+    auto& source = unused ? signals : unusedSignals;
+    auto& destination = unused ? unusedSignals : signals;
+
+    auto search = source.find(id);
+    if (search == source.end())
+    {
+        if (destination.find(id) == destination.end())
+            return OPENDAQ_NOTFOUND;
+        else
+            return OPENDAQ_SUCCESS;  // Already in correct mapping
+    }
+
+    search->second.unused = unused;
+    search->second.synced = SyncStatus::Unsynchronized;
+    if (unused)
+    {
+        search->second.skipUntilLastEventPacket();
+        search->second.port.setActive(false);
+    }
+    else
+    {
+        search->second.port.setActive(this->isActive);
+    }
+
+    {
+        // Move port to the other group (used <-> unused)
+        auto nodeHandle = source.extract(search);
+        destination.insert(std::move(nodeHandle));
+    }
+
+    portsConnected = allPortsConnected();
+    if (!portsConnected)
+    {
+        setPortsActiveState(false);
+    }
+    else
+    {
+        setPortsActiveState(true);
+    }
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC MultiReaderImpl::getInputUnused(Int id, Bool* unused)
+{
+    auto search = signals.find(id);
+    if (search == signals.end())
+    {
+        search = unusedSignals.find(id);
+        if (search == unusedSignals.end())
+        {
+            return OPENDAQ_NOTFOUND;
+        }
+    }
+
+    *unused = search->second.unused;
     return OPENDAQ_SUCCESS;
 }
 
@@ -1465,6 +1533,7 @@ void MultiReaderImpl::internalDispose(bool)
 {
     this->portBinder = nullptr;
     this->signals.clear();
+    this->unusedSignals.clear();
     this->externalListener = nullptr;
     this->readCallback = nullptr;
     this->invalid = true;
@@ -1479,7 +1548,17 @@ ErrCode MultiReaderImpl::getValueTransformFunction(IFunction** transform)
     OPENDAQ_PARAM_NOT_NULL(transform);
     std::scoped_lock lock(mutex);
 
-    *transform = signals.cbegin()->second.valueReader->getTransformFunction().addRefAndReturn();
+    if (signals.empty() && unusedSignals.empty())
+    {
+        *transform = nullptr;
+        return OPENDAQ_ERR_INVALIDSTATE;
+    }
+
+    if (!signals.empty())
+        *transform = signals.cbegin()->second.valueReader->getTransformFunction().addRefAndReturn();
+    else
+        *transform = unusedSignals.cbegin()->second.valueReader->getTransformFunction().addRefAndReturn();
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -1488,7 +1567,17 @@ ErrCode MultiReaderImpl::getDomainTransformFunction(IFunction** transform)
     OPENDAQ_PARAM_NOT_NULL(transform);
     std::scoped_lock lock(mutex);
 
-    *transform = signals.cbegin()->second.domainReader->getTransformFunction().addRefAndReturn();
+    if (signals.empty() && unusedSignals.empty())
+    {
+        *transform = nullptr;
+        return OPENDAQ_ERR_INVALIDSTATE;
+    }
+
+    if (!signals.empty())
+        *transform = signals.cbegin()->second.domainReader->getTransformFunction().addRefAndReturn();
+    else
+        *transform = unusedSignals.cbegin()->second.domainReader->getTransformFunction().addRefAndReturn();
+
     return OPENDAQ_SUCCESS;
 }
 

@@ -191,7 +191,7 @@ TEST_F(SyncComponent2Test, GetInterfaces)
 
     const auto interfaces = syncComponent2.getInterfaces();
     ASSERT_EQ(interfaces.getCount(), 1u);
-    ASSERT_TRUE(interfaces.hasKey("InterfaceClockSync"));
+    ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
 }
 
 TEST_F(SyncComponent2Test, GetSelectedSource)
@@ -201,7 +201,7 @@ TEST_F(SyncComponent2Test, GetSelectedSource)
 
     const auto selectedSource = syncComponent2.getSelectedSource();
     ASSERT_TRUE(selectedSource.assigned());
-    ASSERT_EQ(selectedSource.getName(), "InterfaceClockSync");
+    ASSERT_EQ(selectedSource.getName(), "ClockSyncInterface");
 }
 
 TEST_F(SyncComponent2Test, SetSelectedSource)
@@ -310,7 +310,7 @@ TEST_F(SyncComponent2Test, Serialization)
 
     const auto interfaces = deserialized.getInterfaces();
     ASSERT_EQ(deserialized.getInterfaces().getCount(), 2u);
-    ASSERT_TRUE(interfaces.hasKey("InterfaceClockSync"));
+    ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
     ASSERT_TRUE(interfaces.hasKey("TestInterface"));
     ASSERT_EQ(deserialized.getSelectedSource().getName(), "TestInterface");
 }

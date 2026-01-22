@@ -26,7 +26,7 @@
 #include <opendaq/sync_interface_ptr.h>
 #include <opendaq/sync_interface_internal_ptr.h>
 #include <opendaq/component_deserialize_context_factory.h>
-#include <opendaq/interface_clock_sync_impl.h>
+#include <opendaq/clock_sync_interface_impl.h>
 #include <coretypes/objectptr.h>
 #include <coretypes/deserializer.h>
 #include <coreobjects/property_object_factory.h>
@@ -92,7 +92,7 @@ SyncComponent2Impl<Intf, Intfs...>::SyncComponent2Impl(const ContextPtr& context
 template <class Intf, class... Intfs>
 void SyncComponent2Impl<Intf, Intfs...>::init()
 {
-    source = createWithImplementation<ISyncInterface, InterfaceClockSyncImpl>();
+    source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
     source.asPtr<ISyncInterfaceInternal>(true).setAsSource(true);
 
     auto interfaces = PropertyObject();

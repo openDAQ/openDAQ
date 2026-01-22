@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-#pragma once
-
-#include <opendaq/sync_interface_base_impl.h>
+#include <opendaq/clock_sync_interface_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class InterfaceClockSyncImpl : public SyncInterfaceBaseImpl<>
+ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
+    : Super("ClockSyncInterface")
 {
-public:
-    using Super = SyncInterfaceBaseImpl<>;
-
-    explicit InterfaceClockSyncImpl();
-};
+    this->objPtr.setPropertyValue("ModeOptions", Dict<IInteger, IString>({{0, "Input"}, {3, "Off"}}));
+}
 
 END_NAMESPACE_OPENDAQ

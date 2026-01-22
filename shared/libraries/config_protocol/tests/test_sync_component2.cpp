@@ -213,7 +213,7 @@ TEST_F(ConfigSyncComponent2Test, SyncInterfaceGetName)
     auto clientSync = getClientSyncComponent();
     auto clientSource = clientSync.getSelectedSource();
 
-    ASSERT_EQ(clientSource.getName(), "InterfaceClockSync");
+    ASSERT_EQ(clientSource.getName(), "ClockSyncInterface");
 }
 
 TEST_F(ConfigSyncComponent2Test, SyncInterfaceGetSynced)
@@ -245,7 +245,7 @@ TEST_F(ConfigSyncComponent2Test, SyncInterfacePropertyAccess)
     auto propObj = clientSource.asPtr<IPropertyObject>(true);
 
     // Test reading properties via property object interface
-    ASSERT_EQ(propObj.getPropertyValue("Name"), "InterfaceClockSync");
+    ASSERT_EQ(propObj.getPropertyValue("Name"), "ClockSyncInterface");
     ASSERT_NO_THROW(propObj.getPropertyValue("Mode"));
     ASSERT_NO_THROW(propObj.getPropertyValue("Status.Synchronized"));
     ASSERT_NO_THROW(propObj.getPropertyValue("Status.ReferenceDomainId"));

@@ -156,22 +156,22 @@ void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setModeOptions(const Dict
 template <typename TInterface, typename... Interfaces>
 void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setMode(SyncMode mode)
 {
-    this->mode = mode;
     this->objPtr.setPropertyValue("Mode", static_cast<Int>(mode));
+    this->mode = mode;
 }
 
 template <typename TInterface, typename... Interfaces>
 void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setReferenceDomainId(const StringPtr& domainId)
 {
-    this->referenceDomainId = domainId;
     this->objPtr.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("Status.ReferenceDomainId", domainId);
+    this->referenceDomainId = domainId;
 }
 
 template <typename TInterface, typename... Interfaces>
 void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setSynced(Bool synced)
 {
-    this->synced = synced;
     this->objPtr.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("Status.Synchronized", synced);
+    this->synced = synced;
 }
 
 template <typename TInterface, typename... Interfaces>

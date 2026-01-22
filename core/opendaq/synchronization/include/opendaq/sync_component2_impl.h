@@ -111,6 +111,7 @@ template <class Intf, class... Intfs>
 ErrCode SyncComponent2Impl<Intf, Intfs...>::getSelectedSource(ISyncInterface** selectedSource)
 {
     OPENDAQ_PARAM_NOT_NULL(selectedSource);
+    auto lock = this->getRecursiveConfigLock();
     *selectedSource = this->source.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
@@ -119,7 +120,7 @@ template <class Intf, class... Intfs>
 ErrCode SyncComponent2Impl<Intf, Intfs...>::setSelectedSource(IString* selectedSourceName)
 {
     OPENDAQ_PARAM_NOT_NULL(selectedSourceName);
-    
+    auto lock = this->getRecursiveConfigLock();
     return daqTry([&]
     {
         const StringPtr selectedSourceNamePtr = StringPtr::Borrow(selectedSourceName);
@@ -149,6 +150,7 @@ template <class Intf, class... Intfs>
 ErrCode SyncComponent2Impl<Intf, Intfs...>::getSourceSynced(Bool* synced)
 {
     OPENDAQ_PARAM_NOT_NULL(synced);
+    auto lock = this->getRecursiveConfigLock();
 
     SyncInterfacePtr source;
     OPENDAQ_RETURN_IF_FAILED(this->getSelectedSource(&source));
@@ -160,6 +162,7 @@ template <class Intf, class... Intfs>
 ErrCode SyncComponent2Impl<Intf, Intfs...>::getSourceReferenceDomainId(IString** referenceDomainId)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
+    auto lock = this->getRecursiveConfigLock();
 
     SyncInterfacePtr source;
     OPENDAQ_RETURN_IF_FAILED(this->getSelectedSource(&source));
@@ -188,7 +191,6 @@ template <class Intf, class... Intfs>
 ErrCode SyncComponent2Impl<Intf, Intfs...>::addInterface(ISyncInterface* syncInterface)
 {
     OPENDAQ_PARAM_NOT_NULL(syncInterface);
-    
     return daqTry([&]
     {
         const SyncInterfacePtr interfacePtr = SyncInterfacePtr::Borrow(syncInterface);

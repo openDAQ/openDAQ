@@ -32,13 +32,14 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace PacketDetails
 {
-BaseObjectPtr dataToObj(void* addr, const SampleType& type);
-BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType);
+BaseObjectPtr dataToObj(void* addr, const SampleType& type, SizeT sampleSize = 0);
+BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType, SizeT sampleSize = 0);
 StructPtr buildStructFromFields(const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, void*& addr);
 BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager);
-BaseObjectPtr buildObjectFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager);
+BaseObjectPtr buildFromDescriptorWithSize(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, SizeT sampleSize);
+BaseObjectPtr buildObjectFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, SizeT actualSampleSize = 0);
 
-inline BaseObjectPtr dataToObj(void* addr, const SampleType& type)
+inline BaseObjectPtr dataToObj(void* addr, const SampleType& type, SizeT sampleSize)
 {
     switch (type)
     {
@@ -110,6 +111,8 @@ inline BaseObjectPtr dataToObj(void* addr, const SampleType& type)
         case SampleType::String:
         {
             const char* cstr = static_cast<const char*>(addr);
+            if (sampleSize > 0)
+                return String(cstr, sampleSize);
             return String(cstr);
         }
         default:
@@ -119,10 +122,13 @@ inline BaseObjectPtr dataToObj(void* addr, const SampleType& type)
     }
 }
 
-inline BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType)
+inline BaseObjectPtr dataToObjAndIncreaseAddr(void*& addr, const SampleType& sampleType, SizeT sampleSize)
 {
-    const auto ptr = dataToObj(addr, sampleType);
-    addr = static_cast<char*>(addr) + getSampleSize(sampleType);
+    const auto ptr = dataToObj(addr, sampleType, sampleSize);
+    SizeT sizeToAdvance = (sampleSize > 0 && (sampleType == SampleType::String || sampleType == SampleType::Binary)) 
+                         ? sampleSize 
+                         : getSampleSize(sampleType);
+    addr = static_cast<char*>(addr) + sizeToAdvance;
     return ptr;
 }
 
@@ -139,6 +145,17 @@ inline StructPtr buildStructFromFields(const DataDescriptorPtr& descriptor, cons
 }
 
 inline BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager)
+{
+    const auto sampleType = descriptor.getSampleType();
+    SizeT sampleSize = 0;
+    if (sampleType == SampleType::String || sampleType == SampleType::Binary)
+    {
+        sampleSize = descriptor.getSampleSize();
+    }
+    return buildFromDescriptorWithSize(addr, descriptor, typeManager, sampleSize);
+}
+
+inline BaseObjectPtr buildFromDescriptorWithSize(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, SizeT sampleSize)
 {
     const auto dimensions = descriptor.getDimensions();
 
@@ -168,7 +185,7 @@ inline BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& d
             else
             {
                 // Not struct
-                listPtr.pushBack(dataToObjAndIncreaseAddr(addr, sampleType));
+                listPtr.pushBack(dataToObjAndIncreaseAddr(addr, sampleType, sampleSize));
             }
         }
         return listPtr;
@@ -180,10 +197,10 @@ inline BaseObjectPtr buildFromDescriptor(void*& addr, const DataDescriptorPtr& d
         return buildStructFromFields(descriptor, typeManager, addr);
     }
     // Not struct
-    return dataToObjAndIncreaseAddr(addr, sampleType);
+    return dataToObjAndIncreaseAddr(addr, sampleType, sampleSize);
 }
 
-inline BaseObjectPtr buildObjectFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager)
+inline BaseObjectPtr buildObjectFromDescriptor(void*& addr, const DataDescriptorPtr& descriptor, const TypeManagerPtr& typeManager, SizeT actualSampleSize)
 {
     void * rawAddr = addr;
 
@@ -215,7 +232,19 @@ inline BaseObjectPtr buildObjectFromDescriptor(void*& addr, const DataDescriptor
             referenceDomainOffsetAdder->addReferenceDomainOffset(&rawAddr);
         }
     }
-    return buildFromDescriptor(rawAddr, descriptor, typeManager);
+    
+    // Use actualSampleSize if provided, otherwise try to get from descriptor
+    SizeT sampleSize = actualSampleSize;
+    if (sampleSize == 0)
+    {
+        const auto sampleType = descriptor.getSampleType();
+        if (sampleType == SampleType::String || sampleType == SampleType::Binary)
+        {
+            sampleSize = descriptor.getSampleSize();
+        }
+    }
+    
+    return buildFromDescriptorWithSize(rawAddr, descriptor, typeManager, sampleSize);
 }
 
 struct CreatePacketNoMemoryTag

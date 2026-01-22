@@ -134,9 +134,9 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
      * to IRange if the type is RangeInt64, to IString if the type is String, to IStruct if the type is Struct, and to IList of the forementioned types if there is exactly
      * one dimension.
      *
-     * For String type signals, the string data must be encoded as null-terminated UTF-8 strings and properly
-     * null-terminated within the allocated sample size. The method extracts the string value from the packet data
-     * and returns it as an IString object.
+     * For String type signals in binary data packets, the string data must be encoded as UTF-8 strings. The string length is
+     * determined by the sample size, and the string does not need to be null-terminated. The method extracts the string value
+     * from the packet data and returns it as an IString object.
      */
     virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) = 0;
 
@@ -151,9 +151,9 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
      * ComplexFloat64, to IRange if the type is RangeInt64, to IString if the type is String, to IStruct if the type is Struct, and to IList of the forementioned types if
      * there is exactly one dimension.
      *
-     * For String type signals, the string data must be encoded as null-terminated UTF-8 strings and properly
-     * null-terminated within the allocated sample size. The method extracts the string value from the packet data
-     * and returns it as an IString object.
+     * For String type signals in binary data packets, the string data must be encoded as UTF-8 strings. The string length is
+     * determined by the sample size, and the string does not need to be null-terminated. The method extracts the string value
+     * from the packet data and returns it as an IString object.
      */
     virtual ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager = nullptr) = 0;
 

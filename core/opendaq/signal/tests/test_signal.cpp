@@ -821,14 +821,13 @@ TEST_F(SignalTest, GetLastValueString)
     const auto signal = Signal(NullContext(), nullptr, "sig");
     auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::String).build();
 
-    // Allocate buffer large enough for "abcd" + null terminator
-    auto dataPacket = BinaryDataPacket(nullptr, descriptor, 5);
+    // Allocate buffer for "abcd" (4 bytes, no null terminator needed)
+    auto dataPacket = BinaryDataPacket(nullptr, descriptor, 4);
     char* data = static_cast<char*>(dataPacket.getData());
     data[0] = 'a';
     data[1] = 'b';
     data[2] = 'c';
     data[3] = 'd';
-    data[4] = '\0';  // Null terminator required for UTF-8 null-terminated strings
 
     signal.sendPacket(dataPacket);
 

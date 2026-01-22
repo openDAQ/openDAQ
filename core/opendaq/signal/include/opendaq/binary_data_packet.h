@@ -30,8 +30,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * Binary value packet should contain exactly one sample of `SampleType::Binary` or `SampleType::String`
  * sample type.
  *
- * For String type signals, the string data must be encoded as null-terminated UTF-8 strings and properly
- * null-terminated within the allocated sample size.
+ * For String type signals, the string data must be encoded as UTF-8 strings. The string length is
+ * determined by the `sampleMemSize` parameter, and the string does not need to be null-terminated.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, BinaryDataPacket,
@@ -53,8 +53,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
  * sample type. Memory should be allocated by the caller and a custom deleter callback
  * should be provided.
  *
- * For String type signals, the string data must be encoded as null-terminated UTF-8 strings and properly
- * null-terminated within the allocated sample size.
+ * For String type signals, the string data must be encoded as UTF-8 strings. The string length is
+ * determined by the `sampleMemSize` parameter, and the string does not need to be null-terminated.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, BinaryDataPacketWithExternalMemory,

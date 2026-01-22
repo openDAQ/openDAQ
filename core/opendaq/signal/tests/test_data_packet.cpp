@@ -522,13 +522,12 @@ TEST_F(DataPacketTest, GetLastValue)
 TEST_F(DataPacketTest, GetValueByIndexString)
 {
     const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::String).setName("test").build();
-    const auto packet = BinaryDataPacket(nullptr, descriptor, 5);
+    const auto packet = BinaryDataPacket(nullptr, descriptor, 4);
     char* data = static_cast<char*>(packet.getData());
     data[0] = 'a';
     data[1] = 'b';
     data[2] = 'c';
     data[3] = 'd';
-    data[4] = '\0';  // Null terminator required for UTF-8 null-terminated strings
 
     const auto lv = packet.getValueByIndex(0);
     StringPtr ptr;
@@ -539,13 +538,12 @@ TEST_F(DataPacketTest, GetValueByIndexString)
 TEST_F(DataPacketTest, GetLastValueString)
 {
     const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::String).setName("test").build();
-    const auto packet = BinaryDataPacket(nullptr, descriptor, 5);
+    const auto packet = BinaryDataPacket(nullptr, descriptor, 4);
     char* data = static_cast<char*>(packet.getData());
     data[0] = 'a';
     data[1] = 'b';
     data[2] = 'c';
     data[3] = 'd';
-    data[4] = '\0';  // Null terminator required for UTF-8 null-terminated strings
 
     const auto lv = packet.getLastValue();
     StringPtr ptr;

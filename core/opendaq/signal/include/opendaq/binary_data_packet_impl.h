@@ -199,7 +199,7 @@ inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue
     if (dataDescriptor.getSampleType() == SampleType::String)
     {
         const char* cstr = static_cast<const char*>(data.get());
-        *value = String(cstr).detach();
+        *value = String(cstr, sampleSize).detach();
         return OPENDAQ_SUCCESS;
     }
     *value = nullptr;
@@ -217,7 +217,7 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getValueByIndex(daq::IBaseObject**
     if (dataDescriptor.getSampleType() == SampleType::String)
     {
         const char* cstr = static_cast<const char*>(data.get());
-        *value = String(cstr).detach();
+        *value = String(cstr, sampleSize).detach();
         return OPENDAQ_SUCCESS;
     }
     *value = nullptr;

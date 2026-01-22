@@ -88,6 +88,24 @@ TEST_F(InputPortTest, ChangeCustomData)
     ASSERT_EQ(inputPort.getCustomData(), 2);
 }
 
+TEST_F(InputPortTest, GetListener)
+{
+    // Initially, the listener should be set to the notifications object (set in constructor)
+    auto listener = inputPort.getListener();
+    ASSERT_NE(listener, nullptr);
+
+    // Set a different listener
+    MockInputPortNotifications::Strict newNotifications;
+    inputPort.setListener(newNotifications);
+    listener = inputPort.getListener();
+    ASSERT_NE(listener, nullptr);
+
+    // Set to nullptr
+    inputPort.setListener(nullptr);
+    listener = inputPort.getListener();
+    ASSERT_EQ(listener, nullptr);
+}
+
 TEST_F(InputPortTest, UnconnectableSignal)
 {
     EXPECT_CALL(signal.mock(), isRemoved(_))

@@ -28,6 +28,14 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+enum class SyncMode : int
+{
+    Input = 0,
+    Output = 1,
+    Auto = 2,
+    Off = 3
+};
+
 template <typename TInterface = IPropertyObject, typename... Interfaces>
 class SyncInterfaceBaseImpl;
 
@@ -62,10 +70,11 @@ protected:
     virtual DictPtr<IInteger, IString> getModeOptions() const;
 
     void setModeOptions(const DictPtr<IInteger, IString>& options);
-    void setMode(const StringPtr& mode);
+    void setMode(SyncMode mode);
     void setReferenceDomainId(const StringPtr& domainId);
     void setSynced(Bool synced);
 
+    SyncMode mode;
     Bool synced;
     StringPtr referenceDomainId;
 };
@@ -131,7 +140,11 @@ ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::setAsSource(Bool isSou
 template <typename TInterface, typename... Interfaces>
 DictPtr<IInteger, IString> SyncInterfaceBaseImpl<TInterface, Interfaces...>::getModeOptions() const
 {
-    return Dict<IInteger, IString>({{0, "Input"}, {1, "Output"}, {2, "Auto"}, {3, "Off"}});
+    return Dict<IInteger, IString>({{
+        static_cast<Int>(SyncMode::Input), "Input"}, 
+        {static_cast<Int>(SyncMode::Output), "Output"}, 
+        {static_cast<Int>(SyncMode::Auto), "Auto"}, 
+        {static_cast<Int>(SyncMode::Off), "Off"}});
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -141,9 +154,10 @@ void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setModeOptions(const Dict
 }
 
 template <typename TInterface, typename... Interfaces>
-void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setMode(const StringPtr& mode)
+void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setMode(SyncMode mode)
 {
-    this->objPtr.setPropertySelectionValue("Mode", mode);
+    this->mode = mode;
+    this->objPtr.setPropertyValue("Mode", static_cast<Int>(mode));
 }
 
 template <typename TInterface, typename... Interfaces>

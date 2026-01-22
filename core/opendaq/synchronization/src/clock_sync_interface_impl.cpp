@@ -24,8 +24,10 @@ ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
 }
 
 DictPtr<IInteger, IString> ClockSyncInterfaceImpl::getModeOptions() const
-{
-    return Dict<IInteger, IString>({{0, "Input"}, {3, "Off"}});
+{   
+    return Dict<IInteger, IString>({
+        {static_cast<Int>(SyncMode::Input), "Input"}, 
+        {static_cast<Int>(SyncMode::Off), "Off"}});
 }
 
 END_NAMESPACE_OPENDAQ

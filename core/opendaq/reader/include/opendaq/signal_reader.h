@@ -104,6 +104,7 @@ struct SignalReader
 
     bool invalid{false};
     SyncStatus synced{SyncStatus::Unsynchronized};
+    bool unused{false};
 
     NumberPtr packetDelta {0};
     std::chrono::system_clock::rep cachedFirstTimestamp;

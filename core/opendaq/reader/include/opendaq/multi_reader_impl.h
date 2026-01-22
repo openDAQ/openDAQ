@@ -72,6 +72,8 @@ public:
     ErrCode INTERFACE_FUNC addInput(IComponent* port, Int* id) override;
     ErrCode INTERFACE_FUNC removeInput(Int id) override;
     ErrCode INTERFACE_FUNC getInputIds(IList** ids) override;
+    ErrCode INTERFACE_FUNC setInputUnused(Int id, Bool unused) override;
+    ErrCode INTERFACE_FUNC getInputUnused(Int id, Bool* unused) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;

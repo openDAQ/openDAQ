@@ -820,14 +820,34 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
                                                                      const SerializedObjectPtr& serializedFunctionBlock,
                                                                      const BaseObjectPtr& context)
 {
+    const auto availableTypes = onGetAvailableFunctionBlockTypes();
     if (clearFunctionBlocksOnUpdate())
+    {
         for (const auto& fb : functionBlocks.getItems())
-            onRemoveFunctionBlock(fb);
+        {
+            const auto typeId = fb.asPtr<IFunctionBlock>().getFunctionBlockType().getId();
+            if (availableTypes.hasKey(typeId))
+            {
+                onRemoveFunctionBlock(fb);
+            }
+            else
+            {
+                auto loggerComponent = signalContainerLoggerComponent;
+                LOG_D("Update did not remove static function block with type ID {} and local ID {}", typeId, fb.getLocalId())
+            }
+        }
+    }
 
     UpdatablePtr updatableFb;
     if (!this->functionBlocks.hasItem(fbId))
     {
         auto typeId = serializedFunctionBlock.readString("typeId");
+        if (!availableTypes.hasKey(typeId))
+        {
+            auto loggerComponent = signalContainerLoggerComponent;
+            LOG_W("Failed to add missing FB with ID {} while updating parent FB with ID {}", fbId, this->localId)
+            return;
+        }
 
         PropertyObjectPtr config;
         if (serializedFunctionBlock.hasKey("ComponentConfig"))

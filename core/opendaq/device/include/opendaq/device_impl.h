@@ -1949,7 +1949,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
         if (!contextPtr.getReAddDevicesEnabled() && devices.hasItem(deviceId))
         {
-            LOG_D("Device {} already exists and re-add is not enabled", deviceId);
+            LOG_D("Device {} already exists and re-add is not enabled", deviceId)
             auto device = devices.getItem(deviceId);
             const auto updatableDevice = device.template asPtr<IUpdatable>(true);
             updatableDevice.updateInternal(serializedDevice, context);
@@ -2003,14 +2003,39 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             LOG_W("No connection string found for device {}", deviceId);
             return;
         }
+        
+        std::string connectionStringStr = connectionString;
+        auto pos = connectionStringStr.find("://");
+        std::string prefix = pos == std::string::npos ? "" : connectionStringStr.substr(0,pos);
+        DevicePtr device;
 
-        if (devices.hasItem(deviceId))
+        for (const auto& [_, type]: onGetAvailableDeviceTypes())
         {
-            DevicePtr device = devices.getItem(deviceId);
-            checkErrorInfo(this->removeDevice(device));
+            std::string typePrefix = type.getConnectionStringPrefix();
+            if (prefix == typePrefix)
+            {
+                if (devices.hasItem(deviceId))
+                {
+                    device = devices.getItem(deviceId);
+                    checkErrorInfo(this->removeDevice(device));
+                }
+
+                device = onAddDevice(connectionString, deviceConfig);
+                break;
+            }
         }
 
-        DevicePtr device = onAddDevice(connectionString, deviceConfig);
+        if (!device.assigned())
+        {
+            if (devices.hasItem(deviceId))
+                device = devices.getItem(deviceId);
+            else
+            {
+                LOG_W("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceId, this->localId)
+                return;
+            }
+        }
+
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
     }

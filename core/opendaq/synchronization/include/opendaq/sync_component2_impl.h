@@ -105,7 +105,6 @@ void SyncComponent2Impl<Intf, Intfs...>::init()
     {
         auto lock = this->getRecursiveConfigLock();
         StringPtr sourceName = objPtr.getPropertySelectionValue("Source");
-        checkErrorInfo(this->setSelectedSource(sourceName));
         onSelectedSourceChanged(sourceName);
     };
 }

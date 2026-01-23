@@ -668,6 +668,23 @@ template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     Super::updateObject(obj, context);
+    const auto availableTypes = onGetAvailableFunctionBlockTypes();
+    if (clearFunctionBlocksOnUpdate())
+    {
+        for (const auto& fb : functionBlocks.getItems())
+        {
+            const auto typeId = fb.asPtr<IFunctionBlock>().getFunctionBlockType().getId();
+            if (availableTypes.hasKey(typeId))
+            {
+                onRemoveFunctionBlock(fb);
+            }
+            else
+            {
+                auto loggerComponent = signalContainerLoggerComponent;
+                LOG_D("Update did not remove static function block with type ID {} and local ID {}", typeId, fb.getLocalId())
+            }
+        }
+    }
 
     if (obj.hasKey("FB"))
     {
@@ -821,23 +838,6 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
                                                                      const BaseObjectPtr& context)
 {
     const auto availableTypes = onGetAvailableFunctionBlockTypes();
-    if (clearFunctionBlocksOnUpdate())
-    {
-        for (const auto& fb : functionBlocks.getItems())
-        {
-            const auto typeId = fb.asPtr<IFunctionBlock>().getFunctionBlockType().getId();
-            if (availableTypes.hasKey(typeId))
-            {
-                onRemoveFunctionBlock(fb);
-            }
-            else
-            {
-                auto loggerComponent = signalContainerLoggerComponent;
-                LOG_D("Update did not remove static function block with type ID {} and local ID {}", typeId, fb.getLocalId())
-            }
-        }
-    }
-
     UpdatablePtr updatableFb;
     if (!this->functionBlocks.hasItem(fbId))
     {

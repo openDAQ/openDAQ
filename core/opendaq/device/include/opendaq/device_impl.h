@@ -1428,7 +1428,15 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& device)
 {
     auto types = onGetAvailableDeviceTypes();
-    auto typeId = device.getInfo().getDeviceType().getId();
+    auto info = device.getInfo();
+    if (!info.assigned())
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Device with ID {} is missing its device info object.", device.getLocalId());
+
+    auto type = info.getDeviceType();
+    if (!type.assigned())
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Device with ID {} is missing a device type.", device.getLocalId());
+
+    auto typeId = type.getId();
     if (!types.hasKey(typeId))
         DAQ_THROW_EXCEPTION(InvalidOperationException, "Device being removed is a static-type. Its type is not in the list of available device types.");
 

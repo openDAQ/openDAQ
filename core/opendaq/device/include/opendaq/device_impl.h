@@ -1283,7 +1283,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableDeviceTypes(IDict*
 {
     OPENDAQ_PARAM_NOT_NULL(deviceTypes);
     
-    auto lock = this->getRecursiveConfigLock2();
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
@@ -1300,7 +1299,8 @@ DictPtr<IString, IDeviceType> GenericDevice<TInterface, Interfaces...>::onGetAva
 {
     if (!allowAddDevicesFromModules())
         return Dict<IString, IDeviceType>();
-
+    
+    auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableDeviceTypes();
 }

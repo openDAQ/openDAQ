@@ -1,4 +1,4 @@
-if (OPENDAQ_LINK_3RD_PARTY_LIBS_STATICALY)
+if(OPENDAQ_LINK_3RD_PARTY_LIBS_STATICALY)
     set(BUILD_SHARED_LIBS OFF)
     set(Boost_USE_STATIC_LIBS ON CACHE BOOL "")
     message(STATUS "Linking Boost statically")
@@ -12,14 +12,14 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME ${OPENDAQ_LINK_RUNTIME_STATICALLY})
 set(Boost_NO_WARN_NEW_VERSIONS ON)
 
-if (OPENDAQ_LINK_RUNTIME_STATICALLY)
+if(OPENDAQ_LINK_RUNTIME_STATICALLY)
     set(BOOST_RUNTIME_LINK static)
 else()
     set(BOOST_RUNTIME_LINK shared)
 endif()
 
-if (BUILD_ARM)
-    if (BUILD_64Bit)
+if(BUILD_ARM)
+    if(BUILD_64Bit)
         set(CONTEXT_ARCHITECTURE arm64)
     else()
         set(CONTEXT_ARCHITECTURE arm)
@@ -27,7 +27,7 @@ if (BUILD_ARM)
 
     message(STATUS "CMAKE_COMPILER_IS_GNUCXX: ${CMAKE_COMPILER_IS_GNUCXX}")
 
-    if (CMAKE_COMPILER_IS_GNUCXX)
+    if(CMAKE_COMPILER_IS_GNUCXX)
         # Need C++ compiler to pre-process ASM files
         set(CMAKE_ASM_COMPILER ${CMAKE_CXX_COMPILER})
         set(CMAKE_ASM_FLAGS "-x assembler-with-cpp" CACHE STRING "")
@@ -91,27 +91,27 @@ if (Boost_FETCHED)
     endforeach()
 
     if(DAQMODULES_PARQUET_RECORDER_MODULE)
-        set(boost_libs 
+        set(boost_libs
             config
-            algorithm 
-            assert 
-            bind 
-            concept_check 
-            core 
-            detail 
+            algorithm
+            assert
+            bind
+            concept_check
+            core
+            detail
             function
-            iterator 
-            locale 
-            mpl 
-            numeric_conversion 
-            preprocessor 
-            range 
+            iterator
+            locale
+            mpl
+            numeric_conversion
+            preprocessor
+            range
             smart_ptr
-            static_assert 
-            throw_exception 
-            tokenizer 
-            type_traits 
-            utility 
+            static_assert
+            throw_exception
+            tokenizer
+            type_traits
+            utility
             mp11
             io
             uuid
@@ -123,7 +123,7 @@ if (Boost_FETCHED)
                     predef
                     scope_exit
                     typeof
-            
+
             )
         endif()
 

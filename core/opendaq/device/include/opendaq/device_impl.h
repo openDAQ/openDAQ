@@ -462,7 +462,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLockedInternal(Bool* locked)
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlock()
 {
-    auto lock = this->getAcquisitionLock2();
+    auto lock = this->getRecursiveConfigLock2();
 
     ErrCode status = forceUnlockInternal();
     OPENDAQ_RETURN_IF_FAILED(status);
@@ -791,6 +791,7 @@ DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::o
     if (!this->isRootDevice && !this->allowAddFunctionBlocksFromModules())
         return availableTypes;
 
+    auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableFunctionBlockTypes().detach();
 }
@@ -807,7 +808,8 @@ FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(co
 {
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
         DAQ_THROW_EXCEPTION(NotSupportedException, "Device does not support adding nested function blocks.");
-
+    
+    auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     FunctionBlockPtr fb = managerUtils.createFunctionBlock(typeId, this->functionBlocks, config);
     this->functionBlocks.addItem(fb);
@@ -827,7 +829,13 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const Funct
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
         DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found. Device does not allow adding/removing function blocks.");
 
-    Super::onRemoveFunctionBlock(functionBlock);
+    auto types = onGetAvailableFunctionBlockTypes();
+    auto typeId = functionBlock.getFunctionBlockType().getId();
+    if (!types.hasKey(typeId))
+        DAQ_THROW_EXCEPTION(InvalidOperationException, "Function block being removed is a static-type. Its type is not in the list of available function block types.");
+    
+    auto lock = this->getRecursiveConfigLock2();
+    this->functionBlocks.removeItem(functionBlock);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1414,7 +1422,6 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::removeDevice(IDevice* device)
 {
     OPENDAQ_PARAM_NOT_NULL(device);
-    auto lock = this->getRecursiveConfigLock2();
 
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
@@ -1449,7 +1456,8 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& d
     auto typeId = removedDeviceType.getId();
     if (!types.hasKey(typeId))
         DAQ_THROW_EXCEPTION(InvalidOperationException, "Device being removed is a static-type. Its type is not in the list of available device types.");
-
+    
+    auto lock = this->getRecursiveConfigLock2();
     this->devices.removeItem(device);
 }
 

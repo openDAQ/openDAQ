@@ -64,6 +64,7 @@ FunctionBlockPtr StatisticsFbImpl::onAddFunctionBlock(const StringPtr& typeId, c
 {
     FunctionBlockPtr nestedFunctionBlock;
     {
+        auto lock = this->getRecursiveConfigLock2();
         if (this->functionBlocks.getItems().getCount())
         {
             setComponentStatusWithMessage(ComponentStatus::Error, "Only one nested function block is supported");

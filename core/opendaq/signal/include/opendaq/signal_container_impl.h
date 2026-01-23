@@ -608,8 +608,6 @@ template <class Intf, class ... Intfs>
 ErrCode GenericSignalContainerImpl<Intf, Intfs...>::getAvailableFunctionBlockTypesInternal(IDict** functionBlockTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
-    auto lock = this->getAcquisitionLock2();
-
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
     
@@ -629,7 +627,6 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
     OPENDAQ_PARAM_NOT_NULL(typeId);
     
-    auto lock = this->getAcquisitionLock2();
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
     
@@ -645,8 +642,7 @@ template <class Intf, class ... Intfs>
 ErrCode GenericSignalContainerImpl<Intf, Intfs...>::removeFunctionBlockInternal(IFunctionBlock* functionBlock)
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
-    
-    auto lock = this->getAcquisitionLock2();
+
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
     
@@ -763,6 +759,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::onRemoveFunctionBlock(const Fun
     if (!types.hasKey(typeId))
         DAQ_THROW_EXCEPTION(InvalidOperationException, "Function block being removed is a static-type. Its type is not in the list of available function block types.");
 
+    auto lock = this->getRecursiveConfigLock2();
     this->functionBlocks.removeItem(functionBlock);
 }
 

@@ -44,7 +44,7 @@ namespace test_helpers
         moduleManager.addModule(fbModule);
 
         auto instance = InstanceCustom(context, "localInstance");
-        instance.addDevice("daqmock://client_device");
+        instance.addDevice("daq.default://default_root_device");
         instance.addDevice("daqmock://phys_device");
         instance.addFunctionBlock("mock_fb_uid");
 

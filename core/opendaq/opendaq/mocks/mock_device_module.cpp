@@ -21,9 +21,14 @@ MockDeviceModuleImpl::MockDeviceModuleImpl(daq::ContextPtr ctx)
 ErrCode MockDeviceModuleImpl::getAvailableDevices(IList** availableDevices)
 {
     ListPtr<IDeviceInfo> availableDevicesPtr = List<IDeviceInfo>();
+    auto clientDeviceType = DeviceTypeBuilder()
+        .setConnectionStringPrefix("daq.default")
+        .setId("OpenDAQDefaultRootDevice")
+        .setName("OpenDAQDefaultRootDevice")
+        .build();
 
-    auto daqClientDeviceInfo = DeviceInfo("daqmock://client_device");
-    daqClientDeviceInfo.setDeviceType(DeviceType("mock_client_device", "Client", "Client device", "daqmock"));
+    auto daqClientDeviceInfo = DeviceInfo("daq.default://default_root_device");
+    daqClientDeviceInfo.setDeviceType(clientDeviceType);
     availableDevicesPtr.pushBack(daqClientDeviceInfo);
 
     auto mockPhysDeviceInfo = DeviceInfo("daqmock://phys_device");
@@ -52,8 +57,15 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     auto retrieveArguments = List<IArgumentInfo>(ArgumentInfo("ifaceName", ctString));
     mockConfig.addProperty(FunctionProperty("onRetrieveConfig", FunctionInfo(ctObject, retrieveArguments)));
 
+    auto clientDeviceType = DeviceTypeBuilder()
+        .setConnectionStringPrefix("daq.default")
+        .setId("OpenDAQDefaultRootDevice")
+        .setName("OpenDAQDefaultRootDevice")
+        .setDefaultConfig(mockConfig)
+        .build();
+
     auto types = Dict<IString, IDeviceType>();
-    types.set("mock_client_device", DeviceType("mock_client_device", "Client", "Client device", "daqmock", mockConfig));
+    types.set("OpenDAQDefaultRootDevice", clientDeviceType);
     types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", "daqmock", mockConfig));
 
     *deviceTypes = types.detach();
@@ -70,7 +82,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
 
     StringPtr connStr = connectionString;
     DevicePtr devicePtr;
-    if (connStr == "daqmock://client_device")
+    if (connStr == "daq.default://default_root_device")
     {
         const ModulePtr deviceModule(MockDeviceModule_Create(ctx));
         const ModulePtr fbModule(MockFunctionBlockModule_Create(ctx));

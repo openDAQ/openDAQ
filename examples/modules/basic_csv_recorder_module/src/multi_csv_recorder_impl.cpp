@@ -214,8 +214,7 @@ bool MultiCsvRecorderImpl::updateInputPorts()
         }
         else
         {
-            const Int id = reader.addInput(disconnectedPort);
-            cachedMultireaderIds.emplace(disconnectedPort.getGlobalId(), id);
+            reader.addInput(disconnectedPort);
         }
 
         disconnectedPort.release();
@@ -226,11 +225,7 @@ bool MultiCsvRecorderImpl::updateInputPorts()
     {
         if (!it->getConnection().assigned())
         {
-            if (auto search = cachedMultireaderIds.find(it->getGlobalId()); search != cachedMultireaderIds.end())
-            {
-                reader.removeInput(search->second);
-                cachedMultireaderIds.erase(search);
-            }
+            reader.removeInput(it->getGlobalId());
 
             cachedDescriptors.erase(it->getGlobalId());
             cachedSignalNames.erase(it->getGlobalId());
@@ -273,14 +268,6 @@ void MultiCsvRecorderImpl::createReader()
         builder.addInputPort(port);
 
     reader = builder.build();
-
-    cachedMultireaderIds.clear();
-    ListPtr<Int> portIds = reader.getInputIds();
-    size_t i = 0;
-    for (const auto& port : connectedPorts)
-    {
-        cachedMultireaderIds.emplace(port.getGlobalId(), portIds.getItemAt(i));
-    }
 
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();

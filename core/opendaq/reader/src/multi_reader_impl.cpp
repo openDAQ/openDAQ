@@ -28,7 +28,9 @@ struct fmt::formatter<daq::Comparable> : ostream_formatter
 
 BEGIN_NAMESPACE_OPENDAQ
 
-struct MultiReaderImpl::ReferenceDomainBin
+namespace
+{
+struct ReferenceDomainBin
 {
     StringPtr id;
     TimeProtocol timeProtocol;
@@ -44,6 +46,7 @@ struct MultiReaderImpl::ReferenceDomainBin
         return false;
     }
 };
+}
 
 // Non-builder constructor
 MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
@@ -416,10 +419,10 @@ bool MultiReaderImpl::allPortsConnected() const
     return true;
 }
 
-std::vector<Int> MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& inputPorts,
-                                                         SampleType valueRead,
-                                                         SampleType domainRead,
-                                                         ReadMode mode)
+void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& inputPorts,
+                                             SampleType valueRead,
+                                             SampleType domainRead,
+                                             ReadMode mode)
 {
     if (notificationMethodsList.getCount() > 0 && notificationMethodsList.getCount() != inputPorts.getCount())
         DAQ_THROW_EXCEPTION(InvalidParameterException,
@@ -427,8 +430,6 @@ std::vector<Int> MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPor
 
     auto listener = this->thisPtr<InputPortNotificationsPtr>();
 
-    std::vector<Int> idList;
-    idList.reserve(inputPorts.getCount());
     size_t cnt = 0;
     for (const auto& port : inputPorts)
     {
@@ -456,7 +457,10 @@ std::vector<Int> MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPor
 
         const Int id = idGenerator.getNextId();
         signals.try_emplace(id, port, valueRead, domainRead, mode, loggerComponent);
-        idList.push_back(id);
+
+        const auto globalId = typeOfInputs == InputType::Ports ? port.getGlobalId() : port.getSignal().getGlobalId();
+        globalIdToId.emplace(globalId, id);
+
         cnt++;
     }
 
@@ -469,7 +473,6 @@ std::vector<Int> MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPor
     {
         setPortsActiveState(true);
     }
-    return idList;
 }
 
 void MultiReaderImpl::updateCommonSampleRateAndDividers()
@@ -663,12 +666,9 @@ ErrCode MultiReaderImpl::getAvailableCount(SizeT* count)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC MultiReaderImpl::addInput(IComponent* input, Int* id)
+ErrCode INTERFACE_FUNC MultiReaderImpl::addInput(IComponent* input)
 {
     OPENDAQ_PARAM_NOT_NULL(input);
-    OPENDAQ_PARAM_NOT_NULL(id);
-
-    *id = -1;
 
     try
     {
@@ -676,8 +676,7 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::addInput(IComponent* input, Int* id)
         list.pushBack(input);
 
         auto ports = createOrAdoptPorts(list);
-        auto ids = configureAndStorePorts(ports, valueReadType, domainReadType, readMode);
-        assert(ids.size() == 1 && "Unexpected number of IDs for a single input addition.");
+        configureAndStorePorts(ports, valueReadType, domainReadType, readMode);
 
         auto err = isDomainValid(ports);
         if (OPENDAQ_FAILED(err))
@@ -686,8 +685,6 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::addInput(IComponent* input, Int* id)
             LOG_D("Multi reader signal domains are not valid: {}", getErrorInfoMessage(err));
             clearErrorInfo();
         }
-
-        *id = ids.front();
     }
     catch (...)
     {
@@ -697,9 +694,23 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::addInput(IComponent* input, Int* id)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC MultiReaderImpl::removeInput(Int id)
+ErrCode INTERFACE_FUNC MultiReaderImpl::removeInput(IString* globalId)
 {
-    auto erased = signals.erase(id);
+    OPENDAQ_PARAM_NOT_NULL(globalId);
+
+    auto idSearch = globalIdToId.find(StringPtr::Borrow(globalId).toStdString());
+    if (idSearch == globalIdToId.end())
+        return OPENDAQ_NOTFOUND;
+
+    auto erasedSig = signals.erase(idSearch->second);
+    erasedSig += unusedSignals.erase(idSearch->second);
+    globalIdToId.erase(idSearch);
+
+    if (erasedSig == 0)
+    {
+        return OPENDAQ_ERR_INVALIDSTATE;
+    }
+
     portsConnected = allPortsConnected();
     if (!portsConnected)
     {
@@ -711,27 +722,18 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::removeInput(Int id)
     }
     // TODO: Removing an input may resolve synchronization issues
 
-    if (erased > 0)
-        return OPENDAQ_SUCCESS;
-    else
-        return OPENDAQ_ERR_INVALID_ARGUMENT;
-}
-
-ErrCode INTERFACE_FUNC MultiReaderImpl::getInputIds(IList** ids)
-{
-    auto assignedIds = List<Int>();
-
-    for (const auto& [id, _] : signals)
-    {
-        assignedIds.pushBack(id);
-    }
-
-    *ids = assignedIds.detach();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUnused(Int id, Bool unused)
+ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUnused(IString* globalId, Bool unused)
 {
+    OPENDAQ_PARAM_NOT_NULL(globalId);
+
+    auto idSearch = globalIdToId.find(StringPtr::Borrow(globalId).toStdString());
+    if (idSearch == globalIdToId.end())
+        return OPENDAQ_NOTFOUND;
+
+    const Int id = idSearch->second;
     auto& source = unused ? signals : unusedSignals;
     auto& destination = unused ? unusedSignals : signals;
 
@@ -774,8 +776,16 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUnused(Int id, Bool unused)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC MultiReaderImpl::getInputUnused(Int id, Bool* unused)
+ErrCode INTERFACE_FUNC MultiReaderImpl::getInputUnused(IString* globalId, Bool* unused)
 {
+    OPENDAQ_PARAM_NOT_NULL(globalId);
+
+    auto idSearch = globalIdToId.find(StringPtr::Borrow(globalId).toStdString());
+    if (idSearch == globalIdToId.end())
+        return OPENDAQ_NOTFOUND;
+
+    const Int id = idSearch->second;
+
     auto search = signals.find(id);
     if (search == signals.end())
     {

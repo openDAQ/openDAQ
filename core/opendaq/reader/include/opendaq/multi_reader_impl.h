@@ -69,11 +69,10 @@ public:
     ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) override;
     ErrCode INTERFACE_FUNC setActive(Bool isActive) override;
     ErrCode INTERFACE_FUNC getActive(Bool* isActive) override;
-    ErrCode INTERFACE_FUNC addInput(IComponent* port, Int* id) override;
-    ErrCode INTERFACE_FUNC removeInput(Int id) override;
-    ErrCode INTERFACE_FUNC getInputIds(IList** ids) override;
-    ErrCode INTERFACE_FUNC setInputUnused(Int id, Bool unused) override;
-    ErrCode INTERFACE_FUNC getInputUnused(Int id, Bool* unused) override;
+    ErrCode INTERFACE_FUNC addInput(IComponent* port) override;
+    ErrCode INTERFACE_FUNC removeInput(IString* id) override;
+    ErrCode INTERFACE_FUNC setInputUnused(IString* id, Bool unused) override;
+    ErrCode INTERFACE_FUNC getInputUnused(IString* id, Bool* unused) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -100,10 +99,7 @@ private:
     // Returns true if all ports are connected
     bool allPortsConnected() const;
     // Sets up port notifications and binds ports
-    std::vector<Int> configureAndStorePorts(const ListPtr<IInputPortConfig>& inputPorts,
-                                            SampleType valueRead,
-                                            SampleType domainRead,
-                                            ReadMode mode);
+    void configureAndStorePorts(const ListPtr<IInputPortConfig>& inputPorts, SampleType valueRead, SampleType domainRead, ReadMode mode);
     // Returns list of ports used by reader; Creates ports when reader is created with signals;
     ListPtr<IInputPortConfig> createOrAdoptPorts(const ListPtr<IComponent>& list) const;
 
@@ -180,6 +176,8 @@ private:
 
     std::map<Int, SignalReader> signals;
     std::map<Int, SignalReader> unusedSignals;
+    std::unordered_map<std::string, Int> globalIdToId;
+
     PropertyObjectPtr portBinder;
     ProcedurePtr readCallback;
     WeakRefPtr<IInputPortNotifications> externalListener;
@@ -195,7 +193,6 @@ private:
     DataDescriptorPtr mainDomainDescriptor;
 
     ContextPtr context;
-    struct ReferenceDomainBin;
     bool isActive{true};
 
     SizeT minReadCount;

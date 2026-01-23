@@ -9,7 +9,10 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     ISyncComponent2, createSyncComponent2,
     IContext*, context,
     IComponent*, parent,
-    IString*, localId
+    IString*, localId,
+    IString*, className,
+    IString*, name,
+    bool, registerEvents
 )
 
 END_NAMESPACE_OPENDAQ

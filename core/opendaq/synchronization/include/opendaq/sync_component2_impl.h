@@ -50,7 +50,8 @@ public:
                       const ComponentPtr& parent,
                       const StringPtr& localId,
                       const StringPtr& className = nullptr,
-                      const StringPtr& name = nullptr);
+                      const StringPtr& name = nullptr,
+                      bool registerEvents = false);
 
     // ISyncComponent2
     ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
@@ -72,7 +73,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
-    void init();
+    void init(bool registerEvents);
     void onSelectedSourceChanged(const StringPtr& sourceName);
 
     SyncInterfacePtr source;
@@ -84,14 +85,15 @@ SyncComponent2Impl<Intf, Intfs...>::SyncComponent2Impl(const ContextPtr& context
                                                         const ComponentPtr& parent,
                                                         const StringPtr& localId,
                                                         const StringPtr& className,
-                                                        const StringPtr& name)
+                                                        const StringPtr& name,
+                                                        bool registerEvents)
     : Super(context, parent, localId, className, name)
 {
-    this->init();
+    this->init(registerEvents);
 }
 
 template <class Intf, class... Intfs>
-void SyncComponent2Impl<Intf, Intfs...>::init()
+void SyncComponent2Impl<Intf, Intfs...>::init(bool registerEvents)
 {
     source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
     source.asPtr<ISyncInterfaceInternal>(true).setAsSource(true);
@@ -101,12 +103,15 @@ void SyncComponent2Impl<Intf, Intfs...>::init()
     Super::addProperty(ObjectProperty("Interfaces", interfaces));
 
     Super::addProperty(SelectionProperty("Source", EvalValue("%Interfaces:PropertyNames"), 0));
-    this->objPtr.getOnPropertyValueWrite("Source") += [this](const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
+    if (registerEvents)
     {
-        auto lock = this->getRecursiveConfigLock();
-        StringPtr sourceName = objPtr.getPropertySelectionValue("Source");
-        onSelectedSourceChanged(sourceName);
-    };
+        this->objPtr.getOnPropertyValueWrite("Source") += [this](const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
+        {
+            auto lock = this->getRecursiveConfigLock();
+            StringPtr sourceName = objPtr.getPropertySelectionValue("Source");
+            onSelectedSourceChanged(sourceName);
+        };
+    }
 }
 
 template <class Intf, class... Intfs>
@@ -256,7 +261,9 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::Deserialize(ISerializedObject* seria
                     deserializeContext.getContext(),
                     deserializeContext.getParent(),
                     deserializeContext.getLocalId(),
-                    className).detach();
+                    className,
+                    nullptr,
+                    true).detach();
             }).detach();
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);

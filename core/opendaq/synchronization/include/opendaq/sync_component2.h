@@ -71,7 +71,10 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent2, ISyncComponent2,
     IContext*, context,
     IComponent*, parent,
-    IString*, localId
+    IString*, localId,
+    IString*, className,
+    IString*, name,
+    bool, registerEvents
 )
 
 END_NAMESPACE_OPENDAQ

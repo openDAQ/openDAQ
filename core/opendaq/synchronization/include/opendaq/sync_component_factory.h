@@ -47,7 +47,7 @@ inline SyncComponentPtr SyncComponent(const ContextPtr& context, const Component
  */
 inline SyncComponent2Ptr SyncComponent2(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 {
-    return { SyncComponent2_Create(context, parent, localId) };
+    return { SyncComponent2_Create(context, parent, localId, nullptr, nullptr, true) };
 }
 
 /*!@}*/

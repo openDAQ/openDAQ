@@ -10,8 +10,8 @@ static const StructTypePtr moduleInfoStructType = ModuleInfoStructType();
 }
 
 ModuleInfoImpl::ModuleInfoImpl(const VersionInfoPtr& versionInfo, const StringPtr& name, const StringPtr& id)
-    : GenericStructImpl<IModuleInfo, IStruct>(detail::moduleInfoStructType,
-                                              Dict<IString, IBaseObject>({{"VersionInfo", versionInfo}, {"Name", name}, {"Id", id}}))
+    : GenericStructImpl(detail::moduleInfoStructType,
+                        Dict<IString, IBaseObject>({{"VersionInfo", versionInfo}, {"Name", name}, {"Id", id}}))
 {
 }
 

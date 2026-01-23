@@ -99,7 +99,7 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
                     serialized,
                     context,
                     factoryCallback,
-                    [](const SerializedObjectPtr& serialized,
+                    [&factoryCallback](const SerializedObjectPtr& serialized,
                         const ComponentDeserializeContextPtr& deserializeContext,
                         const StringPtr& className)
                     {
@@ -108,8 +108,7 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
                         const auto typeId = serialized.readString("typeId");
 
                         const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
-
-                        Super::deserializeVersion(serialized, fbType);
+                        Super::DeserializeVersion(serialized, deserializeContext.getContext(), factoryCallback, fbType);
 
                         bool isRecorder = false;
                         if (serialized.hasKey("isRecorder"))

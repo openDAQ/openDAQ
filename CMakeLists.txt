@@ -13,6 +13,11 @@ string(STRIP ${package_version} package_version)
 
 string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" package_version_major_minor_patch "${package_version}")
 
+set(OPENDAQ_IS_RELEASE_VERSION OFF)
+if(package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    set(OPENDAQ_IS_RELEASE_VERSION ON)
+endif()
+
 set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}")
 
 set(CMAKE_MESSAGE_CONTEXT ${SDK_NAME})
@@ -20,6 +25,24 @@ set(CMAKE_MESSAGE_CONTEXT_SHOW ON CACHE BOOL "Show CMake message context")
 
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "In-source build is not supported! Please choose a separate build directory e.g.: /build/x64/msvc")
+endif()
+
+# 32-bit Linux cross-compilation setup (must be before project())
+if(OPENDAQ_FORCE_COMPILE_32BIT AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_C_FLAGS_INIT "${CMAKE_C_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
+    set(CMAKE_CXX_FLAGS_INIT "${CMAKE_CXX_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
+    set(CMAKE_ASM_FLAGS_INIT "${CMAKE_ASM_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
+
+    # Help CMake find 32-bit libraries
+    list(APPEND CMAKE_LIBRARY_PATH /usr/lib/i386-linux-gnu)
+
+    if(NOT CMAKE_SYSTEM_NAME)
+        set(CMAKE_SYSTEM_NAME Linux CACHE STRING "" FORCE)
+    endif()
+    
+    if(NOT CMAKE_SYSTEM_PROCESSOR)
+        set(CMAKE_SYSTEM_PROCESSOR i386 CACHE STRING "" FORCE)
+    endif()
 endif()
 
 project(${SDK_NAME}
@@ -371,7 +394,14 @@ if ((CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANGXX) AND NOT MSVC)
     if(OPENDAQ_FORCE_COMPILE_32BIT)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+        set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -m32")
         set(BUILD_64Bit OFF)
+
+        # Linux GCC 32-bit specific flags
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_COMPILER_IS_GNUCXX)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -ffloat-store")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+        endif()
     endif()
 
     # The flag -fuse-ld=lld is needed on MinGW where the default linker is hardly usable.
@@ -496,7 +526,7 @@ if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
 	# Maintain binary compatibilty with older msvc runtime environments
 	# https://github.com/microsoft/STL/wiki/Changelog
 	add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
-	
+
     if (NOT OPENDAQ_MSVC_SINGLE_PROCESS_BUILD)
         # Build with multiple processes
         # https://learn.microsoft.com/en-us/cpp/build/reference/mp-build-with-multiple-processes
@@ -719,6 +749,8 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         set(CLANG_FLAGS "${CLANG_FLAGS} \
             -Xclang -Wno-delete-non-abstract-non-virtual-dtor"
         )
+        # Use precise floating-point model to avoid aggressive optimizations
+        set(CLANG_FLAGS "${CLANG_FLAGS} /fp:precise")
     endif ()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
@@ -767,12 +799,12 @@ configure_package_config_file(
 write_basic_package_version_file(${SDK_NAME}ConfigVersion.cmake
   VERSION ${OPENDAQ_PACKAGE_VERSION}
   COMPATIBILITY ExactVersion )
-  
+
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}Config.cmake
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
         COMPONENT ${SDK_NAME}_Development
 )
-  
+
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}ConfigVersion.cmake
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
         COMPONENT ${SDK_NAME}_Development

@@ -70,5 +70,6 @@ template class TmsServerVariable<ListPtr<IFloat>>;
 template class TmsServerVariable<EvalValuePtr>;
 template class TmsServerVariable<PropertyPtr>;
 template class TmsServerVariable<FunctionBlockTypePtr>;
+template class TmsServerVariable<BaseObjectPtr>;
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

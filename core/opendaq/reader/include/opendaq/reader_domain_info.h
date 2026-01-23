@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/reader_utils.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/logger_component_ptr.h>
+#include <opendaq/reader_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,6 +27,7 @@ struct ReaderDomainInfo
     {
     }
 
+private:
     void setMaxResolution(const RatioPtr& maxResolution)
     {
         multiplier = Ratio(
@@ -61,6 +62,13 @@ struct ReaderDomainInfo
         }
 
         LOG_T("Adj. offset: {}", offset)
+    }
+
+public:
+    void adjustToCommonEpochResolution(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution)
+    {
+        setEpochOffset(minEpoch, maxResolution);
+        setMaxResolution(maxResolution);
     }
 
     RatioPtr resolution{};

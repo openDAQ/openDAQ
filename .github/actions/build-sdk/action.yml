@@ -54,6 +54,7 @@ runs:
         fi
 
     - name: Set up Python
+      if: ${{ !(inputs.enable-32bit == 'true' && runner.os == 'Linux') }}
       uses: actions/setup-python@v5
       with:
         python-version: '3.14'
@@ -67,14 +68,46 @@ runs:
       shell: pwsh
       run: choco install ${{ inputs.additional-dependencies }} -y --no-progress
 
+    - name: Remove conflicting packages (for 32-bit build)
+      if: runner.os == 'Linux' && inputs.enable-32bit == 'true'
+      shell: bash
+      run: |
+        echo "Removing bootloader packages that conflict with i386 multi-arch"
+        if ! sudo apt-get remove -y --allow-remove-essential shim-signed grub-efi-amd64-signed grub2-common grub-efi-amd64-bin grub-common; then
+          echo "::warning::Failed to remove bootloader packages"
+        fi
+        echo "Removing pre-installed 64-bit Python to avoid conflicts with 32-bit build"
+        if ! sudo apt-get remove -y python3 python3-pip python3-dev; then
+          echo "::warning::Failed to remove pre-installed Python packages"
+        fi
+        sudo apt-get autoremove -y
+
     - name: Install Linux dependencies
       if: runner.os == 'Linux'
       shell: bash
+      env:
+        ENABLE_32BIT: ${{ inputs.enable-32bit }}
       run: |
+        DEV_PACKAGES=(
+          libx11-dev
+          libxi-dev
+          libxcursor-dev
+          libxrandr-dev
+          libgl-dev
+          libudev-dev
+          libfreetype6-dev
+        )
+
+        if [ "$ENABLE_32BIT" == "true" ]; then
+          sudo dpkg --add-architecture i386
+          DEV_PACKAGES=("${DEV_PACKAGES[@]/%/:i386}" python3:i386 python3-dev:i386 gcc-multilib g++-multilib \
+            libx11-6:i386 libxrandr2:i386 libxcursor1:i386 libxi6:i386 libgl1:i386)
+        fi
+
         sudo apt-get update && sudo apt-get install -y --no-install-recommends \
           ${{ inputs.additional-dependencies || '' }} \
           lld mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-          libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+          "${DEV_PACKAGES[@]}"
 
     - name: Install macOS dependencies
       if: runner.os == 'macOS'
@@ -87,7 +120,7 @@ runs:
       uses: seanmiddleditch/gha-setup-ninja@v5
 
     - name: Setup MSYS2 MINGW64
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && env.CXX == 'g++'
       id: msys2
       uses: msys2/setup-msys2@v2
       with:
@@ -96,7 +129,7 @@ runs:
         install: mingw-w64-x86_64-crt-git mingw-w64-x86_64-gcc
 
     - name: Add MSYS2 MINGW64 to PATH
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && env.CXX == 'g++'
       shell: bash
       run: |
         echo "${{ steps.msys2.outputs.msys2-location }}/mingw64/bin" >> $GITHUB_PATH
@@ -107,10 +140,15 @@ runs:
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
+    - name: Setup Intel LLVM compiler
+      if: runner.os == 'Windows' && env.CXX == 'icx'
+      uses: ./.github/actions/setup-compiler-icx
+
     - name: Install Python dependencies
+      if: ${{ !(inputs.enable-32bit == 'true' && runner.os == 'Linux') }}
       shell: bash
       run: |
-        echo "Installing numpy for Python versions: $(python --version)"
+        echo "Installing numpy for Python: $(python --version)"
         python -m pip install numpy
         echo "Done installing Python dependencies"
 
@@ -121,6 +159,7 @@ runs:
         CMAKE_BUILD_TYPE: ${{ inputs.cmake-build-type }}
         CMAKE_GENERATOR: ${{ inputs.cmake-generator }}
         CI_GIT_BRANCH: ${{ github.head_ref }}
+        ENABLE_32BIT: ${{ inputs.enable-32bit }}
       run: |
         CMAKE_BUILD_PATH="build"
         mkdir -p "$CMAKE_BUILD_PATH"
@@ -132,9 +171,24 @@ runs:
           CMAKE_ARGS="--preset ${{ inputs.cmake-config-preset }}"
         fi
 
-        # Visual Studio specific options
+        # Detect Visual Studio generator
+        IS_VISUAL_STUDIO=false
         if [[ "$CMAKE_GENERATOR" == "Visual Studio"* ]]; then
+          IS_VISUAL_STUDIO=true
+        fi
+
+        # Visual Studio specific options
+        if [ "$IS_VISUAL_STUDIO" == "true" ]; then
           CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON"
+        fi
+
+        # 32-bit build configuration
+        if [ "$ENABLE_32BIT" == "true" ]; then
+          if [ "$IS_VISUAL_STUDIO" == "true" ]; then
+            CMAKE_ARGS="$CMAKE_ARGS -A Win32"
+          else
+            CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_FORCE_COMPILE_32BIT=ON"
+          fi
         fi
 
         if [ -n "$CMAKE_BUILD_TYPE" ]; then

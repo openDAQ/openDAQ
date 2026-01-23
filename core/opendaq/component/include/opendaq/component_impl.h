@@ -140,7 +140,7 @@ protected:
     TagsPrivatePtr tags;
     StringPtr globalId;
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
-    
+
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
     static std::unordered_set<std::string> componentAvailableAttributes;
 #else
@@ -189,8 +189,6 @@ protected:
     void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
 
     virtual void onOperationModeChanged(OperationModeType modeType);
-
-    static VersionInfoPtr parseVersionString(const std::string& input);
 
 private:
     EventEmitter<const ComponentPtr, const CoreEventArgsPtr> componentCoreEvent;
@@ -316,7 +314,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-    
+
         if (static_cast<bool>(active) == this->active)
             return OPENDAQ_IGNORED;
 
@@ -623,7 +621,7 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::getLockedAttributes(IList** attributes)
 {
     OPENDAQ_PARAM_NOT_NULL(attributes);
-    
+
     auto lock = this->getRecursiveConfigLock2();
 
     if (this->isComponentRemoved)
@@ -854,7 +852,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
     }
-    
+
     const bool muted = this->coreEventMuted;
     const auto thisPtr = this->template borrowPtr<ComponentPtr>();
     const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
@@ -911,7 +909,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::getDeserializedParameter(I
         *value = getDeserializedParameter(parameterPtr).detach();
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode; 
+    return errCode;
 }
 
 template <class Intf, class ... Intfs>
@@ -935,21 +933,20 @@ ErrCode ComponentImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
-    {
-        *obj = DeserializeComponent(
-            serialized,
-            context,
-            factoryCallback, 
-            [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
-            {
-                return createWithImplementation<IComponent, ComponentImpl>(
-                    deserializeContext.getContext(),
-                    deserializeContext.getParent(),
-                    deserializeContext.getLocalId(),
-                    className);
-            }).detach();
-    });
+    const ErrCode errCode = daqTry(
+        [&obj, &serialized, &context, &factoryCallback]
+        {
+            *obj = DeserializeComponent(
+                       serialized,
+                       context,
+                       factoryCallback,
+                       [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+                       {
+                           return createWithImplementation<IComponent, ComponentImpl>(
+                               deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
+                       })
+                       .detach();
+        });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
@@ -1032,7 +1029,7 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
                     allItems.insert(child);
         }
     }
-    
+
     ListPtr<IComponent> childList = List<IComponent>();
     for (const auto& item : allItems)
         childList.pushBack(item);
@@ -1050,7 +1047,7 @@ void ComponentImpl<Intf, Intfs...>::setActiveRecursive(const std::vector<Compone
 
     for (const auto& item : items)
         item.setActive(active);
-    
+
     if (!muted)
         propInternalPtr.enableCoreEventTrigger();
 }
@@ -1297,8 +1294,9 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
     }
     catch (const NotFoundException&)
     {
-        DAQ_THROW_EXCEPTION(NotFoundException, 
-                            "ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called before setComponentStatus.");
+        DAQ_THROW_EXCEPTION(
+            NotFoundException,
+            "ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called before setComponentStatus.");
     }
 
     // Check if status and message are the same as before, and also Ok and empty string, and if so, return
@@ -1331,69 +1329,6 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
             LOG_I("{}", logString)
         }
     }
-}
-
-template <class Intf, class... Intfs>
-VersionInfoPtr ComponentImpl<Intf, Intfs...>::parseVersionString(const std::string& input)
-{
-    std::stringstream ss(input);
-    std::string token;
-    int major, minor, patch;
-
-    if (std::getline(ss, token, '.'))
-    {
-        try
-        {
-            major = std::stoi(token);
-        }
-        catch (const std::exception&)
-        {
-            return {};
-        }
-    }
-    else
-    {
-        return {};
-    }
-
-    if (std::getline(ss, token, '.'))
-    {
-        try
-        {
-            minor = std::stoi(token);
-        }
-        catch (const std::exception&)
-        {
-            return {};
-        }
-    }
-    else
-    {
-        return {};
-    }
-
-    if (std::getline(ss, token))
-    {
-        try
-        {
-            patch = std::stoi(token);
-        }
-        catch (const std::exception&)
-        {
-            return {};
-        }
-    }
-    else
-    {
-        return {};
-    }
-
-    if (std::getline(ss, token))
-    {
-        return {};
-    }
-
-    return VersionInfo(major, minor, patch);
 }
 
 using StandardComponent = ComponentImpl<>;

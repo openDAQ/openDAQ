@@ -773,8 +773,9 @@ TEST_F(PropertyObjectTest, NestedChildPropHasProperty)
     const PropertyObjectPtr childObj1 = propObj.getPropertyValue("Child");
     const PropertyObjectPtr childObj2 = childObj1.getPropertyValue("Child");
 
-    ASSERT_THROW(propObj.hasProperty("Child.IntProperty.Foo"), InvalidTypeException);
-    ASSERT_THROW(propObj.hasProperty("Child.WrongChild.IntProperty"), NotFoundException);
+    ASSERT_FALSE(propObj.hasProperty("Child.IntProperty.Foo"));
+    ASSERT_FALSE(propObj.hasProperty("Child.WrongChild.IntProperty"));
+    ASSERT_FALSE(propObj.hasProperty("WrongChild.IntProperty"));
 
     ASSERT_TRUE(propObj.hasProperty("Child.IntProperty"));
     ASSERT_TRUE(propObj.hasProperty("Child.Child.IntProperty"));

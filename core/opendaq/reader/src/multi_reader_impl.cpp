@@ -2,20 +2,22 @@
 #include <coreobjects/property_object_factory.h>
 #include <coretypes/validation.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/data_descriptor_factory.h>
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/input_port_factory.h>
+#include <opendaq/input_port_private_ptr.h>
 #include <opendaq/multi_reader_impl.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_utils.h>
-#include <opendaq/data_descriptor_factory.h>
 #include <opendaq/tags_private_ptr.h>
-#include <opendaq/input_port_private_ptr.h>
+
 
 #include <fmt/ostream.h>
-#include <set>
 #include <chrono>
 #include <optional>
+#include <set>
+
 
 using namespace std::chrono;
 
@@ -159,7 +161,6 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     internalAddRef();
     try
     {
-
         auto sourceComponents = builder.getSourceComponents();
         checkListSizeAndCacheContext(sourceComponents);
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
@@ -226,19 +227,22 @@ ErrCode MultiReaderImpl::checkDomainUnits(const ListPtr<InputPortConfigPtr>& por
         auto domain = signal.getDomainSignal();
         if (!domain.assigned())
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Signal "{}" does not have a domain signal set.)", signal.getLocalId()));
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
+                                       fmt::format(R"(Signal "{}" does not have a domain signal set.)", signal.getLocalId()));
         }
 
         auto domainDescriptor = domain.getDescriptor();
         if (!domainDescriptor.assigned())
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Signal "{}" does not have a domain descriptor set.)", signal.getLocalId()));
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
+                                       fmt::format(R"(Signal "{}" does not have a domain descriptor set.)", signal.getLocalId()));
         }
 
         auto domainUnit = domainDescriptor.getUnit();
         if (!domainUnit.assigned())
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId()));
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
+                                       fmt::format(R"(Signal "{}" does not have a domain unit set.)", signal.getLocalId()));
         }
 
         const auto domainQuantity = domainUnit.getQuantity();
@@ -246,23 +250,25 @@ ErrCode MultiReaderImpl::checkDomainUnits(const ListPtr<InputPortConfigPtr>& por
 
         if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Signal "{}" does not have a domain quantity set.)", signal.getLocalId()));
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
+                                       fmt::format(R"(Signal "{}" does not have a domain quantity set.)", signal.getLocalId()));
         }
 
         if (domainQuantity != "time")
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED,
-                                       fmt::format(R"(Signal "{}" domain quantity is not "time" but "{}" which is not currently supported.)",
-                                       signal.getLocalId(),
-                                       domainQuantity));
+            return DAQ_MAKE_ERROR_INFO(
+                OPENDAQ_ERR_NOT_SUPPORTED,
+                fmt::format(R"(Signal "{}" domain quantity is not "time" but "{}" which is not currently supported.)",
+                            signal.getLocalId(),
+                            domainQuantity));
         }
 
         if (domainUnitSymbol != "s")
         {
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED,
                                        fmt::format(R"(Signal "{}" domain unit is not "s" but "{}" which is not currently supported.)",
-                                       signal.getLocalId(),
-                                       domainUnitSymbol));
+                                                   signal.getLocalId(),
+                                                   domainUnitSymbol));
         }
     }
 
@@ -507,7 +513,8 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
 
                 if (tickOffsetTolerance.assigned())
                 {
-                    LOG_D("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical sample rates.");
+                    LOG_D("Signal sample rates differ. Currently, tick offset tolerance can only be applied to signals with identical "
+                          "sample rates.");
                     invalid = true;
                     return;
                 }
@@ -929,7 +936,7 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
         auto sigSamples = signal.getAvailable(acrossDescriptorChanges);
 
         if (!signal.info.dataPacket.assigned())
-             sigSamples = 0;
+            sigSamples = 0;
 
         if (sigSamples < min)
         {
@@ -1004,32 +1011,36 @@ DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacketAndGetEv
 
 ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
 {
+    // Get the minimum amount of time samples are available for in unit of 1/commonSamplingRate
     min = getMinSamplesAvailable();
+    // Get the worst status among signals. If Synchronized is returned, all signals are in this state. For other states,
+    // at least one is in that non-Synchronized state.
     syncStatus = getSyncStatus();
 
     if (min == 0 || syncStatus == SyncStatus::Synchronized)
         return OPENDAQ_SUCCESS;
 
-    const ErrCode errCode = daqTry([&]()
-    {
-        // set info data packet
-        for (auto& [_, signal] : signals)
-            signal.isFirstPacketEvent();
-
-        if (syncStatus != SyncStatus::Synchronizing)
+    const ErrCode errCode = daqTry(
+        [&]()
         {
-            setStartInfo();
-            readDomainStart();
-        }
+            // set info data packet
+            for (auto& [_, signal] : signals)
+                signal.isFirstPacketEvent();
 
-        sync();
+            if (syncStatus != SyncStatus::Synchronizing)
+            {
+                setStartInfo();
+                readDomainStart();
+            }
 
-        syncStatus = getSyncStatus();
-        if (syncStatus == SyncStatus::Synchronized)
-            min = getMinSamplesAvailable();
-        if (syncStatus == SyncStatus::SynchronizationFailed)
-            setActiveInternal(false);
-    });
+            sync();
+
+            syncStatus = getSyncStatus();
+            if (syncStatus == SyncStatus::Synchronized)
+                min = getMinSamplesAvailable();
+            if (syncStatus == SyncStatus::SynchronizationFailed)
+                setActiveInternal(false);
+        });
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to synchronize MultiReaderImpl");
     return errCode;
 }
@@ -1233,7 +1244,6 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
             {
                 signal.port.setActive(isActive);
             }
-
         }
     }
 
@@ -1263,7 +1273,6 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
                 setPortsActiveState(false);
             }
         }
-
     }
 
     if (externalListener.assigned() && externalListener.getRef().assigned())
@@ -1408,6 +1417,19 @@ void MultiReaderImpl::readDomainStart()
 
     for (auto& [_, signal] : signals)
     {
+        // Get timestamps for the first available sample
+        // Timestamps are transformed to number of max resolution ticks
+        // since the most ancient epoch (descriptor origin)
+        // Comparable class does the transformation and it enables
+        // seamles comparison (between two integers, at that point)
+        // It is problematic that readStartDomain evaluates entire packets
+        // worth of linear data rule to get the first timestamp (just packet offset).
+        // => Conversion could be more explicit
+        // => Comparable is more important for the conversion and validation that types match, comparison of integers is trivial in any
+        // case.
+        // => SignalReader should be able to handle two domain settings - one native to the signal it is reading and
+        // another, "common", that will be set from Multireader parent. Ideally, getting these common domain information,
+        // it should be trivial to compare starts.
         auto sigStart = signal.readStartDomain();
         if (!commonStart || *commonStart < *sigStart)
         {
@@ -1453,9 +1475,8 @@ void MultiReaderImpl::sync()
 
     if (synced && tickOffsetTolerance.assigned())
     {
-        auto tickOffsetToleranceSysTicks =
-            (system_clock::period::den * tickOffsetTolerance.getNumerator()) /
-            (system_clock::period::num * tickOffsetTolerance.getDenominator());
+        auto tickOffsetToleranceSysTicks = (system_clock::period::den * tickOffsetTolerance.getNumerator()) /
+                                           (system_clock::period::num * tickOffsetTolerance.getDenominator());
 
         auto diff = latestTime - earliestTime;
 
@@ -1654,26 +1675,39 @@ void MultiReaderImpl::setPortsActiveState(Bool active)
 
 #pragma endregion ReaderConfig
 
-OPENDAQ_DEFINE_CLASS_FACTORY(
-    LIBRARY_FACTORY, MultiReader,
-    IList*, signals,
-    SampleType, valueReadType,
-    SampleType, domainReadType,
-    ReadMode, mode,
-    ReadTimeoutType, timeoutType
-)
+OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY,
+                             MultiReader,
+                             IList*,
+                             signals,
+                             SampleType,
+                             valueReadType,
+                             SampleType,
+                             domainReadType,
+                             ReadMode,
+                             mode,
+                             ReadTimeoutType,
+                             timeoutType)
 
-OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
-    LIBRARY_FACTORY, MultiReaderImpl, IMultiReader, createMultiReaderEx,
-    IList*, signals,
-    SampleType, valueReadType,
-    SampleType, domainReadType,
-    ReadMode, mode,
-    ReadTimeoutType, timeoutType,
-    Int, requiredCommonSampleRate,
-    Bool, startOnFullUnitOfDomain,
-    SizeT, minReadCount
-)
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                               MultiReaderImpl,
+                                                               IMultiReader,
+                                                               createMultiReaderEx,
+                                                               IList*,
+                                                               signals,
+                                                               SampleType,
+                                                               valueReadType,
+                                                               SampleType,
+                                                               domainReadType,
+                                                               ReadMode,
+                                                               mode,
+                                                               ReadTimeoutType,
+                                                               timeoutType,
+                                                               Int,
+                                                               requiredCommonSampleRate,
+                                                               Bool,
+                                                               startOnFullUnitOfDomain,
+                                                               SizeT,
+                                                               minReadCount)
 
 template <>
 struct ObjectCreator<IMultiReader>
@@ -1692,19 +1726,23 @@ struct ObjectCreator<IMultiReader>
 
         if (impl == nullptr)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "MultiReader from existing can only be used with the base multi reader implementation");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
+                                       "MultiReader from existing can only be used with the base multi reader implementation");
         }
 
         return createObject<IMultiReader, MultiReaderImpl>(out, impl, valueReadType, domainReadType);
     }
 };
 
-OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
-    LIBRARY_FACTORY, IMultiReader, createMultiReaderFromExisting,
-    IMultiReader*, invalidatedReader,
-    SampleType, valueReadType,
-    SampleType, domainReadType
-)
+OPENDAQ_DEFINE_CUSTOM_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(LIBRARY_FACTORY,
+                                                                      IMultiReader,
+                                                                      createMultiReaderFromExisting,
+                                                                      IMultiReader*,
+                                                                      invalidatedReader,
+                                                                      SampleType,
+                                                                      valueReadType,
+                                                                      SampleType,
+                                                                      domainReadType)
 
 extern "C" daq::ErrCode PUBLIC_EXPORT createMultiReaderFromBuilder(IMultiReader** objTmp, IMultiReaderBuilder* builder)
 {

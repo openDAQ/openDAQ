@@ -50,6 +50,7 @@
 #include <opendaq/component_type_builder_factory.h>
 #include <opendaq/module_info_factory.h>
 #include <opendaq/component_type_private.h>
+#include <opendaq/mirrored_device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -1428,15 +1429,24 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& device)
 {
     auto types = onGetAvailableDeviceTypes();
-    auto info = device.getInfo();
-    if (!info.assigned())
-        DAQ_THROW_EXCEPTION(InvalidStateException, "Device with ID {} is missing its device info object.", device.getLocalId());
+    DeviceTypePtr removedDeviceType;
+    if (const auto mirroredDevice = device.asPtrOrNull<IMirroredDevice>(); mirroredDevice.assigned())
+    {
+        removedDeviceType = mirroredDevice.getMirroredDeviceType();
+    }
+    else
+    {
+        auto info = device.getInfo();
+        if (!info.assigned())
+            DAQ_THROW_EXCEPTION(InvalidStateException, "Device with ID {} is missing its device info object.", device.getLocalId());
 
-    auto type = info.getDeviceType();
-    if (!type.assigned())
+        removedDeviceType = info.getDeviceType();
+    }
+    
+    if (!removedDeviceType.assigned())
         DAQ_THROW_EXCEPTION(InvalidStateException, "Device with ID {} is missing a device type.", device.getLocalId());
 
-    auto typeId = type.getId();
+    auto typeId = removedDeviceType.getId();
     if (!types.hasKey(typeId))
         DAQ_THROW_EXCEPTION(InvalidOperationException, "Device being removed is a static-type. Its type is not in the list of available device types.");
 
@@ -1666,6 +1676,7 @@ ModuleInfoPtr GenericDevice<TInterface, Interfaces...>::getModuleInfoFromDeviceT
         if (deviceType.assigned())
             return deviceType.getModuleInfo();
     }
+
     return nullptr;
 }
 

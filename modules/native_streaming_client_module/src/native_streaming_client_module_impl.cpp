@@ -378,8 +378,9 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             connectionString,
             transportClient,
             addStreamingProcessingContext(connectionString),
-            initTimeout
-        );
+            initTimeout,
+            createDeviceType()
+            );
 
         // Set the connection info for the device
         ServerCapabilityConfigPtr connectionInfo = device.getInfo().getConfigurationConnectionInfo();
@@ -405,6 +406,8 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     {
         uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
         device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion);
+        
+        device.asPtr<IMirroredDeviceConfig>().setMirroredDeviceType(createDeviceType());
     }
 
     return device;

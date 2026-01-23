@@ -90,7 +90,7 @@ DevicePtr WebsocketStreamingClientModule::onCreateDevice(const StringPtr& connec
     std::scoped_lock lock(sync);
 
     std::string localId = fmt::format("websocket_pseudo_device{}", deviceIndex++);
-    auto device = WebsocketClientDevice(context, parent, localId, strPtr);
+    auto device = WebsocketClientDevice(context, parent, localId, strPtr, createWebsocketDeviceType(false));
 
     // Set the connection info for the device
     auto host = String("");

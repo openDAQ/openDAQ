@@ -78,7 +78,7 @@ public:
     virtual uint64_t onGetTicksSinceOrigin();
 
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
-    virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
+    FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
     virtual ListPtr<IDeviceInfo> onGetAvailableDevices();
@@ -206,9 +206,6 @@ protected:
                                   LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
-    void updateFunctionBlock(const std::string& fbId,
-                             const SerializedObjectPtr& serializedFunctionBlock,
-                             const BaseObjectPtr& context) override;
     void updateDevice(const std::string& deviceId,
                       const SerializedObjectPtr& serializedDevice,
                       const BaseObjectPtr& context);
@@ -1964,38 +1961,6 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         serializer.key("connectionStatuses");
         connectionStatusContainer.serialize(serializer);
     }
-}
-
-template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
-                                                                   const SerializedObjectPtr& serializedFunctionBlock,
-                                                                   const BaseObjectPtr& context)
-{
-    UpdatablePtr updatableFb;
-    if (!this->functionBlocks.hasItem(fbId))
-    {
-        auto typeId = serializedFunctionBlock.readString("typeId");
-
-        PropertyObjectPtr config;
-        if (serializedFunctionBlock.hasKey("ComponentConfig"))
-            config = serializedFunctionBlock.readObject("ComponentConfig");
-        else
-            config = PropertyObject();
-
-        if (!config.hasProperty("LocalId"))
-            config.addProperty(StringProperty("LocalId", fbId));
-        else
-            config.setPropertyValue("LocalId", fbId);
-
-        auto fb = onAddFunctionBlock(typeId, config);
-        updatableFb = fb.template asPtr<IUpdatable>(true);
-    }
-    else
-    {
-        updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
-    }
-
-    updatableFb.updateInternal(serializedFunctionBlock, context);
 }
 
 template <typename TInterface, typename... Interfaces>

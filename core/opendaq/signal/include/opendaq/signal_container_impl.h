@@ -119,6 +119,7 @@ protected:
                                   const std::string& id);
 
     virtual bool clearFunctionBlocksOnUpdate();
+    virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
 
     void callBeginUpdateOnChildren() override;
     void callEndUpdateOnChildren() override;
@@ -677,6 +678,12 @@ bool GenericSignalContainerImpl<Intf, Intfs...>::clearFunctionBlocksOnUpdate()
     return false;
 }
 
+template <class Intf, class ... Intfs>
+FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
+{
+    DAQ_THROW_EXCEPTION(NotSupportedException, "Function block does not support adding nested function blocks");
+}
+
 template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
 {
@@ -744,11 +751,35 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFolder(const SerializedOb
 }
 
 template <class Intf, class... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::string& /*fbId*/,
-                                                                     const SerializedObjectPtr& /* serializedFunctionBlock */,
-                                                                     const BaseObjectPtr& /* context */)
+void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::string& fbId,
+                                                                     const SerializedObjectPtr& serializedFunctionBlock,
+                                                                     const BaseObjectPtr& context)
 {
+    UpdatablePtr updatableFb;
+    if (!this->functionBlocks.hasItem(fbId))
+    {
+        auto typeId = serializedFunctionBlock.readString("typeId");
 
+        PropertyObjectPtr config;
+        if (serializedFunctionBlock.hasKey("ComponentConfig"))
+            config = serializedFunctionBlock.readObject("ComponentConfig");
+        else
+            config = PropertyObject();
+
+        if (!config.hasProperty("LocalId"))
+            config.addProperty(StringProperty("LocalId", fbId));
+        else
+            config.setPropertyValue("LocalId", fbId);
+
+        auto fb = onAddFunctionBlock(typeId, config);
+        updatableFb = fb.template asPtr<IUpdatable>(true);
+    }
+    else
+    {
+        updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
+    }
+
+    updatableFb.updateInternal(serializedFunctionBlock, context);
 }
 
 template <class Intf, class... Intfs>

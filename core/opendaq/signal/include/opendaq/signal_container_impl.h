@@ -608,10 +608,11 @@ template <class Intf, class ... Intfs>
 ErrCode GenericSignalContainerImpl<Intf, Intfs...>::getAvailableFunctionBlockTypesInternal(IDict** functionBlockTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
+    auto lock = this->getAcquisitionLock2();
 
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-
+    
     DictPtr<IString, IFunctionBlockType> dict;
     const ErrCode errCode = wrapHandlerReturn(this, &GenericSignalContainerImpl::onGetAvailableFunctionBlockTypes, dict);
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -627,10 +628,11 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
     OPENDAQ_PARAM_NOT_NULL(typeId);
-
+    
+    auto lock = this->getAcquisitionLock2();
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-
+    
     FunctionBlockPtr functionBlockPtr;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeId, config);
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -643,10 +645,11 @@ template <class Intf, class ... Intfs>
 ErrCode GenericSignalContainerImpl<Intf, Intfs...>::removeFunctionBlockInternal(IFunctionBlock* functionBlock)
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
-
+    
+    auto lock = this->getAcquisitionLock2();
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-
+    
     const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
 
@@ -738,7 +741,11 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::onAddFunctionBlock(
 template <class Intf, class ... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
-    auto lock = this->getAcquisitionLock2();
+    auto types = onGetAvailableFunctionBlockTypes();
+    auto typeId = functionBlock.getFunctionBlockType().getId();
+    if (!types.hasKey(typeId))
+        DAQ_THROW_EXCEPTION(InvalidOperationException, "Function block being removed is a static-type. Its type is not in the list of available function block types.");
+
     this->functionBlocks.removeItem(functionBlock);
 }
 

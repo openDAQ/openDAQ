@@ -785,7 +785,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableFunctionBlockTypes
 template <typename TInterface, typename... Interfaces>
 DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
 {
-    auto lock = this->getRecursiveConfigLock2();
     auto availableTypes = Dict<IString, IFunctionBlockType>();
 
     if (!this->isRootDevice && !this->allowAddFunctionBlocksFromModules())
@@ -805,7 +804,6 @@ template <typename TInterface, typename... Interfaces>
 FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& typeId,
                                                                               const PropertyObjectPtr& config)
 {
-    auto lock = this->getRecursiveConfigLock2();
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
         DAQ_THROW_EXCEPTION(NotSupportedException, "Device does not support adding nested function blocks.");
 
@@ -825,7 +823,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::removeFunctionBlock(IFunctionB
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
-    auto lock = this->getAcquisitionLock2();
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
         DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found. Device does not allow adding/removing function blocks.");
 
@@ -1276,7 +1273,8 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableDeviceTypes(IDict** deviceTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(deviceTypes);
-
+    
+    auto lock = this->getRecursiveConfigLock2();
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
@@ -1294,7 +1292,6 @@ DictPtr<IString, IDeviceType> GenericDevice<TInterface, Interfaces...>::onGetAva
     if (!allowAddDevicesFromModules())
         return Dict<IString, IDeviceType>();
 
-    auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableDeviceTypes();
 }
@@ -1416,6 +1413,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::removeDevice(IDevice* device)
 {
     OPENDAQ_PARAM_NOT_NULL(device);
+    auto lock = this->getRecursiveConfigLock2();
 
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
@@ -1429,6 +1427,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::removeDevice(IDevice* device)
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& device)
 {
+    auto types = onGetAvailableDeviceTypes();
+    auto typeId = device.getInfo().getDeviceType().getId();
+    if (!types.hasKey(typeId))
+        DAQ_THROW_EXCEPTION(InvalidOperationException, "Device being removed is a static-type. Its type is not in the list of available device types.");
+
     this->devices.removeItem(device);
 }
 

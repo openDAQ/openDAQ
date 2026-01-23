@@ -89,7 +89,9 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
     TmsClient client(context, parent, endpoint);
     auto device = client.connect();
 
-    device.asPtr<IMirroredDeviceConfig>().setMirroredDeviceType(createDeviceType());
+    auto deviceType = createDeviceType();
+    checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
+    device.asPtr<IMirroredDeviceConfig>().setMirroredDeviceType(deviceType);
 
     // Set the connection info for the device
     DeviceInfoPtr deviceInfo = device.getInfo();
@@ -298,6 +300,7 @@ DeviceTypePtr OpcUaClientModule::createDeviceType()
         .setName("OpcUa enabled device")
         .setDescription("Network device connected over OpcUa protocol")
         .setConnectionStringPrefix(DaqOpcUaDevicePrefix)
+        .setDefaultConfig(createDefaultConfig())
         .setDefaultConfig(createDefaultConfig())
         .build();
 }

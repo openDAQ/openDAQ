@@ -370,7 +370,9 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
 
         PropertyObjectPtr transportLayerConfig = deviceConfig.getPropertyValue("TransportLayerConfig");
         Int initTimeout = transportLayerConfig.getPropertyValue("StreamingInitTimeout");
-
+        
+        auto deviceType = createDeviceType();
+        checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
         device = createWithImplementation<IDevice, NativeStreamingDeviceImpl>(
             context,
             parent,
@@ -379,7 +381,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             transportClient,
             addStreamingProcessingContext(connectionString),
             initTimeout,
-            createDeviceType()
+            deviceType
             );
 
         // Set the connection info for the device
@@ -406,8 +408,10 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     {
         uint16_t protocolVersion = deviceConfig.getPropertyValue("ProtocolVersion");
         device = createNativeDevice(context, parent, connectionString, deviceConfig, host, port, path, protocolVersion);
-        
-        device.asPtr<IMirroredDeviceConfig>().setMirroredDeviceType(createDeviceType());
+            
+        auto deviceType = createDeviceType();
+        checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
+        device.asPtr<IMirroredDeviceConfig>().setMirroredDeviceType(deviceType);
     }
 
     return device;

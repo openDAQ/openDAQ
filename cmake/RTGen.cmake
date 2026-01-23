@@ -129,11 +129,13 @@ function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
         set(_LANG_COMMAND ${MONO_C} ${RTGEN}
                                     ${RTGEN_OPTIONS}
                                     -ln ${RTGEN_LIBRARY_NAME}
-                                    -d "\"${RTGEN_OUTPUT_DIR}\""
+                                    -d "${RTGEN_OUTPUT_DIR}"
                                     -f "\"${RTGEN_OUTPUT_SRC_DIR}\""
                                     --lang ${LOWERCASE_LANG}
-                                    --source="${FILENAME}" &&)
-        set(RTGEN_COMMAND ${RTGEN_COMMAND} ${_LANG_COMMAND})
+                                    --source "${FILENAME}")
+
+        # Add && to concatenate multiple commands
+        list(APPEND RTGEN_COMMAND ${_LANG_COMMAND} &&)
 
         if(DEFINED RTGEN_VERBOSE)
             message(STATUS "Adding RTGen command:")
@@ -142,17 +144,56 @@ function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
     endforeach()
 
     # Remove the trailing "&&"
-    string(LENGTH "${RTGEN_COMMAND}" _COMMAND_LENGTH)
-    math(EXPR _COMMAND_LENGTH "${_COMMAND_LENGTH}-2")
-    string(SUBSTRING "${RTGEN_COMMAND}" 0 ${_COMMAND_LENGTH} RTGEN_COMMAND)
-	
+    list(REMOVE_AT RTGEN_COMMAND -1)
+
+    # Shared message for both methods of RTGen
+    set(RTGEN_OUTPUT_MESSAGE "Generating bindings for: ${_FILENAME}")
+
+    # Run RT generation during CMake configuration/generation
+    # This is useful to make sure the generated files are available without
+    # the need to build the project during development
+    if(OPENDAQ_RTGEN_ON_CMAKE_CONFIG)
+        # Check to make sure all the dependencies exist to execute the command
+        set(RTGEN_DEPENDS_EXIST ON)
+        foreach(RTGEN_DEPENDENT_SOURCE IN LISTS RTGEN_DEPENDENT_SOURCES FILENAME)
+            # If any of the dependant files don't exist generation will fail
+            if(NOT EXISTS ${RTGEN_DEPENDENT_SOURCE})
+                message(WARNING "The dependant file ${RTGEN_DEPENDENT_SOURCE} does not exist for the RT generation process")
+                set(RTGEN_DEPENDS_EXIST OFF)
+            endif()
+        endforeach()
+
+        if(RTGEN_DEPENDS_EXIST)
+            # Mark the outfiles as generated
+            set_source_files_properties(${${OUTFILES_VAR}} PROPERTIES
+                GENERATED ON
+            )
+
+            # Only generate if any of the generated files don't already exist
+            foreach(OUTFILE_VAR IN LISTS ${OUTFILES_VAR})
+                if(NOT EXISTS "${OUTFILE_VAR}")
+                    message(STATUS "${RTGEN_OUTPUT_MESSAGE}")
+                    execute_process(
+                        COMMAND ${RTGEN_COMMAND}
+                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+                    )
+
+                    break()
+                endif()
+            endforeach()
+        else()
+            message(WARNING "Some dependant files are missing for RT generation to run at configure time")
+        endif()
+    endif()
+
+    # Run RT generation as part of the build process
     add_custom_command(
         OUTPUT ${${OUTFILES_VAR}}
         COMMAND ${RTGEN_COMMAND}
         MAIN_DEPENDENCY ${FILENAME}
         DEPENDS ${RTGEN} ${RTGEN_DEPENDENT_SOURCES}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        COMMENT "Generating bindings for: ${_FILENAME}"
+        COMMENT "${RTGEN_OUTPUT_MESSAGE}"
         #VERBATIM
     )
 endfunction(_rtgen_interface)

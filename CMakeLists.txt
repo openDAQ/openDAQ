@@ -150,6 +150,7 @@ option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
 option(OPENDAQ_ALWAYS_FETCH_DEPENDENCIES "Ignore any installed libraries and always build all dependencies from source" ON)
 option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
+option(OPENDAQ_RTGEN_ON_CMAKE_CONFIG "Run RT gen as part of the CMake configuration process to make sure the files exist during development" ON)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 cmake_dependent_option(OPCUA_ENABLE_ENCRYPTION "Enable OpcUa encryption" OFF "OPENDAQ_ENABLE_OPCUA" OFF)
@@ -644,11 +645,21 @@ include(RTGen)
 set(CMAKE_INSTALL_DEBUG_LIBRARIES ON)
 include(InstallRequiredSystemLibraries)
 
-if (NOT WIN32)
-    set(MONO_C mono)
+if(NOT WIN32)
+    # Make sure mono is found properly and exists
+    find_program(MONO_C
+        NAMES "mono"
+        REQUIRED
+    )
 endif()
 
-set(RTGEN "${CMAKE_CURRENT_SOURCE_DIR}/shared/tools/RTGen/bin/rtgen.exe" CACHE INTERNAL "RTGEN")
+# Make sure rtgen is found properly and exists
+find_program(RTGEN
+    NAMES "rtgen" "rtgen.exe"
+    HINTS "${CMAKE_CURRENT_SOURCE_DIR}/shared/tools/RTGen/bin"
+    DOC "RTGen program for generating smart pointer files"
+    REQUIRED
+)
 
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/.editorconfig ${CMAKE_BINARY_DIR})
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format ${CMAKE_BINARY_DIR})

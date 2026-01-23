@@ -307,7 +307,6 @@ TEST_F(SyncComponent2Test, Serialization)
     const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, nullptr, "sync");
     const SyncComponent2Ptr deserialized = deserializer.deserialize(serializedJson, deserializeContext);
 
-
     const auto interfaces = deserialized.getInterfaces();
     ASSERT_EQ(deserialized.getInterfaces().getCount(), 2u);
     ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));

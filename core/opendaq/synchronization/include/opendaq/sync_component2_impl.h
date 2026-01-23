@@ -73,6 +73,7 @@ public:
 
 protected:
     void init();
+    void onSelectedSourceChanged(const StringPtr& sourceName);
 
     SyncInterfacePtr source;
 };
@@ -102,8 +103,10 @@ void SyncComponent2Impl<Intf, Intfs...>::init()
     Super::addProperty(SelectionProperty("Source", EvalValue("%Interfaces:PropertyNames"), 0));
     this->objPtr.getOnPropertyValueWrite("Source") += [this](const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
     {
+        auto lock = this->getRecursiveConfigLock();
         StringPtr sourceName = objPtr.getPropertySelectionValue("Source");
         checkErrorInfo(this->setSelectedSource(sourceName));
+        onSelectedSourceChanged(sourceName);
     };
 }
 
@@ -114,6 +117,18 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::getSelectedSource(ISyncInterface** s
     auto lock = this->getRecursiveConfigLock();
     *selectedSource = this->source.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Intfs>
+void SyncComponent2Impl<Intf, Intfs...>::onSelectedSourceChanged(const StringPtr& sourceName)
+{
+    if (auto sourceInternal = source.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
+        sourceInternal.setAsSource(false);
+
+    const PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
+    source = interfaces.getPropertyValue(sourceName);
+    if (auto sourceInternal = source.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
+        sourceInternal.setAsSource(true);
 }
 
 template <class Intf, class... Intfs>
@@ -133,16 +148,9 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::setSelectedSource(IString* selectedS
         if (!interfaces.hasProperty(selectedSourceNamePtr))
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format("Interface '{}' not found in interfaces", selectedSourceNamePtr));
 
-        OPENDAQ_RETURN_IF_FAILED(this->setPropertySelectionValue(String("Source"), selectedSourceNamePtr), "Failed to set Source property");
-        
-        if (auto sourceInternal = source.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
-            sourceInternal.setAsSource(false);
-
-        source = interfaces.getPropertyValue(selectedSourceNamePtr);
-        if (auto sourceInternal = source.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
-            sourceInternal.setAsSource(true);
-
-        return OPENDAQ_SUCCESS;
+        const ErrCode errCode = this->setPropertySelectionValue(String("Source"), selectedSourceNamePtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set 'Source' property");
+        return errCode;
     });
 }
 

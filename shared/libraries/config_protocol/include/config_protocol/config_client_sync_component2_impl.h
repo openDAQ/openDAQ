@@ -38,6 +38,7 @@ public:
     // ISyncComponent2
     ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
     ErrCode INTERFACE_FUNC setSelectedSource(IString* selectedSourceName) override;
+    ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 

@@ -54,6 +54,12 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::setSelectedSource(IString* sel
 }
 
 template <class Impl>
+ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::addInterface(ISyncInterface* syncInterface)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Adding interfaces is not supported on the client side");
+}
+
+template <class Impl>
 ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::Deserialize(ISerializedObject* serialized,
                                                               IBaseObject* context,
                                                               IFunction* factoryCallback,

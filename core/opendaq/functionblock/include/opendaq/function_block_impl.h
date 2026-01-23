@@ -80,10 +80,6 @@ public:
     virtual void onDisconnected(const InputPortPtr& port);
     virtual void onPacketReceived(const InputPortPtr& port);
 
-    virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
-    FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
-    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
-
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -410,60 +406,19 @@ ListPtr<IFunctionBlock> FunctionBlockImpl<TInterface, Interfaces...>::getFunctio
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
-
-    DictPtr<IString, IFunctionBlockType> dict;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableFunctionBlockTypes, dict);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    *functionBlockTypes = dict.detach();
-    return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-DictPtr<IString, IFunctionBlockType> FunctionBlockImpl<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
-{
-    return Dict<IString, IFunctionBlockType>().detach();
+    return this->getAvailableFunctionBlockTypesInternal(functionBlockTypes);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlock);
-    OPENDAQ_PARAM_NOT_NULL(typeId);
-
-    FunctionBlockPtr functionBlockPtr;
-    const auto typeIdPtr = StringPtr::Borrow(typeId);
-    const auto PropertyObjectPtr = PropertyObjectPtr::Borrow(config);
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeIdPtr, PropertyObjectPtr);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    *functionBlock = functionBlockPtr.detach();
-    return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-FunctionBlockPtr FunctionBlockImpl<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
-{
-    DAQ_THROW_EXCEPTION(NotSupportedException, "Function block does not support adding nested function blocks");
+    return this->addFunctionBlockInternal(functionBlock, typeId, config);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunctionBlock* functionBlock)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlock);
-
-    const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
-    const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
-{
-    auto lock = this->getAcquisitionLock2();
-    this->functionBlocks.removeItem(functionBlock);
+    return this->removeFunctionBlockInternal(functionBlock);
 }
 
 template <typename TInterface, typename... Interfaces>

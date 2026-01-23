@@ -77,7 +77,7 @@ public:
 
     virtual uint64_t onGetTicksSinceOrigin();
 
-    virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
+    DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
@@ -779,17 +779,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::Deserialize(ISerializedObject*
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
-
-    if (this->isComponentRemoved)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-
-    DictPtr<IString, IFunctionBlockType> dict;
-    const ErrCode errCode = wrapHandlerReturn(this, &GenericDevice<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes, dict);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    *functionBlockTypes = dict.detach();
-    return errCode;
+    return this->getAvailableFunctionBlockTypesInternal(functionBlockTypes);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -798,7 +788,7 @@ DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::o
     auto lock = this->getRecursiveConfigLock2();
     auto availableTypes = Dict<IString, IFunctionBlockType>();
 
-    if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
+    if (!this->isRootDevice && !this->allowAddFunctionBlocksFromModules())
         return availableTypes;
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
@@ -808,18 +798,7 @@ DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::o
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlock);
-    OPENDAQ_PARAM_NOT_NULL(typeId);
-
-    if (this->isComponentRemoved)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-
-    FunctionBlockPtr functionBlockPtr;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeId, config);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    *functionBlock = functionBlockPtr.detach();
-    return errCode;
+    return this->addFunctionBlockInternal(functionBlock, typeId, config);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -828,7 +807,7 @@ FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(co
 {
     auto lock = this->getRecursiveConfigLock2();
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
-        return nullptr;
+        DAQ_THROW_EXCEPTION(NotSupportedException, "Device does not support adding nested function blocks.");
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     FunctionBlockPtr fb = managerUtils.createFunctionBlock(typeId, this->functionBlocks, config);
@@ -840,24 +819,17 @@ FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(co
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::removeFunctionBlock(IFunctionBlock* functionBlock)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlock);
-
-    if (this->isComponentRemoved)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-
-    const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
-    const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
-
-    return errCode;
+    return this->removeFunctionBlockInternal(functionBlock);
 }
 
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
+    auto lock = this->getAcquisitionLock2();
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
         DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found. Device does not allow adding/removing function blocks.");
 
-    this->functionBlocks.removeItem(functionBlock);
+    Super::onRemoveFunctionBlock(functionBlock);
 }
 
 template <typename TInterface, typename... Interfaces>

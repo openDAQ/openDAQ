@@ -67,7 +67,6 @@ protected:
     void addSignal(const SignalPtr& signal);
     void removeSignal(const SignalConfigPtr& signal);
 
-    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
     void addNestedFunctionBlock(const FunctionBlockPtr& functionBlock);
     void removeNestedFunctionBlock(const FunctionBlockPtr& functionBlock);
     FunctionBlockPtr createAndAddNestedFunctionBlock(const StringPtr& typeId,
@@ -118,8 +117,14 @@ protected:
                                   FolderPtr& folder,
                                   const std::string& id);
 
+    ErrCode getAvailableFunctionBlockTypesInternal(IDict** functionBlockTypes);
+    ErrCode addFunctionBlockInternal(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr);
+    ErrCode removeFunctionBlockInternal(IFunctionBlock* functionBlock);
+
     virtual bool clearFunctionBlocksOnUpdate();
+    virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
+    virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
 
     void callBeginUpdateOnChildren() override;
     void callEndUpdateOnChildren() override;
@@ -395,11 +400,6 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedF
 }
 
 template <class Intf, class ... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::onRemoveFunctionBlock(const FunctionBlockPtr& /* functionBlock */)
-{
-}
-
-template <class Intf, class ... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::removeNestedFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     functionBlocks.removeItem(functionBlock);
@@ -605,6 +605,55 @@ void GenericSignalContainerImpl<Intf, Intfs...>::deserializeDefaultFolder(const 
 }
 
 template <class Intf, class ... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::getAvailableFunctionBlockTypesInternal(IDict** functionBlockTypes)
+{
+    OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    DictPtr<IString, IFunctionBlockType> dict;
+    const ErrCode errCode = wrapHandlerReturn(this, &GenericSignalContainerImpl::onGetAvailableFunctionBlockTypes, dict);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *functionBlockTypes = dict.detach();
+    return errCode;
+}
+
+template <class Intf, class... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFunctionBlock** functionBlock,
+                                                                             IString* typeId,
+                                                                             IPropertyObject* config)
+{
+    OPENDAQ_PARAM_NOT_NULL(functionBlock);
+    OPENDAQ_PARAM_NOT_NULL(typeId);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    FunctionBlockPtr functionBlockPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeId, config);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *functionBlock = functionBlockPtr.detach();
+    return errCode;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::removeFunctionBlockInternal(IFunctionBlock* functionBlock)
+{
+    OPENDAQ_PARAM_NOT_NULL(functionBlock);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
+    const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
+
+    return errCode;
+}
+
+template <class Intf, class ... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
     Super::serializeCustomObjectValues(serializer, forUpdate);
@@ -621,10 +670,6 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
     {
         const auto fbFolder = obj.readSerializedObject("FB");
         fbFolder.checkObjectType("Folder");
-
-        if (clearFunctionBlocksOnUpdate())
-            for (const auto& fb : functionBlocks.getItems())
-                onRemoveFunctionBlock(fb);
 
         updateFolder(fbFolder,
                      "Folder",
@@ -679,9 +724,22 @@ bool GenericSignalContainerImpl<Intf, Intfs...>::clearFunctionBlocksOnUpdate()
 }
 
 template <class Intf, class ... Intfs>
+DictPtr<IString, IFunctionBlockType> GenericSignalContainerImpl<Intf, Intfs...>::onGetAvailableFunctionBlockTypes()
+{
+    return Dict<IString, IFunctionBlockType>().detach();
+}
+
+template <class Intf, class ... Intfs>
 FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
 {
-    DAQ_THROW_EXCEPTION(NotSupportedException, "Function block does not support adding nested function blocks");
+    DAQ_THROW_EXCEPTION(NotSupportedException, "Component does not support adding nested function blocks");
+}
+
+template <class Intf, class ... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    auto lock = this->getAcquisitionLock2();
+    this->functionBlocks.removeItem(functionBlock);
 }
 
 template <class Intf, class... Intfs>
@@ -755,6 +813,10 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
                                                                      const SerializedObjectPtr& serializedFunctionBlock,
                                                                      const BaseObjectPtr& context)
 {
+    if (clearFunctionBlocksOnUpdate())
+        for (const auto& fb : functionBlocks.getItems())
+            onRemoveFunctionBlock(fb);
+
     UpdatablePtr updatableFb;
     if (!this->functionBlocks.hasItem(fbId))
     {

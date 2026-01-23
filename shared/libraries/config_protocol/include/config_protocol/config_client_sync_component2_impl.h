@@ -47,8 +47,6 @@ protected:
     static BaseObjectPtr DeserializeSyncComponent2(const SerializedObjectPtr& serialized,
                                                     const BaseObjectPtr& context,
                                                     const FunctionPtr& factoryCallback);
-
-    void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
 };
 
 } // namespace daq::config_protocol

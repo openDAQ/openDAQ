@@ -27,6 +27,10 @@ public:
 
     explicit ClockSyncInterfaceImpl();
 
+    // ISyncInterfaceInternal
+    ErrCode INTERFACE_FUNC setAsSource(Bool isSource) override;
+
+protected:
     DictPtr<IInteger, IString> getModeOptions() const override;
 };
 

@@ -97,12 +97,6 @@ BaseObjectPtr ConfigClientBaseSyncComponent2Impl<Impl>::DeserializeSyncComponent
         });
 }
 
-template <class Impl>
-void ConfigClientBaseSyncComponent2Impl<Impl>::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
-{
-    ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(sender, args);
-}
-
 // Explicit template instantiation
 template class ConfigClientBaseSyncComponent2Impl<SyncComponent2Impl<IComponent, IConfigClientObject>>;
 

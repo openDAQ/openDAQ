@@ -30,6 +30,55 @@ ConfigClientSyncInterfaceImpl::ConfigClientSyncInterfaceImpl(const ConfigProtoco
 {
 }
 
+ErrCode ConfigClientSyncInterfaceImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
+{
+    if (remoteUpdating)
+        return Impl::setPropertyValue(propertyName, value);
+    return Super::setPropertyValue(propertyName, value);
+}
+
+ErrCode ConfigClientSyncInterfaceImpl::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
+{
+    if (remoteUpdating)
+        return Impl::setProtectedPropertyValue(propertyName, value);
+    return Super::setProtectedPropertyValue(propertyName, value);
+}
+
+ErrCode ConfigClientSyncInterfaceImpl::clearPropertyValue(IString* propertyName)
+{
+    if (remoteUpdating)
+        return Impl::clearPropertyValue(propertyName);
+    return Super::clearPropertyValue(propertyName);
+}
+
+ErrCode ConfigClientSyncInterfaceImpl::addProperty(IProperty* property)
+{
+    if (remoteUpdating)
+        return Impl::addProperty(property);
+    return Super::addProperty(property);
+}
+
+ErrCode ConfigClientSyncInterfaceImpl::removeProperty(IString* propertyName)
+{
+    if (remoteUpdating)
+        return Impl::removeProperty(propertyName);
+    return Super::removeProperty(propertyName);
+}
+
+ErrCode ConfigClientSyncInterfaceImpl::beginUpdate()
+{
+    if (remoteUpdating)
+        return Impl::beginUpdate();
+    return Super::beginUpdate();
+}
+
+ErrCode ConfigClientSyncInterfaceImpl::endUpdate()
+{
+    if (remoteUpdating)
+        return Impl::endUpdate();
+    return Super::endUpdate();
+}
+
 ErrCode ConfigClientSyncInterfaceImpl::getSynced(Bool* synced)
 {
     OPENDAQ_PARAM_NOT_NULL(synced);
@@ -114,11 +163,6 @@ ErrCode ConfigClientSyncInterfaceImpl::Deserialize(ISerializedObject* serialized
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
-}
-
-void ConfigClientSyncInterfaceImpl::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
-{
-    Super::handleRemoteCoreObjectInternal(sender, args);
 }
 
 } // namespace daq::config_protocol

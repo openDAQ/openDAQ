@@ -374,6 +374,8 @@ public:
     friend class AddressInfoImpl;
     friend class ServerCapabilityConfigImpl;
     friend class ConnectedClientInfoImpl;
+    template <typename, typename...>
+    friend class SyncInterfaceBaseImpl;
 
 protected:
     struct UpdatingAction

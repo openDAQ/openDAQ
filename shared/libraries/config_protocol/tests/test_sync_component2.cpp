@@ -257,3 +257,43 @@ TEST_F(ConfigSyncComponent2Test, SetSelectedSourceNotFound)
 
     ASSERT_THROW(clientSync.setSelectedSource("NonExistent"), NotFoundException);
 }
+
+TEST_F(ConfigSyncComponent2Test, SetSelectedSourceViaProperty)
+{
+    auto serverSync = getServerSyncComponent();
+    auto clientSync = getClientSyncComponent();
+    auto serverSyncInternal = serverSync.asPtr<ISyncComponent2Internal>(true);
+
+    // Add another interface on server
+    auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+    serverSyncInternal.addInterface(newInterface);
+
+    clientSync.asPtr<IPropertyObject>(true).setPropertySelectionValue("Source", "TestInterface");
+
+    // Verify server has the new selected source
+    ASSERT_EQ(clientSync.getSelectedSource().getName(), "TestInterface");
+    ASSERT_EQ(serverSync.getSelectedSource().getName(), "TestInterface");
+}
+
+TEST_F(ConfigSyncComponent2Test, SetSyncInterfaceModeViaProperty)
+{
+    auto serverSync = getServerSyncComponent();
+    auto clientSync = getClientSyncComponent();
+
+    PropertyObjectPtr serverSource = serverSync.getSelectedSource();
+    PropertyObjectPtr clientSource = clientSync.getSelectedSource();
+
+    // Get initial mode
+    auto initialMode = serverSource.getPropertyValue("Mode");
+    ASSERT_EQ(initialMode, clientSource.getPropertyValue("Mode"));
+
+    // Set mode on client
+    clientSource.setPropertySelectionValue("Mode", "Off");
+    ASSERT_EQ(serverSource.getPropertySelectionValue("Mode"), "Off");
+    ASSERT_EQ(clientSource.getPropertySelectionValue("Mode"), "Off");
+
+    // Set mode on client
+    clientSource.setPropertySelectionValue("Mode", "Input");
+    ASSERT_EQ(serverSource.getPropertySelectionValue("Mode"), "Input");
+    ASSERT_EQ(clientSource.getPropertySelectionValue("Mode"), "Input");
+}

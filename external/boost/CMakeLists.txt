@@ -1,10 +1,10 @@
 if(OPENDAQ_LINK_3RD_PARTY_LIBS_STATICALY)
     set(BUILD_SHARED_LIBS OFF)
-    set(Boost_USE_STATIC_LIBS ON CACHE BOOL "")
+    set(Boost_USE_STATIC_LIBS ON)
     message(STATUS "Linking Boost statically")
 else()
     set(BUILD_SHARED_LIBS ON)
-    set(Boost_USE_STATIC_LIBS OFF CACHE BOOL "")
+    set(Boost_USE_STATIC_LIBS OFF)
     message(STATUS "Linking Boost dynamically")
 endif()
 
@@ -25,9 +25,9 @@ if(BUILD_ARM)
         set(CONTEXT_ARCHITECTURE arm)
     endif()
 
-    message(STATUS "CMAKE_COMPILER_IS_GNUCXX: ${CMAKE_COMPILER_IS_GNUCXX}")
+    message(STATUS "CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")
 
-    if(CMAKE_COMPILER_IS_GNUCXX)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         # Need C++ compiler to pre-process ASM files
         set(CMAKE_ASM_COMPILER ${CMAKE_CXX_COMPILER})
         set(CMAKE_ASM_FLAGS "-x assembler-with-cpp" CACHE STRING "")
@@ -37,112 +37,116 @@ if(BUILD_ARM)
     set(BOOST_CONTEXT_ARCHITECTURE ${CONTEXT_ARCHITECTURE} CACHE STRING "Boost.Context architecture (arm, arm64, loongarch64, mips32, mips64, ppc32, ppc64, riscv64, s390x, i386, x86_64, combined)")
 endif()
 
-set(NEEDED_LIBRARIES algorithm
-                     asio
-                     beast
-                     dll
-                     program_options
-                     uuid
-                     locale
-                     align
-
+# This list should only ever include compiled Boost components/targets and the
+# headers target. Header-only components/targets should be included in the list
+# below to avoid find_package errors
+set(REQUIRED_COMPILED_COMPONENTS
+    "headers"
 )
 
-if(DAQMODULES_PARQUET_RECORDER_MODULE AND MSVC)
-    list(APPEND NEEDED_LIBRARIES
-                     multiprecision
-                     predef
-                     scope_exit
-                     typeof
+# This list should only ever include header-only Boost components/targets. This
+# avoids find_package issues for "missing" components which only occur when
+# Boost is build from source (FetchContent)
+set(REQUIRED_HEADER_COMPONENTS
+    "algorithm"
+    "align"
+    "asio"
+    "beast"
+    "dll"
+    "locale"
+    "program_options"
+    "uuid"
+)
+
+# This list should only ever include Boost components/targets that are or will
+# be deprecated. This avoids find_package issues for "missing" components across
+# different versions of Boost
+set(OPTIONAL_DEPRECATED_COMPONENTS
+#    "system" # Deprecation started in Boost 1.85
+)
+
+if(DAQMODULES_PARQUET_RECORDER_MODULE)
+    list(APPEND REQUIRED_HEADER_COMPONENTS
+        "assert"
+        "bind"
+        "concept_check"
+        "config"
+        "core"
+        "detail"
+        "function"
+        "io"
+        "iterator"
+        "mp11"
+        "mpl"
+        "numeric_conversion"
+        "preprocessor"
+        "range"
+        "smart_ptr"
+        "static_assert"
+        "throw_exception"
+        "tokenizer"
+        "type_traits"
+        "utility"
     )
+
+    if(MSVC)
+        list(APPEND REQUIRED_HEADER_COMPONENTS
+            "multiprecision"
+            "predef"
+            "scope_exit"
+            "typeof"
+        )
+    endif()
 endif()
 
-set(BOOST_INCLUDE_LIBRARIES "${NEEDED_LIBRARIES}"
-    CACHE STRING
-    "List of libraries to build (default: all but excluded and incompatible)"
-    FORCE
+# Tell Boost which libraries to include when building from source (FetchContent)
+# This is also used for boost-extra.cmake.in to generate a list of components
+# that have been fetched when using FetchContent
+set(BOOST_INCLUDE_LIBRARIES
+    ${REQUIRED_COMPILED_COMPONENTS}
+    ${REQUIRED_HEADER_COMPONENTS}
+    ${OPTIONAL_DEPRECATED_COMPONENTS}
 )
+
+# Use the full version number, x.xx.x, for proper FetchContent URLs
+set(BOOST_REQUESTED_VERSION 1.82.0)
 
 opendaq_dependency(
     NAME                Boost
     REQUIRED_VERSION    1.71.0
-    URL                 https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.tar.xz
+    URL                 https://github.com/boostorg/boost/releases/download/boost-${BOOST_REQUESTED_VERSION}/boost-${BOOST_REQUESTED_VERSION}.tar.xz
     URL_HASH            SHA256=fd60da30be908eff945735ac7d4d9addc7f7725b1ff6fcdcaede5262d511d21e
     EXPECT_TARGET       Boost::headers
     OVERRIDE_FIND_PACKAGE
 )
 
-if (Boost_FETCHED)
+if(Boost_FETCHED)
     message("Boost FETCHED")
 
-    # dont treat warnings as errors
-    set(BOOST_TARGETS
-        boost_container
-        boost_thread
+    # Set the requested Boost version for the following script to use it
+    set(Boost_VERSION ${BOOST_REQUESTED_VERSION})
+
+    # FetchContent allows for similar find_package functionality only if the user
+    # manually defines the variables from the find module
+    set(BOOST_EXTRA_FILENAME "boost-extra.cmake")
+    configure_file(
+        "${CMAKE_CURRENT_LIST_DIR}/${BOOST_EXTRA_FILENAME}.in"
+        "${CMAKE_FIND_PACKAGE_REDIRECTS_DIR}/${BOOST_EXTRA_FILENAME}"
+        @ONLY
     )
-    foreach(BOOST_TARGET ${BOOST_TARGETS})
-        if (TARGET ${BOOST_TARGET})
-            if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-                target_compile_options(${BOOST_TARGET} PRIVATE /WX-)
-            else()
-                target_compile_options(${BOOST_TARGET} PRIVATE -Wno-error)
-            endif()
-        endif()
-    endforeach()
 
-    if(DAQMODULES_PARQUET_RECORDER_MODULE)
-        set(boost_libs
-            config
-            algorithm
-            assert
-            bind
-            concept_check
-            core
-            detail
-            function
-            iterator
-            locale
-            mpl
-            numeric_conversion
-            preprocessor
-            range
-            smart_ptr
-            static_assert
-            throw_exception
-            tokenizer
-            type_traits
-            utility
-            mp11
-            io
-            uuid
-        )
+    # Now that boost-extra.cmake exists, use it with find_package to define
+    # commonly used Boost variables from boost-config.cmake
+    find_package("Boost" ${BOOST_REQUESTED_VERSION} QUIET GLOBAL
+        COMPONENTS
+            ${REQUIRED_COMPILED_COMPONENTS}
+        OPTIONAL_COMPONENTS
+            ${REQUIRED_HEADER_COMPONENTS}
+            ${OPTIONAL_DEPRECATED_COMPONENTS}
+        CONFIG # Boost 1.70+ should use the new generated boost-config.cmake find module
+    )
 
-        if(MSVC)
-            list(APPEND boost_libs
-                    multiprecision
-                    predef
-                    scope_exit
-                    typeof
-
-            )
-        endif()
-
-        add_library(daq::boost_headers INTERFACE IMPORTED GLOBAL)
-
-        foreach(boost_lib ${boost_libs})
-            if (TARGET Boost::${boost_lib})
-                get_target_property(include_dirs Boost::${boost_lib} INTERFACE_INCLUDE_DIRECTORIES)
-                target_include_directories(daq::boost_headers INTERFACE "${include_dirs}")
-            endif()
-        endforeach()
+    if(Boost_FOUND)
+        message(STATUS "Found Boost: ${Boost_VERSION} at ${Boost_CONFIG}")
     endif()
-endif()
-
-if (Boost_FOUND)
-
-    foreach(BOOST_TARGET ${BOOST_INCLUDE_LIBRARIES})
-        if (NOT TARGET Boost::${BOOST_TARGET} AND NOT TARGET boost_${BOOST_TARGET})
-            add_library(Boost::${BOOST_TARGET} ALIAS Boost::headers)
-        endif()
-    endforeach()
 endif()

@@ -1,0 +1,120 @@
+name: Build Python Wheels
+description: Build Python wheels for multiple Python versions (requires prior CMake configuration)
+
+inputs:
+  python-versions:
+    description: 'Space-separated list of Python versions'
+    required: false
+    default: '3.8 3.9 3.10 3.11 3.12 3.13 3.14'
+  build-path:
+    description: 'Path to build directory (must be already configured with CMake)'
+    required: false
+    default: 'build'
+  cmake-build-type:
+    description: 'Build type (Release/Debug)'
+    required: false
+    default: 'Release'
+
+outputs:
+  wheels-path:
+    description: 'Path to built wheels'
+    value: ${{ steps.build-wheels.outputs.wheels-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Convert versions to newline format
+      id: python-version-sort
+      shell: bash
+      run: |
+        VERSIONS="${{ inputs.python-versions }}"
+        echo "versions<<EOF" >> $GITHUB_OUTPUT
+        echo "$VERSIONS" | tr ' ' '\n' | grep -v '^$' | sort -V >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Set up Python versions
+      id: python-setup
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ steps.python-version-sort.outputs.versions }}
+
+    - name: Build wheels
+      id: build-wheels
+      shell: bash
+      env:
+        CMAKE_BUILD_TYPE: ${{ inputs.cmake-build-type }}
+        CMAKE_BUILD_PATH: ${{ inputs.build-path }}
+        PYTHON_VERSION_LATEST: ${{ steps.python-setup.outputs.python-version }}
+      run: |
+        if command -v cygpath &> /dev/null; then
+          CMAKE_BUILD_PATH=$(cygpath -u "$CMAKE_BUILD_PATH")
+        fi
+
+        PYTHON_VERSIONS="${{ steps.python-version-sort.outputs.versions }}"
+
+        WHEELS_PATH="$CMAKE_BUILD_PATH/wheels"
+        mkdir -p "$WHEELS_PATH"
+        WHEELS_PATH="$(cd "$WHEELS_PATH" && pwd)"
+
+        if command -v cygpath &> /dev/null; then
+          echo "wheels-path=$(cygpath -w "$WHEELS_PATH")" >> $GITHUB_OUTPUT
+        else
+          echo "wheels-path=$WHEELS_PATH" >> $GITHUB_OUTPUT
+        fi
+
+        # Platform-specific settings
+        PYTHON_CMD="python"
+        PYTHON_VENV_PATH="$CMAKE_BUILD_PATH/venv"
+        PYTHON_VENV_ACTIVATE="$PYTHON_VENV_PATH/bin/activate"
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          PYTHON_CMD="py -"
+          PYTHON_VENV_ACTIVATE="$PYTHON_VENV_PATH/Scripts/activate"
+        fi
+
+        # Determine bin path based on generator type
+        # (multi-config generators append build type to the binary output path)
+        CMAKE_GENERATOR=$(grep "^CMAKE_GENERATOR:" "$CMAKE_BUILD_PATH/CMakeCache.txt" | cut -d'=' -f2)
+        BIN_PATH="$CMAKE_BUILD_PATH/bin"
+        if [[ "$CMAKE_GENERATOR" == "Visual Studio"* ]]; then
+          BIN_PATH="$CMAKE_BUILD_PATH/bin/$CMAKE_BUILD_TYPE"
+        fi
+
+        CMAKE_BUILD_ARGS=""
+        if [ -n "$CMAKE_BUILD_TYPE" ]; then
+          CMAKE_BUILD_ARGS="--config $CMAKE_BUILD_TYPE"
+        fi
+
+        PYTHON_VERSION_LATEST=$(echo "$PYTHON_VERSION_LATEST" | cut -d. -f1,2)
+        echo "Using Python $PYTHON_VERSION_LATEST for build_pip.py"
+
+        while IFS= read -r version; do
+          echo "::group::CMake Configure (Python $version)"
+          cmake -B "$CMAKE_BUILD_PATH" \
+            -DOPENDAQ_GENERATE_PYTHON_BINDINGS=ON \
+            -DOPENDAQ_PYTHON_VERSION="$version" \
+            -DPYBIND11_FINDPYTHON=ON
+          echo "::endgroup::"
+
+          echo "::group::CMake Build (Python $version)"
+          cmake --build "$CMAKE_BUILD_PATH" $CMAKE_BUILD_ARGS --target py_opendaq_daq
+          echo "::endgroup::"
+
+          echo "::group::Build wheel (Python $version)"
+          rm -rf "$PYTHON_VENV_PATH"
+          ${PYTHON_CMD}${version} -m venv "$PYTHON_VENV_PATH"
+          source "$PYTHON_VENV_ACTIVATE"
+
+          pip install --quiet numpy pybind11-stubgen
+
+          # Build Python wheels (-r removes .pyd after packaging)
+          ${PYTHON_CMD}${PYTHON_VERSION_LATEST} bindings/python/package/build_pip.py -l "$BIN_PATH" -r
+
+          cp pip/packages/*.whl "$WHEELS_PATH/"
+
+          deactivate
+          rm -rf "$PYTHON_VENV_PATH"
+          echo "::endgroup::"
+        done <<< "$PYTHON_VERSIONS"
+
+        echo "Built wheels:"
+        ls -la "$WHEELS_PATH/"

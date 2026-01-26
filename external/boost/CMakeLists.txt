@@ -40,6 +40,8 @@ if(DAQMODULES_PARQUET_RECORDER_MODULE)
         type_traits
         utility
         mp11
+        io
+        uuid
     )
 
     if(MSVC)

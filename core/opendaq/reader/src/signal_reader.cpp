@@ -9,11 +9,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-SignalReader::SignalReader(const InputPortConfigPtr& port,
-                           SampleType valueReadType,
-                           SampleType domainReadType,
-                           ReadMode mode,
-                           const LoggerComponentPtr& logger)
+SignalReader::SignalReader(
+    const InputPortConfigPtr& port, SampleType valueReadType, SampleType domainReadType, ReadMode mode, const LoggerComponentPtr& logger)
     : loggerComponent(logger)
     , valueReader(createReaderForType(mode == ReadMode::RawValue ? SampleType::Undefined : valueReadType, nullptr))
     , domainReader(createReaderForType(domainReadType, nullptr))
@@ -53,7 +50,8 @@ SignalReader::SignalReader(const SignalInfo& old,
                            SampleType valueReadType,
                            SampleType domainReadType)
     : loggerComponent(old.loggerComponent)
-    , valueReader(createReaderForType(old.readMode == ReadMode::RawValue ? SampleType::Undefined : valueReadType, old.valueTransformFunction))
+    , valueReader(
+          createReaderForType(old.readMode == ReadMode::RawValue ? SampleType::Undefined : valueReadType, old.valueTransformFunction))
     , domainReader(createReaderForType(domainReadType, old.domainTransformFunction))
     , port(old.port)
     , connection(port.getConnection())
@@ -83,7 +81,7 @@ void SignalReader::readDescriptorFromPort()
             {
                 invalid = true;
                 LOG_D("Failed to handle descriptor read from port: {}", e.what())
-                (void)e;
+                (void) e;
             }
         }
     }
@@ -99,9 +97,7 @@ SizeT SignalReader::getAvailable(bool acrossDescriptorChanges = false) const
 
     if (connection.assigned())
     {
-        count += acrossDescriptorChanges
-            ? connection.getSamplesUntilNextGapPacket()
-            : connection.getSamplesUntilNextEventPacket();
+        count += acrossDescriptorChanges ? connection.getSamplesUntilNextGapPacket() : connection.getSamplesUntilNextEventPacket();
     }
     return count * sampleRateDivider;
 }
@@ -159,7 +155,7 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
 
         valueReader = createReaderForType(valueType, valueReader->getTransformFunction());
     }
-    
+
     if (valueDescriptorChanged)
     {
         invalid = !valueReader->handleDescriptorChanged(newValueDescriptor, readMode);
@@ -208,18 +204,14 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
             {
                 LOG_D("Failed to change descriptor: {}", e.what())
                 validDomain = false;
-                (void)e;
+                (void) e;
             }
         }
 
         invalid = invalid || !validDomain;
     }
 
-    LOG_T("[Signal Descriptor Changed: {} | {} | {}]",
-        port.getSignal().getLocalId(),
-        printSync(synced),
-        invalid ? "Invalid" : "Valid"
-    )
+    LOG_T("[Signal Descriptor Changed: {} | {} | {}]", port.getSignal().getLocalId(), printSync(synced), invalid ? "Invalid" : "Valid")
 }
 
 void SignalReader::prepare(void* outValues, SizeT count)
@@ -236,9 +228,7 @@ void SignalReader::setStartInfo(std::chrono::system_clock::time_point minEpoch, 
 {
     LOG_T("---")
 
-    domainInfo.setEpochOffset(minEpoch, maxResolution);
-    domainInfo.setMaxResolution(maxResolution);
-
+    domainInfo.adjustToCommonEpochResolution(minEpoch, maxResolution);
     synced = SyncStatus::Unsynchronized;
 }
 
@@ -250,7 +240,14 @@ std::unique_ptr<Comparable> SignalReader::readStartDomain()
         DAQ_THROW_EXCEPTION(InvalidStateException, "Packet must have a domain packet assigned!");
     }
 
-    return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
+    if (domainPacket.getDataDescriptor().getRule().getType() == DataRuleType::Linear)
+    {
+        return domainReader->readStartLinear(domainPacket, info.prevSampleIndex, domainInfo);
+    }
+    else
+    {
+        return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
+    }
 }
 
 bool SignalReader::isFirstPacketEvent()
@@ -352,19 +349,15 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
 
     if (!packetToReturn.assigned() && (valueDescriptorChanged || domainDescriptorChanged))
     {
-        const auto valueDescriptorParam = valueDescriptorChanged
-                                              ? descriptorToEventPacketParam(dataDescriptor)
-                                              : nullptr;
-        const auto domainDescriptorParam = domainDescriptorChanged
-                                               ? descriptorToEventPacketParam(domainDescriptor)
-                                               : nullptr;
+        const auto valueDescriptorParam = valueDescriptorChanged ? descriptorToEventPacketParam(dataDescriptor) : nullptr;
+        const auto domainDescriptorParam = domainDescriptorChanged ? descriptorToEventPacketParam(domainDescriptor) : nullptr;
         packetToReturn = DataDescriptorChangedEventPacket(valueDescriptorParam, domainDescriptorParam);
     }
 
     if (packetToReturn.assigned())
     {
         synced = SyncStatus::Unsynchronized;
-        bool firstData {false};
+        bool firstData{false};
         const ErrCode errCode = handlePacket(packetToReturn, firstData);
         if (OPENDAQ_FAILED(errCode))
             daqClearErrorInfo();
@@ -424,46 +417,50 @@ bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock
         return false;
     }
 
-    SizeT startPackets = info.prevSampleIndex;
-    [[maybe_unused]] Int droppedPackets = 0;
+    SizeT startSamples = info.prevSampleIndex;
+    [[maybe_unused]] Int droppedSamples = 0;
 
     while (info.dataPacket.assigned())
     {
         auto domainPacket = info.dataPacket.getDomainPacket();
-        info.prevSampleIndex = domainReader->getOffsetTo(
-            domainInfo,
-            commonStart,
-            domainPacket.getData(),
-            domainPacket.getSampleCount(),
-            &cachedFirstTimestamp
-        );
-
-        if (info.prevSampleIndex == static_cast<SizeT>(-1))
+        // Check if commonStart can be reached within the current packet
+        if (domainPacket.getDataDescriptor().getRule().getType() == DataRuleType::Linear)
         {
-            droppedPackets += static_cast<Int>(domainPacket.getSampleCount() - startPackets);
-
-            info.dataPacket = nullptr;
-
-            if (isFirstPacketEvent())
-                return false;
-
-            startPackets = 0;
+            info.prevSampleIndex = domainReader->getOffsetToLinear(domainInfo, commonStart, domainPacket, &cachedFirstTimestamp);
         }
         else
         {
-            droppedPackets += static_cast<Int>(info.prevSampleIndex - startPackets);
+            info.prevSampleIndex = domainReader->getOffsetTo(
+                domainInfo, commonStart, domainPacket.getData(), domainPacket.getSampleCount(), &cachedFirstTimestamp);
+        }
+
+        if (info.prevSampleIndex == static_cast<SizeT>(-1))
+        {
+            // commonStart is outside the packet.
+            // Drop the entire packet (startSamples have already been used).
+            droppedSamples += static_cast<Int>(domainPacket.getSampleCount() - startSamples);
+
+            info.dataPacket = nullptr;
+
+            // Dequeue a Data packet into info.dataPacket
+            if (isFirstPacketEvent())
+                // Encountered an Event packet before arriving at common start
+                return false;
+
+            startSamples = 0;
+        }
+        else
+        {
+            droppedSamples += static_cast<Int>(info.prevSampleIndex - startSamples);
             if (firstSampleAbsoluteTimestamp)
                 *firstSampleAbsoluteTimestamp = cachedFirstTimestamp;
             break;
         }
     }
 
-    synced = info.prevSampleIndex != static_cast<SizeT>(-1)
-        ? SyncStatus::Synchronized
-        : SyncStatus::Synchronizing;
+    synced = info.prevSampleIndex != static_cast<SizeT>(-1) ? SyncStatus::Synchronized : SyncStatus::Synchronizing;
 
-
-    LOG_T("[Syncing: {} | {}, dropped {} samples]", port.getSignal().getLocalId(), printSync(synced), droppedPackets);
+    LOG_T("[Syncing: {} | {}, dropped {} samples]", port.getSignal().getLocalId(), printSync(synced), droppedSamples);
     return synced == SyncStatus::Synchronized;
 }
 
@@ -501,18 +498,12 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
                     invalid = true;
 
                     return DAQ_EXTEND_ERROR_INFO(
-                        errCode,
-                        OPENDAQ_ERR_INVALID_DATA,
-                        "Exception occurred while processing a signal descriptor change"
-                    );
+                        errCode, OPENDAQ_ERR_INVALID_DATA, "Exception occurred while processing a signal descriptor change");
                 }
 
                 if (invalid)
                 {
-                    return DAQ_MAKE_ERROR_INFO(
-                        OPENDAQ_ERR_INVALID_DATA,
-                        "Signal no longer compatible with the reader or other signals"
-                    );
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_DATA, "Signal no longer compatible with the reader or other signals");
                 }
             }
             break;
@@ -558,7 +549,8 @@ void* SignalReader::getValuePacketData(const DataPacketPtr& packet) const
             return packet.getData();
     }
 
-    DAQ_THROW_EXCEPTION(InvalidOperationException, "Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
+    DAQ_THROW_EXCEPTION(
+        InvalidOperationException, "Unknown Reader read-mode of {}", static_cast<std::underlying_type_t<ReadMode>>(readMode));
 }
 
 bool SignalReader::isSynced() const
@@ -582,10 +574,7 @@ ErrCode SignalReader::readPacketData()
         auto dataPacket = info.dataPacket;
         if (!dataPacket.getDomainPacket().assigned())
         {
-            return DAQ_MAKE_ERROR_INFO(
-                OPENDAQ_ERR_INVALIDSTATE,
-                "Packets must have an associated domain packets to read domain data."
-            );
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Packets must have an associated domain packets to read domain data.");
         }
 
         LOG_T("[Reading: {} ", port.getSignal().getLocalId());

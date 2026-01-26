@@ -11,6 +11,25 @@ set(SDK_OPTION_PREFIX OPENDAQ)
 add_subdirectory(cmake)
 opendaq_setup_repo_version("OPENDAQ_PACKAGE" ${SDK_NAME} "opendaq_version")
 
+# this duplicates code from utils
+#
+file(READ "opendaq_version" package_version)
+string(STRIP ${package_version} package_version)
+
+string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" package_version_major_minor_patch "${package_version}")
+#
+
+# this required only by opendaq ? or modules too
+#
+set(OPENDAQ_IS_RELEASE_VERSION OFF)
+if(package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    set(OPENDAQ_IS_RELEASE_VERSION ON)
+endif()
+#
+
+# 32-bit Linux cross-compilation setup (must be before project())
+opendaq_setup_32bit_build_linux_system_flags(${SDK_OPTION_PREFIX})
+
 project(${SDK_NAME}
     LANGUAGES CXX
     VERSION ${OPENDAQ_PACKAGE_VERSION}
@@ -491,12 +510,12 @@ configure_package_config_file(
 write_basic_package_version_file(${SDK_NAME}ConfigVersion.cmake
   VERSION ${OPENDAQ_PACKAGE_VERSION}
   COMPATIBILITY ExactVersion )
-  
+
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}Config.cmake
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
         COMPONENT ${SDK_NAME}_Development
 )
-  
+
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}ConfigVersion.cmake
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
         COMPONENT ${SDK_NAME}_Development

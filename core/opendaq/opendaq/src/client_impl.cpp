@@ -24,11 +24,11 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
 
 DeviceInfoPtr ClientImpl::onGetInfo()
 {
-    auto info = DeviceInfo("daq.default://default_root_device", "OpenDAQDefaultRootDevice");
+    auto info = DeviceInfo("daq.root://default_client", "OpenDAQClient");
     info.setDeviceType(DeviceTypeBuilder()
-                           .setConnectionStringPrefix("daq.default")
-                           .setId("OpenDAQDefaultRootDevice")
-                           .setName("OpenDAQDefaultRootDevice")
+                           .setConnectionStringPrefix("daq.root")
+                           .setId("OpenDAQClient")
+                           .setName("OpenDAQClient")
                            .build());
     return info;
 }

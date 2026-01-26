@@ -22,12 +22,12 @@ ErrCode MockDeviceModuleImpl::getAvailableDevices(IList** availableDevices)
 {
     ListPtr<IDeviceInfo> availableDevicesPtr = List<IDeviceInfo>();
     auto clientDeviceType = DeviceTypeBuilder()
-        .setConnectionStringPrefix("daq.default")
-        .setId("OpenDAQDefaultRootDevice")
-        .setName("OpenDAQDefaultRootDevice")
+        .setConnectionStringPrefix("daq.root")
+        .setId("OpenDAQClient")
+        .setName("OpenDAQClient")
         .build();
 
-    auto daqClientDeviceInfo = DeviceInfo("daq.default://default_root_device");
+    auto daqClientDeviceInfo = DeviceInfo("daq.root://default_client");
     daqClientDeviceInfo.setDeviceType(clientDeviceType);
     availableDevicesPtr.pushBack(daqClientDeviceInfo);
 
@@ -58,14 +58,14 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     mockConfig.addProperty(FunctionProperty("onRetrieveConfig", FunctionInfo(ctObject, retrieveArguments)));
 
     auto clientDeviceType = DeviceTypeBuilder()
-        .setConnectionStringPrefix("daq.default")
-        .setId("OpenDAQDefaultRootDevice")
-        .setName("OpenDAQDefaultRootDevice")
+        .setConnectionStringPrefix("daq.root")
+        .setId("OpenDAQClient")
+        .setName("OpenDAQClient")
         .setDefaultConfig(mockConfig)
         .build();
 
     auto types = Dict<IString, IDeviceType>();
-    types.set("OpenDAQDefaultRootDevice", clientDeviceType);
+    types.set("OpenDAQClient", clientDeviceType);
     types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", "daqmock", mockConfig));
 
     *deviceTypes = types.detach();
@@ -82,7 +82,7 @@ ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
 
     StringPtr connStr = connectionString;
     DevicePtr devicePtr;
-    if (connStr == "daq.default://default_root_device")
+    if (connStr == "daq.root://default_client")
     {
         const ModulePtr deviceModule(MockDeviceModule_Create(ctx));
         const ModulePtr fbModule(MockFunctionBlockModule_Create(ctx));

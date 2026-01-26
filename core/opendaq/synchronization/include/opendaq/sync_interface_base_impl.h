@@ -113,7 +113,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getSynced(Bool* synced)
 {
     OPENDAQ_PARAM_NOT_NULL(synced);
-    *synced = False;
+    *synced = this->objPtr.getPropertyValue("Status.Synchronized");
     return OPENDAQ_SUCCESS;
 }
 
@@ -121,7 +121,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getReferenceDomainId(IString** referenceDomainId)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
-    *referenceDomainId = String("").detach();
+    *referenceDomainId = this->objPtr.getPropertyValue("Status.ReferenceDomainId").template as<IString>();
     return OPENDAQ_SUCCESS;
 }
 

@@ -1,5 +1,6 @@
 #include "opendaq/mock/advanced_components_setup_utils.h"
 #include "coreobjects/argument_info_factory.h"
+#include "coreobjects/authentication_provider_factory.h"
 #include "coreobjects/callable_info_factory.h"
 #include "coreobjects/coercer_factory.h"
 #include "coreobjects/property_object_class_factory.h"
@@ -10,17 +11,21 @@
 #include "opendaq/device_domain_factory.h"
 #include "opendaq/device_type_factory.h"
 #include "opendaq/module_info_factory.h"
+#include "opendaq/module_manager_factory.h"
 #include "opendaq/mock/mock_device_module.h"
 #include "opendaq/mock/mock_physical_device.h"
+#include "opendaq/mock/mock_fb_factory.h"
 
 namespace daq::test_utils
 {
 
-DevicePtr createTestDevice(const std::string& localId)
+DevicePtr createTestDevice(const std::string& localId, bool addStatic)
 {
-    const auto context = NullContext();
-
-    const auto typeManager = context.getTypeManager();
+    const auto logger = Logger();
+    const auto moduleManager = ModuleManager("[[none]]");
+    const auto typeManager = TypeManager();
+    const auto authenticationProvider = AuthenticationProvider();
+    const auto context = Context(nullptr, logger, typeManager, moduleManager, authenticationProvider);
 
     const auto obj = PropertyObject();
     obj.addProperty(StringProperty("NestedStringProperty", "String"));
@@ -32,10 +37,20 @@ DevicePtr createTestDevice(const std::string& localId)
 
     const auto rootDevice = createWithImplementation<IDevice, MockDevice2Impl>(context, nullptr, localId);
     const FolderConfigPtr devicesFolder = rootDevice.getItem("Dev");
+    const FolderConfigPtr fbsFolder = rootDevice.getItem("FB");
+    
+    devicesFolder.addItem(MockPhysicalDevice_Create(context, devicesFolder, String("mock_phys_dev"), nullptr));
 
-    const StringPtr id = "mock_phys_dev";
-    DevicePtr physicalDevice(MockPhysicalDevice_Create(context, devicesFolder, id, nullptr));
-    devicesFolder.addItem(physicalDevice);
+    if (addStatic)
+    {
+        // Static components -> not present in module manager
+        auto config = PropertyObject();
+        config.addProperty(BoolProperty("IsStatic", true));
+
+        devicesFolder.addItem(MockPhysicalDevice_Create(context, devicesFolder, String("mock_phys_dev_static"), config));
+        fbsFolder.addItem(MockFunctionBlock(nullptr, context, fbsFolder, "mock_fb_static", config));
+    }
+
 
     rootDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     return rootDevice;

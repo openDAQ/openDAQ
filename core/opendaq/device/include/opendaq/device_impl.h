@@ -827,7 +827,7 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
-        DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found. Device does not allow adding/removing function blocks.");
+        DAQ_THROW_EXCEPTION(InvalidOperationException, "Device does not allow adding/removing function blocks.");
 
     auto types = onGetAvailableFunctionBlockTypes();
     auto typeId = functionBlock.getFunctionBlockType().getId();

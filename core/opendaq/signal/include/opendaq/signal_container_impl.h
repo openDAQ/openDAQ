@@ -669,7 +669,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
     {
         for (const auto& fb : functionBlocks.getItems())
         {
-            const auto typeId = fb.asPtr<IFunctionBlock>().getFunctionBlockType().getId();
+            const auto typeId = fb.template asPtr<IFunctionBlock>().getFunctionBlockType().getId();
             if (availableTypes.hasKey(typeId))
             {
                 onRemoveFunctionBlock(fb);

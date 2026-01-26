@@ -1435,7 +1435,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::removeDevice(IDevice* device)
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& device)
 {
-    auto types = onGetAvailableDeviceTypes();
+    auto lock = this->getRecursiveConfigLock2();
+
     DeviceTypePtr removedDeviceType;
     if (const auto mirroredDevice = device.asPtrOrNull<IMirroredDevice>(); mirroredDevice.assigned())
     {
@@ -1450,14 +1451,14 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& d
         removedDeviceType = info.getDeviceType();
     }
     
-    if (!removedDeviceType.assigned())
-        DAQ_THROW_EXCEPTION(InvalidStateException, "Device with ID {} is missing a device type.", device.getLocalId());
-
-    auto typeId = removedDeviceType.getId();
-    if (!types.hasKey(typeId))
-        DAQ_THROW_EXCEPTION(InvalidOperationException, "Device being removed is a static-type. Its type is not in the list of available device types.");
+    if (removedDeviceType.assigned())
+    {
+        auto types = onGetAvailableDeviceTypes();
+        auto typeId = removedDeviceType.getId();
+        if (!types.hasKey(typeId))
+            DAQ_THROW_EXCEPTION(InvalidOperationException, "Device being removed is a static-type. Its type is not in the list of available device types.");
+    }
     
-    auto lock = this->getRecursiveConfigLock2();
     this->devices.removeItem(device);
 }
 
@@ -2036,19 +2037,22 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         std::string prefix = pos == std::string::npos ? "" : connectionStringStr.substr(0,pos);
         DevicePtr device;
 
-        for (const auto& [_, type]: onGetAvailableDeviceTypes())
+        if (!prefix.empty())
         {
-            std::string typePrefix = type.getConnectionStringPrefix();
-            if (prefix == typePrefix)
+            for (const auto& [_, type]: onGetAvailableDeviceTypes())
             {
-                if (devices.hasItem(deviceId))
+                std::string typePrefix = type.getConnectionStringPrefix();
+                if (prefix == typePrefix)
                 {
-                    device = devices.getItem(deviceId);
-                    checkErrorInfo(this->removeDevice(device));
-                }
+                    if (devices.hasItem(deviceId))
+                    {
+                        device = devices.getItem(deviceId);
+                        checkErrorInfo(this->removeDevice(device));
+                    }
 
-                device = onAddDevice(connectionString, deviceConfig);
-                break;
+                    device = onAddDevice(connectionString, deviceConfig);
+                    break;
+                }
             }
         }
 

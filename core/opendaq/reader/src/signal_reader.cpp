@@ -517,6 +517,9 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
 
 ErrCode SignalReader::readPackets()
 {
+    if (unused)
+        return OPENDAQ_SUCCESS;
+
     bool firstData = false;
     ErrCode errCode = OPENDAQ_SUCCESS;
 

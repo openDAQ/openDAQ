@@ -21,8 +21,6 @@
 #include <opendaq/multi_reader_builder_ptr.h>
 #include <opendaq/reader_factory.h>
 
-#include <map>
-
 BEGIN_NAMESPACE_OPENDAQ
 
 class MultiReaderImpl : public ImplementationOfWeak<IMultiReader, IReaderConfig, IInputPortNotifications>
@@ -167,6 +165,7 @@ private:
         Ports,
     };
     InputType sourceComponentsType(const ListPtr<IComponent>& sources) const;
+    std::vector<SignalReader>::iterator findByGlobalId(const StringPtr& id);
 
     std::mutex mutex;
     std::mutex packetReceivedMutex;
@@ -193,9 +192,7 @@ private:
     bool sameSampleRates = false;
     Bool allowDifferentRates = true;
 
-    std::map<Int, SignalReader> signals;
-    std::map<Int, SignalReader> unusedSignals;
-    std::unordered_map<std::string, Int> globalIdToId;
+    std::vector<SignalReader> signals;
 
     PropertyObjectPtr portBinder;
     ProcedurePtr readCallback;
@@ -223,19 +220,6 @@ private:
     const ReadMode readMode;
 
     InputType typeOfInputs;
-
-    class IdGenerator
-    {
-    public:
-        Int getNextId()
-        {
-            return id++;
-        }
-
-    private:
-        Int id = 0;
-    };
-    IdGenerator idGenerator;
 };
 
 END_NAMESPACE_OPENDAQ

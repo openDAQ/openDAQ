@@ -130,9 +130,9 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     try
     {
         auto listener = this->thisPtr<InputPortNotificationsPtr>();
-        for (auto& [id, reader] : old->signals)
+        for (auto& reader : old->signals)
         {
-            signals.try_emplace(id, reader, listener, valueReadType, domainReadType);
+            signals.emplace_back(reader, listener, valueReadType, domainReadType);
         }
 
         updateCommonSampleRateAndDividers();
@@ -188,7 +188,7 @@ MultiReaderImpl::~MultiReaderImpl()
 {
     if (!portBinder.assigned())
     {
-        for (const auto& [id, reader] : signals)
+        for (const auto& reader : signals)
             reader.port.remove();
     }
 }
@@ -196,7 +196,7 @@ MultiReaderImpl::~MultiReaderImpl()
 ListPtr<ISignal> MultiReaderImpl::getSignals() const
 {
     auto list = List<ISignal>();
-    for (auto& [key, reader] : signals)
+    for (auto& reader : signals)
     {
         list.pushBack(reader.connection.getSignal());
     }
@@ -383,6 +383,21 @@ MultiReaderImpl::InputType MultiReaderImpl::sourceComponentsType(const ListPtr<I
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid component type, only IInputPort and ISignal are supported.");
 }
 
+std::vector<SignalReader>::iterator MultiReaderImpl::findByGlobalId(const StringPtr& id)
+{
+    return std::find_if(signals.begin(),
+                        signals.end(),
+                        [&](auto& reader)
+                        {
+                            if (typeOfInputs == InputType::Ports)
+                                return id == reader.port.getGlobalId();
+                            else if (typeOfInputs == InputType::Signals)
+                                return id == reader.port.getSignal().getGlobalId();
+                            else
+                                return false;
+                        });
+}
+
 ListPtr<IInputPortConfig> MultiReaderImpl::createOrAdoptPorts(const ListPtr<IComponent>& list) const
 {
     auto portList = List<IInputPortConfig>();
@@ -417,8 +432,11 @@ ListPtr<IInputPortConfig> MultiReaderImpl::createOrAdoptPorts(const ListPtr<ICom
 
 bool MultiReaderImpl::allPortsConnected() const
 {
-    for (const auto& [_, reader] : signals)
+    for (const auto& reader : signals)
     {
+        if (reader.unused)
+            continue;
+
         if (!reader.port.getConnection().assigned())
             return false;
     }
@@ -461,11 +479,9 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
                                 "Multi reader created from signals cannot have an unspecified input port notification method.");
         }
 
-        const Int id = idGenerator.getNextId();
-        signals.try_emplace(id, port, valueRead, domainRead, mode, loggerComponent);
+        signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
 
         const auto globalId = typeOfInputs == InputType::Ports ? port.getGlobalId() : port.getSignal().getGlobalId();
-        globalIdToId.emplace(globalId, id);
 
         cnt++;
     }
@@ -494,8 +510,11 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
     else
     {
         commonSampleRate = 1;
-        for (const auto& [_, signal] : signals)
+        for (const auto& signal : signals)
         {
+            if (signal.unused)
+                continue;
+
             commonSampleRate = std::lcm<std::int64_t>(signal.sampleRate, commonSampleRate);
 
             if (!lastSampleRate.has_value())
@@ -522,8 +541,11 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
         }
     }
 
-    for (auto& [_, signal] : signals)
+    for (auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         signal.setCommonSampleRate(commonSampleRate);
         if (signal.invalid)
         {
@@ -534,8 +556,11 @@ void MultiReaderImpl::updateCommonSampleRateAndDividers()
     }
 
     sampleRateDividerLcm = 1;
-    for (const auto& [_, signal] : signals)
+    for (const auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         if (!signal.connection.assigned())
         {
             return;
@@ -550,11 +575,14 @@ void MultiReaderImpl::setStartInfo()
     LOG_T("Setting start info:")
 
     // TODO: Check for signals being empty (only unused)
-    auto& firstDomain = signals.cbegin()->second.domainInfo;
+    auto& firstDomain = signals[0].domainInfo;
     RatioPtr maxResolution = firstDomain.resolution;
     system_clock::time_point minEpoch = firstDomain.epoch;
-    for (auto& [_, signal] : signals)
+    for (auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         if (signal.domainInfo.epoch < minEpoch)
         {
             minEpoch = signal.domainInfo.epoch;
@@ -572,8 +600,11 @@ void MultiReaderImpl::setStartInfo()
     LOG_T("MaxResolution: {}", maxResolution)
     LOG_T("MinEpoch: {}", minEpoch)
 
-    for (auto& [_, signal] : signals)
+    for (auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         signal.setStartInfo(minEpoch, maxResolution);
     }
 }
@@ -612,11 +643,7 @@ ErrCode MultiReaderImpl::setValueTransformFunction(IFunction* transform)
 {
     std::scoped_lock lock(mutex);
 
-    for (auto& [_, signal] : signals)
-    {
-        signal.valueReader->setTransformFunction(transform);
-    }
-    for (auto& [_, signal] : unusedSignals)
+    for (auto& signal : signals)
     {
         signal.valueReader->setTransformFunction(transform);
     }
@@ -628,11 +655,7 @@ ErrCode MultiReaderImpl::setDomainTransformFunction(IFunction* transform)
 {
     std::scoped_lock lock(mutex);
 
-    for (auto& [_, signal] : signals)
-    {
-        signal.domainReader->setTransformFunction(transform);
-    }
-    for (auto& [_, signal] : unusedSignals)
+    for (auto& signal : signals)
     {
         signal.domainReader->setTransformFunction(transform);
     }
@@ -705,18 +728,13 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::removeInput(IString* globalId)
 {
     OPENDAQ_PARAM_NOT_NULL(globalId);
 
-    auto idSearch = globalIdToId.find(StringPtr::Borrow(globalId).toStdString());
-    if (idSearch == globalIdToId.end())
+    StringPtr gId = globalId;
+    auto it = findByGlobalId(gId);
+
+    if (it == signals.end())
         return OPENDAQ_NOTFOUND;
 
-    auto erasedSig = signals.erase(idSearch->second);
-    erasedSig += unusedSignals.erase(idSearch->second);
-    globalIdToId.erase(idSearch);
-
-    if (erasedSig == 0)
-    {
-        return OPENDAQ_ERR_INVALIDSTATE;
-    }
+    signals.erase(it);
 
     portsConnected = allPortsConnected();
     if (!portsConnected)
@@ -727,7 +745,6 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::removeInput(IString* globalId)
     {
         setPortsActiveState(true);
     }
-    // TODO: Removing an input may resolve synchronization issues
 
     return OPENDAQ_SUCCESS;
 }
@@ -736,39 +753,32 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUnused(IString* globalId, Bool u
 {
     OPENDAQ_PARAM_NOT_NULL(globalId);
 
-    auto idSearch = globalIdToId.find(StringPtr::Borrow(globalId).toStdString());
-    if (idSearch == globalIdToId.end())
+    StringPtr gId = globalId;
+    bool found = false;
+    for (auto& signal : signals)
+    {
+        StringPtr sigId = typeOfInputs == InputType::Ports ? signal.port.getGlobalId() : signal.port.getSignal().getGlobalId();
+        if (sigId == gId)
+        {
+            signal.unused = unused;
+            signal.synced = SyncStatus::Unsynchronized;
+            if (unused)
+            {
+                signal.skipUntilLastEventPacket();
+                signal.port.setActive(false);
+            }
+            else
+            {
+                signal.port.setActive(this->isActive);
+            }
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+    {
         return OPENDAQ_NOTFOUND;
-
-    const Int id = idSearch->second;
-    auto& source = unused ? signals : unusedSignals;
-    auto& destination = unused ? unusedSignals : signals;
-
-    auto search = source.find(id);
-    if (search == source.end())
-    {
-        if (destination.find(id) == destination.end())
-            return OPENDAQ_NOTFOUND;
-        else
-            return OPENDAQ_SUCCESS;  // Already in correct mapping
-    }
-
-    search->second.unused = unused;
-    search->second.synced = SyncStatus::Unsynchronized;
-    if (unused)
-    {
-        search->second.skipUntilLastEventPacket();
-        search->second.port.setActive(false);
-    }
-    else
-    {
-        search->second.port.setActive(this->isActive);
-    }
-
-    {
-        // Move port to the other group (used <-> unused)
-        auto nodeHandle = source.extract(search);
-        destination.insert(std::move(nodeHandle));
     }
 
     portsConnected = allPortsConnected();
@@ -787,23 +797,21 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::getInputUnused(IString* globalId, Bool* 
 {
     OPENDAQ_PARAM_NOT_NULL(globalId);
 
-    auto idSearch = globalIdToId.find(StringPtr::Borrow(globalId).toStdString());
-    if (idSearch == globalIdToId.end())
-        return OPENDAQ_NOTFOUND;
-
-    const Int id = idSearch->second;
-
-    auto search = signals.find(id);
-    if (search == signals.end())
+    StringPtr gId = globalId;
+    bool found = false;
+    for (auto& signal : signals)
     {
-        search = unusedSignals.find(id);
-        if (search == unusedSignals.end())
+        StringPtr sigId = typeOfInputs == InputType::Ports ? signal.port.getGlobalId() : signal.port.getSignal().getGlobalId();
+        if (sigId == gId)
         {
-            return OPENDAQ_NOTFOUND;
+            *unused = signal.unused;
+            found = true;
+            break;
         }
     }
+    if (!found)
+        return OPENDAQ_NOTFOUND;
 
-    *unused = search->second.unused;
     return OPENDAQ_SUCCESS;
 }
 
@@ -931,8 +939,11 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IMultiReaderStatus** status)
 SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) const
 {
     SizeT min = std::numeric_limits<SizeT>::max();
-    for (const auto& [_, signal] : signals)
+    for (const auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         auto sigSamples = signal.getAvailable(acrossDescriptorChanges);
 
         if (!signal.info.dataPacket.assigned())
@@ -961,8 +972,11 @@ MultiReaderStatusPtr MultiReaderImpl::createReaderStatus(const DictPtr<IString, 
 SyncStatus MultiReaderImpl::getSyncStatus() const
 {
     SyncStatus status = SyncStatus::Unsynchronized;
-    for (const auto& [_, signal] : signals)
+    for (const auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         switch (signal.synced)
         {
             case SyncStatus::SynchronizationFailed:
@@ -985,8 +999,11 @@ DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacketAndGetEv
     auto packets = Dict<IString, EventPacketPtr>();
 
     size_t i = 0;
-    for (auto& [_, signal] : signals)
+    for (auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         auto packet = signal.readUntilNextDataPacket();
         invalid |= signal.invalid;
         if (packet.assigned())
@@ -1024,8 +1041,12 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
         [&]()
         {
             // set info data packet
-            for (auto& [_, signal] : signals)
+            for (auto& signal : signals)
+            {
+                if (signal.unused)
+                    continue;
                 signal.isFirstPacketEvent();
+            }
 
             if (syncStatus != SyncStatus::Synchronizing)
             {
@@ -1047,8 +1068,11 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
 
 bool MultiReaderImpl::eventOrGapInQueue() const
 {
-    for (const auto& [_, signal] : signals)
+    for (const auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         if (signal.connection.hasEventPacket() || signal.connection.hasGapPacket())
             return true;
     }
@@ -1060,8 +1084,11 @@ bool MultiReaderImpl::dataPacketsOrEventReady()
     bool hasEventPacket = false;
     bool hasDataPacket = true;
 
-    for (auto& [_, signal] : signals)
+    for (auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         if (signal.isFirstPacketEvent())
         {
             return true;
@@ -1075,7 +1102,7 @@ bool MultiReaderImpl::dataPacketsOrEventReady()
 
 NumberPtr MultiReaderImpl::calculateOffset() const
 {
-    const auto& firstSignal = signals.cbegin()->second;
+    const auto& firstSignal = signals[0];
     auto domainPacket = firstSignal.info.dataPacket.getDomainPacket();
     if (domainPacket.assigned() && domainPacket.getOffset().assigned())
     {
@@ -1215,7 +1242,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
-    auto findSigByPort = [port](const auto& pair) { return pair.second.port == port; };
+    auto findSigByPort = [port](const SignalReader& signal) { return signal.port == port; };
 
     {
         std::scoped_lock lock(notify.mutex);
@@ -1225,7 +1252,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
         auto sigInfo = std::find_if(signals.begin(), signals.end(), findSigByPort);
         if (sigInfo != signals.end())
         {
-            sigInfo->second.connection = sigInfo->second.port.getConnection();
+            sigInfo->connection = sigInfo->port.getConnection();
 
             // check new signal
             auto portList = List<IInputPortConfig>();
@@ -1240,8 +1267,11 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
         portsConnected = allPortsConnected();
         if (portsConnected)
         {
-            for (auto& [_, signal] : signals)
+            for (auto& signal : signals)
             {
+                if (signal.unused)
+                    continue;
+
                 signal.port.setActive(isActive);
             }
         }
@@ -1255,7 +1285,7 @@ ErrCode MultiReaderImpl::connected(IInputPort* port)
 ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    auto findSigByPort = [port](const auto& pair) { return pair.second.port == port; };
+    auto findSigByPort = [port](const SignalReader& signal) { return signal.port == port; };
 
     {
         std::scoped_lock lock(notify.mutex);
@@ -1266,7 +1296,7 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 
         if (sigInfo != signals.end())
         {
-            sigInfo->second.connection = nullptr;
+            sigInfo->connection = nullptr;
             if (portsConnected)
             {
                 portsConnected = false;
@@ -1286,8 +1316,11 @@ ErrCode MultiReaderImpl::getEmpty(Bool* empty)
     bool hasDataPacket = true;
 
     std::scoped_lock lock(mutex);
-    for (auto& [_, signal] : signals)
+    for (auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         if (signal.isFirstPacketEvent())
         {
             *empty = false;
@@ -1308,8 +1341,8 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 
     if (!portsConnected)
     {
-        for (auto& [_, signal] : signals)
-        {
+        for (auto& signal : signals)
+        {  // For unused too
             if (signal.port == inputPort)
             {
                 signal.skipUntilLastEventPacket();
@@ -1321,8 +1354,8 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
 
     if (invalid)
     {
-        for (auto& [_, signal] : signals)
-        {
+        for (auto& signal : signals)
+        {  // For unused too
             if (signal.port == inputPort)
             {
                 nextPacketIsEvent = signal.skipUntilLastEventPacket();
@@ -1360,12 +1393,10 @@ void MultiReaderImpl::prepare(void** outValues, SizeT count, std::chrono::millis
 
     const SizeT alignedCount = (count / sampleRateDividerLcm) * sampleRateDividerLcm;
 
-    SizeT i = 0u;
-    for (auto& [_, signal] : signals)
+    for (SizeT i = 0u; i < signals.size(); ++i)
     {
         const auto outPtr = outValues != nullptr ? outValues[i] : nullptr;
-        signal.prepare(outPtr, alignedCount);
-        ++i;
+        signals[i].prepare(outPtr, alignedCount);
     }
 }
 
@@ -1381,11 +1412,9 @@ void MultiReaderImpl::prepareWithDomain(void** outValues, void** domain, SizeT c
 
     const SizeT alignedCount = (count / sampleRateDividerLcm) * sampleRateDividerLcm;
 
-    size_t i = 0;
-    for (auto& [_, signal] : signals)
+    for (SizeT i = 0u; i < signals.size(); ++i)
     {
-        signal.prepareWithDomain(outValues[i], domain[i], alignedCount);
-        ++i;
+        signals[i].prepareWithDomain(outValues[i], domain[i], alignedCount);
     }
 }
 
@@ -1396,8 +1425,10 @@ MultiReaderImpl::Duration MultiReaderImpl::durationFromStart() const
 
 void MultiReaderImpl::readSamples(SizeT samples)
 {
-    for (auto& [_, signal] : signals)
+    for (auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
         signal.info.remainingToRead = samples / signal.sampleRateDivider;
         signal.readPackets();
     }
@@ -1415,8 +1446,10 @@ void MultiReaderImpl::readDomainStart()
 
     LOG_T("---\n");
 
-    for (auto& [_, signal] : signals)
+    for (auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
         // Get timestamps for the first available sample
         // Timestamps are transformed to number of max resolution ticks
         // since the most ancient epoch (descriptor origin)
@@ -1459,8 +1492,11 @@ void MultiReaderImpl::sync()
     system_clock::rep earliestTime = std::numeric_limits<system_clock::rep>::max();
     system_clock::rep latestTime = 0;
 
-    for (auto& [_, signal] : signals)
+    for (auto& signal : signals)
     {
+        if (signal.unused)
+            continue;
+
         system_clock::rep firstSampleAbsoluteTime;
         synced = signal.sync(*commonStart, &firstSampleAbsoluteTime) && synced;
 
@@ -1482,8 +1518,13 @@ void MultiReaderImpl::sync()
 
         if (diff > tickOffsetToleranceSysTicks)
         {
-            for (auto& [_, signal] : signals)
+            for (auto& signal : signals)
+            {
+                if (signal.unused)
+                    continue;
+
                 signal.synced = SyncStatus::SynchronizationFailed;
+            }
 
             synced = false;
         }
@@ -1564,7 +1605,6 @@ void MultiReaderImpl::internalDispose(bool)
 {
     this->portBinder = nullptr;
     this->signals.clear();
-    this->unusedSignals.clear();
     this->externalListener = nullptr;
     this->readCallback = nullptr;
     this->invalid = true;
@@ -1579,16 +1619,13 @@ ErrCode MultiReaderImpl::getValueTransformFunction(IFunction** transform)
     OPENDAQ_PARAM_NOT_NULL(transform);
     std::scoped_lock lock(mutex);
 
-    if (signals.empty() && unusedSignals.empty())
+    if (signals.empty())
     {
         *transform = nullptr;
         return OPENDAQ_ERR_INVALIDSTATE;
     }
 
-    if (!signals.empty())
-        *transform = signals.cbegin()->second.valueReader->getTransformFunction().addRefAndReturn();
-    else
-        *transform = unusedSignals.cbegin()->second.valueReader->getTransformFunction().addRefAndReturn();
+    *transform = signals[0].valueReader->getTransformFunction().addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -1598,16 +1635,13 @@ ErrCode MultiReaderImpl::getDomainTransformFunction(IFunction** transform)
     OPENDAQ_PARAM_NOT_NULL(transform);
     std::scoped_lock lock(mutex);
 
-    if (signals.empty() && unusedSignals.empty())
+    if (signals.empty())
     {
         *transform = nullptr;
         return OPENDAQ_ERR_INVALIDSTATE;
     }
 
-    if (!signals.empty())
-        *transform = signals.cbegin()->second.domainReader->getTransformFunction().addRefAndReturn();
-    else
-        *transform = unusedSignals.cbegin()->second.domainReader->getTransformFunction().addRefAndReturn();
+    *transform = signals[0].domainReader->getTransformFunction().addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -1617,7 +1651,7 @@ ErrCode MultiReaderImpl::getInputPorts(IList** ports)
     OPENDAQ_PARAM_NOT_NULL(ports);
 
     auto list = List<IInputPortConfig>();
-    for (auto& [_, signal] : signals)
+    for (auto& signal : signals)
     {
         list.pushBack(signal.port);
     }
@@ -1660,8 +1694,11 @@ void MultiReaderImpl::setActiveInternal(Bool isActive)
 void MultiReaderImpl::setPortsActiveState(Bool active)
 {
     bool modified = this->isActive != static_cast<bool>(active);
-    for (auto& [_, signalReader] : signals)
+    for (auto& signalReader : signals)
     {
+        if (signalReader.unused)
+            continue;
+
         if (modified)
             signalReader.synced = SyncStatus::Unsynchronized;
 

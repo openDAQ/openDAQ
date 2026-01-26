@@ -57,10 +57,6 @@ endif()
 
 set(CMAKE_MESSAGE_CONTEXT ${CURR_MESSAGE_CONTEXT})
 
-if(OPENDAQ_ENABLE_OPCUA)
-    add_subdirectory(open62541 EXCLUDE_FROM_ALL)
-endif()
-
 add_subdirectory(boost)
 if (NOT OPENDAQ_BUILDING_AS_SUBMODULE)
     opendaq_setup_boost()
@@ -82,10 +78,6 @@ add_subdirectory(bcrypt)
 
 if (DAQMODULES_AUDIO_DEVICE_MODULE)
     add_subdirectory(miniaudio EXCLUDE_FROM_ALL)
-endif()
-
-if(OPENDAQ_ENABLE_OPCUA)
-    add_subdirectory(opcua_daq_types EXCLUDE_FROM_ALL)
 endif()
 
 if(OPENDAQ_MIMALLOC_SUPPORT)

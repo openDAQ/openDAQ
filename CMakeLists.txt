@@ -84,7 +84,6 @@ option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF
 option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
-cmake_dependent_option(OPCUA_ENABLE_ENCRYPTION "Enable OpcUa encryption" OFF "OPENDAQ_ENABLE_OPCUA" OFF) # TODO move to module
 
 # Bindings
 option(OPENDAQ_GENERATE_DELPHI_BINDINGS "Generate Delphi bindings" OFF)
@@ -182,16 +181,19 @@ endif()
 set(MODULE_ENABLE_EXPRS
     "USE_LT_MODERN_MODULES"
     "USE_LT_LEGACY_MODULES"
+    "OPENDAQ_ENABLE_OPCUA"
 )
 
 set(MODULE_FETCH_PATHS
     "modules/websocket_streaming_modules/modern"
     "modules/websocket_streaming_modules/legacy"
+    "modules/opcua_modules"
 )
 
 set(MODULE_NAMES
     "LtStreamingModulesModern"
     "LtStreamingModulesLegacy"
+    "OpcUaModules"
 )
 
 foreach(ENABLE_EXPR MODULE_PATH MODULE_NAME IN ZIP_LISTS MODULE_ENABLE_EXPRS MODULE_FETCH_PATHS MODULE_NAMES)

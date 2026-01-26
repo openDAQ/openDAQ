@@ -116,6 +116,98 @@ option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder modu
 option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" OFF)
 option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
 
+include(DaqInternal)
+
+set(OPENDAQ_MODULE_EVAL_EXPRS
+    "DAQMODULES_EMPTY_MODULE"
+    "DAQMODULES_REF_FB_MODULE"
+)
+
+set(OPENDAQ_MODULE_DIRS
+    "examples/modules/empty_module"
+    "examples/modules/ref_fb_module"
+)
+
+foreach(OPENDAQ_MODULE_EVAL_EXPR OPENDAQ_MODULE_DIR IN ZIP_LISTS OPENDAQ_MODULE_EVAL_EXPRS OPENDAQ_MODULE_DIRS)
+    set(OPENDAQ_MODULE_PATH "${PROJ_DIR}/${OPENDAQ_MODULE_DIR}")
+
+    if(NOT IS_DIRECTORY "${OPENDAQ_MODULE_PATH}")
+        message(FATAL_ERROR "Specified module directory ${OPENDAQ_MODULE_PATH} does not exist")
+    endif()
+
+    set(OPENDAQ_MODULE_OPTIONS_FILE "${OPENDAQ_MODULE_PATH}/cmake/ModuleOptions.cmake")
+    if(EXISTS "${OPENDAQ_MODULE_OPTIONS_FILE}")
+        message(STATUS "Include module cmake options from ${OPENDAQ_MODULE_OPTIONS_FILE}")
+        include("${OPENDAQ_MODULE_OPTIONS_FILE}")
+    endif()
+
+    if(${OPENDAQ_MODULE_EVAL_EXPR})
+        set(OPENDAQ_MODULE_BOOSTLIB_FILE "${OPENDAQ_MODULE_PATH}/external/Boost.cmake")
+        if(EXISTS "${OPENDAQ_MODULE_BOOSTLIB_FILE}")
+            message(STATUS "Add boost required libraries listed in ${OPENDAQ_MODULE_BOOSTLIB_FILE}")
+            include("${OPENDAQ_MODULE_BOOSTLIB_FILE}")
+        endif()
+    endif()
+endforeach()
+
+set(USE_LT_LEGACY_MODULES FALSE)
+set(USE_LT_MODERN_MODULES FALSE)
+if(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
+    if(DAQMODULES_LT_LEGACY_MODULES)
+        set(USE_LT_LEGACY_MODULES TRUE)
+    else()
+        set(USE_LT_MODERN_MODULES TRUE)
+    endif()
+endif()
+
+set(MODULE_ENABLE_EXPRS
+    "USE_LT_MODERN_MODULES"
+    "USE_LT_LEGACY_MODULES"
+)
+
+set(MODULE_FETCH_PATHS
+    "modules/websocket_streaming_modules/modern"
+    "modules/websocket_streaming_modules/legacy"
+)
+
+set(MODULE_NAMES
+    "LtStreamingModulesModern"
+    "LtStreamingModulesLegacy"
+)
+
+foreach(ENABLE_EXPR MODULE_PATH MODULE_NAME IN ZIP_LISTS MODULE_ENABLE_EXPRS MODULE_FETCH_PATHS MODULE_NAMES)
+    set(OPENDAQ_MODULE_PATH "${PROJ_DIR}/${MODULE_PATH}")
+
+    if(NOT IS_DIRECTORY "${OPENDAQ_MODULE_PATH}")
+        message(FATAL_ERROR "Specified module directory ${OPENDAQ_MODULE_PATH} does not exist")
+    endif()
+
+    include("${OPENDAQ_MODULE_PATH}/Fetch.cmake")
+
+    FetchContent_GetProperties(
+        ${MODULE_NAME}
+        SOURCE_DIR ${MODULE_NAME}_SOURCE_DIR
+    )
+
+    set(OPENDAQ_MODULE_OPTIONS_FILE "${${MODULE_NAME}_SOURCE_DIR}/cmake/ModuleOptions.cmake")
+    if(EXISTS "${OPENDAQ_MODULE_OPTIONS_FILE}")
+        message(STATUS "Include module cmake options from ${OPENDAQ_MODULE_OPTIONS_FILE}")
+        include("${OPENDAQ_MODULE_OPTIONS_FILE}")
+    else()
+        message(STATUS "Skip ${OPENDAQ_MODULE_OPTIONS_FILE} - file does not exists")
+    endif()
+
+    if(${ENABLE_EXPR})
+        set(OPENDAQ_MODULE_BOOSTLIB_FILE "${${MODULE_NAME}_SOURCE_DIR}/external/Boost.cmake")
+        if(EXISTS "${OPENDAQ_MODULE_BOOSTLIB_FILE}")
+            message(STATUS "Add boost required libraries listed in ${OPENDAQ_MODULE_BOOSTLIB_FILE}")
+            include("${OPENDAQ_MODULE_BOOSTLIB_FILE}")
+        else()
+            message(STATUS "Skip ${OPENDAQ_MODULE_BOOSTLIB_FILE} - file does not exists")
+        endif()
+    endif()
+endforeach()
+
 # logging start
 include(openDAQLogging)
 
@@ -149,8 +241,6 @@ if (COMMAND get_mode)
     get_mode(CMAKE_MODE)
     message(STATUS "CMake Mode is ${CMAKE_MODE}")
 endif()
-
-include(DaqInternal)
 
 opendaq_is_64bit_build(BUILD_64Bit)
 set(BUILD_64Bit ${BUILD_64Bit} CACHE INTERNAL "Build in 64-bit mode")
@@ -373,11 +463,6 @@ add_subdirectory(examples)
 add_subdirectory(bindings)
 add_subdirectory(docs)
 add_subdirectory(simulator)
-
-if (NOT OPENDAQ_BUILDING_AS_SUBMODULE)
-    # fetch boost at latest point when list of required boost libs and headers is completed
-    opendaq_setup_boost()
-endif()
 
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)

@@ -62,6 +62,10 @@ if(OPENDAQ_ENABLE_OPCUA)
 endif()
 
 add_subdirectory(boost)
+if (NOT OPENDAQ_BUILDING_AS_SUBMODULE)
+    opendaq_setup_boost()
+endif()
+
 add_subdirectory(date)
 add_subdirectory(fmt)
 add_subdirectory(mdns EXCLUDE_FROM_ALL)

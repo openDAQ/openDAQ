@@ -196,7 +196,7 @@ endfunction(add_cmake_targets)
 # opendaq_fetch_module(
 #     NAME                module_name
 #     GIT_REPOSITORY      https://github.com/org/repo.git
-#     GIT_TAG             v1.2.3 | branch-name
+#     GIT_REF             v1.2.3 | branch-name
 #     [ GIT_SHALLOW       ON|OFF ]
 #     [ EXCLUDE_FROM_ALL  ON|OFF ]
 # )
@@ -205,7 +205,7 @@ macro(opendaq_fetch_module)
 
     cmake_parse_arguments(FETCHED_MODULE
         ""
-        "NAME;GIT_REPOSITORY;GIT_TAG;GIT_SHALLOW;EXCLUDE_FROM_ALL"
+        "NAME;GIT_REPOSITORY;GIT_REF;GIT_SHALLOW;EXCLUDE_FROM_ALL"
         ""
         ${ARGN}
     )
@@ -218,8 +218,8 @@ macro(opendaq_fetch_module)
         message(FATAL_ERROR "opendaq_fetch_module(${FETCHED_MODULE_NAME}): GIT_REPOSITORY is required")
     endif()
 
-    if (NOT FETCHED_MODULE_GIT_TAG)
-        message(FATAL_ERROR "opendaq_fetch_module(${FETCHED_MODULE_NAME}): GIT_TAG is required")
+    if (NOT FETCHED_MODULE_GIT_REF)
+        message(FATAL_ERROR "opendaq_fetch_module(${FETCHED_MODULE_NAME}): GIT_REF is required")
     endif()
 
     set(PARAMS_GIT_SHALLOW ON)
@@ -232,15 +232,40 @@ macro(opendaq_fetch_module)
         set(PARAMS_EXCLUDE_FROM_ALL ${FETCHED_MODULE_EXCLUDE_FROM_ALL})
     endif()
 
-    FetchContent_Declare(${FETCHED_MODULE_NAME}
+    set_cmake_folder_context(TARGET_FOLDER_NAME)
+    get_custom_fetch_content_params(${FETCHED_MODULE_NAME} FC_PARAMS)
+
+    FetchContent_Declare(
+        ${FETCHED_MODULE_NAME}
         GIT_REPOSITORY ${FETCHED_MODULE_GIT_REPOSITORY}
-        GIT_TAG        ${FETCHED_MODULE_GIT_TAG}
-        GIT_SHALLOW    ${PARAMS_GIT_SHALLOW}
+        GIT_TAG        ${FETCHED_MODULE_GIT_REF}
         GIT_PROGRESS   ON
+        GIT_SHALLOW    ${PARAMS_GIT_SHALLOW}
         GIT_REMOTE_UPDATE_STRATEGY CHECKOUT
         EXCLUDE_FROM_ALL ${PARAMS_EXCLUDE_FROM_ALL}
+        ${FC_PARAMS}
     )
 
-    FetchContent_MakeAvailable(${FETCHED_MODULE_NAME})
+    FetchContent_Populate(${FETCHED_MODULE_NAME})
 
+    FetchContent_GetProperties(
+        ${FETCHED_MODULE_NAME}
+        POPULATED  FETCHED_MODULE_POPULATED
+        SOURCE_DIR FETCHED_MODULE_SOURCE_DIR
+        BINARY_DIR FETCHED_MODULE_BINARY_DIR
+    )
+
+    if(NOT FETCHED_MODULE_POPULATED)
+        message(FATAL_ERROR "Fail to populate ${FETCHED_MODULE_NAME} module")
+    endif()
+
+    if(NOT FETCHED_MODULE_SOURCE_DIR OR NOT IS_DIRECTORY "${FETCHED_MODULE_SOURCE_DIR}")
+        message(FATAL_ERROR "${FETCHED_MODULE_NAME} module source directory ${FETCHED_MODULE_SOURCE_DIR} is invalid")
+    endif()
+    message(STATUS "opendaq_fetch_module(${FETCHED_MODULE_NAME}) SORCE DIR: ${FETCHED_MODULE_SOURCE_DIR}")
+
+    if(NOT FETCHED_MODULE_BINARY_DIR OR NOT IS_DIRECTORY "${FETCHED_MODULE_BINARY_DIR}")
+        message(FATAL_ERROR "${FETCHED_MODULE_NAME} module binary directory ${FETCHED_MODULE_BINARY_DIR} is invalid")
+    endif()
+    message(STATUS "opendaq_fetch_module(${FETCHED_MODULE_NAME}) BINARY DIR: ${FETCHED_MODULE_BINARY_DIR}")
 endmacro()

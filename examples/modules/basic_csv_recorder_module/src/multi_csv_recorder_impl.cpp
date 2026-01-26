@@ -124,6 +124,7 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
     else
         notificationMode = PacketReadyNotification::Scheduler;
 
+    createReader();
     updateInputPorts();
 }
 
@@ -207,16 +208,8 @@ bool MultiCsvRecorderImpl::updateInputPorts()
         SignalPtr signal = disconnectedPort.getSignal();
         cachedSignalNames.insert(std::make_pair(disconnectedPort.getGlobalId(), signal.getName()));
 
-        if (!reader.assigned())
-        {
-            // Create MultiReader when the first signal is connected - this way it can get context from the first port
-            createReader();
-        }
-        else
-        {
-            reader.addInput(disconnectedPort);
-        }
-
+        // Activate the newly connected port
+        reader.setInputUnused(disconnectedPort.getGlobalId(), false);
         disconnectedPort.release();
         connectedPortsChanged = true;
     }
@@ -244,6 +237,10 @@ bool MultiCsvRecorderImpl::updateInputPorts()
         std::string id = getNextPortID();
         auto inputPort = createAndAddInputPort(id, notificationMode);
         disconnectedPort = inputPort;
+
+        // Add the empty port to the multi reader and mark it unused
+        reader.addInput(disconnectedPort);
+        reader.setInputUnused(disconnectedPort.getGlobalId(), true);
     }
 
     if (connectedPorts.empty())
@@ -262,10 +259,8 @@ void MultiCsvRecorderImpl::createReader()
                        .setDomainReadType(SampleType::Int64)
                        .setValueReadType(SampleType::Float64)
                        .setAllowDifferentSamplingRates(false)
-                       .setInputPortNotificationMethod(notificationMode);
-
-    for (const auto& port : connectedPorts)
-        builder.addInputPort(port);
+                       .setInputPortNotificationMethod(notificationMode)
+                       .setContext(this->context);
 
     reader = builder.build();
 

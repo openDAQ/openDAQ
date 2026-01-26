@@ -1243,4 +1243,53 @@ TEST_F(InstanceTest, ModuleManagerGrouping)
     }
 }
 
+TEST_F(InstanceTest, TestRemoveStaticDevice)
+{
+    auto instance = test_helpers::setupInstance();
+    auto config = PropertyObject();
+    config.addProperty(BoolProperty("IsStatic", true));
+    auto dev = instance.addDevice("daqmock://phys_device", config);
+
+    ASSERT_THROW(instance.removeDevice(dev), InvalidOperationException);
+}
+
+TEST_F(InstanceTest, TestRemoveStaticFb)
+{
+    
+    auto instance = test_helpers::setupInstance();
+    auto config = PropertyObject();
+    config.addProperty(BoolProperty("IsStatic", true));
+    auto fb = instance.addFunctionBlock("mock_fb_uid", config);
+
+    ASSERT_THROW(instance.removeFunctionBlock(fb), InvalidOperationException);
+}
+
+TEST_F(InstanceTest, TestUpdateMissingStaticDevice)
+{
+    auto instance = test_helpers::setupInstance();
+    auto setup = instance.saveConfiguration();
+
+    auto config = PropertyObject();
+    config.addProperty(BoolProperty("IsStatic", true));
+    auto dev = instance.addDevice("daqmock://phys_device", config);
+
+    instance.loadConfiguration(setup);
+
+    ASSERT_FALSE(dev.isRemoved());
+}
+
+TEST_F(InstanceTest, TestUpdateMissingStaticFB)
+{
+    auto instance = test_helpers::setupInstance();
+    auto setup = instance.saveConfiguration();
+    
+    auto config = PropertyObject();
+    config.addProperty(BoolProperty("IsStatic", true));
+    auto fb = instance.addFunctionBlock("mock_fb_uid", config);
+
+    instance.loadConfiguration(setup);
+
+    ASSERT_FALSE(fb.isRemoved());
+}
+
 END_NAMESPACE_OPENDAQ

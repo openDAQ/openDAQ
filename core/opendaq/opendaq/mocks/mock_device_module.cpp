@@ -57,6 +57,8 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     auto retrieveArguments = List<IArgumentInfo>(ArgumentInfo("ifaceName", ctString));
     mockConfig.addProperty(FunctionProperty("onRetrieveConfig", FunctionInfo(ctObject, retrieveArguments)));
 
+    mockConfig.addProperty(BoolProperty("IsStatic", false));
+
     auto clientDeviceType = DeviceTypeBuilder()
         .setConnectionStringPrefix("daq.root")
         .setId("OpenDAQClient")

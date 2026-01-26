@@ -106,7 +106,10 @@ DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
     deviceInfo.addProperty(FloatPropertyBuilder("custom_float", 1.123).setReadOnly(true).build());
     deviceInfo.addProperty(StringProperty("TestChangeableField", "Test"));
 
-    deviceInfo.setDeviceType(DeviceType("mock_phys_device", "Mock physical device", "Mock", "daqmock"));
+    if (config.assigned() && config.hasProperty("IsStatic") && config.getPropertyValue("IsStatic"))
+        deviceInfo.setDeviceType(DeviceType("mock_static_device", "Mock static device", "Mock", "daq.static"));
+    else
+        deviceInfo.setDeviceType(DeviceType("mock_phys_device", "Mock physical device", "Mock", "daqmock"));
     return deviceInfo;
 }
 

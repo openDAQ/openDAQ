@@ -4,7 +4,7 @@ set(CMAKE_FOLDER "external")
 list(APPEND CMAKE_MESSAGE_CONTEXT external)
 set(CURR_MESSAGE_CONTEXT ${CMAKE_MESSAGE_CONTEXT})
 
-suppress_ext_lib_warnings()
+opendaq_suppress_ext_lib_warnings()
 
 if (NOT TARGET daq::testlibs AND OPENDAQ_ENABLE_TEST_UTILS)
     set(CMAKE_MESSAGE_CONTEXT ${CURR_MESSAGE_CONTEXT} googletest)

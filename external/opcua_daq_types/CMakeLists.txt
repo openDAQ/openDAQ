@@ -13,7 +13,7 @@ set(OPCUA_NODESET_URIS)
 # Fetch the openDAQ OPC-UA Companion Specification NodeSet
 #
 set(daq_spec_REQUIREDVERSION "3.0.2")
-get_custom_fetch_content_params(daqspec FC_PARAMS)
+opendaq_get_custom_fetch_content_params(daqspec FC_PARAMS)
 
 FetchContent_Declare(daqspec
   GIT_REPOSITORY https://github.com/openDAQ/opc-ua-companion-spec.git

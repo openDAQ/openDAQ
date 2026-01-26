@@ -9,7 +9,7 @@ else()
     message(STATUS "Fetching GTest version ${GTest_REQUIREDVERSION}")
 
     include(FetchContent)
-    get_custom_fetch_content_params(GTest FC_PARAMS)
+    opendaq_get_custom_fetch_content_params(GTest FC_PARAMS)
 
     set(GTest_WITH_POST_BUILD_UNITTEST OFF)
     set(GTest_WITH_TESTS OFF)

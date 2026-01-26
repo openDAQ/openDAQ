@@ -9,7 +9,7 @@ set(SDK_TARGET_NAMESPACE daq)
 set(SDK_OPTION_PREFIX OPENDAQ)
 
 add_subdirectory(cmake)
-setup_repo_version("OPENDAQ_PACKAGE" ${SDK_NAME} "opendaq_version")
+opendaq_setup_repo_version("OPENDAQ_PACKAGE" ${SDK_NAME} "opendaq_version")
 
 project(${SDK_NAME}
     LANGUAGES CXX
@@ -19,8 +19,8 @@ project(${SDK_NAME}
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 )
 
-setup_build_mode(${SDK_OPTION_PREFIX} ${SDK_NAME})
-setup_repo(${SDK_OPTION_PREFIX})
+opendaq_setup_build_mode(${SDK_OPTION_PREFIX} ${SDK_NAME})
+opendaq_setup_repo(${SDK_OPTION_PREFIX})
 
 get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
 

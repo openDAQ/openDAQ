@@ -233,7 +233,7 @@ macro(opendaq_fetch_module)
     endif()
 
     set_cmake_folder_context(TARGET_FOLDER_NAME)
-    get_custom_fetch_content_params(${FETCHED_MODULE_NAME} FC_PARAMS)
+    opendaq_get_custom_fetch_content_params(${FETCHED_MODULE_NAME} FC_PARAMS)
 
     FetchContent_Declare(
         ${FETCHED_MODULE_NAME}

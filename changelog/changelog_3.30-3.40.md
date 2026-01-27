@@ -15,6 +15,7 @@
 - [#987](https://github.com/openDAQ/openDAQ/pull/987) Make Enumeration Properties editable in Python GUI demo application
 - [#991](https://github.com/openDAQ/openDAQ/pull/991) Add Function Block configuration to Python GUI demo app
 - [#1007](https://github.com/openDAQ/openDAQ/pull/1007) Add a missing error popup when adding a Function Block fails in Python GUI demo app.
+- [#1029](https://github.com/openDAQ/openDAQ/pull/1029) Fix python binding for iterators to enable list comprehensions.
 
 ## Bug fixes
 

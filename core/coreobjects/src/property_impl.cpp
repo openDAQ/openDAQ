@@ -1,4 +1,5 @@
 #include <coreobjects/property_impl.h>
+#include <coretypes/common.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -22,9 +23,7 @@ namespace details
     static CoreType intfIdToCoreType(IntfID intfID)
     {
         if (intfIdToCoreTypeMap.find(intfID) == intfIdToCoreTypeMap.end())
-        {
             return ctUndefined;
-        }
 
         return intfIdToCoreTypeMap.at(intfID);
     }
@@ -32,7 +31,7 @@ namespace details
 
 // Constructors
 
-PropertyImpl::PropertyImpl()
+PUBLIC_EXPORT PropertyImpl::PropertyImpl()
     : owner(nullptr)
     , valueType(ctUndefined)
     , visible(true)
@@ -41,13 +40,13 @@ PropertyImpl::PropertyImpl()
     propPtr = this->borrowPtr<PropertyPtr>();
 }
 
-PropertyImpl::PropertyImpl(const StringPtr& name)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name)
     : PropertyImpl()
 {
     this->name = name;
 }
 
-PropertyImpl::PropertyImpl(IPropertyBuilder* propertyBuilder)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(IPropertyBuilder* propertyBuilder)
 {
     const auto propertyBuilderPtr = PropertyBuilderPtr::Borrow(propertyBuilder);
     this->valueType = propertyBuilderPtr.getValueType();
@@ -76,7 +75,7 @@ PropertyImpl::PropertyImpl(IPropertyBuilder* propertyBuilder)
     checkErrorInfo(validateDuringConstruction());
 }
 
-PropertyImpl::PropertyImpl(const StringPtr& name, const BaseObjectPtr& defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, const BaseObjectPtr& defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name)
 {
     this->defaultValue = defaultValue;
@@ -84,7 +83,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, const BaseObjectPtr& defaultVa
 }
 
 // BoolProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IBoolean* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IBoolean* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctBool;
@@ -93,7 +92,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IBoolean* defaultValue, const 
 }
 
 // IntProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IInteger* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IInteger* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctInt;
@@ -102,7 +101,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IInteger* defaultValue, const 
 }
 
 // FloatProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IFloat* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IFloat* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctFloat;
@@ -111,7 +110,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IFloat* defaultValue, const Bo
 }
 
 // StringProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IString* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IString* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctString;
@@ -120,7 +119,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IString* defaultValue, const B
 }
 
 // ListProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IList* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IList* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctList;
@@ -129,7 +128,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IList* defaultValue, const Boo
 }
 
 // DictProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IDict* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IDict* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctDict;
@@ -138,7 +137,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IDict* defaultValue, const Boo
 }
 
 // RatioProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IRatio* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IRatio* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctRatio;
@@ -147,7 +146,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IRatio* defaultValue, const Bo
 }
 
 // ObjectProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IPropertyObject* defaultValue)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IPropertyObject* defaultValue)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), true)
 {
     this->valueType = ctObject;
@@ -160,7 +159,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IPropertyObject* defaultValue)
 }
 
 // FunctionProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, ICallableInfo* callableInfo, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, ICallableInfo* callableInfo, const BooleanPtr& visible)
     : PropertyImpl(name)
 {
     this->visible = visible;
@@ -169,20 +168,16 @@ PropertyImpl::PropertyImpl(const StringPtr& name, ICallableInfo* callableInfo, c
     CoreType returnType;
     callableInfo->getReturnType(&returnType);
     if (returnType == ctUndefined)
-    {
         this->valueType = ctProc;
-    }
     else
-    {
         this->valueType = ctFunc;
-    }
 
     const auto err = validateDuringConstruction();
     checkErrorInfo(err);
 }
 
 // ReferenceProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IEvalValue* referencedProperty)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IEvalValue* referencedProperty)
     : PropertyImpl(name)
 {
     this->refProp = referencedProperty;
@@ -192,7 +187,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IEvalValue* referencedProperty
 }
 
 // SelectionProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IList* selectionValues, IInteger* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IList* selectionValues, IInteger* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctInt;
@@ -203,7 +198,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IList* selectionValues, IInteg
 }
 
 // SparseSelectionProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IDict* selectionValues, IInteger* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IDict* selectionValues, IInteger* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctInt;
@@ -214,7 +209,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IDict* selectionValues, IInteg
 }
 
 // StructProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IStruct* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IStruct* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctStruct;
@@ -225,7 +220,7 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IStruct* defaultValue, const B
 }
 
 // EnumerationProperty()
-PropertyImpl::PropertyImpl(const StringPtr& name, IEnumeration* defaultValue, const BooleanPtr& visible)
+PUBLIC_EXPORT PropertyImpl::PropertyImpl(const StringPtr& name, IEnumeration* defaultValue, const BooleanPtr& visible)
     : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
 {
     this->valueType = ctEnumeration;
@@ -237,17 +232,17 @@ PropertyImpl::PropertyImpl(const StringPtr& name, IEnumeration* defaultValue, co
 
 // Value type methods
 
-ErrCode PropertyImpl::getValueType(CoreType* type)
+PUBLIC_EXPORT ErrCode PropertyImpl::getValueType(CoreType* type)
 {
     return getValueTypeInternal(type, true);
 }
 
-ErrCode PropertyImpl::getValueTypeNoLock(CoreType* type)
+PUBLIC_EXPORT ErrCode PropertyImpl::getValueTypeNoLock(CoreType* type)
 {
     return getValueTypeInternal(type, false);
 }
 
-ErrCode PropertyImpl::getValueTypeInternal(CoreType* type, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getValueTypeInternal(CoreType* type, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(type);
 
@@ -262,17 +257,17 @@ ErrCode PropertyImpl::getValueTypeInternal(CoreType* type, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getKeyType(CoreType* type)
+PUBLIC_EXPORT ErrCode PropertyImpl::getKeyType(CoreType* type)
 {
     return getKeyTypeInternal(type, true);
 }
 
-ErrCode PropertyImpl::getKeyTypeNoLock(CoreType* type)
+PUBLIC_EXPORT ErrCode PropertyImpl::getKeyTypeNoLock(CoreType* type)
 {
     return getKeyTypeInternal(type, false);
 }
 
-ErrCode PropertyImpl::getKeyTypeInternal(CoreType* type, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getKeyTypeInternal(CoreType* type, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(type);
 
@@ -302,17 +297,17 @@ ErrCode PropertyImpl::getKeyTypeInternal(CoreType* type, bool lock)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getItemType(CoreType* type)
+PUBLIC_EXPORT ErrCode PropertyImpl::getItemType(CoreType* type)
 {
     return getItemTypeInternal(type, true);
 }
 
-ErrCode PropertyImpl::getItemTypeNoLock(CoreType* type)
+PUBLIC_EXPORT ErrCode PropertyImpl::getItemTypeNoLock(CoreType* type)
 {
     return getItemTypeInternal(type, false);
 }
 
-ErrCode PropertyImpl::getItemTypeInternal(CoreType* type, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getItemTypeInternal(CoreType* type, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(type);
     const ErrCode errCode = daqTry([&]()
@@ -367,24 +362,24 @@ ErrCode PropertyImpl::getItemTypeInternal(CoreType* type, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getName(IString** name)
+PUBLIC_EXPORT ErrCode PropertyImpl::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
     *name = this->name.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getDescription(IString** description)
+PUBLIC_EXPORT ErrCode PropertyImpl::getDescription(IString** description)
 {
     return getDescriptionInternal(description, true);
 }
 
-ErrCode PropertyImpl::getDescriptionNoLock(IString** description)
+PUBLIC_EXPORT ErrCode PropertyImpl::getDescriptionNoLock(IString** description)
 {
     return getDescriptionInternal(description, false);
 }
 
-ErrCode PropertyImpl::getDescriptionInternal(IString** description, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getDescriptionInternal(IString** description, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(description);
 
@@ -399,17 +394,17 @@ ErrCode PropertyImpl::getDescriptionInternal(IString** description, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getUnit(IUnit** unit)
+PUBLIC_EXPORT ErrCode PropertyImpl::getUnit(IUnit** unit)
 {
     return getUnitInternal(unit, true);
 }
 
-ErrCode PropertyImpl::getUnitNoLock(IUnit** unit)
+PUBLIC_EXPORT ErrCode PropertyImpl::getUnitNoLock(IUnit** unit)
 {
     return getUnitInternal(unit, false);
 }
 
-ErrCode PropertyImpl::getUnitInternal(IUnit** unit, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getUnitInternal(IUnit** unit, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(unit);
 
@@ -424,17 +419,17 @@ ErrCode PropertyImpl::getUnitInternal(IUnit** unit, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getMinValue(INumber** min)
+PUBLIC_EXPORT ErrCode PropertyImpl::getMinValue(INumber** min)
 {
     return getMinValueInternal(min, true);
 }
 
-ErrCode PropertyImpl::getMinValueNoLock(INumber** min)
+PUBLIC_EXPORT ErrCode PropertyImpl::getMinValueNoLock(INumber** min)
 {
     return getMinValueInternal(min, false);
 }
 
-ErrCode PropertyImpl::getMinValueInternal(INumber** min, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getMinValueInternal(INumber** min, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(min);
 
@@ -449,17 +444,17 @@ ErrCode PropertyImpl::getMinValueInternal(INumber** min, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getMaxValue(INumber** max)
+PUBLIC_EXPORT ErrCode PropertyImpl::getMaxValue(INumber** max)
 {
     return getMaxValueInternal(max, true);
 }
 
-ErrCode PropertyImpl::getMaxValueNoLock(INumber** max)
+PUBLIC_EXPORT ErrCode PropertyImpl::getMaxValueNoLock(INumber** max)
 {
     return getMaxValueInternal(max, false);
 }
 
-ErrCode PropertyImpl::getMaxValueInternal(INumber** max, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getMaxValueInternal(INumber** max, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(max);
 
@@ -474,17 +469,17 @@ ErrCode PropertyImpl::getMaxValueInternal(INumber** max, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getDefaultValue(IBaseObject** value)
+PUBLIC_EXPORT ErrCode PropertyImpl::getDefaultValue(IBaseObject** value)
 {
     return getDefaultValueInternal(value, true);
 }
 
-ErrCode PropertyImpl::getDefaultValueNoLock(IBaseObject** value)
+PUBLIC_EXPORT ErrCode PropertyImpl::getDefaultValueNoLock(IBaseObject** value)
 {
     return getDefaultValueInternal(value, false);
 }
 
-ErrCode PropertyImpl::getDefaultValueInternal(IBaseObject** value, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getDefaultValueInternal(IBaseObject** value, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
@@ -499,17 +494,17 @@ ErrCode PropertyImpl::getDefaultValueInternal(IBaseObject** value, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getSuggestedValues(IList** values)
+PUBLIC_EXPORT ErrCode PropertyImpl::getSuggestedValues(IList** values)
 {
     return getSuggestedValuesInternal(values, true);
 }
 
-ErrCode PropertyImpl::getSuggestedValuesNoLock(IList** values)
+PUBLIC_EXPORT ErrCode PropertyImpl::getSuggestedValuesNoLock(IList** values)
 {
     return getSuggestedValuesInternal(values, false);
 }
 
-ErrCode PropertyImpl::getSuggestedValuesInternal(IList** values, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getSuggestedValuesInternal(IList** values, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(values);
 
@@ -536,17 +531,17 @@ ErrCode PropertyImpl::getSuggestedValuesInternal(IList** values, bool lock)
     return err;
 }
 
-ErrCode PropertyImpl::getVisible(Bool* visible)
+PUBLIC_EXPORT ErrCode PropertyImpl::getVisible(Bool* visible)
 {
     return getVisibleInternal(visible, true);
 }
 
-ErrCode PropertyImpl::getVisibleNoLock(Bool* visible)
+PUBLIC_EXPORT ErrCode PropertyImpl::getVisibleNoLock(Bool* visible)
 {
     return getVisibleInternal(visible, false);
 }
 
-ErrCode PropertyImpl::getVisibleInternal(Bool* visible, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getVisibleInternal(Bool* visible, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(visible);
 
@@ -561,17 +556,17 @@ ErrCode PropertyImpl::getVisibleInternal(Bool* visible, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getReadOnly(Bool* readOnly)
+PUBLIC_EXPORT ErrCode PropertyImpl::getReadOnly(Bool* readOnly)
 {
     return getReadOnlyInternal(readOnly, true);
 }
 
-ErrCode PropertyImpl::getReadOnlyNoLock(Bool* readOnly)
+PUBLIC_EXPORT ErrCode PropertyImpl::getReadOnlyNoLock(Bool* readOnly)
 {
     return getReadOnlyInternal(readOnly, false);
 }
 
-ErrCode PropertyImpl::getReadOnlyInternal(Bool* readOnly, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getReadOnlyInternal(Bool* readOnly, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(readOnly);
 
@@ -586,17 +581,17 @@ ErrCode PropertyImpl::getReadOnlyInternal(Bool* readOnly, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getSelectionValues(IBaseObject** values)
+PUBLIC_EXPORT ErrCode PropertyImpl::getSelectionValues(IBaseObject** values)
 {
     return getSelectionValuesInternal(values, true);
 }
 
-ErrCode PropertyImpl::getSelectionValuesNoLock(IBaseObject** values)
+PUBLIC_EXPORT ErrCode PropertyImpl::getSelectionValuesNoLock(IBaseObject** values)
 {
     return getSelectionValuesInternal(values, false);
 }
 
-ErrCode PropertyImpl::getSelectionValuesInternal(IBaseObject** values, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getSelectionValuesInternal(IBaseObject** values, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(values);
 
@@ -623,17 +618,17 @@ ErrCode PropertyImpl::getSelectionValuesInternal(IBaseObject** values, bool lock
     return errCode;
 }
 
-ErrCode PropertyImpl::getReferencedProperty(IProperty** property)
+PUBLIC_EXPORT ErrCode PropertyImpl::getReferencedProperty(IProperty** property)
 {
     return getReferencedPropertyInternal(property, true);
 }
 
-ErrCode PropertyImpl::getReferencedPropertyNoLock(IProperty** property)
+PUBLIC_EXPORT ErrCode PropertyImpl::getReferencedPropertyNoLock(IProperty** property)
 {
     return getReferencedPropertyInternal(property, false);
 }
 
-ErrCode PropertyImpl::getReferencedPropertyInternal(IProperty** property, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getReferencedPropertyInternal(IProperty** property, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(property);
 
@@ -645,17 +640,17 @@ ErrCode PropertyImpl::getReferencedPropertyInternal(IProperty** property, bool l
     return errCode;
 }
 
-ErrCode PropertyImpl::getIsReferenced(Bool* isReferenced)
+PUBLIC_EXPORT ErrCode PropertyImpl::getIsReferenced(Bool* isReferenced)
 {
     return getIsReferencedInternal(isReferenced, true);
 }
 
-ErrCode PropertyImpl::getIsReferencedNoLock(Bool* isReferenced)
+PUBLIC_EXPORT ErrCode PropertyImpl::getIsReferencedNoLock(Bool* isReferenced)
 {
     return getIsReferencedInternal(isReferenced, false);
 }
 
-ErrCode PropertyImpl::getIsReferencedInternal(Bool* isReferenced, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getIsReferencedInternal(Bool* isReferenced, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(isReferenced);
 
@@ -672,17 +667,17 @@ ErrCode PropertyImpl::getIsReferencedInternal(Bool* isReferenced, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getValidator(IValidator** validator)
+PUBLIC_EXPORT ErrCode PropertyImpl::getValidator(IValidator** validator)
 {
     return getValidatorInternal(validator, true);
 }
 
-ErrCode PropertyImpl::getValidatorNoLock(IValidator** validator)
+PUBLIC_EXPORT ErrCode PropertyImpl::getValidatorNoLock(IValidator** validator)
 {
     return getValidatorInternal(validator, false);
 }
 
-ErrCode PropertyImpl::getValidatorInternal(IValidator** validator, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getValidatorInternal(IValidator** validator, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(validator);
 
@@ -697,17 +692,17 @@ ErrCode PropertyImpl::getValidatorInternal(IValidator** validator, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getCoercer(ICoercer** coercer)
+PUBLIC_EXPORT ErrCode PropertyImpl::getCoercer(ICoercer** coercer)
 {
     return getCoercerInternal(coercer, true);
 }
 
-ErrCode PropertyImpl::getCoercerNoLock(ICoercer** coercer)
+PUBLIC_EXPORT ErrCode PropertyImpl::getCoercerNoLock(ICoercer** coercer)
 {
     return getCoercerInternal(coercer, false);
 }
 
-ErrCode PropertyImpl::getCoercerInternal(ICoercer** coercer, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getCoercerInternal(ICoercer** coercer, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(coercer);
 
@@ -722,17 +717,17 @@ ErrCode PropertyImpl::getCoercerInternal(ICoercer** coercer, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::getCallableInfo(ICallableInfo** callableInfo)
+PUBLIC_EXPORT ErrCode PropertyImpl::getCallableInfo(ICallableInfo** callableInfo)
 {
     return getCallableInfoInternal(callableInfo, true);
 }
 
-ErrCode PropertyImpl::getCallableInfoNoLock(ICallableInfo** callableInfo)
+PUBLIC_EXPORT ErrCode PropertyImpl::getCallableInfoNoLock(ICallableInfo** callableInfo)
 {
     return getCallableInfoInternal(callableInfo, false);
 }
 
-ErrCode PropertyImpl::getCallableInfoInternal(ICallableInfo** callableInfo, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getCallableInfoInternal(ICallableInfo** callableInfo, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(callableInfo);
 
@@ -747,17 +742,17 @@ ErrCode PropertyImpl::getCallableInfoInternal(ICallableInfo** callableInfo, bool
     return errCode;
 }
 
-ErrCode PropertyImpl::getStructType(IStructType** structType)
+PUBLIC_EXPORT ErrCode PropertyImpl::getStructType(IStructType** structType)
 {
     return getStructTypeInternal(structType, true);
 }
 
-ErrCode PropertyImpl::getStructTypeNoLock(IStructType** structType)
+PUBLIC_EXPORT ErrCode PropertyImpl::getStructTypeNoLock(IStructType** structType)
 {
     return getStructTypeInternal(structType, false);
 }
 
-ErrCode PropertyImpl::getStructTypeInternal(IStructType** structType, bool lock)
+PUBLIC_EXPORT ErrCode PropertyImpl::getStructTypeInternal(IStructType** structType, bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(structType);
 
@@ -770,13 +765,11 @@ ErrCode PropertyImpl::getStructTypeInternal(IStructType** structType, bool lock)
         }
         else if (lock)
         {
-            const ErrCode errCode = this->getDefaultValue(&defaultStruct);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
+            OPENDAQ_RETURN_IF_FAILED(this->getDefaultValue(&defaultStruct));
         }
         else
         {
-            const ErrCode errCode = this->getDefaultValueNoLock(&defaultStruct);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
+            OPENDAQ_RETURN_IF_FAILED(this->getDefaultValueNoLock(&defaultStruct));
         }
         *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
         return OPENDAQ_SUCCESS;
@@ -785,90 +778,75 @@ ErrCode PropertyImpl::getStructTypeInternal(IStructType** structType, bool lock)
     return errCode;
 }
 
-ErrCode PropertyImpl::overrideDefaultValue(IBaseObject* newDefaultValue)
+PUBLIC_EXPORT ErrCode PropertyImpl::overrideDefaultValue(IBaseObject* newDefaultValue)
 {
     defaultValue = newDefaultValue;
-    if (defaultValue.supportsInterface<IFreezable>())
-        defaultValue.freeze();
+    if (auto freezable = defaultValue.asPtrOrNull<IFreezable>(); freezable.assigned())
+        freezable.freeze();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getClassOnPropertyValueWrite(IEvent** event)
+PUBLIC_EXPORT ErrCode PropertyImpl::getClassOnPropertyValueWrite(IEvent** event)
 {
     if (event == nullptr)
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
-    }
 
     *event = onValueWrite.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getOnPropertyValueWrite(IEvent** event)
+PUBLIC_EXPORT ErrCode PropertyImpl::getOnPropertyValueWrite(IEvent** event)
 {
     if (event == nullptr)
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
-    }
+
     if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
-    {
         return ownerPtr->getOnPropertyValueWrite(this->name, event);
-    }
 
     *event = onValueWrite.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getClassOnPropertyValueRead(IEvent** event)
+PUBLIC_EXPORT ErrCode PropertyImpl::getClassOnPropertyValueRead(IEvent** event)
 {
     if (event == nullptr)
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
-    }
 
     *event = onValueRead.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getOnPropertyValueRead(IEvent** event)
+PUBLIC_EXPORT ErrCode PropertyImpl::getOnPropertyValueRead(IEvent** event)
 {
     if (event == nullptr)
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
-    }
 
     if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
-    {
         return ownerPtr->getOnPropertyValueRead(this->name, event);
-    }
 
     *event = onValueRead.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getOnSelectionValuesRead(IEvent** event)
+PUBLIC_EXPORT ErrCode PropertyImpl::getOnSelectionValuesRead(IEvent** event)
 {
     if (event == nullptr)
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
-    }
 
     *event = onSelectionValuesRead.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getOnSuggestedValuesRead(IEvent** event)
+PUBLIC_EXPORT ErrCode PropertyImpl::getOnSuggestedValuesRead(IEvent** event)
 {
     if (event == nullptr)
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Cannot return the event via a null pointer.");
-    }
 
     *event = onSuggestedValuesRead.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getValue(IBaseObject** value)
+PUBLIC_EXPORT ErrCode PropertyImpl::getValue(IBaseObject** value)
 {
     if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
         return ownerPtr->getPropertyValue(this->name, value);
@@ -876,21 +854,21 @@ ErrCode PropertyImpl::getValue(IBaseObject** value)
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER);
 }
 
-ErrCode PropertyImpl::setValue(IBaseObject* value)
+PUBLIC_EXPORT ErrCode PropertyImpl::setValue(IBaseObject* value)
 {
     if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
         return ownerPtr->setPropertyValue(this->name, value);
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER);
 }
 
-ErrCode PropertyImpl::setValueProtected(IBaseObject* newValue)
+PUBLIC_EXPORT ErrCode PropertyImpl::setValueProtected(IBaseObject* newValue)
 {
     if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
         return ownerPtr.asPtr<IPropertyObjectProtected>()->setProtectedPropertyValue(this->name, newValue);
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER);
 }
 
-ErrCode PropertyImpl::getHasOnReadListeners(Bool* hasListeners)
+PUBLIC_EXPORT ErrCode PropertyImpl::getHasOnReadListeners(Bool* hasListeners)
 {
     OPENDAQ_PARAM_NOT_NULL(hasListeners);
 
@@ -916,7 +894,7 @@ ErrCode PropertyImpl::getHasOnReadListeners(Bool* hasListeners)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getHasOnGetSuggestedValuesListeners(Bool* hasListeners)
+PUBLIC_EXPORT ErrCode PropertyImpl::getHasOnGetSuggestedValuesListeners(Bool* hasListeners)
 {
     OPENDAQ_PARAM_NOT_NULL(hasListeners);
 
@@ -924,7 +902,7 @@ ErrCode PropertyImpl::getHasOnGetSuggestedValuesListeners(Bool* hasListeners)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::getHasOnGetSelectionValuesListeners(Bool* hasListeners)
+PUBLIC_EXPORT ErrCode PropertyImpl::getHasOnGetSelectionValuesListeners(Bool* hasListeners)
 {
     OPENDAQ_PARAM_NOT_NULL(hasListeners);
 
@@ -932,7 +910,7 @@ ErrCode PropertyImpl::getHasOnGetSelectionValuesListeners(Bool* hasListeners)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::validate()
+PUBLIC_EXPORT ErrCode PropertyImpl::validate()
 {
     if (!name.assigned() || name == "opendaq_unassigned")
     {
@@ -1083,7 +1061,7 @@ ErrCode PropertyImpl::validate()
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::toString(CharPtr* str)
+PUBLIC_EXPORT ErrCode PropertyImpl::toString(CharPtr* str)
 {
     if (str == nullptr)
     {
@@ -1097,7 +1075,7 @@ ErrCode PropertyImpl::toString(CharPtr* str)
 
 // ISerializable
 
-ErrCode PropertyImpl::serialize(ISerializer* serializer)
+PUBLIC_EXPORT ErrCode PropertyImpl::serialize(ISerializer* serializer)
 {
     serializer->startTaggedObject(this);
     {
@@ -1160,18 +1138,18 @@ ErrCode PropertyImpl::serialize(ISerializer* serializer)
     return OPENDAQ_SUCCESS;
 }
 
-ConstCharPtr PropertyImpl::SerializeId()
+PUBLIC_EXPORT ConstCharPtr PropertyImpl::SerializeId()
 {
     return "Property";
 }
 
-ErrCode PropertyImpl::getSerializeId(ConstCharPtr* id) const
+PUBLIC_EXPORT ErrCode PropertyImpl::getSerializeId(ConstCharPtr* id) const
 {
     *id = SerializeId();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::ReadBuilderDeserializeValues(const PropertyBuilderPtr& builder, ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback)
+PUBLIC_EXPORT ErrCode PropertyImpl::ReadBuilderDeserializeValues(const PropertyBuilderPtr& builder, ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback)
 {
     auto propObj = builder;
     ErrCode errCode = deserializeMember<decltype(valueType)>(serializedObj, "valueType", builder, context, factoryCallback, &IPropertyBuilder::setValueType);
@@ -1246,7 +1224,7 @@ ErrCode PropertyImpl::ReadBuilderDeserializeValues(const PropertyBuilderPtr& bui
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::Deserialize(ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+PUBLIC_EXPORT ErrCode PropertyImpl::Deserialize(ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
 {
     StringPtr name;
     ErrCode errCode = serializedObj->readString(String("name"), &name);
@@ -1261,7 +1239,7 @@ ErrCode PropertyImpl::Deserialize(ISerializedObject* serializedObj, IBaseObject*
 
 // IPropertyInternal
 
-ErrCode PropertyImpl::clone(IProperty** clonedProperty)
+PUBLIC_EXPORT ErrCode PropertyImpl::clone(IProperty** clonedProperty)
 {
     OPENDAQ_PARAM_NOT_NULL(clonedProperty);
 
@@ -1300,7 +1278,7 @@ ErrCode PropertyImpl::clone(IProperty** clonedProperty)
     return errCode;
 }
 
-ErrCode PropertyImpl::cloneWithOwner(IPropertyObject* owner, IProperty** clonedProperty)
+PUBLIC_EXPORT ErrCode PropertyImpl::cloneWithOwner(IPropertyObject* owner, IProperty** clonedProperty)
 {
     OPENDAQ_PARAM_NOT_NULL(clonedProperty);
 
@@ -1324,7 +1302,7 @@ ErrCode PropertyImpl::cloneWithOwner(IPropertyObject* owner, IProperty** clonedP
     return err;
 }
 
-ErrCode PropertyImpl::getDescriptionUnresolved(IString** description)
+PUBLIC_EXPORT ErrCode PropertyImpl::getDescriptionUnresolved(IString** description)
 {
     OPENDAQ_PARAM_NOT_NULL(description);
 
@@ -1337,7 +1315,7 @@ ErrCode PropertyImpl::getDescriptionUnresolved(IString** description)
     return errCode;
 }
 
-ErrCode PropertyImpl::getUnitUnresolved(IBaseObject** unit)
+PUBLIC_EXPORT ErrCode PropertyImpl::getUnitUnresolved(IBaseObject** unit)
 {
     OPENDAQ_PARAM_NOT_NULL(unit);
 
@@ -1350,7 +1328,7 @@ ErrCode PropertyImpl::getUnitUnresolved(IBaseObject** unit)
     return errCode;
 }
 
-ErrCode PropertyImpl::getMinValueUnresolved(INumber** min)
+PUBLIC_EXPORT ErrCode PropertyImpl::getMinValueUnresolved(INumber** min)
 {
     OPENDAQ_PARAM_NOT_NULL(min);
 
@@ -1369,7 +1347,7 @@ ErrCode PropertyImpl::getMinValueUnresolved(INumber** min)
     return errCode;
 }
 
-ErrCode PropertyImpl::getMaxValueUnresolved(INumber** max)
+PUBLIC_EXPORT ErrCode PropertyImpl::getMaxValueUnresolved(INumber** max)
 {
     OPENDAQ_PARAM_NOT_NULL(max);
 
@@ -1382,7 +1360,7 @@ ErrCode PropertyImpl::getMaxValueUnresolved(INumber** max)
     return errCode;
 }
 
-ErrCode PropertyImpl::getDefaultValueUnresolved(IBaseObject** value)
+PUBLIC_EXPORT ErrCode PropertyImpl::getDefaultValueUnresolved(IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
@@ -1395,7 +1373,7 @@ ErrCode PropertyImpl::getDefaultValueUnresolved(IBaseObject** value)
     return errCode;
 }
 
-ErrCode PropertyImpl::getSuggestedValuesUnresolved(IList** values)
+PUBLIC_EXPORT ErrCode PropertyImpl::getSuggestedValuesUnresolved(IList** values)
 {
     OPENDAQ_PARAM_NOT_NULL(values);
 
@@ -1412,7 +1390,7 @@ ErrCode PropertyImpl::getSuggestedValuesUnresolved(IList** values)
     return errCode;
 }
 
-ErrCode PropertyImpl::getVisibleUnresolved(IBoolean** visible)
+PUBLIC_EXPORT ErrCode PropertyImpl::getVisibleUnresolved(IBoolean** visible)
 {
     OPENDAQ_PARAM_NOT_NULL(visible);
 
@@ -1425,7 +1403,7 @@ ErrCode PropertyImpl::getVisibleUnresolved(IBoolean** visible)
     return errCode;
 }
 
-ErrCode PropertyImpl::getReadOnlyUnresolved(IBoolean** readOnly)
+PUBLIC_EXPORT ErrCode PropertyImpl::getReadOnlyUnresolved(IBoolean** readOnly)
 {
     OPENDAQ_PARAM_NOT_NULL(readOnly);
 
@@ -1438,7 +1416,7 @@ ErrCode PropertyImpl::getReadOnlyUnresolved(IBoolean** readOnly)
     return errCode;
 }
 
-ErrCode PropertyImpl::getSelectionValuesUnresolved(IBaseObject** values)
+PUBLIC_EXPORT ErrCode PropertyImpl::getSelectionValuesUnresolved(IBaseObject** values)
 {
     OPENDAQ_PARAM_NOT_NULL(values);
 
@@ -1454,7 +1432,7 @@ ErrCode PropertyImpl::getSelectionValuesUnresolved(IBaseObject** values)
     return errCode;
 }
 
-ErrCode PropertyImpl::getReferencedPropertyUnresolved(IEvalValue** propertyEval)
+PUBLIC_EXPORT ErrCode PropertyImpl::getReferencedPropertyUnresolved(IEvalValue** propertyEval)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyEval);
 
@@ -1467,7 +1445,7 @@ ErrCode PropertyImpl::getReferencedPropertyUnresolved(IEvalValue** propertyEval)
     return errCode;
 }
 
-ErrCode PropertyImpl::getValueTypeUnresolved(CoreType* coreType)
+PUBLIC_EXPORT ErrCode PropertyImpl::getValueTypeUnresolved(CoreType* coreType)
 {
     OPENDAQ_PARAM_NOT_NULL(coreType);
 
@@ -1477,12 +1455,10 @@ ErrCode PropertyImpl::getValueTypeUnresolved(CoreType* coreType)
 
 // IOwnable
 
-ErrCode PropertyImpl::setOwner(IPropertyObject* owner)
+PUBLIC_EXPORT ErrCode PropertyImpl::setOwner(IPropertyObject* owner)
 {
     if (this->owner.assigned())
-    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
-    }
 
     this->owner = owner;
 
@@ -1501,7 +1477,7 @@ ErrCode PropertyImpl::setOwner(IPropertyObject* owner)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::validateDuringConstruction()
+PUBLIC_EXPORT ErrCode PropertyImpl::validateDuringConstruction()
 {
     this->internalAddRefNoCheck();
     const ErrCode err = validate();
@@ -1509,7 +1485,7 @@ ErrCode PropertyImpl::validateDuringConstruction()
     return err;
 }
 
-PropertyObjectPtr PropertyImpl::getOwner() const
+PUBLIC_EXPORT PropertyObjectPtr PropertyImpl::getOwner() const
 {
     if (owner.assigned())
         return owner.getRef();

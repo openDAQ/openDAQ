@@ -770,8 +770,4 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateSignal(const std::string&
     updatableSignal.updateInternal(serializedSignal, context);
 }
 
-// Explicit template instantiation declarations
-extern template class GenericSignalContainerImpl<>;
-extern template class SignalContainerImpl<>;
-
 END_NAMESPACE_OPENDAQ

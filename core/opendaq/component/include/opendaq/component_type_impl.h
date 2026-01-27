@@ -152,7 +152,4 @@ inline ErrCode INTERFACE_FUNC GenericComponentTypeImpl<Intf, Interfaces...>::get
     return OPENDAQ_SUCCESS;
 }
 
-// Explicit template instantiation declaration
-extern template class GenericComponentTypeImpl<>;
-
 END_NAMESPACE_OPENDAQ

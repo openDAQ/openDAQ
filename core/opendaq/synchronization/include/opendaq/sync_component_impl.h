@@ -300,7 +300,4 @@ ErrCode GenericSyncComponentImpl<MainInterface, Interfaces...>::Deserialize(ISer
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncComponentImpl)
 
-// Explicit template instantiation declaration
-extern template class GenericSyncComponentImpl<ISyncComponent>;
-
 END_NAMESPACE_OPENDAQ

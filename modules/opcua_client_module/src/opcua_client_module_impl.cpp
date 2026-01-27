@@ -301,7 +301,6 @@ DeviceTypePtr OpcUaClientModule::createDeviceType()
         .setDescription("Network device connected over OpcUa protocol")
         .setConnectionStringPrefix(DaqOpcUaDevicePrefix)
         .setDefaultConfig(createDefaultConfig())
-        .setDefaultConfig(createDefaultConfig())
         .build();
 }
 

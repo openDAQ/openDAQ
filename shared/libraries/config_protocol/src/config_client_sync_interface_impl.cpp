@@ -79,24 +79,6 @@ ErrCode ConfigClientSyncInterfaceImpl::endUpdate()
     return Super::endUpdate();
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::getSynced(Bool* synced)
-{
-    OPENDAQ_PARAM_NOT_NULL(synced);
-    return daqTry([&]
-    {
-        *synced = this->objPtr.getPropertyValue("Status.Synchronized");
-    });
-}
-
-ErrCode ConfigClientSyncInterfaceImpl::getReferenceDomainId(IString** referenceDomainId)
-{
-    OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
-    return daqTry([&]
-    {
-        *referenceDomainId = this->objPtr.getPropertyValue("Status.ReferenceDomainId").template as<IString>();
-    });
-}
-
 ErrCode ConfigClientSyncInterfaceImpl::setAsSource(Bool isSource)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Setting as source is not supported on client sync interface");

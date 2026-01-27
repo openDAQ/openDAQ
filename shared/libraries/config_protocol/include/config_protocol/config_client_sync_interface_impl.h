@@ -45,10 +45,6 @@ public:
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;
 
-    // ISyncInterface
-    ErrCode INTERFACE_FUNC getSynced(Bool* synced) override;
-    ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
-
     // ISyncInterfaceInternal
     ErrCode INTERFACE_FUNC setAsSource(Bool isSource) override;
 

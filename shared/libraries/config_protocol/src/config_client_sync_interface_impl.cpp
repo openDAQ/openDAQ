@@ -41,7 +41,7 @@ ErrCode ConfigClientSyncInterfaceImpl::setProtectedPropertyValue(IString* proper
 {
     if (remoteUpdating)
         return Impl::setProtectedPropertyValue(propertyName, value);
-    return Super::setProtectedPropertyValue(propertyName, value);
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Setting protected values is not allowed on client sync interface");
 }
 
 ErrCode ConfigClientSyncInterfaceImpl::clearPropertyValue(IString* propertyName)
@@ -132,11 +132,14 @@ ErrCode ConfigClientSyncInterfaceImpl::Deserialize(ISerializedObject* serialized
             factoryCallbackPtr,
             [&configDeserializeContext](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
             {
-                return createWithImplementation<ISyncInterface, ConfigClientSyncInterfaceImpl>(
+                auto obj = createWithImplementation<ISyncInterface, ConfigClientSyncInterfaceImpl>(
                     configDeserializeContext->getClientComm(),
                     configDeserializeContext->getRemoteGlobalId());
+                obj.as<IConfigClientObject>(true)->setRemoteUpdating(true);
+                return obj;
             });
 
+        propObj.as<IConfigClientObject>(true)->setRemoteUpdating(false);
         const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
         deserializeComponent.complete();
 

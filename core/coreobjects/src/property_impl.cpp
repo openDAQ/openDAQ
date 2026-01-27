@@ -1518,6 +1518,23 @@ PropertyObjectPtr PropertyImpl::getOwner() const
 
 // Private helpers
 
+template <typename TPtr>
+TPtr PropertyImpl::bindAndGet(const BaseObjectPtr& metadata, bool lock) const
+{
+    if (!metadata.assigned())
+        return nullptr;
+
+    auto eval = metadata.asPtrOrNull<IEvalValue>();
+    if (!eval.assigned())
+        return metadata;
+
+    const auto ownerPtr = owner.assigned() ? owner.getRef() : nullptr;
+    if (ownerPtr.assigned())
+        eval = eval.cloneWithOwner(ownerPtr);
+
+    return lock ? eval.getResult() : eval.getResultNoLock();
+}
+
 PropertyPtr PropertyImpl::bindAndGetRefProp(bool lock)
 {
     PropertyPtr refPropPtr;

@@ -601,6 +601,9 @@ bool FolderImpl<Intf, Intfs...>::removeItemWithLocalIdInternal(const std::string
 
 using StandardFolder = FolderImpl<>;
 
+// Explicit template instantiation declaration
+extern template class FolderImpl<IFolderConfig>;
+
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(StandardFolder)
 
 END_NAMESPACE_OPENDAQ

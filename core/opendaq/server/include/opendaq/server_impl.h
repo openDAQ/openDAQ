@@ -210,4 +210,7 @@ protected:
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(Server)
 
+// Explicit template instantiation declaration
+extern template class ServerImpl<>;
+
 END_NAMESPACE_OPENDAQ

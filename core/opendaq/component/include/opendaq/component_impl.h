@@ -1333,6 +1333,9 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
 
 using StandardComponent = ComponentImpl<>;
 
+// Explicit template instantiation declaration
+extern template class ComponentImpl<IComponent>;
+
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(StandardComponent)
 
 

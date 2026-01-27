@@ -776,4 +776,7 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getGapCheckingEnabled(B
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(InputPortImpl)
 
+// Explicit template instantiation declaration
+extern template class GenericInputPortImpl<IInputPortConfig>;
+
 END_NAMESPACE_OPENDAQ

@@ -2328,4 +2328,7 @@ void GenericDevice<TInterface, Interfaces...>::setDeviceDomainNoCoreEvent(const 
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(Device)
 
+// Explicit template instantiation declaration
+extern template class GenericDevice<IDevice>;
+
 END_NAMESPACE_OPENDAQ

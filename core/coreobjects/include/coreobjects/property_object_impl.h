@@ -630,6 +630,9 @@ private:
 
 using PropertyObjectImpl = GenericPropertyObjectImpl<IPropertyObject>;
 
+// Explicit template instantiation declaration
+extern template class GenericPropertyObjectImpl<IPropertyObject>;
+
 template <class PropObjInterface, class... Interfaces>
 GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl()
     : frozen(false)

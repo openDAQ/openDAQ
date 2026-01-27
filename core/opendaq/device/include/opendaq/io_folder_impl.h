@@ -109,4 +109,7 @@ bool IoFolderImpl<Intfs...>::addItemInternal(const ComponentPtr& component)
     return Super::addItemInternal(component);
 }
 
+// Explicit template instantiation declaration
+extern template class IoFolderImpl<>;
+
 END_NAMESPACE_OPENDAQ

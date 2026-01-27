@@ -722,4 +722,7 @@ void FunctionBlockImpl<TInterface, Interfaces...>::DeserializeVersion(const Seri
 }
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlock)
 
+// Explicit template instantiation declaration
+extern template class FunctionBlockImpl<>;
+
 END_NAMESPACE_OPENDAQ

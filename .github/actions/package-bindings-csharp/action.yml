@@ -1,4 +1,4 @@
-name: Build C# Bindings
+name: Package C# Bindings
 description: Build .NET/C# bindings for openDAQ
 
 inputs:
@@ -9,6 +9,14 @@ inputs:
     description: 'Build type (Release/Debug)'
     required: false
     default: 'Release'
+  package-artifact-name:
+    description: 'Artifact name for uploading NuGet packages. If empty, no upload is performed'
+    required: false
+    default: ''
+  package-artifact-retention-days:
+    description: 'Number of days to retain the artifact'
+    required: false
+    default: '7'
 
 outputs:
   nuget-path:
@@ -67,3 +75,13 @@ runs:
         else
           echo "nuget-path=$NUGET_PATH" >> $GITHUB_OUTPUT
         fi
+
+    - name: Upload C# Bindings
+      if: inputs.package-artifact-name != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.package-artifact-name }}
+        path: |
+          ${{ steps.build.outputs.nuget-path }}
+          !${{ steps.build.outputs.nuget-path }}/**/*.json
+        retention-days: ${{ inputs.package-artifact-retention-days }}

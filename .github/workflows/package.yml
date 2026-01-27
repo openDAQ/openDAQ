@@ -58,7 +58,7 @@ jobs:
       # test_path: ''
       windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
       # short_sha: ${{ env.short_sha }}
-      short_sha_dotnet: ${{ steps.build-csharp-bindings.outputs.short-sha-dotnet }}
+      short_sha_dotnet: ${{ steps.package-csharp-bindings.outputs.short-sha-dotnet }}
 
     env:
       short_sha: 'package'  # for .NET Bindings build
@@ -89,39 +89,25 @@ jobs:
           retention-days: 7
 
       - name: Build Python Wheels
-        id: build-python-bindings
+        id: package-python-bindings
         if: matrix.generate-python-bindings == true
-        uses: ./.github/actions/build-bindings-python
+        uses: ./.github/actions/package-bindings-python
         with:
-          python-versions: ${{ env.python_versions }}
           build-path: ${{ steps.build-sdk.outputs.build-path }}
+          python-versions: ${{ env.python_versions }}
           cmake-build-type: ${{ matrix.cmake-build-type }}
-
-      - name: Upload Python Wheels
-        if: matrix.generate-python-bindings == true
-        uses: actions/upload-artifact@v4
-        with:
-          name: Wheels (${{ matrix.name }})
-          path: ${{ steps.build-python-bindings.outputs.wheels-path }}
-          retention-days: 7
+          package-artifact-name: Wheels (${{ matrix.name }})
+          package-artifact-retention-days: 7
 
       - name: Build C# Bindings
-        id: build-csharp-bindings
+        id: package-csharp-bindings
         if: matrix.generate-csharp-bindings == true
-        uses: ./.github/actions/build-bindings-csharp
+        uses: ./.github/actions/package-bindings-csharp
         with:
           build-path: ${{ steps.build-sdk.outputs.build-path }}
           cmake-build-type: ${{ matrix.cmake-build-type }}
-
-      - name: Upload C# Bindings binaries
-        if: matrix.generate-csharp-bindings == true
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.windows_x64_artifact }}
-          path: |
-            ${{ steps.build-csharp-bindings.outputs.nuget-path }}
-            !${{ steps.build-csharp-bindings.outputs.nuget-path }}/**/*.json
-          retention-days: 1
+          package-artifact-name: ${{ env.windows_x64_artifact }}
+          package-artifact-retention-days: 1
 
   package_linux:
     runs-on: ubuntu-latest

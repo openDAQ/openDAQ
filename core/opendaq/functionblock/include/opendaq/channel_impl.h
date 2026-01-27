@@ -120,7 +120,4 @@ void ChannelImpl<Interfaces...>::updateFunctionBlock(const std::string& fbId,
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(Channel)
 
-// Explicit template instantiation declaration
-extern template class ChannelImpl<>;
-
 END_NAMESPACE_OPENDAQ

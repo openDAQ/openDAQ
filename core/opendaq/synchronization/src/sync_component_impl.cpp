@@ -2,6 +2,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+// Explicit template instantiation
+template class GenericSyncComponentImpl<ISyncComponent>;
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent, ISyncComponent,

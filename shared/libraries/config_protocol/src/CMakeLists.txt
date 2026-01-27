@@ -60,6 +60,7 @@ set(SRC_Cpp config_protocol.cpp
             config_protocol_client.cpp
             server_wrappers.cpp
             config_client_object_impl.cpp
+            config_client_component_impl.cpp
             config_protocol_deserialize_context_impl.cpp
             config_mirrored_ext_sig_impl.cpp
             config_protocol_streaming_producer.cpp

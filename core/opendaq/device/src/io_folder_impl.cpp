@@ -4,6 +4,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 using StandardIoFolderImpl = IoFolderImpl<>;
 
+// Explicit template instantiation
+template class IoFolderImpl<>;
+
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(StandardIoFolderImpl)
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(

@@ -91,6 +91,8 @@ set(SRC_PrivateHeaders_Component
 
 set(SRC_Cpp_Component 
     function_block_type_impl.cpp
+    function_block_impl.cpp
+    channel_impl.cpp
     function_block_wrapper_impl.cpp
     property_wrapper_impl.cpp
     PARENT_SCOPE

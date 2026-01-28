@@ -27,7 +27,7 @@ target_link_libraries(${TEST_APP}
     PRIVATE
         daq::coreobjects
         daq::coretypes
-        daq::opendaq_mocks
+        daq::opendaq_gmocks
 )
 
 if (MSVC)

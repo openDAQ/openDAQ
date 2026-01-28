@@ -28,6 +28,7 @@ target_link_libraries(${TEST_APP}
     PRIVATE
         daq::coreobjects
         daq::opendaq_mocks
+        daq::opendaq_gmocks
 )
 
 add_test(NAME ${TEST_APP}

@@ -50,7 +50,8 @@ add_test(NAME ${TEST_APP}
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
-target_link_libraries(${TEST_APP} PRIVATE daq::opendaq_mocks
+target_link_libraries(${TEST_APP} PRIVATE daq::opendaq_gmocks
+                                          daq::opendaq_mocks
 )
 
 if (MSVC)

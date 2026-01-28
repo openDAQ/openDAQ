@@ -1,11 +1,7 @@
-set(MODULE_NAME websocket_streaming)
+set(MODULE_NAME signal_generator)
 set(TEST_APP test_${MODULE_NAME})
 
 add_executable(${TEST_APP}
-    streaming_test_helpers.h
-    test_signal_descriptor_converter.cpp
-    test_streaming.cpp
-    test_websocket_client_device.cpp
     test_signal_generator.cpp
     test_app.cpp
 )
@@ -16,9 +12,8 @@ endif()
 
 target_link_libraries(${TEST_APP} PRIVATE
     ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
-    daq::opendaq
-    daq::opendaq_mocks
-    daq::streaming_protocol
+    ${SDK_TARGET_NAMESPACE}::opendaq
+    ${SDK_TARGET_NAMESPACE}::opendaq_mocks
     ${SDK_TARGET_NAMESPACE}::test_utils
 )
 

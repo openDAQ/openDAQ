@@ -195,11 +195,6 @@ namespace daq::test_utils
             throw NotFoundException();
         }
 
-        //void onRemoveDevice(const DevicePtr& device) override
-        //{
-        //    devices.removeItem(device);
-        //}
-
     private:
         DevicePtr createTestSubDevice()
         {

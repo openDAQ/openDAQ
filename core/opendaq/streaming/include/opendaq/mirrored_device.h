@@ -49,6 +49,12 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredDevice, IDevice)
      * @param[out] id The device ID.
      */
     virtual ErrCode INTERFACE_FUNC getRemoteId(IString** id) const = 0;
+
+    /*!
+     * @brief Gets the device's type that corresponds to the client-side device module.
+     * @param type The device's type.
+     */
+    virtual ErrCode INTERFACE_FUNC getMirroredDeviceType(IDeviceType** type) = 0;
 };
 
 /*!@}*/

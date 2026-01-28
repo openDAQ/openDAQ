@@ -8,7 +8,8 @@
 #include <opendaq/folder_ptr.h>
 #include <coreobjects/callable_info_factory.h>
 
-#include "opendaq/device_domain_factory.h"
+#include <opendaq/device_domain_factory.h>
+#include <opendaq/device_type_factory.h>
 
 using namespace daq;
 
@@ -104,6 +105,11 @@ DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
     deviceInfo.addProperty(IntPropertyBuilder("custom_int", 1).setReadOnly(true).build());
     deviceInfo.addProperty(FloatPropertyBuilder("custom_float", 1.123).setReadOnly(true).build());
     deviceInfo.addProperty(StringProperty("TestChangeableField", "Test"));
+
+    if (config.assigned() && config.hasProperty("IsStatic") && config.getPropertyValue("IsStatic"))
+        deviceInfo.setDeviceType(DeviceType("mock_static_device", "Mock static device", "Mock", "daq.static"));
+    else
+        deviceInfo.setDeviceType(DeviceType("mock_phys_device", "Mock physical device", "Mock", "daqmock"));
     return deviceInfo;
 }
 

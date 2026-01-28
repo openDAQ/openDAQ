@@ -28,7 +28,8 @@ public:
     explicit WebsocketClientDeviceImpl(const ContextPtr& ctx,
                                        const ComponentPtr& parent,
                                        const StringPtr& localId,
-                                       const StringPtr& connectionString);
+                                       const StringPtr& connectionString,
+                                       const DeviceTypePtr& type);
 
 protected:
     void removed() override;
@@ -49,6 +50,7 @@ protected:
     std::unordered_map<StringPtr, SignalPtr> deviceSignals;
     std::vector<std::string> orderedSignalIds;
     StringPtr connectionString;
+    DeviceTypePtr deviceType;
 
     StreamingPtr websocketStreaming;
 };

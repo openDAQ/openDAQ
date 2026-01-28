@@ -14,7 +14,6 @@
 #include <regex>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
-
 using namespace opendaq_native_streaming_protocol;
 
 NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
@@ -23,10 +22,12 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                                                      const StringPtr& connectionString,
                                                      NativeStreamingClientHandlerPtr transportProtocolClient,
                                                      std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-                                                     Int initTimeout)
-    : Device(ctx, parent, localId)
-    , connectionString(connectionString)
-    , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
+                                                     Int initTimeout,
+                                                     const DeviceTypePtr& type)
+: Device(ctx, parent, localId)
+  , connectionString(connectionString)
+  , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
+  , deviceType(type)
 {
     if (!this->connectionString.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException, "connectionString cannot be null");
@@ -98,7 +99,9 @@ void NativeStreamingDeviceImpl::activateStreaming()
 
 DeviceInfoPtr NativeStreamingDeviceImpl::onGetInfo()
 {
-    return DeviceInfo(connectionString, "NativeStreamingClientPseudoDevice");
+    auto info = DeviceInfo(connectionString, "NativeStreamingClientPseudoDevice");
+    info.setDeviceType(deviceType);
+    return info;
 }
 
 SignalPtr NativeStreamingDeviceImpl::createSignal(const StringPtr& signalStringId,

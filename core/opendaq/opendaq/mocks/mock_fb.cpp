@@ -7,12 +7,20 @@
 
 using namespace daq;
 
+static FunctionBlockTypePtr createOrUseExistingFBType(const FunctionBlockTypePtr& type, const PropertyObjectPtr& config)
+{
+    if (config.assigned() && config.hasProperty("IsStatic") && config.getPropertyValue("IsStatic"))
+        return FunctionBlockType("MockStaticFb", "MockStaticFb", "");
+
+    return type;
+}
+
 MockFunctionBlockImpl::MockFunctionBlockImpl(daq::FunctionBlockTypePtr type,
                                              daq::ContextPtr ctx,
                                              const daq::ComponentPtr& parent,
                                              const daq::StringPtr& localId,
                                              const daq::PropertyObjectPtr& config)
-    : FunctionBlockImpl<IFunctionBlock>(type, ctx, parent, localId)
+    : FunctionBlockImpl<IFunctionBlock>(createOrUseExistingFBType(type, config), ctx, parent, localId)
     , nesteadFbCount(0)
 {
     this->tags.add("mock_fb");

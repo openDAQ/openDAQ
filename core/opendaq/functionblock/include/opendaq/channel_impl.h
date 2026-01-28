@@ -46,9 +46,6 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
-
-protected:
-    void updateFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock, const BaseObjectPtr& context) override;
 };
 
 template <typename... Interfaces>
@@ -94,28 +91,6 @@ ErrCode ChannelImpl<Interfaces...>::Deserialize(ISerializedObject* serialized,
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
-}
-
-template <typename... Interfaces>
-void ChannelImpl<Interfaces...>::updateFunctionBlock(const std::string& fbId,
-                                                     const SerializedObjectPtr& serializedFunctionBlock,
-                                                     const BaseObjectPtr& context)
-{
-    if (!this->functionBlocks.hasItem(fbId))
-    {
-        DAQLOGF_W(this->loggerComponent,
-                  "Sub function block "
-                  "{}"
-                  "not found",
-                  fbId);
-        return;
-    }
-
-    const auto fb = this->functionBlocks.getItem(fbId);
-
-    const auto updatableFb = fb.template asPtr<IUpdatable>(true);
-
-    updatableFb.updateInternal(serializedFunctionBlock, context);
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(Channel)

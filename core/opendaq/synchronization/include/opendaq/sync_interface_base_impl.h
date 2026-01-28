@@ -50,7 +50,7 @@ public:
 
     SyncInterfaceBaseImpl();
 
-    explicit SyncInterfaceBaseImpl(const StringPtr& name, const DictPtr<IInteger, IString>& options = nullptr);
+    explicit SyncInterfaceBaseImpl(const StringPtr& name);
 
     // ISyncInterface
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -70,8 +70,6 @@ public:
 
 protected:
 
-    virtual DictPtr<IInteger, IString> getModeOptions() const;
-
     void setModeOptions(const DictPtr<IInteger, IString>& options);
 };
 
@@ -79,8 +77,16 @@ template <typename TInterface, typename... Interfaces>
 SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl()
     : Super()
 {   
+    const auto modeOptions = Dict<IInteger, IString>(
+    {
+        {static_cast<Int>(SyncMode::Input), "Input"}, 
+        {static_cast<Int>(SyncMode::Output), "Output"}, 
+        {static_cast<Int>(SyncMode::Auto), "Auto"}, 
+        {static_cast<Int>(SyncMode::Off), "Off"}
+    });
+
     this->objPtr.addProperty(StringPropertyBuilder("Name", "SyncInterfaceBase").setReadOnly(true).build());
-    this->objPtr.addProperty(DictProperty("ModeOptions", Self::getModeOptions(), false));
+    this->objPtr.addProperty(DictProperty("ModeOptions", modeOptions, false));
     this->objPtr.addProperty(SelectionProperty("Mode", EvalValue("$ModeOptions"), 3));
 
     auto statusProperty = PropertyObject();
@@ -90,13 +96,11 @@ SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl()
 }
 
 template <typename TInterface, typename... Interfaces>
-SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl(const StringPtr& name, const DictPtr<IInteger, IString>& options)
+SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl(const StringPtr& name)
     : SyncInterfaceBaseImpl()
 {
     if (name.assigned())
         this->objPtr.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("Name", name);
-    if (options.assigned())
-        this->setModeOptions(options);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -129,18 +133,6 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::setAsSource(Bool isSource)
 {
     return OPENDAQ_IGNORED;
-}
-
-template <typename TInterface, typename... Interfaces>
-DictPtr<IInteger, IString> SyncInterfaceBaseImpl<TInterface, Interfaces...>::getModeOptions() const
-{
-    return Dict<IInteger, IString>(
-    {
-        {static_cast<Int>(SyncMode::Input), "Input"}, 
-        {static_cast<Int>(SyncMode::Output), "Output"}, 
-        {static_cast<Int>(SyncMode::Auto), "Auto"}, 
-        {static_cast<Int>(SyncMode::Off), "Off"}
-    });
 }
 
 template <typename TInterface, typename... Interfaces>

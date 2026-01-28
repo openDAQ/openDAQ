@@ -18,27 +18,4 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
-    : Super("ClockSyncInterface", getModeOptions())
-{
-}
-
-ErrCode ClockSyncInterfaceImpl::setAsSource(Bool isSource)
-{
-    if (isSource)
-        this->objPtr.setPropertyValue("Mode", static_cast<Int>(SyncMode::Input));
-    else
-        this->objPtr.setPropertyValue("Mode", static_cast<Int>(SyncMode::Off));
-    return OPENDAQ_SUCCESS;
-}
-
-DictPtr<IInteger, IString> ClockSyncInterfaceImpl::getModeOptions() const
-{   
-    return Dict<IInteger, IString>(
-    {
-        {static_cast<Int>(SyncMode::Input), "Input"}, 
-        {static_cast<Int>(SyncMode::Off), "Off"}
-    });
-}
-
 END_NAMESPACE_OPENDAQ

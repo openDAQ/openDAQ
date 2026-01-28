@@ -1,0 +1,87 @@
+name: Package C# Bindings
+description: Build .NET/C# bindings for openDAQ
+
+inputs:
+  build-path:
+    description: 'Path to build directory (must be already configured with CMake)'
+    required: true
+  cmake-build-type:
+    description: 'Build type (Release/Debug)'
+    required: false
+    default: 'Release'
+  package-artifact-name:
+    description: 'Artifact name for uploading NuGet packages. If empty, no upload is performed'
+    required: false
+    default: ''
+  package-artifact-retention-days:
+    description: 'Number of days to retain the artifact'
+    required: false
+    default: '7'
+
+outputs:
+  nuget-path:
+    description: 'Path to built .NET bindings'
+    value: ${{ steps.build.outputs.nuget-path }}
+  short-sha-dotnet:
+    description: 'Short SHA for .NET bindings beta build (empty for release branches)'
+    value: ${{ steps.build.outputs.short-sha-dotnet }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build
+      id: build
+      shell: bash
+      env:
+        CMAKE_BUILD_TYPE: ${{ inputs.cmake-build-type }}
+        CMAKE_BUILD_PATH: ${{ inputs.build-path }}
+      run: |
+        # Convert Windows path to unix if needed
+        if command -v cygpath &> /dev/null; then
+          CMAKE_BUILD_PATH=$(cygpath -u "$CMAKE_BUILD_PATH")
+        fi
+
+        # Set short-sha-dotnet for beta builds (non-release branches)
+        # Uses $short_sha env variable from parent workflow
+        BRANCH="${{ github.base_ref || github.ref_name }}"
+        BRANCH="${BRANCH#refs/heads/}"
+        SHORT_SHA=""
+        if [[ "$BRANCH" != release/* ]]; then
+          SHORT_SHA="${short_sha}"
+          echo "short-sha-dotnet=$short_sha" >> $GITHUB_OUTPUT
+        fi
+
+        echo "::group::CMake Configure (enable C# bindings)"
+        cmake -B "$CMAKE_BUILD_PATH" -DOPENDAQ_GENERATE_CSHARP_BINDINGS=ON
+        echo "::endgroup::"
+
+        echo "::group::CMake Build DotNetBindings"
+        cmake --build "$CMAKE_BUILD_PATH" --config "$CMAKE_BUILD_TYPE" --target DotNetBindings
+        echo "::endgroup::"
+
+        # Get generator platform from CMakeCache (x64, Win32) - may be empty for non-VS generators
+        CMAKE_GENERATOR_PLATFORM=$(grep "^CMAKE_GENERATOR_PLATFORM:" "$CMAKE_BUILD_PATH/CMakeCache.txt" | cut -d'=' -f2)
+        # Fallback to x64 on Windows if not set (VS generator without explicit -A flag)
+        if [ -z "$CMAKE_GENERATOR_PLATFORM" ] && [ "$RUNNER_OS" == "Windows" ]; then
+          CMAKE_GENERATOR_PLATFORM="x64"
+        fi
+        if [ -n "$CMAKE_GENERATOR_PLATFORM" ]; then
+          NUGET_PATH="$CMAKE_BUILD_PATH/bindings/CSharp/bin/$CMAKE_GENERATOR_PLATFORM/$CMAKE_BUILD_TYPE"
+        else
+          NUGET_PATH="$CMAKE_BUILD_PATH/bindings/CSharp/bin/$CMAKE_BUILD_TYPE"
+        fi
+        if command -v cygpath &> /dev/null; then
+          echo "nuget-path=$(cygpath -w "$NUGET_PATH")" >> $GITHUB_OUTPUT
+        else
+          echo "nuget-path=$NUGET_PATH" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Upload C# Bindings
+      if: inputs.package-artifact-name != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.package-artifact-name }}
+        path: |
+          ${{ steps.build.outputs.nuget-path }}
+          !${{ steps.build.outputs.nuget-path }}/**/*.json
+        retention-days: ${{ inputs.package-artifact-retention-days }}

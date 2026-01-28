@@ -65,11 +65,12 @@ if (Arrow_FETCHED)
         set(ZLIB_LIB_DIR "${arrow_BINARY_DIR}/zlib_ep/src/zlib_ep-install/lib")
         
         # Create a custom target that copies zlibstaticd.lib to zlibstatic.lib after zlib_ep builds
-        add_custom_target(zlib_fix_debug_name ALL
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${ZLIB_LIB_DIR}/zlibstaticd.lib"
-                "${ZLIB_LIB_DIR}/zlibstatic.lib"
-            COMMENT "Copying zlibstaticd.lib to zlibstatic.lib for Debug builds"
+        # Use $<IF:...> generator expression: copy in Debug, do nothing (cmake -E true) in other configs
+        add_custom_target(zlib_fix_debug_name
+            COMMAND "$<IF:$<CONFIG:Debug>,${CMAKE_COMMAND};-E;copy_if_different;${ZLIB_LIB_DIR}/zlibstaticd.lib;${ZLIB_LIB_DIR}/zlibstatic.lib,${CMAKE_COMMAND};-E;true>"
+            COMMAND_EXPAND_LISTS
+            VERBATIM
+            COMMENT "Copying zlibstaticd.lib to zlibstatic.lib (Debug only)"
         )
         
         # Make sure this runs after zlib_ep is built (if the target exists)

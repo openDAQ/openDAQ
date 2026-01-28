@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 set_cmake_folder_context(TARGET_FOLDER_NAME)
-project(BBTestUtils CXX)
+project(DaqTestUtils CXX)
 
 if (POLICY CMP0076)
     cmake_policy(SET CMP0076 NEW)

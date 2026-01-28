@@ -106,11 +106,11 @@ add_library(${LIB_NAME} SHARED ${SRC_Include}
                                
 )
 
-add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
+add_library(${OPENDAQ_SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
 target_link_libraries(${LIB_NAME}
     PUBLIC
-        daq::opendaq
+        ${OPENDAQ_SDK_TARGET_NAMESPACE}::opendaq
     PRIVATE
         kissfft::kissfft
 )

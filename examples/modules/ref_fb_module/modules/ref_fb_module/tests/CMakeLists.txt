@@ -14,8 +14,8 @@ set(TEST_SOURCES test_ref_fb_module.cpp
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
-target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
-                                          ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
+target_link_libraries(${TEST_APP} PRIVATE ${OPENDAQ_SDK_TARGET_NAMESPACE}::opendaq_test_utils gtest gmock
+                                          ${OPENDAQ_SDK_TARGET_NAMESPACE}::${MODULE_NAME}
 )
 
 add_test(NAME ${TEST_APP}

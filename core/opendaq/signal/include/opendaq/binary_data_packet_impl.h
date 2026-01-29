@@ -18,6 +18,7 @@
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/deleter_ptr.h>
 #include <opendaq/generic_data_packet_impl.h>
+#include <cstring>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -90,8 +91,11 @@ void BinaryDataPacketImpl<ExternalMemory>::validateDescriptor()
     if (!dataDescriptor.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException);
 
+    if (dataDescriptor.getSampleType() == SampleType::String)
+        return;
+
     if (dataDescriptor.getSampleType() != SampleType::Binary)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Sample type is not Binary.");
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Sample type is not Binary or String.");
 }
 #endif
 
@@ -192,17 +196,31 @@ inline ErrCode INTERFACE_FUNC BinaryDataPacketImpl<ExternalMemory>::getLastValue
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
+    if (dataDescriptor.getSampleType() == SampleType::String)
+    {
+        const char* cstr = static_cast<const char*>(data.get());
+        *value = String(cstr, sampleSize).detach();
+        return OPENDAQ_SUCCESS;
+    }
     *value = nullptr;
-
     return OPENDAQ_IGNORED;
 }
+
 template <bool ExternalMemory>
 ErrCode BinaryDataPacketImpl<ExternalMemory>::getValueByIndex(daq::IBaseObject** value, SizeT index, ITypeManager* typeManager)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
 
-    *value = nullptr;
+    if (index != 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "Binary data packets contain only one sample at index 0.");
 
+    if (dataDescriptor.getSampleType() == SampleType::String)
+    {
+        const char* cstr = static_cast<const char*>(data.get());
+        *value = String(cstr, sampleSize).detach();
+        return OPENDAQ_SUCCESS;
+    }
+    *value = nullptr;
     return OPENDAQ_IGNORED;
 }
 
@@ -219,13 +237,20 @@ ErrCode BinaryDataPacketImpl<ExternalMemory>::getOffset(INumber** offset)
 template <bool ExternalMemory>
 ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawLastValue(void** value)
 {
-    return OPENDAQ_IGNORED;
+    return getRawValueByIndex(value, 0);
 }
 
 template <bool ExternalMemory>
 ErrCode BinaryDataPacketImpl<ExternalMemory>::getRawValueByIndex(void** value, SizeT index)
 {
-    return OPENDAQ_IGNORED;
+    OPENDAQ_PARAM_NOT_NULL(value);
+    OPENDAQ_PARAM_NOT_NULL(*value);
+
+    if (index != 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "Binary data packets contain only one sample at index 0.");
+
+    std::memcpy(*value, data.get(), sampleSize);
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

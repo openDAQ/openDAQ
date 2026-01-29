@@ -131,21 +131,29 @@ DECLARE_OPENDAQ_INTERFACE(IDataPacket, IPacket)
      *
      * If a value is assigned, it can be cast based on the signal description to IFloat if the type is Float32 or Float64,
      * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if the type is ComplexFloat32 or ComplexFloat64,
-     * to IRange if the type is RangeInt64, to IStruct if the type is Struct, and to IList of the forementioned types if there is exactly
+     * to IRange if the type is RangeInt64, to IString if the type is String, to IStruct if the type is Struct, and to IList of the forementioned types if there is exactly
      * one dimension.
+     *
+     * For String type signals in binary data packets, the string data must be encoded as UTF-8 strings. The string length is
+     * determined by the sample size, and the string does not need to be null-terminated. The method extracts the string value
+     * from the packet data and returns it as an IString object.
      */
     virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value, ITypeManager* typeManager = nullptr) = 0;
 
     /*!
-     * @brief Gets the data packet last value.
+     * @brief Gets the data packet value at the specified index.
      * @param[out] value The IBaseObject value can be a nullptr if there is no value, or if the data type is not supported by the function.
      * @param[in] index Index of the sample to obtain.
      * @param typeManager Optional ITypeManager value can be provided to enable getLastValue for IStruct.
      *
      * If a value is assigned, it can be cast based on the signal description to IFloat if the type is Float32 or Float64,
      * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if the type is ComplexFloat32 or
-     * ComplexFloat64, to IRange if the type is RangeInt64, to IStruct if the type is Struct, and to IList of the forementioned types if
+     * ComplexFloat64, to IRange if the type is RangeInt64, to IString if the type is String, to IStruct if the type is Struct, and to IList of the forementioned types if
      * there is exactly one dimension.
+     *
+     * For String type signals in binary data packets, the string data must be encoded as UTF-8 strings. The string length is
+     * determined by the sample size, and the string does not need to be null-terminated. The method extracts the string value
+     * from the packet data and returns it as an IString object.
      */
     virtual ErrCode INTERFACE_FUNC getValueByIndex(IBaseObject** value, SizeT index, ITypeManager* typeManager = nullptr) = 0;
 

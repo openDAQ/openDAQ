@@ -204,6 +204,24 @@ TEST_F(SyncComponent2Test, GetSelectedSource)
     ASSERT_EQ(selectedSource.getName(), "ClockSyncInterface");
 }
 
+TEST_F(SyncComponent2Test, AddTwoTheSameInterfaces)
+{
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2Internal = syncComponent2.asPtr<ISyncComponent2Internal>(true);
+
+    const auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+    ASSERT_NO_THROW(syncComponent2Internal.addInterface(newInterface));
+    ASSERT_EQ(syncComponent2.getInterfaces().getCount(), 2u);
+
+    ASSERT_ANY_THROW(syncComponent2Internal.addInterface(newInterface));
+    ASSERT_EQ(syncComponent2.getInterfaces().getCount(), 2u);
+
+    const auto newInterfaceWithTheSameName = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+    ASSERT_ANY_THROW(syncComponent2Internal.addInterface(newInterfaceWithTheSameName));
+    ASSERT_EQ(syncComponent2.getInterfaces().getCount(), 2u);
+}
+
 TEST_F(SyncComponent2Test, SetSelectedSource)
 {
     const auto ctx = NullContext();
@@ -278,8 +296,8 @@ TEST_F(SyncComponent2Test, SyncInterfaceProperties)
     // Check Name property
     ASSERT_EQ(propObj.getPropertyValue("Name"), "MyInterface");
 
-    // Check Mode property (default is Off = 3)
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), 3);
+    // Check Mode property (default is Off)
+    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Off");
 
     // Check Status properties
     ASSERT_EQ(propObj.getPropertyValue("Status.Synchronized"), False);

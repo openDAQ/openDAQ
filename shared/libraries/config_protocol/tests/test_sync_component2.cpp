@@ -1,4 +1,5 @@
 // ReSharper disable CppClangTidyModernizeAvoidBind
+#include <testutils/testutils.h>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <config_protocol/config_protocol_server.h>
@@ -31,6 +32,10 @@ public:
         : Device(ctx, parent, localId)
     {
         auto syncComponent = SyncComponent2(ctx, this->thisPtr<ComponentPtr>(), "sync");
+
+        const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+        syncComponent.asPtr<ISyncComponent2Internal>(true).addInterface(syncInterface);
+
         syncComponent.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
         this->addExistingComponent(syncComponent.detach());
     }
@@ -159,23 +164,6 @@ TEST_F(ConfigSyncComponent2Test, SetSelectedSourceFromClient)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
-    auto serverSyncInternal = serverSync.asPtr<ISyncComponent2Internal>(true);
-
-    // Add another interface on server
-    auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
-    serverSyncInternal.addInterface(newInterface);
-
-    // Refresh client
-    client.reset();
-    client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
-        clientContext,
-        std::bind(&ConfigSyncComponent2Test::sendRequestAndGetReply, this, std::placeholders::_1),
-        std::bind(&ConfigSyncComponent2Test::sendNoReplyRequest, this, std::placeholders::_1),
-        nullptr,
-        nullptr,
-        nullptr);
-    clientDevice = client->connect();
-    clientSync = getClientSyncComponent();
 
     // Set selected source from client
     clientSync.setSelectedSource("TestInterface");
@@ -190,8 +178,8 @@ TEST_F(ConfigSyncComponent2Test, GetSourceSynced)
     auto clientSync = getClientSyncComponent();
 
     daq::Bool serverSynced, clientSynced;
-    serverSync->getSourceSynced(&serverSynced);
-    clientSync->getSourceSynced(&clientSynced);
+    ASSERT_ERROR_CODE_EQ(serverSync->getSourceSynced(&serverSynced), OPENDAQ_SUCCESS);
+    ASSERT_ERROR_CODE_EQ(clientSync->getSourceSynced(&clientSynced), OPENDAQ_SUCCESS);
 
     ASSERT_EQ(serverSynced, clientSynced);
 }
@@ -202,8 +190,8 @@ TEST_F(ConfigSyncComponent2Test, GetSourceReferenceDomainId)
     auto clientSync = getClientSyncComponent();
 
     daq::StringPtr serverDomainId, clientDomainId;
-    serverSync->getSourceReferenceDomainId(&serverDomainId);
-    clientSync->getSourceReferenceDomainId(&clientDomainId);
+    ASSERT_ERROR_CODE_EQ(serverSync->getSourceReferenceDomainId(&serverDomainId), OPENDAQ_SUCCESS);
+    ASSERT_ERROR_CODE_EQ(clientSync->getSourceReferenceDomainId(&clientDomainId), OPENDAQ_SUCCESS);
 
     ASSERT_EQ(serverDomainId, clientDomainId);
 }
@@ -262,11 +250,6 @@ TEST_F(ConfigSyncComponent2Test, SetSelectedSourceViaProperty)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
-    auto serverSyncInternal = serverSync.asPtr<ISyncComponent2Internal>(true);
-
-    // Add another interface on server
-    auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
-    serverSyncInternal.addInterface(newInterface);
 
     clientSync.asPtr<IPropertyObject>(true).setPropertySelectionValue("Source", "TestInterface");
 
@@ -279,6 +262,7 @@ TEST_F(ConfigSyncComponent2Test, SetSyncInterfaceModeViaProperty)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
+    clientSync.setSelectedSource("TestInterface");
 
     PropertyObjectPtr serverSource = serverSync.getSelectedSource();
     PropertyObjectPtr clientSource = clientSync.getSelectedSource();

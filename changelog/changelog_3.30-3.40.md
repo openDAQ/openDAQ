@@ -8,6 +8,7 @@
 - [#1000](https://github.com/openDAQ/openDAQ/pull/1000) Added a mode to the CSV recorder that allows data from multiple same-rate signals to be written to a single file.
 - [#1018](https://github.com/openDAQ/openDAQ/pull/1018) Optimized multireader synchronization for linear data rule domain signals by avoiding iteration through timestamps.
 - [#1034](https://github.com/openDAQ/openDAQ/pull/1034) Add string support for data packets and signals
+- [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Function blocks and devices of which type is not in their parent's `getAvailableFunctionBlock/DeviceTypes` output can no longer be removed.
 
 ## Python
 
@@ -16,6 +17,7 @@
 - [#987](https://github.com/openDAQ/openDAQ/pull/987) Make Enumeration Properties editable in Python GUI demo application
 - [#991](https://github.com/openDAQ/openDAQ/pull/991) Add Function Block configuration to Python GUI demo app
 - [#1007](https://github.com/openDAQ/openDAQ/pull/1007) Add a missing error popup when adding a Function Block fails in Python GUI demo app.
+- [#1029](https://github.com/openDAQ/openDAQ/pull/1029) Fix python binding for iterators to enable list comprehensions.
 
 ## Bug fixes
 
@@ -44,3 +46,6 @@
 ## Required application changes
 
 ## Required module changes
+
+### [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Mandatory device types
+To enable static components, devices must include the Device Type in their Device Info objects. Modules set the value within the onGetInfo overriding method by calling IDeviceInfoConfig::setDeviceType().

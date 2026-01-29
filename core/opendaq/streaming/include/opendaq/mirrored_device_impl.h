@@ -46,10 +46,12 @@ public:
     // IMirroredDevice
     ErrCode INTERFACE_FUNC getStreamingSources(IList** streamingSources) override;
     ErrCode INTERFACE_FUNC getRemoteId(IString** id) const override;
+    ErrCode INTERFACE_FUNC getMirroredDeviceType(IDeviceType** type) override;
 
     // IMirroredDeviceConfig
     ErrCode INTERFACE_FUNC addStreamingSource(IStreaming* streamingSource) override;
     ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) override;
+    ErrCode INTERFACE_FUNC setMirroredDeviceType(IDeviceType* type) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
@@ -65,6 +67,7 @@ protected:
 private:
     std::vector<StreamingPtr> streamingSources;
     StreamingSourceManagerPtr streamingSourceManager;
+    DeviceTypePtr mirroredDeviceType;
 };
 
 template <typename... Interfaces>
@@ -111,6 +114,14 @@ ErrCode MirroredDeviceBase<Interfaces...>::getRemoteId(IString** id) const
     *id = signalRemoteId.detach();
 
     return errCode;
+}
+
+template <typename ... Interfaces>
+ErrCode MirroredDeviceBase<Interfaces...>::getMirroredDeviceType(IDeviceType** type)
+{
+    OPENDAQ_PARAM_NOT_NULL(type);
+    *type = mirroredDeviceType.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename... Interfaces>
@@ -204,6 +215,13 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
 
     streamingSources.erase(it);
 
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename ... Interfaces>
+ErrCode MirroredDeviceBase<Interfaces...>::setMirroredDeviceType(IDeviceType* type)
+{
+    mirroredDeviceType = type;
     return OPENDAQ_SUCCESS;
 }
 

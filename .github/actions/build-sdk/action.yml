@@ -2,8 +2,16 @@ name: Build openDAQ SDK
 description: Configure, build and test openDAQ SDK
 
 inputs:
+  skip-setup-python:
+    description: 'Skip actions/setup-python (for containers with pre-installed Python)'
+    required: false
+    default: 'false'
+  skip-setup-ninja:
+    description: 'Skip ninja-build installation action (for containers with pre-installed ninja)'
+    required: false
+    default: 'false'
   additional-dependencies:
-    description: 'Additional packages to install (apt on Linux, choco on Windows)'
+    description: 'Additional packages to install (apt/yum on Linux, choco on Windows, brew on macOS)'
     required: false
     default: ''
   cmake-generator:
@@ -78,8 +86,25 @@ runs:
           exit 1
         fi
 
+    - name: Detect package manager
+      id: detect-linux
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        if command -v apt-get &> /dev/null; then
+          echo "pkg-manager=apt" >> $GITHUB_OUTPUT
+        elif command -v yum &> /dev/null; then
+          echo "pkg-manager=yum" >> $GITHUB_OUTPUT
+        else
+          echo "::error::Can not detect package manager: expected apt or yum"
+          exit 1
+        fi
+
     - name: Set up Python
-      if: ${{ inputs.generate-python-bindings != 'false' && !(inputs.enable-32bit == 'true' && runner.os == 'Linux') }}
+      if: |
+        inputs.skip-setup-python != 'true' &&
+        inputs.generate-python-bindings != 'false' &&
+        !(inputs.enable-32bit == 'true' && runner.os == 'Linux')
       uses: actions/setup-python@v5
       with:
         python-version: '3.14'
@@ -94,7 +119,7 @@ runs:
       run: choco install ${{ inputs.additional-dependencies }} -y --no-progress
 
     - name: Remove conflicting packages (for 32-bit build)
-      if: runner.os == 'Linux' && inputs.enable-32bit == 'true'
+      if: steps.detect-linux.outputs.pkg-manager == 'apt' && inputs.enable-32bit == 'true'
       shell: bash
       run: |
         echo "Removing bootloader packages that conflict with i386 multi-arch"
@@ -107,8 +132,8 @@ runs:
         fi
         sudo apt-get autoremove -y
 
-    - name: Install Linux dependencies
-      if: runner.os == 'Linux'
+    - name: Install Linux dependencies (apt)
+      if: steps.detect-linux.outputs.pkg-manager == 'apt'
       shell: bash
       env:
         ENABLE_32BIT: ${{ inputs.enable-32bit }}
@@ -134,6 +159,21 @@ runs:
           lld mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
           "${DEV_PACKAGES[@]}"
 
+    - name: Install Linux dependencies (yum)
+      if: steps.detect-linux.outputs.pkg-manager == 'yum'
+      shell: bash
+      run: |
+        yum install -y \
+          ${{ inputs.additional-dependencies }} \
+          mono-core \
+          freetype-devel \
+          libudev-devel \
+          libX11-devel \
+          libXi-devel \
+          libXcursor-devel \
+          libXrandr-devel \
+          mesa-libGL-devel
+
     - name: Install macOS dependencies
       if: runner.os == 'macOS'
       shell: bash
@@ -141,8 +181,8 @@ runs:
         HOMEBREW_NO_AUTO_UPDATE=1 brew install mono ${{ inputs.additional-dependencies }}
 
     - name: Install ninja-build
-      if: inputs.cmake-generator == 'Ninja'
-      uses: seanmiddleditch/gha-setup-ninja@v5
+      if: inputs.cmake-generator == 'Ninja' && inputs.skip-setup-ninja != 'true'
+      uses: seanmiddleditch/gha-setup-ninja@v6
 
     - name: Setup MSYS2 MINGW64
       if: runner.os == 'Windows' && env.CXX == 'g++'
@@ -170,7 +210,10 @@ runs:
       uses: ./.github/actions/setup-compiler-icx
 
     - name: Install Python dependencies
-      if: ${{ inputs.generate-python-bindings != 'false' && !(inputs.enable-32bit == 'true' && runner.os == 'Linux') }}
+      if: |
+        inputs.skip-setup-python != 'true' &&
+        inputs.generate-python-bindings != 'false' &&
+        !(inputs.enable-32bit == 'true' && runner.os == 'Linux')
       shell: bash
       run: |
         echo "Installing numpy for Python: $(python --version)"

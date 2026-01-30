@@ -54,7 +54,7 @@ else()
     message(STATUS "Renderer function block disabled") 
 endif()
 
-prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
 set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             ${MODULE_HEADERS_DIR}/ref_fb_module_impl.h
@@ -136,7 +136,7 @@ if (MSVC)
 endif()
 
 opendaq_set_module_properties(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
-create_version_header(${LIB_NAME})
+opendaq_create_version_header(${LIB_NAME})
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/arial.ttf DESTINATION ${CMAKE_INSTALL_BINDIR})

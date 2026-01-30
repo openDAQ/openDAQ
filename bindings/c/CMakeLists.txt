@@ -1,5 +1,5 @@
 set(LIB_NAME copendaq)
-set_cmake_folder_context(TARGET_FOLDER_NAME copendaq)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME copendaq)
 
 set(SRC_CoreTypes_Headers
     include/copendaq.h

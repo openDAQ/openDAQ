@@ -234,11 +234,11 @@ include(openDAQLogging)
 
 set(OPENDAQ_LOG_LEVEL_DEBUG "Debug" CACHE STRING "Compile time logging level for debug builds")
 set_property(CACHE OPENDAQ_LOG_LEVEL_DEBUG PROPERTY STRINGS ${OPENDAQ_LOG_LEVELS})
-log_level_str_to_int(${OPENDAQ_LOG_LEVEL_DEBUG} OPENDAQ_LOG_LEVEL_DEBUG_INT)
+opendaq_log_level_str_to_int(${OPENDAQ_LOG_LEVEL_DEBUG} OPENDAQ_LOG_LEVEL_DEBUG_INT)
 
 set(OPENDAQ_LOG_LEVEL_RELEASE "Info" CACHE STRING "Compile time logging level for release builds")
 set_property(CACHE OPENDAQ_LOG_LEVEL_RELEASE PROPERTY STRINGS ${OPENDAQ_LOG_LEVELS})
-log_level_str_to_int(${OPENDAQ_LOG_LEVEL_RELEASE} OPENDAQ_LOG_LEVEL_RELEASE_INT)
+opendaq_log_level_str_to_int(${OPENDAQ_LOG_LEVEL_RELEASE} OPENDAQ_LOG_LEVEL_RELEASE_INT)
 
 add_compile_definitions(OPENDAQ_LOG_LEVEL=$<IF:$<CONFIG:Debug>,${OPENDAQ_LOG_LEVEL_DEBUG_INT},${OPENDAQ_LOG_LEVEL_RELEASE_INT}>)
 # logging end

@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 set(MODULE_NAME streaming)
 
 set(TEST_MOCKS mock/mock_mirrored_signal.h

@@ -15,7 +15,7 @@ set(SOURCE_HEADERS finally.h
                    thread_name.h
 )
 
-prepend_include(${INCLUDE_PREFIX} SOURCE_HEADERS)
+opendaq_prepend_include(${INCLUDE_PREFIX} SOURCE_HEADERS)
 
 add_library(${LIB_NAME} STATIC ${SOURCE_CPPS} ${SOURCE_HEADERS})
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})

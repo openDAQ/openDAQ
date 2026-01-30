@@ -7,7 +7,7 @@ set(SOURCE_CPPS signal_generator.cpp
 set(SOURCE_HEADERS signal_generator.h
 )
 
-prepend_include(${MODULE_NAME} SOURCE_HEADERS)
+opendaq_prepend_include(${MODULE_NAME} SOURCE_HEADERS)
 
 add_library(${MODULE_NAME} STATIC ${SOURCE_CPPS} ${SOURCE_HEADERS})
 add_library(${SDK_TARGET_NAMESPACE}::${MODULE_NAME} ALIAS ${MODULE_NAME})

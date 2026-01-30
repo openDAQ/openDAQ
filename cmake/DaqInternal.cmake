@@ -232,7 +232,7 @@ macro(opendaq_fetch_module)
         set(PARAMS_EXCLUDE_FROM_ALL ${FETCHED_MODULE_EXCLUDE_FROM_ALL})
     endif()
 
-    set_cmake_folder_context(TARGET_FOLDER_NAME)
+    opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
     opendaq_get_custom_fetch_content_params(${FETCHED_MODULE_NAME} FC_PARAMS)
 
     FetchContent_Declare(

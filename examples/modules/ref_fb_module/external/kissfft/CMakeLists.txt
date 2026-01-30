@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 
 set(EXTERNAL_LIB kissfft)
 project(${EXTERNAL_LIB} VERSION 2.0.1 LANGUAGES C CXX)

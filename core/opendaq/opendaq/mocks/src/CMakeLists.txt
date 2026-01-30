@@ -22,7 +22,7 @@ set(MOCK_HEADERS mock_device_module.h
                  advanced_components_setup_utils.h
 )
 
-prepend_include(${MOCK_INCLUDE_PREFIX} MOCK_HEADERS)
+opendaq_prepend_include(${MOCK_INCLUDE_PREFIX} MOCK_HEADERS)
 
 set(MOCK_SOURCES mock_device_module.cpp
                  mock_fb_module.cpp
@@ -90,7 +90,7 @@ set(GMOCK_HEADERS context.h
                   streaming.h
 )
 
-prepend_include(${GMOCK_INCLUDE_PREFIX} GMOCK_HEADERS)
+opendaq_prepend_include(${GMOCK_INCLUDE_PREFIX} GMOCK_HEADERS)
 
 set(GMOCK_DUMMY_SOURCES dummy.cpp
 )

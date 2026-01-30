@@ -23,7 +23,7 @@
 
 namespace daq::test_utils
 {
-    DevicePtr createTestDevice(const std::string& localId = "root_dev");
+    DevicePtr createTestDevice(const std::string& localId = "root_dev", bool addStatic = false);
     ComponentPtr createAdvancedPropertyComponent(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     PropertyObjectPtr createMockNestedPropertyObject();
     FolderPtr dummyExtSigFolder(const ContextPtr& ctx);
@@ -110,6 +110,10 @@ namespace daq::test_utils
         {
             return true;
         }
+        bool allowAddFunctionBlocksFromModules() override
+        {
+            return true;
+        }
 
         DeviceInfoPtr onGetInfo() override
         {
@@ -189,11 +193,6 @@ namespace daq::test_utils
                 return dev;
             }
             throw NotFoundException();
-        }
-
-        void onRemoveDevice(const DevicePtr& device) override
-        {
-            devices.removeItem(device);
         }
 
     private:

@@ -41,7 +41,7 @@ TEST_F(InstanceTest, GetSetRootDevice)
 {
     auto instance = test_helpers::setupInstance();
     ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("OpenDAQClient"));
-    instance.setRootDevice("daqmock://client_device");
+    instance.setRootDevice("daq.root://default_client");
 }
 
 TEST_F(InstanceTest, SetRootDeviceWithConfig)
@@ -120,9 +120,9 @@ TEST_F(InstanceTest, EnumerateDeviceTypes)
     auto deviceTypes = instance.getAvailableDeviceTypes();
     ASSERT_EQ(deviceTypes.getCount(), 2u);
 
-    ASSERT_TRUE(deviceTypes.hasKey("mock_client_device"));
-    auto mockDevice = deviceTypes.get("mock_client_device");
-    ASSERT_EQ(mockDevice.getId(), "mock_client_device");
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQClient"));
+    auto mockDevice = deviceTypes.get("OpenDAQClient");
+    ASSERT_EQ(mockDevice.getId(), "OpenDAQClient");
 
     ASSERT_TRUE(deviceTypes.hasKey("mock_phys_device"));
     mockDevice = deviceTypes.get("mock_phys_device");
@@ -136,7 +136,7 @@ TEST_F(InstanceTest, AddDevice)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        if (deviceInfo.getConnectionString() != "daqmock://client_device")
+        if (deviceInfo.getConnectionString() != "daq.root://default_client")
             instance.addDevice(deviceInfo.getConnectionString());
 
     ASSERT_EQ(instance.getDevices().getCount(), 1u);
@@ -149,7 +149,7 @@ TEST_F(InstanceTest, RemoveDevice)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        if (deviceInfo.getConnectionString() != "daqmock://client_device")
+        if (deviceInfo.getConnectionString() != "daq.root://default_client")
             instance.addDevice(deviceInfo.getConnectionString());
 
     const auto devices = instance.getDevices();
@@ -169,17 +169,17 @@ TEST_F(InstanceTest, AddDevicesParallelSuccess)
         Dict<IString, IPropertyObject>(
             {
                 {"daqmock://phys_device", nullptr},
-                {"daqmock://client_device", nullptr}
+                {"daq.root://default_client", nullptr}
             }
         );
     auto devices = instance.addDevices(connectionArgs);
     ASSERT_EQ(devices.getCount(), 2u);
     ASSERT_EQ(devices.get("daqmock://phys_device").getInfo().getConnectionString(), "daqmock://phys_device");
-    ASSERT_EQ(devices.get("daqmock://client_device").getInfo().getConnectionString(), "daqmock://client_device");
+    ASSERT_EQ(devices.get("daq.root://default_client").getInfo().getConnectionString(), "daq.root://default_client");
 
     ASSERT_EQ(instance.getDevices().getCount(), 2u);
     ASSERT_EQ(instance.getDevices()[0], devices.get("daqmock://phys_device"));
-    ASSERT_EQ(instance.getDevices()[1], devices.get("daqmock://client_device"));
+    ASSERT_EQ(instance.getDevices()[1], devices.get("daq.root://default_client"));
 
     auto nestedDevices = instance.getDevices()[0].addDevices(connectionArgs);
     ASSERT_EQ(nestedDevices.getCount(), 2u);
@@ -189,12 +189,12 @@ TEST_F(InstanceTest, AddDevicesParallelSuccess)
 TEST_F(InstanceTest, AddDevicesParallelPartialSuccess)
 {
     auto instance = test_helpers::setupInstance();
-    instance.addDevice("daqmock://client_device");
+    instance.addDevice("daq.root://default_client");
 
     auto connectionArgs =
         Dict<IString, IPropertyObject>(
             {
-                {"daqmock://client_device", nullptr},
+                {"daq.root://default_client", nullptr},
                 {"daqmock://phys_device", nullptr}
             }
         );
@@ -205,15 +205,15 @@ TEST_F(InstanceTest, AddDevicesParallelPartialSuccess)
     ASSERT_EQ(instance->addDevices(&devices, connectionArgs, errCodes, errorInfos), OPENDAQ_PARTIAL_SUCCESS);
 
     ASSERT_EQ(devices.getCount(), 2u);
-    ASSERT_FALSE(devices.get("daqmock://client_device").assigned());
+    ASSERT_FALSE(devices.get("daq.root://default_client").assigned());
     ASSERT_TRUE(devices.get("daqmock://phys_device").assigned());
 
     ASSERT_EQ(errCodes.getCount(), 2u);
-    ASSERT_EQ(errCodes.get("daqmock://client_device"), OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_EQ(errCodes.get("daq.root://default_client"), OPENDAQ_ERR_DUPLICATEITEM);
     ASSERT_EQ(errCodes.get("daqmock://phys_device"), OPENDAQ_SUCCESS);
 
     ASSERT_EQ(errorInfos.getCount(), 2u);
-    ASSERT_TRUE(errorInfos.get("daqmock://client_device").assigned());
+    ASSERT_TRUE(errorInfos.get("daq.root://default_client").assigned());
     ASSERT_FALSE(errorInfos.get("daqmock://phys_device").assigned());
 
     ASSERT_EQ(instance.getDevices().getCount(), 2u);
@@ -223,14 +223,14 @@ TEST_F(InstanceTest, AddDevicesParallelPartialSuccess)
 TEST_F(InstanceTest, AddDevicesParallelFailure)
 {
     auto instance = test_helpers::setupInstance();
-    instance.addDevice("daqmock://client_device");
+    instance.addDevice("daq.root://default_client");
 
     ASSERT_THROW_MSG(instance.addDevices(Dict<IString, IPropertyObject>()), InvalidParameterException, "None connection arguments provided");
 
     auto connectionArgs =
         Dict<IString, IPropertyObject>(
             {
-                {"daqmock://client_device", nullptr},
+                {"daq.root://default_client", nullptr},
                 {"unknown://unknown", nullptr}
             }
         );
@@ -238,7 +238,7 @@ TEST_F(InstanceTest, AddDevicesParallelFailure)
     DictPtr<IString, IDevice> devices;
     ASSERT_THROW_MSG(devices = instance.addDevices(connectionArgs, errCodes), GeneralErrorException, "No devices were added");
     ASSERT_EQ(errCodes.getCount(), 2u);
-    ASSERT_EQ(errCodes.get("daqmock://client_device"), OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_EQ(errCodes.get("daq.root://default_client"), OPENDAQ_ERR_DUPLICATEITEM);
     ASSERT_EQ(errCodes.get("unknown://unknown"), OPENDAQ_ERR_NOTFOUND);
 
     ASSERT_EQ(instance.getDevices().getCount(), 1u);
@@ -248,7 +248,7 @@ TEST_F(InstanceTest, AddNested)
 {
     auto instance = test_helpers::setupInstance();
     auto availableDevices = instance.getAvailableDevices();
-    ASSERT_EQ(availableDevices[0].getConnectionString(), "daqmock://client_device");
+    ASSERT_EQ(availableDevices[0].getConnectionString(), "daq.root://default_client");
 
     DevicePtr device1, device2, device3;
     ASSERT_NO_THROW(device1 = instance.addDevice("daqmock://phys_device"));
@@ -415,7 +415,7 @@ TEST_F(InstanceTest, Serialize)
     ASSERT_EQ(availableDevices.getCount(), 2u);
 
     for (const auto& deviceInfo : availableDevices)
-        if (deviceInfo.getConnectionString() != "daqmock://client_device")
+        if (deviceInfo.getConnectionString() != "daq.root://default_client")
             instance.addDevice(deviceInfo.getConnectionString());
 
     auto serializer = JsonSerializer(True);
@@ -584,13 +584,13 @@ TEST_F(InstanceTest, SaveLoadRestoreDevice)
     std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
 
     auto config = instance.saveConfiguration();
 
     auto instance2 = test_helpers::setupInstance("localIntanceId");
     instance2.addDevice("daqmock://phys_device");
-    instance2.addDevice("daqmock://client_device");
+    instance2.addDevice("daq.root://default_client");
     instance2.loadConfiguration(config);
 
     ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
@@ -607,7 +607,7 @@ TEST_F(InstanceTest, SaveLoadLocked)
     std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
 
     instance.lock();
 
@@ -631,7 +631,7 @@ TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
     std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
 
     auto config = instance.saveConfiguration();
 
@@ -652,13 +652,13 @@ TEST_F(InstanceTest, SaveLoadReadDevice)
     std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
 
     auto config = instance.saveConfiguration();
 
     auto instance2 = test_helpers::setupInstance("localIntanceId");
     instance2.addDevice("daqmock://phys_device");
-    instance2.addDevice("daqmock://client_device");
+    instance2.addDevice("daq.root://default_client");
     auto loadConfig = UpdateParameters();
     loadConfig.setReAddDevicesEnabled(true);
     instance2.loadConfiguration(config, loadConfig);
@@ -678,7 +678,7 @@ TEST_F(InstanceTest, SaveLoadReadDevice2)
     std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
 
     auto config = instance.saveConfiguration();
 
@@ -703,7 +703,7 @@ TEST_F(InstanceTest, SaveLoadReadDevice3)
     std::map<std::string, std::string> devicesNames;
     auto instance = test_helpers::setupInstance("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daqmock://client_device").getName(), "daqmock://client_device");
+    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
 
     auto config = instance.saveConfiguration();
 
@@ -1159,7 +1159,7 @@ TEST_F(InstanceTest, TestRemoved1)
 {
     auto instance = test_helpers::setupInstance();
     instance.addFunctionBlock("mock_fb_uid");
-    instance.addDevice("daqmock://client_device");
+    instance.addDevice("daq.root://default_client");
     instance.addDevice("daqmock://phys_device");
 
     const ListPtr<IComponent> components = instance.getItems(search::Recursive(search::Any()));
@@ -1182,7 +1182,7 @@ TEST_F(InstanceTest, TestRemoved2)
 {
     auto instance = test_helpers::setupInstance();
     instance.addFunctionBlock("mock_fb_uid");
-    instance.addDevice("daqmock://client_device");
+    instance.addDevice("daq.root://default_client");
     instance.addDevice("daqmock://phys_device");
 
     ListPtr<IComponent> components = instance.getItems(search::Recursive(search::Any()));
@@ -1241,6 +1241,55 @@ TEST_F(InstanceTest, ModuleManagerGrouping)
                 ASSERT_EQ(dev.getConnectionString(), "daqmock://phys_device");
         }
     }
+}
+
+TEST_F(InstanceTest, TestRemoveStaticDevice)
+{
+    auto instance = test_helpers::setupInstance();
+    auto config = PropertyObject();
+    config.addProperty(BoolProperty("IsStatic", true));
+    auto dev = instance.addDevice("daqmock://phys_device", config);
+
+    ASSERT_THROW(instance.removeDevice(dev), InvalidOperationException);
+}
+
+TEST_F(InstanceTest, TestRemoveStaticFb)
+{
+    
+    auto instance = test_helpers::setupInstance();
+    auto config = PropertyObject();
+    config.addProperty(BoolProperty("IsStatic", true));
+    auto fb = instance.addFunctionBlock("mock_fb_uid", config);
+
+    ASSERT_THROW(instance.removeFunctionBlock(fb), InvalidOperationException);
+}
+
+TEST_F(InstanceTest, TestUpdateMissingStaticDevice)
+{
+    auto instance = test_helpers::setupInstance();
+    auto setup = instance.saveConfiguration();
+
+    auto config = PropertyObject();
+    config.addProperty(BoolProperty("IsStatic", true));
+    auto dev = instance.addDevice("daqmock://phys_device", config);
+
+    instance.loadConfiguration(setup);
+
+    ASSERT_FALSE(dev.isRemoved());
+}
+
+TEST_F(InstanceTest, TestUpdateMissingStaticFB)
+{
+    auto instance = test_helpers::setupInstance();
+    auto setup = instance.saveConfiguration();
+    
+    auto config = PropertyObject();
+    config.addProperty(BoolProperty("IsStatic", true));
+    auto fb = instance.addFunctionBlock("mock_fb_uid", config);
+
+    instance.loadConfiguration(setup);
+
+    ASSERT_FALSE(fb.isRemoved());
 }
 
 END_NAMESPACE_OPENDAQ

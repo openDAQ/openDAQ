@@ -1,0 +1,90 @@
+/*
+ * Copyright 2022-2025 openDAQ d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+#include <coretypes/common.h>
+#include <coretypes/stringobject.h>
+
+BEGIN_NAMESPACE_OPENDAQ
+
+/*!
+ * @ingroup types_utility
+ * @defgroup types_version_info DevelopmentVersionInfo
+ * @{
+ */
+
+/*!
+ * @brief Represents a semantic version
+ * composing of:
+ *  - major version representing breaking changes
+ *  - minor version representing new features
+ *  - patch version representing only bug fixes.
+ *  - tweak version representing only build/development fixes.
+ */
+DECLARE_OPENDAQ_INTERFACE(IDevelopmentVersionInfo, IBaseObject)
+{
+    /*!
+     * @brief The major version incremented at breaking changes.
+     * @param[out] major The major version component.
+     */
+    virtual ErrCode INTERFACE_FUNC getMajor(SizeT* major) = 0;
+
+    /*!
+     * @brief The minor version incremented at new features with full backwards compatibility.
+     * @param[out] minor The minor version component.
+     */
+    virtual ErrCode INTERFACE_FUNC getMinor(SizeT* minor) = 0;
+
+    /*!
+     * @brief The patch version incremented when only bug-fixes are added.
+     * @param[out] patch The patch version component.
+     */
+    virtual ErrCode INTERFACE_FUNC getPatch(SizeT* patch) = 0;
+
+    /*!
+     * @brief The patch version incremented when only build/development-fixes are added.
+     * @param[out] tweak The tweak version component.
+     */
+    virtual ErrCode INTERFACE_FUNC getTweak(SizeT* tweak) = 0;
+
+    /*!
+     * @brief The VCS branch name from which this was compiled from.
+     * @param[out] branchName The source branch name.
+     */
+    virtual ErrCode INTERFACE_FUNC getBranchName(IString** branchName) = 0;
+
+    /*!
+     * @brief The VCS hash/digest to uniquely identify the source this was compiled from.
+     * @param[out] hash Unique identifier of the source this was compiled from.
+     */
+    virtual ErrCode INTERFACE_FUNC getHashDigest(IString** hash) = 0;
+};
+
+/*!
+ * @}
+ */
+
+OPENDAQ_DECLARE_CLASS_FACTORY(
+    LIBRARY_FACTORY, DevelopmentVersionInfo,
+    SizeT, major,
+    SizeT, minor,
+    SizeT, patch,
+    SizeT, tweak,
+    IString*, branch,
+    IString*, hash
+);
+
+END_NAMESPACE_OPENDAQ

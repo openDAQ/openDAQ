@@ -58,4 +58,13 @@ void defineIMirroredDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredDe
         },
         py::arg("streaming_connection_string"),
         "Removes streaming source for device e.g. when the streaming source is no longer available.");
+    cls.def_property("mirrored_device_type",
+        nullptr,
+        [](daq::IMirroredDeviceConfig *object, daq::IDeviceType* type)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MirroredDeviceConfigPtr::Borrow(object);
+            objectPtr.setMirroredDeviceType(type);
+        },
+        "Sets the device's type that corresponds to the client-side device module.");
 }

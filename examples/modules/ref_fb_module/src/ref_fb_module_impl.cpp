@@ -21,7 +21,16 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 
 RefFBModule::RefFBModule(ContextPtr ctx)
     : Module("ReferenceFunctionBlockModule",
+#if OPENDAQ_IS_RELEASE_VERSION
              daq::VersionInfo(REF_FB_MODULE_MAJOR_VERSION, REF_FB_MODULE_MINOR_VERSION, REF_FB_MODULE_PATCH_VERSION),
+#else
+             daq::DevelopmentVersionInfo(REF_FB_MODULE_MAJOR_VERSION,
+                                         REF_FB_MODULE_MINOR_VERSION,
+                                         REF_FB_MODULE_PATCH_VERSION,
+                                         0,
+                                         REF_FB_MODULE_BRANCH_NAME,
+                                         REF_FB_MODULE_REVISION_HASH),
+#endif
              std::move(ctx),
              "ReferenceFunctionBlockModule")
 {

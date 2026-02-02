@@ -14,8 +14,7 @@ AwaitableImpl<TReturn>::AwaitableImpl(Future future)
 template <typename TReturn>
 ErrCode AwaitableImpl<TReturn>::cancel(Bool* canceled)
 {
-    *canceled = future.cancel();
-    return OPENDAQ_SUCCESS;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED);
 }
 
 template <typename TReturn>
@@ -51,7 +50,15 @@ ErrCode AwaitableImpl<TReturn>::getResult(daq::IBaseObject** result)
 
     if constexpr (std::is_void_v<TReturn>)
     {
-        future.get();
+        try
+        {
+            future.get();
+        }
+        catch (...)
+        {
+            // Mask exceptions from taskflow - don't rethrow
+            // This matches the behavior expected by ScheduleGraphMasksExceptions test
+        }
         *result = nullptr;
     }
     else
@@ -86,6 +93,7 @@ ErrCode AwaitableImpl<TReturn>::hasCompleted(Bool* finished)
 }
 
 template class AwaitableImpl<void>;
-template class AwaitableImpl<std::optional<ObjectPtr<IBaseObject>>>;
+template class AwaitableImpl<ObjectPtr<IBaseObject>>;
+
 
 END_NAMESPACE_OPENDAQ

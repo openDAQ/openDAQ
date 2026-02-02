@@ -49,6 +49,12 @@ DECLARE_OPENDAQ_INTERFACE(IMirroredDeviceConfig, IMirroredDevice)
      * @param streamingConnectionString The connection string of streaming source to be removed.
      */
     virtual ErrCode INTERFACE_FUNC removeStreamingSource(IString* streamingConnectionString) = 0;
+    
+    /*!
+     * @brief Sets the device's type that corresponds to the client-side device module.
+     * @param type The device's type.
+     */
+    virtual ErrCode INTERFACE_FUNC setMirroredDeviceType(IDeviceType* type) = 0;
 };
 
 /*!@}*/

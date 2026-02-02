@@ -474,6 +474,27 @@ else()
     message(STATUS "Native streaming disabled")
 endif()
 
+message(STATUS "")
+message(STATUS "========== 32/64-bit / toolchain configuration ==========")
+
+message(STATUS "CMAKE_HOST_SYSTEM_NAME     = '${CMAKE_HOST_SYSTEM_NAME}'")
+message(STATUS "CMAKE_SYSTEM_NAME          = '${CMAKE_SYSTEM_NAME}'")
+message(STATUS "CMAKE_SYSTEM_PROCESSOR     = '${CMAKE_SYSTEM_PROCESSOR}'")
+
+message(STATUS "CMAKE_C_FLAGS_INIT         = '${CMAKE_C_FLAGS_INIT}'")
+message(STATUS "CMAKE_CXX_FLAGS_INIT       = '${CMAKE_CXX_FLAGS_INIT}'")
+message(STATUS "CMAKE_ASM_FLAGS_INIT       = '${CMAKE_ASM_FLAGS_INIT}'")
+
+message(STATUS "CMAKE_C_FLAGS              = '${CMAKE_C_FLAGS}'")
+message(STATUS "CMAKE_CXX_FLAGS            = '${CMAKE_CXX_FLAGS}'")
+message(STATUS "CMAKE_ASM_FLAGS            = '${CMAKE_ASM_FLAGS}'")
+
+message(STATUS "CMAKE_LIBRARY_PATH         = '${CMAKE_LIBRARY_PATH}'")
+message(STATUS "CMAKE_SIZEOF_VOID_P        = '${CMAKE_SIZEOF_VOID_P}'")
+
+message(STATUS "======================================================")
+message(STATUS "")
+
 # libraries needed before the core is read
 add_subdirectory(external)
 

@@ -305,7 +305,6 @@ protected:
     virtual PropertyObjectPtr getPropertyObjectParent();
 
 private:
-    // TODO: Create this
     ObjectPtr<IPropertyObjectCore> propObjCore;
 
     // Mutex that is locked in the getRecursiveConfigLock and getAcquisitionLock methods. Those should

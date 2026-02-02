@@ -1093,16 +1093,16 @@ std::vector<std::pair<std::string, SerializedObjectPtr>> ComponentImpl<Intf, Int
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& /* context */)
 {
-    if (obj.hasKey("active"))
+    if (obj.hasKey("active") && !lockedAttributes.count("Active"))
         active = obj.readBool("active");
 
-    if (obj.hasKey("visible"))
+    if (obj.hasKey("visible") && !lockedAttributes.count("Visible"))
         visible = obj.readBool("visible");
 
-    if (obj.hasKey("description"))
+    if (obj.hasKey("description") && !lockedAttributes.count("Description"))
         description = obj.readString("description");
 
-    if (obj.hasKey("name"))
+    if (obj.hasKey("name") && !lockedAttributes.count("Name"))
         name = obj.readString("name");
 }
 

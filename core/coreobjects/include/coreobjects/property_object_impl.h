@@ -52,6 +52,7 @@
 #include <coreobjects/property_object_core.h>
 #include <coreobjects/mutex_factory.h>
 #include <coreobjects/mutex_impl.h>
+#include <coreobjects/property_object_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -304,10 +305,12 @@ protected:
     virtual PropertyObjectPtr getPropertyObjectParent();
 
 private:
+    // TODO: Create this
+    ObjectPtr<IPropertyObjectCore> propObjCore;
+
     // Mutex that is locked in the getRecursiveConfigLock and getAcquisitionLock methods. Those should
     // be used instead of locking this mutex directly unless a different type of lock is needed.
     MutexPtr sync;
-    WeakRefPtr<IPropertyObjectInternal> lockOwner;
     std::mutex* getLocalMutex();
 
     StringPtr className;
@@ -320,10 +323,6 @@ private:
     std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
     EndUpdateEventEmitter endUpdateEvent;
     ProcedurePtr triggerCoreEvent;
-
-    object_utils::NullMutex nullSync;
-    std::thread::id externalCallThreadId{};
-    int externalCallDepth = 0;
 
     PropertyUpdateStack updatePropertyStack;
 
@@ -444,7 +443,9 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
+    propObjCore = PropertyObjectCore_Create();
 
+    checkErrorInfo(propObjCore->setInternalVariable(PropObjectCoreVariableId::Mutex, sync));
     this->permissionManager = PermissionManager();
     this->permissionManager.setPermissions(object_utils::UnrestrictedPermissions);
 
@@ -494,12 +495,13 @@ template <typename PropObjInterface, typename ... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setMutex(const MutexPtr& mutex)
 {
     this->sync = mutex;
+    checkErrorInfo(propObjCore->setInternalVariable(PropObjectCoreVariableId::Mutex, this->sync));
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockOwner(const PropertyObjectInternalPtr& owner)
 {
-    this->lockOwner = owner;
+    checkErrorInfo(propObjCore->setInternalVariable(PropObjectCoreVariableId::LockOwner, owner));
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1668,15 +1670,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
 template <typename PropObjInterface, typename... Interfaces>
 std::unique_ptr<RecursiveConfigLockGuard> GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveConfigLock()
 {
-    if (this->lockingStrategy == LockingStrategy::InheritLock)
-    {
-        DAQ_THROW_EXCEPTION(daq::InvalidStateException, "Can't build recursive lock locally if using InheritLock strategy.");
-    }
-
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return std::make_unique<GenericRecursiveConfigLockGuard<object_utils::NullMutex>>(nullSync, &externalCallThreadId, &externalCallDepth);
-
-    return std::make_unique<GenericRecursiveConfigLockGuard<MutexPtr>>(sync, &externalCallThreadId, &externalCallDepth);
+    LockGuardPtr lockGuard;
+    checkErrorInfo(propObjCore->getRecursiveLockGuard(&lockGuard, lockingStrategy));
+    return std::make_unique<RecursiveConfigLockGuard>(lockGuard);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2775,29 +2771,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadA
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
 {
-    OPENDAQ_PARAM_NOT_NULL(lockGuard);
-    
-    // Prevent access violation when lock is obtained during destruction.
-    auto objRef = this->refCount ? this->objPtr : nullptr;
-    return createObject<ILockGuard, LockGuardImpl, IPropertyObject*, MutexPtr>(lockGuard, objRef, sync);
+    return propObjCore->getLockGuard(lockGuard);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveLockGuard(ILockGuard** lockGuard)
 {
-    OPENDAQ_PARAM_NOT_NULL(lockGuard);
-
-    auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr;
-    if (lockOwnerPtr.assigned() && lockingStrategy == LockingStrategy::InheritLock)
-        return lockOwnerPtr->getRecursiveLockGuard(lockGuard);
-    
-    // Prevent access violation when lock is obtained during destruction.
-    auto objRef = this->refCount ? this->objPtr : nullptr;
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return createObject<ILockGuard, RecursiveLockGuardImpl<object_utils::NullMutex>, IPropertyObject*, object_utils::NullMutex, std::thread::id*, int*>
-            (lockGuard, objRef, nullSync, &externalCallThreadId, &externalCallDepth);
-    return createObject<ILockGuard, RecursiveLockGuardImpl<MutexPtr>, IPropertyObject*, MutexPtr, std::thread::id*, int*>
-        (lockGuard, objRef, sync, &externalCallThreadId, &externalCallDepth);
+    return propObjCore->getRecursiveLockGuard(lockGuard, lockingStrategy);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -3199,7 +3179,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwner(IPr
             PropertyObjectInternalPtr lockOwnerPtr;
             OPENDAQ_RETURN_IF_FAILED(getMutexOwner(&lockOwnerPtr));
 
-            lockOwner = lockOwnerPtr;
+            OPENDAQ_RETURN_IF_FAILED(propObjCore->setInternalVariable(PropObjectCoreVariableId::LockOwner, lockOwnerPtr));
             setMutex(lockOwnerPtr.getMutex());
         }
     }

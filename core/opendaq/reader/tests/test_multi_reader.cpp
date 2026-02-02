@@ -4987,15 +4987,15 @@ TEST_F(MultiReaderTest, OffsetToLinear)
     auto available = multi.getAvailableCount();
     ASSERT_EQ(available, 0u);
 
-    sig0.createAndSendPacket(0, true);  // 4, 8, 12, 16
-    sig0.createAndSendPacket(1, true);  // 20, 24, 28, 32
+    sig0.createAndSendPacket(0);  // 4, 8, 12, 16
+    sig0.createAndSendPacket(1);  // 20, 24, 28, 32
 
-    sig1.createAndSendPacket(0, true);  // 17, 19
-    sig1.createAndSendPacket(1, true);  // 21, 23
-    sig1.createAndSendPacket(2, true);  // 25, 27
-    sig1.createAndSendPacket(3, true);  // 29, 31
+    sig1.createAndSendPacket(0);  // 17, 19
+    sig1.createAndSendPacket(1);  // 21, 23
+    sig1.createAndSendPacket(2);  // 25, 27
+    sig1.createAndSendPacket(3);  // 29, 31
+    sig1.createAndSendPacket(4);  // 33, 35
 
-    sig1.createAndSendPacket(4, true);  // 33, 35
     // Latest start is 17, which gets rounded to 20 as the first sample all sample rates have in common
     // (the fact they are misaligned is not taken into account).
     // For sig 0, tick=20 is found in the second packet with index 0 (exact match)
@@ -5017,15 +5017,11 @@ TEST_F(MultiReaderTest, OffsetToLinear)
 
     ASSERT_EQ(count, SAMPLES);
 
-    for (size_t i = 0; i < SAMPLES; ++i)
-    {
-        std::cout << "sig1: " << domain[0][i] << " ";
-        std::cout << "sig2: " << domain[1][i] << " \n";
-    }
+    ASSERT_EQ(domain[0][0], 20);
+    ASSERT_EQ(domain[0][1], 24);
+    ASSERT_EQ(domain[0][2], 28);
 
-    // std::array<std::chrono::system_clock::time_point[SAMPLES], NUM_SIGNALS> time{};
-    // printData<std::chrono::microseconds>(SAMPLES, time, values, domain);
-
-    // ASSERT_THAT(time[1], ElementsAreArray(time[0]));
-    // ASSERT_THAT(time[2], ElementsAreArray(time[0]));
+    ASSERT_EQ(domain[1][0], 21);
+    ASSERT_EQ(domain[1][1], 23);
+    ASSERT_EQ(domain[1][2], 25);
 }

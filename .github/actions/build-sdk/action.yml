@@ -58,6 +58,14 @@ inputs:
     description: 'Generate C# bindings (true/false/empty). Empty = use preset or cmake-config-args'
     required: false
     default: ''
+  package-artifact-name:
+    description: 'Artifact name for installer upload. If empty, installer will not be uploaded'
+    required: false
+    default: ''
+  package-artifact-retention-days:
+    description: 'Retention days for installer artifact'
+    required: false
+    default: '7'
 
 outputs:
   build-path:
@@ -138,26 +146,16 @@ runs:
       env:
         ENABLE_32BIT: ${{ inputs.enable-32bit }}
       run: |
-        DEV_PACKAGES=(
-          libx11-dev
-          libxi-dev
-          libxcursor-dev
-          libxrandr-dev
-          libgl-dev
-          libudev-dev
-          libfreetype6-dev
-        )
-
         if [ "$ENABLE_32BIT" == "true" ]; then
           sudo dpkg --add-architecture i386
-          DEV_PACKAGES=("${DEV_PACKAGES[@]/%/:i386}" python3:i386 python3-dev:i386 gcc-multilib g++-multilib \
-            libx11-6:i386 libxrandr2:i386 libxcursor1:i386 libxi6:i386 libgl1:i386)
+          PKG_FILE=".github/packages/apt-i386.txt"
+        else
+          PKG_FILE=".github/packages/apt.txt"
         fi
 
         sudo apt-get update && sudo apt-get install -y --no-install-recommends \
           ${{ inputs.additional-dependencies || '' }} \
-          lld mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-          "${DEV_PACKAGES[@]}"
+          $(cat "$PKG_FILE")
 
     - name: Install Linux dependencies (yum)
       if: steps.detect-linux.outputs.pkg-manager == 'yum'
@@ -165,14 +163,7 @@ runs:
       run: |
         yum install -y \
           ${{ inputs.additional-dependencies }} \
-          mono-core \
-          freetype-devel \
-          libudev-devel \
-          libX11-devel \
-          libXi-devel \
-          libXcursor-devel \
-          libXrandr-devel \
-          mesa-libGL-devel
+          $(cat .github/packages/yum.txt)
 
     - name: Install macOS dependencies
       if: runner.os == 'macOS'
@@ -377,3 +368,11 @@ runs:
         else
           echo "package-path=$PACKAGE_FILE_PATH" >> $GITHUB_OUTPUT
         fi
+
+    - name: Upload Installer
+      if: inputs.cpack-generator != '' && inputs.package-artifact-name != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.package-artifact-name }}
+        path: ${{ steps.build-installer.outputs.package-path }}
+        retention-days: ${{ inputs.package-artifact-retention-days }}

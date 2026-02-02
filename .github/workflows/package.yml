@@ -80,13 +80,8 @@ jobs:
           cpack-generator: ${{ matrix.cpack-generator }}
           generate-csharp-bindings: false
           generate-python-bindings: false
-
-      - name: Upload SDK Installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: Package (${{ matrix.name }})
-          path: ${{ steps.build-sdk.outputs.package-path }}
-          retention-days: 7
+          package-artifact-name: Package (${{ matrix.name }})
+          package-artifact-retention-days: 7
 
       - name: Build Python Wheels
         id: package-python-bindings
@@ -163,30 +158,16 @@ jobs:
           cmake-build-type: ${{ matrix.cmake-build-type }}
           cpack-generator: DEB
           generate-python-bindings: false
-
-      - name: Upload Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Package (${{ matrix.name }})
-          path: ${{ steps.build-sdk.outputs.package-path }}
-          retention-days: 7
+          package-artifact-name: Package (${{ matrix.name }})
+          package-artifact-retention-days: 7
 
       - name: Build Documentation
         if: matrix.generate-doxygen-doc == true
-        shell: bash
-        run: |
-          cmake -B ${{ steps.build-sdk.outputs.build-path }} -DOPENDAQ_BUILD_DOCUMENTATION=ON
-          cmake --build ${{ steps.build-sdk.outputs.build-path }} --target doc_doxygen
-          cd ${{ steps.build-sdk.outputs.build-path }}/doc_doxygen/html
-          zip -r ../opendaq_cpp_api_reference.zip .
-
-      - name: Upload API Reference
-        if: matrix.generate-doxygen-doc == true
-        uses: actions/upload-artifact@v4
+        uses: ./.github/actions/build-doc
         with:
-          name: API Reference
-          path: ${{ steps.build-sdk.outputs.build-path }}/doc_doxygen/opendaq_cpp_api_reference.zip
-          retention-days: 7
+          build-path: ${{ steps.build-sdk.outputs.build-path }}
+          artifact-name: API Reference
+          artifact-retention-days: 7
 
       - name: Build Simulator App
         if: matrix.generate-simulator-app == true

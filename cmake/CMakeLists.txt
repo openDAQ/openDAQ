@@ -8,7 +8,8 @@ include(FetchContent)
 FetchContent_Declare(
     opendaq-cmake-utils
     GIT_REPOSITORY https://github.com/openDAQ/opendaq-cmake-utils.git
-    GIT_TAG main
+#    GIT_TAG main
+    GIT_TAG backup/before-deep-refactoring
     GIT_PROGRESS   ON
 )
 FetchContent_MakeAvailable(opendaq-cmake-utils)

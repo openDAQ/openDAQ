@@ -227,11 +227,6 @@ macro(opendaq_fetch_module)
         set(PARAMS_GIT_SHALLOW ${FETCHED_MODULE_GIT_SHALLOW})
     endif()
 
-    set(PARAMS_EXCLUDE_FROM_ALL OFF)
-    if (DEFINED FETCHED_MODULE_EXCLUDE_FROM_ALL)
-        set(PARAMS_EXCLUDE_FROM_ALL ${FETCHED_MODULE_EXCLUDE_FROM_ALL})
-    endif()
-
     opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
     opendaq_get_custom_fetch_content_params(${FETCHED_MODULE_NAME} FC_PARAMS)
 
@@ -242,7 +237,6 @@ macro(opendaq_fetch_module)
         GIT_PROGRESS   ON
         GIT_SHALLOW    ${PARAMS_GIT_SHALLOW}
         GIT_REMOTE_UPDATE_STRATEGY CHECKOUT
-        EXCLUDE_FROM_ALL ${PARAMS_EXCLUDE_FROM_ALL}
         ${FC_PARAMS}
     )
 

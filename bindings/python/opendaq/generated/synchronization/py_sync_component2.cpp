@@ -40,7 +40,7 @@ void defineISyncComponent2(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent2, 
 {
     cls.doc() = "Interface representing a Synchronization Component 2 in a Test & Measurement system.";
 
-    m.def("SyncComponent2", [](daq::IContext* context, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, std::variant<daq::IString*, py::str, daq::IEvalValue*>& className, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, daq::bool registerEvents){
+    m.def("SyncComponent2", [](daq::IContext* context, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId, std::variant<daq::IString*, py::str, daq::IEvalValue*>& className, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, const bool registerEvents){
         return daq::SyncComponent2_Create(context, parent, getVariantValue<daq::IString*>(localId), getVariantValue<daq::IString*>(className), getVariantValue<daq::IString*>(name), registerEvents);
     }, py::arg("context"), py::arg("parent"), py::arg("local_id"), py::arg("class_name"), py::arg("name"), py::arg("register_events"));
 

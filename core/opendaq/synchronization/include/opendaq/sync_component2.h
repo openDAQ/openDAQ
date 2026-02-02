@@ -74,7 +74,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IString*, localId,
     IString*, className,
     IString*, name,
-    bool, registerEvents
+    Bool, registerEvents
 )
 
 END_NAMESPACE_OPENDAQ

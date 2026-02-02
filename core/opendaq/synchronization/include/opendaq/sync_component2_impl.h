@@ -51,7 +51,7 @@ public:
                       const StringPtr& localId,
                       const StringPtr& className = nullptr,
                       const StringPtr& name = nullptr,
-                      bool registerEvents = false);
+                      Bool registerEvents = False);
 
     // ISyncComponent2
     ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
@@ -86,10 +86,10 @@ SyncComponent2Impl<Intf, Intfs...>::SyncComponent2Impl(const ContextPtr& context
                                                         const StringPtr& localId,
                                                         const StringPtr& className,
                                                         const StringPtr& name,
-                                                        bool registerEvents)
+                                                        Bool registerEvents)
     : Super(context, parent, localId, className, name)
 {
-    this->init(registerEvents);
+    this->init(registerEvents == True);
 }
 
 template <class Intf, class... Intfs>

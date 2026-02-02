@@ -12,7 +12,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     IString*, localId,
     IString*, className,
     IString*, name,
-    bool, registerEvents
+    Bool, registerEvents
 )
 
 END_NAMESPACE_OPENDAQ

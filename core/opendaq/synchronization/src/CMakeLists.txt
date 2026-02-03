@@ -4,9 +4,9 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_SyncComponent sync_component.h)
     rtgen(SRC_SyncComponentPrivate sync_component_private.h)
     rtgen(SRC_SyncInterface sync_interface.h)
-    rtgen(SRC_SyncInterfaceInternal sync_interface_internal.h)
+    rtgen(SRC_SyncInterfaceInternal sync_interface_internal.h INTERNAL)
     rtgen(SRC_SyncComponent2 sync_component2.h)
-    rtgen(SRC_SyncComponent2Internal sync_component2_internal.h)
+    rtgen(SRC_SyncComponent2Internal sync_component2_internal.h INTERNAL)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_SyncComponent_PublicHeaders}

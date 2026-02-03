@@ -63,6 +63,13 @@ struct PropertyNameInfo
     StringPtr name;
     Int index{};
 };
+namespace config_protocol
+{
+    class ConfigClientDeviceInfoImpl;
+    
+    template <typename Impl>
+    class ConfigClientPropertyObjectBaseImpl;
+}
 
 template <typename PropObjInterface, typename... Interfaces>
 class GenericPropertyObjectImpl : public ImplementationOfWeak<PropObjInterface,
@@ -179,6 +186,13 @@ public:
     friend class ServerCapabilityConfigImpl;
     friend class ConnectedClientInfoImpl;
 
+    template <typename TInterface, typename... TInterfaces>
+    friend class DeviceInfoConfigImpl;
+    friend class config_protocol::ConfigClientDeviceInfoImpl;
+
+    template <class Impl>
+    friend class config_protocol::ConfigClientPropertyObjectBaseImpl;
+
 protected:
     struct UpdatingAction
     {
@@ -194,8 +208,6 @@ protected:
      * Gets a lock for the configuration of the object. Can be used to lock the sync mutex in a function
      * that is called during a property value read/write event to prevent deadlocks. The lock behaves
      * similarly to a lock guard created with recursive mutex.
-     *
-     * WARNING: Only usable if locking strategy is set to `OwnLock` or `ForwardOwnerLockOwn`.
      */
     std::unique_ptr<RecursiveConfigLockGuard> getRecursiveConfigLock();
     
@@ -264,28 +276,7 @@ protected:
     virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
     virtual ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer);
 
-    static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
-                                          const BaseObjectPtr& context,
-                                          const FunctionPtr& factoryCallback,
-                                          PropertyObjectPtr& propObjPtr);
-
-    static void DeserializeLocalProperties(const SerializedObjectPtr& serialized,
-                                           const BaseObjectPtr& context,
-                                           const FunctionPtr& factoryCallback,
-                                           PropertyObjectPtr& propObjPtr);
-
-    static void DeserializePropertyOrder(const SerializedObjectPtr& serialized,
-                                         const BaseObjectPtr& context,
-                                         const FunctionPtr& factoryCallback,
-                                         PropertyObjectPtr& propObjPtr);
-
-    // Child property handling - Used when a property is queried in the "parent.child" format
-    bool isChildProperty(const StringPtr& name) const;
-    void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
-    void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
-
     // Update
-
     virtual void endApplyUpdate();
     virtual void beginApplyUpdate();
     virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
@@ -303,6 +294,13 @@ protected:
     virtual void callEndUpdateOnChildren();
 
     virtual PropertyObjectPtr getPropertyObjectParent();
+    virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
+
+    // TODO: Move to private
+    // Child property handling - Used when a property is queried in the "parent.child" format
+    bool isChildProperty(const StringPtr& name) const;
+    void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
+    void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
 
 private:
     ObjectPtr<IPropertyObjectCore> propObjCore;
@@ -333,6 +331,21 @@ private:
     ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
 
+    static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
+                                          const BaseObjectPtr& context,
+                                          const FunctionPtr& factoryCallback,
+                                          PropertyObjectPtr& propObjPtr);
+
+    static void DeserializeLocalProperties(const SerializedObjectPtr& serialized,
+                                           const BaseObjectPtr& context,
+                                           const FunctionPtr& factoryCallback,
+                                           PropertyObjectPtr& propObjPtr);
+
+    static void DeserializePropertyOrder(const SerializedObjectPtr& serialized,
+                                         const BaseObjectPtr& context,
+                                         const FunctionPtr& factoryCallback,
+                                         PropertyObjectPtr& propObjPtr);
+
     ErrCode setPropertyFromSerialized(const StringPtr& propName,
                                       const PropertyObjectPtr& propObj,
                                       const SerializedObjectPtr& serialized);
@@ -350,14 +363,9 @@ private:
 
     // Used when cloning object-type property default values of property object classes on construction.
     // Must be overridden by modules that have their own property object implementation.
-    virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
     bool checkIsChildObjectProperty(const PropertyPtr& prop);
     void setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned);
     void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
-
-    ErrCode beginUpdateInternal(bool deep);
-    ErrCode endUpdateInternal(bool deep);
-    ErrCode getUpdatingInternal(Bool* updating);
 
     void triggerCoreEventInternal(const CoreEventArgsPtr& args);
 
@@ -419,10 +427,14 @@ private:
     void coerceMinMax(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr);
     Bool checkIsReferenced(const StringPtr& referencedPropName, const PropertyInternalPtr& prop);
 
-    // update
+    // Update
     ErrCode updateObjectProperties(const PropertyObjectPtr& propObj,
                                    const SerializedObjectPtr& serialized,
                                    const ListPtr<IProperty>& props);
+
+    ErrCode beginUpdateInternal(bool deep);
+    ErrCode endUpdateInternal(bool deep);
+    ErrCode getUpdatingInternal(Bool* updating);
 
     bool hasUserReadAccess(const BaseObjectPtr& userContext, const BaseObjectPtr& obj);
 };

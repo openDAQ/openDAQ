@@ -1,4 +1,4 @@
-set_cmake_context()
+opendaq_set_cmake_context()
 
 add_subdirectory(utils)
 add_subdirectory(signal_generator)

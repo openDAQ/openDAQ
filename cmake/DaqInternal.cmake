@@ -37,8 +37,8 @@ function(opendaq_prepare_test_runner TEST_TARGET)
     set(${TEST_TARGET} ${TEST_RUNNER} PARENT_SCOPE)
 endfunction()
 
-function(set_cmake_context)
-    get_current_folder_name(TARGET_FOLDER_NAME)
+function(opendaq_set_cmake_context)
+    opendaq_get_current_folder_name(TARGET_FOLDER_NAME)
 
     if (ARGC GREATER 1)
         list(APPEND CMAKE_MESSAGE_CONTEXT ${ARGV1})
@@ -49,8 +49,8 @@ function(set_cmake_context)
     set(CMAKE_MESSAGE_CONTEXT ${CMAKE_MESSAGE_CONTEXT} PARENT_SCOPE)
 endfunction()
 
-function(set_cmake_folder OUTFOLDER)
-    get_current_folder_name(TARGET_FOLDER_NAME)
+function(opendaq_set_cmake_folder OUTFOLDER)
+    opendaq_get_current_folder_name(TARGET_FOLDER_NAME)
     set(CMAKE_FOLDER "${CMAKE_FOLDER}/${TARGET_FOLDER_NAME}" PARENT_SCOPE)
 endfunction()
 

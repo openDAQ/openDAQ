@@ -10,7 +10,6 @@ set(TEST_MOCKS mock/mock_channel.h
 
 set(TEST_SOURCES test_factories.cpp
 				 test_channel.cpp
-                 test_fb_wrapper.cpp
                  test_function_block.cpp
 				 ${TEST_HEADERS}
 				 ${TEST_MOCKS}

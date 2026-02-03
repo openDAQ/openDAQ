@@ -18,7 +18,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ModuleInfo_PublicHeaders}
         PARENT_SCOPE
     )
-    
+
     set(SRC_PrivateHeaders_Component_Generated
         ${SRC_Module_PrivateHeaders}
         ${SRC_ModuleManager_PrivateHeaders}
@@ -26,7 +26,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_DiscoveryServer_PrivateHeaders}
         PARENT_SCOPE
     )
-    
+
     set(SRC_Cpp_Component_Generated
         ${SRC_Module_Cpp}
         ${SRC_ModuleManager_Cpp}
@@ -39,8 +39,8 @@ endfunction()
 function(create_component_source_groups_${BASE_NAME})
     set(SDK_HEADERS_DIR "modulemanager/include/opendaq")
     set(SDK_SRC_DIR "modulemanager/src")
-    
-    source_group("module_manager//module" FILES 
+
+    source_group("module_manager//module" FILES
         ${SDK_HEADERS_DIR}/module.h
         ${SDK_HEADERS_DIR}/module_impl.h
         ${SDK_HEADERS_DIR}/module_exports.h
@@ -48,8 +48,8 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/module_check_dependencies.h
         ${SDK_SRC_DIR}/module_impl.cpp
     )
-    
-    source_group("module_manager//manager" FILES 
+
+    source_group("module_manager//manager" FILES
         ${SDK_HEADERS_DIR}/module_manager.h
         ${SDK_HEADERS_DIR}/module_manager_impl.h
         ${SDK_HEADERS_DIR}/module_manager_init.h
@@ -57,27 +57,27 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/module_manager_factory.h
         ${SDK_SRC_DIR}/module_manager_impl.cpp
     )
-    
-    source_group("module_manager//errors" FILES 
+
+    source_group("module_manager//errors" FILES
         ${SDK_HEADERS_DIR}/module_manager_errors.h
         ${SDK_HEADERS_DIR}/module_manager_exceptions.h
     )
-    
-    source_group("module_manager//context" FILES 
+
+    source_group("module_manager//context" FILES
         ${SDK_HEADERS_DIR}/context_impl.h
         ${SDK_HEADERS_DIR}/context_factory.h
         ${SDK_HEADERS_DIR}/context_internal.h
         ${SDK_SRC_DIR}/context_impl.cpp
     )
-	
-    source_group("module_manager//info" FILES 
+
+    source_group("module_manager//info" FILES
         ${SDK_HEADERS_DIR}/module_info.h
         ${SDK_HEADERS_DIR}/module_info_impl.h
         ${SDK_HEADERS_DIR}/module_info_factory.h
         ${SDK_SRC_DIR}/module_info_impl.cpp
     )
-    
-    source_group("module_manager//ping" FILES 
+
+    source_group("module_manager//ping" FILES
         ${SDK_HEADERS_DIR}/format.h
         ${SDK_HEADERS_DIR}/ipv4_header.h
         ${SDK_HEADERS_DIR}/icmp_header.h
@@ -86,17 +86,17 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/icmp_header.cpp
         ${SDK_SRC_DIR}/icmp_ping.cpp
     )
-	
-	source_group("discovery_server" FILES  
+
+	source_group("discovery_server" FILES
         ${SDK_HEADERS_DIR}/discovery_server.h
         ${SDK_HEADERS_DIR}/discovery_server_factory.h
         ${SDK_HEADERS_DIR}/mdns_discovery_server_impl.h
         ${SDK_SRC_DIR}/mdns_discovery_server_impl.cpp
     )
-	
+
 endfunction()
 
-set(SRC_PublicHeaders_Component 
+set(SRC_PublicHeaders_Component
     module_manager_errors.h
     module_manager_exceptions.h
     module_manager_factory.h
@@ -127,7 +127,7 @@ set(SRC_PrivateHeaders_Component
     PARENT_SCOPE
 )
 
-set(SRC_Cpp_Component 
+set(SRC_Cpp_Component
     module_manager_impl.cpp
     module_manager_init.cpp
     context_impl.cpp
@@ -150,7 +150,7 @@ if (WIN32)
         _WIN32_WINNT=${MIN_WINDOWS_VERSION}
         WINVER=${MIN_WINDOWS_VERSION}
         WIN32_LEAN_AND_MEAN
-    )    
+    )
 
     set(PING_LIBS
         Ws2_32
@@ -178,7 +178,6 @@ set(SRC_PrivateIncludeDirectories_Component
 )
 
 set(SRC_PrivateCompileDefinitions_Component
-    ${Boost_INCLUDE_DIRS}
     ${PING_COMPILE_DEFS}
 	BOOST_DLL_USE_STD_FS
 	BOOST_ALL_NO_LIB

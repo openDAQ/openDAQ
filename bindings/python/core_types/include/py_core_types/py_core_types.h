@@ -54,6 +54,7 @@ PyDaqIntf<daq::IStructBuilder, daq::IBaseObject> declareIStructBuilder(pybind11:
 PyDaqIntf<daq::IEnumerationType, daq::IType> declareIEnumerationType(pybind11::module_ m);
 PyDaqIntf<daq::IEnumeration, daq::IBaseObject> declareIEnumeration(pybind11::module_ m);
 PyDaqIntf<daq::IVersionInfo, daq::IBaseObject> declareIVersionInfo(pybind11::module_ m);
+PyDaqIntf<daq::IDevelopmentVersionInfo, daq::IBaseObject> declareIDevelopmentVersionInfo(pybind11::module_ m);
 PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> declareISearchFilter(pybind11::module_ m);
 
 void defineIInteger(pybind11::module_ m, PyDaqIntf<daq::IInteger> cls);
@@ -85,6 +86,7 @@ void defineIStructBuilder(pybind11::module_ m, PyDaqIntf<daq::IStructBuilder, da
 void defineIEnumerationType(pybind11::module_ m, PyDaqIntf<daq::IEnumerationType, daq::IType> cls);
 void defineIEnumeration(pybind11::module_ m, PyDaqIntf<daq::IEnumeration, daq::IBaseObject> cls);
 void defineIVersionInfo(pybind11::module_ m, PyDaqIntf<daq::IVersionInfo, daq::IBaseObject> cls);
+void defineIDevelopmentVersionInfo(pybind11::module_ m, PyDaqIntf<daq::IDevelopmentVersionInfo, daq::IBaseObject> cls);
 void defineISearchFilter(pybind11::module_ m, PyDaqIntf<daq::ISearchFilter, daq::IBaseObject> cls);
 
 void wrapDaqComponentCoreTypes(pybind11::module_ m);

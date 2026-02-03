@@ -80,10 +80,6 @@ public:
     virtual void onDisconnected(const InputPortPtr& port);
     virtual void onPacketReceived(const InputPortPtr& port);
 
-    virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
-    virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
-    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
-
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
@@ -105,7 +101,6 @@ protected:
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void updateInputPort(const std::string& localId, const SerializedObjectPtr& obj, const BaseObjectPtr& context);
-    void updateFunctionBlock(const std::string& fbId, const SerializedObjectPtr& serializedFunctionBlock, const BaseObjectPtr& context) override;
 
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
@@ -118,7 +113,11 @@ protected:
     static BaseObjectPtr DeserializeFunctionBlock(const SerializedObjectPtr& serialized,
                                                   const BaseObjectPtr& context,
                                                   const FunctionPtr& factoryCallback);
-    static void deserializeVersion(const SerializedObjectPtr& serialized, const FunctionBlockTypePtr& fbType);
+
+    static void DeserializeVersion(const SerializedObjectPtr& serialized,
+                                   const BaseObjectPtr& context,
+                                   const FunctionPtr& factoryCallback,
+                                   const FunctionBlockTypePtr& fbType);
 private:
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
     ListPtr<IFunctionBlock> getFunctionBlocksRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -278,10 +277,10 @@ void FunctionBlockImpl<TInterface, Interfaces...>::updateObject(const Serialized
     {
         const auto ipFolder = obj.readSerializedObject("IP");
         this->updateFolder(ipFolder,
-                     "Folder",                    
-                     "InputPort",
-                     [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
-                     { updateInputPort(localId, obj, context); });
+                           "Folder",
+                           "InputPort",
+                           [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                           { updateInputPort(localId, obj, context); });
     }
 
     return Super::updateObject(obj, context);
@@ -345,38 +344,6 @@ void FunctionBlockImpl<TInterface, Interfaces...>::onUpdatableUpdateEnd(const Ba
     Super::onUpdatableUpdateEnd(context);
 }
 
-template <typename TInterface, typename ... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
-                                                                       const SerializedObjectPtr& serializedFunctionBlock,
-                                                                       const BaseObjectPtr& context)
-{
-    UpdatablePtr updatableFb;
-    if (!this->functionBlocks.hasItem(fbId))
-    {
-        auto typeId = serializedFunctionBlock.readString("typeId");
-
-        PropertyObjectPtr config;
-        if (serializedFunctionBlock.hasKey("ComponentConfig"))
-            config = serializedFunctionBlock.readObject("ComponentConfig");
-        else
-            config = PropertyObject();
-        
-        if (!config.hasProperty("LocalId"))
-            config.addProperty(StringProperty("LocalId", fbId));
-        else
-            config.setPropertyValue("LocalId", fbId);
-
-        auto fb = onAddFunctionBlock(typeId, config);
-        updatableFb = fb.template asPtr<IUpdatable>(true);
-    }
-    else
-    {
-        updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
-    }
-
-    updatableFb.updateInternal(serializedFunctionBlock, context);
-}
-
 template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                                                                  const BaseObjectPtr& context,
@@ -400,7 +367,7 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlocks(IList** 
 
     if (!searchFilter)
         return this->functionBlocks->getItems(functionBlocks);
-    
+
     const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
     if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
     {
@@ -439,60 +406,19 @@ ListPtr<IFunctionBlock> FunctionBlockImpl<TInterface, Interfaces...>::getFunctio
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
-
-    DictPtr<IString, IFunctionBlockType> dict;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAvailableFunctionBlockTypes, dict);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    *functionBlockTypes = dict.detach();
-    return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-DictPtr<IString, IFunctionBlockType> FunctionBlockImpl<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
-{
-    return Dict<IString, IFunctionBlockType>().detach();
+    return this->getAvailableFunctionBlockTypesInternal(functionBlockTypes);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlock);
-    OPENDAQ_PARAM_NOT_NULL(typeId);
-
-    FunctionBlockPtr functionBlockPtr;
-    const auto typeIdPtr = StringPtr::Borrow(typeId);
-    const auto PropertyObjectPtr = PropertyObjectPtr::Borrow(config);
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeIdPtr, PropertyObjectPtr);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    *functionBlock = functionBlockPtr.detach();
-    return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-FunctionBlockPtr FunctionBlockImpl<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
-{
-    DAQ_THROW_EXCEPTION(NotSupportedException, "Function block does not support adding nested function blocks");
+    return this->addFunctionBlockInternal(functionBlock, typeId, config);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::removeFunctionBlock(IFunctionBlock* functionBlock)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlock);
-
-    const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
-    const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
-{
-    auto lock = this->getAcquisitionLock2();
-    this->functionBlocks.removeItem(functionBlock);
+    return this->removeFunctionBlockInternal(functionBlock);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -599,19 +525,21 @@ void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(c
     auto typeId = type.getId();
     serializer.writeString(typeId.getCharPtr(), typeId.getLength());
 
-    if (type.getModuleInfo().assigned() && type.getModuleInfo().getVersionInfo().assigned())
+    if (type.getModuleInfo().assigned() )
     {
-        const auto version = type.getModuleInfo().getVersionInfo();
-        const auto versionStr = fmt::format("{}.{}.{}", version.getMajor(), version.getMinor(), version.getPatch());
-
-        serializer.key("__version");
-        serializer.writeString(versionStr.c_str(), versionStr.size());
+        auto versionInfo = type.getModuleInfo().getVersionInfo();
+        if (versionInfo.assigned())
+        {
+            serializer.key("__version");
+            versionInfo.serialize(serializer);
+        }
     }
 
-    if(!forUpdate) {
+    if(!forUpdate)
+    {
         serializer.key("isRecorder");
-        FunctionBlockPtr thisPtr = this->template borrowPtr<FunctionBlockPtr>();
-        serializer.writeBool(thisPtr.supportsInterface<IRecorder>());
+        auto thisPtr = this->template borrowPtr<FunctionBlockPtr>();
+        serializer.writeBool(thisPtr.template supportsInterface<IRecorder>());
     }
 
     Super::serializeCustomObjectValues(serializer, forUpdate);
@@ -695,22 +623,25 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObj
 }
 
 template <typename TInterface, typename... Interfaces>
-void FunctionBlockImpl<TInterface, Interfaces...>::deserializeVersion(
-    const SerializedObjectPtr& serialized,
-    const FunctionBlockTypePtr& fbType)
+void FunctionBlockImpl<TInterface, Interfaces...>::DeserializeVersion(const SerializedObjectPtr& serialized,
+                                                                      const BaseObjectPtr& context,
+                                                                      const FunctionPtr& factoryCallback,
+                                                                      const FunctionBlockTypePtr& fbType)
 {
-    if (serialized.hasKey("__version"))
+    if (!serialized.hasKey("__version"))
+        return;
+
+    if (serialized.getType("__version") != ctObject)
+        return;
+
+    const auto version = serialized.readObject("__version", context, factoryCallback);
+
+    if (version.assigned())
     {
-        const auto version = Super::parseVersionString(serialized.readString("__version"));
-        if (version.assigned())
-        {
-            const auto moduleInfo = ModuleInfo(version, "__unknown", "_unknown");
-            checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
-        }
+        const auto moduleInfo = ModuleInfo(version, "__unknown", "_unknown");
+        checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
     }
 }
-
-
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlock)
 
 END_NAMESPACE_OPENDAQ

@@ -23,9 +23,10 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 inline DevicePtr WebsocketClientDevice(const ContextPtr& context,
                                        const ComponentPtr& parent,
                                        const StringPtr& localId,
-                                       const StringPtr& connectionString)
+                                       const StringPtr& connectionString,
+                                       const DeviceTypePtr& type)
 {
-    DevicePtr obj(createWithImplementation<IDevice, WebsocketClientDeviceImpl>(context, parent, localId, connectionString));
+    DevicePtr obj(createWithImplementation<IDevice, WebsocketClientDeviceImpl>(context, parent, localId, connectionString, type));
     return obj;
 }
 

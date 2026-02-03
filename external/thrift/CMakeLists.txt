@@ -15,9 +15,9 @@ set(WITH_OPENSSL OFF CACHE BOOL "")
 
 opendaq_dependency(
     NAME                Thrift
-    REQUIRED_VERSION    0.20.0
+    REQUIRED_VERSION    0.22.0
     GIT_REPOSITORY      https://github.com/apache/thrift
-    GIT_REF             v0.20.0
+    GIT_REF             v0.22.0
     ADD_FETCH_ALIAS     thrift::thrift=thrift
     EXPECT_TARGET       thrift::thrift
 )

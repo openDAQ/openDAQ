@@ -15,17 +15,13 @@
  */
 
 #pragma once
-#include <testutils/memcheck_listener.h>
-#include <gtest/gtest.h>
+#include <coretypes/common.h>
+#include <opendaq/signal.h>
+#include <opendaq/input_port.h>
 
-class DaqMemCheckListener : public MemCheckListener
+namespace daq
 {
-protected:
-    void OnTestStart(const testing::TestInfo& info) override;
-    void OnTestEnd(const testing::TestInfo& info) override;
 
-private:
-#ifndef NDEBUG
-    size_t objCount = 0;
-#endif
-};
+extern "C" PUBLIC_EXPORT ErrCode daqHasCyclicReferenceIfConnected(ISignal* signal, IInputPort* inputPort, Bool* cyclicReference);
+
+}

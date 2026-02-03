@@ -109,7 +109,7 @@ MultiReaderImpl::MultiReaderImpl(MultiReaderImpl* old, SampleType valueReadType,
     context = old->context;
     portsConnected = old->portsConnected;
     externalListener = old->externalListener;
-    
+
     this->internalAddRef();
     try
     {
@@ -353,7 +353,7 @@ ListPtr<IInputPortConfig> MultiReaderImpl::createOrAdoptPorts(const ListPtr<ICom
         if (notificationMethod == PacketReadyNotification::Unspecified)
             DAQ_THROW_EXCEPTION(InvalidParameterException, "Multi reader created from signals cannot have an unspecified input port notification method.");
     }
-    
+
     bool hasInputPorts = false;
     bool hasSignals = false;
 
@@ -827,7 +827,10 @@ DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacketAndGetEv
 
 ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
 {
+    // Get the minimum amount of time samples are available for in unit of 1/commonSamplingRate
     min = getMinSamplesAvailable();
+    // Get the worst status among signals. If Synchronized is returned, all signals are in this state. For other states,
+    // at least one is in that non-Synchronized state.
     syncStatus = getSyncStatus();
 
     if (min == 0 || syncStatus == SyncStatus::Synchronized)
@@ -837,6 +840,7 @@ ErrCode MultiReaderImpl::synchronize(SizeT& min, SyncStatus& syncStatus)
     {
         // set info data packet
         for (auto& signal : signals)
+            // Dequeue first data packet if available
             signal.isFirstPacketEvent();
 
         if (syncStatus != SyncStatus::Synchronizing)
@@ -867,7 +871,7 @@ bool MultiReaderImpl::eventOrGapInQueue() const
                    });
 }
 
-bool MultiReaderImpl::dataPacketsOrEventReady() 
+bool MultiReaderImpl::dataPacketsOrEventReady()
 {
     bool hasEventPacket = false;
     bool hasDataPacket = true;
@@ -1087,7 +1091,7 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
         }
 
     }
-    
+
     if (externalListener.assigned() && externalListener.getRef().assigned())
         return externalListener.getRef()->disconnected(port);
     return OPENDAQ_SUCCESS;
@@ -1129,7 +1133,7 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
             }
         }
 
-        return OPENDAQ_SUCCESS;    
+        return OPENDAQ_SUCCESS;
     }
 
     if (invalid)
@@ -1149,11 +1153,11 @@ ErrCode MultiReaderImpl::packetReceived(IInputPort* inputPort)
         ProcedurePtr callback = readCallback;
         lock.unlock();
         notify.condition.notify_one();
-        
+
         if (callback.assigned())
             OPENDAQ_RETURN_IF_FAILED(wrapHandler(callback));
     }
-    
+
     if (externalListener.assigned() && externalListener.getRef().assigned())
         return externalListener.getRef()->packetReceived(inputPort);
     return OPENDAQ_SUCCESS;
@@ -1229,6 +1233,19 @@ void MultiReaderImpl::readDomainStart()
 
     for (auto& signal : signals)
     {
+        // Get timestamps for the first available sample
+        // Timestamps are transformed to number of max resolution ticks
+        // since the most ancient epoch (descriptor origin)
+        // Comparable class does the transformation and it enables
+        // seamles comparison (between two integers, at that point)
+        // It is problematic that readStartDomain evaluates entire packets
+        // worth of linear data rule to get the first timestamp (just packet offset).
+        // => Conversion could be more explicit
+        // => Comparable is more important for the conversion and validation that types match, comparison of integers is trivial in any
+        // case.
+        // => SignalReader should be able to handle two domain settings - one native to the signal it is reading and
+        // another, "common", that will be set from Multireader parent. Ideally, getting these common domain information,
+        // it should be trivial to compare starts.
         auto sigStart = signal.readStartDomain();
         if (!commonStart || *commonStart < *sigStart)
         {

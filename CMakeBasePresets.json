@@ -112,6 +112,7 @@
                 "DAQMODULES_REF_FB_MODULE": true,
                 "DAQMODULES_AUDIO_DEVICE_MODULE": true,
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": true,
+                "DAQMODULES_LICENSING_MODULE": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
                 "APP_ENABLE_WEBPAGE_EXAMPLES": true,
                 "OPENDAQ_DOCUMENTATION_TESTS": true,
@@ -203,7 +204,7 @@
         {
             "name": "full/debug",
             "hidden": true,
-            "displayName": "Full - Release",
+            "displayName": "Full - Debug",
             "inherits": [
                 "debug",
                 "full"

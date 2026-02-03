@@ -130,11 +130,27 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 															 logger_example_util)
 
 	# end of Logger examples
-    
-    add_executable(licensing_example cpp/licensing_example/licensing_example.cpp)
-    target_link_libraries(licensing_example PRIVATE daq::opendaq)
-    target_compile_definitions(licensing_example PUBLIC RESOURCE_PATH="${CMAKE_CURRENT_LIST_DIR}/cpp/licensing_example/")
-
+	
+	if(DAQMODULES_LICENSING_MODULE AND NOT APPLE)
+		set(LICENSING_EXAMPLE_REQUIREMENTS_MET ON)
+		if(LINUX)
+			find_package(PkgConfig QUIET)
+			if(NOT PKGCONFIG_FOUND)
+				message("Cannot build licensing example, PkgConfig not found!")
+				set(LICENSING_EXAMPLE_REQUIREMENTS_MET OFF)
+			else()
+				pkg_check_modules(GPGME QUIET gpgme)
+				if(NOT GPGME_FOUND)
+					message("Cannot build licensing example, GPGme not found!")
+					set(LICENSING_EXAMPLE_REQUIREMENTS_MET OFF)
+				endif()
+			endif()
+		endif()
+		if(LICENSING_EXAMPLE_REQUIREMENTS_MET)
+			add_subdirectory(cpp/licensing_example)
+		endif()
+	endif()
+	
     if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND OPENDAQ_ENABLE_NATIVE_STREAMING)
         add_executable(client_authentication cpp/client_authentication/client_authentication.cpp)
         target_link_libraries(client_authentication PRIVATE daq::opendaq)

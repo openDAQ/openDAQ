@@ -10,6 +10,8 @@
 #include <opendaq/input_port_private_ptr.h>
 #include <opendaq/scheduler_factory.h>
 
+#include "opendaq/exceptions.h"
+
 using FunctionBlockTest = testing::Test;
 
 TEST_F(FunctionBlockTest, Folders)
@@ -188,6 +190,12 @@ TEST_F(FunctionBlockTest, BeginUpdateEndUpdate)
 
     ASSERT_EQ(fb.getPropertyValue("FbProp"), "s");
     ASSERT_EQ(sig.getPropertyValue("SigProp"), "cs");
+}
+
+TEST_F(FunctionBlockTest, CyclicRefCheck)
+{
+    const auto fb = daq::createWithImplementation<daq::IFunctionBlock, MockFbImpl>(daq::NullContext(), nullptr, "fb", nullptr, false);
+    ASSERT_THROW(fb.getInputPorts()[0].connect(fb.getSignals()[0]), daq::CyclicReferenceException);
 }
 
 class MockFbImpl1 final : public daq::FunctionBlock

@@ -49,6 +49,7 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     auto classIEnumerationType = declareIEnumerationType(m);
     auto classIEnumeration = declareIEnumeration(m);
     auto classIVersionInfo = declareIVersionInfo(m);
+    auto classIDevelopmentVersionInfo = declareIDevelopmentVersionInfo(m);
     auto classISearchFilter = declareISearchFilter(m);
 
     defineIInteger(m, classIInteger);
@@ -79,5 +80,6 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     defineIEnumerationType(m, classIEnumerationType);
     defineIEnumeration(m, classIEnumeration);
     defineIVersionInfo(m, classIVersionInfo);
+    defineIDevelopmentVersionInfo(m, classIDevelopmentVersionInfo);
     defineISearchFilter(m, classISearchFilter);
 }

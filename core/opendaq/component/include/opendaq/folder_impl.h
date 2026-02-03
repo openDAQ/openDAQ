@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -122,8 +122,7 @@ FolderImpl<Intf, Intfs...>::FolderImpl(const ContextPtr& context,
 template <class Intf, class ... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
 {
-    const ErrCode err = Super::setActive(active);
-    OPENDAQ_RETURN_IF_FAILED(err);
+    OPENDAQ_RETURN_IF_FAILED(Super::setActive(active));
 
     const ErrCode errCode = daqTry([&]
     {

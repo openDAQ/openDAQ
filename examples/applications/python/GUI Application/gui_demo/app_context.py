@@ -33,7 +33,7 @@ class AppContext(object):
         builder = daq.InstanceBuilder()
         builder.scheduler_worker_num = 0
         builder.using_scheduler_main_loop = True
-        
+
         try:
             daq.OPENDAQ_MODULES_DIR
         except:
@@ -43,7 +43,7 @@ class AppContext(object):
 
         if params.module_path != None:
             builder.add_module_path(params.module_path)
-        
+
         self.instance = daq.InstanceFromBuilder(builder)
         self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)
         self.connection_string = ''

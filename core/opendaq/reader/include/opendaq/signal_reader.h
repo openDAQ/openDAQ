@@ -62,6 +62,15 @@ struct SignalReader
 
     void readDescriptorFromPort();
 
+    /**
+     * @brief Get the amount of time samples are available for.
+     *
+     * Returns the number of samples signal would have available assuming it would produce samples at commonSampleRate.
+     * Multiplies number of factually available samples with sampleRateDivider to get number of common-rate samples.
+     *
+     * @param acrossDescriptorChanges If false, only samples since last descriptor change count.
+     * @return SizeT Number of samples in common
+     */
     SizeT getAvailable(bool acrossDescriptorChanges) const;
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
     bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const;
@@ -72,7 +81,20 @@ struct SignalReader
 
     void setStartInfo(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution);
 
+    /**
+     * @brief Returns the tick of the first available sample in maxResolution units and relative to the minimum epoch.
+     *
+     * TODO: This should take into account linear data rule and not evaluate whole buffers with .getData()
+     */
     std::unique_ptr<Comparable> readStartDomain();
+    /**
+     * @brief Dequeues first datapacket if available and returns true if first packet is Event.
+     *
+     * Returns false immediately if first packet is not available. Drops packets until it finds either Data or Event.
+     * If Data packet is encountered before event, it dequeues the packet into internal storage.
+     *
+     * @return true If Event packet is encountered before a Data packet.
+     */
     bool isFirstPacketEvent();
     EventPacketPtr readUntilNextDataPacket();
     bool skipUntilLastEventPacket();

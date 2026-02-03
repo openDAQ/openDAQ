@@ -142,6 +142,10 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
         moduleManager->setAuthenticatedOnly(loadAuthenticatedModulesOnly);
         moduleManager->setModuleAuthenticator(moduleAuthenticator);
+        if (moduleAuthenticator != nullptr)
+        {
+            moduleAuthenticator->setLogger(logger);
+        }
 
         builderPtr->setModuleManager(moduleManager);
     }

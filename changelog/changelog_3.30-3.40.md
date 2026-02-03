@@ -26,6 +26,7 @@
 
 ## Misc
 
+- [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removes the FB wrapper implementation as it was never used.
 - [#979](https://github.com/openDAQ/openDAQ/pull/979) Relocate and install dependency management cmake helpers, install daq::test_utils and rename "bb" to "daq" in testultils/daq_memcheck_listener.h
 - [#974](https://github.com/openDAQ/openDAQ/pull/974) Reorganizes the audio device implementation for greater clarity. Adds automatic device/FB version info setting.
 - [#967](https://github.com/openDAQ/openDAQ/pull/967), [#994](https://github.com/openDAQ/openDAQ/pull/994), [#993](https://github.com/openDAQ/openDAQ/pull/993), [#995](https://github.com/openDAQ/openDAQ/pull/995), [#1001](https://github.com/openDAQ/openDAQ/pull/1001), [1025](https://github.com/openDAQ/openDAQ/pull/1025), [#1026](https://github.com/openDAQ/openDAQ/pull/1026), [#1020](https://github.com/openDAQ/openDAQ/pull/1020) Update external libraries:
@@ -45,6 +46,10 @@
     - arrow from 20.0.0 to 22.0.0
 
 ## Required application changes
+
+### [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removed function block wrapper
+
+The IFunctionBlockWrapper interface was removed as it was never used. Similarly, the base implementation headers were removed. The wrapper objects should no longer be used.
 
 ## Required module changes
 

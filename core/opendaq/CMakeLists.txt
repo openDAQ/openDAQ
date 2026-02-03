@@ -173,8 +173,9 @@ install(TARGETS ${MAIN_TARGET}
             COMPONENT ${SDK_NAME}_${MAIN_TARGET}_Development
 )
 
+add_subdirectory(opendaq/mocks)
+
 if(OPENDAQ_ENABLE_TESTS)
-    add_subdirectory(opendaq/mocks)
     foreach(DAQ_COMPONENT ${DAQ_COMPONENTS})
         add_subdirectory(${DAQ_COMPONENT}/tests)
     endforeach()

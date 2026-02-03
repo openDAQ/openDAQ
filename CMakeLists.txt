@@ -8,6 +8,23 @@ set(SDK_TARGET_NAME opendaq)
 set(SDK_TARGET_NAMESPACE daq)
 set(SDK_OPTION_PREFIX OPENDAQ)
 
+if(OPENDAQ_FORCE_COMPILE_32BIT AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    set(CMAKE_C_FLAGS_INIT "${CMAKE_C_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
+    set(CMAKE_CXX_FLAGS_INIT "${CMAKE_CXX_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
+    set(CMAKE_ASM_FLAGS_INIT "${CMAKE_ASM_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
+
+    # Help CMake find 32-bit libraries
+    list(APPEND CMAKE_LIBRARY_PATH /usr/lib/i386-linux-gnu)
+
+    if(NOT CMAKE_SYSTEM_NAME)
+        set(CMAKE_SYSTEM_NAME Linux CACHE STRING "" FORCE)
+    endif()
+
+    if(NOT CMAKE_SYSTEM_PROCESSOR)
+        set(CMAKE_SYSTEM_PROCESSOR i386 CACHE STRING "" FORCE)
+    endif()
+endif()
+
 add_subdirectory(cmake)
 opendaq_setup_repo_version("OPENDAQ_PACKAGE" ${SDK_NAME} "opendaq_version")
 
@@ -28,7 +45,7 @@ endif()
 #
 
 # 32-bit Linux cross-compilation setup (must be before project())
-opendaq_setup_32bit_build_linux_system_flags(${SDK_OPTION_PREFIX})
+#opendaq_setup_32bit_build_linux_system_flags(${SDK_OPTION_PREFIX})
 
 project(${SDK_NAME}
     LANGUAGES CXX

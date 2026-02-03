@@ -296,12 +296,6 @@ protected:
     virtual PropertyObjectPtr getPropertyObjectParent();
     virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
 
-    // TODO: Move to private
-    // Child property handling - Used when a property is queried in the "parent.child" format
-    bool isChildProperty(const StringPtr& name) const;
-    void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
-    void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
-
 private:
     ObjectPtr<IPropertyObjectCore> propObjCore;
 
@@ -360,6 +354,11 @@ private:
     bool shouldWriteLocalValue(const StringPtr& name, const BaseObjectPtr& value) const;
     // Adds the value to the local list of values (`propValues`)
     bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite = false);
+
+    // Child property handling - Used when a property is queried in the "parent.child" format
+    bool isChildProperty(const StringPtr& name) const;
+    void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
+    void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
 
     // Used when cloning object-type property default values of property object classes on construction.
     // Must be overridden by modules that have their own property object implementation.

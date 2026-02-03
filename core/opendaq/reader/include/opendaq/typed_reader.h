@@ -128,14 +128,20 @@ public:
                                                         SizeT offset,
                                                         const ReaderDomainInfo& domainInfo) override;
 
+    /**
+     * @brief Return the index of the first sample with timestamp at the same time or later than start (sample tick>= start).
+     */
     virtual SizeT getOffsetTo(const ReaderDomainInfo& domainInfo,
                               const Comparable& start,
                               void* inputBuffer,
                               SizeT size,
                               std::chrono::system_clock::rep* firstSampleAbsoluteTime) override;
 
+    /**
+     * @brief Return the index of the first sample with timestamp at the same time or later than target (sample tick>= target).
+     */
     SizeT getOffsetToLinear(const ReaderDomainInfo& domainInfo,
-                            const Comparable& start,
+                            const Comparable& target,
                             const DataPacketPtr& packet,
                             std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr) override;
 
@@ -156,7 +162,7 @@ private:
 
     template <typename TDataType>
     SizeT getOffsetToDataLinear(const ReaderDomainInfo& domainInfo,
-                                const Comparable& start,
+                                const Comparable& target,
                                 const DataPacketPtr& packet,
                                 std::chrono::system_clock::rep* absoluteTimestamp = nullptr) const;
 

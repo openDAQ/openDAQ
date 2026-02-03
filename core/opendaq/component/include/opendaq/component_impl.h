@@ -104,6 +104,7 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
+    ErrCode INTERFACE_FUNC updateParentActive(Bool active) override;
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -151,6 +152,7 @@ protected:
     std::unordered_set<std::string> lockedAttributes;
     bool visible;
     bool active;
+    bool parentActive;
     StringPtr name;
     StringPtr description;
     ComponentStatusContainerPtr statusContainer;
@@ -222,6 +224,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
           }))
       , visible(true)
       , active(true)
+      , parentActive(true)
       , name(name.assigned() && name != "" ? name : localId)
       , description("")
       , statusContainer(createWithImplementation<IComponentStatusContainer, ComponentStatusContainerImpl>(
@@ -257,6 +260,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
         this->permissionManager.setPermissions(PermissionsBuilder().inherit(true).build());
         const auto parentManager = parent.getPermissionManager();
         this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+        this->parentActive = parent.getActive();
     }
 }
 
@@ -300,7 +304,7 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 
     auto lock = this->getRecursiveConfigLock2();
 
-    *active = this->active;
+    *active = (this->active && parentActive) ? True : False;
     return OPENDAQ_SUCCESS;
 }
 
@@ -353,6 +357,26 @@ template <class Intf, class... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 {
     return setActiveInternal(active);
+}
+
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::updateParentActive(Bool active)
+{
+    {
+        auto lock = this->getRecursiveConfigLock2();
+        this->parentActive = active;
+        activeChanged();
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            CoreEventId::AttributeChanged,
+            Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}, {"ParentActive", this->parentActive}}));
+        triggerCoreEvent(args);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>
@@ -1048,7 +1072,12 @@ template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active)
 {
     for (const auto& item : items)
-        item.setActive(active);
+    {
+        if (auto itemPrivate = item.template asPtrOrNull<IComponentPrivate>(true); itemPrivate.assigned())
+        {
+            itemPrivate.updateParentActive(active);
+        }
+    }
 }
 
 template <class Intf, class... Intfs>

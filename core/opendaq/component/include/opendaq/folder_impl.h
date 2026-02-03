@@ -126,10 +126,13 @@ ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
 
     const ErrCode errCode = daqTry([&]
     {
+        Bool computedActive;
+        this->getActive(&computedActive);
+        
         std::vector<ComponentPtr> itemsVec;
         for (const auto& [_, item] : this->items)
             itemsVec.emplace_back(item);
-        this->setActiveRecursive(itemsVec, active);
+        this->setActiveRecursive(itemsVec, computedActive);
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -261,6 +264,14 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 
     // When a component is added to the subtree, the folder updates its operation mode to match the operation mode of the parent device.
     syncComponentOperationMode(component);
+
+    // Initialize parentActive for the newly added component based on this folder's active state
+    Bool folderActive;
+    this->getActive(&folderActive);
+    if (auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+    {
+        componentPrivate->updateParentActive(folderActive);
+    }
 
     return OPENDAQ_SUCCESS;
 }

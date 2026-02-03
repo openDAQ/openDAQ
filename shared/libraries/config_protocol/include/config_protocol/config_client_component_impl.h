@@ -319,10 +319,9 @@ void ConfigClientComponentBaseImpl<Impl>::attributeChanged(const CoreEventArgsPt
     if (attrName == "Active")
     {
         const Bool active = args.getParameters().get("Active");
-        if (args.getParameters().hasKey("NonRecursive"))
-            checkErrorInfo(Impl::setActiveInternal(active));
-        else
-            checkErrorInfo(Impl::setActive(active));
+        if (args.getParameters().hasKey("ParentActive"))
+            this->parentActive = args.getParameters().get("ParentActive");
+        checkErrorInfo(Impl::setActive(active));
     }
     else if (attrName == "Name")
     {

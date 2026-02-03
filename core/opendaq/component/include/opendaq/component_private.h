@@ -81,6 +81,9 @@ DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
      * @param config The configuration of the component.
      */
     virtual ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) = 0;
+
+
+    virtual ErrCode INTERFACE_FUNC updateParentActive(Bool active) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

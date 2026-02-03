@@ -4,7 +4,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ErrCode PropertyObjectCoreImpl::getRecursiveLockGuard(ILockGuard** lockGuard, LockingStrategy lockingStrategy)
+ErrCode PropertyObjectCoreImpl::getRecursiveLockGuard(ILockGuard** lockGuard)
 {
     OPENDAQ_PARAM_NOT_NULL(lockGuard);
 
@@ -42,7 +42,11 @@ ErrCode PropertyObjectCoreImpl::setInternalVariable(PropObjectCoreVariableId var
             this->sync = value;
             break;
         case PropObjectCoreVariableId::LockingStrategy:
+        {
+            BaseObjectPtr valPtr = value;
+            this->lockingStrategy = static_cast<LockingStrategy>(valPtr);
             break;
+        }
         default:;
     }
 

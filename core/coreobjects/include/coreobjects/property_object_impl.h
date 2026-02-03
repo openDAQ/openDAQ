@@ -251,19 +251,14 @@ protected:
      * Wraps the mutex of the closest owner/parent if the locking strategy is set to `InheritLock`.
      */
     std::unique_lock<MutexPtr> getUniqueLock2();
-
-    bool frozen;
-    LockingStrategy lockingStrategy;
-    WeakRefPtr<IPropertyObject> owner;
-    std::vector<StringPtr> customOrder;
+    
     PropertyObjectPtr objPtr;
-    int updateCount;
-    UpdatingActions updatingPropsAndValues;
     std::atomic<bool> coreEventMuted;
-    WeakRefPtr<ITypeManager> manager;
-    PropertyOrderedMap localProperties;
-    StringPtr path;
-    PermissionManagerPtr permissionManager;
+
+    bool isFrozen();
+    void unfreeze();
+    StringPtr getPath() const;
+    TypeManagerPtr getTypeManager();
 
     void setMutex(const MutexPtr& mutex);
     void setLockOwner(const PropertyObjectInternalPtr& owner);
@@ -303,6 +298,7 @@ private:
     // be used instead of locking this mutex directly unless a different type of lock is needed.
     MutexPtr sync;
     std::mutex* getLocalMutex();
+    LockingStrategy lockingStrategy;
 
     StringPtr className;
     PropertyObjectClassPtr objectClass;
@@ -318,6 +314,16 @@ private:
     PropertyUpdateStack updatePropertyStack;
 
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
+    PropertyOrderedMap localProperties;
+
+    WeakRefPtr<IPropertyObject> owner;
+    int updateCount;
+    UpdatingActions updatingPropsAndValues;
+    WeakRefPtr<ITypeManager> manager;
+    std::vector<StringPtr> customOrder;
+    StringPtr path;
+    PermissionManagerPtr permissionManager;
+    bool frozen;
 
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
@@ -442,14 +448,14 @@ using PropertyObjectImpl = GenericPropertyObjectImpl<IPropertyObject>;
 
 template <class PropObjInterface, class... Interfaces>
 GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl()
-    : frozen(false)
-    , lockingStrategy(LockingStrategy::OwnLock)
-    , updateCount(0)
-    , coreEventMuted(true)
-    , path("")
+    : coreEventMuted(true)
     , sync(Mutex())
+    , lockingStrategy(LockingStrategy::OwnLock)
     , className(nullptr)
     , objectClass(nullptr)
+    , updateCount(0)
+    , path("")
+    , frozen(false)
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
@@ -499,6 +505,30 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
             }
         }
     }
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isFrozen()
+{
+    return frozen;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::unfreeze()
+{
+    frozen = false;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+StringPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPath() const
+{
+    return path;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+TypeManagerPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getTypeManager()
+{
+    return manager.getRef();
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -1681,7 +1711,7 @@ template <typename PropObjInterface, typename... Interfaces>
 std::unique_ptr<RecursiveConfigLockGuard> GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveConfigLock()
 {
     LockGuardPtr lockGuard;
-    checkErrorInfo(propObjCore->getRecursiveLockGuard(&lockGuard, lockingStrategy));
+    checkErrorInfo(propObjCore->getRecursiveLockGuard(&lockGuard));
     return std::make_unique<RecursiveConfigLockGuard>(lockGuard);
 }
 
@@ -2787,7 +2817,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveLockGuard(ILockGuard** lockGuard)
 {
-    return propObjCore->getRecursiveLockGuard(lockGuard, lockingStrategy);
+    return propObjCore->getRecursiveLockGuard(lockGuard);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -2797,6 +2827,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockingSt
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Locking strategy can not be changed after owner is already assigned!");
 
     this->lockingStrategy = strategy;
+    IntegerPtr strategyIntPtr = static_cast<Int>(lockingStrategy);
+    propObjCore->setInternalVariable(PropObjectCoreVariableId::LockingStrategy, strategyIntPtr);
     return OPENDAQ_SUCCESS;
 }
 

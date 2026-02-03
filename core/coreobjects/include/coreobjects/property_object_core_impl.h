@@ -43,12 +43,13 @@ class PropertyObjectCoreImpl : public ImplementationOfWeak<IPropertyObjectCore>
 public:
     explicit PropertyObjectCoreImpl() = default;
 
-    ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard, LockingStrategy lockingStrategy) override;
+    ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) override;
     ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) override;
     ErrCode INTERFACE_FUNC setInternalVariable(PropObjectCoreVariableId varId, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setInternalVariables(IDict* varIdValueMap) override;
 
 private:
+    LockingStrategy lockingStrategy;
     WeakRefPtr<IPropertyObjectInternal> lockOwner;
     NullMutex nullSync;
     MutexPtr sync;

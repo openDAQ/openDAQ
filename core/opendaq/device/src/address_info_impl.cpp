@@ -77,10 +77,15 @@ ErrCode AddressInfoImpl::getReachabilityStatus(AddressReachabilityStatus* addres
 
 ErrCode AddressInfoImpl::setReachabilityStatusPrivate(AddressReachabilityStatus addressReachability)
 {
-    const bool frozenCache = this->frozen;
-    this->frozen = false;
-    const ErrCode err = Super::setPropertyValue(String(ReachabilityStatus), Integer(static_cast<Int>(addressReachability)));
-    this->frozen = frozenCache;
+    const bool frozenCache = isFrozen();
+    if (frozenCache)
+        unfreeze();
+
+    ErrCode err = Super::setPropertyValue(String(ReachabilityStatus), Integer(static_cast<Int>(addressReachability)));
+
+    if (frozenCache)
+        freeze();
+
     return err;
 }
 

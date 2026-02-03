@@ -29,7 +29,7 @@ enum class PropObjectCoreVariableId : EnumType
 
 DECLARE_OPENDAQ_INTERFACE(IPropertyObjectCore, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard, LockingStrategy lockingStrategy) = 0;
+    virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) = 0;
     virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) = 0;
     virtual ErrCode INTERFACE_FUNC setInternalVariable(PropObjectCoreVariableId varId, IBaseObject* value) = 0;
     virtual ErrCode INTERFACE_FUNC setInternalVariables(IDict* varIdValueMap) = 0;

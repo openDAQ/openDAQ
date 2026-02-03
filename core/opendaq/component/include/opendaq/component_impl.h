@@ -253,16 +253,20 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
 
     if (parent.assigned())
     {
-        this->permissionManager.setPermissions(PermissionsBuilder().inherit(true).build());
+        PermissionManagerPtr permissionManagerPtr;
+        checkErrorInfo(this->getPermissionManager(&permissionManagerPtr));
+        permissionManagerPtr.setPermissions(PermissionsBuilder().inherit(true).build());
         const auto parentManager = parent.getPermissionManager();
-        this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+        permissionManagerPtr.asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
     }
 }
 
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::enableCoreEventTrigger()
 {
-    if (this->lockingStrategy == LockingStrategy::InheritLock)
+    LockingStrategy ls;
+    OPENDAQ_RETURN_IF_FAILED(this->getLockingStrategy(&ls));
+    if (ls == LockingStrategy::InheritLock)
     {
         PropertyObjectInternalPtr lockOwnerPtr;
         OPENDAQ_RETURN_IF_FAILED(this->getMutexOwner(&lockOwnerPtr));
@@ -306,7 +310,7 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 {
-    if (this->frozen)
+    if (isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
@@ -390,7 +394,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getName(IString** name)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
 {
-    if (this->frozen)
+    if (isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
@@ -441,7 +445,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getDescription(IString** description)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
 {
-    if (this->frozen)
+    if (isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
@@ -502,7 +506,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getVisible(Bool* visible)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
 {
-    if (this->frozen)
+    if (isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {

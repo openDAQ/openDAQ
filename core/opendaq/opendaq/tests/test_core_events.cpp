@@ -603,7 +603,7 @@ TEST_F(CoreEventTest, recursiveUnmute)
 TEST_F(CoreEventTest, SignalConnected)
 {
     int connectCount = 0;
-    const auto sig = instance.getSignalsRecursive()[0];
+    const auto sig = instance.getDevices()[0].getSignalsRecursive()[0];
     const auto ip = instance.getFunctionBlocks()[0].getInputPorts()[0];
 
     getOnCoreEvent() +=
@@ -634,7 +634,7 @@ TEST_F(CoreEventTest, SignalConnectedMuted)
             connectCount++;
         };
 
-    const auto sig = instance.getSignalsRecursive()[0];
+    const auto sig = instance.getDevices()[0].getSignalsRecursive()[0];
     const auto ip = instance.getFunctionBlocks()[0].getInputPorts()[0];
 
     ip.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
@@ -651,7 +651,7 @@ TEST_F(CoreEventTest, SignalConnectedMuted)
 
 TEST_F(CoreEventTest, SignalDisconnected)
 {
-    const auto sig = instance.getSignalsRecursive()[0];
+    const auto sig = instance.getDevices()[0].getSignalsRecursive()[0];
     const auto ip = instance.getFunctionBlocks()[0].getInputPorts()[0];
 
     ip.connect(sig);
@@ -676,7 +676,7 @@ TEST_F(CoreEventTest, SignalDisconnected)
 
 TEST_F(CoreEventTest, SignalDisconnectedMuted)
 {
-    const auto sig = instance.getSignalsRecursive()[0];
+    const auto sig = instance.getDevices()[0].getSignalsRecursive()[0];
     const auto ip = instance.getFunctionBlocks()[0].getInputPorts()[0];
 
     ip.connect(sig);
@@ -1138,7 +1138,7 @@ TEST_F(CoreEventTest, CoreEventException)
     ASSERT_NO_THROW(sigs.addItem(Signal(instance.getContext(), sigs, "sig1")));
     ASSERT_NO_THROW(sigs.removeItemWithLocalId("sig1"));
 
-    const auto sig = instance.getSignalsRecursive()[0];
+    const auto sig = instance.getDevices()[0].getSignalsRecursive()[0];
     const auto ip = instance.getFunctionBlocks()[0].getInputPorts()[0];
 
     ASSERT_NO_THROW(ip.connect(sig));

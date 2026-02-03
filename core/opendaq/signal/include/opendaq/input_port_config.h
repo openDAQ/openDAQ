@@ -112,6 +112,11 @@ DECLARE_OPENDAQ_INTERFACE(IInputPortConfig, IInputPort)
      * The notification is scheduled.
      */
     virtual ErrCode INTERFACE_FUNC notifyPacketEnqueuedWithScheduler()  = 0;
+
+    /*!
+     * @brief Gets the object receiving input-port related events and notifications.
+     */
+    virtual ErrCode INTERFACE_FUNC getListener(IInputPortNotifications** port) = 0;
 };
 /*!@}*/
 

@@ -756,6 +756,7 @@ TEST_F(InstanceTest, SaveLoadFunctionsOrdered)
     ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId/FB/mock_fb_uid_1/Sig/UniqueId_1");
 }
 
+/* This is no longer valid as circular dependencies are not allowed at connect time
 TEST_F(InstanceTest, SaveLoadFunctionsCircleDependcies)
 {
     StringPtr config;
@@ -788,7 +789,7 @@ TEST_F(InstanceTest, SaveLoadFunctionsCircleDependcies)
         ASSERT_TRUE(connections.hasKey(fb.getGlobalId()));
         ASSERT_EQ(connections.get(fb.getGlobalId()), fb.getInputPorts()[0].getSignal().getGlobalId());
     }
-}
+}*/
 
 TEST_F(InstanceTest, SaveLoadFunctionsOrderedDifferentIds)
 {
@@ -857,6 +858,7 @@ TEST_F(InstanceTest, SaveLoadFunctionsUnordered)
     ASSERT_EQ(inputSignal.getGlobalId(), "/localIntanceId/FB/mock_fb_uid_2/Sig/UniqueId_1");
 }
 
+/* This is no longer valid as circular dependencies are not allowed at connect time
 TEST_F(InstanceTest, SaveLoadFunctionConnectingDynamicPorts)
 {
     auto connections = Dict<IString, IString>();
@@ -893,7 +895,7 @@ TEST_F(InstanceTest, SaveLoadFunctionConnectingDynamicPorts)
         ASSERT_EQ(connections.get(fb.getGlobalId()), fb.getInputPorts()[0].getSignal().getGlobalId());
     }
     
-}
+}*/
 
 TEST_F(InstanceTest, SaveLoadFunctionConnectingSignalFromDev)
 {

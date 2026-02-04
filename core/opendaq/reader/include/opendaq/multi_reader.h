@@ -183,7 +183,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @brief Set the component with matching global ID to unused.
      * @param id Global ID of a component previously passed into the MultiReader.
      * @param unused If true, the component won't be synchronized or read from. An unused component cannot cause the MultiReader to enter
-     * invalid state.
+     * invalid state. In reading operations, provide buffers for ALL inputs, even the unused ones.
      */
     virtual ErrCode INTERFACE_FUNC setInputUnused(IString* id, Bool unused) = 0;
 

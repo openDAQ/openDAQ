@@ -458,7 +458,8 @@ MultiReaderStatusPtr MultiCsvRecorderImpl::attemptReadData()
 {
     SizeT cnt = reader.getAvailableCount();
 
-    auto numPorts = connectedPorts.size();
+    // +1: Disconnected port is added to the reader but unused
+    auto numPorts = connectedPorts.size() + 1;
     std::vector<std::unique_ptr<double[]>> samples;
     samples.reserve(numPorts);
 

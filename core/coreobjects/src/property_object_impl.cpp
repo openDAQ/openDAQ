@@ -17,4 +17,7 @@ template class GenericRecursiveConfigLockGuard<object_utils::NullMutex>;
 template class RecursiveLockGuardImpl<MutexPtr>;
 template class RecursiveLockGuardImpl<object_utils::NullMutex>;
 
+// Explicit template instantiation
+template class GenericPropertyObjectImpl<IPropertyObject>;
+
 END_NAMESPACE_OPENDAQ

@@ -548,6 +548,114 @@ TEST_F(PropertyObjectTest, SparseSelectionPropertySetInvalid)
     ASSERT_ANY_THROW(propObj.setPropertyValue("SparseSelectionProp", 10));
 }
 
+TEST_F(PropertyObjectTest, SetPropertySelectionValueList)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+
+    // Initial value is 0 ("a")
+    ASSERT_EQ(propObj.getPropertyValue("SelectionProp"), 0);
+    ASSERT_EQ(propObj.getPropertySelectionValue("SelectionProp"), "a");
+
+    // Set by selection value "b" which should set index to 1
+    propObj.setPropertySelectionValue("SelectionProp", "b");
+    ASSERT_EQ(propObj.getPropertyValue("SelectionProp"), 1);
+    ASSERT_EQ(propObj.getPropertySelectionValue("SelectionProp"), "b");
+
+    // Set by selection value "c" which should set index to 2
+    propObj.setPropertySelectionValue("SelectionProp", "c");
+    ASSERT_EQ(propObj.getPropertyValue("SelectionProp"), 2);
+    ASSERT_EQ(propObj.getPropertySelectionValue("SelectionProp"), "c");
+}
+
+TEST_F(PropertyObjectTest, SetPropertySelectionValueSparseDict)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+    DictPtr<Int, IString> dict = propObj.getProperty("SparseSelectionProp").getSelectionValues();
+
+    // Initial value is 5 ("d")
+    ASSERT_EQ(propObj.getPropertyValue("SparseSelectionProp"), 5);
+    ASSERT_EQ(propObj.getPropertySelectionValue("SparseSelectionProp"), "d");
+
+    // Set by selection value "e" which should set key to 8
+    propObj.setPropertySelectionValue("SparseSelectionProp", "e");
+    ASSERT_EQ(propObj.getPropertyValue("SparseSelectionProp"), 8);
+    ASSERT_EQ(propObj.getPropertySelectionValue("SparseSelectionProp"), "e");
+
+    // Set by selection value "a" which should set key to 0
+    propObj.setPropertySelectionValue("SparseSelectionProp", "a");
+    ASSERT_EQ(propObj.getPropertyValue("SparseSelectionProp"), 0);
+    ASSERT_EQ(propObj.getPropertySelectionValue("SparseSelectionProp"), "a");
+}
+
+TEST_F(PropertyObjectTest, SetPropertySelectionValueInvalidValue)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+
+    ASSERT_THROW_MSG(propObj.setPropertySelectionValue("SelectionProp", "nonexistent"),
+                     InvalidValueException,
+                     "Failed to set property selection value");
+}
+
+TEST_F(PropertyObjectTest, SetPropertySelectionValueNoSelectionValues)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+
+    ASSERT_THROW_MSG(propObj.setPropertySelectionValue("SelectionPropNoList", "value"),
+                     InvalidPropertyException,
+                     "Failed to set property selection value");
+}
+
+TEST_F(PropertyObjectTest, SetPropertySelectionValueNotFound)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+
+    ASSERT_THROW_MSG(propObj.setPropertySelectionValue("NonExistentProp", "value"),
+                     NotFoundException,
+                     "Failed to set property selection value");
+}
+
+TEST_F(PropertyObjectTest, SetPropertySelectionValueNonSelectionProperty)
+{
+    auto propObj = PropertyObject(objManager, "Test");
+
+    ASSERT_THROW_MSG(propObj.setPropertySelectionValue("FloatProperty", "value"),
+                     InvalidPropertyException,
+                     "Failed to set property selection value");
+}
+
+TEST_F(PropertyObjectTest, SetProtectedPropertySelectionValue)
+{
+    auto propObj = PropertyObject();
+    auto readOnlySelectionProp = SelectionPropertyBuilder("ReadOnlySelection", List<IString>("x", "y", "z"), 0)
+                                     .setReadOnly(true)
+                                     .build();
+    propObj.addProperty(readOnlySelectionProp);
+
+    // Cannot set via normal method
+    ASSERT_THROW(propObj.setPropertySelectionValue("ReadOnlySelection", "y"), AccessDeniedException);
+
+    // Can set via protected method
+    propObj.asPtr<IPropertyObjectProtected>().setProtectedPropertySelectionValue("ReadOnlySelection", "y");
+    ASSERT_EQ(propObj.getPropertyValue("ReadOnlySelection"), 1);
+    ASSERT_EQ(propObj.getPropertySelectionValue("ReadOnlySelection"), "y");
+}
+
+TEST_F(PropertyObjectTest, SetPropertySelectionValueNestedProperty)
+{
+    auto child = PropertyObject();
+    child.addProperty(SelectionProperty("ChildSelection", List<IString>("one", "two", "three"), 0));
+
+    auto parent = PropertyObject();
+    parent.addProperty(ObjectProperty("child", child));
+
+    ASSERT_EQ(parent.getPropertyValue("child.ChildSelection"), 0);
+    ASSERT_EQ(parent.getPropertySelectionValue("child.ChildSelection"), "one");
+
+    parent.setPropertySelectionValue("child.ChildSelection", "two");
+    ASSERT_EQ(parent.getPropertyValue("child.ChildSelection"), 1);
+    ASSERT_EQ(parent.getPropertySelectionValue("child.ChildSelection"), "two");
+}
+
 TEST_F(PropertyObjectTest, EnumVisibleWithVisibleThroughRefs)
 {
     auto propObj = PropertyObject(objManager, "Test");

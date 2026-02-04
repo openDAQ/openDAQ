@@ -127,6 +127,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIAddressInfoBuilder = declareIAddressInfoBuilder(m);
     auto classISyncComponent = declareISyncComponent(m);
     auto classISyncComponentPrivate = declareISyncComponentPrivate(m);
+    auto classISyncInterface = declareISyncInterface(m);
+    auto classISyncComponent2 = declareISyncComponent2(m);
     auto classIReferenceDomainInfo = declareIReferenceDomainInfo(m);
     auto classIReferenceDomainInfoBuilder = declareIReferenceDomainInfoBuilder(m);
     auto classIUpdateParameters = declareIUpdateParameters(m);
@@ -232,6 +234,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIAddressInfoBuilder(m, classIAddressInfoBuilder);
     defineISyncComponent(m, classISyncComponent);
     defineISyncComponentPrivate(m, classISyncComponentPrivate);
+    defineISyncInterface(m, classISyncInterface);
+    defineISyncComponent2(m, classISyncComponent2);
     defineIReferenceDomainInfo(m, classIReferenceDomainInfo);
     defineIReferenceDomainInfoBuilder(m, classIReferenceDomainInfoBuilder);
     defineIUpdateParameters(m, classIUpdateParameters);

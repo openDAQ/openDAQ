@@ -42,6 +42,14 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectProtected, IBaseObject)
      * @param propertyName The name of the Property of which value the function should be cleared.
      */
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) = 0;
+
+    /*!
+     * @brief Sets a selection property value by the selection value. Does not fail if the property is read-only.
+     * @param propertyName The name of the Property of which value the function should set.
+     * @param value The selection value to find and set.
+     */
+    virtual ErrCode INTERFACE_FUNC setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value) = 0;
+
 };
 
 /*!

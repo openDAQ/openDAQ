@@ -715,6 +715,10 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::addInput(IComponent* input)
         ListPtr<IComponent> list = List<IComponent>();
         list.pushBack(input);
 
+        // When adding the first input, update the typeOfInputs member
+        if (typeOfInputs == InputType::Unknown)
+            typeOfInputs = sourceComponentsType(list);
+
         auto ports = createOrAdoptPorts(list);
         configureAndStorePorts(ports, valueReadType, domainReadType, readMode);
 

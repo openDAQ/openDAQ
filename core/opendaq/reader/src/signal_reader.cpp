@@ -37,6 +37,7 @@ SignalReader::SignalReader(const SignalReader& old,
     , domainInfo(loggerComponent)
     , sampleRate(-1)
     , commonSampleRate(-1)
+    , unused(old.unused)
 {
     info = old.info;
 

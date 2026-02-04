@@ -46,7 +46,7 @@ set(dotnet_config --configuration $<CONFIG>_Build)
 # > NU1801: The local source 'path' doesn't exist.
 set(msbuild_parameters -p:NoWarn="CS1591,NU1801" -p:Platform=${platform} -p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} -p:OPENDAQ_PACKAGE_VERSION=${OPENDAQ_PACKAGE_VERSION})
 set(dotnet_cmd_args ${projectFileName} ${dotnet_config} --verbosity minimal ${nuget_config} ${msbuild_parameters})
-set(dotnet_test_args ${projectFileName} --no-build ${dotnet_config} -p:Platform=${platform} --logger "\"junit\;LogFilePath=${test_path}/test_${targetName}.xml\"")
+set(dotnet_test_args ${projectFileName} --no-build ${dotnet_config} -p:Platform=${platform} --logger """junit\\\;LogFilePath=${test_path}/test_${targetName}.xml""")
 #set(dotnet_pack_args ${projectFileName} --no-build ${dotnet_config} ${msbuild_parameters})
 set(cleanCmd ${CMAKE_COMMAND} -E rm -r -f ${outputBinDir})         # clear outputBinDir (no warning if it doesn't exist)
 #set(restoreCmd dotnet restore ${projectFileName} ${nuget_config})  # https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-restore

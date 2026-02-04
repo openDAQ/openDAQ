@@ -211,7 +211,6 @@ void RendererFbImpl::readProperties()
     {
         setComponentStatus(ComponentStatus::Ok);
     }
-        
 }
 
 void RendererFbImpl::readResolutionProperty()
@@ -307,7 +306,7 @@ void RendererFbImpl::renderPacket(
     auto domainDataDescriptor = domainPacket.getDataDescriptor();
     auto domainRule = domainDataDescriptor.getRule();
     size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
-    
+
     if (signalDimension == 1)
         renderArrayPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, renderFont, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
     else
@@ -348,12 +347,23 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
     DestDomainType start{};
     SourceDomainType* domainData{};
 
+    auto referenceDomainInfo = domainDataDescriptor.getReferenceDomainInfo();
+    DestDomainType referenceDomainOffset = 0;
+    if (referenceDomainInfo.assigned())
+    {
+        auto refDomainOffset = referenceDomainInfo.getReferenceDomainOffset();
+        if (refDomainOffset.assigned())
+        {
+            referenceDomainOffset = refDomainOffset;
+        }
+    }
+
     if (domainRuleType == DataRuleType::Linear)
     {
-        firstDomainPacketValue = domainPacket.getOffset();
+        firstDomainPacketValue = start + referenceDomainOffset + domainOffset.getIntValue();
         delta = domainRuleParams.get("delta");
         start = domainRuleParams.get("start");
-        curDomainPacketValue = firstDomainPacketValue + static_cast<DestDomainType>(samplesInPacket - 1) * delta + start;
+        curDomainPacketValue = firstDomainPacketValue + static_cast<DestDomainType>(samplesInPacket - 1) * delta;
         gap = havePrevPacket && (curDomainPacketValue + delta) != nextExpectedDomainPacketValue;
         nextExpectedDomainPacketValue = firstDomainPacketValue + start;
     }
@@ -361,8 +371,10 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
     {
         domainPacketSampleCount = domainPacket.getSampleCount();
         domainData = static_cast<SourceDomainType*>(domainPacket.getData());
+        firstDomainPacketValue = static_cast<DestDomainType>(*domainData) + referenceDomainOffset;
+
         domainData += domainPacket.getSampleCount() - 1;
-        curDomainPacketValue = static_cast<DestDomainType>(*domainData);
+        curDomainPacketValue = static_cast<DestDomainType>(*domainData) + referenceDomainOffset;
         gap = havePrevPacket && domainPacketSampleCount == 0;
     }
 
@@ -462,7 +474,7 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
         if (domainRuleType == DataRuleType::Linear)
             curDomainPacketValue -= delta;
         else
-            curDomainPacketValue = static_cast<DestDomainType>(*(--domainData));
+            curDomainPacketValue = static_cast<DestDomainType>(*(--domainData)) + referenceDomainOffset;
         i++;
     }
     if (i == 0)
@@ -489,7 +501,7 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
     auto domainPacket = packet.getDomainPacket();
     auto domainDataDescriptor = domainPacket.getDataDescriptor();
     const auto samplesInPacket = packet.getSampleCount();
-    
+
     size_t xTickOffset = 0;
     size_t xTickCount = signalContext.inputDataSignalDescriptor.getDimensions()[0].getSize();
 
@@ -501,7 +513,7 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
             xTickCount = custom2dMaxRange + 1;
         xTickCount -= xTickOffset;
     }
-    
+
     double domainFactor = static_cast<double>(xTickCount - 1) / static_cast<double>(xSize);
 
     double yMax, yMin;
@@ -517,7 +529,7 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
         return;
 
     double value;
-    for (size_t i = 0; i < xTickCount; i++) 
+    for (size_t i = 0; i < xTickCount; i++)
     {
         size_t idx = i + xTickOffset;
         switch (signalContext.sampleType)
@@ -719,7 +731,7 @@ void RendererFbImpl::startRendererWindow()
     bottomRight = sf::Vector2f(width, height);
 
     waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
-    
+
     if (rendererUsesMainLoop)
     {
         LOGP_D("Using main thread for rendering")
@@ -1192,7 +1204,7 @@ void RendererFbImpl::renderAxis(sf::RenderTarget& renderTarget, SignalContext& s
             domainStr << static_cast<Int>(label);
         else
             domainStr << label;
-            
+
         domainText.setString(domainStr.str());
         const auto domainBounds = domainText.getGlobalBounds();
 
@@ -1499,26 +1511,37 @@ void RendererFbImpl::processDataPacket(SignalContext& signalContext, const DataP
 
 template <SampleType DST>
 void RendererFbImpl::setLastDomainStamp(SignalContext& signalContext, const DataPacketPtr& domainPacket)
-{ 
+{
     using SourceDomainType = typename SampleTypeToType<DST>::Type;
     using DestDomainType = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
-    
+
     const auto domainDataDescriptor = domainPacket.getDataDescriptor();
     const auto sampleCount = domainPacket.getSampleCount();
+
+    auto referenceDomainInfo = domainDataDescriptor.getReferenceDomainInfo();
+    DestDomainType referenceDomainOffset = 0;
+    if (referenceDomainInfo.assigned())
+    {
+        auto refDomainOffset = referenceDomainInfo.getReferenceDomainOffset();
+        if (refDomainOffset.assigned())
+        {
+            referenceDomainOffset = static_cast<DestDomainType>(refDomainOffset);
+        }
+    }
 
     DestDomainType lastDomainStamp;
     if (signalContext.isExplicit)
     {
         const auto domainDataPtr = static_cast<SourceDomainType*>(domainPacket.getData());
-        lastDomainStamp = static_cast<DestDomainType>(*(domainDataPtr + sampleCount - 1));
+        lastDomainStamp = referenceDomainOffset + static_cast<DestDomainType>(*(domainDataPtr + sampleCount - 1));
     }
     else
     {
         NumberPtr offset = 0;
         if (domainPacket.getOffset().assigned())
             offset = domainPacket.getOffset();
-        lastDomainStamp = static_cast<DestDomainType>(offset + sampleCount * signalContext.domainDelta +
-                                                      signalContext.domainStart); 
+        lastDomainStamp = referenceDomainOffset +
+                          static_cast<DestDomainType>(offset + sampleCount * signalContext.domainDelta + signalContext.domainStart);
     }
 
     signalContext.lastDomainStamp = lastDomainStamp;

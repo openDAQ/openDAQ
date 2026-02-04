@@ -126,6 +126,7 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
+    virtual bool getActiveNoLock();
     virtual void activeChanged();
     virtual void visibleChanged();
     virtual void removed();
@@ -298,13 +299,20 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getGlobalId(IString** globalId)
 }
 
 template <class Intf, class ... Intfs>
+bool ComponentImpl<Intf, Intfs ...>::getActiveNoLock()
+{
+    return this->active && parentActive;
+}
+
+
+template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
     auto lock = this->getRecursiveConfigLock2();
 
-    *active = (this->active && parentActive) ? True : False;
+    *active = getActiveNoLock();
     return OPENDAQ_SUCCESS;
 }
 
@@ -339,7 +347,12 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActiveInternal(Bool active)
         if (active && isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
 
+        bool oldActive = this->getActiveNoLock();
         this->active = active;
+        bool newActive = this->getActiveNoLock();
+        if (oldActive == newActive)
+            return OPENDAQ_IGNORED;
+
         activeChanged();
     }
 
@@ -364,7 +377,11 @@ ErrCode ComponentImpl<Intf, Intfs...>::updateParentActive(Bool active)
 {
     {
         auto lock = this->getRecursiveConfigLock2();
+        bool oldActive = this->getActiveNoLock();
         this->parentActive = active;
+        bool newActive = this->getActiveNoLock();
+        if (oldActive == newActive)
+            return OPENDAQ_IGNORED;
         activeChanged();
     }
 
@@ -372,7 +389,12 @@ ErrCode ComponentImpl<Intf, Intfs...>::updateParentActive(Bool active)
     {
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
             CoreEventId::AttributeChanged,
-            Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}, {"ParentActive", this->parentActive}}));
+            Dict<IString, IBaseObject>(
+            {
+                {"AttributeName", "Active"}, 
+                {"Active", this->active}, 
+                {"ParentActive", active}
+            }));
         triggerCoreEvent(args);
     }
 

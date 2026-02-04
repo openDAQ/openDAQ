@@ -46,6 +46,7 @@ public:
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC updateParentActive(Bool active) override;
 
     // IFolder
     ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter = nullptr) override;
@@ -128,7 +129,27 @@ ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
     {
         Bool computedActive;
         this->getActive(&computedActive);
-        
+
+        std::vector<ComponentPtr> itemsVec;
+        for (const auto& [_, item] : this->items)
+            itemsVec.emplace_back(item);
+        this->setActiveRecursive(itemsVec, computedActive);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode FolderImpl<Intf, Intfs...>::updateParentActive(Bool active)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::updateParentActive(active));
+
+    const ErrCode errCode = daqTry([&]
+    {
+        Bool computedActive;
+        this->getActive(&computedActive);
+
         std::vector<ComponentPtr> itemsVec;
         for (const auto& [_, item] : this->items)
             itemsVec.emplace_back(item);

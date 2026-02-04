@@ -48,6 +48,9 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
+    //IComponentPrivate
+    ErrCode INTERFACE_FUNC updateParentActive (Bool active) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
     template <class Interface, class Implementation>
@@ -150,6 +153,12 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getComponentConfig(IPropertyObject*
         else
             checkErrorInfo(Impl::getComponentConfig(config));   
     });
+}
+
+template <class Impl>
+ErrCode ConfigClientComponentBaseImpl<Impl>::updateParentActive(Bool active)
+{
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>

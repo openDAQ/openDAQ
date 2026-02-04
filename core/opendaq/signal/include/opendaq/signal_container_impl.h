@@ -150,6 +150,9 @@ public:
     // IComponent
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
 
+    // IComponentPrivate
+    ErrCode INTERFACE_FUNC updateParentActive(Bool active) override;
+
     virtual ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
     ErrCode INTERFACE_FUNC isEmpty(Bool* empty) override;
@@ -222,7 +225,26 @@ ErrCode SignalContainerImpl<Intf, Intfs...>::setActive(Bool active)
 
     const ErrCode errCode = daqTry([&]
     {
-        this->setActiveRecursive(this->components, active);
+        Bool computedActive;
+        this->getActive(&computedActive);
+        this->setActiveRecursive(this->components, computedActive);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode SignalContainerImpl<Intf, Intfs...>::updateParentActive(Bool active)
+{
+    const ErrCode err = Super::updateParentActive(active);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    const ErrCode errCode = daqTry([&]
+    {
+        Bool computedActive;
+        this->getActive(&computedActive);
+        this->setActiveRecursive(this->components, computedActive);
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);

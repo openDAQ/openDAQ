@@ -715,7 +715,7 @@ TEST_F(ConfigCoreEventTest, ComponentAttributeChanged)
     ASSERT_EQ(clientDevice.getVisible(), true);
 
     ASSERT_EQ(otherChangeCount, 8);
-    ASSERT_GT(activeChangeCount, 2);
+    ASSERT_GE(activeChangeCount, 2);
 }
 
 TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursive)
@@ -742,7 +742,7 @@ TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursive)
     for (const auto& comp : components)
         ASSERT_TRUE(comp.getActive());
 
-    ASSERT_GT(changeCount, 2);
+    ASSERT_GE(changeCount, 2);
 }
 
 TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursiveClientCall)
@@ -768,7 +768,7 @@ TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursiveClientCall)
     for (const auto& comp : components)
         ASSERT_TRUE(comp.getActive());
 
-    ASSERT_GT(changeCount, 2);
+    ASSERT_GE(changeCount, 2);
 }
 
 TEST_F(ConfigCoreEventTest, DomainSignalAttributeChanged)

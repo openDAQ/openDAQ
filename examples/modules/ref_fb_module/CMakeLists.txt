@@ -6,10 +6,15 @@ set(REPO_OPTION_PREFIX DAQMODULES_REF_FB_MODULE)
 
 add_subdirectory(cmake)
 
-opendaq_setup_module_project(${REPO_OPTION_PREFIX} ${REPO_NAME})
+set(${REPO_OPTION_PREFIX}_VERSION ${OPENDAQ_PACKAGE_VERSION})
+
+project(${REPO_NAME} VERSION ${${REPO_OPTION_PREFIX}_VERSION} LANGUAGES CXX)
+
+opendaq_module_common_setup(${REPO_OPTION_PREFIX} ${REPO_NAME})
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER AND APPLE)
     enable_language(OBJC OBJCXX)
 endif()
 
-opendaq_setup_module_subfolders(${REPO_OPTION_PREFIX} ${REPO_NAME})
+add_subdirectory(external)
+add_subdirectory(modules)

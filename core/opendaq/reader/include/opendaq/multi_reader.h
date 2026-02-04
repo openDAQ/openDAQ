@@ -167,12 +167,31 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      */
     virtual ErrCode INTERFACE_FUNC getActive(Bool* isActive) = 0;
 
+    /*!
+     * @brief Add the component to the list of inputs that are being read from.
+     * @param input may be either an ISignal or an IInputPort.
+     */
     virtual ErrCode INTERFACE_FUNC addInput(IComponent* input) = 0;
 
+    /*!
+     * @brief Remove the component with matching global ID.
+     * @param id Global ID of the component that was added to the MultiReader.
+     */
     virtual ErrCode INTERFACE_FUNC removeInput(IString* id) = 0;
 
+    /*!
+     * @brief Set the component with matching global ID to unused.
+     * @param id Global ID of a component previously passed into the MultiReader.
+     * @param unused If true, the component won't be synchronized or read from. An unused component cannot cause the MultiReader to enter
+     * invalid state.
+     */
     virtual ErrCode INTERFACE_FUNC setInputUnused(IString* id, Bool unused) = 0;
 
+    /*!
+     * @brief Get the unused flag for the component. If the result is true, the component is unused (ignored) by the MultiReader.
+     * @param id Global ID of a component previously passed into the MultiReader.
+     * @param unused Output parameter
+     */
     virtual ErrCode INTERFACE_FUNC getInputUnused(IString* id, Bool* unused) = 0;
 };
 

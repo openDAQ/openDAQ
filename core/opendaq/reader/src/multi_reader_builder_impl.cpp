@@ -235,6 +235,22 @@ ErrCode MultiReaderBuilderImpl::getInputPortNotificationMethods(IList** notifica
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode MultiReaderBuilderImpl::setContext(IContext* context)
+{
+    OPENDAQ_PARAM_NOT_NULL(context);
+
+    this->context = context;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReaderBuilderImpl::getContext(IContext** context)
+{
+    OPENDAQ_PARAM_NOT_NULL(context);
+
+    *context = this->context.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 /////////////////////
 ////
 //// FACTORIES

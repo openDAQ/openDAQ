@@ -79,7 +79,7 @@ private:
     std::string getNextPortID() const;
 
     bool updateInputPorts();
-    void updateReader();
+    void createReader();
 
     /**
      * @brief Attempts to open a new CSV writer with provided data.

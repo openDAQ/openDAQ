@@ -37,6 +37,7 @@ SignalReader::SignalReader(const SignalReader& old,
     , domainInfo(loggerComponent)
     , sampleRate(-1)
     , commonSampleRate(-1)
+    , unused(old.unused)
 {
     info = old.info;
 
@@ -517,6 +518,9 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
 
 ErrCode SignalReader::readPackets()
 {
+    if (unused)
+        return OPENDAQ_SUCCESS;
+
     bool firstData = false;
     ErrCode errCode = OPENDAQ_SUCCESS;
 

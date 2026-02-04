@@ -7,6 +7,7 @@
 - [#975](https://github.com/openDAQ/openDAQ/pull/975) Add `DevelopmentVersionInfo` for more detailed version information (tweak, branch and hash).
 - [#1000](https://github.com/openDAQ/openDAQ/pull/1000) Added a mode to the CSV recorder that allows data from multiple same-rate signals to be written to a single file.
 - [#1018](https://github.com/openDAQ/openDAQ/pull/1018) Optimized multireader synchronization for linear data rule domain signals by avoiding iteration through timestamps.
+- [#1036](https://github.com/openDAQ/openDAQ/pull/1036) Allow creation of empty multi reader, add/remove inputs dyinamically. Mark inputs as invalid to ignore sync failures from specific ports.
 
 ## Python
 

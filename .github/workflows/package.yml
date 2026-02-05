@@ -102,7 +102,7 @@ jobs:
           package-artifact-retention-days: 1
 
   package_linux:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     name: ${{ matrix.name }}
 
     concurrency:

@@ -7,40 +7,40 @@ using CCoretypesTest = testing::Test;
 TEST_F(CCoretypesTest, BaseObject)
 {
     daqBaseObject* obj = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     err = daqBaseObject_create(&obj);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_NE(obj, nullptr);
     err = daqBaseObject_releaseRef(obj);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 }
 
 TEST_F(CCoretypesTest, Binarydata)
 {
     daqBinaryData* data = nullptr;
     void* dataPtr = nullptr;
-    daqSizeT size = 0;
+    daqSizeT size = 0u;
     daqErrCode err = 0;
-    err = daqBinaryData_createBinaryData(&data, 10);
-    ASSERT_EQ(err, 0);
+    err = daqBinaryData_createBinaryData(&data, 10u);
+    ASSERT_EQ(err, 0u);
     err = daqBinaryData_getAddress(data, &dataPtr);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_NE(dataPtr, nullptr);
     err = daqBinaryData_getSize(data, &size);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(size, 10);
+    ASSERT_EQ(err, 0u);
+    ASSERT_EQ(size, 10u);
     daqBaseObject_releaseRef(data);
 }
 
 TEST_F(CCoretypesTest, Boolean)
 {
     daqBoolean* b = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     daqBool value = False;
     err = daqBoolean_createBoolean(&b, value);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqBoolean_getValue(b, &value);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(value, False);
     daqBaseObject_releaseRef(b);
 }
@@ -70,9 +70,9 @@ TEST_F(CCoretypesTest, Cloneable)
 
     daqList_pushBack(clonedList, i2);
 
-    daqSizeT count = 0;
+    daqSizeT count = 0u;
     daqList_getCount(list, &count);
-    ASSERT_EQ(count, 1);
+    ASSERT_EQ(count, 1u);
 
     daqBaseObject_equals(list, clonedList, &eq);
     ASSERT_EQ(eq, False);
@@ -90,16 +90,16 @@ TEST_F(CCoretypesTest, Comparable)
 TEST_F(CCoretypesTest, ComplexNumber)
 {
     daqComplexNumber* cn = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     daqFloat real = 1.0;
     daqFloat imag = 2.0;
     err = daqComplexNumber_createComplexNumber(&cn, real, imag);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqComplexNumber_getReal(cn, &real);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(real, 1.0);
     err = daqComplexNumber_getImaginary(cn, &imag);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(imag, 2.0);
     daqBaseObject_releaseRef(cn);
 }
@@ -108,15 +108,15 @@ TEST_F(CCoretypesTest, Convertible)
 {
     daqString* s = nullptr;
     daqConvertible* c = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     daqFloat f = 0.0;
 
     err = daqString_createString(&s, "1.5");
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqBaseObject_borrowInterface(s, DAQ_CONVERTIBLE_INTF_ID, (daqBaseObject**) &c);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqConvertible_toFloat(c, &f);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_DOUBLE_EQ(f, 1.5);
     daqBaseObject_releaseRef(s);
 }
@@ -140,31 +140,31 @@ TEST_F(CCoretypesTest, CoreType)
 TEST_F(CCoretypesTest, Dictobject)
 {
     daqDict* dict = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
 
     daqString* key = nullptr;
     daqString* value = nullptr;
     err = daqString_createString(&key, "key");
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqString_createString(&value, "value");
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     err = daqDict_createDict(&dict);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqDict_set(dict, key, value);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     daqSizeT count = 0;
     err = daqDict_getCount(dict, &count);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(count, 1);
+    ASSERT_EQ(err, 0u);
+    ASSERT_EQ(count, 1u);
 
     daqString* value2 = nullptr;
     err = daqDict_get(dict, key, (daqBaseObject**) &value2);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     daqConstCharPtr str = nullptr;
     err = daqString_getCharPtr(value2, &str);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_STREQ(str, "value");
 
     daqBaseObject_releaseRef(key);
@@ -197,16 +197,16 @@ TEST_F(CCoretypesTest, Enumerations)
 
     daqEnumerationType_createEnumerationTypeWithValues(&et, typeName, enumerators);
 
-    daqSizeT count = 0;
+    daqSizeT count = 0u;
     daqEnumerationType_getCount(et, &count);
-    ASSERT_EQ(count, 2);
+    ASSERT_EQ(count, 2u);
 
     daqEnumeration* e = nullptr;
     daqEnumeration_createEnumerationWithType(&e, et, s2);
-    daqInt value = 0;
+    daqInt value = 0u;
     daqEnumeration_getIntValue(e, &value);
 
-    ASSERT_EQ(value, 2);
+    ASSERT_EQ(value, 2u);
 
     daqBaseObject_releaseRef(e);
     daqBaseObject_releaseRef(typeName);
@@ -221,24 +221,24 @@ TEST_F(CCoretypesTest, Enumerations)
 TEST_F(CCoretypesTest, Event)
 {
     daqEvent* e = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     err = daqEvent_createEvent(&e);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
-    daqSizeT count = 1;
+    daqSizeT count = 1u;
     daqEvent_getSubscriberCount(e, &count);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     daqBaseObject_releaseRef(e);
 }
 
 TEST_F(CCoretypesTest, EventArgs)
 {
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     daqEventArgs* args = nullptr;
     daqString* name = nullptr;
     daqString_createString(&name, "test_event");
     err = daqEventArgs_createEventArgs(&args, 10, name);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     daqInt id = 0;
     daqEventArgs_getEventId(args, &id);
     ASSERT_EQ(id, 10);
@@ -279,12 +279,12 @@ TEST_F(CCoretypesTest, EventHandler)
 TEST_F(CCoretypesTest, Float)
 {
     daqFloatObject* f = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     daqFloat value = 1.0;
     err = daqFloatObject_createFloat(&f, value);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqFloatObject_getValue(f, &value);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(value, 1.0);
     daqBaseObject_releaseRef(f);
 }
@@ -293,22 +293,22 @@ TEST_F(CCoretypesTest, Freezable)
 {
     daqList* list = nullptr;
     daqFreezable* f = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     err = daqList_createList(&list);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     daqBool isFrozen = False;
     err = daqBaseObject_borrowInterface(list, DAQ_FREEZABLE_INTF_ID, (daqBaseObject**) &f);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     err = daqFreezable_isFrozen(f, &isFrozen);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(isFrozen, False);
 
     err = daqFreezable_freeze(f);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     err = daqFreezable_isFrozen(f, &isFrozen);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(isFrozen, True);
 
     daqBaseObject_releaseRef(list);
@@ -326,7 +326,7 @@ TEST_F(CCoretypesTest, Function)
     daqFunction* f = nullptr;
     daqErrCode err = 0;
     err = daqFunction_createFunction(&f, func_call);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(b, False);
 
     daqBaseObject* params = nullptr;
@@ -336,7 +336,7 @@ TEST_F(CCoretypesTest, Function)
     daqBaseObject_create(&result);
 
     err = daqFunction_call(f, params, &result);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(b, True);
     daqBaseObject_releaseRef(f);
     daqBaseObject_releaseRef(params);
@@ -346,12 +346,12 @@ TEST_F(CCoretypesTest, Function)
 TEST_F(CCoretypesTest, Integer)
 {
     daqInteger* i = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     daqInt value = 1;
     err = daqInteger_createInteger(&i, value);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqInteger_getValue(i, &value);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(value, 1);
     daqBaseObject_releaseRef(i);
 }
@@ -359,10 +359,10 @@ TEST_F(CCoretypesTest, Integer)
 TEST_F(CCoretypesTest, Iterable)
 {
     // filling list
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     daqList* list = nullptr;
     err = daqList_createList(&list);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     daqInteger* i1 = nullptr;
     daqInteger* i2 = nullptr;
@@ -375,15 +375,15 @@ TEST_F(CCoretypesTest, Iterable)
     // cast to iterable
     daqIterable* iter = nullptr;
     err = daqBaseObject_borrowInterface(list, DAQ_ITERABLE_INTF_ID, (daqBaseObject**) &iter);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     // create iterators
     daqIterator* itb = nullptr;
     daqIterator* ite = nullptr;
     err = daqIterable_createStartIterator(iter, &itb);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqIterable_createEndIterator(iter, &ite);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     // iterate
     daqBool eq = False;
@@ -395,12 +395,12 @@ TEST_F(CCoretypesTest, Iterable)
     {
         daqInteger* tmp = nullptr;
         err = daqIterator_getCurrent(itb, (daqBaseObject**) &tmp);
-        ASSERT_EQ(err, 0);
+        ASSERT_EQ(err, 0u);
 
         daqInt val = 0;
         err = daqInteger_getValue(tmp, &val);
 
-        ASSERT_EQ(err, 0);
+        ASSERT_EQ(err, 0u);
         ASSERT_EQ(val, a[i++]);
 
         daqIterator_moveNext(itb);
@@ -420,9 +420,9 @@ TEST_F(CCoretypesTest, Iterable)
 TEST_F(CCoretypesTest, Listobject)
 {
     daqList* list = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     err = daqList_createList(&list);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     daqInteger* i1 = nullptr;
     daqInteger* i2 = nullptr;
@@ -432,41 +432,41 @@ TEST_F(CCoretypesTest, Listobject)
     daqInteger_createInteger(&i3, 3);
 
     err = daqList_pushBack(list, i1);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqList_pushBack(list, i2);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqList_pushBack(list, i3);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
-    daqSizeT count = 0;
+    daqSizeT count = 0u;
     err = daqList_getCount(list, &count);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(count, 3);
+    ASSERT_EQ(err, 0u);
+    ASSERT_EQ(count, 3u);
 
     daqInteger* i = nullptr;
     err = daqList_popFront(list, (daqBaseObject**) &i);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     daqInt value = 0;
     err = daqInteger_getValue(i, &value);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(value, 1);
 
     daqBaseObject_releaseRef(i);
     i = nullptr;
 
     err = daqList_removeAt(list, 1, (daqBaseObject**) &i);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqInteger_getValue(i, &value);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(value, 3);
 
     daqBaseObject_releaseRef(i);
 
     err = daqList_clear(list);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqList_getCount(list, &count);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(err, 0u);
+    ASSERT_EQ(count, 0u);
 
     daqBaseObject_releaseRef(list);
     daqBaseObject_releaseRef(i3);
@@ -483,11 +483,11 @@ TEST_F(CCoretypesTest, Number)
     daqInt i = 0;
 
     err = daqFloatObject_createFloat(&f1, f);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqBaseObject_borrowInterface(f1, DAQ_NUMBER_INTF_ID, (daqBaseObject**) &n1);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     daqNumber_getIntValue(n1, &i);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(i, 2);
     daqBaseObject_releaseRef(f1);
 }
@@ -506,10 +506,10 @@ TEST_F(CCoretypesTest, Procedure)
     daqProcedure* p = nullptr;
     daqErrCode err = 0;
     err = daqProcedure_createProcedure(&p, proc_call);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(b2, False);
     err = daqProcedure_dispatch(p, nullptr);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(b2, True);
     daqBaseObject_releaseRef(p);
 }
@@ -520,15 +520,15 @@ TEST_F(CCoretypesTest, Ratio)
     daqErrCode err = 0;
 
     err = daqRatio_createRatio(&r, 1, 2);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     daqInt numerator = 0;
     daqInt denominator = 0;
     err = daqRatio_getNumerator(r, &numerator);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(numerator, 1);
     err = daqRatio_getDenominator(r, &denominator);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(denominator, 2);
     daqBaseObject_releaseRef(r);
 }
@@ -538,22 +538,22 @@ TEST_F(CCoretypesTest, Serializable)
     daqList* list = nullptr;
     daqSerializable* s = nullptr;
     daqSerializer* serializer = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
 
     err = daqSerializer_createJsonSerializer(&serializer, False);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqList_createList(&list);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqBaseObject_borrowInterface(list, DAQ_SERIALIZABLE_INTF_ID, (daqBaseObject**) &s);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqSerializable_serialize(s, serializer);
 
     daqString* serialized = nullptr;
     err = daqSerializer_getOutput(serializer, &serialized);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     daqConstCharPtr str = nullptr;
     err = daqString_getCharPtr(serialized, &str);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     // Disabled due to inconsistent output format
     // ASSERT_STREQ(str, "[]");
@@ -575,28 +575,28 @@ TEST_F(CCoretypesTest, SerializedObject)
 TEST_F(CCoretypesTest, SimpleType)
 {
     daqSimpleType* st = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     err = daqSimpleType_createSimpleType(&st, daqCoreType::daqCtBool);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     daqBaseObject_releaseRef(st);
 }
 
 TEST_F(CCoretypesTest, Stringobject)
 {
     daqString* s = nullptr;
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
     err = daqString_createString(&s, "Hello");
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     daqConstCharPtr str = nullptr;
     err = daqString_getCharPtr(s, &str);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_STREQ(str, "Hello");
     daqBaseObject_releaseRef(s);
 }
 
 TEST_F(CCoretypesTest, Struct)
 {
-    daqErrCode err = 0;
+    daqErrCode err = 0u;
 
     daqList* fieldNames = nullptr;
     daqList_createList(&fieldNames);
@@ -631,13 +631,13 @@ TEST_F(CCoretypesTest, Struct)
 
     daqStruct* s = nullptr;
     err = daqStructBuilder_build(sb, &s);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     daqInteger* i2 = nullptr;
     daqStruct_get(s, fieldName, (daqBaseObject**) &i2);
     daqInt value = 0;
     err = daqInteger_getValue(i2, &value);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_EQ(value, 10);
 
     daqBaseObject_releaseRef(i2);
@@ -684,11 +684,11 @@ TEST_F(CCoretypesTest, TypeManager)
 
     daqTypeManager* manager = nullptr;
     err = daqTypeManager_createTypeManager(&manager);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqTypeManager_addType(manager, (daqType*) type);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     err = daqTypeManager_removeType(manager, typeName);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     daqBaseObject_releaseRef(fieldNames);
     daqBaseObject_releaseRef(fieldTypes);
@@ -708,18 +708,18 @@ TEST_F(CCoretypesTest, VersionInfo)
     daqVersionInfo* vi = nullptr;
     daqErrCode err = 0;
     err = daqVersionInfo_createVersionInfo(&vi, 1, 2, 3);
-    ASSERT_EQ(err, 0);
-    daqSizeT major = 0;
-    daqSizeT minor = 0;
-    daqSizeT patch = 0;
+    ASSERT_EQ(err, 0u);
+    daqSizeT major = 0u;
+    daqSizeT minor = 0u;
+    daqSizeT patch = 0u;
     err = daqVersionInfo_getMajor(vi, &major);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(major, 1);
+    ASSERT_EQ(err, 0u);
+    ASSERT_EQ(major, 1u);
     err = daqVersionInfo_getMinor(vi, &minor);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(minor, 2);
+    ASSERT_EQ(err, 0u);
+    ASSERT_EQ(minor, 2u);
     err = daqVersionInfo_getPatch(vi, &patch);
-    ASSERT_EQ(err, 0);
-    ASSERT_EQ(patch, 3);
+    ASSERT_EQ(err, 0u);
+    ASSERT_EQ(patch, 3u);
     daqBaseObject_releaseRef(vi);
 }

@@ -396,9 +396,7 @@ jobs:
       - name: Delete unused artifacts
         uses: geekyeggo/delete-artifact@v5
         with:
-          name: |
-            ${{ env.simulator_app_artifact }}
-            ${{ needs.package_linux.outputs.simulator_package_name }}
+          name: ${{ env.simulator_app_artifact }}
 
   # using reusable workflow
   dotnet_bindings:

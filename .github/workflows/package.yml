@@ -14,7 +14,6 @@ env:
   package_path_rel: build/_packages # WA for https://github.com/actions/checkout/issues/785
   vm_name: device_simulator
   simulator_app_artifact: SimulatorApp
-  simulator_package_artifact: Package (Linux x86_64 GCC Release)
   python_version_build: 3.11
   python_versions: 3.8 3.9 3.10 3.11 3.12 3.13 3.14
   windows_x64_artifact: SdkWindows64
@@ -80,8 +79,7 @@ jobs:
           cpack-generator: ${{ matrix.cpack-generator }}
           generate-csharp-bindings: false
           generate-python-bindings: false
-          package-artifact-name: Package (${{ matrix.name }})
-          package-artifact-retention-days: 7
+          upload-artifact: true
 
       - name: Build Python Wheels
         id: package-python-bindings
@@ -92,7 +90,6 @@ jobs:
           python-versions: ${{ env.python_versions }}
           cmake-build-type: ${{ matrix.cmake-build-type }}
           package-artifact-name: Wheels (${{ matrix.name }})
-          package-artifact-retention-days: 7
 
       - name: Build C# Bindings
         id: package-csharp-bindings
@@ -142,6 +139,7 @@ jobs:
     outputs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
+      simulator_package_name: ${{ steps.set-simulator-output.outputs.name }}
 
     steps:
       - name: Checkout
@@ -158,8 +156,12 @@ jobs:
           cmake-build-type: ${{ matrix.cmake-build-type }}
           cpack-generator: DEB
           generate-python-bindings: false
-          package-artifact-name: Package (${{ matrix.name }})
-          package-artifact-retention-days: 7
+          upload-artifact: true
+
+      - name: Set simulator package output
+        id: set-simulator-output
+        if: matrix.generate-simulator-app == true
+        run: echo "name=${{ steps.build-sdk.outputs.package-name }}" >> $GITHUB_OUTPUT
 
       - name: Build Documentation
         if: matrix.generate-doxygen-doc == true
@@ -167,7 +169,6 @@ jobs:
         with:
           build-path: ${{ steps.build-sdk.outputs.build-path }}
           artifact-name: API Reference
-          artifact-retention-days: 7
 
       - name: Build Simulator App
         if: matrix.generate-simulator-app == true
@@ -251,7 +252,6 @@ jobs:
           build-path: ${{ steps.build-sdk.outputs.build-path }}
           cmake-build-type: ${{ matrix.cmake-build-type }}
           package-artifact-name: Wheels (${{ matrix.name }})
-          package-artifact-retention-days: 7
           skip-setup-python: true
 
   package_macos_wheels:
@@ -308,7 +308,6 @@ jobs:
           build-path: ${{ steps.build-sdk.outputs.build-path }}
           cmake-build-type: ${{ matrix.cmake-build-type }}
           package-artifact-name: Wheels (${{ matrix.name }})
-          package-artifact-retention-days: 7
 
   simulator-build:
     runs-on: ubuntu-latest-4-cores
@@ -340,7 +339,7 @@ jobs:
       - name: Download package
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.simulator_package_artifact }}
+          name: ${{ needs.package_linux.outputs.simulator_package_name }}
           path: ${{ env.simulator_directory }}
 
       - name: Download simulator app
@@ -399,7 +398,7 @@ jobs:
         with:
           name: |
             ${{ env.simulator_app_artifact }}
-            ${{ env.simulator_package_artifact }}
+            ${{ needs.package_linux.outputs.simulator_package_name }}
 
   # using reusable workflow
   dotnet_bindings:

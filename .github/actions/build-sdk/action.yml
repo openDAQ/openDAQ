@@ -58,8 +58,12 @@ inputs:
     description: 'Generate C# bindings (true/false/empty). Empty = use preset or cmake-config-args'
     required: false
     default: ''
+  upload-artifact:
+    description: 'Upload installer as artifact (true/false)'
+    required: false
+    default: 'false'
   package-artifact-name:
-    description: 'Artifact name for installer upload. If empty, installer will not be uploaded'
+    description: 'Artifact name for installer upload. If empty, uses package-name from cpack output'
     required: false
     default: ''
   package-artifact-retention-days:
@@ -370,9 +374,9 @@ runs:
         fi
 
     - name: Upload Installer
-      if: inputs.cpack-generator != '' && inputs.package-artifact-name != ''
+      if: inputs.cpack-generator != '' && inputs.upload-artifact == 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.package-artifact-name }}
+        name: ${{ inputs.package-artifact-name || steps.build-installer.outputs.package-name }}
         path: ${{ steps.build-installer.outputs.package-path }}
         retention-days: ${{ inputs.package-artifact-retention-days }}

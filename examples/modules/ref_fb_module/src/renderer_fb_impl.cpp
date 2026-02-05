@@ -360,9 +360,9 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
 
     if (domainRuleType == DataRuleType::Linear)
     {
-        firstDomainPacketValue = start + referenceDomainOffset + domainOffset.getIntValue();
         delta = domainRuleParams.get("delta");
         start = domainRuleParams.get("start");
+        firstDomainPacketValue = start + referenceDomainOffset + domainOffset.getIntValue();
         curDomainPacketValue = firstDomainPacketValue + static_cast<DestDomainType>(samplesInPacket - 1) * delta;
         gap = havePrevPacket && (curDomainPacketValue + delta) != nextExpectedDomainPacketValue;
         nextExpectedDomainPacketValue = firstDomainPacketValue + start;

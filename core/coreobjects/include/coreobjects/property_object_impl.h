@@ -49,8 +49,10 @@
 #include <thread>
 #include <utility>
 #include <coretypes/recursive_search_ptr.h>
+#include <coreobjects/property_object_core.h>
 #include <coreobjects/mutex_factory.h>
 #include <coreobjects/mutex_impl.h>
+#include <coreobjects/property_object_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -61,202 +63,13 @@ struct PropertyNameInfo
     StringPtr name;
     Int index{};
 };
-
-namespace object_utils
+namespace config_protocol
 {
-    struct NullMutex
-    {
-        void lock() {}
-        void unlock() noexcept {}
-        bool try_lock() { return true; }
-    };
-
-    inline const auto UnrestrictedPermissions = []() { 
-        daqDisableObjectTracking();
-        auto permissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
-        daqEnableObjectTracking();
-        return permissions;
-    }();
+    class ConfigClientDeviceInfoImpl;
+    
+    template <typename Impl>
+    class ConfigClientPropertyObjectBaseImpl;
 }
-
-class RecursiveConfigLockGuard : public std::enable_shared_from_this<RecursiveConfigLockGuard>
-{
-public:
-    virtual ~RecursiveConfigLockGuard() = default;
-};
-
-template <typename TMutex>
-class GenericRecursiveConfigLockGuard : public RecursiveConfigLockGuard
-{
-public:
-    GenericRecursiveConfigLockGuard(const TMutex& lock, std::thread::id* threadId, int* depth)
-        : id(threadId)
-        , depth(depth)
-        , mutex(lock)
-        , lock(std::lock_guard(mutex))
-    {
-        assert(this->id != nullptr);
-        assert(this->depth != nullptr);
-
-        *id = std::this_thread::get_id();
-        ++(*this->depth);
-    }
-
-    ~GenericRecursiveConfigLockGuard() override
-    {
-        --(*depth);
-        if (*depth == 0)
-            *id = std::thread::id();
-    }
-
-private:
-    std::thread::id* id;
-    int* depth;
-    TMutex mutex;
-    std::lock_guard<TMutex> lock;
-};
-
-struct LockGuardImpl : public ImplementationOf<ILockGuard>
-{
-    LockGuardImpl(IPropertyObject* owner, MutexPtr lock)
-        : owner(owner)
-        , mutex(lock)
-        , lock(std::lock_guard(mutex))
-    {
-    }
-
-private:
-    // to ensure that owner is destroyed after lock
-    PropertyObjectPtr owner;
-    MutexPtr mutex;
-    std::lock_guard<MutexPtr> lock;
-};
-
-template <typename TMutex>
-class RecursiveLockGuardImpl : public ImplementationOf<ILockGuard>
-{
-public:
-    RecursiveLockGuardImpl(IPropertyObject* owner, const TMutex& lock, std::thread::id* threadId, int* depth)
-        : owner(owner) 
-        , id(threadId)
-        , depth(depth)
-        , mutex(lock)
-        , lockGuard(std::lock_guard(mutex))
-    {
-        assert(this->id != nullptr);
-        assert(this->depth != nullptr);
-        *id = std::this_thread::get_id();
-        ++(*this->depth);
-    }
-
-    ~RecursiveLockGuardImpl() override
-    {
-        --(*depth);
-        if (*depth == 0)
-            *id = std::thread::id();
-    }
-
-private:
-    // to ensure that owner is destroyed after lock
-    PropertyObjectPtr owner;
-    std::thread::id* id;
-    int* depth;
-    TMutex mutex;
-    std::lock_guard<TMutex> lockGuard;
-};
-
-class PropertyUpdateStack
-{
-    struct PropertyUpdateStackItem
-    {
-        PropertyUpdateStackItem(const BaseObjectPtr& value)
-            : value(value)
-            , stackLevel(1)
-            , isPushed(true)
-        {
-        }
-
-        bool setValue(const BaseObjectPtr& value)
-        {
-            if (this->value == value)
-                return false;
-
-            this->value = value;
-            this->isPushed = true;
-            this->stackLevel++;
-            return true;
-        }
-
-        bool unregister()
-        {
-            bool result = this->isPushed;
-            this->isPushed = false;
-            this->stackLevel--;
-            return result;
-        }
-
-        size_t getStackLevel() const
-        {
-            return this->stackLevel;
-        }
-
-        BaseObjectPtr value;
-        size_t stackLevel;
-        bool isPushed;
-    };
-
-public:
-    PropertyUpdateStack() = default;
-
-    // return true if property is registered
-    bool registerPropertyUpdating(const std::string& name, const BaseObjectPtr& value)
-    {
-        auto [it, inserted] = updatePropertyStack.try_emplace(name, value);
-
-        if (inserted)
-            return true;
-
-        auto& propertItem = it->second;
-        return propertItem.setValue(value);
-    }
-
-    // returns true is object need to be written
-    bool unregisetPropertyUpdating(const std::string& name)
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        auto& propertItem = it->second;
-        bool result = propertItem.unregister();
-        if (propertItem.getStackLevel() == 0)
-            updatePropertyStack.erase(it);
-        return result;
-    }
-
-    bool isBaseStackLevel(const std::string& name) const
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        return it->second.getStackLevel() == 1;
-    }
-
-    bool getPropertyValue(const std::string& name, BaseObjectPtr& value) const
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        // if value is not assigned, it means, that property is on clearing stage (clearPropertyValue)
-        value = it->second.value;
-        return true;
-    }
-
-private:
-    std::map<std::string, PropertyUpdateStackItem> updatePropertyStack;
-};
 
 template <typename PropObjInterface, typename... Interfaces>
 class GenericPropertyObjectImpl : public ImplementationOfWeak<PropObjInterface,
@@ -373,6 +186,13 @@ public:
     friend class ServerCapabilityConfigImpl;
     friend class ConnectedClientInfoImpl;
 
+    template <typename TInterface, typename... TInterfaces>
+    friend class DeviceInfoConfigImpl;
+    friend class config_protocol::ConfigClientDeviceInfoImpl;
+
+    template <class Impl>
+    friend class config_protocol::ConfigClientPropertyObjectBaseImpl;
+
 protected:
     struct UpdatingAction
     {
@@ -388,8 +208,6 @@ protected:
      * Gets a lock for the configuration of the object. Can be used to lock the sync mutex in a function
      * that is called during a property value read/write event to prevent deadlocks. The lock behaves
      * similarly to a lock guard created with recursive mutex.
-     *
-     * WARNING: Only usable if locking strategy is set to `OwnLock` or `ForwardOwnerLockOwn`.
      */
     std::unique_ptr<RecursiveConfigLockGuard> getRecursiveConfigLock();
     
@@ -433,38 +251,85 @@ protected:
      * Wraps the mutex of the closest owner/parent if the locking strategy is set to `InheritLock`.
      */
     std::unique_lock<MutexPtr> getUniqueLock2();
-
-    bool frozen;
-    LockingStrategy lockingStrategy;
-    WeakRefPtr<IPropertyObject> owner;
-    std::vector<StringPtr> customOrder;
+    
     PropertyObjectPtr objPtr;
-    int updateCount;
-    UpdatingActions updatingPropsAndValues;
     std::atomic<bool> coreEventMuted;
-    WeakRefPtr<ITypeManager> manager;
-    PropertyOrderedMap localProperties;
-    StringPtr path;
-    PermissionManagerPtr permissionManager;
+
+    bool isFrozen();
+    void unfreeze();
+    StringPtr getPath() const;
+    TypeManagerPtr getTypeManager();
 
     void setMutex(const MutexPtr& mutex);
     void setLockOwner(const PropertyObjectInternalPtr& owner);
     void internalDispose(bool) override;
+    ErrCode setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating = false);
+
+    // Serialization
+
+    virtual ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate);
+    virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
+    virtual ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer);
+
+    // Update
+    virtual void endApplyUpdate();
+    virtual void beginApplyUpdate();
+    virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
+    virtual void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
+    bool isParentUpdating();
+    virtual void onUpdatableUpdateEnd(const BaseObjectPtr& context);
+
+    template <class F>
+    static PropertyObjectPtr DeserializePropertyObject(const SerializedObjectPtr& serialized,
+                                                       const BaseObjectPtr& context,
+                                                       const FunctionPtr& factoryCallback,
+                                                       F&& f);
+
+    virtual void callBeginUpdateOnChildren();
+    virtual void callEndUpdateOnChildren();
+
+    virtual PropertyObjectPtr getPropertyObjectParent();
+    virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
+
+private:
+    ObjectPtr<IPropertyObjectCore> propObjCore;
+
+    // Mutex that is locked in the getRecursiveConfigLock and getAcquisitionLock methods. Those should
+    // be used instead of locking this mutex directly unless a different type of lock is needed.
+    MutexPtr sync;
+    std::mutex* getLocalMutex();
+    LockingStrategy lockingStrategy;
+
+    StringPtr className;
+    PropertyObjectClassPtr objectClass;
+    
+    const std::string AnyReadEventName = "DAQ_AnyReadEvent";
+    const std::string AnyWriteEventName = "DAQ_AnyWriteEvent";
+
+    std::unordered_map<StringPtr, PropertyValueEventEmitter> valueWriteEvents;
+    std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
+    EndUpdateEventEmitter endUpdateEvent;
+    ProcedurePtr triggerCoreEvent;
+
+    PropertyUpdateStack updatePropertyStack;
+
+    std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
+    PropertyOrderedMap localProperties;
+
+    WeakRefPtr<IPropertyObject> owner;
+    int updateCount;
+    UpdatingActions updatingPropsAndValues;
+    WeakRefPtr<ITypeManager> manager;
+    std::vector<StringPtr> customOrder;
+    StringPtr path;
+    PermissionManagerPtr permissionManager;
+    bool frozen;
+
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
-    ErrCode setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating = false);
-
-    // Serialization
-
-    ErrCode serializePropertyValues(ISerializer* serializer);
-    ErrCode serializeLocalProperties(ISerializer* serializer);
-
-    virtual ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate);
-    virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
-    virtual ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer);
 
     static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
                                           const BaseObjectPtr& context,
@@ -481,79 +346,31 @@ protected:
                                          const FunctionPtr& factoryCallback,
                                          PropertyObjectPtr& propObjPtr);
 
-    // Child property handling - Used when a property is queried in the "parent.child" format
-    bool isChildProperty(const StringPtr& name) const;
-    void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
-    void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
-
-    // Update
-
     ErrCode setPropertyFromSerialized(const StringPtr& propName,
                                       const PropertyObjectPtr& propObj,
                                       const SerializedObjectPtr& serialized);
 
-    virtual void endApplyUpdate();
-    virtual void beginApplyUpdate();
-    virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
-    virtual void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
-    bool isParentUpdating();
-    virtual void onUpdatableUpdateEnd(const BaseObjectPtr& context);
-
-    template <class F>
-    static PropertyObjectPtr DeserializePropertyObject(const SerializedObjectPtr& serialized,
-                                                       const BaseObjectPtr& context,
-                                                       const FunctionPtr& factoryCallback,
-                                                       F&& f);
+    ErrCode serializePropertyValues(ISerializer* serializer);
+    ErrCode serializeLocalProperties(ISerializer* serializer);
 
     // Does not bind property to object and does not look up reference property
     PropertyPtr getUnboundProperty(const StringPtr& name);
     PropertyPtr getUnboundPropertyOrNull(const StringPtr& name) const;
 
-    virtual void callBeginUpdateOnChildren();
-    virtual void callEndUpdateOnChildren();
-
-    virtual PropertyObjectPtr getPropertyObjectParent();
-
     bool shouldWriteLocalValue(const StringPtr& name, const BaseObjectPtr& value) const;
     // Adds the value to the local list of values (`propValues`)
     bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite = false);
 
+    // Child property handling - Used when a property is queried in the "parent.child" format
+    bool isChildProperty(const StringPtr& name) const;
+    void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
+    void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
+
     // Used when cloning object-type property default values of property object classes on construction.
     // Must be overridden by modules that have their own property object implementation.
-    virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
     bool checkIsChildObjectProperty(const PropertyPtr& prop);
     void setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned);
     void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
-
-    ErrCode beginUpdateInternal(bool deep);
-    ErrCode endUpdateInternal(bool deep);
-    ErrCode getUpdatingInternal(Bool* updating);
-
-private:
-    // Mutex that is locked in the getRecursiveConfigLock and getAcquisitionLock methods. Those should
-    // be used instead of locking this mutex directly unless a different type of lock is needed.
-    MutexPtr sync;
-    WeakRefPtr<IPropertyObjectInternal> lockOwner;
-    std::mutex* getLocalMutex();
-
-    StringPtr className;
-    PropertyObjectClassPtr objectClass;
-    
-    const std::string AnyReadEventName = "DAQ_AnyReadEvent";
-    const std::string AnyWriteEventName = "DAQ_AnyWriteEvent";
-
-    std::unordered_map<StringPtr, PropertyValueEventEmitter> valueWriteEvents;
-    std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
-    EndUpdateEventEmitter endUpdateEvent;
-    ProcedurePtr triggerCoreEvent;
-
-    object_utils::NullMutex nullSync;
-    std::thread::id externalCallThreadId{};
-    int externalCallDepth = 0;
-
-    PropertyUpdateStack updatePropertyStack;
-
-    std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
 
     void triggerCoreEventInternal(const CoreEventArgsPtr& args);
 
@@ -615,10 +432,14 @@ private:
     void coerceMinMax(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr);
     Bool checkIsReferenced(const StringPtr& referencedPropName, const PropertyInternalPtr& prop);
 
-    // update
+    // Update
     ErrCode updateObjectProperties(const PropertyObjectPtr& propObj,
                                    const SerializedObjectPtr& serialized,
                                    const ListPtr<IProperty>& props);
+
+    ErrCode beginUpdateInternal(bool deep);
+    ErrCode endUpdateInternal(bool deep);
+    ErrCode getUpdatingInternal(Bool* updating);
 
     bool hasUserReadAccess(const BaseObjectPtr& userContext, const BaseObjectPtr& obj);
 };
@@ -627,18 +448,20 @@ using PropertyObjectImpl = GenericPropertyObjectImpl<IPropertyObject>;
 
 template <class PropObjInterface, class... Interfaces>
 GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl()
-    : frozen(false)
-    , lockingStrategy(LockingStrategy::OwnLock)
-    , updateCount(0)
-    , coreEventMuted(true)
-    , path("")
+    : coreEventMuted(true)
     , sync(Mutex())
+    , lockingStrategy(LockingStrategy::OwnLock)
     , className(nullptr)
     , objectClass(nullptr)
+    , updateCount(0)
+    , path("")
+    , frozen(false)
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
+    propObjCore = PropertyObjectCore_Create();
 
+    checkErrorInfo(propObjCore->setInternalVariable(PropObjectCoreVariableId::Mutex, sync));
     this->permissionManager = PermissionManager();
     this->permissionManager.setPermissions(object_utils::UnrestrictedPermissions);
 
@@ -685,15 +508,40 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isFrozen()
+{
+    return frozen;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::unfreeze()
+{
+    frozen = false;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+StringPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPath() const
+{
+    return path;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+TypeManagerPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getTypeManager()
+{
+    return manager.getRef();
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setMutex(const MutexPtr& mutex)
 {
     this->sync = mutex;
+    checkErrorInfo(propObjCore->setInternalVariable(PropObjectCoreVariableId::Mutex, this->sync));
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockOwner(const PropertyObjectInternalPtr& owner)
 {
-    this->lockOwner = owner;
+    checkErrorInfo(propObjCore->setInternalVariable(PropObjectCoreVariableId::LockOwner, owner));
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -834,7 +682,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     {
         if (newValue.assigned() && !shouldWriteLocalValue(name, newValue))
         {
-            updatePropertyStack.unregisetPropertyUpdating(name);
+            updatePropertyStack.unregisterPropertyUpdating(name);
             return OPENDAQ_IGNORED;
         }
     }
@@ -872,7 +720,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
         valueWriteEvents[AnyWriteEventName](objPtr, args);
     }
 
-    bool shouldUpdate = updatePropertyStack.unregisetPropertyUpdating(name);
+    bool shouldUpdate = updatePropertyStack.unregisterPropertyUpdating(name);
     // If the event execution failed, forward the error code
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
@@ -1862,15 +1710,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
 template <typename PropObjInterface, typename... Interfaces>
 std::unique_ptr<RecursiveConfigLockGuard> GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveConfigLock()
 {
-    if (this->lockingStrategy == LockingStrategy::InheritLock)
-    {
-        DAQ_THROW_EXCEPTION(daq::InvalidStateException, "Can't build recursive lock locally if using InheritLock strategy.");
-    }
-
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return std::make_unique<GenericRecursiveConfigLockGuard<object_utils::NullMutex>>(nullSync, &externalCallThreadId, &externalCallDepth);
-
-    return std::make_unique<GenericRecursiveConfigLockGuard<MutexPtr>>(sync, &externalCallThreadId, &externalCallDepth);
+    LockGuardPtr lockGuard;
+    checkErrorInfo(propObjCore->getRecursiveLockGuard(&lockGuard));
+    return std::make_unique<RecursiveConfigLockGuard>(lockGuard);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2969,29 +2811,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadA
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
 {
-    OPENDAQ_PARAM_NOT_NULL(lockGuard);
-    
-    // Prevent access violation when lock is obtained during destruction.
-    auto objRef = this->refCount ? this->objPtr : nullptr;
-    return createObject<ILockGuard, LockGuardImpl, IPropertyObject*, MutexPtr>(lockGuard, objRef, sync);
+    return propObjCore->getLockGuard(lockGuard);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveLockGuard(ILockGuard** lockGuard)
 {
-    OPENDAQ_PARAM_NOT_NULL(lockGuard);
-
-    auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr;
-    if (lockOwnerPtr.assigned() && lockingStrategy == LockingStrategy::InheritLock)
-        return lockOwnerPtr->getRecursiveLockGuard(lockGuard);
-    
-    // Prevent access violation when lock is obtained during destruction.
-    auto objRef = this->refCount ? this->objPtr : nullptr;
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return createObject<ILockGuard, RecursiveLockGuardImpl<object_utils::NullMutex>, IPropertyObject*, object_utils::NullMutex, std::thread::id*, int*>
-            (lockGuard, objRef, nullSync, &externalCallThreadId, &externalCallDepth);
-    return createObject<ILockGuard, RecursiveLockGuardImpl<MutexPtr>, IPropertyObject*, MutexPtr, std::thread::id*, int*>
-        (lockGuard, objRef, sync, &externalCallThreadId, &externalCallDepth);
+    return propObjCore->getRecursiveLockGuard(lockGuard);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -3001,6 +2827,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockingSt
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Locking strategy can not be changed after owner is already assigned!");
 
     this->lockingStrategy = strategy;
+    IntegerPtr strategyIntPtr = static_cast<Int>(lockingStrategy);
+    propObjCore->setInternalVariable(PropObjectCoreVariableId::LockingStrategy, strategyIntPtr);
     return OPENDAQ_SUCCESS;
 }
 
@@ -3393,7 +3221,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwner(IPr
             PropertyObjectInternalPtr lockOwnerPtr;
             OPENDAQ_RETURN_IF_FAILED(getMutexOwner(&lockOwnerPtr));
 
-            lockOwner = lockOwnerPtr;
+            OPENDAQ_RETURN_IF_FAILED(propObjCore->setInternalVariable(PropObjectCoreVariableId::LockOwner, lockOwnerPtr));
             setMutex(lockOwnerPtr.getMutex());
         }
     }

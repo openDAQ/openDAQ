@@ -317,7 +317,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConnectionString(ISt
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setDeviceType(IDeviceType* deviceType)
 {
-    if (this->frozen)
+    if (isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     this->deviceType = deviceType;
@@ -1001,7 +1001,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addNetworkInteface(IString* name, INetworkInterface* networkInterface)
 {
-    if (this->frozen)
+    if (isFrozen())
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
@@ -1246,7 +1246,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
 template <typename TInterface, typename ... Interfaces>
 void DeviceInfoConfigImpl<TInterface, Interfaces...>::triggerCoreEventMethod(const CoreEventArgsPtr& args)
 {
-    const ComponentPtr parent = this->owner.assigned() ? this->owner.getRef() : nullptr;
+    auto ownerPtr = this->getOwner();
+    const ComponentPtr parent = ownerPtr.assigned() ? ownerPtr.getRef() : nullptr;
     try
     {
         if (parent.assigned())
@@ -1263,7 +1264,7 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    if (this->frozen)
+    if (isFrozen())
         return OPENDAQ_IGNORED;
 
     const auto serializedPtr = SerializedObjectPtr::Borrow(obj);

@@ -1,0 +1,126 @@
+# This file is generated from boost-extra.cmake.in. Any modifications made to
+# boost-extra.cmake will be overwritten and should instead be made to
+# boost-extra.cmake.in
+#
+# This file is intended to take the place of FindBoost.cmake/boost-config.cmake
+# to define find_package variables typically found in those modules.
+#
+# Only the critical variables are defined here:
+#  Boost_FOUND
+#  Boost_VERSION
+#  Boost_LIBRARIES
+#  Boost_<comp>_FOUND and boost_<comp>_FOUND
+#  Boost_INCLUDE_DIRS
+#
+# Various other housekeeping operations are performed to validate the requested
+# components exist as targets as well as their widley used alias names,
+# Boost::<comp>
+
+# These variables are not CACHE variables and should NEVER be set as such
+# Setting these as CACHE will cause unintended behavior with other projects
+# using Boost
+foreach(Boost_VAR IN ITEMS FOUND LIBRARIES INCLUDE_DIRS VERSION VERSION_MAJOR VERSION_MINOR VERSION_PATCH USE_STATIC_LIBS USE_MULTITHREADED USE_STATIC_RUNTIME NO_WARN_NEW_VERSIONS)
+    # Create a backup of the value
+    set(_Boost_${Boost_VAR} $CACHE{Boost_${Boost_VAR}})
+
+    # Remove the CACHE variable
+    unset(Boost_${Boost_VAR} CACHE)
+
+    # If the value was set as CACHE, reset it as non-cache so it can still be
+    # used in the PARENT_SCOPE
+    if(_Boost_${Boost_VAR})
+        set(Boost_${Boost_VAR} ${_Boost_${Boost_VAR}})
+        unset(_Boost_${Boost_VAR})
+    endif()
+endforeach()
+
+# This is only defined as CACHE when building Boost as the root project, so it
+# should NEVER be set as a CACHE variable
+unset(BOOST_INCLUDE_LIBRARIES CACHE)
+
+set(Boost_FOUND TRUE)
+set(Boost_VERSION @Boost_VERSION@)
+
+if(Boost_VERSION)
+    string(REGEX MATCH "^([0-9])\.([0-9][0-9])(\.([0-9]))?$" Boost_VERSION ${Boost_VERSION})
+
+    set(Boost_VERSION_MAJOR ${CMAKE_MATCH_1})
+    set(Boost_VERSION_MINOR ${CMAKE_MATCH_2})
+    if(CMAKE_MATCH_COUNT GREATER 3)
+        set(Boost_VERSION_PATCH ${CMAKE_MATCH_4})
+    endif()
+endif()
+
+# Reset the Boost libraries with the fetched libraries
+set(Boost_LIBRARIES @BOOST_INCLUDE_LIBRARIES@)
+
+# Filter the Boost libraries by the requested components (or all found for empty component lists)
+if(Boost_FIND_COMPONENTS AND NOT Boost_FIND_COMPONENTS STREQUAL "ALL")
+    list(FIND Boost_FIND_COMPONENTS "ALL" Boost_FIND_ALL)
+
+    if(Boost_FIND_ALL EQUAL -1)
+        foreach(Boost_LIBRARY IN LISTS Boost_FIND_COMPONENTS)
+            if(${Boost_FIND_REQUIRED_${Boost_LIBRARY}} AND NOT Boost_LIBRARY IN_LIST Boost_LIBRARIES)
+                message(FATAL_ERROR "Missing required Boost component ${Boost_LIBRARY}")
+            endif()
+        endforeach()
+
+        foreach(Boost_LIBRARY IN LISTS Boost_LIBRARIES)
+            if(NOT Boost_LIBRARY IN_LIST Boost_FIND_COMPONENTS)
+                list(REMOVE_ITEM Boost_LIBRARIES ${Boost_LIBRARY})
+            endif()
+        endforeach()
+    else()
+        # Typical behavior in boost-config.cmake is that the ALL component must
+        # only be used without other components
+        message(FATAL_ERROR "The ALL component for Boost find_package() cannot be included with other components")
+    endif()
+endif()
+
+# Reset the Boost include directories
+unset(Boost_INCLUDE_DIRS)
+
+foreach(Boost_LIBRARY IN LISTS Boost_LIBRARIES)
+    # Confirm each requested Boost library exists
+    if(NOT TARGET Boost::${Boost_LIBRARY})
+        # The target doesn't exist at all
+        if(NOT TARGET boost_${Boost_LIBRARY})
+            message(FATAL_ERROR "boost_${Boost_LIBRARY} is not a valid target")
+        else()
+            # Create the aliased target since it doesn't exist
+            add_library(Boost::${Boost_LIBRARY} ALIAS boost_${Boost_LIBRARY})
+        endif()
+    endif()
+
+    # These should NEVER be CACHE variables
+    unset(boost_${Boost_LIBRARY}_FOUND CACHE)
+    unset(Boost_${Boost_LIBRARY}_FOUND CACHE)
+
+    # Set the component to found to allow checking of available components
+    set(boost_${Boost_LIBRARY}_FOUND TRUE)
+    set(Boost_${Boost_LIBRARY}_FOUND TRUE)
+
+    # Make sure the proper include directories are set from each target
+    set(Boost_LIBRARY_TARGET boost_${Boost_LIBRARY})
+    get_target_property(Boost_LIBRARY_INCLUDE_DIR ${Boost_LIBRARY_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
+    if(Boost_LIBRARY_INCLUDE_DIR)
+        list(APPEND Boost_INCLUDE_DIRS ${Boost_LIBRARY_INCLUDE_DIR})
+    endif()
+
+    # Turn off all warnings for non-interface Boost libraries
+    # /w for MSVC compilers and -w for all other (Unix) compilers
+    get_target_property(Boost_LIBRARY_TYPE ${Boost_LIBRARY_TARGET} TYPE)
+    if(NOT Boost_LIBRARY_TYPE STREQUAL "INTERFACE_LIBRARY")
+        target_compile_options(${Boost_LIBRARY_TARGET} PRIVATE
+            "$<IF:$<CXX_COMPILER_ID:MSVC>,/,->w"
+        )
+    endif()
+
+    # These variables don't need to exist outside of this file
+    unset(Boost_LIBRARY_INCLUDE_DIR)
+    unset(Boost_LIBRARY_TARGET)
+    unset(Boost_LIBRARY_TYPE)
+endforeach()
+
+# Set the Boost libraries in the correct namespace
+list(TRANSFORM Boost_LIBRARIES PREPEND "Boost::")

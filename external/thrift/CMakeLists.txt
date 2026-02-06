@@ -24,7 +24,7 @@ opendaq_dependency(
 
 if (Thrift_FETCHED)
 
-    target_link_libraries(thrift PUBLIC daq::boost_headers)
+    target_link_libraries(thrift PUBLIC Boost::headers)
 
     target_include_directories(thrift INTERFACE
         "$<BUILD_INTERFACE:${thrift_SOURCE_DIR}/lib/cpp/src>"

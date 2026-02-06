@@ -218,17 +218,17 @@ TEST_F(COpendaqReaderTest, daqBlockReader)
     daqSizeT timeoutMs = 1000;
 
     daqBlockReader_read(blockReader, data, &count, timeoutMs, &status);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     daqReadStatus statusValue = daqReadStatus::daqReadStatusUnknown;
     daqReaderStatus_getReadStatus((daqReaderStatus*) status, &statusValue);
     ASSERT_EQ(statusValue, daqReadStatus::daqReadStatusEvent);
     daqBaseObject_releaseRef(status);
-    count = 5;
+    count = 5u;
     daqBlockReader_read(blockReader, data, &count, timeoutMs, &status);
     daqReadStatus statusValue2 = daqReadStatus::daqReadStatusUnknown;
     daqReaderStatus_getReadStatus((daqReaderStatus*) status, &statusValue2);
     ASSERT_EQ(statusValue2, daqReadStatus::daqReadStatusOk);
-    ASSERT_EQ(count, 5);
+    ASSERT_EQ(count, 5u);
     for (daqSizeT i = 0; i < count; ++i)
     {
         ASSERT_EQ(data[i], (daqFloat) i + 1);
@@ -282,14 +282,14 @@ TEST_F(COpendaqReaderTest, daqReader)
     daqReaderStatus* status = nullptr;
 
     daqStreamReader_read(streamReader, data, &count, timeoutMs, &status);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     daqReadStatus statusValue = daqReadStatus::daqReadStatusUnknown;
     daqReaderStatus_getReadStatus(status, &statusValue);
     ASSERT_EQ(statusValue, daqReadStatus::daqReadStatusEvent);
     daqBaseObject_releaseRef(status);
 
     daqReader_getAvailableCount(reader, &count);
-    ASSERT_EQ(count, 10);
+    ASSERT_EQ(count, 10u);
 
     daqBaseObject_releaseRef(reader);
     daqBaseObject_releaseRef(streamReader);
@@ -312,7 +312,7 @@ TEST_F(COpendaqReaderTest, daqStreamReader)
     daqSizeT timeoutMs = 1000;
 
     daqStreamReader_read(streamReader, data, &count, timeoutMs, &status);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     daqReadStatus statusValue = daqReadStatus::daqReadStatusUnknown;
     daqReaderStatus_getReadStatus(status, &statusValue);
     ASSERT_EQ(statusValue, daqReadStatus::daqReadStatusEvent);
@@ -322,7 +322,7 @@ TEST_F(COpendaqReaderTest, daqStreamReader)
     daqReadStatus statusValue2 = daqReadStatus::daqReadStatusUnknown;
     daqReaderStatus_getReadStatus(status, &statusValue2);
     ASSERT_EQ(statusValue2, daqReadStatus::daqReadStatusOk);
-    ASSERT_EQ(count, 10);
+    ASSERT_EQ(count, 10u);
     for (daqSizeT i = 0; i < count; ++i)
     {
         ASSERT_EQ(data[i], (daqFloat) i + 1);
@@ -346,17 +346,17 @@ TEST_F(COpendaqReaderTest, daqTailReader)
     daqSizeT count = 10;
 
     daqTailReader_read(tailReader, data, &count, &status);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 0u);
     daqReadStatus statusValue = daqReadStatus::daqReadStatusUnknown;
     daqReaderStatus_getReadStatus((daqReaderStatus*) status, &statusValue);
     ASSERT_EQ(statusValue, daqReadStatus::daqReadStatusEvent);
     daqBaseObject_releaseRef(status);
-    count = 10;
+    count = 10u;
     daqTailReader_read(tailReader, data, &count, &status);
     daqReadStatus statusValue2 = daqReadStatus::daqReadStatusUnknown;
     daqReaderStatus_getReadStatus((daqReaderStatus*) status, &statusValue2);
     ASSERT_EQ(statusValue2, daqReadStatus::daqReadStatusOk);
-    ASSERT_EQ(count, 10);
+    ASSERT_EQ(count, 10u);
     for (daqSizeT i = 0; i < count; ++i)
     {
         ASSERT_EQ(data[i], (daqFloat) i + 1);

@@ -4,7 +4,6 @@
 #include <audio_device_module/wav_reader_fb_impl.h>
 #include <audio_device_module/version.h>
 #include <coretypes/version_info_factory.h>
-#include <miniaudio/miniaudio.h>
 #include <opendaq/custom_log.h>
 
 #ifdef _WIN32

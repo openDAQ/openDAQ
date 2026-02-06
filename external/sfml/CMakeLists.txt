@@ -16,6 +16,8 @@ opendaq_dependency(
     GIT_REPOSITORY      https://github.com/SFML/SFML.git
     GIT_REF             3.0.2
     EXPECT_TARGET       sfml-graphics
+    PATCH_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/patches/001-msvc_2017_fix.patch
 )
 
 if (WIN32)

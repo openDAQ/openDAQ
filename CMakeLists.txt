@@ -23,7 +23,7 @@ set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}")
 set(CMAKE_MESSAGE_CONTEXT ${SDK_NAME})
 set(CMAKE_MESSAGE_CONTEXT_SHOW ON CACHE BOOL "Show CMake message context")
 
-if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "In-source build is not supported! Please choose a separate build directory e.g.: /build/x64/msvc")
 endif()
 
@@ -39,7 +39,7 @@ if(OPENDAQ_FORCE_COMPILE_32BIT AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
     if(NOT CMAKE_SYSTEM_NAME)
         set(CMAKE_SYSTEM_NAME Linux CACHE STRING "" FORCE)
     endif()
-    
+
     if(NOT CMAKE_SYSTEM_PROCESSOR)
         set(CMAKE_SYSTEM_PROCESSOR i386 CACHE STRING "" FORCE)
     endif()
@@ -56,7 +56,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 get_filename_component(ROOT_DIR ${CMAKE_SOURCE_DIR} REALPATH)
 get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
 
-if (NOT ${PROJECT_SOURCE_DIR} STREQUAL ${ROOT_DIR})
+if(NOT ${PROJECT_SOURCE_DIR} STREQUAL ${ROOT_DIR})
     set(BUILDING_AS_SUBMODULE ON)
     message(STATUS "Building as submodule")
 else()
@@ -65,21 +65,21 @@ else()
 endif()
 
 find_package(GitInfo)
-if (COMMAND GIT_WC_INFO)
+if(COMMAND GIT_WC_INFO)
     GIT_WC_INFO("${CMAKE_CURRENT_SOURCE_DIR}" "OPENDAQ")
-    if (DEFINED CI_GIT_BRANCH AND NOT ${CI_GIT_BRANCH} STREQUAL "")
+    if(DEFINED CI_GIT_BRANCH AND NOT ${CI_GIT_BRANCH} STREQUAL "")
         STRING(REPLACE "refs/heads/" "" OPENDAQ_WC_BRANCH_NAME ${CI_GIT_BRANCH})
     endif()
 
     message(STATUS "Git branch: ${OPENDAQ_WC_BRANCH_NAME} | ${OPENDAQ_WC_REVISION_HASH}")
-    if (NOT ${OPENDAQ_WC_BRANCH_NAME} MATCHES "^release\/[0-9]+\.[0-9]+(\.[0-9])?(\.[0-9])?(-[a-z|A-Z|0-9]*)?$")
-        set (OPENDAQ_PACKAGE_VERSION_WITH_SHA "${OPENDAQ_PACKAGE_VERSION}_${OPENDAQ_WC_REVISION_HASH}")
+    if(NOT ${OPENDAQ_WC_BRANCH_NAME} MATCHES "^release\/[0-9]+\.[0-9]+(\.[0-9])?(\.[0-9])?(-[a-z|A-Z|0-9]*)?$")
+        set(OPENDAQ_PACKAGE_VERSION_WITH_SHA "${OPENDAQ_PACKAGE_VERSION}_${OPENDAQ_WC_REVISION_HASH}")
     endif()
 else()
     set(OPENDAQ_WC_REVISION "NA")
 endif()
 
-if (NOT ${OPENDAQ_PACKAGE_VERSION_WITH_SHA} STREQUAL "")
+if(NOT ${OPENDAQ_PACKAGE_VERSION_WITH_SHA} STREQUAL "")
     message(STATUS "openDAQ package version: ${OPENDAQ_PACKAGE_VERSION_WITH_SHA}")
     add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION_WITH_SHA}")
 else()
@@ -92,23 +92,23 @@ include(CheckLinkerFlag)
 include(CMakeDependentOption)
 include(GNUInstallDirs)
 
-if (POLICY CMP0074)
+if(POLICY CMP0074)
     cmake_policy(SET CMP0074 NEW)
 endif()
 
-if (POLICY CMP0076)
+if(POLICY CMP0076)
     cmake_policy(SET CMP0076 NEW)
 endif()
 
-if (POLICY CMP0077)
+if(POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
-if (POLICY CMP0135)
+if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()
 
-if  (POLICY CMP0076)
+if(POLICY CMP0076)
      cmake_policy(SET CMP0076 NEW)
 endif()
 
@@ -130,15 +130,15 @@ file(RELATIVE_PATH RPATH_DIR
 )
 
 # allow CMAKE_INSTALL_RPATH to be cleared from the command line
-if (NOT DEFINED CMAKE_INSTALL_RPATH)
+if(NOT DEFINED CMAKE_INSTALL_RPATH)
     set(CMAKE_INSTALL_RPATH ${LIB_LOAD_ORIGIN} ${LIB_LOAD_ORIGIN}/${RPATH_DIR})
 endif()
 
-if (NOT MSVC)
+if(NOT MSVC)
     option(OPENDAQ_FORCE_COMPILE_32BIT "Compile 32Bit on non MSVC" OFF)
 endif()
 
-if (MSVC)
+if(MSVC)
     option(OPENDAQ_MSVC_SINGLE_PROCESS_BUILD "Do not include /MP compile option." OFF)
 endif()
 
@@ -150,6 +150,7 @@ option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
 option(OPENDAQ_ALWAYS_FETCH_DEPENDENCIES "Ignore any installed libraries and always build all dependencies from source" ON)
 option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
+option(OPENDAQ_RTGEN_ON_CMAKE_CONFIG "Run RT gen as part of the CMake configuration process to make sure the files exist during development" ON)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 cmake_dependent_option(OPCUA_ENABLE_ENCRYPTION "Enable OpcUa encryption" OFF "OPENDAQ_ENABLE_OPCUA" OFF)
@@ -192,13 +193,13 @@ cmake_dependent_option(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS "Enable delphi bindi
 cmake_dependent_option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS "Enable python bindings tests" ON "OPENDAQ_GENERATE_PYTHON_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS "Enable csharp bindings tests" ON "OPENDAQ_GENERATE_CSHARP_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_C_BINDINGS_TESTS "Enable C bindings tests" ON "OPENDAQ_GENERATE_C_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
-if (NOT APPLE AND UNIX)
+if(NOT APPLE AND UNIX)
     cmake_dependent_option(OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS "Enable websocket streaming integration tests" ON "OPENDAQ_ENABLE_TESTS;OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
 endif()
 cmake_dependent_option(OPENDAQ_GENERATE_PYTHON_BINDINGS_STUBS "Generate python bindings stubs for auto-completion" OFF "OPENDAQ_GENERATE_PYTHON_BINDINGS" OFF)
 cmake_dependent_option(OPENDAQ_SKIP_UNSTABLE_TESTS "Skip tests marked as unstable" ON "OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS" ON)
 
-if (OPENDAQ_ENABLE_TESTS)
+if(OPENDAQ_ENABLE_TESTS)
     set(OPENDAQ_ENABLE_TEST_UTILS ON)
 endif()
 
@@ -215,7 +216,7 @@ option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" 
 option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
 
 cmake_dependent_option(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER "Enable renderer function block" ON "DAQMODULES_REF_FB_MODULE" ON)
-if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER AND APPLE)
+if(DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER AND APPLE)
     enable_language(OBJC OBJCXX)
 endif()
 
@@ -245,29 +246,29 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(OPENDAQ_SOURCE_DIR ${PROJECT_SOURCE_DIR})
 set(FETCHCONTENT_EXTERNALS_DIR ${ROOT_DIR}/build/__external CACHE PATH "FetchContent folder prefix")
 
-if (NOT OPENDAQ_CI_RUNNER)
+if(NOT OPENDAQ_CI_RUNNER)
     set(OPENDAQ_CI_RUNNER OFF)
 endif()
 
-if (OPENDAQ_CI_RUNNER)
+if(OPENDAQ_CI_RUNNER)
     message("Configured as CI runner")
     add_compile_definitions(DS_CI_RUNNER=1)
     set(OPENDAQ_DEBUG_WARNINGS_AS_ERRORS ON)
 endif()
 
-if (COMMAND get_mode)
+if(COMMAND get_mode)
     get_mode(CMAKE_MODE)
     message(STATUS "CMake Mode is ${CMAKE_MODE}")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|IntelLLVM)$")
+if(CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|IntelLLVM)$")
     set(CMAKE_COMPILER_IS_CLANGXX On CACHE INTERNAL "Compiler is LLVM")
     message(STATUS "Compiler is LLVM")
-endif ()
+endif()
 
-if (UNIX AND (CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUXX))
+if(UNIX AND (CMAKE_COMPILER_IS_CLANGXX OR CMAKE_COMPILER_IS_GNUXX))
     # hide all symbols expect those specifically exported with PUBLIC_EXPORT macro
-    if (APPLE)
+    if(APPLE)
       # not possible on Mac, should be done per library
     else()
       set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-libs,ALL")
@@ -281,11 +282,11 @@ string(TIMESTAMP CURRENT_YEAR "%Y")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm.*$")  #e.g. armv7l
+if(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm.*$")  #e.g. armv7l
     set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
 endif()
 
-if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch.*$")  #e.g. aarch64
+if(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch.*$")  #e.g. aarch64
     set(BUILD_ARM On CACHE INTERNAL "Build for ARM architecture")
 endif()
 
@@ -301,7 +302,7 @@ else()
     set(OPENDAQ_FPIC Off CACHE INTERNAL "Set Position independent code flag")
 endif()
 
-if (NOT BUILDING_AS_SUBMODULE)
+if(NOT BUILDING_AS_SUBMODULE)
     message(STATUS "Platform: ${CMAKE_SYSTEM_PROCESSOR} | ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION}")
     message(STATUS "Generator: ${CMAKE_GENERATOR} | ${CMAKE_GENERATOR_PLATFORM}")
     message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -312,7 +313,7 @@ if(NOT CMAKE_DEBUG_POSTFIX AND NOT OPENDAQ_DISABLE_DEBUG_POSTFIX)
   set(CMAKE_DEBUG_POSTFIX -debug)
 endif()
 
-if (OPENDAQ_ENABLE_COVERAGE)
+if(OPENDAQ_ENABLE_COVERAGE)
     if(NOT OPENDAQ_ENABLE_TESTS)
         message(FATAL_ERROR "Coverage enabled, but testing disabled. Enable testing")
     endif()
@@ -325,23 +326,23 @@ if (OPENDAQ_ENABLE_COVERAGE)
     include(CodeCoverage)
 endif()
 
-if (OPENDAQ_ENABLE_TESTS)
+if(OPENDAQ_ENABLE_TESTS)
     message(STATUS "Unit tests are ENABLED")
     enable_testing()
 
-    if (NOT gtest IN_LIST TESTING_LIBS)
+    if(NOT gtest IN_LIST TESTING_LIBS)
         set(TESTING_LIBS gtest gmock ${TESTING_LIBS})
     endif()
     set(gtest_force_shared_crt On CACHE BOOL "Force shared CRT")
 
-    if (OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS)
-        if (WIN32)
-            if ("${DELPHI_BIN_DIR}" STREQUAL "" AND NOT "$ENV{DELPHI_BIN_DIR}" STREQUAL "")
+    if(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS)
+        if(WIN32)
+            if("${DELPHI_BIN_DIR}" STREQUAL "" AND NOT "$ENV{DELPHI_BIN_DIR}" STREQUAL "")
                 set(DELPHI_BIN_DIR $ENV{DELPHI_BIN_DIR})
             endif()
 
             find_program(DELPHI_RSVARS rsvars.bat PATHS ${DELPHI_BIN_DIR})
-            if (NOT DELPHI_RSVARS)
+            if(NOT DELPHI_RSVARS)
                 message(FATAL_ERROR "Delphi not found, set DELPHI_BIN_DIR variable. Delphi bindings will not be tested!")
             else()
                 message(STATUS "Delphi found: ${DELPHI_RSVARS}")
@@ -356,7 +357,7 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 
-if (WIN32)
+if(WIN32)
     set(MIN_WINDOWS_VERSION 0x0601)
     add_compile_definitions(NOMINMAX
                             _WIN32_WINNT=${MIN_WINDOWS_VERSION} # Windows 7 Compat
@@ -365,7 +366,7 @@ if (WIN32)
     add_compile_definitions(UNICODE _UNICODE)
 endif()
 
-if (NOT COMMAND set_mode)
+if(NOT COMMAND set_mode)
     message(STATUS "Including Modern.cmake")
     include(Modern)
 else()
@@ -373,21 +374,21 @@ else()
 endif()
 
 # module suffix
-if (NOT DEFINED OPENDAQ_MODULE_SUFFIX)
+if(NOT DEFINED OPENDAQ_MODULE_SUFFIX)
     set(OPENDAQ_MODULE_SUFFIX ".module${CMAKE_SHARED_LIBRARY_SUFFIX}")
 endif()
 
-if (NOT DEFINED CACHE{OPENDAQ_MODULE_SUFFIX})
+if(NOT DEFINED CACHE{OPENDAQ_MODULE_SUFFIX})
     set(OPENDAQ_MODULE_SUFFIX ${OPENDAQ_MODULE_SUFFIX} CACHE INTERNAL "Default DLL/SO extension")
 endif()
 
 message(STATUS "Default Module extension: ${OPENDAQ_MODULE_SUFFIX}")
 add_compile_definitions(OPENDAQ_MODULE_SUFFIX="${OPENDAQ_MODULE_SUFFIX}")
 
-if ((CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANGXX) AND NOT MSVC)
+if((CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANGXX) AND NOT MSVC)
     option(OPENDAQ_FORCE_LLD_LINKER "Force the use of the fast LLVM LLD linker" OFF)
 
-    if (NOT WIN32)
+    if(NOT WIN32)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     endif()
 
@@ -417,7 +418,7 @@ if ((CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANGXX) AND NOT MSVC)
     endif()
 endif()
 
-if (CMAKE_COMPILER_IS_GNUCXX)
+if(CMAKE_COMPILER_IS_GNUCXX)
     set(GCC_W_NO_EXTRA "-Wno-comment -Wno-unused-parameter -Wno-missing-field-initializers")
     set(GCC_W_NO_WALL "-Wno-unknown-pragmas -Wno-parentheses -Wno-misleading-indentation -Wno-unused-variable -Wno-switch -Wno-maybe-uninitialized -Wno-psabi")
     set(GCC_CHARSET_FLAGS "-fexec-charset=UTF-8 -finput-charset=UTF-8")
@@ -428,58 +429,58 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options($<$<OR:$<AND:$<CONFIG:Debug>,$<BOOL:${OPENDAQ_DEBUG_WARNINGS_AS_ERRORS}>>,$<AND:$<NOT:$<CONFIG:Debug>>,$<BOOL:${OPENDAQ_RELEASE_WARNINGS_AS_ERRORS}>>>:-Werror>)
 
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -ggdb")
-    if (MINGW)
+    if(MINGW)
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-all-symbols")
     endif()
 
-    if (APPLE)
+    if(APPLE)
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-undefined,error")
     else()
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
     endif()
 
-    if (OPENDAQ_ENABLE_COVERAGE)
+    if(OPENDAQ_ENABLE_COVERAGE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage -fno-elide-constructors")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
     endif()
 
-    if (WIN32 AND NOT BUILD_64Bit)
+    if(WIN32 AND NOT BUILD_64Bit)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -msse2")
     endif()
 
-    if (NOT (WIN32 OR APPLE))
-        if (NOT DEFINED HAVE_SPLIT_DWARF)
+    if(NOT (WIN32 OR APPLE))
+        if(NOT DEFINED HAVE_SPLIT_DWARF)
             check_compiler_flag(CXX "-gsplit-dwarf" HAVE_SPLIT_DWARF)
         endif()
 
-        if (HAVE_SPLIT_DWARF)
+        if(HAVE_SPLIT_DWARF)
             # Only add for debug builds, but could also expand the
             # generator expression to add for RelWithDebInfo too
             add_compile_options("$<$<CONFIG:Debug>:-gsplit-dwarf>")
         endif()
     endif()
 
-    if (OPENDAQ_FORCE_LLD_LINKER)
+    if(OPENDAQ_FORCE_LLD_LINKER)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=lld")
     endif()
 endif()
 
 if(CMAKE_COMPILER_IS_CLANGXX)
     # MinGW Clang does not support TLS so try emulating it
-    if (MINGW)
+    if(MINGW)
         add_compile_options(-femulated-tls)
     endif()
 endif()
 
-if (OPENDAQ_FORCE_LLD_LINKER)
+if(OPENDAQ_FORCE_LLD_LINKER)
     message(STATUS "Forcing the use of LLVM LLD linker. Make sure it is installed and available.")
 endif()
 
-if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
+if(MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
     # As above CMAKE_CXX_STANDARD but for VS
     add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++17>)
 
-    foreach (flag IN ITEMS
+    foreach(flag IN ITEMS
         # Set source and execution character sets to UTF-8
         # https://learn.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8
         /utf-8
@@ -523,11 +524,11 @@ if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
         add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:${flag}>)
     endforeach()
 
-	# Maintain binary compatibilty with older msvc runtime environments
-	# https://github.com/microsoft/STL/wiki/Changelog
-	add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+    # Maintain binary compatibilty with older msvc runtime environments
+    # https://github.com/microsoft/STL/wiki/Changelog
+    add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 
-    if (NOT OPENDAQ_MSVC_SINGLE_PROCESS_BUILD)
+    if(NOT OPENDAQ_MSVC_SINGLE_PROCESS_BUILD)
         # Build with multiple processes
         # https://learn.microsoft.com/en-us/cpp/build/reference/mp-build-with-multiple-processes
         add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/MP>)
@@ -536,10 +537,10 @@ if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
     # Treat warnings as errors if OPENDAQ_<DEBUG|RELEASE>_WARNINGS_AS_ERRORS is ON
     add_compile_options($<$<OR:$<AND:$<CONFIG:Debug>,$<BOOL:${OPENDAQ_DEBUG_WARNINGS_AS_ERRORS}>>,$<AND:$<NOT:$<CONFIG:Debug>>,$<BOOL:${OPENDAQ_RELEASE_WARNINGS_AS_ERRORS}>>>:/WX>)
 
-    if (MSVC_VERSION GREATER_EQUAL 1910)
+    if(MSVC_VERSION GREATER_EQUAL 1910)
         # /Zc:__cplusplus forces MSVC to use the correct value of __cplusplus macro (otherwise always C++98)
         add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/Zc:__cplusplus>)
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             # /Zf (Faster PDB generation) is not supported by ClangCL
             set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zf")
         endif()
@@ -569,9 +570,9 @@ if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
 endif()
 
 # Sanitizers
-if (CMAKE_COMPILER_IS_GNUCXX)
+if(CMAKE_COMPILER_IS_GNUCXX)
     set(OPENDAQ_SANITIZER "" CACHE STRING "Add sanitizers. Options are: thread, address, ...")
-    if (NOT "${OPENDAQ_SANITIZER}" STREQUAL "")
+    if(NOT "${OPENDAQ_SANITIZER}" STREQUAL "")
         set(SANITIZE_SWITCH "-fsanitize=${OPENDAQ_SANITIZER}")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SANITIZE_SWITCH}")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${SANITIZE_SWITCH}")
@@ -599,7 +600,7 @@ if(OPENDAQ_GENERATE_PYTHON_BINDINGS OR OPENDAQ_ENABLE_COVERAGE) #gcc coverage
     set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
 endif()
 
-if (MSVC)
+if(MSVC)
     set(FLEX_FLAGS "--wincompat")
 endif()
 
@@ -644,16 +645,26 @@ include(RTGen)
 set(CMAKE_INSTALL_DEBUG_LIBRARIES ON)
 include(InstallRequiredSystemLibraries)
 
-if (NOT WIN32)
-    set(MONO_C mono)
+if(NOT WIN32)
+    # Make sure mono is found properly and exists
+    find_program(MONO_C
+        NAMES "mono"
+        REQUIRED
+    )
 endif()
 
-set(RTGEN "${CMAKE_CURRENT_SOURCE_DIR}/shared/tools/RTGen/bin/rtgen.exe" CACHE INTERNAL "RTGEN")
+# Make sure rtgen is found properly and exists
+find_program(RTGEN
+    NAMES "rtgen" "rtgen.exe"
+    HINTS "${CMAKE_CURRENT_SOURCE_DIR}/shared/tools/RTGen/bin"
+    DOC "RTGen program for generating smart pointer files"
+    REQUIRED
+)
 
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/.editorconfig ${CMAKE_BINARY_DIR})
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format ${CMAKE_BINARY_DIR})
 
-if (OPENDAQ_ENABLE_OPTIONAL_TESTS)
+if(OPENDAQ_ENABLE_OPTIONAL_TESTS)
     set(OPENDAQ_ENABLE_OPTIONAL_TESTS ON CACHE BOOL "Enable optional (debugging) tests")
 
     message(STATUS "Optional tests enabled")
@@ -661,43 +672,43 @@ if (OPENDAQ_ENABLE_OPTIONAL_TESTS)
     set(OPENDAQ_TEST_COMPILE_DEFINES "OPENDAQ_ENABLE_OPTIONAL_TESTS=1")
 endif()
 
-if (OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS)
+if(OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS)
     message(STATUS "Labeling unstable tests enabled")
     add_compile_definitions(OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS)
 endif()
 
-if (OPENDAQ_SKIP_UNSTABLE_TESTS)
+if(OPENDAQ_SKIP_UNSTABLE_TESTS)
     message(STATUS "Skipping unstable tests enabled")
     add_compile_definitions(OPENDAQ_SKIP_UNSTABLE_TESTS)
 endif()
 
-if (OPENDAQ_ENABLE_PARAMETER_VALIDATION)
+if(OPENDAQ_ENABLE_PARAMETER_VALIDATION)
     message(STATUS "Parameter validation enabled")
 else()
     message(STATUS "Parameter validation disabled")
 endif()
 
-if (OPENDAQ_THREAD_SAFE)
+if(OPENDAQ_THREAD_SAFE)
     message(STATUS "Thread-safe implementations enabled")
 else()
     message(STATUS "Thread-safe implementations disabled")
 endif()
 
-if (OPENDAQ_MIMALLOC_SUPPORT)
+if(OPENDAQ_MIMALLOC_SUPPORT)
     message(STATUS "MiMalloc allocator enabled")
     add_compile_definitions(OPENDAQ_MIMALLOC_SUPPORT)
 else()
     message(STATUS "MiMalloc allocator disabled")
 endif()
 
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
+if(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     message(STATUS "Websocket streaming enabled")
     add_compile_definitions(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
 else()
     message(STATUS "Websocket streaming disabled")
 endif()
 
-if (OPENDAQ_ENABLE_NATIVE_STREAMING)
+if(OPENDAQ_ENABLE_NATIVE_STREAMING)
     message(STATUS "Native streaming enabled")
     add_compile_definitions(OPENDAQ_ENABLE_NATIVE_STREAMING)
 else()
@@ -706,7 +717,7 @@ endif()
 
 use_compiler_cache()
 
-if (WIN32)
+if(WIN32)
     add_compile_definitions(WIN32_LEAN_AND_MEAN)
 endif()
 
@@ -730,7 +741,7 @@ if(CMAKE_COMPILER_IS_CLANGXX)
     )
 
     # Append Intel-LLVM-specific suppressions
-    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
         set(CLANG_FLAGS "${CLANG_FLAGS} \
             -Xclang -Rno-debug-disables-optimization \
             -Wno-deprecated-literal-operator \
@@ -738,7 +749,7 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         )
     endif()
 
-    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
         message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
         # cmd-line options might be mixed - suppress warnings
         set(CLANG_FLAGS "${CLANG_FLAGS} \
@@ -751,7 +762,7 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         )
         # Use precise floating-point model to avoid aggressive optimizations
         set(CLANG_FLAGS "${CLANG_FLAGS} /fp:precise")
-    endif ()
+    endif()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANG_FLAGS}")
@@ -768,15 +779,15 @@ add_subdirectory(bindings)
 add_subdirectory(docs)
 add_subdirectory(simulator)
 
-if (OPENDAQ_ENABLE_TESTS)
+if(OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)
 endif()
 
-if (NOT BUILDING_AS_SUBMODULE)
+if(NOT BUILDING_AS_SUBMODULE)
     set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ".CMakePredefinedTargets")
 endif()
 
-if (NOT WIN32)
+if(NOT WIN32)
     set(INSTALLED_MODULES_DIR ${CMAKE_INSTALL_LIBDIR})
 else()
     set(INSTALLED_MODULES_DIR ${CMAKE_INSTALL_BINDIR})
@@ -847,13 +858,13 @@ install(EXPORT ${SDK_NAME}
         COMPONENT ${SDK_NAME}_Development
 )
 
-if (DEFINED mdns_SOURCE_DIR)
+if(DEFINED mdns_SOURCE_DIR)
     message(STATUS "mdns dependency found - mdns.h will be installed from: ${mdns_SOURCE_DIR}")
     install(
         FILES "${mdns_SOURCE_DIR}/mdns.h"
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
-else ()
+else()
     message(ERROR "missing mdns dependency")
 endif()
 

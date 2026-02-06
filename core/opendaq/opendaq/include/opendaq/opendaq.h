@@ -83,8 +83,6 @@
 #include <opendaq/deleter_factory.h>
 #include <opendaq/binary_data_packet_factory.h>
 
-#include <opendaq/function_block_wrapper_factory.h>
-
 #include <opendaq/component_factory.h>
 #include <opendaq/folder_factory.h>
 #include <opendaq/io_folder_factory.h>

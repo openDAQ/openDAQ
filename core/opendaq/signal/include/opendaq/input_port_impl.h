@@ -36,6 +36,16 @@
 #include "opendaq/errors.h"
 
 BEGIN_NAMESPACE_OPENDAQ
+
+// https://developercommunity.visualstudio.com/t/inline-static-destructors-are-called-multiple-time/1157794
+#ifdef _MSC_VER
+#if _MSC_VER <= 1927
+#define WORKAROUND_MEMBER_INLINE_VARIABLE
+#endif
+#endif
+
+#define INPUT_PORT_AVAILABLE_ATTRIBUTES {"Public"}
+
 template <typename TInterface, typename...  Interfaces>
 class GenericInputPortImpl;
 
@@ -58,6 +68,8 @@ public:
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
     ErrCode INTERFACE_FUNC getConnection(IConnection** connection) override;
     ErrCode INTERFACE_FUNC getRequiresSignal(Bool* requiresSignal) override;
+    ErrCode INTERFACE_FUNC getPublic(Bool* isPublic) override;
+    ErrCode INTERFACE_FUNC setPublic(Bool isPublic) override;
 
     ErrCode INTERFACE_FUNC setNotificationMethod(PacketReadyNotification method) override;
     ErrCode INTERFACE_FUNC getNotificationMethod(PacketReadyNotification* method) override;
@@ -105,11 +117,20 @@ protected:
     virtual ConnectionPtr createConnection(const SignalPtr& signal);
     ConnectionPtr getConnectionNoLock();
     void removed() override;
-    
+
     StringPtr serializedSignalId;
+
+    ErrCode lockAllAttributesInternal() override;
+
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+    static std::unordered_set<std::string> inputPortAvailableAttributes;
+#else
+    inline static std::unordered_set<std::string> inputPortAvailableAttributes = INPUT_PORT_AVAILABLE_ATTRIBUTES;
+#endif
 
 private:
     Bool requiresSignal;
+    Bool isPublic;
     const bool gapCheckingEnabled;
     BaseObjectPtr customData;
     PacketReadyNotification notifyMethod{};
@@ -132,13 +153,19 @@ private:
     SignalPtr getSignalNoLock();
 };
 
-template <typename TInterface, typename...  Interfaces>
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+template <typename TInterface, typename... Interfaces>
+std::unordered_set<std::string> SignalBase<TInterface, Interfaces...>::inputPortAvailableAttributes = INPUT_PORT_AVAILABLE_ATTRIBUTES;
+#endif
+
+template <typename TInterface, typename... Interfaces>
 GenericInputPortImpl<TInterface, Interfaces...>::GenericInputPortImpl(const ContextPtr& context,
                                                                       const ComponentPtr& parent,
                                                                       const StringPtr& localId,
                                                                       bool gapCheckingEnabled)
     : Super(context, parent, localId)
     , requiresSignal(true)
+    , isPublic(true)
     , gapCheckingEnabled(gapCheckingEnabled)
     , notifyMethod(PacketReadyNotification::None)
     , listenerRef(nullptr)
@@ -794,6 +821,61 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setRequiresSignal(Bool 
     auto lock = this->getRecursiveConfigLock2();
 
     this->requiresSignal = requiresSignal;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::lockAllAttributesInternal()
+{
+    for (const auto& str : this->inputPortAvailableAttributes)
+        this->lockedAttributes.insert(str);
+
+    return Super::lockAllAttributesInternal();
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getPublic(Bool* isPublic)
+{
+    OPENDAQ_PARAM_NOT_NULL(isPublic);
+
+    auto lock = this->getRecursiveConfigLock2();
+
+    *isPublic = this->isPublic;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setPublic(Bool isPublic)
+{
+    if (this->frozen)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
+
+    {
+        auto lock = this->getRecursiveConfigLock2();
+
+        if (this->lockedAttributes.count("Public"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("'Public' attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
+
+        this->isPublic = isPublic;
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Public"}, {"Public", this->isPublic}}));
+
+        this->triggerCoreEvent(args);
+    }
     return OPENDAQ_SUCCESS;
 }
 

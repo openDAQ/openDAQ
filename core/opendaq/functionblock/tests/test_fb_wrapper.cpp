@@ -26,6 +26,8 @@ struct MockInputPort : daq::MockGenericComponent<MockInputPort, daq::IInputPort>
     MOCK_METHOD(daq::ErrCode, getSignal, (daq::ISignal** signal), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getConnection, (daq::IConnection** connection), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getRequiresSignal, (daq::Bool* value), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getPublic, (daq::Bool * active), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, setPublic, (daq::Bool active), (override MOCK_CALL));
 
     MockInputPort()
         : MockGenericComponent<MockInputPort, daq::IInputPort>()
@@ -125,7 +127,7 @@ TEST_F(FunctionBlockWrapperTest, GetInputPorts)
     MockInputPort::Strict ip1;
     EXPECT_CALL(ip1.mock(), getLocalId(_)).WillRepeatedly(daq::Get<daq::StringPtr>{"ip1"});
     inputPorts.pushBack(ip1);
-    
+
     EXPECT_CALL(fb.mock(), getInputPorts(_, _)).WillRepeatedly(daq::GetOptionalExtraArg<daq::ListPtr<daq::IInputPort>, daq::SearchFilterPtr>{inputPorts});
 
     auto fbw = daq::FunctionBlockWrapper(fb, true, true, true, true);

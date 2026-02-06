@@ -36,6 +36,8 @@ struct MockInputPort : daq::MockGenericComponent<MockInputPort, daq::IInputPortC
     MOCK_METHOD(daq::ErrCode, getConnection, (daq::IConnection** connection), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getRequiresSignal, (daq::Bool* value), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setRequiresSignal, (daq::Bool value), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getPublic, (daq::Bool * active), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, setPublic, (daq::Bool active), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, setNotificationMethod, (daq::PacketReadyNotification method), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getNotificationMethod, (daq::PacketReadyNotification* method), (override MOCK_CALL));

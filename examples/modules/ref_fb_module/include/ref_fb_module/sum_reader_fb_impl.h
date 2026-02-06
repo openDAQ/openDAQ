@@ -38,10 +38,10 @@ public:
 
 private:
     std::string getNextPortID() const;
-    
+
     void createSignals();
     bool updateInputPorts();
-    void updateReader();
+    void createReader();
     void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
     void reconfigure();
 

@@ -12,6 +12,7 @@
 #include <opendaq/exceptions.h>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/address_info_factory.h>
+#include <native_streaming_protocol/native_streaming_client_handler.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -58,6 +59,10 @@ DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent, ui
     protocolVersion = configProtocolClient->getProtocolVersion();
     startAcceptNotificationPackets();
     deviceRef = device;
+    
+    // Set up callback to get alternative addresses from device info for reconnection
+    setupAlternativeAddressesCallback();
+    
     return device;
 }
 
@@ -301,6 +306,59 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
 
     transportClientHandler->setConfigHandlers(receiveConfigPacketCb,
                                               transportConnectionStatusChangedCb);
+}
+
+void NativeDeviceHelper::setupAlternativeAddressesCallback()
+{
+    if (!transportClientHandler)
+        return;
+
+    opendaq_native_streaming_protocol::GetAlternativeAddressesCallback callback =
+        [deviceHelperWeak = weak_from_this()]() -> ListPtr<IString>
+    {
+        if (auto deviceHelperSelf = deviceHelperWeak.lock())
+        {
+            auto deviceSelf = deviceHelperSelf->deviceRef.assigned() ? deviceHelperSelf->deviceRef.getRef() : nullptr;
+            if (!deviceSelf.assigned())
+                return List<IString>();
+
+            try
+            {
+                // Get protocol ID from configuration connection info
+                auto protocolId = deviceSelf.getInfo().getConfigurationConnectionInfo().getProtocolId();
+                
+                // Get server capability for this protocol
+                auto capability = deviceSelf.getInfo().getServerCapability(protocolId);
+                if (!capability.assigned())
+                    return List<IString>();
+
+                // Get all address info entries
+                auto addressInfos = capability.getAddressInfo();
+                if (!addressInfos.assigned() || addressInfos.getCount() == 0)
+                    return List<IString>();
+
+                // Return only addresses (port and path are the same for all addresses of the same device)
+                ListPtr<IString> addresses = List<IString>();
+                for (const auto& addressInfo : addressInfos)
+                {
+                    auto address = addressInfo.getAddress();
+                    if (address.assigned())
+                        addresses.pushBack(address);
+                }
+
+                return addresses;
+            }
+            catch (const std::exception& e)
+            {
+                auto loggerComponent = deviceHelperSelf->loggerComponent;
+                LOG_W("Failed to get alternative addresses from device info: {}", e.what());
+                return List<IString>();
+            }
+        }
+        return List<IString>();
+    };
+
+    transportClientHandler->setAlternativeAddressesCallback(callback);
 }
 
 PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& reqPacket)

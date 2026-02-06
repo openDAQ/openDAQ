@@ -57,6 +57,23 @@ void NodeEventManager::onMethodCall(MethodCallback callback)
     UA_Server_setMethodNodeCallback(server->getUaServer(), *nodeId, OnMethod);
 }
 
+void NodeEventManager::onAllowBrowse(AllowBrowseCallback callback)
+{
+    allowBrowseCallback = std::move(callback);
+}
+
+bool NodeEventManager::hasAllowBrowseCallback() const
+{
+    return static_cast<bool>(allowBrowseCallback);
+}
+
+bool NodeEventManager::triggerAllowBrowse(AllowBrowseArgs args)
+{
+    if (allowBrowseCallback)
+        return allowBrowseCallback(args);
+    return true;
+}
+
 void NodeEventManager::onDisplayNameChanged(DisplayNameChangedCallback callback)
 {
     server->getEventManager()->onDisplayNameChanged(nodeId, callback);

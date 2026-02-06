@@ -1,5 +1,6 @@
 #include <opcuaserver/opcuaserver.h>
 #include <opcuaserver/opcuatmstypes.h>
+#include <opcuaserver/node_event_manager.h>
 #include <open62541/plugin/accesscontrol_default.h>
 #include <open62541/plugin/nodestore_default.h>
 #include <open62541/server_config_default.h>
@@ -160,6 +161,9 @@ void OpcUaServer::prepareAccessControl(UA_ServerConfig* config)
     activateSession_default = config->accessControl.activateSession;
     config->accessControl.activateSession = activateSession;
     config->accessControl.closeSession = closeSession;
+
+    allowBrowseNode_default = config->accessControl.allowBrowseNode;
+    config->accessControl.allowBrowseNode = allowBrowseNode;
 }
 
 void OpcUaServer::shutdownServer()
@@ -603,6 +607,36 @@ void OpcUaServer::closeSession(UA_Server* server, UA_AccessControl* ac, const UA
         serverInstance->clientDisconnectedHandler(OpcUaNodeId::getIdentifier(*sessionId));
 }
 
+UA_Boolean OpcUaServer::allowBrowseNode(UA_Server* server,
+                                        UA_AccessControl* ac,
+                                        const UA_NodeId* sessionId,
+                                        void* sessionContext,
+                                        const UA_NodeId* nodeId,
+                                        void* nodeContext)
+{
+    OpcUaServer* serverInstance = getServer(server);
+
+    if (nodeContext != nullptr)
+    {
+        auto manager = static_cast<NodeEventManager*>(nodeContext);
+        if (manager->hasAllowBrowseCallback())
+        {
+            NodeEventManager::AllowBrowseArgs args;
+            args.server = server;
+            args.sessionId = sessionId;
+            args.sessionContext = sessionContext;
+            args.nodeId = nodeId;
+            args.nodeContext = nodeContext;
+
+            return manager->triggerAllowBrowse(args) ? UA_TRUE : UA_FALSE;
+        }
+    }
+
+    if (serverInstance->allowBrowseNode_default)
+        return serverInstance->allowBrowseNode_default(server, ac, sessionId, sessionContext, nodeId, nodeContext);
+
+    return UA_TRUE;
+}
 
 UA_StatusCode OpcUaServer::generateChildId(UA_Server* server,
                                            const UA_NodeId* /*sessionId*/,

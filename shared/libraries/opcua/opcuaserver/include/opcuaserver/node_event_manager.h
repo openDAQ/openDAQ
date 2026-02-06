@@ -37,12 +37,14 @@ public:
     struct DataSourceReadArgs;
     struct DataSourceWriteArgs;
     struct MethodArgs;
+    struct AllowBrowseArgs;
 
     using ReadCallback = std::function<UA_StatusCode(ReadArgs args)>;
     using WriteCallback = std::function<UA_StatusCode(WriteArgs args)>;
     using DataSourceReadCallback = std::function<UA_StatusCode(DataSourceReadArgs args)>;
     using DataSourceWriteCallback = std::function<UA_StatusCode(DataSourceWriteArgs args)>;
     using MethodCallback = std::function<UA_StatusCode(MethodArgs args)>;
+    using AllowBrowseCallback = std::function<bool(AllowBrowseArgs args)>;
 
     NodeEventManager(const OpcUaNodeId& nodeId, OpcUaServerPtr& server);
 
@@ -51,6 +53,9 @@ public:
     void onDataSourceRead(DataSourceReadCallback callback);
     void onDataSourceWrite(DataSourceWriteCallback callback);
     void onMethodCall(MethodCallback callback);
+    void onAllowBrowse(AllowBrowseCallback callback);
+    bool hasAllowBrowseCallback() const;
+    bool triggerAllowBrowse(AllowBrowseArgs args);
     void onDisplayNameChanged(DisplayNameChangedCallback callback);
     void onDescriptionChanged(DescriptionChangedCallback callback);
 
@@ -63,6 +68,7 @@ protected:
     DataSourceWriteCallback dataSourceWriteCallback;
     DataSourceReadCallback dataSourceReadCallback;
     MethodCallback methodCallback;
+    AllowBrowseCallback allowBrowseCallback;
 
 private:
     static void OnWrite(UA_Server* server,
@@ -169,6 +175,15 @@ struct NodeEventManager::MethodArgs
     const UA_Variant* input;
     size_t outputSize;
     UA_Variant* output;
+};
+
+struct NodeEventManager::AllowBrowseArgs
+{
+    UA_Server* server;
+    const UA_NodeId* sessionId;
+    void* sessionContext;
+    const UA_NodeId* nodeId;
+    void* nodeContext;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA

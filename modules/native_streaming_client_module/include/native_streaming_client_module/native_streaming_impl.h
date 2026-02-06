@@ -50,6 +50,7 @@ public:
 
     // INativeStreamingPrivate
     void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() override;
+    ErrCode INTERFACE_FUNC setOwnerDevice(const DevicePtr& device) override;
 
 protected:
     void onSetActive(bool active) override;

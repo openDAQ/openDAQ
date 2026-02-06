@@ -1,0 +1,8 @@
+mono-core
+freetype-devel
+libudev-devel
+libX11-devel
+libXi-devel
+libXcursor-devel
+libXrandr-devel
+mesa-libGL-devel

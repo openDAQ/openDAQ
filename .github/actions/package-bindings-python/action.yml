@@ -2,6 +2,10 @@ name: Package Python Bindings
 description: Build Python wheels for multiple Python versions (requires prior CMake configuration)
 
 inputs:
+  skip-setup-python:
+    description: 'Skip actions/setup-python (for containers with pre-installed Python like manylinux)'
+    required: false
+    default: 'false'
   python-versions:
     description: 'Space-separated list of Python versions'
     required: false
@@ -42,6 +46,7 @@ runs:
 
     - name: Set up Python versions
       id: python-setup
+      if: inputs.skip-setup-python != 'true'
       uses: actions/setup-python@v5
       with:
         python-version: ${{ steps.python-version-sort.outputs.versions }}
@@ -92,12 +97,18 @@ runs:
           CMAKE_BUILD_ARGS="--config $CMAKE_BUILD_TYPE"
         fi
 
-        PYTHON_VERSION_LATEST=$(echo "$PYTHON_VERSION_LATEST" | cut -d. -f1,2)
+        # Determine the latest Python version for build_pip.py
+        if [ -z "$PYTHON_VERSION_LATEST" ]; then
+          # When setup-python is skipped, get latest version from sorted list
+          PYTHON_VERSION_LATEST=$(echo "$PYTHON_VERSIONS" | tail -n1)
+        else
+          PYTHON_VERSION_LATEST=$(echo "$PYTHON_VERSION_LATEST" | cut -d. -f1,2)
+        fi
         echo "Using Python $PYTHON_VERSION_LATEST for build_pip.py"
 
         while IFS= read -r version; do
           echo "::group::CMake Configure (Python $version)"
-          cmake -B "$CMAKE_BUILD_PATH" \
+          cmake -B "$CMAKE_BUILD_PATH" -G "$CMAKE_GENERATOR" \
             -DOPENDAQ_GENERATE_PYTHON_BINDINGS=ON \
             -DOPENDAQ_PYTHON_VERSION="$version" \
             -DPYBIND11_FINDPYTHON=ON

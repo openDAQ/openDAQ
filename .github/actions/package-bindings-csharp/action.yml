@@ -51,8 +51,11 @@ runs:
           echo "short-sha-dotnet=$short_sha" >> $GITHUB_OUTPUT
         fi
 
+        # Read generator from CMakeCache to ensure proper reconfiguration (especially for Ninja)
+        CMAKE_GENERATOR=$(grep "^CMAKE_GENERATOR:" "$CMAKE_BUILD_PATH/CMakeCache.txt" | cut -d'=' -f2)
+
         echo "::group::CMake Configure (enable C# bindings)"
-        cmake -B "$CMAKE_BUILD_PATH" -DOPENDAQ_GENERATE_CSHARP_BINDINGS=ON
+        cmake -B "$CMAKE_BUILD_PATH" -G "$CMAKE_GENERATOR" -DOPENDAQ_GENERATE_CSHARP_BINDINGS=ON
         echo "::endgroup::"
 
         echo "::group::CMake Build DotNetBindings"

@@ -505,30 +505,53 @@ class TestPropertySystem(opendaq_test.TestCase):
     def test_native_types_in_factories_nested(self):
         property_object = opendaq.PropertyObject()
 
-        native_dict = {
-            'bool': True,
-            'int': 1,
-            'float': 1.0,
-            'string': 'string',
-            'ratio': (1, 2),
-            'complex': complex(1, 1),
-        }
-
+        bool_dict = {'key1': True, 'key2': False}
         property_object.add_property(
-            opendaq.DictProperty('dict', native_dict, True))
+            opendaq.DictProperty('bool_dict', bool_dict, True))
+        self.assertEqual(property_object.get_property_value(
+            'bool_dict')['key1'], opendaq.Boolean(True))
+        self.assertEqual(property_object.get_property_value(
+            'bool_dict')['key2'], opendaq.Boolean(False))
 
+        int_dict = {'key1': 1, 'key2': 2}
+        property_object.add_property(
+            opendaq.DictProperty('int_dict', int_dict, True))
         self.assertEqual(property_object.get_property_value(
-            'dict')['bool'], opendaq.Boolean(True))
+            'int_dict')['key1'], opendaq.Integer(1))
         self.assertEqual(property_object.get_property_value(
-            'dict')['int'], opendaq.Integer(1))
+            'int_dict')['key2'], opendaq.Integer(2))
+
+        float_dict = {'key1': 1.0, 'key2': 2.0}
+        property_object.add_property(
+            opendaq.DictProperty('float_dict', float_dict, True))
         self.assertEqual(property_object.get_property_value(
-            'dict')['float'], opendaq.Float(1.0))
+            'float_dict')['key1'], opendaq.Float(1.0))
         self.assertEqual(property_object.get_property_value(
-            'dict')['string'], opendaq.String('string'))
+            'float_dict')['key2'], opendaq.Float(2.0))
+
+        string_dict = {'key1': 'hello', 'key2': 'world'}
+        property_object.add_property(
+            opendaq.DictProperty('string_dict', string_dict, True))
         self.assertEqual(property_object.get_property_value(
-            'dict')['ratio'], Fraction(1, 2))
+            'string_dict')['key1'], opendaq.String('hello'))
         self.assertEqual(property_object.get_property_value(
-            'dict')['complex'], complex(1, 1))
+            'string_dict')['key2'], opendaq.String('world'))
+
+        ratio_dict = {'key1': (1, 2), 'key2': (3, 4)}
+        property_object.add_property(
+            opendaq.DictProperty('ratio_dict', ratio_dict, True))
+        self.assertEqual(property_object.get_property_value(
+            'ratio_dict')['key1'], Fraction(1, 2))
+        self.assertEqual(property_object.get_property_value(
+            'ratio_dict')['key2'], Fraction(3, 4))
+
+        complex_dict = {'key1': complex(1, 1), 'key2': complex(2, 3)}
+        property_object.add_property(
+            opendaq.DictProperty('complex_dict', complex_dict, True))
+        self.assertEqual(property_object.get_property_value(
+            'complex_dict')['key1'], complex(1, 1))
+        self.assertEqual(property_object.get_property_value(
+            'complex_dict')['key2'], complex(2, 3))
 
     def test_events(self):
         write_counter = 0

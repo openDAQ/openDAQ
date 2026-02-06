@@ -29,6 +29,7 @@ target_link_libraries(${TEST_APP} PRIVATE
     ${SDK_TARGET_NAMESPACE}::test_utils
     daq::opendaq
     daq::opendaq_mocks
+    daq::opendaq_gmocks
 )
 
 if (DAQMODULES_REF_FB_MODULE AND DAQMODULES_REF_DEVICE_MODULE)

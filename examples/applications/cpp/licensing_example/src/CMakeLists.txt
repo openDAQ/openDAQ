@@ -16,7 +16,7 @@ set(SRC_Cpp main.cpp
             ${MODULE_AUTHENTICATOR_SOURCE}
 )
 
-prepend_include(${TARGET_FOLDER_NAME} SRC_Headers)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_Headers)
 add_executable(${LIC_EXAMPLE} ${SRC_Headers}
                               ${SRC_Cpp}
 )

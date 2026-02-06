@@ -4,39 +4,12 @@ set(CMAKE_FOLDER "external")
 list(APPEND CMAKE_MESSAGE_CONTEXT external)
 set(CURR_MESSAGE_CONTEXT ${CMAKE_MESSAGE_CONTEXT})
 
-message(STATUS "Include opendaq_dependency macro from ${PROJ_DIR}/cmake/opendaq_dependency.cmake")
-include(FetchContent)
-include(${PROJ_DIR}/cmake/opendaq_dependency.cmake)
-
-if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
-    # As above CMAKE_CXX_STANDARD but for VS
-    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++17>)
-
-    # suppress warnings
-    foreach (flag IN ITEMS
-        # loss of data / precision, unsigned <--> signed
-        #
-        # 'argument' : conversion from 'type1' to 'type2', possible loss of data
-        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4244
-        /wd4244
-        # 'var' : conversion from 'size_t' to 'type', possible loss of data
-        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4267
-        /wd4267
-    )
-        add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:${flag}>)
-    endforeach()
-endif()
-
-if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
-    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/WX->)
-else()
-    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-Wno-error>)
-endif()
+opendaq_suppress_ext_lib_warnings()
 
 if (NOT TARGET daq::testlibs AND OPENDAQ_ENABLE_TEST_UTILS)
     set(CMAKE_MESSAGE_CONTEXT ${CURR_MESSAGE_CONTEXT} googletest)
 
-    if (BUILDING_AS_SUBMODULE)
+    if (OPENDAQ_BUILDING_AS_SUBMODULE)
         set(INSTALL_GTEST Off CACHE BOOL "" FORCE)
     endif()
     set(gtest_force_shared_crt On CACHE BOOL "Force shared CRT")
@@ -84,11 +57,11 @@ endif()
 
 set(CMAKE_MESSAGE_CONTEXT ${CURR_MESSAGE_CONTEXT})
 
-if(OPENDAQ_ENABLE_OPCUA)
-    add_subdirectory(open62541 EXCLUDE_FROM_ALL)
+add_subdirectory(boost)
+if (NOT OPENDAQ_BUILDING_AS_SUBMODULE)
+    opendaq_setup_boost()
 endif()
 
-add_subdirectory(boost)
 add_subdirectory(date)
 add_subdirectory(fmt)
 add_subdirectory(mdns EXCLUDE_FROM_ALL)
@@ -103,25 +76,8 @@ add_subdirectory(taskflow EXCLUDE_FROM_ALL)
 add_subdirectory(tsl-ordered-map)
 add_subdirectory(bcrypt)
 
-if (DAQMODULES_REF_FB_MODULE AND DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
-    add_subdirectory(sfml EXCLUDE_FROM_ALL)
-endif()
-
-if (DAQMODULES_REF_FB_MODULE)
-    add_subdirectory(kissfft EXCLUDE_FROM_ALL)
-endif()
-
 if (DAQMODULES_AUDIO_DEVICE_MODULE)
     add_subdirectory(miniaudio EXCLUDE_FROM_ALL)
-endif()
-
-if(OPENDAQ_ENABLE_OPCUA)
-    add_subdirectory(opcua_daq_types EXCLUDE_FROM_ALL)
-endif()
-
-if(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    add_subdirectory(nlohmann_json EXCLUDE_FROM_ALL)
-    add_subdirectory(streaming_protocol EXCLUDE_FROM_ALL)
 endif()
 
 if(OPENDAQ_MIMALLOC_SUPPORT)

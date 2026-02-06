@@ -277,8 +277,8 @@ set(SRC_PrivateHeaders baseobject_impl.h
                        search_filter_impl.h
 )
 
-prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
-prepend_include(${TARGET_FOLDER_NAME} SRC_PublicHeaders)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_PublicHeaders)
 
 set(SRC_PublicHeaders ${SRC_PublicHeaders}
                       ${ConfigHeader}
@@ -347,7 +347,7 @@ set_source_files_properties(${ConfigHeader} PROPERTIES GENERATED TRUE)
 source_group("Generated\\Header Files" FILES ${ConfigHeader})
 
 opendaq_set_output_lib_name(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
-create_version_header(${LIB_NAME} ONLY_RC)
+opendaq_create_version_header(${LIB_NAME} ONLY_RC)
 
 install(TARGETS ${LIB_NAME}
         EXPORT ${SDK_NAME}

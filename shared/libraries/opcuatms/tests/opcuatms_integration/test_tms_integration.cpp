@@ -13,6 +13,7 @@
 #include <opendaq/sync_component_private_ptr.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_class_factory.h>
+#include <testutils/base_test_listener.h>
 
 using namespace daq;
 using namespace daq::opcua;
@@ -359,7 +360,7 @@ TEST_F(TmsIntegrationTest, InputPortConnect)
     ASSERT_FALSE(portSignal.assigned());
 }
 
-TEST_F(TmsIntegrationTest, DISABLED_InputPortMultipleServers)
+TEST_F_UNSTABLE_SKIPPED(TmsIntegrationTest, InputPortMultipleServers)
 {
     auto StartServerDevice = [&](const InstancePtr& device, uint16_t port)
     {

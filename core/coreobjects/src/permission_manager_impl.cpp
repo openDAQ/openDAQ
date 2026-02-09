@@ -48,7 +48,10 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::setPermissions(IPermissions* permi
         if (const auto parent = getParentManager(); parent.assigned())
         {
             const auto parentConfig = parent.getPermissions();
-            builder.inherit(true).extend(parentConfig);
+            builder.inherit(true);
+
+            if (parentConfig.assigned())
+                builder.extend(parentConfig);
         }
 
         builder.extend(localPermissions);

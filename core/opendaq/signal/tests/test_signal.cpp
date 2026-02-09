@@ -20,6 +20,7 @@
 #include <opendaq/scheduler_factory.h>
 #include <thread>
 #include <coreobjects/property_factory.h>
+#include <opendaq/binary_data_packet_factory.h>
 
 using SignalTest = testing::Test;
 
@@ -813,6 +814,27 @@ TEST_F(SignalTest, GetLastValue)
     IntegerPtr integerPtr;
     ASSERT_NO_THROW(integerPtr = lastValuePacket.asPtr<IInteger>());
     ASSERT_EQ(integerPtr, 4);
+}
+
+TEST_F(SignalTest, GetLastValueString)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::String).build();
+
+    // Allocate buffer for "abcd" (4 bytes, no null terminator needed)
+    auto dataPacket = BinaryDataPacket(nullptr, descriptor, 4);
+    char* data = static_cast<char*>(dataPacket.getData());
+    data[0] = 'a';
+    data[1] = 'b';
+    data[2] = 'c';
+    data[3] = 'd';
+
+    signal.sendPacket(dataPacket);
+
+    auto lastValue = signal.getLastValue();
+    StringPtr ptr;
+    ASSERT_NO_THROW(ptr = lastValue.asPtr<IString>());
+    ASSERT_EQ(ptr, "abcd");
 }
 
 TEST_F(SignalTest, GetLastValueAfterMultipleSend)

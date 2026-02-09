@@ -3714,6 +3714,21 @@ TEST_F(NativeDeviceModulesTest, TestPropertyOrderOnClient)
     }
 }
 
+TEST_F(NativeDeviceModulesTest, CyclicReference)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto serverFb = server.getFunctionBlocks()[0];
+    auto clientFb = client.getDevices()[0].getFunctionBlocks()[0];
+
+    ASSERT_THROW(clientFb.getInputPorts()[0].connect(clientFb.getSignals()[0]), CyclicReferenceException);
+
+    ASSERT_EQ(clientFb.getInputPorts()[0].getSignal(), nullptr);
+    ASSERT_EQ(serverFb.getInputPorts()[0].getSignal(), nullptr);
+}
+
 TEST_F(NativeDeviceModulesTest, AddDevicesParallelSuccess)
 {
     const auto server = CreateServerInstance();

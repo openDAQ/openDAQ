@@ -57,4 +57,13 @@ void defineIMirroredDevice(pybind11::module_ m, PyDaqIntf<daq::IMirroredDevice, 
             return objectPtr.getRemoteId().toStdString();
         },
         "Gets the global ID of the device as it appears on the remote instance.");
+    cls.def_property_readonly("mirrored_device_type",
+        [](daq::IMirroredDevice *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::MirroredDevicePtr::Borrow(object);
+            return objectPtr.getMirroredDeviceType().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the device's type that corresponds to the client-side device module.");
 }

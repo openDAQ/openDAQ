@@ -21,9 +21,9 @@ public:
     {
         const auto anonymousUser = User("", "");
 
-        referenceDevice = test_utils::createTestDevice();
+        referenceDevice = test_utils::createTestDevice("root_dev", true);
         setUpDevice(referenceDevice);
-        serverDevice = test_utils::createTestDevice();
+        serverDevice = test_utils::createTestDevice("root_dev", true);
         server =
             std::make_unique<ConfigProtocolServer>(serverDevice,
                                                    std::bind(&ConfigRemoteUpdateTest::serverNotificationReady, this, std::placeholders::_1),
@@ -185,4 +185,13 @@ TEST_F(ConfigRemoteUpdateTest, TestClientSideSerializedString)
     ASSERT_EQ(serializeHelper(clientDevice), strClient);
 
     ASSERT_EQ(callCount, 3);
+}
+
+TEST_F(ConfigRemoteUpdateTest, TestRemoveStaticComponents)
+{
+    auto dev = clientDevice.getDevices()[1];
+    ASSERT_THROW(clientDevice.removeDevice(dev), InvalidOperationException);
+
+    auto fb = clientDevice.getFunctionBlocks()[0];
+    ASSERT_THROW(clientDevice.removeFunctionBlock(fb), InvalidOperationException);
 }

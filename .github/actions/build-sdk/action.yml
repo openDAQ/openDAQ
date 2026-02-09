@@ -34,11 +34,36 @@ inputs:
     description: 'CTest preset name'
     required: false
     default: ''
+  bindings-csharp-version-suffix:
+    description: 'Version suffix for C# bindings NuGet package (e.g., "ci" -> 1.0.0-beta-ci)'
+    required: false
+    default: 'ci'
+  cpack-generator:
+    description: 'CPack generator (NSIS, DEB, RPM, ZIP, TGZ). If set, Build Installer step will run'
+    required: false
+    default: ''
+  generate-python-bindings:
+    description: 'Generate Python bindings (true/false/empty). Empty = use preset or cmake-config-args'
+    required: false
+    default: ''
+  generate-csharp-bindings:
+    description: 'Generate C# bindings (true/false/empty). Empty = use preset or cmake-config-args'
+    required: false
+    default: ''
 
 outputs:
+  build-path:
+    description: 'Path to build directory'
+    value: ${{ steps.cmake-config.outputs.build-path }}
   gtest-xml-path:
     description: 'Path to GTest XML reports directory'
     value: ${{ steps.test.outputs.gtest-xml-path }}
+  package-name:
+    description: 'Installer artifact name (package filename without extension)'
+    value: ${{ steps.build-installer.outputs.package-name }}
+  package-path:
+    description: 'Full path to the installer file'
+    value: ${{ steps.build-installer.outputs.package-path }}
 
 runs:
   using: composite
@@ -54,7 +79,7 @@ runs:
         fi
 
     - name: Set up Python
-      if: ${{ !(inputs.enable-32bit == 'true' && runner.os == 'Linux') }}
+      if: ${{ inputs.generate-python-bindings != 'false' && !(inputs.enable-32bit == 'true' && runner.os == 'Linux') }}
       uses: actions/setup-python@v5
       with:
         python-version: '3.14'
@@ -145,7 +170,7 @@ runs:
       uses: ./.github/actions/setup-compiler-icx
 
     - name: Install Python dependencies
-      if: ${{ !(inputs.enable-32bit == 'true' && runner.os == 'Linux') }}
+      if: ${{ inputs.generate-python-bindings != 'false' && !(inputs.enable-32bit == 'true' && runner.os == 'Linux') }}
       shell: bash
       run: |
         echo "Installing numpy for Python: $(python --version)"
@@ -164,7 +189,11 @@ runs:
         CMAKE_BUILD_PATH="build"
         mkdir -p "$CMAKE_BUILD_PATH"
         CMAKE_BUILD_PATH=$(cd "$CMAKE_BUILD_PATH" && pwd)
-        echo "build-path=$CMAKE_BUILD_PATH" >> "$GITHUB_OUTPUT"
+        if command -v cygpath &> /dev/null; then
+          echo "build-path=$(cygpath -w "$CMAKE_BUILD_PATH")" >> "$GITHUB_OUTPUT"
+        else
+          echo "build-path=$CMAKE_BUILD_PATH" >> "$GITHUB_OUTPUT"
+        fi
 
         CMAKE_ARGS=""
         if [ -n "${{ inputs.cmake-config-preset }}" ]; then
@@ -197,6 +226,20 @@ runs:
 
         CMAKE_ARGS="$CMAKE_ARGS -DCI_GIT_BRANCH=$CI_GIT_BRANCH"
 
+        # Python bindings
+        if [ "${{ inputs.generate-python-bindings }}" == "true" ]; then
+          CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_GENERATE_PYTHON_BINDINGS=ON"
+        elif [ "${{ inputs.generate-python-bindings }}" == "false" ]; then
+          CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF"
+        fi
+
+        # C# bindings
+        if [ "${{ inputs.generate-csharp-bindings }}" == "true" ]; then
+          CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_GENERATE_CSHARP_BINDINGS=ON"
+        elif [ "${{ inputs.generate-csharp-bindings }}" == "false" ]; then
+          CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF"
+        fi
+
         echo "::group::CMake Configure"
         cmake -B "$CMAKE_BUILD_PATH" -G "$CMAKE_GENERATOR" $CMAKE_ARGS ${{ inputs.cmake-config-args }}
         echo "::endgroup::"
@@ -204,7 +247,7 @@ runs:
     - name: Build
       shell: bash
       env:
-        SHORT_SHA: ci # .NET bindings version suffix (e.g., 1.0.0-beta-ci)
+        SHORT_SHA: ${{ inputs.bindings-csharp-version-suffix }}
         CMAKE_BUILD_TYPE: ${{ inputs.cmake-build-type }}
         CMAKE_BUILD_PATH: ${{ steps.cmake-config.outputs.build-path }}
       run: |
@@ -252,3 +295,42 @@ runs:
         echo "::group::CTest"
         $SUDO_CMD ctest --test-dir "$CMAKE_BUILD_PATH" --output-on-failure $CTEST_ARGS
         echo "::endgroup::"
+
+    - name: Build Installer
+      id: build-installer
+      if: inputs.cpack-generator != ''
+      shell: bash
+      env:
+        CMAKE_BUILD_TYPE: ${{ inputs.cmake-build-type }}
+        CMAKE_BUILD_PATH: ${{ steps.cmake-config.outputs.build-path }}
+      run: |
+        # Convert Windows path to unix if needed
+        if command -v cygpath &> /dev/null; then
+          CMAKE_BUILD_PATH=$(cygpath -u "$CMAKE_BUILD_PATH")
+        fi
+
+        PACKAGE_NAME=$(grep 'CPACK_PACKAGE_FILE_NAME' "$CMAKE_BUILD_PATH/CPackConfig.cmake" | cut -d'"' -f2)
+
+        case "${{ inputs.cpack-generator }}" in
+          NSIS) PACKAGE_EXT="exe" ;;
+          ZIP) PACKAGE_EXT="zip" ;;
+          TGZ) PACKAGE_EXT="tar.gz" ;;
+          DEB) PACKAGE_EXT="deb" ;;
+          RPM) PACKAGE_EXT="rpm" ;;
+          *) echo "Unknown generator: ${{ inputs.cpack-generator }}" && exit 1 ;;
+        esac
+
+        PACKAGE_PATH="$CMAKE_BUILD_PATH/_packages"
+
+        echo "::group::CPack"
+        cpack --config "$CMAKE_BUILD_PATH/CPackConfig.cmake" -B "$PACKAGE_PATH" -C "$CMAKE_BUILD_TYPE" -G ${{ inputs.cpack-generator }}
+        echo "::endgroup::"
+
+        PACKAGE_FILE_PATH="$PACKAGE_PATH/$PACKAGE_NAME.$PACKAGE_EXT"
+
+        echo "package-name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+        if command -v cygpath &> /dev/null; then
+          echo "package-path=$(cygpath -w "$PACKAGE_FILE_PATH")" >> $GITHUB_OUTPUT
+        else
+          echo "package-path=$PACKAGE_FILE_PATH" >> $GITHUB_OUTPUT
+        fi

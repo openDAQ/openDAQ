@@ -1279,7 +1279,10 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
     {
         auto manager = this->context.getTypeManager();
         void* rawValue = lastRawDataValue.data();
-        lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager);
+        SizeT actualSampleSize = (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String)
+                                 ? lastRawDataValue.size()
+                                 : 0;
+        lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager, actualSampleSize);
         *value = lastDataValue.addRefAndReturn();
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -1326,7 +1329,9 @@ void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPac
     }
 
     lastDataDescriptor = packet.getDataDescriptor();
-    SizeT sampleSize = lastDataDescriptor.getSampleType() == SampleType::Binary ? packet.getRawDataSize() : lastDataDescriptor.getSampleSize();
+    SizeT sampleSize = (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String) 
+                       ? packet.getRawDataSize() 
+                       : lastDataDescriptor.getSampleSize();
     lastRawDataValue.resize(sampleSize);
     void* rawValue = lastRawDataValue.data();
     const ErrCode errCode = packet->getRawLastValue(&rawValue);

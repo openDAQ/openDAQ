@@ -110,6 +110,25 @@ def instance():
 ----
 ====
 
+[IMPORTANT]
+====
+The `IInstance` must remain alive for as long as you use any objects created from it (such as `IDevice`, `IFunctionBlock`, etc.).
+
+The Instance owns the Module Manager, which in turn owns the loaded modules. Those modules manage internal state and reference counting for objects they create. If the Instance is released (e.g., garbage-collected in Python), the Module Manager and its modules are torn down, and any previously returned objects may become invalid.
+
+[source,python]
+----
+# Incorrect - instance may be garbage-collected
+device = opendaq.Instance().add_device("daq.opcua://127.0.0.1")
+device.signals  # May fail with RuntimeError
+
+# Correct - keep instance alive
+instance = opendaq.Instance()
+device = instance.add_device("daq.opcua://127.0.0.1")
+device.signals  # Works correctly
+----
+====
+
 === Overriding module path via environment variable
 
 Module path can be overriden by the environment variable named `OPENDAQ_MODULES_PATH`. If the Module Manager

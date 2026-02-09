@@ -238,6 +238,21 @@ us to build the Property with the configured metadata.
 
 |===
 
+:note-caption: Important
+[IMPORTANT]
+====
+When implementing device modules with properties that persist values in hardware (e.g., calibration data read back after a power cycle), do not use the hardware value as the default value in the property builder. Instead, use a fixed default value and set the actual hardware value separately:
+
+[source,cpp]
+----
+// Correct approach for hardware-persisted values:
+objPtr.addProperty(StringProperty("ChannelVPs", ""));  // fixed default
+objPtr.setPropertyValue("ChannelVPs", actualValueFromHW);  // actual value from hardware
+----
+
+This ensures proper synchronization during device reconnection, as only explicitly set values (not defaults) are synchronized with the client-side mirror.
+====
+
 === Types of Properties
 
 A Property can be split into several different kinds of Property types. In openDAQ(TM), we

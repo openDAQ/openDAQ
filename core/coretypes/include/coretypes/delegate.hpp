@@ -205,7 +205,8 @@ namespace spec
 
         bool empty() const noexcept
         {
-            return reinterpret_cast<std::nullptr_t&>(storage_) == nullptr;
+            //return reinterpret_cast<std::nullptr_t&>(storage_) == nullptr;
+            return invoke_ptr_ == detail::empty_inplace<R, storage_t, Args...>; // hotfix
         }
 
         template <typename T>

@@ -12,8 +12,9 @@
 #include <opendaq/address_info_factory.h>
 #include <coreobjects/property_factory.h>
 
-BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
+#include <opendaq/mirrored_device_config_ptr.h>
 
+BEGIN_NAMESPACE_OPENDAQ_OPCUA_CLIENT_MODULE
 static const char* DaqOpcUaDeviceTypeId = "OpenDAQOPCUAConfiguration";
 static const char* DaqOpcUaDevicePrefix = "daq.opcua";
 static const char* OpcUaScheme = "opc.tcp";
@@ -87,6 +88,10 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
 
     TmsClient client(context, parent, endpoint);
     auto device = client.connect();
+
+    auto deviceType = createDeviceType();
+    checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->setModuleInfo(moduleInfo));
+    device.asPtr<IMirroredDeviceConfig>().setMirroredDeviceType(deviceType);
 
     // Set the connection info for the device
     DeviceInfoPtr deviceInfo = device.getInfo();

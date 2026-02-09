@@ -12,9 +12,11 @@ BEGIN_NAMESPACE_OPENDAQ_WEBSOCKET_STREAMING
 WebsocketClientDeviceImpl::WebsocketClientDeviceImpl(const ContextPtr& ctx,
                                                      const ComponentPtr& parent,
                                                      const StringPtr& localId,
-                                                     const StringPtr& connectionString)
+                                                     const StringPtr& connectionString,
+                                                     const DeviceTypePtr& type)
     : Device(ctx, parent, localId)
     , connectionString(connectionString)
+    , deviceType(type)
 {
     if (!this->connectionString.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException, "connectionString cannot be null");
@@ -31,7 +33,9 @@ void WebsocketClientDeviceImpl::removed()
 
 DeviceInfoPtr WebsocketClientDeviceImpl::onGetInfo()
 {
-    return DeviceInfo(connectionString, "WebsocketClientPseudoDevice");
+    auto info = DeviceInfo(connectionString, "WebsocketClientPseudoDevice");
+    info.setDeviceType(deviceType);
+    return info;
 }
 
 void WebsocketClientDeviceImpl::activateStreaming()

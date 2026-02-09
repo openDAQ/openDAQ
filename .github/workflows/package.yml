@@ -11,7 +11,6 @@ env:
   build_path: ${{ github.workspace }}/build
   package_path: ${{ github.workspace }}/build/_packages
   wheels_path: ${{ github.workspace }}/build/wheels
-  dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   package_path_rel: build/_packages # WA for https://github.com/actions/checkout/issues/785
   vm_name: device_simulator
   simulator_app_artifact: SimulatorApp
@@ -29,7 +28,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 240
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -37,25 +36,29 @@ jobs:
         include:
           - name: Windows VS 2022 x64 Release
             runner: windows-latest
-            cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: x64
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DPYBIND11_FINDPYTHON=ON
-            cpack: NSIS
+            cmake-generator: "Visual Studio 17 2022"
+            cmake-build-type: Release
+            cmake-defines: -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
+            cpack-generator: NSIS
+            enable-32bit: false
+            generate-python-bindings: true
+            generate-csharp-bindings: true
           - name: Windows VS 2022 Win32 Release
             runner: windows-latest
-            cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: Win32
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-            cpack: NSIS
+            cmake-generator: "Visual Studio 17 2022"
+            cmake-build-type: Release
+            cmake-defines:
+            cpack-generator: NSIS
+            enable-32bit: true
+            generate-python-bindings: false
+            generate-csharp-bindings: false
 
     outputs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       # test_path: ''
       windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
       # short_sha: ${{ env.short_sha }}
-      short_sha_dotnet: ${{ steps.configure_and_build_wheels.outputs.short_sha_dotnet }}
+      short_sha_dotnet: ${{ steps.package-csharp-bindings.outputs.short-sha-dotnet }}
 
     env:
       short_sha: 'package'  # for .NET Bindings build
@@ -64,113 +67,47 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Build SDK
+        id: build-sdk
+        uses: ./.github/actions/build-sdk
         with:
-          python-version: |
-              3.8
-              3.9
-              3.10
-              3.11
-              3.12
-              3.13
-              3.14
-              
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '4.0'
+          additional-dependencies: nsis
+          cmake-generator: ${{ matrix.cmake-generator }}
+          cmake-config-preset: ${{ env.cmake_preset }}
+          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          enable-32bit: ${{ matrix.enable-32bit == true }}
+          cpack-generator: ${{ matrix.cpack-generator }}
+          generate-csharp-bindings: false
+          generate-python-bindings: false
 
-      - name: Install NSIS
-        run: choco install nsis -y --no-progress
-
-      - name: Configure and build Wheels
-        id: configure_and_build_wheels
-        if: matrix.cmake_generator_platform != 'Win32'
-        shell: pwsh
-        env:
-          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
-        run: |
-          # for .NET Bindings beta build
-          $env:SHORT_SHA = if ( "${{ github.base_ref || github.ref_name }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
-          if ("$env:SHORT_SHA" -ne '') {
-            # pwsh syntax
-            echo "short_sha_dotnet=$env:SHORT_SHA" >> $env:GITHUB_OUTPUT
-          }
-          mkdir build
-          cd build
-          mkdir wheels
-          $versions = "${{ env.python_versions }}".split(" ")
-          foreach ($version in $versions) {
-            Write-Output "Building for Python $version"
-            cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
-            cmake --build . --config ${{ matrix.cmake_build_type }}
-            Write-Output "Creating virtual environment for Python $version"
-            Invoke-Expression "py -$version -m venv venv"
-            ./venv/Scripts/activate
-            pip install numpy pybind11-stubgen
-            $remove_python_module_flag = "-r"
-            if ($version -eq $versions[-1]) {
-              $remove_python_module_flag = $null
-            }
-            Invoke-Expression "py -${{env.python_version_build}} ../bindings/python/package/build_pip.py -l bin/${{ matrix.cmake_build_type }} $remove_python_module_flag"
-            Copy-Item pip/packages/*.whl wheels
-            deactivate
-            Remove-Item venv -Recurse
-          }
-
-      - name: Configure and build without Wheels
-        if: matrix.cmake_generator_platform == 'Win32'
-        shell: pwsh
-        run: |
-          # for .NET Bindings beta build
-          $env:SHORT_SHA = if ( "${{ github.base_ref || github.ref_name }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
-          # $env:GITHUB_OUTPUT not set here as output only needed from step configure_and_build_wheels
-          mkdir build
-          cd build
-          Write-Output "Building for Win32"
-          cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-          cmake --build . --config ${{ matrix.cmake_build_type }}
-
-      - name: Package
-        working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
-
-      - name: Rename package
-        shell: pwsh
-        working-directory: ${{ env.package_path }}
-        run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
-          Get-ChildItem -Path .\* -Include *.nupkg | Rename-Item -NewName {$_.FullName.ToLower()}
-
-      - name: Upload package
+      - name: Upload SDK Installer
         uses: actions/upload-artifact@v4
         with:
           name: Package (${{ matrix.name }})
-          path: ${{ env.package_path }}
+          path: ${{ steps.build-sdk.outputs.package-path }}
           retention-days: 7
 
-      - name: Upload Wheels
-        if: matrix.cmake_generator_platform != 'Win32'
-        uses: actions/upload-artifact@v4
+      - name: Build Python Wheels
+        id: package-python-bindings
+        if: matrix.generate-python-bindings == true
+        uses: ./.github/actions/package-bindings-python
         with:
-          name: Wheels (${{ matrix.name }})
-          path: ${{ env.wheels_path }}
-          retention-days: 7
+          build-path: ${{ steps.build-sdk.outputs.build-path }}
+          python-versions: ${{ env.python_versions }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          package-artifact-name: Wheels (${{ matrix.name }})
+          package-artifact-retention-days: 7
 
-      - name: Upload binaries for .NET Bindings NuGet package
-        # "There can be only one for now."
-        if: matrix.name == 'Windows VS 2022 x64 Release'
-        env:
-          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
-        uses: actions/upload-artifact@v4
+      - name: Build C# Bindings
+        id: package-csharp-bindings
+        if: matrix.generate-csharp-bindings == true
+        uses: ./.github/actions/package-bindings-csharp
         with:
-          name: ${{ env.windows_x64_artifact }}
-          path: |
-            ${{ env.dotnetBuildPath }}
-            !${{ env.dotnetBuildPath }}/**/*.json
-          # if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-          retention-days: 1
+          build-path: ${{ steps.build-sdk.outputs.build-path }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          package-artifact-name: ${{ env.windows_x64_artifact }}
+          package-artifact-retention-days: 1
 
   package_linux:
     runs-on: ubuntu-latest

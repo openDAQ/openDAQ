@@ -31,6 +31,9 @@
 #include <opendaq/work_factory.h>
 #include <opendaq/scheduler_errors.h>
 #include <opendaq/component_update_context_ptr.h>
+#include <opendaq/cyclic_ref_check.h>
+
+#include "opendaq/errors.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface, typename...  Interfaces>
@@ -62,6 +65,7 @@ public:
     ErrCode INTERFACE_FUNC notifyPacketEnqueuedOnThisThread() override;
     ErrCode INTERFACE_FUNC notifyPacketEnqueuedWithScheduler() override;
     ErrCode INTERFACE_FUNC setListener(IInputPortNotifications* port) override;
+    ErrCode INTERFACE_FUNC getListener(IInputPortNotifications** port) override;
 
     ErrCode INTERFACE_FUNC getCustomData(IBaseObject** data) override;
     ErrCode INTERFACE_FUNC setCustomData(IBaseObject* data) override;
@@ -119,7 +123,7 @@ private:
 
     WeakRefPtr<IPropertyObject> owner;
 
-    ErrCode canConnectSignal(ISignal* signal) const;
+    ErrCode canConnectSignal(ISignal* signal);
     void disconnectSignalInternal(ConnectionPtr&& connection, bool notifyListener, bool notifySignal, bool triggerCoreEvent);
     void notifyPacketEnqueuedSameThread();
     void notifyPacketEnqueuedScheduler();
@@ -166,11 +170,19 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::acceptsSignal(ISignal* 
 }
 
 template <typename TInterface, typename...  Interfaces>
-ErrCode GenericInputPortImpl<TInterface, Interfaces...>::canConnectSignal(ISignal* signal) const
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::canConnectSignal(ISignal* signal)
 {
     const auto removablePtr = SignalPtr::Borrow(signal).asPtrOrNull<IRemovable>();
     if (removablePtr.assigned() && removablePtr.isRemoved())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Removed signal cannot be connected");
+
+    Bool hasCyclicRef;
+    auto thisPort = this->template borrowInterface<IInputPort>();
+    const auto errCode = daqHasCyclicReferenceIfConnected(signal, thisPort, &hasCyclicRef);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    if (hasCyclicRef)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_CYCLIC_REFERENCE, "Connecting the signal would create a cyclic reference");
 
     return OPENDAQ_SUCCESS;
 }
@@ -433,6 +445,26 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setListener(IInputPortN
     }
     else
         notifySchedulerCallback.release();
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getListener(IInputPortNotifications** port)
+{
+    OPENDAQ_PARAM_NOT_NULL(port);
+
+    auto lock = this->getRecursiveConfigLock2();
+
+    if (listenerRef.assigned())
+    {
+        auto listener = this->listenerRef.getRef();
+        *port = listener.addRefAndReturn();
+    }
+    else
+    {
+        *port = nullptr;
+    }
 
     return OPENDAQ_SUCCESS;
 }

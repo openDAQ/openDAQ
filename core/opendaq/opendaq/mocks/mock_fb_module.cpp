@@ -70,6 +70,7 @@ daq::FunctionBlockTypePtr MockFunctionBlockModuleImpl::CreateDeviceFunctionType(
     auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(IntProperty("TestConfigInt", 0));
     defaultConfig.addProperty(StringProperty("TestConfigString", ""));
+    defaultConfig.addProperty(BoolProperty("IsStatic", false));
 
     return FunctionBlockType("mock_fb_uid", "mock_fb", "", defaultConfig);
 }

@@ -20,10 +20,17 @@ public:
     const uint16_t CONTROL_PORT = daq::streaming_protocol::HTTP_CONTROL_PORT;
     const std::string HOST = "127.0.0.1";
     ContextPtr context;
+    DeviceTypePtr deviceType;
 
     void SetUp() override
     {
         context = NullContext();
+        deviceType = DeviceTypeBuilder()
+                .setId("OpenDAQLTStreaming")
+                .setName("Streaming LT enabled pseudo-device")
+                .setDescription("Pseudo device, provides only signals of the remote device as flat list")
+                .setConnectionStringPrefix("daq.lt")
+                .build();
     }
 
     void TearDown() override
@@ -33,7 +40,7 @@ public:
 
 TEST_F(WebsocketClientDeviceTest, CreateWithInvalidParameters)
 {
-    ASSERT_THROW(WebsocketClientDevice(context, nullptr, "device", nullptr), ArgumentNullException);
+    ASSERT_THROW(WebsocketClientDevice(context, nullptr, "device", nullptr, deviceType), ArgumentNullException);
 }
 
 TEST_F(WebsocketClientDeviceTest, CreateSuccess)
@@ -48,7 +55,7 @@ TEST_F(WebsocketClientDeviceTest, CreateSuccess)
     server.start();
 
     DevicePtr clientDevice;
-    ASSERT_NO_THROW(clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST));
+    ASSERT_NO_THROW(clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType));
 }
 
 TEST_F(WebsocketClientDeviceTest, DeviceInfo)
@@ -63,7 +70,7 @@ TEST_F(WebsocketClientDeviceTest, DeviceInfo)
     server.start();
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
 
     // get DeviceInfo and check fields
     DeviceInfoPtr clientDeviceInfo;
@@ -158,7 +165,7 @@ TEST_P(WebsocketClientDeviceTestP, SignalWithDomain)
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
     clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
 
     if (signalsAddedAfterConnect)
@@ -244,7 +251,7 @@ TEST_P(WebsocketClientDeviceTestP, SingleDomainSignal)
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
     clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
 
     if (signalsAddedAfterConnect)
@@ -280,7 +287,7 @@ TEST_P(WebsocketClientDeviceTestP, SingleUnsupportedSignal)
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
     clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
 
     if (signalsAddedAfterConnect)
@@ -317,7 +324,7 @@ TEST_P(WebsocketClientDeviceTestP, SignalsWithSharedDomain)
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
     clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
 
     if (signalsAddedAfterConnect)
@@ -378,7 +385,7 @@ TEST_F(WebsocketClientDeviceTest, ChangeValueDescriptorToSupported)
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
     clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
     auto valueSignal = clientDevice.getSignals()[0].asPtr<IMirroredSignalConfig>();
 
@@ -472,7 +479,7 @@ TEST_P(UnsupportedSignalsTestP, MakeValueSignalUnsupported)
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
     clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
     auto valueSignal = clientDevice.getSignals()[0].asPtr<IMirroredSignalConfig>();
 
@@ -540,7 +547,7 @@ TEST_P(UnsupportedSignalsTestP, MakeDomainSignalUnsupported)
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
     clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
     auto valueSignal = clientDevice.getSignals()[0].asPtr<IMirroredSignalConfig>();
     auto domainSignal = clientDevice.getSignals()[1].asPtr<IMirroredSignalConfig>();
@@ -613,7 +620,7 @@ TEST_P(UnsupportedSignalsTestP, MakeValueSignalSupported)
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
     clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
 
     ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
@@ -680,7 +687,7 @@ TEST_P(UnsupportedSignalsTestP, MakeDomainSignalSupported)
     server->start(STREAMING_PORT, CONTROL_PORT);
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
     clientDevice.asPtr<daq::IPropertyObjectInternal>().enableCoreEventTrigger();
 
     ASSERT_EQ(clientDevice.getSignals().getCount(), 2u);
@@ -745,7 +752,7 @@ TEST_F(WebsocketClientDeviceTest, DeviceWithMultipleSignals)
     server.start();
 
     // Create the client device
-    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST);
+    auto clientDevice = WebsocketClientDevice(NullContext(), nullptr, "device", HOST, deviceType);
 
     // There should not be any difference if we get signals recursively or not,
     // since client device doesn't know anything about hierarchy

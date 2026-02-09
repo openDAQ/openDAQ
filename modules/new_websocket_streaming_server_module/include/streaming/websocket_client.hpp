@@ -52,6 +52,7 @@ namespace daq::ws_streaming
              */
             virtual ~websocket_client()
             {
+                close_socket();
             }
 
             /**
@@ -90,6 +91,19 @@ namespace daq::ws_streaming
             {
                 boost::asio::ip::tcp::socket released_socket = std::move(socket);
                 return released_socket;
+            }
+
+            /**
+             * Explicitly closes the socket if it is open.
+             */
+            void close_socket() noexcept
+            {
+                if (socket.is_open())
+                {
+                    boost::system::error_code ec;
+                    socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
+                    socket.close(ec);
+                }
             }
 
             std::function<void()> on_finish;

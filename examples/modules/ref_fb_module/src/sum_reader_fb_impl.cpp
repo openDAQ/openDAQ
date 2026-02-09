@@ -141,7 +141,6 @@ bool SumReaderFbImpl::updateInputPorts()
     return connectedPortsChanged;
 }
 
-// Reader must currently be rebuilt to add/remove input ports
 void SumReaderFbImpl::createReader()
 {
     // Disposing the reader is necessary to release port ownership

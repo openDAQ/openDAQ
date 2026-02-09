@@ -367,6 +367,12 @@ void MultiCsvRecorderImpl::onDisconnected(const InputPortPtr& inputPort)
     LOG_I("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
     if (updateInputPorts())
     {
+        // Disconnecting a port may restore a reader by removing a problematic signal
+        // Workaround: the reader cannot transition from invalid to valid state
+        if (!reader.asPtr<IReaderConfig>().getIsValid())
+        {
+            reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+        }
         reconfigureWriter();
     }
 }

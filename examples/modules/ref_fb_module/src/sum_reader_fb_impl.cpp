@@ -179,6 +179,11 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
             throw std::runtime_error("Missing input value descriptors!");
         }
 
+        if (!reader.asPtr<IReaderConfig>().getIsValid())
+        {
+            throw std::runtime_error("Multi reader is in invalid state!");
+        }
+
         UnitPtr unit = nullptr;
 
         double lowValue = 0;
@@ -195,7 +200,7 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
 
             int sampleType = static_cast<int>(descriptor.getSampleType());
             if (sampleType > static_cast<int>(SampleType::Int64) || sampleType == 0)
-                throw std::runtime_error("Non-integer sample type inputs are not accepted!");
+                throw std::runtime_error("Non-scalar sample type inputs are not accepted!");
 
             auto range = descriptor.getValueRange();
             if (range.assigned())
@@ -256,6 +261,12 @@ void SumReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
     LOG_D("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
     if (updateInputPorts())
     {
+        // Disconnecting a port may restore a reader by removing a problematic signal
+        // Workaround: the reader cannot transition from invalid to valid state
+        if (!reader.asPtr<IReaderConfig>().getIsValid())
+        {
+            reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+        }
         reconfigure();
     }
 }

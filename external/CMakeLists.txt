@@ -9,7 +9,7 @@ set(CURR_MESSAGE_CONTEXT ${CMAKE_MESSAGE_CONTEXT})
 
 if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
     # As above CMAKE_CXX_STANDARD but for VS
-    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++17>)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++20>)
 
     # suppress warnings
     foreach (flag IN ITEMS

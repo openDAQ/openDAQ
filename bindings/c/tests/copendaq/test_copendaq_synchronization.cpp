@@ -43,14 +43,14 @@ TEST_F(COpendaqSynchronizationTest, SyncComponent)
     daqPropertyObject_createPropertyObjectWithClassAndManager(&interface, typeManager, className);
 
     daqErrCode err = daqSyncComponentPrivate_addInterface(syncComponentPrivate, interface);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     daqDict* interfaces = nullptr;
     daqSyncComponent_getInterfaces(syncComponent, &interfaces);
     ASSERT_NE(interfaces, nullptr);
-    daqSizeT size = 0;
+    daqSizeT size = 0u;
     daqDict_getCount(interfaces, &size);
-    ASSERT_EQ(size, 1);
+    ASSERT_EQ(size, 1u);
 
     daqBaseObject_releaseRef(interfaces);
     daqBaseObject_releaseRef(interface);

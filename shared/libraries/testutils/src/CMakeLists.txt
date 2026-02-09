@@ -28,7 +28,7 @@ target_include_directories(${MODULE_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../
 target_compile_definitions(${MODULE_NAME} PUBLIC ${OPENDAQ_TEST_COMPILE_DEFINES}
 )
 
-target_compile_features(${MODULE_NAME} INTERFACE cxx_std_17)
+target_compile_features(${MODULE_NAME} INTERFACE cxx_std_20)
 
 target_link_libraries(${MODULE_NAME} PUBLIC daq::coretypes
                                             daq::coreobjects

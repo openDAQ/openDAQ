@@ -334,7 +334,7 @@ if (WIN32)
 endif()
 
 target_compile_features(${LIB_NAME} PRIVATE cxx_thread_local
-                                    PUBLIC cxx_std_17
+                                    PUBLIC cxx_std_20
 )
 
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_PublicHeaders}")

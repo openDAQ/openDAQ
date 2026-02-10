@@ -22,10 +22,40 @@ outputs:
 runs:
   using: composite
   steps:
+    # Workaround: documentation currently can only be generated properly with Doxygen 1.9.3 or earlier
+    - name: Setup Doxygen 1.9.3
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        REQUIRED_VERSION="1.9.3"
+        INSTALL_DOXYGEN=true
+
+        if command -v doxygen &> /dev/null; then
+          CURRENT_VERSION=$(doxygen --version)
+          echo "Found Doxygen version: $CURRENT_VERSION"
+
+          LOWEST=$(echo -e "$CURRENT_VERSION\n$REQUIRED_VERSION" | sort -V | head -1)
+          if [ "$LOWEST" = "$CURRENT_VERSION" ]; then
+            echo "Doxygen $CURRENT_VERSION is acceptable (<= $REQUIRED_VERSION)"
+            INSTALL_DOXYGEN=false
+          fi
+        fi
+
+        if [ "$INSTALL_DOXYGEN" = true ]; then
+          echo "Installing Doxygen $REQUIRED_VERSION..."
+          RELEASE_TAG="Release_${REQUIRED_VERSION//./_}"
+          gh release download "$RELEASE_TAG" --repo doxygen/doxygen --pattern "doxygen-${REQUIRED_VERSION}.linux.bin.tar.gz" --dir /tmp
+          tar xzf "/tmp/doxygen-${REQUIRED_VERSION}.linux.bin.tar.gz" -C /tmp
+          echo "/tmp/doxygen-${REQUIRED_VERSION}/bin" >> $GITHUB_PATH
+        fi
+
     - name: Build Documentation
       id: build
       shell: bash
       run: |
+        echo "Using Doxygen version: $(doxygen --version)"
         cmake -B ${{ inputs.build-path }} -DOPENDAQ_BUILD_DOCUMENTATION=ON
         cmake --build ${{ inputs.build-path }} --target doc_doxygen
 

@@ -1,0 +1,90 @@
+name: Detect Package Version and Platform
+description: Detect OS, architecture, SHA, and package version
+
+inputs:
+  enable-32bit:
+    description: 'Force 32-bit architecture detection (Windows)'
+    required: false
+    default: 'false'
+
+outputs:
+  os:
+    description: 'Operating system (windows, linux, macos)'
+    value: ${{ steps.detect-version.outputs.os }}
+  arch:
+    description: 'Architecture (x86_32, x86_64, arm64)'
+    value: ${{ steps.detect-version.outputs.arch }}
+  sha-short:
+    description: 'Short commit SHA (7 chars)'
+    value: ${{ steps.detect-version.outputs.sha-short }}
+  version:
+    description: 'Package version (without dev suffix)'
+    value: ${{ steps.detect-version.outputs.version }}
+  version-full:
+    description: 'Full version (version-sha for dev, version for release)'
+    value: ${{ steps.detect-version.outputs.version-full }}
+  version-wheels:
+    description: 'Wheels version (version+sha for dev, version for release)'
+    value: ${{ steps.detect-version.outputs.version-wheels }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect platform and version
+      id: detect-version
+      shell: bash
+      run: |
+        # OS detection
+        case "$RUNNER_OS" in
+          Windows) OS="windows" ;;
+          Linux)   OS="linux" ;;
+          macOS)   OS="macos" ;;
+          *)       echo "::error::Unsupported OS: $RUNNER_OS"; exit 1 ;;
+        esac
+        echo "os=$OS" >> $GITHUB_OUTPUT
+
+        # Architecture detection (using runner.arch)
+        case "$RUNNER_ARCH" in
+          X64)
+            if [ "${{ inputs.enable-32bit }}" = "true" ]; then
+              ARCH="x86_32"
+            else
+              ARCH="x86_64"
+            fi
+            ;;
+          ARM64) ARCH="arm64" ;;
+          X86)   ARCH="x86_32" ;;
+          *)     echo "::error::Unsupported architecture: $RUNNER_ARCH"; exit 1 ;;
+        esac
+        echo "arch=$ARCH" >> $GITHUB_OUTPUT
+
+        VERSION_FILE="$(pwd)/opendaq_version"
+        if [ ! -f "$VERSION_FILE" ]; then
+          echo "::error::File not found: $VERSION_FILE"; exit 1
+        fi
+        if ! OPENDAQ_VERSION=$(cat "$VERSION_FILE") || [ -z "$OPENDAQ_VERSION" ]; then
+          echo "::error::Failed to read: $VERSION_FILE"; exit 1
+        fi
+        # Version (strip 'dev' suffix if present)
+        VERSION="${OPENDAQ_VERSION%dev}"
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+        # Short SHA, full version, wheels version
+        # sha-short is only set for dev builds (used by NuGet for -beta suffix)
+        case "$OPENDAQ_VERSION" in
+          *dev)
+            SHORT_SHA="${GITHUB_SHA:0:7}"
+            VERSION_FULL="${VERSION}-${SHORT_SHA}"
+            VERSION_WHEELS="${VERSION}+${SHORT_SHA}"
+            ;;
+          *)
+            SHORT_SHA=""
+            VERSION_FULL="$VERSION"
+            VERSION_WHEELS="$VERSION"
+            ;;
+        esac
+        echo "sha-short=$SHORT_SHA" >> $GITHUB_OUTPUT
+        echo "version-full=$VERSION_FULL" >> $GITHUB_OUTPUT
+        echo "version-wheels=$VERSION_WHEELS" >> $GITHUB_OUTPUT
+
+        echo "Detected: os=$OS, arch=$ARCH, version=$VERSION, version-full=$VERSION_FULL, version-wheels=$VERSION_WHEELS"

@@ -18,10 +18,18 @@ inputs:
     description: 'Build type (Release/Debug)'
     required: false
     default: 'Release'
+  upload-artifact:
+    description: 'Upload wheels as artifact'
+    required: false
+    default: 'false'
   package-artifact-name:
-    description: 'Artifact name for uploading wheels. If empty, no upload is performed'
+    description: 'Custom artifact name. If empty, auto-generates as opendaq-{version}-python-wheels-{os}[-{arch}]'
     required: false
     default: ''
+  package-artifact-name-include-arch:
+    description: 'Include architecture suffix in auto-generated artifact name'
+    required: false
+    default: 'false'
   package-artifact-retention-days:
     description: 'Number of days to retain the artifact'
     required: false
@@ -31,10 +39,26 @@ outputs:
   wheels-path:
     description: 'Path to built wheels'
     value: ${{ steps.build-wheels.outputs.wheels-path }}
+  package-version:
+    description: 'Computed package version (with +SHA for dev builds)'
+    value: ${{ steps.build-wheels.outputs.package-version }}
+  artifact-name:
+    description: 'Artifact name (provided or auto-generated)'
+    value: ${{ steps.build-wheels.outputs.artifact-name }}
+  os:
+    description: 'Detected OS (windows, linux, macos)'
+    value: ${{ steps.detect-version.outputs.os }}
+  arch:
+    description: 'Detected architecture (x86_64, x86_32, arm64)'
+    value: ${{ steps.detect-version.outputs.arch }}
 
 runs:
   using: composite
   steps:
+    - name: Detect package version and platform
+      id: detect-version
+      uses: ./.github/actions/package-version-detect
+
     - name: Convert versions to newline format
       id: python-version-sort
       shell: bash
@@ -106,6 +130,25 @@ runs:
         fi
         echo "Using Python $PYTHON_VERSION_LATEST for build_pip.py"
 
+        # Generate artifact name if not provided
+        ARTIFACT_NAME="${{ inputs.package-artifact-name }}"
+        if [ -z "$ARTIFACT_NAME" ]; then
+          ARTIFACT_OS="${{ steps.detect-version.outputs.os }}"
+          ARTIFACT_VERSION="${{ steps.detect-version.outputs.version-full }}"
+
+          ARTIFACT_NAME="opendaq-${ARTIFACT_VERSION}-python-wheels-${ARTIFACT_OS}"
+          if [ "${{ inputs.package-artifact-name-include-arch }}" = "true" ]; then
+            ARTIFACT_ARCH="${{ steps.detect-version.outputs.arch }}"
+            ARTIFACT_NAME="${ARTIFACT_NAME}-${ARTIFACT_ARCH}"
+          fi
+        fi
+        echo "Artifact name: $ARTIFACT_NAME"
+        echo "artifact-name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+
+        # Versions from detect-version
+        WHEELS_VERSION="${{ steps.detect-version.outputs.version-wheels }}"
+        echo "Wheels version: $WHEELS_VERSION"
+        
         while IFS= read -r version; do
           echo "::group::CMake Configure (Python $version)"
           cmake -B "$CMAKE_BUILD_PATH" -G "$CMAKE_GENERATOR" \
@@ -126,7 +169,7 @@ runs:
           pip install --quiet numpy pybind11-stubgen
 
           # Build Python wheels (-r removes .pyd after packaging)
-          ${PYTHON_CMD}${PYTHON_VERSION_LATEST} bindings/python/package/build_pip.py -l "$BIN_PATH" -r
+          ${PYTHON_CMD}${PYTHON_VERSION_LATEST} bindings/python/package/build_pip.py -l "$BIN_PATH" -v "$WHEELS_VERSION" -r
 
           cp pip/packages/*.whl "$WHEELS_PATH/"
 
@@ -139,9 +182,9 @@ runs:
         ls -la "$WHEELS_PATH/"
 
     - name: Upload Python Wheels
-      if: inputs.package-artifact-name != ''
+      if: inputs.upload-artifact == 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.package-artifact-name }}
+        name: ${{ steps.build-wheels.outputs.artifact-name }}
         path: ${{ steps.build-wheels.outputs.wheels-path }}
         retention-days: ${{ inputs.package-artifact-retention-days }}

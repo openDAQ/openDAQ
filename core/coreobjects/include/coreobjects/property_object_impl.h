@@ -905,24 +905,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Only base Property Object object-type values are allowed");
     }
 
-    auto iterate = [](const IterablePtr<IBaseObject>& it, CoreType type) {
+    auto iterate = [](const IterablePtr<IBaseObject>& it, CoreType type)
+    {
         for (const auto& key : it)
         {
-            auto ct = key.getCoreType();
-
-            if (ct != type)
-            {
+            if (key.getCoreType() != type)
                 return false;
-            }
-
-            if (ct == ctObject)
-            {
-                auto inspect = key.asPtrOrNull<IInspectable>();
-                if (inspect.assigned() && !inspect.getInterfaceIds().empty())
-                {
-                    return inspect.getInterfaceIds()[0] == IPropertyObject::Id;
-                }
-            }
         }
         return true;
     };
@@ -937,25 +925,18 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
         IterablePtr<IBaseObject> it;
         dict->getKeys(&it);
         if (!iterate(it, keyType))
-        {
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Invalid dictionary key type");
-        }
 
         dict->getValues(&it);
         if (!iterate(it, itemType))
-        {
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Invalid dictionary item type");
-        }
-    }
-
-    if (coreType == ctList)
+    } 
+    else if (coreType == ctList)
     {
         const auto itemType = propInternal.getItemTypeNoLock();
 
         if (itemType != ctUndefined && !iterate(value, itemType))
-        {
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Invalid list item type");
-        }
     }
 
     return OPENDAQ_SUCCESS;

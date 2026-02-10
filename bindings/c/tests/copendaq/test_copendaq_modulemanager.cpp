@@ -60,7 +60,7 @@ TEST_F(COpendaqModuleManagerTest, DISABLED_ModuleManager)
     ASSERT_NE(modules, nullptr);
     daqSizeT size = 0;
     daqList_getCount(modules, &size);
-    ASSERT_GT(size, 0);
+    ASSERT_GT(size, 0u);
 
     daqModule* module = nullptr;
     daqList_getItemAt(modules, 0, (daqBaseObject**) &module);

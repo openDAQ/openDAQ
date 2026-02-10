@@ -158,6 +158,7 @@ protected:
     virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
     ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer) override;
     ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer) override;
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
     std::set<std::string> changeableDefaultPropertyNames;
     DeviceTypePtr deviceType;
@@ -1299,6 +1300,46 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
             }
         }
         checkErrorInfo(this->endUpdate());
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
+{
+    if (!forUpdate)
+        return OPENDAQ_SUCCESS;
+
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    const ErrCode errCode = daqTry([&serializer, this]
+    {
+        if (this->localProperties.size() == 0)
+            return OPENDAQ_NOTFOUND;
+
+        auto serializerPtr = SerializerPtr::Borrow(serializer);
+
+        serializerPtr.key("properties");
+        serializerPtr.startList();
+        for (const auto& [propName, prop] : this->localProperties)
+        {
+            if (deviceInfoDetails::defaultDeviceInfoPropertyNames.find(propName) !=
+                deviceInfoDetails::defaultDeviceInfoPropertyNames.end())
+                continue;
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+            auto propObject = prop.template asPtrOrNull<IPropertyObjectInternal>(true);
+            if (propObject.assigned() && !propObject.hasUserReadAccess(serializerPtr.getUser()))
+                continue;
+#endif
+
+            const ErrCode errCode = serializeProperty(prop, serializer);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+        serializerPtr.endList();
+
+        return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;

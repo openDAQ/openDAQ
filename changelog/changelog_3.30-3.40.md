@@ -18,11 +18,14 @@
 - [#991](https://github.com/openDAQ/openDAQ/pull/991) Add Function Block configuration to Python GUI demo app
 - [#1007](https://github.com/openDAQ/openDAQ/pull/1007) Add a missing error popup when adding a Function Block fails in Python GUI demo app.
 - [#1029](https://github.com/openDAQ/openDAQ/pull/1029) Fix python binding for iterators to enable list comprehensions.
+- [#1035](https://github.com/openDAQ/openDAQ/pull/1035) Fix showing description metadata of properties in Python GUI app
 
 ## Bug fixes
 
+- [#1054](https://github.com/openDAQ/openDAQ/pull/1054) Add validation default value items type for List And Dict Property
 - [#1015](https://github.com/openDAQ/openDAQ/pull/1015) IPropertyObject::hasProperty returns false instead of throwing not found error if the parent property does not exists
 - [#1046](https://github.com/openDAQ/openDAQ/pull/1046) Prevent updating locked attributes during the update process
+- [#1052](https://github.com/openDAQ/openDAQ/pull/1052) Renderer FB labels take into account reference domain offset from ReferenceDomainInfo.
 
 ## Misc
 

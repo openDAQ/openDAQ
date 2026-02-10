@@ -527,9 +527,10 @@ SizeT TypedReader<ReadType>::getOffsetToDataLinear(const ReaderDomainInfo& domai
         NumberPtr packetOffset = packet.getOffset();
 
         // Total packet offset in signal resolution ticks.
-        ReadType startTick = ruleStart + static_cast<ReadType>(rdOffset) + static_cast<ReadType>(packetOffset.getIntValue());
+        const ReadType startTick = ruleStart + static_cast<ReadType>(rdOffset) + static_cast<ReadType>(packetOffset.getIntValue());
+        const ReadType previousEndTick = startTick - ruleDelta;
         // In max resolution ticks since min epoch.
-        auto comparableStartingTick = std::make_unique<ComparableValue<ReadType>>(startTick, domainInfo);
+        auto comparablePreviousEndTick = std::make_unique<ComparableValue<ReadType>>(previousEndTick, domainInfo);
 
         // Tick of the last sample in signal resolution ticks
         const SizeT packetSize = packet.getSampleCount();
@@ -537,20 +538,29 @@ SizeT TypedReader<ReadType>::getOffsetToDataLinear(const ReaderDomainInfo& domai
         // In max resolution ticks since min epoch.
         auto comparableEndingTick = std::make_unique<ComparableValue<ReadType>>(endTick, domainInfo);
 
-        if (target < *comparableStartingTick || *comparableEndingTick < target)
+        /*
+        The function returns the index k of the first tick where the tick_k >= target
+        (in max resolution ticks since min epoch). The k-th sample is the answer for any target inside
+        interval (tick_{k-1}, tick_k]. The n-th packet then covers ticks (endTick_{n-1}, endTick].
+        Using the linear rule, the last sample in the previous packet was at endTick_{n-1} = startTick_n - ruleDelta.
+
+        Example: Packet with ticks [12, 15, 18] will return index 0 for targets [10, 11, 12] and -1 for <=9 and >=19.
+        */
+        if (target <= *comparablePreviousEndTick || target > *comparableEndingTick)
         {
             // Target is outside this packet
             return static_cast<SizeT>(-1);
         }
 
-        // TODO: Ask someone what types are possible as domain types.
         const auto* targetValue = dynamic_cast<const ComparableValue<ReadType>*>(&target);
-        ReadType ticksToTarget = targetValue->getValue() - comparableStartingTick->getValue();
+        // Ticks from the end of the previous packet's end.
+        ReadType ticksToTarget = targetValue->getValue() - comparablePreviousEndTick->getValue();
         ReadType comparableDelta = static_cast<ReadType>(ruleDelta * domainInfo.multiplier.getNumerator() /
                                                          static_cast<double>(domainInfo.multiplier.getDenominator()));
-        SizeT index = static_cast<SizeT>((ticksToTarget + comparableDelta - 1) / comparableDelta);
+        // Minus one due to calculation from the previous packet end tick.
+        SizeT index = static_cast<SizeT>((ticksToTarget + comparableDelta - 1) / comparableDelta) - 1;
 
-        assert(index <= packetSize && "Index out of bounds");
+        assert(index < packetSize && "Index out of bounds");
 
         if (absoluteTimestamp)
         {

@@ -121,7 +121,7 @@ inline ErrCode ConfigClientDeviceInfoImpl::Deserialize(ISerializedObject* serial
         const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
         deserializeComponent.complete();
 
-        return propObj;
+        *obj = propObj.detach();
     });
 
     OPENDAQ_RETURN_IF_FAILED(errCode);

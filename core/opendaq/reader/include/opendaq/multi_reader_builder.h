@@ -241,11 +241,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * The list of methods corresponds to the list of reader components (signals, input ports). Both the size and order of both must match if configured.
      * If a method is set to "Unspecified", the reader keeps the mode of the input port. When building with signals, "Unspecified" is an invalid configuration.
      */
-    virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethods(IList** notificationMethods) = 0;
-
-    // [returnSelf]
-    virtual ErrCode INTERFACE_FUNC setContext(IContext * context) = 0;
-    virtual ErrCode INTERFACE_FUNC getContext(IContext * *context) = 0;
+    virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethods(IList * *notificationMethods) = 0;
 };
 
 /*!@}*/

@@ -163,15 +163,7 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
     {
         auto sourceComponents = builder.getSourceComponents();
 
-        if (builder.getContext().assigned())
-        {
-            // If context is provided in the builder, allow creation of empty multi reader.
-            this->context = builder.getContext();
-        }
-        else
-        {
-            checkListSizeAndCacheContext(sourceComponents);
-        }
+        checkListSizeAndCacheContext(sourceComponents);
 
         loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
         typeOfInputs = sourceComponentsType(sourceComponents);

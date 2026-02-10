@@ -115,6 +115,8 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
     : FunctionBlockImpl<IFunctionBlock, IRecorder>(createType(), context, parent, localId, nullptr)
 {
     initComponentStatus();
+    setComponentStatusWithMessage(ComponentStatus::Warning, "No signals connected!");
+
     initProperties();
     fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
     timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::FILE_TIMESTAMP_ENABLED));
@@ -124,8 +126,8 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
     else
         notificationMode = PacketReadyNotification::Scheduler;
 
+    createDisconnectedPort();
     createReader();
-    updateInputPorts();
 }
 
 ErrCode MultiCsvRecorderImpl::startRecording()
@@ -198,6 +200,13 @@ std::string MultiCsvRecorderImpl::getNextPortID() const
     return fmt::format("CsvRecorderPort_{}", maxId + 1);
 }
 
+void MultiCsvRecorderImpl::createDisconnectedPort()
+{
+    std::string id = getNextPortID();
+    auto inputPort = createAndAddInputPort(id, notificationMode);
+    disconnectedPort = inputPort;
+}
+
 bool MultiCsvRecorderImpl::updateInputPorts()
 {
     bool connectedPortsChanged = false;
@@ -234,9 +243,7 @@ bool MultiCsvRecorderImpl::updateInputPorts()
 
     if (!disconnectedPort.assigned())
     {
-        std::string id = getNextPortID();
-        auto inputPort = createAndAddInputPort(id, notificationMode);
-        disconnectedPort = inputPort;
+        createDisconnectedPort();
 
         // Add the empty port to the multi reader and mark it unused
         reader.addInput(disconnectedPort);
@@ -259,9 +266,12 @@ void MultiCsvRecorderImpl::createReader()
                        .setDomainReadType(SampleType::Int64)
                        .setValueReadType(SampleType::Float64)
                        .setAllowDifferentSamplingRates(false)
-                       .setInputPortNotificationMethod(notificationMode)
-                       .setContext(this->context);
+                       .setInputPortNotificationMethod(notificationMode);
 
+    if (disconnectedPort.assigned())
+    {
+        builder.addInputPort(disconnectedPort);
+    }
     reader = builder.build();
 
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());

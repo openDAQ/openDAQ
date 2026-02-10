@@ -43,14 +43,15 @@ SumReaderFbImpl::SumReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& pare
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
     initComponentStatus();
+    setComponentStatusWithMessage(ComponentStatus::Warning, "No signals connected!");
 
     if (config.assigned())
         notificationMode = static_cast<PacketReadyNotification>(config.getPropertyValue("ReaderNotificationMode"));
     else
         notificationMode = PacketReadyNotification::Scheduler;
 
+    createDisconnectedPort();
     createReader();
-    updateInputPorts();
     createSignals();
 }
 
@@ -90,6 +91,13 @@ void SumReaderFbImpl::createSignals()
     sumSignal.setDomainSignal(sumDomainSignal);
 }
 
+void SumReaderFbImpl::createDisconnectedPort()
+{
+    std::string id = getNextPortID();
+    auto inputPort = createAndAddInputPort(id, notificationMode);
+    disconnectedPort = inputPort;
+}
+
 bool SumReaderFbImpl::updateInputPorts()
 {
     bool connectedPortsChanged = false;
@@ -123,9 +131,7 @@ bool SumReaderFbImpl::updateInputPorts()
 
     if (!disconnectedPort.assigned())
     {
-        std::string id = getNextPortID();
-        auto inputPort = createAndAddInputPort(id, notificationMode);
-        disconnectedPort = inputPort;
+        createDisconnectedPort();
 
         // Add the empty port to the multi reader and mark it unused
         reader.addInput(disconnectedPort);
@@ -149,8 +155,12 @@ void SumReaderFbImpl::createReader()
                        .setDomainReadType(SampleType::Int64)
                        .setValueReadType(SampleType::Float64)
                        .setAllowDifferentSamplingRates(false)
-                       .setInputPortNotificationMethod(notificationMode)
-                       .setContext(this->context);
+                       .setInputPortNotificationMethod(notificationMode);
+
+    if (disconnectedPort.assigned())
+    {
+        builder.addInputPort(disconnectedPort);
+    }
 
     reader = builder.build();
 

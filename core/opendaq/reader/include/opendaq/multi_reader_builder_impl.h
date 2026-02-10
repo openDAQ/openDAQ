@@ -67,9 +67,6 @@ public:
     ErrCode INTERFACE_FUNC setInputPortNotificationMethods(IList* notificationMethods) override;
     ErrCode INTERFACE_FUNC getInputPortNotificationMethods(IList** notificationMethods) override;
 
-    ErrCode INTERFACE_FUNC setContext(IContext* context) override;
-    ErrCode INTERFACE_FUNC getContext(IContext** context) override;
-
 private:
     ListPtr<IComponent> sources;
     SampleType valueReadType;

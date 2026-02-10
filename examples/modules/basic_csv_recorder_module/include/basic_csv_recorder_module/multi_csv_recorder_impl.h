@@ -98,6 +98,7 @@ private:
      * @brief Returns true if reader is in valid state or successfully recovered. Doesn't replace a valid reader.
      */
     bool recoverReaderIfNecessary();
+    void createDisconnectedPort();
 
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;

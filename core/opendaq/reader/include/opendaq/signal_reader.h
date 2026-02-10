@@ -93,6 +93,7 @@ struct SignalReader
 
     bool isSynced() const;
     StringPtr getComponentGlobalId() const;
+    bool isConnected() const;
 
     LoggerComponentPtr loggerComponent;
 

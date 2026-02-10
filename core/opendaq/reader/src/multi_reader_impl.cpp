@@ -437,7 +437,7 @@ bool MultiReaderImpl::allPortsConnected() const
         if (reader.unused)
             continue;
 
-        if (!reader.port.getConnection().assigned())
+        if (!reader.isConnected())
             return false;
     }
     return true;

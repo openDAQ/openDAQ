@@ -555,6 +555,11 @@ StringPtr SignalReader::getComponentGlobalId() const
     return port.getGlobalId();
 }
 
+bool SignalReader::isConnected() const
+{
+    return port.getConnection().assigned();
+}
+
 ErrCode SignalReader::readPacketData()
 {
     auto remainingSampleCount = info.dataPacket.getSampleCount() - info.prevSampleIndex;

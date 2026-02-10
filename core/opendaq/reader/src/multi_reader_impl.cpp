@@ -780,7 +780,7 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUnused(IString* globalId, Bool u
 
     if (!found)
     {
-        return OPENDAQ_NOTFOUND;
+        return OPENDAQ_ERR_NOTFOUND;
     }
 
     portsConnected = allPortsConnected();
@@ -812,7 +812,7 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::getInputUnused(IString* globalId, Bool* 
         }
     }
     if (!found)
-        return OPENDAQ_NOTFOUND;
+        return OPENDAQ_ERR_NOTFOUND;
 
     return OPENDAQ_SUCCESS;
 }
@@ -1003,9 +1003,6 @@ DictPtr<IString, IEventPacket> MultiReaderImpl::readUntilFirstDataPacketAndGetEv
     size_t i = 0;
     for (auto& signal : signals)
     {
-        if (signal.unused)
-            continue;
-
         auto packet = signal.readUntilNextDataPacket();
         invalid |= signal.invalid;
         if (packet.assigned())

@@ -165,10 +165,17 @@ void SumReaderFbImpl::createReader()
         });
 }
 
-void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors)
+void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor,
+                                const ListPtr<IDataDescriptor>& valueDescriptors,
+                                bool recoverReader)
 {
     try
     {
+        if (recoverReader && !attemptRecovery())
+        {
+            throw std::runtime_error("Reader failed to recover from invalid state");
+        }
+
         if (!domainDescriptor.assigned() || domainDescriptor == NullDataDescriptor())
         {
             throw std::runtime_error("Input domain descriptor is not set");
@@ -177,11 +184,6 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
         if (valueDescriptors.getCount() != connectedPorts.size())
         {
             throw std::runtime_error("Missing input value descriptors!");
-        }
-
-        if (!reader.asPtr<IReaderConfig>().getIsValid())
-        {
-            throw std::runtime_error("Multi reader is in invalid state!");
         }
 
         UnitPtr unit = nullptr;
@@ -200,7 +202,7 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
 
             int sampleType = static_cast<int>(descriptor.getSampleType());
             if (sampleType > static_cast<int>(SampleType::Int64) || sampleType == 0)
-                throw std::runtime_error("Non-scalar sample type inputs are not accepted!");
+                throw std::runtime_error("Inputs with non-scalar sample type are not accepted!");
 
             auto range = descriptor.getValueRange();
             if (range.assigned())
@@ -227,7 +229,7 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for sum signal: {}", e.what()));
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to configure sum FB: {}", e.what()));
         reader.setActive(False);
     }
 }
@@ -239,7 +241,17 @@ void SumReaderFbImpl::reconfigure()
         descriptorList.pushBack(descriptor.second);
 
     if (descriptorList.getCount() > 0)
-        configure(sumDomainDataDescriptor, descriptorList);
+        configure(sumDomainDataDescriptor, descriptorList, true);
+}
+
+bool SumReaderFbImpl::attemptRecovery()
+{
+    if (reader.asPtr<IReaderConfig>().getIsValid())
+        return true;
+
+    LOG_D("Sum Reader FB: Attempting reader recovery")
+    reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+    return reader.asPtr<IReaderConfig>().getIsValid();
 }
 
 void SumReaderFbImpl::onConnected(const InputPortPtr& inputPort)
@@ -248,10 +260,7 @@ void SumReaderFbImpl::onConnected(const InputPortPtr& inputPort)
 
     LOG_D("Sum Reader FB: Input port {} connected", inputPort.getLocalId())
 
-    if (updateInputPorts())
-    {
-        reconfigure();
-    }
+    updateInputPorts();
 }
 
 void SumReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
@@ -261,12 +270,6 @@ void SumReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
     LOG_D("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
     if (updateInputPorts())
     {
-        // Disconnecting a port may restore a reader by removing a problematic signal
-        // Workaround: the reader cannot transition from invalid to valid state
-        if (!reader.asPtr<IReaderConfig>().getIsValid())
-        {
-            reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
-        }
         reconfigure();
     }
 }
@@ -340,18 +343,8 @@ void SumReaderFbImpl::onDataReceived()
 
             getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
 
-            if (valueSigChanged || domainChanged)
-                configure(domainDescriptor, valueDescriptors);
-
-            if (!status.getValid())
-            {
-                LOG_D("Sum Reader FB: Attempting reader recovery")
-                reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
-                if (!reader.asPtr<IReaderConfig>().getIsValid())
-                {
-                    setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
-                }
-            }
+            if (valueSigChanged || domainChanged || !status.getValid())
+                configure(domainDescriptor, valueDescriptors, true);
         }
     }
 }

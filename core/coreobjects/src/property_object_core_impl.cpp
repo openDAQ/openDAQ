@@ -1,7 +1,6 @@
 #include <coreobjects/property_object_core_impl.h>
 #include <coretypes/validation.h>
 #include <utility>
-#include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ
 

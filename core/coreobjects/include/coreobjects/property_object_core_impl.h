@@ -21,6 +21,7 @@
 #include <coreobjects/property_object_core.h>
 #include <coreobjects/property_object_internal.h>
 #include <coreobjects/property_object_utils.h>
+#include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ
 

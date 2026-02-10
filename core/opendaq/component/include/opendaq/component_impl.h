@@ -394,7 +394,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getName(IString** name)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setName(IString* name)
 {
-    if (isFrozen())
+    if (this->isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
@@ -445,7 +445,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getDescription(IString** description)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setDescription(IString* description)
 {
-    if (isFrozen())
+    if (this->isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
@@ -506,7 +506,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::getVisible(Bool* visible)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
 {
-    if (isFrozen())
+    if (this->isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {

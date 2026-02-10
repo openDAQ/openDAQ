@@ -235,7 +235,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getPublic(Bool* isPublic)
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
 {
-    if (isFrozen())
+    if (this->isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {

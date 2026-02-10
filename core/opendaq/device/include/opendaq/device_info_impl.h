@@ -318,7 +318,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConnectionString(ISt
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setDeviceType(IDeviceType* deviceType)
 {
-    if (isFrozen())
+    if (this->isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     this->deviceType = deviceType;
@@ -1002,7 +1002,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConfigurationConnect
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addNetworkInteface(IString* name, INetworkInterface* networkInterface)
 {
-    if (isFrozen())
+    if (this->isFrozen())
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
@@ -1265,7 +1265,7 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    if (isFrozen())
+    if (this->isFrozen())
         return OPENDAQ_IGNORED;
 
     const auto serializedPtr = SerializedObjectPtr::Borrow(obj);

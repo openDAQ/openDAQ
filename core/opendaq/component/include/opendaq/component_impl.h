@@ -310,7 +310,7 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 {
-    if (isFrozen())
+    if (this->isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {

@@ -14,3 +14,5 @@ opendaq_dependency(
     GIT_REF             10.2.1
     EXPECT_TARGET       fmt::fmt
 )
+
+target_compile_definitions(fmt::fmt INTERFACE FMT_USE_CONSTEVAL=0)

@@ -1798,9 +1798,6 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     const std::vector<StringPtr>& customOrder,
     const PermissionManagerPtr& permissionManager)
 {
-    // Clone Event objects instead of sharing the source's IEvent pointers.
-    // Shallow-copying EventEmitter (a smart pointer) would make all clones share the same
-    // underlying IEvent COM object, so a handler added to one clone would fire for all of them.
     this->valueWriteEvents.clear();
     for (const auto& [name, srcEmitter] : valueWriteEvents)
         this->valueWriteEvents.emplace(name, srcEmitter.clone());

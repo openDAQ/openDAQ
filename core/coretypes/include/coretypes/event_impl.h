@@ -80,6 +80,8 @@ public:
     ErrCode INTERFACE_FUNC muteListener(IEventHandler* eventHandler) override;
     ErrCode INTERFACE_FUNC unmuteListener(IEventHandler* eventHandler) override;
 
+    ErrCode INTERFACE_FUNC clone(IEvent** clonedEvent) override;
+
     // IFreezable
     ErrCode INTERFACE_FUNC freeze() override;
     ErrCode INTERFACE_FUNC isFrozen(Bool* isFrozen) const override;

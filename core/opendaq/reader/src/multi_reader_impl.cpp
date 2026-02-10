@@ -395,17 +395,7 @@ MultiReaderImpl::InputType MultiReaderImpl::sourceComponentsType(const ListPtr<I
 
 std::vector<SignalReader>::iterator MultiReaderImpl::findByGlobalId(const StringPtr& id)
 {
-    return std::find_if(signals.begin(),
-                        signals.end(),
-                        [&](auto& reader)
-                        {
-                            if (typeOfInputs == InputType::Ports)
-                                return id == reader.port.getGlobalId();
-                            else if (typeOfInputs == InputType::Signals)
-                                return id == reader.port.getSignal().getGlobalId();
-                            else
-                                return false;
-                        });
+    return std::find_if(signals.begin(), signals.end(), [&](auto& reader) { return id == reader.getComponentGlobalId(); });
 }
 
 ListPtr<IInputPortConfig> MultiReaderImpl::createOrAdoptPorts(const ListPtr<IComponent>& list) const
@@ -489,9 +479,7 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
                                 "Multi reader created from signals cannot have an unspecified input port notification method.");
         }
 
-        signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent);
-
-        const auto globalId = typeOfInputs == InputType::Ports ? port.getGlobalId() : port.getSignal().getGlobalId();
+        signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent, typeOfInputs == InputType::Signals);
 
         cnt++;
     }
@@ -771,7 +759,7 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUnused(IString* globalId, Bool u
     bool found = false;
     for (auto& signal : signals)
     {
-        StringPtr sigId = typeOfInputs == InputType::Ports ? signal.port.getGlobalId() : signal.port.getSignal().getGlobalId();
+        StringPtr sigId = signal.getComponentGlobalId();
         if (sigId == gId)
         {
             signal.unused = unused;
@@ -815,7 +803,7 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::getInputUnused(IString* globalId, Bool* 
     bool found = false;
     for (auto& signal : signals)
     {
-        StringPtr sigId = typeOfInputs == InputType::Ports ? signal.port.getGlobalId() : signal.port.getSignal().getGlobalId();
+        StringPtr sigId = signal.getComponentGlobalId();
         if (sigId == gId)
         {
             *unused = signal.unused;

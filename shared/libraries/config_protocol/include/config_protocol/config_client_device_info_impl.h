@@ -26,6 +26,7 @@ class ConfigClientDeviceInfoImpl : public ConfigClientPropertyObjectBaseImpl<Dev
 {
 public:
     using Super = ConfigClientPropertyObjectBaseImpl;
+    using Impl = DeviceInfoConfigImpl<IDeviceInfoConfig, IConfigClientObject, IDeserializeComponent>;
     using Super::Super;
 
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
@@ -49,13 +50,13 @@ protected:
 inline ErrCode ConfigClientDeviceInfoImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (this->remoteUpdating)
-        return Super::setPropertyValue(propertyName, value);
+        return Impl::setPropertyValue(propertyName, value);
 
     const ErrCode errCode = Super::setPropertyValue(propertyName, value);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
         daqClearErrorInfo();
-        return Super::setPropertyValue(propertyName, value);
+        return Impl::setPropertyValue(propertyName, value);
     }
     return errCode;
 }
@@ -64,14 +65,14 @@ inline ErrCode ConfigClientDeviceInfoImpl::setProtectedPropertyValue(IString* pr
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     if (this->remoteUpdating)
-        return Super::setProtectedPropertyValue(propertyName, value);
+        return Impl::setProtectedPropertyValue(propertyName, value);
 
     PropertyPtr property;
-    ErrCode errCode = Super::getProperty(propertyName, &property);
+    ErrCode errCode = Impl::getProperty(propertyName, &property);
     OPENDAQ_RETURN_IF_FAILED(errCode);
     
     if (property.getReadOnly())
-        return Super::setProtectedPropertyValue(propertyName, value);
+        return Impl::setProtectedPropertyValue(propertyName, value);
 
     return Super::setProtectedPropertyValue(propertyName, value);
 }
@@ -83,7 +84,7 @@ inline ErrCode ConfigClientDeviceInfoImpl::setValueInternal(IString* propertyNam
 
 inline ErrCode ConfigClientDeviceInfoImpl::addProperty(IProperty* property)
 {
-    return Super::addProperty(property);
+    return Impl::addProperty(property);
 }
 
 inline ErrCode ConfigClientDeviceInfoImpl::deserializeValues(ISerializedObject* serializedObject,
@@ -111,12 +112,12 @@ inline ErrCode ConfigClientDeviceInfoImpl::Deserialize(ISerializedObject* serial
         const auto ctx = deserializeContextPtr.asPtr<IConfigProtocolDeserializeContext>();
         PropertyObjectPtr propObj = createWithImplementation<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(ctx->getClientComm(), ctx->getRemoteGlobalId());
 
-        GenericPropertyObjectImpl::DeserializePropertyOrder(serialized, context, nullptr, propObj);
+        Super::DeserializePropertyOrder(serialized, context, nullptr, propObj);
 
-        GenericPropertyObjectImpl::DeserializeLocalProperties(serialized, context, factoryCallback, propObj);
+        Super::DeserializeLocalProperties(serialized, context, factoryCallback, propObj);
 
         // Do not create client objects for nested property objects (eg. active client connection info)
-        GenericPropertyObjectImpl::DeserializePropertyValues(serialized, context, nullptr, propObj);
+        Super::DeserializePropertyValues(serialized, context, nullptr, propObj);
         
         const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
         deserializeComponent.complete();

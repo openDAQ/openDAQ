@@ -92,7 +92,7 @@ bool MainThreadLoop::executeWork(const WorkPtr& work)
                     }
                 #endif                        
             }
-            LOG_W("Error executing work: {}", errorStream.str());
+            //LOG_W("Error executing work: {}", errorStream.str());
         }
     }
     return repeatAfter; 
@@ -182,7 +182,7 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoo
 {
     if (useMainLoop)
         mainThreadWorker = std::make_unique<MainThreadLoop>(this->logger);
-    LOG_D("Starting scheduler with {} workers.", executor->num_workers())
+    //LOG_D("Starting scheduler with {} workers.", executor->num_workers())
 }
 
 SchedulerImpl::~SchedulerImpl()

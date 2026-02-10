@@ -15,4 +15,4 @@ opendaq_dependency(
     EXPECT_TARGET       fmt::fmt
 )
 
-target_compile_definitions(fmt::fmt INTERFACE FMT_USE_CONSTEVAL=0)
+target_compile_definitions(fmt INTERFACE FMT_USE_CONSTEVAL=0)

@@ -113,6 +113,23 @@ ErrCode EventImpl::trigger(IBaseObject* sender, IEventArgs* args)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode EventImpl::clone(IEvent** clonedEvent)
+{
+    OPENDAQ_PARAM_NOT_NULL(clonedEvent);
+
+    std::scoped_lock lock(sync);
+
+    auto* newEvent = new(std::nothrow) EventImpl();
+    if (newEvent == nullptr)
+        return OPENDAQ_ERR_NOMEMORY;
+
+    for (const auto& handler : handlers)
+        newEvent->handlers.emplace_back(Handler{handler.eventHandler, handler.muted});
+
+    *clonedEvent = newEvent;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode EventImpl::freeze()
 {
     std::scoped_lock lock(sync);

@@ -165,13 +165,11 @@ void SumReaderFbImpl::createReader()
         });
 }
 
-void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor,
-                                const ListPtr<IDataDescriptor>& valueDescriptors,
-                                bool recoverReader)
+void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors)
 {
     try
     {
-        if (recoverReader && !attemptRecovery())
+        if (!recoverReaderIfNecessary())
         {
             throw std::runtime_error("Reader failed to recover from invalid state");
         }
@@ -241,10 +239,10 @@ void SumReaderFbImpl::reconfigure()
         descriptorList.pushBack(descriptor.second);
 
     if (descriptorList.getCount() > 0)
-        configure(sumDomainDataDescriptor, descriptorList, true);
+        configure(sumDomainDataDescriptor, descriptorList);
 }
 
-bool SumReaderFbImpl::attemptRecovery()
+bool SumReaderFbImpl::recoverReaderIfNecessary()
 {
     if (reader.asPtr<IReaderConfig>().getIsValid())
         return true;
@@ -297,6 +295,7 @@ void SumReaderFbImpl::onDataReceived()
         double* sumValueData = static_cast<double*>(sumValuePacket.getRawData());
         std::fill_n(sumValueData, cnt, 0.0);
 
+        data.pop_back();  // Remove last buffer (unused disconnected port)
         for (const std::unique_ptr<double[]>& sigData : data)
         {
             const double* sigDataPtr = sigData.get();
@@ -344,7 +343,7 @@ void SumReaderFbImpl::onDataReceived()
             getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
 
             if (valueSigChanged || domainChanged || !status.getValid())
-                configure(domainDescriptor, valueDescriptors, true);
+                configure(domainDescriptor, valueDescriptors);
         }
     }
 }

@@ -42,13 +42,13 @@ private:
     void createSignals();
     bool updateInputPorts();
     void createReader();
-    void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors, bool recoverReader = false);
+    void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
     void reconfigure();
 
     /**
      * @brief Returns true if reader is in valid state or successfully recovered. Doesn't replace a valid reader.
      */
-    bool attemptRecovery();
+    bool recoverReaderIfNecessary();
 
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;

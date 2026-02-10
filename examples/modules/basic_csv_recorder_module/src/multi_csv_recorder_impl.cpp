@@ -281,6 +281,11 @@ void MultiCsvRecorderImpl::configureWriter(const DataDescriptorPtr& domainDescri
 {
     try
     {
+        if (!recoverReaderIfNecessary())
+        {
+            throw std::runtime_error("Reader failed to recover from invalid state");
+        }
+
         if (!domainDescriptor.assigned() || domainDescriptor == NullDataDescriptor())
         {
             throw std::runtime_error("Input domain descriptor is not set");
@@ -338,6 +343,16 @@ void MultiCsvRecorderImpl::reconfigureWriter()
     }
 }
 
+bool MultiCsvRecorderImpl::recoverReaderIfNecessary()
+{
+    if (reader.asPtr<IReaderConfig>().getIsValid())
+        return true;
+
+    LOG_D("Sum Reader FB: Attempting reader recovery")
+    reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+    return reader.asPtr<IReaderConfig>().getIsValid();
+}
+
 void MultiCsvRecorderImpl::onPropertiesChanged()
 {
     filePath = static_cast<std::string>(objPtr.getPropertyValue(Props::DIR));
@@ -354,10 +369,7 @@ void MultiCsvRecorderImpl::onConnected(const InputPortPtr& inputPort)
 
     LOG_I("Multi CSV Recorder: Input port {} connected", inputPort.getLocalId())
 
-    if (updateInputPorts())
-    {
-        reconfigureWriter();
-    }
+    updateInputPorts();
 }
 
 void MultiCsvRecorderImpl::onDisconnected(const InputPortPtr& inputPort)
@@ -367,12 +379,6 @@ void MultiCsvRecorderImpl::onDisconnected(const InputPortPtr& inputPort)
     LOG_I("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
     if (updateInputPorts())
     {
-        // Disconnecting a port may restore a reader by removing a problematic signal
-        // Workaround: the reader cannot transition from invalid to valid state
-        if (!reader.asPtr<IReaderConfig>().getIsValid())
-        {
-            reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
-        }
         reconfigureWriter();
     }
 }
@@ -424,18 +430,7 @@ void MultiCsvRecorderImpl::onDataReceived()
         domainChanged |= !domainDescriptorsEqual(domainDescriptor, recorderDomainDataDescriptor);
     }
 
-    bool recoveredReader = false;
-    if (!status.getValid())
-    {
-        recoveredReader = attemptRecoverReader();
-        if (!recoveredReader)
-        {
-            stopRecordingInternal(true);
-            setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
-        }
-    }
-
-    if (valueSigChanged || domainChanged || recoveredReader)
+    if (valueSigChanged || domainChanged || !status.getValid())
         configureWriter(domainDescriptor, valueDescriptors, signalNames);
 }
 
@@ -478,16 +473,10 @@ MultiReaderStatusPtr MultiCsvRecorderImpl::attemptReadData()
     if (recordingActive && writer.has_value() && cnt > 0)
     {
         Int packetOffset = status.asPtr<IReaderStatus>().getOffset().getIntValue();
+        samples.pop_back();  // Remove last buffer (unused disconnected port)
         writer.value().writeSamples(std::move(samples), cnt, packetOffset);
     }
     return status;
-}
-
-bool MultiCsvRecorderImpl::attemptRecoverReader()
-{
-    LOG_D("Multi CSV Recorder: Attempting reader recovery")
-    reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
-    return reader.asPtr<IReaderConfig>().getIsValid();
 }
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

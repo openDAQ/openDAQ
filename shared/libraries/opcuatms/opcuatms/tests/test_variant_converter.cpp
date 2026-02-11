@@ -269,20 +269,37 @@ TEST_F(VariantConverterTest, CustomDataRule)
 
 TEST_F(VariantConverterTest, DataDescriptor)
 {
-    auto descriptor = DataDescriptorBuilder()
-                          .setSampleType(SampleType::Float64)
-                          .setName("Value 1")
-                          .setUnit(Unit("V", 1, "voltage", "Quantity"))
-                          .setValueRange(Range(1, 10))
-                          .setRule(ExplicitDataRule())
-                          .setDimensions(CreateTestDimensions())
-                          .setPostScaling(LinearScaling(10, 2))
-                          .build();
+    {
+        auto descriptor = DataDescriptorBuilder()
+                              .setSampleType(SampleType::Float64)
+                              .setName("Value 1")
+                              .setUnit(Unit("V", 1, "voltage", "Quantity"))
+                              .setValueRange(Range(1, 10))
+                              .setRule(ExplicitDataRule())
+                              .setDimensions(CreateTestDimensions())
+                              .build();
 
-    auto variant = VariantConverter<IDataDescriptor>::ToVariant(descriptor);
-    auto descriptorOut = VariantConverter<IDataDescriptor>::ToDaqObject(variant);
+        auto variant = VariantConverter<IDataDescriptor>::ToVariant(descriptor);
+        auto descriptorOut = VariantConverter<IDataDescriptor>::ToDaqObject(variant);
 
-    ASSERT_TRUE(descriptorOut.equals(descriptor));
+        ASSERT_TRUE(descriptorOut.equals(descriptor));
+    }
+    {
+        auto descriptor = DataDescriptorBuilder()
+                              .setSampleType(SampleType::Float64)
+                              .setName("Value 2")
+                              .setUnit(Unit("V", 1, "voltage", "Quantity"))
+                              .setValueRange(Range(1, 10))
+                              .setRule(ExplicitDataRule())
+                              .setDimensions(List<IDimension>())
+                              .setPostScaling(LinearScaling(10, 2))
+                              .build();
+
+        auto variant = VariantConverter<IDataDescriptor>::ToVariant(descriptor);
+        auto descriptorOut = VariantConverter<IDataDescriptor>::ToDaqObject(variant);
+
+        ASSERT_TRUE(descriptorOut.equals(descriptor));
+    }
 }
 
 TEST_F(VariantConverterTest, DataDescriptorEmpty)

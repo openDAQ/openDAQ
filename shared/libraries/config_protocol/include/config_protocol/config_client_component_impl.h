@@ -48,6 +48,9 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
+    //IComponentPrivate
+    ErrCode INTERFACE_FUNC updateParentActive (Bool active) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
     template <class Interface, class Implementation>
@@ -84,9 +87,6 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getActive(Bool* active)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
 {
-    if (this->coreEventMuted)
-        return Impl::setActive(active);
-
     const ErrCode errCode = daqTry([this, &active]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); 
@@ -153,6 +153,12 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getComponentConfig(IPropertyObject*
         else
             checkErrorInfo(Impl::getComponentConfig(config));   
     });
+}
+
+template <class Impl>
+ErrCode ConfigClientComponentBaseImpl<Impl>::updateParentActive(Bool active)
+{
+    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -322,6 +328,8 @@ void ConfigClientComponentBaseImpl<Impl>::attributeChanged(const CoreEventArgsPt
     if (attrName == "Active")
     {
         const Bool active = args.getParameters().get("Active");
+        if (args.getParameters().hasKey("ParentActive"))
+            this->parentActive = args.getParameters().get("ParentActive");
         checkErrorInfo(Impl::setActive(active));
     }
     else if (attrName == "Name")

@@ -46,6 +46,7 @@ public:
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC updateParentActive(Bool active) override;
 
     // IFolder
     ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter = nullptr) override;
@@ -122,17 +123,37 @@ FolderImpl<Intf, Intfs...>::FolderImpl(const ContextPtr& context,
 template <class Intf, class ... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
 {
-    const ErrCode err = Super::setActive(active);
-    OPENDAQ_RETURN_IF_FAILED(err);
-    if (err == OPENDAQ_IGNORED)
-        return err;
+    OPENDAQ_RETURN_IF_FAILED(Super::setActive(active));
 
     const ErrCode errCode = daqTry([&]
     {
+        Bool computedActive;
+        this->getActive(&computedActive);
+
         std::vector<ComponentPtr> itemsVec;
         for (const auto& [_, item] : this->items)
             itemsVec.emplace_back(item);
-        this->setActiveRecursive(itemsVec, active);
+        this->setActiveRecursive(itemsVec, computedActive);
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode FolderImpl<Intf, Intfs...>::updateParentActive(Bool active)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::updateParentActive(active));
+
+    const ErrCode errCode = daqTry([&]
+    {
+        Bool computedActive;
+        this->getActive(&computedActive);
+
+        std::vector<ComponentPtr> itemsVec;
+        for (const auto& [_, item] : this->items)
+            itemsVec.emplace_back(item);
+        this->setActiveRecursive(itemsVec, computedActive);
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -264,6 +285,14 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 
     // When a component is added to the subtree, the folder updates its operation mode to match the operation mode of the parent device.
     syncComponentOperationMode(component);
+
+    // Initialize parentActive for the newly added component based on this folder's active state
+    Bool folderActive;
+    this->getActive(&folderActive);
+    if (auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+    {
+        componentPrivate->updateParentActive(folderActive);
+    }
 
     return OPENDAQ_SUCCESS;
 }

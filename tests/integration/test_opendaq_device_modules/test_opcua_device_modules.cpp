@@ -1570,3 +1570,29 @@ TEST_F(OpcuaDeviceModulesTest, SaveLoadFunctionBlockConfig)
     ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
     ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
 }
+
+TEST_F(OpcuaDeviceModulesTest, ComponentActiveChangedRecursive)
+{
+    // SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // Get the client's mirror of server device (this is a root device)
+    auto clientDevice = client.getDevices()[0];
+
+    // Get all components in clientDevice subtree
+    auto clientDeviceComponents = clientDevice.getItems(search::Recursive(search::Any()));
+
+    // Set client (Instance) active to false
+    client.setActive(false);
+
+    // client itself should be inactive
+    ASSERT_FALSE(client.getActive()) << "client should be inactive";
+
+    // clientDevice should still be active (it's a root device, doesn't receive parentActive)
+    ASSERT_TRUE(clientDevice.getActive()) << "clientDevice should remain active as it's a root device";
+
+    // All clientDevice subtree components should still be active
+    for (const auto& comp : clientDeviceComponents)
+        ASSERT_TRUE(comp.getActive()) << "Component should be active: " << comp.getGlobalId();
+}

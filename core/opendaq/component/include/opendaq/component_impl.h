@@ -104,6 +104,7 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
+    ErrCode INTERFACE_FUNC updateParentActive(Bool active) override;
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -125,12 +126,14 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
+    virtual bool getActiveNoLock();
     virtual void activeChanged();
     virtual void visibleChanged();
     virtual void removed();
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
+    ErrCode setActiveInternal(Bool active);
 
     ContextPtr context;
 
@@ -150,6 +153,7 @@ protected:
     std::unordered_set<std::string> lockedAttributes;
     bool visible;
     bool active;
+    bool parentActive;
     StringPtr name;
     StringPtr description;
     ComponentStatusContainerPtr statusContainer;
@@ -221,6 +225,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
           }))
       , visible(true)
       , active(true)
+      , parentActive(true)
       , name(name.assigned() && name != "" ? name : localId)
       , description("")
       , statusContainer(createWithImplementation<IComponentStatusContainer, ComponentStatusContainerImpl>(
@@ -256,6 +261,7 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
         this->permissionManager.setPermissions(PermissionsBuilder().inherit(true).build());
         const auto parentManager = parent.getPermissionManager();
         this->permissionManager.template asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+        this->parentActive = parent.getActive();
     }
 }
 
@@ -293,18 +299,25 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getGlobalId(IString** globalId)
 }
 
 template <class Intf, class ... Intfs>
+bool ComponentImpl<Intf, Intfs ...>::getActiveNoLock()
+{
+    return this->active && parentActive;
+}
+
+
+template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
     auto lock = this->getRecursiveConfigLock2();
 
-    *active = this->active;
+    *active = getActiveNoLock();
     return OPENDAQ_SUCCESS;
 }
 
-template <class Intf, class ... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::setActiveInternal(Bool active)
 {
     if (this->frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
@@ -334,7 +347,12 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
         if (active && isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
 
+        bool oldActive = this->getActiveNoLock();
         this->active = active;
+        bool newActive = this->getActiveNoLock();
+        if (oldActive == newActive)
+            return OPENDAQ_IGNORED;
+
         activeChanged();
     }
 
@@ -342,6 +360,41 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
     {
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
             CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}}));
+        triggerCoreEvent(args);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
+{
+    return setActiveInternal(active);
+}
+
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::updateParentActive(Bool active)
+{
+    {
+        auto lock = this->getRecursiveConfigLock2();
+        bool oldActive = this->getActiveNoLock();
+        this->parentActive = active;
+        bool newActive = this->getActiveNoLock();
+        if (oldActive == newActive)
+            return OPENDAQ_IGNORED;
+        activeChanged();
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            CoreEventId::AttributeChanged,
+            Dict<IString, IBaseObject>(
+            {
+                {"AttributeName", "Active"}, 
+                {"Active", this->active}, 
+                {"ParentActive", active}
+            }));
         triggerCoreEvent(args);
     }
 
@@ -1040,16 +1093,13 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
 template <class Intf, class ... Intfs>
 void ComponentImpl<Intf, Intfs...>::setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active)
 {
-    const bool muted = this->coreEventMuted;
-    const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
-    if (!muted)
-        propInternalPtr.disableCoreEventTrigger();
-
     for (const auto& item : items)
-        item.setActive(active);
-
-    if (!muted)
-        propInternalPtr.enableCoreEventTrigger();
+    {
+        if (auto itemPrivate = item.template asPtrOrNull<IComponentPrivate>(true); itemPrivate.assigned())
+        {
+            itemPrivate.updateParentActive(active);
+        }
+    }
 }
 
 template <class Intf, class... Intfs>

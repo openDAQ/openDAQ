@@ -2526,13 +2526,15 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginApplyUpdat
         ErrCode err;
         if (action.setValue)
         {
-            checkErrorInfo(setPropertyValueInternal(name, action.value, true, action.protectedAccess, false, true));
+            err = setPropertyValueInternal(name, action.value, true, action.protectedAccess, false, true);
+            checkErrorInfo(err);
             if (const auto propObj = action.value.template asPtrOrNull<IPropertyObject>(true); propObj.assigned())
                 propObj.beginUpdate();
         }
         else
         {
-            checkErrorInfo(clearPropertyValueInternal(name, action.protectedAccess, false, true));
+            err = clearPropertyValueInternal(name, action.protectedAccess, false, true);
+            checkErrorInfo(err);
         }
 
         if (err == OPENDAQ_IGNORED)

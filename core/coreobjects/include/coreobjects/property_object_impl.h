@@ -1783,7 +1783,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     for (const auto& [name, srcEmitter] : valueWriteEvents)
     {
         BaseObjectPtr cloned;
-        srcEmitter.asPtr<ICloneable>(true)->clone(&cloned);
+        srcEmitter.template asPtr<ICloneable>(true)->clone(&cloned);
         this->valueWriteEvents.emplace(name, cloned);
     }
         
@@ -1791,12 +1791,12 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     for (const auto& [name, srcEmitter] : valueReadEvents)
     {
         BaseObjectPtr cloned;
-        srcEmitter.asPtr<ICloneable>(true)->clone(&cloned);
+        srcEmitter.template asPtr<ICloneable>(true)->clone(&cloned);
         this->valueReadEvents.emplace(name, cloned);
     }
 
     BaseObjectPtr cloned;
-    endUpdateEvent.asPtr<ICloneable>(true)->clone(&cloned);
+    endUpdateEvent.template asPtr<ICloneable>(true)->clone(&cloned);
 
     this->endUpdateEvent = cloned;
     this->triggerCoreEvent = triggerCoreEvent;
@@ -1804,7 +1804,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     this->customOrder = customOrder;
 
     BaseObjectPtr permissionManagerClone;
-    permissionManager.asPtr<ICloneable>()->clone(&permissionManagerClone);
+    permissionManager.template asPtr<ICloneable>()->clone(&permissionManagerClone);
     this->permissionManager = permissionManagerClone;
 
     for (const auto& val : propValues)

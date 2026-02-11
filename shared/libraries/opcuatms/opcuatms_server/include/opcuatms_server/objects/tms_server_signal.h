@@ -17,6 +17,8 @@
 #pragma once
 #include <opendaq/signal_ptr.h>
 #include <opcuatms_server/objects/tms_server_component.h>
+#include <opcuatms_server/objects/tms_server_analog_value.h>
+#include <opcuatms_server/objects/tms_server_value.h>
 
 BEGIN_NAMESPACE_OPENDAQ_OPCUA_TMS
 
@@ -31,13 +33,17 @@ public:
     TmsServerSignal(const SignalPtr& object, const opcua::OpcUaServerPtr& server, const ContextPtr& context, const TmsServerContextPtr& tmsContext);
 
     opcua::OpcUaNodeId getReferenceType() override;
-    void bindCallbacks() override;
-    bool createOptionalNode(const opcua::OpcUaNodeId& nodeId) override;
+    void addChildNodes() override;
+    void onCoreEvent(const CoreEventArgsPtr& args) override;
 
     void createNonhierarchicalReferences() override;
 
 protected:
     opcua::OpcUaNodeId getTmsTypeId() override;
+
+private:
+    TmsServerValuePtr valueServer;
+    TmsServerAnalogValuePtr analogValueServer;
 };
 
 END_NAMESPACE_OPENDAQ_OPCUA_TMS

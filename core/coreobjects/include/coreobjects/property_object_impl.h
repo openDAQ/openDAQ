@@ -1800,13 +1800,24 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
 {
     this->valueWriteEvents.clear();
     for (const auto& [name, srcEmitter] : valueWriteEvents)
-        this->valueWriteEvents.emplace(name, srcEmitter.clone());
-
+    {
+        BaseObjectPtr cloned;
+        srcEmitter.asPtr<ICloneable>(true)->clone(&cloned);
+        this->valueWriteEvents.emplace(name, cloned);
+    }
+        
     this->valueReadEvents.clear();
     for (const auto& [name, srcEmitter] : valueReadEvents)
-        this->valueReadEvents.emplace(name, srcEmitter.clone());
+    {
+        BaseObjectPtr cloned;
+        srcEmitter.asPtr<ICloneable>(true)->clone(&cloned);
+        this->valueReadEvents.emplace(name, cloned);
+    }
 
-    this->endUpdateEvent = EndUpdateEventEmitter(endUpdateEvent.clone());
+    BaseObjectPtr cloned;
+    endUpdateEvent.asPtr<ICloneable>(true)->clone(&cloned);
+
+    this->endUpdateEvent = cloned;
     this->triggerCoreEvent = triggerCoreEvent;
     this->localProperties = localProperties;
     this->customOrder = customOrder;

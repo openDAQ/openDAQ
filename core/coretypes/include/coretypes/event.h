@@ -45,8 +45,6 @@ DECLARE_OPENDAQ_INTERFACE(IEvent, IBaseObject)
 
     virtual ErrCode INTERFACE_FUNC muteListener(IEventHandler* eventHandler) = 0;
     virtual ErrCode INTERFACE_FUNC unmuteListener(IEventHandler* eventHandler) = 0;
-
-    virtual ErrCode INTERFACE_FUNC clone(IEvent** clonedEvent) = 0;
 };
 
 /*!

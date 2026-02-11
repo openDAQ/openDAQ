@@ -189,18 +189,6 @@ public:
         auto errCode = this->object->unmuteListener(eventHandler);
         checkErrorInfo(errCode);
     }
-
-    EventPtr clone() const
-    {
-        if (this->object == nullptr)
-            DAQ_THROW_EXCEPTION(InvalidParameterException);
-
-        IEvent* cloned;
-        auto errCode = this->object->clone(&cloned);
-        checkErrorInfo(errCode);
-
-        return EventPtr(std::move(ObjectPtr<IEvent>(cloned)));
-    }
 };
 
 /*!

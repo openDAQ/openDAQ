@@ -924,3 +924,57 @@ TEST_F(ConfigProtocolIntegrationTest, ComponentConfig)
     ASSERT_TRUE(deviceComponentConfig.hasProperty("TestProp"));
     ASSERT_TRUE(fbComponentConfig.hasProperty("TestProp"));
 }
+
+TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)
+{
+    // This test reproduces a bug where SetPropertyValue("PropertyObject.Property") 
+    // is called AFTER PropertyObject.EndUpdate but INSIDE Component.EndUpdate
+    // Expected order:
+    // 1. Component.beginUpdate() -> PropertyObject.beginUpdate() (recursive)
+    // 2. PropertyObject.setPropertyValue("Property") (batched)
+    // 3. Component.endUpdate() -> PropertyObject.endUpdate() -> SetPropertyValue("PropertyObject.Property")
+    // 4. PropertyObject.EndUpdate event
+    // 5. Component.EndUpdate event
+    
+    const PropertyObjectPtr serverMockChild = serverDevice.getPropertyValue("MockChild");
+    const PropertyObjectPtr clientMockChild = clientDevice.getPropertyValue("MockChild");
+
+    enum class State
+    {
+        init = 0,
+        write = 1,
+        nesteadObjEnded = 2,
+        ComponentEnded = 3
+    };
+    
+    State state = State::init;
+
+    serverMockChild.getOnPropertyValueWrite("NestedStringProperty") += [&state](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
+    {
+        ASSERT_EQ(state, State::init) << "SetPropertyValue should be called BEFORE PropertyObject.EndUpdate";
+        ASSERT_TRUE(args.getIsUpdating());
+        state = State::write;
+    };
+
+    serverMockChild.getOnEndUpdate() += [&state] (PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_EQ(state, State::write) << "SetPropertyValue should be called BEFORE PropertyObject.EndUpdate";
+        const auto propsChanged = args.getProperties();
+        ASSERT_THAT(propsChanged, ElementsAre("NestedStringProperty"));
+        state = State::nesteadObjEnded;
+    };
+
+    serverDevice.getOnEndUpdate() += [&state](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        ASSERT_EQ(state, State::nesteadObjEnded) << "Component.EndUpdate should be called AFTER PropertyObject.EndUpdate";
+        state = State::ComponentEnded;
+    };
+
+    clientDevice.beginUpdate();
+    clientMockChild.setPropertyValue("NestedStringProperty", "NewValue");
+    clientDevice.endUpdate();
+
+    ASSERT_EQ(state, State::ComponentEnded);
+    ASSERT_EQ(clientMockChild.getPropertyValue("NestedStringProperty"), "NewValue");
+    ASSERT_EQ(serverMockChild.getPropertyValue("NestedStringProperty"), "NewValue");
+}

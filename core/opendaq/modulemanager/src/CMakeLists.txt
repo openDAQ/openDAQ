@@ -178,7 +178,7 @@ set(SRC_PrivateIncludeDirectories_Component
 )
 
 set(SRC_PrivateCompileDefinitions_Component
-    ${Boost_INCLUDE_DIRS}
+    # ${Boost_INCLUDE_DIRS} # should not go here but only to include firs above
     ${PING_COMPILE_DEFS}
 	BOOST_DLL_USE_STD_FS
 	BOOST_ALL_NO_LIB

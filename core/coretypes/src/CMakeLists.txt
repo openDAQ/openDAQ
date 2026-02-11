@@ -347,7 +347,7 @@ set_source_files_properties(${ConfigHeader} PROPERTIES GENERATED TRUE)
 source_group("Generated\\Header Files" FILES ${ConfigHeader})
 
 opendaq_set_output_lib_name(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
-opendaq_create_version_header(${LIB_NAME} ONLY_RC)
+opendaq_generate_version_header(${LIB_NAME} ONLY_RC)
 
 install(TARGETS ${LIB_NAME}
         EXPORT ${SDK_NAME}

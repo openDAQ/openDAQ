@@ -154,7 +154,7 @@ target_compile_options(${MAIN_TARGET}
 )
 
 opendaq_set_output_lib_name(${MAIN_TARGET} ${PROJECT_VERSION_MAJOR})
-opendaq_create_version_header(${MAIN_TARGET} ONLY_RC)
+opendaq_generate_version_header(${MAIN_TARGET} ONLY_RC)
 
 install(TARGETS ${MAIN_TARGET}
         EXPORT ${SDK_NAME}

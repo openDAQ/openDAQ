@@ -1,10 +1,10 @@
 @PACKAGE_INIT@
 
-# export used build options values
+# Used build options values
 set(OPENDAQ_LINK_3RD_PARTY_LIBS_STATICALY "@OPENDAQ_LINK_3RD_PARTY_LIBS_STATICALY@")
 set(OPENDAQ_LINK_RUNTIME_STATICALLY "@OPENDAQ_LINK_RUNTIME_STATICALLY@")
 
-# export SDK identity variables
+# SDK identity variables
 set(OPENDAQ_SDK_NAME "@OPENDAQ_SDK_NAME@")
 set(OPENDAQ_SDK_TARGET_NAME "@OPENDAQ_SDK_TARGET_NAME@")
 set(OPENDAQ_SDK_TARGET_NAMESPACE "@OPENDAQ_SDK_TARGET_NAMESPACE@")
@@ -38,3 +38,6 @@ if (NOT xxHash_FOUND)
 endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/openDAQ.cmake)
+
+include(openDAQBaseUtils)
+include(DeprecatedCommands)

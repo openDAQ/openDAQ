@@ -4,7 +4,28 @@ set(CMAKE_FOLDER "external")
 list(APPEND CMAKE_MESSAGE_CONTEXT external)
 set(CURR_MESSAGE_CONTEXT ${CMAKE_MESSAGE_CONTEXT})
 
-opendaq_suppress_ext_lib_warnings()
+if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
+    # As above CMAKE_CXX_STANDARD but for VS
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++17>)
+
+    # suppress warnings
+    foreach (flag IN ITEMS
+        # loss of data / precision, unsigned <--> signed
+        #
+        # 'argument' : conversion from 'type1' to 'type2', possible loss of data
+        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4244
+        /wd4244
+        # 'var' : conversion from 'size_t' to 'type', possible loss of data
+        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4267
+        /wd4267
+        # 'identifier' : unreferenced formal parameter
+        # https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-4-c4100
+        /wd4100
+    )
+        add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:${flag}>)
+    endforeach()
+endif()
+opendaq_ignore_compiler_warnings()
 
 if (NOT TARGET daq::testlibs AND OPENDAQ_ENABLE_TEST_UTILS)
     set(CMAKE_MESSAGE_CONTEXT ${CURR_MESSAGE_CONTEXT} googletest)
@@ -59,7 +80,7 @@ set(CMAKE_MESSAGE_CONTEXT ${CURR_MESSAGE_CONTEXT})
 
 add_subdirectory(boost)
 if (NOT OPENDAQ_BUILDING_AS_SUBMODULE)
-    opendaq_setup_boost()
+    opendaq_complete_boost_dependency()
 endif()
 
 add_subdirectory(date)

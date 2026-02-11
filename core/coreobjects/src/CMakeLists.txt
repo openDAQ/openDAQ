@@ -408,7 +408,7 @@ target_compile_definitions(${LIB_NAME} PRIVATE BUILDING_SHARED_LIBRARY
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_PublicHeaders}")
 
 opendaq_set_output_lib_name(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
-opendaq_create_version_header(${LIB_NAME} ONLY_RC)
+opendaq_generate_version_header(${LIB_NAME} ONLY_RC)
 
 install(TARGETS ${LIB_NAME}
         EXPORT ${SDK_NAME}

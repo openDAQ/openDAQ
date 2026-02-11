@@ -3,60 +3,54 @@ cmake_minimum_required(VERSION 3.24)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_FOLDER "${CMAKE_FOLDER}/openDAQ")
 
-set(SDK_NAME openDAQ)
-set(SDK_TARGET_NAME opendaq)
-set(SDK_TARGET_NAMESPACE daq)
+add_subdirectory(cmake)
+
+set(SDK_NAME ${OPENDAQ_SDK_NAME})
+set(SDK_TARGET_NAME ${OPENDAQ_SDK_TARGET_NAME})
+set(SDK_TARGET_NAMESPACE ${OPENDAQ_SDK_TARGET_NAMESPACE})
+
 set(SDK_OPTION_PREFIX OPENDAQ)
 
-if(OPENDAQ_FORCE_COMPILE_32BIT AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-    set(CMAKE_C_FLAGS_INIT "${CMAKE_C_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
-    set(CMAKE_CXX_FLAGS_INIT "${CMAKE_CXX_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
-    set(CMAKE_ASM_FLAGS_INIT "${CMAKE_ASM_FLAGS_INIT} -m32" CACHE STRING "" FORCE)
+list(APPEND CMAKE_MESSAGE_CONTEXT ${SDK_NAME})
 
-    # Help CMake find 32-bit libraries
-    list(APPEND CMAKE_LIBRARY_PATH /usr/lib/i386-linux-gnu)
+opendaq_read_file_contents("${CMAKE_CURRENT_LIST_DIR}/opendaq_version" package_version)
+opendaq_get_version_major_minor_patch("${package_version}" package_version_major_minor_patch)
 
-    if(NOT CMAKE_SYSTEM_NAME)
-        set(CMAKE_SYSTEM_NAME Linux CACHE STRING "" FORCE)
-    endif()
-
-    if(NOT CMAKE_SYSTEM_PROCESSOR)
-        set(CMAKE_SYSTEM_PROCESSOR i386 CACHE STRING "" FORCE)
-    endif()
-endif()
-
-add_subdirectory(cmake)
-opendaq_setup_repo_version("OPENDAQ_PACKAGE" ${SDK_NAME} "opendaq_version")
-
-# this duplicates code from utils
-#
-file(READ "opendaq_version" package_version)
-string(STRIP ${package_version} package_version)
-
-string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" package_version_major_minor_patch "${package_version}")
-#
-
-# this required only by opendaq ? or modules too
-#
 set(OPENDAQ_IS_RELEASE_VERSION OFF)
 if(package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
     set(OPENDAQ_IS_RELEASE_VERSION ON)
 endif()
-#
 
-# 32-bit Linux cross-compilation setup (must be before project())
-#opendaq_setup_32bit_build_linux_system_flags(${SDK_OPTION_PREFIX})
+# defined as cache variable to be visible by any parent project
+set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}" CACHE INTERNAL "openDAQ SDK version")
+
+# 32-bit Linux cross-compilation setup (must be before any project())
+if(NOT DEFINED PROJECT_SOURCE_DIR AND OPENDAQ_FORCE_COMPILE_32BIT AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    opendaq_32bit_build_linux_early_setup()
+endif()
+
+opendaq_common_early_setup()
 
 project(${SDK_NAME}
     LANGUAGES CXX
     VERSION ${OPENDAQ_PACKAGE_VERSION}
 )
 
+if (PROJECT_IS_TOP_LEVEL)
+    set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ".CMakePredefinedTargets")
+endif()
+
+if(PROJECT_IS_TOP_LEVEL)
+    set(${REPO_OPTION_PREFIX}_BUILDING_AS_SUBMODULE OFF CACHE INTERNAL "Building ${REPO_NAME} standalone")
+    message(STATUS "Building ${OPENDAQ_SDK_NAME} version ${OPENDAQ_PACKAGE_VERSION} standalone")
+else()
+    set(${REPO_OPTION_PREFIX}_BUILDING_AS_SUBMODULE ON CACHE INTERNAL "Building ${REPO_NAME} as submodule")
+    message(STATUS "Building ${OPENDAQ_SDK_NAME} version ${OPENDAQ_PACKAGE_VERSION} as submodule")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 )
-
-opendaq_setup_build_mode(${SDK_OPTION_PREFIX} ${SDK_NAME})
-opendaq_setup_repo(${SDK_OPTION_PREFIX})
+include(DeprecatedCommands)
 
 get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
 
@@ -83,13 +77,8 @@ else()
     add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION}")
 endif()
 
-if (NOT MSVC)
-    option(OPENDAQ_FORCE_COMPILE_32BIT "Compile 32Bit on non MSVC" OFF)
-endif()
-
-if (MSVC)
-    option(OPENDAQ_MSVC_SINGLE_PROCESS_BUILD "Do not include /MP compile option." OFF)
-endif()
+opendaq_setup_common_build_options()
+opendaq_setup_project_specific_build_options(${SDK_OPTION_PREFIX})
 
 # Feature options
 option(OPENDAQ_ENABLE_PARAMETER_VALIDATION "Enable parameter validation in functions" ON)
@@ -102,17 +91,16 @@ option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 
+option(OPENDAQ_ENABLE_EXAMPLE_APP "Enable example applications" ON)
+
 # Bindings
 option(OPENDAQ_GENERATE_DELPHI_BINDINGS "Generate Delphi bindings" OFF)
 option(OPENDAQ_GENERATE_PYTHON_BINDINGS "Generate Python bindings" OFF)
 option(OPENDAQ_GENERATE_CSHARP_BINDINGS "Generate CSharp bindings" OFF)
 option(OPENDAQ_GENERATE_C_BINDINGS "Generate C bindings" OFF)
 
-# Runtime and default 3rd party library linking options
-option(OPENDAQ_LINK_RUNTIME_STATICALLY "Link the C++ runtime staticaly (embedd it)" OFF)
-option(OPENDAQ_LINK_3RD_PARTY_LIBS_STATICALY "Link the 3rd party libraries staticaly (embedd it)" ON)
-
 # Testing and coverage options
+option(OPENDAQ_ENABLE_TESTS "Enable testing" ON)
 option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON)
 option(OPENDAQ_ENABLE_OPTIONAL_TESTS "Enable optional (debugging) tests" OFF)
 option(OPENDAQ_ENABLE_COVERAGE "Enable code coverage in testing" OFF)
@@ -120,7 +108,6 @@ option(OPENDAQ_ENABLE_REGRESSION_TESTS "Enable regression testing" OFF)
 option(OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS "Enable labeling unstable tests" OFF)
 
 # Additional build options
-option(OPENDAQ_USE_CCACHE "Use compiler cache driver if available" ON)
 option(OPENDAQ_ENABLE_ERROR_GUARD "Enable error guard" OFF)
 
 if(NOT OPENDAQ_ENABLE_ERROR_GUARD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -151,7 +138,7 @@ option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder modu
 option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" OFF)
 option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
 
-include(DaqInternal)
+include(openDAQModuleFetchUtils)
 
 set(OPENDAQ_MODULE_EVAL_EXPRS
     "DAQMODULES_EMPTY_MODULE"
@@ -169,19 +156,9 @@ foreach(OPENDAQ_MODULE_EVAL_EXPR OPENDAQ_MODULE_DIR IN ZIP_LISTS OPENDAQ_MODULE_
     if(NOT IS_DIRECTORY "${OPENDAQ_MODULE_PATH}")
         message(FATAL_ERROR "Specified module directory ${OPENDAQ_MODULE_PATH} does not exist")
     endif()
-
-    set(OPENDAQ_MODULE_OPTIONS_FILE "${OPENDAQ_MODULE_PATH}/cmake/ModuleOptions.cmake")
-    if(EXISTS "${OPENDAQ_MODULE_OPTIONS_FILE}")
-        message(STATUS "Include module cmake options from ${OPENDAQ_MODULE_OPTIONS_FILE}")
-        include("${OPENDAQ_MODULE_OPTIONS_FILE}")
-    endif()
-
+    opendaq_register_module_options(${OPENDAQ_MODULE_PATH})
     if(${OPENDAQ_MODULE_EVAL_EXPR})
-        set(OPENDAQ_MODULE_BOOSTLIB_FILE "${OPENDAQ_MODULE_PATH}/external/Boost.cmake")
-        if(EXISTS "${OPENDAQ_MODULE_BOOSTLIB_FILE}")
-            message(STATUS "Add boost required libraries listed in ${OPENDAQ_MODULE_BOOSTLIB_FILE}")
-            include("${OPENDAQ_MODULE_BOOSTLIB_FILE}")
-        endif()
+        opendaq_register_module_boost_dependencies(${OPENDAQ_MODULE_PATH})
     endif()
 endforeach()
 
@@ -227,22 +204,9 @@ foreach(ENABLE_EXPR MODULE_PATH MODULE_NAME IN ZIP_LISTS MODULE_ENABLE_EXPRS MOD
         SOURCE_DIR ${MODULE_NAME}_SOURCE_DIR
     )
 
-    set(OPENDAQ_MODULE_OPTIONS_FILE "${${MODULE_NAME}_SOURCE_DIR}/cmake/ModuleOptions.cmake")
-    if(EXISTS "${OPENDAQ_MODULE_OPTIONS_FILE}")
-        message(STATUS "Include module cmake options from ${OPENDAQ_MODULE_OPTIONS_FILE}")
-        include("${OPENDAQ_MODULE_OPTIONS_FILE}")
-    else()
-        message(STATUS "Skip ${OPENDAQ_MODULE_OPTIONS_FILE} - file does not exists")
-    endif()
-
+    opendaq_register_module_options(${${MODULE_NAME}_SOURCE_DIR})
     if(${ENABLE_EXPR})
-        set(OPENDAQ_MODULE_BOOSTLIB_FILE "${${MODULE_NAME}_SOURCE_DIR}/external/Boost.cmake")
-        if(EXISTS "${OPENDAQ_MODULE_BOOSTLIB_FILE}")
-            message(STATUS "Add boost required libraries listed in ${OPENDAQ_MODULE_BOOSTLIB_FILE}")
-            include("${OPENDAQ_MODULE_BOOSTLIB_FILE}")
-        else()
-            message(STATUS "Skip ${OPENDAQ_MODULE_BOOSTLIB_FILE} - file does not exists")
-        endif()
+        opendaq_register_module_boost_dependencies(${${MODULE_NAME}_SOURCE_DIR})
     endif()
 endforeach()
 
@@ -278,20 +242,6 @@ endif()
 if (COMMAND get_mode)
     get_mode(CMAKE_MODE)
     message(STATUS "CMake Mode is ${CMAKE_MODE}")
-endif()
-
-opendaq_is_64bit_build(BUILD_64Bit)
-set(BUILD_64Bit ${BUILD_64Bit} CACHE INTERNAL "Build in 64-bit mode")
-
-if(BUILD_64Bit OR BUILD_ARM)
-    set(OPENDAQ_FPIC On CACHE INTERNAL "Set Position independent code flag")
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-else()
-    set(OPENDAQ_FPIC Off CACHE INTERNAL "Set Position independent code flag")
-endif()
-
-if (NOT OPENDAQ_BUILDING_AS_SUBMODULE)
-    message(STATUS "Setting -fPIC to ${OPENDAQ_FPIC}")
 endif()
 
 if (OPENDAQ_ENABLE_COVERAGE)
@@ -338,17 +288,14 @@ else()
     set_mode(MODERN)
 endif()
 
-# module suffix
-if (NOT DEFINED OPENDAQ_MODULE_SUFFIX)
-    set(OPENDAQ_MODULE_SUFFIX ".module${CMAKE_SHARED_LIBRARY_SUFFIX}")
-endif()
+opendaq_common_compile_targets_settings()
 
-if (NOT DEFINED CACHE{OPENDAQ_MODULE_SUFFIX})
-    set(OPENDAQ_MODULE_SUFFIX ${OPENDAQ_MODULE_SUFFIX} CACHE INTERNAL "Default DLL/SO extension")
+if (OPENDAQ_ENABLE_TESTS)
+    message(STATUS "Unit tests are ENABLED")
+    enable_testing()
+else()
+    message(STATUS "Unit tests are DISABLED")
 endif()
-
-message(STATUS "Default Module extension: ${OPENDAQ_MODULE_SUFFIX}")
-add_compile_definitions(OPENDAQ_MODULE_SUFFIX="${OPENDAQ_MODULE_SUFFIX}")
 
 if (CMAKE_COMPILER_IS_GNUCXX)
     if (OPENDAQ_ENABLE_COVERAGE)
@@ -424,10 +371,6 @@ if(OPENDAQ_GENERATE_CSHARP_BINDINGS)
     set(OPENDAQ_GENERATE_BINDINGS_LANG ${OPENDAQ_GENERATE_BINDINGS_LANG} CSharp)
 endif()
 
-if(OPENDAQ_LINK_RUNTIME_STATICALLY)
-    opendaq_set_runtime(STATIC)
-endif()
-
 set(RTGEN_NAMESPACE ${SDK_TARGET_NAMESPACE})
 include(RTGen)
 
@@ -491,6 +434,7 @@ else()
     message(STATUS "Native streaming disabled")
 endif()
 
+# FIXME remove the following messages
 message(STATUS "")
 message(STATUS "========== 32/64-bit / toolchain configuration ==========")
 
@@ -511,6 +455,8 @@ message(STATUS "CMAKE_SIZEOF_VOID_P        = '${CMAKE_SIZEOF_VOID_P}'")
 
 message(STATUS "======================================================")
 message(STATUS "")
+
+opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})
 
 # libraries needed before the core is read
 add_subdirectory(external)
@@ -558,6 +504,19 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}Config.cmake
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}ConfigVersion.cmake
         DESTINATION ${INSTALLED_CMAKE_CONFIG_DIR}/${SDK_TARGET_NAME}
+        COMPONENT ${SDK_NAME}_Development
+)
+
+FetchContent_GetProperties(
+    opendaq-cmake-utils
+    SOURCE_DIR OPENDAQ_CMAKE_UTILS_SOURCE_DIR
+)
+install(FILES ${OPENDAQ_CMAKE_UTILS_SOURCE_DIR}/openDAQBaseUtils.cmake
+        DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
+install(FILES ${OPENDAQ_CMAKE_UTILS_SOURCE_DIR}/version/version.h.in cmake/version/version.rc.in
+        DESTINATION share/cmake/version
         COMPONENT ${SDK_NAME}_Development
 )
 

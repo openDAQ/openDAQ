@@ -195,12 +195,14 @@ TEST_F(InputPortTest, RemoveDisconnectedSignal)
 
 TEST_F(InputPortTest, LockedAttributes)
 {
+    ASSERT_TRUE(inputPort.getPublic());
+
     ASSERT_NO_THROW(inputPort.setPublic(false));
-    ASSERT_EQ(inputPort.getPublic(), false);
+    ASSERT_FALSE(inputPort.getPublic());
 
     inputPort.asPtr<IComponentPrivate>().lockAllAttributes();
 
     // Lock keeps Public unchanged, but doesn't throw exceptions
     ASSERT_NO_THROW(inputPort.setPublic(true));
-    ASSERT_EQ(inputPort.getPublic(), false);
+    ASSERT_FALSE(inputPort.getPublic());
 }

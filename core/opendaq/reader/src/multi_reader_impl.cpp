@@ -617,7 +617,14 @@ ErrCode MultiReaderImpl::getValueReadType(SampleType* sampleType)
 {
     OPENDAQ_PARAM_NOT_NULL(sampleType);
 
-    *sampleType = valueReadType;
+    if (!signals.empty())
+        // When readMode = ReadMode::Raw or valueReadType = SampleType::Undefined the actual
+        // value read type may differ from what was configured (e. g. Undefined -> Int64).
+        // The SignalReader will instantiate the appropriate type reader when descriptors change.
+        // Shouldn't be relied on if different signals are read simultaneously.
+        *sampleType = signals[0].valueReader->getReadType();
+    else
+        *sampleType = valueReadType;
     return OPENDAQ_SUCCESS;
 }
 

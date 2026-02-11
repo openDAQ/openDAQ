@@ -5025,3 +5025,54 @@ TEST_F(MultiReaderTest, OffsetToLinear)
     ASSERT_EQ(domain[1][1], 23);
     ASSERT_EQ(domain[1][2], 25);
 }
+
+TEST_F(MultiReaderTest, UndefinedValueType)
+{
+    constexpr const auto NUM_SIGNALS = 2;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto& sig0 = addSignal(0, 10, createDomainSignal("2022-09-27T00:00:00+00:00"), SampleType::Int64);
+    auto& sig1 = addSignal(0, 10, createDomainSignal("2022-09-27T00:00:00+00:00"), SampleType::Int64);
+
+    auto builder = MultiReaderBuilder();
+    builder.setInputPortNotificationMethod(PacketReadyNotification::SameThread);
+    builder.addSignals(signalsToList());
+    builder.setValueReadType(SampleType::Invalid);
+
+    auto multi = builder.build();
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_EQ(status.getMainDescriptor().getEventId(), "DATA_DESCRIPTOR_CHANGED");
+    }
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+
+    sig0.createAndSendPacket(1);
+    sig1.createAndSendPacket(1);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 20u);
+
+    constexpr const SizeT SAMPLES = 10u;
+
+    std::array<int64_t[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES);
+    ASSERT_EQ(multi.getValueReadType(), SampleType::Int64);
+}

@@ -50,7 +50,7 @@ protected:
         module = createModule(context);
 
         auto config = module.getAvailableFunctionBlockTypes().get("MultiCsvRecorder").createDefaultConfig();
-        config.setPropertyValue("ReaderNotificationMode", 1);
+        config.setPropertyValue("ReaderNotificationMode", static_cast<Int>(PacketReadyNotification::SameThread));
 
         // Create function block
         fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb", config);
@@ -267,7 +267,6 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
     fb.asPtr<IRecorder>(true).startRecording();
 
     sendData(7, 817, false, std::make_pair(0, 10));
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     ReferenceDomainInfoPtr rdInfo =
         ReferenceDomainInfoBuilder().setReferenceDomainOffset(0).setReferenceTimeProtocol(TimeProtocol::Utc).build();

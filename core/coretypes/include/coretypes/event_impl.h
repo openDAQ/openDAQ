@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coretypes/coretypes.h>
+#include <coretypes/cloneable.h>
 #include <coretypes/event_handler_ptr.h>
 #include <coretypes/utility_sync.h>
 #include <vector>
@@ -55,7 +56,7 @@ namespace std
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class EventImpl : public ImplementationOf<IEvent, IFreezable>
+class EventImpl : public ImplementationOf<IEvent, IFreezable, ICloneable>
 {
     struct Handler
     {
@@ -80,14 +81,15 @@ public:
     ErrCode INTERFACE_FUNC muteListener(IEventHandler* eventHandler) override;
     ErrCode INTERFACE_FUNC unmuteListener(IEventHandler* eventHandler) override;
 
-    ErrCode INTERFACE_FUNC clone(IEvent** clonedEvent) override;
-
     // IFreezable
     ErrCode INTERFACE_FUNC freeze() override;
     ErrCode INTERFACE_FUNC isFrozen(Bool* isFrozen) const override;
 
     // IBaseObject
     ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
+
+    // IClonable
+    ErrCode INTERFACE_FUNC clone(IBaseObject** cloned) override;
 private:
     using ConstIterator = std::vector<Handler>::const_iterator;
     using Iterator = std::vector<Handler>::iterator;

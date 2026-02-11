@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#1063](https://github.com/openDAQ/openDAQ/pull/1063) Fix nested PropertyObject update order in beginUpdate/endUpdate
 - [#1019](https://github.com/openDAQ/openDAQ/pull/1019) Fix OPC UA Value and AnalogValue node data types for signals
 - [#983](https://github.com/openDAQ/openDAQ/pull/983), [#1024](https://github.com/openDAQ/openDAQ/pull/1024) Fix reachability status for IPv4 addresses where there are multiple devices
 - [#1002](https://github.com/openDAQ/openDAQ/pull/1002) Fix socket file descriptor leak in WebSocket streaming server

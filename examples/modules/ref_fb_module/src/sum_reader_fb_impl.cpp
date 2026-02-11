@@ -163,6 +163,7 @@ void SumReaderFbImpl::createReader()
     }
 
     reader = builder.build();
+    reader.setInputUnused(disconnectedPort.getGlobalId(), true);
 
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();

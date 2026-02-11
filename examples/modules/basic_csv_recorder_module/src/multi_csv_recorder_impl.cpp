@@ -273,6 +273,7 @@ void MultiCsvRecorderImpl::createReader()
         builder.addInputPort(disconnectedPort);
     }
     reader = builder.build();
+    reader.setInputUnused(disconnectedPort.getGlobalId(), true);
 
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();

@@ -1,900 +1,82 @@
 name: Deploy openDAQ SDK packages on AWS
 
 on:
-  workflow_dispatch:
-
-  push:
+  workflow_run:
+    workflows: ["Build openDAQ packages"]
+    types: [completed]
     branches: [main]
 
+  workflow_dispatch:
+    inputs:
+      run-id:
+        description: 'Package workflow run ID to deploy from'
+        required: true
+        type: string
+      # TODO: Remove `s3-path` inputs before merge  
+      s3-path:
+        description: 'S3 path to dump (e.g. releases/main)'
+        required: false
+        default: ''
+        type: string
+      # TODO: Remove `recursive` inputs before merge  
+      recursive:
+        description: 'List contents recursively'
+        required: false
+        default: false
+        type: boolean
+
 env:
-  cmake_preset: package
-  build_path: ${{ github.workspace }}/build
-  package_path: ${{ github.workspace }}/build/_packages
-  wheels_path: ${{ github.workspace }}/build/wheels
-  dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
-  package_path_rel: build/_packages # WA for https://github.com/actions/checkout/issues/785
   s3bucket: bb-blueberry-sdk-releases
-  s3sdk_path: releases/${{ github.ref_name }}/SDK
-  s3wheels_linux_x86_64_path: releases/${{ github.ref_name }}/Python Wheels (Linux x86_64)
-  s3wheels_win_amd64_path: releases/${{ github.ref_name }}/Python Wheels (Windows amd64)
-  s3wheels_macos_x86_64_path: releases/${{ github.ref_name }}/Python Wheels (MacOS x86_64)
-  s3wheels_macos_arm_path: releases/${{ github.ref_name }}/Python Wheels (MacOS ARM)
-  s3dotnet_path: releases/${{ github.ref_name }}/dotNET Bindings
-  s3docpath: releases/${{ github.ref_name }}/Specifications and documentation
-  s3simulatorpath: releases/${{ github.ref_name }}/Simulator
-  vm_name: device_simulator
-  simulator_app_artifact: SimulatorApp
-  simulator_package_artifact: SimulatorPackage
-  python_version_build: 3.11
-  python_versions: 3.8 3.9 3.10 3.11 3.12 3.13 3.14
-  windows_x64_artifact: SdkWindows64
-  linux_x64_artifact: SdkLinux64
+  build_path: ${{ github.workspace }}/build
 
 jobs:
-  deploy_windows:
-    runs-on: ${{ matrix.runner }}
-    name: ${{ matrix.name }}
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 240
-    strategy:
-      fail-fast: false
-      matrix:
-        # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
-        include:
-          - name: Windows VS 2022 x64 Release
-            runner: windows-latest
-            cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: x64
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DPYBIND11_FINDPYTHON=ON
-            cpack: NSIS
-          - name: Windows VS 2022 Win32 Release
-            runner: windows-latest
-            cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: Win32
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-            cpack: NSIS
+  resolve:
+    runs-on: ubuntu-latest
+    name: Resolve build context
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
 
     outputs:
-      # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
-      windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
+      branch: ${{ steps.resolve.outputs.branch }}
+      ref: ${{ steps.resolve.outputs.ref }}
+      run-id: ${{ steps.resolve.outputs.run-id }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: |
-              3.8
-              3.9
-              3.10
-              3.11
-              3.12
-              3.13
-              3.14
-
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '4.0'
-
-      - name: Install NSIS
-        run: choco install nsis -y --no-progress
-
-      - name: Get short SHA
-        if: github.ref == 'refs/heads/main'
-        id: short-sha
-        uses: benjlevesque/short-sha@v3.0
-
-      - name: Configure and build Wheels
-        if: matrix.cmake_generator_platform != 'Win32'
-        shell: pwsh
+      - name: Resolve source context
+        id: resolve
         env:
-          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # for .NET Bindings build
-          if ("${{ steps.short-sha.outputs.sha }}" -ne "") {
-            $env:SHORT_SHA = "${{ steps.short-sha.outputs.sha }}"
-          } else {
-            if (-not "${{ github.ref }}".Contains("/release/")) {
-              $env:SHORT_SHA = "$("${{ github.ref }}".Split("/")[-1]).$(Get-Date -format "yyyyMMdd.Hmm")" # e.g. "branch-name.20240425.833"
-            } else {
-              $env:SHORT_SHA = ""
-            }
-          }
-          mkdir build
-          cd build
-          mkdir wheels
-          $versions = "${{ env.python_versions }}".split(" ")
-          foreach ($version in $versions) {
-            Write-Output "Building for Python $version"
-            cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
-            cmake --build . --config ${{ matrix.cmake_build_type }}
-            Write-Output "Creating virtual environment for Python $version"
-            Invoke-Expression "py -$version -m venv venv"
-            ./venv/Scripts/activate
-            pip install numpy pybind11-stubgen
-            $remove_python_module_flag = "-r"
-            if ($version -eq $versions[-1]) {
-              $remove_python_module_flag = $null
-            }
-            Invoke-Expression "py -${{env.python_version_build}} ../bindings/python/package/build_pip.py -l bin/${{ matrix.cmake_build_type }} $remove_python_module_flag"
-            Copy-Item pip/packages/*.whl wheels
-            deactivate
-            Remove-Item venv -Recurse
-          }
-
-      - name: Configure and build without Wheels
-        if: matrix.cmake_generator_platform == 'Win32'
-        shell: pwsh
-        run: |
-          # for .NET Bindings build
-          $env:SHORT_SHA = "${{ steps.short-sha.outputs.sha }}"
-          mkdir build
-          cd build
-          Write-Output "Building for Win32"
-          cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-          cmake --build . --config ${{ matrix.cmake_build_type }}
-
-      - name: Package
-        working-directory: ./build
-        run: |
-          cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
-          cpack -C ${{ matrix.cmake_build_type }} -G ZIP
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Rename package
-        shell: pwsh
-        working-directory: ${{ env.package_path }}
-        run: |
-          Get-ChildItem -Path .\* -Include *.exe,*.zip | Rename-Item -NewName {$_.FullName.ToLower()}
-
-      - name: Rename package (main)
-        if: github.ref == 'refs/heads/main'
-        shell: pwsh
-        working-directory: ${{ env.package_path }}
-        run: |
-          Get-ChildItem -Path .\* -Include *.exe,*.zip | Rename-Item -NewName {$_.BaseName + '_${{ steps.short-sha.outputs.sha }}' + $_.Extension}
-
-      - name: Rename wheels (main)
-        if: github.ref == 'refs/heads/main' && matrix.cmake_generator_platform != 'Win32'
-        shell: pwsh
-        working-directory: ${{ env.wheels_path }}
-        run: |
-          foreach($pckg in Get-ChildItem -Filter *.whl -Path .) {
-            $pckg_split = $pckg.Name.split("-")
-            $pckg_split[1] = $pckg_split[1] + "+${{ steps.short-sha.outputs.sha }}"
-            $renamed = $pckg_split -Join "-"
-            Rename-Item -Path $pckg -NewName $renamed
-          }
-
-      - name: Upload package to S3
-        shell: pwsh
-        working-directory: ${{ env.package_path }}
-        run: |
-          Write-Output "# S3 listing"
-          aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --human-readable
-          Write-Output "# S3 remove '*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe'"
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.exe" --include "*-$("${{ matrix.cmake_generator_platform }}".Replace("x64", "win64"))_*.zip"
-          Write-Output "# S3 copy '*.exe' from '${{ env.package_path }}'"
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive --exclude '*' --include "*.exe" --include "*.zip"
-
-      - name: Upload Wheels to S3
-        if: matrix.cmake_generator_platform != 'Win32'
-        working-directory: ${{ env.wheels_path }}
-        run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_win_amd64_path }}" --recursive --exclude '*' --include '*.whl'
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_win_amd64_path }}" --recursive
-
-      - name: Upload package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Package (${{ matrix.name }})
-          path: ${{ env.package_path }}
-          retention-days: 7
-
-      - name: Upload Wheels
-        if: matrix.cmake_generator_platform != 'Win32'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Wheels (${{ matrix.name }})
-          path: ${{ env.wheels_path }}
-          retention-days: 7
-
-      - name: Upload binaries for .NET Bindings NuGet package
-        # "There can be only one for now."
-        if: matrix.name == 'Windows VS 2022 x64 Release'
-        env:
-          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.windows_x64_artifact }}
-          path: |
-            ${{ env.dotnetBuildPath }}
-            !${{ env.dotnetBuildPath }}/**/*.json
-            !${{ env.dotnetBuildPath }}/**/*.exe
-          #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-          retention-days: 1
-
-  deploy_linux:
-    runs-on: ubuntu-latest
-    name: ${{ matrix.name }}
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Ubuntu 22.04 gcc-10 Release x86_64
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
-            build_documentation: true
-            cpack: DEB
-            apt_packages: g++-10
-            cc: gcc-10
-            cxx: g++-10
-            arch: x86_64
-          - name: Ubuntu 22.04 gcc-10 Release arm64
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines:
-              -DOPENDAQ_BUILD_DOCUMENTATION=OFF
-              -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
-              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-              -DCMAKE_SYSTEM_NAME=Linux
-              -DCMAKE_SYSTEM_PROCESSOR=aarch64
-              -DDAQMODULES_REF_FB_MODULE=OFF
-            build_documentation: false
-            cpack: DEB
-            apt_packages: gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu
-            cc: aarch64-linux-gnu-gcc-10
-            cxx: aarch64-linux-gnu-g++-10
-            arch: arm64
-
-    container:
-      image: ${{ matrix.image }}
-      env:
-        TZ: Europe/Berlin
-        DEBIAN_FRONTEND: noninteractive
-        CC: ${{ matrix.cc }}
-        CXX: ${{ matrix.cxx }}
-
-    outputs:
-      # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
-      linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
-
-    steps:
-      - name: Install basic dependencies
-        run: |
-          apt-get update
-          apt-get install -y git openssh-client rename
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install build dependencies
-        run: |
-          apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
-            awscli \
-            lld ninja-build curl \
-            python3-pip python3-dev \
-            mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-            libx11-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev \
-            libgl-dev libudev-dev libfreetype6-dev \
-            pkg-config
-
-      - name: Lock base repos to amd64
-        if: ${{ matrix.arch == 'arm64' }}
-        run: |
-          printf "%s\n" \
-            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse" \
-            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse" \
-            "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-backports main restricted universe multiverse" \
-            "deb [arch=amd64] http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse" \
-            > /etc/apt/sources.list
-          apt-get update
-
-      - name: Enable arm64 repos (ports)
-        if: ${{ matrix.arch == 'arm64' }}
-        run: |
-          dpkg --add-architecture arm64
-          printf "%s\n" \
-            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy main restricted universe multiverse" \
-            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-updates main restricted universe multiverse" \
-            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-backports main restricted universe multiverse" \
-            "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports jammy-security main restricted universe multiverse" \
-            > /etc/apt/sources.list.d/ubuntu-arm64.list
-          apt-get update
-
-      - name: Install ARM64 sysroot & X11 dev (only for arm64)
-        if: ${{ matrix.arch == 'arm64' }}
-        run: |
-          dpkg --add-architecture arm64
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            libc6-dev:arm64 libstdc++-10-dev:arm64 zlib1g-dev:arm64 \
-            libx11-dev:arm64 libxrandr-dev:arm64 libxcursor-dev:arm64 libxi-dev:arm64 libxinerama-dev:arm64 \
-            libx11-xcb-dev:arm64 libgl1-mesa-dev:arm64 libudev-dev:arm64 \
-            libfreetype6-dev:arm64 libjpeg-dev:arm64 pkg-config
-
-      - name: Point pkg-config to ARM64 .pc files (only for arm64)
-        if: ${{ matrix.arch == 'arm64' }}
-        run: |
-          echo "PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
-          pkg-config --modversion x11 xrandr xcursor xi || true
-
-      - name: Install documentation dependencies
-        if: matrix.build_documentation
-        run: apt-get install -y --no-install-recommends doxygen graphviz wget zip
-
-      - name: Install latest CMake
-        run: pip install cmake
-
-      - name: Configure
-        run: |
-          mkdir build
-          cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-
-      - name: Build
-        working-directory: ./build
-        run: cmake --build .
-
-      - name: Package
-        working-directory: ./build
-        run: |
-          cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
-          cpack -C ${{ matrix.cmake_build_type }} -G ZIP
-
-      - name: Get short SHA
-        if: github.ref == 'refs/heads/main'
-        id: short-sha
-        uses: benjlevesque/short-sha@v3.0
-
-      - name: Rename package (main)
-        working-directory: ${{ env.package_path_rel }}
-        if: github.ref == 'refs/heads/main'
-        run: |
-          rename 's/_amd64/-ubuntu22.04-x86_64_${{ steps.short-sha.outputs.sha }}/' *.deb
-          rename 's/_arm64/-ubuntu22.04-arm64_${{ steps.short-sha.outputs.sha }}/' *.deb
-          rename 's/opendaq_/opendaq-/' *.deb
-
-      - name: Rename zip (main)
-        working-directory: ${{ env.package_path_rel }}
-        if: github.ref == 'refs/heads/main'
-        run: |
-          rename 's/-Linux/-ubuntu22.04-${{ matrix.arch }}_${{ steps.short-sha.outputs.sha }}/' *.zip
-          rename 's/openDAQ/opendaq/' *.zip
-
-      - name: Rename package
-        working-directory: ${{ env.package_path_rel }}
-        if: github.ref != 'refs/heads/main'
-        run: |
-          rename 's/_amd64/-ubuntu22.04-x86_64/' *.deb
-          rename 's/_arm64/-ubuntu22.04-arm64/' *.deb
-          rename 's/opendaq_/opendaq-/' *.deb
-
-      - name: Rename zip
-        working-directory: ${{ env.package_path_rel }}
-        if: github.ref != 'refs/heads/main'
-        run: |
-          rename 's/-Linux/-ubuntu22.04-${{ matrix.arch }}/' *.zip
-          rename 's/openDAQ/opendaq/' *.zip
-
-      - name: Read openDAQ version
-        id: daq_version
-        working-directory: .
-        run: |
-            DAQ_VER=$(cat opendaq_version)
-            echo Head openDAQ version: $DAQ_VER
-            echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
-
-      - name: Compress documentation
-        if: matrix.build_documentation
-        working-directory: ./build/doc_doxygen/html
-        run: zip -r "../../cpp_api_reference.zip" .
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Upload package to S3
-        working-directory: ${{ env.package_path_rel }}
-        run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/"  --recursive --exclude '*' --include '*${{ matrix.arch }}*.deb' --include '*${{ matrix.arch }}*.zip'
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/" --recursive
-
-      - name: Upload package
-        uses: actions/upload-artifact@v4
-        with:
-          name: Package (${{ matrix.name }})
-          path: ${{ env.package_path_rel }}
-          retention-days: 7
-
-      - name: Upload documentation to S3
-        if: matrix.build_documentation
-        working-directory: ./build
-        run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'cpp_api_reference.zip'
-          aws s3 cp "cpp_api_reference.zip" "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
-
-      - name: Upload API reference
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: API Reference
-          path: "build/cpp_api_reference.zip"
-          retention-days: 7
-
-      - name: Upload examples to S3
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
-        run: |
-          zip -r opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip examples/applications -x examples/applications/CMakeLists.txt
-          aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/  --recursive --exclude '*' --include '*examples.zip'
-          aws s3 cp opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}-examples.zip s3://${{ env.s3bucket }}/${{ env.s3sdk_path }}/
-
-      - name: Upload temporary package for simulator
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.simulator_package_artifact }}
-          path: ${{ env.package_path_rel }}
-
-      - name: Upload simulator app
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.simulator_app_artifact }}
-          path: build/bin/application_simulator
-
-      - name: Upload binaries for .NET Bindings NuGet package
-        # "There can be only one."
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.linux_x64_artifact }}
-          path: |
-            ${{ env.build_path }}/bin/*.so
-            !${{ env.build_path }}/**/opendaq.cpython*
-            !${{ env.build_path }}/**/*_test_dll.so
-          # the exclusion filter does not work and the online-help does not explain
-          # most probably a pattern *xxx.yy does not work, only x*
-          #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-          retention-days: 1
-
-  deploy_linux_wheels:
-    runs-on: ubuntu-latest
-    name: ${{ matrix.name }}
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: manylinux_2_28 gcc Release
-            image: quay.io/pypa/manylinux_2_28_x86_64
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            additional_packages:
-            cc: gcc
-            cxx: g++
-            cpack: ZIP
-
-    container:
-      image: ${{ matrix.image }}
-      env:
-        TZ: Europe/Berlin
-        CC: ${{ matrix.cc }}
-        CXX: ${{ matrix.cxx }}
-
-    steps:
-      - name: Install basic dependencies
-        run: |
-          yum update -y
-          yum install -y git awscli
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install build dependencies
-        run: |
-          yum install -y ${{ matrix.additional_packages }} \
-              ninja-build \
-              mono-core \
-              freetype-devel libudev-devel libX11-devel libXi-devel libXcursor-devel libXrandr-devel
-
-      - name: Create build dir
-        run: mkdir build
-
-      - name: Configure and build Python Wheels
-        working-directory: ./build
-        run: |
-          mkdir wheels
-          for version in ${{ env.python_versions }}; do
-              echo "Building for Python $version"
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCI_GIT_BRANCH=${{ github.ref }}  -DOPENDAQ_PYTHON_VERSION=$version -DDAQMODULES_PARQUET_RECORDER_MODULE=ON ..
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r
-              cp -f pip/packages/opendaq*.whl wheels
-              deactivate
-              rm -rf venv
-          done
-
-      - name: Get short SHA
-        if: github.ref == 'refs/heads/main'
-        id: short-sha
-        uses: benjlevesque/short-sha@v3.0
-
-      - name: Rename Wheels (main)
-        working-directory: ${{ env.wheels_path }}
-        if: github.ref == 'refs/heads/main'
-        run: |
-          for filename in *.whl; do
-            new_filename=$(echo "$filename" | sed "s/-cp/+${{ steps.short-sha.outputs.sha }}-cp/")
-            mv "$filename" "$new_filename"
-          done
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Upload Wheels to S3
-        working-directory: ${{ env.wheels_path }}
-        run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_linux_x86_64_path }}" --recursive --exclude '*' --include '*.whl'
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_linux_x86_64_path }}" --recursive
-
-      - name: Upload Wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: Wheels (${{ matrix.name }})
-          path: ${{ env.wheels_path }}
-          retention-days: 7
-
-  deploy_macos_wheels_x86_64:
-    name: ${{ matrix.name }}
-    runs-on: macos-15-intel
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 400
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: macos-15 clang Release x86_64
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_osx_deployment_target: 10.15
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '4.0'
-
-      - name: Install ninja-build
-        uses: seanmiddleditch/gha-setup-ninja@v5
-        with:
-          version: 1.10.2
-
-      - name: Set up Pythons
-        uses: actions/setup-python@v5
-        with:
-          python-version: |
-              3.8
-              3.9
-              3.10
-              3.11
-              3.12
-              3.13
-              3.14
-
-      - name: Install brew dependencies
-        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install mono
-
-      - name: Make dirs
-        run: |
-          mkdir -p build
-          mkdir wheels
-
-      - name: Build wheels x86_64
-        working-directory: ./build
-        run: |
-          for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DOPENDAQ_PYTHON_VERSION=$version ..
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
-              cp -f pip/packages/opendaq*.whl ../wheels
-              deactivate
-              rm -rf venv
-          done
-
-      - name: Get short SHA
-        if: github.ref == 'refs/heads/main'
-        id: short-sha
-        uses: benjlevesque/short-sha@v3.0
-
-      - name: Rename Wheels (main)
-        working-directory: ./wheels
-        if: github.ref == 'refs/heads/main'
-        run: |
-          for filename in *.whl; do
-            new_filename=$(echo "$filename" | sed "s/-cp/+${{ steps.short-sha.outputs.sha }}-cp/")
-            mv "$filename" "$new_filename"
-          done
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Upload Wheels to S3
-        working-directory: ./wheels
-        run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_x86_64_path }}" --recursive --exclude '*' --include '*.whl'
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_x86_64_path }}" --recursive
-
-      - name: Upload Wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: Wheels (${{ matrix.name }})
-          path: wheels
-          retention-days: 7
-
-  deploy_macos_wheels_ARM:
-    name: ${{ matrix.name }}
-    runs-on: macos-14
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 400
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: macos-14 clang Release ARM
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_osx_deployment_target: 10.15
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '4.0'
-
-      - name: Install ninja-build
-        uses: seanmiddleditch/gha-setup-ninja@v5
-        with:
-          version: 1.10.2
-
-      - name: Set up Pythons
-        uses: actions/setup-python@v5
-        with:
-          python-version: |
-              3.8
-              3.9
-              3.10
-              3.11
-              3.12
-              3.13
-              3.14
-
-      - name: Make dirs
-        run: |
-          mkdir -p build
-          mkdir wheels
-
-      - name: Build wheels arm64
-        working-directory: ./build
-        run: |
-          for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCMAKE_SYSTEM_NAME=Darwin -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DCMAKE_SYSTEM_PROCESSOR=arm64 -DARROW_CPU_FLAG=aarch64 -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DOPENDAQ_PYTHON_VERSION=$version ..
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
-              cp -f pip/packages/opendaq*.whl ../wheels
-              deactivate
-              rm -rf venv
-          done
-
-      - name: Get short SHA
-        if: github.ref == 'refs/heads/main'
-        id: short-sha
-        uses: benjlevesque/short-sha@v3.0
-
-      - name: Rename Wheels (main)
-        working-directory: ./wheels
-        if: github.ref == 'refs/heads/main'
-        run: |
-          for filename in *.whl; do
-            new_filename=$(echo "$filename" | sed "s/-cp/+${{ steps.short-sha.outputs.sha }}-cp/")
-            mv "$filename" "$new_filename"
-          done
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Upload Wheels to S3
-        working-directory: ./wheels
-        run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_arm_path }}" --recursive --exclude '*' --include '*.whl'
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3wheels_macos_arm_path }}" --recursive
-
-      - name: Upload Wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: Wheels (${{ matrix.name }})
-          path: wheels
-          retention-days: 7
-          
-  simulator-build:
-    runs-on: Ubuntu-24.04-8-core
-    name: Simulator build
-    needs: [deploy_linux]
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-    timeout-minutes: 120
-    env:
-      simulator_directory: simulator
-
-    defaults:
-      run:
-        working-directory: ${{ env.simulator_directory }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install tools
-        run: |
-          wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-          sudo apt update
-          sudo apt install -y virtualbox vagrant
-
-      - name: Download package
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.simulator_package_artifact }}
-          path: ${{ env.simulator_directory }}
-
-      - name: Download simulator app
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.simulator_app_artifact }}
-          path: ${{ env.simulator_directory }}
-
-      - name: Display files in working directory
-        run: ls -Rhl
-
-      - name: Read openDAQ version
-        id: daq_version
-        working-directory: .
-        run: |
-            DAQ_VER=$(cat opendaq_version)
-            echo Head openDAQ version: $DAQ_VER
-            echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
-
-      - name: Get short SHA
-        if: github.ref == 'refs/heads/main'
-        id: short-sha
-        uses: benjlevesque/short-sha@v3.0
-
-      - name: Define simulator name
-        id: simulator_name
-        run: |
-          if [ "${{ github.ref }}" == "refs/heads/main" ];
-          then
-            echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}_${{ steps.short-sha.outputs.sha }}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            REF="${{ github.event.workflow_run.head_sha }}"
+            BRANCH="${{ github.event.workflow_run.head_branch }}"
+            RUN_ID="${{ github.event.workflow_run.id }}"
           else
-            echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}" >> "$GITHUB_OUTPUT"
+            RUN_ID="${{ inputs.run-id }}"
+            RUN_INFO=$(gh api repos/${{ github.repository }}/actions/runs/${RUN_ID})
+            REF=$(echo "$RUN_INFO" | jq -r '.head_sha')
+            BRANCH=$(echo "$RUN_INFO" | jq -r '.head_branch')
           fi
+          echo "ref=$REF" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "run-id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "Source context: ref=$REF, branch=$BRANCH, run-id=$RUN_ID"
 
-      - name: Find binaries and run vagrant
-        run: |
-          debfiles=( *.deb )
-          vagrant --version
-          VM_NAME=${{ steps.simulator_name.outputs.SIMULATOR_NAME }} HOME_PATH=$HOME PACKAGE_NAME=${debfiles[0]} vagrant up
-          VM_NAME=${{ steps.simulator_name.outputs.SIMULATOR_NAME }} HOME_PATH=$HOME PACKAGE_NAME=${debfiles[0]} vagrant halt
-
-      - name: vboxmanage modify and compact
-        run: |
-          vboxmanage modifyvm ${{ steps.simulator_name.outputs.SIMULATOR_NAME }} --audio none --uart1 off --nic1 hostonly --hostonlyadapter1 "VirtualBox Host-Only Ethernet Adapter"
-          vboxmanage modifymedium disk "${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.vdi" --compact
-
-      - name: vboxmanage check
-        run: |
-          vboxmanage list vms
-          vboxmanage list hostonlyifs
-          vboxmanage list hdds
-
-      - name: export VM to .ova appliance
-        run: |
-          vboxmanage export ${{ steps.simulator_name.outputs.SIMULATOR_NAME }} -o ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova --options manifest,nomacs
-          ls -hl ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Upload package to S3
-        run: |
-          aws s3 rm s3://${{ env.s3bucket }}/${{ env.s3simulatorpath }}/  --recursive --exclude '*' --include '*.ova'
-          aws s3 cp ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova s3://${{ env.s3bucket }}/${{ env.s3simulatorpath }}/
-
-      - name: Upload OVA image
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.simulator_name.outputs.SIMULATOR_NAME }}-ova-image
-          path: simulator/${{ steps.simulator_name.outputs.SIMULATOR_NAME }}.ova
-          retention-days: 7
-
-      - name: Delete unused artifacts
-        uses: geekyeggo/delete-artifact@v5
-        with:
-          name: |
-            ${{ env.simulator_app_artifact }}
-            ${{ env.simulator_package_artifact }}
-
-  build_documentation:
+  prepare_doc:
     runs-on: ubuntu-latest
-    name: Build SDK Documentation
-    needs: [deploy_linux]
-    timeout-minutes: 4
+    name: Build User Guide
+    needs: [resolve]
+    timeout-minutes: 10
+
+    outputs:
+      examples-artifact-name: ${{ steps.examples.outputs.artifact-name }}
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.ref }}
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -911,90 +93,256 @@ jobs:
           npm i @antora/lunr-extension
 
       - name: Run Antora to build user guide
-        run: >
-          [ "refs/heads/main" != "${{ github.ref }}" ] && npx antora antora-playbook.yml
-          || (export DAQ_DEV_WEBSITE=docs-dev; npx antora antora-playbook-dev.yml)
+        run: |
+          case "${{ needs.resolve.outputs.branch }}" in
+            main)
+              export DAQ_DEV_WEBSITE=docs-dev
+              npx antora antora-playbook-dev.yml
+              ;;
+            *)
+              npx antora antora-playbook.yml
+              ;;
+          esac
 
-      - name: Compress user guide Documentation
+      - name: Compress user guide
         working-directory: ${{ env.build_path }}/site/
         run: zip -r ${{ env.build_path }}/user_guide.zip .
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Upload user guide
+        uses: actions/upload-artifact@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Upload Documentation to S3
-        run: |
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"  --recursive --exclude '*' --include 'user_guide.zip'
-          aws s3 cp ${{ env.build_path }}/user_guide.zip "s3://${{ env.s3bucket }}/${{ env.s3docpath }}/"
-
-      - name: Call the API to deploy the documentation
-        run: |
-          if [ "${{ github.ref }}" == "refs/heads/main" ];
-          then
-            wget ${{ secrets.DEPLOY_DEV_DOCUMENTATION_URL_AND_TOKEN }}
-          else
-            wget ${{ secrets.DEPLOY_DOCUMENTATION_URL_AND_TOKEN }}
-          fi
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: openDAQ_SDK_User_Guide
+          name: user_guide
           path: ${{ env.build_path }}/user_guide.zip
           retention-days: 7
 
-  # using reusable workflow
-  dotnet_bindings:
-      name: .NET Bindings
+      - name: Call the API to deploy the documentation
+        # TODO: Enable step before merge
+        if: false
+        run: |
+          BRANCH="${{ needs.resolve.outputs.branch }}"
+          case "$BRANCH" in
+            main)
+              wget ${{ secrets.DEPLOY_DEV_DOCUMENTATION_URL_AND_TOKEN }}
+              ;;
+            release/*)
+              wget ${{ secrets.DEPLOY_DOCUMENTATION_URL_AND_TOKEN }}
+              ;;
+            *)
+              echo "::warning::Branch '$BRANCH' is not a release or dev branch, skipping documentation deploy"
+              ;;
+          esac
 
-      needs: [deploy_windows,deploy_linux]
+      - name: Detect version
+        id: detect
+        uses: ./.github/actions/package-version-detect
 
-      uses: ./.github/workflows/reusable_nuget_creation_and_test.yml
-      with:
-        # cannot use env context here, so use needs.<job>.outputs trick
-        # windows_test_path: ''
-        # linux_test_path: ''
-        windows_x64_artifact_name:  ${{ needs.deploy_windows.outputs.windows_x64_artifact_name }}
-        linux_x64_artifact_name:  ${{ needs.deploy_linux.outputs.linux_x64_artifact_name }}
-      # -> output.nuget_artifact_name
+      - name: Build examples archive
+        id: examples
+        run: |
+          EXAMPLES_NAME="opendaq-${{ steps.detect.outputs.version-full }}-examples"
+          zip -r "${EXAMPLES_NAME}.zip" examples/applications -x examples/applications/CMakeLists.txt
+          echo "artifact-name=$EXAMPLES_NAME" >> $GITHUB_OUTPUT
+          echo "artifact-path=${EXAMPLES_NAME}.zip" >> $GITHUB_OUTPUT
 
-  deploy_nuget:
-    runs-on: windows-2022
-    name: Deploy NuGet package
+      - name: Upload examples
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.examples.outputs.artifact-name }}
+          path: ${{ steps.examples.outputs.artifact-path }}
+          retention-days: 7
 
-    needs: [dotnet_bindings]
+  deploy_packages:
+    runs-on: ubuntu-latest
+    name: Deploy packages to S3
+    needs: [resolve, prepare_doc]
 
-    if: always() && needs.dotnet_bindings.outputs.nuget_creation_result == 'success'
-
-    defaults:
-      run:
-        shell: pwsh
-        working-directory: ${{ env.package_path }}
+    env:
+      RUN_ID: ${{ needs.resolve.outputs.run-id }}
+      BRANCH: ${{ needs.resolve.outputs.branch }}
+      DOWNLOAD_PATH: ${{ github.workspace }}/_artifacts/download
+      # TODO: Remove UPLOAD_PATH before merge
+      UPLOAD_PATH: ${{ github.workspace }}/_artifacts/upload
+      DST_ROOT_DIR: releases
+      SDK_DIR: SDK
+      WHEELS_LINUX_X64_DIR: Python Wheels (Linux x86_64)
+      WHEELS_WINDOWS_X64_DIR: Python Wheels (Windows amd64)
+      WHEELS_MACOS_X64_DIR: Python Wheels (MacOS x86_64)
+      WHEELS_MACOS_ARM_DIR: Python Wheels (MacOS ARM)
+      DOTNET_DIR: dotNET Bindings
+      SIMULATOR_DIR: Simulator
+      DOC_DIR: Specifications and documentation
 
     steps:
-      - name: Download NuGet artifact
+      - name: Download package artifacts
         uses: actions/download-artifact@v4
         with:
-          name: ${{ needs.dotnet_bindings.outputs.nuget_artifact_name }}
-          path: ${{ env.package_path }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ env.RUN_ID }}
+          path: ${{ env.DOWNLOAD_PATH }}
 
-      - name: Rename package
+      - name: Download user guide
+        uses: actions/download-artifact@v4
+        with:
+          name: user_guide
+          path: ${{ env.DOWNLOAD_PATH }}
+
+      - name: Download examples
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.prepare_doc.outputs.examples-artifact-name }}
+          path: ${{ env.DOWNLOAD_PATH }}
+
+      - name: Configure AWS credentials
+        # TODO: Enable step before merge
+        if: false
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload to S3
+        # TODO: Enable step before merge
+        if: false
         run: |
-          Get-ChildItem -Path .\* -Include *.nupkg | Rename-Item -NewName {$_.FullName.ToLower()}
+          SRC="${DOWNLOAD_PATH}"
+          S3_PATH="${DST_ROOT_DIR}/${BRANCH}"
+          DST_URI="s3://${{ env.s3bucket }}/${S3_PATH}"
 
+          echo '#### Downloaded artifacts' | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tree -F ${SRC} | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          # SDK packages
+          aws s3 rm "${DST_URI}/${SDK_DIR}/" --recursive --exclude '*' \
+            --include 'opendaq-*_win_*.exe' \
+            --include 'opendaq-*_win_*.zip' \
+            --include 'opendaq-*_linux_*.deb' \
+            --include 'opendaq-*_linux_*.zip' \
+            --include 'opendaq-*-examples.zip'
+          for f in "${SRC}"/opendaq-*_win_*/*.exe \
+                   "${SRC}"/opendaq-*_linux_*/*.deb \
+                   "${SRC}"/opendaq-*-examples*.zip; do
+            aws s3 cp "$f" "${DST_URI}/${SDK_DIR}/"
+          done
+
+          # Python Wheels
+          for whl_dir_src whl_dir_dst in \
+            "opendaq-*-python-wheels-linux"   "${WHEELS_LINUX_X64_DIR}" \
+            "opendaq-*-python-wheels-windows" "${WHEELS_WINDOWS_X64_DIR}" \
+            "opendaq-*-python-wheels-macos-x86_64" "${WHEELS_MACOS_X64_DIR}" \
+            "opendaq-*-python-wheels-macos-arm64"  "${WHEELS_MACOS_ARM_DIR}"; do
+            aws s3 rm "${DST_URI}/${whl_dir_dst}/" --recursive --exclude '*' --include '*.whl'
+            aws s3 cp "${SRC}"/${whl_dir_src}/ "${DST_URI}/${whl_dir_dst}/" --recursive --exclude '*' --include '*.whl'
+          done
+
+          # NuGet
+          aws s3 rm "${DST_URI}/${DOTNET_DIR}/" --recursive --exclude '*' --include '*.nupkg'
+          aws s3 cp "${SRC}"/opendaq.net-*/ "${DST_URI}/${DOTNET_DIR}/" --recursive --exclude '*' --include '*.nupkg'
+
+          # Simulator
+          aws s3 rm "${DST_URI}/${SIMULATOR_DIR}/" --recursive --exclude '*' --include '*.ova'
+          aws s3 cp "${SRC}"/opendaq-*_device_simulator*/ "${DST_URI}/${SIMULATOR_DIR}/" --recursive --exclude '*' --include '*.ova'
+
+          # Documentation
+          aws s3 rm "${DST_URI}/${DOC_DIR}/" --recursive --exclude '*' --include 'cpp_api_reference.zip' --include 'user_guide.zip'
+          aws s3 cp "${SRC}/API Reference/opendaq_cpp_api_reference.zip" "${DST_URI}/${DOC_DIR}/cpp_api_reference.zip"
+          aws s3 cp "${SRC}/user_guide.zip" "${DST_URI}/${DOC_DIR}/"
+
+          echo "#### S3 Artifacts tree: ${S3_PATH:-/}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          aws s3 ls "${DST_URI}" --recursive \
+            | awk '/^ *PRE / { sub(/^ *PRE /, ""); print; next } { $1=$2=$3=""; sub(/^ +/, ""); print }' \
+            | sed "s|^${S3_PATH:+${S3_PATH}/}||" \
+            > /tmp/s3tree.txt
+          tree --fromfile /tmp/s3tree.txt --noreport -F | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # TODO: Remove step before merge
+      - name: Organize artifacts for S3
+        run: |
+          SRC="${DOWNLOAD_PATH}"
+          DST="${UPLOAD_PATH}/${DST_ROOT_DIR}/${BRANCH}"
+
+          echo '#### Downloaded artifacts' | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tree -F ${SRC} | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          mkdir -p "${DST}/${SDK_DIR}"
+          mkdir -p "${DST}/${WHEELS_LINUX_X64_DIR}"
+          mkdir -p "${DST}/${WHEELS_WINDOWS_X64_DIR}"
+          mkdir -p "${DST}/${WHEELS_MACOS_X64_DIR}"
+          mkdir -p "${DST}/${WHEELS_MACOS_ARM_DIR}"
+          mkdir -p "${DST}/${DOTNET_DIR}"
+          mkdir -p "${DST}/${SIMULATOR_DIR}"
+          mkdir -p "${DST}/${DOC_DIR}"
+
+          # SDK packages
+          cp "${SRC}"/opendaq-*_win_*/*.exe   "${DST}/${SDK_DIR}/"
+          cp "${SRC}"/opendaq-*_linux_*/*.deb "${DST}/${SDK_DIR}/"
+
+          # Examples
+          cp "${SRC}"/opendaq-*-examples.zip "${DST}/${SDK_DIR}/"
+
+          # Python Wheels
+          cp "${SRC}"/opendaq-*-python-wheels-linux/*.whl   "${DST}/${WHEELS_LINUX_X64_DIR}/"
+          cp "${SRC}"/opendaq-*-python-wheels-windows/*.whl "${DST}/${WHEELS_WINDOWS_X64_DIR}/"
+          cp "${SRC}"/opendaq-*-python-wheels-macos-x86_64/*.whl "${DST}/${WHEELS_MACOS_X64_DIR}/"
+          cp "${SRC}"/opendaq-*-python-wheels-macos-arm64/*.whl  "${DST}/${WHEELS_MACOS_ARM_DIR}/"
+
+          # NuGet
+          cp "${SRC}"/opendaq.net-*/*.nupkg "${DST}/${DOTNET_DIR}/"
+
+          # Simulator OVA
+          cp "${SRC}"/opendaq-*_device_simulator*/*.ova "${DST}/${SIMULATOR_DIR}/"
+
+          # Documentation
+          cp "${SRC}/API Reference"/*.zip "${DST}/${DOC_DIR}/cpp_api_reference.zip"
+          cp "${SRC}"/user_guide.zip "${DST}/${DOC_DIR}/"
+
+          echo "#### Artifacts ready for S3 upload: ${BRANCH}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cd "${UPLOAD_PATH}/${DST_ROOT_DIR}"
+          echo $(pwd) >> $GITHUB_STEP_SUMMARY
+          tree -F "${BRANCH}" | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  # TODO: Remove dump_s3_structure job before merge
+  dump_s3_structure:
+    runs-on: ubuntu-latest
+    name: Dump S3 structure
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Upload NuGet to S3
+      - name: Dump S3 path
         run: |
-          Write-Output "# S3 listing"
-          aws s3 ls "s3://${{ env.s3bucket }}/${{ env.s3dotnet_path }}/" --recursive --human-readable
-          Write-Output "# S3 remove '*.nupkg'"
-          aws s3 rm "s3://${{ env.s3bucket }}/${{ env.s3dotnet_path }}" --recursive --exclude '*' --include '*.nupkg'
-          Write-Output "# S3 copy '*.nupkg' from '${{ env.package_path }}'"
-          aws s3 cp . "s3://${{ env.s3bucket }}/${{ env.s3dotnet_path }}" --recursive --exclude '*' --include '*.nupkg'
+          S3_PATH="${{ inputs.s3-path }}"
+          S3_PATH="${S3_PATH#/}"
+          S3_PATH="${S3_PATH%/}"
+          if [ -n "$S3_PATH" ]; then
+            S3_URL="s3://${{ env.s3bucket }}/${S3_PATH}/"
+          else
+            S3_URL="s3://${{ env.s3bucket }}/"
+          fi
+
+          AWS_ARGS=""
+          if [ "${{ inputs.recursive }}" = "true" ]; then
+            AWS_ARGS="--recursive"
+          fi
+
+          echo "#### S3 tree: ${S3_PATH:-/}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY 
+          aws s3 ls "${S3_URL}" $AWS_ARGS \
+            | awk '/^ *PRE / { sub(/^ *PRE /, ""); print; next } { $1=$2=$3=""; sub(/^ +/, ""); print }' \
+            | sed "s|^${S3_PATH:+${S3_PATH}/}||" \
+            > /tmp/s3tree.txt
+          tree --fromfile /tmp/s3tree.txt --noreport -F | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

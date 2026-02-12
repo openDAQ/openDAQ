@@ -41,10 +41,10 @@ if (PROJECT_IS_TOP_LEVEL)
 endif()
 
 if(PROJECT_IS_TOP_LEVEL)
-    set(${REPO_OPTION_PREFIX}_BUILDING_AS_SUBMODULE OFF CACHE INTERNAL "Building ${REPO_NAME} standalone")
+    set(${SDK_OPTION_PREFIX}_BUILDING_AS_SUBMODULE OFF CACHE INTERNAL "Building ${SDK_NAME} standalone")
     message(STATUS "Building ${OPENDAQ_SDK_NAME} version ${OPENDAQ_PACKAGE_VERSION} standalone")
 else()
-    set(${REPO_OPTION_PREFIX}_BUILDING_AS_SUBMODULE ON CACHE INTERNAL "Building ${REPO_NAME} as submodule")
+    set(${SDK_OPTION_PREFIX}_BUILDING_AS_SUBMODULE ON CACHE INTERNAL "Building ${SDK_NAME} as submodule")
     message(STATUS "Building ${OPENDAQ_SDK_NAME} version ${OPENDAQ_PACKAGE_VERSION} as submodule")
 endif()
 
@@ -507,15 +507,19 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${SDK_NAME}ConfigVersion.cmake
         COMPONENT ${SDK_NAME}_Development
 )
 
+install(FILES cmake/DeprecatedCommands.cmake
+        DESTINATION share/cmake
+        COMPONENT ${SDK_NAME}_Development
+)
 FetchContent_GetProperties(
     opendaq-cmake-utils
     SOURCE_DIR OPENDAQ_CMAKE_UTILS_SOURCE_DIR
 )
-install(FILES ${OPENDAQ_CMAKE_UTILS_SOURCE_DIR}/openDAQBaseUtils.cmake
+install(FILES ${OPENDAQ_CMAKE_UTILS_SOURCE_DIR}/cmake/openDAQBaseUtils.cmake
         DESTINATION share/cmake
         COMPONENT ${SDK_NAME}_Development
 )
-install(FILES ${OPENDAQ_CMAKE_UTILS_SOURCE_DIR}/version/version.h.in cmake/version/version.rc.in
+install(FILES ${OPENDAQ_CMAKE_UTILS_SOURCE_DIR}/cmake/version/version.h.in ${OPENDAQ_CMAKE_UTILS_SOURCE_DIR}/cmake/version/version.rc.in
         DESTINATION share/cmake/version
         COMPONENT ${SDK_NAME}_Development
 )

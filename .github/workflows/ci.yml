@@ -23,7 +23,7 @@ jobs:
   build_windows:
     runs-on: windows-latest
     name: ${{ matrix.name }}
-    if: ${{ ! github.event.pull_request.draft }}
+    # if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -107,7 +107,7 @@ jobs:
   build_linux:
     runs-on: ubuntu-latest
     name: ${{ matrix.name }}
-    if: ${{ ! github.event.pull_request.draft }}
+    # if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -215,7 +215,7 @@ jobs:
   build_macos:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
-    if: ${{ ! github.event.pull_request.draft }}
+    # if: ${{ ! github.event.pull_request.draft }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}

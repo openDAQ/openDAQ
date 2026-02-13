@@ -11,10 +11,4 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     IString*, className
 )
 
-template class GenericRecursiveConfigLockGuard<MutexPtr>;
-template class GenericRecursiveConfigLockGuard<object_utils::NullMutex>;
-
-template class RecursiveLockGuardImpl<MutexPtr>;
-template class RecursiveLockGuardImpl<object_utils::NullMutex>;
-
 END_NAMESPACE_OPENDAQ

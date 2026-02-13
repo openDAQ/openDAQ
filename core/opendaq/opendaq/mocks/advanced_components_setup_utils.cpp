@@ -383,7 +383,7 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     devices.addItem(dev);
 
 	const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}, {"Float", 5.123}});
-	const auto defStructValue = Struct("FooStruct", structMembers, manager.getRef());
+	const auto defStructValue = Struct("FooStruct", structMembers, getTypeManager());
 
 	objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());
     

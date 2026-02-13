@@ -27,6 +27,12 @@ namespace detail
                                                          "OperationMode",
                                                          "OperationModeOptions",
                                                          "ComponentConfig"};
+
+    bool isChildProperty(const StringPtr& name) 
+    {
+        auto chr = strchr(name.getCharPtr(), '.');
+        return chr != nullptr;
+    }
 }
 
 template <class Impl>
@@ -39,7 +45,7 @@ ErrCode TmsClientPropertyObjectBaseImpl<Impl>::setOPCUAPropertyValueInternal(ISt
     }    
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    if (this->isChildProperty(propertyNamePtr))
+    if (detail::isChildProperty(propertyNamePtr))
     {
         PropertyPtr prop;
         const ErrCode errCode = getProperty(propertyNamePtr, &prop);
@@ -141,7 +147,7 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
     }
     auto propertyNamePtr = StringPtr::Borrow(propertyName);
 
-    if (this->isChildProperty(propertyNamePtr))
+    if (detail::isChildProperty(propertyNamePtr))
     {
         PropertyPtr prop;
         ErrCode err = getProperty(propertyNamePtr, &prop);
@@ -158,15 +164,15 @@ ErrCode INTERFACE_FUNC TmsClientPropertyObjectBaseImpl<Impl>::getPropertyValue(I
         {
             const auto variant = client->readValue(introIt->second);
             const auto object = VariantConverter<IBaseObject>::ToDaqObject(variant, daqContext);
-            const ErrCode errCode = Impl::setProtectedPropertyValue(propertyName, object);
-            OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to get value for introspection property \"{}\"", propertyNamePtr));
+            const ErrCode err = Impl::setProtectedPropertyValue(propertyName, object);
+            OPENDAQ_RETURN_IF_FAILED(err, fmt::format("Failed to get value for introspection property \"{}\"", propertyNamePtr));
         }
         else if (referenceVariableIdMap.count(propertyNamePtr))
         {
             const auto refProp = this->objPtr.getProperty(propertyName).getReferencedProperty();
-            const ErrCode errCode = getPropertyValue(refProp.getName(), value);
-            OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to get value for referenced property \"{}\"", propertyNamePtr));
-            return errCode;
+            const ErrCode err = getPropertyValue(refProp.getName(), value);
+            OPENDAQ_RETURN_IF_FAILED(err, fmt::format("Failed to get value for referenced property \"{}\"", propertyNamePtr));
+            return err;
         }
         return Impl::getPropertyValue(propertyName, value);
     });

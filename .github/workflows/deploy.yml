@@ -12,18 +12,6 @@ on:
         description: 'Package workflow run ID to deploy from'
         required: true
         type: string
-      # TODO: Remove `s3-path` inputs before merge  
-      s3-path:
-        description: 'S3 path to dump (e.g. releases/main)'
-        required: false
-        default: ''
-        type: string
-      # TODO: Remove `recursive` inputs before merge  
-      recursive:
-        description: 'List contents recursively'
-        required: false
-        default: false
-        type: boolean
 
 env:
   s3bucket: bb-blueberry-sdk-releases
@@ -67,7 +55,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Build User Guide
     needs: [resolve]
-    timeout-minutes: 10
 
     outputs:
       examples-artifact-name: ${{ steps.examples.outputs.artifact-name }}
@@ -95,12 +82,11 @@ jobs:
       - name: Run Antora to build user guide
         run: |
           case "${{ needs.resolve.outputs.branch }}" in
-            main)
-              export DAQ_DEV_WEBSITE=docs-dev
-              npx antora antora-playbook-dev.yml
+            release/*)
+              npx antora antora-playbook.yml
               ;;
             *)
-              npx antora antora-playbook.yml
+              npx antora antora-playbook-dev.yml
               ;;
           esac
 
@@ -160,9 +146,8 @@ jobs:
       RUN_ID: ${{ needs.resolve.outputs.run-id }}
       BRANCH: ${{ needs.resolve.outputs.branch }}
       DOWNLOAD_PATH: ${{ github.workspace }}/_artifacts/download
-      # TODO: Remove UPLOAD_PATH before merge
-      UPLOAD_PATH: ${{ github.workspace }}/_artifacts/upload
-      DST_ROOT_DIR: releases
+      # TODO: Change to 'releases' before merge
+      DST_ROOT_DIR: sandbox
       SDK_DIR: SDK
       WHEELS_LINUX_X64_DIR: Python Wheels (Linux x86_64)
       WHEELS_WINDOWS_X64_DIR: Python Wheels (Windows amd64)
@@ -193,8 +178,6 @@ jobs:
           path: ${{ env.DOWNLOAD_PATH }}
 
       - name: Configure AWS credentials
-        # TODO: Enable step before merge
-        if: false
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -202,8 +185,6 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Upload to S3
-        # TODO: Enable step before merge
-        if: false
         run: |
           SRC="${DOWNLOAD_PATH}"
           S3_PATH="${DST_ROOT_DIR}/${BRANCH}"
@@ -228,14 +209,17 @@ jobs:
           done
 
           # Python Wheels
-          for whl_dir_src whl_dir_dst in \
-            "opendaq-*-python-wheels-linux"   "${WHEELS_LINUX_X64_DIR}" \
-            "opendaq-*-python-wheels-windows" "${WHEELS_WINDOWS_X64_DIR}" \
-            "opendaq-*-python-wheels-macos-x86_64" "${WHEELS_MACOS_X64_DIR}" \
-            "opendaq-*-python-wheels-macos-arm64"  "${WHEELS_MACOS_ARM_DIR}"; do
-            aws s3 rm "${DST_URI}/${whl_dir_dst}/" --recursive --exclude '*' --include '*.whl'
-            aws s3 cp "${SRC}"/${whl_dir_src}/ "${DST_URI}/${whl_dir_dst}/" --recursive --exclude '*' --include '*.whl'
-          done
+          aws s3 rm "${DST_URI}/${WHEELS_LINUX_X64_DIR}/" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp "${SRC}"/opendaq-*-python-wheels-linux/ "${DST_URI}/${WHEELS_LINUX_X64_DIR}/" --recursive --exclude '*' --include '*.whl'
+
+          aws s3 rm "${DST_URI}/${WHEELS_WINDOWS_X64_DIR}/" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp "${SRC}"/opendaq-*-python-wheels-windows/ "${DST_URI}/${WHEELS_WINDOWS_X64_DIR}/" --recursive --exclude '*' --include '*.whl'
+
+          aws s3 rm "${DST_URI}/${WHEELS_MACOS_X64_DIR}/" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp "${SRC}"/opendaq-*-python-wheels-macos-x86_64/ "${DST_URI}/${WHEELS_MACOS_X64_DIR}/" --recursive --exclude '*' --include '*.whl'
+
+          aws s3 rm "${DST_URI}/${WHEELS_MACOS_ARM_DIR}/" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp "${SRC}"/opendaq-*-python-wheels-macos-arm64/ "${DST_URI}/${WHEELS_MACOS_ARM_DIR}/" --recursive --exclude '*' --include '*.whl'
 
           # NuGet
           aws s3 rm "${DST_URI}/${DOTNET_DIR}/" --recursive --exclude '*' --include '*.nupkg'
@@ -250,97 +234,10 @@ jobs:
           aws s3 cp "${SRC}/API Reference/opendaq_cpp_api_reference.zip" "${DST_URI}/${DOC_DIR}/cpp_api_reference.zip"
           aws s3 cp "${SRC}/user_guide.zip" "${DST_URI}/${DOC_DIR}/"
 
+          # Publish a report of the uploaded artifacts
           echo "#### S3 Artifacts tree: ${S3_PATH:-/}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           aws s3 ls "${DST_URI}" --recursive \
-            | awk '/^ *PRE / { sub(/^ *PRE /, ""); print; next } { $1=$2=$3=""; sub(/^ +/, ""); print }' \
-            | sed "s|^${S3_PATH:+${S3_PATH}/}||" \
-            > /tmp/s3tree.txt
-          tree --fromfile /tmp/s3tree.txt --noreport -F | tee -a $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-      # TODO: Remove step before merge
-      - name: Organize artifacts for S3
-        run: |
-          SRC="${DOWNLOAD_PATH}"
-          DST="${UPLOAD_PATH}/${DST_ROOT_DIR}/${BRANCH}"
-
-          echo '#### Downloaded artifacts' | tee -a $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tree -F ${SRC} | tee -a $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-          mkdir -p "${DST}/${SDK_DIR}"
-          mkdir -p "${DST}/${WHEELS_LINUX_X64_DIR}"
-          mkdir -p "${DST}/${WHEELS_WINDOWS_X64_DIR}"
-          mkdir -p "${DST}/${WHEELS_MACOS_X64_DIR}"
-          mkdir -p "${DST}/${WHEELS_MACOS_ARM_DIR}"
-          mkdir -p "${DST}/${DOTNET_DIR}"
-          mkdir -p "${DST}/${SIMULATOR_DIR}"
-          mkdir -p "${DST}/${DOC_DIR}"
-
-          # SDK packages
-          cp "${SRC}"/opendaq-*_win_*/*.exe   "${DST}/${SDK_DIR}/"
-          cp "${SRC}"/opendaq-*_linux_*/*.deb "${DST}/${SDK_DIR}/"
-
-          # Examples
-          cp "${SRC}"/opendaq-*-examples.zip "${DST}/${SDK_DIR}/"
-
-          # Python Wheels
-          cp "${SRC}"/opendaq-*-python-wheels-linux/*.whl   "${DST}/${WHEELS_LINUX_X64_DIR}/"
-          cp "${SRC}"/opendaq-*-python-wheels-windows/*.whl "${DST}/${WHEELS_WINDOWS_X64_DIR}/"
-          cp "${SRC}"/opendaq-*-python-wheels-macos-x86_64/*.whl "${DST}/${WHEELS_MACOS_X64_DIR}/"
-          cp "${SRC}"/opendaq-*-python-wheels-macos-arm64/*.whl  "${DST}/${WHEELS_MACOS_ARM_DIR}/"
-
-          # NuGet
-          cp "${SRC}"/opendaq.net-*/*.nupkg "${DST}/${DOTNET_DIR}/"
-
-          # Simulator OVA
-          cp "${SRC}"/opendaq-*_device_simulator*/*.ova "${DST}/${SIMULATOR_DIR}/"
-
-          # Documentation
-          cp "${SRC}/API Reference"/*.zip "${DST}/${DOC_DIR}/cpp_api_reference.zip"
-          cp "${SRC}"/user_guide.zip "${DST}/${DOC_DIR}/"
-
-          echo "#### Artifacts ready for S3 upload: ${BRANCH}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cd "${UPLOAD_PATH}/${DST_ROOT_DIR}"
-          echo $(pwd) >> $GITHUB_STEP_SUMMARY
-          tree -F "${BRANCH}" | tee -a $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-  # TODO: Remove dump_s3_structure job before merge
-  dump_s3_structure:
-    runs-on: ubuntu-latest
-    name: Dump S3 structure
-    if: github.event_name == 'workflow_dispatch'
-
-    steps:
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Dump S3 path
-        run: |
-          S3_PATH="${{ inputs.s3-path }}"
-          S3_PATH="${S3_PATH#/}"
-          S3_PATH="${S3_PATH%/}"
-          if [ -n "$S3_PATH" ]; then
-            S3_URL="s3://${{ env.s3bucket }}/${S3_PATH}/"
-          else
-            S3_URL="s3://${{ env.s3bucket }}/"
-          fi
-
-          AWS_ARGS=""
-          if [ "${{ inputs.recursive }}" = "true" ]; then
-            AWS_ARGS="--recursive"
-          fi
-
-          echo "#### S3 tree: ${S3_PATH:-/}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY 
-          aws s3 ls "${S3_URL}" $AWS_ARGS \
             | awk '/^ *PRE / { sub(/^ *PRE /, ""); print; next } { $1=$2=$3=""; sub(/^ +/, ""); print }' \
             | sed "s|^${S3_PATH:+${S3_PATH}/}||" \
             > /tmp/s3tree.txt

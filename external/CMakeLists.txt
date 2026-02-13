@@ -78,11 +78,6 @@ endif()
 
 set(CMAKE_MESSAGE_CONTEXT ${CURR_MESSAGE_CONTEXT})
 
-add_subdirectory(boost)
-if (NOT OPENDAQ_BUILDING_AS_SUBMODULE)
-    opendaq_complete_boost_dependency()
-endif()
-
 add_subdirectory(date)
 add_subdirectory(fmt)
 add_subdirectory(mdns EXCLUDE_FROM_ALL)

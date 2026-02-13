@@ -5,9 +5,9 @@ set(CMAKE_FOLDER "${CMAKE_FOLDER}/openDAQ")
 
 add_subdirectory(cmake)
 
-set(SDK_NAME ${OPENDAQ_SDK_NAME})
-set(SDK_TARGET_NAME ${OPENDAQ_SDK_TARGET_NAME})
-set(SDK_TARGET_NAMESPACE ${OPENDAQ_SDK_TARGET_NAMESPACE})
+set(SDK_NAME "${OPENDAQ_SDK_NAME}")
+set(SDK_TARGET_NAME "${OPENDAQ_SDK_TARGET_NAME}")
+set(SDK_TARGET_NAMESPACE "${OPENDAQ_SDK_TARGET_NAMESPACE}")
 
 set(SDK_OPTION_PREFIX OPENDAQ)
 
@@ -17,7 +17,7 @@ opendaq_read_file_contents("${CMAKE_CURRENT_LIST_DIR}/opendaq_version" package_v
 opendaq_get_version_major_minor_patch("${package_version}" package_version_major_minor_patch)
 
 set(OPENDAQ_IS_RELEASE_VERSION OFF)
-if(package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+if (package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
     set(OPENDAQ_IS_RELEASE_VERSION ON)
 endif()
 
@@ -25,10 +25,9 @@ endif()
 set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}" CACHE INTERNAL "openDAQ SDK version")
 
 # 32-bit Linux cross-compilation setup (must be before any project())
-if(NOT DEFINED PROJECT_SOURCE_DIR AND OPENDAQ_FORCE_COMPILE_32BIT AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+if (NOT DEFINED PROJECT_NAME AND OPENDAQ_FORCE_COMPILE_32BIT AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
     opendaq_32bit_build_linux_early_setup()
 endif()
-
 opendaq_common_early_setup()
 
 project(${SDK_NAME}
@@ -40,12 +39,16 @@ if (PROJECT_IS_TOP_LEVEL)
     set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ".CMakePredefinedTargets")
 endif()
 
-if(PROJECT_IS_TOP_LEVEL)
+if (PROJECT_IS_TOP_LEVEL)
     set(${SDK_OPTION_PREFIX}_BUILDING_AS_SUBMODULE OFF CACHE INTERNAL "Building ${SDK_NAME} standalone")
     message(STATUS "Building ${OPENDAQ_SDK_NAME} version ${OPENDAQ_PACKAGE_VERSION} standalone")
 else()
     set(${SDK_OPTION_PREFIX}_BUILDING_AS_SUBMODULE ON CACHE INTERNAL "Building ${SDK_NAME} as submodule")
     message(STATUS "Building ${OPENDAQ_SDK_NAME} version ${OPENDAQ_PACKAGE_VERSION} as submodule")
+endif()
+
+if (NOT OPENDAQ_CI_RUNNER)
+    set(OPENDAQ_CI_RUNNER OFF)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
@@ -83,7 +86,7 @@ opendaq_setup_project_specific_build_options(${SDK_OPTION_PREFIX})
 # Feature options
 option(OPENDAQ_ENABLE_PARAMETER_VALIDATION "Enable parameter validation in functions" ON)
 option(OPENDAQ_ENABLE_WEBSOCKET_STREAMING "Enable ${SDK_NAME} websocket streaming" OFF)
-cmake_dependent_option(DAQMODULES_LT_LEGACY_MODULES "Use legacy LT streaming modules" OFF "OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
+cmake_dependent_option(DAQMODULES_LT_LEGACY_MODULES "Use legacy LT streaming modules" ${OPENDAQ_CI_RUNNER} "OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
 option(OPENDAQ_THREAD_SAFE "Enable thread-safe implementations where available" ON)
 option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
@@ -110,11 +113,11 @@ option(OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS "Enable labeling unstable tests" OFF)
 # Additional build options
 option(OPENDAQ_ENABLE_ERROR_GUARD "Enable error guard" OFF)
 
-if(NOT OPENDAQ_ENABLE_ERROR_GUARD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+if (NOT OPENDAQ_ENABLE_ERROR_GUARD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(OPENDAQ_ENABLE_ERROR_GUARD ON CACHE BOOL "Enable error guard" FORCE)
 endif()
 
-if(OPENDAQ_ENABLE_ERROR_GUARD)
+if (OPENDAQ_ENABLE_ERROR_GUARD)
     add_compile_definitions(OPENDAQ_ENABLE_ERROR_GUARD)
 endif()
 
@@ -138,78 +141,6 @@ option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder modu
 option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" OFF)
 option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
 
-include(openDAQModuleFetchUtils)
-
-set(OPENDAQ_MODULE_EVAL_EXPRS
-    "DAQMODULES_EMPTY_MODULE"
-    "DAQMODULES_REF_FB_MODULE"
-)
-
-set(OPENDAQ_MODULE_DIRS
-    "examples/modules/empty_module"
-    "examples/modules/ref_fb_module"
-)
-
-foreach(OPENDAQ_MODULE_EVAL_EXPR OPENDAQ_MODULE_DIR IN ZIP_LISTS OPENDAQ_MODULE_EVAL_EXPRS OPENDAQ_MODULE_DIRS)
-    set(OPENDAQ_MODULE_PATH "${PROJ_DIR}/${OPENDAQ_MODULE_DIR}")
-
-    if(NOT IS_DIRECTORY "${OPENDAQ_MODULE_PATH}")
-        message(FATAL_ERROR "Specified module directory ${OPENDAQ_MODULE_PATH} does not exist")
-    endif()
-    opendaq_register_module_options(${OPENDAQ_MODULE_PATH})
-    if(${OPENDAQ_MODULE_EVAL_EXPR})
-        opendaq_register_module_boost_dependencies(${OPENDAQ_MODULE_PATH})
-    endif()
-endforeach()
-
-set(USE_LT_LEGACY_MODULES FALSE)
-set(USE_LT_MODERN_MODULES FALSE)
-if(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    if(DAQMODULES_LT_LEGACY_MODULES)
-        set(USE_LT_LEGACY_MODULES TRUE)
-    else()
-        set(USE_LT_MODERN_MODULES TRUE)
-    endif()
-endif()
-
-set(MODULE_ENABLE_EXPRS
-    "USE_LT_MODERN_MODULES"
-    "USE_LT_LEGACY_MODULES"
-    "OPENDAQ_ENABLE_OPCUA"
-)
-
-set(MODULE_FETCH_PATHS
-    "modules/websocket_streaming_modules/modern"
-    "modules/websocket_streaming_modules/legacy"
-    "modules/opcua_modules"
-)
-
-set(MODULE_NAMES
-    "LtStreamingModulesModern"
-    "LtStreamingModulesLegacy"
-    "OpcUaModules"
-)
-
-foreach(ENABLE_EXPR MODULE_PATH MODULE_NAME IN ZIP_LISTS MODULE_ENABLE_EXPRS MODULE_FETCH_PATHS MODULE_NAMES)
-    set(OPENDAQ_MODULE_PATH "${PROJ_DIR}/${MODULE_PATH}")
-
-    if(NOT IS_DIRECTORY "${OPENDAQ_MODULE_PATH}")
-        message(FATAL_ERROR "Specified module directory ${OPENDAQ_MODULE_PATH} does not exist")
-    endif()
-
-    include("${OPENDAQ_MODULE_PATH}/Fetch.cmake")
-
-    FetchContent_GetProperties(
-        ${MODULE_NAME}
-        SOURCE_DIR ${MODULE_NAME}_SOURCE_DIR
-    )
-
-    opendaq_register_module_options(${${MODULE_NAME}_SOURCE_DIR})
-    if(${ENABLE_EXPR})
-        opendaq_register_module_boost_dependencies(${${MODULE_NAME}_SOURCE_DIR})
-    endif()
-endforeach()
-
 # logging start
 include(openDAQLogging)
 
@@ -228,10 +159,6 @@ set(OPENDAQ_REPO_PREFIX "https://github.com/openDAQ" CACHE STRING "Set this if u
 message(STATUS "${SDK_NAME} repository prefix: ${OPENDAQ_REPO_PREFIX}")
 
 set(OPENDAQ_SOURCE_DIR ${PROJECT_SOURCE_DIR})
-
-if (NOT OPENDAQ_CI_RUNNER)
-    set(OPENDAQ_CI_RUNNER OFF)
-endif()
 
 if (OPENDAQ_CI_RUNNER)
     message("Configured as CI runner")
@@ -327,7 +254,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     endif()
 endif()
 
-if(OPENDAQ_GENERATE_PYTHON_BINDINGS OR OPENDAQ_ENABLE_COVERAGE) #gcc coverage
+if (OPENDAQ_GENERATE_PYTHON_BINDINGS OR OPENDAQ_ENABLE_COVERAGE) #gcc coverage
     set(OPENDAQ_PYTHON_VERSION_INTERNAL 3.8)
     set(OPENDAQ_PYTHON_COMPONENTS Interpreter)
     if(OPENDAQ_GENERATE_PYTHON_BINDINGS)
@@ -347,7 +274,7 @@ endif()
 
 find_package(Filesystem REQUIRED COMPONENTS Final Experimental)
 
-if(OPENDAQ_GENERATE_DELPHI_BINDINGS OR OPENDAQ_GENERATE_PYTHON_BINDINGS OR OPENDAQ_GENERATE_CSHARP_BINDINGS OR OPENDAQ_GENERATE_C_BINDINGS)
+if (OPENDAQ_GENERATE_DELPHI_BINDINGS OR OPENDAQ_GENERATE_PYTHON_BINDINGS OR OPENDAQ_GENERATE_CSHARP_BINDINGS OR OPENDAQ_GENERATE_C_BINDINGS)
     set(OPENDAQ_GENERATE_BINDINGS On)
 endif()
 
@@ -366,7 +293,7 @@ if(OPENDAQ_GENERATE_PYTHON_BINDINGS)
     set(OPENDAQ_GENERATE_BINDINGS_LANG ${OPENDAQ_GENERATE_BINDINGS_LANG} Python)
 endif()
 
-if(OPENDAQ_GENERATE_CSHARP_BINDINGS)
+if (OPENDAQ_GENERATE_CSHARP_BINDINGS)
     message(STATUS "Generating C# bindings")
     set(OPENDAQ_GENERATE_BINDINGS_LANG ${OPENDAQ_GENERATE_BINDINGS_LANG} CSharp)
 endif()
@@ -459,10 +386,91 @@ message(STATUS "")
 opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})
 
 # libraries needed before the core is read
+include(openDAQModuleFetchUtils)
+if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE))
+    set(DAQMODULES_LT_ENABLE_TESTS ${OPENDAQ_ENABLE_TESTS} CACHE BOOL "")
+    set(DAQMODULES_LT_ENABLE_CLIENT ${DAQMODULES_OPENDAQ_CLIENT_MODULE} CACHE BOOL "")
+    set(DAQMODULES_LT_ENABLE_SERVER ${DAQMODULES_OPENDAQ_SERVER_MODULE} CACHE BOOL "")
+    if (DAQMODULES_LT_LEGACY_MODULES)
+        opendaq_fetch_module(
+            NAME                LtStreamingModulesLegacy
+            GIT_REPOSITORY      https://github.com/openDAQ/LTStreamingModulesLegacy.git
+            GIT_REF             other/complete-missing-init-files
+            GIT_SHALLOW         OFF
+        )
+        FetchContent_GetProperties(
+            LtStreamingModulesLegacy
+            SOURCE_DIR LT_MODULES_SOURCE_DIR
+            BINARY_DIR LT_MODULES_BINARY_DIR
+        )
+    else()
+        opendaq_fetch_module(
+            NAME                LtStreamingModulesModern
+            GIT_REPOSITORY      https://github.com/openDAQ/LTStreamingModulesModern.git
+            GIT_REF             other/complete-missing-init-files
+            GIT_SHALLOW         OFF
+        )
+        FetchContent_GetProperties(
+            LtStreamingModulesModern
+            SOURCE_DIR LT_MODULES_SOURCE_DIR
+            BINARY_DIR LT_MODULES_BINARY_DIR
+        )
+    endif()
+endif()
+
+if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE))
+    set(DAQMODULES_OPCUA_ENABLE_TESTS ${OPENDAQ_ENABLE_TESTS} CACHE BOOL "")
+    set(DAQMODULES_OPCUA_ENABLE_CLIENT ${DAQMODULES_OPENDAQ_CLIENT_MODULE} CACHE BOOL "")
+    set(DAQMODULES_OPCUA_ENABLE_SERVER ${DAQMODULES_OPENDAQ_SERVER_MODULE} CACHE BOOL "")
+    opendaq_fetch_module(
+        NAME                OpcUaModules
+        GIT_REPOSITORY      https://github.com/openDAQ/OpcUaModules.git
+        GIT_REF             other/complete-missing-files
+        GIT_SHALLOW         OFF
+    )
+    FetchContent_GetProperties(
+        OpcUaModules
+        SOURCE_DIR OPCUA_MODULES_SOURCE_DIR
+        BINARY_DIR OPCUA_MODULES_BINARY_DIR
+    )
+endif()
+
+set(OPENDAQ_MODULE_EVAL_EXPRS
+    "DAQMODULES_EMPTY_MODULE"
+    "DAQMODULES_REF_FB_MODULE"
+    "OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE)"
+    "OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE)"
+)
+
+set(OPENDAQ_MODULE_DIRS
+    "${PROJ_DIR}/examples/modules/empty_module"
+    "${PROJ_DIR}/examples/modules/ref_fb_module"
+    "${LT_MODULES_SOURCE_DIR}"
+    "${OPCUA_MODULES_SOURCE_DIR}"
+)
+
+foreach(OPENDAQ_MODULE_EVAL_EXPR OPENDAQ_MODULE_DIR IN ZIP_LISTS OPENDAQ_MODULE_EVAL_EXPRS OPENDAQ_MODULE_DIRS)
+    if (${OPENDAQ_MODULE_EVAL_EXPR})
+        if (NOT IS_DIRECTORY "${OPENDAQ_MODULE_DIR}")
+            message(FATAL_ERROR "Specified module directory ${OPENDAQ_MODULE_DIR} does not exist")
+        endif()
+        include("${OPENDAQ_MODULE_DIR}/external/boost/Boost.cmake" OPTIONAL)
+    endif()
+endforeach()
+include("${PROJ_DIR}/external/boost/Boost.cmake")
+opendaq_complete_boost_dependency()
+
 add_subdirectory(external)
+# external dependencies required for core are completed at this point
 
 add_subdirectory(core)
 add_subdirectory(modules)
+if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE))
+    add_subdirectory("${LT_MODULES_SOURCE_DIR}" "${LT_MODULES_BINARY_DIR}")
+endif()
+if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE))
+    add_subdirectory("${OPCUA_MODULES_SOURCE_DIR}" "${OPCUA_MODULES_BINARY_DIR}")
+endif()
 add_subdirectory(shared)
 add_subdirectory(examples)
 add_subdirectory(bindings)
@@ -537,7 +545,7 @@ if (DEFINED mdns_SOURCE_DIR)
         FILES "${mdns_SOURCE_DIR}/mdns.h"
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
-else ()
+else()
     message(ERROR "missing mdns dependency")
 endif()
 

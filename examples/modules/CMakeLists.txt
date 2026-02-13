@@ -46,6 +46,7 @@ endif()
 
 if (DAQMODULES_EMPTY_MODULE)
     message(STATUS "Empty module")
+    set(EMPTY_MODULE_ENABLE_TESTS ${OPENDAQ_ENABLE_TESTS} CACHE BOOL "")
     add_subdirectory(empty_module)
 endif()
 
@@ -56,6 +57,7 @@ endif()
 
 if (DAQMODULES_REF_FB_MODULE)
     message(STATUS "Reference function block module")
+    set(DAQMODULES_REF_FB_MODULE_ENABLE_TESTS ${OPENDAQ_ENABLE_TESTS} CACHE BOOL "")
     add_subdirectory(ref_fb_module)
 endif()
 

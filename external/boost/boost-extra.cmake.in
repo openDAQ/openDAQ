@@ -51,8 +51,37 @@ if(Boost_VERSION)
     endif()
 endif()
 
-# Reset the Boost libraries with the fetched libraries
-set(Boost_LIBRARIES @BOOST_INCLUDE_LIBRARIES@)
+# Reset the Boost libraries
+unset(Boost_LIBRARIES)
+
+# Get a list of all Boost libraries recursively
+function(get_boost_libraries DIR)
+    # Get libraries in the current folder
+    get_directory_property(LOCAL_LIBRARIES DIRECTORY "${DIR}" BUILDSYSTEM_TARGETS)
+
+    # Add them to the list
+    list(APPEND Boost_LIBRARIES ${LOCAL_LIBRARIES})
+
+    # Look for subdirectories and recurse
+    get_directory_property(SUBDIRS DIRECTORY "${DIR}" SUBDIRECTORIES)
+    foreach(SUBDIR IN LISTS SUBDIRS)
+        get_boost_libraries("${SUBDIR}")
+    endforeach()
+
+    set(Boost_LIBRARIES ${Boost_LIBRARIES} PARENT_SCOPE)
+endfunction()
+
+# Get a list of all available Boost targets
+get_boost_libraries("${boost_SOURCE_DIR}")
+list(REMOVE_DUPLICATES Boost_LIBRARIES)
+
+# Only include libraries prepended with 'boost_'
+list(FILTER Boost_LIBRARIES INCLUDE REGEX "^boost_.+")
+
+# Remove the prepended 'boost_' from the libraries to get the components
+# This is updated at the end of the script to set the components in the Boost
+# namespace
+list(TRANSFORM Boost_LIBRARIES REPLACE "boost_" "")
 
 # Filter the Boost libraries by the requested components (or all found for empty component lists)
 if(Boost_FIND_COMPONENTS AND NOT Boost_FIND_COMPONENTS STREQUAL "ALL")
@@ -70,6 +99,8 @@ if(Boost_FIND_COMPONENTS AND NOT Boost_FIND_COMPONENTS STREQUAL "ALL")
                 list(REMOVE_ITEM Boost_LIBRARIES ${Boost_LIBRARY})
             endif()
         endforeach()
+
+        unset(Boost_FIND_ALL)
     else()
         # Typical behavior in boost-config.cmake is that the ALL component must
         # only be used without other components
@@ -83,13 +114,8 @@ unset(Boost_INCLUDE_DIRS)
 foreach(Boost_LIBRARY IN LISTS Boost_LIBRARIES)
     # Confirm each requested Boost library exists
     if(NOT TARGET Boost::${Boost_LIBRARY})
-        # The target doesn't exist at all
-        if(NOT TARGET boost_${Boost_LIBRARY})
-            message(FATAL_ERROR "boost_${Boost_LIBRARY} is not a valid target")
-        else()
-            # Create the aliased target since it doesn't exist
-            add_library(Boost::${Boost_LIBRARY} ALIAS boost_${Boost_LIBRARY})
-        endif()
+        # Create the aliased target since it doesn't exist
+        add_library(Boost::${Boost_LIBRARY} ALIAS boost_${Boost_LIBRARY})
     endif()
 
     # These should NEVER be CACHE variables

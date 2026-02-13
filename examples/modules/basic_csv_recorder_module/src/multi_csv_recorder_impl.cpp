@@ -261,6 +261,9 @@ bool MultiCsvRecorderImpl::updateInputPorts()
 
 void MultiCsvRecorderImpl::createReader()
 {
+    if (!disconnectedPort.assigned())
+        return;
+
     reader.dispose();
     auto builder = MultiReaderBuilder()
                        .setDomainReadType(SampleType::Int64)
@@ -268,10 +271,8 @@ void MultiCsvRecorderImpl::createReader()
                        .setAllowDifferentSamplingRates(false)
                        .setInputPortNotificationMethod(notificationMode);
 
-    if (disconnectedPort.assigned())
-    {
-        builder.addInputPort(disconnectedPort);
-    }
+    builder.addInputPort(disconnectedPort);
+
     reader = builder.build();
     reader.setInputUnused(disconnectedPort.getGlobalId(), true);
 

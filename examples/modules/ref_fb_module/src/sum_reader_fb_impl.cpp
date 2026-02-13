@@ -149,6 +149,9 @@ bool SumReaderFbImpl::updateInputPorts()
 
 void SumReaderFbImpl::createReader()
 {
+    if (!disconnectedPort.assigned())
+        return;
+
     // Disposing the reader is necessary to release port ownership
     reader.dispose();
     auto builder = MultiReaderBuilder()
@@ -157,10 +160,7 @@ void SumReaderFbImpl::createReader()
                        .setAllowDifferentSamplingRates(false)
                        .setInputPortNotificationMethod(notificationMode);
 
-    if (disconnectedPort.assigned())
-    {
-        builder.addInputPort(disconnectedPort);
-    }
+    builder.addInputPort(disconnectedPort);
 
     reader = builder.build();
     reader.setInputUnused(disconnectedPort.getGlobalId(), true);

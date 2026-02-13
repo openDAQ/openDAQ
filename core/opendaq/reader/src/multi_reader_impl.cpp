@@ -385,7 +385,7 @@ MultiReaderImpl::InputType MultiReaderImpl::sourceComponentsType(const ListPtr<I
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid component type, only IInputPort and ISignal are supported.");
 }
 
-std::vector<SignalReader>::iterator MultiReaderImpl::findByGlobalId(const StringPtr& id)
+std::list<SignalReader>::iterator MultiReaderImpl::findByGlobalId(const StringPtr& id)
 {
     return std::find_if(signals.begin(), signals.end(), [&](auto& reader) { return id == reader.getComponentGlobalId(); });
 }
@@ -472,7 +472,6 @@ void MultiReaderImpl::configureAndStorePorts(const ListPtr<IInputPortConfig>& in
         }
 
         signals.emplace_back(port, valueRead, domainRead, mode, loggerComponent, typeOfInputs == InputType::Signals);
-
         cnt++;
     }
 
@@ -564,8 +563,11 @@ void MultiReaderImpl::setStartInfo()
     LOG_T("<----")
     LOG_T("Setting start info:")
 
-    // TODO: Check for signals being empty (only unused)
-    auto& firstDomain = signals[0].domainInfo;
+    if (signals.empty())
+    {
+        return;
+    }
+    auto& firstDomain = signals.front().domainInfo;
     RatioPtr maxResolution = firstDomain.resolution;
     system_clock::time_point minEpoch = firstDomain.epoch;
     for (auto& signal : signals)
@@ -622,7 +624,7 @@ ErrCode MultiReaderImpl::getValueReadType(SampleType* sampleType)
         // value read type may differ from what was configured (e. g. Undefined -> Int64).
         // The SignalReader will instantiate the appropriate type reader when descriptors change.
         // Shouldn't be relied on if different signals are read simultaneously.
-        *sampleType = signals[0].valueReader->getReadType();
+        *sampleType = signals.front().valueReader->getReadType();
     else
         *sampleType = valueReadType;
     return OPENDAQ_SUCCESS;
@@ -736,6 +738,8 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::removeInput(IString* globalId)
         return OPENDAQ_NOTFOUND;
 
     signals.erase(it);
+    // Reset common start to avoid holding a reference to the deleted signal reader.
+    commonStart = nullptr;
 
     portsConnected = allPortsConnected();
     if (!portsConnected)
@@ -1100,7 +1104,10 @@ bool MultiReaderImpl::dataPacketsOrEventReady()
 
 NumberPtr MultiReaderImpl::calculateOffset() const
 {
-    const auto& firstSignal = signals[0];
+    if (signals.empty())
+        return 0;
+
+    const auto& firstSignal = signals.front();
     auto domainPacket = firstSignal.info.dataPacket.getDomainPacket();
     if (domainPacket.assigned() && domainPacket.getOffset().assigned())
     {
@@ -1391,10 +1398,12 @@ void MultiReaderImpl::prepare(void** outValues, SizeT count, std::chrono::millis
 
     const SizeT alignedCount = (count / sampleRateDividerLcm) * sampleRateDividerLcm;
 
-    for (SizeT i = 0u; i < signals.size(); ++i)
+    SizeT i = 0;
+    for (auto& signal : signals)
     {
         const auto outPtr = outValues != nullptr ? outValues[i] : nullptr;
-        signals[i].prepare(outPtr, alignedCount);
+        signal.prepare(outPtr, alignedCount);
+        ++i;
     }
 }
 
@@ -1410,9 +1419,11 @@ void MultiReaderImpl::prepareWithDomain(void** outValues, void** domain, SizeT c
 
     const SizeT alignedCount = (count / sampleRateDividerLcm) * sampleRateDividerLcm;
 
-    for (SizeT i = 0u; i < signals.size(); ++i)
+    SizeT i = 0;
+    for (auto& signal : signals)
     {
-        signals[i].prepareWithDomain(outValues[i], domain[i], alignedCount);
+        signal.prepareWithDomain(outValues[i], domain[i], alignedCount);
+        ++i;
     }
 }
 
@@ -1623,7 +1634,7 @@ ErrCode MultiReaderImpl::getValueTransformFunction(IFunction** transform)
         return OPENDAQ_ERR_INVALIDSTATE;
     }
 
-    *transform = signals[0].valueReader->getTransformFunction().addRefAndReturn();
+    *transform = signals.front().valueReader->getTransformFunction().addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -1639,7 +1650,7 @@ ErrCode MultiReaderImpl::getDomainTransformFunction(IFunction** transform)
         return OPENDAQ_ERR_INVALIDSTATE;
     }
 
-    *transform = signals[0].domainReader->getTransformFunction().addRefAndReturn();
+    *transform = signals.front().domainReader->getTransformFunction().addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }

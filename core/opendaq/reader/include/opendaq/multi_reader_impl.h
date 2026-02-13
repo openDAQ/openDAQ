@@ -165,7 +165,7 @@ private:
         Ports,
     };
     InputType sourceComponentsType(const ListPtr<IComponent>& sources) const;
-    std::vector<SignalReader>::iterator findByGlobalId(const StringPtr& id);
+    std::list<SignalReader>::iterator findByGlobalId(const StringPtr& id);
 
     std::mutex mutex;
     std::mutex packetReceivedMutex;
@@ -192,7 +192,7 @@ private:
     bool sameSampleRates = false;
     Bool allowDifferentRates = true;
 
-    std::vector<SignalReader> signals;
+    std::list<SignalReader> signals;
 
     PropertyObjectPtr portBinder;
     ProcedurePtr readCallback;

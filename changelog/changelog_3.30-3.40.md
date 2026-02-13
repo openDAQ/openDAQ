@@ -8,6 +8,7 @@
 - [#1000](https://github.com/openDAQ/openDAQ/pull/1000) Added a mode to the CSV recorder that allows data from multiple same-rate signals to be written to a single file.
 - [#1018](https://github.com/openDAQ/openDAQ/pull/1018) Optimized multireader synchronization for linear data rule domain signals by avoiding iteration through timestamps.
 - [#1034](https://github.com/openDAQ/openDAQ/pull/1034) Add string support for data packets and signals
+- [#1036](https://github.com/openDAQ/openDAQ/pull/1036) Allow creation of empty multi reader, add/remove inputs dyinamically. Mark inputs as invalid to ignore sync failures from specific ports.
 - [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Function blocks and devices of which type is not in their parent's `getAvailableFunctionBlock/DeviceTypes` output can no longer be removed.
 
 ## Python

@@ -83,6 +83,7 @@ public:
 
     uint16_t getProtocolVersion() const;
     void setProtocolVersion(uint16_t protocolVersion);
+    SerializerPtr createSerializer();
 
 private:
     using DispatchFunction = std::function<BaseObjectPtr(const ParamsDictPtr&)>;
@@ -93,7 +94,6 @@ private:
     ContextPtr daqContext;
     NotificationReadyCallback notificationReadyCallback;
     DeserializerPtr deserializer;
-    SerializerPtr serializer;
     SerializerPtr notificationSerializer;
     std::unordered_map<std::string, DispatchFunction> rpcDispatch;
     std::mutex notificationSerializerLock;

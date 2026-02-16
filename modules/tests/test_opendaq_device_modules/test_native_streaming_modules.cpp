@@ -935,3 +935,115 @@ TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
+
+TEST_F(NativeStreamingModulesTest, ParallelRpcCalls)
+{
+    std::vector<size_t> propertyWriteHistory;
+
+    auto createServerInstance = [&propertyWriteHistory]()
+    {
+        const InstancePtr instance = InstanceBuilder().addModulePath("").build();
+
+        auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+        {
+            Int sleepMs = args.getValue();
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+            propertyWriteHistory.push_back(sleepMs);
+        };
+
+        auto refDevice0 = instance.addDevice("daqref://device0");
+        refDevice0.addProperty(IntProperty("SleepAndAppend", 0));
+        refDevice0.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
+
+        auto refDevice1 = instance.addDevice("daqref://device1");
+        refDevice1.addProperty(IntProperty("SleepAndAppend", 0));
+        refDevice1.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
+
+        auto config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+        config.setPropertyValue("StreamingWorkerCount", 2);
+        instance.addServer("OpenDAQNativeStreaming", config);
+        return instance;
+    };
+
+    auto connectClient = [](const std::string& connectionString)
+    {
+        const InstancePtr instance = Instance("");
+        instance.addDevice(connectionString);
+        return instance;
+    };
+
+    auto serverInstance = createServerInstance();
+    auto clientInstance = connectClient("daq.nd://127.0.0.1");
+
+    auto rootDevice = clientInstance.getDevices()[0];
+    auto devices = rootDevice.getDevices();
+
+    std::vector<std::thread> threads;
+
+    threads.push_back(std::thread([devices]() { devices[0].setPropertyValue("SleepAndAppend", 500); }));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    threads.push_back(std::thread([devices]() { devices[1].setPropertyValue("SleepAndAppend", 100); }));
+
+    for (auto& thread : threads)
+        thread.join();
+
+    // Device 1 should be the first to append a value of 100 to the list. After 300 ms device 0 should follow with value of 500
+    ASSERT_EQ(propertyWriteHistory.size(), 2u);
+    ASSERT_EQ(propertyWriteHistory[0], 100);
+    ASSERT_EQ(propertyWriteHistory[1], 500);
+}
+
+TEST_F(NativeStreamingModulesTest, ParallelRpcCallsDefault)
+{
+    std::vector<size_t> propertyWriteHistory;
+
+    auto createServerInstance = [&propertyWriteHistory]()
+    {
+        const InstancePtr instance = InstanceBuilder().addModulePath("").build();
+
+        auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+        {
+            Int sleepMs = args.getValue();
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+            propertyWriteHistory.push_back(sleepMs);
+        };
+
+        auto refDevice0 = instance.addDevice("daqref://device0");
+        refDevice0.addProperty(IntProperty("SleepAndAppend", 0));
+        refDevice0.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
+
+        auto refDevice1 = instance.addDevice("daqref://device1");
+        refDevice1.addProperty(IntProperty("SleepAndAppend", 0));
+        refDevice1.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
+
+        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        return instance;
+    };
+
+    auto connectClient = [](const std::string& connectionString)
+    {
+        const InstancePtr instance = Instance("");
+        instance.addDevice(connectionString);
+        return instance;
+    };
+
+    auto serverInstance = createServerInstance();
+    auto clientInstance = connectClient("daq.nd://127.0.0.1");
+
+    auto rootDevice = clientInstance.getDevices()[0];
+    auto devices = rootDevice.getDevices();
+
+    std::vector<std::thread> threads;
+
+    threads.push_back(std::thread([devices]() { devices[0].setPropertyValue("SleepAndAppend", 500); }));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    threads.push_back(std::thread([devices]() { devices[1].setPropertyValue("SleepAndAppend", 100); }));
+
+    for (auto& thread : threads)
+        thread.join();
+
+    // By default, RPC calls should be executed sequentially, so trigger order should be preserved
+    ASSERT_EQ(propertyWriteHistory.size(), 2u);
+    ASSERT_EQ(propertyWriteHistory[0], 500);
+    ASSERT_EQ(propertyWriteHistory[1], 100);
+}

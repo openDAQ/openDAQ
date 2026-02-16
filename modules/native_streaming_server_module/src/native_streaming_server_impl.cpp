@@ -44,6 +44,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     if (info.hasServerCapability("OpenDAQNativeConfiguration"))
         DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQNativeConfiguration server capability.", info.getName()));
 
+    initWorkerPool();
     startProcessingOperations();
     startTransportOperations();
 
@@ -165,6 +166,33 @@ void NativeStreamingServerImpl::coreEventCallback(ComponentPtr& sender, CoreEven
     }
 }
 
+void NativeStreamingServerImpl::initWorkerPool()
+{
+    workerPool = nullptr;
+    Int workerCount = 1;
+
+    if (config.hasProperty("StreamingWorkerCount"))
+    {
+        workerCount = config.getPropertyValue("StreamingWorkerCount");
+
+        if (workerCount == 0)
+            workerCount = std::thread::hardware_concurrency();
+
+        if (workerCount > 1)
+            workerPool = std::make_shared<boost::asio::thread_pool>(workerCount);
+    }
+
+    LOG_I("Config protocol worker count: {}", workerCount);
+}
+
+std::function<void(std::function<void()>)> NativeStreamingServerImpl::createBoostDispatchCallback()
+{
+    if (workerPool)
+        return [this](std::function<void()> f) { boost::asio::dispatch(*workerPool, std::move(f)); };
+    else
+        return [this](std::function<void()> f) { boost::asio::dispatch(processingIOContext, processingStrand.wrap(std::move(f))); };
+}
+
 void NativeStreamingServerImpl::startTransportOperations()
 {
     transportThread = std::thread(
@@ -216,6 +244,12 @@ void NativeStreamingServerImpl::startProcessingOperations()
 
 void NativeStreamingServerImpl::stopProcessingOperations()
 {
+    if (workerPool)
+    {
+        workerPool->join();
+        LOG_I("Config protocol worker pool joined");
+    }
+
     processingIOContext.stop();
     if (processingThread.get_id() != std::this_thread::get_id())
     {
@@ -293,27 +327,24 @@ void NativeStreamingServerImpl::prepareServerHandler()
         if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         {
             auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user, connectionType, this->signals);
-            processConfigRequestCb =
-                [this, configServer, sendConfigPacketCb](PacketBuffer&& packetBuffer)
+            const auto boostDispatch = createBoostDispatchCallback();
+
+            processConfigRequestCb = [this, configServer, sendConfigPacketCb, boostDispatch](PacketBuffer&& packetBuffer)
             {
                 auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
-                boost::asio::dispatch(
-                    processingIOContext,
-                    processingStrand.wrap(
-                        [configServer, sendConfigPacketCb, packetBufferPtr]()
+                boostDispatch(
+                    [configServer, sendConfigPacketCb, packetBufferPtr]()
+                    {
+                        if (packetBufferPtr->getPacketType() == config_protocol::PacketType::NoReplyRpc)
                         {
-                            if (packetBufferPtr->getPacketType() == config_protocol::PacketType::NoReplyRpc)
-                            {
-                                configServer->processNoReplyRequest(*packetBufferPtr);
-                            }
-                            else
-                            {
-                                auto replyPacketBuffer = configServer->processRequestAndGetReply(*packetBufferPtr);
-                                sendConfigPacketCb(replyPacketBuffer);
-                            }
+                            configServer->processNoReplyRequest(*packetBufferPtr);
                         }
-                    )
-                );
+                        else
+                        {
+                            auto replyPacketBuffer = configServer->processRequestAndGetReply(*packetBufferPtr);
+                            sendConfigPacketCb(replyPacketBuffer);
+                        }
+                    });
             };
 
             auto packetStreamingClient = std::make_shared<packet_streaming::PacketStreamingClient>();

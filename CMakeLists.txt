@@ -21,7 +21,7 @@ if (package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
     set(OPENDAQ_IS_RELEASE_VERSION ON)
 endif()
 
-# defined as cache variable to be visible by any parent project
+# defined as cache variable to be visible by any project
 set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}" CACHE INTERNAL "openDAQ SDK version")
 
 # 32-bit Linux cross-compilation setup (must be before any project())

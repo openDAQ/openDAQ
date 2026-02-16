@@ -220,6 +220,7 @@ set(SRC_PublicHeaders
     struct_type.h
     struct_type_ptr.h
     struct_type_factory.h
+    struct_impl.h
 
     type_manager.h
     type_manager_private.h
@@ -267,7 +268,6 @@ set(SRC_PrivateHeaders baseobject_impl.h
                        iterator_base_impl.h
                        errorinfo_impl.h
                        version_info_impl.h
-                       struct_impl.h
                        type_impl.h
                        struct_type_impl.h
                        type_manager_impl.h

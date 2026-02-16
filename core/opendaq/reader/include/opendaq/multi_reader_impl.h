@@ -21,6 +21,8 @@
 #include <opendaq/multi_reader_builder_ptr.h>
 #include <opendaq/reader_factory.h>
 
+#include <list>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 class MultiReaderImpl : public ImplementationOfWeak<IMultiReader, IReaderConfig, IInputPortNotifications>

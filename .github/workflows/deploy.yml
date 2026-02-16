@@ -102,8 +102,6 @@ jobs:
           retention-days: 7
 
       - name: Call the API to deploy the documentation
-        # TODO: Enable step before merge
-        if: false
         run: |
           BRANCH="${{ needs.resolve.outputs.branch }}"
           case "$BRANCH" in
@@ -146,8 +144,7 @@ jobs:
       RUN_ID: ${{ needs.resolve.outputs.run-id }}
       BRANCH: ${{ needs.resolve.outputs.branch }}
       DOWNLOAD_PATH: ${{ github.workspace }}/_artifacts/download
-      # TODO: Change to 'releases' before merge
-      DST_ROOT_DIR: sandbox
+      DST_ROOT_DIR: releases
       SDK_DIR: SDK
       WHEELS_LINUX_X64_DIR: Python Wheels (Linux x86_64)
       WHEELS_WINDOWS_X64_DIR: Python Wheels (Windows amd64)

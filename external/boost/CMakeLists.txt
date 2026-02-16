@@ -1,0 +1,2 @@
+opendaq_ignore_compiler_warnings()
+opendaq_complete_boost_dependency()

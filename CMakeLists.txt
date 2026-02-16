@@ -475,7 +475,7 @@ foreach(OPENDAQ_MODULE_EVAL_EXPR OPENDAQ_MODULE_DIR IN ZIP_LISTS OPENDAQ_MODULE_
     endif()
 endforeach()
 include("${PROJ_DIR}/external/boost/Boost.cmake")
-opendaq_complete_boost_dependency()
+add_subdirectory(external/boost)
 
 add_subdirectory(external)
 # external dependencies required for core are completed at this point

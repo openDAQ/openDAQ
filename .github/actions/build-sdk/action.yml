@@ -2,8 +2,16 @@ name: Build openDAQ SDK
 description: Configure, build and test openDAQ SDK
 
 inputs:
+  skip-setup-python:
+    description: 'Skip actions/setup-python (for containers with pre-installed Python)'
+    required: false
+    default: 'false'
+  skip-setup-ninja:
+    description: 'Skip ninja-build installation action (for containers with pre-installed ninja)'
+    required: false
+    default: 'false'
   additional-dependencies:
-    description: 'Additional packages to install (apt on Linux, choco on Windows)'
+    description: 'Additional packages to install (apt/yum on Linux, choco on Windows, brew on macOS)'
     required: false
     default: ''
   cmake-generator:
@@ -50,6 +58,18 @@ inputs:
     description: 'Generate C# bindings (true/false/empty). Empty = use preset or cmake-config-args'
     required: false
     default: ''
+  upload-artifact:
+    description: 'Upload installer as artifact (true/false)'
+    required: false
+    default: 'false'
+  package-artifact-name:
+    description: 'Artifact name for installer upload. If empty, uses package-name from cpack output'
+    required: false
+    default: ''
+  package-artifact-retention-days:
+    description: 'Retention days for installer artifact'
+    required: false
+    default: '7'
 
 outputs:
   build-path:
@@ -78,8 +98,25 @@ runs:
           exit 1
         fi
 
+    - name: Detect package manager
+      id: detect-linux
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        if command -v apt-get &> /dev/null; then
+          echo "pkg-manager=apt" >> $GITHUB_OUTPUT
+        elif command -v yum &> /dev/null; then
+          echo "pkg-manager=yum" >> $GITHUB_OUTPUT
+        else
+          echo "::error::Can not detect package manager: expected apt or yum"
+          exit 1
+        fi
+
     - name: Set up Python
-      if: ${{ inputs.generate-python-bindings != 'false' && !(inputs.enable-32bit == 'true' && runner.os == 'Linux') }}
+      if: |
+        inputs.skip-setup-python != 'true' &&
+        inputs.generate-python-bindings != 'false' &&
+        !(inputs.enable-32bit == 'true' && runner.os == 'Linux')
       uses: actions/setup-python@v5
       with:
         python-version: '3.14'
@@ -94,7 +131,7 @@ runs:
       run: choco install ${{ inputs.additional-dependencies }} -y --no-progress
 
     - name: Remove conflicting packages (for 32-bit build)
-      if: runner.os == 'Linux' && inputs.enable-32bit == 'true'
+      if: steps.detect-linux.outputs.pkg-manager == 'apt' && inputs.enable-32bit == 'true'
       shell: bash
       run: |
         echo "Removing bootloader packages that conflict with i386 multi-arch"
@@ -107,32 +144,30 @@ runs:
         fi
         sudo apt-get autoremove -y
 
-    - name: Install Linux dependencies
-      if: runner.os == 'Linux'
+    - name: Install Linux dependencies (apt)
+      if: steps.detect-linux.outputs.pkg-manager == 'apt'
       shell: bash
       env:
         ENABLE_32BIT: ${{ inputs.enable-32bit }}
       run: |
-        DEV_PACKAGES=(
-          libx11-dev
-          libxi-dev
-          libxcursor-dev
-          libxrandr-dev
-          libgl-dev
-          libudev-dev
-          libfreetype6-dev
-        )
-
         if [ "$ENABLE_32BIT" == "true" ]; then
           sudo dpkg --add-architecture i386
-          DEV_PACKAGES=("${DEV_PACKAGES[@]/%/:i386}" python3:i386 python3-dev:i386 gcc-multilib g++-multilib \
-            libx11-6:i386 libxrandr2:i386 libxcursor1:i386 libxi6:i386 libgl1:i386)
+          PKG_FILE=".github/packages/apt-i386.txt"
+        else
+          PKG_FILE=".github/packages/apt.txt"
         fi
 
         sudo apt-get update && sudo apt-get install -y --no-install-recommends \
           ${{ inputs.additional-dependencies || '' }} \
-          lld mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-          "${DEV_PACKAGES[@]}"
+          $(cat "$PKG_FILE")
+
+    - name: Install Linux dependencies (yum)
+      if: steps.detect-linux.outputs.pkg-manager == 'yum'
+      shell: bash
+      run: |
+        yum install -y \
+          ${{ inputs.additional-dependencies }} \
+          $(cat .github/packages/yum.txt)
 
     - name: Install macOS dependencies
       if: runner.os == 'macOS'
@@ -141,8 +176,8 @@ runs:
         HOMEBREW_NO_AUTO_UPDATE=1 brew install mono ${{ inputs.additional-dependencies }}
 
     - name: Install ninja-build
-      if: inputs.cmake-generator == 'Ninja'
-      uses: seanmiddleditch/gha-setup-ninja@v5
+      if: inputs.cmake-generator == 'Ninja' && inputs.skip-setup-ninja != 'true'
+      uses: seanmiddleditch/gha-setup-ninja@v6
 
     - name: Setup MSYS2 MINGW64
       if: runner.os == 'Windows' && env.CXX == 'g++'
@@ -170,7 +205,10 @@ runs:
       uses: ./.github/actions/setup-compiler-icx
 
     - name: Install Python dependencies
-      if: ${{ inputs.generate-python-bindings != 'false' && !(inputs.enable-32bit == 'true' && runner.os == 'Linux') }}
+      if: |
+        inputs.skip-setup-python != 'true' &&
+        inputs.generate-python-bindings != 'false' &&
+        !(inputs.enable-32bit == 'true' && runner.os == 'Linux')
       shell: bash
       run: |
         echo "Installing numpy for Python: $(python --version)"
@@ -334,3 +372,11 @@ runs:
         else
           echo "package-path=$PACKAGE_FILE_PATH" >> $GITHUB_OUTPUT
         fi
+
+    - name: Upload Installer
+      if: inputs.cpack-generator != '' && inputs.upload-artifact == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.package-artifact-name || steps.build-installer.outputs.package-name }}
+        path: ${{ steps.build-installer.outputs.package-path }}
+        retention-days: ${{ inputs.package-artifact-retention-days }}

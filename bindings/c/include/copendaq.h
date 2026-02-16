@@ -131,7 +131,6 @@ extern "C"
 
 #include <copendaq/functionblock/channel.h>
 #include <copendaq/functionblock/function_block_type.h>
-#include <copendaq/functionblock/function_block_wrapper.h>
 #include <copendaq/functionblock/function_block.h>
 #include <copendaq/functionblock/recorder.h>
 

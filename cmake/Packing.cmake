@@ -63,9 +63,6 @@ set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
 
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 
-# Package name for deb. If set, then instead of some-application-0.9.2-Linux.deb
-# the package name will be some-application_0.9.2_amd64.deb (note the underscores too)
-set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "openDAQ SDK")
 
 # Currently we bundle xxHash together in the one-large-package with all the dependencies bundled-in

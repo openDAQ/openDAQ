@@ -32,6 +32,7 @@ set(TEST_SOURCES
     test_reference_domain_info.cpp
     test_bulk_data_packet.cpp
     test_wrapped_data_packet.cpp
+    test_cyclic_ref_check.cpp
 )
 
 if (OPENDAQ_MIMALLOC_SUPPORT)

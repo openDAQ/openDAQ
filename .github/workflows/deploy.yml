@@ -62,8 +62,6 @@ jobs:
     outputs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
-      short_sha: ${{ steps.short-sha.outputs.sha }}
-      # step short-sha might be skipped which leaves output "sha" empty/null
 
     steps:
       - name: Checkout
@@ -960,7 +958,6 @@ jobs:
         # linux_test_path: ''
         windows_x64_artifact_name:  ${{ needs.deploy_windows.outputs.windows_x64_artifact_name }}
         linux_x64_artifact_name:  ${{ needs.deploy_linux.outputs.linux_x64_artifact_name }}
-        short_sha: ${{ needs.deploy_windows.outputs.short_sha }}
       # -> output.nuget_artifact_name
 
   deploy_nuget:

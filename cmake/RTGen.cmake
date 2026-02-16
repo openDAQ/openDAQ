@@ -35,19 +35,19 @@
 #
 #---------------------------------------------------------------------------------
 function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
-    if (NOT DEFINED RTGEN_OUTPUT_DIR)
+    if(NOT DEFINED RTGEN_OUTPUT_DIR)
         message(FATAL_ERROR "RTGen Output directory is not defined!")
     endif()
 
-    if (NOT DEFINED RTGEN_HEADERS_DIR)
+    if(NOT DEFINED RTGEN_HEADERS_DIR)
         message(FATAL_ERROR "RTGen Headers directory is not defined!")
     endif()
 
-    if (NOT DEFINED RTGEN_LIBRARY_NAME)
+    if(NOT DEFINED RTGEN_LIBRARY_NAME)
         set(RTGEN_LIBRARY_NAME ${PROJECT_NAME})
     endif()
-	
-	if (NOT DEFINED RTGEN_CURR_BINDINGS_DIR)
+
+    if(NOT DEFINED RTGEN_CURR_BINDINGS_DIR)
         set(RTGEN_CURR_BINDINGS_DIR ${CMAKE_CURRENT_BINARY_DIR}/../bindings)
     endif()
 
@@ -80,7 +80,7 @@ function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
         list(APPEND RTGEN_OPTIONS_GLOBAL -nt)
     endif()
 
-    if (LANGUAGES STREQUAL "ALL")
+    if(LANGUAGES STREQUAL "ALL")
         set(ARGN cpp delphi python)
     else()
         set(ARGN ${LANGUAGES})
@@ -91,18 +91,18 @@ function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
 
         string(TOLOWER "${LANG}" LOWERCASE_LANG)
 
-        if (LOWERCASE_LANG STREQUAL "cpp")
+        if(LOWERCASE_LANG STREQUAL "cpp")
             # If geneating Cpp add SmartPtr switch
             # Set the output directory to generated headers dir (The output directory must exist).
             list(APPEND RTGEN_OPTIONS -p)
-        elseif (LOWERCASE_LANG STREQUAL "delphi")
+        elseif(LOWERCASE_LANG STREQUAL "delphi")
             list(APPEND RTGEN_OPTIONS -cns OpenDAQ)
         endif()
 
-        if (NOT LOWERCASE_LANG STREQUAL "cpp")
+        if(NOT LOWERCASE_LANG STREQUAL "cpp")
             # If generating bindings set the output directory to "bindings/{LANG}"
             # Create the directory if it doesn't exist yet
-            if (LOWERCASE_LANG STREQUAL "csharp")
+            if(LOWERCASE_LANG STREQUAL "csharp")
                 set(RTGEN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build/bindings/${LANG}/${RTGEN_RELATIVE_PARENT_DIR}")
             else()
                 set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
@@ -110,57 +110,98 @@ function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
         endif()
 
         # Create the directory if it doesn't exist yet
-        if (NOT EXISTS RTGEN_OUTPUT_DIR)
+        if(NOT EXISTS RTGEN_OUTPUT_DIR)
             opendaq_create_dir(${RTGEN_OUTPUT_DIR})
         endif()
 
-        if (RTGEN_NAMESPACE)
-            if (LOWERCASE_LANG STREQUAL "delphi" AND RTGEN_NAMESPACE STREQUAL "${SDK_TARGET_NAMESPACE}")
+        if(RTGEN_NAMESPACE)
+            if(LOWERCASE_LANG STREQUAL "delphi" AND RTGEN_NAMESPACE STREQUAL "${SDK_TARGET_NAMESPACE}")
                 list(APPEND RTGEN_OPTIONS -ns "OpenDAQ")
             else()
                 list(APPEND RTGEN_OPTIONS -ns ${RTGEN_NAMESPACE})
             endif()
         endif()
 
-        if (LOWERCASE_LANG STREQUAL "csharp")
+        if(LOWERCASE_LANG STREQUAL "csharp")
             modify_or_set_namespace(RTGEN_OPTIONS RTGEN_NAMESPACE ${RTGEN_RELATIVE_PARENT_DIR})
         endif()
 
         set(_LANG_COMMAND ${MONO_C} ${RTGEN}
                                     ${RTGEN_OPTIONS}
                                     -ln ${RTGEN_LIBRARY_NAME}
-                                    -d "\"${RTGEN_OUTPUT_DIR}\""
+                                    -d "${RTGEN_OUTPUT_DIR}"
                                     -f "\"${RTGEN_OUTPUT_SRC_DIR}\""
                                     --lang ${LOWERCASE_LANG}
-                                    --source="${FILENAME}" &&)
-        set(RTGEN_COMMAND ${RTGEN_COMMAND} ${_LANG_COMMAND})
+                                    --source "${FILENAME}")
 
-        if (DEFINED RTGEN_VERBOSE)
+        # Add && to concatenate multiple commands
+        list(APPEND RTGEN_COMMAND ${_LANG_COMMAND} &&)
+
+        if(DEFINED RTGEN_VERBOSE)
             message(STATUS "Adding RTGen command:")
             message(STATUS "${_LANG_COMMAND}")
         endif()
     endforeach()
 
     # Remove the trailing "&&"
-    string(LENGTH "${RTGEN_COMMAND}" _COMMAND_LENGTH)
-    math(EXPR _COMMAND_LENGTH "${_COMMAND_LENGTH}-2")
-    string(SUBSTRING "${RTGEN_COMMAND}" 0 ${_COMMAND_LENGTH} RTGEN_COMMAND)
-	
+    list(REMOVE_AT RTGEN_COMMAND -1)
+
+    # Shared message for both methods of RTGen
+    set(RTGEN_OUTPUT_MESSAGE "Generating bindings for: ${_FILENAME}")
+
+    # Run RT generation during CMake configuration/generation
+    # This is useful to make sure the generated files are available without
+    # the need to build the project during development
+    if(OPENDAQ_RTGEN_ON_CMAKE_CONFIG)
+        # Check to make sure all the dependencies exist to execute the command
+        set(RTGEN_DEPENDS_EXIST ON)
+        foreach(RTGEN_DEPENDENT_SOURCE IN LISTS RTGEN_DEPENDENT_SOURCES FILENAME)
+            # If any of the dependant files don't exist generation will fail
+            if(NOT EXISTS ${RTGEN_DEPENDENT_SOURCE})
+                message(WARNING "The dependant file ${RTGEN_DEPENDENT_SOURCE} does not exist for the RT generation process")
+                set(RTGEN_DEPENDS_EXIST OFF)
+            endif()
+        endforeach()
+
+        if(RTGEN_DEPENDS_EXIST)
+            # Mark the outfiles as generated
+            set_source_files_properties(${${OUTFILES_VAR}} PROPERTIES
+                GENERATED ON
+            )
+
+            # Only generate if any of the generated files don't already exist
+            foreach(OUTFILE_VAR IN LISTS ${OUTFILES_VAR})
+                if(NOT EXISTS "${OUTFILE_VAR}")
+                    message(STATUS "${RTGEN_OUTPUT_MESSAGE}")
+                    execute_process(
+                        COMMAND ${RTGEN_COMMAND}
+                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+                    )
+
+                    break()
+                endif()
+            endforeach()
+        else()
+            message(WARNING "Some dependant files are missing for RT generation to run at configure time")
+        endif()
+    endif()
+
+    # Run RT generation as part of the build process
     add_custom_command(
         OUTPUT ${${OUTFILES_VAR}}
         COMMAND ${RTGEN_COMMAND}
         MAIN_DEPENDENCY ${FILENAME}
         DEPENDS ${RTGEN} ${RTGEN_DEPENDENT_SOURCES}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        COMMENT "Generating bindings for: ${_FILENAME}"
+        COMMENT "${RTGEN_OUTPUT_MESSAGE}"
         #VERBATIM
     )
 endfunction(_rtgen_interface)
 
 function(opendaq_set_generated FILE TYPE)
     set_source_files_properties(${FILE} PROPERTIES GENERATED TRUE)
-	
-    if (TYPE STREQUAL "HEADER")
+
+    if(TYPE STREQUAL "HEADER")
         source_group("Generated\\Header Files" FILES ${FILE})
     elseif(TYPE STREQUAL "SOURCE")
         source_group("Generated\\Source Files" FILES ${FILE})
@@ -198,7 +239,7 @@ endfunction(opendaq_set_generated)
 #-------------------------------------------------------------------------------------
 function(rtgen_add_file OUT_VAR_BASE TYPE BASE_NAME)
 
-    if (TYPE STREQUAL "DECORATOR")
+    if(TYPE STREQUAL "DECORATOR")
         set(OUT "${OUT_VAR_BASE}_PublicHeaders")
         set(FILE_H "${RTGEN_OUTPUT_DIR}/${BASE_NAME}_decorator.h")
         list(APPEND ${OUT} ${FILE_H})
@@ -245,7 +286,7 @@ endfunction(rtgen_add_file)
 #-------------------------------------------------------------------------------------
 function(rtgen OUT_VAR_BASE FILENAME)
     list(FIND ARGN INTERNAL INTERNAL_FOUND)
-    if (INTERNAL_FOUND GREATER_EQUAL 0)
+    if(INTERNAL_FOUND GREATER_EQUAL 0)
         set(RTGEN_LANGS Cpp)
         list(REMOVE_ITEM ARGN INTERNAL)
     else()
@@ -261,7 +302,7 @@ function(rtgen OUT_VAR_BASE FILENAME)
 
     set(${OUT_VAR_BASE}_PublicHeaders ${SMARTPTR_FILE})
 
-    foreach (TYPE ${ARGN})
+    foreach(TYPE ${ARGN})
         rtgen_add_file(${OUT_VAR_BASE} ${TYPE} ${RTGEN_BASE_NAME})
     endforeach()
 
@@ -269,7 +310,7 @@ function(rtgen OUT_VAR_BASE FILENAME)
     set(${OUT_VAR_BASE} ${${OUT_VAR_BASE}_Cpp} ${${OUT_VAR_BASE}_PublicHeaders} ${${OUT_VAR_BASE}_PrivateHeaders})
 
     _rtgen_interface("${RTGEN_LANGS}" ${FILENAME} ${OUT_VAR_BASE})
-	
+
     get_filename_component(RTGEN_HEADERS_DIR
                            "${RTGEN_HEADERS_DIR}"
                            ABSOLUTE)
@@ -304,16 +345,16 @@ function(rtgen_t OUT_VAR_BASE FILENAME SAMPLE_TYPES_LIST)
 endfunction(rtgen_t)
 
 function(rtgen_config LIB_NAME LIB_OUTPUT_NAME MAJOR_VER MINOR_VER PATCH_VER)
-    if (${ARGC} EQUAL 6)
+    if(${ARGC} EQUAL 6)
         set(_NAMESPACE_NAME ${ARGV5})
     else()
         set(_NAMESPACE_NAME "${SDK_TARGET_NAMESPACE}")
     endif()
-	
-	if (NOT DEFINED RTGEN_CURR_BINDINGS_DIR)
+
+    if(NOT DEFINED RTGEN_CURR_BINDINGS_DIR)
         set(RTGEN_CURR_BINDINGS_DIR ${CMAKE_CURRENT_BINARY_DIR}/../bindings)
     endif()
-	
+
     # Expand the bindings dir
     get_filename_component(CURR_BINDINGS_DIR
                            "${RTGEN_CURR_BINDINGS_DIR}"
@@ -337,10 +378,10 @@ function(rtgen_config LIB_NAME LIB_OUTPUT_NAME MAJOR_VER MINOR_VER PATCH_VER)
         set(RTGEN_OPTIONS ${RTGEN_OPTIONS_GLOBAL})
 
         string(TOLOWER "${LANG}" LOWERCASE_LANG)
-        if (NOT LOWERCASE_LANG STREQUAL "cpp")
+        if(NOT LOWERCASE_LANG STREQUAL "cpp")
             # If generating bindings set the output directory to "bindings/{LANG}"
             # Create the directory if it doesn't exist yet
-            if (LOWERCASE_LANG STREQUAL "csharp")
+            if(LOWERCASE_LANG STREQUAL "csharp")
                 set(RTGEN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build/bindings/${LANG}/${RTGEN_RELATIVE_PARENT_DIR}")
             else()
                 set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
@@ -348,24 +389,24 @@ function(rtgen_config LIB_NAME LIB_OUTPUT_NAME MAJOR_VER MINOR_VER PATCH_VER)
         endif()
 
         # Create the directory if it doesn't exist yet
-        if (NOT EXISTS RTGEN_OUTPUT_DIR)
+        if(NOT EXISTS RTGEN_OUTPUT_DIR)
             opendaq_create_dir(${RTGEN_OUTPUT_DIR})
         endif()
 
-        if (LOWERCASE_LANG STREQUAL "delphi" AND _NAMESPACE_NAME STREQUAL "${SDK_TARGET_NAMESPACE}")
+        if(LOWERCASE_LANG STREQUAL "delphi" AND _NAMESPACE_NAME STREQUAL "${SDK_TARGET_NAMESPACE}")
             list(APPEND RTGEN_OPTIONS -ns "OpenDAQ")
         else()
             list(APPEND RTGEN_OPTIONS -ns "${_NAMESPACE_NAME}")
         endif()
 
-        if (LOWERCASE_LANG STREQUAL "csharp")
+        if(LOWERCASE_LANG STREQUAL "csharp")
             modify_or_set_namespace(RTGEN_OPTIONS RTGEN_NAMESPACE ${RTGEN_RELATIVE_PARENT_DIR})
         endif()
 
         list(APPEND RTGEN_OPTIONS -ln ${LIB_NAME} -config -lo ${LIB_OUTPUT_NAME} -lv ${MAJOR_VER}.${MINOR_VER}.${PATCH_VER} -lang ${LOWERCASE_LANG})
         set(RTGEN_COMMAND ${MONO_C} ${RTGEN} ${RTGEN_OPTIONS} -d "${RTGEN_OUTPUT_DIR}")
 
-        if (DEFINED RTGEN_VERBOSE)
+        if(DEFINED RTGEN_VERBOSE)
             message(STATUS "Adding RTGen config command:")
             message(STATUS "${RTGEN_COMMAND}")
         endif()
@@ -389,11 +430,11 @@ function(rtgen_sample_types HEADER_NAME OUT_FILE)
 
     set(FILENAME "${RTGEN_HEADERS_DIR}/${HEADER_NAME}")
 
-    if (NOT EXISTS ${FILENAME})
+    if(NOT EXISTS ${FILENAME})
         message(FATAL_ERROR "RTGen: predefined template sample types input header must exists. Called with: \"${HEADER_NAME}\" that resolved to: \"${FILENAME}\"")
     endif()
 
-    if (NOT DEFINED RTGEN_LIBRARY_NAME)
+    if(NOT DEFINED RTGEN_LIBRARY_NAME)
         set(RTGEN_LIBRARY_NAME ${PROJECT_NAME})
     endif()
 
@@ -431,7 +472,7 @@ function(modify_or_set_namespace OUT_OPTIONS NAMESPACE_NAME REL_PROJECT_DIR)
 
     # Modify/add the namespace option to "<base-ns>.<rel-project-structure>"
     string(REPLACE "/" "." _SUB_NS "${REL_PROJECT_DIR}")
-    if (${NAMESPACE_NAME})
+    if(${NAMESPACE_NAME})
         # Modify
         list(FIND _OPTIONS -ns _NS_INDEX)
         math(EXPR _NS_INDEX "${_NS_INDEX}+1") #index of namespace value

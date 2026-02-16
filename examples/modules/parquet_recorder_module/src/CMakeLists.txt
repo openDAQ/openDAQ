@@ -44,4 +44,4 @@ if(MSVC)
 endif()
 
 opendaq_set_module_properties(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
-opendaq_create_version_header(${LIB_NAME})
+opendaq_generate_version_header(${LIB_NAME})

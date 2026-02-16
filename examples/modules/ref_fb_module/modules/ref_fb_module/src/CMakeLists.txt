@@ -2,7 +2,7 @@ set(LIB_NAME ref_fb_module)
 set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 set(MODULE_BINARY_HEADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/../include/${TARGET_FOLDER_NAME})
 
-embed_resource("arial.ttf" ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h "ARIAL_TTF")
+opendaq_embed_resource("arial.ttf" ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h "ARIAL_TTF")
 
 set(SRC_Include common.h
                 module_dll.h
@@ -136,7 +136,7 @@ if (MSVC)
 endif()
 
 opendaq_set_module_properties(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
-opendaq_create_version_header(${LIB_NAME})
+opendaq_generate_version_header(${LIB_NAME})
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/arial.ttf DESTINATION ${CMAKE_INSTALL_BINDIR})

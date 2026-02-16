@@ -461,7 +461,13 @@ set(OPENDAQ_MODULE_DIRS
 )
 
 foreach(OPENDAQ_MODULE_EVAL_EXPR OPENDAQ_MODULE_DIR IN ZIP_LISTS OPENDAQ_MODULE_EVAL_EXPRS OPENDAQ_MODULE_DIRS)
-    if (OPENDAQ_MODULE_EVAL_EXPR)
+    set(OPENDAQ_MODULE_IS_ON FALSE)
+    cmake_language(EVAL CODE "
+        if (${OPENDAQ_MODULE_EVAL_EXPR})
+            set(OPENDAQ_MODULE_IS_ON TRUE)
+        endif()"
+    )
+    if (OPENDAQ_MODULE_IS_ON)
         if (NOT IS_DIRECTORY "${OPENDAQ_MODULE_DIR}")
             message(FATAL_ERROR "Specified module directory ${OPENDAQ_MODULE_DIR} does not exist")
         endif()

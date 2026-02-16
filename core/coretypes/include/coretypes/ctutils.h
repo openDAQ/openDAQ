@@ -422,7 +422,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
 #define OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, expectedErrCode, ...)                  \
     do                                                                                  \
     {                                                                                   \
-        const ErrCode errCode_ = (errCode);                                             \
+        const daq::ErrCode errCode_ = (errCode);                                        \
         if ((errCode_) == (expectedErrCode))                                            \
             daqClearErrorInfo();                                                        \
         else if (OPENDAQ_FAILED(errCode_))                                              \
@@ -432,7 +432,7 @@ ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& m
 #define OPENDAQ_RETURN_IF_FAILED(errCode, ...)                                          \
     do                                                                                  \
     {                                                                                   \
-        const ErrCode errCode_ = (errCode);                                             \
+        const daq::ErrCode errCode_ = (errCode);                                        \
         if (OPENDAQ_FAILED(errCode_))                                                   \
             return DAQ_EXTEND_ERROR_INFO(errCode_, ##__VA_ARGS__);                      \
     } while (0)

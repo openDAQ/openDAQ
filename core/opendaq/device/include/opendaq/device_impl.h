@@ -247,8 +247,10 @@ private:
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool> targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
 
     DeviceDomainPtr deviceDomain;
-    OperationModeType operationMode {OperationModeType::Idle};
     ListPtr<IInteger> availableOperationModes;
+
+protected:
+    OperationModeType operationMode {OperationModeType::Idle};
 };
 
 template <typename TInterface, typename... Interfaces>

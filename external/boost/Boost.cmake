@@ -1,4 +1,6 @@
-opendaq_add_required_boost_libs(
+include_guard(GLOBAL)
+
+opendaq_append_required_boost_components(
     algorithm
     asio
     beast
@@ -9,7 +11,7 @@ opendaq_add_required_boost_libs(
     align
 )
 if(DAQMODULES_PARQUET_RECORDER_MODULE AND MSVC)
-    opendaq_add_required_boost_libs(
+    opendaq_append_required_boost_components(
         multiprecision
         predef
         scope_exit
@@ -18,7 +20,7 @@ if(DAQMODULES_PARQUET_RECORDER_MODULE AND MSVC)
 endif()
 
 if(DAQMODULES_PARQUET_RECORDER_MODULE)
-    opendaq_add_required_boost_headers(
+    opendaq_append_required_boost_headers(
         config
         algorithm
         assert
@@ -45,7 +47,7 @@ if(DAQMODULES_PARQUET_RECORDER_MODULE)
     )
 
     if(MSVC)
-        opendaq_add_required_boost_headers(
+        opendaq_append_required_boost_headers(
             multiprecision
             predef
             scope_exit

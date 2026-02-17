@@ -372,29 +372,16 @@ else()
     message(STATUS "Native streaming disabled")
 endif()
 
-# FIXME remove the following messages
-message(STATUS "")
-message(STATUS "========== 32/64-bit / toolchain configuration ==========")
-
-message(STATUS "CMAKE_HOST_SYSTEM_NAME     = '${CMAKE_HOST_SYSTEM_NAME}'")
-message(STATUS "CMAKE_SYSTEM_NAME          = '${CMAKE_SYSTEM_NAME}'")
-message(STATUS "CMAKE_SYSTEM_PROCESSOR     = '${CMAKE_SYSTEM_PROCESSOR}'")
-
-message(STATUS "CMAKE_C_FLAGS_INIT         = '${CMAKE_C_FLAGS_INIT}'")
-message(STATUS "CMAKE_CXX_FLAGS_INIT       = '${CMAKE_CXX_FLAGS_INIT}'")
-message(STATUS "CMAKE_ASM_FLAGS_INIT       = '${CMAKE_ASM_FLAGS_INIT}'")
-
-message(STATUS "CMAKE_C_FLAGS              = '${CMAKE_C_FLAGS}'")
-message(STATUS "CMAKE_CXX_FLAGS            = '${CMAKE_CXX_FLAGS}'")
-message(STATUS "CMAKE_ASM_FLAGS            = '${CMAKE_ASM_FLAGS}'")
-
-message(STATUS "CMAKE_LIBRARY_PATH         = '${CMAKE_LIBRARY_PATH}'")
-message(STATUS "CMAKE_SIZEOF_VOID_P        = '${CMAKE_SIZEOF_VOID_P}'")
-
-message(STATUS "======================================================")
-message(STATUS "")
-
 opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})
+
+
+if(NOT OPENDAQ_CI_RUNNER AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
+    message(DEPRECATION "Building LT streaming modules indirectly as subprojects of openDAQ is deprecated. Add modules project directly into your super-build by fetching https://github.com/openDAQ/LTStreamingModulesModern")
+endif()
+
+if(NOT OPENDAQ_CI_RUNNER AND OPENDAQ_ENABLE_OPCUA)
+    message(DEPRECATION "Building OpcUa modules indirectly as subprojects of openDAQ is deprecated. Add modules project directly into your super-build by fetching https://github.com/openDAQ/OpcUaModules")
+endif()
 
 # libraries needed before the core is read
 include(openDAQModuleFetchUtils)

@@ -28,12 +28,13 @@ set(OPENDAQ_PACKAGE_VERSION "${package_version_major_minor_patch}" CACHE INTERNA
 if (NOT DEFINED PROJECT_NAME AND OPENDAQ_FORCE_COMPILE_32BIT AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
     opendaq_32bit_build_linux_early_setup()
 endif()
-opendaq_common_early_setup()
 
 project(${SDK_NAME}
     LANGUAGES CXX
     VERSION ${OPENDAQ_PACKAGE_VERSION}
 )
+
+opendaq_common_early_setup()
 
 if (PROJECT_IS_TOP_LEVEL)
     set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ".CMakePredefinedTargets")

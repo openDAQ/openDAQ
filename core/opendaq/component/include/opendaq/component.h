@@ -223,6 +223,21 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * @param[out] modeType The current operation mode.
      */
     virtual ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) = 0;
+
+    /*!
+     * @brief Returns true if the component is local active; false otherwise.
+     * @param[out] localActive True if the component is local active; false otherwise.
+     *
+     * An active component acquires data, performs calculations and send packets on the signal path.
+     * Note that is local active is True, the component may still be inactive if its parents are inactive.
+     */
+     virtual ErrCode INTERFACE_FUNC getLocalActive(Bool* localActive) = 0;
+
+     /*!
+      * @brief Returns true if the component's parent is active; false otherwise.
+      * @param[out] parentActive True if the component's parent is active; false otherwise.
+      */
+     virtual ErrCode INTERFACE_FUNC getParentActive(Bool* parentActive) = 0;
 };
 /*!@}*/
 

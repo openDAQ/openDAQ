@@ -414,6 +414,8 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         device.asPtr<IMirroredDeviceConfig>().setMirroredDeviceType(deviceType);
     }
 
+    device.asPtr<IDevicePrivate>(true).setAsRoot();
+
     return device;
 }
 

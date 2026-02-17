@@ -568,9 +568,6 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::PropertyOrderChanged:
             packedEvent.pushBack(processCoreEventArgs(args));
             break;
-        case CoreEventId::AttributeChanged:
-            packedEvent.pushBack(processAttributeChangedCoreEventArgs(args));
-            break;
         case CoreEventId::ComponentUpdateEnd:
             packedEvent.pushBack(processUpdateEndCoreEvent(component, args));
             break;
@@ -627,19 +624,6 @@ CoreEventArgsPtr ConfigProtocolServer::processCoreEventArgs(const CoreEventArgsP
     }
 
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), cloned);
-}
-
-CoreEventArgsPtr ConfigProtocolServer::processAttributeChangedCoreEventArgs(const CoreEventArgsPtr& args)
-{
-    auto processedArgs = processCoreEventArgs(args);
-    auto params = processedArgs.getParameters();
-    if (params.get("AttributeName") == "Active")
-    {
-        assert(params.hasKey("Active"));
-        params.set("NonRecursive", Boolean(True));
-    }
-
-    return processedArgs;
 }
 
 CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)

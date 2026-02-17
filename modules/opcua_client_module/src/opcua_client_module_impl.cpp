@@ -1,11 +1,11 @@
 #include <opcua_client_module/opcua_client_module_impl.h>
 #include <opcua_client_module/version.h>
 #include <coretypes/version_info_factory.h>
-#include <chrono>
 #include <opcuatms_client/tms_client.h>
 #include <opendaq/custom_log.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/device_private_ptr.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/search_filter_factory.h>
 #include <regex>
@@ -115,6 +115,7 @@ DevicePtr OpcUaClientModule::onCreateDevice(const StringPtr& connectionString,
                   .addAddressInfo(addressInfo)
                   .freeze();
 
+    device.asPtr<IDevicePrivate>(true).setAsRoot();
     return device;
 }
 

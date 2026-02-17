@@ -169,6 +169,7 @@ public:
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
@@ -495,6 +496,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::submitNetworkConfiguration(ISt
     const auto ifaceNamePtr = StringPtr::Borrow(ifaceName);
     const auto configPtr = PropertyObjectPtr::Borrow(config);
     const ErrCode errCode = wrapHandler(this, &Self::onSubmitNetworkConfiguration, ifaceNamePtr, configPtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return errCode;
 }
@@ -1186,6 +1188,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 }
 
 template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setParentActive(Bool parentActive)
+{
+    if (this->isRootDevice)
+        return OPENDAQ_IGNORED;
+    return Super::setParentActive(parentActive);
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setOperationMode(OperationModeType modeType)
 {
     if (this->onGetAvailableOperationModes().count(modeType) == 0)
@@ -1428,6 +1438,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::removeDevice(IDevice* device)
 
     const auto devicePtr = DevicePtr::Borrow(device);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveDevice, devicePtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return errCode;
 }
@@ -2293,7 +2304,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (deviceInfo.assigned())
-        return deviceInfo.asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
+    {
+        const ErrCode err = deviceInfo.asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
+        OPENDAQ_RETURN_IF_FAILED(err);
+        return err;
+    }
 
     return errCode;
 }
@@ -2305,7 +2320,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (this->deviceInfo.assigned())
-        return deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
+    {
+        const ErrCode err = deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
+        OPENDAQ_RETURN_IF_FAILED(err);
+        return err;
+    }
 
     return errCode;
 }

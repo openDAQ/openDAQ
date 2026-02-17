@@ -36,6 +36,8 @@ struct MockGenericComponent : GenericPropertyObjectImpl<TInterface>
     MOCK_METHOD(daq::ErrCode, getLocalId, (daq::IString** localId), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getGlobalId, (daq::IString** globalId), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getActive, (daq::Bool* active), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getLocalActive, (daq::Bool* active), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getParentActive, (daq::Bool* active), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, setActive, (daq::Bool active), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getContext, (daq::IContext** root), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getParent, (daq::IComponent** parent), (override MOCK_CALL));

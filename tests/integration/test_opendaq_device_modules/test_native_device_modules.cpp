@@ -3910,13 +3910,19 @@ TEST_F(NativeDeviceModulesTest, ComponentActiveChangedRecursiveGateway)
     clientGatewayDevice.setActive(false);
 
     // clientGatewayDevice itself should be inactive
+    ASSERT_FALSE(clientGatewayDevice.getLocalActive()) << "clientGatewayDevice should be local inactive";
+    ASSERT_TRUE(clientGatewayDevice.getParentActive()) << "clientGatewayDevice parent should be active";
     ASSERT_FALSE(clientGatewayDevice.getActive()) << "clientGatewayDevice should be inactive";
 
     // All direct children of clientGatewayDevice (except sub-devices) should be inactive
     for (const auto& comp : clientGatewayDevice.getItems(search::Any()))
     {
         if (comp.getLocalId() != "Dev")
+        {
+            ASSERT_TRUE(comp.getLocalActive()) << "Component should be local active: " << comp.getGlobalId();
+            ASSERT_FALSE(comp.getParentActive()) << "Component parent should be inactive: " << comp.getGlobalId();
             ASSERT_FALSE(comp.getActive()) << "Component should be inactive: " << comp.getGlobalId();
+        }
     }
 
     // clientLeafDevice should still be active (it's a root device)

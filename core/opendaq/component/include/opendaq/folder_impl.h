@@ -41,12 +41,8 @@ public:
                const StringPtr& localId,
                const StringPtr& className = nullptr);
 
-    // IComponent
-    ErrCode INTERFACE_FUNC setActive(Bool active) override;
-
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
-    ErrCode INTERFACE_FUNC updateParentActive(Bool active) override;
 
     // IFolder
     ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter = nullptr) override;
@@ -92,6 +88,7 @@ protected:
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
     virtual void syncComponentOperationMode(const ComponentPtr& component);
+    void notifyActiveChanged() override;
 
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
@@ -120,45 +117,6 @@ FolderImpl<Intf, Intfs...>::FolderImpl(const ContextPtr& context,
 {
 }
 
-template <class Intf, class ... Intfs>
-ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
-{
-    OPENDAQ_RETURN_IF_FAILED(Super::setActive(active));
-
-    const ErrCode errCode = daqTry([&]
-    {
-        Bool computedActive;
-        this->getActive(&computedActive);
-
-        std::vector<ComponentPtr> itemsVec;
-        for (const auto& [_, item] : this->items)
-            itemsVec.emplace_back(item);
-        this->setActiveRecursive(itemsVec, computedActive);
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-template <class Intf, class ... Intfs>
-ErrCode FolderImpl<Intf, Intfs...>::updateParentActive(Bool active)
-{
-    OPENDAQ_RETURN_IF_FAILED(Super::updateParentActive(active));
-
-    const ErrCode errCode = daqTry([&]
-    {
-        Bool computedActive;
-        this->getActive(&computedActive);
-
-        std::vector<ComponentPtr> itemsVec;
-        for (const auto& [_, item] : this->items)
-            itemsVec.emplace_back(item);
-        this->setActiveRecursive(itemsVec, computedActive);
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
 
 template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searchFilter)
@@ -253,6 +211,15 @@ void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& 
     componentPrivate->updateOperationMode(modeType);
 }
 
+template <class Intf, class ... Intfs>
+void FolderImpl<Intf, Intfs...>::notifyActiveChanged()
+{
+    std::vector<ComponentPtr> itemsVec;
+    for (const auto& [_, item] : this->items)
+        itemsVec.emplace_back(item);
+    this->notifyItemsActiveChanged(itemsVec);
+}
+
 template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 {
@@ -285,14 +252,6 @@ ErrCode FolderImpl<Intf, Intfs...>::addItem(IComponent* item)
 
     // When a component is added to the subtree, the folder updates its operation mode to match the operation mode of the parent device.
     syncComponentOperationMode(component);
-
-    // Initialize parentActive for the newly added component based on this folder's active state
-    Bool folderActive;
-    this->getActive(&folderActive);
-    if (auto componentPrivate = component.template asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-    {
-        componentPrivate->updateParentActive(folderActive);
-    }
 
     return OPENDAQ_SUCCESS;
 }

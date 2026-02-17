@@ -736,7 +736,11 @@ TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursive)
     serverDevice.setActive(false);
 
     for (const auto& comp : components)
+    {
+        ASSERT_TRUE(comp.getLocalActive());
+        ASSERT_FALSE(comp.getParentActive()) << comp.getGlobalId();
         ASSERT_FALSE(comp.getActive());
+    }
 
     serverDevice.setActive(true);
     for (const auto& comp : components)
@@ -762,8 +766,11 @@ TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursiveClientCall)
 
     clientDevice.setActive(false);
     for (const auto& comp : components)
+    {
+        ASSERT_TRUE(comp.getLocalActive());
+        ASSERT_FALSE(comp.getParentActive());
         ASSERT_FALSE(comp.getActive());
-
+    }
     clientDevice.setActive(true);
     for (const auto& comp : components)
         ASSERT_TRUE(comp.getActive());

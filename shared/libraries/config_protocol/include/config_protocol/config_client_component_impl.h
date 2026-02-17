@@ -48,9 +48,6 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
-    //IComponentPrivate
-    ErrCode INTERFACE_FUNC updateParentActive (Bool active) override;
-
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
     template <class Interface, class Implementation>
@@ -61,6 +58,7 @@ protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void remoteUpdateStatuses(const SerializedObjectPtr& serializedStatuses);
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    void notifyActiveChanged() override;
 
 private:
     void componentUpdateEnd(const CoreEventArgsPtr& args);
@@ -153,12 +151,6 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getComponentConfig(IPropertyObject*
         else
             checkErrorInfo(Impl::getComponentConfig(config));   
     });
-}
-
-template <class Impl>
-ErrCode ConfigClientComponentBaseImpl<Impl>::updateParentActive(Bool active)
-{
-    return OPENDAQ_IGNORED;
 }
 
 template <class Impl>
@@ -292,6 +284,11 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
 }
 
 template <class Impl>
+void ConfigClientComponentBaseImpl<Impl>::notifyActiveChanged()
+{
+}
+
+template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::componentUpdateEnd(const CoreEventArgsPtr& args)
 {
     const StringPtr str = args.getParameters().get("SerializedComponent");
@@ -327,10 +324,23 @@ void ConfigClientComponentBaseImpl<Impl>::attributeChanged(const CoreEventArgsPt
 
     if (attrName == "Active")
     {
-        const Bool active = args.getParameters().get("Active");
-        if (args.getParameters().hasKey("ParentActive"))
-            this->parentActive = args.getParameters().get("ParentActive");
-        checkErrorInfo(Impl::setActive(active));
+        const auto parameters = args.getParameters();
+        if (parameters.hasKey("LocalActive"))
+        {
+            const Bool active = parameters.get("LocalActive");
+            checkErrorInfo(Impl::setActive(active));
+        }
+        else if (parameters.hasKey("ParentActive"))
+        {
+            const Bool parentActive = parameters.get("ParentActive");
+            checkErrorInfo(Impl::setParentActive(parentActive));
+        }
+        return;
+        // else
+        // {
+        //     const Bool active = parameters.get("Active");
+        //     checkErrorInfo(Impl::setActive(active));
+        // }
     }
     else if (attrName == "Name")
     {

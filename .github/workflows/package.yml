@@ -2,7 +2,7 @@ name: Build openDAQ packages
 
 on:
   push:
-    branches: [release/**]
+    branches: [main, release/**]
 
   workflow_dispatch:
 

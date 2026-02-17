@@ -58,7 +58,6 @@ protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void remoteUpdateStatuses(const SerializedObjectPtr& serializedStatuses);
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
-    void notifyActiveChanged() override;
 
 private:
     void componentUpdateEnd(const CoreEventArgsPtr& args);
@@ -284,11 +283,6 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
 }
 
 template <class Impl>
-void ConfigClientComponentBaseImpl<Impl>::notifyActiveChanged()
-{
-}
-
-template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::componentUpdateEnd(const CoreEventArgsPtr& args)
 {
     const StringPtr str = args.getParameters().get("SerializedComponent");
@@ -327,20 +321,16 @@ void ConfigClientComponentBaseImpl<Impl>::attributeChanged(const CoreEventArgsPt
         const auto parameters = args.getParameters();
         if (parameters.hasKey("LocalActive"))
         {
-            const Bool active = parameters.get("LocalActive");
+            // new style
+            const Bool localActive = parameters.get("LocalActive");
+            checkErrorInfo(Impl::setActive(localActive));
+        }
+        else
+        {
+            // old style, kept for compatibility with older protocol versions
+            const Bool active = parameters.get("Active");
             checkErrorInfo(Impl::setActive(active));
         }
-        else if (parameters.hasKey("ParentActive"))
-        {
-            const Bool parentActive = parameters.get("ParentActive");
-            checkErrorInfo(Impl::setParentActive(parentActive));
-        }
-        return;
-        // else
-        // {
-        //     const Bool active = parameters.get("Active");
-        //     checkErrorInfo(Impl::setActive(active));
-        // }
     }
     else if (attrName == "Name")
     {

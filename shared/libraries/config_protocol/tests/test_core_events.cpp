@@ -745,7 +745,8 @@ TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursive)
     serverDevice.setActive(true);
     for (const auto& comp : components)
         ASSERT_TRUE(comp.getActive());
-
+    printf("components: %zu\n", components.getCount());
+    printf("changeCount: %d\n", changeCount);
     ASSERT_GE(changeCount, 2);
 }
 
@@ -774,7 +775,8 @@ TEST_F(ConfigCoreEventTest, ComponentActiveChangedRecursiveClientCall)
     clientDevice.setActive(true);
     for (const auto& comp : components)
         ASSERT_TRUE(comp.getActive());
-
+    printf("components: %zu\n", components.getCount());
+    printf("changeCount: %d\n", changeCount);
     ASSERT_GE(changeCount, 2);
 }
 

@@ -1872,6 +1872,12 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         version.serialize(serializer);
     }
 
+    if (isRootDevice)
+    {
+        serializer.key("isRootDevice");
+        serializer.writeBool(isRootDevice);
+    }
+
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
     this->serializeFolder(serializer, ioFolder, "IO", forUpdate);
@@ -2159,6 +2165,9 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
                                                                              const FunctionPtr& factoryCallback)
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    if (serializedObject.hasKey("isRootDevice"))
+        isRootDevice = serializedObject.readBool("isRootDevice");
 
     if (serializedObject.hasKey("deviceInfo"))
     {

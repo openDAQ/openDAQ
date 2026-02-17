@@ -1596,3 +1596,35 @@ TEST_F(OpcuaDeviceModulesTest, ComponentActiveChangedRecursive)
     for (const auto& comp : clientDeviceComponents)
         ASSERT_TRUE(comp.getActive()) << "Component should be active: " << comp.getGlobalId();
 }
+
+TEST_F(OpcuaDeviceModulesTest, ComponentActiveChangedRecursiveGateway)
+{
+    // SKIP_TEST_MAC_CI;
+
+    // Create leaf server
+    auto leaf = InstanceBuilder().setRootDevice("daqref://device0").build();
+    leaf.addServer("OpenDAQOPCUA", nullptr);
+
+    // Create gateway that connects to leaf
+    auto gateway = Instance();
+    auto gatewayServerConfig = gateway.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
+    gatewayServerConfig.setPropertyValue("Port", 4841);
+    gateway.addDevice("daq.opcua://127.0.0.1");
+    gateway.addServer("OpenDAQOPCUA", gatewayServerConfig);
+
+    // Create client that connects to gateway
+    auto client = Instance();
+    auto clientGatewayDevice = client.addDevice("daq.opcua://127.0.0.1:4841");
+
+    // Get the leaf device through gateway
+    auto clientLeafDevice = clientGatewayDevice.getDevices()[0];
+
+    // Set clientGatewayDevice active to false (from client side)
+    clientGatewayDevice.setActive(false);
+
+    // clientGatewayDevice itself should be inactive
+    ASSERT_FALSE(clientGatewayDevice.getActive()) << "clientGatewayDevice should be inactive";
+
+    // clientLeafDevice should still be active (it's a root device)
+    ASSERT_TRUE(clientLeafDevice.getActive()) << "clientLeafDevice should remain active as it's a root device";
+}

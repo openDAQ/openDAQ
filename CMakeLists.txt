@@ -374,6 +374,8 @@ endif()
 
 opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})
 
+set(DAQMODULES_LT_STREAMING_GIT_REF "other/complete-missing-init-files" CACHE INTERNAL "openDAQ LT streaming modules project git reference")
+set(DAQMODULES_OPCUA_GIT_REF "other/complete-missing-files" CACHE INTERNAL "openDAQ OpcUa modules project git reference")
 
 if(NOT OPENDAQ_CI_RUNNER AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     message(DEPRECATION "Building LT streaming modules indirectly as subprojects of openDAQ is deprecated. Add modules project directly into your super-build by fetching https://github.com/openDAQ/LTStreamingModulesModern")
@@ -393,7 +395,7 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         opendaq_fetch_module(
             NAME                LtStreamingModulesLegacy
             GIT_REPOSITORY      https://github.com/openDAQ/LTStreamingModulesLegacy.git
-            GIT_REF             other/complete-missing-init-files
+            GIT_REF             "${DAQMODULES_LT_STREAMING_GIT_REF}"
             GIT_SHALLOW         OFF
         )
         FetchContent_GetProperties(
@@ -405,7 +407,7 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         opendaq_fetch_module(
             NAME                LtStreamingModulesModern
             GIT_REPOSITORY      https://github.com/openDAQ/LTStreamingModulesModern.git
-            GIT_REF             other/complete-missing-init-files
+            GIT_REF             "${DAQMODULES_LT_STREAMING_GIT_REF}"
             GIT_SHALLOW         OFF
         )
         FetchContent_GetProperties(
@@ -423,7 +425,7 @@ if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPE
     opendaq_fetch_module(
         NAME                OpcUaModules
         GIT_REPOSITORY      https://github.com/openDAQ/OpcUaModules.git
-        GIT_REF             other/complete-missing-files
+        GIT_REF             "${DAQMODULES_OPCUA_GIT_REF}"
         GIT_SHALLOW         OFF
     )
     FetchContent_GetProperties(

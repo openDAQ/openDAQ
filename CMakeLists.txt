@@ -375,8 +375,8 @@ endif()
 
 opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})
 
-set(DAQMODULES_LT_STREAMING_GIT_REF "other/complete-missing-init-files" CACHE INTERNAL "openDAQ LT streaming modules project git reference")
-set(DAQMODULES_OPCUA_GIT_REF "other/complete-missing-files" CACHE INTERNAL "openDAQ OpcUa modules project git reference")
+set(DAQMODULES_LT_STREAMING_GIT_REF "main" CACHE INTERNAL "openDAQ LT streaming modules project git reference")
+set(DAQMODULES_OPCUA_GIT_REF "main" CACHE INTERNAL "openDAQ OpcUa modules project git reference")
 
 if(NOT OPENDAQ_CI_RUNNER AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     message(DEPRECATION "Building LT streaming modules indirectly as subprojects of openDAQ is deprecated. Add modules project directly into your super-build by fetching https://github.com/openDAQ/LTStreamingModulesModern")
@@ -465,6 +465,7 @@ foreach(OPENDAQ_MODULE_EVAL_EXPR OPENDAQ_MODULE_DIR IN ZIP_LISTS OPENDAQ_MODULE_
     endif()
 endforeach()
 include("${PROJ_DIR}/external/boost/Boost.cmake")
+add_compile_definitions(BOOST_ALL_NO_LIB=1)
 add_subdirectory(external/boost)
 
 add_subdirectory(external)

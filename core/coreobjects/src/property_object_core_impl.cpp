@@ -4,14 +4,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ErrCode PropertyObjectCoreImpl::getRecursiveLockGuard(ILockGuard** lockGuard)
+ErrCode PropertyObjectCoreImpl::getRecursiveLockGuard(ILockGuard** lockGuard, IMutex* sync)
 {
     OPENDAQ_PARAM_NOT_NULL(lockGuard);
 
-    auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr;
-    if (lockOwnerPtr.assigned() && lockingStrategy == LockingStrategy::InheritLock)
-        return lockOwnerPtr->getRecursiveLockGuard(lockGuard);
-    
     // Prevent access violation when lock is obtained during destruction.
     auto objRef = this->refCount ? this->borrowPtr<ObjectPtr<IPropertyObjectCore>>() : nullptr;
     if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
@@ -21,7 +17,7 @@ ErrCode PropertyObjectCoreImpl::getRecursiveLockGuard(ILockGuard** lockGuard)
         (lockGuard, objRef, sync, &externalCallThreadId, &externalCallDepth);
 }
 
-ErrCode PropertyObjectCoreImpl::getLockGuard(ILockGuard** lockGuard)
+ErrCode PropertyObjectCoreImpl::getLockGuard(ILockGuard** lockGuard, IMutex* sync)
 {
     OPENDAQ_PARAM_NOT_NULL(lockGuard);
 
@@ -29,41 +25,6 @@ ErrCode PropertyObjectCoreImpl::getLockGuard(ILockGuard** lockGuard)
     auto objRef = this->refCount ? this->borrowPtr<ObjectPtr<IPropertyObjectCore>>() : nullptr;
     return createObject<ILockGuard, LockGuardImpl, IPropertyObjectCore*, MutexPtr>(lockGuard, objRef, sync);
 }
-
-ErrCode PropertyObjectCoreImpl::setInternalVariable(PropObjectCoreVariableId varId, IBaseObject* value)
-{
-    OPENDAQ_PARAM_NOT_NULL(value);
-    switch (varId)
-    {
-        case PropObjectCoreVariableId::LockOwner:
-            this->lockOwner = value;
-            break;
-        case PropObjectCoreVariableId::Mutex:
-            this->sync = value;
-            break;
-        case PropObjectCoreVariableId::LockingStrategy:
-        {
-            BaseObjectPtr valPtr = value;
-            this->lockingStrategy = static_cast<LockingStrategy>(valPtr);
-            break;
-        }
-        default:;
-    }
-
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode PropertyObjectCoreImpl::setInternalVariables(IDict* varIdValueMap)
-{
-    OPENDAQ_PARAM_NOT_NULL(varIdValueMap);
-
-    DictPtr<Int, IBaseObject> varsMapPtr = varIdValueMap;
-    for (const auto& [id, val] : varsMapPtr)
-        OPENDAQ_RETURN_IF_FAILED(setInternalVariable(id, val));
-
-    return OPENDAQ_SUCCESS;
-}
-
 
 // LockGuard
 LockGuardImpl::LockGuardImpl(IPropertyObjectCore* owner, MutexPtr lock)

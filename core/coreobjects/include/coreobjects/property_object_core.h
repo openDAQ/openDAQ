@@ -16,23 +16,13 @@
 
 #pragma once
 #include <coreobjects/property_object_internal.h>
-#include <coretypes/dictobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-enum class PropObjectCoreVariableId : EnumType
-{
-    LockOwner = 0,
-    Mutex = 10,
-    LockingStrategy = 20,
-};
-
 DECLARE_OPENDAQ_INTERFACE(IPropertyObjectCore, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard) = 0;
-    virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) = 0;
-    virtual ErrCode INTERFACE_FUNC setInternalVariable(PropObjectCoreVariableId varId, IBaseObject* value) = 0;
-    virtual ErrCode INTERFACE_FUNC setInternalVariables(IDict* varIdValueMap) = 0;
+    virtual ErrCode INTERFACE_FUNC getRecursiveLockGuard(ILockGuard** lockGuard, IMutex* sync) = 0;
+    virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard, IMutex* sync) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY(LIBRARY_FACTORY, PropertyObjectCore)

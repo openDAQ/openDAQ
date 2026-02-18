@@ -710,6 +710,9 @@ void GenericInputPortImpl<TInterface, Interfaces...>::serializeCustomObjectValue
 {
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
+    serializer.key("public");
+    serializer.writeBool(isPublic);
+
     auto signal = getSignalNoLock();
 
     if (signal.assigned())
@@ -781,6 +784,9 @@ void GenericInputPortImpl<TInterface, Interfaces...>::deserializeCustomObjectVal
                                                          const FunctionPtr& factoryCallback)
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    if (serializedObject.hasKey("public"))
+        isPublic = serializedObject.readBool("public");
 
     if (serializedObject.hasKey("signalId"))
     {

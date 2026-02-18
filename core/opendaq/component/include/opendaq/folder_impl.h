@@ -288,13 +288,13 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
 
         OPENDAQ_RETURN_IF_FAILED(err);
     }
-    
+
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                 CoreEventId::ComponentRemoved,
                 Dict<IString, IBaseObject>({{"Id", str}}));
-        
+
         this->triggerCoreEvent(args);
     }
 
@@ -327,7 +327,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
         const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                 CoreEventId::ComponentRemoved,
                 Dict<IString, IBaseObject>({{"Id", str}}));
-        
+
         this->triggerCoreEvent(args);
     }
 
@@ -450,7 +450,7 @@ void FolderImpl<Intf, Intfs...>::clearInternal()
             const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
                 CoreEventId::ComponentRemoved,
                 Dict<IString, IBaseObject>({{"Id", item.second.getLocalId()}}));
-            
+
             this->triggerCoreEvent(args);
         }
     }
@@ -471,7 +471,7 @@ bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Type of item not allowed in the folder");
 
     const auto res = items.emplace(component.getLocalId(), component);
-    
+
     return res.second;
 }
 
@@ -520,6 +520,13 @@ void FolderImpl<Intf, Intfs...>::deserializeCustomObjectValues(
             const auto item = items.readObject(key, newDeserializeContext, factoryCallback);
 
             const auto comp = item.template asPtr<IComponent>(true);
+
+            // Skip non-public signals and input ports
+            if (auto sig = comp.template asPtrOrNull<ISignal>(true); sig.assigned() && !sig.getPublic())
+                continue;
+            if (auto port = comp.template asPtrOrNull<IInputPort>(true); port.assigned() && !port.getPublic())
+                continue;
+
             addItemInternal(comp);
         }
     }

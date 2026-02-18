@@ -49,27 +49,31 @@ void TmsServerFunctionBlock<T>::addChildNodes()
 {
     auto signalsNodeId = this->getChildNodeId("Sig");
     assert(!signalsNodeId.isNull());
-    
+
     uint32_t numberInList = 0;
     for (const auto& signal : this->object.getSignals(search::Any()))
     {
         if (signal.getPublic())
         {
-            auto tmsSignal = this->template registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);       
+            auto tmsSignal = this->template registerTmsObjectOrAddReference<TmsServerSignal>(signalsNodeId, signal, numberInList++);
             signals.push_back(std::move(tmsSignal));
         }
     }
 
     auto inputPortsNodeId = this->getChildNodeId("IP");
     assert(!inputPortsNodeId.isNull());
-    
+
     numberInList = 0;
     for (const auto& inputPort : this->object.getInputPorts(search::Any()))
     {
-        auto tmsInputPort = this->template registerTmsObjectOrAddReference<TmsServerInputPort>(inputPortsNodeId, inputPort, numberInList++);
-        inputPorts.push_back(std::move(tmsInputPort));
+        if (inputPort.getPublic())
+        {
+            auto tmsInputPort =
+                this->template registerTmsObjectOrAddReference<TmsServerInputPort>(inputPortsNodeId, inputPort, numberInList++);
+            inputPorts.push_back(std::move(tmsInputPort));
+        }
     }
-    
+
     numberInList = 0;
     for (const auto& fb : this->object.getFunctionBlocks(search::Any()))
     {

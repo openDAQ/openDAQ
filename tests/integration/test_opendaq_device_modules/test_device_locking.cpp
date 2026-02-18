@@ -4,7 +4,9 @@
 #include <coreobjects/user_factory.h>
 #include <opendaq/search_filter_factory.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <native_streaming_client_module/module_dll.h>
 #include <opendaq/device_private_ptr.h>
+#include <native_streaming_server_module/module_dll.h>
 
 using namespace daq;
 
@@ -16,7 +18,7 @@ public:
 
     InstancePtr createServerInstance()
     {
-        const auto moduleManager = ModuleManager("");
+        const auto moduleManager = ModuleManager("[[none]]");
         auto logger = Logger();
 
         auto users = List<IUser>();
@@ -25,9 +27,15 @@ public:
         auto authenticationProvider = StaticAuthenticationProvider(false, users);
 
         auto context = Context(Scheduler(logger, 1), logger, TypeManager(), moduleManager, authenticationProvider);
+        {
+            const ModulePtr mockModule(MockDeviceModule_Create(context));
+            
+            ModulePtr nativeServerModule;
+            createNativeStreamingServerModule(&nativeServerModule, context);
 
-        const ModulePtr deviceModule(MockDeviceModule_Create(context));
-        moduleManager.addModule(deviceModule);
+            moduleManager.addModule(mockModule);
+            moduleManager.addModule(nativeServerModule);
+        }
 
         auto instance = InstanceCustom(context, "clientInstance");
         instance.addDevice("daqmock://phys_device");
@@ -38,10 +46,19 @@ public:
 
     InstancePtr connectClientInstance(const std::string& username, const std::string& password)
     {
-        auto instance = Instance();
+        auto instance = Instance("[[none]]");
+        {
+            auto context = instance.getContext();
 
-        const ModulePtr deviceModule(MockDeviceModule_Create(instance.getContext()));
-        instance.getModuleManager().addModule(deviceModule);
+            ModulePtr nativeClientModule;
+            createNativeStreamingClientModule(&nativeClientModule, context);            
+
+            const ModulePtr deviceModule(MockDeviceModule_Create(context));
+            auto mm = instance.getModuleManager();
+            
+            mm.addModule(deviceModule);
+            mm.addModule(nativeClientModule);
+        }
 
         auto config = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr generalConfig = config.getPropertyValue("General");

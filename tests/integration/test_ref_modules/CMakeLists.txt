@@ -1,18 +1,21 @@
 set(TEST_APP test_ref_modules)
 
-set(TEST_SOURCES test_ref_modules.cpp
-                 test_app.cpp
+set(TEST_SOURCES
+    classifier_test_helper.h
+    test_ref_modules.cpp
+    test_app.cpp
 )
 
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
-target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
-                                          daq::opendaq
-)
+target_link_libraries(${TEST_APP}
+    PRIVATE
+        daq::test_utils
+        daq::opendaq
 
-add_dependencies(${TEST_APP} daq::ref_fb_module
-                             daq::ref_device_module
+        daq::ref_fb_module
+        daq::ref_device_module
 )
 
 add_test(NAME ${TEST_APP}

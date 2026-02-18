@@ -24,6 +24,7 @@
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/signal_factory.h>
+#include <ref_fb_module/module_dll.h>
 #include <testutils/testutils.h>
 #include <random>
 
@@ -33,15 +34,24 @@ struct ClassifierTestHelper
 {
     void setUp(SampleType signalType = SampleType::UInt64, RangePtr signalRange = Range(-10, 10), bool domainSync = true)
     {
-        this->sentSamples = 0;
-        this->domainSync = domainSync;
-        this->instance = Instance();
-        this->context = this->instance.getContext();
-        this->scheduler = this->context.getScheduler();
-        this->signal = CreateSignal(this->context, signalType, signalRange);
-        this->domainSignal = CreateDomainSignal(this->context, domainSync);
-        this->signal.setDomainSignal(this->domainSignal);
-        this->classifierFb = RegisterClassifier(getInstance(), getInputSignal());
+        sentSamples = 0;
+        domainIsSync = domainSync;
+
+        instance = Instance("[[none]]");
+        {
+            ModulePtr refFbModule;
+            createRefFBModule(&refFbModule, instance.getContext());
+
+            instance.getModuleManager().addModule(refFbModule);
+        }
+
+        context = instance.getContext();
+        scheduler = context.getScheduler();
+        signal = CreateSignal(context, signalType, signalRange);
+        domainSignal = CreateDomainSignal(context, domainSync);
+        signal.setDomainSignal(domainSignal);
+
+        classifierFb = RegisterClassifier(getInstance(), getInputSignal());
     }
 
     InstancePtr getInstance() const
@@ -81,7 +91,7 @@ struct ClassifierTestHelper
     {
         auto domainPacket = DataPacket(getInputDomainSignal().getDescriptor(), numSamples, offset);
 
-        if (!domainSync)
+        if (!domainIsSync)
         {
             auto outputData = static_cast<UInt*>(domainPacket.getData());
             static std::uniform_int_distribution<size_t> d(0, 1000);
@@ -133,7 +143,7 @@ struct ClassifierTestHelper
     }
 
 protected:
-    bool domainSync;
+    bool domainIsSync{};
     InstancePtr instance;
     ContextPtr context;
     SchedulerPtr scheduler;

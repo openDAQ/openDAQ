@@ -712,7 +712,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     const ErrCode errCode = daqTry([&]()
     {
         PropertyObjectPtr addDeviceConfig;
-        const bool inputIsDefaultAddDeviceConfig = isDefaultAddDeviceConfig(inputConfig);
+        const bool inputIsDefaultAddDeviceConfig = IsDefaultAddDeviceConfig(inputConfig);
 
         if (inputIsDefaultAddDeviceConfig)
             OPENDAQ_RETURN_IF_FAILED(inputConfig.asPtr<IPropertyObjectInternal>(true)->clone(&addDeviceConfig));
@@ -722,12 +722,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         PropertyObjectPtr generalConfig =
             inputIsDefaultAddDeviceConfig
                 ? addDeviceConfig.getPropertyValue("General").asPtr<IPropertyObject>()
-                : populateGeneralConfig(addDeviceConfig, inputConfig); // copy general properties from input config
+                : PopulateGeneralConfig(addDeviceConfig, inputConfig); // copy general properties from input config
 
         // populate any general props which are duplicated in device & streaming type configs
-        copyCommonGeneralPropValues(addDeviceConfig);
+        CopyCommonGeneralPropValues(addDeviceConfig);
 
-        const auto [pureConnectionString, connectionStringOptions] = splitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
+        const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
         auto connectionStringPtr = String(pureConnectionString);
 
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
@@ -762,7 +762,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
                 continue;
 
             // copy props from input config and connection string to device type config
-            const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
+            const auto deviceTypeConfig = PopulateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
             auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
             OPENDAQ_RETURN_IF_FAILED(err);
 
@@ -923,7 +923,7 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
     return OPENDAQ_SUCCESS;
 }
 
-StringPtr ModuleManagerImpl::convertIfOldIdFB(const StringPtr& id)
+StringPtr ModuleManagerImpl::ConvertIfOldIdFB(const StringPtr& id)
 {
     if (id == "ref_fb_module_classifier")
         return "RefFBModuleClassifier";
@@ -944,7 +944,7 @@ StringPtr ModuleManagerImpl::convertIfOldIdFB(const StringPtr& id)
     return id;
 }
 
-StringPtr ModuleManagerImpl::convertIfOldIdProtocol(const StringPtr& id)
+StringPtr ModuleManagerImpl::ConvertIfOldIdProtocol(const StringPtr& id)
 {
     if (id == "opendaq_native_config")
         return "OpenDAQNativeConfiguration";
@@ -963,7 +963,7 @@ StringPtr ModuleManagerImpl::convertIfOldIdProtocol(const StringPtr& id)
     return id;
 }
 
-void ModuleManagerImpl::populateDeviceTypeConfigFromConnStrOptions(
+void ModuleManagerImpl::PopulateDeviceTypeConfigFromConnStrOptions(
     PropertyObjectPtr& deviceTypeConfig,
     const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options)
 {
@@ -974,23 +974,23 @@ void ModuleManagerImpl::populateDeviceTypeConfigFromConnStrOptions(
     }
 }
 
-PropertyObjectPtr ModuleManagerImpl::populateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
+PropertyObjectPtr ModuleManagerImpl::PopulateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
                                                               const PropertyObjectPtr& inputConfig,
                                                               const DeviceTypePtr& deviceType,
                                                               const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions)
 {
-    assert(isDefaultAddDeviceConfig(addDeviceConfig));
+    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
 
     const StringPtr deviceTypeId = deviceType.getId();
     PropertyObjectPtr deviceTypeConfigurations = addDeviceConfig.getPropertyValue("Device");
 
     PropertyObjectPtr deviceTypeConfig = deviceTypeConfigurations.getPropertyValue(deviceTypeId);
 
-    if (inputConfig.assigned() && !isDefaultAddDeviceConfig(inputConfig))
-        overrideConfigProperties(deviceTypeConfig, inputConfig);
+    if (inputConfig.assigned() && !IsDefaultAddDeviceConfig(inputConfig))
+        OverrideConfigProperties(deviceTypeConfig, inputConfig);
 
     if (!connStrOptions.empty())
-        populateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connStrOptions);
+        PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connStrOptions);
 
     deviceTypeConfigurations.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(deviceTypeId, deviceTypeConfig);
     addDeviceConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Device", deviceTypeConfigurations);
@@ -1003,7 +1003,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
     OPENDAQ_PARAM_NOT_NULL(id);
 
-    const StringPtr typeId = convertIfOldIdFB(StringPtr::Borrow(id));
+    const StringPtr typeId = ConvertIfOldIdFB(StringPtr::Borrow(id));
 
     for (const auto& library : libraries)
     {
@@ -1168,7 +1168,7 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
     config.addProperty(ObjectProperty("Device", deviceConfig.detach()));
     config.addProperty(ObjectProperty("Streaming", streamingConfig.detach()));
-    config.addProperty(ObjectProperty("General", createGeneralConfig().detach()));
+    config.addProperty(ObjectProperty("General", CreateGeneralConfig().detach()));
 
     *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
@@ -1180,7 +1180,7 @@ ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId,
     OPENDAQ_PARAM_NOT_NULL(server);
     OPENDAQ_PARAM_NOT_NULL(rootDevice);
 
-    auto typeId = convertIfOldIdProtocol(StringPtr::Borrow(serverTypeId));
+    auto typeId = ConvertIfOldIdProtocol(StringPtr::Borrow(serverTypeId));
 
     for (const auto& library : libraries)
     {
@@ -1267,7 +1267,7 @@ ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* m
     return OPENDAQ_NOTFOUND;
 }
 
-uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
+uint16_t ModuleManagerImpl::GetServerCapabilityPriority(const ServerCapabilityPtr& cap)
 {
     const std::string nativeId = "OpenDAQNativeConfiguration";
     if (cap.getProtocolId() == nativeId)
@@ -1375,11 +1375,11 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
         DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" has no available server capabilities", inputConnectionString);
 
     ServerCapabilityPtr selectedCapability = capabilities[0];
-    auto selectedPriority = getServerCapabilityPriority(selectedCapability);
+    auto selectedPriority = GetServerCapabilityPriority(selectedCapability);
 
     for (const auto & capability : capabilities)
     {
-        const auto priority = getServerCapabilityPriority(capability);
+        const auto priority = GetServerCapabilityPriority(capability);
         if (priority  > selectedPriority)
         {
             selectedCapability = capability;
@@ -1438,15 +1438,15 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
 }
 
 // copies value of any General property present in inputConfig to correspoding General property
-PropertyObjectPtr ModuleManagerImpl::populateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig)
+PropertyObjectPtr ModuleManagerImpl::PopulateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig)
 {
-    assert(isDefaultAddDeviceConfig(addDeviceConfig));
-    assert(!isDefaultAddDeviceConfig(inputConfig));
+    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
+    assert(!IsDefaultAddDeviceConfig(inputConfig));
 
     PropertyObjectPtr generalConfig = addDeviceConfig.getPropertyValue("General");
     if (inputConfig.assigned())
     {
-        overrideConfigProperties(generalConfig, inputConfig);
+        OverrideConfigProperties(generalConfig, inputConfig);
         addDeviceConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("General", generalConfig);
     }
 
@@ -1486,9 +1486,9 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
             continue;
 
         PropertyObjectPtr streamingTypeConfig;
-        if (isDefaultAddDeviceConfig(inputConfig))
+        if (IsDefaultAddDeviceConfig(inputConfig))
         {
-            copyCommonGeneralPropValues(inputConfig);
+            CopyCommonGeneralPropValues(inputConfig);
             PropertyObjectPtr streamingTypesConfig = inputConfig.getPropertyValue("Streaming");
             if (streamingTypesConfig.hasProperty(streamingTypeId))
                 streamingTypeConfig = streamingTypesConfig.getPropertyValue(streamingTypeId);
@@ -1576,7 +1576,7 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
 }
 
 
-PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
+PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig()
 {
     auto obj = PropertyObject();
 
@@ -1611,7 +1611,7 @@ PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
     return obj.detach();
 }
 
-void ModuleManagerImpl::overrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig)
+void ModuleManagerImpl::OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig)
 {
     for (const auto& prop : targetConfig.getAllProperties())
     {
@@ -1622,7 +1622,8 @@ void ModuleManagerImpl::overrideConfigProperties(PropertyObjectPtr& targetConfig
             auto property = targetConfig.getProperty(name);
             if (targetConfig.getPropertyValue(name) != sourcePropValue)
             {
-                if (property.getValueType() == ctObject)
+                auto valueType = property.getValueType();
+                if (valueType == ctObject || valueType == ctFunc || valueType == ctProc)
                 {
                     targetConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, sourcePropValue);
                 }
@@ -1686,7 +1687,7 @@ std::pair<StringPtr, DeviceInfoPtr> ModuleManagerImpl::populateDiscoveredDevice(
 
 void ModuleManagerImpl::onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo)
 {
-    replaceSubDeviceOldProtocolIds(device);
+    ReplaceSubDeviceOldProtocolIds(device);
     mergeDiscoveryAndDeviceCapabilities(device,
                                         discoveredDeviceInfo.assigned()
                                             ? discoveredDeviceInfo
@@ -1708,7 +1709,7 @@ std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connect
     return "";
 }
 
-std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManagerImpl::splitConnectionStringAndOptions(
+std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManagerImpl::SplitConnectionStringAndOptions(
     const std::string& connectionString)
 {
     std::vector<std::string> strs1;
@@ -1738,7 +1739,7 @@ std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManag
     return std::make_pair(strs1[0], optionsMap);
 }
 
-void ModuleManagerImpl::replaceSubDeviceOldProtocolIds(const DevicePtr& device)
+void ModuleManagerImpl::ReplaceSubDeviceOldProtocolIds(const DevicePtr& device)
 {
     using namespace search;
     auto devices = device.getDevices(Recursive(Any()));
@@ -1751,17 +1752,17 @@ void ModuleManagerImpl::replaceSubDeviceOldProtocolIds(const DevicePtr& device)
 
         for (const auto& cap : devInfo.getServerCapabilities())
         {
-            const auto newCap = replaceOldProtocolIds(cap);
+            const auto newCap = ReplaceOldProtocolIds(cap);
             devInfoInternal.removeServerCapability(cap.getProtocolId());
             devInfoInternal.addServerCapability(newCap);
         }
     }
 }
 
-ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabilityPtr& cap)
+ServerCapabilityPtr ModuleManagerImpl::ReplaceOldProtocolIds(const ServerCapabilityPtr& cap)
 {
     const auto oldProtocolId = cap.getProtocolId();
-    const auto newProtocolId = convertIfOldIdProtocol(oldProtocolId);
+    const auto newProtocolId = ConvertIfOldIdProtocol(oldProtocolId);
 
     if (oldProtocolId == newProtocolId)
         return cap;
@@ -1791,7 +1792,7 @@ ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabil
     return newCap.detach();
 }
 
-ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap,
+ServerCapabilityPtr ModuleManagerImpl::MergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap,
                                                                          const ServerCapabilityPtr& deviceCap)
 {
     ServerCapabilityConfigPtr merged = deviceCap.asPtr<IPropertyObjectInternal>(true).clone();
@@ -1834,7 +1835,7 @@ void ModuleManagerImpl::mergeDiscoveryAndDeviceCapabilities(const DevicePtr& dev
             {
                 try
                 {
-                    capPtr = mergeDiscoveryAndDeviceCapability(capability, connectedDeviceInfo.getServerCapability(capId));
+                    capPtr = MergeDiscoveryAndDeviceCapability(capability, connectedDeviceInfo.getServerCapability(capId));
                 }
                 catch ([[maybe_unused]] const std::exception& e)
                 {
@@ -1851,9 +1852,9 @@ void ModuleManagerImpl::mergeDiscoveryAndDeviceCapabilities(const DevicePtr& dev
 }
 
 // copies at least username & password from general to device and streaming type configs
-void ModuleManagerImpl::copyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig)
+void ModuleManagerImpl::CopyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig)
 {
-    assert(isDefaultAddDeviceConfig(addDeviceConfig));
+    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
 
     const PropertyObjectPtr generalConfig = addDeviceConfig.getPropertyValue("General");
     const PropertyObjectPtr deviceTypesConfig = addDeviceConfig.getPropertyValue("Device");
@@ -1894,7 +1895,7 @@ void ModuleManagerImpl::copyCommonGeneralPropValues(PropertyObjectPtr& addDevice
     }
 }
 
-bool ModuleManagerImpl::isDefaultAddDeviceConfig(const PropertyObjectPtr& config)
+bool ModuleManagerImpl::IsDefaultAddDeviceConfig(const PropertyObjectPtr& config)
 {
     if (!config.assigned())
         return false;

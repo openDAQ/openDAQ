@@ -1,6 +1,7 @@
 #include <coretypes/common.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/instance_factory.h>
+#include <opendaq/instance_ptr.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_factory.h>
@@ -226,7 +227,7 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 TEST_F(RefFbModuleTest, ScalingVersion)
 {
     auto module = CreateModule();
-    
+
     auto fb = module.createFunctionBlock("RefFBModuleScaling", nullptr, "fb");
     ASSERT_EQ(fb.getFunctionBlockType().getModuleInfo().getVersionInfo(), module.getModuleInfo().getVersionInfo());
 }
@@ -301,7 +302,13 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockTrigger)
 
 TEST_F(RefFbModuleTest, AddFunctionBlockBackwardsCompat)
 {
-    const auto instance = Instance();
+    InstancePtr instance = Instance("[[none]]");
+    {
+        ModulePtr refFbs;
+        createRefFBModule(&refFbs, instance.getContext());
+
+        instance.getModuleManager().addModule(refFbs);
+    }
 
     instance.addFunctionBlock("ref_fb_module_classifier");
     instance.addFunctionBlock("ref_fb_module_fft");
@@ -310,7 +317,6 @@ TEST_F(RefFbModuleTest, AddFunctionBlockBackwardsCompat)
     instance.addFunctionBlock("ref_fb_module_scaling");
     instance.addFunctionBlock("ref_fb_module_statistics");
     instance.addFunctionBlock("ref_fb_module_trigger");
-    instance.addFunctionBlock("audio_device_module_wav_writer");
 }
 
 TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
@@ -334,7 +340,7 @@ TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
     // Check domain data
 
     // input data:      0, 1, 2, 3, 4
-    //                     ^ trigger, becauase greater than 0.5
+    //                     ^ trigger, because greater than 0.5
     // input domain:    104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
     //                        ^ expected output domain, one sample with value 109
 

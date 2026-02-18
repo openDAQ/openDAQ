@@ -4,6 +4,7 @@
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
 #include <opendaq/device_ptr.h>
+#include <opendaq/instance_ptr.h>
 #include <opendaq/function_block_impl.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/channel_impl.h>
@@ -15,63 +16,41 @@
 #include <coreobjects/user_factory.h>
 #include <opendaq/mock/advanced_components_setup_utils.h>
 
+#if defined(OPENDAQ_TEST_WITH_REF_MODULES)
+    #include <ref_fb_module/module_dll.h>
+    #include <ref_device_module/module_dll.h>
+#endif
+
 using namespace daq;
 using namespace config_protocol;
 using namespace testing;
 
-class ConfigProtocolRefModulesTest : public Test
-{
-public:
-    void SetUp() override
-    {
-        instance = Instance();
-        // ReSharper disable once CppExpressionWithoutSideEffects
-        instance.addDevice("daqref://device0");
-
-        server = std::make_unique<ConfigProtocolServer>(instance.getRootDevice(),
-                                                        nullptr,
-                                                        anonymousUser,
-                                                        ClientType::Control,
-                                                        test_utils::dummyExtSigFolder(instance.getContext()));
-
-        clientContext = NullContext();
-        client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
-            clientContext,
-            [this](const PacketBuffer& requestPacket) -> PacketBuffer
-             {
-                 return server->processRequestAndGetReply(requestPacket);
-            },
-            [this](const PacketBuffer& requestPacket)
-            {
-                // callback is not expected to be called within this test group
-                assert(false);
-                server->processNoReplyRequest(requestPacket);
-            },
-            nullptr,
-            nullptr,
-            nullptr);
-    }
-
-
-protected:
-    InstancePtr instance;
-    std::unique_ptr<ConfigProtocolServer> server;
-    std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
-    ContextPtr clientContext;
-    const UserPtr anonymousUser = User("", "");
-
-};
+using ConfigProtocolRefModulesTest = testing::Test;
 
 #if defined(OPENDAQ_TEST_WITH_REF_MODULES)
 
 TEST_F(ConfigProtocolRefModulesTest, Test)
 {
-    const auto instance = Instance();
+    InstancePtr instance = Instance("[[none]]");
+    {
+        ContextPtr context = instance.getContext();
+
+        ModulePtr refFbs;
+        createRefFBModule(&refFbs, context);
+
+        ModulePtr refDev;
+        createRefDeviceModule(&refDev, context);
+
+        auto mm = instance.getModuleManager();
+        mm.addModule(refFbs);
+        mm.addModule(refDev);
+    }
+
     // ReSharper disable once CppExpressionWithoutSideEffects
     instance.setRootDevice("daqref://device0");
-    ConfigProtocolServer server(instance, nullptr, anonymousUser, ClientType::Control, test_utils::dummyExtSigFolder(instance.getContext()));
+    ConfigProtocolServer server(instance, nullptr, User("", ""), ClientType::Control, test_utils::dummyExtSigFolder(instance.getContext()));
 
-    clientContext = NullContext();
+    auto clientContext = NullContext();
     ConfigProtocolClient<ConfigClientDeviceImpl> client(
         clientContext,
         [&server](const PacketBuffer& requestPacket) -> PacketBuffer

@@ -13,6 +13,7 @@
 #include <opendaq/sync_component_private_ptr.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_class_factory.h>
+#include <opendaq/instance_ptr.h>
 #include <testutils/base_test_listener.h>
 
 using namespace daq;
@@ -416,7 +417,7 @@ TEST_F(TmsIntegrationTest, BeginEndUpdateDevice)
 
 TEST_F(TmsIntegrationTest, SyncComponentNoSubdevices)
 {
-    auto inst = Instance();
+    auto inst = Instance("[[none]]");
     auto serverTypeManager = inst.getContext().getTypeManager();
     auto serverSync = inst.getSyncComponent();
     SyncComponentPrivatePtr syncComponentPrivate = serverSync.asPtr<ISyncComponentPrivate>(true);

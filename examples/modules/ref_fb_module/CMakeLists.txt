@@ -21,6 +21,10 @@ if(NOT DEFINED PROJECT_NAME AND OPENDAQ_FORCE_COMPILE_32BIT AND CMAKE_HOST_SYSTE
 endif()
 opendaq_common_early_setup()
 
+if (${REPO_OPTION_PREFIX}_ENABLE_RENDERER AND APPLE)
+    enable_language(OBJC OBJCXX)
+endif()
+
 project(${REPO_NAME} VERSION ${${REPO_OPTION_PREFIX}_VERSION} LANGUAGES CXX)
 
 if (PROJECT_IS_TOP_LEVEL)
@@ -38,9 +42,6 @@ option(${REPO_OPTION_PREFIX}_ENABLE_RENDERER "Enable renderer function block" ON
 
 opendaq_common_compile_targets_settings()
 
-if (${REPO_OPTION_PREFIX}_ENABLE_RENDERER AND APPLE)
-    enable_language(OBJC OBJCXX)
-endif()
 
 opendaq_setup_compiler_flags(${REPO_OPTION_PREFIX})
 

@@ -12,7 +12,5 @@ int main(int argc, char** args)
     testing::TestEventListeners& listeners = testing::UnitTest::GetInstance()->listeners();
     listeners.Append(new DaqMemCheckListener());
 
-    auto res = RUN_ALL_TESTS();
-
-    return res;
+    return RUN_ALL_TESTS();
 }

@@ -1,6 +1,8 @@
 set(LIB_NAME ${SDK_TARGET_NAME}_utils)
 set(INCLUDE_PREFIX ${SDK_TARGET_NAME}/utils)
 
+list(APPEND CMAKE_MESSAGE_CONTEXT ${LIB_NAME})
+
 set(SOURCE_CPPS function_thread.cpp
                 thread_ex.cpp
                 timer_thread.cpp

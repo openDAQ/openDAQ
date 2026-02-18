@@ -151,8 +151,12 @@ class AppContext(object):
         return component.all_properties if self.view_hidden_components else component.visible_properties
 
     def on_core_event(self, sender: Optional[daq.IComponent], args: daq.IEventArgs):
-        if sender is not None and daq.IDevice.can_cast_from(sender) and args.event_name == "StatusChanged" and self.on_needs_refresh is not None:
+        if sender is None or self.on_needs_refresh is None:
+            return
+        if daq.IDevice.can_cast_from(sender) and args.event_name == "StatusChanged":
             core_event_args: daq.ICoreEventArgs = daq.ICoreEventArgs.cast_from(args)
-            has_connection_status = "ConnectionStatus" in core_event_args.parameters.keys()
-            if has_connection_status:
+            if "ConnectionStatus" in core_event_args.parameters.keys():
                 self.on_needs_refresh()
+            return
+        if args.event_name in ("ComponentAdded", "ComponentRemoved"):
+            self.on_needs_refresh()

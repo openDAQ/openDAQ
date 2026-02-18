@@ -178,22 +178,34 @@ public:
     ClientType connectionType = ClientType::Control;
 };
 
-inline std::set<uint16_t> createListOfSupportedVersions(uint16_t maxVersion)
+inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
-    std::set<uint16_t> supportedVersions;
-    for (uint16_t i = 0; i <= maxVersion; ++i)
-        supportedVersions.insert(i);
-    return supportedVersions;
+    return 19;
 }
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    return createListOfSupportedVersions(18);
+    static std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t> 
+    {
+        std::set<uint16_t> supportedVersions;
+        for (uint16_t i = 0; i <= GetLatestConfigProtocolVersion(); ++i)
+            supportedVersions.insert(i);
+        return supportedVersions;
+    }();
+    return supportedVersions;
 }
 
-inline constexpr uint16_t GetLatestConfigProtocolVersion()
+// Versions the server accepts (recent only). Use when building ConfigProtocolServer.
+inline std::set<uint16_t> GetServerSupportedConfigProtocolVersions()
 {
-    return 18;
+    static const std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t>
+    {
+        std::set<uint16_t> s;
+        for (uint16_t i = 17; i <= GetLatestConfigProtocolVersion(); ++i)
+            s.insert(i);
+        return s;
+    }();
+    return supportedVersions;
 }
 
 }

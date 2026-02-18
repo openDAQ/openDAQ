@@ -27,7 +27,7 @@
     <VersionPrefix>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</VersionPrefix>
     <!-- the <VersionSuffix> is normally set externally but we use a PowerShell environment variable $ENV:SHORT_SHA (when set) -->
     <VersionSuffix Condition="'$(Configuration)' != 'Release'">beta-VS</VersionSuffix>
-    <VersionSuffix Condition="'$(SHORT_SHA)' != ''">beta-$(SHORT_SHA)</VersionSuffix>
+    <VersionSuffix Condition="'$(SHORT_SHA)' != ''">$(SHORT_SHA)</VersionSuffix>
     <AssemblyVersion>9.9.9.9</AssemblyVersion>
     <FileVersion>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</FileVersion>
     <!--<RepositoryUrl>https://github.com/openDAQ/openDAQ.git</RepositoryUrl>-->

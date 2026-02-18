@@ -546,6 +546,7 @@ install(EXPORT ${SDK_NAME}
         COMPONENT ${SDK_NAME}_Development
 )
 
+# FIXME move to external/mdns subdir
 if (DEFINED mdns_SOURCE_DIR)
     message(STATUS "mdns dependency found - mdns.h will be installed from: ${mdns_SOURCE_DIR}")
     install(

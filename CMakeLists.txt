@@ -96,8 +96,6 @@ option(OPENDAQ_RTGEN_ON_CMAKE_CONFIG "Run RT gen as part of the CMake configurat
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 
-option(OPENDAQ_ENABLE_EXAMPLE_APP "Enable example applications" ON)
-
 # Bindings
 option(OPENDAQ_GENERATE_DELPHI_BINDINGS "Generate Delphi bindings" OFF)
 option(OPENDAQ_GENERATE_PYTHON_BINDINGS "Generate Python bindings" OFF)
@@ -142,6 +140,10 @@ option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OF
 option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder module" OFF)
 option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" OFF)
 option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
+
+if (APPLE)
+    enable_language(OBJC OBJCXX)
+endif()
 
 # logging start
 include(openDAQLogging)

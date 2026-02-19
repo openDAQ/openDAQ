@@ -92,4 +92,18 @@ void defineIInputPort(pybind11::module_ m, PyDaqIntf<daq::IInputPort, daq::IComp
         },
         py::return_value_policy::take_ownership,
         "Gets the Connection object formed between the Signal and Input port.");
+    cls.def_property("public",
+        [](daq::IInputPort *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InputPortPtr::Borrow(object);
+            return objectPtr.getPublic();
+        },
+        [](daq::IInputPort *object, const bool isPublic)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InputPortPtr::Borrow(object);
+            objectPtr.setPublic(isPublic);
+        },
+        "Returns true if the port is public; false otherwise. / Sets the port to be either public or private.");
 }

@@ -754,7 +754,7 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::removeInput(IString* globalId)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUnused(IString* globalId, Bool unused)
+ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUsed(IString* globalId, Bool isUsed)
 {
     OPENDAQ_PARAM_NOT_NULL(globalId);
 
@@ -765,16 +765,16 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUnused(IString* globalId, Bool u
         StringPtr sigId = signal.getComponentGlobalId();
         if (sigId == gId)
         {
-            signal.unused = unused;
+            signal.unused = !isUsed;
             signal.synced = SyncStatus::Unsynchronized;
-            if (unused)
+            if (isUsed)
             {
-                signal.skipUntilLastEventPacket();
-                signal.port.setActive(false);
+                signal.port.setActive(this->isActive);
             }
             else
             {
-                signal.port.setActive(this->isActive);
+                signal.skipUntilLastEventPacket();
+                signal.port.setActive(false);
             }
             found = true;
             break;
@@ -798,7 +798,7 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::setInputUnused(IString* globalId, Bool u
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC MultiReaderImpl::getInputUnused(IString* globalId, Bool* unused)
+ErrCode INTERFACE_FUNC MultiReaderImpl::getInputUsed(IString* globalId, Bool* isUsed)
 {
     OPENDAQ_PARAM_NOT_NULL(globalId);
 
@@ -809,7 +809,7 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::getInputUnused(IString* globalId, Bool* 
         StringPtr sigId = signal.getComponentGlobalId();
         if (sigId == gId)
         {
-            *unused = signal.unused;
+            *isUsed = !signal.unused;
             found = true;
             break;
         }

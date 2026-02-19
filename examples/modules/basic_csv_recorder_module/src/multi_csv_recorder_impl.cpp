@@ -218,7 +218,7 @@ bool MultiCsvRecorderImpl::updateInputPorts()
         cachedSignalNames.insert(std::make_pair(disconnectedPort.getGlobalId(), signal.getName()));
 
         // Activate the newly connected port
-        reader.setInputUnused(disconnectedPort.getGlobalId(), false);
+        reader.setInputUsed(disconnectedPort.getGlobalId(), true);
         disconnectedPort.release();
         connectedPortsChanged = true;
     }
@@ -247,7 +247,7 @@ bool MultiCsvRecorderImpl::updateInputPorts()
 
         // Add the empty port to the multi reader and mark it unused
         reader.addInput(disconnectedPort);
-        reader.setInputUnused(disconnectedPort.getGlobalId(), true);
+        reader.setInputUsed(disconnectedPort.getGlobalId(), false);
     }
 
     if (connectedPorts.empty())
@@ -274,7 +274,7 @@ void MultiCsvRecorderImpl::createReader()
     builder.addInputPort(disconnectedPort);
 
     reader = builder.build();
-    reader.setInputUnused(disconnectedPort.getGlobalId(), true);
+    reader.setInputUsed(disconnectedPort.getGlobalId(), false);
 
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();

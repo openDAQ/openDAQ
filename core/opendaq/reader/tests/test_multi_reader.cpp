@@ -5186,7 +5186,7 @@ TEST_F(MultiReaderTest, UsedUnusedInput)
     ports[1].connect(signals[1]);
 
     // Recovers to active state (all used are connected)
-    multi.setInputUnused(ports[2].getGlobalId(), true);
+    multi.setInputUsed(ports[2].getGlobalId(), false);
 
     {
         SizeT count{0};
@@ -5208,7 +5208,7 @@ TEST_F(MultiReaderTest, UsedUnusedInput)
     ASSERT_TRUE(multi.asPtr<IReaderConfig>().getIsValid());
 
     ports[2].connect(signals[2]);
-    multi.setInputUnused(ports[2].getGlobalId(), false);
+    multi.setInputUsed(ports[2].getGlobalId(), true);
 
     {
         SizeT count{0};

@@ -9,6 +9,7 @@
 - [#1018](https://github.com/openDAQ/openDAQ/pull/1018) Optimized multireader synchronization for linear data rule domain signals by avoiding iteration through timestamps.
 - [#1034](https://github.com/openDAQ/openDAQ/pull/1034) Add string support for data packets and signals
 - [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Function blocks and devices of which type is not in their parent's `getAvailableFunctionBlock/DeviceTypes` output can no longer be removed.
+- [#1074](https://github.com/openDAQ/openDAQ/pull/1074) Add public attribute to input port. Non-public input ports are not available one client side.
 
 ## Python
 

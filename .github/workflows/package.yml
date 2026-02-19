@@ -359,6 +359,20 @@ jobs:
           sudo apt update
           sudo apt install -y virtualbox vagrant
 
+          # VirtualBox needs exclusive access to hardware virtualization (AMD-V/VT-x).
+          # If KVM modules are loaded, VBoxManage fails with VERR_SVM_IN_USE.
+          for mod in kvm_amd kvm_intel kvm; do
+            if lsmod | grep -q "^${mod} "; then
+              if sudo modprobe -r "${mod}"; then
+                echo "Module ${mod} -- unload succeeded"
+              else
+                echo "::warning::Module ${mod} -- unload failed. VirtualBox may not start correctly."
+              fi
+            else
+              echo "Module ${mod} -- not loaded"
+            fi
+          done
+
       - name: Download package
         uses: actions/download-artifact@v4
         with:

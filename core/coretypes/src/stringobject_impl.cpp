@@ -165,6 +165,12 @@ ErrCode StringImpl::toBool(Bool* val)
     else if (strcasecmp("True", str) == 0)
 #endif
         *val = True;
+#if defined(_WIN32)
+    else if (_stricmp("False", str) == 0)
+#else
+    else if (strcasecmp("False", str) == 0)
+#endif
+        *val = False;
     else
     {
         Int intVal;

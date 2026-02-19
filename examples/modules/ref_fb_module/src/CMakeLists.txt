@@ -120,7 +120,7 @@ if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     target_compile_definitions(${LIB_NAME} PRIVATE OPENDAQ_ENABLE_RENDERER)
     target_link_libraries(${LIB_NAME}
         PRIVATE
-            sfml-graphics
+            SFML::Graphics
             date::date
     )
 endif()

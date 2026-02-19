@@ -19,14 +19,19 @@
 - [#991](https://github.com/openDAQ/openDAQ/pull/991) Add Function Block configuration to Python GUI demo app
 - [#1007](https://github.com/openDAQ/openDAQ/pull/1007) Add a missing error popup when adding a Function Block fails in Python GUI demo app.
 - [#1029](https://github.com/openDAQ/openDAQ/pull/1029) Fix python binding for iterators to enable list comprehensions.
+- [#1035](https://github.com/openDAQ/openDAQ/pull/1035) Fix showing description metadata of properties in Python GUI app
 
 ## Bug fixes
 
 - [#1015](https://github.com/openDAQ/openDAQ/pull/1015) IPropertyObject::hasProperty returns false instead of throwing not found error if the parent property does not exists
 - [#1046](https://github.com/openDAQ/openDAQ/pull/1046) Prevent updating locked attributes during the update process
+- [#1052](https://github.com/openDAQ/openDAQ/pull/1052) Renderer FB labels take into account reference domain offset from ReferenceDomainInfo.
+- [#1054](https://github.com/openDAQ/openDAQ/pull/1054) Add validation default value items type for List And Dict Property
+- [#1059](https://github.com/openDAQ/openDAQ/pull/1059) Prevent post scaling in descriptors with vector/matrix dimensions.
 
 ## Misc
 
+- [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removes the FB wrapper implementation as it was never used.
 - [#979](https://github.com/openDAQ/openDAQ/pull/979) Relocate and install dependency management cmake helpers, install daq::test_utils and rename "bb" to "daq" in testultils/daq_memcheck_listener.h
 - [#974](https://github.com/openDAQ/openDAQ/pull/974) Reorganizes the audio device implementation for greater clarity. Adds automatic device/FB version info setting.
 - [#967](https://github.com/openDAQ/openDAQ/pull/967), [#994](https://github.com/openDAQ/openDAQ/pull/994), [#993](https://github.com/openDAQ/openDAQ/pull/993), [#995](https://github.com/openDAQ/openDAQ/pull/995), [#1001](https://github.com/openDAQ/openDAQ/pull/1001), [1025](https://github.com/openDAQ/openDAQ/pull/1025), [#1026](https://github.com/openDAQ/openDAQ/pull/1026), [#1020](https://github.com/openDAQ/openDAQ/pull/1020) Update external libraries:
@@ -46,6 +51,10 @@
     - arrow from 20.0.0 to 22.0.0
 
 ## Required application changes
+
+### [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removed function block wrapper
+
+The IFunctionBlockWrapper interface was removed as it was never used. Similarly, the base implementation headers were removed. The wrapper objects should no longer be used.
 
 ## Required module changes
 

@@ -73,7 +73,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
 
     std::size_t numThreads = 2;
     pool.reserve(numThreads);
-    
+
     for (std::size_t i = 0; i < numThreads; ++i)
     {
         pool.emplace_back([this]
@@ -113,7 +113,7 @@ ModuleManagerImpl::~ModuleManagerImpl()
 ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 {
     OPENDAQ_PARAM_NOT_NULL(availableModules);
-    
+
     auto list = List<IModule>();
     for (auto& library : libraries)
     {
@@ -405,17 +405,11 @@ ErrCode ModuleManagerImpl::getVendorKeys(IDict** vendorKeys)
     return OPENDAQ_SUCCESS;
 }
 
-struct DevicePing
-{
-    std::string address;
-    std::shared_ptr<IcmpPing> ping;
-};
-
 void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 {
-    std::vector<DevicePing> statuses;
-    std::map<std::string, bool> ipv4Addresses;
-    std::map<std::string, bool> ipv6Addresses;
+    std::vector<boost::asio::ip::address_v4> ipv4Addresses;
+    std::map<std::string, bool> ipv4AddressesMap;
+    std::map<std::string, bool> ipv6AddressesMap;
 
     for (auto deviceInfo : list)
     {
@@ -427,47 +421,42 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
             const auto addressInfos = cap.getAddressInfo();
             for (const auto& info : addressInfos)
             {
-                const auto address = info.getAddress();
+                const auto address = info.getAddress().toStdString();
                 const auto addressType = info.getType();
+
                 if (addressType == "IPv4")
-                    ipv4Addresses.emplace(address.toStdString(), false);
+                {
+                    auto [_,inserted] = ipv4AddressesMap.try_emplace(address, false);
+                    if (inserted)
+                        ipv4Addresses.emplace_back(boost::asio::ip::make_address_v4(address));
+                }
                 else if (addressType == "IPv6")
-                    ipv6Addresses.emplace(address.toStdString(), false);
+                {
+                    ipv6AddressesMap.emplace(address, false);
+                }
             }
         }
     }
 
-    for (auto& address : ipv4Addresses)
     {
         const auto icmp = IcmpPing::Create(ioContext, logger);
-        IcmpPing& ping = *icmp;
+        icmp->setMaxHops(1);
+        icmp->start(ipv4Addresses);
+        icmp->waitSendAndReply();
 
-        ping.setMaxHops(1);
-        ping.start(boost::asio::ip::make_address_v4(address.first));
-        if (ping.waitSend())
+        auto replies = icmp->getReplyAddresses();
+
+        for (auto& ipv4 : ipv4AddressesMap)
         {
-            address.second = true;
-            continue;
+            if (replies.find(ipv4.first) != replies.cend())
+            {
+                ipv4.second = true;
+            }
         }
-
-        statuses.push_back({address.first, icmp});
-    }
-
-    if (!statuses.empty())
-    {
-        LOG_T("Missing ping replies: waiting 1s\n");
-        std::this_thread::sleep_for(1s);
-
-        for (const auto& [address, ping] : statuses)
-        {
-            ping->stop();
-            ipv4Addresses[address] = ping->getNumReplies() > 0;
-        }
-        statuses.clear();
     }
     
     // TODO: Ping IPv6 addresses as well
-    setAddressesReachable(ipv4Addresses, list);
+    setAddressesReachable(ipv4AddressesMap, list);
 }
 
 static bool ipv6Available(boost::asio::io_context& io)
@@ -645,7 +634,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 
     try
     {
-        checkNetworkSettings(availableDevicesPtr);        
+        checkNetworkSettings(availableDevicesPtr);
     }
     catch(const std::exception& e)
     {
@@ -680,7 +669,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(deviceTypes);
-    
+
     auto availableTypes = Dict<IString, IDeviceType>();
 
     for (const auto& library : libraries)
@@ -767,7 +756,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         for (const auto& library : libraries)
         {
             const auto deviceType = getDeviceTypeFromConnectionString(connectionStringPtr, library.module);
-            
+
             // Check if module can create device with given connection string
             if (!deviceType.assigned())
                 continue;
@@ -908,7 +897,7 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-        
+
         DictPtr<IString, IFunctionBlockType> types;
         try
         {
@@ -1019,7 +1008,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-        
+
         DictPtr<IString, IFunctionBlockType> types;
         try
         {
@@ -1036,7 +1025,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
 
         if (!types.assigned())
             continue;
-        
+
         if (!types.hasKey(typeId))
             continue;
 
@@ -1045,7 +1034,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         if (localId)
         {
             const auto idPtr = StringPtr::Borrow(localId);
-            localIdStr = static_cast<std::string>(idPtr); 
+            localIdStr = static_cast<std::string>(idPtr);
         }
         else if (configPtr.assigned() && configPtr.hasProperty("LocalId"))
         {
@@ -1127,7 +1116,7 @@ ErrCode ModuleManagerImpl::getAvailableStreamingTypes(IDict** streamingTypes)
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-        
+
         DictPtr<IString, IStreamingType> types;
         try
         {
@@ -1160,20 +1149,20 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
     DictPtr<IString, IDeviceType> deviceTypes;
     ErrCode err = getAvailableDeviceTypes(&deviceTypes);
     OPENDAQ_RETURN_IF_FAILED(err);
-    
+
     DictPtr<IString, IStreamingType> streamingTypes;
     err = getAvailableStreamingTypes(&streamingTypes);
     OPENDAQ_RETURN_IF_FAILED(err);
 
     auto config = PropertyObject();
-    
+
     auto deviceConfig = PropertyObject();
     auto streamingConfig = PropertyObject();
     auto generalConfig = PropertyObject();
 
     for (auto const& [key, typeObj] : deviceTypes)
         deviceConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
-    
+
     for (auto const& [key, typeObj] : streamingTypes)
         streamingConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
 
@@ -1316,15 +1305,15 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
 
     if (!serialNumber.getLength() || !manufacturer.getLength())
         return nullptr;
-    
-    DeviceInfoPtr localInfo; 
+
+    DeviceInfoPtr localInfo;
     for (const auto & [_, info] : availableDevicesGroup)
     {
         if (manufacturer == info.getManufacturer() && serialNumber == info.getSerialNumber())
         {
             if (info.getServerCapabilities().getCount())
                 return info;
-            
+
             localInfo = info;
         }
     }
@@ -1474,7 +1463,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-    
+
         const std::string prefix = getPrefixFromConnectionString(connectionString);
         DictPtr<IString, IStreamingType> types;
         const ErrCode errCode = module->getAvailableStreamingTypes(&types);
@@ -1572,7 +1561,7 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
         const auto targetAddressInfo = target.getAddressInfo();
         if (!targetAddressInfo.assigned() || !targetAddressInfo.getCount())
             continue;
-        
+
         for (const auto& info : targetAddressInfo)
         {
             if (address == info.getAddress() && addressType == info.getType())

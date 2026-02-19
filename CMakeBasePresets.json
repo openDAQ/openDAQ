@@ -70,6 +70,14 @@
             ]
         },
         {
+            "name": "msvc-26",
+            "hidden": true,
+            "generator": "Visual Studio 18 2026",
+            "inherits": [
+                "msvc-17"
+            ]
+        },
+        {
             "name": "msvc-x86",
             "hidden": true,
             "architecture": "Win32",
@@ -243,6 +251,24 @@
             "inherits": [
                 "full/release",
                 "msvc-22",
+                "msvc-x64"
+            ]
+        },
+        {
+            "name": "x86/msvc-26/full",
+            "displayName": "[MSVC 26] Full - x86",
+            "inherits": [
+                "full/release",
+                "msvc-26",
+                "msvc-x86"
+            ]
+        },
+        {
+            "name": "x64/msvc-26/full",
+            "displayName": "[MSVC 26] Full - x64",
+            "inherits": [
+                "full/release",
+                "msvc-26",
                 "msvc-x64"
             ]
         },

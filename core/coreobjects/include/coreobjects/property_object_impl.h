@@ -379,8 +379,6 @@ private:
     void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
     void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
 
-    // Used when cloning object-type property default values of property object classes on construction.
-    // Must be overridden by modules that have their own property object implementation.
     bool checkIsChildObjectProperty(const PropertyPtr& prop);
     void setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned);
     void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);

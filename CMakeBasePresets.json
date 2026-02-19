@@ -74,7 +74,7 @@
             "hidden": true,
             "generator": "Visual Studio 18 2026",
             "inherits": [
-                "msvc-22"
+                "msvc-17"
             ]
         },
         {

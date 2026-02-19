@@ -2,7 +2,7 @@ name: Build openDAQ packages
 
 on:
   push:
-    branches: [release/**]
+    branches: [main, release/**]
 
   workflow_dispatch:
 
@@ -331,11 +331,6 @@ jobs:
         with:
           name: opendaq-${{ steps.detect.outputs.version-full }}-python-wheels-macos
           path: wheels/*.whl
-
-      - name: Delete source artifacts
-        uses: geekyeggo/delete-artifact@v5
-        with:
-          name: opendaq-*-python-wheels-macos-*
 
   simulator-build:
     runs-on: ubuntu-latest-4-cores

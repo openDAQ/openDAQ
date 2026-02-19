@@ -1,9 +1,10 @@
-#include "test_helpers/test_helpers.h"
 #include <coreobjects/authentication_provider_factory.h>
-#include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
+#include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/user_factory.h>
 #include <opendaq/mock/mock_device_module.h>
+#include "test_helpers/device_modules.h"
+#include "test_helpers/test_helpers.h"
 
 using NativeStreamingModulesTest = testing::Test;
 
@@ -13,10 +14,12 @@ static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authent
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
-    auto moduleManager = ModuleManager("");
+    auto moduleManager = ModuleManager("[[none]]");
     auto context = Context(scheduler, logger, TypeManager(), moduleManager, authenticationProvider);
 
     auto instance = InstanceCustom(context, "local");
+    addRefDeviceModule(instance);
+    addNativeServerModule(instance);
 
     const auto refDevice = instance.addDevice("daqref://device1");
 
@@ -33,7 +36,8 @@ static InstancePtr CreateServerInstance()
 
 static InstancePtr CreateClientInstance(const std::string& username, const std::string& password)
 {
-    auto instance = Instance();
+    auto instance = Instance("[[none]]");
+    addNativeClientModule(instance);
 
     auto config = instance.createDefaultAddDeviceConfig();
     PropertyObjectPtr general = config.getPropertyValue("General");
@@ -46,7 +50,9 @@ static InstancePtr CreateClientInstance(const std::string& username, const std::
 
 static InstancePtr CreateClientInstance()
 {
-    auto instance = Instance();
+    auto instance = Instance("[[none]]");
+    addNativeClientModule(instance);
+
     auto refDevice = instance.addDevice("daq.ns://127.0.0.1/");
     return instance;
 }
@@ -67,10 +73,14 @@ TEST_F(NativeStreamingModulesTest, ConnectViaIpv6)
     if (test_helpers::Ipv6IsDisabled())
         return;
 
-    auto server = CreateServerInstance();
+    {
+        auto server = CreateServerInstance();
 
-    auto client = Instance();
-    ASSERT_NO_THROW(client.addDevice("daq.ns://[::1]", nullptr));
+        auto client = Instance("[[none]]");
+        addNativeClientModule(client);
+
+        ASSERT_NO_THROW(client.addDevice("daq.ns://[::1]", nullptr));
+    }
 }
 
 TEST_F(NativeStreamingModulesTest, PopulateDefaultConfigFromProvider)
@@ -88,10 +98,17 @@ TEST_F(NativeStreamingModulesTest, PopulateDefaultConfigFromProvider)
             }
         }
     )";
+
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto instance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addConfigProvider(provider)
+        .build();
+
+    addNativeServerModule(instance);
+
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
 
     ASSERT_EQ(serverConfig.getPropertyValue("NativeStreamingPort").asPtr<IInteger>(), 1234);
@@ -100,21 +117,25 @@ TEST_F(NativeStreamingModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(NativeStreamingModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().addDiscoveryServer("mdns")
-                                   .setDefaultRootDeviceLocalId("local")
-                                   .build();
+    auto server = InstanceBuilder().setModulePath("[[none]]").addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
+
+    addRefDeviceModule(server);
     server.addDevice("daqref://device1");
+
+    addNativeServerModule(server);
 
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_streaming/discovery/";
     serverConfig.setPropertyValue("Path", path);
     server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
-    auto client = Instance();
+    auto client = Instance("[[none]]");
+    addNativeClientModule(client);
+
     DevicePtr device;
-    for (const auto & deviceInfo : client.getAvailableDevices())
+    for (const auto& deviceInfo : client.getAvailableDevices())
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        for (const auto& capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
             {
@@ -132,37 +153,48 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
 
 TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
 {
-    auto server = InstanceBuilder().addDiscoveryServer("mdns")
-                                   .setDefaultRootDeviceLocalId("local")
-                                   .setRootDevice("daqref://device0")
-                                   .build();
-
-    // set initial username and location
-    server.setPropertyValue("userName", "testUser1");
-    server.setPropertyValue("location", "testLocation1");
-    server.getInfo().setPropertyValue("SetupDate", "2025-01-16T08:23:22Z");
-
-    ASSERT_EQ(server.getInfo().getPropertyValue("userName"), "testUser1");
-    ASSERT_EQ(server.getInfo().getPropertyValue("location"), "testLocation1");
-    ASSERT_EQ(server.getInfo().getPropertyValue("SetupDate"), "2025-01-16T08:23:22Z");
-
-    auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_streaming/discovery/username_location/";
-    serverConfig.setPropertyValue("Path", path);
-    server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
-    // update the username and location after server creation
-    server.setPropertyValue("userName", "testUser2");
-    server.setPropertyValue("location", "testLocation2");
-    server.getInfo().setPropertyValue("SetupDate", "2025-01-17T08:23:22Z");
+    auto server = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .setDefaultRootDeviceLocalId("local")
+        .build();
+    {
+        addRefDeviceModule(server);
+        server.setRootDevice("daqref://device1");
+
+        // set initial username and location
+        server.setPropertyValue("userName", "testUser1");
+        server.setPropertyValue("location", "testLocation1");
+
+        auto serverInfo = server.getInfo();
+        serverInfo.setPropertyValue("SetupDate", "2025-01-16T08:23:22Z");
+
+        ASSERT_EQ(serverInfo.getPropertyValue("userName"), "testUser1");
+        ASSERT_EQ(serverInfo.getPropertyValue("location"), "testLocation1");
+        ASSERT_EQ(serverInfo.getPropertyValue("SetupDate"), "2025-01-16T08:23:22Z");
+
+        addNativeServerModule(server);
+        auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+        serverConfig.setPropertyValue("Path", path);
+        server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+
+        // update the username and location after server creation
+        server.setPropertyValue("userName", "testUser2");
+        server.setPropertyValue("location", "testLocation2");
+        serverInfo.setPropertyValue("SetupDate", "2025-01-17T08:23:22Z");
+    }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    auto client = Instance();
+    auto client = Instance("[[none]]");
+    addNativeClientModule(client);
+
     DevicePtr device;
-    for (const auto & deviceInfo : client.getAvailableDevices())
+    for (const auto& deviceInfo : client.getAvailableDevices())
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        for (const auto& capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
@@ -183,22 +215,28 @@ TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    auto instance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .build();
+
+    addNativeServerModule(instance);
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_streaming/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
 
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
-    auto client = Instance();
+    auto client = Instance("[[none]]");
+    addNativeClientModule(client);
 
-    for (const auto & deviceInfo : client.getAvailableDevices())
+    for (const auto& deviceInfo : client.getAvailableDevices())
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        for (const auto& capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 break;
-            
+
             if (capability.getProtocolName() != "OpenDAQNativeStreaming")
                 continue;
 
@@ -219,13 +257,13 @@ TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
                     hasIPv6 = true;
                     ASSERT_EQ(addresInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
                 }
-                
+
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))
                     return;
 
                 cnt++;
             }
-        }      
+        }
     }
 
     ASSERT_TRUE(false) << "Device not found";
@@ -233,7 +271,7 @@ TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
 
 #endif
 
-TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
+TEST_F(NativeStreamingModulesTest, CheckDeviceInfoPopulatedWithProvider)
 {
     std::string filename = "populateDefaultConfig.json";
     std::string json = R"(
@@ -258,15 +296,24 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").addConfigProvider(provider).setDefaultRootDeviceInfo(rootInfo).build();
+    auto instance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .addConfigProvider(provider)
+        .setDefaultRootDeviceInfo(rootInfo)
+        .build();
+
+    addNativeServerModule(instance);
+
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
-    auto client = Instance();
+    auto client = Instance("[[none]]");
+    addNativeClientModule(client);
 
-    for (const auto & deviceInfo : client.getAvailableDevices())
+    for (const auto& deviceInfo : client.getAvailableDevices())
     {
-        for (const auto & capability : deviceInfo.getServerCapabilities())
+        for (const auto& capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
             {
@@ -282,7 +329,7 @@ TEST_F(NativeStreamingModulesTest, checkDeviceInfoPopulatedWithProvider)
                 ASSERT_EQ(deviceInfo.getSerialNumber(), rootInfo.getSerialNumber());
                 return;
             }
-        }      
+        }
     }
 
     ASSERT_TRUE(false) << "Device not found";
@@ -350,7 +397,9 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
 TEST_F(NativeStreamingModulesTest, RemoveDevice)
 {
     auto server = CreateServerInstance();
-    auto client = Instance();
+    auto client = Instance("[[none]]");
+
+    addNativeClientModule(client);
     auto device = client.addDevice("daq.ns://127.0.0.1/");
 
     ASSERT_NO_THROW(client.removeDevice(device));
@@ -440,9 +489,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
 
     std::promise<StringPtr> connectionStatusPromise;
     std::future<StringPtr> connectionStatusFuture = connectionStatusPromise.get_future();
-    client.getDevices()[0].getOnComponentCoreEvent() +=
-        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
-    {
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args) {
         auto params = args.getParameters();
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ConnectionStatusChanged)
         {
@@ -511,7 +558,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
 
         ASSERT_EQ(clientDataDescriptor, serverDataDescriptor);
 
-        //ASSERT_EQ(serverSignals[i].getName(), clientSignalsAfterReconnection[i].getName());
+        // ASSERT_EQ(serverSignals[i].getName(), clientSignalsAfterReconnection[i].getName());
         ASSERT_EQ(serverSignals[i].getDescription(), clientSignalsAfterReconnection[i].getDescription());
     }
 }
@@ -529,9 +576,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
     std::future<StringPtr> connectionOldStatusFuture = connectionOldStatusPromise.get_future();
     std::promise<StringPtr> connectionStatusPromise;
     std::future<StringPtr> connectionStatusFuture = connectionStatusPromise.get_future();
-    client.getDevices()[0].getOnComponentCoreEvent() +=
-        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
-    {
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args) {
         auto params = args.getParameters();
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ConnectionStatusChanged)
         {
@@ -640,9 +685,7 @@ TEST_F(NativeStreamingModulesTest, AddSignals)
     size_t addedSignalsCount = 0;
     std::promise<void> addSignalsPromise;
     std::future<void> addSignalsFuture = addSignalsPromise.get_future();
-    client.getContext().getOnCoreEvent() +=
-        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
-    {
+    client.getContext().getOnCoreEvent() += [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args) {
         auto params = args.getParameters();
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
         {
@@ -697,9 +740,7 @@ TEST_F(NativeStreamingModulesTest, RemoveSignals)
     size_t removedSignalsCount = 0;
     std::promise<void> removedSignalsPromise;
     std::future<void> removedSignalsFuture = removedSignalsPromise.get_future();
-    client.getContext().getOnCoreEvent() +=
-        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
-    {
+    client.getContext().getOnCoreEvent() += [&](const ComponentPtr& comp, const CoreEventArgsPtr& args) {
         auto params = args.getParameters();
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
         {
@@ -756,8 +797,12 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv4)
 TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv6)
 {
     SKIP_TEST_MAC_CI;
+
     auto server = CreateServerInstance();
-    auto client = Instance();
+
+    auto client = Instance("[[none]]");
+
+    addNativeClientModule(client);
     client.addDevice("daq.ns://[::1]", nullptr);
 
     auto devices = client.getDevices();
@@ -836,7 +881,6 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeDenied)
 #endif
 }
 
-
 TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeAllowed)
 {
     auto users = List<IUser>();
@@ -907,20 +951,27 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalUnsubscribeDenied)
 
 TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
 {
-    auto server = Instance();
-    auto moduleManager = server.getModuleManager();
-    const ModulePtr deviceModule(MockDeviceModule_Create(server.getContext()));
-    moduleManager.addModule(deviceModule);
+    DevicePtr serverDevice{};
+    auto server = Instance("[[none]]");
+    {
+        auto moduleManager = server.getModuleManager();
+        const ModulePtr deviceModule(MockDeviceModule_Create(server.getContext()));
+        moduleManager.addModule(deviceModule);
 
-    const auto serverDevice = server.addDevice("daqmock://phys_device");
+        serverDevice = server.addDevice("daqmock://phys_device");
 
-    auto config = PropertyObject();
-    config.addProperty(IntProperty("MaxPacketReadCount", 1));
-    server.addServer("OpenDAQNativeStreaming", config);
+        auto config = PropertyObject();
+        config.addProperty(IntProperty("MaxPacketReadCount", 1));
 
-    auto client = Instance();
+        addNativeServerModule(server);
+        server.addServer("OpenDAQNativeStreaming", config);
+    }
+
+    auto client = Instance("[[none]]");
+
+    addNativeClientModule(client);
     auto clientDevice = client.addDevice("daq.nd://127.0.0.1");
-    
+
     auto clientSignal = clientDevice.getSignals(search::Recursive(search::LocalId("ByteStep")))[0];
     auto serverSignal = serverDevice.getSignals(search::Recursive(search::LocalId("ByteStep")))[0];
 
@@ -937,7 +988,7 @@ TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
     const size_t packetsToGenerate = 50;
     const size_t packetsToRead = packetsToGenerate + 1;
 
-    serverDevice.setPropertyValue("GeneratePackets", packetsToGenerate); 
+    serverDevice.setPropertyValue("GeneratePackets", packetsToGenerate);
 
     auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
     auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);

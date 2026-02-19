@@ -1,4 +1,6 @@
 #include <gtest/gtest.h>
+#include <opendaq/instance_ptr.h>
+
 #include <chrono>
 #include <thread>
 #include <opendaq/opendaq.h>
@@ -40,9 +42,9 @@ TEST_F(ArchitectureTest, AddDevice)
     SKIP_TEST_MAC_CI;
 
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
-    InstancePtr instance = daq::Instance();
+    InstancePtr client = daq::Instance();
 
-    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
+    DevicePtr device = client.addDevice("daq.opcua://127.0.0.1");
     ASSERT_NE(device.getChannels().getCount(), 0u);
 
     ASSERT_TRUE(device.asPtr<IPropertyObject>().assigned());

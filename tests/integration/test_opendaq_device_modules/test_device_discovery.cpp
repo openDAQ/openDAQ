@@ -1,4 +1,12 @@
+#include <native_streaming_client_module/module_dll.h>
+#include <native_streaming_server_module/module_dll.h>
+#include <opcua_client_module/module_dll.h>
+#include <opcua_server_module/module_dll.h>
+#include <websocket_streaming_client_module/module_dll.h>
+#include <websocket_streaming_server_module/module_dll.h>
+
 #include "opendaq/mock/mock_device_module.h"
+#include "test_helpers/device_modules.h"
 #include "test_helpers/test_helpers.h"
 
 using ModulesDeviceDiscoveryTest = testing::Test;
@@ -16,34 +24,46 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfig)
 
     SizeT modifyCallCount = 0;
     ProcedurePtr modifyIpConfigCallback = Procedure([&](StringPtr ifaceName, PropertyObjectPtr config)
-                                                    {
-                                                        ++modifyCallCount;
-                                                        EXPECT_EQ(ifaceName, "eth0");
-                                                        EXPECT_EQ(config.getPropertyValue("dhcp4"), dhcp4);
-                                                        EXPECT_EQ(config.getPropertyValue("address4"), address4);
-                                                        EXPECT_EQ(config.getPropertyValue("gateway4"), gateway4);
-                                                        EXPECT_EQ(config.getPropertyValue("dhcp6"), dhcp6);
-                                                        EXPECT_EQ(config.getPropertyValue("address6"), address6);
-                                                        EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
-                                                    });
+    {
+        ++modifyCallCount;
+        EXPECT_EQ(ifaceName, "eth0");
+        EXPECT_EQ(config.getPropertyValue("dhcp4"), dhcp4);
+        EXPECT_EQ(config.getPropertyValue("address4"), address4);
+        EXPECT_EQ(config.getPropertyValue("gateway4"), gateway4);
+        EXPECT_EQ(config.getPropertyValue("dhcp6"), dhcp6);
+        EXPECT_EQ(config.getPropertyValue("address6"), address6);
+        EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
+    });
 
-    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    const auto serverInstance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .build();
+
+    addNativeServerModule(serverInstance);
+
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
     serverInstance.getModuleManager().addModule(deviceModule);
+
     auto deviceTypes = serverInstance.getAvailableDeviceTypes();
     auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
     mockDeviceConfig.setPropertyValue("netConfigEnabled", True);
     mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0", "eth1"));
-    mockDeviceConfig.setPropertyValue("onSubmitConfig", modifyIpConfigCallback);
-    serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
 
+    mockDeviceConfig
+        .asPtrOrNull<IPropertyObjectProtected>(true)
+        .setProtectedPropertyValue("onSubmitConfig", modifyIpConfigCallback);
+
+    serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
 
-    const auto instance = Instance();
-    auto availableDevices = instance.getAvailableDevices();
+    const auto client = Instance("[[none]]");
+    addNativeClientModule(client);
+
+    auto availableDevices = client.getAvailableDevices();
 
     for (const auto& devInfo : availableDevices)
     {
@@ -67,7 +87,11 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfig)
 
 TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfigError)
 {
-    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    const auto serverInstance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .build();
+
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
     serverInstance.getModuleManager().addModule(deviceModule);
     auto deviceTypes = serverInstance.getAvailableDeviceTypes();
@@ -76,6 +100,7 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfigError)
     mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0"));
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
 
+    addNativeServerModule(serverInstance);
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
     // Truncated error message with disallowed symbols replaced.
@@ -86,7 +111,9 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfigError)
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
 
-    const auto instance = Instance();
+    const auto instance = Instance("[[none]]");
+    addNativeClientModule(instance);
+
     auto availableDevices = instance.getAvailableDevices();
 
     for (const auto& devInfo : availableDevices)
@@ -113,37 +140,48 @@ TEST_F(ModulesDeviceDiscoveryTest, RetrieveIpConfig)
     const auto gateway6 = String("2001:db8:1:0::1");
 
     SizeT retrieveCallCount = 0;
-    FunctionPtr retrieveIpConfigCallback = Function([&](StringPtr ifaceName) -> PropertyObjectPtr
-                                                    {
-                                                        ++retrieveCallCount;
-                                                        EXPECT_EQ(ifaceName, "eth0");
+    FunctionPtr retrieveIpConfigCallback = Function([&](StringPtr ifaceName) -> PropertyObjectPtr {
+        ++retrieveCallCount;
+        EXPECT_EQ(ifaceName, "eth0");
 
-                                                        auto config = PropertyObject();
-                                                        config.addProperty(BoolProperty("dhcp4", dhcp4));
-                                                        config.addProperty(StringProperty("address4", address4));
-                                                        config.addProperty(StringProperty("gateway4", gateway4));
-                                                        config.addProperty(BoolProperty("dhcp6", dhcp6));
-                                                        config.addProperty(StringProperty("address6", address6));
-                                                        config.addProperty(StringProperty("gateway6", gateway6));
+        auto config = PropertyObject();
+        config.addProperty(BoolProperty("dhcp4", dhcp4));
+        config.addProperty(StringProperty("address4", address4));
+        config.addProperty(StringProperty("gateway4", gateway4));
+        config.addProperty(BoolProperty("dhcp6", dhcp6));
+        config.addProperty(StringProperty("address6", address6));
+        config.addProperty(StringProperty("gateway6", gateway6));
 
-                                                        return config;
-                                                    });
+        return config;
+    });
 
-    const auto serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
+    const auto serverInstance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .build();
+
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
     serverInstance.getModuleManager().addModule(deviceModule);
+
     auto deviceTypes = serverInstance.getAvailableDeviceTypes();
     auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
     mockDeviceConfig.setPropertyValue("netConfigEnabled", True);
     mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0", "eth1"));
-    mockDeviceConfig.setPropertyValue("onSubmitConfig", Procedure([](StringPtr, PropertyObjectPtr) {}));
-    mockDeviceConfig.setPropertyValue("onRetrieveConfig", retrieveIpConfigCallback);
+
+    auto protectedMockDeviceConfig = mockDeviceConfig.asPtrOrNull<IPropertyObjectProtected>(true);
+
+    protectedMockDeviceConfig.setProtectedPropertyValue("onSubmitConfig", Procedure([](StringPtr, PropertyObjectPtr) {}));
+    protectedMockDeviceConfig.setProtectedPropertyValue("onRetrieveConfig", retrieveIpConfigCallback);
+
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
+
+    addNativeServerModule(serverInstance);
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr).enableDiscovery();
 
-    const auto instance = Instance();
-    auto availableDevices = instance.getAvailableDevices();
+    const auto client = Instance("[[none]]");
+    addNativeClientModule(client);
 
+    auto availableDevices = client.getAvailableDevices();
     for (const auto& devInfo : availableDevices)
     {
         if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
@@ -169,12 +207,13 @@ class ConnectedClientsDiscoveryTest : public ModulesDeviceDiscoveryTest
 public:
     void SetUp() override
     {
-        serverInstance = InstanceBuilder().addDiscoveryServer("mdns").build();
+        serverInstance = InstanceBuilder().setModulePath("[[none]]").addDiscoveryServer("mdns").build();
+
         const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
         serverInstance.getModuleManager().addModule(deviceModule);
         serverInstance.setRootDevice("daqmock://phys_device");
 
-        clientInstance = Instance();
+        clientInstance = Instance("[[none]]");
     }
 
 protected:
@@ -193,10 +232,13 @@ protected:
 
 TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
 {
+    addNativeServerModule(serverInstance);
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr).enableDiscovery();
 
     ASSERT_EQ(getConnectedClients().getCount(), 0u);
     {
+        addNativeClientModule(clientInstance);
+
         // native streaming client
         auto device = clientInstance.addDevice("daq.ns://127.0.0.1");
         auto connectedClientsInfo = getConnectedClients();
@@ -233,7 +275,10 @@ TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
     }
     {
         // native configuration exclusive control client
-        clientInstance = test_helpers::connectInstanceWithClientType("daq.nd://127.0.0.1", ClientType::ExclusiveControl);
+        clientInstance = Instance("[[none]]");
+        addNativeClientModule(clientInstance);
+
+        test_helpers::connectInstanceWithClientType(clientInstance, "daq.nd://127.0.0.1", ClientType::ExclusiveControl);
         auto device = clientInstance.getDevices()[0];
         auto connectedClientsInfo = getConnectedClients();
         ASSERT_EQ(connectedClientsInfo.getCount(), 2u);
@@ -247,10 +292,26 @@ TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
 
 TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
 {
+    // Add LT Server Module
+    {
+        ModulePtr ltServerModule;
+        createWebsocketStreamingServerModule(&ltServerModule, serverInstance.getContext());
+
+        serverInstance.getModuleManager().addModule(ltServerModule);
+    }
+
     serverInstance.addServer("OpenDAQLTStreaming", nullptr).enableDiscovery();
 
     ASSERT_EQ(getConnectedClients().getCount(), 0u);
     {
+        // Add LT Client Module
+        {
+            ModulePtr ltClientModule;
+            createWebsocketStreamingClientModule(&ltClientModule, clientInstance.getContext());
+
+            clientInstance.getModuleManager().addModule(ltClientModule);
+        }
+
         auto device = clientInstance.addDevice("daq.lt://127.0.0.1");
         auto connectedClientsInfo = getConnectedClients();
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
@@ -267,10 +328,26 @@ TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
 
 TEST_F(ConnectedClientsDiscoveryTest, OpcuaConnectedClients)
 {
+    // Add OpcUA Server Module
+    {
+        ModulePtr opcuaServerModule;
+        createOpcUaServerModule(&opcuaServerModule, serverInstance.getContext());
+
+        serverInstance.getModuleManager().addModule(opcuaServerModule);
+    }
+
     serverInstance.addServer("OpenDAQOPCUA", nullptr).enableDiscovery();
 
     ASSERT_EQ(getConnectedClients().getCount(), 0u);
     {
+        // Add OpcUA Client Module
+        {
+            ModulePtr opcuaClientModule;
+            createOpcUaClientModule(&opcuaClientModule, clientInstance.getContext());
+
+            clientInstance.getModuleManager().addModule(opcuaClientModule);
+        }
+
         auto device = clientInstance.addDevice("daq.opcua://127.0.0.1");
         auto connectedClientsInfo = getConnectedClients();
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);

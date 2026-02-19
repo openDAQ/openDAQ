@@ -51,7 +51,7 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace test_helpers
 {
     [[maybe_unused]]
-    static void setupSubscribeAckHandler(
+    inline void setupSubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,
         std::future<StringPtr>& acknowledgementFuture,
         MirroredSignalConfigPtr& signal
@@ -75,7 +75,7 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static void setupUnsubscribeAckHandler(
+    inline void setupUnsubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,
         std::future<StringPtr>& acknowledgementFuture,
         MirroredSignalConfigPtr& signal
@@ -99,7 +99,7 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static bool waitForAcknowledgement(
+    inline bool waitForAcknowledgement(
         std::future<StringPtr>& acknowledgementFuture,
         std::chrono::seconds timeout = std::chrono::seconds(5))
     {
@@ -111,7 +111,7 @@ namespace test_helpers
     // address of a local simulator).
     // To verify external IPv6 connectivity as well, resolving a real external address like "ipv6.google.com" is a reliable workaround.
     [[maybe_unused]]
-    static bool Ipv6IsDisabled(bool testExternalAddrConnectivity = false)
+    inline bool Ipv6IsDisabled(bool testExternalAddrConnectivity = false)
     {
         std::string hostName = testExternalAddrConnectivity ? "ipv6.google.com" : "localhost";
 
@@ -127,7 +127,7 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static bool isIpv6ConnectionString(const StringPtr& connectionString)
+    inline bool isIpv6ConnectionString(const StringPtr& connectionString)
     {
         if (connectionString.assigned() && connectionString.getLength())
             return connectionString.toStdString().find('[') != std::string::npos &&
@@ -137,7 +137,7 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static bool isIpv4ConnectionString(const StringPtr& connectionString)
+    inline bool isIpv4ConnectionString(const StringPtr& connectionString)
     {
         if (connectionString.assigned() && connectionString.getLength())
             return !isIpv6ConnectionString(connectionString);
@@ -146,14 +146,14 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static bool isSufix(const std::string & str, const std::string & suffix)
+    inline bool isSufix(const std::string & str, const std::string & suffix)
     {
         return str.size() >= suffix.size() && 
                 str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
     }
 
     [[maybe_unused]]
-    static Finally CreateConfigFile(const std::string& configFilename, const std::string& data)
+    inline Finally CreateConfigFile(const std::string& configFilename, const std::string& data)
     {
         std::ofstream file;
         file.open(configFilename);
@@ -166,7 +166,7 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader,
+    inline ListPtr<IPacket> tryReadPackets(const PacketReaderPtr& reader,
                                            size_t packetCount,
                                            std::chrono::seconds timeout = std::chrono::seconds(60))
     {
@@ -198,7 +198,7 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static bool packetsEqual(const ListPtr<IPacket>& listA, const ListPtr<IPacket>& listB, bool skipEventPackets = false)
+    inline bool packetsEqual(const ListPtr<IPacket>& listA, const ListPtr<IPacket>& listB, bool skipEventPackets = false)
     {
         auto context = NullContext();
         auto loggerComponent = context.getLogger().getOrAddComponent("packetsEqual");
@@ -265,10 +265,8 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static InstancePtr connectInstanceWithClientType(const std::string& connectionString, ClientType clientType, bool dropOthers = false)
+    inline InstancePtr connectInstanceWithClientType(const InstancePtr& clientInstance, const std::string& connectionString, ClientType clientType, bool dropOthers = false)
     {
-        auto clientInstance = Instance();
-
         auto config = clientInstance.createDefaultAddDeviceConfig();
         PropertyObjectPtr generalConfig = config.getPropertyValue("General");
 
@@ -279,9 +277,15 @@ namespace test_helpers
         return clientInstance;
     }
 
-    
     [[maybe_unused]]
-    static void checkDeviceOperationMode(const daq::DevicePtr& device, OperationModeType expected, bool isServer = false)
+    inline InstancePtr connectInstanceWithClientType(const std::string& connectionString, ClientType clientType, bool dropOthers = false)
+    {
+        return connectInstanceWithClientType(Instance(), connectionString, clientType, dropOthers);
+    }
+
+
+    [[maybe_unused]]
+    inline void checkDeviceOperationMode(const daq::DevicePtr& device, OperationModeType expected, bool isServer = false)
     {
         ASSERT_EQ(device.getOperationMode(), expected);
         bool active = expected != OperationModeType::Idle;
@@ -296,7 +300,7 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
-    static void testPropObjsEquality(const PropertyObjectPtr& configA, const PropertyObjectPtr& configB, std::string path = "")
+    inline void testPropObjsEquality(const PropertyObjectPtr& configA, const PropertyObjectPtr& configB, std::string path = "")
     {
         auto allPropsA = configA.getAllProperties();
         auto allPropsB = configB.getAllProperties();

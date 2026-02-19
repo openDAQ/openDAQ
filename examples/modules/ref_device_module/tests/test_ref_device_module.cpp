@@ -1,4 +1,7 @@
+#include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_factory.h>
 #include <coretypes/common.h>
+#include <coretypes/filesystem.h>
 #include <gmock/gmock.h>
 #include <opendaq/config_provider_factory.h>
 #include <opendaq/context_factory.h>
@@ -8,6 +11,8 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/input_port_factory.h>
+#include <opendaq/instance_builder_ptr.h>
+#include <opendaq/instance_factory.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/range_factory.h>
 #include <opendaq/reader_factory.h>
@@ -16,13 +21,9 @@
 #include <ref_device_module/module_dll.h>
 #include <ref_device_module/version.h>
 #include <testutils/testutils.h>
+#include <chrono>
 #include <thread>
 #include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
-#include <opendaq/instance_factory.h>
-#include <coreobjects/property_object_factory.h>
-#include <coreobjects/property_factory.h>
-#include <chrono>
-#include <coretypes/filesystem.h>
 
 using namespace daq;
 using RefDeviceModuleTest = testing::Test;
@@ -816,7 +817,7 @@ TEST_F(RefDeviceModuleTest, ReadConstantRule)
 TEST_F(RefDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"LocalId\": \"testtest\" } } }";
+    std::string json = R"({ "Modules": { "ReferenceDevice": { "LocalId": "testtest" } } })";
     createConfigFile(filename, json);
 
     auto options = GetOptionsWithReferenceDevice();
@@ -832,7 +833,7 @@ TEST_F(RefDeviceModuleTestConfig, JsonConfigReadReferenceDeviceLocalId)
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalId)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"LocalId\": \"testtest\" } } }";
+    std::string json = R"({ "Modules": { "ReferenceDevice": { "LocalId": "testtest" } } })";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -853,7 +854,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalId)
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigName)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"Name\": \"testname\" } } }";
+    std::string json = R"({ "Modules": { "ReferenceDevice": { "Name": "testname" } } })";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -874,7 +875,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigName)
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalIdAndName)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"LocalId\": \"testtest\", \"Name\": \"testname\" } } }";
+    std::string json = R"({ "Modules": { "ReferenceDevice": { "LocalId": "testtest", "Name": "testname" } } })";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -896,7 +897,7 @@ TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigLocalIdAndName)
 TEST_F(RefDeviceModuleTestConfig, DeviceModuleJsonConfigMalformed)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"ReferenceDevice\": { \"LocalId\": { \"Error\": \"testtest\" } } } }";
+    std::string json = R"({ "Modules": { "ReferenceDevice": { "LocalId": { "Error": "testtest" } } } })";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -998,20 +999,29 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
     config.addProperty(BoolProperty("EnableLogging", true));
     config.addProperty(StringProperty("LoggingPath", loggerPath));
 
-    auto instanceBuilder = InstanceBuilder();
-    instanceBuilder.setRootDevice("daqref://device0", config);
-    auto sinks = DefaultSinks(loggerPath);
-    for (const auto& sink : sinks)
-        instanceBuilder.addLoggerSink(sink);
+    InstancePtr instance;
+    {
+        auto instanceBuilder = InstanceBuilder().setModulePath("[[none]]");
+        auto sinks = DefaultSinks(loggerPath);
+        for (const auto& sink : sinks)
+            instanceBuilder.addLoggerSink(sink);
 
-    const auto instance = instanceBuilder.build();
+        instance = instanceBuilder.build();
+    }
+    // add ref device module
+    {
+        ModulePtr module;
+        createModule(&module, instance.getContext());
+        instance.getModuleManager().addModule(module);
+    }
 
+    instance.setRootDevice("daqref://device0", config);
     {
         auto logFiles = instance.getLogFileInfos();
         auto logFileLastModified = getFileLastModifiedTime(loggerPath);
         ASSERT_EQ(logFiles.getCount(), 1u);
         auto logFile = logFiles[0];
-        
+
         ASSERT_EQ(logFile.getName(), loggerPath);
         ASSERT_NE(logFile.getSize(), 0u);
 #ifndef __APPLE__

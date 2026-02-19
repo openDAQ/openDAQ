@@ -63,6 +63,7 @@ struct PropertyNameInfo
     StringPtr name;
     Int index{};
 };
+
 namespace config_protocol
 {
     class ConfigClientDeviceInfoImpl;
@@ -169,10 +170,23 @@ public:
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
-
+    
     using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
     using EndUpdateEventEmitter = EventEmitter<PropertyObjectPtr, EndUpdateEventArgsPtr>;
 
+    struct CloneParameters
+    {
+        const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueWriteEvents;
+        const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueReadEvents;
+        const EndUpdateEventEmitter& endUpdateEvent;
+        const ProcedurePtr& triggerCoreEvent;
+        const PropertyOrderedMap& localProperties;
+        const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues;
+        const std::vector<StringPtr>& customOrder;
+        const PermissionManagerPtr& permissionManager;
+    };
+
+    void configureClonedMembers(const CloneParameters& parameters);
     void configureClonedMembers(const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueWriteEvents,
                                 const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueReadEvents,
                                 const EndUpdateEventEmitter& endUpdateEvent,
@@ -181,11 +195,8 @@ public:
                                 const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
                                 const std::vector<StringPtr>& customOrder,
                                 const PermissionManagerPtr& permissionManager);
-
-    friend class AddressInfoImpl;
-    friend class ServerCapabilityConfigImpl;
-    friend class ConnectedClientInfoImpl;
-
+      
+    // TODO: Make remove friend classes once private methods are properly exposed in protected scope.
     template <typename TInterface, typename... TInterfaces>
     friend class DeviceInfoConfigImpl;
     friend class config_protocol::ConfigClientDeviceInfoImpl;
@@ -259,6 +270,7 @@ protected:
     void unfreeze();
     StringPtr getPath() const;
     TypeManagerPtr getTypeManager();
+    CloneParameters getCloneParameters();    
 
     void setMutex(const MutexPtr& mutex);
     void setLockOwner(const PropertyObjectInternalPtr& owner);
@@ -530,6 +542,21 @@ template <typename PropObjInterface, typename ... Interfaces>
 TypeManagerPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getTypeManager()
 {
     return manager.getRef();
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+typename GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::CloneParameters GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getCloneParameters()
+{
+    return CloneParameters{
+        valueWriteEvents,
+        valueReadEvents,
+        endUpdateEvent,
+        triggerCoreEvent,
+        localProperties,
+        propValues,
+        customOrder,
+        permissionManager
+    };
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -1622,6 +1649,19 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearProtect
 {
     auto lock = getRecursiveConfigLock2();
     return clearPropertyValueInternal(propertyName, true, updateCount > 0);
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureClonedMembers(const CloneParameters& parameters)
+{
+    configureClonedMembers(parameters.valueWriteEvents,
+                           parameters.valueReadEvents,
+                           parameters.endUpdateEvent,
+                           parameters.triggerCoreEvent,
+                           parameters.localProperties,
+                           parameters.propValues,
+                           parameters.customOrder,
+                           parameters.permissionManager);
 }
 
 template <typename PropObjInterface, typename... Interfaces>

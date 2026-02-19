@@ -148,15 +148,8 @@ ErrCode AddressInfoImpl::clone(IPropertyObject** cloned)
 
     return daqTry([this, &obj, &cloned]()
     {
-        auto implPtr = static_cast<AddressInfoImpl*>(obj.getObject());
-        implPtr->configureClonedMembers(valueWriteEvents,
-                                        valueReadEvents,
-                                        endUpdateEvent,
-                                        triggerCoreEvent,
-                                        localProperties,
-                                        propValues,
-                                        customOrder,
-                                        permissionManager);
+        auto implPtr = dynamic_cast<AddressInfoImpl*>(obj.getObject());
+        implPtr->configureClonedMembers(getCloneParameters());
 
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;

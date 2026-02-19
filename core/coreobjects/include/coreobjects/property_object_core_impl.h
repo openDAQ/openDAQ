@@ -48,7 +48,6 @@ public:
     ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard, IMutex* sync) override;
 
 private:
-    LockingStrategy lockingStrategy;
     NullMutex nullSync;
     std::thread::id externalCallThreadId{};
     int externalCallDepth = 0;

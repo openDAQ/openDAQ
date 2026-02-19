@@ -359,9 +359,10 @@ private:
                                          const FunctionPtr& factoryCallback,
                                          PropertyObjectPtr& propObjPtr);
 
-    ErrCode setPropertyFromSerialized(const StringPtr& propName,
-                                      const PropertyObjectPtr& propObj,
-                                      const SerializedObjectPtr& serialized);
+    static ErrCode setPropertyFromSerialized(const StringPtr& propName,
+                                             const PropertyObjectPtr& propObj,
+                                             const SerializedObjectPtr& serialized,
+                                             const TypeManagerPtr& typeManager);
 
     ErrCode serializePropertyValues(ISerializer* serializer);
     ErrCode serializeLocalProperties(ISerializer* serializer);
@@ -375,11 +376,11 @@ private:
     bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite = false);
 
     // Child property handling - Used when a property is queried in the "parent.child" format
-    bool isChildProperty(const StringPtr& name) const;
-    void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
-    void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
+    static bool isChildProperty(const StringPtr& name);
+    static void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail);
+    static void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail);
 
-    bool checkIsChildObjectProperty(const PropertyPtr& prop);
+    static bool checkIsChildObjectProperty(const PropertyPtr& prop);
     void setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned);
     void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
 
@@ -392,19 +393,19 @@ private:
     // Gets the property value, if stored in local value dictionary (propValues)
     // Parses brackets, if the property is a list
     ErrCode readLocalValue(const StringPtr& name, BaseObjectPtr& value) const;
-    PropertyNameInfo getPropertyNameInfo(const StringPtr& name) const;
+    static PropertyNameInfo getPropertyNameInfo(const StringPtr& name);
 
     // Checks if the value is a container type, or base `IPropertyObject`. Only such values can be set in `setProperty`
-    ErrCode checkContainerType(const PropertyPtr& prop, const BaseObjectPtr& value);
+    static ErrCode checkContainerType(const PropertyPtr& prop, const BaseObjectPtr& value);
 
     // Checks if the property is a struct type, and checks its fields for type/name compatibility
-    ErrCode checkStructType(const PropertyPtr& prop, const BaseObjectPtr& value);
+    static ErrCode checkStructType(const PropertyPtr& prop, const BaseObjectPtr& value);
 
     // Checks if the property is a enumeration type and checks for type/name compatibility
-    ErrCode checkEnumerationType(const PropertyPtr& prop, const BaseObjectPtr& value);
+    static ErrCode checkEnumerationType(const PropertyPtr& prop, const BaseObjectPtr& value);
 
     // Checks if value is a correct key into the list/dictionary of selection values
-    ErrCode checkSelectionValues(const PropertyPtr& prop, const BaseObjectPtr& value);
+    static ErrCode checkSelectionValues(const PropertyPtr& prop, const BaseObjectPtr& value);
 
     // Called when `setPropertyValue` successfully sets a new value
     [[maybe_unused]]
@@ -417,31 +418,31 @@ private:
     BaseObjectPtr callPropertyValueRead(const PropertyPtr& prop, const BaseObjectPtr& readValue);
 
     // Checks if property and value type match. If not, attempts to convert the value
-    ErrCode checkPropertyTypeAndConvert(const PropertyPtr& prop, BaseObjectPtr& value);
+    static ErrCode checkPropertyTypeAndConvert(const PropertyPtr& prop, BaseObjectPtr& value);
 
     // Sets `this` as owner of `value`, if `value` is ownable
     void setOwnerToPropertyValue(const BaseObjectPtr& value);
 
     // Gets the index integer value between two square brackets
-    int parseIndex(char const* lBracket) const;
+    static int parseIndex(char const* lBracket);
 
     // Gets the property name without the index as the `propName` output parameter
     // Returns the index in the form of [index], eg. [0]
-    ConstCharPtr getPropNameWithoutIndex(const StringPtr& name, StringPtr& propName) const;
+    static ConstCharPtr getPropNameWithoutIndex(const StringPtr& name, StringPtr& propName);
 
     // Child property handling - Used when a property is queried in the "parent.child" format
     ErrCode getChildPropertyValue(const StringPtr& childName, const StringPtr& subName, BaseObjectPtr& value);
 
-    PropertyPtr checkForRefPropAndGetBoundProp(PropertyPtr& prop, bool* isReferenced = nullptr) const;
+    static PropertyPtr checkForRefPropAndGetBoundProp(PropertyPtr& prop, const PropertyObjectPtr& objPtr, bool* isReferenced = nullptr);
 
     // Checks whether the property is a reference property that references an already referenced property
-    bool hasDuplicateReferences(const PropertyPtr& prop);
+    static bool hasDuplicateReferences(const PropertyPtr& prop, const PropertyObjectPtr& objPtr);
 
     // Coercion/Validation
-    void coercePropertyWrite(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr) const;
-    void validatePropertyWrite(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr) const;
-    void coerceMinMax(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr);
-    Bool checkIsReferenced(const StringPtr& referencedPropName, const PropertyInternalPtr& prop);
+    static void coercePropertyWrite(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr, const PropertyObjectPtr& objPtr);
+    static void validatePropertyWrite(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr, const PropertyObjectPtr& objPtr);
+    static void coerceMinMax(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr);
+    static Bool checkIsReferenced(const StringPtr& referencedPropName, const PropertyInternalPtr& prop);
 
     // Update
     ErrCode updateObjectProperties(const PropertyObjectPtr& propObj,
@@ -452,7 +453,7 @@ private:
     ErrCode endUpdateInternal(bool deep);
     ErrCode getUpdatingInternal(Bool* updating);
 
-    bool hasUserReadAccess(const BaseObjectPtr& userContext, const BaseObjectPtr& obj);
+    static bool hasUserReadAccess(const BaseObjectPtr& userContext, const BaseObjectPtr& obj);
 };
 
 using PropertyObjectImpl = GenericPropertyObjectImpl<IPropertyObject>;
@@ -611,7 +612,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getClassName
 #endif
 
 template <class PropObjInterface, class... Interfaces>
-bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty(const StringPtr& name) const
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty(const StringPtr& name)
 {
     auto chr = strchr(name.getCharPtr(), '.');
     return chr != nullptr;
@@ -620,7 +621,7 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::splitOnFirstDot(const StringPtr& input,
                                                                                  StringPtr& head,
-                                                                                 StringPtr& tail) const
+                                                                                 StringPtr& tail)
 {
     const std::string inputStr = input;
     head = input;
@@ -636,7 +637,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::splitOnFirstDot
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::splitOnLastDot(const StringPtr& input,
                                                                                 StringPtr& head,
-                                                                                StringPtr& tail) const
+                                                                                StringPtr& tail)
 {
     const std::string inputStr = input;
     head = input;
@@ -661,7 +662,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
     {
         prop = getUnboundProperty(childName);
 
-        prop = checkForRefPropAndGetBoundProp(prop);
+        prop = checkForRefPropAndGetBoundProp(prop, objPtr);
         name = prop.getName();
         return OPENDAQ_SUCCESS;
     });
@@ -804,7 +805,8 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
 
 template <class PropObjInterface, class... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coercePropertyWrite(const PropertyPtr& prop,
-                                                                                     ObjectPtr<IBaseObject>& valuePtr) const
+                                                                                     ObjectPtr<IBaseObject>& valuePtr,
+                                                                                     const PropertyObjectPtr& objPtr)
 {
     if (prop.assigned() && valuePtr.assigned())
     {
@@ -829,7 +831,8 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coercePropertyW
 
 template <class PropObjInterface, class... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::validatePropertyWrite(const PropertyPtr& prop,
-                                                                                       ObjectPtr<IBaseObject>& valuePtr) const
+                                                                                       ObjectPtr<IBaseObject>& valuePtr,
+                                                                                       const PropertyObjectPtr& objPtr)
 {
     if (prop.assigned() && valuePtr.assigned())
     {
@@ -1066,7 +1069,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
         }
 
         PropertyPtr prop = getUnboundProperty(propName);
-        prop = checkForRefPropAndGetBoundProp(prop);
+        prop = checkForRefPropAndGetBoundProp(prop, objPtr);
 
         if (!prop.assigned())
         {
@@ -1127,8 +1130,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             err = checkEnumerationType(prop, valuePtr);
             OPENDAQ_RETURN_IF_FAILED(err);
 
-            coercePropertyWrite(prop, valuePtr);
-            validatePropertyWrite(prop, valuePtr);
+            coercePropertyWrite(prop, valuePtr, objPtr);
+            validatePropertyWrite(prop, valuePtr, objPtr);
             coerceMinMax(prop, valuePtr);
 
             const auto ct = propInternal.getValueTypeNoLock();
@@ -1211,6 +1214,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
         }
         return OPENDAQ_SUCCESS;
     });
+
     OPENDAQ_RETURN_IF_FAILED(errCode, "Value type is different than Property type and conversion failed");
     return errCode;
 }
@@ -1327,7 +1331,8 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUnbou
 
 template <class PropObjInterface, class... Interfaces>
 PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefPropAndGetBoundProp(PropertyPtr& prop,
-                                                                                                       bool* isReferenced) const
+                                                                                                       const PropertyObjectPtr& objPtr,
+                                                                                                       bool* isReferenced)
 {
     if (!prop.assigned())
     {
@@ -1346,7 +1351,7 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkFor
         if (isReferenced)
             *isReferenced = true;
 
-        return checkForRefPropAndGetBoundProp(refProp);
+        return checkForRefPropAndGetBoundProp(refProp, objPtr);
     }
 
     if (isReferenced)
@@ -1405,7 +1410,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
 }
 
 template <typename PropObjInterface, typename... Interfaces>
-bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasDuplicateReferences(const PropertyPtr& prop)
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasDuplicateReferences(const PropertyPtr& prop, const PropertyObjectPtr& objPtr)
 {
     auto refEval = prop.asPtr<IPropertyInternal>().getReferencedPropertyUnresolved();
     if (refEval.assigned())
@@ -1454,7 +1459,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::readLocalVal
 }
 
 template <class PropObjInterface, class... Interfaces>
-int GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::parseIndex(char const* lBracket) const
+int GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::parseIndex(char const* lBracket)
 {
     auto last = strchr(lBracket, ']');
     if (last != nullptr)
@@ -1478,7 +1483,7 @@ int GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::parseIndex(char 
 #endif
 
 template <class PropObjInterface, class... Interfaces>
-PropertyNameInfo GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyNameInfo(const StringPtr& name) const
+PropertyNameInfo GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyNameInfo(const StringPtr& name)
 {
     PropertyNameInfo nameInfo;
 
@@ -1500,7 +1505,7 @@ PropertyNameInfo GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::get
 
 template <class PropObjInterface, class... Interfaces>
 ConstCharPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropNameWithoutIndex(const StringPtr& name,
-                                                                                                 StringPtr& propName) const
+                                                                                                 StringPtr& propName)
 {
     auto propNameData = name.getCharPtr();
     auto first = strchr(propNameData, '[');
@@ -1541,7 +1546,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
     }
 
     bool isRef;
-    property = checkForRefPropAndGetBoundProp(property, &isRef);
+    property = checkForRefPropAndGetBoundProp(property, objPtr, &isRef);
 
     // TODO: Extract this to own function
     if (bracket != nullptr)
@@ -1810,7 +1815,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
         }
 
         PropertyPtr prop = getUnboundPropertyOrNull(propName);
-        prop = checkForRefPropAndGetBoundProp(prop);
+        prop = checkForRefPropAndGetBoundProp(prop, objPtr);
 
         if (!prop.assigned())
         {
@@ -2044,7 +2049,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         if (!propName.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, "Property does not have an assigned name.");
 
-        if (hasDuplicateReferences(propPtr))
+        if (hasDuplicateReferences(propPtr, objPtr))
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE,
                                        "Reference property references a property that is already referenced by another.");
 
@@ -3328,7 +3333,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyFromSerialized(const StringPtr& propName,
                                                                                               const PropertyObjectPtr& propObj,
-                                                                                              const SerializedObjectPtr& serialized)
+                                                                                              const SerializedObjectPtr& serialized,
+                                                                                              const TypeManagerPtr& typeManager)
 {
     if (!serialized.assigned())
     {
@@ -3352,23 +3358,21 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
             propValue = serialized.readString(propName);
             break;
         case ctList:
-            propValue = serialized.readList<IBaseObject>(propName, manager.assigned() ? manager.getRef() : nullptr);
+            propValue = serialized.readList<IBaseObject>(propName, typeManager);
             break;
         case ctDict:
         case ctRatio:
         case ctStruct:
         case ctObject:
         {
-            const auto strongManager = manager.assigned() ? manager.getRef() : nullptr;
-
             const auto obj = propObj.getPropertyValue(propName);
             if (const auto updatable = obj.asPtrOrNull<IUpdatable>(true); updatable.assigned())
             {
                 const auto serializedNestedObj = serialized.readSerializedObject(propName);
-                return updatable->update(serializedNestedObj, strongManager);
+                return updatable->update(serializedNestedObj, typeManager);
             }
 
-            propValue = serialized.readObject(propName, strongManager);
+            propValue = serialized.readObject(propName, typeManager);
             break;
         }
         case ctProc:
@@ -3445,7 +3449,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
             continue;
         }
 
-        const auto err = setPropertyFromSerialized(propName, propObj, serializedProps);
+        auto typeManager = manager.assigned() ? manager.getRef() : nullptr;
+        const auto err = setPropertyFromSerialized(propName, propObj, serializedProps, typeManager);
         OPENDAQ_RETURN_IF_FAILED(err);
     }
 

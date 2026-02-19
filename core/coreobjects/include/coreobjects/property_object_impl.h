@@ -462,6 +462,7 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
     propObjCore = PropertyObjectCore_Create();
 
+    setLockOwner(owner);
     this->permissionManager = PermissionManager();
     this->permissionManager.setPermissions(object_utils::UnrestrictedPermissions);
 
@@ -3203,6 +3204,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwner(IPr
         {
             PropertyObjectInternalPtr lockOwnerPtr;
             OPENDAQ_RETURN_IF_FAILED(getMutexOwner(&lockOwnerPtr));
+            setLockOwner(lockOwnerPtr);
             setMutex(lockOwnerPtr.getMutex());
         }
     }

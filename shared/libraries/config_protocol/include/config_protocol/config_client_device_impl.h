@@ -264,7 +264,7 @@ template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(OperationModeType modeType)
 {
     if (this->operationMode == modeType)
-        return OPENDAQ_SUCCESS;
+        return OPENDAQ_IGNORED;
 
     return daqTry([this, modeType] 
     {

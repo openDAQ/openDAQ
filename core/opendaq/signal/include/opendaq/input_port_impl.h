@@ -86,6 +86,9 @@ public:
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
+    // IRemovable
+    ErrCode INTERFACE_FUNC remove() override;
+
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -522,6 +525,23 @@ void GenericInputPortImpl<TInterface, Interfaces...>::finishUpdate()
     serializedSignalId.release();
 }
 
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::remove()
+{
+    ErrCode err;
+    ConnectionPtr connection;
+    {
+        auto lock = this->getRecursiveConfigLock2();
+        err = Super::remove();
+
+        connection = getConnectionNoLock();
+        connectionRef.release();
+    }
+    // remove is meant to be called from listener, so don't notify it
+    disconnectSignalInternal(std::move(connection), false, true, false);
+    return err;
+}
+
 template <typename TInterface, typename...  Interfaces>
 void GenericInputPortImpl<TInterface, Interfaces...>::removed()
 {
@@ -531,12 +551,6 @@ void GenericInputPortImpl<TInterface, Interfaces...>::removed()
         if (customDataRemovable.assigned())
             customDataRemovable.remove();
     }
-
-    ConnectionPtr connection = getConnectionNoLock();
-    connectionRef.release();
-
-    // remove is meant to be called from listener, so don't notify it
-    disconnectSignalInternal(std::move(connection), false, true, true);
 }
 
 template <typename TInterface, typename...  Interfaces>

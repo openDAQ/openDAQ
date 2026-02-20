@@ -332,8 +332,8 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        property_object_core_impl.h
 )
 
-prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
-prepend_include(${TARGET_FOLDER_NAME} SRC_PublicHeaders)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_PublicHeaders)
 
 list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_Property}
@@ -418,7 +418,7 @@ target_compile_definitions(${LIB_NAME} PRIVATE BUILDING_SHARED_LIBRARY
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_PublicHeaders}")
 
 opendaq_set_output_lib_name(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
-create_version_header(${LIB_NAME} ONLY_RC)
+opendaq_generate_version_header(${LIB_NAME} ONLY_RC)
 
 install(TARGETS ${LIB_NAME}
         EXPORT ${SDK_NAME}

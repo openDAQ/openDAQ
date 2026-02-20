@@ -65,11 +65,11 @@ set(SRC_PublicHeaders_Component
     function_block_errors.h
     channel_impl.h
     function_block_impl.h
+    function_block_type_impl.h
     PARENT_SCOPE
 )
 
 set(SRC_PrivateHeaders_Component
-    function_block_type_impl.h
     PARENT_SCOPE
 )
 

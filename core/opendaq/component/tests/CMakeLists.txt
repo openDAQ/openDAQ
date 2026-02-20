@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 set(MODULE_NAME component)
 
 set(TEST_SOURCES
@@ -23,7 +23,7 @@ add_test(NAME ${TEST_APP}
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
-target_link_libraries(${TEST_APP} PRIVATE daq::opendaq_mocks
+target_link_libraries(${TEST_APP} PRIVATE daq::opendaq_gmocks
 )
 
 if (MSVC)

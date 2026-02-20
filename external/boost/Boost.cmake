@@ -1,0 +1,57 @@
+include_guard(GLOBAL)
+
+opendaq_append_required_boost_components(
+    algorithm
+    asio
+    beast
+    dll
+    program_options
+    uuid
+    locale
+    align
+)
+if(DAQMODULES_PARQUET_RECORDER_MODULE AND MSVC)
+    opendaq_append_required_boost_components(
+        multiprecision
+        predef
+        scope_exit
+        typeof
+    )
+endif()
+
+if(DAQMODULES_PARQUET_RECORDER_MODULE)
+    opendaq_append_required_boost_headers(
+        config
+        algorithm
+        assert
+        bind
+        concept_check
+        core
+        detail
+        function
+        iterator
+        locale
+        mpl
+        numeric_conversion
+        preprocessor
+        range
+        smart_ptr
+        static_assert
+        throw_exception
+        tokenizer
+        type_traits
+        utility
+        mp11
+        io
+        uuid
+    )
+
+    if(MSVC)
+        opendaq_append_required_boost_headers(
+            multiprecision
+            predef
+            scope_exit
+            typeof
+        )
+    endif()
+endif()

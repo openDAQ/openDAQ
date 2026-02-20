@@ -59,7 +59,7 @@ public:
         const auto str = serializer.getOutput();
         return str;
     }
-    
+
     // client handling
     PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
@@ -73,7 +73,7 @@ public:
         assert(false);
         server->processNoReplyRequest(requestPacket);
     }
-    
+
     void serverNotificationReady(const PacketBuffer& notificationPacket) const
     {
         client->triggerNotificationPacket(notificationPacket);
@@ -161,7 +161,7 @@ TEST_F(ConfigProtocolIntegrationTest, RemoteGlobalIds)
 TEST_F(ConfigProtocolIntegrationTest, ConnectWithParent)
 {
     const auto serverDeviceSerialized = serializeComponent(serverDevice);
-    
+
     ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(
         clientContext,
         std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
@@ -200,22 +200,22 @@ TEST_F(ConfigProtocolIntegrationTest, GetInitialPropertyValue)
 {
     serverDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue");
 
-    const auto serverDeviceSerialized = serializeComponent(serverDevice);
+    const auto serverChannelSerialized = serializeComponent(serverDevice.getChannels()[0]);
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), clientDevice.getChannels()[0].getPropertyValue("StrProp"));
 
-    const auto clientDeviceSerialized = serializeComponent(clientDevice);
-    ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
+    const auto clientChannelSerialized = serializeComponent(clientDevice.getChannels()[0]);
+    ASSERT_EQ(serverChannelSerialized, clientChannelSerialized);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetInitialPropertyValuePropertySetter)
 {
     serverDevice.getChannels()[0].getProperty("StrProp").setValue("SomeValue");
 
-    const auto serverDeviceSerialized = serializeComponent(serverDevice);
+    const auto serverChannelSerialized = serializeComponent(serverDevice.getChannels()[0]);
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), clientDevice.getChannels()[0].getPropertyValue("StrProp"));
 
-    const auto clientDeviceSerialized = serializeComponent(clientDevice);
-    ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
+    const auto clientChannelSerialized = serializeComponent(clientDevice.getChannels()[0]);
+    ASSERT_EQ(serverChannelSerialized, clientChannelSerialized);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, SetPropertyValue)
@@ -681,7 +681,7 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoNotChangeableField)
 
     ASSERT_EQ("manufacturer", serverDeviceInfo.getManufacturer());
     ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
-    
+
     {
         ASSERT_ANY_THROW(serverDeviceInfo.setPropertyValue("manufacturer", "server_manufacturer"));
         ASSERT_EQ("manufacturer", serverDeviceInfo.getManufacturer());

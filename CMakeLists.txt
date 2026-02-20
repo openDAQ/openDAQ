@@ -376,96 +376,8 @@ else()
 endif()
 
 opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})
+add_subdirectory(external_modules)
 
-set(DAQMODULES_LT_STREAMING_GIT_REF "main" CACHE INTERNAL "openDAQ LT streaming modules project git reference")
-set(DAQMODULES_OPCUA_GIT_REF "main" CACHE INTERNAL "openDAQ OpcUa modules project git reference")
-
-if(NOT OPENDAQ_CI_RUNNER AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    message(DEPRECATION "Building LT streaming modules indirectly as subprojects of openDAQ is deprecated. Add modules project directly into your super-build by fetching https://github.com/openDAQ/LTStreamingModulesModern")
-endif()
-
-if(NOT OPENDAQ_CI_RUNNER AND OPENDAQ_ENABLE_OPCUA)
-    message(DEPRECATION "Building OpcUa modules indirectly as subprojects of openDAQ is deprecated. Add modules project directly into your super-build by fetching https://github.com/openDAQ/OpcUaModules")
-endif()
-
-# libraries needed before the core is read
-include(openDAQModuleFetchUtils)
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE))
-    set(DAQMODULES_LT_STREAMING_ENABLE_TESTS ${OPENDAQ_ENABLE_TESTS} CACHE BOOL "")
-    set(DAQMODULES_LT_STREAMING_ENABLE_CLIENT ${DAQMODULES_OPENDAQ_CLIENT_MODULE} CACHE BOOL "")
-    set(DAQMODULES_LT_STREAMING_ENABLE_SERVER ${DAQMODULES_OPENDAQ_SERVER_MODULE} CACHE BOOL "")
-    if (DAQMODULES_LT_LEGACY_MODULES)
-        opendaq_fetch_module(
-            NAME                LtStreamingModulesLegacy
-            GIT_REPOSITORY      https://github.com/openDAQ/LTStreamingModulesLegacy.git
-            GIT_REF             "${DAQMODULES_LT_STREAMING_GIT_REF}"
-            GIT_SHALLOW         OFF
-        )
-        FetchContent_GetProperties(
-            LtStreamingModulesLegacy
-            SOURCE_DIR LT_MODULES_SOURCE_DIR
-            BINARY_DIR LT_MODULES_BINARY_DIR
-        )
-    else()
-        opendaq_fetch_module(
-            NAME                LtStreamingModulesModern
-            GIT_REPOSITORY      https://github.com/openDAQ/LTStreamingModulesModern.git
-            GIT_REF             "${DAQMODULES_LT_STREAMING_GIT_REF}"
-            GIT_SHALLOW         OFF
-        )
-        FetchContent_GetProperties(
-            LtStreamingModulesModern
-            SOURCE_DIR LT_MODULES_SOURCE_DIR
-            BINARY_DIR LT_MODULES_BINARY_DIR
-        )
-    endif()
-endif()
-
-if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE))
-    set(DAQMODULES_OPCUA_ENABLE_TESTS ${OPENDAQ_ENABLE_TESTS} CACHE BOOL "")
-    set(DAQMODULES_OPCUA_ENABLE_CLIENT ${DAQMODULES_OPENDAQ_CLIENT_MODULE} CACHE BOOL "")
-    set(DAQMODULES_OPCUA_ENABLE_SERVER ${DAQMODULES_OPENDAQ_SERVER_MODULE} CACHE BOOL "")
-    opendaq_fetch_module(
-        NAME                OpcUaModules
-        GIT_REPOSITORY      https://github.com/openDAQ/OpcUaModules.git
-        GIT_REF             "${DAQMODULES_OPCUA_GIT_REF}"
-        GIT_SHALLOW         OFF
-    )
-    FetchContent_GetProperties(
-        OpcUaModules
-        SOURCE_DIR OPCUA_MODULES_SOURCE_DIR
-        BINARY_DIR OPCUA_MODULES_BINARY_DIR
-    )
-endif()
-
-set(OPENDAQ_MODULE_EVAL_EXPRS
-    "${DAQMODULES_EMPTY_MODULE}"
-    "${DAQMODULES_REF_FB_MODULE}"
-    "${OPENDAQ_ENABLE_WEBSOCKET_STREAMING} AND (${DAQMODULES_OPENDAQ_CLIENT_MODULE} OR ${DAQMODULES_OPENDAQ_SERVER_MODULE})"
-    "${OPENDAQ_ENABLE_OPCUA} AND (${DAQMODULES_OPENDAQ_CLIENT_MODULE} OR ${DAQMODULES_OPENDAQ_SERVER_MODULE})"
-)
-
-set(OPENDAQ_MODULE_DIRS
-    "${PROJ_DIR}/examples/modules/empty_module"
-    "${PROJ_DIR}/examples/modules/ref_fb_module"
-    "${LT_MODULES_SOURCE_DIR}"
-    "${OPCUA_MODULES_SOURCE_DIR}"
-)
-
-foreach(OPENDAQ_MODULE_EVAL_EXPR OPENDAQ_MODULE_DIR IN ZIP_LISTS OPENDAQ_MODULE_EVAL_EXPRS OPENDAQ_MODULE_DIRS)
-    set(OPENDAQ_MODULE_IS_ON FALSE)
-    cmake_language(EVAL CODE "
-        if (${OPENDAQ_MODULE_EVAL_EXPR})
-            set(OPENDAQ_MODULE_IS_ON TRUE)
-        endif()"
-    )
-    if (OPENDAQ_MODULE_IS_ON)
-        if (NOT IS_DIRECTORY "${OPENDAQ_MODULE_DIR}")
-            message(FATAL_ERROR "Specified module directory ${OPENDAQ_MODULE_DIR} does not exist")
-        endif()
-        include("${OPENDAQ_MODULE_DIR}/external/boost/Boost.cmake" OPTIONAL)
-    endif()
-endforeach()
 include("${PROJ_DIR}/external/boost/Boost.cmake")
 add_compile_definitions(BOOST_ALL_NO_LIB=1)
 add_subdirectory(external/boost)
@@ -475,12 +387,13 @@ add_subdirectory(external)
 
 add_subdirectory(core)
 add_subdirectory(modules)
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE))
+if (DEFINED LT_MODULES_SOURCE_DIR)
     add_subdirectory("${LT_MODULES_SOURCE_DIR}" "${LT_MODULES_BINARY_DIR}")
 endif()
-if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE))
+if (DEFINED OPCUA_MODULES_SOURCE_DIR)
     add_subdirectory("${OPCUA_MODULES_SOURCE_DIR}" "${OPCUA_MODULES_BINARY_DIR}")
 endif()
+
 add_subdirectory(shared)
 add_subdirectory(examples)
 add_subdirectory(bindings)

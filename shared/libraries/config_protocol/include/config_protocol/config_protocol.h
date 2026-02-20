@@ -185,25 +185,12 @@ inline constexpr uint16_t GetLatestConfigProtocolVersion()
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    static std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t> 
+    const static std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t> 
     {
         std::set<uint16_t> supportedVersions;
         for (uint16_t i = 0; i <= GetLatestConfigProtocolVersion(); ++i)
             supportedVersions.insert(i);
         return supportedVersions;
-    }();
-    return supportedVersions;
-}
-
-// Versions the server accepts (recent only). Use when building ConfigProtocolServer.
-inline std::set<uint16_t> GetServerSupportedConfigProtocolVersions()
-{
-    static const std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t>
-    {
-        std::set<uint16_t> s;
-        for (uint16_t i = 17; i <= GetLatestConfigProtocolVersion(); ++i)
-            s.insert(i);
-        return s;
     }();
     return supportedVersions;
 }

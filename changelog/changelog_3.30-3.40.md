@@ -31,6 +31,7 @@
 
 ## Misc
 
+- [#1049](https://github.com/openDAQ/openDAQ/pull/1049) Extract LT and OpcUa modules to remote repos
 - [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removes the FB wrapper implementation as it was never used.
 - [#979](https://github.com/openDAQ/openDAQ/pull/979) Relocate and install dependency management cmake helpers, install daq::test_utils and rename "bb" to "daq" in testultils/daq_memcheck_listener.h
 - [#974](https://github.com/openDAQ/openDAQ/pull/974) Reorganizes the audio device implementation for greater clarity. Adds automatic device/FB version info setting.

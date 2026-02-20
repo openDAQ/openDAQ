@@ -2,7 +2,7 @@ name: Build openDAQ packages
 
 on:
   push:
-    branches: [release/**]
+    branches: [main, release/**]
 
   workflow_dispatch:
 
@@ -332,11 +332,6 @@ jobs:
           name: opendaq-${{ steps.detect.outputs.version-full }}-python-wheels-macos
           path: wheels/*.whl
 
-      - name: Delete source artifacts
-        uses: geekyeggo/delete-artifact@v5
-        with:
-          name: opendaq-*-python-wheels-macos-*
-
   simulator-build:
     runs-on: ubuntu-latest-4-cores
     name: Simulator build
@@ -363,6 +358,20 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt update
           sudo apt install -y virtualbox vagrant
+
+          # VirtualBox needs exclusive access to hardware virtualization (AMD-V/VT-x).
+          # If KVM modules are loaded, VBoxManage fails with VERR_SVM_IN_USE.
+          for mod in kvm_amd kvm_intel kvm; do
+            if lsmod | grep -q "^${mod} "; then
+              if sudo modprobe -r "${mod}"; then
+                echo "Module ${mod} -- unload succeeded"
+              else
+                echo "::warning::Module ${mod} -- unload failed. VirtualBox may not start correctly."
+              fi
+            else
+              echo "Module ${mod} -- not loaded"
+            fi
+          done
 
       - name: Download package
         uses: actions/download-artifact@v4

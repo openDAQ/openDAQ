@@ -5,7 +5,7 @@ set(SRC_Headers
     mdnsdiscovery_server.h
 )
 
-prepend_include(${TARGET_FOLDER_NAME} SRC_Headers)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_Headers)
 
 set(SRC_Cpp
     mdnsdiscovery_server.cpp

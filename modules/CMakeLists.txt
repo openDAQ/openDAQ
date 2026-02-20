@@ -1,11 +1,7 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 
 if (MSVC)
     add_compile_options(/wd4100)
-endif()
-
-if (POLICY CMP0077)
-    cmake_policy(SET CMP0077 NEW)
 endif()
 
 if (DAQMODULES_OPENDAQ_CLIENT_MODULE)
@@ -13,16 +9,14 @@ if (DAQMODULES_OPENDAQ_CLIENT_MODULE)
 
     if (OPENDAQ_ENABLE_OPCUA)
         message(STATUS "    - OpcUa client module")
-        add_subdirectory(opcua_client_module)
     endif()
 
     if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-        message(STATUS "    - Websocket client module")
-        add_subdirectory(websocket_streaming_client_module)
+        message(STATUS "    - Websocket client module (LT streaming)")
     endif()
 
     if (OPENDAQ_ENABLE_NATIVE_STREAMING)
-        message(STATUS "    - Native streaming client module")
+        message(STATUS "    - Native client module (streaming and configuration)")
         add_subdirectory(native_streaming_client_module)
     endif()
 endif()
@@ -32,17 +26,14 @@ if (DAQMODULES_OPENDAQ_SERVER_MODULE)
 
     if (OPENDAQ_ENABLE_OPCUA)
         message(STATUS "    - OpcUa server module")
-        add_subdirectory(opcua_server_module)
     endif()
 
     if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-        message(STATUS "    - Websocket server module")
-        add_subdirectory(websocket_streaming_server_module)
-        add_subdirectory(new_websocket_streaming_server_module)
+        message(STATUS "    - Websocket server module (LT streaming)")
     endif()
 
     if (OPENDAQ_ENABLE_NATIVE_STREAMING)
-        message(STATUS "    - Native streaming server module")
+        message(STATUS "    - Native server module (streaming and configuration)")
         add_subdirectory(native_streaming_server_module)
     endif()
 endif()

@@ -22,7 +22,7 @@
 
 ## Bug fixes
 
-- [#1077](https://github.com/openDAQ/openDAQ/pull/1077) Transfer default add-device config from server to client via Native and OPC UA protocols
+- [#1077](https://github.com/openDAQ/openDAQ/pull/1077) Transfer default add-device config from server to client via Native protocol
 - [#1015](https://github.com/openDAQ/openDAQ/pull/1015) IPropertyObject::hasProperty returns false instead of throwing not found error if the parent property does not exists
 - [#1046](https://github.com/openDAQ/openDAQ/pull/1046) Prevent updating locked attributes during the update process
 - [#1052](https://github.com/openDAQ/openDAQ/pull/1052) Renderer FB labels take into account reference domain offset from ReferenceDomainInfo.

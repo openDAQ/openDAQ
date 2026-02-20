@@ -387,6 +387,7 @@ add_subdirectory(external)
 
 add_subdirectory(core)
 add_subdirectory(modules)
+
 if (DEFINED LT_MODULES_SOURCE_DIR)
     add_subdirectory("${LT_MODULES_SOURCE_DIR}" "${LT_MODULES_BINARY_DIR}")
 endif()

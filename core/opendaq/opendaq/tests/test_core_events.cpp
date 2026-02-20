@@ -701,9 +701,38 @@ TEST_F(CoreEventTest, SignalDisconnectedMuted)
 TEST_F(CoreEventTest, DescriptorChanged)
 {
     const auto sig = instance.getSignalsRecursive()[0].asPtr<ISignalConfig>();
+    const auto desc1 = DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ExplicitDataRule()).build();
+    const auto desc2 = DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(ExplicitDataRule()).build();
+
+    int changeCount = 0;
+    DataDescriptorPtr targetDescriptor;
+
+    getOnCoreEvent() += [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::DataDescriptorChanged));
+        ASSERT_EQ(args.getEventName(), "DataDescriptorChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("DataDescriptor"));
+        ASSERT_EQ(comp, instance.getSignalsRecursive()[0]);
+        ASSERT_EQ(args.getParameters().get("DataDescriptor"), targetDescriptor);
+        changeCount++;
+    };
+
+    targetDescriptor = desc1;
+    sig.setDescriptor(desc1);
+    ASSERT_EQ(changeCount, 1);
+
+    targetDescriptor = desc2;
+    sig.setDescriptor(desc2);
+    ASSERT_EQ(changeCount, 2);
+}
+
+TEST_F(CoreEventTest, DescriptorUnchanged)
+{
+    const auto sig = instance.getSignalsRecursive()[0].asPtr<ISignalConfig>();
     const auto desc = DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ExplicitDataRule()).build();
 
     int changeCount = 0;
+
     getOnCoreEvent() +=
         [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
@@ -719,13 +748,14 @@ TEST_F(CoreEventTest, DescriptorChanged)
     sig.setDescriptor(desc);
     sig.setDescriptor(desc);
 
-    ASSERT_EQ(changeCount, 3);
+    ASSERT_EQ(changeCount, 1);
 }
 
 TEST_F(CoreEventTest, DescriptorChangedMuted)
 {
     const auto sig = instance.getSignalsRecursive()[0].asPtr<ISignalConfig>();
-    const auto desc = DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ExplicitDataRule()).build();
+    const auto desc1 = DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ExplicitDataRule()).build();
+    const auto desc2 = DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(ExplicitDataRule()).build();
 
     int changeCount = 0;
     getOnCoreEvent() +=
@@ -735,14 +765,15 @@ TEST_F(CoreEventTest, DescriptorChangedMuted)
         };
 
     sig.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
-    sig.setDescriptor(desc);
+    sig.setDescriptor(desc1);
+    ASSERT_EQ(changeCount, 0);
     
     sig.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
-    sig.setDescriptor(desc);
+    sig.setDescriptor(desc2);
+    ASSERT_EQ(changeCount, 1);
 
     instance.getRootDevice().asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
-    sig.setDescriptor(desc);
-
+    sig.setDescriptor(desc1);
     ASSERT_EQ(changeCount, 1);
 }
 

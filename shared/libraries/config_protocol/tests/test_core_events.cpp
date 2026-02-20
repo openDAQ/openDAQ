@@ -643,26 +643,56 @@ TEST_F(ConfigCoreEventTest, SignalDisconnected)
 TEST_F(ConfigCoreEventTest, DataDescriptorChanged)
 {
     const auto sig = serverDevice.getSignalsRecursive()[0].asPtr<ISignalConfig>();
+    const auto desc1 = DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ExplicitDataRule()).build();
+    const auto desc2 = DataDescriptorBuilder().setSampleType(SampleType::Float64).setRule(ExplicitDataRule()).build();
+
+    int changeCount = 0;
+    DataDescriptorPtr targetDescriptor;
+
+    clientContext.getOnCoreEvent() += [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::DataDescriptorChanged));
+        ASSERT_EQ(args.getEventName(), "DataDescriptorChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("DataDescriptor"));
+        ASSERT_EQ(comp, clientDevice.getSignalsRecursive()[0]);
+        ASSERT_EQ(args.getParameters().get("DataDescriptor"), targetDescriptor);
+        changeCount++;
+    };
+
+    targetDescriptor = desc1;
+    sig.setDescriptor(desc1);
+    ASSERT_EQ(clientDevice.getSignalsRecursive()[0].getDescriptor(), desc1);
+    ASSERT_EQ(changeCount, 1);
+
+    targetDescriptor = desc2;
+    sig.setDescriptor(desc2);
+    ASSERT_EQ(clientDevice.getSignalsRecursive()[0].getDescriptor(), desc2);
+    ASSERT_EQ(changeCount, 2);
+}
+
+TEST_F(ConfigCoreEventTest, DataDescriptorUnchanged)
+{
+    const auto sig = serverDevice.getSignalsRecursive()[0].asPtr<ISignalConfig>();
     const auto desc = DataDescriptorBuilder().setSampleType(SampleType::Float32).setRule(ExplicitDataRule()).build();
 
     int changeCount = 0;
-    clientContext.getOnCoreEvent() +=
-        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
-        {
-            ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::DataDescriptorChanged));
-            ASSERT_EQ(args.getEventName(), "DataDescriptorChanged");
-            ASSERT_TRUE(args.getParameters().hasKey("DataDescriptor"));
-            ASSERT_EQ(comp, clientDevice.getSignalsRecursive()[0]);
-            ASSERT_EQ(args.getParameters().get("DataDescriptor"), desc);
-            changeCount++;
-        };
+
+    clientContext.getOnCoreEvent() += [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::DataDescriptorChanged));
+        ASSERT_EQ(args.getEventName(), "DataDescriptorChanged");
+        ASSERT_TRUE(args.getParameters().hasKey("DataDescriptor"));
+        ASSERT_EQ(comp, clientDevice.getSignalsRecursive()[0]);
+        ASSERT_EQ(args.getParameters().get("DataDescriptor"), desc);
+        changeCount++;
+    };
 
     sig.setDescriptor(desc);
     sig.setDescriptor(desc);
     sig.setDescriptor(desc);
 
     ASSERT_EQ(clientDevice.getSignalsRecursive()[0].getDescriptor(), desc);
-    ASSERT_EQ(changeCount, 3);
+    ASSERT_EQ(changeCount, 1);
 }
 
 TEST_F(ConfigCoreEventTest, ComponentAttributeChanged)

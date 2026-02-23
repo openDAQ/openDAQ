@@ -24,6 +24,7 @@
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <opendaq/connection_internal.h>
 #include <tsl/ordered_map.h>
+#include <boost/asio/thread_pool.hpp>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
@@ -66,6 +67,8 @@ protected:
     void componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentUpdated(ComponentPtr& updatedComponent);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+    void initWorkerPool();
+    std::function<void(std::function<void()>)> createBoostDispatchCallback();
 
     static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
 
@@ -94,6 +97,7 @@ protected:
     std::unordered_map<std::string, SizeT> registeredClientIds;
     std::unordered_map<std::string, SizeT> disconnectedClientIds;
     StreamingPtr streaming;
+    std::shared_ptr<boost::asio::thread_pool> workerPool;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

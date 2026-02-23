@@ -33,11 +33,10 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         )
         
         FetchContent_MakeAvailable(LtStreamingModulesLegacy)
-        message(WARNING LtStreamingModulesLegacy_SOURCE_DIR)
         
-        include("${LtStreamingModulesLegacy_SOURCE_DIR}/external/boost/Boost.cmake" OPTIONAL)
-        set(LT_MODULES_SOURCE_DIR ${LtStreamingModulesLegacy_SOURCE_DIR} PARENT_SCOPE)
-        set(LT_MODULES_BINARY_DIR ${LtStreamingModulesLegacy_BINARY_DIR} PARENT_SCOPE)
+        include("${ltstreamingmoduleslegacy_SOURCE_DIR}/external/boost/Boost.cmake" OPTIONAL)
+        set(LT_MODULES_SOURCE_DIR ${ltstreamingmoduleslegacy_SOURCE_DIR} PARENT_SCOPE)
+        set(LT_MODULES_BINARY_DIR ${ltstreamingmoduleslegacy_BINARY_DIR} PARENT_SCOPE)
     else()
         opendaq_get_custom_fetch_content_params(LtStreamingModulesModern FC_PARAMS)
         
@@ -54,9 +53,9 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         
         FetchContent_MakeAvailable(LtStreamingModulesModern)
         
-        include("${LtStreamingModulesModern_SOURCE_DIR}/external/boost/Boost.cmake" OPTIONAL)
-        set(LT_MODULES_SOURCE_DIR ${LtStreamingModulesModern_SOURCE_DIR} PARENT_SCOPE)
-        set(LT_MODULES_BINARY_DIR ${LtStreamingModulesModern_BINARY_DIR} PARENT_SCOPE)
+        include("${ltstreamingmodulesmodern_SOURCE_DIR}/external/boost/Boost.cmake" OPTIONAL)
+        set(LT_MODULES_SOURCE_DIR ${ltstreamingmodulesmodern_SOURCE_DIR} PARENT_SCOPE)
+        set(LT_MODULES_BINARY_DIR ${ltstreamingmodulesmodern_BINARY_DIR} PARENT_SCOPE)
     endif()
         
 endif()
@@ -81,7 +80,7 @@ if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPE
     
     FetchContent_MakeAvailable(OpcUaModules)
     
-    include("${OpcUaModules_SOURCE_DIR}/external/boost/Boost.cmake" OPTIONAL)
-    set(OPCUA_MODULES_SOURCE_DIR ${OpcUaModules_SOURCE_DIR} PARENT_SCOPE)
-    set(OPCUA_MODULES_BINARY_DIR ${OpcUaModules_BINARY_DIR} PARENT_SCOPE)
+    include("${opcuamodules_SOURCE_DIR}/external/boost/Boost.cmake" OPTIONAL)
+    set(OPCUA_MODULES_SOURCE_DIR ${opcuamodules_SOURCE_DIR} PARENT_SCOPE)
+    set(OPCUA_MODULES_BINARY_DIR ${opcuamodules_BINARY_DIR} PARENT_SCOPE)
 endif()

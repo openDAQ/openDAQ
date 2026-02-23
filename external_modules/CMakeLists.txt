@@ -19,6 +19,8 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
     set(DAQMODULES_LT_STREAMING_ENABLE_SERVER ${DAQMODULES_OPENDAQ_SERVER_MODULE} CACHE BOOL "")
     
     if (DAQMODULES_LT_LEGACY_MODULES)
+        opendaq_get_custom_fetch_content_params(LtStreamingModulesLegacy FC_PARAMS)
+        
         FetchContent_Declare(
             LtStreamingModulesLegacy
             GIT_REPOSITORY https://github.com/openDAQ/LTStreamingModulesLegacy.git
@@ -27,15 +29,18 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
             GIT_SHALLOW    OFF
             SOURCE_SUBDIR  "INVALID"
             GIT_REMOTE_UPDATE_STRATEGY CHECKOUT
+            ${FC_PARAMS}
         )
         
         FetchContent_MakeAvailable(LtStreamingModulesLegacy)
         message(WARNING LtStreamingModulesLegacy_SOURCE_DIR)
-		
+        
         include("${LtStreamingModulesLegacy_SOURCE_DIR}/external/boost/Boost.cmake" OPTIONAL)
         set(LT_MODULES_SOURCE_DIR ${LtStreamingModulesLegacy_SOURCE_DIR} PARENT_SCOPE)
         set(LT_MODULES_BINARY_DIR ${LtStreamingModulesLegacy_BINARY_DIR} PARENT_SCOPE)
     else()
+        opendaq_get_custom_fetch_content_params(LtStreamingModulesModern FC_PARAMS)
+        
         FetchContent_Declare(
             LtStreamingModulesModern
             GIT_REPOSITORY https://github.com/openDAQ/LTStreamingModulesModern.git
@@ -44,6 +49,7 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
             GIT_SHALLOW    OFF
             SOURCE_SUBDIR  "INVALID"
             GIT_REMOTE_UPDATE_STRATEGY CHECKOUT
+            ${FC_PARAMS}
         )
         
         FetchContent_MakeAvailable(LtStreamingModulesModern)
@@ -60,6 +66,8 @@ if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPE
     set(DAQMODULES_OPCUA_ENABLE_CLIENT ${DAQMODULES_OPENDAQ_CLIENT_MODULE} CACHE BOOL "")
     set(DAQMODULES_OPCUA_ENABLE_SERVER ${DAQMODULES_OPENDAQ_SERVER_MODULE} CACHE BOOL "")
 
+    opendaq_get_custom_fetch_content_params(OpcUaModules FC_PARAMS)
+        
     FetchContent_Declare(
         OpcUaModules
         GIT_REPOSITORY https://github.com/openDAQ/OpcUaModules.git
@@ -68,6 +76,7 @@ if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPE
         GIT_SHALLOW    OFF
         SOURCE_SUBDIR  "INVALID"
         GIT_REMOTE_UPDATE_STRATEGY CHECKOUT
+        ${FC_PARAMS}
     )
     
     FetchContent_MakeAvailable(OpcUaModules)

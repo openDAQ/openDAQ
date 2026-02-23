@@ -1055,7 +1055,7 @@ TEST_F(NativeDeviceModulesTest, DeviceComponentConfig)
     ASSERT_NO_THROW(nestedDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()));
 }
 
-TEST_F(NativeDeviceModulesTest, GetDefaultAddDeviceConfigViaRpc)
+TEST_F(NativeDeviceModulesTest, GetDefaultAddDeviceConfig)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();

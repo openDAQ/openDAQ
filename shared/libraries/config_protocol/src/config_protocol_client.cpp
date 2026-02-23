@@ -367,7 +367,7 @@ PropertyObjectPtr ConfigProtocolClientComm::getDefaultAddDeviceConfig(const std:
 {
     if (getProtocolVersion() < 19)
         return PropertyObject();
-    return sendComponentCommand(globalId, ClientCommand("GetDefaultAddDeviceConfig", 13));
+    return sendComponentCommand(globalId, ClientCommand("GetDefaultAddDeviceConfig", 19));
 }
 
 void ConfigProtocolClientComm::startRecording(const std::string& globalId)

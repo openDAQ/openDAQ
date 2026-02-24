@@ -587,27 +587,8 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
     voltageSignal.setDescriptor(
         DataDescriptorBuilderCopy(voltageSignal.getDescriptor()).setUnit(Unit("V", -1, "volts", "voltage")).build());
 
-    // Catch event packet from value desc change
-    {
-        constexpr size_t samplesToRead = 1;
-        std::vector<double> data(samplesToRead);
-        std::vector<int64_t> time(samplesToRead);
 
-        SizeT count = samplesToRead;
-        auto status = reader.readWithDomain(data.data(), time.data(), &count, 10000);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
-
-    // Catch event packet from domain desc change
-    {
-        constexpr size_t samplesToRead = 1;
-        std::vector<double> data(samplesToRead);
-        std::vector<int64_t> time(samplesToRead);
-
-        SizeT count = samplesToRead;
-        auto status = reader.readWithDomain(data.data(), time.data(), &count, 10000);
-        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     const auto timePacket2 = DataPacket(timeSignal.getDescriptor(), 50, 200);
     timeSignal.sendPacket(timePacket2);
@@ -627,6 +608,19 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
     constexpr size_t samplesToRead2 = 50;
     std::vector<double> data2(samplesToRead2);
     std::vector<int64_t> time2(samplesToRead2);
+
+
+    // Catch gap detected event
+    {
+        constexpr size_t samplesToRead = 1;
+        std::vector<double> data(samplesToRead);
+        std::vector<int64_t> time(samplesToRead);
+
+        SizeT count = samplesToRead;
+        auto status = reader.readWithDomain(data.data(), time.data(), &count, 10000);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_EQ(status.getEventPacket().getEventId(), event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED);
+    }
 
     SizeT count2 = samplesToRead2;
     auto status2 = reader.readWithDomain(data2.data(), time2.data(), &count2, 10000);

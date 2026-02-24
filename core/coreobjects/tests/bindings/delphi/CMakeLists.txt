@@ -1,4 +1,4 @@
-set_cmake_folder(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder(TARGET_FOLDER_NAME)
 
 set(TargetName "CoreObjectsUT")
 set(ProjectFileName "CoreObjectsUT.dproj")

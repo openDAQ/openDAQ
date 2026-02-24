@@ -54,10 +54,12 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/sync_component2_internal.h
         ${SDK_HEADERS_DIR}/sync_component2_impl.h
         ${SDK_HEADERS_DIR}/sync_interface_base_impl.h
+        ${SDK_HEADERS_DIR}/ptp_sync_interface_base.h
         ${SDK_HEADERS_DIR}/clock_sync_interface_impl.h
         ${SDK_SRC_DIR}/sync_component_impl.cpp
         ${SDK_SRC_DIR}/sync_component2_impl.cpp
         ${SDK_SRC_DIR}/sync_interface_base_impl.cpp
+        ${SDK_SRC_DIR}/ptp_sync_interface_base.cpp
         ${SDK_SRC_DIR}/clock_sync_interface_impl.cpp
     )
     
@@ -79,6 +81,7 @@ set(SRC_PrivateHeaders_Component
     sync_component_impl.h
     sync_component2_impl.h
     sync_interface_base_impl.h
+    ptp_sync_interface_base.h
     clock_sync_interface_impl.h
     PARENT_SCOPE
 )
@@ -87,6 +90,7 @@ set(SRC_Cpp_Component
     sync_component_impl.cpp
     sync_component2_impl.cpp
     sync_interface_base_impl.cpp
+    ptp_sync_interface_base.cpp
     clock_sync_interface_impl.cpp
     PARENT_SCOPE
 )

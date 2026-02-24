@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/sample_reader.h>
 #include <opendaq/multi_reader_status.h>
+#include <opendaq/sample_reader.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -60,7 +60,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @param[out] status: Represents the status of the reader.
      * - If the reader is invalid, IReaderStatus::getValid returns false.
      * - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event
-     * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     * - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that
+     * IReaderStatus::getValid is true and there is no encountered events
      */
     virtual ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs = 0, IMultiReaderStatus** status = nullptr) = 0;
 
@@ -145,7 +146,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * Reader will try to synchronize the data from the signals when `getAvailableCount` or any of the read methods is called.
      */
     virtual ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) = 0;
-	
+
     /*!
      * @brief Gets the common sample rate in case input signal have different rates. The value of common sample rate is such
      * that sample rate of any individual signal can be represented as commonSampleRate / Div, where Div is an integer. Unless
@@ -165,6 +166,33 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
      * @brief Gets active or inactive MultiReader state. In inactive state MultiReader will receive only event packets.
      */
     virtual ErrCode INTERFACE_FUNC getActive(Bool* isActive) = 0;
+
+    /*!
+     * @brief Add the component to the list of inputs that are being read from.
+     * @param input may be either an ISignal or an IInputPort.
+     */
+    virtual ErrCode INTERFACE_FUNC addInput(IComponent* input) = 0;
+
+    /*!
+     * @brief Remove the component with matching global ID.
+     * @param id Global ID of the component that was added to the MultiReader.
+     */
+    virtual ErrCode INTERFACE_FUNC removeInput(IString* id) = 0;
+
+    /*!
+     * @brief Set whether input with matching global ID is used in synchronization and reading.
+     * @param id Global ID of a component previously added into the MultiReader.
+     * @param unused If true, the component won't be synchronized or read from. An unused component cannot cause the MultiReader to enter
+     * invalid state. In reading operations, provide buffers for ALL inputs, even the unused ones.
+     */
+    virtual ErrCode INTERFACE_FUNC setInputUsed(IString* id, Bool isUsed) = 0;
+
+    /*!
+     * @brief Get the used flag for the input component. If the result is false, the input is not used (ignored) by the MultiReader.
+     * @param id Global ID of a component previously added into the MultiReader.
+     * @param unused Output parameter
+     */
+    virtual ErrCode INTERFACE_FUNC getInputUsed(IString* id, Bool* isUsed) = 0;
 };
 
 /*!@}*/

@@ -5025,3 +5025,212 @@ TEST_F(MultiReaderTest, OffsetToLinear)
     ASSERT_EQ(domain[1][1], 23);
     ASSERT_EQ(domain[1][2], 25);
 }
+
+TEST_F(MultiReaderTest, UndefinedValueType)
+{
+    constexpr const auto NUM_SIGNALS = 2;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto& sig0 = addSignal(0, 10, createDomainSignal("2022-09-27T00:00:00+00:00"), SampleType::Int64);
+    auto& sig1 = addSignal(0, 10, createDomainSignal("2022-09-27T00:00:00+00:00"), SampleType::Int64);
+
+    auto builder = MultiReaderBuilder();
+    builder.setInputPortNotificationMethod(PacketReadyNotification::SameThread);
+    builder.addSignals(signalsToList());
+    builder.setValueReadType(SampleType::Invalid);
+
+    auto multi = builder.build();
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_EQ(status.getMainDescriptor().getEventId(), "DATA_DESCRIPTOR_CHANGED");
+    }
+
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+
+    sig0.createAndSendPacket(1);
+    sig1.createAndSendPacket(1);
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 20u);
+
+    constexpr const SizeT SAMPLES = 10u;
+
+    std::array<int64_t[SAMPLES], NUM_SIGNALS> values{};
+    std::array<ClockTick[SAMPLES], NUM_SIGNALS> domain{};
+
+    void* valuesPerSignal[NUM_SIGNALS]{values[0], values[1]};
+    void* domainPerSignal[NUM_SIGNALS]{domain[0], domain[1]};
+
+    SizeT count{SAMPLES};
+    multi.readWithDomain(valuesPerSignal, domainPerSignal, &count);
+
+    ASSERT_EQ(count, SAMPLES);
+    ASSERT_EQ(multi.getValueReadType(), SampleType::Int64);
+}
+
+TEST_F(MultiReaderTest, AddRemoveInput)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(NUM_SIGNALS);
+
+    std::string epochStr = "2022-09-27T00:02:04+00:00";
+    auto resolution = Ratio(1, 1000);
+    auto rule = LinearDataRule(4, 0);
+
+    auto& sig0 = addSignal(0, 20, createDomainSignal(epochStr, resolution, rule));
+    auto& sig1 = addSignal(0, 20, createDomainSignal(epochStr, resolution, rule));
+    auto& sig2 = addSignal(0, 10, createDomainSignal(epochStr, resolution, rule));
+
+    auto ports = portsList();
+    auto signals = signalsToList();
+    auto multi = MultiReaderBuilder()
+                     .setAllowDifferentSamplingRates(false)
+                     .setInputPortNotificationMethod(PacketReadyNotification::SameThread)
+                     .addInputPort(ports[0])
+                     .addInputPort(ports[1])
+                     .build();
+
+    ports[0].connect(signals[0]);
+    ports[1].connect(signals[1]);
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_TRUE(status.getValid());
+    }
+
+    sig0.createAndSendPacket(0);  // 20 samples
+    sig1.createAndSendPacket(0);  // 20 samples
+    sig2.createAndSendPacket(0);  // 10 samples
+    sig2.createAndSendPacket(1);  // 10 samples
+
+    // First two are aligned and packet were received in the connection
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 20u);
+
+    ASSERT_TRUE(multi.asPtr<IReaderConfig>().getIsValid());
+
+    // When a non-connected port is added, all unread packets in other connections get dropped.
+    multi.addInput(ports[2]);
+    ports[2].connect(signals[2]);
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_TRUE(status.getValid());
+    }
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    sig0.createAndSendPacket(1);  // 20 samples
+    sig1.createAndSendPacket(1);  // 20 samples
+    sig2.createAndSendPacket(2);  // 10 samples
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 10u);  // samples with timestamps 20-30 are available in all connections
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+        ASSERT_TRUE(status.getValid());
+    }
+
+    // Remove the signal with fewer samples
+    multi.removeInput(ports[2].getGlobalId());
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 20u);  // now the first two can be aligned for all 20 samples
+}
+
+TEST_F(MultiReaderTest, UsedUnusedInput)
+{
+    constexpr const auto NUM_SIGNALS = 3;
+
+    // prevent vector from re-allocating, so we have "stable" pointers
+    readSignals.reserve(NUM_SIGNALS);
+
+    std::string epochStr = "2022-09-27T00:02:04+00:00";
+    auto resolution = Ratio(1, 1000);
+    auto rule = LinearDataRule(4, 0);
+
+    auto& sig0 = addSignal(0, 20, createDomainSignal(epochStr, resolution, rule));
+    auto& sig1 = addSignal(0, 20, createDomainSignal(epochStr, resolution, rule));
+    auto& sig2 = addSignal(0, 10, createDomainSignal(epochStr, resolution, rule));
+
+    auto ports = portsList();
+    auto signals = signalsToList();
+    auto multi = MultiReaderBuilder()
+                     .setAllowDifferentSamplingRates(false)
+                     .setInputPortNotificationMethod(PacketReadyNotification::SameThread)
+                     .addInputPort(ports[0])
+                     .addInputPort(ports[1])
+                     .addInputPort(ports[2])
+                     .build();
+
+    ports[0].connect(signals[0]);
+    ports[1].connect(signals[1]);
+
+    // Recovers to active state (all used are connected)
+    multi.setInputUsed(ports[2].getGlobalId(), false);
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_TRUE(status.getValid());
+    }
+
+    sig0.createAndSendPacket(0);  // 20 samples
+    sig1.createAndSendPacket(0);  // 20 samples
+    sig2.createAndSendPacket(0);  // 10 samples
+
+    // The third signal is ignored, the first two get synced
+    auto available = multi.getAvailableCount();
+    ASSERT_EQ(available, 20u);
+
+    sig2.createAndSendPacket(1);  // 10 samples
+
+    ASSERT_TRUE(multi.asPtr<IReaderConfig>().getIsValid());
+
+    ports[2].connect(signals[2]);
+    multi.setInputUsed(ports[2].getGlobalId(), true);
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+        ASSERT_TRUE(status.getValid());
+    }
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 0u);
+
+    sig0.createAndSendPacket(1);  // 20 samples
+    sig1.createAndSendPacket(1);  // 20 samples
+    sig2.createAndSendPacket(2);  // 10 samples
+
+    available = multi.getAvailableCount();
+    ASSERT_EQ(available, 10u);  // samples with timestamps 20-30 are available in all connections
+
+    {
+        SizeT count{0};
+        auto status = multi.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+        ASSERT_TRUE(status.getValid());
+    }
+}

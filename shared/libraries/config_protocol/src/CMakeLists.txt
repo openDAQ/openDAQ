@@ -69,8 +69,8 @@ set(SRC_Cpp config_protocol.cpp
             config_client_sync_component2_impl.cpp
 )
 
-prepend_include(${BASE_NAME} SRC_PublicHeaders)
-prepend_include(${BASE_NAME} SRC_PrivateHeaders)
+opendaq_prepend_include(${BASE_NAME} SRC_PublicHeaders)
+opendaq_prepend_include(${BASE_NAME} SRC_PrivateHeaders)
 
 list(APPEND SRC_PublicHeaders ${SRC_ConfigClientObject_PublicHeaders}
 )

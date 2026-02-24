@@ -34,7 +34,8 @@ public:
                                        const StringPtr& connectionString,
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-                                       Int initTimeout);
+                                       Int initTimeout,
+                                       const DeviceTypePtr& type);
 
 protected:
     void removed() override;
@@ -57,6 +58,7 @@ protected:
     StreamingPtr nativeStreaming;
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignals;
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignalsReconnection;
+    DeviceTypePtr deviceType;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

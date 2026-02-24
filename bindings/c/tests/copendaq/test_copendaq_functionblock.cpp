@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <opendaq/opendaq.h>
-#include "opendaq/gmock/function_block.h"
+#include <opendaq/gmock/function_block.h>
 
 class COpendaqFunctionBlockTest : public testing::Test
 {

@@ -1,5 +1,5 @@
 set(LIB_NAME copendaq)
-set_cmake_folder_context(TARGET_FOLDER_NAME copendaq)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME copendaq)
 
 set(SRC_CoreTypes_Headers
     include/copendaq.h
@@ -229,7 +229,6 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/functionblock/common.h
     include/copendaq/functionblock/function_block_errors.h
     include/copendaq/functionblock/function_block_type.h
-    include/copendaq/functionblock/function_block_wrapper.h
     include/copendaq/functionblock/function_block.h
     include/copendaq/functionblock/recorder.h
 
@@ -364,7 +363,6 @@ set(SRC_OpenDAQ_Cpp
 
     src/copendaq/functionblock/channel.cpp
     src/copendaq/functionblock/function_block_type.cpp
-    src/copendaq/functionblock/function_block_wrapper.cpp
     src/copendaq/functionblock/function_block.cpp
     src/copendaq/functionblock/recorder.cpp
 

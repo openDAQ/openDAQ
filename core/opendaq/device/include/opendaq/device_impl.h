@@ -50,6 +50,7 @@
 #include <opendaq/component_type_builder_factory.h>
 #include <opendaq/module_info_factory.h>
 #include <opendaq/component_type_private.h>
+#include <opendaq/mirrored_device_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -77,8 +78,8 @@ public:
 
     virtual uint64_t onGetTicksSinceOrigin();
 
-    virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
-    virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
+    DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+    FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
 
     virtual ListPtr<IDeviceInfo> onGetAvailableDevices();
@@ -206,9 +207,6 @@ protected:
                                   LockingStrategy lockingStrategy = LockingStrategy::OwnLock);
 
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
-    void updateFunctionBlock(const std::string& fbId,
-                             const SerializedObjectPtr& serializedFunctionBlock,
-                             const BaseObjectPtr& context) override;
     void updateDevice(const std::string& deviceId,
                       const SerializedObjectPtr& serializedDevice,
                       const BaseObjectPtr& context);
@@ -464,7 +462,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::isLockedInternal(Bool* locked)
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::forceUnlock()
 {
-    auto lock = this->getAcquisitionLock2();
+    auto lock = this->getRecursiveConfigLock2();
 
     ErrCode status = forceUnlockInternal();
     OPENDAQ_RETURN_IF_FAILED(status);
@@ -782,28 +780,18 @@ ErrCode GenericDevice<TInterface, Interfaces...>::Deserialize(ISerializedObject*
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
-
-    if (this->isComponentRemoved)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-
-    DictPtr<IString, IFunctionBlockType> dict;
-    const ErrCode errCode = wrapHandlerReturn(this, &GenericDevice<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes, dict);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    *functionBlockTypes = dict.detach();
-    return errCode;
+    return this->getAvailableFunctionBlockTypesInternal(functionBlockTypes);
 }
 
 template <typename TInterface, typename... Interfaces>
 DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::onGetAvailableFunctionBlockTypes()
 {
-    auto lock = this->getRecursiveConfigLock2();
     auto availableTypes = Dict<IString, IFunctionBlockType>();
 
-    if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
+    if (!this->isRootDevice && !this->allowAddFunctionBlocksFromModules())
         return availableTypes;
 
+    auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableFunctionBlockTypes().detach();
 }
@@ -811,28 +799,17 @@ DictPtr<IString, IFunctionBlockType> GenericDevice<TInterface, Interfaces...>::o
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlock);
-    OPENDAQ_PARAM_NOT_NULL(typeId);
-
-    if (this->isComponentRemoved)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-
-    FunctionBlockPtr functionBlockPtr;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeId, config);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    *functionBlock = functionBlockPtr.detach();
-    return errCode;
+    return this->addFunctionBlockInternal(functionBlock, typeId, config);
 }
 
 template <typename TInterface, typename... Interfaces>
 FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(const StringPtr& typeId,
                                                                               const PropertyObjectPtr& config)
 {
-    auto lock = this->getRecursiveConfigLock2();
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
-        return nullptr;
-
+        DAQ_THROW_EXCEPTION(NotSupportedException, "Device does not support adding nested function blocks.");
+    
+    auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     FunctionBlockPtr fb = managerUtils.createFunctionBlock(typeId, this->functionBlocks, config);
     this->functionBlocks.addItem(fb);
@@ -843,23 +820,21 @@ FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(co
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::removeFunctionBlock(IFunctionBlock* functionBlock)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlock);
-
-    if (this->isComponentRemoved)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-
-    const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
-    const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
-
-    return errCode;
+    return this->removeFunctionBlockInternal(functionBlock);
 }
 
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
-        DAQ_THROW_EXCEPTION(NotFoundException, "Function block not found. Device does not allow adding/removing function blocks.");
+        DAQ_THROW_EXCEPTION(InvalidOperationException, "Device does not allow adding/removing function blocks.");
 
+    auto types = onGetAvailableFunctionBlockTypes();
+    auto typeId = functionBlock.getFunctionBlockType().getId();
+    if (!types.hasKey(typeId))
+        DAQ_THROW_EXCEPTION(InvalidOperationException, "Function block being removed is a static-type. Its type is not in the list of available function block types.");
+    
+    auto lock = this->getRecursiveConfigLock2();
     this->functionBlocks.removeItem(functionBlock);
 }
 
@@ -1307,7 +1282,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableDeviceTypes(IDict** deviceTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(deviceTypes);
-
+    
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
@@ -1324,7 +1299,7 @@ DictPtr<IString, IDeviceType> GenericDevice<TInterface, Interfaces...>::onGetAva
 {
     if (!allowAddDevicesFromModules())
         return Dict<IString, IDeviceType>();
-
+    
     auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableDeviceTypes();
@@ -1460,6 +1435,30 @@ ErrCode GenericDevice<TInterface, Interfaces...>::removeDevice(IDevice* device)
 template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& device)
 {
+    auto lock = this->getRecursiveConfigLock2();
+
+    DeviceTypePtr removedDeviceType;
+    if (const auto mirroredDevice = device.asPtrOrNull<IMirroredDevice>(); mirroredDevice.assigned())
+    {
+        removedDeviceType = mirroredDevice.getMirroredDeviceType();
+    }
+    else
+    {
+        auto info = device.getInfo();
+        if (!info.assigned())
+            DAQ_THROW_EXCEPTION(InvalidStateException, "Device with ID {} is missing its device info object.", device.getLocalId());
+
+        removedDeviceType = info.getDeviceType();
+    }
+    
+    if (removedDeviceType.assigned())
+    {
+        auto types = onGetAvailableDeviceTypes();
+        auto typeId = removedDeviceType.getId();
+        if (!types.hasKey(typeId))
+            DAQ_THROW_EXCEPTION(InvalidOperationException, "Device being removed is a static-type. Its type is not in the list of available device types.");
+    }
+    
     this->devices.removeItem(device);
 }
 
@@ -1686,6 +1685,7 @@ ModuleInfoPtr GenericDevice<TInterface, Interfaces...>::getModuleInfoFromDeviceT
         if (deviceType.assigned())
             return deviceType.getModuleInfo();
     }
+
     return nullptr;
 }
 
@@ -1943,7 +1943,14 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     if (deviceInfo.assigned())
     {
         serializer.key("deviceInfo");
-        deviceInfo.serialize(serializer);
+        if (forUpdate)
+        {
+            deviceInfo.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        }
+        else
+        {
+            deviceInfo.serialize(serializer);
+        }
     }
 
     if (syncComponent.assigned())
@@ -1967,38 +1974,6 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 }
 
 template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::updateFunctionBlock(const std::string& fbId,
-                                                                   const SerializedObjectPtr& serializedFunctionBlock,
-                                                                   const BaseObjectPtr& context)
-{
-    UpdatablePtr updatableFb;
-    if (!this->functionBlocks.hasItem(fbId))
-    {
-        auto typeId = serializedFunctionBlock.readString("typeId");
-
-        PropertyObjectPtr config;
-        if (serializedFunctionBlock.hasKey("ComponentConfig"))
-            config = serializedFunctionBlock.readObject("ComponentConfig");
-        else
-            config = PropertyObject();
-
-        if (!config.hasProperty("LocalId"))
-            config.addProperty(StringProperty("LocalId", fbId));
-        else
-            config.setPropertyValue("LocalId", fbId);
-
-        auto fb = onAddFunctionBlock(typeId, config);
-        updatableFb = fb.template asPtr<IUpdatable>(true);
-    }
-    else
-    {
-        updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
-    }
-
-    updatableFb.updateInternal(serializedFunctionBlock, context);
-}
-
-template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& deviceId,
                                                             const SerializedObjectPtr& serializedDevice,
                                                             const BaseObjectPtr& context)
@@ -2009,7 +1984,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
         if (!contextPtr.getReAddDevicesEnabled() && devices.hasItem(deviceId))
         {
-            LOG_D("Device {} already exists and re-add is not enabled", deviceId);
+            LOG_D("Device {} already exists and re-add is not enabled", deviceId)
             auto device = devices.getItem(deviceId);
             const auto updatableDevice = device.template asPtr<IUpdatable>(true);
             updatableDevice.updateInternal(serializedDevice, context);
@@ -2063,14 +2038,42 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             LOG_W("No connection string found for device {}", deviceId);
             return;
         }
+        
+        std::string connectionStringStr = connectionString;
+        auto pos = connectionStringStr.find("://");
+        std::string prefix = pos == std::string::npos ? "" : connectionStringStr.substr(0,pos);
+        DevicePtr device;
 
-        if (devices.hasItem(deviceId))
+        if (!prefix.empty())
         {
-            DevicePtr device = devices.getItem(deviceId);
-            checkErrorInfo(this->removeDevice(device));
+            for (const auto& [_, type]: onGetAvailableDeviceTypes())
+            {
+                std::string typePrefix = type.getConnectionStringPrefix();
+                if (prefix == typePrefix)
+                {
+                    if (devices.hasItem(deviceId))
+                    {
+                        device = devices.getItem(deviceId);
+                        checkErrorInfo(this->removeDevice(device));
+                    }
+
+                    device = onAddDevice(connectionString, deviceConfig);
+                    break;
+                }
+            }
         }
 
-        DevicePtr device = onAddDevice(connectionString, deviceConfig);
+        if (!device.assigned())
+        {
+            if (devices.hasItem(deviceId))
+                device = devices.getItem(deviceId);
+            else
+            {
+                LOG_W("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceId, this->localId)
+                return;
+            }
+        }
+
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
     }

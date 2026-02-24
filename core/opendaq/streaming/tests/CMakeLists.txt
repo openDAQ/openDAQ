@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 set(MODULE_NAME streaming)
 
 set(TEST_MOCKS mock/mock_mirrored_signal.h
@@ -28,6 +28,7 @@ target_link_libraries(${TEST_APP}
     PRIVATE
         daq::coreobjects
         daq::opendaq_mocks
+        daq::opendaq_gmocks
 )
 
 add_test(NAME ${TEST_APP}

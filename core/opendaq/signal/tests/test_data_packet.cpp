@@ -8,8 +8,8 @@
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/scaling_factory.h>
 #include <opendaq/scaling_ptr.h>
-
-#include "opendaq/deleter_factory.h"
+#include <opendaq/deleter_factory.h>
+#include <opendaq/binary_data_packet_factory.h>
 
 using DataPacketTest = testing::Test;
 
@@ -517,6 +517,38 @@ TEST_F(DataPacketTest, GetLastValue)
     IntegerPtr ptr;
     ASSERT_NO_THROW(ptr = lv.asPtr<IInteger>());
     ASSERT_EQ(ptr, 42);
+}
+
+TEST_F(DataPacketTest, GetValueByIndexString)
+{
+    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::String).setName("test").build();
+    const auto packet = BinaryDataPacket(nullptr, descriptor, 4);
+    char* data = static_cast<char*>(packet.getData());
+    data[0] = 'a';
+    data[1] = 'b';
+    data[2] = 'c';
+    data[3] = 'd';
+
+    const auto lv = packet.getValueByIndex(0);
+    StringPtr ptr;
+    ASSERT_NO_THROW(ptr = lv.asPtr<IString>());
+    ASSERT_EQ(ptr, "abcd");
+}
+
+TEST_F(DataPacketTest, GetLastValueString)
+{
+    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::String).setName("test").build();
+    const auto packet = BinaryDataPacket(nullptr, descriptor, 4);
+    char* data = static_cast<char*>(packet.getData());
+    data[0] = 'a';
+    data[1] = 'b';
+    data[2] = 'c';
+    data[3] = 'd';
+
+    const auto lv = packet.getLastValue();
+    StringPtr ptr;
+    ASSERT_NO_THROW(ptr = lv.asPtr<IString>());
+    ASSERT_EQ(ptr, "abcd");
 }
 
 TEST_F(DataPacketTest, GetLastValueConstantPosAndValue)

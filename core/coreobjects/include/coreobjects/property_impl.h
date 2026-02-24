@@ -1078,9 +1078,7 @@ public:
 
             this->getItemType(&itemType);
             if (valueType == ctDict)
-            {
                 this->getKeyType(&keyType);
-            }
 
             if (itemType == ctObject || keyType == ctObject)
                 return DAQ_MAKE_ERROR_INFO(
@@ -1096,6 +1094,8 @@ public:
                 return DAQ_MAKE_ERROR_INFO(
                     OPENDAQ_ERR_INVALIDSTATE,
                     fmt::format(R"(Container type property {} cannot have keys/items that are container-types.)", name));
+
+            OPENDAQ_RETURN_IF_FAILED(checkContainerType(keyType, itemType));
         }
 
         if (valueType == ctStruct)
@@ -1126,6 +1126,43 @@ public:
         //    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Function- and procedure-type property {} must have
         //    Callable info configured)", name));
         //}
+
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC checkContainerType(CoreType keyType, CoreType itemType)
+    {
+        if (!defaultValue.assigned())
+            return OPENDAQ_SUCCESS;
+
+        auto iterate = [](const IterablePtr<IBaseObject>& it, CoreType type) 
+        {
+            for (const auto& key : it)
+            {
+                if (key.getCoreType() != type)
+                    return false;
+            }
+            return true;
+        };
+
+        if (valueType == ctDict)
+        {
+            const auto dict = defaultValue.asPtr<IDict>(true);
+
+            IterablePtr<IBaseObject> it;
+            dict->getKeys(&it);
+            if (!iterate(it, keyType))
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Invalid dictionary key type");
+
+            dict->getValues(&it);
+            if (!iterate(it, itemType))
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Invalid dictionary item type");
+        }
+        else if (valueType == ctList)
+        {
+            if (itemType != ctUndefined && !iterate(defaultValue, itemType))
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Invalid list item type");
+        }
 
         return OPENDAQ_SUCCESS;
     }

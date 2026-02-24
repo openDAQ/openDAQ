@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 set(MODULE_NAME signal)
 
 set(TEST_HEADERS
@@ -32,6 +32,7 @@ set(TEST_SOURCES
     test_reference_domain_info.cpp
     test_bulk_data_packet.cpp
     test_wrapped_data_packet.cpp
+    test_cyclic_ref_check.cpp
 )
 
 if (OPENDAQ_MIMALLOC_SUPPORT)
@@ -50,7 +51,8 @@ add_test(NAME ${TEST_APP}
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 
-target_link_libraries(${TEST_APP} PRIVATE daq::opendaq_mocks
+target_link_libraries(${TEST_APP} PRIVATE daq::opendaq_gmocks
+                                          daq::opendaq_mocks
 )
 
 if (MSVC)

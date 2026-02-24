@@ -63,9 +63,6 @@ set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
 
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 
-# Package name for deb. If set, then instead of some-application-0.9.2-Linux.deb
-# the package name will be some-application_0.9.2_amd64.deb (note the underscores too)
-set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "openDAQ SDK")
 
 # Currently we bundle xxHash together in the one-large-package with all the dependencies bundled-in
@@ -75,6 +72,61 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "openDAQ SDK")
 if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
     set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE "arm64")
 endif()
+
+##
+## Package filename customization
+##
+
+# OS name
+string(TOLOWER "${CMAKE_SYSTEM_NAME}" _PACKING_OS_NAME)
+if(_PACKING_OS_NAME STREQUAL "darwin")
+    set(_PACKING_OS_NAME "macos")
+elseif(_PACKING_OS_NAME STREQUAL "windows")
+    set(_PACKING_OS_NAME "win")
+endif()
+
+# Architecture
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
+        set(_PACKING_ARCH_NAME "ARM_64")
+    else()
+        set(_PACKING_ARCH_NAME "x86_64")
+    endif()
+else()
+    set(_PACKING_ARCH_NAME "x86_32")
+endif()
+
+# Compiler
+if(MSVC AND CMAKE_VS_VERSION_BUILD_NUMBER)
+    set(_PACKING_COMPILER_VER "${CMAKE_VS_VERSION_BUILD_NUMBER}")
+    set(_PACKING_COMPILER_ID "msvc")
+else()
+    set(_PACKING_COMPILER_VER "${CMAKE_CXX_COMPILER_VERSION}")
+    string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" _PACKING_COMPILER_ID)
+    # Rename GNU to gcc
+    if(_PACKING_COMPILER_ID STREQUAL "gnu")
+        set(_PACKING_COMPILER_ID "gcc")
+    endif()
+endif()
+
+# Assemble version string with optional tweak (4th component)
+set(_PACKING_VERSION "${OPENDAQ_PACKAGE_VERSION}")
+string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+\\.([0-9]+)" _PACKING_TWEAK_MATCH "${package_version}")
+if(_PACKING_TWEAK_MATCH)
+    string(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" _PACKING_TWEAK "${package_version}")
+    string(APPEND _PACKING_VERSION ".${_PACKING_TWEAK}")
+endif()
+
+# Assemble filename: opendaq-VERSION[-SHA]_OS_ARCH_COMPILER
+# Add SHA only for dev versions (version ends with "dev")
+set(_PACKING_FILENAME "opendaq-${_PACKING_VERSION}")
+if(package_version MATCHES "dev$" AND OPENDAQ_WC_REVISION_HASH)
+    string(SUBSTRING "${OPENDAQ_WC_REVISION_HASH}" 0 7 _PACKING_SHORT_SHA)
+    string(APPEND _PACKING_FILENAME "-${_PACKING_SHORT_SHA}")
+endif()
+string(APPEND _PACKING_FILENAME "_${_PACKING_OS_NAME}_${_PACKING_ARCH_NAME}_${_PACKING_COMPILER_ID}${_PACKING_COMPILER_VER}")
+
+set(CPACK_PACKAGE_FILE_NAME "${_PACKING_FILENAME}")
 
 ##
 ## Finally ...

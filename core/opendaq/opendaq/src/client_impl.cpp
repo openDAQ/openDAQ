@@ -24,7 +24,13 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
 
 DeviceInfoPtr ClientImpl::onGetInfo()
 {
-    return DeviceInfo("daqmock://client_device", "OpenDAQClient");
+    auto info = DeviceInfo("daq.root://default_client", "OpenDAQClient");
+    info.setDeviceType(DeviceTypeBuilder()
+                           .setConnectionStringPrefix("daq.root")
+                           .setId("OpenDAQClient")
+                           .setName("OpenDAQClient")
+                           .build());
+    return info;
 }
 
 bool ClientImpl::allowAddDevicesFromModules()

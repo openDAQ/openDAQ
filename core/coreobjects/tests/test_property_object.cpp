@@ -1439,6 +1439,28 @@ TEST_F(PropertyObjectTest, DISABLED_ListInvalidItemType)
     ASSERT_THROW(propObj.setPropertyValue("ListProperty", List<Bool>(true, false)), InvalidTypeException);
 }
 
+TEST_F(PropertyObjectTest, AddListPropertyWithMixedTypes)
+{
+    auto propObj = PropertyObject();
+    ASSERT_THROW(propObj.addProperty(ListProperty("list", List<IBaseObject>("123", 123))), InvalidTypeException);
+    ASSERT_THROW(propObj.addProperty(ListProperty("list", List<IBaseObject>(1, "abc"))), InvalidTypeException);
+    ASSERT_THROW(propObj.addProperty(ListProperty("list", List<IBaseObject>(1.0, 123))), InvalidTypeException);
+}
+
+TEST_F(PropertyObjectTest, AddDictPropertyWithMixedValueTypes)
+{
+    auto propObj = PropertyObject();
+    auto dict = Dict<IBaseObject, IBaseObject>({{1, "a"}, {2, 123}});
+    ASSERT_THROW(propObj.addProperty(DictProperty("dict", dict)), InvalidTypeException);
+}
+
+TEST_F(PropertyObjectTest, AddDictPropertyWithMixedKeyTypes)
+{
+    auto propObj = PropertyObject();
+    auto dict = Dict<IBaseObject, IBaseObject>({{1, "a"}, {"b", "c"}});
+    ASSERT_THROW(propObj.addProperty(DictProperty("dict", dict)), InvalidTypeException);
+}
+
 TEST_F(PropertyObjectTest, DefaultPropertyValue)
 {
     auto propObjParent = PropertyObject(objManager, "Test");

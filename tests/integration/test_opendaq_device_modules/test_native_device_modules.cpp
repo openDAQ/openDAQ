@@ -137,7 +137,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 18);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 19);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -1053,6 +1053,20 @@ TEST_F(NativeDeviceModulesTest, DeviceComponentConfig)
     // for nested device config cannot be overriden locally
     ASSERT_TRUE(nestedDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
     ASSERT_NO_THROW(nestedDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()));
+}
+
+TEST_F(NativeDeviceModulesTest, GetDefaultAddDeviceConfig)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto serverDefaultConfig = server.createDefaultAddDeviceConfig();
+    const auto remoteDevice = client.getDevices()[0];
+    const auto remoteDefaultConfig = remoteDevice.createDefaultAddDeviceConfig();
+
+    ASSERT_TRUE(remoteDefaultConfig.assigned());
+    test_helpers::testPropObjsEquality(serverDefaultConfig, remoteDefaultConfig);
 }
 
 TEST_F(NativeDeviceModulesTest, GetStatuses)
@@ -3712,6 +3726,21 @@ TEST_F(NativeDeviceModulesTest, TestPropertyOrderOnClient)
         for (SizeT i = 0; i < propertyOrder.getCount(); ++i)
             ASSERT_EQ(propertyOrder[i], props[i].getName());
     }
+}
+
+TEST_F(NativeDeviceModulesTest, CyclicReference)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    auto serverFb = server.getFunctionBlocks()[0];
+    auto clientFb = client.getDevices()[0].getFunctionBlocks()[0];
+
+    ASSERT_THROW(clientFb.getInputPorts()[0].connect(clientFb.getSignals()[0]), CyclicReferenceException);
+
+    ASSERT_EQ(clientFb.getInputPorts()[0].getSignal(), nullptr);
+    ASSERT_EQ(serverFb.getInputPorts()[0].getSignal(), nullptr);
 }
 
 TEST_F(NativeDeviceModulesTest, AddDevicesParallelSuccess)

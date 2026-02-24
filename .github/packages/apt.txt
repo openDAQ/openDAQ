@@ -1,0 +1,11 @@
+lld
+mono-runtime
+libmono-system-json-microsoft4.0-cil
+libmono-system-data4.0-cil
+libx11-dev
+libxi-dev
+libxcursor-dev
+libxrandr-dev
+libgl-dev
+libudev-dev
+libfreetype6-dev

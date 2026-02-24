@@ -2,7 +2,7 @@ name: Build openDAQ packages
 
 on:
   push:
-    branches: [release/**]
+    branches: [main, release/**]
 
   workflow_dispatch:
 
@@ -11,11 +11,9 @@ env:
   build_path: ${{ github.workspace }}/build
   package_path: ${{ github.workspace }}/build/_packages
   wheels_path: ${{ github.workspace }}/build/wheels
-  dotnet_bin_path: ${{ github.workspace }}/build/bindings/CSharp/bin
   package_path_rel: build/_packages # WA for https://github.com/actions/checkout/issues/785
   vm_name: device_simulator
   simulator_app_artifact: SimulatorApp
-  simulator_package_artifact: SimulatorPackage
   python_version_build: 3.11
   python_versions: 3.8 3.9 3.10 3.11 3.12 3.13 3.14
   windows_x64_artifact: SdkWindows64
@@ -29,7 +27,7 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
       cancel-in-progress: true
-    timeout-minutes: 240
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -37,25 +35,26 @@ jobs:
         include:
           - name: Windows VS 2022 x64 Release
             runner: windows-latest
-            cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: x64
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DPYBIND11_FINDPYTHON=ON
-            cpack: NSIS
+            cmake-generator: "Visual Studio 17 2022"
+            cmake-build-type: Release
+            cmake-defines: -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
+            cpack-generator: NSIS
+            enable-32bit: false
+            generate-python-bindings: true
+            generate-csharp-bindings: true
           - name: Windows VS 2022 Win32 Release
             runner: windows-latest
-            cmake_generator: "Visual Studio 17 2022"
-            cmake_generator_platform: Win32
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF -DOPENDAQ_MSVC_SINGLE_PROCESS_BUILD=ON
-            cpack: NSIS
+            cmake-generator: "Visual Studio 17 2022"
+            cmake-build-type: Release
+            cmake-defines:
+            cpack-generator: NSIS
+            enable-32bit: true
+            generate-python-bindings: false
+            generate-csharp-bindings: false
 
     outputs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
-      # test_path: ''
       windows_x64_artifact_name: ${{ env.windows_x64_artifact }}
-      # short_sha: ${{ env.short_sha }}
-      short_sha_dotnet: ${{ steps.configure_and_build_wheels.outputs.short_sha_dotnet }}
 
     env:
       short_sha: 'package'  # for .NET Bindings build
@@ -64,116 +63,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Build SDK
+        id: build-sdk
+        uses: ./.github/actions/build-sdk
         with:
-          python-version: |
-              3.8
-              3.9
-              3.10
-              3.11
-              3.12
-              3.13
-              3.14
-              
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+          additional-dependencies: nsis
+          cmake-generator: ${{ matrix.cmake-generator }}
+          cmake-config-preset: ${{ env.cmake_preset }}
+          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          enable-32bit: ${{ matrix.enable-32bit == true }}
+          cpack-generator: ${{ matrix.cpack-generator }}
+          generate-csharp-bindings: false
+          generate-python-bindings: false
+          upload-artifact: true
+
+      - name: Package Python Bindings
+        if: matrix.generate-python-bindings == true
+        uses: ./.github/actions/package-bindings-python
         with:
-          cmake-version: '4.0'
+          python-versions: ${{ env.python_versions }}
+          build-path: ${{ steps.build-sdk.outputs.build-path }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          upload-artifact: true
 
-      - name: Install NSIS
-        run: choco install nsis -y --no-progress
-
-      - name: Configure and build Wheels
-        id: configure_and_build_wheels
-        if: matrix.cmake_generator_platform != 'Win32'
-        shell: pwsh
-        env:
-          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
-        run: |
-          # for .NET Bindings beta build
-          $env:SHORT_SHA = if ( "${{ github.base_ref || github.ref_name }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
-          if ("$env:SHORT_SHA" -ne '') {
-            # pwsh syntax
-            echo "short_sha_dotnet=$env:SHORT_SHA" >> $env:GITHUB_OUTPUT
-          }
-          mkdir build
-          cd build
-          mkdir wheels
-          $versions = "${{ env.python_versions }}".split(" ")
-          foreach ($version in $versions) {
-            Write-Output "Building for Python $version"
-            cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} "-DOPENDAQ_PYTHON_VERSION=$version" ..
-            cmake --build . --config ${{ matrix.cmake_build_type }}
-            Write-Output "Creating virtual environment for Python $version"
-            Invoke-Expression "py -$version -m venv venv"
-            ./venv/Scripts/activate
-            pip install numpy pybind11-stubgen
-            $remove_python_module_flag = "-r"
-            if ($version -eq $versions[-1]) {
-              $remove_python_module_flag = $null
-            }
-            Invoke-Expression "py -${{env.python_version_build}} ../bindings/python/package/build_pip.py -l bin/${{ matrix.cmake_build_type }} $remove_python_module_flag"
-            Copy-Item pip/packages/*.whl wheels
-            deactivate
-            Remove-Item venv -Recurse
-          }
-
-      - name: Configure and build without Wheels
-        if: matrix.cmake_generator_platform == 'Win32'
-        shell: pwsh
-        run: |
-          # for .NET Bindings beta build
-          $env:SHORT_SHA = if ( "${{ github.base_ref || github.ref_name }}".Replace('refs/heads/','').StartsWith('release/') ) { '' } else { "${{ env.short_sha }}" }
-          # $env:GITHUB_OUTPUT not set here as output only needed from step configure_and_build_wheels
-          mkdir build
-          cd build
-          Write-Output "Building for Win32"
-          cmake -G "${{ matrix.cmake_generator }}" -A ${{ matrix.cmake_generator_platform }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-          cmake --build . --config ${{ matrix.cmake_build_type }}
-
-      - name: Package
-        working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
-
-      - name: Rename package
-        shell: pwsh
-        working-directory: ${{ env.package_path }}
-        run: |
-          Get-ChildItem -Path .\* -Include *.exe | Rename-Item -NewName {$_.FullName.ToLower()}
-          Get-ChildItem -Path .\* -Include *.nupkg | Rename-Item -NewName {$_.FullName.ToLower()}
-
-      - name: Upload package
-        uses: actions/upload-artifact@v4
+      - name: Build C# Bindings
+        id: package-csharp-bindings
+        if: matrix.generate-csharp-bindings == true
+        uses: ./.github/actions/package-bindings-csharp
         with:
-          name: Package (${{ matrix.name }})
-          path: ${{ env.package_path }}
-          retention-days: 7
-
-      - name: Upload Wheels
-        if: matrix.cmake_generator_platform != 'Win32'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Wheels (${{ matrix.name }})
-          path: ${{ env.wheels_path }}
-          retention-days: 7
-
-      - name: Upload binaries for .NET Bindings NuGet package
-        # "There can be only one for now."
-        if: matrix.name == 'Windows VS 2022 x64 Release'
-        env:
-          dotnetBuildPath: "${{ env.dotnet_bin_path }}/${{ matrix.cmake_generator_platform }}/${{ matrix.cmake_build_type }}"
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.windows_x64_artifact }}
-          path: |
-            ${{ env.dotnetBuildPath }}
-            !${{ env.dotnetBuildPath }}/**/*.json
-          # if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-          retention-days: 1
+          build-path: ${{ steps.build-sdk.outputs.build-path }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          package-artifact-name: ${{ env.windows_x64_artifact }}
+          package-artifact-retention-days: 1
 
   package_linux:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     name: ${{ matrix.name }}
 
     concurrency:
@@ -184,146 +109,87 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Ubuntu 22.04 gcc-10 Release x86_64
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines: -DOPENDAQ_BUILD_DOCUMENTATION=ON -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
-            build_documentation: true
-            cpack: DEB
-            apt_packages: g++-10
-            cc: gcc-10
-            cxx: g++-10
-          - name: Ubuntu 22.04 gcc-10 Release arm64
-            image: ubuntu:22.04
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_defines:
-              -DOPENDAQ_BUILD_DOCUMENTATION=OFF
-              -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=OFF
-              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-              -DCMAKE_SYSTEM_NAME=Linux
-              -DCMAKE_SYSTEM_PROCESSOR=aarch64
-              -DDAQMODULES_REF_FB_MODULE=OFF
-            build_documentation: false
-            cpack: DEB
-            apt_packages: gcc-10-aarch64-linux-gnu g++-10-aarch64-linux-gnu
-            cc: aarch64-linux-gnu-gcc-10
-            cxx: aarch64-linux-gnu-g++-10
+          - name: Linux x86_64 GCC Release
+            runner: ubuntu-latest
+            additional-dependencies: doxygen graphviz
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
+            generate-doxygen-doc: true
+            generate-simulator-app: true
+            generate-csharp-bindings: true
+          - name: Linux ARM64 GCC Release
+            runner: ubuntu-24.04-arm
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines:
+            generate-doxygen-doc: false
+            generate-simulator-app: false
+            generate-csharp-bindings: false
 
-    container:
-      image: ${{ matrix.image }}
-      env:
-        TZ: Europe/Berlin
-        DEBIAN_FRONTEND: noninteractive
-        CC: ${{ matrix.cc }}
-        CXX: ${{ matrix.cxx }}
+    env:
+      CC: gcc
+      CXX: g++
 
     outputs:
       # trick for reusable workflow in dotnet_bindings because cannot use env context in "with:"
       linux_x64_artifact_name: ${{ env.linux_x64_artifact }}
+      simulator_package_name: ${{ steps.set-simulator-output.outputs.name }}
 
     steps:
-      - name: Install basic dependencies
-        run: |
-          apt-get update
-          apt-get install -y git openssh-client rename
-
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
-        run: |
-              apt-get install -y --no-install-recommends ${{ matrix.apt_packages }} \
-                lld ninja-build curl \
-                python3-pip python3-dev \
-                mono-runtime libmono-system-json-microsoft4.0-cil libmono-system-data4.0-cil \
-                libx11-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev \
-                libgl-dev libudev-dev libfreetype6-dev libjpeg-dev pkg-config
-
-      - name: Install documentation dependencies
-        if: matrix.build_documentation
-        run: apt-get install -y --no-install-recommends doxygen graphviz wget zip
-
-      - name: Install latest CMake
-        run: pip install cmake
-
-      - name: Configure
-        run: |
-          mkdir build
-          cd build
-          cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} ${{ matrix.cmake_defines }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} ..
-
-      - name: Build
-        working-directory: ./build
-        run: cmake --build .
-
-      - name: Package
-        working-directory: ./build
-        run: cpack -C ${{ matrix.cmake_build_type }} -G ${{ matrix.cpack }}
-
-      - name: Rename
-        working-directory: ${{ env.package_path_rel }}
-        run: |
-          rename 's/_amd64/-ubuntu20.04-x86_64/' *.deb
-          rename 's/_arm64/-ubuntu20.04-arm64/' *.deb
-          rename 's/opendaq_/opendaq-/' *.deb
-
-      - name: Read openDAQ version
-        id: daq_version
-        working-directory: .
-        run: |
-            DAQ_VER=$(cat opendaq_version)
-            echo Head openDAQ version: $DAQ_VER
-            echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
-
-      - name: Compress documentation
-        if: matrix.build_documentation
-        working-directory: ./build/doc_doxygen/html
-        run: zip -r "../../opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_cpp_api_reference.zip" .
-
-      - name: Upload package
-        uses: actions/upload-artifact@v4
+      - name: Build SDK
+        id: build-sdk
+        uses: ./.github/actions/build-sdk
         with:
-          name: Package (${{ matrix.name }})
-          path: ${{ env.package_path_rel }}
-          retention-days: 7
+          additional-dependencies: ${{ matrix.additional-dependencies }}
+          cmake-generator: ${{ matrix.cmake-generator }}
+          cmake-config-preset: ${{ env.cmake_preset }}
+          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          cpack-generator: DEB
+          generate-python-bindings: false
+          upload-artifact: true
 
-      - name: Upload API reference
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
-        uses: actions/upload-artifact@v4
+      - name: Set simulator package output
+        id: set-simulator-output
+        if: matrix.generate-simulator-app == true
+        run: echo "name=${{ steps.build-sdk.outputs.package-name }}" >> $GITHUB_OUTPUT
+
+      - name: Build Documentation
+        if: matrix.generate-doxygen-doc == true
+        uses: ./.github/actions/build-doc
         with:
-          name: API Reference
-          path: "build/opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_cpp_api_reference.zip"
-          retention-days: 7
+          build-path: ${{ steps.build-sdk.outputs.build-path }}
+          artifact-name: API Reference
 
-      - name: Upload temporary package for simulator
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.simulator_package_artifact }}
-          path: ${{ env.package_path_rel }}
+      - name: Build Simulator App
+        if: matrix.generate-simulator-app == true
+        shell: bash
+        run: |
+          cmake -B ${{ steps.build-sdk.outputs.build-path }} -DDAQSIMULATOR_ENABLE_SIMULATOR_APP=ON
+          cmake --build ${{ steps.build-sdk.outputs.build-path }} --target application_simulator
 
-      - name: Upload simulator app
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
+      - name: Upload Simulator App
+        if: matrix.generate-simulator-app == true
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.simulator_app_artifact }}
-          path: build/bin/application_simulator
+          path: ${{ steps.build-sdk.outputs.build-path }}/bin/application_simulator
+          retention-days: 7
 
-      - name: Upload binaries for .NET Bindings NuGet package
-        # "There can be only one."
-        if: ${{ matrix.name == 'Ubuntu 22.04 gcc-10 Release x86_64' }}
+      - name: Upload binaries for .NET NuGet
+        if: matrix.generate-csharp-bindings == true
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.linux_x64_artifact }}
           path: |
-            ${{ env.build_path }}/bin/*.so
-            !${{ env.build_path }}/**/opendaq.cpython*
-            !${{ env.build_path }}/**/*_test_dll.so
-          # the exclusion filter does not work and the online-help does not explain
-          # most probably a pattern *xxx.yy does not work, only x*
-          #if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+            ${{ steps.build-sdk.outputs.build-path }}/bin/*.so
+            !${{ steps.build-sdk.outputs.build-path }}/**/opendaq.cpython*
+            !${{ steps.build-sdk.outputs.build-path }}/**/*_test_dll.so
           retention-days: 1
 
   package_linux_wheels:
@@ -340,19 +206,17 @@ jobs:
         include:
           - name: manylinux_2_28 gcc Release
             image: quay.io/pypa/manylinux_2_28_x86_64
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            additional_packages:
-            cc: gcc
-            cxx: g++
-            cpack: ZIP
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
 
     container:
       image: ${{ matrix.image }}
       env:
         TZ: Europe/Berlin
-        CC: ${{ matrix.cc }}
-        CXX: ${{ matrix.cxx }}
+        CC: gcc
+        CXX: g++
 
     steps:
       - name: Install basic dependencies
@@ -363,43 +227,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
-        run: |
-          yum install -y ${{ matrix.additional_packages }} \
-              ninja-build \
-              mono-core \
-              freetype-devel libudev-devel libX11-devel libXi-devel libXcursor-devel libXrandr-devel
-
-      - name: Create build dir
-        run: mkdir build
-
-      - name: Configure and build Python Wheels
-        working-directory: ./build
-        run: |
-          mkdir wheels
-          for version in ${{ env.python_versions }}; do
-              echo "Building for Python $version"
-              cmake -G "${{ matrix.cmake_generator }}" --preset ${{ env.cmake_preset }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCI_GIT_BRANCH=${{ github.ref }} -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DOPENDAQ_PYTHON_VERSION=$version ..
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r
-              cp -f pip/packages/opendaq*.whl wheels
-              deactivate
-              rm -rf venv
-          done
-
-      - name: Upload Wheels
-        uses: actions/upload-artifact@v4
+      - name: Build SDK
+        id: build-sdk
+        uses: ./.github/actions/build-sdk
         with:
-          name: Wheels (${{ matrix.name }})
-          path: ${{ env.wheels_path }}
-          retention-days: 7
+          additional-dependencies: ninja-build
+          cmake-generator: ${{ matrix.cmake-generator }}
+          cmake-config-preset: ${{ env.cmake_preset }}
+          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          generate-python-bindings: false
+          generate-csharp-bindings: false
+          skip-setup-ninja: true
+          skip-setup-python: true
 
-  build_macos:
+      - name: Package Python Bindings
+        uses: ./.github/actions/package-bindings-python
+        with:
+          skip-setup-python: true
+          python-versions: ${{ env.python_versions }}
+          build-path: ${{ steps.build-sdk.outputs.build-path }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          upload-artifact: true
+
+  package_macos_wheels:
     name: ${{ matrix.name }}
-    runs-on: macos-13
+    runs-on: ${{ matrix.runner }}
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.name }}
@@ -409,81 +262,75 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macos-13 clang Release
-            cmake_generator: Ninja
-            cmake_build_type: Release
-            cmake_osx_deployment_target: 10.15
+          - name: macOS x86_64 Clang Release
+            runner: macos-15-intel
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
+              -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+          - name: macOS ARM64 Clang Release
+            runner: macos-latest
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
+              -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+
+    env:
+      CC: clang
+      CXX: clang++
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
+      - name: Build SDK
+        id: build-sdk
+        uses: ./.github/actions/build-sdk
         with:
-          cmake-version: '4.0'
+          additional-dependencies: nsis
+          cmake-generator: ${{ matrix.cmake-generator }}
+          cmake-config-preset: ${{ env.cmake_preset }}
+          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          generate-csharp-bindings: false
+          generate-python-bindings: false
 
-      - name: Install ninja-build
-        uses: seanmiddleditch/gha-setup-ninja@v5
+      - name: Package Python Bindings
+        uses: ./.github/actions/package-bindings-python
         with:
-          version: 1.10.2
+          python-versions: ${{ env.python_versions }}
+          build-path: ${{ steps.build-sdk.outputs.build-path }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          upload-artifact: true
+          package-artifact-name-include-arch: true
 
-      - name: Set up Pythons
-        uses: actions/setup-python@v5
+  package_macos_wheels_combined:
+    name: Combine macOS wheels
+    runs-on: ubuntu-latest
+    needs: [package_macos_wheels]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect version
+        id: detect
+        uses: ./.github/actions/package-version-detect
+
+      - name: Download macOS wheels
+        uses: actions/download-artifact@v4
         with:
-          python-version: |
-              3.8
-              3.9
-              3.10
-              3.11
-              3.12
-              3.13
-              3.14
+          pattern: opendaq-*-python-wheels-macos-*
+          path: wheels
+          merge-multiple: true
 
-      - name: Make dirs
-        run: |
-          mkdir -p build
-          mkdir wheels
-
-      - name: Build wheels x86_64
-        working-directory: ./build
-        run: |
-          for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DOPENDAQ_PYTHON_VERSION=$version ..
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
-              cp -f pip/packages/opendaq*.whl ../wheels
-              deactivate
-              rm -rf venv
-          done
-
-      - name: Clear build dir
-        run: rm -rf build/*
-
-      - name: Build wheels arm64
-        working-directory: ./build
-        run: |
-          for version in ${{ env.python_versions }}; do
-              cmake -G ${{ matrix.cmake_generator }} --preset ${{ env.cmake_preset }} -DCMAKE_SYSTEM_NAME=Darwin -DCI_GIT_BRANCH=${{ github.ref }} -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.cmake_osx_deployment_target }} -DBOOST_CONTEXT_ABI=aapcs -DBOOST_CONTEXT_ARCHITECTURE=arm64 -DCMAKE_SYSTEM_PROCESSOR=arm64 -DARROW_CPU_FLAG=aarch64 -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=ON -DDAQMODULES_PARQUET_RECORDER_MODULE=ON -DOPENDAQ_PYTHON_VERSION=$version ..
-              cmake --build .
-              python$version -m venv venv
-              . venv/bin/activate
-              pip install numpy pybind11-stubgen
-              python${{env.python_version_build}} ../bindings/python/package/build_pip.py -r -c
-              cp -f pip/packages/opendaq*.whl ../wheels
-              deactivate
-              rm -rf venv
-          done
-
-      - name: Upload Wheels
+      - name: Upload combined wheels
         uses: actions/upload-artifact@v4
         with:
-          name: Wheels (${{ matrix.name }})
-          path: wheels
-          retention-days: 7
+          name: opendaq-${{ steps.detect.outputs.version-full }}-python-wheels-macos
+          path: wheels/*.whl
 
   simulator-build:
     runs-on: ubuntu-latest-4-cores
@@ -512,10 +359,24 @@ jobs:
           sudo apt update
           sudo apt install -y virtualbox vagrant
 
+          # VirtualBox needs exclusive access to hardware virtualization (AMD-V/VT-x).
+          # If KVM modules are loaded, VBoxManage fails with VERR_SVM_IN_USE.
+          for mod in kvm_amd kvm_intel kvm; do
+            if lsmod | grep -q "^${mod} "; then
+              if sudo modprobe -r "${mod}"; then
+                echo "Module ${mod} -- unload succeeded"
+              else
+                echo "::warning::Module ${mod} -- unload failed. VirtualBox may not start correctly."
+              fi
+            else
+              echo "Module ${mod} -- not loaded"
+            fi
+          done
+
       - name: Download package
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.simulator_package_artifact }}
+          name: ${{ needs.package_linux.outputs.simulator_package_name }}
           path: ${{ env.simulator_directory }}
 
       - name: Download simulator app
@@ -527,17 +388,13 @@ jobs:
       - name: Display files in working directory
         run: ls -Rhl
 
-      - name: Read openDAQ version
-        id: daq_version
-        working-directory: .
-        run: |
-            DAQ_VER=$(cat opendaq_version)
-            echo Head openDAQ version: $DAQ_VER
-            echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
+      - name: Detect version
+        id: detect
+        uses: ./.github/actions/package-version-detect
 
       - name: Define simulator name
         id: simulator_name
-        run: echo "SIMULATOR_NAME=opendaq-${{ steps.daq_version.outputs.DAQ_VERSION }}_${{ env.vm_name }}" >> "$GITHUB_OUTPUT"
+        run: echo "SIMULATOR_NAME=opendaq-${{ steps.detect.outputs.version-full }}_${{ env.vm_name }}" >> "$GITHUB_OUTPUT"
 
       - name: Find binaries and run vagrant
         run: |
@@ -572,9 +429,7 @@ jobs:
       - name: Delete unused artifacts
         uses: geekyeggo/delete-artifact@v5
         with:
-          name: |
-            ${{ env.simulator_app_artifact }}
-            ${{ env.simulator_package_artifact }}
+          name: ${{ env.simulator_app_artifact }}
 
   # using reusable workflow
   dotnet_bindings:
@@ -589,5 +444,4 @@ jobs:
         # linux_test_path: ''
         windows_x64_artifact_name:  ${{ needs.package_windows.outputs.windows_x64_artifact_name }}
         linux_x64_artifact_name:  ${{ needs.package_linux.outputs.linux_x64_artifact_name }}
-        short_sha: ${{ needs.package_windows.outputs.short_sha_dotnet }}
       # -> output.nuget_artifact_name

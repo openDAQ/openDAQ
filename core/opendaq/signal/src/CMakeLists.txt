@@ -299,6 +299,11 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/reference_domain_info_impl.cpp
         ${SDK_SRC_DIR}/reference_domain_info_builder_impl.cpp
     )
+
+    source_group("signal//cyclic_ref_check" FILES 
+        ${SDK_HEADERS_DIR}/cyclic_ref_check.h
+        ${SDK_SRC_DIR}/cyclic_ref_check.cpp
+    )
 endfunction()
 
 set(SRC_ExtraPrivateLibraries)
@@ -349,12 +354,16 @@ set(SRC_PublicHeaders_Component
     packet_destruct_callback_impl.h
     packet_destruct_callback_factory.h
     signal_impl.h
+    input_port_impl.h
+    connection_internal.h
+    input_port_private.h
     reference_domain_info_factory.h
     reference_domain_offset_adder.h
     scaling_calc_private.h
     bulk_data_packet.h
     bulk_data_packet_factory.h
     wrapped_data_packet_factory.h
+    cyclic_ref_check.h
     ${SRC_Mimalloc_PublicHeaders}
     PARENT_SCOPE
 )
@@ -366,7 +375,6 @@ set(SRC_PrivateHeaders_Component
     range_impl.h
     data_descriptor_impl.h
     data_descriptor_builder_impl.h
-    input_port_impl.h
     wrapped_data_packet_impl.h
     event_packet_impl.h
     scaling_impl.h
@@ -412,6 +420,7 @@ set(SRC_Cpp_Component
     reference_domain_info_impl.cpp
     reference_domain_info_builder_impl.cpp
     bulk_data_packet.cpp
+    cyclic_ref_check.cpp
     ${SRC_Mimalloc_Cpp}
     PARENT_SCOPE
 )

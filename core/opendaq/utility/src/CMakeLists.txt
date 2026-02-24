@@ -69,6 +69,7 @@ set(SRC_Cpp_Component
     ids_parser.cpp
     packet_buffer_impl.cpp
     packet_buffer_builder_impl.cpp
+    setup_node_impl.cpp
     thread_name.cpp
     utility.natvis
     PARENT_SCOPE

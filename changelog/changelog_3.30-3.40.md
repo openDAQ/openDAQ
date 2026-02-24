@@ -1,4 +1,4 @@
-# Changes from 3.20 to 3.30
+# Changes from 3.30 to 3.40
 
 ## Features
 
@@ -23,11 +23,16 @@
 
 ## Bug fixes
 
+- [#1077](https://github.com/openDAQ/openDAQ/pull/1077) Transfer default add-device config from server to client via Native protocol
 - [#1015](https://github.com/openDAQ/openDAQ/pull/1015) IPropertyObject::hasProperty returns false instead of throwing not found error if the parent property does not exists
 - [#1046](https://github.com/openDAQ/openDAQ/pull/1046) Prevent updating locked attributes during the update process
+- [#1052](https://github.com/openDAQ/openDAQ/pull/1052) Renderer FB labels take into account reference domain offset from ReferenceDomainInfo.
+- [#1054](https://github.com/openDAQ/openDAQ/pull/1054) Add validation default value items type for List And Dict Property
+- [#1059](https://github.com/openDAQ/openDAQ/pull/1059) Prevent post scaling in descriptors with vector/matrix dimensions.
 
 ## Misc
 
+- [#1049](https://github.com/openDAQ/openDAQ/pull/1049) Extract LT and OpcUa modules to remote repos
 - [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removes the FB wrapper implementation as it was never used.
 - [#979](https://github.com/openDAQ/openDAQ/pull/979) Relocate and install dependency management cmake helpers, install daq::test_utils and rename "bb" to "daq" in testultils/daq_memcheck_listener.h
 - [#974](https://github.com/openDAQ/openDAQ/pull/974) Reorganizes the audio device implementation for greater clarity. Adds automatic device/FB version info setting.

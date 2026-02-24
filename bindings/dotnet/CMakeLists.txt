@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 
 message(STATUS "=== .NET Bindings ===")
 message(DEBUG "CMAKE_SOURCE_DIR               = '${CMAKE_SOURCE_DIR}'")

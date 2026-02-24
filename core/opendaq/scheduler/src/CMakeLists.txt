@@ -88,6 +88,7 @@ set(SRC_PublicHeaders_Component
     scheduler_exceptions.h
     task_ptr.custom.h
     work_factory.h
+    work_impl.h
     PARENT_SCOPE
 )
 
@@ -97,7 +98,6 @@ set(SRC_PrivateHeaders_Component
     task_impl.h
     task_internal.h
     task_flow.h
-    work_impl.h
     PARENT_SCOPE
 )
 

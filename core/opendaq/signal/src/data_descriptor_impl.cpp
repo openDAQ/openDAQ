@@ -43,15 +43,15 @@ DataDescriptorImpl::DataDescriptorImpl(IDataDescriptorBuilder* dataDescriptorBui
     const auto dataDescriptorBuilderPtr = DataDescriptorBuilderPtr(dataDescriptorBuilder);
     this->dimensions = dataDescriptorBuilderPtr.getDimensions();
     this->name = dataDescriptorBuilderPtr.getName();
-    this->sampleType = dataDescriptorBuilderPtr.getSampleType(); 
-    this->unit = dataDescriptorBuilderPtr.getUnit(); 
-    this->valueRange = dataDescriptorBuilderPtr.getValueRange(); 
-    this->dataRule = dataDescriptorBuilderPtr.getRule(); 
-    this->scaling = dataDescriptorBuilderPtr.getPostScaling(); 
-    this->origin = dataDescriptorBuilderPtr.getOrigin(); 
-    this->resolution = dataDescriptorBuilderPtr.getTickResolution(); 
-    this->structFields = dataDescriptorBuilderPtr.getStructFields(); 
-    this->metadata = dataDescriptorBuilderPtr.getMetadata(); 
+    this->sampleType = dataDescriptorBuilderPtr.getSampleType();
+    this->unit = dataDescriptorBuilderPtr.getUnit();
+    this->valueRange = dataDescriptorBuilderPtr.getValueRange();
+    this->dataRule = dataDescriptorBuilderPtr.getRule();
+    this->scaling = dataDescriptorBuilderPtr.getPostScaling();
+    this->origin = dataDescriptorBuilderPtr.getOrigin();
+    this->resolution = dataDescriptorBuilderPtr.getTickResolution();
+    this->structFields = dataDescriptorBuilderPtr.getStructFields();
+    this->metadata = dataDescriptorBuilderPtr.getMetadata();
     this->scalingCalc = nullptr;
     this->dataRuleCalc = nullptr;
     this->referenceDomainInfo = dataDescriptorBuilderPtr.getReferenceDomainInfo();
@@ -218,15 +218,14 @@ ErrCode DataDescriptorImpl::validate()
     {
         if (structFields.assigned() && structFields.getCount() != 0)
         {
-            auto valid = sampleType == SampleType::Struct;
-            valid = dataRule.getType() != DataRuleType::Explicit ? false : valid;
-            valid = scaling.assigned() ? false : valid;
-            valid = unit.assigned() ? false : valid;
-            valid = valueRange.assigned() ? false : valid;
-            valid = origin != "" ? false : valid;
-            valid = resolution.assigned() ? false : valid;
-            valid = scaling.assigned() ? false : valid;
-            valid = !name.assigned() || name == "" ? false : valid;
+            bool valid = sampleType == SampleType::Struct;
+            valid = valid && dataRule.getType() == DataRuleType::Explicit;
+            valid = valid && !unit.assigned();
+            valid = valid && !scaling.assigned();
+            valid = valid && !valueRange.assigned();
+            valid = valid && !resolution.assigned();
+            valid = valid && origin == "";
+            valid = valid && name.assigned() && name != "";
 
             if (!valid)
             {
@@ -249,6 +248,9 @@ ErrCode DataDescriptorImpl::validate()
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE,
                                      "When using post scaling, the data rule type must be explicit, and the resolution and origin must "
                                      "not be configured.");
+
+            if (scaling.assigned() && (dimensions.assigned() && dimensions.getCount() > 0))
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Post scaling is not supported for non-scalar signals.");
 
             if (!(dataRule.getType() == DataRuleType::Explicit || dataRule.getType() == DataRuleType::Constant ||
                   dataRule.getType() == DataRuleType::Other))

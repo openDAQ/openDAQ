@@ -1,5 +1,5 @@
 set(MAIN_TARGET opendaq)
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 
 set(RTGEN_LIBRARY_NAME ${SDK_NAME})
 project(${SDK_NAME} VERSION ${OPENDAQ_CORE_VERSION} LANGUAGES C CXX)
@@ -154,7 +154,7 @@ target_compile_options(${MAIN_TARGET}
 )
 
 opendaq_set_output_lib_name(${MAIN_TARGET} ${PROJECT_VERSION_MAJOR})
-create_version_header(${MAIN_TARGET} ONLY_RC)
+opendaq_generate_version_header(${MAIN_TARGET} ONLY_RC)
 
 install(TARGETS ${MAIN_TARGET}
         EXPORT ${SDK_NAME}
@@ -173,8 +173,9 @@ install(TARGETS ${MAIN_TARGET}
             COMPONENT ${SDK_NAME}_${MAIN_TARGET}_Development
 )
 
+add_subdirectory(opendaq/mocks)
+
 if(OPENDAQ_ENABLE_TESTS)
-    add_subdirectory(opendaq/mocks)
     foreach(DAQ_COMPONENT ${DAQ_COMPONENTS})
         add_subdirectory(${DAQ_COMPONENT}/tests)
     endforeach()

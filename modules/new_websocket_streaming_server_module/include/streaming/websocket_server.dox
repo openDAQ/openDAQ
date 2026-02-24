@@ -1,4 +1,0 @@
-/**
- * @namespace daq::ws_streaming
- * The main namespace for the HBK WebSocket Streaming Server implementation.
- */

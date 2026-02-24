@@ -9,7 +9,7 @@ set(SRC_HEADERS common.h
 set(SRC_CPPS daq_discovery_client.cpp
 )
 
-prepend_include(${INCLUDE_PREFIX} SRC_HEADERS)
+opendaq_prepend_include(${INCLUDE_PREFIX} SRC_HEADERS)
 
 add_library(${LIB_NAME} STATIC ${SRC_HEADERS} ${SRC_CPPS})
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})

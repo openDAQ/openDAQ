@@ -135,8 +135,7 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setDescription(IString* description
 {
     OPENDAQ_PARAM_NOT_NULL(description);
 
-    CharPtr descriptionStr = nullptr;
-    description->toString(&descriptionStr);
+    auto descriptionStr = StringPtr::Borrow(description);
 
     if (this->description == descriptionStr)
         return OPENDAQ_IGNORED;

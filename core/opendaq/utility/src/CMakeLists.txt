@@ -1,27 +1,29 @@
 set(BASE_NAME utility)
 
 function(rtgen_component_${BASE_NAME})
-    rtgen(SRC_PacketBuffer packet_buffer.h
-    )
-
-    rtgen(SRC_PacketBufferBuilder packet_buffer_builder.h
-    )
+    rtgen(SRC_PacketBuffer packet_buffer.h)
+    rtgen(SRC_PacketBufferBuilder packet_buffer_builder.h)
+    rtgen(SRC_SetupNode setup_node.h)
 
     set(SRC_PublicHeader_PacketBuffer_Generated
 	${SRC_PacketBuffer_PublicHeaders}
 	${SRC_PacketBufferBuilder_PublicHeaders}
+	${SRC_SetupNode_PublicHeaders}
 	PARENT_SCOPE
     )
 
     set(SRC_PrivateHeader_PacketBuffer_Generated
 	${SRC_PacketBuffer_PrivateHeaders}
 	${SRC_PacketBufferBuilder_PrivateHeaders}
+	${SRC_SetupNode_PrivateHeaders}
 	PARENT_SCOPE
     )
 
     set(SRC_Cpp_Packet_BufferGenerated
 	${SRC_PacketBuffer_Cpp}
 	${SRC_PacketBufferBuilder_Cpp}
+	${SRC_SetupNodeBuilder_Cpp}
+	${SRC_SetupNode_Cpp}
 	PARENT_SCOPE
     )
 
@@ -44,6 +46,14 @@ function(create_component_source_groups_${BASE_NAME})
 	${SDK_HEADERS_DIR}/packet_buffer_builder_impl.h
 	${SDK_SRC_DIR}/packet_buffer_impl.cpp
     )
+	
+    source_group("utility//setup_node" FILES
+	${SDK_HEADERS_DIR}/setup_node.h
+	${SDK_HEADERS_DIR}/setup_node_impl.h
+	${SDK_HEADERS_DIR}/setup_node_factory.h
+	${SDK_SRC_DIR}/setup_node_impl.cpp
+    )
+    
     
     source_group("utility" FILES 
         ${SDK_HEADERS_DIR}/thread_name.h
@@ -73,6 +83,9 @@ set(SRC_PublicHeaders_Component
     packet_buffer_factory.h
     packet_buffer_builder.h
     packet_buffer_builder_impl.h
+    setup_node.h
+    setup_node_impl.h
+    setup_node_factory.h
     mem_pool_allocator.h
     thread_name.h
     option_helpers.h

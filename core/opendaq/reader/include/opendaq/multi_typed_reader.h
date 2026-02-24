@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/typed_reader.h>
 #include <opendaq/reader_domain_info.h>
+#include <opendaq/typed_reader.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// It is wrong to have a class with unused member info - there is nothing comparable about ReaderDomainInfo.
-// This should be called ComparableBase and have no domainInfo. Since it is used as baseclass pointer it is useful
-// not to have template parameters here (although one would expect it).
 class Comparable
 {
 public:

@@ -46,7 +46,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * @param signal The signal that will be read by the multi reader
      */
     virtual ErrCode INTERFACE_FUNC addSignal(ISignal* signal) = 0;
-    
+
     // [elementType(signals, ISignal), returnSelf]
     /*!
      * @brief Adds signals that will be read by the multi reader
@@ -60,7 +60,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * @param port The port that will be read by the multi reader
      */
     virtual ErrCode INTERFACE_FUNC addInputPort(IInputPort* port) = 0;
-    
+
     // [elementType(ports, IInputPort), returnSelf]
     /*!
      * @brief Adds ports that will be read from by the multi reader
@@ -74,7 +74,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * @param[out] components The list of read components
      */
     virtual ErrCode INTERFACE_FUNC getSourceComponents(IList** components) = 0;
-   
+
     // [returnSelf]
     /*!
      * @brief Sets the value signal read type
@@ -117,7 +117,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
     // [returnSelf]
     /*!
      * @brief Sets the read timeout mode
-     * @param type The timeout mode. 
+     * @param type The timeout mode.
      * if "Any" returns immediately if there is available data otherwise time-out is exceeded.
      * if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
      *
@@ -127,7 +127,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
 
     /*!
      * @brief Gets the read timeout mode
-     * @param type The timeout mode. 
+     * @param type The timeout mode.
      * if "Any" returns immediately if there is available data otherwise time-out is exceeded.
      * if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
      */
@@ -192,20 +192,20 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * @param offsetTolerance[out] Ratio that define offset tolerance as a fraction of domain unit.
      */
     virtual ErrCode INTERFACE_FUNC getTickOffsetTolerance(IRatio** offsetTolerance) = 0;
-    
+
     // [returnSelf]
     /*!
      * @brief Sets the "AllowDifferentSamplingRates" multi reader parameter.
      * @param allowDifferentRates If set to `false`, the multi reader will only accept signals with the same sampling rate.
      */
     virtual ErrCode INTERFACE_FUNC setAllowDifferentSamplingRates(Bool allowDifferentRates) = 0;
-    
+
     /*!
      * @brief Gets the "AllowDifferentSamplingRates" multi reader parameter.
      * @param allowDifferentRates If set to `false`, the multi reader will only accept signals with the same sampling rate.
      */
     virtual ErrCode INTERFACE_FUNC getAllowDifferentSamplingRates(Bool* allowDifferentRates) = 0;
-    
+
     // [returnSelf]
     /*!
      * @brief Sets the notification method of ports created/owned by the multi reader. The default notification method is Unspecified.
@@ -241,7 +241,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReaderBuilder, IBaseObject)
      * The list of methods corresponds to the list of reader components (signals, input ports). Both the size and order of both must match if configured.
      * If a method is set to "Unspecified", the reader keeps the mode of the input port. When building with signals, "Unspecified" is an invalid configuration.
      */
-    virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethods(IList** notificationMethods) = 0;
+    virtual ErrCode INTERFACE_FUNC getInputPortNotificationMethods(IList * *notificationMethods) = 0;
 };
 
 /*!@}*/

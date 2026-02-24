@@ -113,6 +113,8 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
     : FunctionBlockImpl<IFunctionBlock, IRecorder>(createType(), context, parent, localId, nullptr)
 {
     initComponentStatus();
+    setComponentStatusWithMessage(ComponentStatus::Warning, "No signals connected!");
+
     initProperties();
     fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
     timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::FILE_TIMESTAMP_ENABLED));
@@ -122,7 +124,8 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
     else
         notificationMode = PacketReadyNotification::Scheduler;
 
-    updateInputPorts();
+    createDisconnectedPort();
+    createReader();
 }
 
 ErrCode MultiCsvRecorderImpl::startRecording()
@@ -195,28 +198,40 @@ std::string MultiCsvRecorderImpl::getNextPortID() const
     return fmt::format("CsvRecorderPort_{}", maxId + 1);
 }
 
+void MultiCsvRecorderImpl::createDisconnectedPort()
+{
+    std::string id = getNextPortID();
+    auto inputPort = createAndAddInputPort(id, notificationMode);
+    disconnectedPort = inputPort;
+}
+
 bool MultiCsvRecorderImpl::updateInputPorts()
 {
-    bool rebuildReader = false;
+    bool connectedPortsChanged = false;
     if (disconnectedPort.assigned() && disconnectedPort.getConnection().assigned())
     {
         connectedPorts.emplace_back(disconnectedPort);
         cachedDescriptors.insert(std::make_pair(disconnectedPort.getGlobalId(), NullDataDescriptor()));
         SignalPtr signal = disconnectedPort.getSignal();
         cachedSignalNames.insert(std::make_pair(disconnectedPort.getGlobalId(), signal.getName()));
+
+        // Activate the newly connected port
+        reader.setInputUsed(disconnectedPort.getGlobalId(), true);
         disconnectedPort.release();
-        rebuildReader = true;
+        connectedPortsChanged = true;
     }
 
     for (auto it = connectedPorts.begin(); it != connectedPorts.end();)
     {
         if (!it->getConnection().assigned())
         {
+            reader.removeInput(it->getGlobalId());
+
             cachedDescriptors.erase(it->getGlobalId());
             cachedSignalNames.erase(it->getGlobalId());
             this->inputPorts.removeItem(*it);
             it = connectedPorts.erase(it);
-            rebuildReader = true;
+            connectedPortsChanged = true;
         }
         else
         {
@@ -226,25 +241,27 @@ bool MultiCsvRecorderImpl::updateInputPorts()
 
     if (!disconnectedPort.assigned())
     {
-        std::string id = getNextPortID();
-        auto inputPort = createAndAddInputPort(id, notificationMode);
-        disconnectedPort = inputPort;
+        createDisconnectedPort();
+
+        // Add the empty port to the multi reader and mark it unused
+        reader.addInput(disconnectedPort);
+        reader.setInputUsed(disconnectedPort.getGlobalId(), false);
     }
 
     if (connectedPorts.empty())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "No signals connected!");
-        reader = nullptr;
         return false;
     }
 
-    return rebuildReader;
+    return connectedPortsChanged;
 }
 
-// Reader must currently be rebuilt to add/remove input ports
-void MultiCsvRecorderImpl::updateReader()
+void MultiCsvRecorderImpl::createReader()
 {
-    // Disposing the reader is necessary to release port ownership
+    if (!disconnectedPort.assigned())
+        return;
+
     reader.dispose();
     auto builder = MultiReaderBuilder()
                        .setDomainReadType(SampleType::Int64)
@@ -252,10 +269,10 @@ void MultiCsvRecorderImpl::updateReader()
                        .setAllowDifferentSamplingRates(false)
                        .setInputPortNotificationMethod(notificationMode);
 
-    for (const auto& port : connectedPorts)
-        builder.addInputPort(port);
+    builder.addInputPort(disconnectedPort);
 
     reader = builder.build();
+    reader.setInputUsed(disconnectedPort.getGlobalId(), false);
 
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
@@ -274,6 +291,11 @@ void MultiCsvRecorderImpl::configureWriter(const DataDescriptorPtr& domainDescri
 {
     try
     {
+        if (!recoverReaderIfNecessary())
+        {
+            throw std::runtime_error("Reader failed to recover from invalid state");
+        }
+
         if (!domainDescriptor.assigned() || domainDescriptor == NullDataDescriptor())
         {
             throw std::runtime_error("Input domain descriptor is not set");
@@ -332,6 +354,16 @@ void MultiCsvRecorderImpl::reconfigureWriter()
     }
 }
 
+bool MultiCsvRecorderImpl::recoverReaderIfNecessary()
+{
+    if (reader.asPtr<IReaderConfig>().getIsValid())
+        return true;
+
+    LOG_D("Sum Reader FB: Attempting reader recovery")
+    reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+    return reader.asPtr<IReaderConfig>().getIsValid();
+}
+
 void MultiCsvRecorderImpl::onPropertiesChanged()
 {
     filePath = static_cast<std::string>(objPtr.getPropertyValue(Props::DIR));
@@ -348,10 +380,7 @@ void MultiCsvRecorderImpl::onConnected(const InputPortPtr& inputPort)
 
     LOG_I("Multi CSV Recorder: Input port {} connected", inputPort.getLocalId())
 
-    if (updateInputPorts())
-    {
-        updateReader();
-    }
+    updateInputPorts();
 }
 
 void MultiCsvRecorderImpl::onDisconnected(const InputPortPtr& inputPort)
@@ -361,7 +390,6 @@ void MultiCsvRecorderImpl::onDisconnected(const InputPortPtr& inputPort)
     LOG_I("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
     if (updateInputPorts())
     {
-        updateReader();
         reconfigureWriter();
     }
 }
@@ -413,18 +441,7 @@ void MultiCsvRecorderImpl::onDataReceived()
         domainChanged |= !domainDescriptorsEqual(domainDescriptor, recorderDomainDataDescriptor);
     }
 
-    bool recoveredReader = false;
-    if (!status.getValid())
-    {
-        recoveredReader = attemptRecoverReader();
-        if (!recoveredReader)
-        {
-            stopRecordingInternal(true);
-            setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
-        }
-    }
-
-    if (valueSigChanged || domainChanged || recoveredReader)
+    if (valueSigChanged || domainChanged || !status.getValid())
         configureWriter(domainDescriptor, valueDescriptors, signalNames);
 }
 
@@ -453,7 +470,8 @@ MultiReaderStatusPtr MultiCsvRecorderImpl::attemptReadData()
 {
     SizeT cnt = reader.getAvailableCount();
 
-    auto numPorts = connectedPorts.size();
+    // +1: Disconnected port is added to the reader but unused
+    auto numPorts = connectedPorts.size() + 1;
     std::vector<std::unique_ptr<double[]>> samples;
     samples.reserve(numPorts);
 
@@ -466,16 +484,10 @@ MultiReaderStatusPtr MultiCsvRecorderImpl::attemptReadData()
     if (recordingActive && writer.has_value() && cnt > 0)
     {
         Int packetOffset = status.asPtr<IReaderStatus>().getOffset().getIntValue();
+        samples.pop_back();  // Remove last buffer (unused disconnected port)
         writer.value().writeSamples(std::move(samples), cnt, packetOffset);
     }
     return status;
-}
-
-bool MultiCsvRecorderImpl::attemptRecoverReader()
-{
-    LOG_D("Multi CSV Recorder: Attempting reader recovery")
-    reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
-    return reader.asPtr<IReaderConfig>().getIsValid();
 }
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

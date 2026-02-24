@@ -38,12 +38,18 @@ public:
 
 private:
     std::string getNextPortID() const;
-    
+
     void createSignals();
+    void createDisconnectedPort();
     bool updateInputPorts();
-    void updateReader();
+    void createReader();
     void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
     void reconfigure();
+
+    /**
+     * @brief Returns true if reader is in valid state or successfully recovered. Doesn't replace a valid reader.
+     */
+    bool recoverReaderIfNecessary();
 
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;

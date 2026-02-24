@@ -113,8 +113,7 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setName(IString* name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
-    CharPtr nameStr = nullptr;
-    name->toString(&nameStr);
+    auto nameStr = StringPtr::Borrow(name);
 
     if (this->name == nameStr)
         return OPENDAQ_IGNORED;

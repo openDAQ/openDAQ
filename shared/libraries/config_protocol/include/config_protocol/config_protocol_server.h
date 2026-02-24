@@ -89,6 +89,19 @@ private:
     template <typename T>
     using RpcHandlerFunction = std::function<BaseObjectPtr(const RpcContext& context, const T& component, const ParamsDictPtr& params)>;
 
+    class RpcScopeTracker
+    {
+    public:
+        explicit RpcScopeTracker(ConfigProtocolServer& configServerRef);
+        ~RpcScopeTracker();
+
+        RpcScopeTracker(const RpcScopeTracker&) = delete;
+        RpcScopeTracker& operator=(const RpcScopeTracker&) = delete;
+
+    private:
+        ConfigProtocolServer& configServerRef;
+    };
+
     DevicePtr rootDevice;
     ContextPtr daqContext;
     NotificationReadyCallback notificationReadyCallback;
@@ -103,6 +116,9 @@ private:
     uint16_t protocolVersion;
     const std::set<uint16_t> supportedServerVersions;
     ConfigProtocolStreamingConsumer streamingConsumer;
+    std::atomic<uint64_t> activeRpcCounter{0};
+    ListPtr<IBaseObject> packedCoreEvents;
+    std::mutex coreEventsLock;
 
     PacketBuffer processPacketAndGetReply(const PacketBuffer& packetBuffer);
     void processNoReplyPacket(const PacketBuffer& packetBuffer);
@@ -128,9 +144,10 @@ private:
     void coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
     bool isForwardedCoreEvent(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
     
-    ListPtr<IBaseObject> packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
+    void packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
     CoreEventArgsPtr processCoreEventArgs(const CoreEventArgsPtr& args);
     CoreEventArgsPtr processUpdateEndCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
+    void SendOutCoreEvents();
 };
 
 }

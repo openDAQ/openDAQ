@@ -527,30 +527,33 @@ template<class TRootDeviceImpl>
 void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationObject(const BaseObjectPtr& object)
 {
     ListPtr<IBaseObject> packedEvent = object.asPtrOrNull<IList>();
-    if (!packedEvent.assigned() || packedEvent.getCount() != 2)
+    if (!packedEvent.assigned() || packedEvent.getCount() % 2 != 0)
         return;
 
-    const ComponentPtr component = findComponent(packedEvent[0]);
-    const CoreEventArgsPtr argsPtr = unpackCoreEvents(packedEvent[1]);
-    if (component.assigned())
+    for (SizeT i = 0; i < packedEvent.getCount(); i += 2)
     {
-        component.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(component, argsPtr);
-    }
-    else
-    {
-        try
+        const ComponentPtr component = findComponent(packedEvent[i]);
+        const CoreEventArgsPtr argsPtr = unpackCoreEvents(packedEvent[i + 1]);
+        if (component.assigned())
         {
-            handleNonComponentEvent(argsPtr);
+            component.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(component, argsPtr);
         }
-        catch([[maybe_unused]] const std::exception& e)
+        else
         {
-            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
-            LOG_D("Failed to handle non-component event {}: {}", argsPtr.getEventName(), e.what());
-        }
-        catch(...)
-        {
-            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
-            LOG_D("Failed to handle non-component event {}", argsPtr.getEventName());
+            try
+            {
+                handleNonComponentEvent(argsPtr);
+            }
+            catch([[maybe_unused]] const std::exception& e)
+            {
+                const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+                LOG_D("Failed to handle non-component event {}: {}", argsPtr.getEventName(), e.what());
+            }
+            catch(...)
+            {
+                const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+                LOG_D("Failed to handle non-component event {}", argsPtr.getEventName());
+            }
         }
     }
 }

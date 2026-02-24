@@ -87,8 +87,9 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18, 19}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
+    , packedCoreEvents(List<IBaseObject>())
 {
     assert(user.assigned());
     serializer.setUser(user);
@@ -237,6 +238,7 @@ void ConfigProtocolServer::sendNotification(const char* json, const size_t jsonS
 void ConfigProtocolServer::sendNotification(const BaseObjectPtr& obj)
 {
     StringPtr jsonStr;
+    try
     {
         std::scoped_lock lock(notificationSerializerLock);
         notificationSerializer.reset();
@@ -244,8 +246,14 @@ void ConfigProtocolServer::sendNotification(const BaseObjectPtr& obj)
 
         jsonStr = notificationSerializer.getOutput();
     }
+    catch (const std::exception& e)
+    {
+        auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolServer");
+        LOG_W("Notification object serialization failed: {}", e.what());
+    }
 
-    sendNotification(jsonStr.getCharPtr(), jsonStr.getLength());
+    if (jsonStr.assigned())
+        sendNotification(jsonStr.getCharPtr(), jsonStr.getLength());
 }
 
 void ConfigProtocolServer::setComponentFinder(std::unique_ptr<IComponentFinder>& componentFinder)
@@ -381,6 +389,10 @@ BaseObjectPtr ConfigProtocolServer::callRpc(const StringPtr& name, const ParamsD
     if (it == rpcDispatch.end())
         throw ConfigProtocolException(fmt::format("Invalid function call: {}", name));
 
+    if (protocolVersion < 20)
+        return it->second(params);
+
+    RpcScopeTracker rpcScopeTracker(*this);
     return it->second(params);
 }
 
@@ -527,8 +539,9 @@ void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventA
 {
     if (isForwardedCoreEvent(component, eventArgs))
     {
-        const auto packed = packCoreEvent(component, eventArgs);
-        sendNotification(packed);
+        packCoreEvent(component, eventArgs);
+        if (protocolVersion < 20 || activeRpcCounter.load(std::memory_order_acquire) == 0)
+            SendOutCoreEvents();
     }
 }
 
@@ -552,10 +565,10 @@ bool ConfigProtocolServer::isForwardedCoreEvent(ComponentPtr& component, CoreEve
     return streamingConsumer.isForwardedCoreEvent(component, eventArgs);
 }
 
-ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
+void ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
 {
     const auto globalId = component.assigned() ? component.getGlobalId() : "";
-    auto packedEvent = List<IBaseObject>(globalId);
+    CoreEventArgsPtr packedArgs;
 
     switch (static_cast<CoreEventId>(args.getEventId()))
     {
@@ -568,10 +581,10 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::ComponentAdded:
         case CoreEventId::AttributeChanged:
         case CoreEventId::PropertyOrderChanged:
-            packedEvent.pushBack(processCoreEventArgs(args));
+            packedArgs = processCoreEventArgs(args);
             break;
         case CoreEventId::ComponentUpdateEnd:
-            packedEvent.pushBack(processUpdateEndCoreEvent(component, args));
+            packedArgs = processUpdateEndCoreEvent(component, args);
             break;
         case CoreEventId::ComponentRemoved:
         case CoreEventId::SignalDisconnected:
@@ -583,10 +596,23 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::DeviceLockStateChanged:
         case CoreEventId::ConnectionStatusChanged:
         default:
-            packedEvent.pushBack(args);
+            packedArgs = args;
+    }
+
+    for (const auto& [parameterKey, parameterValue] : packedArgs.getParameters())
+    {
+        if (parameterValue.assigned() && !parameterValue.supportsInterface<ISerializable>())
+        {
+            // Some core events are not serializable e.g. one containing function/procedure property as argument payload, exclude them now so they will not affect other - serializable ones - later
+            auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolServer");
+            LOG_W("Component \"{}\" core event \"{}\" was excluded because parameter \"{}\" cannot be serialized", globalId, packedArgs.getEventName(), parameterKey);
+            return;
+        }
     }
     
-    return packedEvent;
+    std::scoped_lock lock(coreEventsLock);
+    packedCoreEvents.pushBack(globalId);
+    packedCoreEvents.pushBack(packedArgs);
 }
 
 CoreEventArgsPtr ConfigProtocolServer::processCoreEventArgs(const CoreEventArgsPtr& args)
@@ -670,6 +696,30 @@ void ConfigProtocolServer::setProtocolVersion(uint16_t protocolVersion)
         serializer.setUser(user);
         notificationSerializer.setUser(user);
     }
+}
+
+void ConfigProtocolServer::SendOutCoreEvents()
+{
+    std::scoped_lock lock(coreEventsLock);
+    if (packedCoreEvents.getCount() > 0)
+    {
+        // sendNotification may throw an exception within the tests bcs client code called directly there, so first reset list of accumulated events before sending
+        ListPtr<IBaseObject> packedCoreEventsTmp = packedCoreEvents;
+        packedCoreEvents = List<IBaseObject>();
+        sendNotification(packedCoreEventsTmp);
+    }
+}
+
+ConfigProtocolServer::RpcScopeTracker::RpcScopeTracker(ConfigProtocolServer& configServerRef)
+    : configServerRef(configServerRef)
+{
+    this->configServerRef.activeRpcCounter.fetch_add(1, std::memory_order_acq_rel);
+}
+
+ConfigProtocolServer::RpcScopeTracker::~RpcScopeTracker()
+{
+    this->configServerRef.activeRpcCounter.fetch_sub(1, std::memory_order_acq_rel);
+    this->configServerRef.SendOutCoreEvents();
 }
 
 }

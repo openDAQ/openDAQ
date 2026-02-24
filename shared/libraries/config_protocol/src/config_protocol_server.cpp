@@ -671,9 +671,8 @@ void ConfigProtocolServer::setProtocolVersion(uint16_t protocolVersion)
 
 SerializerPtr ConfigProtocolServer::createSerializer()
 {
-    assert(protocolVersion > 0);
-
-    SerializerPtr serializer = (protocolVersion < 11) ? JsonSerializerWithVersion(2) : JsonSerializer();
+    // if version is not yet known i.e. protocolVersion == 0 just create a default serilizer - needed for tests
+    SerializerPtr serializer = (0 < protocolVersion && protocolVersion < 11) ? JsonSerializerWithVersion(2) : JsonSerializer();
     serializer.setUser(user);
     return serializer;
 }

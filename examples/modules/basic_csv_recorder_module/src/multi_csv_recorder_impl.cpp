@@ -1,7 +1,5 @@
 #include <functional>
-#include <iostream>
 #include <memory>
-#include <set>
 #include <string>
 
 #include <coretypes/filesystem.h>
@@ -344,10 +342,11 @@ void MultiCsvRecorderImpl::reconfigureWriter()
 {
     auto descriptorList = List<IDataDescriptor>();
     auto signalNameList = List<IString>();
-    for (const auto& descriptor : cachedDescriptors)
+    for (const auto& port : connectedPorts)
     {
-        descriptorList.pushBack(descriptor.second);
-        signalNameList.pushBack(cachedSignalNames[descriptor.first]);
+        auto portGlobalId = port.getGlobalId();
+        descriptorList.pushBack(cachedDescriptors[portGlobalId]);
+        signalNameList.pushBack(cachedSignalNames[portGlobalId]);
     }
     if (descriptorList.getCount() > 0)
     {

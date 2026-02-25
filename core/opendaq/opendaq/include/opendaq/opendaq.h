@@ -100,6 +100,8 @@
 #include <opendaq/log_file_info_ptr.h>
 #include <opendaq/log_file_info_builder_ptr.h>
 
+#include <opendaq/setup_node_factory.h>
+
 #include <opendaq/exceptions.h>
 
 

@@ -176,7 +176,7 @@ void NativeStreamingServerImpl::coreEventCallback(ComponentPtr& sender, CoreEven
 void NativeStreamingServerImpl::initWorkerPool()
 {
     workerPool = nullptr;
-    Int workerCount = 1;
+    size_t workerCount = 1;
 
     if (config.hasProperty("StreamingWorkerCount"))
     {

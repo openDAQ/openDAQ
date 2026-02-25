@@ -489,6 +489,12 @@ void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr
             if (!item.template asPtr<IPropertyObjectInternal>().hasUserReadAccess(serializer.getUser()))
                 continue;
 
+            // Skip non-public signals and input ports
+            if (auto sig = item.template asPtrOrNull<ISignal>(true); sig.assigned() && !sig.getPublic())
+                continue;
+            if (auto port = item.template asPtrOrNull<IInputPort>(true); port.assigned() && !port.getPublic())
+                continue;
+
             serializer.key(itemId.c_str());
 
             if (forUpdate)
@@ -520,12 +526,6 @@ void FolderImpl<Intf, Intfs...>::deserializeCustomObjectValues(
             const auto item = items.readObject(key, newDeserializeContext, factoryCallback);
 
             const auto comp = item.template asPtr<IComponent>(true);
-
-            // Skip non-public signals and input ports
-            if (auto sig = comp.template asPtrOrNull<ISignal>(true); sig.assigned() && !sig.getPublic())
-                continue;
-            if (auto port = comp.template asPtrOrNull<IInputPort>(true); port.assigned() && !port.getPublic())
-                continue;
 
             addItemInternal(comp);
         }

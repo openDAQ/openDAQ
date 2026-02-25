@@ -200,10 +200,10 @@ TEST_F(ConfigProtocolIntegrationTest, GetInitialPropertyValue)
 {
     serverDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue");
 
-    const auto serverChannelSerialized = serializeComponent(serverDevice.getChannels()[0]);
+    const auto serverChannelSerialized = serializeComponent(serverDevice);
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), clientDevice.getChannels()[0].getPropertyValue("StrProp"));
 
-    const auto clientChannelSerialized = serializeComponent(clientDevice.getChannels()[0]);
+    const auto clientChannelSerialized = serializeComponent(clientDevice);
     ASSERT_EQ(serverChannelSerialized, clientChannelSerialized);
 }
 
@@ -211,10 +211,10 @@ TEST_F(ConfigProtocolIntegrationTest, GetInitialPropertyValuePropertySetter)
 {
     serverDevice.getChannels()[0].getProperty("StrProp").setValue("SomeValue");
 
-    const auto serverChannelSerialized = serializeComponent(serverDevice.getChannels()[0]);
+    const auto serverChannelSerialized = serializeComponent(serverDevice);
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), clientDevice.getChannels()[0].getPropertyValue("StrProp"));
 
-    const auto clientChannelSerialized = serializeComponent(clientDevice.getChannels()[0]);
+    const auto clientChannelSerialized = serializeComponent(clientDevice);
     ASSERT_EQ(serverChannelSerialized, clientChannelSerialized);
 }
 

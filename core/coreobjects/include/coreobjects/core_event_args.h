@@ -193,6 +193,15 @@ BEGIN_NAMESPACE_OPENDAQ
  *  - Signal: "DomainSignal", "RelatedSignals", "Public"
  *  - Component: "Active", "Name", "Description", "Visible"
  *
+ * For the "Active" attribute, the payload contains additional entries depending on the cause of the change:
+ *  - "Active": the new effective active state of the component (always present)
+ *  - "LocalActive": present when the component's own active state was changed directly by the user
+ *  - "ParentActive": present when the active state changed due to a parent component's active state change
+ *
+ * @note The native streaming server sends an RPC notification for the "Active" attribute change only when
+ * both "Active" and "LocalActive" are present in the payload (i.e. the change was triggered locally,
+ * not propagated from a parent).
+ *
  * The ID of the event is 100, and the event name is "AttributeChanged".
  *
  * @subsubsection opendaq_core_event_types_tags_changed Tags changed

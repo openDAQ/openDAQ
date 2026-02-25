@@ -1,6 +1,6 @@
 set(OPENDAQ_LOG_LEVELS Trace Debug Info Warning Error Critical Off)
 
-function(log_level_str_to_int STR RET)
+function(opendaq_log_level_str_to_int STR RET)
     string(TOLOWER ${STR} STR)
     if(${STR} STREQUAL "trace")
         set(${RET} 0 PARENT_SCOPE)

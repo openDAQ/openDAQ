@@ -1960,7 +1960,14 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     if (deviceInfo.assigned())
     {
         serializer.key("deviceInfo");
-        deviceInfo.serialize(serializer);
+        if (forUpdate)
+        {
+            deviceInfo.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        }
+        else
+        {
+            deviceInfo.serialize(serializer);
+        }
     }
 
     if (syncComponent.assigned())

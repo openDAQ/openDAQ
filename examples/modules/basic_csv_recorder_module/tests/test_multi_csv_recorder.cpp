@@ -39,7 +39,7 @@ public:
     ListPtr<ISignalConfig> invalidSignals;
     SignalConfigPtr timeSignal;
 
-    std::string outputFolder;
+    fs::path outputFolder;
 
 protected:
     void SetUp() override
@@ -50,14 +50,14 @@ protected:
         module = createModule(context);
 
         auto config = module.getAvailableFunctionBlockTypes().get("MultiCsvRecorder").createDefaultConfig();
-        config.setPropertyValue("ReaderNotificationMode", 1);
+        config.setPropertyValue("ReaderNotificationMode", static_cast<Int>(PacketReadyNotification::SameThread));
 
         // Create function block
         fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb", config);
 
-        outputFolder = testing::TempDir() + "test_output";
+        outputFolder = fs::path(testing::TempDir()) / "test_output";
 
-        fb.setPropertyValue("Directory", outputFolder);
+        fb.setPropertyValue("Directory", outputFolder.string());
         fb.setPropertyValue("FileTimestampEnabled", false);
 
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
@@ -148,7 +148,7 @@ TEST_F(MultiCsvTest, DisconnectSignals)
     EXPECT_EQ(fb.getInputPorts().getCount(), 1u);
 }
 
-TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, WriteSamples)
+TEST_F(MultiCsvTest, WriteSamples)
 {
     // Remove the folder to:
     // a) test creation of missing folders
@@ -165,7 +165,7 @@ TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, WriteSamples)
     fb.asPtr<IRecorder>(true).stopRecording();
 
     // Check the file contents
-    std::ifstream readIn(this->outputFolder + "\\output.csv");
+    std::ifstream readIn((this->outputFolder / "output.csv").string());
 
     ASSERT_TRUE(readIn.is_open());
 
@@ -184,7 +184,7 @@ TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, WriteSamples)
     EXPECT_EQ(line, firstSamples);
 }
 
-TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, WriteSamplesWithDomain)
+TEST_F(MultiCsvTest, WriteSamplesWithDomain)
 {
     EXPECT_NO_THROW(fs::remove_all(outputFolder));
     fb.setPropertyValue("WriteDomain", true);
@@ -199,7 +199,7 @@ TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, WriteSamplesWithDomain)
     fb.asPtr<IRecorder>(true).stopRecording();
 
     // Check the file contents
-    std::ifstream readIn(this->outputFolder + "\\output.csv");
+    std::ifstream readIn((this->outputFolder / "output.csv").string());
 
     ASSERT_TRUE(readIn.is_open());
 
@@ -219,7 +219,7 @@ TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, WriteSamplesWithDomain)
     EXPECT_EQ(line, firstSamples);
 }
 
-TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, DetectSampleRateDiff)
+TEST_F(MultiCsvTest, DetectSampleRateDiff)
 {
     fb.getInputPorts()[0].connect(validSignals[0]);
     fb.asPtr<IRecorder>(true).startRecording();
@@ -256,7 +256,7 @@ TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, DetectSampleRateDiff)
     halfRateSignal.sendPacket(vPacket);
 }
 
-TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, DetectDescriptorChange)
+TEST_F(MultiCsvTest, DetectDescriptorChange)
 {
     EXPECT_NO_THROW(fs::remove_all(outputFolder));
     fb.setPropertyValue("WriteDomain", true);
@@ -266,7 +266,7 @@ TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, DetectDescriptorChange)
 
     fb.asPtr<IRecorder>(true).startRecording();
 
-    sendData(7, 817, false, std::make_pair(0, 10));
+    sendData(10, 817, false, std::make_pair(0, 10));
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     ReferenceDomainInfoPtr rdInfo =
@@ -288,7 +288,7 @@ TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, DetectDescriptorChange)
     fb.asPtr<IRecorder>(true).stopRecording();
 
     // Check the file contents
-    std::ifstream readIn(this->outputFolder + "\\output.csv");
+    std::ifstream readIn((this->outputFolder / "output.csv").string());
 
     ASSERT_TRUE(readIn.is_open());
 
@@ -312,7 +312,7 @@ TEST_F_UNSTABLE_SKIPPED(MultiCsvTest, DetectDescriptorChange)
     EXPECT_EQ(line, reference);
 
     // After descriptor change a second file is created with different contents
-    std::ifstream readIn2(this->outputFolder + "\\output_001.csv");
+    std::ifstream readIn2((this->outputFolder / "output_001.csv").string());
     ASSERT_TRUE(readIn2.is_open());
 
     std::getline(readIn2, line);

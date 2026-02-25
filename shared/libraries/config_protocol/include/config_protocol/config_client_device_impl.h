@@ -260,7 +260,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr&
 template <class TDeviceBase>
 PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAddDeviceConfig()
 {
-    return PropertyObject();
+    return this->clientComm->getDefaultAddDeviceConfig(this->remoteGlobalId);
 }
 
 template <class TDeviceBase>

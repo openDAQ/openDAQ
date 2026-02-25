@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:52.
+//     RTGen (CGenerator v0.7.0) on 25.02.2026 17:26:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -55,4 +55,9 @@ daqErrCode daqComponentPrivate_setComponentConfig(daqComponentPrivate* self, daq
 daqErrCode daqComponentPrivate_getComponentConfig(daqComponentPrivate* self, daqPropertyObject** config)
 {
     return reinterpret_cast<daq::IComponentPrivate*>(self)->getComponentConfig(reinterpret_cast<daq::IPropertyObject**>(config));
+}
+
+daqErrCode daqComponentPrivate_setParentActive(daqComponentPrivate* self, daqBool parentActive)
+{
+    return reinterpret_cast<daq::IComponentPrivate*>(self)->setParentActive(parentActive);
 }

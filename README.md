@@ -45,9 +45,10 @@ documentation can be built with Antora by following the guide found in [docs/Ant
   <tr>
    <td><strong>OS</strong></td>
    <td><strong>Platform</strong></td>
-   <td><strong>GCC 7.3.1+</strong></td>
+   <td><strong>GCC 8.4+</strong></td>
    <td><strong>Clang 5+</strong></td>
    <td><strong>VC++ (v14.1+)</strong></td>
+   <td><strong>Intel DPC++/C++ (icx) 2025.3</strong></td>
   </tr>
   <tr>
    <td rowspan="2">Windows <br>(Visual Studio)</td>
@@ -55,17 +56,21 @@ documentation can be built with Antora by following the guide found in [docs/Ant
    <td rowspan="2">/</td>
    <td>✅</td>
    <td>✅</td>
+   <td>✅</td>
   </tr>
   <tr>
    <td>arm64</td>
    <td>⚠️🛠️</td>
    <td>⚠️🛠️</td>
+   <td>/</td>
   </tr>
   <tr>
    <td rowspan="1">Windows <br>(MinGW)</td>
    <td>x86, x64</td>
    <td>☑️</td>
    <td>☑️</td>
+   <td rowspan="10">/
+   </td>
    <td rowspan="10">/
    </td>
   </tr>

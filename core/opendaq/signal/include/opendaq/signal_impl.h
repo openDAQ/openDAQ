@@ -394,6 +394,13 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE,
                                    "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
 
+    if (BaseObjectPtr::Equals(descriptorPtr, this->dataDescriptor))
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+        LOG_D("Signal descriptor was set to the same value as before");
+        return OPENDAQ_IGNORED;
+    }
+
     std::vector<SignalConfigPtr> valueSignalsOfDomainSignal;
     bool success;
 

@@ -84,6 +84,9 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getActive(Bool* active)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
 {
+    if (this->active == (bool) active)
+        return OPENDAQ_IGNORED;
+
     if (this->coreEventMuted)
         return Impl::setActive(active);
 
@@ -108,6 +111,13 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getName(IString** name)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setName(IString* name)
 {
+    OPENDAQ_PARAM_NOT_NULL(name);
+
+    auto nameStr = StringPtr::Borrow(name);
+
+    if (this->name == nameStr)
+        return OPENDAQ_IGNORED;
+
     return daqTry([this, &name]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Name", name); 
@@ -123,6 +133,13 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getDescription(IString** descriptio
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setDescription(IString* description)
 {
+    OPENDAQ_PARAM_NOT_NULL(description);
+
+    auto descriptionStr = StringPtr::Borrow(description);
+
+    if (this->description == descriptionStr)
+        return OPENDAQ_IGNORED;
+
     return daqTry([this, &description]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Description", description); 

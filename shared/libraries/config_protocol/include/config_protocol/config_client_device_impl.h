@@ -263,6 +263,9 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(OperationModeType modeType)
 {
+    if (this->operationMode == modeType)
+        return OPENDAQ_IGNORED;
+
     return daqTry([this, modeType] 
     {
         this->clientComm->setOperationMode(this->remoteGlobalId, OperationModeTypeToString(modeType));

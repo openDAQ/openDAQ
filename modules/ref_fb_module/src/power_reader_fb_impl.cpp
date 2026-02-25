@@ -240,8 +240,6 @@ void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, con
         powerDataDescriptor = powerDataDescriptorBuilder.setValueRange(powerRange).setName("Power").build();
         powerDomainDataDescriptor = DataDescriptorBuilderCopy(this->domainDescriptor).setName("Power domain").build();
 
-        reader.setActive(True);
-
         powerSignal.setDescriptor(powerDataDescriptor);
         powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
 

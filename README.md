@@ -46,8 +46,8 @@ documentation can be built with Antora by following the guide found in [docs/Ant
    <td><strong>OS</strong></td>
    <td><strong>Platform</strong></td>
    <td><strong>GCC 8.4+</strong></td>
-   <td><strong>Clang 5+</strong></td>
-   <td><strong>VC++ (v14.1+)</strong></td>
+   <td><strong>Clang 6+</strong></td>
+   <td><strong>VC++ (v14.3+)</strong></td>
    <td><strong>Intel DPC++/C++ (icx) 2025.3</strong></td>
   </tr>
   <tr>

@@ -119,13 +119,13 @@ The Instance owns the Module Manager, which in turn owns the loaded modules. Tho
 [source,python]
 ----
 # Incorrect - instance may be garbage-collected
-device = opendaq.Instance().add_device("daq.opcua://127.0.0.1")
-device.signals  # May fail with RuntimeError
+device = opendaq.Instance().add_device("daqref://device0")
+print(device.signals)  # May fail with RuntimeError
 
 # Correct - keep instance alive
 instance = opendaq.Instance()
-device = instance.add_device("daq.opcua://127.0.0.1")
-device.signals  # Works correctly
+device = instance.add_device("daqref://device0")
+print(device.signals)  # Works correctly
 ----
 ====
 

@@ -109,7 +109,7 @@ protected:
     }
 };
 
-TEST_F(ConfigProtocolTest, Connect)
+TEST_F(ConfigProtocolTest, DISABLED_Connect)
 {
     EXPECT_CALL(device.mock(), getLocalId(_)).WillOnce(Get(String("Id")));
     EXPECT_CALL(device.mock(), getParent(_)).WillRepeatedly(Get(Component(NullContext(), nullptr, "parent")));

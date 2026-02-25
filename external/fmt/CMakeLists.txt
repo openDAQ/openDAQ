@@ -13,6 +13,7 @@ opendaq_dependency(
     NAME                fmt
     REQUIRED_VERSION    12.1.0
     GIT_REPOSITORY      https://github.com/fmtlib/fmt.git
-    GIT_REF             12.1.0
+    GIT_REF             02d6f3d9e420e545509f49b5d827911a3c9690fc # v12.1.1
+    GIT_SHALLOW       OFF
     EXPECT_TARGET       fmt::fmt
 )

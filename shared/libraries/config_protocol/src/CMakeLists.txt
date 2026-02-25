@@ -64,8 +64,8 @@ set(SRC_Cpp config_protocol.cpp
             config_protocol_streaming_consumer.cpp
 )
 
-prepend_include(${BASE_NAME} SRC_PublicHeaders)
-prepend_include(${BASE_NAME} SRC_PrivateHeaders)
+opendaq_prepend_include(${BASE_NAME} SRC_PublicHeaders)
+opendaq_prepend_include(${BASE_NAME} SRC_PrivateHeaders)
 
 list(APPEND SRC_PublicHeaders ${SRC_ConfigClientObject_PublicHeaders}
 )

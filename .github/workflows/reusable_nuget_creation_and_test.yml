@@ -21,11 +21,6 @@ on:
         description: the name of the Linux x64 source artifact (package will be deleted after its use)
         required: true
         type: string
-      short_sha:
-        description: the short SHA of the GitHub ref (optional, omit to generate release package)
-        required: false
-        default: ''
-        type: string
     outputs:
       nuget_artifact_name:
         description: the name of the uploaded NuGet artifact
@@ -52,7 +47,6 @@ jobs:
       nuget_work_path_linux_x64: ./build/nuget_work/linux-x64
       dotnet_source_path: ./bindings/dotnet/openDAQ.Net
       dotnet_packages_path: ./packages/opendaq.net # relative to test-project
-      nuget_artifact: Package (openDAQ.Net NuGet)
       # map inputs to env (absolute paths)
       windows_test_path: ${{ inputs.windows_test_path }}
       windows_x64_artifact: ${{ inputs.windows_x64_artifact_name }}
@@ -67,7 +61,7 @@ jobs:
       nuget_work_path_linux_x64: ${{ env.nuget_work_path_linux_x64 }}
       dotnet_source_path: ${{ env.dotnet_source_path }}
       dotnet_packages_path: ${{ env.dotnet_packages_path }}
-      nuget_artifact_name: ${{ env.nuget_artifact }}
+      nuget_artifact_name: opendaq.net-${{ steps.detect.outputs.version-full }}
       # absolute paths
       windows_test_path: ${{ env.windows_test_path }}
       linux_test_path: ${{ env.linux_test_path }}
@@ -103,13 +97,9 @@ jobs:
       - name: Display files in working directory
         run: ls -R
 
-      - name: Read openDAQ version
-        id: daq_version
-        shell: bash
-        run: |
-          DAQ_VER=$(cat opendaq_version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-          echo Head openDAQ version: $DAQ_VER
-          echo "DAQ_VERSION=$DAQ_VER" >> "$GITHUB_OUTPUT"
+      - name: Detect version
+        id: detect
+        uses: ./.github/actions/package-version-detect
 
       - name: Build NuGet package
         run: |
@@ -117,10 +107,10 @@ jobs:
           $ENV:REPOSITORY_URL = '${{ github.repositoryUrl }}'.Replace('git:','https:')
           $ENV:BRANCH_NAME = '${{ github.base_ref || github.ref_name }}'.Replace('refs/heads/','')
           $ENV:COMMIT_SHA = '${{ github.sha }}'
-          $ENV:SHORT_SHA = '${{ inputs.short_sha }}'
+          $ENV:SHORT_SHA = '${{ steps.detect.outputs.sha-short }}'
           $SDK_WIN64_PATH = "-p:SDK_WIN64_PATH=""$(Join-Path '${{ github.workspace }}' '${{ env.nuget_work_path_win_x64 }}' -Resolve)"""
           $SDK_LINUX64_PATH = "-p:SDK_LINUX64_PATH=""$(Join-Path '${{ github.workspace }}' '${{ env.nuget_work_path_linux_x64 }}' -Resolve)"""
-          $DAQ_VERSION = '-p:OPENDAQ_PACKAGE_VERSION=${{ steps.daq_version.outputs.DAQ_VERSION }}'
+          $DAQ_VERSION = '-p:OPENDAQ_PACKAGE_VERSION=${{ steps.detect.outputs.version }}'
           if (Test-Path '${{ env.nuget_work_path_win_x64 }}/*.nupkg') { del '${{ env.nuget_work_path_win_x64 }}/*.nupkg' -Force }
           cd '${{ env.dotnet_source_path }}/openDAQ.NET'
           & dotnet restore . --ignore-failed-sources
@@ -131,7 +121,7 @@ jobs:
       - name: Upload package (openDAQ.Net NuGet)
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.nuget_artifact }}
+          name: opendaq.net-${{ steps.detect.outputs.version-full }}
           path: ${{ env.nuget_work_path }}/win-x64/openDAQ.Net.*.nupkg
           retention-days: 7
 

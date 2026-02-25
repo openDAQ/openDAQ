@@ -79,7 +79,7 @@ private:
     std::string getNextPortID() const;
 
     bool updateInputPorts();
-    void updateReader();
+    void createReader();
 
     /**
      * @brief Attempts to open a new CSV writer with provided data.
@@ -94,6 +94,12 @@ private:
     void reconfigureWriter();
     void onPropertiesChanged();
 
+    /**
+     * @brief Returns true if reader is in valid state or successfully recovered. Doesn't replace a valid reader.
+     */
+    bool recoverReaderIfNecessary();
+    void createDisconnectedPort();
+
     void onConnected(const InputPortPtr& inputPort) override;
     void onDisconnected(const InputPortPtr& inputPort) override;
     void onDataReceived();
@@ -101,7 +107,6 @@ private:
     void startRecordingInternal();
 
     MultiReaderStatusPtr attemptReadData();
-    bool attemptRecoverReader();
 
     std::vector<InputPortPtr> connectedPorts;
     InputPortPtr disconnectedPort;

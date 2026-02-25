@@ -220,6 +220,7 @@ set(SRC_PublicHeaders
     struct_type.h
     struct_type_ptr.h
     struct_type_factory.h
+    struct_impl.h
 
     type_manager.h
     type_manager_private.h
@@ -267,7 +268,6 @@ set(SRC_PrivateHeaders baseobject_impl.h
                        iterator_base_impl.h
                        errorinfo_impl.h
                        version_info_impl.h
-                       struct_impl.h
                        type_impl.h
                        struct_type_impl.h
                        type_manager_impl.h
@@ -277,8 +277,8 @@ set(SRC_PrivateHeaders baseobject_impl.h
                        search_filter_impl.h
 )
 
-prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
-prepend_include(${TARGET_FOLDER_NAME} SRC_PublicHeaders)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_PublicHeaders)
 
 set(SRC_PublicHeaders ${SRC_PublicHeaders}
                       ${ConfigHeader}
@@ -347,7 +347,7 @@ set_source_files_properties(${ConfigHeader} PROPERTIES GENERATED TRUE)
 source_group("Generated\\Header Files" FILES ${ConfigHeader})
 
 opendaq_set_output_lib_name(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
-create_version_header(${LIB_NAME} ONLY_RC)
+opendaq_generate_version_header(${LIB_NAME} ONLY_RC)
 
 install(TARGETS ${LIB_NAME}
         EXPORT ${SDK_NAME}

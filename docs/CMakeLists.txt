@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME documentation)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME documentation)
 
 option(OPENDAQ_DOCUMENTATION_TESTS "Enable ${SDK_NAME} documentation tests" OFF)
 

@@ -178,22 +178,21 @@ public:
     ClientType connectionType = ClientType::Control;
 };
 
-inline std::set<uint16_t> createListOfSupportedVersions(uint16_t maxVersion)
+inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
-    std::set<uint16_t> supportedVersions;
-    for (uint16_t i = 0; i <= maxVersion; ++i)
-        supportedVersions.insert(i);
-    return supportedVersions;
+    return 19;
 }
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    return createListOfSupportedVersions(18);
-}
-
-inline constexpr uint16_t GetLatestConfigProtocolVersion()
-{
-    return 18;
+    const static std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t>
+    {
+        std::set<uint16_t> versions;
+        for (uint16_t i = 0; i <= GetLatestConfigProtocolVersion(); ++i)
+            versions.insert(i);
+        return versions;
+    }();
+    return supportedVersions;
 }
 
 }

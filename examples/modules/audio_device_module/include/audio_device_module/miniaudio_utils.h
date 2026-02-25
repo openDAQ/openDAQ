@@ -23,7 +23,16 @@
     #pragma clang diagnostic ignored "-Wformat"
 #endif
 
+#if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable: 4245 4456)
+#endif
+
 #include <miniaudio/miniaudio.h>
+
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
 
 #if defined(__clang__)
     #pragma clang diagnostic pop

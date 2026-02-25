@@ -105,6 +105,7 @@ protected:
     virtual ConnectionPtr createConnection(const SignalPtr& signal);
     ConnectionPtr getConnectionNoLock();
     void removed() override;
+    void removedNoLock() override;
     
     StringPtr serializedSignalId;
 
@@ -531,12 +532,20 @@ void GenericInputPortImpl<TInterface, Interfaces...>::removed()
         if (customDataRemovable.assigned())
             customDataRemovable.remove();
     }
+}
 
-    ConnectionPtr connection = getConnectionNoLock();
-    connectionRef.release();
-
+template <typename TInterface, typename ... Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::removedNoLock()
+{
+    ConnectionPtr connection;
+    {
+        auto lock = this->getRecursiveConfigLock2();
+        connection = getConnectionNoLock();
+        connectionRef.release();
+    }
+    
     // remove is meant to be called from listener, so don't notify it
-    disconnectSignalInternal(std::move(connection), false, true, true);
+    disconnectSignalInternal(std::move(connection), false, true, false);
 }
 
 template <typename TInterface, typename...  Interfaces>

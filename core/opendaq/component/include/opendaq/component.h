@@ -87,14 +87,15 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * @brief Returns true if the component is active; false otherwise.
      * @param[out] active True if the component is active; false otherwise.
      *
+     * A component is active if its local active state is true and its parent is active.
      * An active component acquires data, performs calculations and send packets on the signal path.
      */
     virtual ErrCode INTERFACE_FUNC getActive(Bool* active) = 0;
 
     /*!
-     * @brief Sets the component to be either active or inactive. Also recursively sets the `active` field
-     * of all child components if component is a folder.
-     * @param active The new active state of the component.
+     * @brief Sets the component to be either active or inactive. Sets the local active state
+     * and notifies children about the parent active state change.
+     * @param active The new local active state of the component.
      * @retval OPENDAQ_IGNORED if "Active" is part of the component's list of locked attributes,
      * or if the new active value is equal to the previous.
      *
@@ -222,6 +223,21 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
      * @param[out] modeType The current operation mode.
      */
     virtual ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) = 0;
+
+    /*!
+     * @brief Returns true if the component is local active; false otherwise.
+     * @param[out] localActive True if the component is local active; false otherwise.
+     *
+     * An active component acquires data, performs calculations and send packets on the signal path.
+     * Note that is local active is True, the component may still be inactive if its parents are inactive.
+     */
+     virtual ErrCode INTERFACE_FUNC getLocalActive(Bool* localActive) = 0;
+
+     /*!
+      * @brief Returns true if the component's parent is active; false otherwise.
+      * @param[out] parentActive True if the component's parent is active; false otherwise.
+      */
+     virtual ErrCode INTERFACE_FUNC getParentActive(Bool* parentActive) = 0;
 };
 /*!@}*/
 

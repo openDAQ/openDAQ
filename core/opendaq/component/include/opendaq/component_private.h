@@ -81,6 +81,16 @@ DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
      * @param config The configuration of the component.
      */
     virtual ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) = 0;
+
+    /*!
+     * @brief Called by parent component to notify this component about parent's active state change.
+     * @param parentActive True if parent is active.
+     *
+     * The component updates its internal parentActive flag and recomputes its effective active state.
+     * If the effective active state changes, triggers an AttributeChanged event.
+     * Container components (folders, devices) propagate this call to their children.
+     */
+    virtual ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

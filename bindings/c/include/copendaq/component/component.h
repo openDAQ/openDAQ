@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:50.
+//     RTGen (CGenerator v0.7.0) on 25.02.2026 17:25:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -62,6 +62,8 @@ extern "C"
     daqErrCode EXPORTED daqComponent_getStatusContainer(daqComponent* self, daqComponentStatusContainer** statusContainer);
     daqErrCode EXPORTED daqComponent_findComponent(daqComponent* self, daqString* id, daqComponent** outComponent);
     daqErrCode EXPORTED daqComponent_getOperationMode(daqComponent* self, daqOperationModeType* modeType);
+    daqErrCode EXPORTED daqComponent_getLocalActive(daqComponent* self, daqBool* localActive);
+    daqErrCode EXPORTED daqComponent_getParentActive(daqComponent* self, daqBool* parentActive);
     daqErrCode EXPORTED daqComponent_createComponent(daqComponent** obj, daqContext* context, daqComponent* parent, daqString* localId, daqString* className);
 
 #ifdef __cplusplus

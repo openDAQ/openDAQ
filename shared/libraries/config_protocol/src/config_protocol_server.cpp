@@ -566,12 +566,15 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::PropertyRemoved:
         case CoreEventId::SignalConnected:
         case CoreEventId::ComponentAdded:
-        case CoreEventId::AttributeChanged:
         case CoreEventId::PropertyOrderChanged:
             packedEvent.pushBack(processCoreEventArgs(args));
             break;
         case CoreEventId::ComponentUpdateEnd:
             packedEvent.pushBack(processUpdateEndCoreEvent(component, args));
+            break;
+        case CoreEventId::AttributeChanged:
+            if (const auto processedArgs = processAttributeChangedCoreEvent(args); processedArgs.assigned())
+                packedEvent.pushBack(processedArgs);
             break;
         case CoreEventId::ComponentRemoved:
         case CoreEventId::SignalDisconnected:
@@ -638,6 +641,21 @@ CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const Component
     dict.set("SerializedComponent", notificationSerializer.getOutput());
 
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);
+}
+
+CoreEventArgsPtr ConfigProtocolServer::processAttributeChangedCoreEvent(const CoreEventArgsPtr& args)
+{
+    auto processedArgs = processCoreEventArgs(args);
+    auto params = processedArgs.getParameters();
+    assert(params.hasKey("AttributeName"));
+    if (params.get("AttributeName") == "Active")
+    {
+        assert(params.hasKey("Active"));
+        if (!params.hasKey("LocalActive"))
+            return nullptr;
+    }
+
+    return processedArgs;
 }
 
 BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const

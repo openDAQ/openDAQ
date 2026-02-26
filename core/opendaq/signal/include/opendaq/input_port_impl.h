@@ -80,9 +80,6 @@ public:
     // IOwnable
     ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;
 
-    // IComponent
-    ErrCode INTERFACE_FUNC getActive(Bool* active) override;
-
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
@@ -558,17 +555,6 @@ ErrCode INTERFACE_FUNC GenericInputPortImpl<TInterface, Interfaces...>::setOwner
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
     }
     this->owner = owner;
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename...  Interfaces>
-ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getActive(Bool* active)
-{
-    OPENDAQ_PARAM_NOT_NULL(active);
-
-    auto lock = this->getAcquisitionLock2();
-
-    *active = this->active;
     return OPENDAQ_SUCCESS;
 }
 

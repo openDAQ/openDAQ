@@ -110,6 +110,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::getRemoteId(IString** id) const
 
     StringPtr signalRemoteId;
     const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *id = signalRemoteId.detach();
 

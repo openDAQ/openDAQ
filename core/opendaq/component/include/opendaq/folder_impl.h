@@ -41,9 +41,6 @@ public:
                const StringPtr& localId,
                const StringPtr& className = nullptr);
 
-    // IComponent
-    ErrCode INTERFACE_FUNC setActive(Bool active) override;
-
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
 
@@ -91,6 +88,7 @@ protected:
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
     virtual void syncComponentOperationMode(const ComponentPtr& component);
+    void notifyActiveChanged() override;
 
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
@@ -119,25 +117,6 @@ FolderImpl<Intf, Intfs...>::FolderImpl(const ContextPtr& context,
 {
 }
 
-template <class Intf, class ... Intfs>
-ErrCode FolderImpl<Intf, Intfs...>::setActive(Bool active)
-{
-    const ErrCode err = Super::setActive(active);
-    OPENDAQ_RETURN_IF_FAILED(err);
-    if (err == OPENDAQ_IGNORED)
-        return err;
-
-    const ErrCode errCode = daqTry([&]
-    {
-        std::vector<ComponentPtr> itemsVec;
-        for (const auto& [_, item] : this->items)
-            itemsVec.emplace_back(item);
-        this->setActiveRecursive(itemsVec, active);
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
 
 template <class Intf, class... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::getItems(IList** items, ISearchFilter* searchFilter)
@@ -230,6 +209,15 @@ void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& 
         return;
 
     componentPrivate->updateOperationMode(modeType);
+}
+
+template <class Intf, class ... Intfs>
+void FolderImpl<Intf, Intfs...>::notifyActiveChanged()
+{
+    std::vector<ComponentPtr> itemsVec;
+    for (const auto& [_, item] : this->items)
+        itemsVec.emplace_back(item);
+    this->notifyItemsActiveChanged(itemsVec);
 }
 
 template <class Intf, class... Intfs>

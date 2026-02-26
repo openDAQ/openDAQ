@@ -84,9 +84,6 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::getActive(Bool* active)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
 {
-    if (this->coreEventMuted)
-        return Impl::setActive(active);
-
     const ErrCode errCode = daqTry([this, &active]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); 
@@ -321,8 +318,19 @@ void ConfigClientComponentBaseImpl<Impl>::attributeChanged(const CoreEventArgsPt
 
     if (attrName == "Active")
     {
-        const Bool active = args.getParameters().get("Active");
-        checkErrorInfo(Impl::setActive(active));
+        const auto parameters = args.getParameters();
+        if (parameters.hasKey("LocalActive"))
+        {
+            // new style
+            const Bool localActive = parameters.get("LocalActive");
+            checkErrorInfo(Impl::setActive(localActive));
+        }
+        else
+        {
+            // old style, kept for compatibility with older protocol versions
+            const Bool active = parameters.get("Active");
+            checkErrorInfo(Impl::setActive(active));
+        }
     }
     else if (attrName == "Name")
     {

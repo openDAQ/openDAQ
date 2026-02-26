@@ -111,6 +111,7 @@ public:
 
         StreamingPtr streamingPtr;
         const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetStreaming, streamingPtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *streaming = streamingPtr.detach();
 

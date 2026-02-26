@@ -50,6 +50,6 @@ See also: https://github.com/oneapi-src/oneapi-ci for official CI integration ex
 **Building**
 
 ```shell
-cmake -B build -G Ninja -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icx
+cmake -B build -G Ninja -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx
 cmake --build build
 ```

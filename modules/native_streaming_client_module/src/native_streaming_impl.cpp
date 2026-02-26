@@ -542,4 +542,90 @@ void NativeStreamingToDeviceImpl::stopReadThread()
     }
 }
 
+ErrCode NativeStreamingImpl::setOwnerDevice(const DevicePtr& device)
+{
+    // Call base class implementation first
+    OPENDAQ_RETURN_IF_FAILED(Super::setOwnerDevice(device));
+
+    // Set up callback to get alternative addresses from device info for reconnection
+    if (device.assigned() && transportClientHandler)
+    {
+        auto loggerComponent = this->context.getLogger().getOrAddComponent("NativeStreaming");
+
+        WeakRefPtr<IDevice> deviceWeak = device;
+        opendaq_native_streaming_protocol::GetAlternativeAddressesCallback callback =
+            [deviceWeak, loggerComponent]() -> ListPtr<IString>
+        {
+            DevicePtr deviceSelf = deviceWeak.assigned() ? deviceWeak.getRef() : nullptr;
+            if (!deviceSelf.assigned())
+            {
+                LOG_D("Streaming owner device weak reference is not assigned");
+                return List<IString>();
+            }
+
+            try
+            {
+                // Get device info
+                auto deviceInfo = deviceSelf.getInfo();
+                if (!deviceInfo.assigned())
+                {
+                    LOG_D("Streaming owner device info is not assigned");
+                    return List<IString>();
+                }
+
+                // Get streaming capability (OpenDAQNativeStreaming) - native streaming has its own capability
+                auto streamingCapability = deviceInfo.getServerCapability("OpenDAQNativeStreaming");
+                if (!streamingCapability.assigned())
+                {
+                    LOG_D("Streaming capability (OpenDAQNativeStreaming) not found in owner device");
+                    return List<IString>();
+                }
+
+                auto addressInfos = streamingCapability.getAddressInfo();
+                if (!addressInfos.assigned() || addressInfos.getCount() == 0)
+                {
+                    LOG_D("Streaming capability has {} address info entries", addressInfos.assigned() ? addressInfos.getCount() : 0);
+                    return List<IString>();
+                }
+
+                // Return only addresses (port and path are the same for all addresses of the same device)
+                ListPtr<IString> addresses = List<IString>();
+                for (const auto& addressInfo : addressInfos)
+                {
+                    auto address = addressInfo.getAddress();
+                    if (address.assigned())
+                        addresses.pushBack(address);
+                }
+
+                if (loggerComponent.assigned())
+                {
+                    if (addresses.getCount() > 0)
+                    {
+                        LOG_D("Streaming: Found {} alternative addresses from owner device streaming capability", addresses.getCount());
+                    }
+                    else
+                    {
+                        LOG_D("Streaming: No alternative addresses found in owner device streaming capability");
+                    }
+                }
+
+                return addresses;
+            }
+            catch (const std::exception& e)
+            {
+                if (loggerComponent.assigned())
+                {
+                    LOG_W("Exception while getting alternative addresses from owner device: {}", e.what());
+                }
+            }
+
+            return List<IString>();
+        };
+
+        transportClientHandler->setAlternativeAddressesCallback(callback);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

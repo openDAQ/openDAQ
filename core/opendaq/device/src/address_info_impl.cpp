@@ -22,7 +22,7 @@ AddressInfoImpl::AddressInfoImpl()
 {
     Super::addProperty(StringProperty(Address, ""));
     Super::addProperty(StringProperty(Type, ""));
-    Super::addProperty(IntProperty(ReachabilityStatus, static_cast<int>(AddressReachabilityStatus::Unknown)));
+    Super::addProperty(SelectionProperty(ReachabilityStatus, List<IString>("Unknown", "Reachable", "Unreachable"), static_cast<int>(AddressReachabilityStatus::Unknown)));
     Super::addProperty(StringProperty(ConnectionString, ""));
 }
 

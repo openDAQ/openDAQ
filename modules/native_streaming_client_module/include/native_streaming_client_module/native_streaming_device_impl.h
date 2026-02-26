@@ -52,6 +52,7 @@ protected:
     void addToDeviceSignals(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     void addToDeviceSignalsOnReconnection(const StringPtr& signalStringId, const StringPtr& serializedSignal);
     SignalPtr createSignal(const StringPtr& signalStringId, const StringPtr& serializedSignal);
+    void setupAlternativeAddressesCallback(opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient);
 
     StringPtr connectionString;
     EnumerationPtr connectionStatus;

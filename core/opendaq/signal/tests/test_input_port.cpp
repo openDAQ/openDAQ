@@ -1,13 +1,14 @@
-#include <opendaq/input_port_factory.h>
 #include <coretypes/objectptr.h>
 #include <gtest/gtest.h>
+#include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/component_private_ptr.h>
+#include <opendaq/context_factory.h>
+#include <opendaq/deserialize_component_ptr.h>
 #include <opendaq/gmock/context.h>
 #include <opendaq/gmock/input_port.h>
 #include <opendaq/gmock/input_port_notifications.h>
 #include <opendaq/gmock/signal.h>
-#include <opendaq/deserialize_component_ptr.h>
-#include <opendaq/context_factory.h>
-#include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/input_port_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/signal_factory.h>
 
@@ -190,4 +191,18 @@ TEST_F(InputPortTest, RemoveDisconnectedSignal)
     signal1.remove();
 
     ASSERT_TRUE(ip.getSignal().assigned());
+}
+
+TEST_F(InputPortTest, LockedAttributes)
+{
+    ASSERT_TRUE(inputPort.getPublic());
+
+    ASSERT_NO_THROW(inputPort.setPublic(false));
+    ASSERT_FALSE(inputPort.getPublic());
+
+    inputPort.asPtr<IComponentPrivate>().lockAllAttributes();
+
+    // Lock keeps Public unchanged, but doesn't throw exceptions
+    ASSERT_NO_THROW(inputPort.setPublic(true));
+    ASSERT_FALSE(inputPort.getPublic());
 }

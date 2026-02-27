@@ -59,7 +59,7 @@ public:
         const auto str = serializer.getOutput();
         return str;
     }
-    
+
     // client handling
     PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
@@ -73,7 +73,7 @@ public:
         assert(false);
         server->processNoReplyRequest(requestPacket);
     }
-    
+
     void serverNotificationReady(const PacketBuffer& notificationPacket) const
     {
         client->triggerNotificationPacket(notificationPacket);
@@ -161,7 +161,7 @@ TEST_F(ConfigProtocolIntegrationTest, RemoteGlobalIds)
 TEST_F(ConfigProtocolIntegrationTest, ConnectWithParent)
 {
     const auto serverDeviceSerialized = serializeComponent(serverDevice);
-    
+
     ConfigProtocolClient<ConfigClientDeviceImpl> clientNew(
         clientContext,
         std::bind(&ConfigProtocolIntegrationTest::sendRequestAndGetReply, this, std::placeholders::_1),
@@ -200,22 +200,22 @@ TEST_F(ConfigProtocolIntegrationTest, GetInitialPropertyValue)
 {
     serverDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue");
 
-    const auto serverDeviceSerialized = serializeComponent(serverDevice);
+    const auto serverChannelSerialized = serializeComponent(serverDevice);
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), clientDevice.getChannels()[0].getPropertyValue("StrProp"));
 
-    const auto clientDeviceSerialized = serializeComponent(clientDevice);
-    ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
+    const auto clientChannelSerialized = serializeComponent(clientDevice);
+    ASSERT_EQ(serverChannelSerialized, clientChannelSerialized);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetInitialPropertyValuePropertySetter)
 {
     serverDevice.getChannels()[0].getProperty("StrProp").setValue("SomeValue");
 
-    const auto serverDeviceSerialized = serializeComponent(serverDevice);
+    const auto serverChannelSerialized = serializeComponent(serverDevice);
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), clientDevice.getChannels()[0].getPropertyValue("StrProp"));
 
-    const auto clientDeviceSerialized = serializeComponent(clientDevice);
-    ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
+    const auto clientChannelSerialized = serializeComponent(clientDevice);
+    ASSERT_EQ(serverChannelSerialized, clientChannelSerialized);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, SetPropertyValue)
@@ -681,7 +681,7 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoNotChangeableField)
 
     ASSERT_EQ("manufacturer", serverDeviceInfo.getManufacturer());
     ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
-    
+
     {
         ASSERT_ANY_THROW(serverDeviceInfo.setPropertyValue("manufacturer", "server_manufacturer"));
         ASSERT_EQ("manufacturer", serverDeviceInfo.getManufacturer());
@@ -971,7 +971,7 @@ TEST_F(ConfigProtocolIntegrationTest, ComponentConfig)
 
 TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)
 {
-    // This test reproduces a bug where SetPropertyValue("PropertyObject.Property") 
+    // This test reproduces a bug where SetPropertyValue("PropertyObject.Property")
     // is called AFTER PropertyObject.EndUpdate but INSIDE Component.EndUpdate
     // Expected order:
     // 1. Component.beginUpdate() -> PropertyObject.beginUpdate() (recursive)
@@ -979,7 +979,7 @@ TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)
     // 3. Component.endUpdate() -> PropertyObject.endUpdate() -> SetPropertyValue("PropertyObject.Property")
     // 4. PropertyObject.EndUpdate event
     // 5. Component.EndUpdate event
-    
+
     const PropertyObjectPtr serverMockChild = serverDevice.getPropertyValue("MockChild");
     const PropertyObjectPtr clientMockChild = clientDevice.getPropertyValue("MockChild");
 
@@ -990,7 +990,7 @@ TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)
         nesteadObjEnded = 2,
         ComponentEnded = 3
     };
-    
+
     State state = State::init;
 
     serverMockChild.getOnPropertyValueWrite("NestedStringProperty") += [&state](PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args)
@@ -1021,4 +1021,18 @@ TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)
     ASSERT_EQ(state, State::ComponentEnded);
     ASSERT_EQ(clientMockChild.getPropertyValue("NestedStringProperty"), "NewValue");
     ASSERT_EQ(serverMockChild.getPropertyValue("NestedStringProperty"), "NewValue");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, FilterNonPublicComponents)
+{
+    auto childDevices = serverDevice.getDevices(search::LocalId("mock_phys_dev"));
+    ASSERT_EQ(childDevices.getCount(), 1);
+    auto signals = childDevices[0].getSignals(search::LocalId("devicetimesigprivate"));
+    ASSERT_EQ(signals.getCount(), 1);
+    ASSERT_EQ(signals[0].getPublic(), False);
+
+    auto childDevicesClient = clientDevice.getDevices(search::LocalId("mock_phys_dev"));
+    ASSERT_EQ(childDevicesClient.getCount(), 1);
+    auto signalsClient = childDevicesClient[0].getSignals(search::LocalId("devicetimesigprivate"));
+    ASSERT_EQ(signalsClient.getCount(), 0);
 }

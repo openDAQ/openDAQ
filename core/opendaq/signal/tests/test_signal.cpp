@@ -782,7 +782,8 @@ TEST_F(SignalTest, LockedAttributes)
 
     signal.asPtr<IComponentPrivate>().lockAllAttributes();
 
-    ASSERT_NO_THROW(signal.setPublic(false));
+    // Lock keeps Public unchanged, but doesn't throw exceptions
+    ASSERT_NO_THROW(signal.setPublic(true));
     ASSERT_EQ(signal.getPublic(), false);
 }
 

@@ -252,6 +252,85 @@ TEST_F(ConfigProtocolIntegrationTest, ClearPropertyValue)
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), clientDevice.getChannels()[0].getPropertyValue("StrProp"));
 }
 
+TEST_F(ConfigProtocolIntegrationTest, SetPropertySelectionValueList)
+{
+    const auto serverCh = serverDevice.getChannels()[0];
+    serverCh.addProperty(SelectionProperty("SelectionProp", List<IString>("apple", "banana", "cherry"), 0));
+
+    const auto clientCh = clientDevice.getChannels()[0];
+
+    // Verify initial state
+    ASSERT_EQ(clientCh.getPropertyValue("SelectionProp"), 0);
+    ASSERT_EQ(clientCh.getPropertySelectionValue("SelectionProp"), "apple");
+
+    // Set by selection value via client
+    clientCh.setPropertySelectionValue("SelectionProp", "banana");
+
+    // Verify both server and client have the new value
+    ASSERT_EQ(serverCh.getPropertyValue("SelectionProp"), 1);
+    ASSERT_EQ(serverCh.getPropertySelectionValue("SelectionProp"), "banana");
+    ASSERT_EQ(clientCh.getPropertyValue("SelectionProp"), 1);
+    ASSERT_EQ(clientCh.getPropertySelectionValue("SelectionProp"), "banana");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, SetPropertySelectionValueSparseDict)
+{
+    const auto serverCh = serverDevice.getChannels()[0];
+    auto dict = Dict<Int, IString>();
+    dict.set(1, "one");
+    dict.set(5, "five");
+    dict.set(10, "ten");
+    serverCh.addProperty(SparseSelectionProperty("SparseSelectionProp", dict, 5));
+
+    const auto clientCh = clientDevice.getChannels()[0];
+
+    // Verify initial state
+    ASSERT_EQ(clientCh.getPropertyValue("SparseSelectionProp"), 5);
+    ASSERT_EQ(clientCh.getPropertySelectionValue("SparseSelectionProp"), "five");
+
+    // Set by selection value via client
+    clientCh.setPropertySelectionValue("SparseSelectionProp", "ten");
+
+    // Verify both server and client have the new value
+    ASSERT_EQ(serverCh.getPropertyValue("SparseSelectionProp"), 10);
+    ASSERT_EQ(serverCh.getPropertySelectionValue("SparseSelectionProp"), "ten");
+    ASSERT_EQ(clientCh.getPropertyValue("SparseSelectionProp"), 10);
+    ASSERT_EQ(clientCh.getPropertySelectionValue("SparseSelectionProp"), "ten");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, SetPropertySelectionValueInvalid)
+{
+    const auto serverCh = serverDevice.getChannels()[0];
+    serverCh.addProperty(SelectionProperty("SelectionProp", List<IString>("apple", "banana", "cherry"), 0));
+
+    const auto clientCh = clientDevice.getChannels()[0];
+
+    ASSERT_THROW(clientCh.setPropertySelectionValue("SelectionProp", "nonexistent"), InvalidValueException);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, SetProtectedPropertySelectionValue)
+{
+    const auto serverCh = serverDevice.getChannels()[0];
+    auto readOnlySelectionProp = SelectionPropertyBuilder("ReadOnlySelection", List<IString>("x", "y", "z"), 0)
+                                     .setReadOnly(true)
+                                     .build();
+    serverCh.addProperty(readOnlySelectionProp);
+
+    const auto clientCh = clientDevice.getChannels()[0];
+
+    // Cannot set via normal method
+    ASSERT_THROW(clientCh.setPropertySelectionValue("ReadOnlySelection", "y"), AccessDeniedException);
+
+    // Can set via protected method
+    clientCh.asPtr<IPropertyObjectProtected>(true).setProtectedPropertySelectionValue("ReadOnlySelection", "y");
+
+    // Verify both server and client have the new value
+    ASSERT_EQ(serverCh.getPropertyValue("ReadOnlySelection"), 1);
+    ASSERT_EQ(serverCh.getPropertySelectionValue("ReadOnlySelection"), "y");
+    ASSERT_EQ(clientCh.getPropertyValue("ReadOnlySelection"), 1);
+    ASSERT_EQ(clientCh.getPropertySelectionValue("ReadOnlySelection"), "y");
+}
+
 TEST_F(ConfigProtocolIntegrationTest, CallFuncProp)
 {
     const auto serverCh = serverDevice.getChannels()[0];

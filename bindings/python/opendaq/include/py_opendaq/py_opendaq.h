@@ -115,6 +115,8 @@ PyDaqIntf<daq::IAddressInfo, daq::IPropertyObject> declareIAddressInfo(pybind11:
 PyDaqIntf<daq::IAddressInfoBuilder, daq::IBaseObject> declareIAddressInfoBuilder(pybind11::module_ m);
 PyDaqIntf<daq::ISyncComponent, daq::IComponent> declareISyncComponent(pybind11::module_ m);
 PyDaqIntf<daq::ISyncComponentPrivate, daq::IBaseObject> declareISyncComponentPrivate(pybind11::module_ m);
+PyDaqIntf<daq::ISyncInterface, daq::IBaseObject> declareISyncInterface(pybind11::module_ m);
+PyDaqIntf<daq::ISyncComponent2, daq::IBaseObject> declareISyncComponent2(pybind11::module_ m);
 PyDaqIntf<daq::IReferenceDomainInfo, daq::IBaseObject> declareIReferenceDomainInfo(pybind11::module_ m);
 PyDaqIntf<daq::IReferenceDomainInfoBuilder, daq::IBaseObject> declareIReferenceDomainInfoBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> declareIUpdateParameters(pybind11::module_ m);
@@ -231,6 +233,8 @@ void defineIAddressInfo(pybind11::module_ m, PyDaqIntf<daq::IAddressInfo, daq::I
 void defineIAddressInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IAddressInfoBuilder, daq::IBaseObject> cls);
 void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, daq::IComponent> cls);
 void defineISyncComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::ISyncComponentPrivate, daq::IBaseObject> cls);
+void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, daq::IBaseObject> cls);
+void defineISyncComponent2(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent2, daq::IBaseObject> cls);
 void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDomainInfo, daq::IBaseObject> cls);
 void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IReferenceDomainInfoBuilder, daq::IBaseObject> cls);
 void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> cls);

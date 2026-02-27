@@ -40,9 +40,9 @@ void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, da
 {
     cls.doc() = "Interface representing a Synchronization Component in a Test & Measurement system. A SynchronizationComponent ensures synchronization among measurement devices in the system. It can act as a sync source and/or as a sync output, with each component having one sync input and 0 to n sync outputs.";
 
-    m.def("SyncComponent", [](daq::IContext* context, daq::IComponent* ParseFailedException, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId){
-        return daq::SyncComponent_Create(context, ParseFailedException, getVariantValue<daq::IString*>(localId));
-    }, py::arg("context"), py::arg("parse_failed_exception"), py::arg("local_id"));
+    m.def("SyncComponent", [](daq::IContext* context, daq::IComponent* parent, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId){
+        return daq::SyncComponent_Create(context, parent, getVariantValue<daq::IString*>(localId));
+    }, py::arg("context"), py::arg("parent"), py::arg("local_id"));
 
 
     cls.def_property_readonly("sync_locked",

@@ -7,6 +7,8 @@
 #include <config_protocol/config_client_device_impl.h>
 #include <config_protocol/config_client_channel_impl.h>
 #include <config_protocol/config_client_sync_component_impl.h>
+#include <config_protocol/config_client_sync_component2_impl.h>
+#include <config_protocol/config_client_sync_interface_impl.h>
 #include <config_protocol/config_client_server_impl.h>
 #include <config_protocol/config_client_device_info_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
@@ -613,6 +615,20 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
     {
         BaseObjectPtr obj;
         checkErrorInfo(ConfigClientSyncComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
+    }
+
+    if (typeId == "SyncComponent2")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientSyncComponent2Impl::Deserialize(serObj, context, factoryCallback, &obj));
+        return obj;
+    }
+
+    if (typeId == "SyncInterface")
+    {
+        BaseObjectPtr obj;
+        checkErrorInfo(ConfigClientSyncInterfaceImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;
     }
 

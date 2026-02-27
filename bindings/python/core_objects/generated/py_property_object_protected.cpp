@@ -58,4 +58,13 @@ void defineIPropertyObjectProtected(pybind11::module_ m, PyDaqIntf<daq::IPropert
         },
         py::arg("property_name"),
         "Clears a property value. Does not fail if the property is read-only.");
+    cls.def("set_protected_property_selection_value",
+        [](daq::IPropertyObjectProtected *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName, const py::object& value)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyObjectProtectedPtr::Borrow(object);
+            objectPtr.setProtectedPropertySelectionValue(getVariantValue<daq::IString*>(propertyName), pyObjectToBaseObject(value));
+        },
+        py::arg("property_name"), py::arg("value"),
+        "Sets a selection property value by the selection value. Does not fail if the property is read-only.");
 }

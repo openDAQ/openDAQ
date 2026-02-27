@@ -1,6 +1,8 @@
 #include <testutils/testutils.h>
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
+#include <opendaq/sync_component2_internal_ptr.h>
+#include <opendaq/sync_interface_base_impl.h>
 #include <opendaq/context_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_object_class_factory.h>
@@ -169,5 +171,165 @@ TEST_F(SyncComponentTest, Serialization)
     ASSERT_EQ(syncComponent.getInterfaces().getKeyList(), syncComponentDeserialized.getInterfaces().getKeyList());
 }
 
+// =====================================================
+// SyncComponent2 and SyncInterface Tests
+// =====================================================
+
+using SyncComponent2Test = testing::Test;
+
+TEST_F(SyncComponent2Test, Create)
+{
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    ASSERT_TRUE(syncComponent2.assigned());
+}
+
+TEST_F(SyncComponent2Test, GetInterfaces)
+{
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+
+    const auto interfaces = syncComponent2.getInterfaces();
+    ASSERT_EQ(interfaces.getCount(), 1u);
+    ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
+}
+
+TEST_F(SyncComponent2Test, GetSelectedSource)
+{
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+
+    const auto selectedSource = syncComponent2.getSelectedSource();
+    ASSERT_TRUE(selectedSource.assigned());
+    ASSERT_EQ(selectedSource.getName(), "ClockSyncInterface");
+}
+
+TEST_F(SyncComponent2Test, AddTwoTheSameInterfaces)
+{
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2Internal = syncComponent2.asPtr<ISyncComponent2Internal>(true);
+
+    const auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+    ASSERT_NO_THROW(syncComponent2Internal.addInterface(newInterface));
+    ASSERT_EQ(syncComponent2.getInterfaces().getCount(), 2u);
+
+    ASSERT_ANY_THROW(syncComponent2Internal.addInterface(newInterface));
+    ASSERT_EQ(syncComponent2.getInterfaces().getCount(), 2u);
+
+    const auto newInterfaceWithTheSameName = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+    ASSERT_ANY_THROW(syncComponent2Internal.addInterface(newInterfaceWithTheSameName));
+    ASSERT_EQ(syncComponent2.getInterfaces().getCount(), 2u);
+}
+
+TEST_F(SyncComponent2Test, SetSelectedSource)
+{
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2Internal = syncComponent2.asPtr<ISyncComponent2Internal>(true);
+
+    // Add another interface
+    const auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+    syncComponent2Internal.addInterface(newInterface);
+
+    // Verify we have 2 interfaces
+    const auto interfaces = syncComponent2.getInterfaces();
+    ASSERT_EQ(interfaces.getCount(), 2u);
+
+    // Change selected source
+    syncComponent2.setSelectedSource("TestInterface");
+    const auto selectedSource = syncComponent2.getSelectedSource();
+    ASSERT_EQ(selectedSource.getName(), "TestInterface");
+}
+
+TEST_F(SyncComponent2Test, SetSelectedSourceNotFound)
+{
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+
+    ASSERT_THROW(syncComponent2.setSelectedSource("NonExistent"), NotFoundException);
+}
+
+TEST_F(SyncComponent2Test, GetSourceSynced)
+{
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+
+    Bool synced;
+    ASSERT_EQ(syncComponent2->getSourceSynced(&synced), OPENDAQ_SUCCESS);
+    ASSERT_FALSE(synced);
+}
+
+TEST_F(SyncComponent2Test, GetSourceReferenceDomainId)
+{
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+
+    StringPtr referenceDomainId;
+    ASSERT_EQ(syncComponent2->getSourceReferenceDomainId(&referenceDomainId), OPENDAQ_SUCCESS);
+    ASSERT_EQ(referenceDomainId, "");
+}
+
+TEST_F(SyncComponent2Test, SyncInterfaceGetName)
+{
+    const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("MyInterface");
+    ASSERT_EQ(syncInterface.getName(), "MyInterface");
+}
+
+TEST_F(SyncComponent2Test, SyncInterfaceGetSynced)
+{
+    const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("MyInterface");
+    ASSERT_FALSE(syncInterface.getSynced());
+}
+
+TEST_F(SyncComponent2Test, SyncInterfaceGetReferenceDomainId)
+{
+    const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("MyInterface");
+    ASSERT_EQ(syncInterface.getReferenceDomainId(), "");
+}
+
+TEST_F(SyncComponent2Test, SyncInterfaceProperties)
+{
+    const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("MyInterface");
+    const auto propObj = syncInterface.asPtr<IPropertyObject>(true);
+
+    // Check Name property
+    ASSERT_EQ(propObj.getPropertyValue("Name"), "MyInterface");
+
+    // Check Mode property (default is Off)
+    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Off");
+
+    // Check Status properties
+    ASSERT_EQ(propObj.getPropertyValue("Status.Synchronized"), False);
+    ASSERT_EQ(propObj.getPropertyValue("Status.ReferenceDomainId"), "");
+}
+
+TEST_F(SyncComponent2Test, Serialization)
+{
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2Internal = syncComponent2.asPtr<ISyncComponent2Internal>(true);
+
+    // Add another interface
+    const auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+    syncComponent2Internal.addInterface(newInterface);
+
+    // Change selected source
+    syncComponent2.setSelectedSource("TestInterface");
+
+    const auto serializer = JsonSerializer();
+    syncComponent2.serialize(serializer);
+    const auto serializedJson = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, nullptr, "sync");
+    const SyncComponent2Ptr deserialized = deserializer.deserialize(serializedJson, deserializeContext);
+
+    const auto interfaces = deserialized.getInterfaces();
+    ASSERT_EQ(deserialized.getInterfaces().getCount(), 2u);
+    ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
+    ASSERT_TRUE(interfaces.hasKey("TestInterface"));
+    ASSERT_EQ(deserialized.getSelectedSource().getName(), "TestInterface");
+}
 
 END_NAMESPACE_OPENDAQ

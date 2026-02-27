@@ -240,4 +240,13 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
         },
         py::arg("property_filter"), py::arg("component_filter") = nullptr,
         "Retrieves a list of properties from the Property object that match the given property filter.");
+    cls.def("set_property_selection_value",
+        [](daq::IPropertyObject *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& propertyName, const py::object& value)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            objectPtr.setPropertySelectionValue(getVariantValue<daq::IString*>(propertyName), pyObjectToBaseObject(value));
+        },
+        py::arg("property_name"), py::arg("value"),
+        "Sets the value of a Selection property by providing the selected value instead of the index/key.");
 }

@@ -18,6 +18,7 @@
 #include <opendaq/signal_config_ptr.h>
 #include <opendaq/component_impl.h>
 #include <opendaq/folder_factory.h>
+#include <opendaq/folder.h>
 #include <opendaq/component_factory.h>
 #include <opendaq/signal_factory.h>
 #include <opendaq/context_ptr.h>
@@ -27,7 +28,7 @@
 #include <opendaq/module_manager_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-template <class Intf = IComponent, class ... Intfs>
+template <class Intf = IFolder, class ... Intfs>
 class GenericSignalContainerImpl : public ComponentImpl<Intf, Intfs ...>
 {
 public:
@@ -134,7 +135,7 @@ private:
     void swapComponent(Component& origComponent, const Component& newComponent);
 };
 
-template <class Intf = IComponent, class... Intfs>
+template <class Intf = IFolder, class... Intfs>
 class SignalContainerImpl : public GenericSignalContainerImpl<Intf, Intfs...>
 {
 public:

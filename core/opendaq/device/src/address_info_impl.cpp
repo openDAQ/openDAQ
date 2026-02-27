@@ -77,10 +77,15 @@ ErrCode AddressInfoImpl::getReachabilityStatus(AddressReachabilityStatus* addres
 
 ErrCode AddressInfoImpl::setReachabilityStatusPrivate(AddressReachabilityStatus addressReachability)
 {
-    const bool frozenCache = this->frozen;
-    this->frozen = false;
-    const ErrCode err = Super::setPropertyValue(String(ReachabilityStatus), Integer(static_cast<Int>(addressReachability)));
-    this->frozen = frozenCache;
+    const bool frozenCache = isFrozen();
+    if (frozenCache)
+        unfreeze();
+
+    ErrCode err = Super::setPropertyValue(String(ReachabilityStatus), Integer(static_cast<Int>(addressReachability)));
+
+    if (frozenCache)
+        freeze();
+
     return err;
 }
 
@@ -143,15 +148,8 @@ ErrCode AddressInfoImpl::clone(IPropertyObject** cloned)
 
     return daqTry([this, &obj, &cloned]()
     {
-        auto implPtr = static_cast<AddressInfoImpl*>(obj.getObject());
-        implPtr->configureClonedMembers(valueWriteEvents,
-                                        valueReadEvents,
-                                        endUpdateEvent,
-                                        triggerCoreEvent,
-                                        localProperties,
-                                        propValues,
-                                        customOrder,
-                                        permissionManager);
+        auto implPtr = dynamic_cast<AddressInfoImpl*>(obj.getObject());
+        implPtr->configureClonedMembers(getCloneParameters());
 
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;

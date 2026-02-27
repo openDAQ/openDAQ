@@ -23,6 +23,7 @@
 
 ## Bug fixes
 
+- [#1086](https://github.com/openDAQ/openDAQ/pull/1086) Mirrored device type is not serialised for native usage
 - [#1062](https://github.com/openDAQ/openDAQ/pull/1062) Fix nested PropertyObject update order in beginUpdate/endUpdate
 - [#1054](https://github.com/openDAQ/openDAQ/pull/1054) Add validation default value items type for List And Dict Property
 - [#1077](https://github.com/openDAQ/openDAQ/pull/1077) Transfer default add-device config from server to client via Native protocol

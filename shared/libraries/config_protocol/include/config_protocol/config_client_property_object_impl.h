@@ -501,6 +501,24 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject
 template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setRemoteUpdating(Bool remoteUpdating)
 {
+    auto errCode = daqTry([this, &remoteUpdating]()
+    {
+        // calling 'Imlp::' methods guarantees that RPCs are not involved
+        ListPtr<IProperty> allPropertiesFromClient;
+        checkErrorInfo(Impl::getAllProperties(&allPropertiesFromClient));
+
+        for (const auto& prop : allPropertiesFromClient)
+        {
+            BaseObjectPtr propValueFromClient;
+            checkErrorInfo(Impl::getPropertyValue(prop.getName(), &propValueFromClient));
+
+            const auto configClientPropObj = propValueFromClient.asPtrOrNull<IConfigClientObject>(true);
+            if (configClientPropObj.assigned())
+                checkErrorInfo(configClientPropObj->setRemoteUpdating(remoteUpdating));
+        }
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     this->remoteUpdating = remoteUpdating;
     return OPENDAQ_SUCCESS;
 }

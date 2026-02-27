@@ -1028,7 +1028,6 @@ TEST_F(ConfigProtocolIntegrationTest, FilterNonPublicComponents)
     auto childDevices = serverDevice.getDevices(search::LocalId("mock_phys_dev"));
     ASSERT_EQ(childDevices.getCount(), 1);
     auto signals = childDevices[0].getSignals(search::LocalId("devicetimesigprivate"));
-    // auto signals = childDevices[0].getSignals(search::LocalId("devicetimesig"));
     ASSERT_EQ(signals.getCount(), 1);
     ASSERT_EQ(signals[0].getPublic(), False);
 

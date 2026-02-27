@@ -8,6 +8,9 @@
 #include <config_protocol/config_protocol_client.h>
 #include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/user_factory.h>
+#include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/mirrored_device_ptr.h>
+#include <opendaq/device_type_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -304,4 +307,42 @@ TEST_F(ConfigClientGatewayDeviceTest, TestLeafSignalConnectedAfterGateway2Load)
     ASSERT_TRUE(gateway1Ip.getSignal().assigned());
     ASSERT_TRUE(gateway2Ip.getSignal().assigned());
     ASSERT_TRUE(rootIp.getSignal().assigned());
+}
+
+TEST_F(ConfigClientGatewayDeviceTest, MirroredDeviceTypeIsPropagatedViaConfigProtocol)
+{
+    // Set mirroredDeviceType on gateway1LeafDevice (simulates what the gateway device module does)
+    const auto deviceType = DeviceType("typeId", "typeName", "typeDescription", "daq.test");
+    gateway1LeafDevice.asPtr<IMirroredDeviceConfig>().setMirroredDeviceType(deviceType);
+
+    // The actual server-side leaf device must remain unaffected
+    ASSERT_FALSE(leafDevice.getInfo().getDeviceType().assigned());
+
+    // Connect a fresh client to gateway1Server — serializes gateway1Device including
+    // gateway1LeafDevice with mirroredDeviceType now set
+    const auto freshContext = NullContext();
+    auto freshClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+        freshContext,
+        [this](const PacketBuffer& packet) { return gateway1Server->processRequestAndGetReply(packet); },
+        [](const PacketBuffer&) { assert(false); },
+        nullptr,
+        nullptr,
+        nullptr);
+    const DevicePtr freshDevice = freshClient->connect();
+
+    // freshDevice.getDevices()[0] is the ConfigClientDeviceImpl for gateway1LeafDevice
+    const auto mirroredLeafDevice = freshDevice.getDevices()[0];
+    ASSERT_TRUE(mirroredLeafDevice.assigned());
+
+    const auto mirroredType = mirroredLeafDevice.asPtr<IMirroredDevice>().getMirroredDeviceType();
+    ASSERT_TRUE(mirroredType.assigned());
+    ASSERT_EQ(mirroredType.getId(), "typeId");
+    ASSERT_EQ(mirroredType.getName(), "typeName");
+    ASSERT_EQ(mirroredType.getDescription(), "typeDescription");
+
+    const auto info = mirroredLeafDevice.asPtr<IDevice>().getInfo();
+    ASSERT_TRUE(info.assigned());
+    const auto deviceTypeFromInfo = info.getDeviceType();
+    ASSERT_TRUE(deviceTypeFromInfo.assigned());
+    ASSERT_EQ(deviceTypeFromInfo.getId(), "typeId");
 }

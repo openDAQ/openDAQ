@@ -6,6 +6,14 @@
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/mirrored_device_impl.h>
 #include <opendaq/gmock/streaming.h>
+#include <opendaq/device_type_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/device_info_config_ptr.h>
+#include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/deserialize_component_ptr.h>
+#include <coretypes/json_serializer_factory.h>
+#include <coretypes/json_deserializer_factory.h>
+#include <coretypes/function_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -24,6 +32,27 @@ protected:
     StringPtr onGetRemoteId() const override
     {
         return String("TestId");
+    }
+};
+
+class TestDeviceWithInfoImpl : public MirroredDevice
+{
+public:
+    TestDeviceWithInfoImpl(const ContextPtr& ctx,
+                           const ComponentPtr& parent,
+                           const StringPtr& localId)
+        : MirroredDevice(ctx, parent, localId)
+    {}
+
+protected:
+    StringPtr onGetRemoteId() const override
+    {
+        return String("TestId");
+    }
+
+    DeviceInfoPtr onGetInfo() override
+    {
+        return DeviceInfo("daq.test://TestDevice", "TestDevice");
     }
 };
 
@@ -116,6 +145,43 @@ TEST_F(MirroredDeviceTest, StreamingConnectionStatus)
 
     device.removeStreamingSource("MockStreaming1");
     ASSERT_EQ(device.getConnectionStatusContainer().getStatuses().getCount(), 1u);
+}
+
+TEST_F(MirroredDeviceTest, GetMirroredDeviceTypeDefault)
+{
+    ASSERT_FALSE(device.getMirroredDeviceType().assigned());
+}
+
+TEST_F(MirroredDeviceTest, SetGetMirroredDeviceType)
+{
+    const auto deviceType = DeviceType("typeId", "typeName", "typeDescription", "daq.test");
+    device.setMirroredDeviceType(deviceType);
+
+    const auto retrieved = device.getMirroredDeviceType();
+    ASSERT_TRUE(retrieved.assigned());
+    ASSERT_EQ(retrieved.getId(), "typeId");
+    ASSERT_EQ(retrieved.getName(), "typeName");
+    ASSERT_EQ(retrieved.getDescription(), "typeDescription");
+}
+
+TEST_F(MirroredDeviceTest, SetMirroredDeviceTypePropagatesDeviceType)
+{
+    const auto ctx = NullContext();
+    const MirroredDeviceConfigPtr deviceWithInfo =
+        createWithImplementation<IMirroredDeviceConfig, TestDeviceWithInfoImpl>(ctx, nullptr, "dev");
+
+    // Force deviceInfo initialization
+    deviceWithInfo.asPtr<IDevice>().getInfo();
+
+    const auto deviceType = DeviceType("typeId", "typeName", "typeDescription", "daq.test");
+    deviceWithInfo.setMirroredDeviceType(deviceType);
+
+    const auto info = deviceWithInfo.asPtr<IDevice>().getInfo();
+    ASSERT_TRUE(info.assigned());
+    const auto deviceTypeFromInfo = info.getDeviceType();
+    ASSERT_TRUE(deviceTypeFromInfo.assigned());
+    ASSERT_EQ(deviceTypeFromInfo.getId(), "typeId");
+    ASSERT_EQ(deviceTypeFromInfo.getName(), "typeName");
 }
 
 END_NAMESPACE_OPENDAQ

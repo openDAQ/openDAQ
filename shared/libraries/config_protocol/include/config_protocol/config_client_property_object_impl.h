@@ -503,7 +503,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setRemoteUpdating(Bool remoteU
 {
     auto errCode = daqTry([this, &remoteUpdating]()
     {
-        // calling 'Imlp::' methods guarantees that RPCs are not involved
+        // calling 'Impl::' methods guarantees that RPCs are not involved
         ListPtr<IProperty> allPropertiesFromClient;
         checkErrorInfo(Impl::getAllProperties(&allPropertiesFromClient));
 

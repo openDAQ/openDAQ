@@ -239,7 +239,7 @@ void MirroredDeviceBase<Interfaces...>::serializeCustomObjectValues(const Serial
 
     if (!forUpdate && mirroredDeviceType.assigned())
     {
-        serializer.key("mirroredDeviceType");
+        serializer.key("MirroredDeviceType");
         mirroredDeviceType.serialize(serializer);
     }
 }
@@ -251,9 +251,9 @@ void MirroredDeviceBase<Interfaces...>::deserializeCustomObjectValues(const Seri
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
-    if (serializedObject.hasKey("mirroredDeviceType"))
+    if (serializedObject.hasKey("MirroredDeviceType"))
     {
-        const DeviceTypePtr type = serializedObject.readObject("mirroredDeviceType", context, factoryCallback);
+        const DeviceTypePtr type = serializedObject.readObject("MirroredDeviceType", context, factoryCallback);
         checkErrorInfo(setMirroredDeviceType(type));
     }
 }

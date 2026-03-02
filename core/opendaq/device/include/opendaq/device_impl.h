@@ -184,7 +184,6 @@ protected:
     bool isRootDevice;
     UserLockPtr userLock;
     ConnectionStatusContainerPrivatePtr connectionStatusContainer;
-    OperationModeType operationMode {OperationModeType::Idle};
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
@@ -249,6 +248,8 @@ protected:
     ErrCode updateOperationModeInternal(OperationModeType modeType);
 
     DevicePtr getParentDevice();
+    OperationModeType getOperationMode();
+
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -259,10 +260,11 @@ private:
     ErrCode unlockInternal(IUser* user);
     ErrCode forceUnlockInternal();
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool>& targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
+    ModuleInfoPtr getModuleInfoFromDeviceType();
 
     DeviceDomainPtr deviceDomain;
+    OperationModeType operationMode {OperationModeType::Idle};
     ListPtr<IInteger> availableOperationModes;
-    ModuleInfoPtr getModuleInfoFromDeviceType();
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -1703,6 +1705,12 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::getParentDevice()
     }
 
     return nullptr;
+}
+
+template <typename TInterface, typename... Interfaces>
+OperationModeType GenericDevice<TInterface, Interfaces...>::getOperationMode()
+{
+    return this->operationMode;
 }
 
 template <typename TInterface, typename ... Interfaces>

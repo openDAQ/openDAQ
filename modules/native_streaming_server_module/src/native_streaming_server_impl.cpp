@@ -178,9 +178,9 @@ void NativeStreamingServerImpl::initWorkerPool()
     workerPool = nullptr;
     size_t workerCount = 1;
 
-    if (config.hasProperty("StreamingWorkerCount"))
+    if (config.hasProperty("ConfigurationRpcWorkerCount"))
     {
-        workerCount = config.getPropertyValue("StreamingWorkerCount");
+        workerCount = config.getPropertyValue("ConfigurationRpcWorkerCount");
 
         if (workerCount == 0)
             workerCount = std::thread::hardware_concurrency();

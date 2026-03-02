@@ -971,7 +971,7 @@ TEST_F(NativeStreamingModulesTest, ParallelRpcCalls)
         refDevice1.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
 
         auto config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
-        config.setPropertyValue("StreamingWorkerCount", 2);
+        config.setPropertyValue("ConfigurationRpcWorkerCount", 2);
         instance.addServer("OpenDAQNativeStreaming", config);
         return instance;
     };

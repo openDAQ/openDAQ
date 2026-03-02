@@ -355,7 +355,7 @@ PropertyObjectPtr NativeStreamingServerHandler::createDefaultConfig()
                                  "The default value is '1', which means requests are processed one at a time. "
                                  "A value of '0' sets the number of threads to the number of available CPU cores on the system.";
 
-        const auto property = IntPropertyBuilder("StreamingWorkerCount", 1).setMinValue(0).setDescription(description).build();
+        const auto property = IntPropertyBuilder("ConfigurationRpcWorkerCount", 1).setMinValue(0).setDescription(description).build();
         defaultConfig.addProperty(property);
     }
 

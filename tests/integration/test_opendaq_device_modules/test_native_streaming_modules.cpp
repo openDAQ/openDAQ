@@ -949,7 +949,7 @@ TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
 
 TEST_F(NativeStreamingModulesTest, ParallelRpcCalls)
 {
-    std::vector<size_t> propertyWriteHistory;
+    std::vector<Int> propertyWriteHistory;
 
     auto createServerInstance = [&propertyWriteHistory]()
     {

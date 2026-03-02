@@ -184,6 +184,7 @@ protected:
     bool isRootDevice;
     UserLockPtr userLock;
     ConnectionStatusContainerPrivatePtr connectionStatusContainer;
+    OperationModeType operationMode {OperationModeType::Idle};
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
@@ -260,7 +261,6 @@ private:
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool>& targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
 
     DeviceDomainPtr deviceDomain;
-    OperationModeType operationMode {OperationModeType::Idle};
     ListPtr<IInteger> availableOperationModes;
     ModuleInfoPtr getModuleInfoFromDeviceType();
 };

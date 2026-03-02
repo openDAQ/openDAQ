@@ -1006,7 +1006,7 @@ TEST_F(NativeStreamingModulesTest, ParallelRpcCalls)
 
 TEST_F(NativeStreamingModulesTest, ParallelRpcCallsDefault)
 {
-    std::vector<size_t> propertyWriteHistory;
+    std::vector<Int> propertyWriteHistory;
 
     auto createServerInstance = [&propertyWriteHistory]()
     {

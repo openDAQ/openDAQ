@@ -1,0 +1,82 @@
+= Authentication modelling guide
+
+== Purpose
+
+-   To describe the main approaches to interaction between openDAQ client and server, as well as with third-party applications built without using openDAQ, taking into account the access control model.
+-   To propose a standard workflow for openDAQ users when organizing interaction between client and server sides, regardless of the communication protocol used.
+
+== Introduction
+
+*User access rights* are understood as a set of permissions that define which operations (read, write, execute, create, delete, and other actions) a user is allowed to perform in the system. A *user group* is a logical association of users to whom a common set of access rights is assigned in order to simplify administration and centralized permission management.
+
+The authentication process includes user identification and credential verification, after which the server determines the user’s membership in specific groups and assigns the corresponding access rights for performing operations and accessing data for reading. The set of available data and actions on the client side is formed based on the rights received from the server. The system may also support an *anonymous user*, for whom a predefined set of access rights is applied.
+
+Within the openDAQ abstraction, a user can interact with various objects of the *Component tree* and their attributes. The following objects are relevant to the topic under consideration:
+
+----
+            +--------------------+  
+            :   Property object  : -------> +------------------+
+            +--------------------+  \       :      Device      :
+                     / \             \      :  Function block  :
+                    v   v             \     :      Channel     :
+            +--------------------+     \    :      Signal      :
+            :     Property 1     :      \   :    Input port    :
+            :        ...         :       -> +------------------+
+            :     Property N     :        
+            +--------------------+        
+                                           
+                                           
+----
+
+== Server side
+
+Access control at the level of application components built on top of openDAQ is implemented using a centralized permission management mechanism. The `daq::PermissionManager` component is used to define, store, and verify access rights. It encapsulates the logic of mapping users, their groups, and permitted operations. `daq::PermissionManager` acts as the single source of truth when making decisions about whether a specific action is allowed in the system.
+
+The access model supports basic permission types such as `read`, `write`, and `execute`. Access rights are defined and enforced at the level of the `daq::PropertyObject`, which serves as a container for `daq::Property` objects. Permissions assigned to a `daq::PropertyObject` are propagated to its nested `daq::Property` objects. If a `daq::Property` itself represents a `daq::PropertyObject` entity, then this entity may have its own access rights defined.
+
+Operation availability checks at the `daq::Property` level must be performed before actual read, write, or execute actions. When accessing a `daq::Property`, the permission verification mechanism in `daq::PermissionManager` should be invoked for the parent `daq::PropertyObject`. It analyzes the current *user context* and the required operation type (read/write/execute). If the required permission is missing, the operation is blocked, and the calling client side should be informed of the reason whenever possible (`AccessDenied`). A similar approach is applied to checking modification of `daq::PropertyObject` attributes. Before modifying an attribute, a centralized permission check is performed through `daq::PermissionManager`, taking into account the current user’s rights.
+
+Depending on the communication protocol characteristics between client and server, the server should, whenever possible, avoid sending information about the presence of a `daq::PropertyObject` in the *Component Tree* if the user does not have `read` rights.
+
+In addition to access control for `daq::PropertyObject` attributes and nested `daq::Property` objects, the system includes component methods whose execution must also be validated according to the current user’s rights. Access to such operations is regulated via `daq::PermissionManager` in the same way as read/write/execute checks for properties.
+
+- The `daq::addDevice` and `daq::removeDevice` methods apply to the `daq::Device` component. To invoke them, the user must have *both* `write` and `execute` rights for the corresponding `daq::Device` instance. If at least one of these permissions is missing, the operation is forbidden.
+
+- The `daq::addFunctionBlock` and `daq::removeFunctionBlock` methods apply to `daq::Device`, `daq::FunctionBlock`, and `daq::Channel` components. Their execution requires *both* `write` and `execute` rights on the respective component in whose context the functional block is added or removed.
+
+- The `daq::beginUpdate` and `daq::endUpdate` methods apply to `daq::PropertyObject` and its derived components. Their execution requires `write` rights on the corresponding component in whose context these methods are called.
+
+- The `daq::InputPort::connect` and `daq::InputPort::disconnect` methods apply to the `daq::InputPort` component. The user must have *both* `write` and `execute` rights on the specific `daq::InputPort` instance; otherwise, the connection or disconnection operation is forbidden.
+
+The access rights described above must also be reflected in the communication protocol between client and server if the protocol supports such functionality.
+
+== Client side
+
+When connecting to the server, the client application creates a representation of the server *root device*, the so-called *mirrored device*. Although `daq::PermissionManager` is available on the client side, its use for access control is not convenient. 
+
+- First, there is no explicit “user” entity on the client side that would represent the current user.   
+
+- Second, in the current version of openDAQ, user rights do not imply direct mapping to GUI visualization in the Component tree, its objects, and their attributes.
+
+- Third, introducing such changes would affect existing user code and the consistency of components in existing user systems. Instead, it is proposed to use the existing API to reflect user rights.
+
+If a user does not have `read` rights for a specific component, the server must not include information about that component in protocol messages exchanged between client and server. Accordingly, the client side must not receive any information about the existence of such a component and must not be able to indirectly infer its presence. This implements the principle of “invisibility” of inaccessible entities: a component without `read` permission is considered completely hidden from the user. This rule applies both to the components themselves and to their properties, attributes, and nested elements. However, certain communication protocols, due to their internal architecture, may require partial disclosure of system structure information. For example, when using OPC UA, the server may be required to return minimal information about the existence of a node in the address space. In such cases, the client side must apply additional filtering: such components must be ignored and not added to the *Component Tree*. This approach ensures consistency of the security policy regardless of the specifics of the transport or application protocol and guarantees that the user interacts only with components for which they actually have access rights.
+
+If a user does not have `write` rights for a specific `daq::PropertyObject`, the system must switch this object to read-only mode. 
+All attributes of the corresponding `daq::PropertyObject` must be locked against modification. This can be achieved by calling `daq::IComponentPrivate::lockAllAttributes`. Additionally, all nested `daq::Property` objects must have the `read-only` flag set. This guarantees that attempts to modify property values on the client side will be rejected either at the interface validation stage or upon contacting the server. Thus, consistency is ensured both at the data model level and at the user interface level.
+
+The methods `daq::IDevice::getAvailableDeviceTypes`, `daq::IDevice::getAvailableDevices`, `daq::IDevice::getAvailableFunctionBlockTypes`, and `daq::IFunctionBlock::getAvailableFunctionBlockTypes`, which return information about entities available for creation or connection, must return an empty list if the user does not have `write` or `execute` rights. The user must also not be able to connect or disconnect a `daq::Signal` to/from a `daq::InputPort` if `write` or `execute` rights for the corresponding component are missing. For this purpose, the `daq::IInputPort::acceptsSignal` method must return `false`.
+
+If a user does not have `execute` rights for a specific `daq::PropertyObject`, nested `daq::Property` objects of type `daq::CoreType::ctFunc` or `daq::CoreType::ctProc` must either not be added to `the daq::PropertyObject` or their `visible` flag must be set to `false`.
+
+== openDAQ SDK user (developer)
+
+The expected workflow on client side:
+
+-  Before attempting to set a value for a `daq::Property`, call `daq::IProperty::getReadOnly` and ensure that it returns `false`.
+-  Before attempting to execute a `daq::Property` of type `daq::CoreType::ctFunc` or `daq::CoreType::ctProc`, call `daq::IProperty::getVisible` and ensure that it returns `true`.
+-  Before attempting to add a nested `daq::Device` or `daq::FunctionBlock`, call `daq::IDevice::getAvailableDeviceTypes` or `daq::IDevice::getAvailableFunctionBlockTypes` respectively and ensure that the component to be added is present in the returned list.
+
+Even if a developer ignores this workflow and attempts to perform an action without the required rights, the procedure will be rejected either on the client side or on the server side.
+
+The described approach assumes that user access rights remain *static* within a single session. If access rights are changed on the server side, this may lead to inconsistency; however, this is not considered critical and is treated as normal behavior. In such a case, the client must reconnect to the server to synchronize the state.

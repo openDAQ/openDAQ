@@ -131,6 +131,7 @@ protected:
     virtual void activeChanged();
     virtual void visibleChanged();
     virtual void removed();
+    virtual void removedNoLock();
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
     void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
@@ -727,22 +728,25 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
 template<class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs ...>::remove()
 {
-    auto lock = this->getRecursiveConfigLock();
-
-    if (isComponentRemoved)
-        return OPENDAQ_IGNORED;
-
-    isComponentRemoved = true;
-
-    if (active)
     {
-        active = false;
-        activeChanged();
+        auto lock = this->getRecursiveConfigLock();
+
+        if (isComponentRemoved)
+            return OPENDAQ_IGNORED;
+
+        isComponentRemoved = true;
+
+        if (active)
+        {
+            active = false;
+            activeChanged();
+        }
+
+        this->disableCoreEventTrigger();
+        removed();
     }
 
-    this->disableCoreEventTrigger();
-    removed();
-
+    removedNoLock();
     return OPENDAQ_SUCCESS;
 }
 
@@ -924,6 +928,11 @@ void ComponentImpl<Intf, Intfs...>::visibleChanged()
 
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::removed()
+{
+}
+
+template <class Intf, class ... Intfs>
+void ComponentImpl<Intf, Intfs...>::removedNoLock()
 {
 }
 

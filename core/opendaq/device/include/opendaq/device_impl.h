@@ -1927,9 +1927,8 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
             auto manufacturer = deviceInfo.getManufacturer();
             auto serialNumber = deviceInfo.getSerialNumber();
-            bool isRemote = deviceInfo.getServerCapabilities().getCount();
 
-            if (isRemote && manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
+            if (manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
             {
                 serializer.key("manufacturer");
                 serializer.writeString(manufacturer);

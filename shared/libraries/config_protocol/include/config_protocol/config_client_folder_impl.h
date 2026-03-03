@@ -146,18 +146,18 @@ BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
         });
 
     auto folderConfig = folder.asPtr<IFolderConfig>(true);
-    std::list<StringPtr> localIds;
+    ListPtr<IString> localIds;
     for (auto item : folderConfig.getItems())
     {
         if (auto port = item.asPtrOrNull<IInputPort>(true); port.assigned() && !port.getPublic())
         {
-            localIds.emplace_back(port.getLocalId());
+            localIds.pushBack(port.getLocalId());
             continue;
         }
 
         if (auto sig = item.asPtrOrNull<ISignal>(true); sig.assigned() && !sig.getPublic())
         {
-            localIds.emplace_back(sig.getLocalId());
+            localIds.pushBack(sig.getLocalId());
             continue;
         }
     }

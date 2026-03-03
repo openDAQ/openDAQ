@@ -97,7 +97,7 @@ protected:
     std::unordered_map<std::string, SizeT> registeredClientIds;
     std::unordered_map<std::string, SizeT> disconnectedClientIds;
     StreamingPtr streaming;
-    std::shared_ptr<boost::asio::thread_pool> workerPool;
+    std::unique_ptr<boost::asio::thread_pool> workerPool;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

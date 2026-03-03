@@ -40,6 +40,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     , logger(context.getLogger())
     , loggerComponent(logger.getOrAddComponent(id))
     , serverStopped(false)
+    , workerPool(nullptr)
 {
     auto info = rootDevice.getInfo();
     if (info.hasServerCapability("OpenDAQNativeStreaming"))
@@ -175,21 +176,23 @@ void NativeStreamingServerImpl::coreEventCallback(ComponentPtr& sender, CoreEven
 
 void NativeStreamingServerImpl::initWorkerPool()
 {
-    workerPool = nullptr;
-    size_t workerCount = 1;
-
     if (config.hasProperty("ConfigurationRpcWorkerCount"))
     {
-        workerCount = config.getPropertyValue("ConfigurationRpcWorkerCount");
+        size_t workerCount = config.getPropertyValue("ConfigurationRpcWorkerCount");
+        LOG_I("\"ConfigurationRpcWorkerCount\" property value: {}", workerCount);
 
         if (workerCount == 0)
             workerCount = std::thread::hardware_concurrency();
 
         if (workerCount > 1)
-            workerPool = std::make_shared<boost::asio::thread_pool>(workerCount);
-    }
+            workerPool = std::make_unique<boost::asio::thread_pool>(workerCount);
 
-    LOG_I("Config protocol worker count: {}", workerCount);
+        LOG_I("Config protocol worker count: {}", workerCount);
+    }
+    else
+    {
+        LOG_W("\"ConfigurationRpcWorkerCount\" property is missing - server will process all config protocol request in a single thread");
+    }
 }
 
 std::function<void(std::function<void()>)> NativeStreamingServerImpl::createBoostDispatchCallback()

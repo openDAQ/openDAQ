@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <opendaq/setup_node_ptr.h>
+#include <opendaq/device_update_options_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -25,9 +25,9 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
-inline SetupNodePtr SetupNode(const StringPtr& setupString)
+inline DeviceUpdateOptionsPtr DeviceUpdateOptions(const StringPtr& setupString)
 {
-    return SetupNodePtr(SetupNode_Create(setupString));
+    return DeviceUpdateOptionsPtr(DeviceUpdateOptions_Create(setupString));
 }
 
 /*!@}*/

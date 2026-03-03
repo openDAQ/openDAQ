@@ -489,12 +489,6 @@ void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr
             if (!item.template asPtr<IPropertyObjectInternal>().hasUserReadAccess(serializer.getUser()))
                 continue;
 
-            // Skip non-public signals and input ports
-            if (auto sig = item.template asPtrOrNull<ISignal>(true); sig.assigned() && !sig.getPublic())
-                continue;
-            if (auto port = item.template asPtrOrNull<IInputPort>(true); port.assigned() && !port.getPublic())
-                continue;
-
             serializer.key(itemId.c_str());
 
             if (forUpdate)

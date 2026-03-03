@@ -60,7 +60,7 @@ protected:
 private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
-    void onRemoteUpdate(const SerializedObjectPtr& serialized) override; 
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
     void syncComponentOperationMode(const ComponentPtr& component) override;
 };
 
@@ -113,7 +113,7 @@ BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
     const BaseObjectPtr& context,
     const FunctionPtr& factoryCallback)
 {
-    return Impl::DeserializeComponent(
+    BaseObjectPtr folder = Impl::DeserializeComponent(
         serialized,
         context,
         factoryCallback,
@@ -144,6 +144,29 @@ BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
             checkErrorInfo(errCode);
             return typename InterfaceToSmartPtr<Interface>::SmartPtr();
         });
+
+    auto folderConfig = folder.asPtr<IFolderConfig>(true);
+    std::list<StringPtr> localIds;
+    for (auto item : folderConfig.getItems())
+    {
+        if (auto port = item.asPtrOrNull<IInputPort>(true); port.assigned() && !port.getPublic())
+        {
+            localIds.emplace_back(port.getLocalId());
+            continue;
+        }
+
+        if (auto sig = item.asPtrOrNull<ISignal>(true); sig.assigned() && !sig.getPublic())
+        {
+            localIds.emplace_back(sig.getLocalId());
+            continue;
+        }
+    }
+    for (auto localId : localIds)
+    {
+        folderConfig.removeItemWithLocalId(localId);
+    }
+
+    return folder;
 }
 
 template <class Impl>
@@ -220,7 +243,7 @@ void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr&
 
         return;
     }
-    
+
     const auto serItems = serialized.readSerializedObject(keyStr);
     const auto keys = serItems.getKeys();
 

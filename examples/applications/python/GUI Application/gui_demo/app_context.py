@@ -25,7 +25,7 @@ class AppContext(object):
         self.selected_node = None
         self.include_reference_devices = False
         self.view_hidden_components = False
-        self.metadata_fields = []
+        self.metadata_fields = ['unit']
         # gui
         self.ui_scaling_factor = 1.0
         self.icons = {}
@@ -75,8 +75,12 @@ class AppContext(object):
 
     def load_icons(self, directory):
         images = {}
+        scale = max(1, int(self.ui_scaling_factor))
         for file in utils.get_files_in_directory(directory):
-            image = utils.load_and_resize_image(os.path.join(directory, file))
+            # Skip the _x2 variant files — loaded on demand by load_icon()
+            if '_x2' in file:
+                continue
+            image = utils.load_icon(os.path.join(directory, file), scale=scale)
             images[file.split('.')[0]] = image
         self.icons = images
 

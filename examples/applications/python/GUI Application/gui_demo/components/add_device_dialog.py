@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import threading
 
 import opendaq as daq
 
@@ -78,13 +79,18 @@ class AddDeviceDialog(Dialog):
         self.conn_string_entry.bind('<Return>', self.handle_entry_enter)
         self.conn_string_entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
 
-        self.add_device_option = tk.StringVar(add_device_frame)
-        add_device_options = ['no config', 'with config']
-        ttk.OptionMenu(add_device_frame, self.add_device_option, 'no config',
-                       *add_device_options).pack(side=tk.RIGHT)
+        def show_add_menu():
+            menu = tk.Menu(add_device_frame, tearoff=0)
+            menu.add_command(label='Add with config',
+                             command=lambda: self.process_add_device(True))
+            menu.tk_popup(add_dropdown_btn.winfo_rootx(),
+                          add_dropdown_btn.winfo_rooty() + add_dropdown_btn.winfo_height())
 
+        add_dropdown_btn = ttk.Button(add_device_frame, text='▼', width=3,
+                                      command=show_add_menu)
+        add_dropdown_btn.pack(side=tk.RIGHT, padx=(0, 0))
         ttk.Button(add_device_frame, text='Add',
-                   command=self.handle_add_clicked).pack(side=tk.RIGHT)
+                   command=self.handle_add_clicked).pack(side=tk.RIGHT, padx=(0, 2))
 
         add_device_frame.pack(side=tk.BOTTOM, fill=tk.X,
                               padx=(5, 0), pady=(5, 0))
@@ -97,6 +103,7 @@ class AddDeviceDialog(Dialog):
         self.columnconfigure(1, weight=2, uniform='column')
 
         self.dialog_parent_device = None
+        self._search_generation = 0
 
     def initial_update(self):
         self.update_parent_devices(
@@ -108,9 +115,6 @@ class AddDeviceDialog(Dialog):
     def select_parent_device(self, device_id: str):
         if self.parent_device_tree.exists(device_id):
             self.parent_device_tree.selection_set(device_id)
-
-    def is_add_with_config(self):
-        return self.add_device_option.get() == 'with config'
 
     def handle_parent_device_selected(self, event):
         selected_item = utils.treeview_get_first_selection(
@@ -137,15 +141,32 @@ class AddDeviceDialog(Dialog):
         self.conn_string_entry.insert(0, connection_string[1])
 
     def handle_device_tree_double_click(self, event):
-        self.process_add_device(self.is_add_with_config())
+        self.process_add_device(False)
 
     def process_add_device(self, open_config_dialog: bool):
+        parent_top = self.parent.winfo_toplevel()
+        self.configure(cursor='watch')
+        parent_top.configure(cursor='watch')
+        # Defer work so Tkinter finishes the current event (repaint cursor) before blocking
+        self.after(0, lambda: self._run_add_device(open_config_dialog, parent_top))
+
+    def _run_add_device(self, open_config_dialog: bool, parent_top):
         if open_config_dialog:
             self.add_device_with_config()
         else:
             self.add_device_without_config()
+        # Restore cursor if dialog is still open (error or config cancelled)
+        try:
+            self.configure(cursor='')
+        except tk.TclError:
+            pass
+        try:
+            parent_top.configure(cursor='')
+        except tk.TclError:
+            pass
 
     def add_device_with_config(self):
+        parent_top = self.parent.winfo_toplevel()
         nearest_device = self.dialog_parent_device
         if nearest_device is None:
             utils.show_error("Configuration error", "Parent device is not selected. Cannot open config.", self)
@@ -164,7 +185,13 @@ class AddDeviceDialog(Dialog):
         add_config_dialog = None
 
         # Try to match entered connection string to one of the discovered devices.
+        # find_available_device triggers a network call — hourglass is already set by process_add_device.
         selected_device_info = self.find_available_device(self.dialog_parent_device, conn_string)
+
+        # Restore cursor before showing the interactive config dialog
+        self.configure(cursor='')
+        parent_top.configure(cursor='')
+
         if selected_device_info is not None and daq.IDeviceInfo.can_cast_from(selected_device_info):
             add_config_dialog = AddConfigDialog.for_discoverable(
                 self, self.context, self.dialog_parent_device, selected_device_info)
@@ -194,33 +221,39 @@ class AddDeviceDialog(Dialog):
         utils.treeview_select_item(self.device_tree, event)
 
         menu = tk.Menu(self, tearoff=0)
-        menu.add_command(
-            label='Quick add', command=lambda: self.process_add_device(open_config_dialog=False))
-        menu.add_command(
-            label='Add with config', command=lambda: self.process_add_device(open_config_dialog=True))
+        menu.add_command(label='Add',
+                         command=lambda: self.process_add_device(open_config_dialog=False))
+        menu.add_command(label='Add with config',
+                         command=lambda: self.process_add_device(open_config_dialog=True))
+        menu.add_separator()
         menu.add_command(label='Device Info',
                          command=self.handle_show_device_info)
         menu.tk_popup(event.x_root, event.y_root)
 
     def add_device(self, connection_string, config):
-        if connection_string and self.dialog_parent_device is not None:
-            try:
-                device = self.context.add_device(DeviceInfoLocal(
-                    connection_string), self.dialog_parent_device, config)
-
-                self.update_parent_devices(
-                    self.parent_device_tree, '', self.context.instance)
-                self.select_parent_device(device.global_id)
-                self.event_port.emit()
-            except Exception as e:
-                utils.show_error('Error adding device', f'{connection_string}: {str(e)}', self)
-                return
+        if not connection_string or self.dialog_parent_device is None:
+            return
+        parent_top = self.parent.winfo_toplevel()
+        self.configure(cursor='watch')
+        parent_top.configure(cursor='watch')
+        self.update_idletasks()
+        try:
+            self.context.add_device(DeviceInfoLocal(
+                connection_string), self.dialog_parent_device, config)
+        except Exception as e:
+            self.configure(cursor='')
+            parent_top.configure(cursor='')
+            utils.show_error('Error adding device', f'{connection_string}: {str(e)}', self)
+            return
+        parent_top.configure(cursor='')
+        self.event_port.emit()
+        self.close()
 
     def handle_add_clicked(self):
-        self.process_add_device(self.is_add_with_config())
+        self.process_add_device(False)
 
     def handle_entry_enter(self, event):
-        self.process_add_device(self.is_add_with_config())
+        self.process_add_device(False)
 
     def find_available_device(self, parent_device: daq.IDevice, selected_item_iid):
         if parent_device is None or selected_item_iid is None:
@@ -243,23 +276,41 @@ class AddDeviceDialog(Dialog):
         DeviceInfoDialog(self, device_info, self.context).show()
 
     def update_child_devices(self, tree, parent_device):
+        self._search_generation += 1
+        generation = self._search_generation
+
         tree.delete(*tree.get_children())
 
         if parent_device is None:
             return
 
+        tree.insert('', tk.END, iid='__loading__',
+                    values=('Searching for devices…', ''))
+        tree.configure(cursor='watch')
+
+        def fetch():
+            try:
+                devices = [
+                    (daq.IDeviceInfo.cast_from(d).name,
+                     daq.IDeviceInfo.cast_from(d).connection_string)
+                    for d in parent_device.available_devices
+                ]
+            except Exception:
+                devices = []
+            self.after(0, lambda: self._on_devices_loaded(tree, devices, generation))
+
+        threading.Thread(target=fetch, daemon=True).start()
+
+    def _on_devices_loaded(self, tree, devices, generation):
+        if generation != self._search_generation:
+            return  # a newer search has started; discard stale results
         try:
-            available_devices = parent_device.available_devices
-        except:
-            return
-
-        for device_info in available_devices:
-            device_info = daq.IDeviceInfo.cast_from(device_info)
-            name = device_info.name
-            conn = device_info.connection_string
-
-            tree.insert('', tk.END, iid=conn, values=(
-                name, conn))
+            tree.delete(*tree.get_children())
+            tree.configure(cursor='')
+            for name, conn in devices:
+                tree.insert('', tk.END, iid=conn, values=(name, conn))
+        except tk.TclError:
+            pass  # dialog was closed before results arrived
 
     def update_parent_devices(self, tree, parent_id, component):
         tree.delete(*tree.get_children())

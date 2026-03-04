@@ -195,14 +195,6 @@ void NativeStreamingServerImpl::initWorkerPool()
     }
 }
 
-std::function<void(std::function<void()>)> NativeStreamingServerImpl::createBoostDispatchCallback()
-{
-    if (workerPool)
-        return [this](std::function<void()> f) { boost::asio::dispatch(*workerPool, std::move(f)); };
-    else
-        return [this](std::function<void()> f) { boost::asio::dispatch(*processingIOContextPtr, processingStrand.wrap(std::move(f))); };
-}
-
 void NativeStreamingServerImpl::startTransportOperations()
 {
     transportThread = std::thread(
@@ -336,24 +328,57 @@ void NativeStreamingServerImpl::prepareServerHandler()
         if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
         {
             auto configServer = std::make_shared<ConfigProtocolServer>(rootDevice, sendConfigPacketCb, user, connectionType, this->signals);
-            const auto boostDispatch = createBoostDispatchCallback();
-
-            processConfigRequestCb = [this, configServer, sendConfigPacketCb, boostDispatch](PacketBuffer&& packetBuffer)
+            processConfigRequestCb =
+                [this, configServer, sendConfigPacketCb](PacketBuffer&& packetBuffer)
             {
                 auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
-                boostDispatch(
-                    [configServer, sendConfigPacketCb, packetBufferPtr]()
+                const auto processRequestAndGetReply =
+                    [sendConfigPacketCb](const std::shared_ptr<ConfigProtocolServer>& configServer, const PacketBuffer& packetBuffer)
                     {
-                        if (packetBufferPtr->getPacketType() == config_protocol::PacketType::NoReplyRpc)
+                        auto replyPacketBuffer = configServer->processRequestAndGetReply(packetBuffer);
+                        sendConfigPacketCb(replyPacketBuffer);
+                    };
+                // one main processing context & thread + strand - preserves the correct execution order of client's request
+                boost::asio::dispatch(
+                    *processingIOContextPtr,
+                    processingStrand.wrap(
+                        [this, configServer, processRequestAndGetReply, packetBufferPtr]()
                         {
-                            configServer->processNoReplyRequest(*packetBufferPtr);
+                             if (packetBufferPtr->getPacketType() == config_protocol::PacketType::Rpc)
+                            {
+                                if (workerPool)
+                                {
+                                    // parallelize only processing of the RPCs which imply replying to client,
+                                    // in this case execution order is orchestrated by client side
+                                    // as client waits for server's reply anyway before triggering subsequent RPC
+                                    boost::asio::dispatch(
+                                        *workerPool,
+                                        [configServer, packetBufferPtr, processRequestAndGetReply] ()
+                                        {
+                                            processRequestAndGetReply(configServer, *packetBufferPtr);
+                                        }
+                                    );
+                                }
+                                else
+                                {
+                                    // or process request in the main thread if pool is not available
+                                    processRequestAndGetReply(configServer, *packetBufferPtr);
+                                }
+                            }
+                            else if (packetBufferPtr->getPacketType() == config_protocol::PacketType::NoReplyRpc)
+                            {
+                                // process RPC request in the main thread if it doesn't imply replying to the client
+                                // in this case execution order is controlled by the server as it cannot be controlled by the client
+                                configServer->processNoReplyRequest(*packetBufferPtr);
+                            }
+                            else
+                            {
+                                // process non-RPC requests (e.g protocol connection negotiations) in the main processing thread
+                                processRequestAndGetReply(configServer, *packetBufferPtr);
+                            }
                         }
-                        else
-                        {
-                            auto replyPacketBuffer = configServer->processRequestAndGetReply(*packetBufferPtr);
-                            sendConfigPacketCb(replyPacketBuffer);
-                        }
-                    });
+                    )
+                );
             };
 
             auto packetStreamingClient = std::make_shared<packet_streaming::PacketStreamingClient>();

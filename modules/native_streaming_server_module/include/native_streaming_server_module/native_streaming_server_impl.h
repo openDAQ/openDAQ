@@ -68,7 +68,6 @@ protected:
     void componentUpdated(ComponentPtr& updatedComponent);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void initWorkerPool();
-    std::function<void(std::function<void()>)> createBoostDispatchCallback();
 
     static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
 

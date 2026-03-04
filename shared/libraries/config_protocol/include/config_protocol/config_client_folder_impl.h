@@ -145,8 +145,12 @@ BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
             return typename InterfaceToSmartPtr<Interface>::SmartPtr();
         });
 
-    auto folderConfig = folder.asPtr<IFolderConfig>(true);
-    ListPtr<IString> localIds;
+    auto folderConfig = folder.asPtrOrNull<IFolderConfig>(true);
+    if (!folderConfig.assigned())
+    {
+        return folder;
+    }
+    auto localIds = List<IString>();
     for (auto item : folderConfig.getItems())
     {
         if (auto port = item.asPtrOrNull<IInputPort>(true); port.assigned() && !port.getPublic())

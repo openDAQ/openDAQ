@@ -6,7 +6,7 @@ set(TEST_SOURCES
     test_config_packet.cpp
     test_config_client_server.cpp
     test_config_protocol_integration.cpp
-    test_config_protocol_integration_all_public.cpp
+    test_config_protocol_integration_non_public.cpp
     test_config_protocol_device_locking.cpp
     test_config_protocol_view_only_client.cpp
     test_config_serialization.cpp

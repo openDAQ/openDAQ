@@ -21,7 +21,7 @@ using namespace config_protocol;
 using namespace testing;
 using namespace std::placeholders;
 
-class ConfigProtocolIntegrationTestAllPublic : public Test
+class ConfigProtocolIntegrationTestNonPublic : public Test
 {
 public:
     void SetUp() override
@@ -29,11 +29,11 @@ public:
         auto anonymousUser = User("", "");
 
         // Only public signals
-        serverDevice = test_utils::createTestDevice("root_dev", false, true);
+        serverDevice = test_utils::createTestDevice("root_dev", false, false);
         serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         server = std::make_unique<ConfigProtocolServer>(
             serverDevice,
-            std::bind(&ConfigProtocolIntegrationTestAllPublic::serverNotificationReady, this, std::placeholders::_1),
+            std::bind(&ConfigProtocolIntegrationTestNonPublic::serverNotificationReady, this, std::placeholders::_1),
             anonymousUser,
             ClientType::Control,
             test_utils::dummyExtSigFolder(serverDevice.getContext()));
@@ -41,8 +41,8 @@ public:
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
             clientContext,
-            std::bind(&ConfigProtocolIntegrationTestAllPublic::sendRequestAndGetReply, this, std::placeholders::_1),
-            std::bind(&ConfigProtocolIntegrationTestAllPublic::sendNoReplyRequest, this, std::placeholders::_1),
+            std::bind(&ConfigProtocolIntegrationTestNonPublic::sendRequestAndGetReply, this, std::placeholders::_1),
+            std::bind(&ConfigProtocolIntegrationTestNonPublic::sendNoReplyRequest, this, std::placeholders::_1),
             nullptr,
             nullptr,
             nullptr);
@@ -86,9 +86,26 @@ protected:
     BaseObjectPtr notificationObj;
 };
 
-TEST_F(ConfigProtocolIntegrationTestAllPublic, Connect)
+TEST_F(ConfigProtocolIntegrationTestNonPublic, Connect)
 {
     const auto serverDeviceSerialized = serializeComponent(serverDevice);
     const auto clientDeviceSerialized = serializeComponent(clientDevice);
-    ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
+
+    // Client side component tree does not include non-public signals (and input ports), therefore
+    // the serialized JSON strings must not be equal.
+    ASSERT_NE(serverDeviceSerialized, clientDeviceSerialized);
+}
+
+TEST_F(ConfigProtocolIntegrationTestNonPublic, FilterNonPublicComponents)
+{
+    auto childDevices = serverDevice.getDevices(search::LocalId("mock_phys_dev"));
+    ASSERT_EQ(childDevices.getCount(), 1);
+    auto signals = childDevices[0].getSignals(search::LocalId("devicetimesigprivate"));
+    ASSERT_EQ(signals.getCount(), 1);
+    ASSERT_EQ(signals[0].getPublic(), False);
+
+    auto childDevicesClient = clientDevice.getDevices(search::LocalId("mock_phys_dev"));
+    ASSERT_EQ(childDevicesClient.getCount(), 1);
+    auto signalsClient = childDevicesClient[0].getSignals(search::LocalId("devicetimesigprivate"));
+    ASSERT_EQ(signalsClient.getCount(), 0);
 }

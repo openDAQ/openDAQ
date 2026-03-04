@@ -51,13 +51,13 @@ class PropertiesTreeview(ttk.Treeview):
         self.heading('value', anchor=tk.W, text='Value')
         # layout
         # Keep first two columns responsive to available width.
-        self.column('#0', anchor=tk.W, minwidth=50, width=200, stretch=True)
-        self.column('value', anchor=tk.W, minwidth=50, width=200, stretch=True)
+        self.column('#0', anchor=tk.W, minwidth=50, width=int(200 * self.context.dpi_factor), stretch=True)
+        self.column('value', anchor=tk.W, minwidth=50, width=int(200 * self.context.dpi_factor), stretch=True)
 
         for field in self._metadata_fields:
             self.heading(field, anchor=tk.W,
                          text=utils.snake_case_to_title(field))
-            self.column(field, anchor=tk.W, minwidth=100, width=100, stretch=False)
+            self.column(field, anchor=tk.W, minwidth=100, width=int(100 * self.context.dpi_factor), stretch=False)
 
         # bind double-click to editing
         self.bind('<Double-1>', lambda event: self.edit_value())

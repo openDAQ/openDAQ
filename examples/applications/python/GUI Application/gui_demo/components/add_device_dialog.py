@@ -20,7 +20,8 @@ class AddDeviceDialog(Dialog):
         self.event_port = EventPort(self.parent)
 
         self.geometry('{}x{}'.format(
-            1000 * self.context.ui_scaling_factor, 400 * self.context.ui_scaling_factor))
+            int(1000 * self.context.ui_scaling_factor * self.context.dpi_factor),
+            int(400 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
         # parent
 
@@ -36,7 +37,7 @@ class AddDeviceDialog(Dialog):
         parent_device_tree.heading('#0', text='Parent device', anchor=tk.W)
 
         parent_device_tree.column(
-            '#0', anchor=tk.W, minwidth=200, stretch=True)
+            '#0', anchor=tk.W, minwidth=int(200 * self.context.dpi_factor), stretch=True)
 
         parent_device_tree.bind('<<TreeviewSelect>>',
                                 self.handle_parent_device_selected)
@@ -64,8 +65,8 @@ class AddDeviceDialog(Dialog):
         device_tree.heading('conn', text='Connection string', anchor=tk.W)
 
         device_tree.column('#0', width=0, stretch=False)
-        device_tree.column('name', anchor=tk.W, minwidth=200)
-        device_tree.column('conn', anchor=tk.W, minwidth=300)
+        device_tree.column('name', anchor=tk.W, minwidth=int(200 * self.context.dpi_factor))
+        device_tree.column('conn', anchor=tk.W, minwidth=int(300 * self.context.dpi_factor))
 
         device_tree.bind('<Double-1>', self.handle_device_tree_double_click)
         device_tree.bind('<Button-3>', self.handle_right_click)

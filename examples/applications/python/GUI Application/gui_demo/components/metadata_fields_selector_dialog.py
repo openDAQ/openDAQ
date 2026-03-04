@@ -29,7 +29,7 @@ class MetadataFieldsSelectorDialog(Dialog):
 
         self.protocol('WM_DELETE_WINDOW', self.cancel)
 
-        self.geometry(f'{400}x{600}')
+        self.geometry(f'{int(400 * context.dpi_factor)}x{int(600 * context.dpi_factor)}')
 
         tree_frame = ttk.Frame(self)
         style = ttk.Style(self)
@@ -53,7 +53,7 @@ class MetadataFieldsSelectorDialog(Dialog):
         self.tree.heading('visible', anchor=tk.CENTER, text='Visible')
         # layout
         self.tree.column('#0', anchor=tk.W, minwidth=240, stretch=True)
-        self.tree.column('visible', anchor=tk.CENTER, minwidth=80, width=80, stretch=False)
+        self.tree.column('visible', anchor=tk.CENTER, minwidth=80, width=int(80 * context.dpi_factor), stretch=False)
         self.tree.tag_configure('visible', background=selected_bg, foreground=selected_fg)
 
         self.tree.bind('<Button-1>', self._on_tree_click, add='+')

@@ -227,7 +227,8 @@ class BlockView(ttk.Frame):
 
 
     def show_all_statuses(self, container):
-        w, h = 600, 200
+        dpi = self.context.dpi_factor if self.context else 1.0
+        w, h = int(600 * dpi), int(200 * dpi)
         window = tk.Toplevel(self)
         window.withdraw()
         window.title('All statuses')
@@ -291,11 +292,11 @@ class BlockView(ttk.Frame):
         if self.expanded:
             self.expanded_frame.pack(fill=tk.BOTH)
             self.expanded_frame.grid_columnconfigure(
-                self.cols, weight=1, minsize=200, uniform='column')
+                self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
             self.expanded_frame.grid_rowconfigure(self.rows, weight=1,
-                                                  minsize=300 if self.input_ports and self.output_signals
+                                                  minsize=int(300 * self.context.dpi_factor) if self.input_ports and self.output_signals
                                                                  or daq.IFolder.can_cast_from(self.node) and
-                                                                 not daq.IDevice.can_cast_from(self.node) else 600)
+                                                                 not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
             if self.properties:
                 self.properties.grid(
                     row=0, column=0, rowspan=2 if self.input_ports and self.output_signals else 1, sticky=tk.NSEW)

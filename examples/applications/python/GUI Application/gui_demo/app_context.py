@@ -1,4 +1,5 @@
 import os
+import platform
 
 import opendaq as daq
 
@@ -28,6 +29,7 @@ class AppContext(object):
         self.metadata_fields = ['unit']
         # gui
         self.ui_scaling_factor = 1.0
+        self.dpi_factor = self._detect_dpi_factor()
         self.icons = {}
         # daq
         builder = daq.InstanceBuilder()
@@ -49,6 +51,32 @@ class AppContext(object):
         self.connection_string = ''
         self.signals = {}
         self.on_needs_refresh: Optional[Callable[[], None]] = None
+
+    def _detect_dpi_factor(self) -> float:
+        """Detect system DPI scaling factor (1.0 = 96 DPI). Used to scale UI elements on high-DPI displays."""
+        try:
+            if platform.system() == 'Windows':
+                from ctypes import windll
+                try:
+                    # Windows 10 1703+
+                    dpi = windll.user32.GetDpiForSystem()
+                    if dpi and dpi > 0:
+                        return dpi / 96.0
+                except Exception:
+                    pass
+                try:
+                    # Fallback: GetDeviceCaps(LOGPIXELSX)
+                    hdc = windll.user32.GetDC(0)
+                    if hdc:
+                        dpi = windll.gdi32.GetDeviceCaps(hdc, 88)  # 88 = LOGPIXELSX
+                        windll.user32.ReleaseDC(0, hdc)
+                        if dpi and dpi > 0:
+                            return dpi / 96.0
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        return 1.0
 
     def add_device(self, device_info, parent_device: daq.IDevice, config=None):
         if device_info is None:
@@ -75,7 +103,7 @@ class AppContext(object):
 
     def load_icons(self, directory):
         images = {}
-        scale = max(1, int(self.ui_scaling_factor))
+        scale = max(1, int(self.dpi_factor))
         for file in utils.get_files_in_directory(directory):
             # Skip the _x2 variant files — loaded on demand by load_icon()
             if '_x2' in file:

@@ -13,7 +13,7 @@ class AttributesDialog(Dialog):
     def __init__(self, parent, title, node, context: AppContext, **kwargs):
         Dialog.__init__(self, parent, title, context, **kwargs)
 
-        self.geometry(f'{600}x{800}')
+        self.geometry(f'{int(600 * context.dpi_factor)}x{int(800 * context.dpi_factor)}')
         tree_frame = ttk.Frame(self)
         tree_frame.pack(fill=tk.BOTH, expand=True)
 

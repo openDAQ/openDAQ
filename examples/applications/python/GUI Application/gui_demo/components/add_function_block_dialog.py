@@ -18,7 +18,8 @@ class AddFunctionBlockDialog(Dialog):
         self.parent_component = selected_component
 
         self.geometry('{}x{}'.format(
-            900 * self.context.ui_scaling_factor, 400 * self.context.ui_scaling_factor))
+            int(900 * self.context.ui_scaling_factor * self.context.dpi_factor),
+            int(400 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
         # parent
 
@@ -34,7 +35,7 @@ class AddFunctionBlockDialog(Dialog):
         parent_device_tree.heading('#0', text='Parent device', anchor=tk.W)
 
         parent_device_tree.column(
-            '#0', anchor=tk.W, minwidth=200, stretch=True)
+            '#0', anchor=tk.W, minwidth=int(200 * self.context.dpi_factor), stretch=True)
 
         parent_device_tree.bind('<<TreeviewSelect>>',
                                 self.handle_parent_device_selected)
@@ -58,10 +59,11 @@ class AddFunctionBlockDialog(Dialog):
 
         # layout
         tree.column('#0', width=0, stretch=tk.NO)
-        tree.column('id', anchor=tk.W, minwidth=200, width=300 *
-                    self.context.ui_scaling_factor, stretch=tk.NO)
-        tree.column('name', anchor=tk.W, minwidth=200, width=300 *
-                    self.context.ui_scaling_factor)
+        dpi = self.context.dpi_factor
+        tree.column('id', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+                    self.context.ui_scaling_factor * dpi), stretch=tk.NO)
+        tree.column('name', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+                    self.context.ui_scaling_factor * dpi))
 
         # bind double-click and right-click
         tree.bind('<Double-1>', self.handle_fb_tree_double_click)
@@ -256,7 +258,8 @@ class AddFunctionBlockDialog(Dialog):
 
         # Center over the main window
         win.update_idletasks()
-        w, h = 600, 400
+        dpi = self.context.dpi_factor
+        w, h = int(600 * dpi), int(400 * dpi)
         main = self.parent.winfo_toplevel()
         x = main.winfo_rootx() + main.winfo_width() // 2 - w // 2
         y = main.winfo_rooty() + main.winfo_height() // 2 - h // 2

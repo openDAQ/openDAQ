@@ -96,7 +96,8 @@ class App(tk.Tk):
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
-            1500 * self.context.ui_scaling_factor, 800 * self.context.ui_scaling_factor))
+            int(1500 * self.context.ui_scaling_factor * self.context.dpi_factor),
+            int(800 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
         main_frame_top = ttk.Frame(self)
         main_frame_top.pack(fill=tk.X)
@@ -147,8 +148,9 @@ class App(tk.Tk):
 
         # High DPI workaround for now
         style = ttk.Style()
-        style.configure('Treeview', rowheight=30 *
-                        self.context.ui_scaling_factor)
+        treeview_rowheight = max(20, int(round(
+            30 * self.context.ui_scaling_factor * self.context.dpi_factor)))
+        style.configure('Treeview', rowheight=treeview_rowheight)
 
         style.configure('Treeview.Heading', font='Arial 10 bold')
         style.configure('Treeview.Column', padding=(
@@ -236,7 +238,7 @@ class App(tk.Tk):
         tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
 
         # layout
-        tree.column('#0', width=350 * self.context.ui_scaling_factor)
+        tree.column('#0', width=int(350 * self.context.ui_scaling_factor * self.context.dpi_factor))
         # hide the column with unique id
         tree.column('#1', width=0, minwidth=0, stretch=False)
 

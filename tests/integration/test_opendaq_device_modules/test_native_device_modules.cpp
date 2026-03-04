@@ -3382,6 +3382,52 @@ TEST_P(NativeC2DStreamingTest, ConnectAndReadGeneralized)
     }
 }
 
+TEST_P(NativeC2DStreamingTest, DisconnectAndConnectWithParallelRPC)
+{
+    auto createServerInstance = []()
+    {
+        const InstancePtr instance = CreateDefaultServerInstance();
+
+        auto config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+        config.setPropertyValue("ConfigurationRpcWorkerCount", 2);
+        instance.addServer("OpenDAQNativeStreaming", config);
+        return instance;
+    };
+
+    auto server = createServerInstance();
+    auto client = CreateClientInstance(GetParam());
+    const ComponentPtr mirroredExtSigFolder = server.getServers()[0].getItem("Sig");
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+    auto mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+
+    std::promise<void> signalRemovedPromise;
+    auto eventHandler = [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        auto coreEventId = static_cast<CoreEventId>(args.getEventId());
+        if (coreEventId == CoreEventId::ComponentRemoved && params.get("Id") == mirroredExternalSignal.getLocalId())
+            signalRemovedPromise.set_value();
+    };
+    mirroredExtSigFolder.getOnComponentCoreEvent() += eventHandler;
+    std::future<void> signalRemovedFuture = signalRemovedPromise.get_future();
+
+    mirroredInputPort.disconnect();
+    mirroredInputPort.connect(clientLocalSignal);
+
+    ASSERT_TRUE(signalRemovedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_TRUE(mirroredExternalSignal.isRemoved());
+    mirroredExtSigFolder.getOnComponentCoreEvent() -= eventHandler;
+
+    mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+    ASSERT_FALSE(mirroredExternalSignal.isRemoved());
+}
+
 TEST_P(NativeC2DStreamingTest, ServerCoreEvents)
 {
     SKIP_TEST_MAC_CI;
@@ -3588,7 +3634,7 @@ TEST_P(NativeC2DStreamingTest, StreamingData)
 
 // version 17 falls to basic C2Ds
 // version 18 uses generalized C2Ds
-INSTANTIATE_TEST_SUITE_P(NativeC2DStreamingTestGroup, NativeC2DStreamingTest, testing::Values(17, 18));
+INSTANTIATE_TEST_SUITE_P(NativeC2DStreamingTestGroup, NativeC2DStreamingTest, testing::Values(17, 19));
 
 TEST_F(NativeDeviceModulesTest, AddNestedFB)
 {

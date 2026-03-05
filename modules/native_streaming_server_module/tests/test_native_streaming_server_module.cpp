@@ -164,6 +164,9 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
 
     ASSERT_TRUE(config.hasProperty("StreamingPacketReleaseThreshold"));
     ASSERT_EQ(config.getPropertyValue("StreamingPacketReleaseThreshold"), 10);
+
+    ASSERT_TRUE(config.hasProperty("ConfigurationRpcWorkerCount"));
+    ASSERT_EQ(config.getPropertyValue("ConfigurationRpcWorkerCount"), 1);
 }
 
 TEST_F(NativeStreamingServerModuleTest, CreateServer)

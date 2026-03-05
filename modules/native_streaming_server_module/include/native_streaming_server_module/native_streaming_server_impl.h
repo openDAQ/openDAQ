@@ -24,6 +24,8 @@
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <opendaq/connection_internal.h>
 #include <tsl/ordered_map.h>
+#include <boost/asio/thread_pool.hpp>
+#include <config_protocol/config_protocol_server.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
 
@@ -39,6 +41,10 @@ public:
     static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);
 
 protected:
+    using PacketBufferPtr = std::shared_ptr<config_protocol::PacketBuffer>;
+    using ConfigServerPtr = std::shared_ptr<config_protocol::ConfigProtocolServer>;
+    using PacketStreamingClientPtr = std::shared_ptr<packet_streaming::PacketStreamingClient>;
+
     PropertyObjectPtr getDiscoveryConfig() override;
     void onStopServer() override;
     StreamingPtr onGetStreaming() override;
@@ -66,8 +72,14 @@ protected:
     void componentRemoved(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
     void componentUpdated(ComponentPtr& updatedComponent);
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
+    void initWorkerPool();
 
     static void populateDefaultConfigFromProvider(const ContextPtr& context, const PropertyObjectPtr& config);
+
+    void processClientConfigRequest(const ConfigServerPtr& configServerPtr, const PacketBufferPtr& packetBufferPtr, opendaq_native_streaming_protocol::SendConfigProtocolPacketCb sendConfigPacketCb);
+    static void processConfigRequestAndSendReply(const ConfigServerPtr& configServerPtr, const PacketBufferPtr& packetBufferPtr, opendaq_native_streaming_protocol::SendConfigProtocolPacketCb sendConfigPacketCb);
+    void dispatchClientConfigRequest(const ConfigServerPtr& configServerPtr, opendaq_native_streaming_protocol::SendConfigProtocolPacketCb sendConfigPacketCb, config_protocol::PacketBuffer&& packetBuffer);
+    void dispatchClientToDeviceStreamingPacket(const ConfigServerPtr& configServerPtr, const PacketStreamingClientPtr& packetStreamingClientPtr, const packet_streaming::PacketBufferPtr& packetBufferPtr);
 
     std::thread readThread;
     std::atomic<bool> readThreadActive;
@@ -94,6 +106,7 @@ protected:
     std::unordered_map<std::string, SizeT> registeredClientIds;
     std::unordered_map<std::string, SizeT> disconnectedClientIds;
     StreamingPtr streaming;
+    std::unique_ptr<boost::asio::thread_pool> workerPool;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

@@ -420,10 +420,6 @@ public:
 		typename T,
 		typename = std::enable_if_t<
         !std::is_same<std::decay_t<T>, delegate>::value>
-		/*&& std::is_same<
-			decltype(std::declval<T&>()(std::declval<Args>()...)),
-			R
-		>::value>*/
 	>
 	delegate(T&& val) :
 		storage_{ std::forward<T>(val) }
@@ -474,87 +470,6 @@ public:
 	})
 	{}
 
-	// object pointer as parameter
-	template<
-		typename C,
-		typename... MemArgs,
-		typename std::enable_if_t<
-		std::is_same<detail::pack_first_t<Args...>, C*>::value, int> = 0
-	> delegate(R(C::* const method_ptr)(MemArgs...))
-		noexcept : delegate(
-			[method_ptr](C* object_ptr, MemArgs... args) -> R
-	{
-		return (object_ptr->*method_ptr)(std::forward<MemArgs>(args)...);
-	})
-	{}
-
-	template<
-		typename C,
-		typename... MemArgs,
-		typename std::enable_if_t<
-		std::is_same<detail::pack_first_t<Args...>, C*>::value, int> = 0
-	> delegate(R(C::* const method_ptr)(MemArgs...) const)
-		noexcept : delegate(
-			[method_ptr](C* object_ptr, MemArgs... args) -> R
-	{
-		return (object_ptr->*method_ptr)(std::forward<MemArgs>(args)...);
-	})
-	{}
-
-	// object reference as parameter
-	template<
-		typename C,
-		typename... MemArgs,
-		typename std::enable_if_t<
-		std::is_same<detail::pack_first_t<Args...>, C&>::value, int> = 0
-	> delegate(R(C::* const method_ptr)(MemArgs...))
-		noexcept : delegate(
-			[method_ptr](C& object, MemArgs... args) -> R
-	{
-		return (object.*method_ptr)(std::forward<MemArgs>(args)...);
-	})
-	{}
-
-	template<
-		typename C,
-		typename... MemArgs,
-		typename std::enable_if_t<
-		std::is_same<detail::pack_first_t<Args...>, C&>::value, int> = 0
-	> delegate(R(C::* const method_ptr)(MemArgs...) const)
-		noexcept : delegate(
-			[method_ptr](C& object, MemArgs... args) -> R
-	{
-		return (object.*method_ptr)(std::forward<MemArgs>(args)...);
-	})
-	{}
-
-	// object copy as parameter
-	template<
-		typename C,
-		typename... MemArgs,
-		typename std::enable_if_t<
-		std::is_same<detail::pack_first_t<Args...>, C>::value, int> = 0
-	> delegate(R(C::* const method_ptr)(MemArgs...))
-		noexcept : delegate(
-			[method_ptr](C object, MemArgs... args) -> R
-	{
-		return (object.*method_ptr)(std::forward<MemArgs>(args)...);
-	})
-	{}
-
-	template<
-		typename C,
-		typename... MemArgs,
-		typename std::enable_if_t<
-		std::is_same<detail::pack_first_t<Args...>, C>::value, int> = 0
-	> delegate(R(C::* const method_ptr)(MemArgs...) const)
-		noexcept : delegate(
-			[method_ptr](C object, MemArgs... args) -> R
-	{
-		return (object.*method_ptr)(std::forward<MemArgs>(args)...);
-	})
-	{}
-
 	delegate(const delegate&) = default;
 	delegate(delegate&&) = default;
 
@@ -599,28 +514,6 @@ public:
 	template<typename T> T* target() const noexcept
 	{
 		return storage_.template target<T>();
-	}
-
-	template<
-		typename T,
-		typename D = std::shared_ptr<T>,
-		typename std::enable_if_t<size >= sizeof(D), int> = 0
-	> static delegate make_packed(T&& closure)
-	{
-		D ptr = std::make_shared<T>(std::forward<T>(closure));
-		return [ptr](Args&&... args) -> R
-		{
-			return (*ptr)(std::forward<Args>(args)...);
-		};
-	}
-
-	template<
-		typename T,
-		typename D = std::shared_ptr<T>,
-		typename std::enable_if_t<!(size >= sizeof(D)), int> = 0
-	> static delegate make_packed(T&&)
-	{
-		static_assert(size >= sizeof(D), "Cannot pack into delegate");
 	}
 
 private:

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:09.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:14.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqLogFileInfoBuilder daqLogFileInfoBuilder;
 
     EXPORTED extern const daqIntfID DAQ_LOG_FILE_INFO_INTF_ID;
+    void EXPORTED daqLogFileInfo_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqLogFileInfo_getId(daqLogFileInfo* self, daqString** id);
     daqErrCode EXPORTED daqLogFileInfo_getLocalPath(daqLogFileInfo* self, daqString** localPath);

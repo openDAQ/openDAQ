@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:04.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqProcedure daqProcedure;
 
     EXPORTED extern const daqIntfID DAQ_TYPE_MANAGER_PRIVATE_INTF_ID;
+    void EXPORTED daqTypeManagerPrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqTypeManagerPrivate_setCoreEventCallback(daqTypeManagerPrivate* self, daqProcedure* callback);
 

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:15.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:20.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_LOGGER_INTF_ID = { daq::ILogger::Id.Data1, daq::ILogger::Id.Data2, daq::ILogger::Id.Data3, daq::ILogger::Id.Data4_UInt64 };
+
+void daqLogger_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_LOGGER_INTF_ID;
+}
 
 daqErrCode daqLogger_setLevel(daqLogger* self, daqLogLevel level)
 {

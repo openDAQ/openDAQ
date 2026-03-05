@@ -46,7 +46,7 @@ extern "C"
     typedef struct daqEvent daqEvent;
     typedef struct daqBoolean daqBoolean;
     typedef struct daqInteger daqInteger;
-    typedef struct daqFloat daqFloat;
+    typedef struct daqFloatObject daqFloatObject;
     typedef struct daqDict daqDict;
     typedef struct daqRatio daqRatio;
     typedef struct daqPropertyObject daqPropertyObject;

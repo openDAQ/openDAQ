@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 15.06.2025 20:21:00.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:23.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_MODULE_MANAGER_UTILS_INTF_ID = { daq::IModuleManagerUtils::Id.Data1, daq::IModuleManagerUtils::Id.Data2, daq::IModuleManagerUtils::Id.Data3, daq::IModuleManagerUtils::Id.Data4_UInt64 };
+
+void daqModuleManagerUtils_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_MODULE_MANAGER_UTILS_INTF_ID;
+}
 
 daqErrCode daqModuleManagerUtils_getAvailableDevices(daqModuleManagerUtils* self, daqList** availableDevices)
 {
@@ -80,4 +85,9 @@ daqErrCode daqModuleManagerUtils_completeDeviceCapabilities(daqModuleManagerUtil
 daqErrCode daqModuleManagerUtils_createDevices(daqModuleManagerUtils* self, daqDict** devices, daqDict* connectionArgs, daqComponent* parent, daqDict* errCodes, daqDict* errorInfos)
 {
     return reinterpret_cast<daq::IModuleManagerUtils*>(self)->createDevices(reinterpret_cast<daq::IDict**>(devices), reinterpret_cast<daq::IDict*>(connectionArgs), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IDict*>(errCodes), reinterpret_cast<daq::IDict*>(errorInfos));
+}
+
+daqErrCode daqModuleManagerUtils_getDiscoveryInfo(daqModuleManagerUtils* self, daqDeviceInfo** deviceInfo, daqString* manufacturer, daqString* serialNumber)
+{
+    return reinterpret_cast<daq::IModuleManagerUtils*>(self)->getDiscoveryInfo(reinterpret_cast<daq::IDeviceInfo**>(deviceInfo), reinterpret_cast<daq::IString*>(manufacturer), reinterpret_cast<daq::IString*>(serialNumber));
 }

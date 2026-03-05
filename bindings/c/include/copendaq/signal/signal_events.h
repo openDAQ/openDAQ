@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:55.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:49.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,11 +39,13 @@ extern "C"
     typedef struct daqSignal daqSignal;
 
     EXPORTED extern const daqIntfID DAQ_SIGNAL_EVENTS_INTF_ID;
+    void EXPORTED daqSignalEvents_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqSignalEvents_listenerConnected(daqSignalEvents* self, daqConnection* connection);
     daqErrCode EXPORTED daqSignalEvents_listenerDisconnected(daqSignalEvents* self, daqConnection* connection);
     daqErrCode EXPORTED daqSignalEvents_domainSignalReferenceSet(daqSignalEvents* self, daqSignal* signal);
     daqErrCode EXPORTED daqSignalEvents_domainSignalReferenceRemoved(daqSignalEvents* self, daqSignal* signal);
+    daqErrCode EXPORTED daqSignalEvents_listenerConnectedScheduled(daqSignalEvents* self, daqConnection* connection);
 
 #ifdef __cplusplus
 }

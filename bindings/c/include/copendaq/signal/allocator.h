@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:36.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,11 +39,12 @@ extern "C"
     typedef struct daqDeleter daqDeleter;
 
     EXPORTED extern const daqIntfID DAQ_ALLOCATOR_INTF_ID;
+    void EXPORTED daqAllocator_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqAllocator_allocate(daqAllocator* self, daqDataDescriptor* descriptor, daqSizeT bytes, daqSizeT align, void** address);
     daqErrCode EXPORTED daqAllocator_free(daqAllocator* self, void* address);
     daqErrCode EXPORTED daqAllocator_createMallocAllocator(daqAllocator** obj);
-    // daqErrCode EXPORTED daqAllocator_createMiMallocAllocator(daqAllocator** obj);
+    daqErrCode EXPORTED daqAllocator_createMiMallocAllocator(daqAllocator** obj);
     daqErrCode EXPORTED daqAllocator_createExternalAllocator(daqAllocator** obj, void* data, daqDeleter* deleter);
 
 #ifdef __cplusplus

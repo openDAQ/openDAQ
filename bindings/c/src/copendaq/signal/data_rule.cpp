@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:41.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_DATA_RULE_INTF_ID = { daq::IDataRule::Id.Data1, daq::IDataRule::Id.Data2, daq::IDataRule::Id.Data3, daq::IDataRule::Id.Data4_UInt64 };
+
+void daqDataRule_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_DATA_RULE_INTF_ID;
+}
 
 daqErrCode daqDataRule_getType(daqDataRule* self, daqDataRuleType* type)
 {

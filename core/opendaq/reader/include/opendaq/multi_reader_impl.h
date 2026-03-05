@@ -21,6 +21,8 @@
 #include <opendaq/multi_reader_builder_ptr.h>
 #include <opendaq/reader_factory.h>
 
+#include <list>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 class MultiReaderImpl : public ImplementationOfWeak<IMultiReader, IReaderConfig, IInputPortNotifications>
@@ -43,19 +45,34 @@ public:
 
     ~MultiReaderImpl() override;
 
+    // IReader
+    ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC setOnDataAvailable(IProcedure* callback) override;
     ErrCode INTERFACE_FUNC setExternalListener(IInputPortNotifications* listener) override;
+    ErrCode INTERFACE_FUNC getEmpty(Bool* empty) override;
+
+    // ISampleReader
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC getDomainReadType(SampleType* sampleType) override;
     ErrCode INTERFACE_FUNC setValueTransformFunction(IFunction* transform) override;
     ErrCode INTERFACE_FUNC setDomainTransformFunction(IFunction* transform) override;
     ErrCode INTERFACE_FUNC getReadMode(ReadMode* mode) override;
-    ErrCode INTERFACE_FUNC getEmpty(Bool* empty) override;
 
-    ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
+    // IMultiReader
     ErrCode INTERFACE_FUNC read(void* samples, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
     ErrCode INTERFACE_FUNC readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status) override;
     ErrCode INTERFACE_FUNC skipSamples(SizeT* count, IMultiReaderStatus** status) override;
+    ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) override;
+    ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
+    ErrCode INTERFACE_FUNC getOffset(void* domainStart) override;
+    ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) override;
+    ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) override;
+    ErrCode INTERFACE_FUNC setActive(Bool isActive) override;
+    ErrCode INTERFACE_FUNC getActive(Bool* isActive) override;
+    ErrCode INTERFACE_FUNC addInput(IComponent* port) override;
+    ErrCode INTERFACE_FUNC removeInput(IString* id) override;
+    ErrCode INTERFACE_FUNC setInputUsed(IString* id, Bool isUsed) override;
+    ErrCode INTERFACE_FUNC getInputUsed(IString* id, Bool* isUsed) override;
 
     // IInputPortNotifications
     ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
@@ -70,16 +87,6 @@ public:
     ErrCode INTERFACE_FUNC getReadTimeoutType(ReadTimeoutType* timeoutType) override;
     ErrCode INTERFACE_FUNC markAsInvalid() override;
     ErrCode INTERFACE_FUNC getIsValid(Bool* isValid) override;
-
-    ErrCode INTERFACE_FUNC getTickResolution(IRatio** resolution) override;
-    ErrCode INTERFACE_FUNC getOrigin(IString** origin) override;
-    ErrCode INTERFACE_FUNC getOffset(void* domainStart) override;
-    ErrCode INTERFACE_FUNC getCommonSampleRate(Int* commonSampleRate) override;
-
-    ErrCode INTERFACE_FUNC getIsSynchronized(Bool* isSynchronized) override;
-
-    ErrCode INTERFACE_FUNC setActive(Bool isActive) override;
-    ErrCode INTERFACE_FUNC getActive(Bool* isActive) override;
 
     void internalDispose(bool disposing) override;
 
@@ -153,6 +160,15 @@ private:
 
     MultiReaderStatusPtr createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, const NumberPtr& offset = nullptr) const;
 
+    enum class InputType
+    {
+        Unknown,
+        Signals,
+        Ports,
+    };
+    InputType sourceComponentsType(const ListPtr<IComponent>& sources) const;
+    std::list<SignalReader>::iterator findByGlobalId(const StringPtr& id);
+
     std::mutex mutex;
     std::mutex packetReceivedMutex;
     bool invalid{false};
@@ -178,7 +194,8 @@ private:
     bool sameSampleRates = false;
     Bool allowDifferentRates = true;
 
-    std::vector<SignalReader> signals;
+    std::list<SignalReader> signals;
+
     PropertyObjectPtr portBinder;
     ProcedurePtr readCallback;
     WeakRefPtr<IInputPortNotifications> externalListener;
@@ -194,12 +211,17 @@ private:
     DataDescriptorPtr mainDomainDescriptor;
 
     ContextPtr context;
-    struct ReferenceDomainBin;
     bool isActive{true};
 
     SizeT minReadCount;
     PacketReadyNotification notificationMethod;
     ListPtr<PacketReadyNotification> notificationMethodsList;
+
+    const SampleType valueReadType;
+    const SampleType domainReadType;
+    const ReadMode readMode;
+
+    InputType typeOfInputs;
 };
 
 END_NAMESPACE_OPENDAQ

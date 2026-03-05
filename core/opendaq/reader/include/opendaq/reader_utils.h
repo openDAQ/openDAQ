@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <coretypes/formatter.h>
+#include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/sample_type_traits.h>
 
 #include <date/date.h>

@@ -33,29 +33,16 @@ enum class SyncStatus
     SynchronizationFailed
 };
 
-struct SignalInfo
-{
-    InputPortConfigPtr port;
-    FunctionPtr valueTransformFunction;
-    FunctionPtr domainTransformFunction;
-    ReadMode readMode;
-    LoggerComponentPtr loggerComponent;
-};
-
 struct SignalReader
 {
     SignalReader(const InputPortConfigPtr& port,
                  SampleType valueReadType,
                  SampleType domainReadType,
                  ReadMode mode,
-                 const LoggerComponentPtr& logger);
+                 const LoggerComponentPtr& logger,
+                 bool globalIdFromSignal);
 
     SignalReader(const SignalReader& old,
-                 const InputPortNotificationsPtr& listener,
-                 SampleType valueReadType,
-                 SampleType domainReadType);
-
-    SignalReader(const SignalInfo& old,
                  const InputPortNotificationsPtr& listener,
                  SampleType valueReadType,
                  SampleType domainReadType);
@@ -83,8 +70,6 @@ struct SignalReader
 
     /**
      * @brief Returns the tick of the first available sample in maxResolution units and relative to the minimum epoch.
-     *
-     * TODO: This should take into account linear data rule and not evaluate whole buffers with .getData()
      */
     std::unique_ptr<Comparable> readStartDomain();
     /**
@@ -107,6 +92,8 @@ struct SignalReader
     void* getValuePacketData(const DataPacketPtr& packet) const;
 
     bool isSynced() const;
+    StringPtr getComponentGlobalId() const;
+    bool isConnected() const;
 
     LoggerComponentPtr loggerComponent;
 
@@ -126,6 +113,8 @@ struct SignalReader
 
     bool invalid{false};
     SyncStatus synced{SyncStatus::Unsynchronized};
+    bool unused{false};
+    bool globalIdFromSignal;
 
     NumberPtr packetDelta {0};
     std::chrono::system_clock::rep cachedFirstTimestamp;

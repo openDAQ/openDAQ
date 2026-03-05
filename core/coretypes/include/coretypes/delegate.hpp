@@ -30,7 +30,7 @@ namespace spec
 	template<size_t, size_t, typename, typename...> class pure;
 	template<size_t, size_t, typename, typename...> class inplace_triv;
 	template<size_t, size_t, typename, typename...> class inplace;
-}
+} // namespace spec
 
 namespace detail
 {
@@ -42,7 +42,7 @@ namespace detail
 	template<typename T> using default_alignment = std::alignment_of<
 		std::function<T>
 	>;
-}
+} // namespace detail
 
 
 template<
@@ -119,7 +119,7 @@ template<typename T = void, typename...> struct pack_first
 template<typename... Ts>
 using pack_first_t = typename pack_first<Ts...>::type;
 
-}
+} // namespace detail
 
 namespace spec
 {

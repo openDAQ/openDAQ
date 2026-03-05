@@ -32,7 +32,7 @@ namespace spec
     class inplace_triv;
     template <size_t, size_t, typename, typename...>
     class inplace;
-}  // namespace spec
+}
 
 namespace detail
 {
@@ -40,7 +40,7 @@ namespace detail
 
     template <typename T>
     using default_alignment = std::alignment_of<std::function<T>>;
-}  // namespace detail
+}
 
 template <typename T,
           template <size_t, size_t, typename, typename...> class Spec = spec::inplace,
@@ -78,7 +78,7 @@ namespace detail
 
     template <typename... Ts>
     using pack_first_t = typename pack_first<Ts...>::type;
-}  // namespace detail
+}
 
 namespace spec
 {
@@ -311,7 +311,7 @@ namespace spec
             static_assert(std::is_copy_constructible<T>::value, "constructing delegate with move only type is invalid!");
         }
     };
-}  // namespace spec
+}
 
 template <typename R, typename... Args, template <size_t, size_t, typename, typename...> class Spec, size_t size, size_t align>
 class delegate<R(Args...), Spec, size, align>

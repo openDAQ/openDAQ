@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:15.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -46,7 +46,7 @@ extern "C"
     typedef struct daqEvent daqEvent;
     typedef struct daqBoolean daqBoolean;
     typedef struct daqInteger daqInteger;
-    typedef struct daqFloatObject daqFloatObject;
+    typedef struct daqFloat daqFloat;
     typedef struct daqDict daqDict;
     typedef struct daqRatio daqRatio;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -55,6 +55,7 @@ extern "C"
     typedef struct daqEnumeration daqEnumeration;
 
     EXPORTED extern const daqIntfID DAQ_PROPERTY_INTF_ID;
+    void EXPORTED daqProperty_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqProperty_getValueType(daqProperty* self, daqCoreType* type);
     daqErrCode EXPORTED daqProperty_getKeyType(daqProperty* self, daqCoreType* type);
@@ -79,9 +80,11 @@ extern "C"
     daqErrCode EXPORTED daqProperty_getOnPropertyValueRead(daqProperty* self, daqEvent** event);
     daqErrCode EXPORTED daqProperty_getValue(daqProperty* self, daqBaseObject** value);
     daqErrCode EXPORTED daqProperty_setValue(daqProperty* self, daqBaseObject* value);
+    daqErrCode EXPORTED daqProperty_getOnSuggestedValuesRead(daqProperty* self, daqEvent** event);
+    daqErrCode EXPORTED daqProperty_getOnSelectionValuesRead(daqProperty* self, daqEvent** event);
     daqErrCode EXPORTED daqProperty_createBoolProperty(daqProperty** obj, daqString* name, daqBoolean* defaultValue, daqBoolean* visible);
     daqErrCode EXPORTED daqProperty_createIntProperty(daqProperty** obj, daqString* name, daqInteger* defaultValue, daqBoolean* visible);
-    daqErrCode EXPORTED daqProperty_createFloatProperty(daqProperty** obj, daqString* name, daqFloatObject* defaultValue, daqBoolean* visible);
+    daqErrCode EXPORTED daqProperty_createFloatProperty(daqProperty** obj, daqString* name, daqFloat* defaultValue, daqBoolean* visible);
     daqErrCode EXPORTED daqProperty_createStringProperty(daqProperty** obj, daqString* name, daqString* defaultValue, daqBoolean* visible);
     daqErrCode EXPORTED daqProperty_createListProperty(daqProperty** obj, daqString* name, daqList* defaultValue, daqBoolean* visible);
     daqErrCode EXPORTED daqProperty_createDictProperty(daqProperty** obj, daqString* name, daqDict* defaultValue, daqBoolean* visible);

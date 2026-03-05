@@ -23,7 +23,6 @@
 #ifndef DELEGATE_HPP_INCLUDED
 #define DELEGATE_HPP_INCLUDED
 
-#include "xxhash.h"
 #include <type_traits>
 #include <functional>
 #include <memory>
@@ -74,10 +73,15 @@ namespace detail
 
         static std::size_t calcHash(const Hashable& delegatePtr)
         {
-            constexpr XXH32_hash_t seed = 123456789;
-            return sizeof(std::size_t) == 4
-                       ? static_cast<std::size_t>(XXH32(&delegatePtr, sizeof(Hashable), seed))
-                       : static_cast<std::size_t>(XXH3_64bits_withSeed(&delegatePtr, sizeof(Hashable), seed));
+    #ifdef _MSC_VER
+        #if _MSC_VER >= 1900 && _MSC_VER < 1910
+            return std::_Hash_seq((const unsigned char*) &delegatePtr, sizeof(Hashable));
+        #elif _MSC_VER >= 1910
+            return std::_Hash_array_representation((const unsigned char*)&delegatePtr, sizeof(Hashable));
+        #endif
+    #else
+            return std::_Hash_bytes(&delegatePtr, sizeof(Hashable), 123456789);
+    #endif
         }
 
 #if _MSC_VER < 1910

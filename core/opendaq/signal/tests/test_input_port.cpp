@@ -1,14 +1,14 @@
+#include <opendaq/input_port_factory.h>
 #include <coretypes/objectptr.h>
 #include <gtest/gtest.h>
-#include <opendaq/component_deserialize_context_factory.h>
-#include <opendaq/component_private_ptr.h>
-#include <opendaq/context_factory.h>
-#include <opendaq/deserialize_component_ptr.h>
 #include <opendaq/gmock/context.h>
 #include <opendaq/gmock/input_port.h>
 #include <opendaq/gmock/input_port_notifications.h>
 #include <opendaq/gmock/signal.h>
-#include <opendaq/input_port_factory.h>
+#include <opendaq/deserialize_component_ptr.h>
+#include <opendaq/context_factory.h>
+#include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/component_private_ptr.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/signal_factory.h>
 

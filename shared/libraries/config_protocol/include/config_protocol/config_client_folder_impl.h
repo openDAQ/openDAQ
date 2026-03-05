@@ -151,7 +151,7 @@ BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
         return folder;
     }
     auto localIds = List<IString>();
-    for (auto item : folderConfig.getItems())
+    for (const auto& item : folderConfig.getItems())
     {
         if (auto port = item.asPtrOrNull<IInputPort>(true); port.assigned() && !port.getPublic())
         {
@@ -165,7 +165,7 @@ BaseObjectPtr ConfigClientBaseFolderImpl<Impl>::DeserializeConfigFolder(
             continue;
         }
     }
-    for (auto localId : localIds)
+    for (const auto& localId : localIds)
     {
         folderConfig.removeItemWithLocalId(localId);
     }
@@ -247,7 +247,7 @@ void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr&
 
         return;
     }
-
+    
     const auto serItems = serialized.readSerializedObject(keyStr);
     const auto keys = serItems.getKeys();
 

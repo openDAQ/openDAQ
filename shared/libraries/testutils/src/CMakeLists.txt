@@ -27,7 +27,7 @@ target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../inc
 target_compile_definitions(${LIB_NAME} PUBLIC ${OPENDAQ_TEST_COMPILE_DEFINES}
 )
 
-target_compile_features(${LIB_NAME} INTERFACE cxx_std_17)
+target_compile_features(${LIB_NAME} INTERFACE cxx_std_20)
 
 target_link_libraries(${LIB_NAME} PUBLIC daq::coretypes
                                          daq::coreobjects
@@ -53,7 +53,7 @@ target_include_directories(${INSTALLED_NAME}
 
 target_compile_definitions(${INSTALLED_NAME} INTERFACE ${OPENDAQ_TEST_COMPILE_DEFINES})
 
-target_compile_features(${INSTALLED_NAME} INTERFACE cxx_std_17)
+target_compile_features(${INSTALLED_NAME} INTERFACE cxx_std_20)
 
 target_link_libraries(${INSTALLED_NAME} INTERFACE daq::coretypes
                                                   daq::coreobjects

@@ -2,7 +2,7 @@ set(EXTERNAL_LIB rapidjson)
 
 add_library(${EXTERNAL_LIB} INTERFACE)
 
-target_compile_features(${EXTERNAL_LIB} INTERFACE cxx_std_17)
+target_compile_features(${EXTERNAL_LIB} INTERFACE cxx_std_20)
 target_compile_definitions(${EXTERNAL_LIB} INTERFACE RAPIDJSON_HAS_STDSTRING
                                                      RAPIDJSON_PARSE_DEFAULT_FLAGS=256
                                                      RAPIDJSON_WRITE_DEFAULT_FLAGS=2

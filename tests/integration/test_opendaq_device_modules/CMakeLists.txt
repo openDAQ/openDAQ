@@ -24,7 +24,8 @@ target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
 )
 
 # Should link only what you need $<BUILD_INTERFACE:Boost::asio>
-target_link_libraries(${TEST_APP} PRIVATE $<BUILD_INTERFACE:Boost::asio>)
+target_link_libraries(${TEST_APP} PRIVATE $<BUILD_INTERFACE:Boost::asio>
+                                          $<BUILD_INTERFACE:std::filesystem>)
 
 if (MINGW)
     target_link_libraries(${TEST_APP} PRIVATE ws2_32)

@@ -31,9 +31,10 @@ target_compile_definitions(${TEST_APP} PRIVATE MODULE_TEST_DIR="mock"
                                                DEPENDENCIES_SUCCEEDED_MODULE_NAME="$<TARGET_FILE_NAME:dependencies_succeeded>"
 )
 
-target_link_libraries(${TEST_APP} 
-	PRIVATE 
+target_link_libraries(${TEST_APP}
+	PRIVATE
 		$<BUILD_INTERFACE:Boost::dll>
+		$<BUILD_INTERFACE:std::filesystem>
 )
 
 if (UNIX)

@@ -12,6 +12,7 @@ add_executable(${TEST_APP} ${TEST_SOURCES}
 
 target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
+                                          $<BUILD_INTERFACE:std::filesystem>
 )
 
 target_compile_definitions(${TEST_APP} PUBLIC TEST_RESOURCE_PATH="${CMAKE_CURRENT_LIST_DIR}/resources")

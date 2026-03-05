@@ -11,6 +11,7 @@
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <opendaq/module_impl.h>
 #include <chrono>
+#include <iomanip>
 #include <coretypes/filesystem.h>
 #include <opendaq/client_type.h>
 #include <opendaq/component_impl.h>

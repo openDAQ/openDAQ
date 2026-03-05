@@ -15,11 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*
- * Modified to support equality operators (==, !=) by
- * Martin Kraner <martin.kraner@dewesoft.com>
- */
-
 #ifndef DELEGATE_HPP_INCLUDED
 #define DELEGATE_HPP_INCLUDED
 
@@ -60,39 +55,6 @@ class delegate<R(Args...), Spec, size, align>;
 
 namespace detail
 {
-    class DelegateBase
-    {
-    protected:
-    #pragma pack(push, 1)
-        typedef struct
-        {
-            uintptr_t memPtr;
-            uintptr_t objPtr;
-        } Hashable;
-    #pragma pack(pop)
-
-        static std::size_t calcHash(const Hashable& delegatePtr)
-        {
-    #ifdef _MSC_VER
-        #if _MSC_VER >= 1900 && _MSC_VER < 1910
-            return std::_Hash_seq((const unsigned char*) &delegatePtr, sizeof(Hashable));
-        #elif _MSC_VER >= 1910
-            return std::_Hash_array_representation((const unsigned char*)&delegatePtr, sizeof(Hashable));
-        #endif
-    #else
-            return std::_Hash_bytes(&delegatePtr, sizeof(Hashable), 123456789);
-    #endif
-        }
-
-#if _MSC_VER < 1910
-        static std::size_t calcHash(std::uintptr_t memPtr, std::uintptr_t objPtr) 
-        {
-            Hashable h = {(std::uintptr_t) memPtr, (std::uintptr_t) objPtr};
-            return calcHash(h);
-        }
-#endif
-    };
-
     template <typename R, typename... Args>
     static R empty_pure(Args...)
     {
@@ -352,84 +314,51 @@ namespace spec
 }  // namespace spec
 
 template <typename R, typename... Args, template <size_t, size_t, typename, typename...> class Spec, size_t size, size_t align>
-class delegate<R(Args...), Spec, size, align> : public detail::DelegateBase
+class delegate<R(Args...), Spec, size, align>
 {
 public:
     using result_type = R;
     using storage_t = Spec<size, align, R, Args...>;
 
     explicit delegate() noexcept
-        : hashCode(0)
-        , storage_{}
+        : storage_{}
     {
     }
 
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, delegate>::value>>
-    delegate(T&& val, std::size_t hashCode)
-        : hashCode(hashCode)
-        , storage_{std::forward<T>(val)}
-    {
-    }
+    delegate(T&& val) :
+    storage_{ std::forward<T>(val) }
+    {}
 
     // delegating constructors
-    delegate(std::nullptr_t) noexcept  // NOLINT(google-explicit-constructor)
+    delegate(std::nullptr_t) noexcept
         : delegate()
     {
     }
 
-    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, delegate>::value>>
-    delegate(T&& val)
-
-#if _MSC_VER < 1910
-        : delegate(std::forward<T>(val), calcHash((uintptr_t) &val, 0))
-#else
-        : delegate(std::forward<T>(val), calcHash(Hashable{(uintptr_t) &val, 0}))
-#endif
-    {
-    }
-
-#ifdef __GNUC__
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wstrict-aliasing"
-#endif
-
-    // ReSharper disable once CppNonExplicitConvertingConstructor
-    delegate(R (*fn)(Args...))
-        : delegate(fn, calcHash({*(uintptr_t*) &fn, 0}))
-    {
-    }
-
-#ifdef __GNUC__
-    #pragma GCC diagnostic pop
-#endif
-
     // object pointer capture
     template <typename C>
     delegate(C* const object_ptr, R (C::*const method_ptr)(Args...)) noexcept
-        : delegate([object_ptr, method_ptr](Args&&... args) -> R { return (object_ptr->*method_ptr)(std::forward<Args>(args)...); },
-                   calcHash({ *(uintptr_t*) &method_ptr, (std::uintptr_t) object_ptr}))
+        : delegate([object_ptr, method_ptr](Args&&... args) -> R { return (object_ptr->*method_ptr)(std::forward<Args>(args)...); })
     {
     }
 
     template <typename C>
     delegate(C* const object_ptr, R (C::*const method_ptr)(Args...) const) noexcept
-        : delegate([object_ptr, method_ptr](Args&&... args) -> R { return (object_ptr->*method_ptr)(std::forward<Args>(args)...); },
-                   calcHash({*(uintptr_t*) &method_ptr, (std::uintptr_t) object_ptr}))
+        : delegate([object_ptr, method_ptr](Args&&... args) -> R { return (object_ptr->*method_ptr)(std::forward<Args>(args)...); })
     {
     }
 
     // object reference capture
     template <typename C>
     delegate(C& object_ref, R (C::*const method_ptr)(Args...)) noexcept
-        : delegate([&object_ref, method_ptr](Args&&... args) -> R { return (object_ref.*method_ptr)(std::forward<Args>(args)...); },
-                   calcHash({*(std::uintptr_t*)&method_ptr, (std::uintptr_t) &object_ref}))
+        : delegate([&object_ref, method_ptr](Args&&... args) -> R { return (object_ref.*method_ptr)(std::forward<Args>(args)...); })
     {
     }
 
     template <typename C>
     delegate(C& object_ref, R (C::*const method_ptr)(Args...) const) noexcept
-        : delegate([&object_ref, method_ptr](Args&&... args) -> R { return (object_ref.*method_ptr)(std::forward<Args>(args)...); },
-                   calcHash({*(std::uintptr_t*) &method_ptr, (std::uintptr_t) &object_ref}))
+        : delegate([&object_ref, method_ptr](Args&&... args) -> R { return (object_ref.*method_ptr)(std::forward<Args>(args)...); })
     {
     }
 
@@ -444,16 +373,6 @@ public:
     R operator()(Args... args) const
     {
         return storage_(std::forward<Args>(args)...);
-    }
-
-    bool operator==(const delegate& another) const
-    {
-        return hashCode == another.hashCode;
-    }
-
-    bool operator!=(const delegate& another) const
-    {
-        return !(this == another);
     }
 
     bool operator==(std::nullptr_t) const noexcept
@@ -489,8 +408,6 @@ public:
     {
         return storage_.template target<T>();
     }
-
-    const size_t hashCode;
 
 private:
     storage_t storage_;

@@ -142,6 +142,9 @@ public:
     // IOwnable
     virtual ErrCode INTERFACE_FUNC setOwner(IPropertyObject* newOwner) override;
 
+    // IUpdatable
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
+
 protected:
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
     ErrCode createAndSetIntProperty(const StringPtr& name, const IntegerPtr& value);
@@ -154,7 +157,8 @@ protected:
 
     virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
     ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate) override;
-    ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer, bool forUpdate) override;
+    ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer) override;
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
     std::set<std::string> changeableDefaultPropertyNames;
     DeviceTypePtr deviceType;
@@ -195,7 +199,8 @@ namespace deviceInfoDetails
         "userName",
         "serverCapabilities",
         "configurationConnectionInfo",
-        "activeClientConnections"
+        "activeClientConnections",
+        "hidden"
     };
 }
 
@@ -1128,13 +1133,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const PropertyPtr& property, ISerializer* serializer, bool forUpdate)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const PropertyPtr& property, ISerializer* serializer)
 {
-    if (forUpdate)
-    {
-        if (property.getReadOnly())
-            return OPENDAQ_IGNORED;
-    }
     Int version;
     ErrCode err = serializer->getVersion(&version);
     OPENDAQ_RETURN_IF_FAILED(err);
@@ -1143,6 +1143,67 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const
     if (property.getName() == "activeClientConnections" && version < 3)
         return OPENDAQ_IGNORED;
     return Super::serializeProperty(property, serializer);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
+{
+    if (!forUpdate)
+        return OPENDAQ_SUCCESS;
+
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    const ErrCode errCode = daqTry([&serializer, this]
+    {
+        if (this->localProperties.size() == 0)
+            return OPENDAQ_NOTFOUND;
+
+        auto serializerPtr = SerializerPtr::Borrow(serializer);
+
+        serializerPtr.key("properties");
+        serializerPtr.startList();
+        for (const auto& [propName, prop] : this->localProperties)
+        {
+            if (deviceInfoDetails::defaultDeviceInfoPropertyNames.find(propName) !=
+                deviceInfoDetails::defaultDeviceInfoPropertyNames.end())
+                continue;
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+            auto propObject = prop.template asPtrOrNull<IPropertyObjectInternal>(true);
+            if (propObject.assigned() && !propObject.hasUserReadAccess(serializerPtr.getUser()))
+                continue;
+#endif
+
+            const ErrCode errCode = serializeProperty(prop, serializer);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+        serializerPtr.endList();
+
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    if (this->frozen)
+        return OPENDAQ_IGNORED;
+
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto serializedPtr = SerializedObjectPtr::Borrow(obj);
+        Super::DeserializeLocalProperties(serializedPtr, context, nullptr, this->objPtr);
+    
+        OPENDAQ_RETURN_IF_FAILED(this->beginUpdate());
+        Finally finally([this]() { this->endUpdate(); });
+        Super::DeserializePropertyValues(serializedPtr, context, nullptr, this->objPtr);
+        return OPENDAQ_SUCCESS;
+    });    
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename ... Interfaces>

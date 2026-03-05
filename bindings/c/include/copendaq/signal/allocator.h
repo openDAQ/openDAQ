@@ -44,7 +44,7 @@ extern "C"
     daqErrCode EXPORTED daqAllocator_allocate(daqAllocator* self, daqDataDescriptor* descriptor, daqSizeT bytes, daqSizeT align, void** address);
     daqErrCode EXPORTED daqAllocator_free(daqAllocator* self, void* address);
     daqErrCode EXPORTED daqAllocator_createMallocAllocator(daqAllocator** obj);
-    daqErrCode EXPORTED daqAllocator_createMiMallocAllocator(daqAllocator** obj);
+    // daqErrCode EXPORTED daqAllocator_createMiMallocAllocator(daqAllocator** obj);
     daqErrCode EXPORTED daqAllocator_createExternalAllocator(daqAllocator** obj, void* data, daqDeleter* deleter);
 
 #ifdef __cplusplus

@@ -118,7 +118,7 @@ protected:
     ConnectionPtr getConnectionNoLock();
     void removed() override;
     void removedNoLock() override;
-
+    
     StringPtr serializedSignalId;
 
     ErrCode lockAllAttributesInternal() override;
@@ -570,7 +570,7 @@ void GenericInputPortImpl<TInterface, Interfaces...>::removedNoLock()
         connection = getConnectionNoLock();
         connectionRef.release();
     }
-
+    
     // remove is meant to be called from listener, so don't notify it
     disconnectSignalInternal(std::move(connection), false, true, false);
 }

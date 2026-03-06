@@ -241,7 +241,7 @@ daqErrCode daqPropertyBuilder_createIntPropertyBuilder(daqPropertyBuilder** obj,
     return err;
 }
 
-daqErrCode daqPropertyBuilder_createFloatPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqFloat* defaultValue)
+daqErrCode daqPropertyBuilder_createFloatPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqFloatObject* defaultValue)
 {
     daq::IPropertyBuilder* ptr = nullptr;
     daqErrCode err = daq::createFloatPropertyBuilder(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IFloat*>(defaultValue));

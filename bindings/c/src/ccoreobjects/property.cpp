@@ -163,7 +163,7 @@ daqErrCode daqProperty_createIntProperty(daqProperty** obj, daqString* name, daq
     return err;
 }
 
-daqErrCode daqProperty_createFloatProperty(daqProperty** obj, daqString* name, daqFloat* defaultValue, daqBoolean* visible)
+daqErrCode daqProperty_createFloatProperty(daqProperty** obj, daqString* name, daqFloatObject* defaultValue, daqBoolean* visible)
 {
     daq::IProperty* ptr = nullptr;
     daqErrCode err = daq::createFloatProperty(&ptr, reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IFloat*>(defaultValue), reinterpret_cast<daq::IBoolean*>(visible));

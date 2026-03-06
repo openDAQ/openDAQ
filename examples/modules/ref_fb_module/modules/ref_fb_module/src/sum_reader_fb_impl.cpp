@@ -43,13 +43,16 @@ SumReaderFbImpl::SumReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& pare
     : FunctionBlock(CreateType(), ctx, parent, localId)
 {
     initComponentStatus();
-    updateInputPorts();
-    createSignals();
+    setComponentStatusWithMessage(ComponentStatus::Warning, "No signals connected!");
 
     if (config.assigned())
         notificationMode = static_cast<PacketReadyNotification>(config.getPropertyValue("ReaderNotificationMode"));
     else
         notificationMode = PacketReadyNotification::Scheduler;
+
+    createDisconnectedPort();
+    createReader();
+    createSignals();
 }
 
 FunctionBlockTypePtr SumReaderFbImpl::CreateType()
@@ -88,25 +91,37 @@ void SumReaderFbImpl::createSignals()
     sumSignal.setDomainSignal(sumDomainSignal);
 }
 
+void SumReaderFbImpl::createDisconnectedPort()
+{
+    std::string id = getNextPortID();
+    auto inputPort = createAndAddInputPort(id, notificationMode);
+    disconnectedPort = inputPort;
+}
+
 bool SumReaderFbImpl::updateInputPorts()
 {
-    bool rebuildReader = false;
+    bool connectedPortsChanged = false;
     if (disconnectedPort.assigned() && disconnectedPort.getConnection().assigned())
     {
         connectedPorts.emplace_back(disconnectedPort);
         cachedDescriptors.insert(std::make_pair(disconnectedPort.getGlobalId(), NullDataDescriptor()));
+
+        // Activate the newly connected port
+        reader.setInputUsed(disconnectedPort.getGlobalId(), true);
         disconnectedPort.release();
-        rebuildReader = true;
+        connectedPortsChanged = true;
     }
 
-    for (auto it = connectedPorts.begin(); it != connectedPorts.end(); )
+    for (auto it = connectedPorts.begin(); it != connectedPorts.end();)
     {
         if (!it->getConnection().assigned())
         {
-            cachedDescriptors.erase(it->getGlobalId().toStdString());
+            reader.removeInput(it->getGlobalId());
+
+            cachedDescriptors.erase(it->getGlobalId());
             this->inputPorts.removeItem(*it);
             it = connectedPorts.erase(it);
-            rebuildReader = true;
+            connectedPortsChanged = true;
         }
         else
         {
@@ -116,52 +131,60 @@ bool SumReaderFbImpl::updateInputPorts()
 
     if (!disconnectedPort.assigned())
     {
-        std::string id = getNextPortID();
-        auto inputPort = createAndAddInputPort(id, notificationMode);
-        inputPort.setListener(this->thisPtr<InputPortNotificationsPtr>());
-        disconnectedPort = inputPort;
+        createDisconnectedPort();
+
+        // Add the empty port to the multi reader and mark it unused
+        reader.addInput(disconnectedPort);
+        reader.setInputUsed(disconnectedPort.getGlobalId(), false);
     }
 
     if (connectedPorts.empty())
     {
         setComponentStatusWithMessage(ComponentStatus::Warning, "No signals connected!");
-        reader = nullptr;
         return false;
     }
 
-    return rebuildReader;
+    return connectedPortsChanged;
 }
 
-// Reader must currently be rebuilt to add/remove input ports
-void SumReaderFbImpl::updateReader()
+void SumReaderFbImpl::createReader()
 {
+    if (!disconnectedPort.assigned())
+        return;
+
     // Disposing the reader is necessary to release port ownership
     reader.dispose();
     auto builder = MultiReaderBuilder()
-                 .setDomainReadType(SampleType::Int64)
-                 .setValueReadType(SampleType::Float64)
-                 .setAllowDifferentSamplingRates(false)
-                 .setInputPortNotificationMethod(notificationMode);
+                       .setDomainReadType(SampleType::Int64)
+                       .setValueReadType(SampleType::Float64)
+                       .setAllowDifferentSamplingRates(false)
+                       .setInputPortNotificationMethod(notificationMode);
 
-    for (const auto& port : connectedPorts)
-        builder.addInputPort(port);
+    builder.addInputPort(disconnectedPort);
 
     reader = builder.build();
+    reader.setInputUsed(disconnectedPort.getGlobalId(), false);
 
     reader.setExternalListener(this->thisPtr<InputPortNotificationsPtr>());
     auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
-    reader.setOnDataAvailable([this, thisWeakRef = std::move(thisWeakRef)]
-    {
-        const auto thisFb = thisWeakRef.getRef();
-        if (thisFb.assigned())
-            this->onDataReceived();
-    });
+    reader.setOnDataAvailable(
+        [this, thisWeakRef = std::move(thisWeakRef)]
+        {
+            const auto thisFb = thisWeakRef.getRef();
+            if (thisFb.assigned())
+                this->onDataReceived();
+        });
 }
 
 void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors)
 {
     try
     {
+        if (!recoverReaderIfNecessary())
+        {
+            throw std::runtime_error("Reader failed to recover from invalid state");
+        }
+
         if (!domainDescriptor.assigned() || domainDescriptor == NullDataDescriptor())
         {
             throw std::runtime_error("Input domain descriptor is not set");
@@ -172,7 +195,7 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
             throw std::runtime_error("Missing input value descriptors!");
         }
 
-        UnitPtr unit = valueDescriptors[0].getUnit();
+        UnitPtr unit = nullptr;
 
         double lowValue = 0;
         double highValue = 0;
@@ -181,12 +204,14 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
             if (descriptor == NullDataDescriptor())
                 throw std::runtime_error("An input value descriptor is not set!");
 
-            if (descriptor.getUnit() != unit)
+            if (!unit.assigned())
+                unit = valueDescriptors[0].getUnit();
+            else if (descriptor.getUnit() != unit)
                 throw std::runtime_error("Input value descriptor units must be equal!");
 
             int sampleType = static_cast<int>(descriptor.getSampleType());
             if (sampleType > static_cast<int>(SampleType::Int64) || sampleType == 0)
-                throw std::runtime_error("Non-integer sample type inputs are not accepted!");
+                throw std::runtime_error("Inputs with non-scalar sample type are not accepted!");
 
             auto range = descriptor.getValueRange();
             if (range.assigned())
@@ -213,7 +238,7 @@ void SumReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to configure sum FB: {}", e.what()));
         reader.setActive(False);
     }
 }
@@ -223,7 +248,19 @@ void SumReaderFbImpl::reconfigure()
     auto descriptorList = List<IDataDescriptor>();
     for (const auto& descriptor : cachedDescriptors)
         descriptorList.pushBack(descriptor.second);
-    configure(sumDomainDataDescriptor, descriptorList);
+
+    if (descriptorList.getCount() > 0)
+        configure(sumDomainDataDescriptor, descriptorList);
+}
+
+bool SumReaderFbImpl::recoverReaderIfNecessary()
+{
+    if (reader.asPtr<IReaderConfig>().getIsValid())
+        return true;
+
+    LOG_D("Sum Reader FB: Attempting reader recovery")
+    reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
+    return reader.asPtr<IReaderConfig>().getIsValid();
 }
 
 void SumReaderFbImpl::onConnected(const InputPortPtr& inputPort)
@@ -232,10 +269,7 @@ void SumReaderFbImpl::onConnected(const InputPortPtr& inputPort)
 
     LOG_D("Sum Reader FB: Input port {} connected", inputPort.getLocalId())
 
-    if (updateInputPorts())
-    {
-        updateReader();
-    }
+    updateInputPorts();
 }
 
 void SumReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
@@ -245,7 +279,6 @@ void SumReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
     LOG_D("Sum Reader FB: Input port {} disconnected", inputPort.getLocalId())
     if (updateInputPorts())
     {
-        updateReader();
         reconfigure();
     }
 }
@@ -256,7 +289,8 @@ void SumReaderFbImpl::onDataReceived()
 
     SizeT cnt = reader.getAvailableCount();
 
-    auto numPorts = connectedPorts.size();
+    // +1: Disconnected port is added to the reader but unused
+    auto numPorts = connectedPorts.size() + 1;
     std::vector<std::unique_ptr<double[]>> data;
     data.reserve(numPorts);
 
@@ -272,6 +306,7 @@ void SumReaderFbImpl::onDataReceived()
         double* sumValueData = static_cast<double*>(sumValuePacket.getRawData());
         std::fill_n(sumValueData, cnt, 0.0);
 
+        data.pop_back();  // Remove last buffer (unused disconnected port)
         for (const std::unique_ptr<double[]>& sigData : data)
         {
             const double* sigDataPtr = sigData.get();
@@ -315,21 +350,11 @@ void SumReaderFbImpl::onDataReceived()
                 if (!descriptorNotNull(valueDescriptor))
                     valueDescriptors.pushBack(cachedDescriptors[portGlobalId]);
             }
-                
+
             getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
 
-            if (valueSigChanged || domainChanged)
+            if (valueSigChanged || domainChanged || !status.getValid())
                 configure(domainDescriptor, valueDescriptors);
-
-            if (!status.getValid())
-            {
-                LOG_D("Sum Reader FB: Attempting reader recovery")
-                reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
-                if (!reader.asPtr<IReaderConfig>().getIsValid())
-                {
-                    setComponentStatusWithMessage(ComponentStatus::Warning, "Reader failed to recover from invalid state!");
-                }
-            }
         }
     }
 }

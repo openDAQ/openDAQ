@@ -1239,20 +1239,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 }
             }
 
-            ErrCode err = checkPropertyTypeAndConvert(prop, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            err = checkContainerType(prop, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            err = checkSelectionValues(prop, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            err = checkStructType(prop, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            err = checkEnumerationType(prop, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
+            OPENDAQ_RETURN_IF_FAILED(checkPropertyTypeAndConvert(prop, valuePtr));
+            OPENDAQ_RETURN_IF_FAILED(checkContainerType(prop, valuePtr));
+            OPENDAQ_RETURN_IF_FAILED(checkSelectionValues(prop, valuePtr));
+            OPENDAQ_RETURN_IF_FAILED(checkStructType(prop, valuePtr));
+            OPENDAQ_RETURN_IF_FAILED(checkEnumerationType(prop, valuePtr));
 
             coercePropertyWrite(prop, valuePtr);
             validatePropertyWrite(prop, valuePtr);
@@ -1262,8 +1253,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             if (ct == ctList || ct == ctDict)
             {
                 BaseObjectPtr clonedValue;
-                err = valuePtr.asPtr<ICloneable>()->clone(&clonedValue);
-                OPENDAQ_RETURN_IF_FAILED(err);
+                OPENDAQ_RETURN_IF_FAILED(valuePtr.asPtr<ICloneable>()->clone(&clonedValue));
 
                 valuePtr = clonedValue.detach();
             }
@@ -1275,7 +1265,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             if (triggerEvent)
             {
                 BaseObjectPtr newValue = valuePtr;
-                err = callPropertyValueWrite(prop, newValue, PropertyEventType::Update, isUpdating);
+                ErrCode err = callPropertyValueWrite(prop, newValue, PropertyEventType::Update, isUpdating);
                 OPENDAQ_RETURN_IF_FAILED(err);
 
                 if (err == OPENDAQ_IGNORED)
@@ -1521,13 +1511,15 @@ template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureClonedObj(const StringPtr& objPropName,
                                                                                     const PropertyObjectPtr& obj)
 {
-    const auto objInternal = obj.asPtrOrNull<IPropertyObjectInternal>();
-    if (!coreEventMuted && objInternal.assigned())
+    if (!coreEventMuted)
     {
-        const auto childPath = path != "" ? path + "." + objPropName : objPropName;
-        objInternal.setPath(childPath);
-        objInternal.setCoreEventTrigger(triggerCoreEvent);
-        objInternal.enableCoreEventTrigger();
+        if (const auto objInternal = obj.asPtrOrNull<IPropertyObjectInternal>(true); objInternal.assigned())
+        {
+            const auto childPath = path != "" ? path + "." + objPropName : objPropName;
+            objInternal.setPath(childPath);
+            objInternal.setCoreEventTrigger(triggerCoreEvent);
+            objInternal.enableCoreEventTrigger();
+        }
     }
 }
 
@@ -1787,15 +1779,32 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     const std::vector<StringPtr>& customOrder,
     const PermissionManagerPtr& permissionManager)
 {
-    this->valueWriteEvents = valueWriteEvents;
-    this->valueReadEvents = valueReadEvents;
-    this->endUpdateEvent = endUpdateEvent;
+    this->valueWriteEvents.clear();
+    for (const auto& [name, srcEmitter] : valueWriteEvents)
+    {
+        BaseObjectPtr cloned;
+        srcEmitter.template asPtr<ICloneable>(true)->clone(&cloned);
+        this->valueWriteEvents.emplace(name, cloned);
+    }
+        
+    this->valueReadEvents.clear();
+    for (const auto& [name, srcEmitter] : valueReadEvents)
+    {
+        BaseObjectPtr cloned;
+        srcEmitter.template asPtr<ICloneable>(true)->clone(&cloned);
+        this->valueReadEvents.emplace(name, cloned);
+    }
+
+    BaseObjectPtr cloned;
+    endUpdateEvent.template asPtr<ICloneable>(true)->clone(&cloned);
+
+    this->endUpdateEvent = cloned;
     this->triggerCoreEvent = triggerCoreEvent;
     this->localProperties = localProperties;
     this->customOrder = customOrder;
 
     BaseObjectPtr permissionManagerClone;
-    permissionManager.asPtr<ICloneable>()->clone(&permissionManagerClone);
+    permissionManager.template asPtr<ICloneable>()->clone(&permissionManagerClone);
     this->permissionManager = permissionManagerClone;
 
     for (const auto& val : propValues)
@@ -2610,25 +2619,24 @@ template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginApplyUpdate()
 {
     beginApplyProperties(updatingPropsAndValues, isParentUpdating());
-}
 
-template <typename PropObjInterface, typename... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate()
-{
     auto ignoredProps = List<IString>();
-    for (auto& item : updatingPropsAndValues)
+    for (auto& [propName, action] : updatingPropsAndValues)
     {
-        StringPtr name = item.first;
+        StringPtr name = propName;
         ErrCode err;
-        if (item.second.setValue)
+        if (action.setValue)
         {
-            err = setPropertyValueInternal(name, item.second.value, true, item.second.protectedAccess, false, true);
+            err = setPropertyValueInternal(name, action.value, true, action.protectedAccess, false, true);
+            checkErrorInfo(err);
+            if (const auto propObj = action.value.template asPtrOrNull<IPropertyObject>(true); propObj.assigned())
+                propObj.beginUpdate();
         }
         else
         {
-            err = clearPropertyValueInternal(name, item.second.protectedAccess, false, true);
+            err = clearPropertyValueInternal(name, action.protectedAccess, false, true);
+            checkErrorInfo(err);
         }
-        checkErrorInfo(err);
 
         if (err == OPENDAQ_IGNORED)
         {
@@ -2637,7 +2645,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
         else
         {
             PropertyPtr prop;
-            getPropertyAndValueInternal(name, item.second.value, prop);
+            getPropertyAndValueInternal(name, action.value, prop);
         }
     }
 
@@ -2652,7 +2660,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
         if (it != updatingPropsAndValues.end())
             updatingPropsAndValues.erase(it);
     }
+}
 
+template <typename PropObjInterface, typename... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate()
+{
     endApplyProperties(updatingPropsAndValues, isParentUpdating());
     updatingPropsAndValues.clear();
 }
@@ -2813,12 +2825,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEv
 {
     coreEventMuted = false;
 
-    for (auto& item : propValues)
+    for (auto& [propName, propValue] : propValues)
     {
-        if (item.second.supportsInterface(IPropertyObject::Id))
-        {
-            configureClonedObj(item.first, item.second);
-        }
+        if (const auto & propObj = propValue.template asPtrOrNull<IPropertyObject>(true); propObj.assigned())
+            configureClonedObj(propName, propObj);
     }
 
     return OPENDAQ_SUCCESS;
@@ -2942,8 +2952,7 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadAccess(IBaseObject* userContext, Bool* hasAccessOut)
 {
     OPENDAQ_PARAM_NOT_NULL(hasAccessOut);
-    const auto self = this->template borrowPtr<PropertyObjectPtr>();
-    *hasAccessOut = hasUserReadAccess(userContext, self);
+    *hasAccessOut = hasUserReadAccess(userContext, this->objPtr);
     return OPENDAQ_SUCCESS;
 }
 

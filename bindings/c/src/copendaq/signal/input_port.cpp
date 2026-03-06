@@ -46,3 +46,13 @@ daqErrCode daqInputPort_getConnection(daqInputPort* self, daqConnection** connec
 {
     return reinterpret_cast<daq::IInputPort*>(self)->getConnection(reinterpret_cast<daq::IConnection**>(connection));
 }
+
+daqErrCode daqInputPort_getPublic(daqInputPort* self, daqBool* isPublic)
+{
+    return reinterpret_cast<daq::IInputPort*>(self)->getPublic(isPublic);
+}
+
+daqErrCode daqInputPort_setPublic(daqInputPort* self, daqBool isPublic)
+{
+    return reinterpret_cast<daq::IInputPort*>(self)->setPublic(isPublic);
+}

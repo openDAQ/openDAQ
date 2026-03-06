@@ -248,7 +248,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
                 const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
                 StringPtr descObj;
                 this->getName(&descObj);
-                LOG_I("Active attribute of {} is locked", descObj);
+                LOG_I("'Public' attribute of {} is locked", descObj);
             }
 
             return OPENDAQ_IGNORED;

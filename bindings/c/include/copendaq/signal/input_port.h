@@ -46,6 +46,8 @@ extern "C"
     daqErrCode EXPORTED daqInputPort_getSignal(daqInputPort* self, daqSignal** signal);
     daqErrCode EXPORTED daqInputPort_getRequiresSignal(daqInputPort* self, daqBool* requiresSignal);
     daqErrCode EXPORTED daqInputPort_getConnection(daqInputPort* self, daqConnection** connection);
+    daqErrCode EXPORTED daqInputPort_getPublic(daqInputPort* self, daqBool* isPublic);
+    daqErrCode EXPORTED daqInputPort_setPublic(daqInputPort* self, daqBool isPublic);
 
 #ifdef __cplusplus
 }

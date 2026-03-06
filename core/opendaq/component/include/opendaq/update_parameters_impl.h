@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/update_parameters.h>
+#include <opendaq/device_update_options_ptr.h>
 #include <coreobjects/property_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -29,10 +30,14 @@ public:
 
     ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
     ErrCode INTERFACE_FUNC setReAddDevicesEnabled(Bool enabled) override;
+    ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) override;
+    ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) override;
 
 protected:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
+
+    DeviceUpdateOptionsPtr deviceOptions;
 };
 
 

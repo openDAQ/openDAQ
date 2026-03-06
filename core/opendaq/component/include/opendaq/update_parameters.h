@@ -17,6 +17,7 @@
 #pragma once
 
 #include <coreobjects/property_object.h>
+#include <opendaq/device_update_options.h>
 #include <opendaq/tags.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -55,6 +56,9 @@ DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
      * The configuration is set to the property `ReAddDevices` of configuration object.
      */
     virtual ErrCode INTERFACE_FUNC setReAddDevicesEnabled(Bool enabled) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) = 0;
+    virtual ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) = 0;
 };
 /*!@}*/
 

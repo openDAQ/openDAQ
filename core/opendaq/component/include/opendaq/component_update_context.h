@@ -80,6 +80,11 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * The configuration is set from the property `ReAddDevices` of configuration object.
      */
     virtual ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) = 0;
+
+    virtual ErrCode INTERFACE_FUNC addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId) = 0;
+    // [templateType(deviceMapping, IString, IString)]
+    virtual ErrCode INTERFACE_FUNC getDeviceMapping(IDict** deviceMapping) = 0;
+    virtual ErrCode INTERFACE_FUNC remapInputPortConnections() = 0;
 };
 
 /*!

@@ -45,13 +45,15 @@ public:
     ErrCode INTERFACE_FUNC getUpdateMode(DeviceUpdateMode* mode) override;
     ErrCode INTERFACE_FUNC setUpdateMode(DeviceUpdateMode mode) override;
     ErrCode INTERFACE_FUNC getChildDeviceOptions(IList** childDeviceOptions) override;
-
-    static NodeType getNodeType(const rapidjson::Value& value);
-    bool read(const StringPtr& localId, const rapidjson::Value& document, NodeType nodeType);
-    bool readFolder(const rapidjson::Value& document);
+    
     bool readDevice(const StringPtr& localId, const rapidjson::Value& document);
 
 private:
+    static NodeType getNodeType(const rapidjson::Value& value);
+
+    bool read(const StringPtr& localId, const rapidjson::Value& document, NodeType nodeType);
+    bool readFolder(const rapidjson::Value& document);
+
     StringPtr localId;
     StringPtr manufacturer;
     StringPtr serialNumber;

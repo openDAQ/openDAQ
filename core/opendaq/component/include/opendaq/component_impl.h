@@ -82,7 +82,7 @@ public:
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
-    ErrCode INTERFACE_FUNC setName(IString* name) override;
+    virtual ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC getTags(ITags** tags) override;
@@ -862,7 +862,10 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config));
     ErrCode errCode = updateInternal(obj, context);
     if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        OPENDAQ_RETURN_IF_FAILED(context.asPtr<IComponentUpdateContext>()->remapInputPortConnections());
         errCode = this->updateEnded(context);
+    }
     else
         errCode = DAQ_EXTEND_ERROR_INFO(errCode, "Component update failed");
 

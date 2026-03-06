@@ -30,6 +30,20 @@ ErrCode UpdateParametersImpl::setReAddDevicesEnabled(Bool enabled)
     return Super::setPropertyValue(String("ReAddDevices"), BooleanPtr(enabled));
 }
 
+ErrCode UpdateParametersImpl::getDeviceUpdateOptions(IDeviceUpdateOptions** options)
+{
+    OPENDAQ_PARAM_NOT_NULL(options);
+
+    *options = deviceOptions.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode UpdateParametersImpl::setDeviceUpdateOptions(IDeviceUpdateOptions* options)
+{
+    deviceOptions = options;
+    return OPENDAQ_SUCCESS;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, UpdateParameters)
 
 END_NAMESPACE_OPENDAQ

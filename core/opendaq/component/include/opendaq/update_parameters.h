@@ -40,6 +40,8 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
 {
+    // TODO: Remove re-add devices API
+
     /*!
      * @brief Returns whether the re-add devices is enabled. If enabled, the devices will be re-added in update process.
      * @param[out] enabled The flag indicating whether the re-add devices is enabled.

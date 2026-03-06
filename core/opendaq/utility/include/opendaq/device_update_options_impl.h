@@ -30,12 +30,21 @@ enum class NodeType : EnumType
     Unknown = 99
 };
 
+/*
+ * TODO:
+ *  - Add `isRootDevice` internal flag.
+ *  - Do not allow configuration of device options for the root device.
+ *  - Rename localID getter to `getSavedLocalId`
+ */
+
 class DeviceUpdateOptionsImpl : public ImplementationOf<IDeviceUpdateOptions>
 {
 public:
     DeviceUpdateOptionsImpl();
     DeviceUpdateOptionsImpl(const StringPtr& setupString);
     
+    ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
+    ErrCode INTERFACE_FUNC setLocalId(IString* localId) override;
     ErrCode INTERFACE_FUNC getManufacturer(IString** manufacturer) override;
     ErrCode INTERFACE_FUNC setManufacturer(IString* manufacturer) override;
     ErrCode INTERFACE_FUNC getSerialNumber(IString** serialNumber) override;

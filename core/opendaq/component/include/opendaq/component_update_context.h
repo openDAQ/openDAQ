@@ -19,6 +19,7 @@
 #include <coretypes/dictobject.h>
 #include <opendaq/component.h>
 #include <opendaq/signal.h>
+#include <opendaq/device_update_options.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -72,7 +73,8 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * @param parentId The ID of the parent component.
      */
     virtual ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) = 0;
-
+    
+    // TODO: Remove re-add devices API
     /*!
      * @brief Returns whether the re-add devices is enabled. If enabled, the devices will be re-added in update process.
      * @param[out] enabled The flag indicating whether the re-add devices is enabled.
@@ -85,6 +87,8 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
     // [templateType(deviceMapping, IString, IString)]
     virtual ErrCode INTERFACE_FUNC getDeviceMapping(IDict** deviceMapping) = 0;
     virtual ErrCode INTERFACE_FUNC remapInputPortConnections() = 0;
+
+    virtual ErrCode INTERFACE_FUNC getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options) = 0;
 };
 
 /*!

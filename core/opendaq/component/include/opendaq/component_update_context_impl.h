@@ -29,6 +29,7 @@ public:
 
     ComponentUpdateContextImpl(const ComponentPtr& curComponent, const UpdateParametersPtr& config)
         : config(config.assigned() ? config : UpdateParameters())
+        , deviceUpdateOptionsMapping(populateDeviceUpdateOptionsMapping(config))
         , deviceMapping(Dict<IString, IString>())
         , connections(Dict<IString, IBaseObject>())
         , signalDependencies(Dict<IString, IString>())
@@ -47,6 +48,7 @@ public:
     ErrCode INTERFACE_FUNC addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId) override;
     ErrCode INTERFACE_FUNC getDeviceMapping(IDict** deviceMapping) override;
     ErrCode INTERFACE_FUNC remapInputPortConnections() override;
+    ErrCode INTERFACE_FUNC getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options) override;
 
 private:
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
@@ -55,9 +57,11 @@ private:
     static ComponentPtr GetRootComponent(const ComponentPtr& curComponent);
     static DevicePtr GetDevice(const StringPtr& id, const DevicePtr& parentDevice);
     static std::string GetRootDeviceId(const std::string& id);
+    static DictPtr<IString, IDeviceUpdateOptions> populateDeviceUpdateOptionsMapping(const UpdateParametersPtr& config);
 
     UpdateParametersPtr config;
 
+    DictPtr<IString, IDeviceUpdateOptions> deviceUpdateOptionsMapping;
     DictPtr<IString, IString> deviceMapping;
     DictPtr<IString, IDict> connections;
     DictPtr<IString, IString> signalDependencies;
@@ -97,6 +101,30 @@ inline std::string ComponentUpdateContextImpl::GetRootDeviceId(const std::string
         return id;
 
     return id.substr(1, idx - 1);
+}
+
+static void recurseDeviceUpdateOptions(DictPtr<IString, IDeviceUpdateOptions>& mapping, const DeviceUpdateOptionsPtr& options)
+{
+    if (!options.assigned())
+        return;
+
+    auto localId = options.getLocalId();
+    if (localId == "")
+        mapping.set("Root", options);
+    else
+        mapping.set(localId, options);
+
+    for (const auto& childOptions : options.getChildDeviceOptions())
+        recurseDeviceUpdateOptions(mapping, childOptions);
+}
+
+inline DictPtr<IString, IDeviceUpdateOptions> ComponentUpdateContextImpl::populateDeviceUpdateOptionsMapping(const UpdateParametersPtr& config)
+{
+    DictPtr<IString, IDeviceUpdateOptions> mapping = Dict<IString, IDeviceUpdateOptions>();
+    if (config.assigned())
+        recurseDeviceUpdateOptions(mapping, config.getDeviceUpdateOptions());
+
+    return mapping;
 }
 
 inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
@@ -250,6 +278,15 @@ inline ErrCode ComponentUpdateContextImpl::remapInputPortConnections()
         connections.set(parentId, newPorts);
     }
 
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options)
+{
+    OPENDAQ_PARAM_NOT_NULL(localId);
+    OPENDAQ_PARAM_NOT_NULL(options);
+
+    *options = deviceMapping.hasKey(localId) ? deviceUpdateOptionsMapping.get(localId).detach() : nullptr;
     return OPENDAQ_SUCCESS;
 }
 

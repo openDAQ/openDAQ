@@ -30,19 +30,28 @@ enum class DeviceUpdateMode : EnumType
 {
     Load = 0,
     UpdateOnly,
-    Skip
+    Skip,
+    Remove,
+    Remap
 };
 
 DECLARE_OPENDAQ_INTERFACE(IDeviceUpdateOptions, IBaseObject)
 {
+    virtual ErrCode INTERFACE_FUNC getLocalId(IString** localId) = 0;
+    virtual ErrCode INTERFACE_FUNC setLocalId(IString* localId) = 0;
+
     virtual ErrCode INTERFACE_FUNC getManufacturer(IString** manufacturer) = 0;
     virtual ErrCode INTERFACE_FUNC setManufacturer(IString* manufacturer) = 0;
+
     virtual ErrCode INTERFACE_FUNC getSerialNumber(IString** serialNumber) = 0;
     virtual ErrCode INTERFACE_FUNC setSerialNumber(IString* serialNumber) = 0;
+
     virtual ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) = 0;
     virtual ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) = 0;
+
     virtual ErrCode INTERFACE_FUNC getUpdateMode(DeviceUpdateMode* mode) = 0;
     virtual ErrCode INTERFACE_FUNC setUpdateMode(DeviceUpdateMode mode) = 0;
+
     // [elementType(childDeviceOptions, IDeviceUpdateOptions)]
     virtual ErrCode INTERFACE_FUNC getChildDeviceOptions(IList** childDeviceOptions) = 0;
 };

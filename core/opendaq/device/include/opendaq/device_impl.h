@@ -258,6 +258,8 @@ private:
     ErrCode unlockInternal(IUser* user);
     ErrCode forceUnlockInternal();
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool>& targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
+    DeviceTypePtr getDeviceTypeFromPrefixOrNull(const StringPtr& prefix);
+    StringPtr getDevicePrefixOrEmpty(const DevicePtr& device);
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Idle};
@@ -1677,6 +1679,39 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
 }
 
 template <typename TInterface, typename ... Interfaces>
+DeviceTypePtr GenericDevice<TInterface, Interfaces...>::getDeviceTypeFromPrefixOrNull(const StringPtr& prefix)
+{
+    if (!prefix.assigned() || prefix == "")
+        return nullptr;
+
+    for (const auto& [_, type]: onGetAvailableDeviceTypes())
+    {
+        StringPtr typePrefix = type.getConnectionStringPrefix();
+        if (prefix == typePrefix)
+            return type;
+    }
+        
+    return nullptr;
+}
+
+template <typename TInterface, typename ... Interfaces>
+StringPtr GenericDevice<TInterface, Interfaces...>::getDevicePrefixOrEmpty(const DevicePtr& device)
+{
+    if (!device.assigned())
+        return "";
+
+    auto info = device.getInfo();
+    if (!info.assigned())
+        return "";
+
+    auto type = info.getDeviceType();
+    if (!type.assigned())
+        return "";
+
+    return type.getConnectionStringPrefix();
+}
+
+template <typename TInterface, typename ... Interfaces>
 ModuleInfoPtr GenericDevice<TInterface, Interfaces...>::getModuleInfoFromDeviceType()
 {
     if (deviceInfo.assigned())
@@ -1980,15 +2015,40 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
     try
     {
         ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
+        auto options = contextPtr.getDeviceUpdateOptionsWithLocalIdOrNull(deviceId);
+        
+        DeviceUpdateMode mode = DeviceUpdateMode::Load;
+        if (options.assigned())
+            mode = options.getUpdateMode();
+        
+        if (mode == DeviceUpdateMode::Skip)
+            return;
 
-        if (!contextPtr.getReAddDevicesEnabled() && devices.hasItem(deviceId))
+        if (devices.hasItem(deviceId) && mode != DeviceUpdateMode::Remap)
         {
-            LOG_D("Device {} already exists and re-add is not enabled", deviceId)
             auto device = devices.getItem(deviceId);
+            if (mode == DeviceUpdateMode::Remove)
+            {
+                auto prefix = getDevicePrefixOrEmpty(device);
+                auto type = getDeviceTypeFromPrefixOrNull(prefix);
+                if (!type.assigned())
+                {
+                    LOG_E("Failed to remove device with ID {} while updating Device with ID {}. "
+                          "Devices without a registered type can not be removed", deviceId, this->localId);
+                    return;
+                }
+
+                checkErrorInfo(this->removeDevice(device));
+                return;
+            }
+
             const auto updatableDevice = device.template asPtr<IUpdatable>(true);
             updatableDevice.updateInternal(serializedDevice, context);
             return;
         }
+
+        if (mode == DeviceUpdateMode::UpdateOnly)
+            return;
 
         PropertyObjectPtr deviceConfig;
         DeviceInfoPtr discoveredDeviceInfo;
@@ -1997,12 +2057,26 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             deviceConfig = serializedDevice.readObject("deviceConfig");
         else if (serializedDevice.hasKey("ComponentConfig"))
             deviceConfig = serializedDevice.readObject("ComponentConfig");
+                
+        StringPtr manufacturer;
+        StringPtr serialNumber;
+        StringPtr connectionString;
 
-        if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
+        // TODO: Determine priorities when remapping. Here we always prioritize manufacturer + serial over connection string
+        //       This should probably check which one was modified by the user and use that one.
+        if (mode == DeviceUpdateMode::Remap)
         {
-            StringPtr manufacturer = serializedDevice.readString("manufacturer");
-            StringPtr serialNumber = serializedDevice.readString("serialNumber");
+            manufacturer = options.getManufacturer();
+            serialNumber = options.getSerialNumber();
+        }
+        else if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
+        {
+            manufacturer = serializedDevice.readString("manufacturer");
+            serialNumber = serializedDevice.readString("serialNumber");
+        }
 
+        if (manufacturer.assigned() && serialNumber.assigned())
+        {
             for (const auto& availableDevice : onGetAvailableDevices())
             {
                 const auto capabilities = availableDevice.getServerCapabilities();
@@ -2023,15 +2097,12 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             }
         }
 
-        StringPtr connectionString;
         if (discoveredDeviceInfo.assigned())
-        {
             connectionString = discoveredDeviceInfo.getConnectionString();
-        }
+        else if (options.assigned() && mode == DeviceUpdateMode::Remap)
+            connectionString = options.getConnectionString();
         else if (serializedDevice.hasKey("connectionString"))
-        {
             connectionString = serializedDevice.readString("connectionString");
-        }
         else
         {
             LOG_W("No connection string found for device {}", deviceId);
@@ -2043,34 +2114,24 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         std::string prefix = pos == std::string::npos ? "" : connectionStringStr.substr(0,pos);
         DevicePtr device;
 
-        if (!prefix.empty())
+        if (devices.hasItem(deviceId) && mode == DeviceUpdateMode::Remap)
         {
-            for (const auto& [_, type]: onGetAvailableDeviceTypes())
+            auto type = getDeviceTypeFromPrefixOrNull(prefix);
+            if (!type.assigned())
             {
-                std::string typePrefix = type.getConnectionStringPrefix();
-                if (prefix == typePrefix)
-                {
-                    if (devices.hasItem(deviceId))
-                    {
-                        device = devices.getItem(deviceId);
-                        checkErrorInfo(this->removeDevice(device));
-                    }
-
-                    device = onAddDevice(connectionString, deviceConfig);
-                    break;
-                }
-            }
-        }
-
-        if (!device.assigned())
-        {
-            if (devices.hasItem(deviceId))
-                device = devices.getItem(deviceId);
-            else
-            {
-                LOG_W("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceId, this->localId)
+                LOG_E("Failed to remap device with ID {} while updating Device with ID {}. "
+                      "Devices without a registered type can not be removed", deviceId, this->localId);
                 return;
             }
+
+            checkErrorInfo(this->removeDevice(device));
+        }
+        
+        device = onAddDevice(connectionString, deviceConfig);
+        if (!device.assigned())
+        {
+            LOG_E("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceId, this->localId)
+            return;
         }
 
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);

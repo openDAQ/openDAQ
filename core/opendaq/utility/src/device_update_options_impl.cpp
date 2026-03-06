@@ -50,6 +50,20 @@ DeviceUpdateOptionsImpl::DeviceUpdateOptionsImpl(const StringPtr& setupString)
         throw DeserializeException{"Failed to read setup!"};
 }
 
+ErrCode DeviceUpdateOptionsImpl::getLocalId(IString** localId)
+{
+    OPENDAQ_PARAM_NOT_NULL(localId);
+    
+    *localId = this->localId.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::setLocalId(IString* localId)
+{
+    this->localId = localId;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode DeviceUpdateOptionsImpl::getManufacturer(IString** manufacturer)
 {
     OPENDAQ_PARAM_NOT_NULL(manufacturer);

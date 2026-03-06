@@ -2026,7 +2026,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
         if (devices.hasItem(deviceId) && mode != DeviceUpdateMode::Remap)
         {
-            auto device = devices.getItem(deviceId);
+            DevicePtr device = devices.getItem(deviceId);
             if (mode == DeviceUpdateMode::Remove)
             {
                 auto prefix = getDevicePrefixOrEmpty(device);
@@ -2112,8 +2112,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         std::string connectionStringStr = connectionString;
         auto pos = connectionStringStr.find("://");
         std::string prefix = pos == std::string::npos ? "" : connectionStringStr.substr(0,pos);
-        DevicePtr device;
-
+ 
         if (devices.hasItem(deviceId) && mode == DeviceUpdateMode::Remap)
         {
             auto type = getDeviceTypeFromPrefixOrNull(prefix);
@@ -2124,10 +2123,11 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                 return;
             }
 
+            DevicePtr device = devices.getItem(deviceId);
             checkErrorInfo(this->removeDevice(device));
         }
         
-        device = onAddDevice(connectionString, deviceConfig);
+        DevicePtr device = onAddDevice(connectionString, deviceConfig);
         if (!device.assigned())
         {
             LOG_E("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceId, this->localId)

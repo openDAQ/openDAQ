@@ -99,13 +99,13 @@ TEST_F(ConfigProtocolIntegrationTestNonPublic, Connect)
 TEST_F(ConfigProtocolIntegrationTestNonPublic, FilterNonPublicComponents)
 {
     auto childDevices = serverDevice.getDevices(search::LocalId("mock_phys_dev"));
-    ASSERT_EQ(childDevices.getCount(), 1);
+    ASSERT_EQ(childDevices.getCount(), 1u);
     auto signals = childDevices[0].getSignals(search::LocalId("devicetimesigprivate"));
-    ASSERT_EQ(signals.getCount(), 1);
+    ASSERT_EQ(signals.getCount(), 1u);
     ASSERT_EQ(signals[0].getPublic(), False);
 
     auto childDevicesClient = clientDevice.getDevices(search::LocalId("mock_phys_dev"));
-    ASSERT_EQ(childDevicesClient.getCount(), 1);
+    ASSERT_EQ(childDevicesClient.getCount(), 1u);
     auto signalsClient = childDevicesClient[0].getSignals(search::LocalId("devicetimesigprivate"));
-    ASSERT_EQ(signalsClient.getCount(), 0);
+    ASSERT_EQ(signalsClient.getCount(), 0u);
 }

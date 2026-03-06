@@ -44,7 +44,6 @@ public:
     ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
-    ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
     ErrCode INTERFACE_FUNC addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId) override;
     ErrCode INTERFACE_FUNC getDeviceMapping(IDict** deviceMapping) override;
     ErrCode INTERFACE_FUNC remapInputPortConnections() override;
@@ -356,11 +355,6 @@ inline StringPtr ComponentUpdateContextImpl::remapDeviceLocalIds(const std::stri
     }
     
     return output;
-}
-
-inline ErrCode ComponentUpdateContextImpl::getReAddDevicesEnabled(Bool* enabled)
-{
-    return config->getReAddDevicesEnabled(enabled);
 }
 
 END_NAMESPACE_OPENDAQ

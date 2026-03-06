@@ -28,8 +28,6 @@ public:
 
     UpdateParametersImpl();
 
-    ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
-    ErrCode INTERFACE_FUNC setReAddDevicesEnabled(Bool enabled) override;
     ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) override;
     ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) override;
 

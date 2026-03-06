@@ -4,7 +4,6 @@ BEGIN_NAMESPACE_OPENDAQ
 UpdateParametersImpl::UpdateParametersImpl()
     : Super()
 {
-    Super::addProperty(BoolProperty("ReAddDevices", false));
     Super::addProperty(BoolProperty("RemoteUpdate", false));
 }
 
@@ -12,22 +11,6 @@ template <typename T>
 typename InterfaceToSmartPtr<T>::SmartPtr UpdateParametersImpl::getTypedProperty(const StringPtr& name)
 {
     return objPtr.getPropertyValue(name);
-}
-
-ErrCode UpdateParametersImpl::getReAddDevicesEnabled(Bool* enabled)
-{
-    const ErrCode errCode = daqTry([&]
-    {
-        *enabled = getTypedProperty<IBoolean>("ReAddDevices");
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-ErrCode UpdateParametersImpl::setReAddDevicesEnabled(Bool enabled)
-{
-    return Super::setPropertyValue(String("ReAddDevices"), BooleanPtr(enabled));
 }
 
 ErrCode UpdateParametersImpl::getDeviceUpdateOptions(IDeviceUpdateOptions** options)

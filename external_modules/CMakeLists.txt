@@ -75,6 +75,12 @@ if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPE
         GIT_SHALLOW    OFF
         SOURCE_SUBDIR  "INVALID"
         GIT_REMOTE_UPDATE_STRATEGY CHECKOUT
+        PATCH_COMMAND
+            ${CMAKE_COMMAND}
+                -DPATCHES=${CMAKE_CURRENT_SOURCE_DIR}/patches/0001-Remove-global-FMT_HEADER_ONLY-definition.patch
+                -DREQUIRED_VERSION=${DAQMODULES_OPCUA_GIT_REF}
+                -DGIT_EXECUTABLE=${GIT_EXECUTABLE}
+                -P ${opendaq_dependency_patch_script_dir}/patch.cmake
         ${FC_PARAMS}
     )
     

@@ -38,17 +38,16 @@ enum class DeviceUpdateMode : EnumType
 DECLARE_OPENDAQ_INTERFACE(IDeviceUpdateOptions, IBaseObject)
 {
     virtual ErrCode INTERFACE_FUNC getLocalId(IString** localId) = 0;
-    virtual ErrCode INTERFACE_FUNC setLocalId(IString* localId) = 0;
-
     virtual ErrCode INTERFACE_FUNC getManufacturer(IString** manufacturer) = 0;
-    virtual ErrCode INTERFACE_FUNC setManufacturer(IString* manufacturer) = 0;
-
     virtual ErrCode INTERFACE_FUNC getSerialNumber(IString** serialNumber) = 0;
-    virtual ErrCode INTERFACE_FUNC setSerialNumber(IString* serialNumber) = 0;
-
     virtual ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) = 0;
-    virtual ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) = 0;
 
+    virtual ErrCode INTERFACE_FUNC setNewManufacturer(IString* manufacturer) = 0;
+    virtual ErrCode INTERFACE_FUNC getNewManufacturer(IString** manufacturer) = 0;
+    virtual ErrCode INTERFACE_FUNC setNewSerialNumber(IString* serialNumber) = 0;
+    virtual ErrCode INTERFACE_FUNC getNewSerialNumber(IString** serialNumber) = 0;
+    virtual ErrCode INTERFACE_FUNC setNewConnectionString(IString* connectionString) = 0;
+    virtual ErrCode INTERFACE_FUNC getNewConnectionString(IString** connectionString) = 0;
     virtual ErrCode INTERFACE_FUNC getUpdateMode(DeviceUpdateMode* mode) = 0;
     virtual ErrCode INTERFACE_FUNC setUpdateMode(DeviceUpdateMode mode) = 0;
 

@@ -5,6 +5,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 DeviceUpdateOptionsImpl::DeviceUpdateOptionsImpl()
 {
+    isRoot = false;
     children = List<IDeviceUpdateOptions>();
     manufacturer = "";
     serialNumber = "";
@@ -46,6 +47,8 @@ DeviceUpdateOptionsImpl::DeviceUpdateOptionsImpl(const StringPtr& setupString)
     }
 
     internalAddRef();
+
+    isRoot = true;
     if (!read("", document, getNodeType(document)))
         throw DeserializeException{"Failed to read setup!"};
 }
@@ -58,23 +61,11 @@ ErrCode DeviceUpdateOptionsImpl::getLocalId(IString** localId)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DeviceUpdateOptionsImpl::setLocalId(IString* localId)
-{
-    this->localId = localId;
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode DeviceUpdateOptionsImpl::getManufacturer(IString** manufacturer)
 {
     OPENDAQ_PARAM_NOT_NULL(manufacturer);
     
     *manufacturer = this->manufacturer.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode DeviceUpdateOptionsImpl::setManufacturer(IString* manufacturer)
-{
-    this->manufacturer = manufacturer;
     return OPENDAQ_SUCCESS;
 }
 
@@ -86,11 +77,6 @@ ErrCode DeviceUpdateOptionsImpl::getSerialNumber(IString** serialNumber)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DeviceUpdateOptionsImpl::setSerialNumber(IString* serialNumber)
-{
-    this->serialNumber = serialNumber;
-    return OPENDAQ_SUCCESS;
-}
 
 ErrCode DeviceUpdateOptionsImpl::getConnectionString(IString** connectionString)
 {
@@ -100,9 +86,54 @@ ErrCode DeviceUpdateOptionsImpl::getConnectionString(IString** connectionString)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode DeviceUpdateOptionsImpl::setConnectionString(IString* connectionString)
+ErrCode DeviceUpdateOptionsImpl::setNewManufacturer(IString* manufacturer)
 {
-    this->connectionString = connectionString;
+    if (isRoot)
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Root device setup options can not be modified.");
+
+    this->newManufacturer = manufacturer;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::getNewManufacturer(IString** manufacturer)
+{    
+    OPENDAQ_PARAM_NOT_NULL(manufacturer);
+    
+    *manufacturer = this->newManufacturer.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::setNewSerialNumber(IString* serialNumber)
+{
+    if (isRoot)
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Root device setup options can not be modified.");
+
+    this->newSerialNumber = serialNumber;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::getNewSerialNumber(IString** serialNumber)
+{
+    OPENDAQ_PARAM_NOT_NULL(serialNumber);
+    
+    *serialNumber = this->newSerialNumber.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::setNewConnectionString(IString* connectionString)
+{
+    if (isRoot)
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Root device setup options can not be modified.");
+
+    this->newConnectionString = connectionString;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::getNewConnectionString(IString** connectionString)
+{
+    OPENDAQ_PARAM_NOT_NULL(connectionString);
+    
+    *connectionString = this->newConnectionString.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

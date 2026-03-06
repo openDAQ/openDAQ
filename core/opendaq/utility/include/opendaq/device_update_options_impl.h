@@ -30,13 +30,6 @@ enum class NodeType : EnumType
     Unknown = 99
 };
 
-/*
- * TODO:
- *  - Add `isRootDevice` internal flag.
- *  - Do not allow configuration of device options for the root device.
- *  - Rename localID getter to `getSavedLocalId`
- */
-
 class DeviceUpdateOptionsImpl : public ImplementationOf<IDeviceUpdateOptions>
 {
 public:
@@ -44,13 +37,17 @@ public:
     DeviceUpdateOptionsImpl(const StringPtr& setupString);
     
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
-    ErrCode INTERFACE_FUNC setLocalId(IString* localId) override;
     ErrCode INTERFACE_FUNC getManufacturer(IString** manufacturer) override;
-    ErrCode INTERFACE_FUNC setManufacturer(IString* manufacturer) override;
     ErrCode INTERFACE_FUNC getSerialNumber(IString** serialNumber) override;
-    ErrCode INTERFACE_FUNC setSerialNumber(IString* serialNumber) override;
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
-    ErrCode INTERFACE_FUNC setConnectionString(IString* connectionString) override;
+
+    ErrCode INTERFACE_FUNC setNewManufacturer(IString* manufacturer) override;
+    ErrCode INTERFACE_FUNC getNewManufacturer(IString** manufacturer) override;
+    ErrCode INTERFACE_FUNC setNewSerialNumber(IString* serialNumber) override;
+    ErrCode INTERFACE_FUNC getNewSerialNumber(IString** serialNumber) override;
+    ErrCode INTERFACE_FUNC setNewConnectionString(IString* connectionString) override;
+    ErrCode INTERFACE_FUNC getNewConnectionString(IString** connectionString) override;
+
     ErrCode INTERFACE_FUNC getUpdateMode(DeviceUpdateMode* mode) override;
     ErrCode INTERFACE_FUNC setUpdateMode(DeviceUpdateMode mode) override;
     ErrCode INTERFACE_FUNC getChildDeviceOptions(IList** childDeviceOptions) override;
@@ -63,10 +60,16 @@ private:
     bool read(const StringPtr& localId, const rapidjson::Value& document, NodeType nodeType);
     bool readFolder(const rapidjson::Value& document);
 
+    bool isRoot;
     StringPtr localId;
     StringPtr manufacturer;
     StringPtr serialNumber;
     StringPtr connectionString;
+
+    StringPtr newManufacturer;
+    StringPtr newSerialNumber;
+    StringPtr newConnectionString;
+
     DeviceUpdateMode mode;
     ListPtr<IDeviceUpdateOptions> children;
 };

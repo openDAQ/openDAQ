@@ -2062,12 +2062,10 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         StringPtr serialNumber;
         StringPtr connectionString;
 
-        // TODO: Determine priorities when remapping. Here we always prioritize manufacturer + serial over connection string
-        //       This should probably check which one was modified by the user and use that one.
         if (mode == DeviceUpdateMode::Remap)
         {
-            manufacturer = options.getManufacturer();
-            serialNumber = options.getSerialNumber();
+            manufacturer = options.getNewManufacturer();
+            serialNumber = options.getNewConnectionString();
         }
         else if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
         {
@@ -2075,7 +2073,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             serialNumber = serializedDevice.readString("serialNumber");
         }
 
-        if (manufacturer.assigned() && serialNumber.assigned())
+        if (manufacturer.assigned() && manufacturer != "" && serialNumber.assigned() && serialNumber != "")
         {
             for (const auto& availableDevice : onGetAvailableDevices())
             {
@@ -2100,13 +2098,17 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         if (discoveredDeviceInfo.assigned())
             connectionString = discoveredDeviceInfo.getConnectionString();
         else if (options.assigned() && mode == DeviceUpdateMode::Remap)
-            connectionString = options.getConnectionString();
-        else if (serializedDevice.hasKey("connectionString"))
-            connectionString = serializedDevice.readString("connectionString");
-        else
+            connectionString = options.getNewConnectionString();
+ 
+        if (!connectionString.assigned() || connectionString == "")
         {
-            LOG_W("No connection string found for device {}", deviceId);
-            return;
+            if (serializedDevice.hasKey("connectionString"))
+                connectionString = serializedDevice.readString("connectionString");
+            else
+            {
+                LOG_W("No connection string found for device {}", deviceId);
+                return;
+            }
         }
         
         std::string connectionStringStr = connectionString;

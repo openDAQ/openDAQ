@@ -74,7 +74,7 @@ TEST_F(AwaitableTest, CancelNotYetExecuted)
         return 2;
     });
 
-    ASSERT_THROW(awaitable.cancel(), NotSupportedException);
+    ASSERT_TRUE(awaitable.cancel());
     awaitable.wait();
 
     ASSERT_FALSE(executed);

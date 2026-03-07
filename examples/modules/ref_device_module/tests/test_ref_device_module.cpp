@@ -23,6 +23,7 @@
 #include <coreobjects/property_factory.h>
 #include <chrono>
 #include <coretypes/filesystem.h>
+#include <iomanip>
 
 using namespace daq;
 using RefDeviceModuleTest = testing::Test;

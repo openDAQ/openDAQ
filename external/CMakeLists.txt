@@ -1,3 +1,4 @@
+get_mode(_CMAKE_MODERN_MODE_SAVED)
 set_mode(ANCIENT)
 set(CMAKE_FOLDER "external")
 
@@ -108,3 +109,5 @@ if (DAQMODULES_PARQUET_RECORDER_MODULE)
     add_subdirectory(arrow EXCLUDE_FROM_ALL)
     add_subdirectory(thrift EXCLUDE_FROM_ALL)
 endif()
+
+set_mode(${_CMAKE_MODERN_MODE_SAVED})

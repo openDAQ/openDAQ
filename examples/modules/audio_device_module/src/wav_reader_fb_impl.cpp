@@ -1,6 +1,6 @@
 #include <audio_device_module/wav_reader_fb_impl.h>
 #include <opendaq/packet_factory.h>
-#include <filesystem>
+#include <coretypes/filesystem.h>
 
 BEGIN_NAMESPACE_AUDIO_DEVICE_MODULE
 
@@ -168,7 +168,7 @@ void WAVReaderFbImpl::stopRead()
 
 bool WAVReaderFbImpl::updateFilePath(const std::string& newPath)
 {
-    if (!std::filesystem::exists(newPath))
+    if (!fs::exists(newPath))
     {
         return false;
     }

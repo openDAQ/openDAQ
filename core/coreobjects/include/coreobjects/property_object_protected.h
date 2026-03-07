@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coretypes/baseobject.h>
+#include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -42,6 +43,13 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectProtected, IBaseObject)
      * @param propertyName The name of the Property of which value the function should be cleared.
      */
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) = 0;
+
+    /*!
+    * @brief Sets a Selection property value by the selection item value. Does not fail if the property is read-only.
+    * @param propertyName The name of the Property.
+    * @param value The selection value to set (must be one of the Property's selection values).
+    */
+    virtual ErrCode INTERFACE_FUNC setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value) = 0;
 };
 
 /*!

@@ -665,6 +665,124 @@ TEST_F(PropertyObjectTest, SelectionPropNoList)
                      "Failed to get property selection value")
 }
 
+// List selection string: property built with builder (ctString + selection values), set/get by index and by value
+TEST_F(PropertyObjectTest, ListSelectionStringPropertySetGet)
+{
+    auto stringSelectionProp = PropertyBuilder("Mode")
+                                  .setValueType(ctString)
+                                  .setDefaultValue("Low")
+                                  .setSelectionValues(List<IString>("Low", "Medium", "High"))
+                                  .build();
+
+    auto propObj = PropertyObject();
+    propObj.addProperty(stringSelectionProp);
+
+    // Set by index
+    propObj.setPropertyValue("Mode", 1);
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), 1);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Medium");
+
+    propObj.setPropertyValue("Mode", 2);
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), 2);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "High");
+
+    // Set by value
+    propObj.setPropertySelectionValue("Mode", "Low");
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), 0);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Low");
+
+    propObj.setPropertySelectionValue("Mode", "Medium");
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), 1);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Medium");
+}
+
+// List selection float: property built with builder (ctFloat + selection values), set/get by index and by value
+TEST_F(PropertyObjectTest, ListSelectionFloatPropertySetGet)
+{
+    auto floatSelectionProp = PropertyBuilder("Range")
+                                  .setValueType(ctFloat)
+                                  .setDefaultValue(1.0f)
+                                  .setSelectionValues(List<Float>(1.0f, 2.5f, 10.0f))
+                                  .build();
+
+    auto propObj = PropertyObject();
+    propObj.addProperty(floatSelectionProp);
+
+    // Set by index
+    propObj.setPropertyValue("Range", 1u);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 1u);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 2.5f);
+
+    propObj.setPropertyValue("Range", 2u);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 2u);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 10.0f);
+
+    // Set by value
+    propObj.setPropertySelectionValue("Range", 1.0);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 0);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 1.0);
+
+    propObj.setPropertySelectionValue("Range", 2.5);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 1);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 2.5);
+}
+
+// List selection string with default value as string (not index)
+TEST_F(PropertyObjectTest, ListSelectionStringPropertyDefaultValue)
+{
+    auto stringSelectionProp = PropertyBuilder("Mode")
+                                  .setValueType(ctString)
+                                  .setDefaultValue("Medium")
+                                  .setSelectionValues(List<IString>("Low", "Medium", "High"))
+                                  .build();
+    auto propObj = PropertyObject();
+    propObj.addProperty(stringSelectionProp);
+
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), 1u);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Medium");
+}
+
+// List selection float with default value as float (not index)
+TEST_F(PropertyObjectTest, ListSelectionFloatPropertyDefaultValue)
+{
+    auto floatSelectionProp = PropertyBuilder("Range")
+                                  .setValueType(ctFloat)
+                                  .setDefaultValue(2.5f)
+                                  .setSelectionValues(List<Float>(1.0f, 2.5f, 10.0f))
+                                  .build();
+    auto propObj = PropertyObject();
+    propObj.addProperty(floatSelectionProp);
+
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 1u);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 2.5f);
+}
+
+TEST_F(PropertyObjectTest, ListSelectionStringPropertySetInvalidValue)
+{
+    auto stringSelectionProp = PropertyBuilder("Mode")
+                                  .setValueType(ctString)
+                                  .setDefaultValue("Low")
+                                  .setSelectionValues(List<IString>("Low", "Medium", "High"))
+                                  .build();
+    auto propObj = PropertyObject();
+    propObj.addProperty(stringSelectionProp);
+
+    ASSERT_THROW(propObj.setPropertyValue("Mode", 4u), NotFoundException);
+}
+
+TEST_F(PropertyObjectTest, ListSelectionFloatPropertySetInvalidValue)
+{
+    auto floatSelectionProp = PropertyBuilder("Range")
+                                  .setValueType(ctFloat)
+                                  .setDefaultValue(1.0f)
+                                  .setSelectionValues(List<Float>(1.0f, 2.5f, 10.0f))
+                                  .build();
+    auto propObj = PropertyObject();
+    propObj.addProperty(floatSelectionProp);
+
+    ASSERT_THROW(propObj.setPropertyValue("Range", 4u), NotFoundException);
+}
+
 TEST_F(PropertyObjectTest, DictProp)
 {
     auto propObj = PropertyObject(objManager, "Test");

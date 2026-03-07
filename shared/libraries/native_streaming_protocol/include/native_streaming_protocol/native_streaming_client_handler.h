@@ -35,6 +35,7 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using OnConnectionStatusChangedCallback = std::function<void(const EnumerationPtr& status, const StringPtr& statusMessage)>;
+using GetAlternativeAddressesCallback = std::function<ListPtr<IString>()>;
 
 class NativeStreamingClientHandler;
 using NativeStreamingClientHandlerPtr = std::shared_ptr<NativeStreamingClientHandler>;
@@ -83,6 +84,8 @@ public:
     void resetStreamingToDeviceHandlers();
     void setStreamingToDeviceHandlers(const OnSignalSubscribedCallback& signalSubscribedHandler,
                                       const OnSignalUnsubscribedCallback& signalUnsubscribedHandler);
+
+    void setAlternativeAddressesCallback(const GetAlternativeAddressesCallback& callback);
 
 protected:
     void manageTransportLayerProps();
@@ -163,6 +166,13 @@ protected:
     std::chrono::milliseconds connectionTimeout;
     std::chrono::milliseconds reconnectionPeriod;
 
+    // Connection parameters for reconnection
+    std::string currentHost;
+    std::string currentPort;
+    std::string currentPath;
+    GetAlternativeAddressesCallback getAlternativeAddressesCallback;
+    size_t currentAddressIndex{0};
+
     struct ClientSignal
     {
         explicit ClientSignal(const std::string& signalStringId, SignalNumericIdType signalNumericId, const SignalPtr& signal)
@@ -225,6 +235,8 @@ public:
                                       const OnSignalUnsubscribedCallback& signalUnsubscribedHandler);
 
     bool supportsToDeviceStreaming();
+
+    void setAlternativeAddressesCallback(const GetAlternativeAddressesCallback& callback);
 
 protected:
     void startTransportOperations();

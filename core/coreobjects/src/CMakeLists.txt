@@ -49,7 +49,7 @@ rtgen(SRC_Permisisons permissions.h)
 rtgen(SRC_PermisisonsInternal permissions_internal.h)
 rtgen(SRC_ObjectLockGuard object_lock_guard.h)
 rtgen(SRC_PropertyMetadataReadArgs property_metadata_read_args.h)
-rtgen(SRC_Mutex	mutex.h)
+rtgen(SRC_Mutex    mutex.h)
 
 get_target_property(CORE_CONTAINERS_SRCS core_containers INTERFACE_SOURCES)
 
@@ -109,7 +109,12 @@ source_group("property_object" FILES ${SDK_HEADERS_DIR}/property_object.h
                                      ${SDK_HEADERS_DIR}/property_object_protected.h
                                      ${SDK_HEADERS_DIR}/property_object_internal.h
                                      ${SDK_HEADERS_DIR}/object_lock_guard.h
+                                     ${SDK_HEADERS_DIR}/property_object_core.h
+                                     ${SDK_HEADERS_DIR}/property_object_core_impl.h
+                                     ${SDK_HEADERS_DIR}/property_object_utils.h
+                                     property_object_core_impl.cpp
                                      property_object_impl.cpp
+                                     property_object_utils.cpp
 )
 
 source_group("property_object_class" FILES ${SDK_HEADERS_DIR}/property_object_class.h
@@ -236,6 +241,8 @@ set(SRC_Cpp version.cpp
             search_filter_impl.cpp
             property_metadata_read_args_impl.cpp
             mutex_impl.cpp
+            property_object_core_impl.cpp
+            property_object_utils.cpp
 )
 
 set(SRC_PublicHeaders coreobjects.h
@@ -289,8 +296,10 @@ set(SRC_PublicHeaders coreobjects.h
                       property_metadata_read_args_factory.h
                       mutex.h
                       mutex_factory.h
-					  mutex_ptr.custom.h
-					  mutex_impl.h
+                      mutex_ptr.custom.h
+                      mutex_impl.h
+                      property_object_core.h
+                      property_object_utils.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -320,6 +329,7 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        permission_mask_builder_impl.h
                        search_filter_impl.h
                        property_metadata_read_args_impl.h
+                       property_object_core_impl.h
 )
 
 opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)

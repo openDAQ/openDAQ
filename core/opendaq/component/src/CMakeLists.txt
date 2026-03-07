@@ -132,6 +132,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/component_type_builder.h
         ${SDK_HEADERS_DIR}/component_type_builder_factory.h
         ${SDK_HEADERS_DIR}/component_type_private.h
+        ${SDK_SRC_DIR}/component_type_impl.cpp
     )
 endfunction()
 
@@ -176,6 +177,7 @@ set(SRC_PrivateHeaders_Component
 
 set(SRC_Cpp_Component 
     component_impl.cpp
+    component_type_impl.cpp
     folder_impl.cpp
     component_deserialize_context_impl.cpp
     search_filter_impl.cpp

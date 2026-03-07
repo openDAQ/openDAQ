@@ -282,6 +282,7 @@ public:
     virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValueNoLock(IString* propertyName, IBaseObject** value) override;
+    virtual ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* propertyName) override;
 
@@ -355,6 +356,7 @@ public:
     // IPropertyObjectProtected
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
+    virtual ErrCode INTERFACE_FUNC setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
 
     using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
@@ -372,6 +374,8 @@ public:
     friend class AddressInfoImpl;
     friend class ServerCapabilityConfigImpl;
     friend class ConnectedClientInfoImpl;
+    template <typename, typename...>
+    friend class SyncInterfaceBaseImpl;
 
 protected:
     struct UpdatingAction
@@ -454,6 +458,7 @@ protected:
     ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
+    ErrCode setPropertySelectionValueInternal(IString* propertyName, IBaseObject* value, bool protectedAccess);
     ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
     ErrCode setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating = false);
 
@@ -1024,6 +1029,13 @@ template <typename PropObjInterface, typename ... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setProtectedPropertyValueNoLock(IString* propertyName, IBaseObject* value)
 {
     return setPropertyValueInternal(propertyName, value, true, true, updateCount > 0);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value)
+{
+    auto lock = getRecursiveConfigLock2();
+    return setPropertySelectionValueInternal(propertyName, value, true);
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1761,6 +1773,96 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
     return getPropertySelectionValueInternal(propertyName, value, true);
 }
 
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
+{
+    auto lock = getRecursiveConfigLock2();
+    return setPropertySelectionValueInternal(propertyName, value, false);
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertySelectionValueInternal(IString* propertyName,
+                                                                                                      IBaseObject* value,
+                                                                                                      bool protectedAccess)
+{
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+    OPENDAQ_PARAM_NOT_NULL(value);
+
+    const ErrCode errCode = daqTry([&]()
+    {
+        const auto propName = StringPtr::Borrow(propertyName);
+        const auto valuePtr = BaseObjectPtr::Borrow(value);
+        PropertyPtr prop;
+
+        if (isChildProperty(propName))
+        {
+            StringPtr childName;
+            StringPtr subName;
+            splitOnFirstDot(propName, childName, subName);
+
+            BaseObjectPtr childProp;
+            const ErrCode err = getPropertyValueInternal(childName, &childProp);
+            OPENDAQ_RETURN_IF_FAILED(err);
+
+            if (protectedAccess)
+            {
+                const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObjectProtected>(true);
+                return childPropAsPropertyObject->setProtectedPropertySelectionValue(subName, value);
+            }
+            else
+            {
+                const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
+                return childPropAsPropertyObject->setPropertySelectionValue(subName, value);
+            }
+        }
+
+        prop = getUnboundProperty(propName);
+        const auto propInternal = prop.asPtr<IPropertyInternal>(true);
+        auto selectionValues = propInternal.getSelectionValuesNoLock();
+
+        if (!selectionValues.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Property "{}" has no selection values assigned)", propName));
+
+        BaseObjectPtr indexOrKey;
+        if (auto valuesList = selectionValues.asPtrOrNull<IList, ListPtr<IBaseObject>>(true); valuesList.assigned())
+        {
+            for (SizeT i = 0; i < valuesList.getCount(); ++i)
+            {
+                if (valuesList.getItemAt(i) == valuePtr)
+                {
+                    indexOrKey = static_cast<Int>(i);
+                    break;
+                }
+            }
+        }
+        else if (auto valuesDict = selectionValues.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true); valuesDict.assigned())
+        {
+            for (const auto& [key, val] : valuesDict)
+            {
+                if (val == valuePtr)
+                {
+                    indexOrKey = key;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Property "{}" selection values is not a list or dictionary)", propName));
+        }
+
+        if (!indexOrKey.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, fmt::format(R"(Value not found in selection values of property "{}")", propName));
+
+        if (protectedAccess)
+            return setProtectedPropertyValue(propertyName, indexOrKey);
+        else
+            return setPropertyValue(propertyName, indexOrKey);
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set property selection value");
+    return errCode;
+}
+
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearProtectedPropertyValue(IString* propertyName)
 {
@@ -2093,22 +2195,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" has no selection values assigned)", propName));
 
         if (auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true); valuesList.assigned())
-        {
             valuePtr = valuesList.getItemAt(valuePtr);
-        }
         else if (auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true); valuesDict.assigned())
-        {
             valuePtr = valuesDict.get(valuePtr);
-        }
         else
-        {
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" values is not a list or dictionary)", propName));
-        }
 
         if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())
-        {
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "List item type mismatch");
-        }
 
         *value = valuePtr.detach();
         return OPENDAQ_SUCCESS;

@@ -108,6 +108,8 @@ set(SRC_Cpp
     generated/streaming/py_mirrored_input_port_config.cpp
     generated/synchronization/py_sync_component.cpp
     generated/synchronization/py_sync_component_private.cpp
+    generated/synchronization/py_sync_interface.cpp
+    generated/synchronization/py_sync_component2.cpp
     generated/modulemanager/py_module_info.cpp
     generated/component/py_component_type.cpp
 )

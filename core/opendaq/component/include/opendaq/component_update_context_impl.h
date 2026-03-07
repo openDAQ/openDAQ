@@ -29,6 +29,8 @@ public:
 
     ComponentUpdateContextImpl(const ComponentPtr& curComponent, const UpdateParametersPtr& config)
         : config(config.assigned() ? config : UpdateParameters())
+        , deviceUpdateOptionsMapping(populateDeviceUpdateOptionsMapping(config))
+        , deviceMapping(Dict<IString, IString>())
         , connections(Dict<IString, IBaseObject>())
         , signalDependencies(Dict<IString, IString>())
         , parentDependencies(List<IString>())
@@ -42,18 +44,24 @@ public:
     ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
-
-    ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) override;
+    ErrCode INTERFACE_FUNC addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId) override;
+    ErrCode INTERFACE_FUNC getDeviceMapping(IDict** deviceMapping) override;
+    ErrCode INTERFACE_FUNC remapInputPortConnections() override;
+    ErrCode INTERFACE_FUNC getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options) override;
 
 private:
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
 
+    StringPtr remapDeviceLocalIds(const std::string& componentGlobalId) const;
     static ComponentPtr GetRootComponent(const ComponentPtr& curComponent);
     static DevicePtr GetDevice(const StringPtr& id, const DevicePtr& parentDevice);
     static std::string GetRootDeviceId(const std::string& id);
+    static DictPtr<IString, IDeviceUpdateOptions> populateDeviceUpdateOptionsMapping(const UpdateParametersPtr& config);
 
     UpdateParametersPtr config;
 
+    DictPtr<IString, IDeviceUpdateOptions> deviceUpdateOptionsMapping;
+    DictPtr<IString, IString> deviceMapping;
     DictPtr<IString, IDict> connections;
     DictPtr<IString, IString> signalDependencies;
     ListPtr<IString> parentDependencies;
@@ -92,6 +100,30 @@ inline std::string ComponentUpdateContextImpl::GetRootDeviceId(const std::string
         return id;
 
     return id.substr(1, idx - 1);
+}
+
+static void recurseDeviceUpdateOptions(DictPtr<IString, IDeviceUpdateOptions>& mapping, const DeviceUpdateOptionsPtr& options)
+{
+    if (!options.assigned())
+        return;
+
+    auto localId = options.getLocalId();
+    if (localId == "")
+        mapping.set("Root", options);
+    else
+        mapping.set(localId, options);
+
+    for (const auto& childOptions : options.getChildDeviceOptions())
+        recurseDeviceUpdateOptions(mapping, childOptions);
+}
+
+inline DictPtr<IString, IDeviceUpdateOptions> ComponentUpdateContextImpl::populateDeviceUpdateOptionsMapping(const UpdateParametersPtr& config)
+{
+    DictPtr<IString, IDeviceUpdateOptions> mapping = Dict<IString, IDeviceUpdateOptions>();
+    if (config.assigned())
+        recurseDeviceUpdateOptions(mapping, config.getDeviceUpdateOptions());
+
+    return mapping;
 }
 
 inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* parentId, IString* portId, IString* signalId)
@@ -217,6 +249,46 @@ inline ErrCode ComponentUpdateContextImpl::setSignalDependency(IString* signalId
     return OPENDAQ_SUCCESS;
 }
 
+inline ErrCode ComponentUpdateContextImpl::addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId)
+{
+    OPENDAQ_PARAM_NOT_NULL(originalDeviceId);
+    OPENDAQ_PARAM_NOT_NULL(newDeviceId);
+
+    deviceMapping.set(originalDeviceId, newDeviceId);
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::getDeviceMapping(IDict** deviceMapping)
+{
+    OPENDAQ_PARAM_NOT_NULL(deviceMapping);
+
+    *deviceMapping = this->deviceMapping.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::remapInputPortConnections()
+{
+    for (const auto& [parentId, ports] : connections)
+    {
+        DictPtr<IString, IString> newPorts = Dict<IString, IString>();
+        for (const auto& [portId, signalId] : ports)
+            newPorts.set(portId, remapDeviceLocalIds(signalId));
+
+        connections.set(parentId, newPorts);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options)
+{
+    OPENDAQ_PARAM_NOT_NULL(localId);
+    OPENDAQ_PARAM_NOT_NULL(options);
+
+    *options = deviceMapping.hasKey(localId) ? deviceUpdateOptionsMapping.get(localId).detach() : nullptr;
+    return OPENDAQ_SUCCESS;
+}
+
 inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* signalId, ISignal** signal)
 {
     // Check that signal has parent
@@ -258,9 +330,31 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
     return OPENDAQ_SUCCESS;
 }
 
-inline ErrCode ComponentUpdateContextImpl::getReAddDevicesEnabled(Bool* enabled)
+inline StringPtr ComponentUpdateContextImpl::remapDeviceLocalIds(const std::string& componentGlobalId) const
 {
-    return config->getReAddDevicesEnabled(enabled);
+    std::string output;
+    output.reserve(componentGlobalId.size());
+    output = "/";
+
+    size_t start = 1;
+    while (start <= componentGlobalId.size())
+    {
+        const size_t end = componentGlobalId.find('/', start);
+        auto seg = componentGlobalId.substr(start, end - start);
+        
+        if (deviceMapping.hasKey(seg))
+            output += deviceMapping.get(seg).toStdString();
+        else
+            output += seg;
+
+        if (end == std::string::npos)
+            break;
+
+        output += "/";
+        start = end + 1;
+    }
+    
+    return output;
 }
 
 END_NAMESPACE_OPENDAQ

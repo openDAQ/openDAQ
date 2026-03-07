@@ -4,7 +4,6 @@ BEGIN_NAMESPACE_OPENDAQ
 UpdateParametersImpl::UpdateParametersImpl()
     : Super()
 {
-    Super::addProperty(BoolProperty("ReAddDevices", false));
     Super::addProperty(BoolProperty("RemoteUpdate", false));
 }
 
@@ -14,20 +13,18 @@ typename InterfaceToSmartPtr<T>::SmartPtr UpdateParametersImpl::getTypedProperty
     return objPtr.getPropertyValue(name);
 }
 
-ErrCode UpdateParametersImpl::getReAddDevicesEnabled(Bool* enabled)
+ErrCode UpdateParametersImpl::getDeviceUpdateOptions(IDeviceUpdateOptions** options)
 {
-    const ErrCode errCode = daqTry([&]
-    {
-        *enabled = getTypedProperty<IBoolean>("ReAddDevices");
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
+    OPENDAQ_PARAM_NOT_NULL(options);
+
+    *options = deviceOptions.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
-ErrCode UpdateParametersImpl::setReAddDevicesEnabled(Bool enabled)
+ErrCode UpdateParametersImpl::setDeviceUpdateOptions(IDeviceUpdateOptions* options)
 {
-    return Super::setPropertyValue(String("ReAddDevices"), BooleanPtr(enabled));
+    deviceOptions = options;
+    return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, UpdateParameters)

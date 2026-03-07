@@ -15,28 +15,21 @@
  */
 
 #pragma once
-#include <opendaq/update_parameters.h>
 #include <opendaq/device_update_options_ptr.h>
-#include <coreobjects/property_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class UpdateParametersImpl : public GenericPropertyObjectImpl<IUpdateParameters>
+/*!
+ * @ingroup opendaq_setup_node
+ * @addtogroup opendaq_setup_node_factories Factories
+ * @{
+ */
+
+inline DeviceUpdateOptionsPtr DeviceUpdateOptions(const StringPtr& setupString)
 {
-public:
-    using Super = GenericPropertyObjectImpl<IUpdateParameters>;
+    return DeviceUpdateOptionsPtr(DeviceUpdateOptions_Create(setupString));
+}
 
-    UpdateParametersImpl();
-
-    ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) override;
-    ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) override;
-
-protected:
-    template <typename T>
-    typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
-
-    DeviceUpdateOptionsPtr deviceOptions;
-};
-
+/*!@}*/
 
 END_NAMESPACE_OPENDAQ

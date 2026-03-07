@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:54.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -50,6 +50,7 @@ extern "C"
     typedef struct daqStructType daqStructType;
 
     EXPORTED extern const daqIntfID DAQ_PROPERTY_INTERNAL_INTF_ID;
+    void EXPORTED daqPropertyInternal_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqPropertyInternal_clone(daqPropertyInternal* self, daqProperty** clonedProperty);
     daqErrCode EXPORTED daqPropertyInternal_cloneWithOwner(daqPropertyInternal* self, daqPropertyObject* owner, daqProperty** clonedProperty);
@@ -86,6 +87,9 @@ extern "C"
     daqErrCode EXPORTED daqPropertyInternal_getStructTypeNoLock(daqPropertyInternal* self, daqStructType** structType);
     daqErrCode EXPORTED daqPropertyInternal_overrideDefaultValue(daqPropertyInternal* self, daqBaseObject* newDefaultValue);
     daqErrCode EXPORTED daqPropertyInternal_setValueProtected(daqPropertyInternal* self, daqBaseObject* newValue);
+    daqErrCode EXPORTED daqPropertyInternal_getHasOnReadListeners(daqPropertyInternal* self, daqBool* hasListeners);
+    daqErrCode EXPORTED daqPropertyInternal_getHasOnGetSuggestedValuesListeners(daqPropertyInternal* self, daqBool* hasListeners);
+    daqErrCode EXPORTED daqPropertyInternal_getHasOnGetSelectionValuesListeners(daqPropertyInternal* self, daqBool* hasListeners);
 
 #ifdef __cplusplus
 }

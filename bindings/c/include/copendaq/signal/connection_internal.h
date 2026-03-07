@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:38.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:37.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqPacket daqPacket;
 
     EXPORTED extern const daqIntfID DAQ_CONNECTION_INTERNAL_INTF_ID;
+    void EXPORTED daqConnectionInternal_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqConnectionInternal_enqueueLastDescriptor(daqConnectionInternal* self);
     daqErrCode EXPORTED daqConnectionInternal_dequeueUpTo(daqConnectionInternal* self, daqPacket** packetPtr, daqSizeT* count);

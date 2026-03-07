@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:51.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_EVENT_HANDLER_INTF_ID = { daq::IEventHandler::Id.Data1, daq::IEventHandler::Id.Data2, daq::IEventHandler::Id.Data3, daq::IEventHandler::Id.Data4_UInt64 };
+
+void daqEventHandler_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_EVENT_HANDLER_INTF_ID;
+}
 
 daqErrCode daqEventHandler_handleEvent(daqEventHandler* self, daqBaseObject* sender, daqEventArgs* eventArgs)
 {

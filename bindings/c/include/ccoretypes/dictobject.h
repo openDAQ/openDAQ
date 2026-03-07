@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:06.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqIterable daqIterable;
 
     EXPORTED extern const daqIntfID DAQ_DICT_INTF_ID;
+    void EXPORTED daqDict_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDict_get(daqDict* self, daqBaseObject* key, daqBaseObject** value);
     daqErrCode EXPORTED daqDict_set(daqDict* self, daqBaseObject* key, daqBaseObject* value);

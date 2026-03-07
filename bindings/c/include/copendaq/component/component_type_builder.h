@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:54.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:03.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqPropertyObject daqPropertyObject;
 
     EXPORTED extern const daqIntfID DAQ_COMPONENT_TYPE_BUILDER_INTF_ID;
+    void EXPORTED daqComponentTypeBuilder_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqComponentTypeBuilder_build(daqComponentTypeBuilder* self, daqComponentType** componentType);
     daqErrCode EXPORTED daqComponentTypeBuilder_setId(daqComponentTypeBuilder* self, daqString* id);

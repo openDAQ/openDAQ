@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:58.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:06.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqRemovable daqRemovable;
 
     EXPORTED extern const daqIntfID DAQ_REMOVABLE_INTF_ID;
+    void EXPORTED daqRemovable_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqRemovable_remove(daqRemovable* self);
     daqErrCode EXPORTED daqRemovable_isRemoved(daqRemovable* self, daqBool* removed);

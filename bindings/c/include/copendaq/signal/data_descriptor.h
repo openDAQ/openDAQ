@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:38.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:37.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -47,6 +47,7 @@ extern "C"
     typedef struct daqDataDescriptorBuilder daqDataDescriptorBuilder;
 
     EXPORTED extern const daqIntfID DAQ_DATA_DESCRIPTOR_INTF_ID;
+    void EXPORTED daqDataDescriptor_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDataDescriptor_getName(daqDataDescriptor* self, daqString** name);
     daqErrCode EXPORTED daqDataDescriptor_getDimensions(daqDataDescriptor* self, daqList** dimensions);

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:45.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:33.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqConvertible daqConvertible;
 
     EXPORTED extern const daqIntfID DAQ_CONVERTIBLE_INTF_ID;
+    void EXPORTED daqConvertible_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqConvertible_toFloat(daqConvertible* self, daqFloat* val);
     daqErrCode EXPORTED daqConvertible_toInt(daqConvertible* self, daqInt* val);

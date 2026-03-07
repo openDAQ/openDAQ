@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:02.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:10.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqAddressInfoPrivate daqAddressInfoPrivate;
 
     EXPORTED extern const daqIntfID DAQ_ADDRESS_INFO_PRIVATE_INTF_ID;
+    void EXPORTED daqAddressInfoPrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqAddressInfoPrivate_setReachabilityStatusPrivate(daqAddressInfoPrivate* self, daqAddressReachabilityStatus addressReachability);
 

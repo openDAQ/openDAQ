@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:08:00.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SUBSCRIPTION_EVENT_ARGS_INTF_ID = { daq::ISubscriptionEventArgs::Id.Data1, daq::ISubscriptionEventArgs::Id.Data2, daq::ISubscriptionEventArgs::Id.Data3, daq::ISubscriptionEventArgs::Id.Data4_UInt64 };
+
+void daqSubscriptionEventArgs_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SUBSCRIPTION_EVENT_ARGS_INTF_ID;
+}
 
 daqErrCode daqSubscriptionEventArgs_getStreamingConnectionString(daqSubscriptionEventArgs* self, daqString** streamingConnectionString)
 {

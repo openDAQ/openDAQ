@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:21.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_VALIDATOR_INTF_ID = { daq::IValidator::Id.Data1, daq::IValidator::Id.Data2, daq::IValidator::Id.Data3, daq::IValidator::Id.Data4_UInt64 };
+
+void daqValidator_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_VALIDATOR_INTF_ID;
+}
 
 daqErrCode daqValidator_validate(daqValidator* self, daqBaseObject* propObj, daqBaseObject* value)
 {

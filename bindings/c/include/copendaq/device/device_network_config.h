@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:06.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:13.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_DEVICE_NETWORK_CONFIG_INTF_ID;
+    void EXPORTED daqDeviceNetworkConfig_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDeviceNetworkConfig_submitNetworkConfiguration(daqDeviceNetworkConfig* self, daqString* ifaceName, daqPropertyObject* config);
     daqErrCode EXPORTED daqDeviceNetworkConfig_retrieveNetworkConfiguration(daqDeviceNetworkConfig* self, daqString* ifaceName, daqPropertyObject** config);

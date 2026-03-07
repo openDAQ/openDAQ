@@ -598,7 +598,6 @@ TEST_F(InstanceTest, SaveLoadRestoreDevice)
     {
         ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
         ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
-        devicesNames.erase(device.getName());
     }
 }
 

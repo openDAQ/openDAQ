@@ -156,7 +156,7 @@ protected:
     void triggerCoreEventMethod(const CoreEventArgsPtr& args);
 
     virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
-    ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer) override;
+    ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate) override;
     ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer) override;
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
@@ -199,7 +199,8 @@ namespace deviceInfoDetails
         "userName",
         "serverCapabilities",
         "configurationConnectionInfo",
-        "activeClientConnections"
+        "activeClientConnections",
+        "hidden"
     };
 }
 
@@ -1114,8 +1115,13 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setValueInternal(IStrin
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate)
 {
+    if (forUpdate)
+    {
+        if (this->objPtr.getProperty(name).getReadOnly())
+            return OPENDAQ_IGNORED;
+    }
     Int version;
     ErrCode err = serializer->getVersion(&version);
     OPENDAQ_RETURN_IF_FAILED(err);
@@ -1137,6 +1143,67 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const
     if (property.getName() == "activeClientConnections" && version < 3)
         return OPENDAQ_IGNORED;
     return Super::serializeProperty(property, serializer);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
+{
+    if (!forUpdate)
+        return OPENDAQ_SUCCESS;
+
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    const ErrCode errCode = daqTry([&serializer, this]
+    {
+        if (this->localProperties.size() == 0)
+            return OPENDAQ_NOTFOUND;
+
+        auto serializerPtr = SerializerPtr::Borrow(serializer);
+
+        serializerPtr.key("properties");
+        serializerPtr.startList();
+        for (const auto& [propName, prop] : this->localProperties)
+        {
+            if (deviceInfoDetails::defaultDeviceInfoPropertyNames.find(propName) !=
+                deviceInfoDetails::defaultDeviceInfoPropertyNames.end())
+                continue;
+
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+            auto propObject = prop.template asPtrOrNull<IPropertyObjectInternal>(true);
+            if (propObject.assigned() && !propObject.hasUserReadAccess(serializerPtr.getUser()))
+                continue;
+#endif
+
+            const ErrCode errCode = serializeProperty(prop, serializer);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+        serializerPtr.endList();
+
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    if (this->frozen)
+        return OPENDAQ_IGNORED;
+
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto serializedPtr = SerializedObjectPtr::Borrow(obj);
+        Super::DeserializeLocalProperties(serializedPtr, context, nullptr, this->objPtr);
+    
+        OPENDAQ_RETURN_IF_FAILED(this->beginUpdate());
+        Finally finally([this]() { this->endUpdate(); });
+        Super::DeserializePropertyValues(serializedPtr, context, nullptr, this->objPtr);
+        return OPENDAQ_SUCCESS;
+    });    
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -1258,90 +1325,6 @@ void DeviceInfoConfigImpl<TInterface, Interfaces...>::triggerCoreEventMethod(con
         const auto loggerComponent = parent.getContext().getLogger().getOrAddComponent("DeviceInfo");
         LOG_W("Device info failed while triggering core event {}", args.getEventName());
     }
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
-{
-    OPENDAQ_PARAM_NOT_NULL(obj);
-    if (this->frozen)
-        return OPENDAQ_IGNORED;
-
-    const auto serializedPtr = SerializedObjectPtr::Borrow(obj);
-
-    const ErrCode errCode = daqTry([&]
-    {
-        checkErrorInfo(this->beginUpdate());
-        
-        Super::DeserializeLocalProperties(serializedPtr, context, nullptr, this->objPtr);
-
-        if (serializedPtr.hasKey("propValues"))
-        {
-            const auto propValues = serializedPtr.readSerializedObject("propValues");
-
-            std::set<StringPtr> propsToIgnore =
-            {
-                "connectionString",
-                "sdkVersion",
-                "serverCapabilities",
-                "configurationConnectionInfo",
-                "activeClientConnections",
-                "userName",
-                "location"
-            };
-
-            for (const auto& key : propValues.getKeys())
-            {
-                if (propsToIgnore.count(key))
-                    continue;
-                const auto propValue = propValues.readObject(key, context, nullptr);
-                checkErrorInfo(this->setProtectedPropertyValue(key, propValue));
-            }
-        }
-        checkErrorInfo(this->endUpdate());
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
-{
-    if (!forUpdate)
-        return OPENDAQ_SUCCESS;
-
-    OPENDAQ_PARAM_NOT_NULL(serializer);
-
-    const ErrCode errCode = daqTry([&serializer, this]
-    {
-        if (this->localProperties.size() == 0)
-            return OPENDAQ_NOTFOUND;
-
-        auto serializerPtr = SerializerPtr::Borrow(serializer);
-
-        serializerPtr.key("properties");
-        serializerPtr.startList();
-        for (const auto& [propName, prop] : this->localProperties)
-        {
-            if (deviceInfoDetails::defaultDeviceInfoPropertyNames.find(propName) !=
-                deviceInfoDetails::defaultDeviceInfoPropertyNames.end())
-                continue;
-
-#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
-            auto propObject = prop.template asPtrOrNull<IPropertyObjectInternal>(true);
-            if (propObject.assigned() && !propObject.hasUserReadAccess(serializerPtr.getUser()))
-                continue;
-#endif
-
-            const ErrCode errCode = serializeProperty(prop, serializer);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
-        }
-        serializerPtr.endList();
-
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)

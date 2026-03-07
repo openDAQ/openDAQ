@@ -459,11 +459,11 @@ protected:
 
     // Serialization
 
-    ErrCode serializePropertyValues(ISerializer* serializer);
+    ErrCode serializePropertyValues(ISerializer* serializer, bool forUpdate = false);
     ErrCode serializeLocalProperties(ISerializer* serializer);
 
     virtual ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate);
-    virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
+    virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate = false);
     virtual ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer);
 
     static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
@@ -3036,7 +3036,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeCus
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValue(const StringPtr& name,
                                                                                            const ObjectPtr<IBaseObject>& value,
-                                                                                           ISerializer* serializer)
+                                                                                           ISerializer* serializer,
+                                                                                           bool /*forUpdate*/)
 {
     if (value.assigned())
     {
@@ -3080,7 +3081,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer, bool forUpdate)
 {
     auto serializerPtr = SerializerPtr::Borrow(serializer);
 
@@ -3106,7 +3107,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
                 if (!hasUserReadAccess(serializerPtr.getUser(), propValue->second))
                     continue;
 
-                ErrCode err = serializePropertyValue(propValue->first, propValue->second, serializer);
+                ErrCode err = serializePropertyValue(propValue->first, propValue->second, serializer, forUpdate);
                 OPENDAQ_RETURN_IF_FAILED(err);
                 sorted.erase(propValue);
             }
@@ -3118,7 +3119,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
             if (!hasUserReadAccess(serializerPtr.getUser(), propValue.second))
                 continue;
 
-            ErrCode err = serializePropertyValue(propValue.first, propValue.second, serializer);
+            ErrCode err = serializePropertyValue(propValue.first, propValue.second, serializer, forUpdate);
             OPENDAQ_RETURN_IF_FAILED(err);
         }
     }
@@ -3190,7 +3191,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
     serializeErrCode = serializeCustomValues(serializer, false);
     OPENDAQ_RETURN_IF_FAILED(serializeErrCode);
 
-    serializeErrCode = serializePropertyValues(serializer);
+    serializeErrCode = serializePropertyValues(serializer, false);
     OPENDAQ_RETURN_IF_FAILED(serializeErrCode);
 
     serializeErrCode = serializeLocalProperties(serializer);
@@ -3272,6 +3273,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProp
     const auto propValues = serialized.readSerializedObject("propValues");
 
     const auto keys = propValues.getKeys();
+
+    if (keys.getCount() == 0)
+        return;
 
     const auto protectedPropObjPtr = propObjPtr.asPtr<IPropertyObjectProtected>(true);
 
@@ -3561,7 +3565,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
 
     if (serialized.hasKey("propValues"))
         serializedProps = serialized.readSerializedObject("propValues");
- 
+
     beginUpdate();
     Finally finally([this]() { endUpdate(); });
 
@@ -3658,7 +3662,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeFor
     ErrCode errCode = serializeCustomValues(serializer, true);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    errCode = serializePropertyValues(serializer);
+    errCode = serializePropertyValues(serializer, true);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();

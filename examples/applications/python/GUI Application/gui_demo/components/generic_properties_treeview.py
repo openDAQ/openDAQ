@@ -9,23 +9,38 @@ from ..app_context import AppContext
 from .function_dialog import FunctionDialog
 from .edit_container_property import EditContainerPropertyDialog
 from .metadata_dialog import MetadataDialog
+from .metadata_fields_selector_dialog import MetadataFieldsSelectorDialog
 
 
 class PropertiesTreeview(ttk.Treeview):
     def __init__(self, parent, node=None, context: AppContext = None, **kwargs):
         self.hidden = kwargs.pop("hidden", [])
-        ttk.Treeview.__init__(self, parent, columns=('value', *context.metadata_fields), show='tree headings', **kwargs)
+        self._metadata_fields = list(context.metadata_fields)
+        ttk.Treeview.__init__(self, parent, columns=('value', *self._metadata_fields), show='tree headings', **kwargs)
 
         self.context = context
         self.node = node
+        self._overlay_comboboxes = {}
+        self._active_dropdown_cb = None
+        self._last_configure_size = (0, 0)
 
-        scroll_bar = ttk.Scrollbar(
+        style = ttk.Style(self)
+        style.configure('Selection.TCombobox',
+                        fieldbackground='white',
+                        background='white',
+                        foreground='#1a1a1a',
+                        selectbackground='white',
+                        selectforeground='#1a1a1a')
+
+        self._scroll_bar = ttk.Scrollbar(
             self, orient=tk.VERTICAL, command=self.yview)
-        self.configure(yscrollcommand=scroll_bar.set)
-        scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.configure(yscrollcommand=lambda *a: (
+            self._scroll_bar.set(*a), self._reposition_overlay_comboboxes()))
+        self._scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
         scroll_bar_x = ttk.Scrollbar(
             self, orient=tk.HORIZONTAL, command=self.xview)
-        self.configure(xscrollcommand=scroll_bar_x.set)
+        self.configure(xscrollcommand=lambda *a: (
+            scroll_bar_x.set(*a), self.after_idle(self._reposition_overlay_comboboxes)))
         scroll_bar_x.pack(side=tk.BOTTOM, fill=tk.X)
         self.pack(fill=tk.BOTH, expand=True)
 
@@ -35,25 +50,32 @@ class PropertiesTreeview(ttk.Treeview):
         self.heading('#0', anchor=tk.W, text='Property name')
         self.heading('value', anchor=tk.W, text='Value')
         # layout
-        self.column('#0', anchor=tk.W, minwidth=200)
-        self.column('#1', anchor=tk.W, minwidth=200)
+        # Keep first two columns responsive to available width.
+        self.column('#0', anchor=tk.W, minwidth=50, width=int(200 * self.context.dpi_factor), stretch=True)
+        self.column('value', anchor=tk.W, minwidth=50, width=int(200 * self.context.dpi_factor), stretch=True)
 
-        for field in self.context.metadata_fields:
+        for field in self._metadata_fields:
             self.heading(field, anchor=tk.W,
                          text=utils.snake_case_to_title(field))
-            self.column(field, anchor=tk.W, minwidth=200)
+            self.column(field, anchor=tk.W, minwidth=100, width=int(100 * self.context.dpi_factor), stretch=False)
 
         # bind double-click to editing
         self.bind('<Double-1>', lambda event: self.edit_value())
         self.bind('<Button-3>', lambda event: self.show_menu(event))
+        self.bind('<MouseWheel>', lambda e: self.after_idle(self._reposition_overlay_comboboxes))
+        self.bind('<ButtonRelease-1>', lambda e: self.after(10, self._reposition_overlay_comboboxes), add='+')
+        self.bind('<Configure>', self._on_configure)
+        self.bind('<Map>', lambda e: self.after_idle(self._place_overlay_comboboxes))
 
         self.refresh()
 
     def refresh(self):
+        self._clear_overlay_comboboxes()
         self.delete(*self.get_children())
         if self.node is not None:
             if daq.IPropertyObject.can_cast_from(self.node):
                 self.fill_properties('', daq.IPropertyObject.cast_from(self.node), self.hidden)
+        self.after_idle(self._place_overlay_comboboxes)
 
     def fill_list(self, parent_iid, l, read_only):
         for i, value in enumerate(l):
@@ -116,10 +138,10 @@ class PropertiesTreeview(ttk.Treeview):
                 property_value = printed_value(
                     property_info.value_type, node.get_property_value(property_info.name))
 
-            meta_fields = [None] * len(self.context.metadata_fields)
+            meta_fields = [None] * len(self._metadata_fields)
 
             try:
-                for i, field in enumerate(self.context.metadata_fields):
+                for i, field in enumerate(self._metadata_fields):
                     metadata_value = getattr(property_info, field)
                     metadata_value = utils.metadata_converters[field](
                         metadata_value) if field in utils.metadata_converters else metadata_value
@@ -127,15 +149,13 @@ class PropertiesTreeview(ttk.Treeview):
             except Exception as e:
                 print(e)
 
-            unit_symbol = property_info.unit.symbol if property_info.unit is not None else ''
-
             # Insert a treeview entry widget for the property
             iid = self.insert(
                 '' if not parent_iid else parent_iid,
                 tk.END,
                 open=True,
                 text=property_info.name,
-                values=(f'{property_value} {unit_symbol}', *meta_fields))
+                values=(property_value, *meta_fields))
 
             if property_info.read_only:
                 self.item(iid, tags=('readonly',))
@@ -224,14 +244,20 @@ class PropertiesTreeview(ttk.Treeview):
             utils.show_error('Paste error', f'Can\'t paste: {e}', parent=self)
 
     def show_menu(self, event):
-        utils.treeview_select_item(self, event)
-
+        region = self.identify_region(event.x, event.y)
         menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label='Copy', command=self.handle_copy)
-        menu.add_command(label='Paste',
-                         command=self.handle_paste)
-        menu.add_separator()
-        menu.add_command(label='Metadata', command=self.handle_show_metadata)
+        if region == 'heading':
+            menu.add_command(
+                label='Select columns',
+                command=lambda: MetadataFieldsSelectorDialog(self, self.context).show()
+            )
+        else:
+            utils.treeview_select_item(self, event)
+            menu.add_command(label='Copy', command=self.handle_copy)
+            menu.add_command(label='Paste',
+                             command=self.handle_paste)
+            menu.add_separator()
+            menu.add_command(label='Metadata', command=self.handle_show_metadata)
         menu.tk_popup(event.x_root, event.y_root)
 
     def update_property(self, component, path, new_value, depth=0):
@@ -295,40 +321,221 @@ class PropertiesTreeview(ttk.Treeview):
         finally:
             entry.destroy()
 
-    def edit_enumeration_property(self, item_id, prop):
-        enum: daq.IEnumeration = prop.value
-        enum_type = enum.enumeration_type
-        items = enum_type.as_dictionary.items()
-        keys = [k for k, _ in items]
-        current_value = enum.value
-        current_key = keys[current_value]
-        x, y, width, height = self.bbox(item_id, '#1')
-        var = tk.StringVar(self, value=current_key)
-        option = tk.OptionMenu(self, var, *keys)
-        option.place(x=x, y=y, width=width, height=height)
-        def post_menu():
-            ox = option.winfo_rootx()
-            oy = option.winfo_rooty() + option.winfo_height()
-            option["menu"].post(ox, oy)
-        self.after_idle(post_menu)
-        def callback(*_):
-            selected_key = var.get()
-            option["menu"].unpost()
+    def _clear_overlay_comboboxes(self):
+        self._active_dropdown_cb = None
+        for cb in self._overlay_comboboxes.values():
             try:
-                enum_obj = daq.Enumeration(
-                    daq.String(enum_type.name),
-                    daq.String(selected_key),
+                cb.destroy()
+            except Exception:
+                pass
+        self._overlay_comboboxes = {}
+
+    def _post_combobox_dropdown(self, cb):
+        try:
+            self.tk.call('ttk::combobox::Post', cb)
+        except Exception:
+            cb.event_generate('<Down>')
+
+    def _unpost_combobox_dropdown(self, cb):
+        try:
+            self.tk.call('ttk::combobox::Unpost', cb)
+        except Exception:
+            try:
+                cb.event_generate('<Escape>')
+            except Exception:
+                pass
+
+    def _get_selection_options(self, selection_values):
+        labels, indices = [], []
+        if daq.IDict.can_cast_from(selection_values):
+            for idx, label in daq.IDict.cast_from(selection_values).items():
+                labels.append(str(label))
+                indices.append(idx)
+        else:
+            for i, label in enumerate(daq.IList.cast_from(selection_values)):
+                labels.append(str(label))
+                indices.append(i)
+        return labels, indices
+
+    def _place_overlay_comboboxes(self):
+        self._clear_overlay_comboboxes()
+        if self.node is None:
+            return
+        self._place_comboboxes_recursive('')
+
+    def _place_comboboxes_recursive(self, parent_iid):
+        for iid in self.get_children(parent_iid):
+            path = utils.get_item_path(self, iid)
+            prop = utils.get_property_for_path(self.context, path, self.node)
+            if prop and not prop.read_only:
+                if prop.value_type == daq.CoreType.ctBool:
+                    self._place_bool_combobox(iid, prop)
+                elif prop.selection_values is not None and len(prop.selection_values) > 0:
+                    self._place_selection_combobox(iid, prop)
+                elif prop.value_type == daq.CoreType.ctEnumeration:
+                    self._place_enum_combobox(iid, prop)
+                elif (prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt)
+                      and prop.suggested_values is not None and len(prop.suggested_values) > 0):
+                    self._place_suggested_combobox(iid, prop)
+            self._place_comboboxes_recursive(iid)
+
+    def _make_combobox(self, iid, values, current_value, editable=False):
+        bbox = self.bbox(iid, '#1')
+        if not bbox:
+            return None
+        x, y, width, height = bbox
+        #width -= self._scroll_bar.winfo_width()
+
+        state = 'normal' if editable else 'readonly'
+        cb = ttk.Combobox(self, values=values, state=state, style='Selection.TCombobox')
+        cb.set(current_value)
+        cb.place(x=x, y=y, width=width, height=height)
+        if not editable:
+            def _toggle_dropdown(e, _cb=cb):
+                # Manually toggle dropdown and block default Tk click handling
+                # to avoid close-on-press and reopen-on-release behavior.
+                active = self._active_dropdown_cb
+                if active is _cb:
+                    self._unpost_combobox_dropdown(_cb)
+                    self._active_dropdown_cb = None
+                    return 'break'
+
+                if active is not None:
+                    try:
+                        if active.winfo_exists():
+                            self._unpost_combobox_dropdown(active)
+                    except Exception:
+                        pass
+
+                self._active_dropdown_cb = _cb
+                _cb.focus_set()
+                _cb.after_idle(lambda: self._post_combobox_dropdown(_cb))
+                return 'break'
+
+            def _clear_active_if_needed(e, _cb=cb):
+                if self._active_dropdown_cb is _cb:
+                    self._active_dropdown_cb = None
+
+            cb.bind('<Button-1>', _toggle_dropdown)
+            cb.bind('<Escape>', _clear_active_if_needed)
+            cb.bind('<FocusOut>', _clear_active_if_needed)
+        cb.bind('<MouseWheel>', lambda e: (
+            self.yview_scroll(int(-1 * (e.delta / 120)), 'units'),
+            self._reposition_overlay_comboboxes()))
+        return cb
+
+    def _place_bool_combobox(self, iid, prop):
+        labels = utils.yes_no  # ['No', 'Yes']
+        current_label = utils.yes_no[prop.value]
+        cb = self._make_combobox(iid, labels, current_label)
+        if cb is None:
+            return
+
+        def on_change(event, _prop=prop, _cb=cb):
+            try:
+                _prop.value = _cb.get() == utils.yes_no[True]
+            except Exception as e:
+                print("Failed to set bool:", e)
+                return
+            self.refresh()
+
+        cb.bind('<<ComboboxSelected>>', on_change)
+        self._overlay_comboboxes[iid] = cb
+
+    def _place_selection_combobox(self, iid, prop):
+        labels, indices = self._get_selection_options(prop.selection_values)
+        if not labels:
+            return
+        current_idx = prop.value
+        current_label = labels[indices.index(current_idx)] if current_idx in indices else labels[0]
+        cb = self._make_combobox(iid, labels, current_label)
+        if cb is None:
+            return
+
+        def on_change(event, _prop=prop, _labels=labels, _indices=indices, _cb=cb):
+            try:
+                _prop.value = _indices[_labels.index(_cb.get())]
+            except Exception as e:
+                print("Failed to set selection:", e)
+                return
+            self.refresh()
+
+        cb.bind('<<ComboboxSelected>>', on_change)
+        self._overlay_comboboxes[iid] = cb
+
+    def _place_enum_combobox(self, iid, prop):
+        if not daq.IEnumeration.can_cast_from(prop.value):
+            return
+        enum = daq.IEnumeration.cast_from(prop.value)
+        enum_type = enum.enumeration_type
+        keys = [k for k, _ in enum_type.as_dictionary.items()]
+        current_key = keys[enum.value] if 0 <= enum.value < len(keys) else keys[0]
+        cb = self._make_combobox(iid, keys, current_key)
+        if cb is None:
+            return
+
+        def on_change(event, _prop=prop, _enum_type=enum_type, _cb=cb):
+            try:
+                _prop.value = daq.Enumeration(
+                    daq.String(_enum_type.name),
+                    daq.String(_cb.get()),
                     self.context.instance.context.type_manager,
                 )
-                prop.value = enum_obj
             except Exception as e:
                 print("Failed to set enum:", e)
-            finally:
-                option.destroy()
-                self.refresh()
-        var.trace_add("write", callback)
-        option.focus_set()
-        option.bind("<FocusOut>", lambda e: (option.destroy(), self.refresh()))
+                return
+            self.refresh()
+
+        cb.bind('<<ComboboxSelected>>', on_change)
+        self._overlay_comboboxes[iid] = cb
+
+    def _place_suggested_combobox(self, iid, prop):
+        sv = prop.suggested_values
+        suggestions = []
+        if daq.IList.can_cast_from(sv):
+            suggestions = [str(v) for v in daq.IList.cast_from(sv)]
+        elif daq.IDict.can_cast_from(sv):
+            suggestions = [str(v) for _, v in daq.IDict.cast_from(sv).items()]
+        if not suggestions:
+            return
+
+        cb = self._make_combobox(iid, suggestions, str(prop.value), editable=True)
+        if cb is None:
+            return
+
+        def save(_cb=cb, _prop=prop):
+            try:
+                _prop.value = utils.value_to_coretype(_cb.get(), _prop.value_type)
+            except Exception as e:
+                print("Failed to set suggested value:", e)
+                return
+            self.refresh()
+
+        cb.bind('<Return>', lambda e: save())
+        cb.bind('<<ComboboxSelected>>', lambda e: save())
+        self._overlay_comboboxes[iid] = cb
+
+    def _on_configure(self, event):
+        # Only reposition overlays when the widget actually changed size (e.g. window
+        # resize). Skip when only internal layout changed (e.g. column resize) so we
+        # don't interfere with the treeview's column resize commit.
+        try:
+            w, h = self.winfo_width(), self.winfo_height()
+            if (w, h) != self._last_configure_size and w > 1 and h > 1:
+                self._last_configure_size = (w, h)
+                self.after_idle(self._reposition_overlay_comboboxes)
+        except tk.TclError:
+            pass
+
+    def _reposition_overlay_comboboxes(self):
+        for iid, cb in list(self._overlay_comboboxes.items()):
+            bbox = self.bbox(iid, '#1')
+            if bbox:
+                x, y, width, height = bbox
+                cb.place(x=x, y=y, width=width, height=height)
+                cb.lift()
+            else:
+                cb.place_forget()
 
     def edit_struct_property(self, selected_item_id, name, parent):
         x, y, width, height = self.bbox(selected_item_id, '#1')
@@ -371,8 +578,7 @@ class PropertiesTreeview(ttk.Treeview):
             return
 
         if prop.value_type == daq.CoreType.ctEnumeration:
-            self.edit_enumeration_property(selected_item_id, prop)
-            return
+            return  # handled by overlay combobox
 
         if prop.value_type == daq.CoreType.ctFunc:
             f = daq.IFunction.cast_from(prop.value)
@@ -388,15 +594,14 @@ class PropertiesTreeview(ttk.Treeview):
             return
 
         if prop.value_type == daq.CoreType.ctBool:
-            prop.value = not prop.value
-            self.refresh() # is needed
-        elif prop.value_type == daq.CoreType.ctInt and prop.selection_values is not None:
-            prop.value = utils.show_selection('Enter the new value for {}:'.format(name),
-                                              prop.value, prop.selection_values)
-            self.refresh() # is needed
+            return  # handled by overlay combobox
+        elif prop.selection_values is not None:
+            return  # handled by overlay combobox
         elif prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
             EditContainerPropertyDialog(self, prop, self.context).show()
             self.refresh() # TODO needed? check
         elif prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt):
+            if prop.suggested_values is not None and len(prop.suggested_values) > 0:
+                return  # handled by overlay combobox
             self.edit_simple_property(selected_item_id, prop.value, path)
 

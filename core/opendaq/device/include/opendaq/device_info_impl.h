@@ -1294,6 +1294,11 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
             {
                 if (propsToIgnore.count(key))
                     continue;
+
+                auto strKey = key.toStdString();
+                if (!changeableDefaultPropertyNames.count(coretype_utils::toLowerCase(strKey)))
+                    continue;
+
                 const auto propValue = propValues.readObject(key, context, nullptr);
                 checkErrorInfo(this->setProtectedPropertyValue(key, propValue));
             }

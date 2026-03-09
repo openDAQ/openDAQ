@@ -232,8 +232,8 @@ public:
 		invoke_ptr_{ static_cast<invoke_ptr_t>(
 			[](storage_t& storage, Args&&... args) -> R
 			{
-        auto& closure = storage.template as<C>();
-        return closure(std::forward<Args>(args)...);
+        auto& closure_local = storage.template as<C>();
+        return closure_local(std::forward<Args>(args)...);
       }
 		)}
 	{
@@ -308,16 +308,16 @@ public:
 		invoke_ptr_{ static_cast<invoke_ptr_t>(
 			[](storage_t& storage, Args&&... args) -> R
 			{
-        auto& closure = storage.template as<C>();
-        return closure(std::forward<Args>(args)...);
+        auto& closure_local = storage.template as<C>();
+        return closure_local(std::forward<Args>(args)...);
       }
 		) },
 		copy_ptr_{ copy_op<C, storage_t>() },
 		destructor_ptr_{ static_cast<destructor_ptr_t>(
 			[](storage_t& storage) noexcept -> void
 			{
-        auto& closure = storage.template as<C>();
-        closure.~C();
+        auto& closure_local = storage.template as<C>();
+        closure_local.~C();
       }
 		) }
 	{

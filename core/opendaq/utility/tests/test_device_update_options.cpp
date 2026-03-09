@@ -337,6 +337,30 @@ TEST_F(DeviceUpdateOptionsTest, RemapPropChanges)
     ASSERT_EQ(instance.getDevices()[1].getPropertyValue("Test"), "Changed");
 }
 
+TEST_F(DeviceUpdateOptionsTest, RemapFailed)
+{
+    instance.getDevices()[1].setPropertyValue("Test", "Changed");
+    instance.getDevices()[1].getDevices()[0].setPropertyValue("Test", "Changed");
+    instance.getDevices()[1].getDevices()[1].setPropertyValue("Test", "Changed");
+
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+    
+    auto options = DeviceUpdateOptions(str);
+    auto rootChildOptions = options.getChildDeviceOptions();
+    rootChildOptions[0].setUpdateMode(DeviceUpdateMode::Remap);
+    rootChildOptions[0].setNewManufacturer("Invalid");
+    rootChildOptions[0].setNewSerialNumber("Invalid");
+    rootChildOptions[0].setNewConnectionString("");
+    
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    instance.loadConfiguration(str, params);
+
+    ASSERT_EQ(instance.getDevices().getCount(), 1u);
+}
+
 TEST_F(DeviceUpdateOptionsTest, Skip)
 {
     instance.getDevices()[1].setPropertyValue("Test", "Changed");

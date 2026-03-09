@@ -2055,7 +2055,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             return;
         }
 
-        if (mode == DeviceUpdateMode::UpdateOnly)
+        if (mode == DeviceUpdateMode::UpdateOnly || mode == DeviceUpdateMode::Remove)
             return;
 
         PropertyObjectPtr deviceConfig;
@@ -2105,20 +2105,11 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
         if (discoveredDeviceInfo.assigned())
             connectionString = discoveredDeviceInfo.getConnectionString();
-        else if (options.assigned() && mode == DeviceUpdateMode::Remap)
+        else if (mode == DeviceUpdateMode::Remap)
             connectionString = options.getNewConnectionString();
- 
-        if (!connectionString.assigned() || connectionString == "")
-        {
-            if (serializedDevice.hasKey("connectionString"))
-                connectionString = serializedDevice.readString("connectionString");
-            else
-            {
-                LOG_W("No connection string found for device {}", deviceId);
-                return;
-            }
-        }
-
+        else if (serializedDevice.hasKey("connectionString"))
+            connectionString = serializedDevice.readString("connectionString");
+  
         if (devices.hasItem(deviceId) && mode == DeviceUpdateMode::Remap)
         {
             auto prefix = getDevicePrefixOrEmpty(devices.getItem(deviceId));
@@ -2133,7 +2124,20 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             DevicePtr device = devices.getItem(deviceId);
             checkErrorInfo(this->removeDevice(device));
         }
-        
+                   
+        if (connectionString == "" && mode == DeviceUpdateMode::Remap)
+        {
+            if (mode == DeviceUpdateMode::Remap)
+            {
+                LOG_E("Unable to remap device with ID {}.", deviceId);
+            }
+            else
+            {
+                LOG_E("No connection string found for device {} when loading setup", deviceId);
+            }
+            return;
+        }
+      
         DevicePtr device = onAddDevice(connectionString, deviceConfig);
         if (!device.assigned())
         {

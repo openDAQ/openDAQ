@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:45.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:42.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqConnection daqConnection;
 
     EXPORTED extern const daqIntfID DAQ_INPUT_PORT_INTF_ID;
+    void EXPORTED daqInputPort_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqInputPort_acceptsSignal(daqInputPort* self, daqSignal* signal, daqBool* accepts);
     daqErrCode EXPORTED daqInputPort_connect(daqInputPort* self, daqSignal* signal);

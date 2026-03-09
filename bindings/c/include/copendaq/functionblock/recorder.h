@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:06:28.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:19.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqRecorder daqRecorder;
 
     EXPORTED extern const daqIntfID DAQ_RECORDER_INTF_ID;
+    void EXPORTED daqRecorder_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqRecorder_startRecording(daqRecorder* self);
     daqErrCode EXPORTED daqRecorder_stopRecording(daqRecorder* self);

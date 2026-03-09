@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:09.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_AUTHENTICATION_PROVIDER_INTF_ID;
+    void EXPORTED daqAuthenticationProvider_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqAuthenticationProvider_authenticate(daqAuthenticationProvider* self, daqString* username, daqString* password, daqUser** userOut);
     daqErrCode EXPORTED daqAuthenticationProvider_isAnonymousAllowed(daqAuthenticationProvider* self, daqBool* allowedOut);

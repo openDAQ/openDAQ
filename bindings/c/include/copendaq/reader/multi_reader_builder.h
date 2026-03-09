@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:24.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:27.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,16 +37,19 @@ extern "C"
     typedef struct daqMultiReaderBuilder daqMultiReaderBuilder;
     typedef struct daqMultiReader daqMultiReader;
     typedef struct daqSignal daqSignal;
-    typedef struct daqInputPort daqInputPort;
     typedef struct daqList daqList;
+    typedef struct daqInputPort daqInputPort;
     typedef struct daqRatio daqRatio;
 
     EXPORTED extern const daqIntfID DAQ_MULTI_READER_BUILDER_INTF_ID;
+    void EXPORTED daqMultiReaderBuilder_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqMultiReaderBuilder_build(daqMultiReaderBuilder* self, daqMultiReader** multiReader);
     daqErrCode EXPORTED daqMultiReaderBuilder_addSignal(daqMultiReaderBuilder* self, daqSignal* signal);
+    daqErrCode EXPORTED daqMultiReaderBuilder_addSignals(daqMultiReaderBuilder* self, daqList* signals);
     daqErrCode EXPORTED daqMultiReaderBuilder_addInputPort(daqMultiReaderBuilder* self, daqInputPort* port);
-    daqErrCode EXPORTED daqMultiReaderBuilder_getSourceComponents(daqMultiReaderBuilder* self, daqList** ports);
+    daqErrCode EXPORTED daqMultiReaderBuilder_addInputPorts(daqMultiReaderBuilder* self, daqList* ports);
+    daqErrCode EXPORTED daqMultiReaderBuilder_getSourceComponents(daqMultiReaderBuilder* self, daqList** components);
     daqErrCode EXPORTED daqMultiReaderBuilder_setValueReadType(daqMultiReaderBuilder* self, daqSampleType type);
     daqErrCode EXPORTED daqMultiReaderBuilder_getValueReadType(daqMultiReaderBuilder* self, daqSampleType* type);
     daqErrCode EXPORTED daqMultiReaderBuilder_setDomainReadType(daqMultiReaderBuilder* self, daqSampleType type);
@@ -63,6 +66,12 @@ extern "C"
     daqErrCode EXPORTED daqMultiReaderBuilder_getMinReadCount(daqMultiReaderBuilder* self, daqSizeT* minReadCount);
     daqErrCode EXPORTED daqMultiReaderBuilder_setTickOffsetTolerance(daqMultiReaderBuilder* self, daqRatio* offsetTolerance);
     daqErrCode EXPORTED daqMultiReaderBuilder_getTickOffsetTolerance(daqMultiReaderBuilder* self, daqRatio** offsetTolerance);
+    daqErrCode EXPORTED daqMultiReaderBuilder_setAllowDifferentSamplingRates(daqMultiReaderBuilder* self, daqBool allowDifferentRates);
+    daqErrCode EXPORTED daqMultiReaderBuilder_getAllowDifferentSamplingRates(daqMultiReaderBuilder* self, daqBool* allowDifferentRates);
+    daqErrCode EXPORTED daqMultiReaderBuilder_setInputPortNotificationMethod(daqMultiReaderBuilder* self, daqPacketReadyNotification notificationMethod);
+    daqErrCode EXPORTED daqMultiReaderBuilder_getInputPortNotificationMethod(daqMultiReaderBuilder* self, daqPacketReadyNotification* notificationMethod);
+    daqErrCode EXPORTED daqMultiReaderBuilder_setInputPortNotificationMethods(daqMultiReaderBuilder* self, daqList* notificationMethods);
+    daqErrCode EXPORTED daqMultiReaderBuilder_getInputPortNotificationMethods(daqMultiReaderBuilder* self, daqList** notificationMethods);
     daqErrCode EXPORTED daqMultiReaderBuilder_createMultiReaderBuilder(daqMultiReaderBuilder** obj);
 
 #ifdef __cplusplus

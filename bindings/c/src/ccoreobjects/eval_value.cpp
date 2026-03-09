@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:12.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:50.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_EVAL_VALUE_INTF_ID = { daq::IEvalValue::Id.Data1, daq::IEvalValue::Id.Data2, daq::IEvalValue::Id.Data3, daq::IEvalValue::Id.Data4_UInt64 };
+
+void daqEvalValue_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_EVAL_VALUE_INTF_ID;
+}
 
 daqErrCode daqEvalValue_getEval(daqEvalValue* self, daqString** eval)
 {

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:56.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:04.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_COMPONENT_UPDATE_CONTEXT_INTF_ID = { daq::IComponentUpdateContext::Id.Data1, daq::IComponentUpdateContext::Id.Data2, daq::IComponentUpdateContext::Id.Data3, daq::IComponentUpdateContext::Id.Data4_UInt64 };
+
+void daqComponentUpdateContext_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_COMPONENT_UPDATE_CONTEXT_INTF_ID;
+}
 
 daqErrCode daqComponentUpdateContext_setInputPortConnection(daqComponentUpdateContext* self, daqString* parentId, daqString* portId, daqString* signalId)
 {

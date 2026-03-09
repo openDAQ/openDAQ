@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:55.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:49.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SIGNAL_CONFIG_INTF_ID = { daq::ISignalConfig::Id.Data1, daq::ISignalConfig::Id.Data2, daq::ISignalConfig::Id.Data3, daq::ISignalConfig::Id.Data4_UInt64 };
+
+void daqSignalConfig_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SIGNAL_CONFIG_INTF_ID;
+}
 
 daqErrCode daqSignalConfig_setDescriptor(daqSignalConfig* self, daqDataDescriptor* descriptor)
 {

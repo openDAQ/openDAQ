@@ -24,6 +24,7 @@ private:
         auto info = DeviceInfo(fmt::format("daqtest://Test{}_Test{}", id, id));
         info.setManufacturer(fmt::format("Test{}", id));
         info.setSerialNumber(fmt::format("Test{}", id));
+        info.setDeviceType(DeviceType("Test", "Test", "", "daqtest"));
         return info;
     }
 
@@ -46,7 +47,7 @@ public:
     ListPtr<IDeviceInfo> onGetAvailableDevices() override
     {
         auto result = List<IDeviceInfo>();
-        for (int i = 0; i < 10; ++i)
+        for (int i = 0; i < 5; ++i)
         {
             auto info = DeviceInfo(fmt::format("daqtest://Test{}_Test{}", i, i));
             info.setManufacturer(fmt::format("Test{}", i));
@@ -106,7 +107,6 @@ protected:
         child2.addDevice("daqtest://Test3_Test3");
         child2.addDevice("daqtest://Test4_Test4");
 
-        
         freshInstance = InstanceCustom(context, "localInstance");
     }
 
@@ -163,7 +163,7 @@ TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsParse)
     ASSERT_EQ(child2_2Options.getConnectionString(), "daqtest://Test4_Test4");
 }
 
-TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsRemap)
+TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsRemapFreshInstance)
 {
     auto serializer = JsonSerializer();
     instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
@@ -187,20 +187,48 @@ TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsRemap)
     params.setDeviceUpdateOptions(options);
     freshInstance.loadConfiguration(str, params);
 
-    auto id1 = freshInstance.getDevices()[0].getLocalId();
-    auto id2 = freshInstance.getDevices()[1].getLocalId();
-    auto id3 = freshInstance.getDevices()[1].getDevices()[0].getLocalId();
-    auto id4 = freshInstance.getDevices()[1].getDevices()[1].getLocalId();
-
-    auto info1 = freshInstance.getDevices()[0].getInfo();
-    auto info2 = freshInstance.getDevices()[1].getInfo();
-    auto info3 = freshInstance.getDevices()[1].getDevices()[0].getInfo();
-    auto info4 = freshInstance.getDevices()[1].getDevices()[1].getInfo();
-
+    ASSERT_EQ(freshInstance.getDevices()[0].getLocalId(), "Test4_Test4");
     ASSERT_EQ(freshInstance.getDevices()[0].getInfo().getManufacturer(), "Test4");
     ASSERT_EQ(freshInstance.getDevices()[0].getInfo().getSerialNumber(), "Test4");
 
-    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getSerialNumber(), "Test1");
+    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getLocalId(), "Test1_Test1");
+    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getManufacturer(), "Test1");
+    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getManufacturer(), "Test1");
     ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getSerialNumber(), "Test1");
 }
 
+TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsRemapOldInstance)
+{
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+
+    auto options = DeviceUpdateOptions(str);
+    auto rootChildOptions = options.getChildDeviceOptions();
+    auto child1Options = rootChildOptions[0];
+    auto child2Options = rootChildOptions[1];
+    auto child2ChildOptions = child2Options.getChildDeviceOptions();
+
+    child1Options.setUpdateMode(DeviceUpdateMode::Remap);
+    child1Options.setNewManufacturer("Test4");
+    child1Options.setNewSerialNumber("Test4");
+    
+    child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
+    child2ChildOptions[1].setNewManufacturer("Test1");
+    child2ChildOptions[1].setNewSerialNumber("Test1");
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    instance.loadConfiguration(str, params);
+
+    // Order is swapped due to re-add on remapping
+    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Test4_Test4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getManufacturer(), "Test4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getSerialNumber(), "Test4");
+              
+    // Order of leaf devices stays the same, as the device was already the last in the list.
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getLocalId(), "Test1_Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getSerialNumber(), "Test1");
+}

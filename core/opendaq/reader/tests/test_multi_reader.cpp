@@ -69,7 +69,7 @@ struct ReadSignal
 
         system_clock::time_point parsedEpoch{};
         std::istringstream epochString(reader::fixupIso8601(dataDescriptor.getOrigin()));
-        epochString >> date::parse("%FT%T%z", parsedEpoch);
+        date::from_stream(epochString, "%FT%T%z", parsedEpoch);
 
         return reader::toSysTime<decltype(value), RoundTo>(value, parsedEpoch, dataDescriptor.getTickResolution());
     }

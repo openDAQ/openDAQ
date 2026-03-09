@@ -221,12 +221,6 @@ endif()
 
 opendaq_common_compile_targets_settings()
 
-# overwrite
-if (MSVC AND NOT CMAKE_COMPILER_IS_CLANGXX)
-    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++20>)
-endif()
-set(CMAKE_CXX_STANDARD 20)
-
 if (OPENDAQ_ENABLE_TESTS)
     message(STATUS "Unit tests are ENABLED")
     enable_testing()

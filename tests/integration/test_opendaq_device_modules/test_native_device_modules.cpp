@@ -3634,7 +3634,7 @@ TEST_P(NativeC2DStreamingTest, StreamingData)
 
 // version 17 falls to basic C2Ds
 // version 18 uses generalized C2Ds
-INSTANTIATE_TEST_SUITE_P(NativeC2DStreamingTestGroup, NativeC2DStreamingTest, testing::Values(17, 19));
+INSTANTIATE_TEST_SUITE_P(NativeC2DStreamingTestGroup, NativeC2DStreamingTest, testing::Values(17, 20));
 
 TEST_F(NativeDeviceModulesTest, AddNestedFB)
 {

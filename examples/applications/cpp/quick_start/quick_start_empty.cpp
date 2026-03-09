@@ -4,16 +4,8 @@
  */
 
 #include <chrono>
-#include <iostream>
-#include <thread>
-#include <opendaq/opendaq.h>
 
-int main(int /*argc*/, const char* /*argv*/[])
+int main()
 {
-    // Create an Instance, loading modules at MODULE_PATH
-    const daq::InstancePtr instance = daq::Instance(MODULE_PATH);
-
-    std::cout << "Press \"enter\" to exit the application..." << std::endl;
-    std::cin.get();
-    return 0;
-} 
+    std::chrono::hh_mm_ss t{std::chrono::seconds{1}};
+}

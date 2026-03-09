@@ -16,6 +16,7 @@ public:
         : Device(ctx, parent, localId)
     {
         this->id = localId.toStdString().back() - '0';
+        this->objPtr.addProperty(StringProperty("Test", "Unchanged"));
     }
 
 private:
@@ -114,7 +115,7 @@ protected:
     InstancePtr freshInstance;
 };
 
-TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsParse)
+TEST_F(DeviceUpdateOptionsTest, Parse)
 {
     auto serializer = JsonSerializer();
     instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
@@ -163,7 +164,7 @@ TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsParse)
     ASSERT_EQ(child2_2Options.getConnectionString(), "daqtest://Test4_Test4");
 }
 
-TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsRemapFreshInstance)
+TEST_F(DeviceUpdateOptionsTest, RemapFreshInstance)
 {
     auto serializer = JsonSerializer();
     instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
@@ -197,7 +198,7 @@ TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsRemapFreshInstance)
     ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getSerialNumber(), "Test1");
 }
 
-TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsRemapOldInstance)
+TEST_F(DeviceUpdateOptionsTest, RemapOldInstance)
 {
     auto serializer = JsonSerializer();
     instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
@@ -231,4 +232,196 @@ TEST_F(DeviceUpdateOptionsTest, DeviceUpdateOptionsRemapOldInstance)
     ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
     ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
     ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getSerialNumber(), "Test1");
+}
+
+TEST_F(DeviceUpdateOptionsTest, RemapWithConnectionString)
+{
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+
+    auto options = DeviceUpdateOptions(str);
+    auto rootChildOptions = options.getChildDeviceOptions();
+    auto child1Options = rootChildOptions[0];
+    auto child2Options = rootChildOptions[1];
+    auto child2ChildOptions = child2Options.getChildDeviceOptions();
+
+    child1Options.setUpdateMode(DeviceUpdateMode::Remap);
+    child1Options.setNewConnectionString("daqtest://Test4_Test4");
+
+    child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
+    child2ChildOptions[1].setNewConnectionString("daqtest://Test1_Test1");
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    instance.loadConfiguration(str, params);
+
+    // Order is swapped due to re-add on remapping
+    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Test4_Test4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getManufacturer(), "Test4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getSerialNumber(), "Test4");
+              
+    // Order of leaf devices stays the same, as the device was already the last in the list.
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getLocalId(), "Test1_Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getSerialNumber(), "Test1");
+}
+
+TEST_F(DeviceUpdateOptionsTest, RemapSettingsPriority)
+{
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+
+    auto options = DeviceUpdateOptions(str);
+    auto rootChildOptions = options.getChildDeviceOptions();
+    auto child1Options = rootChildOptions[0];
+    auto child2Options = rootChildOptions[1];
+    auto child2ChildOptions = child2Options.getChildDeviceOptions();
+
+    child1Options.setUpdateMode(DeviceUpdateMode::Remap);
+    child1Options.setNewManufacturer("Test4");
+    child1Options.setNewSerialNumber("Test4");
+    child1Options.setNewConnectionString("daqtest://invalid");
+    
+    child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
+    child2ChildOptions[1].setNewManufacturer("Test1");
+    child2ChildOptions[1].setNewSerialNumber("Test1");
+    child2ChildOptions[1].setNewConnectionString("daqtest://invalid");
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    instance.loadConfiguration(str, params);
+
+    // Order is swapped due to re-add on remapping
+    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Test4_Test4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getManufacturer(), "Test4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getSerialNumber(), "Test4");
+              
+    // Order of leaf devices stays the same, as the device was already the last in the list.
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getLocalId(), "Test1_Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getSerialNumber(), "Test1");
+}
+
+TEST_F(DeviceUpdateOptionsTest, RemapPropChanges)
+{
+    instance.getDevices()[0].setPropertyValue("Test", "Changed");
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+    
+    instance.getDevices()[0].setPropertyValue("Test", "Unchanged");
+
+    auto options = DeviceUpdateOptions(str);
+    auto rootChildOptions = options.getChildDeviceOptions();
+    auto child1Options = rootChildOptions[0];
+    auto child2Options = rootChildOptions[1];
+    auto child2ChildOptions = child2Options.getChildDeviceOptions();
+
+    child1Options.setUpdateMode(DeviceUpdateMode::Remap);
+    child1Options.setNewManufacturer("Test4");
+    child1Options.setNewSerialNumber("Test4");
+    
+    child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
+    child2ChildOptions[1].setNewManufacturer("Test1");
+    child2ChildOptions[1].setNewSerialNumber("Test1");
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    instance.loadConfiguration(str, params);
+
+    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Test4_Test4");
+    ASSERT_EQ(instance.getDevices()[1].getPropertyValue("Test"), "Changed");
+}
+
+TEST_F(DeviceUpdateOptionsTest, Skip)
+{
+    instance.getDevices()[1].setPropertyValue("Test", "Changed");
+    instance.getDevices()[1].getDevices()[0].setPropertyValue("Test", "Changed");
+    instance.getDevices()[1].getDevices()[1].setPropertyValue("Test", "Changed");
+
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+
+    instance.getDevices()[1].setPropertyValue("Test", "Unchanged");
+    instance.getDevices()[1].getDevices()[0].setPropertyValue("Test", "Unchanged");
+    instance.getDevices()[1].getDevices()[1].setPropertyValue("Test", "Unchanged");
+
+    auto options = DeviceUpdateOptions(str);
+    auto rootChildOptions = options.getChildDeviceOptions();
+    rootChildOptions[1].setUpdateMode(DeviceUpdateMode::Skip);
+    
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    instance.loadConfiguration(str, params);
+
+    ASSERT_EQ(instance.getDevices()[1].getPropertyValue("Test"), "Unchanged");
+    ASSERT_EQ(instance.getDevices()[1].getDevices()[0].getPropertyValue("Test"), "Unchanged");
+    ASSERT_EQ(instance.getDevices()[1].getDevices()[1].getPropertyValue("Test"), "Unchanged");
+}
+
+TEST_F(DeviceUpdateOptionsTest, Remove)
+{
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+    
+    auto options = DeviceUpdateOptions(str);
+    auto rootChildOptions = options.getChildDeviceOptions();
+    rootChildOptions[0].setUpdateMode(DeviceUpdateMode::Remove);
+    rootChildOptions[1].getChildDeviceOptions()[0].setUpdateMode(DeviceUpdateMode::Remove);
+    
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    instance.loadConfiguration(str, params);
+    
+    ASSERT_EQ(instance.getDevices().getCount(), 1u);
+    ASSERT_EQ(instance.getDevices()[0].getLocalId(), "Test2_Test2");
+    ASSERT_EQ(instance.getDevices()[0].getDevices().getCount(), 1u);
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[0].getLocalId(), "Test4_Test4");
+}
+
+TEST_F(DeviceUpdateOptionsTest, UpdateOnly)
+{
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+    
+    instance.removeDevice(instance.getDevices()[0]);
+    auto child = instance.getDevices()[0];
+    child.removeDevice(child.getDevices()[1]);
+
+    ASSERT_EQ(instance.getDevices().getCount(), 1u);
+    ASSERT_EQ(child.getDevices().getCount(), 1u);
+
+    auto options = DeviceUpdateOptions(str);
+    auto rootChildOptions = options.getChildDeviceOptions();
+    rootChildOptions[0].setUpdateMode(DeviceUpdateMode::UpdateOnly);
+    rootChildOptions[1].getChildDeviceOptions()[1].setUpdateMode(DeviceUpdateMode::UpdateOnly);
+    
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    instance.loadConfiguration(str, params);
+
+    ASSERT_EQ(instance.getDevices().getCount(), 1u);
+    ASSERT_EQ(instance.getDevices()[0].getLocalId(), "Test2_Test2");
+    ASSERT_EQ(instance.getDevices()[0].getDevices().getCount(), 1u);
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[0].getLocalId(), "Test3_Test3");
+}
+
+TEST_F(DeviceUpdateOptionsTest, CheckDefaultSettings)
+{
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+
+    auto options = DeviceUpdateOptions(str);
+    ASSERT_EQ(options.getNewManufacturer(), "");
+    ASSERT_EQ(options.getNewSerialNumber(), "");
+    ASSERT_EQ(options.getNewConnectionString(), "");
+    ASSERT_EQ(options.getUpdateMode(), DeviceUpdateMode::Load);
 }

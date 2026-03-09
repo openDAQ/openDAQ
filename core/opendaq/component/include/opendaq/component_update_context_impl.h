@@ -285,7 +285,7 @@ inline ErrCode ComponentUpdateContextImpl::getDeviceUpdateOptionsWithLocalIdOrNu
     OPENDAQ_PARAM_NOT_NULL(localId);
     OPENDAQ_PARAM_NOT_NULL(options);
 
-    *options = deviceMapping.hasKey(localId) ? deviceUpdateOptionsMapping.get(localId).detach() : nullptr;
+    *options = deviceUpdateOptionsMapping.hasKey(localId) ? deviceUpdateOptionsMapping.get(localId).detach() : nullptr;
     return OPENDAQ_SUCCESS;
 }
 

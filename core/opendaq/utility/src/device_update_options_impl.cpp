@@ -7,9 +7,15 @@ DeviceUpdateOptionsImpl::DeviceUpdateOptionsImpl()
 {
     isRoot = false;
     children = List<IDeviceUpdateOptions>();
+
     manufacturer = "";
     serialNumber = "";
     connectionString = "";
+
+    newConnectionString = "";
+    newSerialNumber = "";
+    newManufacturer = "";
+
     mode = DeviceUpdateMode::Load;
 }
 
@@ -49,8 +55,10 @@ DeviceUpdateOptionsImpl::DeviceUpdateOptionsImpl(const StringPtr& setupString)
     internalAddRef();
 
     isRoot = true;
-    if (!read("", document, getNodeType(document)))
+    if (!read("Root", document, getNodeType(document)))
         throw DeserializeException{"Failed to read setup!"};
+
+    delete[] buffer;
 }
 
 ErrCode DeviceUpdateOptionsImpl::getLocalId(IString** localId)

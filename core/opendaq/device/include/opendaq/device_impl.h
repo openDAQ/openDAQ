@@ -2073,7 +2073,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         if (mode == DeviceUpdateMode::Remap)
         {
             manufacturer = options.getNewManufacturer();
-            serialNumber = options.getNewConnectionString();
+            serialNumber = options.getNewSerialNumber();
         }
         else if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
         {
@@ -2143,6 +2143,9 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             LOG_E("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceId, this->localId)
             return;
         }
+
+        if (mode == DeviceUpdateMode::Remap)
+            contextPtr.addDeviceRemapping(deviceId, device.getLocalId());
 
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);

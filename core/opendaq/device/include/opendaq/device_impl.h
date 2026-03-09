@@ -2118,13 +2118,10 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                 return;
             }
         }
-        
-        std::string connectionStringStr = connectionString;
-        auto pos = connectionStringStr.find("://");
-        std::string prefix = pos == std::string::npos ? "" : connectionStringStr.substr(0,pos);
- 
+
         if (devices.hasItem(deviceId) && mode == DeviceUpdateMode::Remap)
         {
+            auto prefix = getDevicePrefixOrEmpty(devices.getItem(deviceId));
             auto type = getDeviceTypeFromPrefixOrNull(prefix);
             if (!type.assigned())
             {

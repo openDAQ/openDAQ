@@ -42,18 +42,19 @@ void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParamete
 
     m.def("UpdateParameters", &daq::UpdateParameters_Create);
 
-    cls.def_property("re_add_devices_enabled",
+    cls.def_property("device_update_options",
         [](daq::IUpdateParameters *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
-            return objectPtr.getReAddDevicesEnabled();
+            return objectPtr.getDeviceUpdateOptions().detach();
         },
-        [](daq::IUpdateParameters *object, const bool enabled)
+        [](daq::IUpdateParameters *object, daq::IDeviceUpdateOptions* options)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
-            objectPtr.setReAddDevicesEnabled(enabled);
+            objectPtr.setDeviceUpdateOptions(options);
         },
-        "Returns whether the re-add devices is enabled. If enabled, the devices will be re-added in update process. / Sets the re-add devices enabled flag.");
+        py::return_value_policy::take_ownership,
+        "");
 }

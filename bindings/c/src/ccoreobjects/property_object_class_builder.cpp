@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:18.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_PROPERTY_OBJECT_CLASS_BUILDER_INTF_ID = { daq::IPropertyObjectClassBuilder::Id.Data1, daq::IPropertyObjectClassBuilder::Id.Data2, daq::IPropertyObjectClassBuilder::Id.Data3, daq::IPropertyObjectClassBuilder::Id.Data4_UInt64 };
+
+void daqPropertyObjectClassBuilder_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_PROPERTY_OBJECT_CLASS_BUILDER_INTF_ID;
+}
 
 daqErrCode daqPropertyObjectClassBuilder_build(daqPropertyObjectClassBuilder* self, daqPropertyObjectClass** propertyObjectClass)
 {

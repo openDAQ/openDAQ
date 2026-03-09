@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:24.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:26.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_MULTI_READER_INTF_ID = { daq::IMultiReader::Id.Data1, daq::IMultiReader::Id.Data2, daq::IMultiReader::Id.Data3, daq::IMultiReader::Id.Data4_UInt64 };
+
+void daqMultiReader_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_MULTI_READER_INTF_ID;
+}
 
 daqErrCode daqMultiReader_read(daqMultiReader* self, void* samples, daqSizeT* count, daqSizeT timeoutMs, daqMultiReaderStatus** status)
 {
@@ -65,6 +70,26 @@ daqErrCode daqMultiReader_setActive(daqMultiReader* self, daqBool isActive)
 daqErrCode daqMultiReader_getActive(daqMultiReader* self, daqBool* isActive)
 {
     return reinterpret_cast<daq::IMultiReader*>(self)->getActive(isActive);
+}
+
+daqErrCode daqMultiReader_addInput(daqMultiReader* self, daqComponent* input)
+{
+    return reinterpret_cast<daq::IMultiReader*>(self)->addInput(reinterpret_cast<daq::IComponent*>(input));
+}
+
+daqErrCode daqMultiReader_removeInput(daqMultiReader* self, daqString* id)
+{
+    return reinterpret_cast<daq::IMultiReader*>(self)->removeInput(reinterpret_cast<daq::IString*>(id));
+}
+
+daqErrCode daqMultiReader_setInputUsed(daqMultiReader* self, daqString* id, daqBool isUsed)
+{
+    return reinterpret_cast<daq::IMultiReader*>(self)->setInputUsed(reinterpret_cast<daq::IString*>(id), isUsed);
+}
+
+daqErrCode daqMultiReader_getInputUsed(daqMultiReader* self, daqString* id, daqBool* isUsed)
+{
+    return reinterpret_cast<daq::IMultiReader*>(self)->getInputUsed(reinterpret_cast<daq::IString*>(id), isUsed);
 }
 
 daqErrCode daqMultiReader_createMultiReader(daqMultiReader** obj, daqList* signals, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType)

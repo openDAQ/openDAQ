@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 19.06.2025 16:42:07.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:23.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -44,8 +44,10 @@ extern "C"
     typedef struct daqFunctionBlock daqFunctionBlock;
     typedef struct daqStreaming daqStreaming;
     typedef struct daqServer daqServer;
+    typedef struct daqDeviceInfo daqDeviceInfo;
 
     EXPORTED extern const daqIntfID DAQ_MODULE_MANAGER_UTILS_INTF_ID;
+    void EXPORTED daqModuleManagerUtils_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqModuleManagerUtils_getAvailableDevices(daqModuleManagerUtils* self, daqList** availableDevices);
     daqErrCode EXPORTED daqModuleManagerUtils_getAvailableDeviceTypes(daqModuleManagerUtils* self, daqDict** deviceTypes);
@@ -60,6 +62,7 @@ extern "C"
     daqErrCode EXPORTED daqModuleManagerUtils_requestIpConfig(daqModuleManagerUtils* self, daqString* iface, daqString* manufacturer, daqString* serialNumber, daqPropertyObject** config);
     daqErrCode EXPORTED daqModuleManagerUtils_completeDeviceCapabilities(daqModuleManagerUtils* self, daqDevice* device);
     daqErrCode EXPORTED daqModuleManagerUtils_createDevices(daqModuleManagerUtils* self, daqDict** devices, daqDict* connectionArgs, daqComponent* parent, daqDict* errCodes, daqDict* errorInfos);
+    daqErrCode EXPORTED daqModuleManagerUtils_getDiscoveryInfo(daqModuleManagerUtils* self, daqDeviceInfo** deviceInfo, daqString* manufacturer, daqString* serialNumber);
 
 #ifdef __cplusplus
 }

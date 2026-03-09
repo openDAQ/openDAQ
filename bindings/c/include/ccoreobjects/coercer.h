@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:10.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:48.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_COERCER_INTF_ID;
+    void EXPORTED daqCoercer_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqCoercer_coerce(daqCoercer* self, daqBaseObject* propObj, daqBaseObject* value, daqBaseObject** result);
     daqErrCode EXPORTED daqCoercer_coerceNoLock(daqCoercer* self, daqBaseObject* propObj, daqBaseObject* value, daqBaseObject** result);

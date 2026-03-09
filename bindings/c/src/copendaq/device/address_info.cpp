@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:01.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:09.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_ADDRESS_INFO_INTF_ID = { daq::IAddressInfo::Id.Data1, daq::IAddressInfo::Id.Data2, daq::IAddressInfo::Id.Data3, daq::IAddressInfo::Id.Data4_UInt64 };
+
+void daqAddressInfo_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_ADDRESS_INFO_INTF_ID;
+}
 
 daqErrCode daqAddressInfo_getAddress(daqAddressInfo* self, daqString** address)
 {

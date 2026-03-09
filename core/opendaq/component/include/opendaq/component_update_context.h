@@ -74,12 +74,33 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) = 0;
 
+    /*!
+     * @brief Adds a device remapping from the original device's local ID to the new device local ID. 
+     * @param originalDeviceId The local ID of the original device to be remapped.
+     * @param newDeviceId The local ID of the new device to be used for remapping.
+     * 
+     * Used to remap signal -> input port connections to the remapped device when loading.
+     */
     virtual ErrCode INTERFACE_FUNC addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId) = 0;
     // [templateType(deviceMapping, IString, IString)]
+    /*!
+     * @brief Gets the current device remapping dictionary with key-value pairs of original device local IDs and new device local IDs.
+     * @param deviceMapping The device remapping dictionary.
+     */
     virtual ErrCode INTERFACE_FUNC getDeviceMapping(IDict** deviceMapping) = 0;
-    virtual ErrCode INTERFACE_FUNC remapInputPortConnections() = 0;
-
+    /*!
+     * @brief Gets the DeviceUpdateOptions object for the device with the specified local ID. Returns null if no options are found for the device.
+     * @param localId The local ID of the device to get the options for.
+     * @param options The DeviceUpdateOptions object for the device with the specified local ID; null if no options are found for the device.
+     */
     virtual ErrCode INTERFACE_FUNC getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options) = 0;
+
+    /*!
+     * @brief Internal method that uses the device mapping to remap the input port connections.
+     *
+     * Should be called after the initial update, but before `onUpdatableUpdateEnd`.
+     */
+    virtual ErrCode INTERFACE_FUNC remapInputPortConnections() = 0;
 };
 
 /*!

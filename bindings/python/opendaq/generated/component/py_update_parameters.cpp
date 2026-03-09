@@ -56,5 +56,5 @@ void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParamete
             objectPtr.setDeviceUpdateOptions(options);
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets the device update options object that allows for specifying how a device and its subdevices are to be updated. / Sets the device update options object that allows for specifying how a device and its subdevices are to be updated.");
 }

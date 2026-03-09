@@ -40,7 +40,16 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
 {
+    /*!
+     * @brief Gets the device update options object that allows for specifying how a device and its subdevices are to be updated.
+     * @param options The device update options object.
+     */
     virtual ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) = 0;
+    
+    /*!
+     * @brief Sets the device update options object that allows for specifying how a device and its subdevices are to be updated.
+     * @param options The device update options object.
+     */
     virtual ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) = 0;
 };
 /*!@}*/

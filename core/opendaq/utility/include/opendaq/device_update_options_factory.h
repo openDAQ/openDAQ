@@ -25,6 +25,9 @@ BEGIN_NAMESPACE_OPENDAQ
  * @{
  */
 
+/*
+ * @brief Parses a given setup string and creates a new DeviceUpdateOptions object.
+ */
 inline DeviceUpdateOptionsPtr DeviceUpdateOptions(const StringPtr& setupString)
 {
     return DeviceUpdateOptionsPtr(DeviceUpdateOptions_Create(setupString));

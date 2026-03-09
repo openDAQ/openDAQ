@@ -45,7 +45,7 @@ PyDaqIntf<daq::IDeviceUpdateOptions, daq::IBaseObject> declareIDeviceUpdateOptio
 
 void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdateOptions, daq::IBaseObject> cls)
 {
-    cls.doc() = "";
+    cls.doc() = "Allows for specifying how a device and its subdevices are to be updated when loading a configuration.";
 
     m.def("DeviceUpdateOptions", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& setupString){
         return daq::DeviceUpdateOptions_Create(getVariantValue<daq::IString*>(setupString));
@@ -59,7 +59,7 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
             return objectPtr.getLocalId().toStdString();
         },
-        "");
+        "Gets the local ID of the device. The local ID is obtained from the JSON key for the device entry.");
     cls.def_property_readonly("manufacturer",
         [](daq::IDeviceUpdateOptions *object)
         {
@@ -67,7 +67,7 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
             return objectPtr.getManufacturer().toStdString();
         },
-        "");
+        "Gets the manufacturer of the device, as written in the setup string.");
     cls.def_property_readonly("serial_number",
         [](daq::IDeviceUpdateOptions *object)
         {
@@ -75,7 +75,7 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
             return objectPtr.getSerialNumber().toStdString();
         },
-        "");
+        "Gets the serial number of the device, as written in the setup string.");
     cls.def_property_readonly("connection_string",
         [](daq::IDeviceUpdateOptions *object)
         {
@@ -83,7 +83,7 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
             return objectPtr.getConnectionString().toStdString();
         },
-        "");
+        "Gets the connection string of the device, as written in the setup string.");
     cls.def_property("new_manufacturer",
         [](daq::IDeviceUpdateOptions *object)
         {
@@ -97,7 +97,7 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
             objectPtr.setNewManufacturer(getVariantValue<daq::IString*>(manufacturer));
         },
-        "");
+        "Gets the new manufacturer of the device to be used for remapping. / Sets the new manufacturer of the device to be used for remapping.");
     cls.def_property("new_serial_number",
         [](daq::IDeviceUpdateOptions *object)
         {
@@ -111,7 +111,7 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
             objectPtr.setNewSerialNumber(getVariantValue<daq::IString*>(serialNumber));
         },
-        "");
+        "Gets the new serial number of the device to be used for remapping. / Sets the new serial number of the device to be used for remapping.");
     cls.def_property("new_connection_string",
         [](daq::IDeviceUpdateOptions *object)
         {
@@ -125,7 +125,7 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
             objectPtr.setNewConnectionString(getVariantValue<daq::IString*>(connectionString));
         },
-        "");
+        "Gets the new connection string of the device to be used for remapping. / Sets the new connection string of the device to be used for remapping.");
     cls.def_property("update_mode",
         [](daq::IDeviceUpdateOptions *object)
         {
@@ -139,7 +139,7 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
             objectPtr.setUpdateMode(mode);
         },
-        "");
+        "Gets the update mode for the device. / Sets the update mode for the device.");
     cls.def_property_readonly("child_device_options",
         [](daq::IDeviceUpdateOptions *object)
         {
@@ -148,5 +148,5 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             return objectPtr.getChildDeviceOptions().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets the list of child device options for the device. These are used to configure subdevices of the current device.");
 }

@@ -991,6 +991,8 @@ StringPtr getFileLastModifiedTime(const std::string& path)
     return oss.str();
 }
 
+#ifdef _DEBUG
+
 TEST_F(RefDeviceModuleTest, EnableLogging)
 {
     StringPtr loggerPath = "ref_device_simulator.log";
@@ -1049,3 +1051,5 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
         ASSERT_EQ(firstSymb, "[");
     }
 }
+
+#endif

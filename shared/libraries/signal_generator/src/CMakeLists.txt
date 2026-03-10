@@ -7,7 +7,7 @@ set(SOURCE_CPPS signal_generator.cpp
 set(SOURCE_HEADERS signal_generator.h
 )
 
-prepend_include(${MODULE_NAME} SOURCE_HEADERS)
+opendaq_prepend_include(${MODULE_NAME} SOURCE_HEADERS)
 
 add_library(${MODULE_NAME} STATIC ${SOURCE_CPPS} ${SOURCE_HEADERS})
 add_library(${SDK_TARGET_NAMESPACE}::${MODULE_NAME} ALIAS ${MODULE_NAME})
@@ -18,6 +18,15 @@ target_include_directories(${MODULE_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRE
                                               $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(${MODULE_NAME} PUBLIC daq::opendaq
+target_link_libraries(${MODULE_NAME} PUBLIC ${SDK_TARGET_NAMESPACE}::opendaq
 )
 
+install(TARGETS ${MODULE_NAME}
+        EXPORT ${SDK_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(FILES ${SOURCE_HEADERS}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${MODULE_NAME}
+)

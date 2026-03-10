@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:14.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:51.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_PERMISSIONS_INTF_ID = { daq::IPermissions::Id.Data1, daq::IPermissions::Id.Data2, daq::IPermissions::Id.Data3, daq::IPermissions::Id.Data4_UInt64 };
+
+void daqPermissions_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_PERMISSIONS_INTF_ID;
+}
 
 daqErrCode daqPermissions_getInherited(daqPermissions* self, daqBool* isInherited)
 {

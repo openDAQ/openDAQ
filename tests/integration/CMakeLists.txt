@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 
 if (MSVC)
     add_compile_options(/wd4100)
@@ -22,9 +22,4 @@ if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND
         DAQMODULES_REF_DEVICE_MODULE)
     message(STATUS "${SDK_NAME} device and server module test app")
     add_subdirectory(test_opendaq_device_modules)
-endif()
-
-if (DAQMODULES_OPENDAQ_CLIENT_MODULE AND OPENDAQ_ENABLE_WS_SIGGEN_INTEGRATION_TESTS)
-    message(STATUS "Websocket streaming signal generator tool integration test app")
-    add_subdirectory(test_ws_siggen_integration)
 endif()

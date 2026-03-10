@@ -157,7 +157,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 18);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), 19);
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -1292,6 +1292,20 @@ TEST_F(NativeDeviceModulesTest, DeviceComponentConfig)
     // for nested device config cannot be overriden locally
     ASSERT_TRUE(nestedDevice.asPtr<IComponentPrivate>().getComponentConfig().assigned());
     ASSERT_NO_THROW(nestedDevice.asPtr<IComponentPrivate>().setComponentConfig(PropertyObject()));
+}
+
+TEST_F(NativeDeviceModulesTest, GetDefaultAddDeviceConfig)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto serverDefaultConfig = server.createDefaultAddDeviceConfig();
+    const auto remoteDevice = client.getDevices()[0];
+    const auto remoteDefaultConfig = remoteDevice.createDefaultAddDeviceConfig();
+
+    ASSERT_TRUE(remoteDefaultConfig.assigned());
+    test_helpers::testPropObjsEquality(serverDefaultConfig, remoteDefaultConfig);
 }
 
 TEST_F(NativeDeviceModulesTest, GetStatuses)
@@ -3738,6 +3752,52 @@ TEST_P(NativeC2DStreamingTest, ConnectAndReadGeneralized)
     }
 }
 
+TEST_P(NativeC2DStreamingTest, DisconnectAndConnectWithParallelRPC)
+{
+    auto createServerInstance = []()
+    {
+        const InstancePtr instance = CreateDefaultServerInstance();
+
+        auto config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+        config.setPropertyValue("ConfigurationRpcWorkerCount", 2);
+        instance.addServer("OpenDAQNativeStreaming", config);
+        return instance;
+    };
+
+    auto server = createServerInstance();
+    auto client = CreateClientInstance(GetParam());
+    const ComponentPtr mirroredExtSigFolder = server.getServers()[0].getItem("Sig");
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+    auto mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+
+    std::promise<void> signalRemovedPromise;
+    auto eventHandler = [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
+    {
+        auto params = args.getParameters();
+        auto coreEventId = static_cast<CoreEventId>(args.getEventId());
+        if (coreEventId == CoreEventId::ComponentRemoved && params.get("Id") == mirroredExternalSignal.getLocalId())
+            signalRemovedPromise.set_value();
+    };
+    mirroredExtSigFolder.getOnComponentCoreEvent() += eventHandler;
+    std::future<void> signalRemovedFuture = signalRemovedPromise.get_future();
+
+    mirroredInputPort.disconnect();
+    mirroredInputPort.connect(clientLocalSignal);
+
+    ASSERT_TRUE(signalRemovedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
+    ASSERT_TRUE(mirroredExternalSignal.isRemoved());
+    mirroredExtSigFolder.getOnComponentCoreEvent() -= eventHandler;
+
+    mirroredExternalSignal = server.getServers()[0].getSignals()[0];
+    ASSERT_FALSE(mirroredExternalSignal.isRemoved());
+}
+
 TEST_P(NativeC2DStreamingTest, ServerCoreEvents)
 {
     SKIP_TEST_MAC_CI;
@@ -3943,7 +4003,7 @@ TEST_P(NativeC2DStreamingTest, StreamingData)
 
 // version 17 falls to basic C2Ds
 // version 18 uses generalized C2Ds
-INSTANTIATE_TEST_SUITE_P(NativeC2DStreamingTestGroup, NativeC2DStreamingTest, testing::Values(17, 18));
+INSTANTIATE_TEST_SUITE_P(NativeC2DStreamingTestGroup, NativeC2DStreamingTest, testing::Values(17, 19));
 
 TEST_F(NativeDeviceModulesTest, AddNestedFB)
 {
@@ -4243,4 +4303,116 @@ TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
         ASSERT_TRUE(activeStreamingStr.find("daq.ns://[") == std::string::npos)
             << "Active streaming uses IPv6 address instead of IPv4: " << activeStreamingStr;
     }
+}
+
+TEST_F(NativeDeviceModulesTest, ParallelRpcCalls)
+{
+    std::vector<Int> propertyWriteHistory;
+
+    auto createServerInstance = [&propertyWriteHistory]()
+    {
+        const InstancePtr instance = InstanceBuilder().addModulePath("").build();
+
+        auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+        {
+            Int sleepMs = args.getValue();
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+            propertyWriteHistory.push_back(sleepMs);
+        };
+
+        auto refDevice0 = instance.addDevice("daqref://device0");
+        refDevice0.addProperty(IntProperty("SleepAndAppend", 0));
+        refDevice0.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
+
+        auto refDevice1 = instance.addDevice("daqref://device1");
+        refDevice1.addProperty(IntProperty("SleepAndAppend", 0));
+        refDevice1.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
+
+        auto config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+        config.setPropertyValue("ConfigurationRpcWorkerCount", 2);
+        instance.addServer("OpenDAQNativeStreaming", config);
+        return instance;
+    };
+
+    auto connectClient = [](const std::string& connectionString)
+    {
+        const InstancePtr instance = Instance("");
+        instance.addDevice(connectionString);
+        return instance;
+    };
+
+    auto serverInstance = createServerInstance();
+    auto clientInstance = connectClient("daq.nd://127.0.0.1");
+
+    auto rootDevice = clientInstance.getDevices()[0];
+    auto devices = rootDevice.getDevices();
+
+    std::vector<std::thread> threads;
+
+    threads.push_back(std::thread([devices]() { devices[0].setPropertyValue("SleepAndAppend", 500); }));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    threads.push_back(std::thread([devices]() { devices[1].setPropertyValue("SleepAndAppend", 100); }));
+
+    for (auto& thread : threads)
+        thread.join();
+
+    // Device 1 should be the first to append a value of 100 to the list. After 300 ms device 0 should follow with value of 500
+    ASSERT_EQ(propertyWriteHistory.size(), 2u);
+    ASSERT_EQ(propertyWriteHistory[0], 100);
+    ASSERT_EQ(propertyWriteHistory[1], 500);
+}
+
+TEST_F(NativeDeviceModulesTest, ParallelRpcCallsDefault)
+{
+    std::vector<Int> propertyWriteHistory;
+
+    auto createServerInstance = [&propertyWriteHistory]()
+    {
+        const InstancePtr instance = InstanceBuilder().addModulePath("").build();
+
+        auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+        {
+            Int sleepMs = args.getValue();
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+            propertyWriteHistory.push_back(sleepMs);
+        };
+
+        auto refDevice0 = instance.addDevice("daqref://device0");
+        refDevice0.addProperty(IntProperty("SleepAndAppend", 0));
+        refDevice0.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
+
+        auto refDevice1 = instance.addDevice("daqref://device1");
+        refDevice1.addProperty(IntProperty("SleepAndAppend", 0));
+        refDevice1.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
+
+        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        return instance;
+    };
+
+    auto connectClient = [](const std::string& connectionString)
+    {
+        const InstancePtr instance = Instance("");
+        instance.addDevice(connectionString);
+        return instance;
+    };
+
+    auto serverInstance = createServerInstance();
+    auto clientInstance = connectClient("daq.nd://127.0.0.1");
+
+    auto rootDevice = clientInstance.getDevices()[0];
+    auto devices = rootDevice.getDevices();
+
+    std::vector<std::thread> threads;
+
+    threads.push_back(std::thread([devices]() { devices[0].setPropertyValue("SleepAndAppend", 500); }));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    threads.push_back(std::thread([devices]() { devices[1].setPropertyValue("SleepAndAppend", 100); }));
+
+    for (auto& thread : threads)
+        thread.join();
+
+    // By default, RPC calls should be executed sequentially, so trigger order should be preserved
+    ASSERT_EQ(propertyWriteHistory.size(), 2u);
+    ASSERT_EQ(propertyWriteHistory[0], 500);
+    ASSERT_EQ(propertyWriteHistory[1], 100);
 }

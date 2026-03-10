@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:16.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:53.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_PROPERTY_BUILDER_INTF_ID = { daq::IPropertyBuilder::Id.Data1, daq::IPropertyBuilder::Id.Data2, daq::IPropertyBuilder::Id.Data3, daq::IPropertyBuilder::Id.Data4_UInt64 };
+
+void daqPropertyBuilder_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_PROPERTY_BUILDER_INTF_ID;
+}
 
 daqErrCode daqPropertyBuilder_build(daqPropertyBuilder* self, daqProperty** property)
 {
@@ -190,6 +195,26 @@ daqErrCode daqPropertyBuilder_setOnPropertyValueRead(daqPropertyBuilder* self, d
 daqErrCode daqPropertyBuilder_getOnPropertyValueRead(daqPropertyBuilder* self, daqEvent** event)
 {
     return reinterpret_cast<daq::IPropertyBuilder*>(self)->getOnPropertyValueRead(reinterpret_cast<daq::IEvent**>(event));
+}
+
+daqErrCode daqPropertyBuilder_setOnSuggestedValuesRead(daqPropertyBuilder* self, daqEvent* event)
+{
+    return reinterpret_cast<daq::IPropertyBuilder*>(self)->setOnSuggestedValuesRead(reinterpret_cast<daq::IEvent*>(event));
+}
+
+daqErrCode daqPropertyBuilder_getOnSuggestedValuesRead(daqPropertyBuilder* self, daqEvent** event)
+{
+    return reinterpret_cast<daq::IPropertyBuilder*>(self)->getOnSuggestedValuesRead(reinterpret_cast<daq::IEvent**>(event));
+}
+
+daqErrCode daqPropertyBuilder_setOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent* event)
+{
+    return reinterpret_cast<daq::IPropertyBuilder*>(self)->setOnSelectionValuesRead(reinterpret_cast<daq::IEvent*>(event));
+}
+
+daqErrCode daqPropertyBuilder_getOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent** event)
+{
+    return reinterpret_cast<daq::IPropertyBuilder*>(self)->getOnSelectionValuesRead(reinterpret_cast<daq::IEvent**>(event));
 }
 
 daqErrCode daqPropertyBuilder_createPropertyBuilder(daqPropertyBuilder** obj, daqString* name)

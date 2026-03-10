@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 project(BasicCsvRecorderModule VERSION ${OPENDAQ_PACKAGE_VERSION} LANGUAGES C CXX)
 
 add_subdirectory(src)

@@ -26,8 +26,8 @@ set(SRC_Cpp listobject_impl.cpp
             dictobject_impl.cpp
 )
 
-prepend_include(coretypes SRC_PublicHeaders)
-prepend_include(coretypes SRC_PrivateHeaders)
+opendaq_prepend_include(coretypes SRC_PublicHeaders)
+opendaq_prepend_include(coretypes SRC_PrivateHeaders)
 
 add_library(${MODULE_NAME} INTERFACE)
 add_library(${SDK_TARGET_NAMESPACE}::${MODULE_NAME} ALIAS ${MODULE_NAME})

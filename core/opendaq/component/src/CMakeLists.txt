@@ -161,11 +161,11 @@ set(SRC_PublicHeaders_Component
     component_update_context_impl.h
     update_parameters.h
     update_parameters_factory.h
+    component_type_impl.h
     PARENT_SCOPE
 )
 
 set(SRC_PrivateHeaders_Component
-    component_type_impl.h
     search_filter_impl.h
     tags_impl.h      
     component_status_container_private.h

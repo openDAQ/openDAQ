@@ -1,0 +1,222 @@
+{
+    "version": 4,
+    "configurePresets": [
+        {
+            "name": "debug",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "binaryDir": "build/${presetName}"
+        },
+        {
+            "name": "release",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "binaryDir": "build/${presetName}"
+        },
+        {
+            "name": "gcc",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "clang",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "intel-llvm",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "icx",
+                "CMAKE_CXX_COMPILER": "icpx"
+            }
+        },
+        {
+            "name": "ninja",
+            "hidden": true,
+            "generator": "Ninja"
+        },
+        {
+            "name": "msvc-17",
+            "hidden": true,
+            "generator": "Visual Studio 15 2017",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "hostOS": [ "Windows" ]
+                }
+            }
+        },
+        {
+            "name": "msvc-22",
+            "hidden": true,
+            "generator": "Visual Studio 17 2022",
+            "inherits": [
+                "msvc-17"
+            ]
+        },
+        {
+            "name": "msvc-x86",
+            "hidden": true,
+            "architecture": "Win32",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "hostOS": [ "Windows" ]
+                }
+            }
+        },
+        {
+            "name": "msvc-x64",
+            "hidden": true,
+            "architecture": "x64",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "hostOS": [ "Windows" ]
+                }
+            }
+        },
+        {
+            "name": "full",
+            "hidden": true
+        },
+        {
+            "name": "ci",
+            "hidden": false,
+            "inherits": [
+                "full"
+            ]
+        },
+        {
+            "name": "full/release",
+            "hidden": true,
+            "displayName": "Full - Release",
+            "inherits": [
+                "release",
+                "full"
+            ]
+        },
+        {
+            "name": "full/debug",
+            "hidden": true,
+            "displayName": "Full - Release",
+            "inherits": [
+                "debug",
+                "full"
+            ]
+        },
+        {
+            "name": "x86/msvc-17/full",
+            "displayName": "[MSVC 17] Full - x86",
+            "inherits": [
+                "full/release",
+                "msvc-17",
+                "msvc-x86"
+            ]
+        },
+        {
+            "name": "x64/msvc-17/full",
+            "displayName": "[MSVC 17] Full - x64",
+            "inherits": [
+                "full/release",
+                "msvc-17",
+                "msvc-x64"
+            ]
+        },
+        {
+            "name": "x86/msvc-22/full",
+            "displayName": "[MSVC 22] Full - x86",
+            "inherits": [
+                "full/release",
+                "msvc-22",
+                "msvc-x86"
+            ]
+        },
+        {
+            "name": "x64/msvc-22/full",
+            "displayName": "[MSVC 22] Full - x64",
+            "inherits": [
+                "full/release",
+                "msvc-22",
+                "msvc-x64"
+            ]
+        },
+        {
+            "name": "x64/gcc/full/debug",
+            "displayName": "[GCC] Full - Debug",
+            "inherits": [
+                "full/debug",
+                "gcc",
+                "ninja"
+            ]
+        },
+        {
+            "name": "x64/gcc/full/release",
+            "displayName": "[GCC] Full - Release",
+            "inherits": [
+                "full/release",
+                "gcc",
+                "ninja"
+            ]
+        },
+        {
+            "name": "x64/clang/full/debug",
+            "displayName": "[Clang] Full - Debug",
+            "inherits": [
+                "full/debug",
+                "clang",
+                "ninja"
+            ]
+        },
+        {
+            "name": "x64/clang/full/release",
+            "displayName": "[Clang] Full - Release",
+            "inherits": [
+                "full/release",
+                "clang",
+                "ninja"
+            ]
+        },
+        {
+            "name": "x64/intel-llvm/full/debug",
+            "displayName": "[IntelLLVM] Full - Debug",
+            "inherits": [
+                "full/debug",
+                "intel-llvm",
+                "ninja"
+            ]
+        },
+        {
+            "name": "x64/intel-llvm/full/release",
+            "displayName": "[IntelLLVM] Full - Release",
+            "inherits": [
+                "full/release",
+                "intel-llvm",
+                "ninja"
+            ]
+        }
+    ]
+}

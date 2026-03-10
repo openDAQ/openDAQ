@@ -123,6 +123,7 @@ public:
     StringPtr getOperationMode(const std::string& globalId);
 
     PropertyObjectPtr getComponentConfig(const std::string& globalId);
+    PropertyObjectPtr getDefaultAddDeviceConfig(const std::string& globalId);
 
     void startRecording(const std::string& globalId);
     void stopRecording(const std::string& globalId);

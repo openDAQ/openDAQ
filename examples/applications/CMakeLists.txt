@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 
 set(OPENDAQ_EXAMPLES_VERSION ${OPENDAQ_PACKAGE_VERSION})
 

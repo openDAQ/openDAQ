@@ -70,10 +70,10 @@ runs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
 
         # Short SHA, full version, wheels version
-        # sha-short is only set for dev builds (used by NuGet for -beta suffix)
+        git config --global --add safe.directory "$(pwd)"
         case "$OPENDAQ_VERSION" in
           *dev)
-            SHORT_SHA="${GITHUB_SHA:0:7}"
+            SHORT_SHA="$(git rev-parse --short=7 HEAD)"
             VERSION_FULL="${VERSION}-${SHORT_SHA}"
             VERSION_WHEELS="${VERSION}+${SHORT_SHA}"
             ;;

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:29.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:30.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqInputPort daqInputPort;
 
     EXPORTED extern const daqIntfID DAQ_STREAM_READER_BUILDER_INTF_ID;
+    void EXPORTED daqStreamReaderBuilder_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqStreamReaderBuilder_build(daqStreamReaderBuilder* self, daqStreamReader** streamReader);
     daqErrCode EXPORTED daqStreamReaderBuilder_setSignal(daqStreamReaderBuilder* self, daqSignal* signal);
@@ -56,6 +57,8 @@ extern "C"
     daqErrCode EXPORTED daqStreamReaderBuilder_getReadTimeoutType(daqStreamReaderBuilder* self, daqReadTimeoutType* type);
     daqErrCode EXPORTED daqStreamReaderBuilder_setSkipEvents(daqStreamReaderBuilder* self, daqBool skipEvents);
     daqErrCode EXPORTED daqStreamReaderBuilder_getSkipEvents(daqStreamReaderBuilder* self, daqBool* skipEvents);
+    daqErrCode EXPORTED daqStreamReaderBuilder_setInputPortNotificationMethod(daqStreamReaderBuilder* self, daqPacketReadyNotification notificationMethod);
+    daqErrCode EXPORTED daqStreamReaderBuilder_getInputPortNotificationMethod(daqStreamReaderBuilder* self, daqPacketReadyNotification* notificationMethod);
     daqErrCode EXPORTED daqStreamReaderBuilder_createStreamReaderBuilder(daqStreamReaderBuilder** obj);
 
 #ifdef __cplusplus

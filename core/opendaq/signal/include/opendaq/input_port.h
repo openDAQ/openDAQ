@@ -90,6 +90,18 @@ DECLARE_OPENDAQ_INTERFACE(IInputPort, IComponent)
      * @param[out] connection The Connection object.
      */
     virtual ErrCode INTERFACE_FUNC getConnection(IConnection** connection) = 0;
+
+    /*!
+     * @brief Returns true if the port is public; false otherwise.
+     * @param[out] isPublic True if the port is public; false otherwise.
+     */
+    virtual ErrCode INTERFACE_FUNC getPublic(Bool * isPublic) = 0;
+
+    /*!
+     * @brief Sets the port to be either public or private.
+     * @param isPublic If false, the port is set to private; if true, the port is set to be public.
+     */
+    virtual ErrCode INTERFACE_FUNC setPublic(Bool isPublic) = 0;
 };
 /*!@}*/
 

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:35.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqPropertyObject daqPropertyObject;
 
     EXPORTED extern const daqIntfID DAQ_SERVER_TYPE_INTF_ID;
+    void EXPORTED daqServerType_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqServerType_createServerType(daqServerType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig);
 

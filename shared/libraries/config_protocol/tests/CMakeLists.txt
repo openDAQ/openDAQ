@@ -6,6 +6,7 @@ set(TEST_SOURCES
     test_config_packet.cpp
     test_config_client_server.cpp
     test_config_protocol_integration.cpp
+    test_config_protocol_integration_non_public.cpp
     test_config_protocol_device_locking.cpp
     test_config_protocol_view_only_client.cpp
     test_config_serialization.cpp
@@ -30,6 +31,7 @@ target_link_libraries(${TEST_APP}
         ${SDK_TARGET_NAMESPACE}::test_utils
         daq::opendaq
         daq::opendaq_mocks
+        daq::opendaq_gmocks
 )
 
 if (DAQMODULES_REF_FB_MODULE AND DAQMODULES_REF_DEVICE_MODULE)

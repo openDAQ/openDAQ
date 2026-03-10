@@ -155,10 +155,13 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_TRUE(functionBlockTypes.assigned());
 
+#ifdef OPENDAQ_ENABLE_RENDERER
     ASSERT_EQ(functionBlockTypes.getCount(), 12u);
-
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleRenderer"));
     ASSERT_EQ("RefFBModuleRenderer", functionBlockTypes.get("RefFBModuleRenderer").getId());
+#else
+    ASSERT_EQ(functionBlockTypes.getCount(), 10u);
+#endif
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStatistics"));
     ASSERT_EQ("RefFBModuleStatistics", functionBlockTypes.get("RefFBModuleStatistics").getId());
@@ -181,8 +184,10 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStructDecoder"));
     ASSERT_EQ("RefFBModuleStructDecoder", functionBlockTypes.get("RefFBModuleStructDecoder").getId());
 
+#ifdef OPENDAQ_ENABLE_RENDERER
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleVideoPlayer"));
     ASSERT_EQ("RefFBModuleVideoPlayer", functionBlockTypes.get("RefFBModuleVideoPlayer").getId());
+#endif
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleSumReader"));
     ASSERT_EQ("RefFBModuleSumReader", functionBlockTypes.get("RefFBModuleSumReader").getId());
@@ -238,6 +243,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
     ASSERT_THROW(module.createFunctionBlock("test", nullptr, "Id"), NotFoundException);
 }
 
+#ifdef OPENDAQ_ENABLE_RENDERER
 TEST_F(RefFbModuleTest, FunctionBlockRendererDefaultConfig)
 {
     const auto module = CreateModule();
@@ -254,6 +260,7 @@ TEST_F(RefFbModuleTest, FunctionBlockRendererDefaultConfig)
     ASSERT_TRUE(config.getPropertyValue("UseMainLoopForRenderer"));
 #endif
 }
+#endif
 
 TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
 {

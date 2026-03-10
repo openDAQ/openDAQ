@@ -464,10 +464,10 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
         instance.removeDevice(device);
     }
 
-    // if (test_helpers::Ipv6IsDisabled(true))
-    // {
-    //     GTEST_SKIP() << "Ipv6 is disabled - skip rest of the test";
-    // }
+     if (test_helpers::Ipv6IsDisabled(true))
+     {
+         GTEST_SKIP() << "Ipv6 is disabled - skip rest of the test";
+     }
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
@@ -531,10 +531,10 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
         instance.removeDevice(device);
     }
 
-    // if (test_helpers::Ipv6IsDisabled(true))
-    // {
-    //     GTEST_SKIP() << "Ipv6 is disabled - skip rest of the test";
-    // }
+     if (test_helpers::Ipv6IsDisabled(true))
+     {
+         GTEST_SKIP() << "Ipv6 is disabled - skip rest of the test";
+     }
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
@@ -590,10 +590,10 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
         instance.removeDevice(device);
     }
 
-    // if (test_helpers::Ipv6IsDisabled(true))
-    // {
-    //     GTEST_SKIP() << "Ipv6 is disabled - skip rest of the test";
-    // }
+     if (test_helpers::Ipv6IsDisabled(true))
+     {
+         GTEST_SKIP() << "Ipv6 is disabled - skip rest of the test";
+     }
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {

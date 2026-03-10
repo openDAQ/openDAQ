@@ -119,7 +119,7 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
 
     auto instance = InstanceCustom(context, "clientLocal");
     addNativeClientModule(instance);
-    // addRefDeviceModule(instance);
+    addRefDeviceModule(instance);
 
     auto config = instance.createDefaultAddDeviceConfig();
 

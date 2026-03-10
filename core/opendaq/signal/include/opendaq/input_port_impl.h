@@ -856,7 +856,7 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getPublic(Bool* isPubli
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setPublic(Bool isPublic)
 {
-    if (this->frozen)
+    if (this->isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {

@@ -578,14 +578,14 @@ void GenericInputPortImpl<TInterface, Interfaces...>::removedNoLock()
 template <typename TInterface, typename...  Interfaces>
 ErrCode INTERFACE_FUNC GenericInputPortImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* owner)
 {
-    if (this->owner.assigned())
+    auto ownerPtr = this->getOwner();
+    if (ownerPtr.assigned())
     {
-        auto ref = this->owner.getRef();
+        auto ref = ownerPtr.getRef();
         if (ref != nullptr && ref != owner)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
     }
-    this->owner = owner;
-    return OPENDAQ_SUCCESS;
+    return Super::setOwner(owner);
 }
 
 template <typename TInterface, typename...  Interfaces>
@@ -856,7 +856,7 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getPublic(Bool* isPubli
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setPublic(Bool isPublic)
 {
-    if (this->frozen)
+    if (this->isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {

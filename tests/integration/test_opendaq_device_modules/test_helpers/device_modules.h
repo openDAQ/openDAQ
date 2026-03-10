@@ -44,7 +44,12 @@ inline void addNativeClientModule(const daq::InstancePtr& instance)
 inline void addLtServerModule(const daq::InstancePtr& instance)
 {
     daq::ModulePtr ltServerModule;
+    
+#ifdef DAQMODULES_LT_LEGACY_MODULES
     createWebsocketStreamingServerModule(&ltServerModule, instance.getContext());
+#else
+    createWsStreamingServerModule(&ltServerModule, instance.getContext());
+#endif
 
     instance.getModuleManager().addModule(ltServerModule);
 }

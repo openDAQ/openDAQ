@@ -295,7 +295,12 @@ TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
     // Add LT Server Module
     {
         ModulePtr ltServerModule;
+
+    #ifdef DAQMODULES_LT_LEGACY_MODULES
         createWebsocketStreamingServerModule(&ltServerModule, serverInstance.getContext());
+    #else
+        createWsStreamingServerModule(&ltServerModule, serverInstance.getContext());
+    #endif
 
         serverInstance.getModuleManager().addModule(ltServerModule);
     }

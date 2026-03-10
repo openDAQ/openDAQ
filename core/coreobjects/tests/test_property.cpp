@@ -246,3 +246,61 @@ TEST_F(PropertyTest, propertyCreateFactory)
     ASSERT_EQ(property.getCoercer(), coercer);
     ASSERT_EQ(property.getCallableInfo(), nullptr);
 }
+
+TEST_F(PropertyTest, ListSelectionStringPropertyDefaultValue)
+{
+    auto stringSelectionProp = PropertyBuilder("Mode")
+                                  .setValueType(ctString)
+                                  .setDefaultValue("Low")
+                                  .setSelectionValues(List<IString>("Low", "Medium", "High"))
+                                  .build();
+
+    ASSERT_EQ(stringSelectionProp.getDefaultValue(), "Low");
+}
+
+TEST_F(PropertyTest, ListSelectionFloatPropertyDefaultValue)
+{
+    auto floatSelectionProp = PropertyBuilder("Range")
+                                  .setValueType(ctFloat)
+                                  .setDefaultValue(1.0f)
+                                  .setSelectionValues(List<Float>(1.0f, 2.5f, 10.0f))
+                                  .build();
+
+    ASSERT_EQ(floatSelectionProp.getDefaultValue(), 1.0f);
+}
+
+TEST_F(PropertyTest, ListSelectionStringPropertyWrongDefaultValue)
+{
+    ASSERT_THROW(PropertyBuilder("Mode")
+                                  .setValueType(ctString)
+                                  .setDefaultValue("Invalid")
+                                  .setSelectionValues(List<IString>("Low", "Medium", "High"))
+                                  .build(), InvalidStateException);
+}
+
+TEST_F(PropertyTest, ListSelectionFloatPropertyWrongDefaultValue)
+{
+    ASSERT_THROW(PropertyBuilder("Range")
+                                  .setValueType(ctFloat)
+                                  .setDefaultValue(100.0f)
+                                  .setSelectionValues(List<Float>(1.0f, 2.5f, 10.0f))
+                                  .build(), InvalidStateException);
+}
+
+TEST_F(PropertyTest, ListSelectionStringPropertyUseIndexAsDefaultValue)
+{
+    ASSERT_THROW(PropertyBuilder("Mode")
+                                  .setValueType(ctString)
+                                  .setDefaultValue(0)
+                                  .setSelectionValues(List<IString>("Low", "Medium", "High"))
+                                  .build(), InvalidStateException);
+}
+
+TEST_F(PropertyTest, ListSelectionFloatPropertyUseIndexAsDefaultValue)
+{
+    ASSERT_THROW(PropertyBuilder("Range")
+                                  .setValueType(ctFloat)
+                                  .setDefaultValue(0)
+                                  .setSelectionValues(List<Float>(1.0f, 2.5f, 10.0f))
+                                  .build(), InvalidStateException);
+}

@@ -1057,12 +1057,59 @@ public:
 
         if (selectionValues.assigned())
         {
-            bool valid = valueType == ctInt;
-            valid = valid && (selectionValues.supportsInterface<IList>() || selectionValues.supportsInterface<IDict>());
-            if (!valid)
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE,
-                                       fmt::format(R"(Selection property {} must have the value type ctInt, and the selection values must be a list or dictionary)",
-                                            name));
+            if (valueType == ctInt)
+            {
+                if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
+                {
+                    const SizeT defaultIndex = defaultValue;
+                    if (defaultIndex >= list.getCount())
+                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value is not in selection values for property {})", name));
+                }
+                else if (const auto dict = selectionValues.asPtrOrNull<IDict>(true); dict.assigned())
+                {
+                    if (!dict.hasKey(defaultValue))
+                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value is not in selection values for property {})", name));
+                }
+                else
+                {
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a list or dictionary for property {})", name));
+                }
+            }
+            else if (valueType == ctString || valueType == ctFloat)
+            {
+                if (const auto listElementType = selectionValues.asPtrOrNull<IListElementType>(true); listElementType.assigned())
+                {
+                    // check that the selection values are of the correct type
+                    IntfID intfID = IUnknown::Id;
+                    OPENDAQ_RETURN_IF_FAILED(listElementType->getElementInterfaceId(&intfID));
+
+                    const auto selectionValueType = details::intfIdToCoreType(intfID);
+                    if (selectionValueType != valueType)
+                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection values must be a {} for property {})", (valueType == ctString ? "string" : "float"), name));
+                    
+                    // check that the default value is in the selection values
+                    bool found = false;
+                    for (const auto& value : selectionValues.asPtr<IList>(true))
+                    {
+                        if (value == defaultValue)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+    
+                    if (!found)
+                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value is not in selection values for property {})", name));
+                }
+                else
+                {
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a list or dictionary for property {})", name));
+                }
+            }
+            else 
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Choosen value type is not supported for selection values)", name));
+            }
         }
 
         if (suggestedValues.assigned() && (valueType != ctInt && valueType != ctFloat && valueType != ctString))

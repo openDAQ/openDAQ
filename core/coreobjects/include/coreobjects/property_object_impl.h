@@ -282,6 +282,7 @@ public:
     virtual ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     virtual ErrCode INTERFACE_FUNC getPropertySelectionValueNoLock(IString* propertyName, IBaseObject** value) override;
+    virtual ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* propertyName) override;
 
@@ -355,6 +356,7 @@ public:
     // IPropertyObjectProtected
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
+    virtual ErrCode INTERFACE_FUNC setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
 
     using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
@@ -451,6 +453,7 @@ protected:
     void setLockOwner(const PropertyObjectInternalPtr& owner);
     void internalDispose(bool) override;
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
+    ErrCode setPropertySelectionValueInternal(IString* propertyName, IBaseObject* value, bool protectedAccess);
     ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
@@ -517,6 +520,10 @@ protected:
     bool shouldWriteLocalValue(const StringPtr& name, const BaseObjectPtr& value) const;
     // Adds the value to the local list of values (`propValues`)
     bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite = false);
+
+    // For selection props with String/Float value type: converts index/key to the selection item value for storage; otherwise returns value as-is
+    BaseObjectPtr convertSelectionIndexToValue(const PropertyPtr& prop, const BaseObjectPtr& value) const;
+    BaseObjectPtr convertSelectionValueToIndex(const PropertyPtr& prop, const BaseObjectPtr& value) const;
 
     // Used when cloning object-type property default values of property object classes on construction.
     // Must be overridden by modules that have their own property object implementation.
@@ -1142,7 +1149,7 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelectionValues(const PropertyPtr& prop,
                                                                                          const BaseObjectPtr& value)
 {
-    const auto selectionValues = prop.asPtr<IPropertyInternal>().getSelectionValuesNoLock();
+    const auto selectionValues = prop.asPtr<IPropertyInternal>(true).getSelectionValuesNoLock();
     if (selectionValues.assigned())
     {
         const SizeT key = value;
@@ -1273,7 +1280,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
 
                 if (valuePtr == newValue)
                 {
-                    writeLocalValue(propName, newValue);
+                    writeLocalValue(propName, convertSelectionIndexToValue(prop, newValue));
                     setOwnerToPropertyValue(newValue);
                 }
 
@@ -1282,7 +1289,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             }
             else
             {
-                if (!writeLocalValue(propName, valuePtr))
+                if (!writeLocalValue(propName, convertSelectionIndexToValue(prop, valuePtr)))
                     return OPENDAQ_IGNORED;
                 setOwnerToPropertyValue(valuePtr);
             }
@@ -1351,6 +1358,46 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::shouldWriteLoca
         }
     }
     return true;
+}
+
+template <class PropObjInterface, class... Interfaces>
+BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::convertSelectionIndexToValue(const PropertyPtr& prop, const BaseObjectPtr& value) const
+{
+    if (!prop.assigned() || !value.assigned())
+        return value;
+
+    const auto propInternal = prop.template asPtr<IPropertyInternal>(true);
+    const auto valueType = propInternal.getValueTypeNoLock();
+    const auto selectionValues = propInternal.getSelectionValuesNoLock().asPtrOrNull<IList>();
+    if (!selectionValues.assigned() || (valueType != ctString && valueType != ctFloat))
+        return value;
+
+    const SizeT key = value;
+    if (key < selectionValues.getCount())
+        return selectionValues.getItemAt(key);
+
+    DAQ_THROW_EXCEPTION(NotFoundException, "Value is not a valid index or selection item value.");
+}
+
+template <class PropObjInterface, class... Interfaces>
+BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::convertSelectionValueToIndex(const PropertyPtr& prop, const BaseObjectPtr& value) const
+{
+    if (!prop.assigned() || !value.assigned())
+        return value;
+
+    const auto propInternal = prop.template asPtr<IPropertyInternal>(true);
+    const auto valueType = propInternal.getValueTypeNoLock();
+    const auto selectionValues = propInternal.getSelectionValuesNoLock().asPtrOrNull<IList>();
+    if (!selectionValues.assigned() || (valueType != ctString && valueType != ctFloat))
+        return value;
+
+    for (SizeT i = 0; i < selectionValues.getCount(); ++i)
+    {
+        if (selectionValues.getItemAt(i) == value)
+            return i;
+    }
+
+    DAQ_THROW_EXCEPTION(NotFoundException, "Value is not a valid selection item value.");
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1727,6 +1774,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
 
     if (triggerEvent)
         value = callPropertyValueRead(property, value);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -1759,6 +1807,104 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
                                                                                                     IBaseObject** value)
 {
     return getPropertySelectionValueInternal(propertyName, value, true);
+}
+
+template <class PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
+{
+    auto lock = getRecursiveConfigLock2();
+    return setPropertySelectionValueInternal(propertyName, value, false);
+}
+
+template <class PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value)
+{
+    auto lock = getRecursiveConfigLock2();
+    return setPropertySelectionValueInternal(propertyName, value, true);
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertySelectionValueInternal(IString* propertyName,
+                                                                                                      IBaseObject* value,
+                                                                                                      bool protectedAccess)
+{
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+    OPENDAQ_PARAM_NOT_NULL(value);
+
+    const ErrCode errCode = daqTry([&]()
+    {
+        const auto propName = StringPtr::Borrow(propertyName);
+        const auto valuePtr = BaseObjectPtr::Borrow(value);
+
+        if (isChildProperty(propName))
+        {
+            StringPtr childName;
+            StringPtr subName;
+            splitOnFirstDot(propName, childName, subName);
+
+            BaseObjectPtr childProp;
+            const ErrCode err = getPropertyValueInternal(childName, &childProp);
+            OPENDAQ_RETURN_IF_FAILED(err);
+
+            if (protectedAccess)
+            {
+                const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObjectProtected>(true);
+                return childPropAsPropertyObject->setProtectedPropertySelectionValue(subName, value);
+            }
+            else
+            {
+                const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
+                return childPropAsPropertyObject->setPropertySelectionValue(subName, value);
+            }
+        }
+
+        PropertyPtr prop = getUnboundProperty(propName);
+        prop = checkForRefPropAndGetBoundProp(prop);
+
+        if (!prop.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" not found)", propName));
+
+        const auto propInternal = prop.asPtr<IPropertyInternal>(true);
+        auto selectionValues = propInternal.getSelectionValuesNoLock();
+
+        if (!selectionValues.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Property "{}" has no selection values assigned)", propName));
+
+        BaseObjectPtr indexOrKey;
+        if (auto valuesList = selectionValues.template asPtrOrNull<IList>(true); valuesList.assigned())
+        {
+            for (SizeT i = 0; i < valuesList.getCount(); ++i)
+            {
+                if (valuesList.getItemAt(i) == valuePtr)
+                {
+                    indexOrKey = Int(i);
+                    break;
+                }
+            }
+        }
+        else if (auto valuesDict = selectionValues.template asPtrOrNull<IDict>(true); valuesDict.assigned())
+        {
+            for (const auto& [key, value] : valuesDict)
+            {
+                if (value == valuePtr)
+                {
+                    indexOrKey = key;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Property "{}" selection values is not a list or dictionary)", propName));
+        }
+
+        if (!indexOrKey.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, fmt::format(R"(Value not found in selection values of property "{}")", propName));
+
+        return setPropertyValueInternal(propertyName, indexOrKey, true, protectedAccess, updateCount > 0);
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set property selection value");
+    return errCode;
 }
 
 template <class PropObjInterface, typename... Interfaces>
@@ -2046,13 +2192,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
             StringPtr subName;
             splitOnFirstDot(propName, propName, subName);
             err = getChildPropertyValue(propName, subName, valuePtr);
+            OPENDAQ_RETURN_IF_FAILED(err);
         }
         else
         {
             PropertyPtr prop;
             err = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
+            OPENDAQ_RETURN_IF_FAILED(err);
+            valuePtr = convertSelectionValueToIndex(prop, valuePtr);
         }
-        OPENDAQ_RETURN_IF_FAILED(err);
 
         *value = valuePtr.detach();
         return err;
@@ -2092,17 +2240,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         if (!values.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" has no selection values assigned)", propName));
 
-        if (auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true); valuesList.assigned())
+        if (propInternal.getValueTypeNoLock() == ctInt)
         {
-            valuePtr = valuesList.getItemAt(valuePtr);
-        }
-        else if (auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true); valuesDict.assigned())
-        {
-            valuePtr = valuesDict.get(valuePtr);
-        }
-        else
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" values is not a list or dictionary)", propName));
+            if (auto valuesList = values.asPtrOrNull<IList>(true); valuesList.assigned())
+                valuePtr = valuesList.getItemAt(valuePtr);
+            else if (auto valuesDict = values.asPtrOrNull<IDict>(true); valuesDict.assigned())
+                valuePtr = valuesDict.get(valuePtr);
+            else
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" values is not a list or dictionary)", propName));
         }
 
         if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:56.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_PROPERTY_OBJECT_INTERNAL_INTF_ID = { daq::IPropertyObjectInternal::Id.Data1, daq::IPropertyObjectInternal::Id.Data2, daq::IPropertyObjectInternal::Id.Data3, daq::IPropertyObjectInternal::Id.Data4_UInt64 };
+
+void daqPropertyObjectInternal_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_PROPERTY_OBJECT_INTERNAL_INTF_ID;
+}
 
 daqErrCode daqPropertyObjectInternal_checkForReferences(daqPropertyObjectInternal* self, daqProperty* property, daqBool* isReferenced)
 {
@@ -57,6 +62,11 @@ daqErrCode daqPropertyObjectInternal_setPath(daqPropertyObjectInternal* self, da
     return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->setPath(reinterpret_cast<daq::IString*>(path));
 }
 
+daqErrCode daqPropertyObjectInternal_getPath(daqPropertyObjectInternal* self, daqString** path)
+{
+    return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->getPath(reinterpret_cast<daq::IString**>(path));
+}
+
 daqErrCode daqPropertyObjectInternal_isUpdating(daqPropertyObjectInternal* self, daqBool* updating)
 {
     return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->isUpdating(updating);
@@ -82,6 +92,11 @@ daqErrCode daqPropertyObjectInternal_setPropertyValueNoLock(daqPropertyObjectInt
     return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->setPropertyValueNoLock(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IBaseObject*>(value));
 }
 
+daqErrCode daqPropertyObjectInternal_setProtectedPropertyValueNoLock(daqPropertyObjectInternal* self, daqString* name, daqBaseObject* value)
+{
+    return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->setProtectedPropertyValueNoLock(reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IBaseObject*>(value));
+}
+
 daqErrCode daqPropertyObjectInternal_clearPropertyValueNoLock(daqPropertyObjectInternal* self, daqString* name)
 {
     return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->clearPropertyValueNoLock(reinterpret_cast<daq::IString*>(name));
@@ -95,4 +110,24 @@ daqErrCode daqPropertyObjectInternal_getLockGuard(daqPropertyObjectInternal* sel
 daqErrCode daqPropertyObjectInternal_getRecursiveLockGuard(daqPropertyObjectInternal* self, daqLockGuard** lockGuard)
 {
     return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->getRecursiveLockGuard(reinterpret_cast<daq::ILockGuard**>(lockGuard));
+}
+
+daqErrCode daqPropertyObjectInternal_setLockingStrategy(daqPropertyObjectInternal* self, daqLockingStrategy strategy)
+{
+    return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->setLockingStrategy(static_cast<daq::LockingStrategy>(strategy));
+}
+
+daqErrCode daqPropertyObjectInternal_getLockingStrategy(daqPropertyObjectInternal* self, daqLockingStrategy* strategy)
+{
+    return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->getLockingStrategy(reinterpret_cast<daq::LockingStrategy*>(strategy));
+}
+
+daqErrCode daqPropertyObjectInternal_getMutex(daqPropertyObjectInternal* self, daqMutex** mutex)
+{
+    return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->getMutex(reinterpret_cast<daq::IMutex**>(mutex));
+}
+
+daqErrCode daqPropertyObjectInternal_getMutexOwner(daqPropertyObjectInternal* self, daqPropertyObjectInternal** owner)
+{
+    return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->getMutexOwner(reinterpret_cast<daq::IPropertyObjectInternal**>(owner));
 }

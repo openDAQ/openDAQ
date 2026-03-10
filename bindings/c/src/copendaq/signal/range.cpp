@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:49.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_RANGE_INTF_ID = { daq::IRange::Id.Data1, daq::IRange::Id.Data2, daq::IRange::Id.Data3, daq::IRange::Id.Data4_UInt64 };
+
+void daqRange_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_RANGE_INTF_ID;
+}
 
 daqErrCode daqRange_getLowValue(daqRange* self, daqNumber** value)
 {

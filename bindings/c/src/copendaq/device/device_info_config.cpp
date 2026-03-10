@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:05.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:12.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_DEVICE_INFO_CONFIG_INTF_ID = { daq::IDeviceInfoConfig::Id.Data1, daq::IDeviceInfoConfig::Id.Data2, daq::IDeviceInfoConfig::Id.Data3, daq::IDeviceInfoConfig::Id.Data4_UInt64 };
+
+void daqDeviceInfoConfig_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_DEVICE_INFO_CONFIG_INTF_ID;
+}
 
 daqErrCode daqDeviceInfoConfig_setName(daqDeviceInfoConfig* self, daqString* name)
 {

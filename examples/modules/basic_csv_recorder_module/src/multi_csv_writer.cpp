@@ -101,7 +101,6 @@ void MultiCsvWriter::setHeaderInformation(const DataDescriptorPtr& domainDescrip
 void MultiCsvWriter::writeSamples(std::vector<std::unique_ptr<double[]>>&& jaggedArray, size_t count, Int packetOffset)
 {
     std::unique_lock lock(mutex);
-    exitFlag = false;
     queue.emplace(JaggedBuffer{count, std::move(jaggedArray), packetOffset});
     lock.unlock();
     cv.notify_all();
@@ -129,7 +128,7 @@ void MultiCsvWriter::threadLoop()
         std::unique_lock lock{mutex};
         cv.wait(lock, [this]() { return !queue.empty() || exitFlag; });
 
-        if (exitFlag)
+        if (exitFlag && queue.empty())
         {
             return;
         }

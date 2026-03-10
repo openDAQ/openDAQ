@@ -81,17 +81,15 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , daqContext(this->rootDevice.getContext())
     , notificationReadyCallback(std::move(notificationReadyCallback))
     , deserializer(JsonDeserializer())
-    , serializer(JsonSerializer())
     , notificationSerializer(JsonSerializer())
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
 {
     assert(user.assigned());
-    serializer.setUser(user);
     notificationSerializer.setUser(user);
 
     buildRpcDispatchStructure();
@@ -174,6 +172,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("SetOperationMode", &ConfigServerDevice::setOperationMode);
     addHandler<DevicePtr>("SetOperationModeRecursive", &ConfigServerDevice::setOperationModeRecursive);
     addHandler<DevicePtr>("GetOperationMode", &ConfigServerDevice::getOperationMode);
+    addHandler<DevicePtr>("GetDefaultAddDeviceConfig", &ConfigServerDevice::getDefaultAddDeviceConfig);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
@@ -293,7 +292,8 @@ PacketBuffer ConfigProtocolServer::processPacketAndGetReply(const PacketBuffer& 
                 }
                 catch (const std::exception& e)
                 {
-                    const auto errorReply = prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), this->serializer);
+                    auto serializer = createSerializer();
+                    const auto errorReply = prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), serializer);
                     return PacketBuffer::createRpcRequestOrReply(requestId, errorReply.getCharPtr(), errorReply.getLength());
                 }
             }
@@ -311,6 +311,8 @@ void ConfigProtocolServer::processNoReplyPacket(const PacketBuffer& packetBuffer
 
 StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
 {
+    auto serializer = createSerializer();
+
     try
     {
         auto retObj = Dict<IString, IBaseObject>();
@@ -327,20 +329,19 @@ StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
         if (retValue.assigned())
             retObj.set("ReturnValue", retValue);
 
-        serializer.reset();
         retObj.serialize(serializer);
         return serializer.getOutput();
     }
     catch (const daq::DaqException& e)
     {
-        return prepareErrorResponse(e.getErrCode(), e.what(), this->serializer);
+        return prepareErrorResponse(e.getErrCode(), e.what(), serializer);
     }
     catch (const std::exception& e)
     {
-        return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), this->serializer);
+        return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), serializer);
     }
 
-    return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, "General error during serialization", this->serializer);
+    return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, "General error during serialization", serializer);
 }
 
 StringPtr ConfigProtocolServer::prepareErrorResponse(Int errorCode, const StringPtr& message, const SerializerPtr& serializer)
@@ -409,7 +410,7 @@ BaseObjectPtr ConfigProtocolServer::getSerializedRootDevice(const ParamsDictPtr&
 {
     ConfigServerAccessControl::protectObject(rootDevice, user, Permission::Read);
 
-    serializer.reset();
+    auto serializer = createSerializer();
     rootDevice.serialize(serializer);
 
     return serializer.getOutput();
@@ -664,11 +665,16 @@ void ConfigProtocolServer::setProtocolVersion(uint16_t protocolVersion)
     // downgrade serializers
     if (protocolVersion < 11)
     {
-        serializer = JsonSerializerWithVersion(2);
-        notificationSerializer = JsonSerializerWithVersion(2);
-        serializer.setUser(user);
-        notificationSerializer.setUser(user);
+        notificationSerializer = createSerializer();
     }
+}
+
+SerializerPtr ConfigProtocolServer::createSerializer()
+{
+    // if version is not yet known i.e. protocolVersion == 0 just create a default serilizer - needed for tests
+    SerializerPtr serializer = (0 < protocolVersion && protocolVersion < 11) ? JsonSerializerWithVersion(2) : JsonSerializer();
+    serializer.setUser(user);
+    return serializer;
 }
 
 }

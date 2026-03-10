@@ -260,7 +260,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr&
 template <class TDeviceBase>
 PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAddDeviceConfig()
 {
-    return PropertyObject();
+    return this->clientComm->getDefaultAddDeviceConfig(this->remoteGlobalId);
 }
 
 template <class TDeviceBase>
@@ -344,6 +344,9 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(OperationModeType modeType)
 {
+    if (Super::getOperationMode() == modeType)
+        return OPENDAQ_IGNORED;
+
     const ErrCode errCode = daqTry([this, modeType] 
     {
         this->clientComm->setOperationMode(this->remoteGlobalId, OperationModeTypeToString(modeType));

@@ -190,6 +190,25 @@ ErrCode EventImpl::setMuted(IEventHandler* eventHandler, bool muted)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode EventImpl::clone(IBaseObject** cloned)
+{
+    OPENDAQ_PARAM_NOT_NULL(cloned);
+
+    std::scoped_lock lock(sync);
+
+    auto* newEvent = new(std::nothrow) EventImpl();
+    if (newEvent == nullptr)
+        return OPENDAQ_ERR_NOMEMORY;
+
+    for (const auto& handler : handlers)
+        newEvent->handlers.emplace_back(Handler{handler.eventHandler, handler.muted});
+
+    ErrCode errCode = newEvent->queryInterface(IBaseObject::Id, reinterpret_cast<void**>(cloned));
+    if (errCode == OPENDAQ_ERR_NOINTERFACE)
+        return DAQ_MAKE_ERROR_INFO(errCode);
+    return errCode;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, Event)
 
 END_NAMESPACE_OPENDAQ

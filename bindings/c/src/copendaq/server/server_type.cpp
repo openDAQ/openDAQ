@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:36.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:35.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SERVER_TYPE_INTF_ID = { daq::IServerType::Id.Data1, daq::IServerType::Id.Data2, daq::IServerType::Id.Data3, daq::IServerType::Id.Data4_UInt64 };
+
+void daqServerType_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SERVER_TYPE_INTF_ID;
+}
 
 daqErrCode daqServerType_createServerType(daqServerType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig)
 {

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:20.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:24.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_CONFIG_PROVIDER_INTF_ID;
+    void EXPORTED daqConfigProvider_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqConfigProvider_populateOptions(daqConfigProvider* self, daqDict* options);
     daqErrCode EXPORTED daqConfigProvider_createJsonConfigProvider(daqConfigProvider** obj, daqString* filename);

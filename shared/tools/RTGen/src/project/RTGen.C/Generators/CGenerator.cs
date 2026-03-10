@@ -153,6 +153,7 @@ namespace RTGen.C.Generators
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(base.Indentation + $"EXPORTED extern const {Prefix}IntfID {PrefixUpper}{RtFile.CurrentClass.Type.NonInterfaceName.ToLowerSnakeCase().ToUpper()}_INTF_ID;");
+            sb.AppendLine(base.Indentation + $"void EXPORTED {Prefix}{RtFile.CurrentClass.Type.NonInterfaceName}_getInterfaceId({Prefix}IntfID* intfId);");
             return sb.ToString();
         }
 
@@ -164,6 +165,11 @@ namespace RTGen.C.Generators
 
             sb.Append($"const {Prefix}IntfID {PrefixUpper}{RtFile.CurrentClass.Type.NonInterfaceName.ToLowerSnakeCase().ToUpper()}_INTF_ID = ");
             sb.AppendLine($"{{ {ns}::{iface}::Id.Data1, {ns}::{iface}::Id.Data2, {ns}::{iface}::Id.Data3, {ns}::{iface}::Id.Data4_UInt64 }};");
+            sb.AppendLine("");
+            sb.AppendLine($"void {Prefix}{RtFile.CurrentClass.Type.NonInterfaceName}_getInterfaceId({Prefix}IntfID* intfId)");
+            sb.AppendLine("{");
+            sb.AppendLine(base.Indentation + $"*intfId = {PrefixUpper}{RtFile.CurrentClass.Type.NonInterfaceName.ToLowerSnakeCase().ToUpper()}_INTF_ID;");
+            sb.AppendLine("}");
             return sb.ToString();
         }
 

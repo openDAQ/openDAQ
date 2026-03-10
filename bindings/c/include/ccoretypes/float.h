@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqFloatObject daqFloatObject;
 
     EXPORTED extern const daqIntfID DAQ_FLOAT_OBJECT_INTF_ID;
+    void EXPORTED daqFloatObject_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqFloatObject_getValue(daqFloatObject* self, daqFloat* value);
     daqErrCode EXPORTED daqFloatObject_equalsValue(daqFloatObject* self, daqFloat value, daqBool* equals);

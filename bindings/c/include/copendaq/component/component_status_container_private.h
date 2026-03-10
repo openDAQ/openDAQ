@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:53.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:02.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqEnumeration daqEnumeration;
 
     EXPORTED extern const daqIntfID DAQ_COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID;
+    void EXPORTED daqComponentStatusContainerPrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqComponentStatusContainerPrivate_addStatus(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* initialValue);
     daqErrCode EXPORTED daqComponentStatusContainerPrivate_setStatus(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* value);

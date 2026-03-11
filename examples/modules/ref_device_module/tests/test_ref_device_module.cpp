@@ -1018,6 +1018,8 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
     }
 
     instance.setRootDevice("daqref://device0", config);
+    instance.getContext().getLogger().flush();
+
     {
         auto logFiles = instance.getLogFileInfos();
         auto logFileLastModified = getFileLastModifiedTime(loggerPath);

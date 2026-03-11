@@ -19,24 +19,26 @@ class OutputSignalRow(ttk.Frame):
 
         self.configure(padding=(10, 5))
 
-        last_value = utils.get_last_value_for_signal(output_signal)
+        last_value, raw_value = self._read_values()
         ttk.Label(self, text=output_signal.name, anchor=tk.W).grid(
             row=0, column=0, sticky=tk.W)
 
         # Value column with optional View button
         value_frame = ttk.Frame(self)
         value_frame.grid(row=0, column=1, sticky=tk.EW)
-        value_label = ttk.Label(value_frame, text=str(last_value), anchor=tk.W)
-        value_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.value_label = ttk.Label(value_frame, text=str(last_value), anchor=tk.E, justify=tk.RIGHT)
+        self.value_label.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+        self._view_value = last_value
 
         is_struct_or_string = False
-        if isinstance(last_value, daq.IBaseObject) and IStruct.can_cast_from(last_value) or isinstance(last_value, str):
+        if isinstance(raw_value, daq.IBaseObject) and IStruct.can_cast_from(raw_value) or isinstance(raw_value, str):
             is_struct_or_string = True
 
+        self.view_button = None
         if is_struct_or_string:
-            view_button = ttk.Button(
-                self, text='View', command=lambda: self.handle_view_clicked(last_value))
-            view_button.grid(row=0, column=1, sticky=tk.E)
+            self.view_button = ttk.Button(
+                self, text='View', command=lambda: self.handle_view_clicked(self._view_value))
+            self.view_button.grid(row=0, column=1, sticky=tk.E)
 
         self.edit_icon = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
         self.edit_button = tk.Button(
@@ -49,7 +51,21 @@ class OutputSignalRow(ttk.Frame):
         self.grid_columnconfigure((0, 1, 2), uniform='uniform')
 
     def refresh(self):
-        pass
+        last_value, raw_value = self._read_values()
+        self.value_label.config(text=str(last_value))
+        self._view_value = raw_value if (isinstance(raw_value, daq.IBaseObject) and IStruct.can_cast_from(raw_value)) else last_value
+        if self.view_button is not None:
+            self.view_button.configure(command=lambda: self.handle_view_clicked(self._view_value))
+
+    def _read_values(self):
+        last_value = utils.get_last_value_for_signal(self.output_signal)
+        raw_value = None
+        try:
+            if self.output_signal is not None and daq.ISignal.can_cast_from(self.output_signal):
+                raw_value = daq.ISignal.cast_from(self.output_signal).last_value
+        except RuntimeError:
+            raw_value = None
+        return last_value, raw_value
 
     def handle_edit_clicked(self):
         if self.output_signal is not None:

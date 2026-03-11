@@ -123,7 +123,7 @@ class AddConfigDialog(Dialog):
         self.has_tcp_ip = has_tcp_ip
 
         self.geometry('{}x{}'.format(
-            1200 * self.context.ui_scaling_factor, 600 * self.context.ui_scaling_factor))
+            1200 * self.context.ui_scaling_factor * self.context.dpi_factor, 600 * self.context.ui_scaling_factor * self.context.dpi_factor))
 
         self.protocol('WM_DELETE_WINDOW', self.cancel)
 

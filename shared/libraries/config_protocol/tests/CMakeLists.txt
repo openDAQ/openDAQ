@@ -25,18 +25,20 @@ endif()
 
 add_executable(${TEST_APP} ${TEST_SOURCES})
 
-target_link_libraries(${TEST_APP} PRIVATE
-    ${SDK_TARGET_NAMESPACE}::${BASE_NAME}
-    ${SDK_TARGET_NAMESPACE}::test_utils
-    daq::opendaq
-    daq::opendaq_mocks
-    daq::opendaq_gmocks
+target_link_libraries(${TEST_APP}
+    PRIVATE
+        ${SDK_TARGET_NAMESPACE}::${BASE_NAME}
+        ${SDK_TARGET_NAMESPACE}::test_utils
+        daq::opendaq
+        daq::opendaq_mocks
+        daq::opendaq_gmocks
 )
 
 if (DAQMODULES_REF_FB_MODULE AND DAQMODULES_REF_DEVICE_MODULE)
-    add_dependencies(${TEST_APP}
-        ${SDK_TARGET_NAMESPACE}::ref_device_module
-        ${SDK_TARGET_NAMESPACE}::ref_fb_module
+    target_link_libraries(${TEST_APP}
+        PRIVATE
+            ${SDK_TARGET_NAMESPACE}::ref_device_module
+            ${SDK_TARGET_NAMESPACE}::ref_fb_module
     )
 
     target_compile_definitions(${TEST_APP} PRIVATE OPENDAQ_TEST_WITH_REF_MODULES)

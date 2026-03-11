@@ -375,6 +375,12 @@ else()
     message(STATUS "Native streaming disabled")
 endif()
 
+
+if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE) AND DAQMODULES_LT_LEGACY_MODULES)
+    message(STATUS "Legacy LT streaming modules enabled")
+	add_compile_definitions(DAQMODULES_LT_LEGACY_MODULES)
+endif()
+
 opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})
 add_subdirectory(external_modules)
 

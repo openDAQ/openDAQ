@@ -7,6 +7,8 @@ set(SRC_Headers
 
 set(SRC_Cpp
     py_opendaq.cpp
+    py_python_module.cpp
+    py_module_manager.cpp
     generated/opendaq/py_instance.cpp
     generated/opendaq/py_instance_builder.cpp
     generated/opendaq/py_config_provider.cpp

@@ -240,3 +240,6 @@ void defineIModuleInfo(pybind11::module_ m, PyDaqIntf<daq::IModuleInfo, daq::IBa
 void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, daq::IBaseObject> cls);
 
 void defineComponentSearchFilterFactories(pybind11::module_ m);
+void addPythonModuleToManager(daq::IModuleManager* manager, daq::IContext* context, pybind11::object pyModule);
+template <typename ModuleManagerClass>
+void definePythonModuleSupport(pybind11::module_ m, ModuleManagerClass moduleManagerClass);

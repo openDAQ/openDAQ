@@ -498,7 +498,8 @@ BaseObjectPtr ConfigProtocolServer::changeInputPortStreamingSource(const RpcCont
                                                                    const ParamsDictPtr& params)
 {
     auto externalSignal = inputPort.getSignal();
-    if (externalSignal.assigned() && externalSignal.supportsInterface<IMirroredExternalSignalPrivate>())
+
+    if (!externalSignal.assigned() || !externalSignal.supportsInterface<IMirroredExternalSignalPrivate>())
         return nullptr;
 
     const StringPtr activeStreamingProtocolId = params.get("ActiveStreamingProtocolId");

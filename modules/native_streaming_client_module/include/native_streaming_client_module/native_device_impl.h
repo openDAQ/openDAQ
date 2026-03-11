@@ -73,6 +73,7 @@ private:
     void tryConfigProtocolReconnect();
     void startAcceptNotificationPackets();
     void stopAcceptNotificationPackets();
+    void setupAlternativeAddressesCallback();
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;

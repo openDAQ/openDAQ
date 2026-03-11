@@ -1,6 +1,10 @@
-#include "test_helpers/test_helpers.h"
-#include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/server_capability.h>
+#include <opendaq/network_interface.h>
+#include <opendaq/connected_client_info.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
+#include "test_helpers/test_helpers.h"
+#include "test_helpers/device_modules.h"
 
 using namespace daq;
 
@@ -47,10 +51,8 @@ public:
     StringPtr createStructureDeviceConnectionString(uint16_t portOffset)
     {
         auto structureProtocolType = std::get<0>(GetParam());
-        uint16_t port =
-            (structureProtocolType == StructureProtocolType::Native ? NATIVE_PORT : OPCUA_PORT) + portOffset;
-        std::string prefix =
-            structureProtocolType == StructureProtocolType::Native ? "daq.nd://" : "daq.opcua://";
+        uint16_t port = (structureProtocolType == StructureProtocolType::Native ? NATIVE_PORT : OPCUA_PORT) + portOffset;
+        std::string prefix = structureProtocolType == StructureProtocolType::Native ? "daq.nd://" : "daq.opcua://";
 
         return String(fmt::format("{}{}:{}/", prefix, ADDRESS, port));
     }
@@ -82,9 +84,7 @@ public:
         auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
         std::promise<StringPtr> clientSignalSubscribePromise;
         std::future<StringPtr> clientSignalSubscribeFuture;
-        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
-                                               clientSignalSubscribeFuture,
-                                               clientSignal);
+        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise, clientSignalSubscribeFuture, clientSignal);
 
         using namespace std::chrono_literals;
         StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
@@ -114,16 +114,12 @@ public:
         auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
         std::promise<StringPtr> clientSignalSubscribePromise;
         std::future<StringPtr> clientSignalSubscribeFuture;
-        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
-                                               clientSignalSubscribeFuture,
-                                               clientSignal);
+        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise, clientSignalSubscribeFuture, clientSignal);
 
         auto gatewaySignal = gateway.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
         std::promise<StringPtr> gatewaySignalSubscribePromise;
         std::future<StringPtr> gatewaySignalSubscribeFuture;
-        test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise,
-                                               gatewaySignalSubscribeFuture,
-                                               gatewaySignal);
+        test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise, gatewaySignalSubscribeFuture, gatewaySignal);
 
         using namespace std::chrono_literals;
         StreamReaderPtr clientReader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
@@ -162,16 +158,12 @@ public:
         auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
         std::promise<StringPtr> clientSignalSubscribePromise;
         std::future<StringPtr> clientSignalSubscribeFuture;
-        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise,
-                                               clientSignalSubscribeFuture,
-                                               clientSignal);
+        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise, clientSignalSubscribeFuture, clientSignal);
 
         auto gatewaySignal = gateway.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
         std::promise<StringPtr> gatewaySignalSubscribePromise;
         std::future<StringPtr> gatewaySignalSubscribeFuture;
-        test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise,
-                                               gatewaySignalSubscribeFuture,
-                                               gatewaySignal);
+        test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise, gatewaySignalSubscribeFuture, gatewaySignal);
 
         using namespace std::chrono_literals;
         StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
@@ -214,8 +206,7 @@ public:
                 ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
                 ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
                             clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1])
-                    << "client sig " << clientSignal.getGlobalId()
-                    << " streaming source " << clientSignal.getActiveStreamingSource();
+                    << "client sig " << clientSignal.getGlobalId() << " streaming source " << clientSignal.getActiveStreamingSource();
             }
             else
             {
@@ -223,11 +214,9 @@ public:
                 ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
                 ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
                 ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[0])
-                    << "client sig " << clientSignal.getGlobalId()
-                    << " streaming source " << clientSignal.getActiveStreamingSource();
+                    << "client sig " << clientSignal.getGlobalId() << " streaming source " << clientSignal.getActiveStreamingSource();
                 ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[1])
-                    << "client sig " << clientSignal.getGlobalId()
-                    << " streaming source " << clientSignal.getActiveStreamingSource();
+                    << "client sig " << clientSignal.getGlobalId() << " streaming source " << clientSignal.getActiveStreamingSource();
             }
         }
     }
@@ -249,17 +238,17 @@ public:
                 ASSERT_EQ(gatewayInputPort.getStreamingSources().getCount(), 1u) << gatewayInputPort.getGlobalId();
                 ASSERT_TRUE(clientInputPort.getActiveStreamingSource().assigned());
                 ASSERT_TRUE(clientInputPort.getActiveStreamingSource() == gatewayInputPort.getStreamingSources()[0])
-                    << "client input port " << clientInputPort.getGlobalId()
-                    << " streaming source " << clientInputPort.getActiveStreamingSource();
+                    << "client input port " << clientInputPort.getGlobalId() << " streaming source "
+                    << clientInputPort.getActiveStreamingSource();
             }
             else
             {
-            ASSERT_EQ(clientInputPort.getStreamingSources().getCount(), 1u) << clientInputPort.getGlobalId();
-            ASSERT_EQ(gatewayInputPort.getStreamingSources().getCount(), 1u) << gatewayInputPort.getGlobalId();
-            ASSERT_TRUE(clientInputPort.getActiveStreamingSource().assigned());
-            ASSERT_NE(clientInputPort.getActiveStreamingSource(), gatewayInputPort.getStreamingSources()[0])
-                << "client input port " << clientInputPort.getGlobalId()
-                << " streaming source " << clientInputPort.getActiveStreamingSource();
+                ASSERT_EQ(clientInputPort.getStreamingSources().getCount(), 1u) << clientInputPort.getGlobalId();
+                ASSERT_EQ(gatewayInputPort.getStreamingSources().getCount(), 1u) << gatewayInputPort.getGlobalId();
+                ASSERT_TRUE(clientInputPort.getActiveStreamingSource().assigned());
+                ASSERT_NE(clientInputPort.getActiveStreamingSource(), gatewayInputPort.getStreamingSources()[0])
+                    << "client input port " << clientInputPort.getGlobalId() << " streaming source "
+                    << clientInputPort.getActiveStreamingSource();
             }
         }
     }
@@ -268,20 +257,31 @@ public:
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
-        auto moduleManager = ModuleManager("");
+        auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
         auto instance = InstanceCustom(context, fmt::format("subdevice{}", leafDeviceIndex));
+
+        addRefDeviceModule(instance);
         const auto refDevice = instance.addDevice("daqref://device0");
+
+        addRefFBModule(instance);
         refDevice.addFunctionBlock("RefFBModuleStatistics");
 
         auto structureProtocolType = std::get<0>(GetParam());
 
+        addLtServerModule(instance);
         addLtServer(instance, WEBSOCKET_STREAMING_PORT + leafDeviceIndex, WEBSOCKET_CONTROL_PORT + leafDeviceIndex);
+
+        addNativeServerModule(instance);
         addNativeServer(instance, NATIVE_PORT + leafDeviceIndex);
+
         if (structureProtocolType == StructureProtocolType::OpcUa)
+        {
+            addOpcuaServerModule(instance);
             addOpcuaServer(instance, OPCUA_PORT + leafDeviceIndex);
+        }
 
         return instance;
     }
@@ -290,15 +290,28 @@ public:
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
-        auto moduleManager = ModuleManager("");
+        auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
         auto instance = InstanceCustom(context, "gateway");
+
+        // Client modules
+        addLtClientModule(instance);
+        addNativeClientModule(instance);
+        addOpcuaClientModule(instance);
+
+        // Server modules
+        addLtServerModule(instance);
+        addNativeServerModule(instance);
+        if (std::get<0>(GetParam()) == StructureProtocolType::OpcUa)
+            addOpcuaServerModule(instance);
+
         ConnectLeafDeviceToGateway(instance, 1u);
 
         addLtServer(instance, WEBSOCKET_STREAMING_PORT, WEBSOCKET_CONTROL_PORT);
+
         addNativeServer(instance, NATIVE_PORT);
         if (std::get<0>(GetParam()) == StructureProtocolType::OpcUa)
             addOpcuaServer(instance, OPCUA_PORT);
@@ -329,9 +342,7 @@ public:
             std::promise<void> leafDevAddedPromise;
             std::future<void> leafDevAddedFuture = leafDevAddedPromise.get_future();
 
-            clientInstance.getContext().getOnCoreEvent() +=
-                [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
-            {
+            clientInstance.getContext().getOnCoreEvent() += [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args) {
                 auto params = args.getParameters();
                 if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
                 {
@@ -355,11 +366,15 @@ public:
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
-        auto moduleManager = ModuleManager("");
+        auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
         auto instance = InstanceCustom(context, "client");
+
+        addLtClientModule(instance);
+        addOpcuaClientModule(instance);
+        addNativeClientModule(instance);
 
         auto gatewayStreamingType = std::get<2>(GetParam());
 
@@ -377,12 +392,12 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
 {
     SKIP_TEST_MAC_CI;
     auto firstLeafDevice = CreateLeafDeviceInstance(1u);
-    InstancePtr secondLeafDevice;
+
     auto gateway = CreateGatewayInstance();
     auto client = CreateClientInstance(MIN_CONNECTIONS);
 
     bool success{false};
-    secondLeafDevice = addSecondLeafDevice(gateway, client, success);
+    InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
     testSignalStreamingSources(client, gateway, false);
@@ -438,6 +453,38 @@ TEST_P(SubDevicesTest, LeafStreamingToGatewayAndClient)
 }
 #endif
 
+static std::string format_as(StreamingProtocolType type)
+{
+    switch (type)
+    {
+        case StreamingProtocolType::WebsocketStreaming:
+            return "WebSocketStreaming";
+        case StreamingProtocolType::NativeStreaming:
+            return "NativeStreaming";
+    }
+    return fmt::format("'{}'Streaming", static_cast<int>(type));
+}
+
+static std::string format_as(StructureProtocolType type)
+{
+    switch (type)
+    {
+        case StructureProtocolType::OpcUa:
+            return "OpcUAStructure";
+        case StructureProtocolType::Native:
+            return "NativeStructure";
+    }
+    return fmt::format("'{}'Structure", static_cast<int>(type));
+}
+
+void PrintTo(const StructureProtocolType& protocol, std::ostream* os) {
+    *os << format_as(protocol);
+}
+
+void PrintTo(const StreamingProtocolType& protocol, std::ostream* os) {
+    *os << format_as(protocol);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     SubDevicesTestGroup,
     SubDevicesTest,
@@ -447,11 +494,14 @@ INSTANTIATE_TEST_SUITE_P(
         std::make_tuple(StructureProtocolType::OpcUa, StreamingProtocolType::NativeStreaming, StreamingProtocolType::WebsocketStreaming),
         std::make_tuple(StructureProtocolType::OpcUa, StreamingProtocolType::WebsocketStreaming, StreamingProtocolType::NativeStreaming),
         std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::NativeStreaming, StreamingProtocolType::NativeStreaming),
-        std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::WebsocketStreaming, StreamingProtocolType::WebsocketStreaming),
+        std::make_tuple(StructureProtocolType::Native,
+                        StreamingProtocolType::WebsocketStreaming,
+                        StreamingProtocolType::WebsocketStreaming),
         std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::NativeStreaming, StreamingProtocolType::WebsocketStreaming),
         std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::WebsocketStreaming, StreamingProtocolType::NativeStreaming)
     )
 );
+
 
 class SubDevicesReconnectionTest : public SubDevicesTest
 {
@@ -470,8 +520,7 @@ TEST_P(SubDevicesReconnectionTest, LeafStreamingToClientAfterReconnect)
 
     std::promise<StringPtr> reconnectionStatusPromise;
     std::future<StringPtr> reconnectionStatusFuture = reconnectionStatusPromise.get_future();
-    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args)
-    {
+    client.getDevices()[0].getOnComponentCoreEvent() += [&](ComponentPtr& /*comp*/, CoreEventArgsPtr& args) {
         auto params = args.getParameters();
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ConnectionStatusChanged &&
             args.getParameters().get("StatusName") == "ConfigurationStatus")
@@ -498,10 +547,8 @@ TEST_P(SubDevicesReconnectionTest, LeafStreamingToClientAfterReconnect)
     testSignalStreamingSources(client, gateway, true);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    SubDevicesReconnectionTestGroup,
-    SubDevicesReconnectionTest,
-    testing::Values(
-        std::make_tuple(StructureProtocolType::Native, StreamingProtocolType::NativeStreaming, StreamingProtocolType::NativeStreaming)
-    )
-);
+INSTANTIATE_TEST_SUITE_P(SubDevicesReconnectionTestGroup,
+                         SubDevicesReconnectionTest,
+                         testing::Values(std::make_tuple(StructureProtocolType::Native,
+                                                         StreamingProtocolType::NativeStreaming,
+                                                         StreamingProtocolType::NativeStreaming)));

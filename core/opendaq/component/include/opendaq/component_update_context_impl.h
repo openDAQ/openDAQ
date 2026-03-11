@@ -223,6 +223,7 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
     else if (rootComponent.getLocalId() == signalRootId)
         signalRootComponent = rootComponent;
 
+    // TODO: This check fails if the root device name is different
     if (!signalRootComponent.assigned())
     {
         auto loggerComponent = rootComponent.getContext().getLogger().getOrAddComponent("Component");

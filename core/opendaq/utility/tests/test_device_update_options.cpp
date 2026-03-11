@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <opendaq/module_impl.h>
 #include <opendaq/device_impl.h>
+#include <opendaq/function_block_impl.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/device_update_options_factory.h>
 #include <coreobjects/authentication_provider_factory.h>
@@ -17,6 +18,14 @@ public:
     {
         this->id = localId.toStdString().back() - '0';
         this->objPtr.addProperty(StringProperty("Test", "Unchanged"));
+        createAndAddSignal("TestSig");
+
+        auto fb = createWithImplementation<IFunctionBlock, FunctionBlock>(FunctionBlockType("test", "", ""), ctx, this->functionBlocks, "TestFB");
+        FolderConfigPtr ips = fb.getItem("IP");
+        auto ip = InputPort(ctx, ips, "TestIP");
+
+        ips.addItem(ip);
+        this->functionBlocks.addItem(fb);
     }
 
 private:
@@ -101,14 +110,32 @@ protected:
         const auto context = Context(Scheduler(logger), logger, TypeManager(), moduleManager, authenticationProvider);
         moduleManager.addModule(createWithImplementation<IModule, UpdateOptionsTestDeviceModule>(context));
         
+        // Root <Test0_Test0>
+        //   - child1 <Test1_Test1>
+        //   - child2 <Test2_Test2>
+        //       - child2_1 <Test3_Test3>
+        //       - child2_2 <Test4_Test4>
+
         instance = InstanceCustom(context, "localInstance");
         instance.setRootDevice("daqtest://Test0_Test0");
-        instance.addDevice("daqtest://Test1_Test1");
+        auto child1 = instance.addDevice("daqtest://Test1_Test1");
         auto child2 = instance.addDevice("daqtest://Test2_Test2");
-        child2.addDevice("daqtest://Test3_Test3");
-        child2.addDevice("daqtest://Test4_Test4");
+        auto child2_1 = child2.addDevice("daqtest://Test3_Test3");
+        auto child2_2 = child2.addDevice("daqtest://Test4_Test4");
 
-        freshInstance = InstanceCustom(context, "localInstance");
+        // child1.sig -> child2_1.ip
+        // child2_2.sig -> child2.ip
+        child2_1.getFunctionBlocks()[0].getInputPorts()[0].connect(child1.getSignals()[0]);
+        child2.getFunctionBlocks()[0].getInputPorts()[0].connect(child2_2.getSignals()[0]);
+        
+        const auto logger1 = Logger();
+        const auto moduleManager1 = ModuleManager("[[none]]");
+        const auto authenticationProvider1 = AuthenticationProvider();
+        const auto context1 = Context(Scheduler(logger1), logger1, TypeManager(), moduleManager1, authenticationProvider1);
+        moduleManager1.addModule(createWithImplementation<IModule, UpdateOptionsTestDeviceModule>(context1));
+
+        freshInstance = InstanceCustom(context1, "localInstance");
+        freshInstance.setRootDevice("daqtest://Test0_Test0");
     }
 
     InstancePtr instance;
@@ -448,4 +475,56 @@ TEST_F(DeviceUpdateOptionsTest, CheckDefaultSettings)
     ASSERT_EQ(options.getNewSerialNumber(), "");
     ASSERT_EQ(options.getNewConnectionString(), "");
     ASSERT_EQ(options.getUpdateMode(), DeviceUpdateMode::Load);
+}
+
+TEST_F(DeviceUpdateOptionsTest, RemapCheckIPConnections)
+{
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+
+    auto options = DeviceUpdateOptions(str);
+    auto rootChildOptions = options.getChildDeviceOptions();
+    auto child1Options = rootChildOptions[0];
+    auto child2Options = rootChildOptions[1];
+    auto child2ChildOptions = child2Options.getChildDeviceOptions();
+
+    child1Options.setUpdateMode(DeviceUpdateMode::Remap);
+    child1Options.setNewManufacturer("Test4");
+    child1Options.setNewSerialNumber("Test4");
+
+    child2Options.setUpdateMode(DeviceUpdateMode::Remap);
+    child2Options.setNewManufacturer("Test3");
+    child2Options.setNewSerialNumber("Test3");
+    
+    child2ChildOptions[0].setUpdateMode(DeviceUpdateMode::Remap);
+    child2ChildOptions[0].setNewManufacturer("Test2");
+    child2ChildOptions[0].setNewSerialNumber("Test2");
+
+    child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
+    child2ChildOptions[1].setNewManufacturer("Test1");
+    child2ChildOptions[1].setNewSerialNumber("Test1");
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    freshInstance.loadConfiguration(str, params);
+
+    auto child1 = freshInstance.getDevices()[0];
+    auto child2 = freshInstance.getDevices()[1];
+    auto child2_1 = child2.getDevices()[0];
+    auto child2_2 = child2.getDevices()[1];
+
+    // Swaps:
+    // child1 <Test1_Test1> <-> child2_2 <Test4_Test4>
+    // child2 <Test2_Test2> <-> child2_1 <Test3_Test3>
+    ASSERT_EQ(child1.getLocalId(), "Test4_Test4");
+    ASSERT_EQ(child2.getLocalId(), "Test3_Test3");
+    ASSERT_EQ(child2_1.getLocalId(), "Test2_Test2");
+    ASSERT_EQ(child2_2.getLocalId(), "Test1_Test1");
+    
+    // Connections are preserved:
+    // child1.sig -> child2_1.ip
+    // child2_2.sig -> child2.ip
+    ASSERT_EQ(child2_1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), child1.getSignals()[0]);
+    ASSERT_EQ(child2.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), child2_2.getSignals()[0]);
 }

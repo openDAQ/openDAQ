@@ -14,9 +14,9 @@
 #include <fstream>
 #include "classifier_test_helper.h"
 #include "testutils/memcheck_listener.h"
-#include <coreobjects/property_object_factory.h>
-#include <coreobjects/property_factory.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
+#include <ref_device_module/module_dll.h>
+#include <ref_fb_module/module_dll.h>
 
 using RefModulesTest = testing::Test;
 using namespace daq;
@@ -31,9 +31,26 @@ protected:
     }
 };
 
+static InstancePtr CreateRefInstance(const StringPtr& localId = "")
+{
+    auto instance = Instance("[[none]]", localId);
+    {
+        ModulePtr refDeviceModule;
+        createRefDeviceModule(&refDeviceModule, instance.getContext());
+
+        ModulePtr refFbModule;
+        createRefFBModule(&refFbModule, instance.getContext());
+
+        auto mm = instance.getModuleManager();
+        mm.addModule(refDeviceModule);
+        mm.addModule(refFbModule);
+    }
+    return instance;
+}
+
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimple)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
     const auto device = instance.addDevice("daqref://device1");
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
@@ -50,7 +67,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimple)
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererCANChannel)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
     const auto device = instance.addDevice("daqref://device1");
     device.setPropertyValue("EnableCANChannel", True);
 
@@ -68,7 +85,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererCANChannel)
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererNameChange)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
     const auto device = instance.addDevice("daqref://device1");
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
@@ -87,7 +104,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererNameChange)
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererRemoveDevice)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
     const auto device = instance.addDevice("daqref://device1");
 
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
@@ -106,7 +123,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererRemoveDevice)
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimpleCounter)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
 
     const auto device = instance.addDevice("daqref://device1");
     const auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
@@ -126,7 +143,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererSimpleCounter)
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRenderer)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
 
     const auto device = instance.addDevice("daqref://device1");
 
@@ -162,7 +179,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRenderer)
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererInUpdate)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
 
     const auto device = instance.addDevice("daqref://device1");
     device.setPropertyValue("GlobalSampleRate", 25.0);
@@ -193,7 +210,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceAndRendererInUpdate)
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRenderer)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
 
     const auto device = instance.addDevice("daqref://device1");
     device.setPropertyValue("GlobalSampleRate", 10000);
@@ -229,7 +246,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRenderer)
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRendererDeviceRemove)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
 
     const auto device = instance.addDevice("daqref://device1");
 
@@ -262,7 +279,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceStatisticsRendererDeviceRemove)
 
 TEST_F(RefModulesTest, DISABLED_RendererSync)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
     const auto device = instance.addDevice("daqref://device0");
     const auto deviceChannel0 = device.getChannels()[0];
     deviceChannel0.setPropertyValue("UseGlobalSampleRate", False);
@@ -314,7 +331,15 @@ TEST_F(RefModulesTest, DISABLED_RendererSync)
 
 TEST_F(InvertDestructOrderTest, InvertedDestructOrder)
 {
-    auto instance = Instance();
+    auto instance = Instance("[[none]]");
+    {
+        ModulePtr refDeviceModule;
+        createRefDeviceModule(&refDeviceModule, instance.getContext());
+
+        instance.getModuleManager()
+                .addModule(refDeviceModule);
+    }
+
     auto device = instance.addDevice("daqref://device1");
 
     instance.release();
@@ -323,7 +348,7 @@ TEST_F(InvertDestructOrderTest, InvertedDestructOrder)
 
 TEST_F(RefModulesTest, FindComponentSignal)
 {
-    auto instance = Instance("", "localInstance");
+    auto instance = CreateRefInstance("localInstance");
     auto device = instance.addDevice("daqref://device1");
 
     auto comp = instance.findComponent("Dev/RefDev1/IO/AI/RefCh0/Sig/AI0");
@@ -333,7 +358,7 @@ TEST_F(RefModulesTest, FindComponentSignal)
 
 TEST_F(RefModulesTest, FindComponentSignalRelative)
 {
-    auto instance = Instance("", "localInstance");
+    auto instance = CreateRefInstance("localInstance");
     auto device = instance.addDevice("daqref://device1");
     auto ch = device.getChannels()[0];
 
@@ -344,7 +369,7 @@ TEST_F(RefModulesTest, FindComponentSignalRelative)
 
 TEST_F(RefModulesTest, FindComponentChannel)
 {
-    auto instance = Instance("", "localInstance");
+    auto instance = CreateRefInstance("localInstance");
     auto device = instance.addDevice("daqref://device1");
 
     auto comp = instance.findComponent("Dev/RefDev1/IO/AI/RefCh0");
@@ -354,7 +379,7 @@ TEST_F(RefModulesTest, FindComponentChannel)
 
 TEST_F(RefModulesTest, OptionViaConnectionString)
 {
-    auto instance = Instance("", "localInstance");
+    auto instance = CreateRefInstance("localInstance");
     auto device = instance.addDevice("daqref://device0?NumberOfChannels=3&EnableCANChannel=True");
 
     const auto numOfChannels = device.getChannelsRecursive().getCount();
@@ -364,7 +389,7 @@ TEST_F(RefModulesTest, OptionViaConnectionString)
 
 TEST_F(RefModulesTest, FindComponentDevice)
 {
-    auto instance = Instance("", "localInstance");
+    auto instance = CreateRefInstance("localInstance");
     auto device = instance.addDevice("daqref://device1");
 
     auto comp = instance.findComponent("Dev/RefDev1");
@@ -374,7 +399,7 @@ TEST_F(RefModulesTest, FindComponentDevice)
 
 TEST_F(RefModulesTest, DISABLED_RunDevicePowerReaderRenderer)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
 
     const auto device0 = instance.addDevice("daqref://device0");
     device0.setPropertyValue("GlobalSampleRate", 10000);
@@ -421,7 +446,7 @@ TEST_F(RefModulesTest, DISABLED_RunDevicePowerReaderRenderer)
 
 TEST_F(RefModulesTest, DISABLED_RunDevicePowerRenderer)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
 
     const auto device0 = instance.addDevice("daqref://device0");
     device0.setPropertyValue("GlobalSampleRate", 10000);
@@ -466,7 +491,7 @@ TEST_F(RefModulesTest, DISABLED_RunDevicePowerRenderer)
 
 TEST_F(RefModulesTest, DISABLED_RunDeviceScalingRenderer)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
 
     const auto device = instance.addDevice("daqref://device0");
     device.setPropertyValue("GlobalSampleRate", 1000);
@@ -506,7 +531,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceScalingRenderer)
 
 TEST_F(RefModulesTest, SerializeDevicePower)
 {
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
 
     const auto device0 = instance.addDevice("daqref://device0");
     device0.setPropertyValue("GlobalSampleRate", 10000);
@@ -543,69 +568,64 @@ TEST_F(RefModulesTest, SerializeDevicePower)
 
 TEST_F(RefModulesTest, UpdateDevicePower)
 {
-    auto instance = Instance();
+    StringPtr configuration;
+    {
+        auto instance = CreateRefInstance();
 
-    auto device0 = instance.addDevice("daqref://device0");
-    device0.setPropertyValue("GlobalSampleRate", 10000);
-    auto device1 = instance.addDevice("daqref://device1");
-    device1.setPropertyValue("GlobalSampleRate", 10000);
+        auto device0 = instance.addDevice("daqref://device0");
+        device0.setPropertyValue("GlobalSampleRate", 10000);
+        auto device1 = instance.addDevice("daqref://device1");
+        device1.setPropertyValue("GlobalSampleRate", 10000);
 
-    auto powerFb = instance.addFunctionBlock("RefFBModulePower");
+        auto powerFb = instance.addFunctionBlock("RefFBModulePower");
 
-    powerFb.setPropertyValue("VoltageScale", 2.0);
-    powerFb.setPropertyValue("VoltageOffset", 1.0);
-    powerFb.setPropertyValue("CurrentScale", 1.5);
-    powerFb.setPropertyValue("CurrentOffset", -1.0);
+        powerFb.setPropertyValue("VoltageScale", 2.0);
+        powerFb.setPropertyValue("VoltageOffset", 1.0);
+        powerFb.setPropertyValue("CurrentScale", 1.5);
+        powerFb.setPropertyValue("CurrentOffset", -1.0);
 
-    powerFb.setPropertyValue("UseCustomOutputRange", True);
-    powerFb.setPropertyValue("CustomHighValue", 75.0);
-    powerFb.setPropertyValue("CustomLowValue", -75.0);
+        powerFb.setPropertyValue("UseCustomOutputRange", True);
+        powerFb.setPropertyValue("CustomHighValue", 75.0);
+        powerFb.setPropertyValue("CustomLowValue", -75.0);
 
-    auto device0Channel = device0.getChannels()[0];
-    device0Channel.setPropertyValue("Frequency", 10.2);
-    device0Channel.setPropertyValue("CustomRange", Range(-20.0, 20.0));
-    auto device0Signal = device0Channel.getSignals()[0];
+        auto device0Channel = device0.getChannels()[0];
+        device0Channel.setPropertyValue("Frequency", 10.2);
+        device0Channel.setPropertyValue("CustomRange", Range(-20.0, 20.0));
+        auto device0Signal = device0Channel.getSignals()[0];
 
-    auto device1Channel = device1.getChannels()[0];
-    device1Channel.setPropertyValue("Frequency", 0.8);
-    auto device1Signal = device1Channel.getSignals()[0];
+        auto device1Channel = device1.getChannels()[0];
+        device1Channel.setPropertyValue("Frequency", 0.8);
+        auto device1Signal = device1Channel.getSignals()[0];
 
-    powerFb.getInputPorts()[0].connect(device0Signal);
-    powerFb.getInputPorts()[1].connect(device1Signal);
+        powerFb.getInputPorts()[0].connect(device0Signal);
+        powerFb.getInputPorts()[1].connect(device1Signal);
 
-/*    auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
-    rendererFb.getInputPorts()[0].connect(powerFb.getSignals()[0]);
-    rendererFb.getInputPorts()[1].connect(device0Signal);
-    rendererFb.getInputPorts()[2].connect(device1Signal);
+    /*    auto rendererFb = instance.addFunctionBlock("RefFBModuleRenderer");
+        rendererFb.getInputPorts()[0].connect(powerFb.getSignals()[0]);
+        rendererFb.getInputPorts()[1].connect(device0Signal);
+        rendererFb.getInputPorts()[2].connect(device1Signal);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));*/
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));*/
 
-    const auto configuration = instance.saveConfiguration();
-
-    powerFb.release();
-    device0.release();
-    device1.release();
-    device0Channel.release();
-    device1Channel.release();
-    device0Signal.release();
-    device1Signal.release();
-//    rendererFb.release();
+        configuration = instance.saveConfiguration();
+        
+    }
 
     ASSERT_GT(configuration.getLength(), 0u); // Ensure that the configuration is not empty
 
-    instance = Instance();
+    auto instance = CreateRefInstance();
 
-    device0 = instance.addDevice("daqref://device0");
-    device1 = instance.addDevice("daqref://device1");
+    auto device0 = instance.addDevice("daqref://device0");
+    auto device1 = instance.addDevice("daqref://device1");
 
     instance.loadConfiguration(configuration);
 
     ASSERT_EQ(device0.getPropertyValue("GlobalSampleRate"), 10000);
-    device0Channel = device0.getChannels()[0];
+    auto device0Channel = device0.getChannels()[0];
     ASSERT_EQ(device0Channel.getPropertyValue("Frequency"), 10.2);
     ASSERT_EQ(device0Channel.getPropertyValue("CustomRange"), Range(-20.0, 20.0));
 
-    powerFb = instance.getFunctionBlocks()[0];
+    auto powerFb = instance.getFunctionBlocks()[0];
 //    powerFb = instance.getFunctionBlocks()[1];
 
     ASSERT_EQ(powerFb.getPropertyValue("VoltageScale"), 2.0);
@@ -749,8 +769,8 @@ TEST_F(RefModulesTest, ClassifierRangeSizeCustomClasses)
 
 TEST_F(RefModulesTest, ClassifierCheckSyncData)
 {
-    using inputSignalType = Int;
-    using outputSignalType = Float;
+    using InputSignalType = Int;
+    using OutputSignalType = Float;
 
     SampleType inputSignalSampleType = SampleType::Int64;
     auto inputSignalRange = Range(0, 20);
@@ -763,10 +783,10 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("ClassCount", 1);
 
-    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
+    auto reader = BlockReader<OutputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(5);
-    auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+    auto dataPtr = static_cast<InputSignalType*>(dataPacket.getData());
     dataPtr[0] = 0;
     dataPtr[1] = 5;
     dataPtr[2] = 10;
@@ -775,7 +795,7 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
     helper.sendPacket(dataPacket);
 
     size_t blockCnt = 1;
-    std::vector<outputSignalType>outputData(21);
+    std::vector<OutputSignalType> outputData(21);
     while (reader.read(outputData.data(), &blockCnt, 1000).getReadStatus() == ReadStatus::Event)
     {
         blockCnt = 1;
@@ -785,9 +805,10 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
     ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
-    outputSignalType valuesSum = 0;
+    OutputSignalType valuesSum = 0;
     for (size_t i = 0; i < 21; i++)
         valuesSum += outputData[i];
+
     ASSERT_EQ(valuesSum, 1.0);
 
     // check that values are in expected intervals
@@ -800,8 +821,8 @@ TEST_F(RefModulesTest, ClassifierCheckSyncData)
 
 TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
 {
-    using inputSignalType = Int;
-    using outputSignalType = Float;
+    using InputSignalType = Int;
+    using OutputSignalType = Float;
 
     SampleType inputSignalSampleType = SampleType::Int64;
     auto inputSignalRange = Range(0, 4);
@@ -814,10 +835,10 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("ClassCount", 1);
 
-    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
+    auto reader = BlockReader<OutputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(10);
-    auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+    auto dataPtr = static_cast<InputSignalType*>(dataPacket.getData());
     // first input packet
     dataPtr[0] = 0;
     dataPtr[1] = 1;
@@ -834,7 +855,7 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
 
     // reading first output block
     size_t firstBlockCnt = 1;
-    std::vector<outputSignalType>firstOutputData(5);
+    std::vector<OutputSignalType> firstOutputData(5);
     while (reader.read(firstOutputData.data(), &firstBlockCnt, 500).getReadStatus() == ReadStatus::Event)
     {
         firstBlockCnt = 1;
@@ -843,13 +864,13 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
 
     // trigger new reader in classifier
     auto triggerDataPacket = helper.createDataPacket(1);
-    auto triggerDataPtr = static_cast<inputSignalType*>(triggerDataPacket.getData());
+    auto triggerDataPtr = static_cast<InputSignalType*>(triggerDataPacket.getData());
     triggerDataPtr[0] = 0;
     helper.sendPacket(triggerDataPacket);
 
     // reading second output block
     size_t secondBlockCnt = 1;
-    std::vector<outputSignalType>secondOutputData(5);
+    std::vector<OutputSignalType> secondOutputData(5);
     while (reader.read(secondOutputData.data(), &secondBlockCnt, 500).getReadStatus() == ReadStatus::Event)
     {
         secondBlockCnt = 1;
@@ -873,8 +894,8 @@ TEST_F(RefModulesTest, ClassifierCheckSyncMultiData)
 
 TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
 {
-    using inputSignalType = Int;
-    using outputSignalType = Float;
+    using InputSignalType = Int;
+    using OutputSignalType = Float;
 
     SampleType inputSignalSampleType = SampleType::Int64;
     auto inputSignalRange = Range(0, 20);
@@ -887,10 +908,10 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("ClassCount", 2);
 
-    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
+    auto reader = BlockReader<OutputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(5);
-    auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+    auto dataPtr = static_cast<InputSignalType*>(dataPacket.getData());
     dataPtr[0] = 0;
     dataPtr[1] = 5;
     dataPtr[2] = 10;
@@ -899,7 +920,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
     helper.sendPacket(dataPacket);
 
     size_t blockCnt = 1;
-    std::vector<outputSignalType>outputData(11);
+    std::vector<OutputSignalType> outputData(11);
     while (reader.read(outputData.data(), &blockCnt, 500).getReadStatus() == ReadStatus::Event)
     {
         blockCnt = 1;
@@ -909,7 +930,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
     ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
-    outputSignalType valuesSum = 0;
+    OutputSignalType valuesSum = 0;
     for (size_t i = 0; i < 11; i++)
         valuesSum += outputData[i];
     ASSERT_EQ(valuesSum, 1.0);
@@ -924,8 +945,8 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClass)
 
 TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
 {
-    using inputSignalType = Int;
-    using outputSignalType = Float;
+    using InputSignalType = Int;
+    using OutputSignalType = Float;
 
     SampleType inputSignalSampleType = SampleType::Int64;
     auto inputSignalRange = Range(0, 20);
@@ -939,10 +960,10 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 25, 50, 100));
 
-    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
+    auto reader = BlockReader<OutputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(5);
-    auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+    auto dataPtr = static_cast<InputSignalType*>(dataPacket.getData());
     dataPtr[0] = 0;
     dataPtr[1] = 5;
     dataPtr[2] = 10;
@@ -951,7 +972,7 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     helper.sendPacket(dataPacket);
 
     size_t blockCnt = 1;
-    std::vector<outputSignalType>outputData(4);
+    std::vector<OutputSignalType> outputData(4);
     while (reader.read(outputData.data(), &blockCnt, 500).getReadStatus() == ReadStatus::Event)
     {
         blockCnt = 1;
@@ -961,9 +982,10 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
     ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
-    outputSignalType valuesSum = 0;
+    OutputSignalType valuesSum = 0;
     for (size_t i = 0; i < 4; i++)
         valuesSum += outputData[i];
+
     ASSERT_EQ(valuesSum, 1.0);
 
     // check that all values are in first interval from 0 to 25
@@ -972,8 +994,8 @@ TEST_F(RefModulesTest, ClassifierCheckDataWithCustomClassList)
 
 TEST_F(RefModulesTest, ClassifierAsyncData)
 {
-    using inputSignalType = Int;
-    using outputSignalType = Float;
+    using InputSignalType = Int;
+    using OutputSignalType = Float;
 
     SampleType inputSignalSampleType = SampleType::Int64;
     auto inputSignalRange = Range(0, 20);
@@ -986,10 +1008,10 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("CustomClassList", List<Float>(0, 25, 50, 100));
 
-    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
+    auto reader = BlockReader<OutputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(6);
-    auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+    auto dataPtr = static_cast<InputSignalType*>(dataPacket.getData());
     dataPtr[0] = 0;
     dataPtr[1] = 5;
     dataPtr[2] = 10;
@@ -999,7 +1021,8 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     helper.sendPacket(dataPacket);
 
     size_t blockCnt = 1;
-    std::vector<outputSignalType>outputData(4);
+    std::vector<OutputSignalType> outputData(4);
+
     while (reader.read(outputData.data(), &blockCnt, 500).getReadStatus() == ReadStatus::Event)
     {
         blockCnt = 1;
@@ -1007,9 +1030,10 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     ASSERT_EQ(blockCnt, 1u);
 
     // check that sum of output values is eqauled to 1
-    outputSignalType valuesSum = 0;
+    OutputSignalType valuesSum = 0;
     for (size_t i = 0; i < 4; i++)
         valuesSum += outputData[i];
+
     ASSERT_EQ(valuesSum, 1.0);
 
     // check that all values are in first interval from 0 to 25
@@ -1018,8 +1042,8 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
 
 TEST_F_UNSTABLE_SKIPPED(RefModulesTest, ClassifierCheckAsyncMultiData)
 {
-    using inputSignalType = Int;
-    using outputSignalType = Float;
+    using InputSignalType = Int;
+    using OutputSignalType = Float;
 
     SampleType inputSignalSampleType = SampleType::Int64;
     auto inputSignalRange = Range(0, 4);
@@ -1032,10 +1056,10 @@ TEST_F_UNSTABLE_SKIPPED(RefModulesTest, ClassifierCheckAsyncMultiData)
     classifierFb.setPropertyValue("BlockSize", 5);
     classifierFb.setPropertyValue("ClassCount", 1);
 
-    auto reader = BlockReader<outputSignalType>(helper.getOutputSignal(), 1);
+    auto reader = BlockReader<OutputSignalType>(helper.getOutputSignal(), 1);
 
     auto dataPacket = helper.createDataPacket(11);
-    auto dataPtr = static_cast<inputSignalType*>(dataPacket.getData());
+    auto dataPtr = static_cast<InputSignalType*>(dataPacket.getData());
     // first input packet
     dataPtr[0] = 0;
     dataPtr[1] = 1;
@@ -1054,7 +1078,7 @@ TEST_F_UNSTABLE_SKIPPED(RefModulesTest, ClassifierCheckAsyncMultiData)
 
     // reading first output block
     size_t firstBlockCnt = 1;
-    std::vector<outputSignalType>firstOutputData(5);
+    std::vector<OutputSignalType> firstOutputData(5);
     while (reader.read(firstOutputData.data(), &firstBlockCnt, 200).getReadStatus() == ReadStatus::Event)
     {
         firstBlockCnt = 1;
@@ -1063,7 +1087,7 @@ TEST_F_UNSTABLE_SKIPPED(RefModulesTest, ClassifierCheckAsyncMultiData)
 
     // reading second output block
     size_t secondBlockCnt = 1;
-    std::vector<outputSignalType>secondOutputData(5);
+    std::vector<OutputSignalType> secondOutputData(5);
     while (reader.read(secondOutputData.data(), &secondBlockCnt, 200).getReadStatus() == ReadStatus::Event)
     {
         secondBlockCnt = 1;
@@ -1089,12 +1113,26 @@ TEST_F(RefModulesTest, ScalingFbStatuses)
 {
     auto loggerSink = LastMessageLoggerSink();
     loggerSink.setLevel(LogLevel::Warn);
+
     auto privateSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+
     auto sinks = DefaultSinks(nullptr);
     sinks.pushBack(loggerSink);
+
     auto logger = LoggerWithSinks(sinks);
 
-    const auto instance = InstanceBuilder().addLoggerSink(loggerSink).build();
+    const auto instance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .setLogger(logger)
+        .build();
+
+    {
+        ModulePtr refFbModule;
+        createRefFBModule(&refFbModule, instance.getContext());
+
+        instance.getModuleManager()
+                .addModule(refFbModule);
+    }
 
     const auto signal =
         SignalWithDescriptor(instance.getContext(),
@@ -1136,7 +1174,7 @@ TEST_F(RefModulesTest, DISABLED_RunDeviceScalingPerformanceTest)
     constexpr bool enableRenderer = false;
     FunctionBlockPtr rendererFb;
 
-    const auto instance = Instance();
+    const auto instance = CreateRefInstance();
 
     const auto config = PropertyObject();
     config.addProperty(IntPropertyBuilder("NumberOfChannels", 200).build());
@@ -1232,7 +1270,18 @@ TEST_F(RefModulesTest, ConfigureDeviceFromOptions)
     )";
     auto finally = CreateConfigFile(configFilename, options);
 
-    const auto instance = InstanceBuilder().addConfigProvider(JsonConfigProvider(configFilename)).build();
+    const auto instance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addConfigProvider(JsonConfigProvider(configFilename))
+        .build();
+
+    {
+        ModulePtr refDeviceModule;
+        createRefDeviceModule(&refDeviceModule, instance.getContext()); 
+
+        instance.getModuleManager().addModule(refDeviceModule);
+    }
+
     const auto device = instance.addDevice("daqref://device1");
 
     Int numChannels = device.getPropertyValue("NumberOfChannels");

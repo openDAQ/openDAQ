@@ -2,6 +2,8 @@
 #include <opendaq/mock/mock_device_module.h>
 #include <coreobjects/authentication_provider_factory.h>
 
+#include "test_helpers/device_modules.h"
+
 using namespace daq;
 using namespace std::chrono_literals;
 
@@ -76,7 +78,7 @@ protected:
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
-        auto moduleManager = ModuleManager("");
+        auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
@@ -85,6 +87,9 @@ protected:
         moduleManager.addModule(deviceModule);
 
         auto instance = InstanceCustom(context, "local");
+        addLtServerModule(instance);
+        addNativeServerModule(instance);
+        addOpcuaServerModule(instance);
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
@@ -98,7 +103,11 @@ protected:
 
     InstancePtr CreateClientInstance()
     {
-        auto instance = Instance();
+        auto instance = Instance("[[none]]");
+        addLtClientModule(instance);
+        addNativeClientModule(instance);
+        addOpcuaClientModule(instance);
+
         auto connectionString = std::get<1>(GetParam());
 
         auto config = instance.createDefaultAddDeviceConfig();
@@ -492,7 +501,7 @@ protected:
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
-        auto moduleManager = ModuleManager("");
+        auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
@@ -501,6 +510,10 @@ protected:
         moduleManager.addModule(deviceModule);
 
         auto instance = InstanceCustom(context, "local");
+        addRefFBModule(instance);
+        addNativeServerModule(instance);
+        addLtServerModule(instance);
+        addOpcuaServerModule(instance);
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
@@ -559,7 +572,7 @@ protected:
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
-        auto moduleManager = ModuleManager("");
+        auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
@@ -568,6 +581,9 @@ protected:
         moduleManager.addModule(deviceModule);
 
         auto instance = InstanceCustom(context, "local");
+        addLtServerModule(instance);
+        addOpcuaServerModule(instance);
+        addNativeServerModule(instance);
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
@@ -654,11 +670,13 @@ class NativeDeviceStreamingTest : public testing::Test
 TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
 {
     SKIP_TEST_MAC_CI;
-    const auto moduleManager = ModuleManager("");
+    const auto moduleManager = ModuleManager("[[none]]");
     auto serverInstance = InstanceBuilder().setModuleManager(moduleManager).build();
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
     moduleManager.addModule(deviceModule);
     serverInstance.setRootDevice("daqmock://phys_device");
+
+    addNativeServerModule(serverInstance);
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
     const auto channels = serverInstance.getChannelsRecursive();
@@ -666,7 +684,9 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSu
     for (const auto& ch : channels)
         sigCount += ch.getSignalsRecursive().getCount();
 
-    const auto clientInstance = Instance();
+    const auto clientInstance = Instance("[[none]]");
+
+    addNativeClientModule(clientInstance);
     clientInstance.addDevice("daq.nd://127.0.0.1");
 
 

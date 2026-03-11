@@ -1,11 +1,15 @@
 set(TEST_APP test_device_modules)
 
+set(TEST_HEADERS
+    test_helpers/test_helpers.h
+    test_helpers/device_modules.h
+)
+
 set(TEST_SOURCES test_native_device_modules.cpp
                  test_opcua_device_modules.cpp
                  test_default_config.cpp
                  test_device_locking.cpp
-                 test_app.cpp
-                 test_helpers/test_helpers.h
+                 test_app.cpp                 
                  test_websocket_modules.cpp
                  test_native_streaming_modules.cpp
                  test_subdevices.cpp
@@ -13,7 +17,9 @@ set(TEST_SOURCES test_native_device_modules.cpp
                  test_device_discovery.cpp
 )
 
-add_executable(${TEST_APP} ${TEST_SOURCES}
+add_executable(${TEST_APP}
+    ${TEST_HEADERS}
+    ${TEST_SOURCES}
 )
 
 target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
@@ -30,14 +36,16 @@ if (MINGW)
     target_link_libraries(${TEST_APP} PRIVATE ws2_32)
 endif()
 
-add_dependencies(${TEST_APP} daq::opcua_client_module
-                             daq::opcua_server_module
-                             daq::ref_fb_module
-                             daq::ref_device_module
-                             daq::ws_stream_cl_module
-                             daq::ws_stream_srv_module
-                             daq::native_stream_cl_module
-                             daq::native_stream_srv_module
+target_link_libraries(${TEST_APP}
+    PRIVATE
+        daq::opcua_client_module
+        daq::opcua_server_module
+        daq::ref_fb_module
+        daq::ref_device_module
+        daq::ws_stream_cl_module
+        daq::ws_stream_srv_module
+        daq::native_stream_cl_module
+        daq::native_stream_srv_module
 )
 
 if (MSVC)

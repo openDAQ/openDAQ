@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:36.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:47.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SEARCH_FILTER_INTF_ID = { daq::ISearchFilter::Id.Data1, daq::ISearchFilter::Id.Data2, daq::ISearchFilter::Id.Data3, daq::ISearchFilter::Id.Data4_UInt64 };
+
+void daqSearchFilter_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SEARCH_FILTER_INTF_ID;
+}
 
 daqErrCode daqSearchFilter_acceptsObject(daqSearchFilter* self, daqBaseObject* obj, daqBool* accepts)
 {

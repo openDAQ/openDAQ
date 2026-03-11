@@ -195,12 +195,20 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
 inline ErrCode ConfigClientInputPortImpl::setActiveStreamingSource(IString* streamingConnectionString)
 {
     ErrCode errCode = Super::setActiveStreamingSource(streamingConnectionString);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    if (errCode == OPENDAQ_SUCCESS && clientComm->getProtocolVersion() >= 18 && this->getConnectedSignal().assigned())
+    if (errCode == OPENDAQ_IGNORED || clientComm->getProtocolVersion() < 18)
+        return errCode;
+
+    if (auto signalPtr = this->getConnectedSignal(); signalPtr.assigned())
     {
-        const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
-        // notify server that source has been changed
-        clientComm->changeInputPortStreamingSource(remoteGlobalId, mirroredInputPortPrivate);
+        const auto signalConfigObject = signalPtr.asPtrOrNull<IConfigClientObject>(true);
+        if (!signalConfigObject.assigned() || !clientComm->isComponentNested(signalPtr.getGlobalId()))
+        {
+            const auto mirroredInputPortPrivate = this->template borrowPtr<MirroredInputPortPrivatePtr>();
+            // notify server that source has been changed
+            clientComm->changeInputPortStreamingSource(remoteGlobalId, mirroredInputPortPrivate);
+        }
     }
 
     return errCode;

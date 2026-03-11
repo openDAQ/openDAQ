@@ -44,7 +44,7 @@ std::string quote(const std::string& header)
 }
 }
 
-bool MultiCsvWriter::DomainMetadata::operator==(const DomainMetadata& rhs)
+bool MultiCsvWriter::DomainMetadata::operator==(const DomainMetadata& rhs) const
 {
     return origin == rhs.origin && unitName == rhs.unitName && tickResolution == rhs.tickResolution && ruleStart == rhs.ruleStart &&
            ruleDelta == rhs.ruleDelta && referenceDomainOffset == rhs.referenceDomainOffset &&

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:52.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_RULE_PRIVATE_INTF_ID = { daq::IRulePrivate::Id.Data1, daq::IRulePrivate::Id.Data2, daq::IRulePrivate::Id.Data3, daq::IRulePrivate::Id.Data4_UInt64 };
+
+void daqRulePrivate_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_RULE_PRIVATE_INTF_ID;
+}
 
 daqErrCode daqRulePrivate_verifyParameters(daqRulePrivate* self)
 {

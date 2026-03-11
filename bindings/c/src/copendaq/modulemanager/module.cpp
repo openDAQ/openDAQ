@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:18.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:22.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_MODULE_INTF_ID = { daq::IModule::Id.Data1, daq::IModule::Id.Data2, daq::IModule::Id.Data3, daq::IModule::Id.Data4_UInt64 };
+
+void daqModule_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_MODULE_INTF_ID;
+}
 
 daqErrCode daqModule_getModuleInfo(daqModule* self, daqModuleInfo** info)
 {
@@ -70,4 +75,19 @@ daqErrCode daqModule_completeServerCapability(daqModule* self, daqBool* succeede
 daqErrCode daqModule_getAvailableStreamingTypes(daqModule* self, daqDict** streamingTypes)
 {
     return reinterpret_cast<daq::IModule*>(self)->getAvailableStreamingTypes(reinterpret_cast<daq::IDict**>(streamingTypes));
+}
+
+daqErrCode daqModule_loadLicense(daqModule* self, daqBool* succeeded, daqDict* licenseConfig)
+{
+    return reinterpret_cast<daq::IModule*>(self)->loadLicense(succeeded, reinterpret_cast<daq::IDict*>(licenseConfig));
+}
+
+daqErrCode daqModule_getLicenseConfig(daqModule* self, daqDict** licenseConfig)
+{
+    return reinterpret_cast<daq::IModule*>(self)->getLicenseConfig(reinterpret_cast<daq::IDict**>(licenseConfig));
+}
+
+daqErrCode daqModule_licenseLoaded(daqModule* self, daqBool* loaded)
+{
+    return reinterpret_cast<daq::IModule*>(self)->licenseLoaded(loaded);
 }

@@ -68,15 +68,15 @@ public:
 
 private:
     
-    static void populateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
+    static void PopulateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
                                                            const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
-    static PropertyObjectPtr populateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
+    static PropertyObjectPtr PopulateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
                                                       const PropertyObjectPtr& inputConfig,
                                                       const DeviceTypePtr& deviceType,
                                                       const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions);
 
     std::string getPrefixFromConnectionString(std::string connectionString) const;
-    static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> splitConnectionStringAndOptions(const std::string& connectionString);
+    static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> SplitConnectionStringAndOptions(const std::string& connectionString);
 
     DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
     DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
@@ -86,28 +86,31 @@ private:
                                            const PropertyObjectPtr& generalConfig,
                                            const LoggerComponentPtr& loggerComponent) const;
     DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
-    static uint16_t getServerCapabilityPriority(const ServerCapabilityPtr& cap);
 
-    static void replaceSubDeviceOldProtocolIds(const DevicePtr& device);
-    static ServerCapabilityPtr replaceOldProtocolIds(const ServerCapabilityPtr& cap);
-    static StringPtr convertIfOldIdFB(const StringPtr& id);
-    static StringPtr convertIfOldIdProtocol(const StringPtr& id);
+    static uint16_t GetServerCapabilityPriority(const ServerCapabilityPtr& cap);
+
+    static void ReplaceSubDeviceOldProtocolIds(const DevicePtr& device);
+    static ServerCapabilityPtr ReplaceOldProtocolIds(const ServerCapabilityPtr& cap);
+    static StringPtr ConvertIfOldIdFB(const StringPtr& id);
+    static StringPtr ConvertIfOldIdProtocol(const StringPtr& id);
     
-    static void copyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig);
-    static bool isDefaultAddDeviceConfig(const PropertyObjectPtr& config);
+    static void CopyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig);
+    static bool IsDefaultAddDeviceConfig(const PropertyObjectPtr& config);
 
-    static ServerCapabilityPtr mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
+    static ServerCapabilityPtr MergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
     void mergeDiscoveryAndDeviceCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo) const;
     void completeServerCapabilities(const DevicePtr& device) const;
 
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
     void setAddressesReachable(const std::map<std::string, bool>& addr, ListPtr<IDeviceInfo>& info);
-    static PropertyObjectPtr populateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig);
+
+    static PropertyObjectPtr PopulateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig);
 
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const;
 
-    static PropertyObjectPtr createGeneralConfig();
-    static void overrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);
+    static PropertyObjectPtr CreateGeneralConfig();
+    static void OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);
+
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
     void onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo);

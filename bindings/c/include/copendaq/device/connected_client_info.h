@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:06:24.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:17.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_CONNECTED_CLIENT_INFO_INTF_ID;
+    void EXPORTED daqConnectedClientInfo_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqConnectedClientInfo_getAddress(daqConnectedClientInfo* self, daqString** address);
     daqErrCode EXPORTED daqConnectedClientInfo_getProtocolType(daqConnectedClientInfo* self, daqProtocolType* type);

@@ -158,7 +158,7 @@ run_rtgen copendaq/component opendaq/component opendaq component_update_context 
 run_rtgen copendaq/component opendaq/component opendaq deserialize_component deserialize_component
 run_rtgen copendaq/component opendaq/component opendaq folder folder
 run_rtgen copendaq/component opendaq/component opendaq folder_config folder_config
-run_rtgen copendaq/component opendaq/component opendaq recursive_search recursive_search
+run_rtgen copendaq/component opendaq/component opendaq recursive_search recursive_search # not found
 run_rtgen copendaq/component opendaq/component opendaq removable removable
 run_rtgen copendaq/component opendaq/component opendaq search_filter search_filter #pass by reference
 run_rtgen copendaq/component opendaq/component opendaq tags tags
@@ -201,7 +201,7 @@ run_rtgen copendaq/functionblock opendaq/functionblock opendaq channel channel
 run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block function_block
 # run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_errors function_block_errors #contains error codes
 run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_type function_block_type
-run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_wrapper function_block_wrapper
+run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_wrapper function_block_wrapper # not found
 
 run_rtgen copendaq/functionblock opendaq/functionblock opendaq recorder recorder
 

@@ -20,7 +20,6 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
     
     if (DAQMODULES_LT_LEGACY_MODULES)
         opendaq_get_custom_fetch_content_params(LtStreamingModulesLegacy FC_PARAMS)
-        
         FetchContent_Declare(
             LtStreamingModulesLegacy
             GIT_REPOSITORY https://github.com/openDAQ/LTStreamingModulesLegacy.git
@@ -37,6 +36,7 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         include("${ltstreamingmoduleslegacy_SOURCE_DIR}/external/boost/Boost.cmake" OPTIONAL)
         set(LT_MODULES_SOURCE_DIR ${ltstreamingmoduleslegacy_SOURCE_DIR} PARENT_SCOPE)
         set(LT_MODULES_BINARY_DIR ${ltstreamingmoduleslegacy_BINARY_DIR} PARENT_SCOPE)
+		
     else()
         opendaq_get_custom_fetch_content_params(LtStreamingModulesModern FC_PARAMS)
         

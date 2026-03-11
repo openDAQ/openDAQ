@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:57.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_USER_INTERNAL_INTF_ID;
+    void EXPORTED daqUserInternal_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqUserInternal_getPasswordHash(daqUserInternal* self, daqString** passwordHash);
     daqErrCode EXPORTED daqUserInternal_isAnonymous(daqUserInternal* self, daqBool* anonymous);

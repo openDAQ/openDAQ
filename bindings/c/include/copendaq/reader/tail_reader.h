@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:30.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:31.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqInputPortConfig daqInputPortConfig;
 
     EXPORTED extern const daqIntfID DAQ_TAIL_READER_INTF_ID;
+    void EXPORTED daqTailReader_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqTailReader_read(daqTailReader* self, void* values, daqSizeT* count, daqTailReaderStatus** status);
     daqErrCode EXPORTED daqTailReader_readWithDomain(daqTailReader* self, void* values, void* domain, daqSizeT* count, daqTailReaderStatus** status);

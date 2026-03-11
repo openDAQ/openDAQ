@@ -57,6 +57,11 @@ public:
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
 
 protected:
+    void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
+    void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                       const BaseObjectPtr& context,
+                                       const FunctionPtr& factoryCallback) override;
+
     void removed() override;
 
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
@@ -223,7 +228,35 @@ template <typename ... Interfaces>
 ErrCode MirroredDeviceBase<Interfaces...>::setMirroredDeviceType(IDeviceType* type)
 {
     mirroredDeviceType = type;
+    if (this->deviceInfo.assigned())
+        this->deviceInfo.template asPtr<IDeviceInfoConfig>(true).setDeviceType(DeviceTypePtr::Borrow(type));
     return OPENDAQ_SUCCESS;
+}
+
+template <typename... Interfaces>
+void MirroredDeviceBase<Interfaces...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
+{
+    Super::serializeCustomObjectValues(serializer, forUpdate);
+
+    if (!forUpdate && mirroredDeviceType.assigned())
+    {
+        serializer.key("MirroredDeviceType");
+        mirroredDeviceType.serialize(serializer);
+    }
+}
+
+template <typename... Interfaces>
+void MirroredDeviceBase<Interfaces...>::deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
+                                                                      const BaseObjectPtr& context,
+                                                                      const FunctionPtr& factoryCallback)
+{
+    Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    if (serializedObject.hasKey("MirroredDeviceType"))
+    {
+        const DeviceTypePtr type = serializedObject.readObject("MirroredDeviceType", context, factoryCallback);
+        checkErrorInfo(setMirroredDeviceType(type));
+    }
 }
 
 template <typename... Interfaces>

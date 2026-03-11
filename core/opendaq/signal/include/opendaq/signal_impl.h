@@ -235,7 +235,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getPublic(Bool* isPublic)
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
 {
-    if (this->frozen)
+    if (this->isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
     {
@@ -248,7 +248,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
                 const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
                 StringPtr descObj;
                 this->getName(&descObj);
-                LOG_I("Active attribute of {} is locked", descObj);
+                LOG_I("'Public' attribute of {} is locked", descObj);
             }
 
             return OPENDAQ_IGNORED;
@@ -393,6 +393,13 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
     if (descriptorPtr.assigned() && descriptorPtr.getSampleType() == SampleType::Null)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_SAMPLE_TYPE,
                                    "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
+
+    if (BaseObjectPtr::Equals(descriptorPtr, this->dataDescriptor))
+    {
+        const auto loggerComponent = this->context.getLogger().getOrAddComponent("Signal");
+        LOG_D("Signal descriptor was set to the same value as before");
+        return OPENDAQ_IGNORED;
+    }
 
     std::vector<SignalConfigPtr> valueSignalsOfDomainSignal;
     bool success;

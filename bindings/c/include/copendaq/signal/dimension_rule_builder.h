@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:44.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:41.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_DIMENSION_RULE_BUILDER_INTF_ID;
+    void EXPORTED daqDimensionRuleBuilder_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDimensionRuleBuilder_build(daqDimensionRuleBuilder* self, daqDimensionRule** dimensionRule);
     daqErrCode EXPORTED daqDimensionRuleBuilder_setType(daqDimensionRuleBuilder* self, daqDimensionRuleType type);

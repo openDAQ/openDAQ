@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:04.
+//     RTGen (CGenerator v0.7.0) on 11.03.2026 09:54:15.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqDict daqDict;
     typedef struct daqComponent daqComponent;
     typedef struct daqSignal daqSignal;
+    typedef struct daqDeviceUpdateOptions daqDeviceUpdateOptions;
 
     EXPORTED extern const daqIntfID DAQ_COMPONENT_UPDATE_CONTEXT_INTF_ID;
     void EXPORTED daqComponentUpdateContext_getInterfaceId(daqIntfID* intfId);
@@ -49,7 +50,10 @@ extern "C"
     daqErrCode EXPORTED daqComponentUpdateContext_getRootComponent(daqComponentUpdateContext* self, daqComponent** rootComponent);
     daqErrCode EXPORTED daqComponentUpdateContext_getSignal(daqComponentUpdateContext* self, daqString* parentId, daqString* portId, daqSignal** signal);
     daqErrCode EXPORTED daqComponentUpdateContext_setSignalDependency(daqComponentUpdateContext* self, daqString* signalId, daqString* parentId);
-    daqErrCode EXPORTED daqComponentUpdateContext_getReAddDevicesEnabled(daqComponentUpdateContext* self, daqBool* enabled);
+    daqErrCode EXPORTED daqComponentUpdateContext_addDeviceRemapping(daqComponentUpdateContext* self, daqString* originalDeviceId, daqString* newDeviceId);
+    daqErrCode EXPORTED daqComponentUpdateContext_getDeviceMapping(daqComponentUpdateContext* self, daqDict** deviceMapping);
+    daqErrCode EXPORTED daqComponentUpdateContext_getDeviceUpdateOptionsWithLocalIdOrNull(daqComponentUpdateContext* self, daqString* localId, daqDeviceUpdateOptions** options);
+    daqErrCode EXPORTED daqComponentUpdateContext_remapInputPortConnections(daqComponentUpdateContext* self);
 
 #ifdef __cplusplus
 }

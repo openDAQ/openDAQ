@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:04.
+//     RTGen (CGenerator v0.7.0) on 11.03.2026 09:54:15.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -52,7 +52,22 @@ daqErrCode daqComponentUpdateContext_setSignalDependency(daqComponentUpdateConte
     return reinterpret_cast<daq::IComponentUpdateContext*>(self)->setSignalDependency(reinterpret_cast<daq::IString*>(signalId), reinterpret_cast<daq::IString*>(parentId));
 }
 
-daqErrCode daqComponentUpdateContext_getReAddDevicesEnabled(daqComponentUpdateContext* self, daqBool* enabled)
+daqErrCode daqComponentUpdateContext_addDeviceRemapping(daqComponentUpdateContext* self, daqString* originalDeviceId, daqString* newDeviceId)
 {
-    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->getReAddDevicesEnabled(enabled);
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->addDeviceRemapping(reinterpret_cast<daq::IString*>(originalDeviceId), reinterpret_cast<daq::IString*>(newDeviceId));
+}
+
+daqErrCode daqComponentUpdateContext_getDeviceMapping(daqComponentUpdateContext* self, daqDict** deviceMapping)
+{
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->getDeviceMapping(reinterpret_cast<daq::IDict**>(deviceMapping));
+}
+
+daqErrCode daqComponentUpdateContext_getDeviceUpdateOptionsWithLocalIdOrNull(daqComponentUpdateContext* self, daqString* localId, daqDeviceUpdateOptions** options)
+{
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->getDeviceUpdateOptionsWithLocalIdOrNull(reinterpret_cast<daq::IString*>(localId), reinterpret_cast<daq::IDeviceUpdateOptions**>(options));
+}
+
+daqErrCode daqComponentUpdateContext_remapInputPortConnections(daqComponentUpdateContext* self)
+{
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->remapInputPortConnections();
 }

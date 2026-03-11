@@ -24,6 +24,7 @@
 #include <chrono>
 #include <thread>
 #include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
+#include <iomanip>
 
 using namespace daq;
 using RefDeviceModuleTest = testing::Test;

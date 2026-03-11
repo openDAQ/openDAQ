@@ -19,6 +19,7 @@
 #include <websocket_streaming_client_module/module_dll.h>
 #include <websocket_streaming_server_module/module_dll.h>
 #include <chrono>
+#include <iomanip>
 #include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/test_helpers.h"
 

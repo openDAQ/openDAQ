@@ -18,6 +18,10 @@ target_link_libraries(${TEST_APP} PRIVATE ${OPENDAQ_SDK_TARGET_NAMESPACE}::opend
                                           ${OPENDAQ_SDK_TARGET_NAMESPACE}::${MODULE_NAME}
 )
 
+if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
+    target_compile_definitions(${TEST_APP} PRIVATE OPENDAQ_ENABLE_RENDERER)
+endif()
+
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:10.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:48.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_COERCER_INTF_ID = { daq::ICoercer::Id.Data1, daq::ICoercer::Id.Data2, daq::ICoercer::Id.Data3, daq::ICoercer::Id.Data4_UInt64 };
+
+void daqCoercer_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_COERCER_INTF_ID;
+}
 
 daqErrCode daqCoercer_coerce(daqCoercer* self, daqBaseObject* propObj, daqBaseObject* value, daqBaseObject** result)
 {

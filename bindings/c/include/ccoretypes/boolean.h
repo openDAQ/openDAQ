@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:43.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:32.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqBoolean daqBoolean;
 
     EXPORTED extern const daqIntfID DAQ_BOOLEAN_INTF_ID;
+    void EXPORTED daqBoolean_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqBoolean_getValue(daqBoolean* self, daqBool* value);
     daqErrCode EXPORTED daqBoolean_equalsValue(daqBoolean* self, daqBool value, daqBool* equal);

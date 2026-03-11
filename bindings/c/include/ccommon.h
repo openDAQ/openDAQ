@@ -78,6 +78,13 @@ extern "C"
         uint64_t Data4;
     } daqIntfID;
 
+    typedef enum daqLockingStrategy
+    {
+        daqOwnLock = 0,        // Object locks its own mutex.
+        daqInheritLock,        // Object locks the mutex of the nearest ancestor with the OwnLock strategy.
+        daqForwardOwnerLockOwn // Object locks its own mutex, but forwards the `getMutexOwner` request to its owner/parent.
+    } daqLockingStrategy;
+
 #include <ccoreobjects/common.h>
 
 #include <copendaq/component/common.h>

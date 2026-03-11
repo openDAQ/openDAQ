@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:53.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqPermissions daqPermissions;
 
     EXPORTED extern const daqIntfID DAQ_PERMISSION_MANAGER_INTERNAL_INTF_ID;
+    void EXPORTED daqPermissionManagerInternal_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqPermissionManagerInternal_setParent(daqPermissionManagerInternal* self, daqPermissionManager* parentManager);
     daqErrCode EXPORTED daqPermissionManagerInternal_addChildManager(daqPermissionManagerInternal* self, daqPermissionManager* childManager);

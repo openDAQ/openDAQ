@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:07.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:13.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_DEVICE_PRIVATE_INTF_ID = { daq::IDevicePrivate::Id.Data1, daq::IDevicePrivate::Id.Data2, daq::IDevicePrivate::Id.Data3, daq::IDevicePrivate::Id.Data4_UInt64 };
+
+void daqDevicePrivate_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_DEVICE_PRIVATE_INTF_ID;
+}
 
 daqErrCode daqDevicePrivate_setAsRoot(daqDevicePrivate* self)
 {

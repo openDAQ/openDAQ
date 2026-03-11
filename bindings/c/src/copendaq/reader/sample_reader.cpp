@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:28.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:30.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SAMPLE_READER_INTF_ID = { daq::ISampleReader::Id.Data1, daq::ISampleReader::Id.Data2, daq::ISampleReader::Id.Data3, daq::ISampleReader::Id.Data4_UInt64 };
+
+void daqSampleReader_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SAMPLE_READER_INTF_ID;
+}
 
 daqErrCode daqSampleReader_getValueReadType(daqSampleReader* self, daqSampleType* sampleType)
 {

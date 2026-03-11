@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:09.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:48.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_CALLABLE_INFO_INTF_ID;
+    void EXPORTED daqCallableInfo_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqCallableInfo_getReturnType(daqCallableInfo* self, daqCoreType* type);
     daqErrCode EXPORTED daqCallableInfo_getArguments(daqCallableInfo* self, daqList** argumentInfo);

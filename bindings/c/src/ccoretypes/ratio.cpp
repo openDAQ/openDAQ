@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:57.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_RATIO_INTF_ID = { daq::IRatio::Id.Data1, daq::IRatio::Id.Data2, daq::IRatio::Id.Data3, daq::IRatio::Id.Data4_UInt64 };
+
+void daqRatio_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_RATIO_INTF_ID;
+}
 
 daqErrCode daqRatio_getNumerator(daqRatio* self, daqInt* numerator)
 {

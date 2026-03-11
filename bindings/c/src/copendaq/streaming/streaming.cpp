@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:52.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_STREAMING_INTF_ID = { daq::IStreaming::Id.Data1, daq::IStreaming::Id.Data2, daq::IStreaming::Id.Data3, daq::IStreaming::Id.Data4_UInt64 };
+
+void daqStreaming_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_STREAMING_INTF_ID;
+}
 
 daqErrCode daqStreaming_getActive(daqStreaming* self, daqBool* active)
 {

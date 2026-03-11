@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:56.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:05.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -41,6 +41,7 @@ extern "C"
     typedef struct daqComponent daqComponent;
 
     EXPORTED extern const daqIntfID DAQ_FOLDER_INTF_ID;
+    void EXPORTED daqFolder_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqFolder_getItems(daqFolder* self, daqList** items, daqSearchFilter* searchFilter);
     daqErrCode EXPORTED daqFolder_isEmpty(daqFolder* self, daqBool* empty);

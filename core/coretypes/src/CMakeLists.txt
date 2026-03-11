@@ -328,6 +328,8 @@ target_compile_definitions(${LIB_NAME} PUBLIC OPENDAQ_SKIP_LIB_LINK
 
 if (MSVC)
     set_source_files_properties(intfs.cpp PROPERTIES COMPILE_FLAGS /wd4100)
+
+    target_compile_options(${LIB_NAME} PUBLIC /bigobj)
 endif()
 
 if (WIN32)

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:14.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_FUNCTION_BLOCK_TYPE_INTF_ID = { daq::IFunctionBlockType::Id.Data1, daq::IFunctionBlockType::Id.Data2, daq::IFunctionBlockType::Id.Data3, daq::IFunctionBlockType::Id.Data4_UInt64 };
+
+void daqFunctionBlockType_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_FUNCTION_BLOCK_TYPE_INTF_ID;
+}
 
 daqErrCode daqFunctionBlockType_createFunctionBlockType(daqFunctionBlockType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig)
 {

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.06.2025 21:36:35.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:49.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -43,6 +43,7 @@ extern "C"
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_CORE_EVENT_ARGS_INTF_ID;
+    void EXPORTED daqCoreEventArgs_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqCoreEventArgs_getParameters(daqCoreEventArgs* self, daqDict** parameters);
     daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgs(daqCoreEventArgs** obj, daqCoreEventId eventId, daqString* eventName, daqDict* parameters);

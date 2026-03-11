@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:47.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:43.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -17,7 +17,17 @@
 
 const daqIntfID DAQ_INPUT_PORT_PRIVATE_INTF_ID = { daq::IInputPortPrivate::Id.Data1, daq::IInputPortPrivate::Id.Data2, daq::IInputPortPrivate::Id.Data3, daq::IInputPortPrivate::Id.Data4_UInt64 };
 
+void daqInputPortPrivate_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_INPUT_PORT_PRIVATE_INTF_ID;
+}
+
 daqErrCode daqInputPortPrivate_disconnectWithoutSignalNotification(daqInputPortPrivate* self)
 {
     return reinterpret_cast<daq::IInputPortPrivate*>(self)->disconnectWithoutSignalNotification();
+}
+
+daqErrCode daqInputPortPrivate_connectSignalSchedulerNotification(daqInputPortPrivate* self, daqSignal* signal)
+{
+    return reinterpret_cast<daq::IInputPortPrivate*>(self)->connectSignalSchedulerNotification(reinterpret_cast<daq::ISignal*>(signal));
 }

@@ -118,13 +118,13 @@ protected:
     typedef struct
     {
         std::string serviceQualified;
-        std::string address;
+        std::vector<std::string> addresses;
     } ARecord;
 
     typedef struct
     {
         std::string serviceQualified;
-        std::string address;
+        std::vector<std::string> addresses;
     } AAAARecord;
 
     typedef struct
@@ -643,16 +643,22 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
         device.serviceWeight = srv.weight;
         device.servicePort = srv.port;
 
-        for (const auto& [ipv4, a] : aRecords)
+        for (const auto& [serviceQualified, a] : aRecords)
         {
-            if (a.serviceQualified == srv.serviceQualified)
-                device.ipv4Addresses.insert(ipv4);
+            if (serviceQualified == srv.serviceQualified)
+            {
+                for (const auto& ipv4 : a.addresses)
+                    device.ipv4Addresses.insert(ipv4);
+            }
         }
 
-        for (const auto& [ipv6, aaaa] : aaaaRecords)
+        for (const auto& [serviceQualified, aaaa] : aaaaRecords)
         {
-            if (aaaa.serviceQualified == srv.serviceQualified)
-                device.ipv6Addresses.insert(ipv6);
+            if (serviceQualified == srv.serviceQualified)
+            {
+                for (const auto& ipv6 : aaaa.addresses)
+                    device.ipv6Addresses.insert(ipv6);
+            }
         }
 
         for (const auto& [txtServiceInstance, txt] : txtRecords)
@@ -801,12 +807,10 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
         sockaddr_in addr;
         mdns_record_parse_a(buffer, size, rdata_offset, rdata_length, &addr);
         std::string address = ipv4AddressToString(&addr, sizeof(addr));
-        if (aRecords.count(address))
-            return 0;
 
-        auto& record = aRecords[address];
+        auto& record = aRecords[recordName];
         record.serviceQualified = recordName;
-        record.address = address;
+        record.addresses.emplace_back(address);
     }
     else if (rtype == MDNS_RECORDTYPE_AAAA)
     {
@@ -819,12 +823,12 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
 
         std::string address = ipv6AddressToString(&addr, sizeof(addr), ifindex);
 
-        if (address.empty() || aaaaRecords.count(address))
+        if (address.empty())
             return 0;
 
-        auto& record = aaaaRecords[address];
+        auto& record = aaaaRecords[recordName];
         record.serviceQualified = recordName;
-        record.address = address;
+        record.addresses.emplace_back(address);
     }
     else if (rtype == MDNS_RECORDTYPE_TXT)
     {

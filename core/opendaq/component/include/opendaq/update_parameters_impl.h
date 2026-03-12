@@ -35,6 +35,8 @@ protected:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
 
+    ErrCode serializeCustomValues(ISerializer* serializer, bool /*forUpdate*/) override;
+
     DeviceUpdateOptionsPtr deviceOptions;
 };
 

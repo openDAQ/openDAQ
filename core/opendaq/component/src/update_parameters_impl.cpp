@@ -27,6 +27,17 @@ ErrCode UpdateParametersImpl::setDeviceUpdateOptions(IDeviceUpdateOptions* optio
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode UpdateParametersImpl::serializeCustomValues(ISerializer* serializer, bool)
+{
+    if (deviceOptions.assigned())
+    {
+        serializer->key("DeviceUpdateOptions");
+        OPENDAQ_RETURN_IF_FAILED(deviceOptions.asPtr<ISerializable>()->serialize(serializer), "Failed to serialize DeviceUpdateOptions");
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, UpdateParameters)
 
 END_NAMESPACE_OPENDAQ

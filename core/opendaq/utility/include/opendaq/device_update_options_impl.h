@@ -30,7 +30,7 @@ enum class NodeType : EnumType
     Unknown = 99
 };
 
-class DeviceUpdateOptionsImpl : public ImplementationOf<IDeviceUpdateOptions>
+class DeviceUpdateOptionsImpl : public ImplementationOf<IDeviceUpdateOptions, ISerializable>
 {
 public:
     DeviceUpdateOptionsImpl();
@@ -52,14 +52,24 @@ public:
     ErrCode INTERFACE_FUNC setUpdateMode(DeviceUpdateMode mode) override;
     ErrCode INTERFACE_FUNC getChildDeviceOptions(IList** childDeviceOptions) override;
     
-    bool readDevice(const StringPtr& localId, const rapidjson::Value& document);
+    ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
+    
+    // ISerializable
 
-private:
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* /*factoryCallback*/, IBaseObject** obj);
+
+    bool readDevice(const StringPtr& localId, const rapidjson::Value& document);
+    
+
     static NodeType getNodeType(const rapidjson::Value& value);
 
     bool read(const StringPtr& localId, const rapidjson::Value& document, NodeType nodeType);
     bool readFolder(const rapidjson::Value& document);
-
+    
     bool isRoot;
     StringPtr localId;
     StringPtr manufacturer;
@@ -74,5 +84,6 @@ private:
     ListPtr<IDeviceUpdateOptions> children;
 };
 
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceUpdateOptionsImpl)
 
 END_NAMESPACE_OPENDAQ

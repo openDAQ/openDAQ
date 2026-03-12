@@ -15,6 +15,7 @@ protected:
     {
         instance = InstanceBuilder()
             .setModulePath("[[none]]")
+            .setGlobalLogLevel(LogLevel::Warn)
             .addDiscoveryServer("mdns")
             .build();
 
@@ -48,6 +49,7 @@ protected:
     {        
         instance = InstanceBuilder()
             .setModulePath("[[none]]")
+            .setGlobalLogLevel(LogLevel::Warn)
             .build();
 
         addNativeClientModule(instance);
@@ -81,16 +83,8 @@ TEST_F(RemoteModulesUpdateTest, RemapCheckIPConnections)
     UpdateParametersPtr params;
     StringPtr serializeStr;
     {
-        
         InstancePtr instance;
         configureNativeClientInstance(instance);
-        
-        auto root1 = instance.getDevices()[0];
-        auto child1 = root1.getDevices()[0];
-        auto root2 = instance.getDevices()[0];
-        auto child2 = root2.getDevices()[0];
-        //ASSERT_EQ(root1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), child1.getSignalsRecursive()[0]);
-        //ASSERT_EQ(child1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), root1.getSignalsRecursive()[0]);
 
         auto serializer = JsonSerializer();
         instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
@@ -116,13 +110,13 @@ TEST_F(RemoteModulesUpdateTest, RemapCheckIPConnections)
         ASSERT_EQ(instance.getDevices()[0].getLocalId(), "openDAQ_Test3");
         ASSERT_EQ(instance.getDevices()[1].getLocalId(), "openDAQ_Test2");
 
-        root1 = instance.getDevices()[0];
-        child1 = root1.getDevices()[0];
-        root2 = instance.getDevices()[0];
-        child2 = root2.getDevices()[0];
+        auto root1 = instance.getDevices()[0];
+        auto child1 = root1.getDevices()[0];
+        auto root2 = instance.getDevices()[0];
+        auto child2 = root2.getDevices()[0];
 
-        //ASSERT_EQ(root1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), child1.getSignalsRecursive()[0]);
-        //ASSERT_EQ(child1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), root1.getSignalsRecursive()[0]);
+        ASSERT_EQ(root1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), child1.getSignalsRecursive()[0]);
+        ASSERT_EQ(child1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), root1.getSignalsRecursive()[0]);
     }
 
 
@@ -136,4 +130,12 @@ TEST_F(RemoteModulesUpdateTest, RemapCheckIPConnections)
 
     ASSERT_EQ(freshInstance.getDevices()[0].getLocalId(), "openDAQ_Test3");
     ASSERT_EQ(freshInstance.getDevices()[1].getLocalId(), "openDAQ_Test2");
+
+    auto root1 = freshInstance.getDevices()[0];
+    auto child1 = root1.getDevices()[0];
+    auto root2 = freshInstance.getDevices()[0];
+    auto child2 = root2.getDevices()[0];
+
+    ASSERT_EQ(root1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), child1.getSignalsRecursive()[0]);
+    ASSERT_EQ(child1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), root1.getSignalsRecursive()[0]);
 }

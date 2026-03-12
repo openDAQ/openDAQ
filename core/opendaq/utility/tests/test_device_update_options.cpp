@@ -528,3 +528,19 @@ TEST_F(DeviceUpdateOptionsTest, RemapCheckIPConnections)
     ASSERT_EQ(child2_1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), child1.getSignals()[0]);
     ASSERT_EQ(child2.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), child2_2.getSignals()[0]);
 }
+
+TEST_F(DeviceUpdateOptionsTest, SerializeDeserialize)
+{
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+    auto options = DeviceUpdateOptions(str);
+
+    auto serializer2 = JsonSerializer();
+    options.serialize(serializer2);
+
+    auto deserializer = JsonDeserializer();
+    DeviceUpdateOptionsPtr optionsDeserialized = deserializer.deserialize(serializer2.getOutput());
+
+    ASSERT_EQ(options, optionsDeserialized);
+}

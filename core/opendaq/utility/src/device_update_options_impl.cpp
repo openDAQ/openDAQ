@@ -167,6 +167,169 @@ ErrCode DeviceUpdateOptionsImpl::getChildDeviceOptions(IList** childDeviceOption
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode DeviceUpdateOptionsImpl::equals(IBaseObject* other, Bool* equals) const
+{
+    OPENDAQ_PARAM_NOT_NULL(equals);
+
+    auto otherOptions = DeviceUpdateOptionsPtr::Borrow(other);
+    if (!otherOptions.assigned())
+    {
+        *equals = false;
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (otherOptions.getLocalId() != localId ||
+        otherOptions.getManufacturer() != manufacturer ||
+        otherOptions.getSerialNumber() != serialNumber ||
+        otherOptions.getConnectionString() != connectionString ||
+        otherOptions.getNewManufacturer() != newManufacturer ||
+        otherOptions.getNewSerialNumber() != newSerialNumber ||
+        otherOptions.getNewConnectionString() != newConnectionString||
+        otherOptions.getUpdateMode() != mode ||
+        otherOptions.getChildDeviceOptions() != children)
+    {
+        *equals = false;
+        return OPENDAQ_SUCCESS;
+    }
+
+    *equals = true;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::serialize(ISerializer* serializer)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    serializer->startTaggedObject(this);
+    {
+        if (isRoot)
+        {
+            serializer->key("IsRoot");
+            serializer->writeBool(isRoot);
+        }
+        if (localId != "")
+        {
+            serializer->key("LocalId");
+            serializer->writeString(localId.getCharPtr(), localId.getLength());
+        }
+        if (manufacturer != "")
+        {
+            serializer->key("Manufacturer");
+            serializer->writeString(manufacturer.getCharPtr(), manufacturer.getLength());
+        }
+        if (serialNumber != "")
+        {
+            serializer->key("SerialNumber");
+            serializer->writeString(serialNumber .getCharPtr(), serialNumber .getLength());
+        }
+        if (connectionString != "")
+        {
+            serializer->key("ConnectionString");
+            serializer->writeString(connectionString.getCharPtr(), connectionString.getLength());
+        }
+        if (newManufacturer != "")
+        {
+            serializer->key("NewManufacturer");
+            serializer->writeString(newManufacturer.getCharPtr(), newManufacturer.getLength());
+        }
+        if (newSerialNumber != "")
+        {
+            serializer->key("NewSerialNumber");
+            serializer->writeString(newSerialNumber.getCharPtr(), newSerialNumber.getLength());
+        }
+        if (newConnectionString != "")
+        {
+            serializer->key("NewConnectionString");
+            serializer->writeString(newConnectionString.getCharPtr(), newConnectionString.getLength());
+        }
+        if (mode != DeviceUpdateMode::Load)
+        {
+            serializer->key("UpdateMode");
+            serializer->writeInt(static_cast<EnumType>(mode));
+        }
+
+        if (children.getCount() > 0)
+        {
+            serializer->key("ChildOptions");
+            serializer->startObject();
+
+            for (const auto& childOption : children)
+            {
+                auto childLocalId = childOption.getLocalId();
+                if (childLocalId == "")
+                    continue;
+
+                serializer->key(childLocalId.getCharPtr());
+                OPENDAQ_RETURN_IF_FAILED(childOption.asPtr<ISerializable>()->serialize(serializer), "Failed to serialize child DeviceUpdateOption");
+            }
+
+            serializer->endObject();
+        }
+    }
+    serializer->endObject();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::getSerializeId(ConstCharPtr* id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr DeviceUpdateOptionsImpl::SerializeId()
+{
+    return "DeviceUpdateOptions";
+}
+
+// TODO: Early return on failure.
+ErrCode DeviceUpdateOptionsImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(serialized);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    auto deviceUpdateOptions = createWithImplementation<IDeviceUpdateOptions, DeviceUpdateOptionsImpl>();
+    DeviceUpdateOptionsImpl* impl = dynamic_cast<DeviceUpdateOptionsImpl*>(deviceUpdateOptions.getObject());
+    
+    const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
+
+    if (serializedPtr.hasKey("LocalId"))
+        impl->localId = serializedPtr.readString("LocalId");
+    if (serializedPtr.hasKey("Manufacturer"))
+        impl->manufacturer = serializedPtr.readString("Manufacturer");
+    if (serializedPtr.hasKey("SerialNumber"))
+        impl->serialNumber = serializedPtr.readString("SerialNumber");
+    if (serializedPtr.hasKey("ConnectionString"))
+        impl->connectionString = serializedPtr.readString("ConnectionString");
+    if (serializedPtr.hasKey("NewManufacturer"))
+        impl->newManufacturer = serializedPtr.readString("NewManufacturer");
+    if (serializedPtr.hasKey("NewSerialNumber"))
+        impl->newSerialNumber = serializedPtr.readString("NewSerialNumber");
+    if (serializedPtr.hasKey("NewConnectionString"))
+        impl->newConnectionString = serializedPtr.readString("NewConnectionString");
+    if (serializedPtr.hasKey("UpdateMode"))
+        impl->mode = static_cast<DeviceUpdateMode>(serializedPtr.readInt("UpdateMode"));
+    if (serializedPtr.hasKey("IsRoot"))
+        impl->isRoot = serializedPtr.readBool("IsRoot");
+
+    if (serializedPtr.hasKey("ChildOptions"))
+    {
+        const auto children = serializedPtr.readSerializedObject("ChildOptions");
+        const auto keys = children.getKeys();
+        for (const auto& key : keys)
+        {
+            auto child = children.readObject(key);
+            impl->children.pushBack(child);
+        }
+    }
+
+    *obj = deviceUpdateOptions.detach();
+    return OPENDAQ_SUCCESS;
+}
+
 NodeType DeviceUpdateOptionsImpl::getNodeType(const rapidjson::Value& value)
 {
     auto obj = value.GetObject();

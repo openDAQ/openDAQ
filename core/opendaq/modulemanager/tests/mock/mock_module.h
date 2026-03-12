@@ -21,6 +21,9 @@
 class MockModuleImpl : public daq::ImplementationOf<daq::IModule>
 {
 public:
+    MockModuleImpl();
+    MockModuleImpl(daq::StringPtr id);
+
     daq::ErrCode INTERFACE_FUNC getModuleInfo(daq::IModuleInfo** info) override;
 
     daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** availableDevices) override;
@@ -40,6 +43,9 @@ public:
     daq::ErrCode INTERFACE_FUNC loadLicense(daq::Bool* succeeded, daq::IDict* licenseConfig) override;
     daq::ErrCode INTERFACE_FUNC getLicenseConfig(daq::IDict** licenseConfig) override;
     daq::ErrCode INTERFACE_FUNC licenseLoaded(daq::Bool* valid) override;
+
+private:
+    const daq::StringPtr moduleId;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockModule, daq::IModule)

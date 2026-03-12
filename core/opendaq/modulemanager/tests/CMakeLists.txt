@@ -29,6 +29,9 @@ target_compile_definitions(${TEST_APP} PRIVATE MODULE_TEST_DIR="mock"
                                                CRASHING_MODULE_FILE_NAME="$<TARGET_FILE_NAME:crashing_module>"
                                                DEPENDENCIES_FAILED_MODULE_NAME="$<TARGET_FILE_NAME:dependencies_failed>"
                                                DEPENDENCIES_SUCCEEDED_MODULE_NAME="$<TARGET_FILE_NAME:dependencies_succeeded>"
+                                               COPY_DEPENDENCIES_SUCCEEDED_MODULE_NAME="copy_$<TARGET_FILE_NAME:dependencies_succeeded>"
+                                               NULL_STRING_ID_MODULE_NAME="$<TARGET_FILE_NAME:null_string_id_module>"
+                                               EMPTY_STRING_ID_MODULE_NAME="$<TARGET_FILE_NAME:empty_string_id_module>"
 )
 
 target_link_libraries(${TEST_APP} 
@@ -55,6 +58,8 @@ add_dependencies(${TEST_APP} empty_dll
                              crashing_module
                              dependencies_failed
                              dependencies_succeeded
+                             null_string_id_module
+                             empty_string_id_module
 )
 
 ##############################

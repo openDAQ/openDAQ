@@ -63,6 +63,8 @@ enum class DeviceUpdateMode : EnumType
  * 
  * If the remapping fails (e.g. due to missing device with the new manufacturer + serial number combination and invalid connection string),
  * the original device will be removed (if present) and no new device will be added.
+ *
+ * Signal->Input port connections will be preserved when remapping, assuming the new device has the same signal and input port structure and IDs.
  */
 DECLARE_OPENDAQ_INTERFACE(IDeviceUpdateOptions, IBaseObject)
 {

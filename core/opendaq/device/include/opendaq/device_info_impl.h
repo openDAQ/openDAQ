@@ -766,7 +766,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
         );
 
     BaseObjectPtr selValues;
-    const ErrCode errCode = property->getSelectionValues(&selValues);
+    ErrCode errCode = property->getSelectionValues(&selValues);
     if (OPENDAQ_FAILED(errCode))
         daqClearErrorInfo();
     
@@ -775,6 +775,17 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addProperty(IProperty* 
             OPENDAQ_ERR_INVALIDPARAMETER,
             fmt::format(R"(Failed adding property {}: selection-type properties cannot be added to Device Info.)", name)
         );
+
+    Bool readOnly;
+    errCode = property->getReadOnly(&readOnly);
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
+
+    if (!readOnly)
+    {
+        std::string nameStr = name;
+        this->changeableDefaultPropertyNames.insert(coretype_utils::toLowerCase(nameStr));    
+    }
 
     return Super::addProperty(property);
 }

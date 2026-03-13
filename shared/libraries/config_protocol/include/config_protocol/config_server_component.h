@@ -23,6 +23,7 @@
 
 #include <opendaq/component_holder_factory.h>
 #include <opendaq/search_filter_factory.h>
+#include <opendaq/component_update_context_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -296,6 +297,7 @@ inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const RpcContext& 
     return nullptr;
 }
 
+// TODO: Increase version requirements or handle forward compatibility
 inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
@@ -304,6 +306,22 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
 
     const auto serializedString = static_cast<std::string>(params["Serialized"]);
     const auto path = static_cast<std::string>(params["Path"]);
+    BaseObjectPtr updateParamsOrContext;
+
+    if (params.hasKey("UpdateContext"))
+    {
+        ComponentUpdateContextPtr updateContext = params["UpdateContext"];
+        updateContext.setRootComponent(component);
+        auto updateParameters = updateContext.getUpdateParameters();
+        updateParameters.setPropertyValue("RemoteUpdate", true);
+        updateParamsOrContext = updateContext.detach();
+    }
+    else
+    {
+        auto updateParameters = UpdateParameters();
+        updateParameters.setPropertyValue("RemoteUpdate", true);
+        updateParamsOrContext = updateParameters.detach();
+    }
 
     UpdatablePtr updatable;
     if (!path.empty())
@@ -312,9 +330,8 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
         updatable = component;
 
     const auto deserializer = JsonDeserializer();
-    const auto updateParams = UpdateParameters();
-    updateParams.setPropertyValue("RemoteUpdate", true);
-    deserializer.update(updatable, serializedString, updateParams);
+
+    deserializer.update(updatable, serializedString, updateParamsOrContext);
 
     return nullptr;
 }

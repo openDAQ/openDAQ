@@ -28,6 +28,8 @@
 #include <config_protocol/errors.h>
 #include <config_protocol/config_client_property.h>
 
+#include "opendaq/component_update_context_ptr.h"
+
 namespace daq::config_protocol
 {
 
@@ -409,15 +411,16 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    const ErrCode errCode = daqTry([this, &obj]()
+    const ErrCode errCode = daqTry([this, &obj, &context]()
     {
         StringPtr serialized;
+        ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
         checkErrorInfo(obj->toJson(&serialized));
-        clientComm->update(remoteGlobalId, serialized, this->getPath());
+        clientComm->update(remoteGlobalId, serialized, this->getPath(), contextPtr);
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;

@@ -12,6 +12,7 @@
 - [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Function blocks and devices of which type is not in their parent's `getAvailableFunctionBlock/DeviceTypes` output can no longer be removed.
 - [#1074](https://github.com/openDAQ/openDAQ/pull/1074) Add public attribute to input port. Non-public input ports are not available one client side.
 - [#1079](https://github.com/openDAQ/openDAQ/pull/1079) Add support for parallel RPC calls in native configuration protocol server
+- [#1081](https://github.com/openDAQ/openDAQ/pull/1081) Pre-parsing of a JSON setup that allows users to select from a set of actions to be performed when loading devices (load, remove, remap...)
 - [#1088](https://github.com/openDAQ/openDAQ/pull/1088) Enable bundling of sent core events within the native configuration protocol
 
 ## Python

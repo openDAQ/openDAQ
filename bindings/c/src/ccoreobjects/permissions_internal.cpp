@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:54.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:58.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_PERMISSIONS_INTERNAL_INTF_ID = { daq::IPermissionsInternal::Id.Data1, daq::IPermissionsInternal::Id.Data2, daq::IPermissionsInternal::Id.Data3, daq::IPermissionsInternal::Id.Data4_UInt64 };
+
+void daqPermissionsInternal_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_PERMISSIONS_INTERNAL_INTF_ID;
+}
 
 daqErrCode daqPermissionsInternal_getAssigned(daqPermissionsInternal* self, daqDict** permissions)
 {

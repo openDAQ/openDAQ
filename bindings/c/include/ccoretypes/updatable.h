@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:05.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqSerializer daqSerializer;
 
     EXPORTED extern const daqIntfID DAQ_UPDATABLE_INTF_ID;
+    void EXPORTED daqUpdatable_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqUpdatable_update(daqUpdatable* self, daqSerializedObject* update, daqBaseObject* config);
     daqErrCode EXPORTED daqUpdatable_serializeForUpdate(daqUpdatable* self, daqSerializer* serializer);

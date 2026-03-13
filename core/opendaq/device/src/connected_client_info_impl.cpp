@@ -206,15 +206,8 @@ ErrCode ConnectedClientInfoImpl::clone(IPropertyObject** cloned)
 
     return daqTry([this, &obj, &cloned]()
     {
-        auto implPtr = static_cast<ConnectedClientInfoImpl*>(obj.getObject());
-        implPtr->configureClonedMembers(valueWriteEvents,
-                                        valueReadEvents,
-                                        endUpdateEvent,
-                                        triggerCoreEvent,
-                                        localProperties,
-                                        propValues,
-                                        customOrder,
-                                        permissionManager);
+        auto implPtr = dynamic_cast<ConnectedClientInfoImpl*>(obj.getObject());
+        implPtr->configureClonedMembers(getCloneParameters());
 
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;

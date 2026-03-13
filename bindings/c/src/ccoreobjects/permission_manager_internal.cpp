@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:53.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:57.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_PERMISSION_MANAGER_INTERNAL_INTF_ID = { daq::IPermissionManagerInternal::Id.Data1, daq::IPermissionManagerInternal::Id.Data2, daq::IPermissionManagerInternal::Id.Data3, daq::IPermissionManagerInternal::Id.Data4_UInt64 };
+
+void daqPermissionManagerInternal_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_PERMISSION_MANAGER_INTERNAL_INTF_ID;
+}
 
 daqErrCode daqPermissionManagerInternal_setParent(daqPermissionManagerInternal* self, daqPermissionManager* parentManager)
 {

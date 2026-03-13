@@ -492,7 +492,7 @@ template <typename TDataType>
 SizeT TypedReader<ReadType>::getOffsetToDataLinear(const ReaderDomainInfo& domainInfo,
                                                    const Comparable& target,
                                                    const DataPacketPtr& packet,
-                                                   std::chrono::system_clock::rep* absoluteTimestamp) const
+                                                   [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp) const
 {
     if constexpr (std::is_same_v<void*, ReadType> || !std::is_integral_v<ReadType>)
     {

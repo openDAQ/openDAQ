@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:02.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:10.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_ADDRESS_INFO_PRIVATE_INTF_ID = { daq::IAddressInfoPrivate::Id.Data1, daq::IAddressInfoPrivate::Id.Data2, daq::IAddressInfoPrivate::Id.Data3, daq::IAddressInfoPrivate::Id.Data4_UInt64 };
+
+void daqAddressInfoPrivate_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_ADDRESS_INFO_PRIVATE_INTF_ID;
+}
 
 daqErrCode daqAddressInfoPrivate_setReachabilityStatusPrivate(daqAddressInfoPrivate* self, daqAddressReachabilityStatus addressReachability)
 {

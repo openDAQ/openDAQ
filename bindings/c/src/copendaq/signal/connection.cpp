@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:38.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_CONNECTION_INTF_ID = { daq::IConnection::Id.Data1, daq::IConnection::Id.Data2, daq::IConnection::Id.Data3, daq::IConnection::Id.Data4_UInt64 };
+
+void daqConnection_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_CONNECTION_INTF_ID;
+}
 
 daqErrCode daqConnection_enqueue(daqConnection* self, daqPacket* packet)
 {
@@ -105,6 +110,11 @@ daqErrCode daqConnection_hasEventPacket(daqConnection* self, daqBool* hasEventPa
 daqErrCode daqConnection_hasGapPacket(daqConnection* self, daqBool* hasGapPacket)
 {
     return reinterpret_cast<daq::IConnection*>(self)->hasGapPacket(hasGapPacket);
+}
+
+daqErrCode daqConnection_enqueueWithScheduler(daqConnection* self, daqPacket* packet)
+{
+    return reinterpret_cast<daq::IConnection*>(self)->enqueueWithScheduler(reinterpret_cast<daq::IPacket*>(packet));
 }
 
 daqErrCode daqConnection_createConnection(daqConnection** obj, daqInputPort* inputPort, daqSignal* signal, daqContext* context)

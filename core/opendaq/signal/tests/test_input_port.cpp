@@ -8,6 +8,7 @@
 #include <opendaq/deserialize_component_ptr.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
+#include <opendaq/component_private_ptr.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/signal_factory.h>
 
@@ -190,4 +191,18 @@ TEST_F(InputPortTest, RemoveDisconnectedSignal)
     signal1.remove();
 
     ASSERT_TRUE(ip.getSignal().assigned());
+}
+
+TEST_F(InputPortTest, LockedAttributes)
+{
+    ASSERT_TRUE(inputPort.getPublic());
+
+    ASSERT_NO_THROW(inputPort.setPublic(false));
+    ASSERT_FALSE(inputPort.getPublic());
+
+    inputPort.asPtr<IComponentPrivate>().lockAllAttributes();
+
+    // Lock keeps Public unchanged, but doesn't throw exceptions
+    ASSERT_NO_THROW(inputPort.setPublic(true));
+    ASSERT_FALSE(inputPort.getPublic());
 }

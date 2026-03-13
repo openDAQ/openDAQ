@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:03.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:43.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_STRUCT_TYPE_INTF_ID = { daq::IStructType::Id.Data1, daq::IStructType::Id.Data2, daq::IStructType::Id.Data3, daq::IStructType::Id.Data4_UInt64 };
+
+void daqStructType_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_STRUCT_TYPE_INTF_ID;
+}
 
 daqErrCode daqStructType_getFieldNames(daqStructType* self, daqList** names)
 {

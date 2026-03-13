@@ -1,5 +1,6 @@
 #include <ref_fb_module/video_player_fb_impl.h>
 #include <ref_fb_module/arial.ttf.h>
+#include <iomanip>
 #include <opendaq/work_factory.h>
 #include <opendaq/event_packet_params.h>
 #include <coreobjects/callable_info_factory.h>

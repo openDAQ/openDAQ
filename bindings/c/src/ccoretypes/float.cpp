@@ -17,6 +17,11 @@
 
 const daqIntfID DAQ_FLOAT_OBJECT_INTF_ID = { daq::IFloat::Id.Data1, daq::IFloat::Id.Data2, daq::IFloat::Id.Data3, daq::IFloat::Id.Data4_UInt64 };
 
+void daqFloatObject_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_FLOAT_OBJECT_INTF_ID;
+}
+
 daqErrCode daqFloatObject_getValue(daqFloatObject* self, daqFloat* value)
 {
     return reinterpret_cast<daq::IFloat*>(self)->getValue(value);

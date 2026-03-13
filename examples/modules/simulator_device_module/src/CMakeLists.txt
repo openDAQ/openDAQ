@@ -48,6 +48,7 @@ target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
 )
 
 target_link_libraries(${LIB_NAME} PRIVATE $<BUILD_INTERFACE:Boost::asio>
+                                          $<BUILD_INTERFACE:std::filesystem>
 )
 
 if (MINGW)

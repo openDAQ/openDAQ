@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:21.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:25.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_INSTANCE_BUILDER_INTF_ID = { daq::IInstanceBuilder::Id.Data1, daq::IInstanceBuilder::Id.Data2, daq::IInstanceBuilder::Id.Data3, daq::IInstanceBuilder::Id.Data4_UInt64 };
+
+void daqInstanceBuilder_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_INSTANCE_BUILDER_INTF_ID;
+}
 
 daqErrCode daqInstanceBuilder_build(daqInstanceBuilder* self, daqInstance** instance)
 {
@@ -195,6 +200,36 @@ daqErrCode daqInstanceBuilder_getDiscoveryServers(daqInstanceBuilder* self, daqL
 daqErrCode daqInstanceBuilder_addDiscoveryServer(daqInstanceBuilder* self, daqString* serverName)
 {
     return reinterpret_cast<daq::IInstanceBuilder*>(self)->addDiscoveryServer(reinterpret_cast<daq::IString*>(serverName));
+}
+
+daqErrCode daqInstanceBuilder_setUsingSchedulerMainLoop(daqInstanceBuilder* self, daqBool useMainLoop)
+{
+    return reinterpret_cast<daq::IInstanceBuilder*>(self)->setUsingSchedulerMainLoop(useMainLoop);
+}
+
+daqErrCode daqInstanceBuilder_getUsingSchedulerMainLoop(daqInstanceBuilder* self, daqBool* useMainLoop)
+{
+    return reinterpret_cast<daq::IInstanceBuilder*>(self)->getUsingSchedulerMainLoop(useMainLoop);
+}
+
+daqErrCode daqInstanceBuilder_setModuleAuthenticator(daqInstanceBuilder* self, daqModuleAuthenticator* authenticator)
+{
+    return reinterpret_cast<daq::IInstanceBuilder*>(self)->setModuleAuthenticator(reinterpret_cast<daq::IModuleAuthenticator*>(authenticator));
+}
+
+daqErrCode daqInstanceBuilder_getModuleAuthenticator(daqInstanceBuilder* self, daqModuleAuthenticator** authenticator)
+{
+    return reinterpret_cast<daq::IInstanceBuilder*>(self)->getModuleAuthenticator(reinterpret_cast<daq::IModuleAuthenticator**>(authenticator));
+}
+
+daqErrCode daqInstanceBuilder_setLoadAuthenticatedModulesOnly(daqInstanceBuilder* self, daqBool authOnly)
+{
+    return reinterpret_cast<daq::IInstanceBuilder*>(self)->setLoadAuthenticatedModulesOnly(authOnly);
+}
+
+daqErrCode daqInstanceBuilder_getLoadAuthenticatedModulesOnly(daqInstanceBuilder* self, daqBool* authOnly)
+{
+    return reinterpret_cast<daq::IInstanceBuilder*>(self)->getLoadAuthenticatedModulesOnly(authOnly);
 }
 
 daqErrCode daqInstanceBuilder_createInstanceBuilder(daqInstanceBuilder** obj)

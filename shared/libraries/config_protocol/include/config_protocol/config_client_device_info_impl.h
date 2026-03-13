@@ -22,16 +22,11 @@
 namespace daq::config_protocol
 {
 
-template <class Impl>
-class ConfigClientBaseDeviceInfoImpl;
-
-using ConfigClientDeviceInfoImpl = ConfigClientBaseDeviceInfoImpl<DeviceInfoConfigImpl<IDeviceInfoConfig, IConfigClientObject, IDeserializeComponent>>;
-
-template <class Impl>
-class ConfigClientBaseDeviceInfoImpl : public ConfigClientPropertyObjectBaseImpl<Impl>
+class ConfigClientDeviceInfoImpl : public ConfigClientPropertyObjectBaseImpl<DeviceInfoConfigImpl<IDeviceInfoConfig, IConfigClientObject, IDeserializeComponent>>
 {
 public:
-    using Super = ConfigClientPropertyObjectBaseImpl<Impl>;
+    using Super = ConfigClientPropertyObjectBaseImpl;
+    using Impl = DeviceInfoConfigImpl<IDeviceInfoConfig, IConfigClientObject, IDeserializeComponent>;
     using Super::Super;
 
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
@@ -48,14 +43,11 @@ public:
 
 protected:
 
-    template <class Interface, class Implementation>
-    static BaseObjectPtr DeserializeDeviceInfo(const SerializedObjectPtr& serialized, const BaseObjectPtr& context, IFunction* factoryCallback);
-
     ErrCode setValueInternal(IString* propertyName, IBaseObject* value) override;
 };
 
-template <class Impl>
-ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setPropertyValue(IString* propertyName, IBaseObject* value)
+// TODO: Move to inline definitions to cpp
+inline ErrCode ConfigClientDeviceInfoImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (this->remoteUpdating)
         return Impl::setPropertyValue(propertyName, value);
@@ -69,8 +61,7 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setPropertyValue(IString* property
     return errCode;
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
+inline ErrCode ConfigClientDeviceInfoImpl::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     if (this->remoteUpdating)
@@ -86,34 +77,29 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setProtectedPropertyValue(IString*
     return Super::setProtectedPropertyValue(propertyName, value);
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::setValueInternal(IString* propertyName, IBaseObject* value)
+inline ErrCode ConfigClientDeviceInfoImpl::setValueInternal(IString* propertyName, IBaseObject* value)
 {
     return this->setPropertyValue(propertyName, value);
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::addProperty(IProperty* property)
+inline ErrCode ConfigClientDeviceInfoImpl::addProperty(IProperty* property)
 {
     return Impl::addProperty(property);
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::deserializeValues(ISerializedObject* serializedObject,
+inline ErrCode ConfigClientDeviceInfoImpl::deserializeValues(ISerializedObject* serializedObject,
                                                                  IBaseObject* context,
                                                                  IFunction* callbackFactory)
 {
     return OPENDAQ_SUCCESS;
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::getDeserializedParameter(IString* parameter, IBaseObject** value)
+inline ErrCode ConfigClientDeviceInfoImpl::getDeserializedParameter(IString* parameter, IBaseObject** value)
 {
     return OPENDAQ_NOTFOUND;
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::Deserialize(ISerializedObject* serialized,
+inline ErrCode ConfigClientDeviceInfoImpl::Deserialize(ISerializedObject* serialized,
                                                           IBaseObject* context,
                                                           IFunction* factoryCallback,
                                                           IBaseObject** obj)
@@ -122,31 +108,24 @@ ErrCode ConfigClientBaseDeviceInfoImpl<Impl>::Deserialize(ISerializedObject* ser
 
     const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
-        *obj = DeserializeDeviceInfo<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(serialized, context, factoryCallback).detach();
+        ComponentDeserializeContextPtr deserializeContextPtr = ComponentDeserializeContextPtr::Borrow(context);
+        const auto ctx = deserializeContextPtr.asPtr<IConfigProtocolDeserializeContext>();
+        PropertyObjectPtr propObj = createWithImplementation<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(ctx->getClientComm(), ctx->getRemoteGlobalId());
+
+        Super::DeserializePropertyOrder(serialized, context, nullptr, propObj);
+
+        Super::DeserializeLocalProperties(serialized, context, factoryCallback, propObj);
+
+        // Do not create client objects for nested property objects (eg. active client connection info)
+        Super::DeserializePropertyValues(serialized, context, nullptr, propObj);
+        
+        const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
+        deserializeComponent.complete();
+
+        *obj = propObj.detach();
     });
+
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
-
-template <class Impl>
-template <class Interface, class Implementation>
-BaseObjectPtr ConfigClientBaseDeviceInfoImpl<Impl>::DeserializeDeviceInfo(const SerializedObjectPtr& serialized, const BaseObjectPtr& context, IFunction* factoryCallback)
-{
-    ComponentDeserializeContextPtr deserializeContextPtr = ComponentDeserializeContextPtr::Borrow(context);
-    const auto ctx = deserializeContextPtr.asPtr<IConfigProtocolDeserializeContext>();
-    PropertyObjectPtr propObj = createWithImplementation<Interface, Implementation>(ctx->getClientComm(), ctx->getRemoteGlobalId());
-
-    Super::DeserializePropertyOrder(serialized, context, nullptr, propObj);
-
-    Super::DeserializeLocalProperties(serialized, context, factoryCallback, propObj);
-
-    // Do not create client objects for nested property objects (eg. active client connection info)
-    Super::DeserializePropertyValues(serialized, context, nullptr, propObj);
-    
-    const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
-    deserializeComponent.complete();
-
-    return propObj;
-}
-
 }

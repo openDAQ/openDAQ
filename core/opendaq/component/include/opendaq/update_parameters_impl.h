@@ -30,15 +30,19 @@ public:
 
     ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) override;
     ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) override;
+    
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
     template <typename T>
     typename InterfaceToSmartPtr<T>::SmartPtr getTypedProperty(const StringPtr& name);
-
     ErrCode serializeCustomValues(ISerializer* serializer, bool /*forUpdate*/) override;
 
     DeviceUpdateOptionsPtr deviceOptions;
 };
 
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(UpdateParametersImpl)
 
 END_NAMESPACE_OPENDAQ

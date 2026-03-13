@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <opendaq/component_update_context.h>
+#include <opendaq/component_update_context_ptr.h>
 #include <opendaq/component_ptr.h>
 #include <opendaq/signal_ptr.h>
 #include <opendaq/update_parameters_factory.h>
@@ -23,9 +23,15 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ComponentUpdateContextImpl : public ImplementationOf<IComponentUpdateContext>
+// TODO: Serialize component update context and propagate it over native
+
+class ComponentUpdateContextImpl : public ImplementationOf<IComponentUpdateContext, ISerializable>
 {
 public:
+
+    ComponentUpdateContextImpl()
+    {
+    }
 
     ComponentUpdateContextImpl(const ComponentPtr& curComponent, const UpdateParametersPtr& config)
         : config(config.assigned() ? config : UpdateParameters())
@@ -41,6 +47,7 @@ public:
     ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) override;
     ErrCode INTERFACE_FUNC getInputPortConnections(IString* parentId, IDict** connections) override;
     ErrCode INTERFACE_FUNC removeInputPortConnection(IString* parentId) override;
+    ErrCode INTERFACE_FUNC setRootComponent(IComponent* rootComponent) override;
     ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
@@ -48,9 +55,15 @@ public:
     ErrCode INTERFACE_FUNC getDeviceMapping(IDict** deviceMapping) override;
     ErrCode INTERFACE_FUNC remapInputPortConnections() override;
     ErrCode INTERFACE_FUNC getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options) override;
+    ErrCode INTERFACE_FUNC getUpdateParameters(IUpdateParameters** updateParameters) override;
 
-private:
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
+    
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* /*factoryCallback*/, IBaseObject** obj);
 
     StringPtr remapDeviceLocalIds(const std::string& componentGlobalId) const;
     static ComponentPtr GetRootComponent(const ComponentPtr& curComponent);
@@ -59,13 +72,12 @@ private:
     static DictPtr<IString, IDeviceUpdateOptions> populateDeviceUpdateOptionsMapping(const UpdateParametersPtr& config);
 
     UpdateParametersPtr config;
-
     DictPtr<IString, IDeviceUpdateOptions> deviceUpdateOptionsMapping;
     DictPtr<IString, IString> deviceMapping;
     DictPtr<IString, IDict> connections;
     DictPtr<IString, IString> signalDependencies;
     ListPtr<IString> parentDependencies;
-    const ComponentPtr rootComponent;
+    ComponentPtr rootComponent;
 };
 
 inline ComponentPtr ComponentUpdateContextImpl::GetRootComponent(const ComponentPtr& curComponent)
@@ -164,6 +176,16 @@ inline ErrCode ComponentUpdateContextImpl::removeInputPortConnection(IString* pa
     OPENDAQ_PARAM_NOT_NULL(parentId);
 
     return connections->deleteItem(parentId);
+}
+
+inline ErrCode ComponentUpdateContextImpl::setRootComponent(IComponent* rootComponent)
+{
+    OPENDAQ_PARAM_NOT_NULL(rootComponent);
+    if (this->rootComponent.assigned())
+        return OPENDAQ_ERR_ALREADYEXISTS;
+
+    this->rootComponent = GetRootComponent(rootComponent);
+    return OPENDAQ_SUCCESS;
 }
 
 inline ErrCode ComponentUpdateContextImpl::getRootComponent(IComponent** rootComponent)
@@ -290,6 +312,14 @@ inline ErrCode ComponentUpdateContextImpl::getDeviceUpdateOptionsWithLocalIdOrNu
     return OPENDAQ_SUCCESS;
 }
 
+inline ErrCode ComponentUpdateContextImpl::getUpdateParameters(IUpdateParameters** updateParameters)
+{
+    OPENDAQ_PARAM_NOT_NULL(updateParameters);
+
+    *updateParameters = config.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* signalId, ISignal** signal)
 {
     // Check that signal has parent
@@ -331,6 +361,102 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
     return OPENDAQ_SUCCESS;
 }
 
+inline ErrCode ComponentUpdateContextImpl::serialize(ISerializer* serializer)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    serializer->startTaggedObject(this);
+    {
+        if (deviceMapping.getCount())
+        {
+            serializer->key("DeviceMapping");
+            OPENDAQ_RETURN_IF_FAILED(deviceMapping.asPtr<ISerializable>()->serialize(serializer));
+        }
+
+        if (connections.getCount())
+        {
+            serializer->key("Connections");
+            OPENDAQ_RETURN_IF_FAILED(connections.asPtr<ISerializable>()->serialize(serializer));
+        }
+
+        if (signalDependencies.getCount())
+        {
+            serializer->key("SignalDependencies");
+            OPENDAQ_RETURN_IF_FAILED(signalDependencies.asPtr<ISerializable>()->serialize(serializer));
+        }
+
+        if (parentDependencies.getCount())
+        {
+            serializer->key("ParentDependencies");
+            OPENDAQ_RETURN_IF_FAILED(signalDependencies.asPtr<ISerializable>()->serialize(serializer));
+        }
+
+        if (config.assigned())
+        {
+            serializer->key("Config");
+            OPENDAQ_RETURN_IF_FAILED(config.asPtr<ISerializable>()->serialize(serializer));
+        }
+    }
+    serializer->endObject();
+
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::getSerializeId(ConstCharPtr* id) const
+{    
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+    return OPENDAQ_SUCCESS;
+}
+
+inline ConstCharPtr ComponentUpdateContextImpl::SerializeId()
+{
+    return "ComponentUpdateContext";
+}
+
+inline ErrCode ComponentUpdateContextImpl::Deserialize(ISerializedObject* serialized, IBaseObject*, IFunction*, IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(serialized);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    auto deviceUpdateOptions = createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>();
+    ComponentUpdateContextImpl* impl = dynamic_cast<ComponentUpdateContextImpl*>(deviceUpdateOptions.getObject());
+    
+    const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
+    if (serializedPtr.hasKey("DeviceMapping"))
+        impl->deviceMapping = serializedPtr.readObject("DeviceMapping");
+    else
+        impl->deviceMapping = Dict<IString, IString>();
+
+    if (serializedPtr.hasKey("Connections"))
+        impl->connections = serializedPtr.readObject("Connections");
+    else
+        impl->connections = Dict<IString, IDict>();    
+    
+    if (serializedPtr.hasKey("SignalDependencies"))
+        impl->signalDependencies = serializedPtr.readObject("SignalDependencies");
+    else
+        impl->signalDependencies = Dict<IString, IString>();
+
+    if (serializedPtr.hasKey("ParentDependencies"))
+        impl->parentDependencies = serializedPtr.readObject("ParentDependencies");
+    else
+        impl->parentDependencies = List<IString>();
+
+
+    if (serializedPtr.hasKey("Config"))
+    {
+        impl->config = serializedPtr.readObject("Config");
+        impl->deviceUpdateOptionsMapping = impl->populateDeviceUpdateOptionsMapping(impl->config);
+    }
+    else
+        impl->config = UpdateParameters();
+
+    *obj = deviceUpdateOptions.detach();
+    return OPENDAQ_SUCCESS;
+}
+
 inline StringPtr ComponentUpdateContextImpl::remapDeviceLocalIds(const std::string& componentGlobalId) const
 {
     std::string output;
@@ -357,5 +483,7 @@ inline StringPtr ComponentUpdateContextImpl::remapDeviceLocalIds(const std::stri
     
     return output;
 }
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ComponentUpdateContextImpl)
 
 END_NAMESPACE_OPENDAQ

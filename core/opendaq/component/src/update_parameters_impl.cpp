@@ -1,4 +1,6 @@
 #include <opendaq/update_parameters_impl.h>
+#include <opendaq/update_parameters_ptr.h>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 UpdateParametersImpl::UpdateParametersImpl()
@@ -37,6 +39,47 @@ ErrCode UpdateParametersImpl::serializeCustomValues(ISerializer* serializer, boo
 
     return OPENDAQ_SUCCESS;
 }
+ErrCode UpdateParametersImpl::getSerializeId(ConstCharPtr* id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr UpdateParametersImpl::SerializeId()
+{
+    return "UpdateParameters";
+}
+
+ErrCode UpdateParametersImpl::Deserialize(ISerializedObject* serialized,
+                                          IBaseObject* context,
+                                          IFunction* factoryCallback,
+                                          IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    ErrCode err = daqTry(
+        [&obj, &serialized, &context, &factoryCallback]()
+        {
+            *obj = Super::DeserializePropertyObject(serialized, context, factoryCallback,
+                   [](const SerializedObjectPtr& serialized, const BaseObjectPtr& /*context*/, const StringPtr& /*className*/)
+                   {
+                       const UpdateParametersPtr updateParameters = createWithImplementation<IUpdateParameters, UpdateParametersImpl>();
+                       const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
+                       if (serializedPtr.hasKey("DeviceUpdateOptions"))
+                           updateParameters.setDeviceUpdateOptions(serializedPtr.readObject("DeviceUpdateOptions"));
+
+                       return updateParameters;
+                   }).detach();
+        });
+
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+
+    return OPENDAQ_SUCCESS;
+}
+
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, UpdateParameters)
 

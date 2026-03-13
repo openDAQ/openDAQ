@@ -276,7 +276,6 @@ ErrCode DeviceUpdateOptionsImpl::getSerializeId(ConstCharPtr* id) const
     OPENDAQ_PARAM_NOT_NULL(id);
 
     *id = SerializeId();
-
     return OPENDAQ_SUCCESS;
 }
 

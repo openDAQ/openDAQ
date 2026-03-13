@@ -856,10 +856,8 @@ template <class Intf, class... Intfs>
 ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj, IBaseObject* config)
 {
     auto configPtr = BaseObjectPtr::Borrow(config);
-    if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>())
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
-    }
+    if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>() && !configPtr.supportsInterface<IComponentUpdateContext>())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update config does not support IUpdateParameters or IComponentUpdateContext");
 
     const bool muted = this->coreEventMuted;
     const auto thisPtr = this->template borrowPtr<ComponentPtr>();
@@ -867,7 +865,12 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     if (!muted)
         propInternalPtr.disableCoreEventTrigger();
 
-    BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config));
+    BaseObjectPtr context;
+    if (configPtr.supportsInterface<IComponentUpdateContext>())
+        context = configPtr;
+    else
+        context = createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config);
+
     ErrCode errCode = updateInternal(obj, context);
     if (OPENDAQ_SUCCEEDED(errCode))
     {

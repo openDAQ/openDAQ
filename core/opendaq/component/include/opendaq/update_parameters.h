@@ -18,7 +18,6 @@
 
 #include <coreobjects/property_object.h>
 #include <opendaq/device_update_options.h>
-#include <opendaq/tags.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

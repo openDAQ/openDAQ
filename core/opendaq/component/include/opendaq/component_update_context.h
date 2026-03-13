@@ -20,6 +20,7 @@
 #include <opendaq/component.h>
 #include <opendaq/signal.h>
 #include <opendaq/device_update_options.h>
+#include <opendaq/update_parameters.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -52,6 +53,12 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * @param parentId The ID of the parent component.
      */
     virtual ErrCode INTERFACE_FUNC removeInputPortConnection(IString* parentId) = 0;
+    
+    /*!
+     * @brief Sets the root component of the current component.
+     * @param rootComponent The root component.
+     */
+    virtual ErrCode INTERFACE_FUNC setRootComponent(IComponent* rootComponent) = 0;
 
     /*!
      * @brief Gets the root component of the current component.
@@ -101,6 +108,12 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * Should be called after the initial update, but before `onUpdatableUpdateEnd`.
      */
     virtual ErrCode INTERFACE_FUNC remapInputPortConnections() = 0;
+
+    /*!
+     * @brief Gets the update parameters provided by the user through the `update` call.
+     * @param updateParameters The update parameters.
+     */
+    virtual ErrCode INTERFACE_FUNC getUpdateParameters(IUpdateParameters** updateParameters) = 0;
 };
 
 /*!

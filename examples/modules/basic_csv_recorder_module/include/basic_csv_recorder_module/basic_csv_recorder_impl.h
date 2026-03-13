@@ -18,6 +18,8 @@
 
 #include <map>
 #include <memory>
+#include <string>
+#include <optional>
 
 #include <opendaq/function_block_impl.h>
 #include <opendaq/opendaq.h>
@@ -160,6 +162,7 @@ class BasicCsvRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRec
         std::map<IInputPort *, std::shared_ptr<BasicCsvRecorderThread>> threads;
 
         unsigned portCount = 0;
+        std::optional<std::string> cachedPath;
 };
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

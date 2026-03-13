@@ -19,6 +19,8 @@
 #include <atomic>
 #include <memory>
 #include <unordered_map>
+#include <string>
+#include <optional>
 
 #include <opendaq/function_block_impl.h>
 #include <opendaq/opendaq.h>
@@ -117,6 +119,7 @@ private:
     SchedulerPtr scheduler;
     std::atomic_uint32_t portCount = 0;
     std::atomic_bool recording = false;
+    std::optional<std::string> cachedPath;
 };
 
 END_NAMESPACE_OPENDAQ_PARQUET_RECORDER_MODULE

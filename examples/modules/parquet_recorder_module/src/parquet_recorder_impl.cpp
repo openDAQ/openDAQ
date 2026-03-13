@@ -1,7 +1,6 @@
 #include <parquet_recorder_module/parquet_recorder_impl.h>
 
 #include <functional>
-#include <string>
 
 #include <coreobjects/callable_info_factory.h>
 
@@ -20,6 +19,7 @@ ParquetRecorderImpl::ParquetRecorderImpl(const ContextPtr& context,
                                          const StringPtr& localId,
                                          const PropertyObjectPtr& config)
     : FunctionBlockImpl<IFunctionBlock, IRecorder>(createType(), context, parent, localId, nullptr)
+    , cachedPath(std::nullopt)
 {
     tags.add(Tags::Recorder);
     scheduler = context.getScheduler();
@@ -138,8 +138,7 @@ void ParquetRecorderImpl::addProperties()
 void ParquetRecorderImpl::addInputPort()
 {
     LOG_D("ParquetRecorderImpl::addInputPort: Adding new input port for ParquetRecorder");
-    auto c = createAndAddInputPort("Value" + std::to_string(portCount.fetch_add(1)),
-                                   PacketReadyNotification::SameThread);
+    auto c = createAndAddInputPort("Value" + std::to_string(portCount.fetch_add(1)), PacketReadyNotification::SameThread);
 }
 
 void ParquetRecorderImpl::reconfigure()
@@ -147,6 +146,19 @@ void ParquetRecorderImpl::reconfigure()
     LOG_D("ParquetRecorderImpl::reconfigure: Reconfiguring ParquetRecorder...");
     auto lock = getRecursiveConfigLock();
     fs::path path = static_cast<std::string>(objPtr.getPropertyValue(Props::Path));
+
+    bool pathChanged = false;
+    if (!cachedPath.has_value() || cachedPath.value() != path.string()){
+        cachedPath = path.string();
+        pathChanged = true;
+    }
+
+    if (!recording)
+    {
+        // Do not keep writers when not recording.
+        writers.clear();
+        return;
+    }
 
     std::unordered_set<IInputPort*> ports;
 
@@ -159,14 +171,19 @@ void ParquetRecorderImpl::reconfigure()
             auto signal = connection.getSignal();
             ports.emplace(inputPort.getObject());
 
-            if (writers.find(inputPort.getObject()) == writers.end())
+            // Create writer for any new ports as well as replace writers when path changes.
+            auto it = writers.find(inputPort.getObject());
+            if (it == writers.end() || pathChanged)
             {
-                writers.emplace(inputPort.getObject(),
-                                std::make_shared<ParquetWriter>(path, signal, loggerComponent, context.getScheduler()));
+                // Might take a long time to stop the existing writer and create a new one.
+                writers.insert_or_assign(
+                    inputPort.getObject(),
+                    std::make_shared<ParquetWriter>(path, signal, loggerComponent, context.getScheduler()));
             }
         }
     }
 
+    // Remove writers of disconnected ports.
     auto it = writers.begin();
     while (it != writers.end())
     {

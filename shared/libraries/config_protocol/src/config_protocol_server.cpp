@@ -580,12 +580,15 @@ void ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const Co
         case CoreEventId::PropertyRemoved:
         case CoreEventId::SignalConnected:
         case CoreEventId::ComponentAdded:
-        case CoreEventId::AttributeChanged:
         case CoreEventId::PropertyOrderChanged:
             packedArgs = processCoreEventArgs(args);
             break;
         case CoreEventId::ComponentUpdateEnd:
             packedArgs = processUpdateEndCoreEvent(component, args);
+            break;
+        case CoreEventId::AttributeChanged:
+            if (const auto processedArgs = processAttributeChangedCoreEvent(args); processedArgs.assigned())
+                packedArgs = processedArgs;
             break;
         case CoreEventId::ComponentRemoved:
         case CoreEventId::SignalDisconnected:
@@ -665,6 +668,21 @@ CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const Component
     dict.set("SerializedComponent", notificationSerializer.getOutput());
 
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);
+}
+
+CoreEventArgsPtr ConfigProtocolServer::processAttributeChangedCoreEvent(const CoreEventArgsPtr& args)
+{
+    auto processedArgs = processCoreEventArgs(args);
+    auto params = processedArgs.getParameters();
+    assert(params.hasKey("AttributeName"));
+    if (params.get("AttributeName") == "Active")
+    {
+        assert(params.hasKey("Active"));
+        if (!params.hasKey("LocalActive"))
+            return nullptr;
+    }
+
+    return processedArgs;
 }
 
 BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const

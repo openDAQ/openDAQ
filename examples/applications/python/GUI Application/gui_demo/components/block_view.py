@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from typing import Optional
 
 import opendaq as daq
 
@@ -20,13 +21,16 @@ class BlockView(ttk.Frame):
         self.node = node
         self.context = context
         self.event_port = EventPort(self, event_callback=self.refresh)
+        self._component_core_event_handler = None
 
-        active = False
+        self.active = False
+        self.parent_active = True
         name = 'None'
 
         if node and daq.IComponent.can_cast_from(self.node):
             node = daq.IComponent.cast_from(self.node)
-            active = node.active
+            self.active = node.active
+            self.parent_active = node.parent_active
             name = node.name
         self.configure(relief=tk.SOLID, border=0.5, padding=5)
 
@@ -75,9 +79,11 @@ class BlockView(ttk.Frame):
         self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image, borderwidth=0, 
                                      command=lambda: AttributesDialog(self, 'Attributes', self.node, self.context).show())
         self.edit_button.pack(side=tk.RIGHT)
-        self.active_var = tk.IntVar(self, value=active)
+        self.active_var = tk.IntVar(self, value=self.active)
+        checkbox_state = tk.NORMAL if self.parent_active else tk.DISABLED
         self.checkbox = ttk.Checkbutton(
-            self.header_frame, text='Active', command=self.handle_active_toggle, variable=self.active_var)
+            self.header_frame, text='Active', command=self.handle_active_toggle, variable=self.active_var,
+            state=checkbox_state)
         self.checkbox.pack(side=tk.RIGHT)
 
         self.expanded_frame = ttk.Frame(self, padding=5)
@@ -98,39 +104,25 @@ class BlockView(ttk.Frame):
                 self.cols = [0, 1]
                 self.rows = [0]
 
+                op_modes_nums = sorted(self.node.available_operation_modes)
                 available_op_modes = []
-                op_modes_nums = list(self.node.available_operation_modes)
-                if 0 in op_modes_nums:
-                    available_op_modes.append('Unknown')
-                if 1 in op_modes_nums:
-                    available_op_modes.append('Idle')
-                if 2 in op_modes_nums:
-                    available_op_modes.append('Operation')
-                if 3 in op_modes_nums:
-                    available_op_modes.append('SafeOperation')
-
+                _name_to_op_mode = {}
+                for m in op_modes_nums:
+                    try:
+                        e = daq.OperationModeType(m)
+                        available_op_modes.append(e.name)
+                        _name_to_op_mode[e.name] = e
+                    except (ValueError, TypeError):
+                        pass
                 op_mode = self.node.operation_mode
-                mode_string = ''
-                if op_mode == daq.OperationModeType.Unknown:
-                    mode_string = 'Unknown'
-                elif op_mode == daq.OperationModeType.Idle:
-                    mode_string = 'Idle'
-                elif op_mode == daq.OperationModeType.Operation:
-                    mode_string = 'Operation'
-                elif op_mode == daq.OperationModeType.SafeOperation:
-                    mode_string = 'SafeOperation'
+                mode_string = getattr(op_mode, 'name', str(op_mode))
 
                 opt = tk.StringVar(value=mode_string)
+
                 def on_option_change(*args):
                     var = opt.get()
-                    if var == 'Unknown':
-                        self.node.operation_mode = daq.OperationModeType.Unknown
-                    elif var == 'Idle':
-                        self.node.operation_mode = daq.OperationModeType.Idle
-                    elif var == 'Operation':
-                        self.node.operation_mode = daq.OperationModeType.Operation
-                    elif var == 'SafeOperation':
-                        self.node.operation_mode = daq.OperationModeType.SafeOperation
+                    if var in _name_to_op_mode:
+                        self.node.operation_mode = _name_to_op_mode[var]
 
                 opt.trace_add('write', on_option_change)
 
@@ -195,6 +187,36 @@ class BlockView(ttk.Frame):
 
         self.change_status()
 
+        if node and daq.IComponent.can_cast_from(self.node):
+            component = daq.IComponent.cast_from(self.node)
+            self._component_core_event_handler = daq.QueuedEventHandler(self._on_component_core_event)
+            component.on_component_core_event + self._component_core_event_handler
+            self.bind('<Destroy>', self._on_destroy)
+
+    def _on_destroy(self, event):
+        if self._component_core_event_handler is not None and self.node is not None and daq.IComponent.can_cast_from(self.node):
+            try:
+                component = daq.IComponent.cast_from(self.node)
+                component.on_component_core_event - self._component_core_event_handler
+            except Exception:
+                pass
+            self._component_core_event_handler = None
+
+    def _on_component_core_event(self, sender, args: daq.IEventArgs):
+        if args.event_name == "AttributeChanged":
+            if not daq.ICoreEventArgs.can_cast_from(args):
+                return
+            core_event_args = daq.ICoreEventArgs.cast_from(args)
+            params = core_event_args.parameters
+
+            if params["AttributeName"] == "Active":
+                self.active = bool(params["Active"])
+                if "ParentActive" in params:
+                    self.parent_active = bool(params["ParentActive"])
+                self.update_active_checkbox(self.active, self.parent_active)
+        elif args.event_name in ("PropertyValueChanged", "PropertyAdded", "PropertyRemoved"):
+            if self.properties is not None:
+                self.properties.refresh()
 
     def show_all_statuses(self, container):
         window = tk.Toplevel()
@@ -283,6 +305,11 @@ class BlockView(ttk.Frame):
 
     def refresh(self, event):
         pass
+
+    def update_active_checkbox(self, active: bool, parent_active: Optional[bool] = None):
+        self.active_var.set(1 if active else 0)
+        if parent_active is not None:
+            self.checkbox.config(state=tk.NORMAL if parent_active else tk.DISABLED)
 
     def handle_active_toggle(self):
         if daq.IComponent.can_cast_from(self.node):

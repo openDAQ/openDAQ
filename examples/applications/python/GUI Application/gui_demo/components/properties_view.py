@@ -21,4 +21,8 @@ class PropertiesView(ttk.Frame):
 
         header_frame.pack(fill=tk.X)
 
-        PropertiesTreeview(self, node, context)
+        self.treeview = PropertiesTreeview(self, node, context)
+
+    def refresh(self):
+        if hasattr(self, 'treeview'):
+            self.treeview.refresh()

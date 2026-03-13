@@ -585,9 +585,7 @@ class App(tk.Tk):
         elif daq.ISyncComponent.can_cast_from(node):
             return daq.ISyncComponent.cast_from(node)
         elif daq.IFolder.can_cast_from(node):
-            folder = daq.IFolder.cast_from(node)
-            if folder.name not in AppContext.default_folders:
-                return folder
+            return daq.IFolder.cast_from(node)
 
         return self.find_fb_device_folder(
             node.parent) if node is not None else None
@@ -658,15 +656,23 @@ class App(tk.Tk):
                         fb_folder = daq.IFolder.cast_from(fb_folder)
                         for component in fb_folder.items:
                             draw_sub_components(component, level + 1)
+                elif daq.IDevice.can_cast_from(component):
+                    component = daq.IDevice.cast_from(component)
+                    b = BlockView(self.right_side_panel, component,
+                                  self.context, level == 0)
+                    b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
+                    if component.has_item('Dev'):
+                        dev_folder = component.get_item('Dev')
+                        dev_folder = daq.IFolder.cast_from(dev_folder)
+                        for item in dev_folder.items:
+                            draw_sub_components(item, level + 1)
                 elif daq.IFolder.can_cast_from(component):
                     component = daq.IFolder.cast_from(component)
-                    if component.name not in AppContext.default_folders:
-                        b = BlockView(self.right_side_panel, component,
-                                      self.context, level == 0)
-                        b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
-
-                        for item in component.items:
-                            draw_sub_components(item, level + 1)
+                    b = BlockView(self.right_side_panel, component,
+                                  self.context, level == 0)
+                    b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
+                    for item in component.items:
+                        draw_sub_components(item, level + 1)
 
             draw_sub_components(found)
 

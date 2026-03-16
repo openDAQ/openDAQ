@@ -14,7 +14,8 @@ AwaitableImpl<TReturn>::AwaitableImpl(Future future)
 template <typename TReturn>
 ErrCode AwaitableImpl<TReturn>::cancel(Bool* canceled)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED);
+    *canceled = future.cancel();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TReturn>
@@ -93,7 +94,6 @@ ErrCode AwaitableImpl<TReturn>::hasCompleted(Bool* finished)
 }
 
 template class AwaitableImpl<void>;
-template class AwaitableImpl<ObjectPtr<IBaseObject>>;
-
+template class AwaitableImpl<std::optional<ObjectPtr<IBaseObject>>>;
 
 END_NAMESPACE_OPENDAQ

@@ -34,9 +34,10 @@ target_compile_definitions(${TEST_APP} PRIVATE MODULE_TEST_DIR="mock"
                                                EMPTY_STRING_ID_MODULE_NAME="$<TARGET_FILE_NAME:empty_string_id_module>"
 )
 
-target_link_libraries(${TEST_APP} 
-	PRIVATE 
+target_link_libraries(${TEST_APP}
+	PRIVATE
 		$<BUILD_INTERFACE:Boost::dll>
+		$<BUILD_INTERFACE:std::filesystem>
 )
 
 if (UNIX)

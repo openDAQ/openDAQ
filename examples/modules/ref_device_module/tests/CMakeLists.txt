@@ -10,6 +10,7 @@ add_executable(${TEST_APP} ${TEST_SOURCES}
 
 target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
+                                          $<BUILD_INTERFACE:std::filesystem>
 )
 
 add_test(NAME ${TEST_APP}

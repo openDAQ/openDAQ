@@ -31,6 +31,7 @@ class PropertiesTreeview(ttk.Treeview):
                         foreground='#1a1a1a',
                         selectbackground='white',
                         selectforeground='#1a1a1a')
+        style.configure('Overlay.TCheckbutton', background='white')
 
         self._scroll_bar = ttk.Scrollbar(
             self, orient=tk.VERTICAL, command=self.yview)
@@ -369,7 +370,7 @@ class PropertiesTreeview(ttk.Treeview):
             prop = utils.get_property_for_path(self.context, path, self.node)
             if prop and not prop.read_only:
                 if prop.value_type == daq.CoreType.ctBool:
-                    self._place_bool_combobox(iid, prop)
+                    self._place_bool_checkbox(iid, prop)
                 elif prop.selection_values is not None and len(prop.selection_values) > 0:
                     self._place_selection_combobox(iid, prop)
                 elif prop.value_type == daq.CoreType.ctEnumeration:
@@ -424,22 +425,27 @@ class PropertiesTreeview(ttk.Treeview):
             self._reposition_overlay_comboboxes()))
         return cb
 
-    def _place_bool_combobox(self, iid, prop):
-        labels = utils.yes_no  # ['No', 'Yes']
-        current_label = utils.yes_no[prop.value]
-        cb = self._make_combobox(iid, labels, current_label)
-        if cb is None:
+    def _place_bool_checkbox(self, iid, prop):
+        bbox = self.bbox(iid, '#1')
+        if not bbox:
             return
+        x, y, width, height = bbox
+        var = tk.BooleanVar(value=bool(prop.value))
+        cb = ttk.Checkbutton(self, variable=var, takefocus=False, style='Overlay.TCheckbutton')
+        cb.place(x=x, y=y, width=width, height=height)
 
-        def on_change(event, _prop=prop, _cb=cb):
+        def on_change(_prop=prop, _var=var):
             try:
-                _prop.value = _cb.get() == utils.yes_no[True]
+                _prop.value = _var.get()
             except Exception as e:
                 print("Failed to set bool:", e)
                 return
             self.refresh()
 
-        cb.bind('<<ComboboxSelected>>', on_change)
+        cb.configure(command=on_change)
+        cb.bind('<MouseWheel>', lambda e: (
+            self.yview_scroll(int(-1 * (e.delta / 120)), 'units'),
+            self._reposition_overlay_comboboxes()))
         self._overlay_comboboxes[iid] = cb
 
     def _place_selection_combobox(self, iid, prop):

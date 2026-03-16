@@ -1,6 +1,7 @@
 #include <functional>
 #include <memory>
 #include <set>
+#include <string>
 
 #include <coretypes/filesystem.h>
 #include <opendaq/function_block_impl.h>

@@ -19,7 +19,6 @@
 #include <atomic>
 #include <memory>
 #include <unordered_map>
-#include <string>
 #include <optional>
 
 #include <coretypes/filesystem.h>

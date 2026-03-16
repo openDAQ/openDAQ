@@ -1,6 +1,7 @@
 #include <parquet_recorder_module/parquet_recorder_impl.h>
 
 #include <functional>
+#include <string>
 
 #include <coreobjects/callable_info_factory.h>
 

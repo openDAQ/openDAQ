@@ -18,7 +18,6 @@
 
 #include <map>
 #include <memory>
-#include <string>
 #include <optional>
 
 #include <opendaq/function_block_impl.h>

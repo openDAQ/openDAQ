@@ -86,7 +86,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
     , packedCoreEvents(List<IBaseObject>())
 {
@@ -678,7 +678,7 @@ CoreEventArgsPtr ConfigProtocolServer::processAttributeChangedCoreEvent(const Co
     if (params.get("AttributeName") == "Active")
     {
         assert(params.hasKey("Active"));
-        if (!params.hasKey("LocalActive"))
+        if (protocolVersion > 20 && !params.hasKey("LocalActive"))
             return nullptr;
     }
 

@@ -56,35 +56,11 @@ inline ConfigClientPropertyImpl::ConfigClientPropertyImpl(const PropertyBuilderP
                                                           const std::string& remoteGlobalId,
                                                           const ConfigPropertyBuildParams& buildParams)
     : ConfigClientObjectImpl(configProtocolClientComm, remoteGlobalId)
+    , PropertyImpl(propertyBuilder.getObject())
 {
-    this->valueType = propertyBuilder.getValueType();
-    this->name = propertyBuilder.getName();
-    this->description = propertyBuilder.getDescription();
-    this->unit = propertyBuilder.getUnit();
-    this->minValue = propertyBuilder.getMinValue();
-    this->maxValue = propertyBuilder.getMaxValue();
-    this->defaultValue = propertyBuilder.getDefaultValue();
-    this->visible = propertyBuilder.getVisible();
-    this->readOnly = propertyBuilder.getReadOnly();
-    this->selectionValues = propertyBuilder.getSelectionValues();
-    this->suggestedValues = propertyBuilder.getSuggestedValues();
-    this->refProp = propertyBuilder.getReferencedProperty();
-    this->coercer = propertyBuilder.getCoercer();
-    this->validator = propertyBuilder.getValidator();
-    this->callableInfo = propertyBuilder.getCallableInfo();
-    this->onValueWrite = (IEvent*) propertyBuilder.getOnPropertyValueWrite();
-    this->onValueRead = (IEvent*) propertyBuilder.getOnPropertyValueRead();
-    this->onSuggestedValuesRead = (IEvent*) propertyBuilder.getOnSuggestedValuesRead();
-    this->onSelectionValuesRead = (IEvent*) propertyBuilder.getOnSelectionValuesRead();
-
     this->hasOnGetSuggestedValuesListeners = buildParams.hasSuggestedValuesListeners;
     this->hasOnGetSelectionValuesListeners = buildParams.hasSelectionValuesListener;
     this->hasOnReadListeners = buildParams.hasOnReadListeners;
-
-    propPtr = this->borrowPtr<PropertyPtr>();
-    owner = nullptr;
-
-    checkErrorInfo(validateDuringConstruction());
 }
 
 inline ErrCode INTERFACE_FUNC ConfigClientPropertyImpl::getHasOnReadListeners(Bool* hasListeners)

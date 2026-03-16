@@ -1107,68 +1107,16 @@ public:
             {
                 if (valueType != ctInt)
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Index selection property {} must have a value type of Int)", name));
-
-                if (selectionValues.supportsInterface<IEvalValue>())
-                {
-                    // the eval value is not fully evaluated at this point, so we cannot check if the default value is part of the selection values.
-                }
-                else if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
-                {
-                    const SizeT defaultIndex = defaultValue;
-                    if (defaultIndex >= list.getCount())
-                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value is not in selection values for property {})", name));
-                }
-                else
-                {
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a list for property {})", name));
-                }
             }
             else if (this->propertyType == PropertyType::SparseSelection)
             {
                 if (valueType != ctInt)
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Sparse selection property {} must have a value type of Int)", name));
-
-                if (selectionValues.supportsInterface<IEvalValue>())
-                {
-                    // the eval value is not fully evaluated at this point, so we cannot check if the default value is part of the selection values.
-                }
-                else if (const auto dict = selectionValues.asPtrOrNull<IDict>(true); dict.assigned())
-                {
-                    if (!dict.hasKey(defaultValue))
-                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value is not in selection values for property {})", name));
-                }
-                else
-                {
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a dictionary for property {})", name));
-                }
             }
             else if (this->propertyType == PropertyType::Selection)
             {
                 if (valueType != ctInt && valueType != ctString && valueType != ctFloat)
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection property {} must have a value type of Int, String or Float)", name));
-
-                if (selectionValues.supportsInterface<IEvalValue>())
-                {
-                    // the eval value is not fully evaluated at this point, so we cannot check if the default value is part of the selection values.
-                }
-                else if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
-                {
-                    bool found = false;
-                    for (const auto& key : list)
-                    {
-                        if (key == defaultValue)
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found)
-                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value is not in selection values for property {})", name));
-                }
-                else
-                {
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a list for property {})", name));
-                }
             }
             else
             {

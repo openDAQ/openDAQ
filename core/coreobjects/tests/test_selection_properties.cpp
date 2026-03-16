@@ -96,8 +96,8 @@ TEST_F(SelectionPropertyTest, SelectionValueValueTypes)
 
 TEST_F(SelectionPropertyTest, SelectionValueKeyTypes)
 {
-    ASSERT_EQ(sparseSelectionInt.getKeyType(), CoreType::ctInt);
-	ASSERT_EQ(sparseSelectionString.getKeyType(), CoreType::ctInt);
+    ASSERT_EQ(sparseSelectionInt.getKeyType(), CoreType::ctUndefined);
+	ASSERT_EQ(sparseSelectionString.getKeyType(), CoreType::ctUndefined);
 	ASSERT_EQ(indexSelectionInt.getKeyType(), CoreType::ctUndefined);
 	ASSERT_EQ(indexSelectionString.getKeyType(), CoreType::ctUndefined);
 	ASSERT_EQ(stringSelection.getKeyType(), CoreType::ctUndefined);

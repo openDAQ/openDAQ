@@ -28,9 +28,9 @@ public:
         obj.addProperty(ListProperty("IntList", List<IInteger>(0, 6, 15, 10), false));
         obj.addProperty(ListProperty("FloatList", List<IFloat>(0.12, -5.2, 5.12, 10.2), false));
 
-        // obj.addProperty(StringPropertyBuilder("StringSelectionRef", "foo").setSelectionValues(EvalValue("StringList")).build());
-		// obj.addProperty(IntPropertyBuilder("IntSelectionRef", 10).setSelectionValues(EvalValue("IntList")).setIsValueSelectionProperty(true).build());
-		// obj.addProperty(FloatPropertyBuilder("FloatSelectionRef", 5.12).setSelectionValues(EvalValue("FloatList")).build());
+        //obj.addProperty(StringPropertyBuilder("StringSelectionRef", "foo").setSelectionValues(EvalValue("StringList")).build());
+		//obj.addProperty(IntPropertyBuilder("IntSelectionRef", 10).setSelectionValues(EvalValue("IntList")).setIsValueSelectionProperty(true).build());
+		//obj.addProperty(FloatPropertyBuilder("FloatSelectionRef", 5.12).setSelectionValues(EvalValue("FloatList")).build());
 
         obj.addProperty(IntProperty("CallCount", 0));
         
@@ -124,24 +124,24 @@ TEST_F(SelectionPropertyTest, SelectionValueItemTypes)
 
 TEST_F(SelectionPropertyTest, ValidWriteIndexSparseSelection)
 {
-    ASSERT_NO_THROW(sparseSelectionInt.setValue(0u));
-    ASSERT_EQ(sparseSelectionInt.getValue(), 0u);
-    ASSERT_NO_THROW(obj.setPropertyValue("SparseSelectionInt", 5u));
+    ASSERT_NO_THROW(sparseSelectionInt.setValue(0));
+    ASSERT_EQ(sparseSelectionInt.getValue(), 0);
+    ASSERT_NO_THROW(obj.setPropertyValue("SparseSelectionInt", 5));
     ASSERT_EQ(obj.getPropertySelectionValue("SparseSelectionInt"), 20u);
 
-    ASSERT_NO_THROW(sparseSelectionString.setValue(10u));
+    ASSERT_NO_THROW(sparseSelectionString.setValue(10));
     ASSERT_EQ(sparseSelectionString.getValue(), 10u);
-    ASSERT_NO_THROW(obj.setPropertyValue("SparseSelectionString", 0u));
+    ASSERT_NO_THROW(obj.setPropertyValue("SparseSelectionString", 0));
     ASSERT_EQ(obj.getPropertySelectionValue("SparseSelectionString"), "foo");
 
-    ASSERT_NO_THROW(indexSelectionInt.setValue(0u));
+    ASSERT_NO_THROW(indexSelectionInt.setValue(0));
     ASSERT_EQ(indexSelectionInt.getValue(), 0u);
-    ASSERT_NO_THROW(obj.setPropertyValue("IndexSelectionInt", 1u));
+    ASSERT_NO_THROW(obj.setPropertyValue("IndexSelectionInt", 1));
     ASSERT_EQ(obj.getPropertySelectionValue("IndexSelectionInt"), 20u);
 
-    ASSERT_NO_THROW(indexSelectionString.setValue(1u));
-    ASSERT_EQ(indexSelectionString.getValue(), 1u);
-    ASSERT_NO_THROW(obj.setPropertyValue("IndexSelectionString", 0u));
+    ASSERT_NO_THROW(indexSelectionString.setValue(1));
+    ASSERT_EQ(indexSelectionString.getValue(), 1);
+    ASSERT_NO_THROW(obj.setPropertyValue("IndexSelectionString", 0));
     ASSERT_EQ(obj.getPropertySelectionValue("IndexSelectionString"), "foo");
 }
 
@@ -168,14 +168,14 @@ TEST_F(SelectionPropertyTest, ValidWriteValueBasedSelection)
     ASSERT_EQ(obj.getPropertyValue("StringSelection"), "foo");
 
     ASSERT_NO_THROW(intSelection.setValue(6));
-    ASSERT_EQ(intSelection.getValue(), 6);
+    ASSERT_EQ(intSelection.getValue(), 6u);
     ASSERT_NO_THROW(obj.setPropertyValue("IntSelection", 10));
-    ASSERT_EQ(obj.getPropertyValue("IntSelection"), 10);
+    ASSERT_EQ(obj.getPropertyValue("IntSelection"), 10u);
 
     ASSERT_NO_THROW(floatSelection.setValue(10.2));
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2f);
     ASSERT_NO_THROW(obj.setPropertyValue("FloatSelection", -5.2));
-    ASSERT_DOUBLE_EQ(obj.getPropertyValue("FloatSelection"), -5.2);
+    ASSERT_DOUBLE_EQ(obj.getPropertyValue("FloatSelection"), -5.2f);
 }
 
 TEST_F(SelectionPropertyTest, InvalidWriteValueBasedSelection)
@@ -199,8 +199,8 @@ TEST_F(SelectionPropertyTest, ReadSelectionValue)
 // TEST_F(SelectionPropertyTest, ReferenceBasedSelectionInvalidRead)
 // {
 //     ASSERT_EQ(stringSelectionRef.getValue(), "foo");
-//     ASSERT_EQ(intSelectionRef.getValue(), 10);
-//     ASSERT_DOUBLE_EQ(floatSelectionRef.getValue(), 5.12);
+//     ASSERT_EQ(intSelectionRef.getValue(), 10u);
+//     ASSERT_DOUBLE_EQ(floatSelectionRef.getValue(), 5.12f);
 
 //     // Modify list of selection values to point to invalid selection values
 //     obj.setPropertyValue("StringList", List<IString>("apple", "banana"));
@@ -220,7 +220,7 @@ static void onWriteSelection(PropertyObjectPtr& obj, PropertyValueEventArgsPtr& 
     auto newVal = args.getValue();
     if (args.getProperty().getValueType() == ctInt)
     {
-        ASSERT_EQ(newVal, 6);
+        ASSERT_EQ(newVal, 6u);
     }
     else if (args.getProperty().getValueType() == ctString)
     {
@@ -228,7 +228,7 @@ static void onWriteSelection(PropertyObjectPtr& obj, PropertyValueEventArgsPtr& 
     }
     else if (args.getProperty().getValueType() == ctFloat)
     {
-        ASSERT_DOUBLE_EQ(newVal, 10.2);
+        ASSERT_DOUBLE_EQ(newVal, 10.2f);
     }
 }
 
@@ -242,7 +242,7 @@ TEST_F(SelectionPropertyTest, ValidWriteEventSelection)
     intSelection.setValue(6);
     floatSelection.setValue(10.2);
 
-    ASSERT_EQ(obj.getPropertyValue("CallCount"), 3);
+    ASSERT_EQ(obj.getPropertyValue("CallCount"), 3u);
 }
 
 static void onWriteSelectionCoerce(PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
@@ -280,10 +280,10 @@ TEST_F(SelectionPropertyTest, InvalidWriteEventCoerce)
     ASSERT_EQ(stringSelection.getValue(), "foo");
 
     ASSERT_ANY_THROW(intSelection.setValue(5));
-    ASSERT_EQ(intSelection.getValue(), 10);
+    ASSERT_EQ(intSelection.getValue(), 10u);
 
     ASSERT_ANY_THROW(floatSelection.setValue(0.5));
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12f);
 
     // checking is happening before calling on write event, so call count should be 0
     ASSERT_EQ(obj.getPropertyValue("CallCount"), 0u);
@@ -306,8 +306,8 @@ TEST_F(SelectionPropertyTest, EndUpdateOnWriteEvent)
     ASSERT_ANY_THROW(obj.endUpdate());
 
     ASSERT_EQ(stringSelection.getValue(), "foo");
-    ASSERT_EQ(intSelection.getValue(), 10);
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12);
+    ASSERT_EQ(intSelection.getValue(), 10u);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12f);
 
     ASSERT_EQ(obj.getPropertyValue("CallCount"), 0u);
 }
@@ -335,7 +335,7 @@ TEST_F(SelectionPropertyTest, UpdatableOnWriteEvent)
 
     ASSERT_EQ(stringSelection.getValue(), "foo");
     ASSERT_EQ(intSelection.getValue(), 10);
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12f);
 
     auto deser = JsonDeserializer();
     deser.update(obj, ser.getOutput());
@@ -343,6 +343,6 @@ TEST_F(SelectionPropertyTest, UpdatableOnWriteEvent)
     ASSERT_EQ(obj.getPropertyValue("CallCount"), 3u);
 
     ASSERT_EQ(stringSelection.getValue(), "bar");
-    ASSERT_EQ(intSelection.getValue(), 6);
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2);
+    ASSERT_EQ(intSelection.getValue(), 6u);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2f);
 }

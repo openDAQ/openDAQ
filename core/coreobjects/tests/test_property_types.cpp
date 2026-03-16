@@ -33,7 +33,10 @@ public:
 
         obj.addProperty(StructProperty(
             "Struct", Struct("TestStruct", Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}, {"Float", 5.123}}), manager)));
-        obj.addProperty(EnumerationProperty("Enumeration", EnumerationType("TestEnum", List<IString>("Test1", "Test2"))));
+
+        auto enumType = EnumerationType("TestEnum", List<IString>("Test1", "Test2"));
+        manager.addType(enumType);
+        obj.addProperty(EnumerationProperty("Enumeration", Enumeration("TestEnum", "Test1", manager)));
 
         obj.addProperty(ReferenceProperty("Reference", EvalValue("%IntList")));
 
@@ -44,7 +47,7 @@ public:
         obj.addProperty(SelectionProperty("IndexSelectionString", List<IString>("foo", "bar"), 0));
 
         obj.addProperty(StringPropertyBuilder("StringSelection", "foo").setSelectionValues(List<IString>("foo", "bar")).build());
-        obj.addProperty(IntPropertyBuilder("IntSelection", 10).setSelectionValues(List<IInteger>(0, 6, 15, 10)).setIsValueSelectionProperty(false).build());
+        obj.addProperty(IntPropertyBuilder("IntSelection", 10).setSelectionValues(List<IInteger>(0, 6, 15, 10)).setIsValueSelectionProperty(true).build());
 		obj.addProperty(FloatPropertyBuilder("FloatSelection", 5.12).setSelectionValues(List<IFloat>(0.12, -5.2, 5.12, 10.2)).build());
     }
 
@@ -193,7 +196,7 @@ TEST_F(PropertyTypeTest, SparseSelectionType)
     auto sparseSelectionIntProp = obj.getProperty("SparseSelectionInt");
     ASSERT_EQ(sparseSelectionIntProp.getValueType(), ctInt);
     ASSERT_EQ(sparseSelectionIntProp.getItemType(), ctInt);
-    ASSERT_EQ(sparseSelectionIntProp.getKeyType(), ctInt);
+    ASSERT_EQ(sparseSelectionIntProp.getKeyType(), ctUndefined);
     ASSERT_TRUE(sparseSelectionIntProp.getSelectionValues().assigned());
     ASSERT_TRUE(sparseSelectionIntProp.getSelectionValues().supportsInterface<IDict>());
     ASSERT_EQ(sparseSelectionIntProp.getPropertyType(), PropertyType::SparseSelection);

@@ -141,15 +141,15 @@ TEST_F(ConfigProtocolPropertyObjectTest, ValidWriteValueBasedSelection)
     
     auto intSelection = clientDevice.getProperty("IntSelection");
     ASSERT_NO_THROW(intSelection.setValue(6));
-    ASSERT_EQ(intSelection.getValue(), 6);
+    ASSERT_EQ(intSelection.getValue(), 6u);
     ASSERT_NO_THROW(clientDevice.setPropertyValue("IntSelection", 10));
-    ASSERT_EQ(clientDevice.getPropertyValue("IntSelection"), 10);
+    ASSERT_EQ(clientDevice.getPropertyValue("IntSelection"), 10u);
     
     auto floatSelection = clientDevice.getProperty("FloatSelection");
     ASSERT_NO_THROW(floatSelection.setValue(10.2));
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2f);
     ASSERT_NO_THROW(clientDevice.setPropertyValue("FloatSelection", -5.2));
-    ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("FloatSelection"), -5.2);
+    ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("FloatSelection"), -5.2f);
 }
 
 TEST_F(ConfigProtocolPropertyObjectTest, InvalidWriteValueBasedSelection)
@@ -183,8 +183,8 @@ TEST_F(ConfigProtocolPropertyObjectTest, BeginEndUpdateValueBasedSelection)
     clientDevice.endUpdate();
     
     ASSERT_EQ(stringSelection.getValue(), "bar");
-    ASSERT_EQ(intSelection.getValue(), 6);
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2);
+    ASSERT_EQ(intSelection.getValue(), 6u);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2f);
 }
 
 TEST_F(ConfigProtocolPropertyObjectTest, UpdatableUpdateValueBasedSelection)
@@ -193,7 +193,7 @@ TEST_F(ConfigProtocolPropertyObjectTest, UpdatableUpdateValueBasedSelection)
     ASSERT_NO_THROW(stringSelection.setValue("bar"));
     
     auto intSelection = clientDevice.getProperty("IntSelection");
-    ASSERT_NO_THROW(intSelection.setValue(6));
+    ASSERT_NO_THROW(intSelection.setValue(6u));
     
     auto floatSelection = clientDevice.getProperty("FloatSelection");
     ASSERT_NO_THROW(floatSelection.setValue(10.2));
@@ -210,5 +210,5 @@ TEST_F(ConfigProtocolPropertyObjectTest, UpdatableUpdateValueBasedSelection)
     
     ASSERT_EQ(stringSelection.getValue(), "bar");
     ASSERT_EQ(intSelection.getValue(), 6);
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2f);
 }

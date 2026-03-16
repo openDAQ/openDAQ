@@ -179,14 +179,13 @@ TEST_F(PropertyTypeTest, EnumerationType)
 
 TEST_F(PropertyTypeTest, ReferenceType)
 {
-    // Reference properties always return the property type of the referenced property, so in this case Selection since it references
-    // IntList which is a selection property
+    // Reference properties are always of type Reference, but their value type is determined by the referenced property
 
     auto refProp = obj.getProperty("Reference");
     ASSERT_EQ(refProp.getValueType(), ctList);
     ASSERT_EQ(refProp.getItemType(), ctInt);
     ASSERT_EQ(refProp.getKeyType(), ctUndefined);
-    ASSERT_EQ(refProp.getPropertyType(), PropertyType::List);
+    ASSERT_EQ(refProp.getPropertyType(), PropertyType::Reference);
 }
 
 TEST_F(PropertyTypeTest, SparseSelectionType)
@@ -197,6 +196,7 @@ TEST_F(PropertyTypeTest, SparseSelectionType)
     ASSERT_EQ(sparseSelectionIntProp.getKeyType(), ctInt);
     ASSERT_TRUE(sparseSelectionIntProp.getSelectionValues().assigned());
     ASSERT_TRUE(sparseSelectionIntProp.getSelectionValues().supportsInterface<IDict>());
+    ASSERT_EQ(sparseSelectionIntProp.getPropertyType(), PropertyType::SparseSelection);
 }
 
 TEST_F(PropertyTypeTest, IndexSelectionType)
@@ -207,10 +207,32 @@ TEST_F(PropertyTypeTest, IndexSelectionType)
     ASSERT_EQ(indexSelectionIntProp.getKeyType(), ctUndefined);
     ASSERT_TRUE(indexSelectionIntProp.getSelectionValues().assigned());
     ASSERT_TRUE(indexSelectionIntProp.getSelectionValues().supportsInterface<IList>());
+    ASSERT_EQ(indexSelectionIntProp.getPropertyType(), PropertyType::IndexSelection);
 }
-
 
 TEST_F(PropertyTypeTest, ValueBasedSelectionTypes)
 {
-    
+    auto stringSelectionProp = obj.getProperty("StringSelection");
+    ASSERT_EQ(stringSelectionProp.getValueType(), ctString);
+    ASSERT_EQ(stringSelectionProp.getItemType(), ctUndefined);
+    ASSERT_EQ(stringSelectionProp.getKeyType(), ctUndefined);
+    ASSERT_TRUE(stringSelectionProp.getSelectionValues().assigned());
+    ASSERT_TRUE(stringSelectionProp.getSelectionValues().supportsInterface<IList>());
+    ASSERT_EQ(stringSelectionProp.getPropertyType(), PropertyType::Selection);
+
+    auto intSelectionProp = obj.getProperty("IntSelection");
+    ASSERT_EQ(intSelectionProp.getValueType(), ctInt);
+    ASSERT_EQ(intSelectionProp.getItemType(), ctUndefined);
+    ASSERT_EQ(intSelectionProp.getKeyType(), ctUndefined);
+    ASSERT_TRUE(intSelectionProp.getSelectionValues().assigned());
+    ASSERT_TRUE(intSelectionProp.getSelectionValues().supportsInterface<IList>());
+    ASSERT_EQ(floatSelectionProp.getPropertyType(), PropertyType::Selection);
+
+    auto floatSelectionProp = obj.getProperty("FloatSelection");
+    ASSERT_EQ(floatSelectionProp.getValueType(), ctFloat);
+    ASSERT_EQ(floatSelectionProp.getItemType(), ctUndefined);
+    ASSERT_EQ(floatSelectionProp.getKeyType(), ctUndefined);
+    ASSERT_TRUE(floatSelectionProp.getSelectionValues().assigned());
+    ASSERT_TRUE(floatSelectionProp.getSelectionValues().supportsInterface<IList>());
+    ASSERT_EQ(floatSelectionProp.getPropertyType(), PropertyType::Selection);
 }

@@ -15,13 +15,12 @@ public:
         obj.addProperty(SparseSelectionProperty("SparseSelectionInt", Dict<IInteger, IInteger>({{0, 10}, {5, 20}}), 5));
         obj.addProperty(SparseSelectionProperty("SparseSelectionString", Dict<IInteger, IString>({{0, "foo"}, {10, "bar"}}), 0));
 
-        obj.addProperty(SelectionProperty("IndexSelectionInt", List<IInteger>(10, 20, 30), 1));    // TODO: Is this factory named correctly?
-        obj.addProperty(SelectionProperty("IndexSelectionString", List<IString>("foo", "bar"), 0)); // TODO: Is this factory named correctly?
+        obj.addProperty(SelectionProperty("IndexSelectionInt", List<IInteger>(10, 20, 30), 1));
+        obj.addProperty(SelectionProperty("IndexSelectionString", List<IString>("foo", "bar"), 0));
 		
         // Non-index/sparse selections
-		// TODO: Add flag for non-index based selection
 		obj.addProperty(StringPropertyBuilder("StringSelection", "foo").setSelectionValues(List<IString>("foo", "bar")).build());
-		obj.addProperty(IntPropertyBuilder("IntSelection", 10).setSelectionValues(List<IInteger>(0, 6, 15, 10).setIsIntegerValueSelection).build());
+		obj.addProperty(IntPropertyBuilder("IntSelection", 10).setSelectionValues(List<IInteger>(0, 6, 15, 10)).setIsIntegerValueSelection().build());
 		obj.addProperty(FloatPropertyBuilder("FloatSelection", 5.12).setSelectionValues(List<IFloat>(0.12, -5.2, 5.12, 10.2)).build());
         
         // Non-index/sparse selections w/ references
@@ -30,7 +29,7 @@ public:
         obj.addProperty(ListProperty("FloatList", List<IFloat>(0.12, -5.2, 5.12, 10.2), false));
 
         obj.addProperty(StringPropertyBuilder("StringSelectionRef", "foo").setSelectionValues(EvalValue("StringList")).build());
-		obj.addProperty(IntPropertyBuilder("IntSelectionRef", 10).setSelectionValues(EvalValue("IntList").setIsIntegerValueSelection()).build());
+		obj.addProperty(IntPropertyBuilder("IntSelectionRef", 10).setSelectionValues(EvalValue("IntList")).setIsIntegerValueSelection().build());
 		obj.addProperty(FloatPropertyBuilder("FloatSelectionRef", 5.12).setSelectionValues(EvalValue("FloatList")).build());
 
         obj.addProperty(IntProperty("CallCount", 0));

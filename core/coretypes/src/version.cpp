@@ -1,10 +1,12 @@
 #include <coretypes/version.h>
 #include <coretypes/coretypes_config.h>
+#include <coretypes/exceptions.h>
 
 extern "C"
-void PUBLIC_EXPORT daqCoreTypesGetVersion(unsigned int* major, unsigned int* minor, unsigned int* revision)
+void PUBLIC_EXPORT daqCoreTypesGetVersion(unsigned int* /*major*/, unsigned int* /*minor*/, unsigned int* /*revision*/)
 {
-    *major = OPENDAQ_CORETYPES_MAJOR_VERSION;
-    *minor = OPENDAQ_CORETYPES_MINOR_VERSION;
-    *revision = OPENDAQ_CORETYPES_PATCH_VERSION;
+    throw(daq::NotCompatibleVersionException("The running version of openDAQ \"{}.{}.{}\" does not support obsolete mechanism for checking core dependencies version",
+                                             OPENDAQ_CORETYPES_MAJOR_VERSION,
+                                             OPENDAQ_CORETYPES_MINOR_VERSION,
+                                             OPENDAQ_CORETYPES_PATCH_VERSION));
 }

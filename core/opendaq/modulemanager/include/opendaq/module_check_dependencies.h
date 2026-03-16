@@ -15,52 +15,15 @@
  */
 
 #pragma once
-#include <coretypes/version.h>
-#include <coretypes/stringobject_factory.h>
-
-#include <fmt/format.h>
+#include <coretypes/common.h>
+#include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-struct LibraryVersion
-{
-    uint32_t major;
-    uint32_t minor;
-    uint32_t patch;
-};
+using EnumerateMetadataFieldFunc = void (*)(const char* /*metadataFieldKey*/, const char* /*metadataFieldValue*/, void* /*userData*/);
+using GetCoreVersionMetadataFunc = ErrCode (*)(EnumerateMetadataFieldFunc, void*);
 
-using VersionCheckFunc = decltype(daqCoreTypesGetVersion);
-
-// ReSharper disable once CppNonInlineFunctionDefinitionInHeaderFile
-bool isCompatibleVersion(const std::string& dependency,
-                         VersionCheckFunc getDependencyVersion,
-                         const LibraryVersion& compiledVersion,
-                         IString** errMsg)
-{
-    uint32_t linkedMajor{};
-    uint32_t linkedMinor{};
-    uint32_t linkedPatch{};
-
-    getDependencyVersion(&linkedMajor, &linkedMinor, &linkedPatch);
-    if (compiledVersion.major == linkedMajor)
-    {
-        return true;
-    }
-
-    if (errMsg != nullptr)
-    {
-        *errMsg = String(fmt::format("Incompatible {0} v{1}.{2}.{3} (expected compatible with v{4}.{5}.{6})",
-                                     dependency,
-                                     compiledVersion.major,
-                                     compiledVersion.minor,
-                                     compiledVersion.patch,
-                                     linkedMajor,
-                                     linkedMinor,
-                                     linkedPatch))
-                      .addRefAndReturn();
-    }
-
-    return false;
-}
+extern "C"
+ErrCode PUBLIC_EXPORT daqCoreValidateVersionMetadata(const GetCoreVersionMetadataFunc& getMetadata, IString** warningMessage);
 
 END_NAMESPACE_OPENDAQ

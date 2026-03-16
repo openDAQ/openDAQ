@@ -112,10 +112,10 @@ void BasicCsvRecorderImpl::addInputPort()
 
 void BasicCsvRecorderImpl::reconfigure()
 {
-    fs::path path = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
+    fs::path path = fs::path(static_cast<std::string>(objPtr.getPropertyValue(Props::PATH))).lexically_normal();
     bool pathChanged = false;
-    if (!cachedPath.has_value() || cachedPath.value() != path.string()){
-        cachedPath = path.string();
+    if (!cachedPath.has_value() || cachedPath.value() != path){
+        cachedPath = path;
         pathChanged = true;
     }
 

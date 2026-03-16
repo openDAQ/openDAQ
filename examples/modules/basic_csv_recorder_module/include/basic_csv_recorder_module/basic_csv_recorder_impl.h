@@ -162,7 +162,7 @@ class BasicCsvRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRec
         std::map<IInputPort *, std::shared_ptr<BasicCsvRecorderThread>> threads;
 
         unsigned portCount = 0;
-        std::optional<std::string> cachedPath;
+        std::optional<fs::path> cachedPath;
 };
 
 END_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE

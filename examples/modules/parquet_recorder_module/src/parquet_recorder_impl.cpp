@@ -145,11 +145,11 @@ void ParquetRecorderImpl::reconfigure()
 {
     LOG_D("ParquetRecorderImpl::reconfigure: Reconfiguring ParquetRecorder...");
     auto lock = getRecursiveConfigLock();
-    fs::path path = static_cast<std::string>(objPtr.getPropertyValue(Props::Path));
+    fs::path path = fs::path(static_cast<std::string>(objPtr.getPropertyValue(Props::Path))).lexically_normal();
 
     bool pathChanged = false;
-    if (!cachedPath.has_value() || cachedPath.value() != path.string()){
-        cachedPath = path.string();
+    if (!cachedPath.has_value() || cachedPath.value() != path){
+        cachedPath = path;
         pathChanged = true;
     }
 

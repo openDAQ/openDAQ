@@ -44,7 +44,7 @@ public:
         obj.addProperty(SelectionProperty("IndexSelectionString", List<IString>("foo", "bar"), 0));
 
         obj.addProperty(StringPropertyBuilder("StringSelection", "foo").setSelectionValues(List<IString>("foo", "bar")).build());
-        obj.addProperty(IntPropertyBuilder("IntSelection", 10).setSelectionValues(List<IInteger>(0, 6, 15, 10)).setIsIntegerValueSelection().build());
+        obj.addProperty(IntPropertyBuilder("IntSelection", 10).setSelectionValues(List<IInteger>(0, 6, 15, 10)).setIsValueSelectionProperty(false).build());
 		obj.addProperty(FloatPropertyBuilder("FloatSelection", 5.12).setSelectionValues(List<IFloat>(0.12, -5.2, 5.12, 10.2)).build());
     }
 

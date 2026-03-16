@@ -33,32 +33,32 @@ struct IPropertyBuilder;
  * @{
  */
 
-enum PropertyType : int
+enum class PropertyType : EnumType
 {
     // Mirrors CoreType enumeration
-    ptBool = 0,             ///< Boolean, True or False
-    ptInt = 1,              ///< 64 bit signed integer
-    ptFloat = 2,            ///< IEEE 754 64 bit floating point
-    ptString = 3,           ///< UTF8 zero terminated string
-    ptList = 4,             ///< List of IBaseObject
-    ptDict = 5,             ///< Dictionary of (key: IBaseObject, value: IBaseObject)
-    ptRatio = 6,            ///< Rational number (numerator / denominator)
-    ptProc = 7,             ///< Callback without return value
-    ptObject = 8,           ///< Generic object
-    ptBinaryData,           ///< Binary buffer with predefined size
-    ptFunc = 10,            ///< Callback with return value
-    ptComplexNumber = 11,   ///< Complex number (real, imaginary)
-    ptStruct = 12,          ///< Constant structure with dictionary of fields and types
-    ptEnumeration = 13,     ///< Enumeration representing a predefined set of named integral constants
+    Bool = 0,             ///< Boolean, True or False
+    Int = 1,              ///< 64 bit signed integer
+    Float = 2,            ///< IEEE 754 64 bit floating point
+    String = 3,           ///< UTF8 zero terminated string
+    List = 4,             ///< List of IBaseObject
+    Dict = 5,             ///< Dictionary of (key: IBaseObject, value: IBaseObject)
+    Ratio = 6,            ///< Rational number (numerator / denominator)
+    Procedure = 7,             ///< Callback without return value
+    Object = 8,           ///< Generic object
+    // BinaryData = 9,    ///< Binary buffer with predefined size
+    Function = 10,            ///< Callback with return value
+    // ComplexNumber = 11,///< Complex number (real, imaginary)
+    Struct = 12,          ///< Constant structure with dictionary of fields and types
+    Enumeration = 13,     ///< Enumeration representing a predefined set of named integral constants
 
     // Additional property types
-    ptReference = 0x1000,   ///< Reference property
-    ptIndexSelection,       ///< Index selection property
-    ptSelection,            ///< Selection property
-    ptSparseSelection,      ///< Sparse selection property
+    Reference = 0x1000,   ///< Reference property
+    IndexSelection,       ///< Index selection property
+    Selection,            ///< Selection property
+    SparseSelection,      ///< Sparse selection property
 
     // Last property type
-    ptUndefined = 0xFFFF,   ///< Undefined
+    Undefined = 0xFFFF,   ///< Undefined
 };
 
 /*#

@@ -378,9 +378,6 @@ private:
     // Adds the value to the local list of values (`propValues`)
     bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite = false);
 
-    // For selection props with String/Float value type: converts index/key to the selection item value for storage; otherwise returns value as-is
-    BaseObjectPtr convertSelectionIndexToValue(const PropertyPtr& prop, const BaseObjectPtr& value) const;
-    BaseObjectPtr convertSelectionValueToIndex(const PropertyPtr& prop, const BaseObjectPtr& value) const;
     
     // Child property handling - Used when a property is queried in the "parent.child" format
     static bool isChildProperty(const StringPtr& name);
@@ -1028,15 +1025,28 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelecti
     const auto selectionValues = prop.asPtr<IPropertyInternal>(true).getSelectionValuesNoLock();
     if (selectionValues.assigned())
     {
-        const SizeT key = value;
-        const auto list = selectionValues.asPtrOrNull<IList>();
-        if (list.assigned() && key < list.getCount())
-            return OPENDAQ_SUCCESS;
-
-        const auto dict = selectionValues.asPtrOrNull<IDict>();
-        if (dict.assigned() && dict.hasKey(value))
-            return OPENDAQ_SUCCESS;
-
+        if (prop.getPropertyType() == PropertyType::IndexSelection)
+        {
+            const SizeT key = value;
+            if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned() && key < list.getCount())
+                return OPENDAQ_SUCCESS;
+        }
+        else if (prop.getPropertyType() == PropertyType::Selection)
+        {
+            if (const auto list = selectionValues.asPtrOrNull<IList>(); list.assigned())
+            {
+                for (const auto& item : list)
+                {
+                    if (item == value)
+                        return OPENDAQ_SUCCESS;
+                }
+            }
+        }
+        else if (prop.getPropertyType() == PropertyType::SparseSelection)
+        {
+            if (const auto dict = selectionValues.asPtrOrNull<IDict>(true); dict.assigned() && dict.hasKey(value))
+                return OPENDAQ_SUCCESS;
+        }
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "Value is not a key/index of selection values.");
     }
 
@@ -1156,7 +1166,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
 
                 if (valuePtr == newValue)
                 {
-                    writeLocalValue(propName, convertSelectionIndexToValue(prop, newValue));
+                    writeLocalValue(propName, newValue);
                     setOwnerToPropertyValue(newValue);
                 }
 
@@ -1165,7 +1175,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             }
             else
             {
-                if (!writeLocalValue(propName, convertSelectionIndexToValue(prop, valuePtr)))
+                if (!writeLocalValue(propName, valuePtr))
                     return OPENDAQ_IGNORED;
                 setOwnerToPropertyValue(valuePtr);
             }
@@ -1235,46 +1245,6 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::shouldWriteLoca
         }
     }
     return true;
-}
-
-template <class PropObjInterface, class... Interfaces>
-BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::convertSelectionIndexToValue(const PropertyPtr& prop, const BaseObjectPtr& value) const
-{
-    if (!prop.assigned() || !value.assigned())
-        return value;
-
-    const auto propInternal = prop.template asPtr<IPropertyInternal>(true);
-    const auto valueType = propInternal.getValueTypeNoLock();
-    const auto selectionValues = propInternal.getSelectionValuesNoLock().asPtrOrNull<IList>();
-    if (!selectionValues.assigned() || (valueType != ctString && valueType != ctFloat))
-        return value;
-
-    const SizeT key = value;
-    if (key < selectionValues.getCount())
-        return selectionValues.getItemAt(key);
-
-    DAQ_THROW_EXCEPTION(NotFoundException, "Value is not a valid index or selection item value.");
-}
-
-template <class PropObjInterface, class... Interfaces>
-BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::convertSelectionValueToIndex(const PropertyPtr& prop, const BaseObjectPtr& value) const
-{
-    if (!prop.assigned() || !value.assigned())
-        return value;
-
-    const auto propInternal = prop.template asPtr<IPropertyInternal>(true);
-    const auto valueType = propInternal.getValueTypeNoLock();
-    const auto selectionValues = propInternal.getSelectionValuesNoLock().asPtrOrNull<IList>();
-    if (!selectionValues.assigned() || (valueType != ctString && valueType != ctFloat))
-        return value;
-
-    for (SizeT i = 0; i < selectionValues.getCount(); ++i)
-    {
-        if (selectionValues.getItemAt(i) == value)
-            return i;
-    }
-
-    DAQ_THROW_EXCEPTION(NotFoundException, "Value is not a valid selection item value.");
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -1741,16 +1711,22 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyS
 
         if (!prop.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" not found)", propName));
-
+        
         const auto propInternal = prop.asPtr<IPropertyInternal>(true);
-        auto selectionValues = propInternal.getSelectionValuesNoLock();
-
-        if (!selectionValues.assigned())
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Property "{}" has no selection values assigned)", propName));
-
+        const auto selectionValues = propInternal.getSelectionValuesNoLock();
         BaseObjectPtr indexOrKey;
-        if (auto valuesList = selectionValues.template asPtrOrNull<IList>(true); valuesList.assigned())
+
+        if (prop.getPropertyType() == PropertyType::IndexSelection)
         {
+            if (!selectionValues.assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, 
+                                           fmt::format(R"(Index selection property "{}" has no selection values assigned)", propName));
+
+            const auto valuesList = selectionValues.template asPtrOrNull<IList>(true);
+            if (!valuesList.assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, 
+                                           fmt::format(R"(Index selection property "{}" values is not a list)", propName));
+
             for (SizeT i = 0; i < valuesList.getCount(); ++i)
             {
                 if (valuesList.getItemAt(i) == valuePtr)
@@ -1759,9 +1735,21 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyS
                     break;
                 }
             }
+
+            if (!indexOrKey.assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, fmt::format(R"(Value not found in selection values of property "{}")", propName));
         }
-        else if (auto valuesDict = selectionValues.template asPtrOrNull<IDict>(true); valuesDict.assigned())
+        else if (prop.getPropertyType() == PropertyType::SparseSelection)
         {
+            if (!selectionValues.assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, 
+                                           fmt::format(R"(Sparse selection property "{}" has no selection values assigned)", propName));
+
+            const auto valuesDict = selectionValues.template asPtrOrNull<IDict>(true);
+            if (!valuesDict.assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, 
+                                           fmt::format(R"(Sparse selection property "{}" values is not a dictionary)", propName));
+
             for (const auto& [key, value] : valuesDict)
             {
                 if (value == valuePtr)
@@ -1770,14 +1758,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyS
                     break;
                 }
             }
-        }
-        else
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Property "{}" selection values is not a list or dictionary)", propName));
-        }
 
-        if (!indexOrKey.assigned())
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, fmt::format(R"(Value not found in selection values of property "{}")", propName));
+            if (!indexOrKey.assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, fmt::format(R"(Value not found in sparse selection values of property "{}")", propName));
+        }
+        else 
+        {
+            indexOrKey = valuePtr;
+        }
 
         return setPropertyValueInternal(propertyName, indexOrKey, true, protectedAccess, updateCount > 0);
     });
@@ -2077,15 +2065,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyV
             StringPtr subName;
             splitOnFirstDot(propName, propName, subName);
             err = getChildPropertyValue(propName, subName, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
         }
         else
         {
             PropertyPtr prop;
             err = getPropertyAndValueInternal(propName, valuePtr, prop, true, retrieveUpdatingValue);
-            OPENDAQ_RETURN_IF_FAILED(err);
-            valuePtr = convertSelectionValueToIndex(prop, valuePtr);
         }
+        OPENDAQ_RETURN_IF_FAILED(err);
 
         *value = valuePtr.detach();
         return err;

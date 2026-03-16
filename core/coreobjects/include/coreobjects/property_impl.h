@@ -73,7 +73,7 @@ class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IProperty
 protected:
     PropertyImpl()
         : owner(nullptr)
-        , propertyType(ptUndefined)
+        , propertyType(PropertyType::Undefined)
         , valueType(ctUndefined)
         , visible(true)
         , readOnly(false)
@@ -115,19 +115,19 @@ public:
         {
             if (this->selectionValues.supportsInterface<IList>())
             {
-                if (propertyBuilderPtr.getIsValueSelectionProperty())
-                    this->propertyType = ptSelection;
+                if (this->valueType == ctInt && !propertyBuilderPtr.getIsValueSelectionProperty())
+                    this->propertyType = PropertyType::IndexSelection;
                 else
-                    this->propertyType = ptIndexSelection;
+                    this->propertyType = PropertyType::Selection;
             }
             else if (this->selectionValues.supportsInterface<IDict>())
             {
-                this->propertyType = ptSparseSelection;
+                this->propertyType = PropertyType::SparseSelection;
             }
         }
         else if (this->refProp.assigned())
         {
-            this->propertyType = ptReference;
+            this->propertyType = PropertyType::Reference;
         }
         else 
         {
@@ -151,7 +151,7 @@ public:
     PropertyImpl(const StringPtr& name, IBoolean* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptBool;
+        this->propertyType = PropertyType::Bool;
         this->valueType = ctBool;
 
         const auto err = validateDuringConstruction();
@@ -162,7 +162,7 @@ public:
     PropertyImpl(const StringPtr& name, IInteger* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptInt;
+        this->propertyType = PropertyType::Int;
         this->valueType = ctInt;
 
         const auto err = validateDuringConstruction();
@@ -173,7 +173,7 @@ public:
     PropertyImpl(const StringPtr& name, IFloat* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptFloat;
+        this->propertyType = PropertyType::Float;
         this->valueType = ctFloat;
 
         const auto err = validateDuringConstruction();
@@ -184,7 +184,7 @@ public:
     PropertyImpl(const StringPtr& name, IString* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptString;
+        this->propertyType = PropertyType::String;
         this->valueType = ctString;
 
         const auto err = validateDuringConstruction();
@@ -195,7 +195,7 @@ public:
     PropertyImpl(const StringPtr& name, IList* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptList;
+        this->propertyType = PropertyType::List;
         this->valueType = ctList;
 
         const auto err = validateDuringConstruction();
@@ -206,7 +206,7 @@ public:
     PropertyImpl(const StringPtr& name, IDict* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptDict;
+        this->propertyType = PropertyType::Dict;
         this->valueType = ctDict;
 
         const auto err = validateDuringConstruction();
@@ -217,7 +217,7 @@ public:
     PropertyImpl(const StringPtr& name, IRatio* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptRatio;
+        this->propertyType = PropertyType::Ratio;
         this->valueType = ctRatio;
 
         const auto err = validateDuringConstruction();
@@ -228,7 +228,7 @@ public:
     PropertyImpl(const StringPtr& name, IPropertyObject* defaultValue)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), true)
     {
-        this->propertyType = ptObject;
+        this->propertyType = PropertyType::Object;
         this->valueType = ctObject;
 
         if (defaultValue == nullptr)
@@ -249,12 +249,12 @@ public:
         callableInfo->getReturnType(&returnType);
         if (returnType == ctUndefined)
         {
-            this->propertyType = ptProc;
+            this->propertyType = PropertyType::Procedure;
             this->valueType = ctProc;
         }
         else
         {
-            this->propertyType = ptFunc;
+            this->propertyType = PropertyType::Function;
             this->valueType = ctFunc;
         }
 
@@ -266,7 +266,7 @@ public:
     PropertyImpl(const StringPtr& name, IEvalValue* referencedProperty)
         : PropertyImpl(name)
     {
-        this->propertyType = ptReference;
+        this->propertyType = PropertyType::Reference;
         this->refProp = referencedProperty;
 
         const auto err = validateDuringConstruction();
@@ -277,7 +277,7 @@ public:
     PropertyImpl(const StringPtr& name, IList* selectionValues, IInteger* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptIndexSelection;
+        this->propertyType = PropertyType::IndexSelection;
         this->valueType = ctInt;
         this->selectionValues = BaseObjectPtr(selectionValues);
 
@@ -289,7 +289,7 @@ public:
     PropertyImpl(const StringPtr& name, IDict* selectionValues, IInteger* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptSparseSelection;
+        this->propertyType = PropertyType::SparseSelection;
         this->valueType = ctInt;
         this->selectionValues = BaseObjectPtr(selectionValues);
 
@@ -301,7 +301,7 @@ public:
     PropertyImpl(const StringPtr& name, IStruct* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptStruct;
+        this->propertyType = PropertyType::Struct;
         this->valueType = ctStruct;
         this->selectionValues = BaseObjectPtr(selectionValues);
 
@@ -313,7 +313,7 @@ public:
     PropertyImpl(const StringPtr& name, IEnumeration* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
-        this->propertyType = ptEnumeration;
+        this->propertyType = PropertyType::Enumeration;
         this->valueType = ctEnumeration;
         this->selectionValues = BaseObjectPtr(selectionValues);
 
@@ -1103,7 +1103,7 @@ public:
 
         if (selectionValues.assigned())
         {
-            if (this->propertyType == ptIndexSelection)
+            if (this->propertyType == PropertyType::IndexSelection)
             {
                 if (valueType != ctInt)
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Index selection property {} must have a value type of Int)", name));
@@ -1119,7 +1119,7 @@ public:
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a list for property {})", name));
                 }
             }
-            else if (this->propertyType == ptSparseSelection)
+            else if (this->propertyType == PropertyType::SparseSelection)
             {
                 if (valueType != ctInt)
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Sparse selection property {} must have a value type of Int)", name));
@@ -1134,7 +1134,7 @@ public:
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a dictionary for property {})", name));
                 }
             }
-            else if (this->propertyType == ptSelection)
+            else if (this->propertyType == PropertyType::Selection)
             {
                 if (valueType != ctInt && valueType != ctString && valueType != ctFloat)
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection property {} must have a value type of Int, String or Float)", name));
@@ -1290,7 +1290,7 @@ public:
             SERIALIZE_PROP_PTR(description)
 
             serializer->key("propertyType");
-            serializer->writeInt(this->propertyType);
+            serializer->writeInt(static_cast<Int>(this->propertyType));
 
             serializer->key("valueType");
             serializer->writeInt(this->valueType);
@@ -1371,8 +1371,8 @@ public:
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
             PropertyType propertyType = static_cast<PropertyType>(propertyTypeId);
-            bool isValueSelectionProperty = propertyType == ptSelection || propertyType == ptSparseSelection;
-            OPENDAQ_RETURN_IF_FAILED(builder->setIsValueSelectionProperty(propertyType));
+            bool isValueSelectionProperty = propertyType == PropertyType::Selection || propertyType == PropertyType::SparseSelection;
+            OPENDAQ_RETURN_IF_FAILED(builder->setIsValueSelectionProperty(isValueSelectionProperty));
         }
         DESERIALIZE_MEMBER(context, factoryCallback, description, setDescription)
 
@@ -1472,7 +1472,7 @@ public:
             if (cloneableDefaultValue.assigned())
                 defaultValueObj = cloneableDefaultValue.clone();
 
-            const bool isValueSelectionProperty = propertyType == ptSelection || propertyType == ptSparseSelection;
+            const bool isValueSelectionProperty = propertyType == PropertyType::Selection || propertyType == PropertyType::SparseSelection;
 
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)

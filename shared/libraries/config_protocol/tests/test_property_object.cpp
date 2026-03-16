@@ -1,9 +1,9 @@
+#include <opendaq/component_factory.h>
 #include <config_protocol/config_client_object_ptr.h>
 #include <gtest/gtest.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
 #include <opendaq/mock/advanced_components_setup_utils.h>
-#include <opendaq/context_factory.h>
 #include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/user_factory.h>
 #include <opendaq/instance_factory.h>
@@ -54,7 +54,7 @@ public:
         obj.addProperty(SelectionProperty("IndexSelectionString", List<IString>("foo", "bar"), 0));
 
 		obj.addProperty(StringPropertyBuilder("StringSelection", "foo").setSelectionValues(List<IString>("foo", "bar")).build());
-		obj.addProperty(IntPropertyBuilder("IntSelection", 10).setSelectionValues(List<IInteger>(0, 6, 15, 10).setIsIntegerValueSelection).build());
+		obj.addProperty(IntPropertyBuilder("IntSelection", 10).setSelectionValues(List<IInteger>(0, 6, 15, 10)).setIsValueSelectionProperty(true).build());
 		obj.addProperty(FloatPropertyBuilder("FloatSelection", 5.12).setSelectionValues(List<IFloat>(0.12, -5.2, 5.12, 10.2)).build());
     }
 

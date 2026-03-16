@@ -29,6 +29,7 @@ set(TEST_SOURCES test_property.cpp
                  test_permission_mask_builder.cpp
                  test_property_search.cpp
                  test_selection_properties.cpp
+                 test_property_types.cpp
 )
 
 set(TEST_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/coreobjects_test.h

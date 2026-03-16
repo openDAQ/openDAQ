@@ -384,13 +384,13 @@ class PropertiesTreeview(ttk.Treeview):
         bbox = self.bbox(iid, '#1')
         if not bbox:
             return None
-        x, y, width, height = bbox
+        x, combo_y, width, combo_height = self._get_overlay_place_geometry(bbox)
         #width -= self._scroll_bar.winfo_width()
 
         state = 'normal' if editable else 'readonly'
         cb = ttk.Combobox(self, values=values, state=state, style='Selection.TCombobox')
         cb.set(current_value)
-        cb.place(x=x, y=y, width=width, height=height)
+        cb.place(x=x, y=combo_y, width=width, height=combo_height)
         if not editable:
             def _toggle_dropdown(e, _cb=cb):
                 # Manually toggle dropdown and block default Tk click handling
@@ -429,7 +429,7 @@ class PropertiesTreeview(ttk.Treeview):
         bbox = self.bbox(iid, '#1')
         if not bbox:
             return
-        x, y, width, height = bbox
+        x, y, width, height = self._get_overlay_place_geometry(bbox)
         var = tk.BooleanVar(value=bool(prop.value))
         cb = ttk.Checkbutton(self, variable=var, takefocus=False, style='Overlay.TCheckbutton')
         cb.place(x=x, y=y, width=width, height=height)
@@ -533,12 +533,19 @@ class PropertiesTreeview(ttk.Treeview):
         except tk.TclError:
             pass
 
+    def _get_overlay_place_geometry(self, bbox):
+        x, y, width, height = bbox
+        vertical_inset = max(1, int(self.context.dpi_factor))
+        place_y = y + vertical_inset
+        place_height = max(1, height - 2 * vertical_inset)
+        return x, place_y, width, place_height
+
     def _reposition_overlay_comboboxes(self):
         for iid, cb in list(self._overlay_comboboxes.items()):
             bbox = self.bbox(iid, '#1')
             if bbox:
-                x, y, width, height = bbox
-                cb.place(x=x, y=y, width=width, height=height)
+                x, place_y, width, place_height = self._get_overlay_place_geometry(bbox)
+                cb.place(x=x, y=place_y, width=width, height=place_height)
                 cb.lift()
             else:
                 cb.place_forget()

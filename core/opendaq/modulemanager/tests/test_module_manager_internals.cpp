@@ -218,7 +218,6 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleWithIdAfterAddedFromMemory)
     fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
     LOG_I("Load module: \"{}\"", modulePath.string());
 
-    ModulePtr module;
     ASSERT_THROW_MSG(
         auto module = manager.loadModule(modulePath.string()),
         AlreadyExistsException,

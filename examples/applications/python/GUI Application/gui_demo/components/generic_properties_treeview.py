@@ -420,9 +420,12 @@ class PropertiesTreeview(ttk.Treeview):
             cb.bind('<Button-1>', _toggle_dropdown)
             cb.bind('<Escape>', _clear_active_if_needed)
             cb.bind('<FocusOut>', _clear_active_if_needed)
-        cb.bind('<MouseWheel>', lambda e: (
-            self.yview_scroll(int(-1 * (e.delta / 120)), 'units'),
-            self._reposition_overlay_comboboxes()))
+        def _on_mousewheel(e):
+            self.yview_scroll(int(-1 * (e.delta / 120)), 'units')
+            self._reposition_overlay_comboboxes()
+            return 'break'
+
+        cb.bind('<MouseWheel>', _on_mousewheel)
         return cb
 
     def _place_bool_checkbox(self, iid, prop):

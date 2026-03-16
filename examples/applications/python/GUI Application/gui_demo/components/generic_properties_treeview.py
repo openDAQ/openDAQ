@@ -21,8 +21,10 @@ class PropertiesTreeview(ttk.Treeview):
         self.context = context
         self.node = node
         self._overlay_comboboxes = {}
+        self._overlay_items = {}
         self._active_dropdown_cb = None
         self._last_configure_size = (0, 0)
+        self._syncing_overlays = False
 
         style = ttk.Style(self)
         style.configure('Selection.TCombobox',
@@ -36,12 +38,12 @@ class PropertiesTreeview(ttk.Treeview):
         self._scroll_bar = ttk.Scrollbar(
             self, orient=tk.VERTICAL, command=self.yview)
         self.configure(yscrollcommand=lambda *a: (
-            self._scroll_bar.set(*a), self._reposition_overlay_comboboxes()))
+            self._scroll_bar.set(*a), self._sync_overlays()))
         self._scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
         scroll_bar_x = ttk.Scrollbar(
             self, orient=tk.HORIZONTAL, command=self.xview)
         self.configure(xscrollcommand=lambda *a: (
-            scroll_bar_x.set(*a), self.after_idle(self._reposition_overlay_comboboxes)))
+            scroll_bar_x.set(*a), self.after_idle(self._sync_overlays)))
         scroll_bar_x.pack(side=tk.BOTTOM, fill=tk.X)
         self.pack(fill=tk.BOTH, expand=True)
 
@@ -63,20 +65,23 @@ class PropertiesTreeview(ttk.Treeview):
         # bind double-click to editing
         self.bind('<Double-1>', lambda event: self.edit_value())
         self.bind('<Button-3>', lambda event: self.show_menu(event))
-        self.bind('<MouseWheel>', lambda e: self.after_idle(self._reposition_overlay_comboboxes))
-        self.bind('<ButtonRelease-1>', lambda e: self.after(10, self._reposition_overlay_comboboxes), add='+')
+        self.bind('<MouseWheel>', lambda e: self.after_idle(self._sync_overlays))
+        self.bind('<ButtonRelease-1>', lambda e: self.after(10, self._sync_overlays), add='+')
         self.bind('<Configure>', self._on_configure)
-        self.bind('<Map>', lambda e: self.after_idle(self._place_overlay_comboboxes))
+        self.bind('<Map>', lambda e: self.after_idle(self._sync_overlays) if e.widget is self else None)
+        self.winfo_toplevel().bind('<<DialogReady>>', lambda e: self._sync_overlays(), add='+')
 
         self.refresh()
 
     def refresh(self):
         self._clear_overlay_comboboxes()
+        self._overlay_items = {}
         self.delete(*self.get_children())
         if self.node is not None:
             if daq.IPropertyObject.can_cast_from(self.node):
                 self.fill_properties('', daq.IPropertyObject.cast_from(self.node), self.hidden)
-        self.after_idle(self._place_overlay_comboboxes)
+            self._collect_overlay_items('')
+        self.after_idle(self._sync_overlays)
 
     def fill_list(self, parent_iid, l, read_only):
         for i, value in enumerate(l):
@@ -358,27 +363,51 @@ class PropertiesTreeview(ttk.Treeview):
                 indices.append(i)
         return labels, indices
 
-    def _place_overlay_comboboxes(self):
-        self._clear_overlay_comboboxes()
-        if self.node is None:
-            return
-        self._place_comboboxes_recursive('')
-
-    def _place_comboboxes_recursive(self, parent_iid):
+    def _collect_overlay_items(self, parent_iid):
         for iid in self.get_children(parent_iid):
             path = utils.get_item_path(self, iid)
             prop = utils.get_property_for_path(self.context, path, self.node)
             if prop and not prop.read_only:
-                if prop.value_type == daq.CoreType.ctBool:
-                    self._place_bool_checkbox(iid, prop)
-                elif prop.selection_values is not None and len(prop.selection_values) > 0:
-                    self._place_selection_combobox(iid, prop)
-                elif prop.value_type == daq.CoreType.ctEnumeration:
-                    self._place_enum_combobox(iid, prop)
-                elif (prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt)
-                      and prop.suggested_values is not None and len(prop.suggested_values) > 0):
-                    self._place_suggested_combobox(iid, prop)
-            self._place_comboboxes_recursive(iid)
+                if (prop.value_type == daq.CoreType.ctBool
+                        or (prop.selection_values is not None and len(prop.selection_values) > 0)
+                        or prop.value_type == daq.CoreType.ctEnumeration
+                        or (prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt)
+                            and prop.suggested_values is not None and len(prop.suggested_values) > 0)):
+                    self._overlay_items[iid] = prop
+            self._collect_overlay_items(iid)
+
+    def _create_overlay_for_item(self, iid, prop):
+        if prop.value_type == daq.CoreType.ctBool:
+            self._place_bool_checkbox(iid, prop)
+        elif prop.selection_values is not None and len(prop.selection_values) > 0:
+            self._place_selection_combobox(iid, prop)
+        elif prop.value_type == daq.CoreType.ctEnumeration:
+            self._place_enum_combobox(iid, prop)
+        elif (prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt)
+              and prop.suggested_values is not None and len(prop.suggested_values) > 0):
+            self._place_suggested_combobox(iid, prop)
+
+    def _sync_overlays(self):
+        if self._syncing_overlays:
+            return
+        self._syncing_overlays = True
+        try:
+            if not self.winfo_viewable():
+                return
+            for iid, prop in self._overlay_items.items():
+                bbox = self.bbox(iid, '#1')
+                if bbox:
+                    if iid not in self._overlay_comboboxes:
+                        self._create_overlay_for_item(iid, prop)
+                    else:
+                        x, py, w, ph = self._get_overlay_place_geometry(bbox)
+                        self._overlay_comboboxes[iid].place(x=x, y=py, width=w, height=ph)
+                        self._overlay_comboboxes[iid].lift()
+                else:
+                    if iid in self._overlay_comboboxes:
+                        self._overlay_comboboxes[iid].place_forget()
+        finally:
+            self._syncing_overlays = False
 
     def _make_combobox(self, iid, values, current_value, editable=False):
         bbox = self.bbox(iid, '#1')
@@ -422,7 +451,7 @@ class PropertiesTreeview(ttk.Treeview):
             cb.bind('<FocusOut>', _clear_active_if_needed)
         def _on_mousewheel(e):
             self.yview_scroll(int(-1 * (e.delta / 120)), 'units')
-            self._reposition_overlay_comboboxes()
+            self._sync_overlays()
             return 'break'
 
         cb.bind('<MouseWheel>', _on_mousewheel)
@@ -446,9 +475,12 @@ class PropertiesTreeview(ttk.Treeview):
             self.refresh()
 
         cb.configure(command=on_change)
-        cb.bind('<MouseWheel>', lambda e: (
-            self.yview_scroll(int(-1 * (e.delta / 120)), 'units'),
-            self._reposition_overlay_comboboxes()))
+        def _on_mousewheel(e):
+            self.yview_scroll(int(-1 * (e.delta / 120)), 'units')
+            self._sync_overlays()
+            return 'break'
+
+        cb.bind('<MouseWheel>', _on_mousewheel)
         self._overlay_comboboxes[iid] = cb
 
     def _place_selection_combobox(self, iid, prop):
@@ -525,14 +557,11 @@ class PropertiesTreeview(ttk.Treeview):
         self._overlay_comboboxes[iid] = cb
 
     def _on_configure(self, event):
-        # Only reposition overlays when the widget actually changed size (e.g. window
-        # resize). Skip when only internal layout changed (e.g. column resize) so we
-        # don't interfere with the treeview's column resize commit.
         try:
             w, h = self.winfo_width(), self.winfo_height()
             if (w, h) != self._last_configure_size and w > 1 and h > 1:
                 self._last_configure_size = (w, h)
-                self.after_idle(self._reposition_overlay_comboboxes)
+                self.after_idle(self._sync_overlays)
         except tk.TclError:
             pass
 
@@ -542,16 +571,6 @@ class PropertiesTreeview(ttk.Treeview):
         place_y = y + vertical_inset
         place_height = max(1, height - 2 * vertical_inset)
         return x, place_y, width, place_height
-
-    def _reposition_overlay_comboboxes(self):
-        for iid, cb in list(self._overlay_comboboxes.items()):
-            bbox = self.bbox(iid, '#1')
-            if bbox:
-                x, place_y, width, place_height = self._get_overlay_place_geometry(bbox)
-                cb.place(x=x, y=place_y, width=width, height=place_height)
-                cb.lift()
-            else:
-                cb.place_forget()
 
     def edit_struct_property(self, selected_item_id, name, parent):
         x, y, width, height = self.bbox(selected_item_id, '#1')

@@ -544,3 +544,5 @@ TEST_F(DeviceUpdateOptionsTest, SerializeDeserialize)
 
     ASSERT_EQ(options, optionsDeserialized);
 }
+
+//TODO: Test component update context serialize/deserialize

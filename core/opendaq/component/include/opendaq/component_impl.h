@@ -856,6 +856,9 @@ template <class Intf, class... Intfs>
 ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj, IBaseObject* config)
 {
     auto configPtr = BaseObjectPtr::Borrow(config);
+
+    // Config object can be either the update parameters provided by the user
+    // or the constructed context when propagated from a native configuration client.
     if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>() && !configPtr.supportsInterface<IComponentUpdateContext>())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update config does not support IUpdateParameters or IComponentUpdateContext");
 

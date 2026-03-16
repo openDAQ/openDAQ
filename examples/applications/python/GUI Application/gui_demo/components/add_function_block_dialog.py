@@ -82,18 +82,16 @@ class AddFunctionBlockDialog(Dialog):
         self.grid_columnconfigure(1, weight=2)
         self.grid_columnconfigure((0, 1), uniform='uniform')
 
-        def show_fb_add_menu():
-            menu = tk.Menu(tree_frame, tearoff=0)
-            menu.add_command(label='Add with config',
-                             command=lambda: self.handle_button(True))
-            menu.tk_popup(self._fb_dropdown_btn.winfo_rootx(),
-                          self._fb_dropdown_btn.winfo_rooty() + self._fb_dropdown_btn.winfo_height())
-
-        self._fb_dropdown_btn = ttk.Button(tree_frame, text='▼', width=3,
-                                           command=show_fb_add_menu, state=tk.DISABLED)
-        self._fb_dropdown_btn.pack(side=tk.RIGHT, padx=(0, 0))
-        ttk.Button(tree_frame, text='Add',
-                   command=lambda: self.handle_button(False)).pack(side=tk.RIGHT, padx=(0, 2))
+        actions_row = ttk.Frame(tree_frame)
+        self._keep_open_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(actions_row, text='Keep open after adding',
+                        variable=self._keep_open_var).pack(side=tk.LEFT)
+        self._fb_config_btn = ttk.Button(actions_row, text='Add with config\u2026',
+                                         command=lambda: self.handle_button(True), state=tk.DISABLED)
+        self._fb_config_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        ttk.Button(actions_row, text='Add',
+                   command=lambda: self.handle_button(False)).pack(side=tk.RIGHT)
+        actions_row.pack(fill=tk.X, pady=(4, 0))
 
     def initial_update(self):
         self.update_dialog()
@@ -169,7 +167,7 @@ class AddFunctionBlockDialog(Dialog):
                 can_config = len(cfg.all_properties) > 0
             except Exception:
                 pass
-        self._fb_dropdown_btn.configure(state=tk.NORMAL if can_config else tk.DISABLED)
+        self._fb_config_btn.configure(state=tk.NORMAL if can_config else tk.DISABLED)
 
     def handle_right_click(self, event):
         utils.treeview_select_item(self.fb_tree, event)
@@ -254,7 +252,7 @@ class AddFunctionBlockDialog(Dialog):
         tree = PropertiesView(frame, configuration, self.context)
         tree.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Button(win, text="Add", command=apply).pack(side=tk.BOTTOM)
+        ttk.Button(win, text="Add", command=apply).pack(side=tk.BOTTOM, anchor=tk.E, padx=5, pady=5)
 
         # Center over the main window
         win.update_idletasks()
@@ -280,4 +278,7 @@ class AddFunctionBlockDialog(Dialog):
             return
         parent_top.configure(cursor='')
         self.event_port.emit()
-        self.close()
+        if self._keep_open_var.get():
+            self.update_function_blocks()
+        else:
+            self.close()

@@ -75,23 +75,23 @@ class AddDeviceDialog(Dialog):
         device_tree_frame.pack(fill=tk.BOTH, expand=True)
 
         add_device_frame = ttk.Frame(right_side_frame)
-        ttk.Label(add_device_frame, text='Connection string:').pack(side=tk.LEFT)
-        self.conn_string_entry = ttk.Entry(add_device_frame)
+
+        conn_row = ttk.Frame(add_device_frame)
+        ttk.Label(conn_row, text='Connection string:').pack(side=tk.LEFT)
+        self.conn_string_entry = ttk.Entry(conn_row)
         self.conn_string_entry.bind('<Return>', self.handle_entry_enter)
         self.conn_string_entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=5)
+        conn_row.pack(fill=tk.X)
 
-        def show_add_menu():
-            menu = tk.Menu(add_device_frame, tearoff=0)
-            menu.add_command(label='Add with config',
-                             command=lambda: self.process_add_device(True))
-            menu.tk_popup(add_dropdown_btn.winfo_rootx(),
-                          add_dropdown_btn.winfo_rooty() + add_dropdown_btn.winfo_height())
-
-        add_dropdown_btn = ttk.Button(add_device_frame, text='▼', width=3,
-                                      command=show_add_menu)
-        add_dropdown_btn.pack(side=tk.RIGHT, padx=(0, 0))
-        ttk.Button(add_device_frame, text='Add',
-                   command=self.handle_add_clicked).pack(side=tk.RIGHT, padx=(0, 2))
+        actions_row = ttk.Frame(add_device_frame)
+        self._keep_open_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(actions_row, text='Keep open after adding',
+                        variable=self._keep_open_var).pack(side=tk.LEFT)
+        ttk.Button(actions_row, text='Add with config\u2026',
+                   command=lambda: self.process_add_device(True)).pack(side=tk.RIGHT, padx=(5, 0))
+        ttk.Button(actions_row, text='Add',
+                   command=self.handle_add_clicked).pack(side=tk.RIGHT)
+        actions_row.pack(fill=tk.X, pady=(4, 0))
 
         add_device_frame.pack(side=tk.BOTTOM, fill=tk.X,
                               padx=(5, 0), pady=(5, 0))
@@ -248,7 +248,10 @@ class AddDeviceDialog(Dialog):
             return
         parent_top.configure(cursor='')
         self.event_port.emit()
-        self.close()
+        if self._keep_open_var.get():
+            self.update_child_devices(self.device_tree, self.dialog_parent_device)
+        else:
+            self.close()
 
     def handle_add_clicked(self):
         self.process_add_device(False)

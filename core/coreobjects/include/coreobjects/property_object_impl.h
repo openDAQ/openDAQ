@@ -1737,7 +1737,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyS
         }
 
         PropertyPtr prop = getUnboundProperty(propName);
-        prop = checkForRefPropAndGetBoundProp(prop);
+        prop = checkForRefPropAndGetBoundProp(prop, objPtr);
 
         if (!prop.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" not found)", propName));

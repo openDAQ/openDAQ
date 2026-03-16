@@ -324,6 +324,19 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
      * @param event The on-read event.
      */
     virtual ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the value selection property flag.
+     * @param isValueSelectionProperty The value selection property flag.
+     */
+    virtual ErrCode INTERFACE_FUNC setIsValueSelectionProperty(Bool isValueSelectionProperty) = 0;
+
+    /*!
+     * @brief Sets the value selection property flag.
+     * @param isValueSelectionProperty The value selection property flag.
+     */
+    virtual ErrCode INTERFACE_FUNC getIsValueSelectionProperty(Bool* isValueSelectionProperty) = 0;
 };
 
 /*!@}*/

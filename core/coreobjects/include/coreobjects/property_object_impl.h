@@ -1074,7 +1074,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
         return true;
     };
 
-    const auto propInternal = prop.asPtr<IPropertyInternal>();
+    const auto propInternal = prop.asPtr<IPropertyInternal>(true);
     if (coreType == ctDict)
     {
         const auto dict = value.asPtr<IDict>();

@@ -130,6 +130,7 @@ public:
     ErrCode Property_SetValue(IBaseObject* value) override;
     ErrCode Property_GetOnSuggestedValuesRead(IEvent** event) override;
     ErrCode Property_GetOnSelectionValuesRead(IEvent** event) override;
+    ErrCode Property_GetPropertyType(PropertyType* propertyType) override;
 
     // IUnit
 

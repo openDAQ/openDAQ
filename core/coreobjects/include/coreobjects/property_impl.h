@@ -73,6 +73,7 @@ class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IProperty
 protected:
     PropertyImpl()
         : owner(nullptr)
+        , propertyType(ptUndefined)
         , valueType(ctUndefined)
         , visible(true)
         , readOnly(false)
@@ -110,6 +111,29 @@ public:
         this->onSuggestedValuesRead = (IEvent*) propertyBuilderPtr.getOnSuggestedValuesRead();
         this->onSelectionValuesRead = (IEvent*) propertyBuilderPtr.getOnSelectionValuesRead();
 
+        if (this->selectionValues.assigned())
+        {
+            if (this->selectionValues.supportsInterface<IList>())
+            {
+                if (propertyBuilderPtr.getIsValueSelectionProperty())
+                    this->propertyType = ptSelection;
+                else
+                    this->propertyType = ptIndexSelection;
+            }
+            else if (this->selectionValues.supportsInterface<IDict>())
+            {
+                this->propertyType = ptSparseSelection;
+            }
+        }
+        else if (this->refProp.assigned())
+        {
+            this->propertyType = ptReference;
+        }
+        else 
+        {
+            this->propertyType = static_cast<PropertyType>(this->valueType);
+        }
+
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
 
@@ -127,6 +151,7 @@ public:
     PropertyImpl(const StringPtr& name, IBoolean* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptBool;
         this->valueType = ctBool;
 
         const auto err = validateDuringConstruction();
@@ -137,6 +162,7 @@ public:
     PropertyImpl(const StringPtr& name, IInteger* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptInt;
         this->valueType = ctInt;
 
         const auto err = validateDuringConstruction();
@@ -147,6 +173,7 @@ public:
     PropertyImpl(const StringPtr& name, IFloat* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptFloat;
         this->valueType = ctFloat;
 
         const auto err = validateDuringConstruction();
@@ -157,6 +184,7 @@ public:
     PropertyImpl(const StringPtr& name, IString* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptString;
         this->valueType = ctString;
 
         const auto err = validateDuringConstruction();
@@ -167,6 +195,7 @@ public:
     PropertyImpl(const StringPtr& name, IList* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptList;
         this->valueType = ctList;
 
         const auto err = validateDuringConstruction();
@@ -177,6 +206,7 @@ public:
     PropertyImpl(const StringPtr& name, IDict* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptDict;
         this->valueType = ctDict;
 
         const auto err = validateDuringConstruction();
@@ -187,6 +217,7 @@ public:
     PropertyImpl(const StringPtr& name, IRatio* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptRatio;
         this->valueType = ctRatio;
 
         const auto err = validateDuringConstruction();
@@ -197,6 +228,7 @@ public:
     PropertyImpl(const StringPtr& name, IPropertyObject* defaultValue)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), true)
     {
+        this->propertyType = ptObject;
         this->valueType = ctObject;
 
         if (defaultValue == nullptr)
@@ -217,10 +249,12 @@ public:
         callableInfo->getReturnType(&returnType);
         if (returnType == ctUndefined)
         {
+            this->propertyType = ptProc;
             this->valueType = ctProc;
         }
         else
         {
+            this->propertyType = ptFunc;
             this->valueType = ctFunc;
         }
 
@@ -232,6 +266,7 @@ public:
     PropertyImpl(const StringPtr& name, IEvalValue* referencedProperty)
         : PropertyImpl(name)
     {
+        this->propertyType = ptReference;
         this->refProp = referencedProperty;
 
         const auto err = validateDuringConstruction();
@@ -242,6 +277,7 @@ public:
     PropertyImpl(const StringPtr& name, IList* selectionValues, IInteger* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptIndexSelection;
         this->valueType = ctInt;
         this->selectionValues = BaseObjectPtr(selectionValues);
 
@@ -253,6 +289,7 @@ public:
     PropertyImpl(const StringPtr& name, IDict* selectionValues, IInteger* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptSparseSelection;
         this->valueType = ctInt;
         this->selectionValues = BaseObjectPtr(selectionValues);
 
@@ -264,6 +301,7 @@ public:
     PropertyImpl(const StringPtr& name, IStruct* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptStruct;
         this->valueType = ctStruct;
         this->selectionValues = BaseObjectPtr(selectionValues);
 
@@ -275,11 +313,19 @@ public:
     PropertyImpl(const StringPtr& name, IEnumeration* defaultValue, const BooleanPtr& visible)
         : PropertyImpl(name, BaseObjectPtr(defaultValue), visible)
     {
+        this->propertyType = ptEnumeration;
         this->valueType = ctEnumeration;
         this->selectionValues = BaseObjectPtr(selectionValues);
 
         const auto err = validateDuringConstruction();
         checkErrorInfo(err);
+    }
+
+    ErrCode INTERFACE_FUNC getPropertyType(PropertyType* type) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(type);
+        *type = this->propertyType;
+        return OPENDAQ_SUCCESS;
     }
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
@@ -329,12 +375,12 @@ public:
         if (!defVal.assigned())
             return OPENDAQ_SUCCESS;
 
-        const auto value = defVal.asPtrOrNull<IDict>();
+        const auto value = defVal.asPtrOrNull<IDict>(true);
         if (!value.assigned())
             return OPENDAQ_SUCCESS;
 
         IntfID intfID;
-        err = value.asPtr<IDictElementType>()->getKeyInterfaceId(&intfID);
+        err = value.asPtr<IDictElementType>(true)->getKeyInterfaceId(&intfID);
         OPENDAQ_RETURN_IF_FAILED(err);
 
         auto coreType = details::intfIdToCoreType(intfID);
@@ -599,7 +645,7 @@ public:
 	    const ErrCode errCode = daqTry([&]()
         {
             if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-                *visible = lock ? prop.getVisible() : prop.asPtr<IPropertyInternal>().getVisibleNoLock();
+                *visible = lock ? prop.getVisible() : prop.asPtr<IPropertyInternal>(true).getVisibleNoLock();
             else
                 *visible = bindAndGet<BooleanPtr>(this->visible, lock);
         });
@@ -624,7 +670,7 @@ public:
 	    const ErrCode errCode = daqTry([&]()
         {
             if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-                *readOnly = lock ? prop.getReadOnly() : prop.asPtr<IPropertyInternal>().getReadOnlyNoLock();
+                *readOnly = lock ? prop.getReadOnly() : prop.asPtr<IPropertyInternal>(true).getReadOnlyNoLock();
             else
                 *readOnly = bindAndGet<BooleanPtr>(this->readOnly, lock);
         });
@@ -658,7 +704,7 @@ public:
                     *values = args.getValue().detach();
                 }
 		        else if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *values = lock ? prop.getSelectionValues().detach() : prop.asPtr<IPropertyInternal>().getSelectionValuesNoLock().detach();
+			        *values = lock ? prop.getSelectionValues().detach() : prop.asPtr<IPropertyInternal>(true).getSelectionValuesNoLock().detach();
 		        else
 			        *values = bindAndGet<BaseObjectPtr>(this->selectionValues, lock).detach();
 			        
@@ -710,7 +756,7 @@ public:
             *isReferenced = false;
             if (const auto ownerPtr = getOwner(); ownerPtr.assigned())
             {
-                const auto ownerInternal = ownerPtr.asPtr<IPropertyObjectInternal>();
+                const auto ownerInternal = ownerPtr.asPtr<IPropertyObjectInternal>(true);
                 *isReferenced = lock ? ownerInternal.checkForReferences(propPtr) : ownerInternal.checkForReferencesNoLock(propPtr);
             }
         });
@@ -735,7 +781,7 @@ public:
 	    const ErrCode errCode = daqTry([&]()
         {
             if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-                *validator = lock ? prop.getValidator().detach() : prop.asPtr<IPropertyInternal>().getValidatorNoLock().detach();
+                *validator = lock ? prop.getValidator().detach() : prop.asPtr<IPropertyInternal>(true).getValidatorNoLock().detach();
             else
                 *validator = this->validator.addRefAndReturn();
         });
@@ -760,7 +806,7 @@ public:
 	    const ErrCode errCode = daqTry([&]()
         {
             if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-                *coercer = lock ? prop.getCoercer().detach() : prop.asPtr<IPropertyInternal>().getCoercerNoLock().detach();
+                *coercer = lock ? prop.getCoercer().detach() : prop.asPtr<IPropertyInternal>(true).getCoercerNoLock().detach();
             else
                 *coercer = this->coercer.addRefAndReturn();
         });
@@ -785,7 +831,7 @@ public:
 	    const ErrCode errCode = daqTry([&]()
         {
             if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-                *callableInfo = lock ? prop.getCallableInfo().detach() : prop.asPtr<IPropertyInternal>().getCallableInfoNoLock().detach();
+                *callableInfo = lock ? prop.getCallableInfo().detach() : prop.asPtr<IPropertyInternal>(true).getCallableInfoNoLock().detach();
             else
                 *callableInfo = this->callableInfo.addRefAndReturn();
         });
@@ -812,7 +858,7 @@ public:
             BaseObjectPtr defaultStruct;
             if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
             {
-                defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>().getDefaultValueNoLock().detach();
+                defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>(true).getDefaultValueNoLock().detach();
             }
             else if (lock)
             {
@@ -824,7 +870,7 @@ public:
                 const ErrCode errCode = this->getDefaultValueNoLock(&defaultStruct);
                 OPENDAQ_RETURN_IF_FAILED(errCode);
             }
-            *structType = defaultStruct.asPtr<IStruct>().getStructType().detach();
+            *structType = defaultStruct.asPtr<IStruct>(true).getStructType().detach();
             return OPENDAQ_SUCCESS;
         });
         OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -834,8 +880,8 @@ public:
     ErrCode INTERFACE_FUNC overrideDefaultValue(IBaseObject* newDefaultValue)  override
     {
         defaultValue = newDefaultValue;
-        if (defaultValue.supportsInterface<IFreezable>())
-            defaultValue.freeze();
+        if (const auto freezable = defaultValue.asPtrOrNull<IFreezable>(true); freezable.assigned())
+            OPENDAQ_RETURN_IF_FAILED(freezable->freeze());
         return OPENDAQ_SUCCESS;
     }
 
@@ -1057,58 +1103,64 @@ public:
 
         if (selectionValues.assigned())
         {
-            if (valueType == ctInt)
+            if (this->propertyType == ptIndexSelection)
             {
+                if (valueType != ctInt)
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Index selection property {} must have a value type of Int)", name));
+
                 if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
                 {
                     const SizeT defaultIndex = defaultValue;
                     if (defaultIndex >= list.getCount())
                         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value is not in selection values for property {})", name));
                 }
-                else if (const auto dict = selectionValues.asPtrOrNull<IDict>(true); dict.assigned())
+                else
+                {
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a list for property {})", name));
+                }
+            }
+            else if (this->propertyType == ptSparseSelection)
+            {
+                if (valueType != ctInt)
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Sparse selection property {} must have a value type of Int)", name));
+
+                if (const auto dict = selectionValues.asPtrOrNull<IDict>(true); dict.assigned())
                 {
                     if (!dict.hasKey(defaultValue))
                         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value is not in selection values for property {})", name));
                 }
                 else
                 {
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a list or dictionary for property {})", name));
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a dictionary for property {})", name));
                 }
             }
-            else if (valueType == ctString || valueType == ctFloat)
+            else if (this->propertyType == ptSelection)
             {
-                if (const auto listElementType = selectionValues.asPtrOrNull<IListElementType>(true); listElementType.assigned())
-                {
-                    // check that the selection values are of the correct type
-                    IntfID intfID = IUnknown::Id;
-                    OPENDAQ_RETURN_IF_FAILED(listElementType->getElementInterfaceId(&intfID));
+                if (valueType != ctInt && valueType != ctString && valueType != ctFloat)
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection property {} must have a value type of Int, String or Float)", name));
 
-                    const auto selectionValueType = details::intfIdToCoreType(intfID);
-                    if (selectionValueType != valueType)
-                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection values must be a {} for property {})", (valueType == ctString ? "string" : "float"), name));
-                    
-                    // check that the default value is in the selection values
+                if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
+                {
                     bool found = false;
-                    for (const auto& value : selectionValues.asPtr<IList>(true))
+                    for (const auto& key : list)
                     {
-                        if (value == defaultValue)
+                        if (key == defaultValue)
                         {
                             found = true;
                             break;
                         }
                     }
-    
                     if (!found)
                         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Default value is not in selection values for property {})", name));
                 }
                 else
                 {
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a list or dictionary for property {})", name));
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection must be a list for property {})", name));
                 }
             }
-            else 
+            else
             {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Choosen value type is not supported for selection values)", name));
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Invalid selection property type for property {})", name));
             }
         }
 
@@ -1237,6 +1289,9 @@ public:
             SERIALIZE_PROP_PTR(name)
             SERIALIZE_PROP_PTR(description)
 
+            serializer->key("propertyType");
+            serializer->writeInt(this->propertyType);
+
             serializer->key("valueType");
             serializer->writeInt(this->valueType);
 
@@ -1310,13 +1365,22 @@ public:
         ErrCode errCode = deserializeMember<decltype(valueType)>(serializedObj, "valueType", builder, context, factoryCallback, &IPropertyBuilder::setValueType);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
+        Int propertyTypeId;
+        errCode = serializedObj->readInt(String("propertyType"), &propertyTypeId);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
+        {
+            PropertyType propertyType = static_cast<PropertyType>(propertyTypeId);
+            bool isValueSelectionProperty = propertyType == ptSelection || propertyType == ptSparseSelection;
+            OPENDAQ_RETURN_IF_FAILED(builder->setIsValueSelectionProperty(propertyType));
+        }
         DESERIALIZE_MEMBER(context, factoryCallback, description, setDescription)
 
         BaseObjectPtr unit;
         errCode = serializedObj->readObject(String("unit"), context, factoryCallback, &unit);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            builder->setUnit(unit.asPtr<IUnit>());
+            OPENDAQ_RETURN_IF_FAILED(propObj->setUnit(unit.asPtr<IUnit>()));
 
         DESERIALIZE_MEMBER(context, factoryCallback, defaultValue, setDefaultValue)
 
@@ -1324,7 +1388,7 @@ public:
         errCode = serializedObj->readObject(String("refProp"), context, factoryCallback, &refProp);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            propObj->setReferencedProperty(refProp.asPtr<IEvalValue>());
+            OPENDAQ_RETURN_IF_FAILED(propObj->setReferencedProperty(refProp.asPtr<IEvalValue>()));
 
         DESERIALIZE_MEMBER(context, factoryCallback, selectionValues, setSelectionValues)
 
@@ -1332,49 +1396,49 @@ public:
         errCode = serializedObj->readObject(String("suggestedValues"), context, factoryCallback, &suggestedValues);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            propObj->setSuggestedValues(suggestedValues.asPtr<IList>());
+            OPENDAQ_RETURN_IF_FAILED(propObj->setSuggestedValues(suggestedValues.asPtr<IList>()));
 
         BaseObjectPtr visible;
         errCode = serializedObj->readObject(String("visible"), context, factoryCallback, &visible);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            propObj->setVisible(visible.asPtr<IBoolean>());
+            OPENDAQ_RETURN_IF_FAILED(propObj->setVisible(visible.asPtr<IBoolean>()));
 
         BaseObjectPtr readOnly;
         errCode = serializedObj->readObject(String("readOnly"), context, factoryCallback, &readOnly);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            propObj->setReadOnly(readOnly.asPtr<IBoolean>());
+            OPENDAQ_RETURN_IF_FAILED(propObj->setReadOnly(readOnly.asPtr<IBoolean>()));
 
         BaseObjectPtr minValue;
         errCode = serializedObj->readObject(String("minValue"), context, factoryCallback, &minValue);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            propObj->setMinValue(minValue.asPtr<INumber>());
+            OPENDAQ_RETURN_IF_FAILED(propObj->setMinValue(minValue.asPtr<INumber>()));
 
         BaseObjectPtr maxValue;
         errCode = serializedObj->readObject(String("maxValue"), context, factoryCallback, &maxValue);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            propObj->setMaxValue(maxValue.asPtr<INumber>());
+            OPENDAQ_RETURN_IF_FAILED(propObj->setMaxValue(maxValue.asPtr<INumber>()));
 
         BaseObjectPtr coercer;
         errCode = serializedObj->readObject(String("coercer"), context, factoryCallback, &coercer);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            propObj->setCoercer(coercer.asPtr<ICoercer>());
+            OPENDAQ_RETURN_IF_FAILED(propObj->setCoercer(coercer.asPtr<ICoercer>()));
 
         BaseObjectPtr validator;
         errCode = serializedObj->readObject(String("validator"), context, factoryCallback, &validator);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            propObj->setValidator(validator.asPtr<IValidator>());
+            OPENDAQ_RETURN_IF_FAILED(propObj->setValidator(validator.asPtr<IValidator>()));
 
         BaseObjectPtr callableInfo;
         errCode = serializedObj->readObject(String("callableInfo"), context, factoryCallback, &callableInfo);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
-            propObj->setCallableInfo(callableInfo.asPtr<ICallableInfo>());
+            OPENDAQ_RETURN_IF_FAILED(propObj->setCallableInfo(callableInfo.asPtr<ICallableInfo>()));
 
         return OPENDAQ_SUCCESS;
     }
@@ -1408,6 +1472,8 @@ public:
             if (cloneableDefaultValue.assigned())
                 defaultValueObj = cloneableDefaultValue.clone();
 
+            const bool isValueSelectionProperty = propertyType == ptSelection || propertyType == ptSparseSelection;
+
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)
                         .setDescription(description)
@@ -1427,6 +1493,7 @@ public:
                         .setOnPropertyValueWrite(onValueWrite)
                         .setOnSelectionValuesRead(onSelectionValuesRead)
                         .setOnSuggestedValuesRead(onSuggestedValuesRead)
+                        .setIsValueSelectionProperty(isValueSelectionProperty)
                         .build();
 
             *clonedProperty = prop.detach();
@@ -1658,6 +1725,7 @@ public:
 protected:
     PropertyPtr propPtr;
     WeakRefPtr<IPropertyObject> owner;
+    PropertyType propertyType;
     CoreType valueType;
     StringPtr name;
     StringPtr description;

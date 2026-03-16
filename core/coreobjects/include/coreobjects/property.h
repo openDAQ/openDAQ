@@ -33,6 +33,34 @@ struct IPropertyBuilder;
  * @{
  */
 
+enum PropertyType : int
+{
+    // Mirrors CoreType enumeration
+    ptBool = 0,             ///< Boolean, True or False
+    ptInt = 1,              ///< 64 bit signed integer
+    ptFloat = 2,            ///< IEEE 754 64 bit floating point
+    ptString = 3,           ///< UTF8 zero terminated string
+    ptList = 4,             ///< List of IBaseObject
+    ptDict = 5,             ///< Dictionary of (key: IBaseObject, value: IBaseObject)
+    ptRatio = 6,            ///< Rational number (numerator / denominator)
+    ptProc = 7,             ///< Callback without return value
+    ptObject = 8,           ///< Generic object
+    ptBinaryData,           ///< Binary buffer with predefined size
+    ptFunc = 10,            ///< Callback with return value
+    ptComplexNumber = 11,   ///< Complex number (real, imaginary)
+    ptStruct = 12,          ///< Constant structure with dictionary of fields and types
+    ptEnumeration = 13,     ///< Enumeration representing a predefined set of named integral constants
+
+    // Additional property types
+    ptReference = 0x1000,   ///< Reference property
+    ptIndexSelection,       ///< Index selection property
+    ptSelection,            ///< Selection property
+    ptSparseSelection,      ///< Sparse selection property
+
+    // Last property type
+    ptUndefined = 0xFFFF,   ///< Undefined
+};
+
 /*#
  * [templated(defaultAliasName: PropertyPtr)]
  * [interfaceSmartPtr(IProperty, GenericPropertyPtr)]
@@ -432,6 +460,14 @@ DECLARE_OPENDAQ_INTERFACE(IProperty, IBaseObject)
      * to always configure the returned value via the Property metadata read arguments object.
      */
     virtual ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) = 0;
+
+    /*!
+     * @brief Gets the type of the Property.
+     * @param[out] type The type of the Property.
+     *
+     * The type of the Property is a combination of the CoreType and the additional property types.
+     */
+    virtual ErrCode INTERFACE_FUNC getPropertyType(PropertyType* type) = 0;
 };
 /*!@}*/
 

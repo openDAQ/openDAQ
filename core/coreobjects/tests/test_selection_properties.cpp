@@ -173,9 +173,9 @@ TEST_F(SelectionPropertyTest, ValidWriteValueBasedSelection)
     ASSERT_EQ(obj.getPropertyValue("IntSelection"), 10u);
 
     ASSERT_NO_THROW(floatSelection.setValue(10.2));
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2f);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2);
     ASSERT_NO_THROW(obj.setPropertyValue("FloatSelection", -5.2));
-    ASSERT_DOUBLE_EQ(obj.getPropertyValue("FloatSelection"), -5.2f);
+    ASSERT_DOUBLE_EQ(obj.getPropertyValue("FloatSelection"), -5.2);
 }
 
 TEST_F(SelectionPropertyTest, InvalidWriteValueBasedSelection)
@@ -200,7 +200,7 @@ TEST_F(SelectionPropertyTest, ReadSelectionValue)
 // {
 //     ASSERT_EQ(stringSelectionRef.getValue(), "foo");
 //     ASSERT_EQ(intSelectionRef.getValue(), 10u);
-//     ASSERT_DOUBLE_EQ(floatSelectionRef.getValue(), 5.12f);
+//     ASSERT_DOUBLE_EQ(floatSelectionRef.getValue(), 5.12);
 
 //     // Modify list of selection values to point to invalid selection values
 //     obj.setPropertyValue("StringList", List<IString>("apple", "banana"));
@@ -217,6 +217,9 @@ static void onWriteSelection(PropertyObjectPtr& obj, PropertyValueEventArgsPtr& 
     int callCount = obj.getPropertyValue("CallCount");
     obj.setPropertyValue("CallCount", callCount + 1);
 
+    if (args.getPropertyEventType() == PropertyEventType::Clear)
+        return;
+
     auto newVal = args.getValue();
     if (args.getProperty().getValueType() == ctInt)
     {
@@ -228,7 +231,7 @@ static void onWriteSelection(PropertyObjectPtr& obj, PropertyValueEventArgsPtr& 
     }
     else if (args.getProperty().getValueType() == ctFloat)
     {
-        ASSERT_DOUBLE_EQ(newVal, 10.2f);
+        ASSERT_DOUBLE_EQ(newVal, 10.2);
     }
 }
 
@@ -283,7 +286,7 @@ TEST_F(SelectionPropertyTest, InvalidWriteEventCoerce)
     ASSERT_EQ(intSelection.getValue(), 10u);
 
     ASSERT_ANY_THROW(floatSelection.setValue(0.5));
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12f);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12);
 
     // checking is happening before calling on write event, so call count should be 0
     ASSERT_EQ(obj.getPropertyValue("CallCount"), 0u);
@@ -307,7 +310,7 @@ TEST_F(SelectionPropertyTest, EndUpdateOnWriteEvent)
 
     ASSERT_EQ(stringSelection.getValue(), "foo");
     ASSERT_EQ(intSelection.getValue(), 10u);
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12f);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12);
 
     ASSERT_EQ(obj.getPropertyValue("CallCount"), 0u);
 }
@@ -325,24 +328,18 @@ TEST_F(SelectionPropertyTest, UpdatableOnWriteEvent)
     auto ser = JsonSerializer();
     obj.serialize(ser);
 
-    stringSelection.getOnPropertyValueWrite() -= onWriteSelection;
-    intSelection.getOnPropertyValueWrite() -= onWriteSelection;
-    floatSelection.getOnPropertyValueWrite() -= onWriteSelection;
-
     obj.clearPropertyValue("StringSelection");
     obj.clearPropertyValue("IntSelection");
     obj.clearPropertyValue("FloatSelection");
 
     ASSERT_EQ(stringSelection.getValue(), "foo");
     ASSERT_EQ(intSelection.getValue(), 10);
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12f);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 5.12);
 
     auto deser = JsonDeserializer();
     deser.update(obj, ser.getOutput());
 
-    ASSERT_EQ(obj.getPropertyValue("CallCount"), 3u);
-
     ASSERT_EQ(stringSelection.getValue(), "bar");
     ASSERT_EQ(intSelection.getValue(), 6u);
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2f);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2);
 }

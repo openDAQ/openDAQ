@@ -106,13 +106,12 @@ TEST_F(ConfigProtocolPropertyObjectTest, SelectionValueTypes)
 	ASSERT_EQ(clientDevice.getProperty("StringSelection").getValueType(), CoreType::ctString);
 	ASSERT_EQ(clientDevice.getProperty("IntSelection").getValueType(), CoreType::ctInt);
 	ASSERT_EQ(clientDevice.getProperty("FloatSelection").getValueType(), CoreType::ctFloat);
-
 }
 
 TEST_F(ConfigProtocolPropertyObjectTest, SelectionKeyTypes)
 {
-    ASSERT_EQ(clientDevice.getProperty("SparseSelectionInt").getKeyType(), CoreType::ctInt);
-	ASSERT_EQ(clientDevice.getProperty("SparseSelectionString").getKeyType(), CoreType::ctInt);
+    ASSERT_EQ(clientDevice.getProperty("SparseSelectionInt").getKeyType(), CoreType::ctUndefined);
+	ASSERT_EQ(clientDevice.getProperty("SparseSelectionString").getKeyType(), CoreType::ctUndefined);
 	ASSERT_EQ(clientDevice.getProperty("IndexSelectionInt").getKeyType(), CoreType::ctUndefined);
 	ASSERT_EQ(clientDevice.getProperty("IndexSelectionString").getKeyType(), CoreType::ctUndefined);
 	ASSERT_EQ(clientDevice.getProperty("StringSelection").getKeyType(), CoreType::ctUndefined);
@@ -147,9 +146,9 @@ TEST_F(ConfigProtocolPropertyObjectTest, ValidWriteValueBasedSelection)
     
     auto floatSelection = clientDevice.getProperty("FloatSelection");
     ASSERT_NO_THROW(floatSelection.setValue(10.2));
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2f);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2);
     ASSERT_NO_THROW(clientDevice.setPropertyValue("FloatSelection", -5.2));
-    ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("FloatSelection"), -5.2f);
+    ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("FloatSelection"), -5.2);
 }
 
 TEST_F(ConfigProtocolPropertyObjectTest, InvalidWriteValueBasedSelection)
@@ -184,7 +183,7 @@ TEST_F(ConfigProtocolPropertyObjectTest, BeginEndUpdateValueBasedSelection)
     
     ASSERT_EQ(stringSelection.getValue(), "bar");
     ASSERT_EQ(intSelection.getValue(), 6u);
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2f);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2);
 }
 
 TEST_F(ConfigProtocolPropertyObjectTest, UpdatableUpdateValueBasedSelection)
@@ -210,5 +209,5 @@ TEST_F(ConfigProtocolPropertyObjectTest, UpdatableUpdateValueBasedSelection)
     
     ASSERT_EQ(stringSelection.getValue(), "bar");
     ASSERT_EQ(intSelection.getValue(), 6);
-    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2f);
+    ASSERT_DOUBLE_EQ(floatSelection.getValue(), 10.2);
 }

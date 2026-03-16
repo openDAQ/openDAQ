@@ -91,7 +91,7 @@ TEST_F(PropertyObjectClassTest, EnumCustomOrder)
 TEST_F(PropertyObjectClassTest, SerializeJson)
 {
     std::string expectedJson =
-        R"({"__type":"PropertyObjectClass","name":"PropertyObject","properties":{"Name":{"__type":"Property","name":"Name","valueType":3,"defaultValue":"","readOnly":false,"visible":true},"Index":{"__type":"Property","name":"Index","valueType":1,"defaultValue":0,"readOnly":false,"visible":true},"Unit":{"__type":"Property","name":"Unit","valueType":1,"defaultValue":0,"readOnly":false,"visible":true,"selectionValues":["a","b"]}}})";
+        R"({"__type":"PropertyObjectClass","name":"PropertyObject","properties":{"Name":{"__type":"Property","name":"Name","PropertyType":3,"valueType":3,"defaultValue":"","readOnly":false,"visible":true},"Index":{"__type":"Property","name":"Index","PropertyType":1,"valueType":1,"defaultValue":0,"readOnly":false,"visible":true},"Unit":{"__type":"Property","name":"Unit","PropertyType":4097,"valueType":1,"defaultValue":0,"readOnly":false,"visible":true,"selectionValues":["a","b"]}}})";
     auto serializer = JsonSerializerWithVersion(1);
 
     propObjClass.serialize(serializer);

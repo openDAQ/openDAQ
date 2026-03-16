@@ -217,7 +217,7 @@ TEST_F(PropertyTypeTest, ValueBasedSelectionTypes)
 {
     auto stringSelectionProp = obj.getProperty("StringSelection");
     ASSERT_EQ(stringSelectionProp.getValueType(), ctString);
-    ASSERT_EQ(stringSelectionProp.getItemType(), ctUndefined);
+    ASSERT_EQ(stringSelectionProp.getItemType(), ctString);
     ASSERT_EQ(stringSelectionProp.getKeyType(), ctUndefined);
     ASSERT_TRUE(stringSelectionProp.getSelectionValues().assigned());
     ASSERT_TRUE(stringSelectionProp.getSelectionValues().supportsInterface<IList>());
@@ -225,7 +225,7 @@ TEST_F(PropertyTypeTest, ValueBasedSelectionTypes)
 
     auto intSelectionProp = obj.getProperty("IntSelection");
     ASSERT_EQ(intSelectionProp.getValueType(), ctInt);
-    ASSERT_EQ(intSelectionProp.getItemType(), ctUndefined);
+    ASSERT_EQ(intSelectionProp.getItemType(), ctInt);
     ASSERT_EQ(intSelectionProp.getKeyType(), ctUndefined);
     ASSERT_TRUE(intSelectionProp.getSelectionValues().assigned());
     ASSERT_TRUE(intSelectionProp.getSelectionValues().supportsInterface<IList>());
@@ -233,7 +233,7 @@ TEST_F(PropertyTypeTest, ValueBasedSelectionTypes)
 
     auto floatSelectionProp = obj.getProperty("FloatSelection");
     ASSERT_EQ(floatSelectionProp.getValueType(), ctFloat);
-    ASSERT_EQ(floatSelectionProp.getItemType(), ctUndefined);
+    ASSERT_EQ(floatSelectionProp.getItemType(), ctFloat);
     ASSERT_EQ(floatSelectionProp.getKeyType(), ctUndefined);
     ASSERT_TRUE(floatSelectionProp.getSelectionValues().assigned());
     ASSERT_TRUE(floatSelectionProp.getSelectionValues().supportsInterface<IList>());

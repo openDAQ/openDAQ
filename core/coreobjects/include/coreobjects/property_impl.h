@@ -113,7 +113,21 @@ public:
 
         if (this->selectionValues.assigned())
         {
-            if (this->selectionValues.supportsInterface<IList>())
+            if (this->selectionValues.supportsInterface<IEvalValue>())
+            {
+                // We can not determine the property type of eval value at this point, 
+                // so we will determine it later in the method setOwner
+                // here we just want to store if property value selection based
+                if (this->valueType == ctInt && !propertyBuilderPtr.getIsValueSelectionProperty())
+                {
+                    this->propertyType = PropertyType::IndexSelection;
+                }
+                else
+                {
+                    this->propertyType = PropertyType::Selection;
+                }
+            }
+            else if (this->selectionValues.supportsInterface<IList>())
             {
                 if (this->valueType == ctInt && !propertyBuilderPtr.getIsValueSelectionProperty())
                     this->propertyType = PropertyType::IndexSelection;
@@ -693,23 +707,23 @@ public:
 	    OPENDAQ_PARAM_NOT_NULL(values);
 
 	    ErrCode errCode = daqTry([&]()
+        {
+            if (onSelectionValuesRead.hasListeners())
             {
-		        if (onSelectionValuesRead.hasListeners())
-                {
-                    // TODO: Should this lock !? If yes, what mutex !?
-                    auto args = PropertyMetadataReadArgs(propPtr);
-                    args.setValue(this->selectionValues);
-                    onSelectionValuesRead(propPtr, args);
+                // TODO: Should this lock !? If yes, what mutex !?
+                auto args = PropertyMetadataReadArgs(propPtr);
+                args.setValue(this->selectionValues);
+                onSelectionValuesRead(propPtr, args);
 
-                    *values = args.getValue().detach();
-                }
-		        else if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *values = lock ? prop.getSelectionValues().detach() : prop.asPtr<IPropertyInternal>(true).getSelectionValuesNoLock().detach();
-		        else
-			        *values = bindAndGet<BaseObjectPtr>(this->selectionValues, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+                *values = args.getValue().detach();
+            }
+            else if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+                *values = lock ? prop.getSelectionValues().detach() : prop.asPtr<IPropertyInternal>(true).getSelectionValuesNoLock().detach();
+            else
+                *values = bindAndGet<BaseObjectPtr>(this->selectionValues, lock).detach();
+                
+            return OPENDAQ_SUCCESS;
+        });
 
         OPENDAQ_RETURN_IF_FAILED(errCode);
         return errCode;
@@ -981,7 +995,6 @@ public:
             return ownerPtr.asPtr<IPropertyObjectProtected>()->setProtectedPropertyValue(this->name, newValue);
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NO_OWNER);
     }
-
     
     ErrCode INTERFACE_FUNC getHasOnReadListeners(Bool* hasListeners) override
     {
@@ -1660,6 +1673,16 @@ public:
 
                 defaultValueObj.getPermissionManager().asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
             }
+        }
+
+        if (selectionValues.supportsInterface<IEvalValue>())
+        {
+            BaseObjectPtr selectionValuesResolved;
+            OPENDAQ_RETURN_IF_FAILED(this->getSelectionValuesUnresolved(&selectionValuesResolved));
+            if (selectionValuesResolved.supportsInterface<IDict>())
+                this->propertyType = PropertyType::SparseSelection;
+            else if (!selectionValuesResolved.supportsInterface<IList>())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Selection values must be a list or a dictionary.");
         }
 
         return OPENDAQ_SUCCESS;

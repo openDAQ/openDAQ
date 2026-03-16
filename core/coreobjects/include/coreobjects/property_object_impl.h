@@ -1033,7 +1033,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelecti
         }
         else if (prop.getPropertyType() == PropertyType::Selection)
         {
-            if (const auto list = selectionValues.asPtrOrNull<IList>(); list.assigned())
+            if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
             {
                 for (const auto& item : list)
                 {

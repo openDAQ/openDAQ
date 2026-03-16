@@ -125,9 +125,9 @@ TEST_F(ConfigProtocolPropertyObjectTest, SelectionItemTypes)
 	ASSERT_EQ(clientDevice.getProperty("SparseSelectionString").getItemType(), CoreType::ctString);
 	ASSERT_EQ(clientDevice.getProperty("IndexSelectionInt").getItemType(), CoreType::ctInt);
 	ASSERT_EQ(clientDevice.getProperty("IndexSelectionString").getItemType(), CoreType::ctString);
-	ASSERT_EQ(clientDevice.getProperty("StringSelection").getItemType(), CoreType::ctUndefined);
-	ASSERT_EQ(clientDevice.getProperty("IntSelection").getItemType(), CoreType::ctUndefined);
-	ASSERT_EQ(clientDevice.getProperty("FloatSelection").getItemType(), CoreType::ctUndefined);
+	ASSERT_EQ(clientDevice.getProperty("StringSelection").getItemType(), CoreType::ctString);
+	ASSERT_EQ(clientDevice.getProperty("IntSelection").getItemType(), CoreType::ctInt);
+	ASSERT_EQ(clientDevice.getProperty("FloatSelection").getItemType(), CoreType::ctFloat);
 }
 
 TEST_F(ConfigProtocolPropertyObjectTest, ValidWriteValueBasedSelection)

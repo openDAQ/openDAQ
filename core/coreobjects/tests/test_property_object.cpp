@@ -678,21 +678,21 @@ TEST_F(PropertyObjectTest, ListSelectionStringPropertySetGet)
     propObj.addProperty(stringSelectionProp);
 
     // Set by index
-    propObj.setPropertyValue("Mode", 1);
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), 1);
+    propObj.setPropertyValue("Mode", "Medium");
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Medium");
     ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Medium");
 
-    propObj.setPropertyValue("Mode", 2);
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), 2);
+    propObj.setPropertyValue("Mode", "High");
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "High");
     ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "High");
 
     // Set by value
     propObj.setPropertySelectionValue("Mode", "Low");
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), 0);
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Low");
     ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Low");
 
     propObj.setPropertySelectionValue("Mode", "Medium");
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), 1);
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Medium");
     ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Medium");
 }
 
@@ -709,22 +709,22 @@ TEST_F(PropertyObjectTest, ListSelectionFloatPropertySetGet)
     propObj.addProperty(floatSelectionProp);
 
     // Set by index
-    propObj.setPropertyValue("Range", 1u);
-    ASSERT_EQ(propObj.getPropertyValue("Range"), 1u);
+    propObj.setPropertyValue("Range", 2.5f);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 2.5f);
     ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 2.5f);
 
-    propObj.setPropertyValue("Range", 2u);
-    ASSERT_EQ(propObj.getPropertyValue("Range"), 2u);
+    propObj.setPropertyValue("Range", 10.0f);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 10.0f);
     ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 10.0f);
 
     // Set by value
-    propObj.setPropertySelectionValue("Range", 1.0);
-    ASSERT_EQ(propObj.getPropertyValue("Range"), 0);
-    ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 1.0);
+    propObj.setPropertySelectionValue("Range", 1.0f);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 1.0f);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 1.0f);
 
-    propObj.setPropertySelectionValue("Range", 2.5);
-    ASSERT_EQ(propObj.getPropertyValue("Range"), 1);
-    ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 2.5);
+    propObj.setPropertySelectionValue("Range", 2.5f);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 2.5f);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 2.5f);
 }
 
 // List selection string with default value as string (not index)
@@ -738,7 +738,7 @@ TEST_F(PropertyObjectTest, ListSelectionStringPropertyDefaultValue)
     auto propObj = PropertyObject();
     propObj.addProperty(stringSelectionProp);
 
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), 1u);
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Medium");
     ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Medium");
 }
 
@@ -753,7 +753,7 @@ TEST_F(PropertyObjectTest, ListSelectionFloatPropertyDefaultValue)
     auto propObj = PropertyObject();
     propObj.addProperty(floatSelectionProp);
 
-    ASSERT_EQ(propObj.getPropertyValue("Range"), 1u);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 2.5f);
     ASSERT_EQ(propObj.getPropertySelectionValue("Range"), 2.5f);
 }
 
@@ -767,7 +767,7 @@ TEST_F(PropertyObjectTest, ListSelectionStringPropertySetInvalidValue)
     auto propObj = PropertyObject();
     propObj.addProperty(stringSelectionProp);
 
-    ASSERT_THROW(propObj.setPropertyValue("Mode", 4u), NotFoundException);
+    ASSERT_THROW(propObj.setPropertyValue("Mode", "Invalid"), NotFoundException);
 }
 
 TEST_F(PropertyObjectTest, ListSelectionFloatPropertySetInvalidValue)
@@ -780,7 +780,7 @@ TEST_F(PropertyObjectTest, ListSelectionFloatPropertySetInvalidValue)
     auto propObj = PropertyObject();
     propObj.addProperty(floatSelectionProp);
 
-    ASSERT_THROW(propObj.setPropertyValue("Range", 4u), NotFoundException);
+    ASSERT_THROW(propObj.setPropertyValue("Range", "Invalid"), NotFoundException);
 }
 
 TEST_F(PropertyObjectTest, DictProp)
@@ -2249,7 +2249,7 @@ TEST_F(PropertyObjectTest, DISABLED_ClonedObjectsSerialize)
 
 TEST_F(PropertyObjectTest, ClonedClassObjectsSerialize)
 {
-    const std::string expectedJson = R"({"__type":"PropertyObject","className":"NestedObjectClass","propValues":{"Child":{"__type":"PropertyObject","className":"ObjectClass","propValues":{"Child":{"__type":"PropertyObject","properties":[{"__type":"Property","name":"MyString","valueType":3,"defaultValue":"foo","readOnly":false,"visible":true}]}}}}})";
+    const std::string expectedJson = R"({"__type":"PropertyObject","className":"NestedObjectClass","propValues":{"Child":{"__type":"PropertyObject","className":"ObjectClass","propValues":{"Child":{"__type":"PropertyObject","properties":[{"__type":"Property","name":"MyString","PropertyType":3,"valueType":3,"defaultValue":"foo","readOnly":false,"visible":true}]}}}}})";
 
     const auto propObj = PropertyObject(objManager, "NestedObjectClass");
     const auto serializer1 = JsonSerializer();

@@ -325,6 +325,10 @@ TEST_F(SelectionPropertyTest, UpdatableOnWriteEvent)
     auto ser = JsonSerializer();
     obj.serialize(ser);
 
+    stringSelection.getOnPropertyValueWrite() -= onWriteSelection;
+    intSelection.getOnPropertyValueWrite() -= onWriteSelection;
+    floatSelection.getOnPropertyValueWrite() -= onWriteSelection;
+
     obj.clearPropertyValue("StringSelection");
     obj.clearPropertyValue("IntSelection");
     obj.clearPropertyValue("FloatSelection");
@@ -336,7 +340,7 @@ TEST_F(SelectionPropertyTest, UpdatableOnWriteEvent)
     auto deser = JsonDeserializer();
     deser.update(obj, ser.getOutput());
 
-    ASSERT_EQ(obj.getPropertyValue("CallCount"), 9);
+    ASSERT_EQ(obj.getPropertyValue("CallCount"), 3u);
 
     ASSERT_EQ(stringSelection.getValue(), "bar");
     ASSERT_EQ(intSelection.getValue(), 6);

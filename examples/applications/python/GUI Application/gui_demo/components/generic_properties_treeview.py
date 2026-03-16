@@ -33,6 +33,10 @@ class PropertiesTreeview(ttk.Treeview):
                         foreground='#1a1a1a',
                         selectbackground='white',
                         selectforeground='#1a1a1a')
+        style.configure('Editable.TCombobox',
+                        fieldbackground='white',
+                        background='white',
+                        foreground='#1a1a1a')
         style.configure('Overlay.TCheckbutton', background='white')
 
         self._scroll_bar = ttk.Scrollbar(
@@ -417,7 +421,8 @@ class PropertiesTreeview(ttk.Treeview):
         #width -= self._scroll_bar.winfo_width()
 
         state = 'normal' if editable else 'readonly'
-        cb = ttk.Combobox(self, values=values, state=state, style='Selection.TCombobox')
+        combo_style = 'Editable.TCombobox' if editable else 'Selection.TCombobox'
+        cb = ttk.Combobox(self, values=values, state=state, style=combo_style)
         cb.set(current_value)
         cb.place(x=x, y=combo_y, width=width, height=combo_height)
         if not editable:

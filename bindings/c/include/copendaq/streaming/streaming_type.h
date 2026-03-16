@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:59.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:52.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqPropertyObject daqPropertyObject;
 
     EXPORTED extern const daqIntfID DAQ_STREAMING_TYPE_INTF_ID;
+    void EXPORTED daqStreamingType_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqStreamingType_getConnectionStringPrefix(daqStreamingType* self, daqString** prefix);
     daqErrCode EXPORTED daqStreamingType_createStreamingType(daqStreamingType** obj, daqString* id, daqString* name, daqString* description, daqString* prefix, daqPropertyObject* defaultConfig);

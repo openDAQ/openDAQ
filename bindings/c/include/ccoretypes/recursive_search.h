@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:35.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -36,6 +36,7 @@ extern "C"
 
 
     EXPORTED extern const daqIntfID DAQ_RECURSIVE_SEARCH_INTF_ID;
+    void EXPORTED daqRecursiveSearch_getInterfaceId(daqIntfID* intfId);
 
 
 

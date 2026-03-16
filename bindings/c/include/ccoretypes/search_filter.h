@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:36.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqFunction daqFunction;
 
     EXPORTED extern const daqIntfID DAQ_SEARCH_FILTER_INTF_ID;
+    void EXPORTED daqSearchFilter_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqSearchFilter_acceptsObject(daqSearchFilter* self, daqBaseObject* obj, daqBool* accepts);
     daqErrCode EXPORTED daqSearchFilter_visitChildren(daqSearchFilter* self, daqBaseObject* obj, daqBool* visit);

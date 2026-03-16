@@ -1,6 +1,8 @@
 #include "test_helpers/test_helpers.h"
 #include <coreobjects/authentication_provider_factory.h>
 
+#include "test_helpers/device_modules.h"
+
 using namespace daq;
 
 class WebsocketModulesTest : public testing::Test
@@ -39,25 +41,29 @@ public:
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
-        auto moduleManager = ModuleManager("");
+        auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
 
-        auto instance = InstanceCustom(context, "local");
+        auto server = InstanceCustom(context, "local");
+        addRefDeviceModule(server);
+        addLtServerModule(server);
 
-        const auto refDevice = instance.addDevice("daqref://device1");
+        const auto refDevice = server.addDevice("daqref://device1");
 
-        instance.addServer("openDAQ LT Streaming", nullptr);
+        server.addServer("openDAQ LT Streaming", nullptr);
 
-        return instance;
+        return server;
     }
 
     InstancePtr CreateClientInstance()
     {
-        auto instance = Instance();
-        auto refDevice = instance.addDevice("daq.lt://127.0.0.1/");
-        return instance;
+        auto client = Instance("[[none]]");
+        addLtClientModule(client);
+
+        auto refDevice = client.addDevice("daq.lt://127.0.0.1/");
+        return client;
     }
 };
 
@@ -75,7 +81,9 @@ TEST_F(WebsocketModulesTest, ConnectAndDisconnect)
 TEST_F(WebsocketModulesTest, ConnectAndDisconnectBackwardCompatibility)
 {
     auto server = CreateServerInstance();
-    auto client = Instance();
+
+    auto client = Instance("[[none]]");
+    addLtClientModule(client);
     client.addDevice("daq.ws://127.0.0.1/", nullptr);
 }
 
@@ -87,7 +95,9 @@ TEST_F(WebsocketModulesTest, ConnectViaIpv6)
     }
 
     auto server = CreateServerInstance();
-    auto client = Instance();
+
+    auto client = Instance("[[none]]");
+    addLtClientModule(client);
     client.addDevice("daq.lt://[::1]", nullptr);
 }
 
@@ -109,7 +119,12 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addConfigProvider(provider).build();
+    auto instance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addConfigProvider(provider)
+        .build();
+
+    addLtServerModule(instance);
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
 
     ASSERT_EQ(serverConfig.getPropertyValue("WebsocketStreamingPort").asPtr<IInteger>(), 1234);
@@ -118,15 +133,24 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(WebsocketModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder().addDiscoveryServer("mdns").setDefaultRootDeviceLocalId("local").build();
+    auto server = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .setDefaultRootDeviceLocalId("local")
+        .build();
+
+    addRefDeviceModule(server);
     server.addDevice("daqref://device1");
 
+    addLtServerModule(server);
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
     auto path = "/test/streaming_lt/discovery/";
     serverConfig.setPropertyValue("Path", path);
     server.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
 
-    auto client = Instance();
+    auto client = Instance("[[none]]");
+    addLtClientModule(client);
+
     DevicePtr device;
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
@@ -147,7 +171,7 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
 }
 
 
-TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
+TEST_F(WebsocketModulesTest, CheckDeviceInfoPopulatedWithProvider)
 {
     std::string filename = "populateDefaultConfig.json";
     std::string json = R"(
@@ -172,15 +196,22 @@ TEST_F(WebsocketModulesTest, checkDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns")
-                                     .addConfigProvider(provider)
-                                     .setDefaultRootDeviceInfo(rootInfo)
-                                     .build();
+    auto instance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .addConfigProvider(provider)
+        .setDefaultRootDeviceInfo(rootInfo)
+        .build();
+
+    addRefDeviceModule(instance);
     instance.addDevice("daqref://device1");
+
+    addLtServerModule(instance);
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
     instance.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
 
-    auto client = Instance();
+    auto client = Instance("[[none]]");
+    addLtClientModule(client);
 
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
@@ -212,14 +243,21 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
 
-    auto instance = InstanceBuilder().addDiscoveryServer("mdns").build();
-    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    auto instance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .build();
+
+    addLtServerModule(instance);
+
+    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
     auto path = "/test/native_configurator/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
 
     instance.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
 
-    auto client = Instance();
+    auto client = Instance("[[none]]");
+    addLtClientModule(client);
 
     for (const auto & deviceInfo : client.getAvailableDevices())
     {
@@ -290,7 +328,10 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
 TEST_F(WebsocketModulesTest, RemoveDevice)
 {
     auto server = CreateServerInstance();
-    auto client = Instance();
+
+    auto client = Instance("[[none]]");
+
+    addLtClientModule(client);
     auto device = client.addDevice("daq.lt://127.0.0.1/");
 
     ASSERT_NO_THROW(client.removeDevice(device));
@@ -408,7 +449,9 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv6)
 {
     // SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = Instance();
+
+    auto client = Instance("[[none]]");
+    addLtClientModule(client);
     client.addDevice("daq.lt://[::1]", nullptr);
 
     auto devices = client.getDevices();

@@ -226,7 +226,7 @@ TEST_F(PropertyTypeTest, ValueBasedSelectionTypes)
     ASSERT_EQ(intSelectionProp.getKeyType(), ctUndefined);
     ASSERT_TRUE(intSelectionProp.getSelectionValues().assigned());
     ASSERT_TRUE(intSelectionProp.getSelectionValues().supportsInterface<IList>());
-    ASSERT_EQ(floatSelectionProp.getPropertyType(), PropertyType::Selection);
+    ASSERT_EQ(intSelectionProp.getPropertyType(), PropertyType::Selection);
 
     auto floatSelectionProp = obj.getProperty("FloatSelection");
     ASSERT_EQ(floatSelectionProp.getValueType(), ctFloat);

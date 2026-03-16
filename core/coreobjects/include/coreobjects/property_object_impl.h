@@ -2111,7 +2111,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         if (!values.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" has no selection values assigned)", propName));
 
-        if (propInternal.getValueTypeNoLock() == ctInt)
+        if (prop.getPropertyType() == PropertyType::IndexSelection || prop.getPropertyType() == PropertyType::SparseSelection)
         {
             if (auto valuesList = values.asPtrOrNull<IList>(true); valuesList.assigned())
                 valuePtr = valuesList.getItemAt(valuePtr);

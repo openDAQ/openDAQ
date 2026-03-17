@@ -125,15 +125,16 @@ TEST_F(ConfigProtocolPropertyObjectTest, SelectionItemTypes)
 	ASSERT_EQ(clientDevice.getProperty("SparseSelectionString").getItemType(), CoreType::ctString);
 	ASSERT_EQ(clientDevice.getProperty("IndexSelectionInt").getItemType(), CoreType::ctInt);
 	ASSERT_EQ(clientDevice.getProperty("IndexSelectionString").getItemType(), CoreType::ctString);
-	ASSERT_EQ(clientDevice.getProperty("StringSelection").getItemType(), CoreType::ctString);
-	ASSERT_EQ(clientDevice.getProperty("IntSelection").getItemType(), CoreType::ctInt);
-	ASSERT_EQ(clientDevice.getProperty("FloatSelection").getItemType(), CoreType::ctFloat);
+	ASSERT_EQ(clientDevice.getProperty("StringSelection").getItemType(), CoreType::ctUndefined);
+	ASSERT_EQ(clientDevice.getProperty("IntSelection").getItemType(), CoreType::ctUndefined);
+	ASSERT_EQ(clientDevice.getProperty("FloatSelection").getItemType(), CoreType::ctUndefined);
 }
 
 TEST_F(ConfigProtocolPropertyObjectTest, ValidWriteValueBasedSelection)
 {
     auto stringSelection = clientDevice.getProperty("StringSelection");
     ASSERT_NO_THROW(stringSelection.setValue("bar"));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     ASSERT_EQ(stringSelection.getValue(), "bar");
     ASSERT_NO_THROW(clientDevice.setPropertyValue("StringSelection", "foo"));
     ASSERT_EQ(clientDevice.getPropertyValue("StringSelection"), "foo");

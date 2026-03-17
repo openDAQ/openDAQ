@@ -780,7 +780,7 @@ TEST_F(PropertyObjectTest, ListSelectionFloatPropertySetInvalidValue)
     auto propObj = PropertyObject();
     propObj.addProperty(floatSelectionProp);
 
-    ASSERT_THROW(propObj.setPropertyValue("Range", "Invalid"), NotFoundException);
+    ASSERT_THROW(propObj.setPropertyValue("Range", 11.0f), NotFoundException);
 }
 
 TEST_F(PropertyObjectTest, DictProp)

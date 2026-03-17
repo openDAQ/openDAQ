@@ -114,9 +114,9 @@ TEST_F(SelectionPropertyTest, SelectionValueItemTypes)
 	ASSERT_EQ(sparseSelectionString.getItemType(), CoreType::ctString);
 	ASSERT_EQ(indexSelectionInt.getItemType(), CoreType::ctInt);
 	ASSERT_EQ(indexSelectionString.getItemType(), CoreType::ctString);
-	ASSERT_EQ(stringSelection.getItemType(), CoreType::ctString);
-	ASSERT_EQ(intSelection.getItemType(), CoreType::ctInt);
-	ASSERT_EQ(floatSelection.getItemType(), CoreType::ctFloat);
+	ASSERT_EQ(stringSelection.getItemType(), CoreType::ctUndefined);
+	ASSERT_EQ(intSelection.getItemType(), CoreType::ctUndefined);
+	ASSERT_EQ(floatSelection.getItemType(), CoreType::ctUndefined);
     // ASSERT_EQ(stringSelectionRef.getItemType(), CoreType::ctUndefined);
     // ASSERT_EQ(intSelectionRef.getItemType(), CoreType::ctUndefined);
     // ASSERT_EQ(floatSelectionRef.getItemType(), CoreType::ctUndefined);

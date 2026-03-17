@@ -1027,9 +1027,18 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelecti
     {
         if (prop.getPropertyType() == PropertyType::IndexSelection)
         {
-            const SizeT key = value;
-            if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned() && key < list.getCount())
-                return OPENDAQ_SUCCESS;
+            if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
+            {
+                const SizeT key = value;
+                if (key < list.getCount())
+                    return OPENDAQ_SUCCESS;
+            }
+            // we have wrongly implemented selection with eval value (look at ptp sync interface)
+            else if (const auto dict = selectionValues.asPtrOrNull<IDict>(true); dict.assigned())
+            {
+                if (dict.hasKey(value))
+                    return OPENDAQ_SUCCESS;
+            }
         }
         else if (prop.getPropertyType() == PropertyType::Selection)
         {
@@ -2111,7 +2120,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         if (!values.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" has no selection values assigned)", propName));
 
-        if (prop.getPropertyType() == PropertyType::IndexSelection || prop.getPropertyType() == PropertyType::SparseSelection)
+        const PropertyType propType = prop.getPropertyType();
+
+        if (propType == PropertyType::IndexSelection || propType == PropertyType::SparseSelection)
         {
             if (auto valuesList = values.asPtrOrNull<IList>(true); valuesList.assigned())
                 valuePtr = valuesList.getItemAt(valuePtr);
@@ -2121,9 +2132,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" values is not a list or dictionary)", propName));
         }
 
-        if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())
+        if (propType != PropertyType::Selection)
         {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "List item type mismatch");
+            // for Selection Type the item type is Underfined 
+            if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "List item type mismatch");
+            }
         }
 
         *value = valuePtr.detach();

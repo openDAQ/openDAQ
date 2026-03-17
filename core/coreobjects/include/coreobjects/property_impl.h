@@ -425,6 +425,9 @@ public:
             IntfID intfID = IUnknown::Id;
             *type = ctUndefined;
 
+            if (this->propertyType == PropertyType::Selection)
+                return OPENDAQ_SUCCESS;
+
             BaseObjectPtr defVal;
             auto err = this->getDefaultValueInternal(&defVal, lock);
             OPENDAQ_RETURN_IF_FAILED(err);

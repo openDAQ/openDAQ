@@ -420,10 +420,18 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObje
         StringPtr serialized;
         ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
         checkErrorInfo(obj->toJson(&serialized));
-        auto serverContext = clientComm->update(remoteGlobalId, serialized, this->getPath(), contextPtr);
-        if (serverContext.assigned())
-            contextPtr.overrideState(serverContext);
+
+        const auto protocolVersion = this->clientComm->getProtocolVersion();
+        if (protocolVersion >= 9 && protocolVersion < 20)
+            clientComm->update(remoteGlobalId, serialized, this->getPath(), nullptr);
+        else
+        {
+            auto serverContext = clientComm->update(remoteGlobalId, serialized, this->getPath(), contextPtr);
+            if (serverContext.assigned())
+                contextPtr.overrideState(serverContext);
+        }
     });
+
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }

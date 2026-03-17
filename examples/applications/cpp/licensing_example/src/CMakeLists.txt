@@ -51,6 +51,7 @@ target_include_directories(${LIC_EXAMPLE} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOU
 )
 
 target_link_libraries(${LIC_EXAMPLE} PRIVATE daq::opendaq
+                                             $<BUILD_INTERFACE:std::filesystem>
 )
 
 add_dependencies(${LIC_EXAMPLE} daq::licensing_module

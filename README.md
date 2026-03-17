@@ -45,7 +45,7 @@ documentation can be built with Antora by following the guide found in [docs/Ant
   <tr>
    <td><strong>OS</strong></td>
    <td><strong>Platform</strong></td>
-   <td><strong>GCC 7.3.1+</strong></td>
+   <td><strong>GCC 7+</strong></td>
    <td><strong>Clang 5+</strong></td>
    <td><strong>VC++ (v14.1+)</strong></td>
   </tr>
@@ -123,6 +123,10 @@ documentation can be built with Antora by following the guide found in [docs/Ant
    <td>Requires some manual changes or special configuration</td>
   </tr>
 </table>
+
+> **Note:** When building with GCC < 8, the renderer module must be disabled
+> (`-DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF`), as it depends on SFML 3.0 which requires
+> full C++17 support not available in earlier compiler versions.
 
 ### Required tools before building
 

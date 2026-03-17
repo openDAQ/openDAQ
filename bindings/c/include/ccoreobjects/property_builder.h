@@ -47,7 +47,7 @@ extern "C"
     typedef struct daqCallableInfo daqCallableInfo;
     typedef struct daqEvent daqEvent;
     typedef struct daqInteger daqInteger;
-    typedef struct daqFloat daqFloat;
+    typedef struct daqFloatObject daqFloatObject;
     typedef struct daqDict daqDict;
     typedef struct daqRatio daqRatio;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -101,7 +101,7 @@ extern "C"
     daqErrCode EXPORTED daqPropertyBuilder_createPropertyBuilder(daqPropertyBuilder** obj, daqString* name);
     daqErrCode EXPORTED daqPropertyBuilder_createBoolPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqBoolean* defaultValue);
     daqErrCode EXPORTED daqPropertyBuilder_createIntPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqInteger* defaultValue);
-    daqErrCode EXPORTED daqPropertyBuilder_createFloatPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqFloat* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createFloatPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqFloatObject* defaultValue);
     daqErrCode EXPORTED daqPropertyBuilder_createStringPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqString* defaultValue);
     daqErrCode EXPORTED daqPropertyBuilder_createListPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqList* defaultValue);
     daqErrCode EXPORTED daqPropertyBuilder_createDictPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqDict* defaultValue);

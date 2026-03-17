@@ -111,42 +111,7 @@ public:
         this->onSuggestedValuesRead = (IEvent*) propertyBuilderPtr.getOnSuggestedValuesRead();
         this->onSelectionValuesRead = (IEvent*) propertyBuilderPtr.getOnSelectionValuesRead();
 
-        if (this->selectionValues.assigned())
-        {
-            if (this->selectionValues.supportsInterface<IEvalValue>())
-            {
-                // We can not determine the property type of eval value at this point, 
-                // so we will determine it later in the method setOwner
-                // here we just want to store if property value selection based
-                if (this->valueType == ctInt && !propertyBuilderPtr.getIsIntegerValueSelection())
-                {
-                    this->propertyType = PropertyType::IndexSelection;
-                }
-                else
-                {
-                    this->propertyType = PropertyType::Selection;
-                }
-            }
-            else if (this->selectionValues.supportsInterface<IList>())
-            {
-                if (this->valueType == ctInt && !propertyBuilderPtr.getIsIntegerValueSelection())
-                    this->propertyType = PropertyType::IndexSelection;
-                else
-                    this->propertyType = PropertyType::Selection;
-            }
-            else if (this->selectionValues.supportsInterface<IDict>())
-            {
-                this->propertyType = PropertyType::SparseSelection;
-            }
-        }
-        else if (this->refProp.assigned())
-        {
-            this->propertyType = PropertyType::Reference;
-        }
-        else 
-        {
-            this->propertyType = static_cast<PropertyType>(this->valueType);
-        }
+        this->propertyType = inferPropertyTypeFromMetadata(!propertyBuilderPtr.getIsIntegerValueSelection());
 
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
@@ -338,6 +303,12 @@ public:
     ErrCode INTERFACE_FUNC getPropertyType(PropertyType* type) override
     {
         OPENDAQ_PARAM_NOT_NULL(type);
+        // Backward compatibility:
+        // Some transports/clients (e.g. older OPC UA module revisions) may mirror properties without
+        // explicitly setting `PropertyType`. In such cases we lazily infer it from available metadata.
+        if (this->propertyType == PropertyType::Undefined)
+            this->propertyType = inferPropertyTypeFromMetadata(true);
+
         *type = this->propertyType;
         return OPENDAQ_SUCCESS;
     }
@@ -1736,6 +1707,44 @@ protected:
     EventEmitter<PropertyPtr, PropertyMetadataReadArgsPtr> onSuggestedValuesRead;
 
 private:
+
+    PropertyType inferPropertyTypeFromMetadata(bool preferIndexSelectionForInt = true) const
+    {
+        if (this->selectionValues.assigned())
+        {
+            // If selection values are eval-based, we can't reliably determine list vs dict until owner is set.
+            // We only mark the property as selection-based here; `setOwner` will later validate and may refine it.
+            if (this->selectionValues.supportsInterface<IEvalValue>())
+            {
+                if (this->valueType == ctInt && preferIndexSelectionForInt)
+                    return PropertyType::IndexSelection;
+                return PropertyType::Selection;
+            }
+
+            // Prefer sparse selection when selection values are a dictionary.
+            if (this->selectionValues.supportsInterface<IDict>())
+                return PropertyType::SparseSelection;
+
+            if (this->selectionValues.supportsInterface<IList>())
+            {
+                if (this->valueType == ctInt && preferIndexSelectionForInt)
+                    return PropertyType::IndexSelection;
+                return PropertyType::Selection;
+            }
+
+            // If selection values are set but are neither list nor dict, keep it as generic selection.
+            // Validation (where applicable) is performed elsewhere.
+            if (this->valueType == ctInt && preferIndexSelectionForInt)
+                return PropertyType::IndexSelection;
+            return PropertyType::Selection;
+        }
+
+        if (this->refProp.assigned())
+            return PropertyType::Reference;
+
+        // Fallback: mirror CoreType
+        return static_cast<PropertyType>(this->valueType);
+    }
 
     PropertyPtr bindAndGetRefProp(bool lock)
     {

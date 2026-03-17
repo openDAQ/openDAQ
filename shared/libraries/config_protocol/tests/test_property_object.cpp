@@ -18,11 +18,11 @@ class ConfigProtocolPropertyObjectTest : public Test
 public:
     void SetUp() override
     {
-        auto anonymousUser = User("", "");
-        auto instance = Instance("[[none]]");
-        setUpRootProperties(instance.getRootDevice());
+        const auto anonymousUser = User("", "");
+        serverInstance = Instance("[[none]]");
+        setUpRootProperties(serverInstance.getRootDevice());
 
-        serverDevice = instance.getRootDevice();
+        serverDevice = serverInstance.getRootDevice();
         serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         server = std::make_unique<ConfigProtocolServer>(
             serverDevice,
@@ -78,6 +78,7 @@ public:
     }
 
 protected:
+    InstancePtr serverInstance;
     DevicePtr serverDevice;
     DevicePtr clientDevice;
     std::unique_ptr<ConfigProtocolServer> server;

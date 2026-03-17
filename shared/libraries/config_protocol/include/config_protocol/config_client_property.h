@@ -55,8 +55,8 @@ inline ConfigClientPropertyImpl::ConfigClientPropertyImpl(const PropertyBuilderP
                                                           const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                                           const std::string& remoteGlobalId,
                                                           const ConfigPropertyBuildParams& buildParams)
-    : ConfigClientObjectImpl(configProtocolClientComm, remoteGlobalId)
-    , PropertyImpl(propertyBuilder.getObject())
+    : PropertyImpl(propertyBuilder.getObject())
+    , ConfigClientObjectImpl(configProtocolClientComm, remoteGlobalId)
 {
     this->hasOnGetSuggestedValuesListeners = buildParams.hasSuggestedValuesListeners;
     this->hasOnGetSelectionValuesListeners = buildParams.hasSelectionValuesListener;

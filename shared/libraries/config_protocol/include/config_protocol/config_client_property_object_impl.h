@@ -27,8 +27,7 @@
 #include <opendaq/context_factory.h>
 #include <config_protocol/errors.h>
 #include <config_protocol/config_client_property.h>
-
-#include "opendaq/component_update_context_ptr.h"
+#include <opendaq/component_update_context_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -422,7 +421,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObje
         checkErrorInfo(obj->toJson(&serialized));
 
         const auto protocolVersion = this->clientComm->getProtocolVersion();
-        if (protocolVersion >= 9 && protocolVersion < 20)
+        if (protocolVersion < 20)
             clientComm->update(remoteGlobalId, serialized, this->getPath(), nullptr);
         else
         {

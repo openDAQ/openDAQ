@@ -35,7 +35,10 @@ ErrCode INTERFACE_FUNC ModuleInfoImpl::getId(IString** id)
 {
     OPENDAQ_PARAM_NOT_NULL(id);
 
-    *id = this->fields.get("Id").asPtr<IString>().addRefAndReturn();
+    const BaseObjectPtr idValue = this->fields.get("Id");
+
+    if (idValue.assigned())
+        *id = idValue.asPtr<IString>().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -30,6 +30,7 @@ struct ModuleLibrary
 {
     boost::dll::shared_library handle;
     ModulePtr module;
+    StringPtr path;
 };
 
 END_NAMESPACE_OPENDAQ

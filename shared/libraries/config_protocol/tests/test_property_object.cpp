@@ -134,7 +134,6 @@ TEST_F(ConfigProtocolPropertyObjectTest, ValidWriteValueBasedSelection)
 {
     auto stringSelection = clientDevice.getProperty("StringSelection");
     ASSERT_NO_THROW(stringSelection.setValue("bar"));
-    std::this_thread::sleep_for(std::chrono::seconds(10));
     ASSERT_EQ(stringSelection.getValue(), "bar");
     ASSERT_NO_THROW(clientDevice.setPropertyValue("StringSelection", "foo"));
     ASSERT_EQ(clientDevice.getPropertyValue("StringSelection"), "foo");

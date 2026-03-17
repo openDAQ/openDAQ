@@ -328,15 +328,15 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
     // [returnSelf]
     /*!
      * @brief Sets the value selection property flag.
-     * @param isValueSelectionProperty The value selection property flag.
+     * @param isIntegerValueSelection The value selection property flag.
      */
-    virtual ErrCode INTERFACE_FUNC setIsValueSelectionProperty(Bool isValueSelectionProperty) = 0;
+    virtual ErrCode INTERFACE_FUNC setIsIntegerValueSelection(Bool isIntegerValueSelection) = 0;
 
     /*!
      * @brief Sets the value selection property flag.
-     * @param isValueSelectionProperty The value selection property flag.
+     * @param isIntegerValueSelection The value selection property flag.
      */
-    virtual ErrCode INTERFACE_FUNC getIsValueSelectionProperty(Bool* isValueSelectionProperty) = 0;
+    virtual ErrCode INTERFACE_FUNC getIsIntegerValueSelection(Bool* isIntegerValueSelection) = 0;
 };
 
 /*!@}*/

@@ -118,7 +118,7 @@ public:
                 // We can not determine the property type of eval value at this point, 
                 // so we will determine it later in the method setOwner
                 // here we just want to store if property value selection based
-                if (this->valueType == ctInt && !propertyBuilderPtr.getIsValueSelectionProperty())
+                if (this->valueType == ctInt && !propertyBuilderPtr.getIsIntegerValueSelection())
                 {
                     this->propertyType = PropertyType::IndexSelection;
                 }
@@ -129,7 +129,7 @@ public:
             }
             else if (this->selectionValues.supportsInterface<IList>())
             {
-                if (this->valueType == ctInt && !propertyBuilderPtr.getIsValueSelectionProperty())
+                if (this->valueType == ctInt && !propertyBuilderPtr.getIsIntegerValueSelection())
                     this->propertyType = PropertyType::IndexSelection;
                 else
                     this->propertyType = PropertyType::Selection;
@@ -623,24 +623,27 @@ public:
 	    OPENDAQ_PARAM_NOT_NULL(values);
 
 	    ErrCode err = daqTry([&]()
+        {
+            if (onSuggestedValuesRead.hasListeners())
             {
-                if (onSuggestedValuesRead.hasListeners())
-                {
-                    // TODO: Should this lock !? If yes, what mutex !?
-                    auto args = PropertyMetadataReadArgs(propPtr);
-                    args.setValue(this->suggestedValues);
-                    onSuggestedValuesRead(propPtr, args);
+                // TODO: Should this lock !? If yes, what mutex !?
+                auto args = PropertyMetadataReadArgs(propPtr);
+                args.setValue(this->suggestedValues);
+                onSuggestedValuesRead(propPtr, args);
 
-                    ListPtr<IBaseObject> selectionValuesPtr = args.getValue();
-                    *values = selectionValuesPtr.detach();
-                }
-		        else if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
-			        *values = lock ? prop.getSuggestedValues().detach() : prop.asPtr<IPropertyInternal>().getSuggestedValuesNoLock().detach();
-		        else
-			        *values = bindAndGet<ListPtr<IBaseObject>>(this->suggestedValues, lock).detach();
-			        
-		        return OPENDAQ_SUCCESS;
-	        });
+                ListPtr<IBaseObject> selectionValuesPtr = args.getValue();
+                *values = selectionValuesPtr.detach();
+            }
+            else if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+            {
+                *values = lock ? prop.getSuggestedValues().detach() : prop.asPtr<IPropertyInternal>(true).getSuggestedValuesNoLock().detach();
+            }
+            else
+            {
+                *values = bindAndGet<ListPtr<IBaseObject>>(this->suggestedValues, lock).detach();
+            }   
+            return OPENDAQ_SUCCESS;
+        });
          OPENDAQ_RETURN_IF_FAILED(err);
 	    return err;
     }
@@ -668,7 +671,7 @@ public:
         });
         OPENDAQ_RETURN_IF_FAILED(errCode);
         return errCode;
-}
+    }
     
     ErrCode INTERFACE_FUNC getReadOnly(Bool* readOnly) override
     {
@@ -721,9 +724,13 @@ public:
                 *values = args.getValue().detach();
             }
             else if (const PropertyPtr prop = bindAndGetRefProp(lock); prop.assigned())
+            {
                 *values = lock ? prop.getSelectionValues().detach() : prop.asPtr<IPropertyInternal>(true).getSelectionValuesNoLock().detach();
+            }
             else
+            {
                 *values = bindAndGet<BaseObjectPtr>(this->selectionValues, lock).detach();
+            }
                 
             return OPENDAQ_SUCCESS;
         });
@@ -877,14 +884,9 @@ public:
             {
                 defaultStruct = lock ? prop.getDefaultValue().detach() : prop.asPtr<IPropertyInternal>(true).getDefaultValueNoLock().detach();
             }
-            else if (lock)
-            {
-                const ErrCode errCode = this->getDefaultValue(&defaultStruct);
-                OPENDAQ_RETURN_IF_FAILED(errCode);
-            }
             else
             {
-                const ErrCode errCode = this->getDefaultValueNoLock(&defaultStruct);
+                const ErrCode errCode = this->getDefaultValueInternal(&defaultStruct, lock);
                 OPENDAQ_RETURN_IF_FAILED(errCode);
             }
             *structType = defaultStruct.asPtr<IStruct>(true).getStructType().detach();
@@ -1347,9 +1349,10 @@ public:
         if (errCode != OPENDAQ_ERR_NOTFOUND)
         {
             PropertyType propertyType = static_cast<PropertyType>(propertyTypeId);
-            bool isValueSelectionProperty = propertyType == PropertyType::Selection || propertyType == PropertyType::SparseSelection;
-            OPENDAQ_RETURN_IF_FAILED(builder->setIsValueSelectionProperty(isValueSelectionProperty));
+            bool isIntegerValueSelection = propertyType != PropertyType::IndexSelection;
+            OPENDAQ_RETURN_IF_FAILED(builder->setIsIntegerValueSelection(isIntegerValueSelection));
         }
+
         DESERIALIZE_MEMBER(context, factoryCallback, description, setDescription)
 
         BaseObjectPtr unit;
@@ -1448,7 +1451,7 @@ public:
             if (cloneableDefaultValue.assigned())
                 defaultValueObj = cloneableDefaultValue.clone();
 
-            const bool isValueSelectionProperty = propertyType == PropertyType::Selection || propertyType == PropertyType::SparseSelection;
+            const bool isIntegerValueSelection = propertyType != PropertyType::IndexSelection;
 
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)
@@ -1469,7 +1472,7 @@ public:
                         .setOnPropertyValueWrite(onValueWrite)
                         .setOnSelectionValuesRead(onSelectionValuesRead)
                         .setOnSuggestedValuesRead(onSuggestedValuesRead)
-                        .setIsValueSelectionProperty(isValueSelectionProperty)
+                        .setIsIntegerValueSelection(isIntegerValueSelection)
                         .build();
 
             *clonedProperty = prop.detach();

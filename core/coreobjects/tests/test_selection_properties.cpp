@@ -20,7 +20,7 @@ public:
 		
         // Non-index/sparse selections
 		obj.addProperty(StringPropertyBuilder("StringSelection", "foo").setSelectionValues(List<IString>("foo", "bar")).build());
-		obj.addProperty(IntPropertyBuilder("IntSelection", 10).setSelectionValues(List<IInteger>(0, 6, 15, 10)).setIsValueSelectionProperty(true).build());
+		obj.addProperty(IntPropertyBuilder("IntSelection", 10).setSelectionValues(List<IInteger>(0, 6, 15, 10)).setIsIntegerValueSelection(true).build());
 		obj.addProperty(FloatPropertyBuilder("FloatSelection", 5.12).setSelectionValues(List<IFloat>(0.12, -5.2, 5.12, 10.2)).build());
         
         // Non-index/sparse selections w/ references
@@ -29,7 +29,7 @@ public:
         obj.addProperty(ListProperty("FloatList", List<IFloat>(0.12, -5.2, 5.12, 10.2), false));
 
         //obj.addProperty(StringPropertyBuilder("StringSelectionRef", "foo").setSelectionValues(EvalValue("StringList")).build());
-		//obj.addProperty(IntPropertyBuilder("IntSelectionRef", 10).setSelectionValues(EvalValue("IntList")).setIsValueSelectionProperty(true).build());
+		//obj.addProperty(IntPropertyBuilder("IntSelectionRef", 10).setSelectionValues(EvalValue("IntList")).setIsIntegerValueSelection(true).build());
 		//obj.addProperty(FloatPropertyBuilder("FloatSelectionRef", 5.12).setSelectionValues(EvalValue("FloatList")).build());
 
         obj.addProperty(IntProperty("CallCount", 0));

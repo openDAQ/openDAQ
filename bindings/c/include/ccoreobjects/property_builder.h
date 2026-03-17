@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:53.
+//     RTGen (CGenerator v0.7.0) on 17.03.2026 13:26:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -47,7 +47,7 @@ extern "C"
     typedef struct daqCallableInfo daqCallableInfo;
     typedef struct daqEvent daqEvent;
     typedef struct daqInteger daqInteger;
-    typedef struct daqFloatObject daqFloatObject;
+    typedef struct daqFloat daqFloat;
     typedef struct daqDict daqDict;
     typedef struct daqRatio daqRatio;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -96,10 +96,12 @@ extern "C"
     daqErrCode EXPORTED daqPropertyBuilder_getOnSuggestedValuesRead(daqPropertyBuilder* self, daqEvent** event);
     daqErrCode EXPORTED daqPropertyBuilder_setOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent* event);
     daqErrCode EXPORTED daqPropertyBuilder_getOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyBuilder_setIsIntegerValueSelection(daqPropertyBuilder* self, daqBool isIntegerValueSelection);
+    daqErrCode EXPORTED daqPropertyBuilder_getIsIntegerValueSelection(daqPropertyBuilder* self, daqBool* isIntegerValueSelection);
     daqErrCode EXPORTED daqPropertyBuilder_createPropertyBuilder(daqPropertyBuilder** obj, daqString* name);
     daqErrCode EXPORTED daqPropertyBuilder_createBoolPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqBoolean* defaultValue);
     daqErrCode EXPORTED daqPropertyBuilder_createIntPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqInteger* defaultValue);
-    daqErrCode EXPORTED daqPropertyBuilder_createFloatPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqFloatObject* defaultValue);
+    daqErrCode EXPORTED daqPropertyBuilder_createFloatPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqFloat* defaultValue);
     daqErrCode EXPORTED daqPropertyBuilder_createStringPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqString* defaultValue);
     daqErrCode EXPORTED daqPropertyBuilder_createListPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqList* defaultValue);
     daqErrCode EXPORTED daqPropertyBuilder_createDictPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqDict* defaultValue);

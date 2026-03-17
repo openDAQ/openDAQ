@@ -43,11 +43,9 @@ enum class PropertyType : EnumType
     List = 4,             ///< List of IBaseObject
     Dict = 5,             ///< Dictionary of (key: IBaseObject, value: IBaseObject)
     Ratio = 6,            ///< Rational number (numerator / denominator)
-    Procedure = 7,             ///< Callback without return value
+    Procedure = 7,        ///< Callback without return value
     Object = 8,           ///< Generic object
-    // BinaryData = 9,    ///< Binary buffer with predefined size
-    Function = 10,            ///< Callback with return value
-    // ComplexNumber = 11,///< Complex number (real, imaginary)
+    Function = 10,        ///< Callback with return value
     Struct = 12,          ///< Constant structure with dictionary of fields and types
     Enumeration = 13,     ///< Enumeration representing a predefined set of named integral constants
 

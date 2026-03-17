@@ -10,7 +10,7 @@ PropertyBuilderImpl::PropertyBuilderImpl()
     : valueType(ctUndefined)
     , visible(true)
     , readOnly(false)
-    , isValueSelectionProperty(false)
+    , isIntegerValueSelection(false)
 {
     if (valueType == ctBinaryData)
     {
@@ -458,17 +458,17 @@ ErrCode PropertyBuilderImpl::getOnSelectionValuesRead(IEvent** event)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyBuilderImpl::setIsValueSelectionProperty(Bool isValueSelectionProperty)
+ErrCode PropertyBuilderImpl::setIsIntegerValueSelection(Bool isIntegerValueSelection)
 {
-    this->isValueSelectionProperty = isValueSelectionProperty;
+    this->isIntegerValueSelection = isIntegerValueSelection;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyBuilderImpl::getIsValueSelectionProperty(Bool* isValueSelectionProperty)
+ErrCode PropertyBuilderImpl::getIsIntegerValueSelection(Bool* isIntegerValueSelection)
 {
-    OPENDAQ_PARAM_NOT_NULL(isValueSelectionProperty);
+    OPENDAQ_PARAM_NOT_NULL(isIntegerValueSelection);
 
-    *isValueSelectionProperty = this->isValueSelectionProperty;
+    *isIntegerValueSelection = this->isIntegerValueSelection;
     return OPENDAQ_SUCCESS;
 }
 

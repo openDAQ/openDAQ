@@ -118,8 +118,8 @@ public:
     ErrCode INTERFACE_FUNC setOnSelectionValuesRead(IEvent* event) override;
     ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) override;
 
-    ErrCode INTERFACE_FUNC setIsValueSelectionProperty(Bool isValueSelectionProperty) override;
-    ErrCode INTERFACE_FUNC getIsValueSelectionProperty(Bool* isValueSelectionProperty) override;
+    ErrCode INTERFACE_FUNC setIsIntegerValueSelection(Bool isIntegerValueSelection) override;
+    ErrCode INTERFACE_FUNC getIsIntegerValueSelection(Bool* isIntegerValueSelection) override;
 
 private:
     CoreType valueType;
@@ -151,7 +151,7 @@ private:
     EventEmitter<PropertyObjectPtr, PropertyMetadataReadArgsPtr> onSuggestedValuesRead;
     EventEmitter<PropertyObjectPtr, PropertyMetadataReadArgsPtr> onSelectionValuesRead;
 
-    Bool isValueSelectionProperty;
+    Bool isIntegerValueSelection;
 };
 
 END_NAMESPACE_OPENDAQ

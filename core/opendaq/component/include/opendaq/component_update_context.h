@@ -89,12 +89,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * Used to remap signal -> input port connections to the remapped device when loading.
      */
     virtual ErrCode INTERFACE_FUNC addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId) = 0;
-    // [templateType(deviceMapping, IString, IString)]
-    /*!
-     * @brief Gets the current device remapping dictionary with key-value pairs of original device local IDs and new device local IDs.
-     * @param deviceMapping The device remapping dictionary.
-     */
-    virtual ErrCode INTERFACE_FUNC getDeviceMapping(IDict** deviceMapping) = 0;
+
     /*!
      * @brief Gets the DeviceUpdateOptions object for the device with the specified local ID. Returns null if no options are found for the device.
      * @param localId The local ID of the device to get the options for.
@@ -114,6 +109,15 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * @param updateParameters The update parameters.
      */
     virtual ErrCode INTERFACE_FUNC getUpdateParameters(IUpdateParameters** updateParameters) = 0;
+
+    /*!
+     * @brief Overrides the internal context state with that of another.
+     * @param updateContext The context with which the object is to be overridden.
+     */
+    virtual ErrCode INTERFACE_FUNC overrideState(IComponentUpdateContext* updateContext) = 0; 
+    
+    // [templateType(state, IString, IBaseObject)]
+    virtual ErrCode INTERFACE_FUNC getInternalState(IDict** state) = 0;
 };
 
 /*!

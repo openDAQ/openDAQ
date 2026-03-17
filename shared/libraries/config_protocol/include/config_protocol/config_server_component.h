@@ -333,7 +333,9 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
 
     deserializer.update(updatable, serializedString, updateParamsOrContext);
 
-    // TODO: Return context to user if assigned
+    if (updateParamsOrContext.assigned() && updateParamsOrContext.supportsInterface<IComponentUpdateContext>())
+        return updateParamsOrContext;
+
     return nullptr;
 }
 

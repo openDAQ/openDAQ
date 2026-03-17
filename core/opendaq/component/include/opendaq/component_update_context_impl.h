@@ -52,12 +52,13 @@ public:
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
     ErrCode INTERFACE_FUNC addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId) override;
-    ErrCode INTERFACE_FUNC getDeviceMapping(IDict** deviceMapping) override;
     ErrCode INTERFACE_FUNC remapInputPortConnections() override;
     ErrCode INTERFACE_FUNC getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options) override;
     ErrCode INTERFACE_FUNC getUpdateParameters(IUpdateParameters** updateParameters) override;
 
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
+    ErrCode INTERFACE_FUNC overrideState(IComponentUpdateContext* updateContext) override;
+    ErrCode INTERFACE_FUNC getInternalState(IDict** state) override;
     
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -73,10 +74,12 @@ public:
 
     UpdateParametersPtr config;
     DictPtr<IString, IDeviceUpdateOptions> deviceUpdateOptionsMapping;
+
     DictPtr<IString, IString> deviceMapping;
     DictPtr<IString, IDict> connections;
     DictPtr<IString, IString> signalDependencies;
     ListPtr<IString> parentDependencies;
+
     ComponentPtr rootComponent;
 };
 
@@ -245,7 +248,6 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
     else if (rootComponent.getLocalId() == signalRootId)
         signalRootComponent = rootComponent;
 
-    // TODO: This check fails if the root device name is different
     if (!signalRootComponent.assigned())
     {
         auto loggerComponent = rootComponent.getContext().getLogger().getOrAddComponent("Component");
@@ -278,14 +280,6 @@ inline ErrCode ComponentUpdateContextImpl::addDeviceRemapping(IString* originalD
     OPENDAQ_PARAM_NOT_NULL(newDeviceId);
 
     deviceMapping.set(originalDeviceId, newDeviceId);
-    return OPENDAQ_SUCCESS;
-}
-
-inline ErrCode ComponentUpdateContextImpl::getDeviceMapping(IDict** deviceMapping)
-{
-    OPENDAQ_PARAM_NOT_NULL(deviceMapping);
-
-    *deviceMapping = this->deviceMapping.detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -358,6 +352,35 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
         return OPENDAQ_NOTFOUND;
 
     *signal = singalPtr.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode ComponentUpdateContextImpl::overrideState(IComponentUpdateContext* updateContext)
+{
+    OPENDAQ_PARAM_NOT_NULL(updateContext);
+    return daqTry([&updateContext, this]()
+    {
+        ComponentUpdateContextPtr updateContextPtr = ComponentUpdateContextPtr::Borrow(updateContext);
+        auto state = updateContextPtr.getInternalState();
+        deviceMapping = state.get("DeviceMapping");
+        connections = state.get("Connections");
+        signalDependencies = state.get("SignalDependencies");
+        parentDependencies = state.get("ParentDependencies");
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+inline ErrCode ComponentUpdateContextImpl::getInternalState(IDict** state)
+{
+    OPENDAQ_PARAM_NOT_NULL(state);
+
+    auto stateObj = Dict<IString, IBaseObject>();
+    stateObj.set("DeviceMapping", deviceMapping);
+    stateObj.set("Connections", connections);
+    stateObj.set("SignalDependencies", signalDependencies);
+    stateObj.set("ParentDependencies", parentDependencies);
+
+    *state = stateObj.detach();
     return OPENDAQ_SUCCESS;
 }
 

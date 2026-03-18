@@ -9,6 +9,16 @@
 
 using namespace daq;
 
+MockModuleImpl::MockModuleImpl()
+    : moduleId(String("mock"))
+{
+}
+
+MockModuleImpl::MockModuleImpl(StringPtr id)
+    : moduleId(id)
+{
+}
+
 ErrCode MockModuleImpl::getAvailableDevices(IList** availableDevices)
 {
     OPENDAQ_PARAM_NOT_NULL(availableDevices);
@@ -60,7 +70,7 @@ ErrCode MockModuleImpl::getModuleInfo(IModuleInfo** info)
 {
     OPENDAQ_PARAM_NOT_NULL(info);
 
-    *info = ModuleInfo(VersionInfo(0, 0, 0), "MockModule", "mock").detach();
+    *info = ModuleInfo(VersionInfo(0, 0, 0), "MockModule", moduleId).detach();
 
     return OPENDAQ_SUCCESS;
 }

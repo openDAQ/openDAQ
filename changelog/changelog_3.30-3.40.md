@@ -27,6 +27,7 @@
 ## Bug fixes
 
 - [#1104](https://github.com/openDAQ/openDAQ/pull/1104) Fix path configuration option getting ignored by Parquet and CSV recorders in some cases.
+- [#1103](https://github.com/openDAQ/openDAQ/pull/1103) Reject loading of duplicating modules by Id and path
 - [#1098](https://github.com/openDAQ/openDAQ/pull/1098) Fix setting active streaming source for InputPort
 - [#1095](https://github.com/openDAQ/openDAQ/pull/1095) Update imported delegate.hpp and fix cpp 20 build incompatibilities
 - [#1086](https://github.com/openDAQ/openDAQ/pull/1086) Mirrored device type is not serialised for native usage

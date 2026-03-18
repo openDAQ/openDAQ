@@ -818,6 +818,109 @@ TEST_F(PropertyObjectTest, DISABLED_DictPropInvalidItemType)
     ASSERT_THROW(propObj.setPropertyValue("DictProp", dict), InvalidTypeException);
 }
 
+TEST_F(PropertyObjectTest, DictPropEvalCoreType)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}, {"b", 2}})));
+    propObj.addProperty(ReferenceProperty("DictRef", EvalValue("%Dict")));
+
+    DictPtr<IString, IInteger> dict = propObj.getPropertyValue("DictRef");
+    ASSERT_EQ(dict.getCount(), 2u);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGet)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"foo", 10}, {"bar", 20}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    ASSERT_EQ(dict.get("foo"), 10);
+    ASSERT_EQ(dict.get("bar"), 20);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalHasKey)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}, {"b", 2}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    ASSERT_TRUE(dict.hasKey("a"));
+    ASSERT_FALSE(dict.hasKey("z"));
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGetCount)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}, {"b", 2}, {"c", 3}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    ASSERT_EQ(dict.getCount(), 3u);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGetKeyList)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"x", 1}, {"y", 2}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    ListPtr<IString> keys = dict.getKeyList();
+    ASSERT_EQ(keys.getCount(), 2u);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGetValueList)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"x", 1}, {"y", 2}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    ListPtr<IInteger> values = dict.getValueList();
+    ASSERT_EQ(values.getCount(), 2u);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGetKeys)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}, {"b", 2}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    auto keys = dict.getKeys();
+    ASSERT_TRUE(keys.assigned());
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGetValues)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}, {"b", 2}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    auto values = dict.getValues();
+    ASSERT_TRUE(values.assigned());
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalMutationAccessDenied)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    auto dict = eval.asPtr<IDict>(true);
+
+    const auto key = String("a");
+    const auto val = Integer(99);
+    IBaseObject* removed = nullptr;
+
+    ASSERT_ERROR_CODE_EQ(dict->set(key, val), OPENDAQ_ERR_ACCESSDENIED);
+    ASSERT_ERROR_CODE_EQ(dict->remove(key, &removed), OPENDAQ_ERR_ACCESSDENIED);
+    ASSERT_ERROR_CODE_EQ(dict->deleteItem(key), OPENDAQ_ERR_ACCESSDENIED);
+}
+
 TEST_F(PropertyObjectTest, SquareBracketOperator)
 {
     /*  auto propObj = PropertyObject(objManager, "Test");

@@ -29,7 +29,8 @@ BEGIN_NAMESPACE_OPENDAQ
 struct ISerializedObject;
 
 class EvalValueImpl : public ImplementationOf<IEvalValue, IOwnable, ICoreType, IInteger_Helper, ISerializable, IFloat_Helper,
-                                              IBoolean_Helper, IString_Helper, IConvertible, IList, INumber, IProperty_Helper, IUnit_Helper, IStruct_Helper>
+                                              IBoolean_Helper, IString_Helper, IConvertible, IList, INumber, IProperty_Helper, 
+                                              IUnit_Helper, IStruct_Helper, IDict>
 {
 public:
     EvalValueImpl(IString* eval);
@@ -138,6 +139,18 @@ public:
     ErrCode UnitObject_GetSymbol(IString** symbol) override;
     ErrCode UnitObject_GetName(IString** name) override;
     ErrCode UnitObject_GetQuantity(IString** quantity) override;
+
+    // IDict
+
+    ErrCode INTERFACE_FUNC get(IBaseObject* key, IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC set(IBaseObject* key, IBaseObject* value) override;
+    ErrCode INTERFACE_FUNC remove(IBaseObject* key, IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC deleteItem(IBaseObject* key) override;
+    ErrCode INTERFACE_FUNC hasKey(IBaseObject* key, Bool* hasKey) override;
+    ErrCode INTERFACE_FUNC getKeyList(IList** keys) override;
+    ErrCode INTERFACE_FUNC getValueList(IList** values) override;
+    ErrCode INTERFACE_FUNC getKeys(IIterable** iterable) override;
+    ErrCode INTERFACE_FUNC getValues(IIterable** iterable) override;
 
     // IStruct
 

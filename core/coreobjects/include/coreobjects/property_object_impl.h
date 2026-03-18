@@ -1025,7 +1025,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelecti
     const auto selectionValues = prop.asPtr<IPropertyInternal>(true).getSelectionValuesNoLock();
     if (selectionValues.assigned())
     {
-        if (prop.getPropertyType() == PropertyType::IndexSelection)
+        const PropertyType propType = prop.getPropertyType();
+        if (propType == PropertyType::IndexSelection)
         {
             if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
             {
@@ -1033,14 +1034,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelecti
                 if (key < list.getCount())
                     return OPENDAQ_SUCCESS;
             }
-            // we have wrongly implemented selection with eval value (look at ptp sync interface)
-            else if (const auto dict = selectionValues.asPtrOrNull<IDict>(true); dict.assigned())
-            {
-                if (dict.hasKey(value))
-                    return OPENDAQ_SUCCESS;
-            }
         }
-        else if (prop.getPropertyType() == PropertyType::Selection)
+        else if (propType == PropertyType::Selection)
         {
             if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
             {
@@ -1051,7 +1046,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelecti
                 }
             }
         }
-        else if (prop.getPropertyType() == PropertyType::SparseSelection)
+        else if (propType == PropertyType::SparseSelection)
         {
             if (const auto dict = selectionValues.asPtrOrNull<IDict>(true); dict.assigned() && dict.hasKey(value))
                 return OPENDAQ_SUCCESS;

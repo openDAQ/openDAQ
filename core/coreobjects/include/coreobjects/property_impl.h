@@ -77,6 +77,7 @@ protected:
         , valueType(ctUndefined)
         , visible(true)
         , readOnly(false)
+        , isIntegerValueSelection(false)
     {
         propPtr = this->borrowPtr<PropertyPtr>();
     }
@@ -110,8 +111,8 @@ public:
         this->onValueRead = (IEvent*) propertyBuilderPtr.getOnPropertyValueRead();
         this->onSuggestedValuesRead = (IEvent*) propertyBuilderPtr.getOnSuggestedValuesRead();
         this->onSelectionValuesRead = (IEvent*) propertyBuilderPtr.getOnSelectionValuesRead();
-
-        this->propertyType = inferPropertyTypeFromMetadata(!propertyBuilderPtr.getIsIntegerValueSelection());
+        this->isIntegerValueSelection = propertyBuilderPtr.getIsIntegerValueSelection();
+        this->propertyType = inferPropertyTypeFromMetadata();
 
         propPtr = this->borrowPtr<PropertyPtr>();
         owner = nullptr;
@@ -307,7 +308,7 @@ public:
         // Some transports/clients (e.g. older OPC UA module revisions) may mirror properties without
         // explicitly setting `PropertyType`. In such cases we lazily infer it from available metadata.
         if (this->propertyType == PropertyType::Undefined)
-            this->propertyType = inferPropertyTypeFromMetadata(true);
+            this->propertyType = inferPropertyTypeFromMetadata();
 
         *type = this->propertyType;
         return OPENDAQ_SUCCESS;
@@ -396,8 +397,18 @@ public:
             IntfID intfID = IUnknown::Id;
             *type = ctUndefined;
 
+            if (this->propertyType == PropertyType::Undefined)
+                this->propertyType = inferPropertyTypeFromMetadata();
+
             if (this->propertyType == PropertyType::Selection)
                 return OPENDAQ_SUCCESS;
+
+            if (this->propertyType == PropertyType::Reference)
+            {
+                PropertyPtr refProp;
+                OPENDAQ_RETURN_IF_FAILED(getReferencedPropertyInternal(&refProp, lock));
+                return lock ? refProp->getItemType(type) : refProp.asPtr<IPropertyInternal>(true)->getItemTypeNoLock(type);
+            }
 
             BaseObjectPtr defVal;
             auto err = this->getDefaultValueInternal(&defVal, lock);
@@ -1092,25 +1103,24 @@ public:
 
         if (selectionValues.assigned())
         {
-            if (this->propertyType == PropertyType::IndexSelection)
+            switch (this->propertyType)
             {
-                if (valueType != ctInt)
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Index selection property {} must have a value type of Int)", name));
-            }
-            else if (this->propertyType == PropertyType::SparseSelection)
-            {
-                if (valueType != ctInt)
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Sparse selection property {} must have a value type of Int)", name));
-            }
-            else if (this->propertyType == PropertyType::Selection)
-            {
-                if (valueType != ctInt && valueType != ctString && valueType != ctFloat)
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Selection property {} must have a value type of Int, String or Float)", name));
-            }
-            else
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, fmt::format(R"(Invalid selection property type for property {})", name));
-            }
+                case PropertyType::IndexSelection:
+                case PropertyType::SparseSelection:
+                    if (valueType != ctInt)
+                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, 
+                                                   fmt::format(R"(Selection property {} must have a value type of Int)", name));
+                    break;
+                case PropertyType::Selection:
+                case PropertyType::Undefined:
+                    if (valueType != ctInt && valueType != ctString && valueType != ctFloat)
+                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, 
+                                                   fmt::format(R"(Selection property {} must have a value type of Int, String or Float)", name));
+                    break;
+                default:
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, 
+                                               fmt::format(R"(Invalid selection property type for property {})", name));
+            };
         }
 
         if (suggestedValues.assigned() && (valueType != ctInt && valueType != ctFloat && valueType != ctString))
@@ -1289,7 +1299,7 @@ public:
                 serializer->writeBool(true);
             }
 
-            if (this->propertyType == PropertyType::Selection)
+            if (this->isIntegerValueSelection && this->valueType == ctInt)
             {
                 serializer->key("IsValueSelection");
                 serializer->writeBool(true);
@@ -1420,8 +1430,6 @@ public:
             auto cloneableDefaultValue = defaultValue.asPtrOrNull<IPropertyObjectInternal>(true);
             if (cloneableDefaultValue.assigned())
                 defaultValueObj = cloneableDefaultValue.clone();
-
-            const bool isIntegerValueSelection = propertyType != PropertyType::IndexSelection;
 
             auto prop = PropertyBuilder(name)
                         .setValueType(valueType)
@@ -1651,16 +1659,6 @@ public:
             }
         }
 
-        if (selectionValues.supportsInterface<IEvalValue>())
-        {
-            BaseObjectPtr selectionValuesResolved;
-            OPENDAQ_RETURN_IF_FAILED(this->getSelectionValuesNoLock(&selectionValuesResolved));
-            if (selectionValuesResolved.supportsInterface<IDict>())
-                this->propertyType = PropertyType::SparseSelection;
-            else if (!selectionValuesResolved.supportsInterface<IList>())
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Selection values must be a list or a dictionary.");
-        }
-
         return OPENDAQ_SUCCESS;
     }
 
@@ -1694,6 +1692,7 @@ protected:
     BaseObjectPtr defaultValue;
     BooleanPtr visible;
     BooleanPtr readOnly;
+    BooleanPtr isIntegerValueSelection;
     BaseObjectPtr selectionValues;
     ListPtr<IBaseObject> suggestedValues;
     EvalValuePtr refProp;
@@ -1707,17 +1706,39 @@ protected:
 
 private:
 
-    PropertyType inferPropertyTypeFromMetadata(bool preferIndexSelectionForInt = true) const
+    PropertyType inferPropertyTypeFromMetadata() const
     {
         if (this->selectionValues.assigned())
         {
-            // If selection values are eval-based, we can't reliably determine list vs dict until owner is set.
-            // We only mark the property as selection-based here; `setOwner` will later validate and may refine it.
-            if (this->selectionValues.supportsInterface<IEvalValue>())
+            if (const auto eval = this->selectionValues.asPtrOrNull<IEvalValue>(true); eval.assigned())
             {
-                if (this->valueType == ctInt && preferIndexSelectionForInt)
-                    return PropertyType::IndexSelection;
-                return PropertyType::Selection;
+                // trying to parse the eval value core type
+                const auto ownerPtr = getOwner();
+                if (!ownerPtr.assigned())
+                    return PropertyType::Undefined;
+
+                const auto evalWithOwner = eval.cloneWithOwner(ownerPtr);
+                const auto evalCoreTypePtr = evalWithOwner.asPtr<ICoreType>(true);
+                
+                CoreType evalCoreType = ctUndefined;
+                const ErrCode err = evalCoreTypePtr->getCoreType(&evalCoreType);
+                if (OPENDAQ_FAILED(err))
+                {
+                    daqClearErrorInfo();
+                    return PropertyType::Undefined;
+                }
+
+                if (evalCoreType == ctDict)
+                {
+                    return PropertyType::SparseSelection;
+                }
+                else if (evalCoreType == ctList)
+                {
+                    if (this->valueType == ctInt && !this->isIntegerValueSelection)
+                        return PropertyType::IndexSelection;
+                    return PropertyType::Selection;
+                }
+                return PropertyType::Undefined;
             }
 
             // Prefer sparse selection when selection values are a dictionary.
@@ -1726,14 +1747,14 @@ private:
 
             if (this->selectionValues.supportsInterface<IList>())
             {
-                if (this->valueType == ctInt && preferIndexSelectionForInt)
+                if (this->valueType == ctInt && !this->isIntegerValueSelection)
                     return PropertyType::IndexSelection;
                 return PropertyType::Selection;
             }
 
             // If selection values are set but are neither list nor dict, keep it as generic selection.
             // Validation (where applicable) is performed elsewhere.
-            if (this->valueType == ctInt && preferIndexSelectionForInt)
+            if (this->valueType == ctInt && !this->isIntegerValueSelection)
                 return PropertyType::IndexSelection;
             return PropertyType::Selection;
         }

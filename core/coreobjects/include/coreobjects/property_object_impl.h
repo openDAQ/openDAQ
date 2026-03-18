@@ -1741,7 +1741,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyS
             }
 
             if (!indexOrKey.assigned())
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, fmt::format(R"(Value not found in selection values of property "{}")", propName));
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Value not found in selection values of property "{}")", propName));
         }
         else if (prop.getPropertyType() == PropertyType::SparseSelection)
         {
@@ -1764,11 +1764,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyS
             }
 
             if (!indexOrKey.assigned())
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, fmt::format(R"(Value not found in sparse selection values of property "{}")", propName));
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Value not found in sparse selection values of property "{}")", propName));
         }
         else 
         {
-            indexOrKey = valuePtr;
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Property "{}" is not an index selection or sparse selection property)", propName));
         }
 
         return setPropertyValueInternal(propertyName, indexOrKey, true, protectedAccess, updateCount > 0);
@@ -2116,24 +2116,19 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" has no selection values assigned)", propName));
 
         const PropertyType propType = prop.getPropertyType();
+        if (propType != PropertyType::IndexSelection && propType != PropertyType::SparseSelection)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Property "{}" is not an index selection or sparse selection property)", propName));
 
-        if (propType == PropertyType::IndexSelection || propType == PropertyType::SparseSelection)
-        {
-            if (auto valuesList = values.asPtrOrNull<IList>(true); valuesList.assigned())
-                valuePtr = valuesList.getItemAt(valuePtr);
-            else if (auto valuesDict = values.asPtrOrNull<IDict>(true); valuesDict.assigned())
-                valuePtr = valuesDict.get(valuePtr);
-            else
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" values is not a list or dictionary)", propName));
-        }
+        if (auto valuesList = values.asPtrOrNull<IList>(true); valuesList.assigned())
+            valuePtr = valuesList.getItemAt(valuePtr);
+        else if (auto valuesDict = values.asPtrOrNull<IDict>(true); valuesDict.assigned())
+            valuePtr = valuesDict.get(valuePtr);
+        else
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" values is not a list or dictionary)", propName));
 
-        if (propType != PropertyType::Selection)
+        if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())
         {
-            // for Selection Type the item type is Underfined 
-            if (propInternal.getItemTypeNoLock() != valuePtr.getCoreType())
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "List item type mismatch");
-            }
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "List item type mismatch");
         }
 
         *value = valuePtr.detach();

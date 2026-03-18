@@ -329,21 +329,21 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyBuilder, IBaseObject)
     /*!
      * @brief Sets the integer value selection flag for selection properties with valueType == ctInt.
      *
-     * When @c true, the property stores the actual selected integer value (IntegerValueSelection).
-     * When @c false (default), the property stores the index of the selected entry (IndexSelection).
+     * When true, the property stores the actual selected integer value (IntegerValueSelection).
+     * When false (default), the property stores the index of the selected entry (IndexSelection).
      *
      * This flag is ignored for sparse selection properties and for selection properties
      * with a valueType other than ctInt.
      *
-     * @param isIntegerValueSelection @c true to store the selected value; @c false to store the selection index.
+     * @param isIntegerValueSelection True to store the selected value; false to store the selection index.
      */
     virtual ErrCode INTERFACE_FUNC setIsIntegerValueSelection(Bool isIntegerValueSelection) = 0;
 
     /*!
      * @brief Gets the integer value selection flag for selection properties with valueType == ctInt.
      *
-     * When @c true, the property stores the actual selected integer value (IntegerValueSelection).
-     * When @c false (default), the property stores the index of the selected entry (IndexSelection).
+     * When true, the property stores the actual selected integer value (IntegerValueSelection).
+     * When false (default), the property stores the index of the selected entry (IndexSelection).
      *
      * This flag is ignored for sparse selection properties and for selection properties
      * with a valueType other than ctInt.

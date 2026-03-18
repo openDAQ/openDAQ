@@ -40,20 +40,20 @@ enum class PropertyType : EnumType
     Int = 1,              ///< 64 bit signed integer
     Float = 2,            ///< IEEE 754 64 bit floating point
     String = 3,           ///< UTF8 zero terminated string
-    List = 4,             ///< List of IBaseObject
-    Dict = 5,             ///< Dictionary of (key: IBaseObject, value: IBaseObject)
+    List = 4,             ///< List of objects of type `itemType`
+    Dict = 5,             ///< Dictionary of `<keyType, itemType>`
     Ratio = 6,            ///< Rational number (numerator / denominator)
     Procedure = 7,        ///< Callback without return value
-    Object = 8,           ///< Generic object
+    Object = 8,           ///< Nested `IPropertyObject`-type
     Function = 10,        ///< Callback with return value
     Struct = 12,          ///< Constant structure with dictionary of fields and types
     Enumeration = 13,     ///< Enumeration representing a predefined set of named integral constants
 
     // Additional property types
-    Reference = 0x1000,   ///< Reference property
-    IndexSelection,       ///< Index selection property
-    Selection,            ///< Selection property
-    SparseSelection,      ///< Sparse selection property
+    Reference = 0x1000,   ///< References another property
+    IndexSelection,       ///< Value of property is an index into the `selectionValues` list
+    Selection,            ///< Value of property is the value to the `selectionValues` list
+    SparseSelection,      ///< Value of property is a key into the `selectionValues` dictionary
 
     // Last property type
     Undefined = 0xFFFF,   ///< Undefined

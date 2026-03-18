@@ -263,7 +263,7 @@ TEST_F(PropertyObjectTest, SerializeJsonSimple)
 
 TEST_F(PropertyObjectTest, SerializeJsonSimpleWithLocalProperty)
 {
-    const std::string expectedJson = R"({"__type":"PropertyObject","className":"Test","propValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12},"properties":[{"__type":"Property","name":"LocalProp","PropertyType":3,"valueType":3,"defaultValue":"-","readOnly":false,"visible":true}]})";
+    const std::string expectedJson = R"({"__type":"PropertyObject","className":"Test","propValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12},"properties":[{"__type":"Property","name":"LocalProp","valueType":3,"defaultValue":"-","readOnly":false,"visible":true}]})";
 
     PropertyObjectPtr propObj = PropertyObject(objManager, "Test");
     propObj.addProperty(StringPropertyBuilder("LocalProp", "-").build());
@@ -305,7 +305,7 @@ TEST_F(PropertyObjectTest, DeserializeJsonSimple)
 TEST_F(PropertyObjectTest, DeserializeJsonSimpleWithLocalProperty)
 {
     const std::string json =
-        R"({"__type":"PropertyObject","className":"Test","propValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12},"properties":[{"__type":"Property","name":"LocalProp","PropertyType":3,"valueType":3,"defaultValue":"-","readOnly":false,"visible":true}]})";
+        R"({"__type":"PropertyObject","className":"Test","propValues":{"AtomicObject":{"__type":"PropertyObject"},"Referenced":12},"properties":[{"__type":"Property","name":"LocalProp","valueType":3,"defaultValue":"-","readOnly":false,"visible":true}]})";
 
     const auto deserializer = JsonDeserializer();
 
@@ -2249,7 +2249,7 @@ TEST_F(PropertyObjectTest, DISABLED_ClonedObjectsSerialize)
 
 TEST_F(PropertyObjectTest, ClonedClassObjectsSerialize)
 {
-    const std::string expectedJson = R"({"__type":"PropertyObject","className":"NestedObjectClass","propValues":{"Child":{"__type":"PropertyObject","className":"ObjectClass","propValues":{"Child":{"__type":"PropertyObject","properties":[{"__type":"Property","name":"MyString","PropertyType":3,"valueType":3,"defaultValue":"foo","readOnly":false,"visible":true}]}}}}})";
+    const std::string expectedJson = R"({"__type":"PropertyObject","className":"NestedObjectClass","propValues":{"Child":{"__type":"PropertyObject","className":"ObjectClass","propValues":{"Child":{"__type":"PropertyObject","properties":[{"__type":"Property","name":"MyString","valueType":3,"defaultValue":"foo","readOnly":false,"visible":true}]}}}}})";
 
     const auto propObj = PropertyObject(objManager, "NestedObjectClass");
     const auto serializer1 = JsonSerializer();

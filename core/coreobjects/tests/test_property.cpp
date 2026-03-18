@@ -51,7 +51,7 @@ TEST_F(PropertyTest, CreateAndDefine)
 TEST_F(PropertyTest, BoolPropSerialize)
 {
     std::string expected =
-        R"~({"__type":"Property","name":"DualCore","PropertyType":0,"valueType":0,"defaultValue":false,"readOnly":false,"coercer":{"__type":"Coercer","EvalStr":"if(value == True, True, False)"},"validator":{"__type":"Validator","EvalStr":"value == True"}})~";
+        R"~({"__type":"Property","name":"DualCore","valueType":0,"defaultValue":false,"readOnly":false,"coercer":{"__type":"Coercer","EvalStr":"if(value == True, True, False)"},"validator":{"__type":"Validator","EvalStr":"value == True"}})~";
 
     auto property = PropertyBuilder("DualCore")
                     .setValueType(ctBool)
@@ -73,7 +73,7 @@ TEST_F(PropertyTest, BoolPropSerialize)
 TEST_F(PropertyTest, BoolPropDeserializeNoValidatorsCoercers)
 {
     std::string json =
-        R"({"__type":"Property","name":"DualCore","PropertyType":0,"valueType":0,"defaultValue":false,"readOnly":false,"visible":true})";
+        R"({"__type":"Property","name":"DualCore","valueType":0,"defaultValue":false,"readOnly":false,"visible":true})";
 
     auto deserializer = JsonDeserializer();
     BaseObjectPtr ptr = deserializer.deserialize(json);
@@ -88,7 +88,7 @@ TEST_F(PropertyTest, BoolPropDeserializeNoValidatorsCoercers)
 
 TEST_F(PropertyTest, BoolPropDeserializeWithValidatorsCoercers)
 {
-    std::string json = R"~({"__type":"Property","name":"DualCore","PropertyType":0,"valueType":0,"defaultValue":false,"readOnly":false,"visible":true,"coercer":{"__type":"Coercer","EvalStr":"if(value == True, True, False)"},"validator":{"__type":"Validator","EvalStr":"value == True"}})~";
+    std::string json = R"~({"__type":"Property","name":"DualCore","valueType":0,"defaultValue":false,"readOnly":false,"visible":true,"coercer":{"__type":"Coercer","EvalStr":"if(value == True, True, False)"},"validator":{"__type":"Validator","EvalStr":"value == True"}})~";
 
     auto deserializer = JsonDeserializer();
     BaseObjectPtr ptr = deserializer.deserialize(json);
@@ -111,7 +111,7 @@ TEST_F(PropertyTest, SelectionValuesWithCustomClass)
     manager.addType(testClass);
 
     std::string json =
-        R"~({"__type":"Property","name":"TestProperty","PropertyType":4097,"valueType":1,"defaultValue":0,"readOnly":false,"visible":true,"selectionValues":[{"__type":"PropertyObject","className":"TestClass","propValues":{"TestIntProp":5}}]})~";
+        R"~({"__type":"Property","name":"TestProperty","valueType":1,"defaultValue":0,"readOnly":false,"visible":true,"selectionValues":[{"__type":"PropertyObject","className":"TestClass","propValues":{"TestIntProp":5}}]})~";
 
     auto deserializer = JsonDeserializer();
     PropertyPtr ptr = deserializer.deserialize(json, manager);

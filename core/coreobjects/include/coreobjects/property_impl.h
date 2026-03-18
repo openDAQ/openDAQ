@@ -1238,9 +1238,6 @@ public:
             SERIALIZE_PROP_PTR(name)
             SERIALIZE_PROP_PTR(description)
 
-            serializer->key("PropertyType");
-            serializer->writeInt(static_cast<Int>(this->propertyType));
-
             serializer->key("valueType");
             serializer->writeInt(this->valueType);
 
@@ -1291,6 +1288,12 @@ public:
                 serializer->key("HasOnReadListeners");
                 serializer->writeBool(true);
             }
+
+            if (this->propertyType == PropertyType::Selection)
+            {
+                serializer->key("IsValueSelection");
+                serializer->writeBool(true);
+            }
         }
         serializer->endObject();
 
@@ -1313,16 +1316,6 @@ public:
         auto propObj = builder;
         ErrCode errCode = deserializeMember<decltype(valueType)>(serializedObj, "valueType", builder, context, factoryCallback, &IPropertyBuilder::setValueType);
         OPENDAQ_RETURN_IF_FAILED(errCode);
-
-        Int propertyTypeId;
-        errCode = serializedObj->readInt(String("PropertyType"), &propertyTypeId);
-        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
-        if (errCode != OPENDAQ_ERR_NOTFOUND)
-        {
-            PropertyType propertyType = static_cast<PropertyType>(propertyTypeId);
-            bool isIntegerValueSelection = propertyType != PropertyType::IndexSelection;
-            OPENDAQ_RETURN_IF_FAILED(builder->setIsIntegerValueSelection(isIntegerValueSelection));
-        }
 
         DESERIALIZE_MEMBER(context, factoryCallback, description, setDescription)
 
@@ -1389,6 +1382,12 @@ public:
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
         if (errCode != OPENDAQ_ERR_NOTFOUND)
             OPENDAQ_RETURN_IF_FAILED(propObj->setCallableInfo(callableInfo.asPtr<ICallableInfo>()));
+
+        Bool isValueSelection = False;
+        errCode = serializedObj->readBool( String("IsValueSelection"), &isValueSelection);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTFOUND);
+        if (errCode != OPENDAQ_ERR_NOTFOUND)
+            OPENDAQ_RETURN_IF_FAILED(propObj->setIsIntegerValueSelection(isValueSelection));
 
         return OPENDAQ_SUCCESS;
     }
@@ -1655,7 +1654,7 @@ public:
         if (selectionValues.supportsInterface<IEvalValue>())
         {
             BaseObjectPtr selectionValuesResolved;
-            OPENDAQ_RETURN_IF_FAILED(this->getSelectionValuesUnresolved(&selectionValuesResolved));
+            OPENDAQ_RETURN_IF_FAILED(this->getSelectionValuesNoLock(&selectionValuesResolved));
             if (selectionValuesResolved.supportsInterface<IDict>())
                 this->propertyType = PropertyType::SparseSelection;
             else if (!selectionValuesResolved.supportsInterface<IList>())

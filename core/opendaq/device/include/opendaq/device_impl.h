@@ -2125,7 +2125,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             checkErrorInfo(this->removeDevice(device));
         }
                    
-        if (connectionString == "" && mode == DeviceUpdateMode::Remap)
+        if (connectionString == "")
         {
             if (mode == DeviceUpdateMode::Remap)
             {

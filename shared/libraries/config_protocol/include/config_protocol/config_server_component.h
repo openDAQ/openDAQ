@@ -297,7 +297,6 @@ inline BaseObjectPtr ConfigServerComponent::setAttributeValue(const RpcContext& 
     return nullptr;
 }
 
-// TODO: Increase version requirements or handle forward compatibility
 inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);

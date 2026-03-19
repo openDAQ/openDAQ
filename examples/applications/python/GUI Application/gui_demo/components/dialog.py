@@ -33,8 +33,8 @@ class Dialog(tk.Toplevel):
 
     def show(self):
         self.initial_update()   # populate content while dialog is still hidden
-        self.center_window()    # geometry is fully known now, position before showing
         self.deiconify()        # appear fully populated in one step
+        self.center_window()    # geometry is fully known now, position before showing
         self.update_idletasks()
         self.event_generate('<<DialogReady>>')
         self.focus_set()

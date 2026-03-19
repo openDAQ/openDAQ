@@ -37,6 +37,10 @@ class InputPortRowView(ttk.Frame):
         self.dropdown.bind('<FocusOut>', self.handle_dropdown_focus_out)
         self.dropdown.bind('<Down>', self.handle_dropdown_down)
 
+        self.dropdown.bind('<MouseWheel>', lambda e: 'break')
+        self.dropdown.bind('<Button-4>', lambda e: 'break')
+        self.dropdown.bind('<Button-5>', lambda e: 'break')
+
         self.edit_icon = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
 
         self.edit_button = tk.Button(
@@ -177,6 +181,10 @@ class InputPortRowView(ttk.Frame):
             self._suggestions_list.bind('<ButtonRelease-1>', self.handle_suggestion_pick)
             self._suggestions_list.bind('<Return>', self.handle_suggestion_pick)
             self._suggestions_list.bind('<FocusOut>', lambda e: self.after(50, self._hide_suggestions_if_focus_lost))
+
+            self._suggestions_list.bind('<MouseWheel>', lambda e: 'break')
+            self._suggestions_list.bind('<Button-4>', lambda e: 'break')  # Linux scroll up
+            self._suggestions_list.bind('<Button-5>', lambda e: 'break')  # Linux scroll down
 
         self._suggestions_list.delete(0, tk.END)
         for item in values:

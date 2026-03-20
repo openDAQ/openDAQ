@@ -115,6 +115,7 @@ protected:
     ConnectionPtr getConnectionNoLock();
     void removed() override;
     void removedNoLock() override;
+    virtual SignalPtr getSignalNoLock();
     
     StringPtr serializedSignalId;
 
@@ -148,7 +149,6 @@ private:
     void notifyPacketEnqueuedScheduler();
     void finishUpdate();
 
-    SignalPtr getSignalNoLock();
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE

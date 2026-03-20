@@ -2,8 +2,6 @@ set(CMAKE_FOLDER "external_modules")
 list(APPEND CMAKE_MESSAGE_CONTEXT external_modules)
 set(CURR_MESSAGE_CONTEXT ${CMAKE_MESSAGE_CONTEXT})
 
-set(DAQMODULES_LT_STREAMING_GIT_REF "main" CACHE INTERNAL "openDAQ LT streaming modules project git reference")
-set(DAQMODULES_OPCUA_GIT_REF "main" CACHE INTERNAL "openDAQ OpcUa modules project git reference")
 
 if(NOT OPENDAQ_CI_RUNNER AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
     message(DEPRECATION "Building LT streaming modules indirectly as subprojects of openDAQ is deprecated. Add modules project directly into your super-build by fetching https://github.com/openDAQ/LTStreamingModulesModern")
@@ -23,14 +21,14 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         FetchContent_Declare(
             LtStreamingModulesLegacy
             GIT_REPOSITORY https://github.com/openDAQ/LTStreamingModulesLegacy.git
-            GIT_TAG        ${DAQMODULES_LT_STREAMING_GIT_REF}
+            GIT_TAG        83d0aab3f6527b152512414995106ef7a2e6261a
             GIT_PROGRESS   ON
             GIT_SHALLOW    OFF
             SOURCE_SUBDIR  "INVALID"
             GIT_REMOTE_UPDATE_STRATEGY CHECKOUT
             ${FC_PARAMS}
         )
-        
+
         FetchContent_MakeAvailable(LtStreamingModulesLegacy)
         
         include("${ltstreamingmoduleslegacy_SOURCE_DIR}/external/boost/Boost.cmake" OPTIONAL)
@@ -43,14 +41,14 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         FetchContent_Declare(
             LtStreamingModulesModern
             GIT_REPOSITORY https://github.com/openDAQ/LTStreamingModulesModern.git
-            GIT_TAG        ${DAQMODULES_LT_STREAMING_GIT_REF}
+            GIT_TAG        2aa64e35fd6700a3c4b85d8cb7091c4971ceb7c7
             GIT_PROGRESS   ON
             GIT_SHALLOW    OFF
             SOURCE_SUBDIR  "INVALID"
             GIT_REMOTE_UPDATE_STRATEGY CHECKOUT
             ${FC_PARAMS}
         )
-        
+
         FetchContent_MakeAvailable(LtStreamingModulesModern)
         
         include("${ltstreamingmodulesmodern_SOURCE_DIR}/external/boost/Boost.cmake" OPTIONAL)
@@ -70,7 +68,7 @@ if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPE
     FetchContent_Declare(
         OpcUaModules
         GIT_REPOSITORY https://github.com/openDAQ/OpcUaModules.git
-        GIT_TAG        ${DAQMODULES_OPCUA_GIT_REF}
+        GIT_TAG        7bfec6dbe62e292026d45dd4f40adae8c578c283
         GIT_PROGRESS   ON
         GIT_SHALLOW    OFF
         SOURCE_SUBDIR  "INVALID"

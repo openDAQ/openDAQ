@@ -7,8 +7,8 @@ message(STATUS "Import functions and macro from opendaq-cmake-utils repo")
 include(FetchContent)
 FetchContent_Declare(
     opendaq-cmake-utils
-    GIT_REPOSITORY https://github.com/openDAQ/opendaq-cmake-utils.git
-    GIT_TAG v1.0.0
-    GIT_PROGRESS   ON
+    GIT_REPOSITORY  https://github.com/openDAQ/opendaq-cmake-utils.git
+    GIT_TAG         v1.0.1
+    GIT_PROGRESS    ON
 )
 FetchContent_MakeAvailable(opendaq-cmake-utils)

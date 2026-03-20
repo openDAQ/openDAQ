@@ -17,7 +17,6 @@
 #pragma once
 #include <coretypes/weakref.h>
 #include <coretypes/intfs.h>
-#include <atomic>
 
 BEGIN_NAMESPACE_OPENDAQ
 

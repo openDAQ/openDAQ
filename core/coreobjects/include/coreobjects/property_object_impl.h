@@ -44,7 +44,8 @@
 #include <coretypes/updatable.h>
 #include <coretypes/validation.h>
 #include <tsl/ordered_map.h>
-#include <atomic>
+#include <cmath>
+#include <limits>
 #include <map>
 #include <thread>
 #include <utility>
@@ -1039,10 +1040,24 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelecti
         {
             if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
             {
-                for (const auto& item : list)
+                if (prop.getValueType() == ctFloat)
                 {
-                    if (item == value)
-                        return OPENDAQ_SUCCESS;
+                    const double valueDouble = value;
+                    const double preScale =  std::max({1.0, std::abs(valueDouble)});
+                    for (const double& item : list)
+                    {
+                        const double scale = std::max({preScale, std::abs(item)});
+                        if (std::abs(item - valueDouble) <= std::numeric_limits<double>::epsilon() * scale)
+                            return OPENDAQ_SUCCESS;
+                    }
+                }
+                else 
+                {
+                    for (const auto& item : list)
+                    {
+                        if (item == value)
+                            return OPENDAQ_SUCCESS;
+                    }
                 }
             }
         }

@@ -176,6 +176,45 @@ TEST_F(PropertyValueChangedEventsTest, ObjectClear)
     ASSERT_EQ(obj1.getPropertyValue("PropClearCount"), 2);
 }
 
+TEST_F(PropertyValueChangedEventsTest, PropertyRemoveReAddClearsValueEvents)
+{
+    const auto obj = PropertyObject();
+
+    obj.addProperty(IntProperty("int", 0));
+
+    int writeCalls = 0;
+    int readCalls = 0;
+
+    obj.getOnPropertyValueWrite("int") +=
+        [&writeCalls](const PropertyObjectPtr&, const PropertyValueEventArgsPtr&)
+        {
+            writeCalls++;
+        };
+
+    obj.getOnPropertyValueRead("int") +=
+        [&readCalls](const PropertyObjectPtr&, const PropertyValueEventArgsPtr&)
+        {
+            readCalls++;
+        };
+
+    obj.setPropertyValue("int", 1);
+    obj.getPropertyValue("int");
+    ASSERT_EQ(writeCalls, 1);
+    ASSERT_EQ(readCalls, 1);
+
+    obj.removeProperty("int");
+
+    // Re-add property with the same name.
+    // Previously registered value events must not fire anymore.
+    obj.addProperty(IntProperty("int", 0));
+
+    obj.setPropertyValue("int", 2);
+    obj.getPropertyValue("int");
+
+    ASSERT_EQ(writeCalls, 1);
+    ASSERT_EQ(readCalls, 1);
+}
+
 TEST_F(PropertyValueChangedEventsTest, MultipleObjectsClear)
 {
     auto obj1 = PropertyObject(manager, "TestClass");

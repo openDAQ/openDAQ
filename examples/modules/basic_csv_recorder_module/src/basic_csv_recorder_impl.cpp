@@ -23,6 +23,7 @@ BasicCsvRecorderImpl::BasicCsvRecorderImpl(const ContextPtr& context,
                                            const StringPtr& localId,
                                            const PropertyObjectPtr& config)
     : FunctionBlockImpl<IFunctionBlock, IRecorder>(createType(), context, parent, localId, nullptr)
+    , cachedPath(std::nullopt)
 {
     this->tags.add(Tags::RECORDER);
 
@@ -112,7 +113,12 @@ void BasicCsvRecorderImpl::addInputPort()
 
 void BasicCsvRecorderImpl::reconfigure()
 {
-    fs::path path = static_cast<std::string>(objPtr.getPropertyValue(Props::PATH));
+    fs::path path = fs::path(static_cast<std::string>(objPtr.getPropertyValue(Props::PATH))).lexically_normal();
+    bool pathChanged = false;
+    if (!cachedPath.has_value() || cachedPath.value() != path){
+        cachedPath = path;
+        pathChanged = true;
+    }
 
     if (recordingActive)
     {
@@ -137,8 +143,8 @@ void BasicCsvRecorderImpl::reconfigure()
 
                 // If we don't yet have a BasicCsvRecorderSignal object for this port, create one.
                 auto it = threads.find(inputPort.getObject());
-                if (it == threads.end())
-                    threads.emplace(inputPort.getObject(), std::make_shared<BasicCsvRecorderThread>(path, signal, loggerComponent));
+                if (it == threads.end() || pathChanged)
+                    threads.insert_or_assign(inputPort.getObject(), std::make_shared<BasicCsvRecorderThread>(path, signal, loggerComponent));
             }
         }
 

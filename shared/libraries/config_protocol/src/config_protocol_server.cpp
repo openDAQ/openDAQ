@@ -587,8 +587,9 @@ void ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const Co
             packedArgs = processUpdateEndCoreEvent(component, args);
             break;
         case CoreEventId::AttributeChanged:
-            if (const auto processedArgs = processAttributeChangedCoreEvent(args); processedArgs.assigned())
-                packedArgs = processedArgs;
+            packedArgs = processAttributeChangedCoreEvent(args);
+            if (!packedArgs.assigned())
+                return;
             break;
         case CoreEventId::ComponentRemoved:
         case CoreEventId::SignalDisconnected:

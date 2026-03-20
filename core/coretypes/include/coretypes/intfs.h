@@ -23,7 +23,6 @@
 #include <coretypes/exceptions.h>
 #include <coretypes/inspectable.h>
 #include <coretypes/delegate.hpp>
-#include <array>
 #include <atomic>
 #include <cassert>
 #include <string>

@@ -13,7 +13,9 @@ class InputPortsView(ttk.Frame):
         self.node = node
         self.context = context
 
-        self.configure(padding=(10, 5), border=1, relief=tk.GROOVE)
+        self.configure(padding=(0, 5), borderwidth=0, relief=tk.FLAT)
+        self._title_bg = '#afafaf'
+        self._title_fg = 'white'
 
         self.refresh()
 
@@ -21,8 +23,15 @@ class InputPortsView(ttk.Frame):
         for widget in self.children.values():
             widget.pack_forget()
 
-        ttk.Label(self, text='Input ports').pack(
-            side=tk.TOP, fill=tk.X, pady=5)
+        title_bar = tk.Frame(self, bg=self._title_bg, bd=0, highlightthickness=0)
+        title_bar.pack(side=tk.TOP, fill=tk.X, pady=(0, 8))
+        tk.Label(
+            title_bar,
+            text='Input ports',
+            bg=self._title_bg,
+            fg=self._title_fg,
+            font=('TkDefaultFont', 10, 'bold')
+        ).pack(side=tk.LEFT, padx=6, pady=2)
         self.fill_input_ports(self.node)
 
     def fill_input_ports(self, node):

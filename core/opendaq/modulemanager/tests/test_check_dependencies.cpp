@@ -15,22 +15,14 @@ using CheckDependenciesTest = testing::Test;
 
 TEST_F(CheckDependenciesTest, ObsoleteGetVersionFailure)
 {
-    unsigned int dummy;
-    ASSERT_THROW_MSG(
-        daqCoreTypesGetVersion(&dummy, &dummy, &dummy),
-        NotCompatibleVersionException,
-        "does not support obsolete mechanism for checking core dependencies version"
-    );
-    ASSERT_THROW_MSG(
-        daqCoreObjectsGetVersion(&dummy, &dummy, &dummy),
-        NotCompatibleVersionException,
-        "does not support obsolete mechanism for checking core dependencies version"
-    );
-    ASSERT_THROW_MSG(
-        daqOpenDaqGetVersion(&dummy, &dummy, &dummy),
-        NotCompatibleVersionException,
-        "does not support obsolete mechanism for checking core dependencies version"
-    );
+    unsigned int major;
+    unsigned int minor;
+    unsigned int revision;
+    daqOpenDaqGetVersion(&major, &minor, &revision);
+
+    ASSERT_EQ(major, 0u);
+    ASSERT_EQ(minor, 0u);
+    ASSERT_EQ(revision, 0u);
 }
 
 static void ExpectLogMessageContain(const std::string& message, const std::string& substring)

@@ -665,6 +665,118 @@ TEST_F(PropertyObjectTest, SelectionPropNoList)
                      "Failed to get property selection value")
 }
 
+// List selection string: property built with builder (ctString + selection values), set/get by index and by value
+TEST_F(PropertyObjectTest, ListSelectionStringPropertySetGet)
+{
+    auto stringSelectionProp = PropertyBuilder("Mode")
+                                  .setValueType(ctString)
+                                  .setDefaultValue("Low")
+                                  .setSelectionValues(List<IString>("Low", "Medium", "High"))
+                                  .build();
+
+    auto propObj = PropertyObject();
+    propObj.addProperty(stringSelectionProp);
+
+    // Set by index
+    propObj.setPropertyValue("Mode", "Medium");
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Medium");
+    ASSERT_THROW(propObj.getPropertySelectionValue("Mode"), daq::InvalidPropertyException);
+
+    propObj.setPropertyValue("Mode", "High");
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "High");
+
+    // Set by value
+    ASSERT_THROW(propObj.setPropertySelectionValue("Mode", "Low"), daq::InvalidPropertyException);
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "High");
+
+    ASSERT_THROW(propObj.setPropertySelectionValue("Mode", "Medium"), daq::InvalidPropertyException);
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "High");
+}
+
+// List selection float: property built with builder (ctFloat + selection values), set/get by index and by value
+TEST_F(PropertyObjectTest, ListSelectionFloatPropertySetGet)
+{
+    auto floatSelectionProp = PropertyBuilder("Range")
+                                  .setValueType(ctFloat)
+                                  .setDefaultValue(1.0f)
+                                  .setSelectionValues(List<Float>(1.0f, 2.5f, 10.0f))
+                                  .build();
+
+    auto propObj = PropertyObject();
+    propObj.addProperty(floatSelectionProp);
+
+    // Set by index
+    propObj.setPropertyValue("Range", 2.5f);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 2.5f);
+    ASSERT_THROW(propObj.getPropertySelectionValue("Range"), daq::InvalidPropertyException);
+
+    propObj.setPropertyValue("Range", 10.0f);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 10.0f);
+
+    // Set by value
+    ASSERT_THROW(propObj.setPropertySelectionValue("Range", 1.0f), daq::InvalidPropertyException);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 10.0f);
+
+    ASSERT_THROW(propObj.setPropertySelectionValue("Range", 2.5f), daq::InvalidPropertyException);
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 10.0f);
+}
+
+// List selection string with default value as string (not index)
+TEST_F(PropertyObjectTest, ListSelectionStringPropertyDefaultValue)
+{
+    auto stringSelectionProp = PropertyBuilder("Mode")
+                                  .setValueType(ctString)
+                                  .setDefaultValue("Medium")
+                                  .setSelectionValues(List<IString>("Low", "Medium", "High"))
+                                  .build();
+    auto propObj = PropertyObject();
+    propObj.addProperty(stringSelectionProp);
+
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Medium");
+    ASSERT_THROW(propObj.getPropertySelectionValue("Mode"), daq::InvalidPropertyException);
+}
+
+// List selection float with default value as float (not index)
+TEST_F(PropertyObjectTest, ListSelectionFloatPropertyDefaultValue)
+{
+    auto floatSelectionProp = PropertyBuilder("Range")
+                                  .setValueType(ctFloat)
+                                  .setDefaultValue(2.5f)
+                                  .setSelectionValues(List<Float>(1.0f, 2.5f, 10.0f))
+                                  .build();
+    auto propObj = PropertyObject();
+    propObj.addProperty(floatSelectionProp);
+
+    ASSERT_EQ(propObj.getPropertyValue("Range"), 2.5f);
+    ASSERT_THROW(propObj.getPropertySelectionValue("Range"), daq::InvalidPropertyException);
+}
+
+TEST_F(PropertyObjectTest, ListSelectionStringPropertySetInvalidValue)
+{
+    auto stringSelectionProp = PropertyBuilder("Mode")
+                                  .setValueType(ctString)
+                                  .setDefaultValue("Low")
+                                  .setSelectionValues(List<IString>("Low", "Medium", "High"))
+                                  .build();
+    auto propObj = PropertyObject();
+    propObj.addProperty(stringSelectionProp);
+
+    ASSERT_THROW(propObj.setPropertyValue("Mode", "Invalid"), NotFoundException);
+}
+
+TEST_F(PropertyObjectTest, ListSelectionFloatPropertySetInvalidValue)
+{
+    auto floatSelectionProp = PropertyBuilder("Range")
+                                  .setValueType(ctFloat)
+                                  .setDefaultValue(1.0f)
+                                  .setSelectionValues(List<Float>(1.0f, 2.5f, 10.0f))
+                                  .build();
+    auto propObj = PropertyObject();
+    propObj.addProperty(floatSelectionProp);
+
+    ASSERT_THROW(propObj.setPropertyValue("Range", 11.0f), NotFoundException);
+}
+
 TEST_F(PropertyObjectTest, DictProp)
 {
     auto propObj = PropertyObject(objManager, "Test");
@@ -698,6 +810,109 @@ TEST_F(PropertyObjectTest, DISABLED_DictPropInvalidItemType)
     auto dict = Dict<IInteger, IInteger>();
     dict.set(1, 2);
     ASSERT_THROW(propObj.setPropertyValue("DictProp", dict), InvalidTypeException);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalCoreType)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}, {"b", 2}})));
+    propObj.addProperty(ReferenceProperty("DictRef", EvalValue("%Dict")));
+
+    DictPtr<IString, IInteger> dict = propObj.getPropertyValue("DictRef");
+    ASSERT_EQ(dict.getCount(), 2u);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGet)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"foo", 10}, {"bar", 20}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    ASSERT_EQ(dict.get("foo"), 10);
+    ASSERT_EQ(dict.get("bar"), 20);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalHasKey)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}, {"b", 2}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    ASSERT_TRUE(dict.hasKey("a"));
+    ASSERT_FALSE(dict.hasKey("z"));
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGetCount)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}, {"b", 2}, {"c", 3}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    ASSERT_EQ(dict.getCount(), 3u);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGetKeyList)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"x", 1}, {"y", 2}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    ListPtr<IString> keys = dict.getKeyList();
+    ASSERT_EQ(keys.getCount(), 2u);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGetValueList)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"x", 1}, {"y", 2}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    ListPtr<IInteger> values = dict.getValueList();
+    ASSERT_EQ(values.getCount(), 2u);
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGetKeys)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}, {"b", 2}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    auto keys = dict.getKeys();
+    ASSERT_TRUE(keys.assigned());
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalGetValues)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}, {"b", 2}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    DictPtr<IString, IInteger> dict = eval.asPtr<IDict>();
+    auto values = dict.getValues();
+    ASSERT_TRUE(values.assigned());
+}
+
+TEST_F(PropertyObjectTest, DictPropEvalMutationAccessDenied)
+{
+    auto propObj = PropertyObject();
+    propObj.addProperty(DictProperty("Dict", Dict<IString, IInteger>({{"a", 1}})));
+
+    auto eval = EvalValue("$Dict").cloneWithOwner(propObj);
+    auto dict = eval.asPtr<IDict>(true);
+
+    const auto key = String("a");
+    const auto val = Integer(99);
+    IBaseObject* removed = nullptr;
+
+    ASSERT_ERROR_CODE_EQ(dict->set(key, val), OPENDAQ_ERR_ACCESSDENIED);
+    ASSERT_ERROR_CODE_EQ(dict->remove(key, &removed), OPENDAQ_ERR_ACCESSDENIED);
+    ASSERT_ERROR_CODE_EQ(dict->deleteItem(key), OPENDAQ_ERR_ACCESSDENIED);
 }
 
 TEST_F(PropertyObjectTest, SquareBracketOperator)

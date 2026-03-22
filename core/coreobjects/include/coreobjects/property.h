@@ -33,6 +33,32 @@ struct IPropertyBuilder;
  * @{
  */
 
+enum class PropertyType : EnumType
+{
+    // Mirrors CoreType enumeration
+    Bool = 0,             ///< Boolean, True or False
+    Int = 1,              ///< 64 bit signed integer
+    Float = 2,            ///< IEEE 754 64 bit floating point
+    String = 3,           ///< UTF8 zero terminated string
+    List = 4,             ///< List of objects of type `itemType`
+    Dict = 5,             ///< Dictionary of `<keyType, itemType>`
+    Ratio = 6,            ///< Rational number (numerator / denominator)
+    Procedure = 7,        ///< Callback without return value
+    Object = 8,           ///< Nested `IPropertyObject`-type
+    Function = 10,        ///< Callback with return value
+    Struct = 12,          ///< Constant structure with dictionary of fields and types
+    Enumeration = 13,     ///< Enumeration representing a predefined set of named integral constants
+
+    // Additional property types
+    Reference = 0x1000,   ///< References another property
+    IndexSelection,       ///< Value of property is an index into the `selectionValues` list
+    Selection,            ///< Value of property is the value to the `selectionValues` list
+    SparseSelection,      ///< Value of property is a key into the `selectionValues` dictionary
+
+    // Last property type
+    Undefined = 0xFFFF,   ///< Undefined
+};
+
 /*#
  * [templated(defaultAliasName: PropertyPtr)]
  * [interfaceSmartPtr(IProperty, GenericPropertyPtr)]
@@ -432,6 +458,14 @@ DECLARE_OPENDAQ_INTERFACE(IProperty, IBaseObject)
      * to always configure the returned value via the Property metadata read arguments object.
      */
     virtual ErrCode INTERFACE_FUNC getOnSelectionValuesRead(IEvent** event) = 0;
+
+    /*!
+     * @brief Gets the type of the Property.
+     * @param[out] type The type of the Property.
+     *
+     * The type of the Property is a combination of the CoreType and the additional property types.
+     */
+    virtual ErrCode INTERFACE_FUNC getPropertyType(PropertyType* type) = 0;
 };
 /*!@}*/
 

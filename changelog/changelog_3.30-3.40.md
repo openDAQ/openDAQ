@@ -13,6 +13,8 @@
 - [#1074](https://github.com/openDAQ/openDAQ/pull/1074) Add public attribute to input port. Non-public input ports are not available one client side.
 - [#1079](https://github.com/openDAQ/openDAQ/pull/1079) Add support for parallel RPC calls in native configuration protocol server
 - [#1088](https://github.com/openDAQ/openDAQ/pull/1088) Enable bundling of sent core events within the native configuration protocol
+- [#1097](https://github.com/openDAQ/openDAQ/pull/1097) Implement value based selection list
+
 
 ## Python
 
@@ -26,6 +28,7 @@
 
 ## Bug fixes
 
+- [#1104](https://github.com/openDAQ/openDAQ/pull/1104) Fix path configuration option getting ignored by Parquet and CSV recorders in some cases.
 - [#1103](https://github.com/openDAQ/openDAQ/pull/1103) Reject loading of duplicating modules by Id and path
 - [#1098](https://github.com/openDAQ/openDAQ/pull/1098) Fix setting active streaming source for InputPort
 - [#1095](https://github.com/openDAQ/openDAQ/pull/1095) Update imported delegate.hpp and fix cpp 20 build incompatibilities

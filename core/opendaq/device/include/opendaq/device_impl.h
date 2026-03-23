@@ -263,6 +263,7 @@ private:
     DeviceTypePtr getDeviceTypeFromPrefixOrNull(const StringPtr& prefix);
     StringPtr getDevicePrefixOrEmpty(const DevicePtr& device);
     ModuleInfoPtr getModuleInfoFromDeviceType();
+    void removeDeviceIfNotStatic(const StringPtr& deviceId);
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Idle};
@@ -1726,6 +1727,23 @@ ModuleInfoPtr GenericDevice<TInterface, Interfaces...>::getModuleInfoFromDeviceT
     return nullptr;
 }
 
+template <typename TInterface, typename ... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::removeDeviceIfNotStatic(const StringPtr& deviceId)
+{
+    DevicePtr device = devices.getItem(deviceId);
+
+    auto prefix = getDevicePrefixOrEmpty(device);
+    auto type = getDeviceTypeFromPrefixOrNull(prefix);
+    if (!type.assigned())
+    {
+        LOG_E("Failed to remove device with ID {} from device with ID {}. "
+              "Devices without a registered type can not be removed", deviceId, this->localId);
+        return;
+    }
+    
+    checkErrorInfo(this->removeDevice(device));
+}
+
 template <typename TInterface, typename... Interfaces>
 DevicePtr GenericDevice<TInterface, Interfaces...>::getParentDevice()
 {
@@ -2032,32 +2050,32 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         if (mode == DeviceUpdateMode::Skip)
             return;
 
-        if (devices.hasItem(deviceId) && mode != DeviceUpdateMode::Remap)
+        const bool deviceExists = devices.hasItem(deviceId);
+        if (!deviceExists && mode == DeviceUpdateMode::UpdateOnly)
+            return;
+        
+        if (deviceExists)
         {
-            DevicePtr device = devices.getItem(deviceId);
-            if (mode == DeviceUpdateMode::Remove)
+            switch (mode)
             {
-                auto prefix = getDevicePrefixOrEmpty(device);
-                auto type = getDeviceTypeFromPrefixOrNull(prefix);
-                if (!type.assigned())
+                case DeviceUpdateMode::Remap:
+                    removeDeviceIfNotStatic(deviceId);
+                    break;
+                case DeviceUpdateMode::Remove:
+                    removeDeviceIfNotStatic(deviceId);
+                    return;
+                case DeviceUpdateMode::Load:
+                case DeviceUpdateMode::UpdateOnly:
                 {
-                    LOG_E("Failed to remove device with ID {} while updating Device with ID {}. "
-                          "Devices without a registered type can not be removed", deviceId, this->localId);
+                    DevicePtr device = devices.getItem(deviceId);
+                    const auto updatableDevice = device.template asPtr<IUpdatable>(true);
+                    updatableDevice.updateInternal(serializedDevice, context);
                     return;
                 }
-
-                checkErrorInfo(this->removeDevice(device));
-                return;
+                default:
             }
-
-            const auto updatableDevice = device.template asPtr<IUpdatable>(true);
-            updatableDevice.updateInternal(serializedDevice, context);
-            return;
         }
-
-        if (mode == DeviceUpdateMode::UpdateOnly || mode == DeviceUpdateMode::Remove)
-            return;
-
+        
         PropertyObjectPtr deviceConfig;
         DeviceInfoPtr discoveredDeviceInfo;
 
@@ -2109,22 +2127,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             connectionString = options.getNewConnectionString();
         else if (serializedDevice.hasKey("connectionString"))
             connectionString = serializedDevice.readString("connectionString");
-  
-        if (devices.hasItem(deviceId) && mode == DeviceUpdateMode::Remap)
-        {
-            auto prefix = getDevicePrefixOrEmpty(devices.getItem(deviceId));
-            auto type = getDeviceTypeFromPrefixOrNull(prefix);
-            if (!type.assigned())
-            {
-                LOG_E("Failed to remap device with ID {} while updating Device with ID {}. "
-                      "Devices without a registered type can not be removed", deviceId, this->localId);
-                return;
-            }
 
-            DevicePtr device = devices.getItem(deviceId);
-            checkErrorInfo(this->removeDevice(device));
-        }
-                   
         if (connectionString == "")
         {
             if (mode == DeviceUpdateMode::Remap)

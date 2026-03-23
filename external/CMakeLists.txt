@@ -1,4 +1,5 @@
-set_mode(ANCIENT)
+opendaq_get_cmake_mode(_CMAKE_MODERN_MODE_SAVED)
+opendaq_set_cmake_mode(ANCIENT)
 set(CMAKE_FOLDER "external")
 
 list(APPEND CMAKE_MESSAGE_CONTEXT external)
@@ -108,3 +109,5 @@ if (DAQMODULES_PARQUET_RECORDER_MODULE)
     add_subdirectory(arrow EXCLUDE_FROM_ALL)
     add_subdirectory(thrift EXCLUDE_FROM_ALL)
 endif()
+
+opendaq_set_cmake_mode(${_CMAKE_MODERN_MODE_SAVED})

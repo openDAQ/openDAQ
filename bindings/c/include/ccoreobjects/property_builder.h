@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:53.
+//     RTGen (CGenerator v0.7.0) on 17.03.2026 13:26:46.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -96,6 +96,8 @@ extern "C"
     daqErrCode EXPORTED daqPropertyBuilder_getOnSuggestedValuesRead(daqPropertyBuilder* self, daqEvent** event);
     daqErrCode EXPORTED daqPropertyBuilder_setOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent* event);
     daqErrCode EXPORTED daqPropertyBuilder_getOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyBuilder_setIsIntegerValueSelection(daqPropertyBuilder* self, daqBool isIntegerValueSelection);
+    daqErrCode EXPORTED daqPropertyBuilder_getIsIntegerValueSelection(daqPropertyBuilder* self, daqBool* isIntegerValueSelection);
     daqErrCode EXPORTED daqPropertyBuilder_createPropertyBuilder(daqPropertyBuilder** obj, daqString* name);
     daqErrCode EXPORTED daqPropertyBuilder_createBoolPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqBoolean* defaultValue);
     daqErrCode EXPORTED daqPropertyBuilder_createIntPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqInteger* defaultValue);

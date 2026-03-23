@@ -123,7 +123,7 @@ class AddConfigDialog(Dialog):
         self.has_tcp_ip = has_tcp_ip
 
         self.geometry('{}x{}'.format(
-            1200 * self.context.ui_scaling_factor, 600 * self.context.ui_scaling_factor))
+            int(1200 * self.context.ui_scaling_factor * self.context.dpi_factor), int(600 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
         self.protocol('WM_DELETE_WINDOW', self.cancel)
 
@@ -156,7 +156,7 @@ class AddConfigDialog(Dialog):
         self.status_label.pack(side=tk.LEFT, anchor=tk.W, fill=tk.X, expand=True)
 
         self.add_device_button = ttk.Button(bottom_frame, text='Add device', command=self.handle_add_button_clicked)
-        self.add_device_button.pack(side=tk.RIGHT, anchor=tk.E, padx=10, pady=10, ipadx=20)
+        self.add_device_button.pack(side=tk.RIGHT, anchor=tk.E, padx=5, pady=5)
 
         right_frame.grid(row=0, column=1)
         right_frame.grid_configure(sticky=tk.NSEW)

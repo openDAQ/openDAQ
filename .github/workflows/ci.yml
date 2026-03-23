@@ -229,15 +229,15 @@ jobs:
       matrix:
         include:
           - name: MacOS Latest Clang Release
-            cc: clang
+            cc: /usr/bin/clang
             cxx: clang++
             cmake-generator: Ninja
             cmake-build-type: Release
             cmake-defines: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
             runner: macos-latest
           - name: MacOS 15 Intel Clang Release
-            cc: clang
-            cxx: clang++
+            cc: /usr/bin/clang
+            cxx: /usr/bin/clang++
             cmake-generator: Ninja
             cmake-build-type: Release
             cmake-defines: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15

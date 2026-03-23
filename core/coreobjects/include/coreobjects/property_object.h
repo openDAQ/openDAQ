@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -392,6 +392,20 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * If a componentFilter is provided but the current component does not match it, the result will be an empty list.
      */
     virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) = 0;
+
+    /*!
+     * @brief Sets the value of a Selection property by the selection item value (e.g. string, float, or list/dict value).
+     * @param propertyName The name of the Property.
+     * @param value The selection value to set (must be one of the Property's selection values). Cannot be null.
+     * @retval OPENDAQ_ERR_NOTFOUND if a Property with given `propertyName` is not part of the Property object, or the value is not in the selection.
+     * @retval OPENDAQ_ERR_INVALIDPROPERTY if the Property has no Selection values.
+     * @retval OPENDAQ_ERR_ACCESSDENIED if the property is Read-only.
+     * @retval OPENDAQ_ERR_FROZEN if the Property object is frozen.
+     *
+     * Works for all Selection properties (list or dictionary): the value is the actual selection item (e.g. a string from the list,
+     * or the value part of a key-value pair in the dictionary). Use setPropertyValue when setting by index/key.
+     */
+    virtual ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) = 0;
 };
 
 /*!@}*/

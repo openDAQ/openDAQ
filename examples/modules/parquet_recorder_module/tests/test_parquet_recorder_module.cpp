@@ -1,6 +1,9 @@
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <filesystem>
+#include <thread>
+#include <utility>
 
 #include <arrow/api.h>
 #include <arrow/io/api.h>
@@ -105,7 +108,7 @@ TEST_F(ParquetRecorderModuleTest, WriteReadCompare)
     auto recorder = fb.asPtr<daq::IRecorder>(true);
     auto inputPort = fb.getInputPorts().getItemAt(0);
     ASSERT_TRUE(inputPort.assigned());
-    
+
     auto signal = CreateSignal(context);
 
     inputPort.connect(signal);
@@ -153,4 +156,75 @@ TEST_F(ParquetRecorderModuleTest, WriteReadCompare)
         for (const auto& value : *array)
             ASSERT_EQ(value, expectedValue++);
     }
+}
+
+TEST_F(ParquetRecorderModuleTest, WritesToConfiguredSubdir)
+{
+    const fs::path subdir = fs::current_path() / "parquet_test_subdir";
+
+    auto cleanup = [&]()
+    {
+        fs::remove_all(subdir);
+        for (const auto& item : fs::directory_iterator(fs::current_path()))
+        {
+            if (item.is_regular_file() && item.path().extension() == ".parquet")
+            fs::remove(item.path());
+        }
+    };
+
+    cleanup();
+    fs::create_directories(subdir);
+
+    auto module = CreateModuleWithScheduler();
+    auto fb = module.createFunctionBlock("ParquetRecorder", nullptr, "fb");
+    ASSERT_TRUE(fb.assigned());
+
+    auto context = fb.getContext();
+    auto recorder = fb.asPtr<daq::IRecorder>(true);
+    auto inputPort = fb.getInputPorts().getItemAt(0);
+    ASSERT_TRUE(inputPort.assigned());
+
+    auto signal = CreateSignal(context);
+    inputPort.connect(signal);
+
+    fb.setPropertyValue("Path", subdir.string());
+
+    recorder->startRecording();
+
+    for (auto i = 0; i < 1000; i += 100)
+    {
+        auto data = DataPacket(signal.getDescriptor(), 100);
+        std::iota(static_cast<SampleTypeToType<daq::SampleType::Float64>::Type*>(data.getData()),
+                  static_cast<SampleTypeToType<daq::SampleType::Float64>::Type*>(data.getData()) + 100,
+                  i);
+        signal.sendPacket(data);
+    }
+
+    recorder->stopRecording();
+    fb = nullptr;
+
+    bool foundInSubdir = false;
+    for (const auto& item : fs::directory_iterator(subdir))
+    {
+        if (item.is_regular_file() && item.path().extension() == ".parquet")
+        {
+            foundInSubdir = true;
+            break;
+        }
+    }
+
+    bool foundInCwd = false;
+    for (const auto& item : fs::directory_iterator(fs::current_path()))
+    {
+        if (item.is_regular_file() && item.path().extension() == ".parquet")
+        {
+            foundInCwd = true;
+            break;
+        }
+    }
+
+    ASSERT_TRUE(foundInSubdir);
+    ASSERT_FALSE(foundInCwd);
+
+    cleanup();
 }

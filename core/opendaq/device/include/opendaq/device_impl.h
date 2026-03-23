@@ -2073,6 +2073,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                     return;
                 }
                 default:
+                    break;
             }
         }
         

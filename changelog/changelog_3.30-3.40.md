@@ -26,6 +26,7 @@
 
 ## Bug fixes
 
+- [#1108](https://github.com/openDAQ/openDAQ/pull/1108) Add a patch for pybind11 to avoid leaking in python bindings.
 - [#1098](https://github.com/openDAQ/openDAQ/pull/1098) Fix setting active streaming source for InputPort
 - [#1095](https://github.com/openDAQ/openDAQ/pull/1095) Update imported delegate.hpp and fix cpp 20 build incompatibilities
 - [#1086](https://github.com/openDAQ/openDAQ/pull/1086) Mirrored device type is not serialised for native usage

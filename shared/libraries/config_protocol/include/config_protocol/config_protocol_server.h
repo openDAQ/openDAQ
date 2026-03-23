@@ -147,6 +147,7 @@ private:
     void packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
     CoreEventArgsPtr processCoreEventArgs(const CoreEventArgsPtr& args);
     CoreEventArgsPtr processUpdateEndCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
+    CoreEventArgsPtr processAttributeChangedCoreEvent(const CoreEventArgsPtr& args);
     void SendOutCoreEvents();
 };
 

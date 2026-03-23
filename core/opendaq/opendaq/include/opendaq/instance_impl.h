@@ -102,6 +102,8 @@ public:
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
+    ErrCode INTERFACE_FUNC getLocalActive(Bool* localActive) override;
+    ErrCode INTERFACE_FUNC getParentActive(Bool* parentActive) override;
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;

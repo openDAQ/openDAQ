@@ -147,8 +147,8 @@ public:
                         const StringPtr& className = nullptr,
                         const StringPtr& name = nullptr);
     
-    // IComponent
-    ErrCode INTERFACE_FUNC setActive(Bool active) override;
+protected:
+    void notifyActiveChanged() override;
 
     virtual ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
@@ -215,20 +215,9 @@ SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& conte
 }
 
 template <class Intf, class ... Intfs>
-ErrCode SignalContainerImpl<Intf, Intfs...>::setActive(Bool active)
+void SignalContainerImpl<Intf, Intfs...>::notifyActiveChanged()
 {
-    const ErrCode err = Super::setActive(active);
-    OPENDAQ_RETURN_IF_FAILED(err);
-    if (err == OPENDAQ_IGNORED)
-        return err;
-
-    const ErrCode errCode = daqTry([&]
-    {
-        this->setActiveRecursive(this->components, active);
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
+    this->notifyItemsActiveChanged(this->components);
 }
 
 template <class Intf, class ... Intfs>
@@ -648,6 +637,7 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::removeFunctionBlockInternal(
     
     const auto fbPtr = FunctionBlockPtr::Borrow(functionBlock);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveFunctionBlock, fbPtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return errCode;
 }

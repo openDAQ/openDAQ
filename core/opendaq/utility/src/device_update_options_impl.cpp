@@ -4,19 +4,17 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 DeviceUpdateOptionsImpl::DeviceUpdateOptionsImpl()
+    : isRoot(false)
+    , localId("")
+    , manufacturer("")
+    , serialNumber("")
+    , connectionString("")
+    , newManufacturer("")
+    , newSerialNumber("")
+    , newConnectionString("")
+    , mode(DeviceUpdateMode::Load)
+    , children(List<IDeviceUpdateOptions>())
 {
-    isRoot = false;
-    children = List<IDeviceUpdateOptions>();
-
-    manufacturer = "";
-    serialNumber = "";
-    connectionString = "";
-
-    newConnectionString = "";
-    newSerialNumber = "";
-    newManufacturer = "";
-
-    mode = DeviceUpdateMode::Load;
 }
 
 DeviceUpdateOptionsImpl::DeviceUpdateOptionsImpl(const StringPtr& setupString)

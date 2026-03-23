@@ -55,10 +55,14 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
     virtual ErrCode INTERFACE_FUNC removeInputPortConnection(IString* parentId) = 0;
     
     /*!
-     * @brief Sets the root component of the current component.
-     * @param rootComponent The root component.
+     * @brief Sets the root component of the current component. Iterates through the parent components until the root is found and sets it
+     * as the root component for the context.
+     * @param baseComponent The base component from which we iterate to the openDAQ root.
+     *
+     * This method shortcuts the need for callers to provide the openDAQ root device as the component, by automatically iterating
+     * to the root component from any component in the hierarchy.
      */
-    virtual ErrCode INTERFACE_FUNC setRootComponent(IComponent* rootComponent) = 0;
+    virtual ErrCode INTERFACE_FUNC setRootComponent(IComponent* baseComponent) = 0;
 
     /*!
      * @brief Gets the root component of the current component.

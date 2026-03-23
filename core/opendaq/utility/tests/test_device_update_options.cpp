@@ -31,9 +31,9 @@ public:
 private:
     DeviceInfoPtr onGetInfo() override
     {
-        auto info = DeviceInfo(fmt::format("daqtest://Test{}_Test{}", id, id));
-        info.setManufacturer(fmt::format("Test{}", id));
-        info.setSerialNumber(fmt::format("Test{}", id));
+        auto info = DeviceInfo(fmt::format("daqtest://Man{}_Ser{}", id, id));
+        info.setManufacturer(fmt::format("Man{}", id));
+        info.setSerialNumber(fmt::format("Ser{}", id));
         info.setDeviceType(DeviceType("Test", "Test", "", "daqtest"));
         return info;
     }
@@ -59,12 +59,12 @@ public:
         auto result = List<IDeviceInfo>();
         for (int i = 0; i < 5; ++i)
         {
-            auto info = DeviceInfo(fmt::format("daqtest://Test{}_Test{}", i, i));
-            info.setManufacturer(fmt::format("Test{}", i));
-            info.setSerialNumber(fmt::format("Test{}", i));
+            auto info = DeviceInfo(fmt::format("daqtest://Man{}_Ser{}", i, i));
+            info.setManufacturer(fmt::format("Man{}", i));
+            info.setSerialNumber(fmt::format("Ser{}", i));
             
             auto cap = ServerCapability("test", "test", ProtocolType::Unknown);
-            cap.setConnectionString(fmt::format("daqtest://Test{}_Test{}", i, i));
+            cap.setConnectionString(fmt::format("daqtest://Man{}_Ser{}", i, i));
             info.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
 
             result.pushBack(info);
@@ -110,18 +110,18 @@ protected:
         const auto context = Context(Scheduler(logger), logger, TypeManager(), moduleManager, authenticationProvider);
         moduleManager.addModule(createWithImplementation<IModule, UpdateOptionsTestDeviceModule>(context));
         
-        // Root <Test0_Test0>
-        //   - child1 <Test1_Test1>
-        //   - child2 <Test2_Test2>
-        //       - child2_1 <Test3_Test3>
-        //       - child2_2 <Test4_Test4>
+        // Root <Man0_Ser0>
+        //   - child1 <Man1_Ser1>
+        //   - child2 <Man2_Ser2>
+        //       - child2_1 <Man3_Ser3>
+        //       - child2_2 <Man4_Ser4>
 
         instance = InstanceCustom(context, "localInstance");
-        instance.setRootDevice("daqtest://Test0_Test0");
-        auto child1 = instance.addDevice("daqtest://Test1_Test1");
-        auto child2 = instance.addDevice("daqtest://Test2_Test2");
-        auto child2_1 = child2.addDevice("daqtest://Test3_Test3");
-        auto child2_2 = child2.addDevice("daqtest://Test4_Test4");
+        instance.setRootDevice("daqtest://Man0_Ser0");
+        auto child1 = instance.addDevice("daqtest://Man1_Ser1");
+        auto child2 = instance.addDevice("daqtest://Man2_Ser2");
+        auto child2_1 = child2.addDevice("daqtest://Man3_Ser3");
+        auto child2_2 = child2.addDevice("daqtest://Man4_Ser4");
 
         // child1.sig -> child2_1.ip
         // child2_2.sig -> child2.ip
@@ -135,7 +135,7 @@ protected:
         moduleManager1.addModule(createWithImplementation<IModule, UpdateOptionsTestDeviceModule>(context1));
 
         freshInstance = InstanceCustom(context1, "localInstance");
-        freshInstance.setRootDevice("daqtest://Test0_Test0");
+        freshInstance.setRootDevice("daqtest://Man0_Ser0");
     }
 
     InstancePtr instance;
@@ -150,7 +150,7 @@ TEST_F(DeviceUpdateOptionsTest, Parse)
 
     auto options = DeviceUpdateOptions(str);
     
-    ASSERT_EQ(options.getLocalId(), "Test0_Test0");
+    ASSERT_EQ(options.getLocalId(), "Man0_Ser0");
     auto rootChildOptions = options.getChildDeviceOptions();
     ASSERT_EQ(rootChildOptions.getCount(), 2u);
 
@@ -167,28 +167,28 @@ TEST_F(DeviceUpdateOptionsTest, Parse)
     ASSERT_EQ(child2_2Options.getChildDeviceOptions().getCount(), 0u);
 
     // Local IDs
-    ASSERT_EQ(child1Options.getLocalId(), "Test1_Test1");
-    ASSERT_EQ(child2Options.getLocalId(), "Test2_Test2");
-    ASSERT_EQ(child2_1Options.getLocalId(), "Test3_Test3");
-    ASSERT_EQ(child2_2Options.getLocalId(), "Test4_Test4");
+    ASSERT_EQ(child1Options.getLocalId(), "Man1_Ser1");
+    ASSERT_EQ(child2Options.getLocalId(), "Man2_Ser2");
+    ASSERT_EQ(child2_1Options.getLocalId(), "Man3_Ser3");
+    ASSERT_EQ(child2_2Options.getLocalId(), "Man4_Ser4");
 
     // Manufacturer
-    ASSERT_EQ(child1Options.getManufacturer(), "Test1");
-    ASSERT_EQ(child2Options.getManufacturer(), "Test2");
-    ASSERT_EQ(child2_1Options.getManufacturer(), "Test3");
-    ASSERT_EQ(child2_2Options.getManufacturer(), "Test4");
+    ASSERT_EQ(child1Options.getManufacturer(), "Man1");
+    ASSERT_EQ(child2Options.getManufacturer(), "Man2");
+    ASSERT_EQ(child2_1Options.getManufacturer(), "Man3");
+    ASSERT_EQ(child2_2Options.getManufacturer(), "Man4");
 
     // Serial Number
-    ASSERT_EQ(child1Options.getSerialNumber(), "Test1");
-    ASSERT_EQ(child2Options.getSerialNumber(), "Test2");
-    ASSERT_EQ(child2_1Options.getSerialNumber(), "Test3");
-    ASSERT_EQ(child2_2Options.getSerialNumber(), "Test4");
+    ASSERT_EQ(child1Options.getSerialNumber(), "Ser1");
+    ASSERT_EQ(child2Options.getSerialNumber(), "Ser2");
+    ASSERT_EQ(child2_1Options.getSerialNumber(), "Ser3");
+    ASSERT_EQ(child2_2Options.getSerialNumber(), "Ser4");
 
     // Connection String
-    ASSERT_EQ(child1Options.getConnectionString(), "daqtest://Test1_Test1");
-    ASSERT_EQ(child2Options.getConnectionString(), "daqtest://Test2_Test2");
-    ASSERT_EQ(child2_1Options.getConnectionString(), "daqtest://Test3_Test3");
-    ASSERT_EQ(child2_2Options.getConnectionString(), "daqtest://Test4_Test4");
+    ASSERT_EQ(child1Options.getConnectionString(), "daqtest://Man1_Ser1");
+    ASSERT_EQ(child2Options.getConnectionString(), "daqtest://Man2_Ser2");
+    ASSERT_EQ(child2_1Options.getConnectionString(), "daqtest://Man3_Ser3");
+    ASSERT_EQ(child2_2Options.getConnectionString(), "daqtest://Man4_Ser4");
 }
 
 TEST_F(DeviceUpdateOptionsTest, RemapFreshInstance)
@@ -204,25 +204,24 @@ TEST_F(DeviceUpdateOptionsTest, RemapFreshInstance)
     auto child2ChildOptions = child2Options.getChildDeviceOptions();
 
     child1Options.setUpdateMode(DeviceUpdateMode::Remap);
-    child1Options.setNewManufacturer("Test4");
-    child1Options.setNewSerialNumber("Test4");
+    child1Options.setNewManufacturer("Man4");
+    child1Options.setNewSerialNumber("Ser4");
     
     child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
-    child2ChildOptions[1].setNewManufacturer("Test1");
-    child2ChildOptions[1].setNewSerialNumber("Test1");
+    child2ChildOptions[1].setNewManufacturer("Man1");
+    child2ChildOptions[1].setNewSerialNumber("Ser1");
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
     freshInstance.loadConfiguration(str, params);
 
-    ASSERT_EQ(freshInstance.getDevices()[0].getLocalId(), "Test4_Test4");
-    ASSERT_EQ(freshInstance.getDevices()[0].getInfo().getManufacturer(), "Test4");
-    ASSERT_EQ(freshInstance.getDevices()[0].getInfo().getSerialNumber(), "Test4");
+    ASSERT_EQ(freshInstance.getDevices()[0].getLocalId(), "Man4_Ser4");
+    ASSERT_EQ(freshInstance.getDevices()[0].getInfo().getManufacturer(), "Ser4");
+    ASSERT_EQ(freshInstance.getDevices()[0].getInfo().getSerialNumber(), "Ser4");
 
-    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getLocalId(), "Test1_Test1");
-    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getManufacturer(), "Test1");
-    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getManufacturer(), "Test1");
-    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getSerialNumber(), "Test1");
+    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getLocalId(), "Man1_Ser1");
+    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getManufacturer(), "Ser1");
+    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getSerialNumber(), "Ser1");
 }
 
 TEST_F(DeviceUpdateOptionsTest, RemapOldInstance)
@@ -238,27 +237,26 @@ TEST_F(DeviceUpdateOptionsTest, RemapOldInstance)
     auto child2ChildOptions = child2Options.getChildDeviceOptions();
 
     child1Options.setUpdateMode(DeviceUpdateMode::Remap);
-    child1Options.setNewManufacturer("Test4");
-    child1Options.setNewSerialNumber("Test4");
+    child1Options.setNewManufacturer("Man4");
+    child1Options.setNewSerialNumber("Ser4");
     
     child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
-    child2ChildOptions[1].setNewManufacturer("Test1");
-    child2ChildOptions[1].setNewSerialNumber("Test1");
+    child2ChildOptions[1].setNewManufacturer("Man1");
+    child2ChildOptions[1].setNewSerialNumber("Ser1");
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
     instance.loadConfiguration(str, params);
 
     // Order is swapped due to re-add on remapping
-    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Test4_Test4");
-    ASSERT_EQ(instance.getDevices()[1].getInfo().getManufacturer(), "Test4");
-    ASSERT_EQ(instance.getDevices()[1].getInfo().getSerialNumber(), "Test4");
+    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Man4_Ser4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getManufacturer(), "Man4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getSerialNumber(), "Ser4");
               
     // Order of leaf devices stays the same, as the device was already the last in the list.
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getLocalId(), "Test1_Test1");
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getSerialNumber(), "Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getLocalId(), "Man1_Ser1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Man1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getSerialNumber(), "Ser1");
 }
 
 TEST_F(DeviceUpdateOptionsTest, RemapWithConnectionString)
@@ -274,25 +272,24 @@ TEST_F(DeviceUpdateOptionsTest, RemapWithConnectionString)
     auto child2ChildOptions = child2Options.getChildDeviceOptions();
 
     child1Options.setUpdateMode(DeviceUpdateMode::Remap);
-    child1Options.setNewConnectionString("daqtest://Test4_Test4");
+    child1Options.setNewConnectionString("daqtest://Man4_Ser4");
 
     child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
-    child2ChildOptions[1].setNewConnectionString("daqtest://Test1_Test1");
+    child2ChildOptions[1].setNewConnectionString("daqtest://Man1_Ser1");
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
     instance.loadConfiguration(str, params);
 
     // Order is swapped due to re-add on remapping
-    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Test4_Test4");
-    ASSERT_EQ(instance.getDevices()[1].getInfo().getManufacturer(), "Test4");
-    ASSERT_EQ(instance.getDevices()[1].getInfo().getSerialNumber(), "Test4");
+    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Man4_Ser4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getManufacturer(), "Man4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getSerialNumber(), "Ser4");
               
     // Order of leaf devices stays the same, as the device was already the last in the list.
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getLocalId(), "Test1_Test1");
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getSerialNumber(), "Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getLocalId(), "Man1_Ser1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Man1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getSerialNumber(), "Ser1");
 }
 
 TEST_F(DeviceUpdateOptionsTest, RemapSettingsPriority)
@@ -308,13 +305,13 @@ TEST_F(DeviceUpdateOptionsTest, RemapSettingsPriority)
     auto child2ChildOptions = child2Options.getChildDeviceOptions();
 
     child1Options.setUpdateMode(DeviceUpdateMode::Remap);
-    child1Options.setNewManufacturer("Test4");
-    child1Options.setNewSerialNumber("Test4");
+    child1Options.setNewManufacturer("Man4");
+    child1Options.setNewSerialNumber("Ser4");
     child1Options.setNewConnectionString("daqtest://invalid");
     
     child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
-    child2ChildOptions[1].setNewManufacturer("Test1");
-    child2ChildOptions[1].setNewSerialNumber("Test1");
+    child2ChildOptions[1].setNewManufacturer("Ser1");
+    child2ChildOptions[1].setNewSerialNumber("Ser1");
     child2ChildOptions[1].setNewConnectionString("daqtest://invalid");
 
     auto params = UpdateParameters();
@@ -322,15 +319,14 @@ TEST_F(DeviceUpdateOptionsTest, RemapSettingsPriority)
     instance.loadConfiguration(str, params);
 
     // Order is swapped due to re-add on remapping
-    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Test4_Test4");
-    ASSERT_EQ(instance.getDevices()[1].getInfo().getManufacturer(), "Test4");
-    ASSERT_EQ(instance.getDevices()[1].getInfo().getSerialNumber(), "Test4");
+    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Man4_Ser4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getManufacturer(), "Man4");
+    ASSERT_EQ(instance.getDevices()[1].getInfo().getSerialNumber(), "Ser4");
               
     // Order of leaf devices stays the same, as the device was already the last in the list.
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getLocalId(), "Test1_Test1");
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Test1");
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getSerialNumber(), "Test1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getLocalId(), "Man1_Ser1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getManufacturer(), "Man1");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getInfo().getSerialNumber(), "Ser1");
 }
 
 TEST_F(DeviceUpdateOptionsTest, RemapPropChanges)
@@ -349,18 +345,18 @@ TEST_F(DeviceUpdateOptionsTest, RemapPropChanges)
     auto child2ChildOptions = child2Options.getChildDeviceOptions();
 
     child1Options.setUpdateMode(DeviceUpdateMode::Remap);
-    child1Options.setNewManufacturer("Test4");
-    child1Options.setNewSerialNumber("Test4");
+    child1Options.setNewManufacturer("Man4");
+    child1Options.setNewSerialNumber("Ser4");
     
     child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
-    child2ChildOptions[1].setNewManufacturer("Test1");
-    child2ChildOptions[1].setNewSerialNumber("Test1");
+    child2ChildOptions[1].setNewManufacturer("Man1");
+    child2ChildOptions[1].setNewSerialNumber("Ser1");
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
     instance.loadConfiguration(str, params);
 
-    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Test4_Test4");
+    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Man4_Ser4");
     ASSERT_EQ(instance.getDevices()[1].getPropertyValue("Test"), "Changed");
 }
 
@@ -431,9 +427,9 @@ TEST_F(DeviceUpdateOptionsTest, Remove)
     instance.loadConfiguration(str, params);
     
     ASSERT_EQ(instance.getDevices().getCount(), 1u);
-    ASSERT_EQ(instance.getDevices()[0].getLocalId(), "Test2_Test2");
+    ASSERT_EQ(instance.getDevices()[0].getLocalId(), "Man2_Ser2");
     ASSERT_EQ(instance.getDevices()[0].getDevices().getCount(), 1u);
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[0].getLocalId(), "Test4_Test4");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[0].getLocalId(), "Man4_Ser4");
 }
 
 TEST_F(DeviceUpdateOptionsTest, UpdateOnly)
@@ -459,9 +455,9 @@ TEST_F(DeviceUpdateOptionsTest, UpdateOnly)
     instance.loadConfiguration(str, params);
 
     ASSERT_EQ(instance.getDevices().getCount(), 1u);
-    ASSERT_EQ(instance.getDevices()[0].getLocalId(), "Test2_Test2");
+    ASSERT_EQ(instance.getDevices()[0].getLocalId(), "Man2_Ser2");
     ASSERT_EQ(instance.getDevices()[0].getDevices().getCount(), 1u);
-    ASSERT_EQ(instance.getDevices()[0].getDevices()[0].getLocalId(), "Test3_Test3");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[0].getLocalId(), "Man3_Ser3");
 }
 
 TEST_F(DeviceUpdateOptionsTest, CheckDefaultSettings)
@@ -490,20 +486,20 @@ TEST_F(DeviceUpdateOptionsTest, RemapCheckIPConnections)
     auto child2ChildOptions = child2Options.getChildDeviceOptions();
 
     child1Options.setUpdateMode(DeviceUpdateMode::Remap);
-    child1Options.setNewManufacturer("Test4");
-    child1Options.setNewSerialNumber("Test4");
+    child1Options.setNewManufacturer("Man4");
+    child1Options.setNewSerialNumber("Ser4");
 
     child2Options.setUpdateMode(DeviceUpdateMode::Remap);
-    child2Options.setNewManufacturer("Test3");
-    child2Options.setNewSerialNumber("Test3");
+    child2Options.setNewManufacturer("Man3");
+    child2Options.setNewSerialNumber("Ser3");
     
     child2ChildOptions[0].setUpdateMode(DeviceUpdateMode::Remap);
-    child2ChildOptions[0].setNewManufacturer("Test2");
-    child2ChildOptions[0].setNewSerialNumber("Test2");
+    child2ChildOptions[0].setNewManufacturer("Man2");
+    child2ChildOptions[0].setNewSerialNumber("Ser2");
 
     child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
-    child2ChildOptions[1].setNewManufacturer("Test1");
-    child2ChildOptions[1].setNewSerialNumber("Test1");
+    child2ChildOptions[1].setNewManufacturer("Man1");
+    child2ChildOptions[1].setNewSerialNumber("Ser1");
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
@@ -515,12 +511,12 @@ TEST_F(DeviceUpdateOptionsTest, RemapCheckIPConnections)
     auto child2_2 = child2.getDevices()[1];
 
     // Swaps:
-    // child1 <Test1_Test1> <-> child2_2 <Test4_Test4>
-    // child2 <Test2_Test2> <-> child2_1 <Test3_Test3>
-    ASSERT_EQ(child1.getLocalId(), "Test4_Test4");
-    ASSERT_EQ(child2.getLocalId(), "Test3_Test3");
-    ASSERT_EQ(child2_1.getLocalId(), "Test2_Test2");
-    ASSERT_EQ(child2_2.getLocalId(), "Test1_Test1");
+    // child1 <Man1_Ser1> <-> child2_2 <Man4_Ser4>
+    // child2 <Man2_Ser2> <-> child2_1 <Man3_Ser3>
+    ASSERT_EQ(child1.getLocalId(), "Man4_Ser4");
+    ASSERT_EQ(child2.getLocalId(), "Man3_Ser3");
+    ASSERT_EQ(child2_1.getLocalId(), "Man2_Ser2");
+    ASSERT_EQ(child2_2.getLocalId(), "Man1_Ser1");
     
     // Connections are preserved:
     // child1.sig -> child2_1.ip
@@ -544,5 +540,3 @@ TEST_F(DeviceUpdateOptionsTest, SerializeDeserialize)
 
     ASSERT_EQ(options, optionsDeserialized);
 }
-
-//TODO: Test component update context serialize/deserialize

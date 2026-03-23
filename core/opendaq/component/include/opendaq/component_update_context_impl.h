@@ -23,8 +23,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// TODO: Serialize component update context and propagate it over native
-
 class ComponentUpdateContextImpl : public ImplementationOf<IComponentUpdateContext, ISerializable>
 {
 public:
@@ -47,7 +45,7 @@ public:
     ErrCode INTERFACE_FUNC setInputPortConnection(IString* parentId, IString* portId, IString* signalId) override;
     ErrCode INTERFACE_FUNC getInputPortConnections(IString* parentId, IDict** connections) override;
     ErrCode INTERFACE_FUNC removeInputPortConnection(IString* parentId) override;
-    ErrCode INTERFACE_FUNC setRootComponent(IComponent* rootComponent) override;
+    ErrCode INTERFACE_FUNC setRootComponent(IComponent* baseComponent) override;
     ErrCode INTERFACE_FUNC getRootComponent(IComponent** rootComponent) override;
     ErrCode INTERFACE_FUNC getSignal(IString* parentId, IString* portId, ISignal** signal) override;
     ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) override;
@@ -181,13 +179,13 @@ inline ErrCode ComponentUpdateContextImpl::removeInputPortConnection(IString* pa
     return connections->deleteItem(parentId);
 }
 
-inline ErrCode ComponentUpdateContextImpl::setRootComponent(IComponent* rootComponent)
+inline ErrCode ComponentUpdateContextImpl::setRootComponent(IComponent* baseComponent)
 {
-    OPENDAQ_PARAM_NOT_NULL(rootComponent);
+    OPENDAQ_PARAM_NOT_NULL(baseComponent);
     if (this->rootComponent.assigned())
         return OPENDAQ_ERR_ALREADYEXISTS;
 
-    this->rootComponent = GetRootComponent(rootComponent);
+    this->rootComponent = GetRootComponent(baseComponent);
     return OPENDAQ_SUCCESS;
 }
 

@@ -2060,10 +2060,10 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             {
                 case DeviceUpdateMode::Remap:
                     removeDeviceIfNotStatic(deviceId);
-                    break;
+                    break;  // Remove, but continue with adding the remapped device.
                 case DeviceUpdateMode::Remove:
                     removeDeviceIfNotStatic(deviceId);
-                    return;
+                    return;  // Early return since device is removed and should not be updated
                 case DeviceUpdateMode::Load:
                 case DeviceUpdateMode::UpdateOnly:
                 {

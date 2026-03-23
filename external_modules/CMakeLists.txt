@@ -21,7 +21,7 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         FetchContent_Declare(
             LtStreamingModulesLegacy
             GIT_REPOSITORY https://github.com/openDAQ/LTStreamingModulesLegacy.git
-            GIT_TAG        83d0aab3f6527b152512414995106ef7a2e6261a
+            GIT_TAG        04d8fdf7fac03ae43773e4e97943c66f02a7f6ca
             GIT_PROGRESS   ON
             GIT_SHALLOW    OFF
             SOURCE_SUBDIR  "INVALID"
@@ -41,7 +41,7 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         FetchContent_Declare(
             LtStreamingModulesModern
             GIT_REPOSITORY https://github.com/openDAQ/LTStreamingModulesModern.git
-            GIT_TAG        2aa64e35fd6700a3c4b85d8cb7091c4971ceb7c7
+            GIT_TAG        4336b3cf6eacf70b3b5c720523c2de7a5e0a5cf5
             GIT_PROGRESS   ON
             GIT_SHALLOW    OFF
             SOURCE_SUBDIR  "INVALID"
@@ -68,7 +68,7 @@ if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPE
     FetchContent_Declare(
         OpcUaModules
         GIT_REPOSITORY https://github.com/openDAQ/OpcUaModules.git
-        GIT_TAG        7bfec6dbe62e292026d45dd4f40adae8c578c283
+        GIT_TAG        1571e43e06cb89daec2ef1d47e680a247701f953
         GIT_PROGRESS   ON
         GIT_SHALLOW    OFF
         SOURCE_SUBDIR  "INVALID"

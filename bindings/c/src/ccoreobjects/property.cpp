@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:52.
+//     RTGen (CGenerator v0.7.0) on 17.03.2026 13:26:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -145,6 +145,11 @@ daqErrCode daqProperty_getOnSuggestedValuesRead(daqProperty* self, daqEvent** ev
 daqErrCode daqProperty_getOnSelectionValuesRead(daqProperty* self, daqEvent** event)
 {
     return reinterpret_cast<daq::IProperty*>(self)->getOnSelectionValuesRead(reinterpret_cast<daq::IEvent**>(event));
+}
+
+daqErrCode daqProperty_getPropertyType(daqProperty* self, daqPropertyType* type)
+{
+    return reinterpret_cast<daq::IProperty*>(self)->getPropertyType(reinterpret_cast<daq::PropertyType*>(type));
 }
 
 daqErrCode daqProperty_createBoolProperty(daqProperty** obj, daqString* name, daqBoolean* defaultValue, daqBoolean* visible)

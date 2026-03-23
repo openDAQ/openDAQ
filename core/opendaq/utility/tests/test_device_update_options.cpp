@@ -216,11 +216,11 @@ TEST_F(DeviceUpdateOptionsTest, RemapFreshInstance)
     freshInstance.loadConfiguration(str, params);
 
     ASSERT_EQ(freshInstance.getDevices()[0].getLocalId(), "Man4_Ser4");
-    ASSERT_EQ(freshInstance.getDevices()[0].getInfo().getManufacturer(), "Ser4");
+    ASSERT_EQ(freshInstance.getDevices()[0].getInfo().getManufacturer(), "Man4");
     ASSERT_EQ(freshInstance.getDevices()[0].getInfo().getSerialNumber(), "Ser4");
 
     ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getLocalId(), "Man1_Ser1");
-    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getManufacturer(), "Ser1");
+    ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getManufacturer(), "Man1");
     ASSERT_EQ(freshInstance.getDevices()[1].getDevices()[1].getInfo().getSerialNumber(), "Ser1");
 }
 
@@ -310,7 +310,7 @@ TEST_F(DeviceUpdateOptionsTest, RemapSettingsPriority)
     child1Options.setNewConnectionString("daqtest://invalid");
     
     child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Remap);
-    child2ChildOptions[1].setNewManufacturer("Ser1");
+    child2ChildOptions[1].setNewManufacturer("Man1");
     child2ChildOptions[1].setNewSerialNumber("Ser1");
     child2ChildOptions[1].setNewConnectionString("daqtest://invalid");
 

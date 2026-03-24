@@ -28,6 +28,10 @@ class LoadInstanceConfigDialog2(Dialog):
         # item_id -> metadata describing what this row edits
         self.item_meta = {}
 
+        self._syncing_overlays = False
+        self._overlay_comboboxes = {}
+        self._active_dropdown_cb = None
+
         button_frame = ttk.Frame(self)
         button_frame.pack(side=tk.BOTTOM, anchor=tk.E, pady=10)
 
@@ -56,12 +60,19 @@ class LoadInstanceConfigDialog2(Dialog):
         scroll_bar = ttk.Scrollbar(
             self.tree_frame, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscrollcommand=scroll_bar.set)
+        self.tree.configure(
+            yscrollcommand=lambda *a: (scroll_bar.set(*a), self._sync_overlays())
+        )
         scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
         self.tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        self.tree.bind('<Double-1>', self.edit_value)
+        self.tree.bind('<Double-1>', lambda e: self.edit_value(e))
+        self.tree.bind('<MouseWheel>', lambda e: self.tree.after_idle(self._sync_overlays))
+        self.tree.bind('<ButtonRelease-1>', lambda e: self.tree.after(10, self._sync_overlays), add='+')
+        self.tree.bind('<Configure>', lambda e: self.tree.after_idle(self._sync_overlays))
+        self.tree.winfo_toplevel().bind('<<DialogReady>>', lambda e: self._sync_overlays(), add='+')
 
-        self.display_config_options('', self.update_params)
+        self.on_refresh_event(None)
 
     # ----------------------------
     # Display helpers
@@ -78,6 +89,133 @@ class LoadInstanceConfigDialog2(Dialog):
         if value is None:
             return ''
         return str(value)
+
+    def _make_combobox(self, iid, values, current_value, column, editable=False):
+        bbox = self.tree.bbox(iid, column)
+        if not bbox:
+            return None
+        x, combo_y, width, combo_height = self._get_overlay_place_geometry(bbox)
+        #width -= self._scroll_bar.winfo_width()
+
+        state = 'normal' if editable else 'readonly'
+        combo_style = 'Editable.TCombobox' if editable else 'Selection.TCombobox'
+        cb = ttk.Combobox(self.tree, values=values, state=state, style=combo_style)
+        cb.set(current_value)
+        cb.place(x=x, y=combo_y, width=width, height=combo_height)
+        if not editable:
+            def _toggle_dropdown(e, _cb=cb):
+                # Manually toggle dropdown and block default Tk click handling
+                # to avoid close-on-press and reopen-on-release behavior.
+                active = self._active_dropdown_cb
+                if active is _cb:
+                    self._unpost_combobox_dropdown(_cb)
+                    self._active_dropdown_cb = None
+                    return 'break'
+
+                if active is not None:
+                    try:
+                        if active.winfo_exists():
+                            self._unpost_combobox_dropdown(active)
+                    except Exception:
+                        pass
+
+                self._active_dropdown_cb = _cb
+                _cb.focus_set()
+                _cb.after_idle(lambda: self._post_combobox_dropdown(_cb))
+                return 'break'
+
+            def _clear_active_if_needed(e, _cb=cb):
+                if self._active_dropdown_cb is _cb:
+                    self._active_dropdown_cb = None
+
+            cb.bind('<Button-1>', _toggle_dropdown)
+            cb.bind('<Escape>', _clear_active_if_needed)
+            cb.bind('<FocusOut>', _clear_active_if_needed)
+
+        cb.bind('<MouseWheel>', lambda e: 'break')
+        cb.bind('<Button-4>', lambda e: 'break')
+        cb.bind('<Button-5>', lambda e: 'break')
+        return cb
+
+    def _place_enum_combobox(self, iid, option):
+        meta = self.item_meta.get(iid)
+        if meta is None:
+            return
+
+        keys = [name for name in dir(daq.DeviceUpdateMode) if not name.startswith("_") and not name.lower() == name]
+        current_key = option.update_mode.name
+        cb = self._make_combobox(iid, keys, current_key, meta['editable_column'], editable=False)
+        if cb is None:
+            return
+
+        def on_change(event, _option=option, _cb=cb):
+            try:
+                _option.update_mode = getattr(daq.DeviceUpdateMode, _cb.get())
+            except Exception as e:
+                print("Failed to set enum:", e)
+                return
+            self.on_refresh_event(None)
+
+        cb.bind('<<ComboboxSelected>>', on_change)
+        self._overlay_comboboxes[iid] = cb
+
+    def _get_overlay_place_geometry(self, bbox):
+        x, y, width, height = bbox
+        vertical_inset = max(1, int(self.context.dpi_factor))
+        place_y = y + vertical_inset
+        place_height = max(1, height - 2 * vertical_inset)
+        return x, place_y, width, place_height
+
+    def _sync_overlays(self):
+        if self._syncing_overlays:
+            return
+        self._syncing_overlays = True
+        try:
+            if not self.tree.winfo_viewable():
+                return
+            for iid, meta in self.item_meta.items():
+                if meta['kind'] == "property" or meta['field'] != "update_mode":
+                    continue
+                print(f"{meta=}")
+                bbox = self.tree.bbox(iid, meta['editable_column'])
+                if bbox:
+                    if iid not in self._overlay_comboboxes:
+                        path = meta['option_path']
+                        option = self.get_device_options_by_path(path)
+                        self._place_enum_combobox(iid, option)
+                    else:
+                        x, py, w, ph = self._get_overlay_place_geometry(bbox)
+                        self._overlay_comboboxes[iid].place(x=x, y=py, width=w, height=ph)
+                        self._overlay_comboboxes[iid].lift()
+                else:
+                    if iid in self._overlay_comboboxes:
+                        self._overlay_comboboxes[iid].place_forget()
+        finally:
+            self._syncing_overlays = False
+
+    def _clear_overlay_comboboxes(self):
+        self._active_dropdown_cb = None
+        for cb in self._overlay_comboboxes.values():
+            try:
+                cb.destroy()
+            except Exception:
+                pass
+        self._overlay_comboboxes = {}
+
+    def _post_combobox_dropdown(self, cb):
+        try:
+            self.tk.call('ttk::combobox::Post', cb)
+        except Exception:
+            cb.event_generate('<Down>')
+
+    def _unpost_combobox_dropdown(self, cb):
+        try:
+            self.tk.call('ttk::combobox::Unpost', cb)
+        except Exception:
+            try:
+                cb.event_generate('<Escape>')
+            except Exception:
+                pass
 
     def display_config_options(self, parent_node, prop_object):
         if not parent_node:
@@ -164,21 +302,21 @@ class LoadInstanceConfigDialog2(Dialog):
             'editable_column': '#2'
         }
 
-        # UpdateMode - editable in "New value" column as the effective selected mode
+        # UpdateMode - editable in "Value" column as the effective selected mode
         item_id = self.tree.insert(
             node_id,
             tk.END,
             text='UpdateMode',
             values=(
                 '',
-                self._safe_str(options.update_mode)
+                ''
             )
         )
         self.item_meta[item_id] = {
             'kind': 'device_option',
             'option_path': list(option_path),
             'field': 'update_mode',
-            'editable_column': '#2'
+            'editable_column': '#1'
         }
 
         for i, child in enumerate(options.child_device_options):
@@ -216,33 +354,13 @@ class LoadInstanceConfigDialog2(Dialog):
     def update_device_option_value(self, option_path, field, new_value):
         option = self.get_device_options_by_path(option_path)
 
-        # TODO: Accept only strings
         if field == 'new_manufacturer':
             option.new_manufacturer = new_value
         elif field == 'new_serial_number':
             option.new_serial_number = new_value
         elif field == 'new_connection_string':
             option.new_connection_string = new_value
-        elif field == 'update_mode':
-            current_value = option.update_mode
-            enum_type = type(current_value)
-
-            # TODO: Check how enum editing is done elsewhere
-            # Accept enum object, enum member name, integer value, or raw value
-            try:
-                if isinstance(new_value, enum_type):
-                    option.update_mode = new_value
-                else:
-                    try:
-                        option.update_mode = enum_type[new_value]
-                    except Exception:
-                        try:
-                            option.update_mode = enum_type(int(new_value))
-                        except Exception:
-                            option.update_mode = new_value
-            except Exception as exc:
-                raise ValueError(f'Invalid UpdateMode value: {new_value}') from exc
-        else:
+        else: # Update mode is edited via dropdown
             raise ValueError(f'Unsupported device option field: {field}')
 
     # ----------------------------
@@ -324,6 +442,8 @@ class LoadInstanceConfigDialog2(Dialog):
         if meta['kind'] == 'device_option':
             if column != meta.get('editable_column', '#2'):
                 return
+            if meta['field'] == 'update_mode':
+                return
 
             x, y, width, height = self.tree.bbox(row_id, column)
             value = self.tree.set(row_id, column)
@@ -356,4 +476,6 @@ class LoadInstanceConfigDialog2(Dialog):
         self.destroy()
 
     def on_refresh_event(self, event):
+        self._clear_overlay_comboboxes()
         self.display_config_options('', self.update_params)
+        self.after_idle(self._sync_overlays)

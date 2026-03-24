@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
 from tkinter.filedialog import asksaveasfile
+from tkinter.filedialog import askopenfile
 from tkinter.filedialog import askopenfilename
 import opendaq as daq
 from tkinter import messagebox
@@ -24,15 +25,16 @@ try:
     from gui_demo.components.block_view import BlockView
     from gui_demo.components.add_device_dialog import AddDeviceDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
-    from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from gui_demo.components.load_instance_config_dialog2 import LoadInstanceConfigDialog2
     from gui_demo.app_context import AppContext
     from gui_demo import utils
     from gui_demo.event_port import EventPort
 except Exception as e:
+    raise e
     from opendaq.gui_demo.components.block_view import BlockView
     from opendaq.gui_demo.components.add_device_dialog import AddDeviceDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
-    from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from opendaq.gui_demo.components.load_instance_config_dialog2 import LoadInstanceConfigDialog2
     from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo import utils
     from opendaq.gui_demo.event_port import EventPort
@@ -533,7 +535,16 @@ class App(tk.Tk):
         file.close()
 
     def handle_load_config_button_clicked(self):
-        dialog = LoadInstanceConfigDialog(self, self.context)
+        file = askopenfile(
+            parent=self,
+            title='Load configuration',
+            defaultextension="json",
+            filetypes=[('JSON', f'*.json')]
+        )
+        if file is None:
+            return
+
+        dialog = LoadInstanceConfigDialog2(self, self.context, file)
         dialog.show()
         self.tree_update()
 

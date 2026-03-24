@@ -10,6 +10,8 @@
 #include <coreobjects/ownable_ptr.h>
 #include <opendaq/component_factory.h>
 #include <testutils/memcheck_listener.h>
+#include <coretypes/updatable_ptr.h>
+#include <opendaq/device_impl.h>
 
 using DeviceInfoTest = testing::Test;
 
@@ -403,6 +405,49 @@ TEST_F(DeviceInfoTest, PropertyWriteAfterOwnerSet)
     
     ASSERT_THROW(info.setLocation("test1"), AccessDeniedException);
     ASSERT_EQ(info.getLocation(), "test");
+}
+
+class MockDevice : public Device
+{
+public:
+    MockDevice(const ContextPtr& ctx, const StringPtr& manufacturer, const StringPtr& serialNumber)
+        : Device(ctx, nullptr, "dev")
+        , manufacturer(manufacturer)
+        , serialNumber(serialNumber)
+    {
+    }
+
+    DeviceInfoPtr onGetInfo() override
+    {
+        auto info =  DeviceInfoWithChanegableFields({"SerialNumber"});
+        info.setManufacturer(manufacturer);
+        info.setSerialNumber(serialNumber);
+        return info;
+    }
+
+private:
+    StringPtr serialNumber;
+    StringPtr manufacturer;
+};
+
+TEST_F(DeviceInfoTest, UpdateDeviceInfoWithOldSetup_ReadOnlyValuesNotOverridden)
+{
+    auto ctx = NullContext();
+
+    auto sourceDevice = createWithImplementation<IDevice, MockDevice>(ctx, "new_manufacturer", "new_serial_number");
+    auto targetDevice = createWithImplementation<IDevice, MockDevice>(ctx, "old_manufacturer", "old_serial_number");
+
+    const auto serializer = JsonSerializer();
+    sourceDevice.getInfo().serialize(serializer);
+
+    // Update target device's DeviceInfo with the old setup serialized data
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(targetDevice.getInfo(), serializer.getOutput());
+
+    // Read-only manufacturer in target should NOT be overridden by new setup's "new_manufacturer"
+    ASSERT_EQ(targetDevice.getInfo().getManufacturer(), "old_manufacturer");
+    // Writable serialNumber in target IS updated from the new setup data
+    ASSERT_EQ(targetDevice.getInfo().getSerialNumber(), "new_serial_number");
 }
 
 END_NAMESPACE_OPENDAQ

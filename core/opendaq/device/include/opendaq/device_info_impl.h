@@ -743,6 +743,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::createAndSetIntProperty
 template <typename TInterface, typename... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getStringProperty(const StringPtr& name, IString** value)
 {
+    OPENDAQ_PARAM_NOT_NULL(value);
+
     BaseObjectPtr propValue;
     OPENDAQ_RETURN_IF_FAILED(this->objPtr->getPropertyValue(name, &propValue));
     if (auto strPtr = propValue.asPtrOrNull<IString>(); strPtr.assigned())
@@ -756,6 +758,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getStringProperty(const
 template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getIntProperty(const StringPtr& name, Int* value)
 {
+    OPENDAQ_PARAM_NOT_NULL(value);
+
     BaseObjectPtr propValue;
     OPENDAQ_RETURN_IF_FAILED(this->objPtr->getPropertyValue(name, &propValue));
     if (auto intPtr = propValue.asPtrOrNull<IInteger>(); intPtr.assigned())
@@ -1061,7 +1065,7 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
-    if (this->frozen)
+    if (this->isFrozen())
         return OPENDAQ_IGNORED;
 
     const ErrCode errCode = daqTry([&]

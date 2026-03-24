@@ -29,6 +29,7 @@
 
 ## Bug fixes
 
+- [#1093](https://github.com/openDAQ/openDAQ/pull/1093) Device info - serialize only editable properties
 - [#1108](https://github.com/openDAQ/openDAQ/pull/1108) Add a patch for pybind11 to avoid leaking in python bindings.
 - [#1104](https://github.com/openDAQ/openDAQ/pull/1104) Fix path configuration option getting ignored by Parquet and CSV recorders in some cases.
 - [#1103](https://github.com/openDAQ/openDAQ/pull/1103) Reject loading of duplicating modules by Id and path

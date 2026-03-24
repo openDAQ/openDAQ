@@ -33,6 +33,25 @@
 
 PyDaqIntf<daq::IProperty, daq::IBaseObject> declareIProperty(pybind11::module_ m)
 {
+    py::enum_<daq::PropertyType>(m, "PropertyType")
+        .value("Bool", daq::PropertyType::Bool)
+        .value("Int", daq::PropertyType::Int)
+        .value("Float", daq::PropertyType::Float)
+        .value("String", daq::PropertyType::String)
+        .value("List", daq::PropertyType::List)
+        .value("Dict", daq::PropertyType::Dict)
+        .value("Ratio", daq::PropertyType::Ratio)
+        .value("Procedure", daq::PropertyType::Procedure)
+        .value("Object", daq::PropertyType::Object)
+        .value("Function", daq::PropertyType::Function)
+        .value("Struct", daq::PropertyType::Struct)
+        .value("Enumeration", daq::PropertyType::Enumeration)
+        .value("Reference", daq::PropertyType::Reference)
+        .value("IndexSelection", daq::PropertyType::IndexSelection)
+        .value("Selection", daq::PropertyType::Selection)
+        .value("SparseSelection", daq::PropertyType::SparseSelection)
+        .value("Undefined", daq::PropertyType::Undefined);
+
     return wrapInterface<daq::IProperty, daq::IBaseObject>(m, "IProperty");
 }
 
@@ -311,4 +330,12 @@ void defineIProperty(pybind11::module_ m, PyDaqIntf<daq::IProperty, daq::IBaseOb
         },
         py::return_value_policy::take_ownership,
         "Gets the event triggered when a user retrieves the selection values field. Allows for overriding the returned value.");
+    cls.def_property_readonly("property_type",
+        [](daq::IProperty *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyPtr::Borrow(object);
+            return objectPtr.getPropertyType();
+        },
+        "Gets the type of the Property.");
 }

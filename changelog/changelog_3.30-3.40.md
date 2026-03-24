@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#981](https://github.com/openDAQ/openDAQ/pull/981) Component active state now considers parent's active state. `getActive()` returns `active && parentActive`. Add posibility to generate c and python bindings on MacOs
 - [#914](https://github.com/openDAQ/openDAQ/pull/914) Implementing time delay function block. Fix overflow while calculating timestamp in renderer
 - [#886](https://github.com/openDAQ/openDAQ/pull/886) Adds simulator device module.
 - [#975](https://github.com/openDAQ/openDAQ/pull/975) Add `DevelopmentVersionInfo` for more detailed version information (tweak, branch and hash).
@@ -13,6 +14,8 @@
 - [#1074](https://github.com/openDAQ/openDAQ/pull/1074) Add public attribute to input port. Non-public input ports are not available one client side.
 - [#1079](https://github.com/openDAQ/openDAQ/pull/1079) Add support for parallel RPC calls in native configuration protocol server
 - [#1088](https://github.com/openDAQ/openDAQ/pull/1088) Enable bundling of sent core events within the native configuration protocol
+- [#1097](https://github.com/openDAQ/openDAQ/pull/1097) Implement value based selection list
+
 
 ## Python
 
@@ -26,6 +29,9 @@
 
 ## Bug fixes
 
+- [#1108](https://github.com/openDAQ/openDAQ/pull/1108) Add a patch for pybind11 to avoid leaking in python bindings.
+- [#1104](https://github.com/openDAQ/openDAQ/pull/1104) Fix path configuration option getting ignored by Parquet and CSV recorders in some cases.
+- [#1103](https://github.com/openDAQ/openDAQ/pull/1103) Reject loading of duplicating modules by Id and path
 - [#1098](https://github.com/openDAQ/openDAQ/pull/1098) Fix setting active streaming source for InputPort
 - [#1095](https://github.com/openDAQ/openDAQ/pull/1095) Update imported delegate.hpp and fix cpp 20 build incompatibilities
 - [#1086](https://github.com/openDAQ/openDAQ/pull/1086) Mirrored device type is not serialised for native usage

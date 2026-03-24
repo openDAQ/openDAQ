@@ -246,3 +246,14 @@ TEST_F(PropertyTest, propertyCreateFactory)
     ASSERT_EQ(property.getCoercer(), coercer);
     ASSERT_EQ(property.getCallableInfo(), nullptr);
 }
+
+TEST_F(PropertyTest, ListSelectionStringPropertyDefaultValue)
+{
+    auto stringSelectionProp = PropertyBuilder("Mode")
+                                  .setValueType(ctString)
+                                  .setDefaultValue("Low")
+                                  .setSelectionValues(List<IString>("Low", "Medium", "High"))
+                                  .build();
+
+    ASSERT_EQ(stringSelectionProp.getDefaultValue(), "Low");
+}

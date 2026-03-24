@@ -156,9 +156,16 @@ def get_files_in_directory(directory):
     return files
 
 
-def load_and_resize_image(filename, x_subsample=10, y_subsample=10):
-    image = tk.PhotoImage(file=filename)
-    return image.subsample(x_subsample, y_subsample)
+def load_icon(filename, scale=1):
+    """Load a pre-rendered icon PNG. For scale>1 the _x2 variant is used when available,
+    otherwise the 1x version is pixel-doubled via zoom()."""
+    if scale > 1:
+        hires = filename.replace('.png', '_x2.png')
+        if os.path.exists(hires):
+            return tk.PhotoImage(file=hires)
+        img = tk.PhotoImage(file=filename)
+        return img.zoom(scale, scale)
+    return tk.PhotoImage(file=filename)
 
 def signal_time_domain_check(sig):
     desc = sig.descriptor
@@ -185,6 +192,10 @@ def get_last_value_for_signal(output_signal):
         try:
             sig = daq.ISignal.cast_from(output_signal)
             last_value = sig.last_value
+            desc = sig.descriptor
+            unit_symbol = ''
+            if desc is not None and desc.unit is not None and desc.unit.symbol is not None:
+                unit_symbol = str(desc.unit.symbol)
             origin_str = signal_time_domain_check(sig)
             if origin_str is not None:
                 try:
@@ -192,9 +203,21 @@ def get_last_value_for_signal(output_signal):
                 except ValueError as e:
                     origin = parse_iso_string(origin_str)
                 if last_value is not None:
-                    desc = sig.descriptor
                     last_value_in_seconds = int(last_value) * desc.tick_resolution.numerator / desc.tick_resolution.denominator
                     last_value = origin + timedelta(seconds=last_value_in_seconds)
+
+            if isinstance(last_value, float):
+                # Keep enough precision but avoid long noisy tails.
+                value_str = f'{last_value:.6g}'
+                last_value = f'{value_str} {unit_symbol}'.strip() if unit_symbol else value_str
+            elif isinstance(last_value, int):
+                if unit_symbol:
+                    last_value = f'{last_value} {unit_symbol}'
+            elif isinstance(last_value, datetime):
+                # Human-readable timestamp for time-domain signals.
+                last_value = last_value.strftime('%Y-%m-%d %H:%M:%S.%f').rstrip('0').rstrip('.')
+            elif last_value is None:
+                last_value = 'N/A'
 
         except RuntimeError as e:
             print(f'Error reading last value: {e}')
@@ -291,7 +314,7 @@ def title_to_snake_case(title: str):
 
 
 def prettify_unit(unit: daq.IStruct):
-    return unit.symbol if unit is not None and unit.symbol is not None else 'None'
+    return unit.symbol if unit is not None and unit.symbol is not None else ''
 
 
 def prettify_bool(value):

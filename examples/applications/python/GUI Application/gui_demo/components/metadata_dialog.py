@@ -17,7 +17,7 @@ class MetadataDialog(Dialog):
         self.node = node
         self.context = context
 
-        self.geometry(f'{600}x{800}')
+        self.geometry(f'{int(600 * context.dpi_factor)}x{int(800 * context.dpi_factor)}')
         tree_frame = ttk.Frame(self)
 
         tree = ttk.Treeview(tree_frame, columns=(

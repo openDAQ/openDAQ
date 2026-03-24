@@ -1,4 +1,5 @@
 import os
+import platform
 
 import opendaq as daq
 
@@ -25,9 +26,10 @@ class AppContext(object):
         self.selected_node = None
         self.include_reference_devices = False
         self.view_hidden_components = False
-        self.metadata_fields = []
+        self.metadata_fields = ['unit']
         # gui
         self.ui_scaling_factor = 1.0
+        self.dpi_factor = self._detect_dpi_factor()
         self.icons = {}
         # daq
         builder = daq.InstanceBuilder()
@@ -49,6 +51,32 @@ class AppContext(object):
         self.connection_string = ''
         self.signals = {}
         self.on_needs_refresh: Optional[Callable[[], None]] = None
+
+    def _detect_dpi_factor(self) -> float:
+        """Detect system DPI scaling factor (1.0 = 96 DPI). Used to scale UI elements on high-DPI displays."""
+        try:
+            if platform.system() == 'Windows':
+                from ctypes import windll
+                try:
+                    # Windows 10 1703+
+                    dpi = windll.user32.GetDpiForSystem()
+                    if dpi and dpi > 0:
+                        return dpi / 96.0
+                except Exception:
+                    pass
+                try:
+                    # Fallback: GetDeviceCaps(LOGPIXELSX)
+                    hdc = windll.user32.GetDC(0)
+                    if hdc:
+                        dpi = windll.gdi32.GetDeviceCaps(hdc, 88)  # 88 = LOGPIXELSX
+                        windll.user32.ReleaseDC(0, hdc)
+                        if dpi and dpi > 0:
+                            return dpi / 96.0
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        return 1.0
 
     def add_device(self, device_info, parent_device: daq.IDevice, config=None):
         if device_info is None:
@@ -75,8 +103,12 @@ class AppContext(object):
 
     def load_icons(self, directory):
         images = {}
+        scale = max(1, int(self.dpi_factor))
         for file in utils.get_files_in_directory(directory):
-            image = utils.load_and_resize_image(os.path.join(directory, file))
+            # Skip the _x2 variant files — loaded on demand by load_icon()
+            if '_x2' in file:
+                continue
+            image = utils.load_icon(os.path.join(directory, file), scale=scale)
             images[file.split('.')[0]] = image
         self.icons = images
 
@@ -151,8 +183,12 @@ class AppContext(object):
         return component.all_properties if self.view_hidden_components else component.visible_properties
 
     def on_core_event(self, sender: Optional[daq.IComponent], args: daq.IEventArgs):
-        if sender is not None and daq.IDevice.can_cast_from(sender) and args.event_name == "StatusChanged" and self.on_needs_refresh is not None:
+        if sender is None or self.on_needs_refresh is None:
+            return
+        if daq.IDevice.can_cast_from(sender) and args.event_name == "StatusChanged":
             core_event_args: daq.ICoreEventArgs = daq.ICoreEventArgs.cast_from(args)
-            has_connection_status = "ConnectionStatus" in core_event_args.parameters.keys()
-            if has_connection_status:
+            if "ConnectionStatus" in core_event_args.parameters.keys():
                 self.on_needs_refresh()
+            return
+        if args.event_name in ("ComponentAdded", "ComponentRemoved"):
+            self.on_needs_refresh()

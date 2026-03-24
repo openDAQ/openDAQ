@@ -592,8 +592,7 @@ std::set<OperationModeType> RefDeviceImpl::onGetAvailableOperationModes()
 void RefDeviceImpl::onOperationModeChanged(OperationModeType modeType)
 {
     bool active = modeType != OperationModeType::Idle;
-    for (const auto& ch : this->channels)
-        ch.setActive(active);
+    this->setActive(active);
 }
 
 void RefDeviceImpl::createSignals()

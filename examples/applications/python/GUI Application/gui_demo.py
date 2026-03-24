@@ -96,7 +96,8 @@ class App(tk.Tk):
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
-            1500 * self.context.ui_scaling_factor, 800 * self.context.ui_scaling_factor))
+            int(1500 * self.context.ui_scaling_factor * self.context.dpi_factor),
+            int(800 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
         main_frame_top = ttk.Frame(self)
         main_frame_top.pack(fill=tk.X)
@@ -147,8 +148,9 @@ class App(tk.Tk):
 
         # High DPI workaround for now
         style = ttk.Style()
-        style.configure('Treeview', rowheight=30 *
-                        self.context.ui_scaling_factor)
+        treeview_rowheight = max(20, int(round(
+            30 * self.context.ui_scaling_factor * self.context.dpi_factor)))
+        style.configure('Treeview', rowheight=treeview_rowheight)
 
         style.configure('Treeview.Heading', font='Arial 10 bold')
         style.configure('Treeview.Column', padding=(
@@ -236,7 +238,7 @@ class App(tk.Tk):
         tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
 
         # layout
-        tree.column('#0', width=350 * self.context.ui_scaling_factor)
+        tree.column('#0', width=int(350 * self.context.ui_scaling_factor * self.context.dpi_factor))
         # hide the column with unique id
         tree.column('#1', width=0, minwidth=0, stretch=False)
 
@@ -254,6 +256,7 @@ class App(tk.Tk):
         parent_frame.add(frame)
         tree.tag_configure('warning', foreground=utils.StatusColor.WARNING)
         tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
+        tree.tag_configure('inactive', foreground='gray')
         self.tree = tree
 
     def tree_update(self, new_selected_node=None):
@@ -268,6 +271,7 @@ class App(tk.Tk):
             self.context.selected_node)  # reset in case the selected node outdates
         self.set_node_update_status()
         self.set_node_lock_status()
+        self.set_node_active_status()
 
     def tree_traverse_components_recursive(
             self, component, display_type=DisplayType.UNSPECIFIED):
@@ -329,7 +333,7 @@ class App(tk.Tk):
     def tree_add_component(self, parent_node_id,
                            component, show_unknown=False):
         component_node_id = component.global_id
-        component_name = component.name
+        component_name = self.get_component_tree_name(component)
         icon = self.context.icons['circle']
         skip = not self.context.view_hidden_components and not component.visible
 
@@ -342,13 +346,10 @@ class App(tk.Tk):
         elif daq.IInputPort.can_cast_from(component):
             icon = self.context.icons['input_port']
         elif daq.IDevice.can_cast_from(component):
-            device = daq.IDevice.cast_from(component)
-            if not utils.is_device_connected(device):
-                component_name = f'{component_name} [disconnected]'
             icon = self.context.icons['device']
         elif daq.IFolder.can_cast_from(component):
             icon = self.context.icons['folder']
-            component_name = self.get_standard_folder_name(component_name)
+            component_name = self.get_component_tree_name(component)
         elif daq.ISyncComponent.can_cast_from(component):
             icon = self.context.icons['link']
         else:  # skipping unknown type components
@@ -366,7 +367,7 @@ class App(tk.Tk):
                 pass
 
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
-                             text=component_name, open=True, values=(component_node_id,), tags=(status_string,))
+                             text=self._format_tree_item_text(component_name), open=True, values=(component_node_id,), tags=(status_string,))
 
 
 
@@ -384,6 +385,76 @@ class App(tk.Tk):
         elif component == 'Srv':
             component = 'Servers'
         return component
+
+    def operation_mode_to_string(self, op_mode):
+        if op_mode == daq.OperationModeType.Unknown:
+            return '/'
+        if op_mode == daq.OperationModeType.Idle:
+            return 'Idle'
+        if op_mode == daq.OperationModeType.Operation:
+            return 'Operation'
+        if op_mode == daq.OperationModeType.SafeOperation:
+            return 'SafeOperation'
+        return ''
+
+    def get_component_tree_name(self, component):
+        component_name = self.get_standard_folder_name(component.name)
+        if daq.IDevice.can_cast_from(component):
+            device = daq.IDevice.cast_from(component)
+            mode = self.operation_mode_to_string(device.operation_mode)
+            if mode:
+                component_name = f'{component_name} | {mode}'
+        return component_name
+
+    def _build_component_state_labels(self, component, tags):
+        labels = []
+
+        # Component health state (for all components)
+        if 'error' in tags:
+            labels.append('err')
+        elif 'warning' in tags:
+            labels.append('warn')
+
+        # Activity state (for all components)
+        if component is not None and daq.IComponent.can_cast_from(component):
+            try:
+                if not daq.IComponent.cast_from(component).active:
+                    labels.append('inactive')
+            except Exception:
+                pass
+
+        # Device-only states
+        if component is not None and daq.IDevice.can_cast_from(component):
+            try:
+                if not utils.is_device_connected(daq.IDevice.cast_from(component)):
+                    labels.append('disconnected')
+            except Exception:
+                pass
+
+        # Inherited lock state
+        if 'locked' in tags:
+            labels.append('locked')
+
+        # Updating marker
+        if 'selected' in tags:
+            labels.append('*')
+
+        return labels
+
+    def _update_tree_item_visual_state(self, node):
+        component = utils.find_component(node, self.context.instance)
+        if component is None:
+            return
+
+        tags = set(self.tree.item(node, 'tags'))
+        base_name = self.get_component_tree_name(component)
+        labels = self._build_component_state_labels(component, tags)
+        suffix = f" [{', '.join(labels)}]" if labels else ''
+        self.tree.item(node, text=self._format_tree_item_text(base_name + suffix))
+
+    def _format_tree_item_text(self, text):
+        # Visual gap between icon and text in the tree item column.
+        return f' {text}'
 
     def tree_restore_selection(self, old_node=None):
         desired_iid = old_node.global_id if old_node else ''
@@ -585,9 +656,7 @@ class App(tk.Tk):
         elif daq.ISyncComponent.can_cast_from(node):
             return daq.ISyncComponent.cast_from(node)
         elif daq.IFolder.can_cast_from(node):
-            folder = daq.IFolder.cast_from(node)
-            if folder.name not in AppContext.default_folders:
-                return folder
+            return daq.IFolder.cast_from(node)
 
         return self.find_fb_device_folder(
             node.parent) if node is not None else None
@@ -658,15 +727,23 @@ class App(tk.Tk):
                         fb_folder = daq.IFolder.cast_from(fb_folder)
                         for component in fb_folder.items:
                             draw_sub_components(component, level + 1)
+                elif daq.IDevice.can_cast_from(component):
+                    component = daq.IDevice.cast_from(component)
+                    b = BlockView(self.right_side_panel, component,
+                                  self.context, level == 0)
+                    b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
+                    if component.has_item('Dev'):
+                        dev_folder = component.get_item('Dev')
+                        dev_folder = daq.IFolder.cast_from(dev_folder)
+                        for item in dev_folder.items:
+                            draw_sub_components(item, level + 1)
                 elif daq.IFolder.can_cast_from(component):
                     component = daq.IFolder.cast_from(component)
-                    if component.name not in AppContext.default_folders:
-                        b = BlockView(self.right_side_panel, component,
-                                      self.context, level == 0)
-                        b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
-
-                        for item in component.items:
-                            draw_sub_components(item, level + 1)
+                    b = BlockView(self.right_side_panel, component,
+                                  self.context, level == 0)
+                    b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
+                    for item in component.items:
+                        draw_sub_components(item, level + 1)
 
             draw_sub_components(found)
 
@@ -817,13 +894,11 @@ class App(tk.Tk):
 
     def _set_node_update_status_recursive(self, node):
         node_obj = utils.find_component(node, self.context.instance)
-        node_text = self.get_standard_folder_name(node_obj.name)
         if node_obj.updating:
             self.add_tag_and_configure(node, 'selected', 'red')
-            self.tree.item(node, text=node_text + ' [*]')
-
         else:
             self.remove_tag(node, 'selected')
+        self._update_tree_item_visual_state(node)
         children = self.tree.get_children(node)
         for child in children:
             self._set_node_update_status_recursive(child)
@@ -848,10 +923,38 @@ class App(tk.Tk):
             self.add_tag_and_configure(node, 'locked', 'gray')
         else:
             self.remove_tag(node, 'locked')
+        self._update_tree_item_visual_state(node)
 
         children = self.tree.get_children(node)
         for child in children:
             self._set_node_lock_status_recursive(child, locked)
+
+    def set_node_active_status(self):
+        for node in self.tree.get_children():
+            self._set_node_active_status_recursive(node)
+
+    def _set_node_active_status_recursive(self, node):
+        component = utils.find_component(node, self.context.instance)
+
+        current_tags = set(self.tree.item(node, 'tags'))
+        has_warning_or_error = 'warning' in current_tags or 'error' in current_tags
+
+        is_inactive = False
+        if component is not None and daq.IComponent.can_cast_from(component):
+            try:
+                is_inactive = not daq.IComponent.cast_from(component).active
+            except Exception:
+                is_inactive = False
+
+        # warning/error color has higher priority
+        if not has_warning_or_error and is_inactive:
+            self.add_tag_and_configure(node, 'inactive', 'gray')
+        else:
+            self.remove_tag(node, 'inactive')
+        self._update_tree_item_visual_state(node)
+
+        for child in self.tree.get_children(node):
+            self._set_node_active_status_recursive(child)
 
     def _load_config(self, config):
         file = open(config, 'r')

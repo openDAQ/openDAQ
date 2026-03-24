@@ -451,6 +451,14 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setRemoteGlobalId(IString* rem
     OPENDAQ_PARAM_NOT_NULL(remoteGlobalId);
 
     this->remoteGlobalId = StringPtr::Borrow(remoteGlobalId).toStdString();
+    for (const auto & prop : this->objPtr.getAllProperties())
+    {
+        if (prop.getValueType() == CoreType::ctObject)
+        {
+            if (auto configObj = dynamic_cast<ConfigClientPropertyImpl*>(prop.getObject()); configObj)
+                configObj->setRemoteGlobalId(this->remoteGlobalId);
+        }
+    }
     return OPENDAQ_SUCCESS;
 }
 

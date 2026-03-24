@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter.filedialog import askopenfile
 
 import opendaq as daq
 
@@ -14,21 +13,20 @@ from .edit_container_property import EditContainerPropertyDialog
 class LoadInstanceConfigDialog2(Dialog):
     def __init__(self, parent, context: AppContext, file):
         super().__init__(parent, 'Load configuration', context)
-        print(f"{file=}")
+
         self.config_string = file.read()
         file.close()
 
-        # Is a DeviceUpdateOptions instance, if there are any added
-        # devices there is a nonempty list child_device_options available
-        # self.device_options = daq.DeviceUpdateOptions(config_string)
-        # print(f"{self.device_options.local_id=}")
-        # print(f"{self.device_options.child_device_options=}")
-
         self.event_port = EventPort(self, event_callback=self.on_refresh_event)
         self.geometry('{}x{}'.format(
-            1200 * self.context.ui_scaling_factor, 600 * self.context.ui_scaling_factor))
-
+                1200 * self.context.ui_scaling_factor, 650 * self.context.ui_scaling_factor))
         self.protocol('WM_DELETE_WINDOW', self.cancel)
+
+        self.update_params = daq.UpdateParameters()
+        self.update_params.device_update_options = daq.DeviceUpdateOptions(self.config_string)
+
+        # item_id -> metadata describing what this row edits
+        self.item_meta = {}
 
         button_frame = ttk.Frame(self)
         button_frame.pack(side=tk.BOTTOM, anchor=tk.E, pady=10)
@@ -40,12 +38,19 @@ class LoadInstanceConfigDialog2(Dialog):
 
         self.tree_frame = ttk.Frame(self)
 
-        self.tree = ttk.Treeview(self.tree_frame, columns=(
-            'value',), show='tree headings')
+        self.tree = ttk.Treeview(
+            self.tree_frame,
+            columns=('value', 'new_value'),
+            show='tree headings'
+        )
         self.tree.heading('#0', anchor=tk.W, text='Property')
         self.tree.heading('value', anchor=tk.W, text='Value')
-        self.tree.column('#0', anchor=tk.W)
-        self.tree.column('value', anchor=tk.W)
+        self.tree.heading('new_value', anchor=tk.W, text='New value')
+
+        self.tree.column('#0', anchor=tk.W, width=int(320 * self.context.ui_scaling_factor))
+        self.tree.column('value', anchor=tk.W, width=int(330 * self.context.ui_scaling_factor))
+        self.tree.column('new_value', anchor=tk.W, width=int(330 * self.context.ui_scaling_factor))
+
         self.tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
 
         scroll_bar = ttk.Scrollbar(
@@ -56,84 +61,149 @@ class LoadInstanceConfigDialog2(Dialog):
         self.tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         self.tree.bind('<Double-1>', self.edit_value)
 
-        self.update_params = daq.UpdateParameters()
-        self.update_params.device_update_options = daq.DeviceUpdateOptions(config_string)
         self.display_config_options('', self.update_params)
 
-    # initial display of properties
-    def display_config_options(self, parent_node, prop_object):
-        def printed_value(value_type, value):
-            if value_type == daq.CoreType.ctBool:
-                return utils.yes_no[value]
-            else:
-                return value
+    # ----------------------------
+    # Display helpers
+    # ----------------------------
 
+    def _printed_value(self, value_type, value):
+        if value_type == daq.CoreType.ctBool:
+            return utils.yes_no[value]
+        if value is None:
+            return ''
+        return value
+
+    def _safe_str(self, value):
+        if value is None:
+            return ''
+        return str(value)
+
+    def display_config_options(self, parent_node, prop_object):
         if not parent_node:
             self.tree.delete(*self.tree.get_children())
+            self.item_meta.clear()
 
-        # Add any properties
+        # Show PropertyObject contents
         for property in self.context.properties_of_component(prop_object):
             prop = prop_object.get_property_value(property.name)
             if isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop):
-                casted_property = daq.IPropertyObject.cast_from(prop)
+                cast_property = daq.IPropertyObject.cast_from(prop)
                 node_id = self.tree.insert(
                     parent_node, tk.END, text=property.name, open=True)
-                self.display_config_options(node_id, casted_property)
+                self.display_config_options(node_id, cast_property)
             else:
-                property_value = printed_value(
-                    property.item_type, prop_object.get_property_value(property.name))
-                self.tree.insert(parent_node, tk.END,
-                                 text=property.name, values=(property_value,))
+                property_value = self._printed_value(property.item_type, prop)
+                item_id = self.tree.insert(parent_node, tk.END,
+                                           text=property.name, values=(property_value, '')
+                )
+                self.item_meta[item_id] = {
+                    'kind': 'property',
+                    'path': utils.get_item_path(self.tree, item_id)
+                }
 
-        if not parent_node:
-            self.display_device_update_options(parent_node, self.update_params.device_update_options)
+        if not parent_node and self.update_params.device_update_options is not None:
+            root_node = self.tree.insert('', tk.END, text='Device update options', open=True)
+            self.display_device_update_options(root_node, self.update_params.device_update_options, option_path=[])
 
-    def display_device_update_options(self, parent_node, options):
-        def printed_value(value_type, value):
-            if value_type == daq.CoreType.ctBool:
-                return utils.yes_no[value]
-            else:
-                return value
+    def display_device_update_options(self, parent_node, options, option_path):
+        device_title = options.local_id or '<device>'
+        node_id = self.tree.insert(parent_node, tk.END, text=device_title, open=True)
 
-        node_id = self.tree.insert(parent_node, tk.END, text="Device", open=True)
-        local_id = options.local_id
-        print(local_id)
-        self.tree.insert(node_id, tk.END, text="LocalId", values=(local_id,))
+        # LocalId - read only
+        self.tree.insert(
+            node_id, tk.END, text='LocalId', values=(self._safe_str(options.local_id), ''))
 
-        manufacturer = options.manufacturer
-        print(manufacturer)
-        self.tree.insert(node_id, tk.END, text="Manufacturer", values=(manufacturer,))
+        # Manufacturer -> NewManufacturer
+        item_id = self.tree.insert(
+            node_id, tk.END,
+            text='Manufacturer',
+            values=(
+                self._safe_str(options.manufacturer),
+                self._safe_str(options.new_manufacturer)
+            )
+        )
+        self.item_meta[item_id] = {
+            'kind': 'device_option',
+            'option_path': list(option_path),
+            'field': 'new_manufacturer',
+            'editable_column': '#2'
+        }
 
-        serial_number = options.serial_number
-        print(serial_number)
-        self.tree.insert(node_id, tk.END, text="SerialNumber", values=(serial_number,))
+        # SerialNumber -> NewSerialNumber
+        item_id = self.tree.insert(
+            node_id,
+            tk.END,
+            text='SerialNumber',
+            values=(
+                self._safe_str(options.serial_number),
+                self._safe_str(options.new_serial_number)
+            )
+        )
+        self.item_meta[item_id] = {
+            'kind': 'device_option',
+            'option_path': list(option_path),
+            'field': 'new_serial_number',
+            'editable_column': '#2'
+        }
 
-        connection_string = options.connection_string
-        print(connection_string)
-        self.tree.insert(node_id, tk.END, text="ConnectionString", values=(connection_string,))
+        # ConnectionString -> NewConnectionString
+        item_id = self.tree.insert(
+            node_id,
+            tk.END,
+            text='ConnectionString',
+            values=(
+                self._safe_str(options.connection_string),
+                self._safe_str(options.new_connection_string)
+            )
+        )
+        self.item_meta[item_id] = {
+            'kind': 'device_option',
+            'option_path': list(option_path),
+            'field': 'new_connection_string',
+            'editable_column': '#2'
+        }
 
-        update_mode = options.update_mode
-        print(update_mode)
-        self.tree.insert(node_id, tk.END, text="UpdateMode", values=(update_mode,))
+        # UpdateMode - editable in "New value" column as the effective selected mode
+        item_id = self.tree.insert(
+            node_id,
+            tk.END,
+            text='UpdateMode',
+            values=(
+                '',
+                self._safe_str(options.update_mode)
+            )
+        )
+        self.item_meta[item_id] = {
+            'kind': 'device_option',
+            'option_path': list(option_path),
+            'field': 'update_mode',
+            'editable_column': '#2'
+        }
 
-        for child in options.child_device_options:
-            self.display_device_update_options(node_id, child)
+        for i, child in enumerate(options.child_device_options):
+            self.display_device_update_options(
+                node_id,
+                child,
+                option_path=list(option_path) + [i]
+            )
 
+    # ----------------------------
+    # Data access helpers
+    # ----------------------------
 
-    def save_value(self, entry, item_id, column, path):
-        new_value = entry.get()
-        self.tree.set(item_id, column, new_value)
-        entry.destroy()
-        self.update_property_value(path, new_value)
+    def get_device_options_by_path(self, option_path):
+        option = self.update_params.device_update_options
+        for index in option_path:
+            option = option.child_device_options[index]
+        return option
 
-    # after pressing enter or if entry is out of focus it changes property value
-    def update_property_value(self, path, new_value):
+    def update_regular_property_value(self, path, new_value):
         def update_property(context, path, new_value, depth=0):
             for property in self.context.properties_of_component(context):
                 if property.name == path[depth]:
                     if depth == len(path) - 1:
-                        context.set_property_value(
-                            property.name, daq.EvalValue(new_value))
+                        context.set_property_value(property.name, daq.EvalValue(new_value))
                         return
                     prop = context.get_property_value(property.name)
                     if isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop):
@@ -143,31 +213,138 @@ class LoadInstanceConfigDialog2(Dialog):
 
         update_property(self.update_params, path, new_value)
 
-    def edit_value(self, event):
-        item_id = self.tree.selection()[0]
-        path = utils.get_item_path(self.tree, item_id)
-        prop = utils.get_property_for_path(
-            self.context, path, self.update_params)
-        if prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
-            EditContainerPropertyDialog(self, prop, self.update_params).show()
-        elif prop.value_type == daq.CoreType.ctBool:
-            column = self.tree.identify_column(event.x)
-            if column == '#1':
-                prop.value = not prop.value
-                self.tree.set(item_id, column, str(prop.value))
+    def update_device_option_value(self, option_path, field, new_value):
+        option = self.get_device_options_by_path(option_path)
+
+        # TODO: Accept only strings
+        if field == 'new_manufacturer':
+            option.new_manufacturer = new_value
+        elif field == 'new_serial_number':
+            option.new_serial_number = new_value
+        elif field == 'new_connection_string':
+            option.new_connection_string = new_value
+        elif field == 'update_mode':
+            current_value = option.update_mode
+            enum_type = type(current_value)
+
+            # TODO: Check how enum editing is done elsewhere
+            # Accept enum object, enum member name, integer value, or raw value
+            try:
+                if isinstance(new_value, enum_type):
+                    option.update_mode = new_value
+                else:
+                    try:
+                        option.update_mode = enum_type[new_value]
+                    except Exception:
+                        try:
+                            option.update_mode = enum_type(int(new_value))
+                        except Exception:
+                            option.update_mode = new_value
+            except Exception as exc:
+                raise ValueError(f'Invalid UpdateMode value: {new_value}') from exc
         else:
-            column = self.tree.identify_column(event.x)
-            if column == '#1':
-                x, y, width, height = self.tree.bbox(item_id, column)
-                value = self.tree.set(item_id, column)
-                entry = ttk.Entry(self.tree)
-                entry.place(x=x, y=y, width=width, height=height)
-                entry.insert(0, value)
-                entry.focus()
-                entry.bind('<Return>', lambda e: self.save_value(
-                    entry, item_id, column, path))
-                entry.bind('<FocusOut>', lambda e: self.save_value(
-                    entry, item_id, column, path))
+            raise ValueError(f'Unsupported device option field: {field}')
+
+    # ----------------------------
+    # Editing
+    # ----------------------------
+
+    def save_entry_value(self, entry, item_id, column):
+        new_value = entry.get()
+        entry.destroy()
+
+        meta = self.item_meta.get(item_id)
+        if meta is None:
+            return
+
+        try:
+            if meta['kind'] == 'property':
+                self.tree.set(item_id, column, new_value)
+                self.update_regular_property_value(meta['path'], new_value)
+
+            elif meta['kind'] == 'device_option':
+                self.tree.set(item_id, column, new_value)
+                self.update_device_option_value(
+                    meta['option_path'],
+                    meta['field'],
+                    new_value
+                )
+
+        except Exception as exc:
+            print(f'Failed to update value: {exc}')
+            self.on_refresh_event(None)
+
+    def edit_value(self, event):
+        row_id = self.tree.identify_row(event.y)
+        column = self.tree.identify_column(event.x)
+
+        if not row_id or column not in ('#1', '#2'):
+            return
+
+        meta = self.item_meta.get(row_id)
+        if meta is None:
+            return
+
+        # Regular property-object properties:
+        if meta['kind'] == 'property':
+            if column != '#1':
+                return
+
+            path = meta['path']
+            prop = utils.get_property_for_path(self.context, path, self.update_params)
+
+            if prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
+                EditContainerPropertyDialog(self, prop, self.update_params).show()
+                return
+
+            if prop.value_type == daq.CoreType.ctBool:
+                prop.value = not prop.value
+                self.tree.set(row_id, column, str(prop.value))
+                return
+
+            x, y, width, height = self.tree.bbox(row_id, column)
+            value = self.tree.set(row_id, column)
+
+            entry = ttk.Entry(self.tree)
+            entry.place(x=x, y=y, width=width, height=height)
+            entry.insert(0, value)
+            entry.focus()
+
+            entry.bind(
+                '<Return>',
+                lambda e: self.save_entry_value(entry, row_id, column)
+            )
+            entry.bind(
+                '<FocusOut>',
+                lambda e: self.save_entry_value(entry, row_id, column)
+            )
+            return
+
+        # DeviceUpdateOptions rows:
+        if meta['kind'] == 'device_option':
+            if column != meta.get('editable_column', '#2'):
+                return
+
+            x, y, width, height = self.tree.bbox(row_id, column)
+            value = self.tree.set(row_id, column)
+
+            entry = ttk.Entry(self.tree)
+            entry.place(x=x, y=y, width=width, height=height)
+            entry.insert(0, value)
+            entry.focus()
+
+            entry.bind(
+                '<Return>',
+                lambda e: self.save_entry_value(entry, row_id, column)
+            )
+            entry.bind(
+                '<FocusOut>',
+                lambda e: self.save_entry_value(entry, row_id, column)
+            )
+
+    # ----------------------------
+    # Actions
+    # ----------------------------
 
     def load_configuration(self):
         self.context.instance.load_configuration(

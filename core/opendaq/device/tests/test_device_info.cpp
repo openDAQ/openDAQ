@@ -426,8 +426,8 @@ public:
     }
 
 private:
-    StringPtr serialNumber;
     StringPtr manufacturer;
+    StringPtr serialNumber;
 };
 
 TEST_F(DeviceInfoTest, UpdateDeviceInfoWithOldSetup_ReadOnlyValuesNotOverridden)

@@ -49,7 +49,7 @@ static constexpr char checkDependenciesObsoleteFunc[] = "checkDependencies";
 static constexpr char checkDependenciesFunc[] = "checkModuleDependencies";
 static constexpr char getCoreVersionMetadataFunc[] = "getCoreVersionMetadata";
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
-static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
+static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode);
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : authenticatedModulesOnly(false)
@@ -58,6 +58,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     , modulesLoaded(false)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
+    , safeLoadingMode(False)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -174,6 +175,10 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
             if (inner.hasKey("AddDeviceRescanTimer"))
             {
                 this->rescanTimer = std::chrono::milliseconds(static_cast<int>(inner.get("AddDeviceRescanTimer")));
+            }
+            if (inner.hasKey("SafeLoadingMode"))
+            {
+                this->safeLoadingMode = static_cast<bool>(inner.get("SafeLoadingMode"));
             }
         }
 
@@ -343,7 +348,7 @@ ErrCode ModuleManagerImpl::tryLoadAndAddModule(const StringPtr& path, IModule** 
             }
         }
 
-        auto moduleLibrary = loadModuleInternal(loggerComponent, fileSystemPath, context);
+        auto moduleLibrary = loadModuleInternal(loggerComponent, fileSystemPath, context, safeLoadingMode);
         const auto loadedModule = moduleLibrary.module;
         const StringPtr moduleId = loadedModule.getModuleInfo().getId();
 
@@ -2036,12 +2041,12 @@ static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
 #endif
 }
 
-ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
+ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode)
 {
     LOG_T("Loading module \"{}\".", path.string());
 
     std::error_code libraryErrCode;
-    boost::dll::shared_library moduleLibrary(path, libraryErrCode, boost::dll::load_mode::rtld_now);
+    boost::dll::shared_library moduleLibrary(path, libraryErrCode, safeLoadingMode ? boost::dll::load_mode::rtld_now : boost::dll::load_mode::default_mode);
 
     if (libraryErrCode)
     {

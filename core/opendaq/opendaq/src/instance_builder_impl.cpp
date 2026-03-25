@@ -15,7 +15,8 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
         {"ModuleManager", Dict<IString, IBaseObject>(
         {
             {"ModulesPaths", List<IString>("")},
-            {"AddDeviceRescanTimer", 5000}
+            {"AddDeviceRescanTimer", 5000},
+            {"SafeLoadingMode", False},
         })},
         {"Scheduler", Dict<IString, IBaseObject>(
         {

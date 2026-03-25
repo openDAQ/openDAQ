@@ -323,13 +323,16 @@ TEST_F(ConfigCoreEventTest, PropertyObjectAddedNestedAfterConnect)
 
     int addCount = 0;
     clientContext.getOnCoreEvent() +=
-        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
             ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::PropertyAdded));
             ASSERT_EQ(args.getEventName(), "PropertyAdded");
             ASSERT_TRUE(args.getParameters().hasKey("Property"));
             ASSERT_TRUE(args.getParameters().hasKey("Owner"));
+            ASSERT_TRUE(args.getParameters().hasKey("Path"));
+            ASSERT_EQ(args.getParameters().get("Path"), "ObjectWithMetadata");
             ASSERT_EQ(args.getParameters().get("Owner"), clientObj);
+            ASSERT_EQ(comp, clientComponent);
             addCount++;
         };
 
@@ -354,12 +357,16 @@ TEST_F(ConfigCoreEventTest, ObjectPropertyAddedAfterConnect)
 
     int addCount = 0;
     clientContext.getOnCoreEvent() +=
-        [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
         {
             ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::PropertyAdded));
             ASSERT_EQ(args.getEventName(), "PropertyAdded");
             ASSERT_TRUE(args.getParameters().hasKey("Property"));
-            ASSERT_EQ(args.getParameters().get("Owner"), clientComponent);
+            ASSERT_TRUE(args.getParameters().hasKey("Path"));
+            ASSERT_TRUE(args.getParameters().hasKey("Owner"));
+            ASSERT_EQ(args.getParameters().get("Path"), "ObjectWithMetadata");
+            ASSERT_EQ(comp, clientComponent);
+            ASSERT_EQ(args.getParameters().get("Owner"), clientObj);
             addCount++;
         };
 

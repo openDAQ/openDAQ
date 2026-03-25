@@ -1097,6 +1097,9 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
                 return propObj;
             });
 
+        if (const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(propObj.getObject()); impl != nullptr)
+            impl->unfreeze();
+
         const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
         deserializeComponent.complete();
 

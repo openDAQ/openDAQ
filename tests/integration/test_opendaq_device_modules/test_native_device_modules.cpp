@@ -4469,8 +4469,7 @@ TEST_F(NativeDeviceModulesTest, CreateDynamicProperty1AndSetManufacturer)
 
     const auto clientTest1Obj = clientRoot.getPropertyValue("Test1Obj").asPtr<IPropertyObject>();
     ASSERT_TRUE(clientTest1Obj.hasProperty("Manufacturer"));
-    clientTest1Obj.setPropertyValue("Manufacturer", "TestManufacturer1"); // TODO: the client object is frozen. Why ???
-
+    clientTest1Obj.setPropertyValue("Manufacturer", "TestManufacturer1");
     ASSERT_EQ(propertyWriteHistory, 1u);
 
     ASSERT_EQ(serverTest1Obj.getPropertyValue("Manufacturer"), "TestManufacturer1");
@@ -4522,7 +4521,7 @@ TEST_F(NativeDeviceModulesTest, CreateDynamicProperty2AndSetManufacturer)
     ASSERT_EQ(serverTest2Obj.getPropertyValue("Manufacturer"), "");
 
     const auto clientTest2Obj = clientRoot.getPropertyValue("Test2Obj").asPtr<IPropertyObject>();
-    ASSERT_TRUE(clientTest2Obj.hasProperty("Manufacturer")); // TODO: the property is not visible on client, event was recieved core event on the client...
+    ASSERT_TRUE(clientTest2Obj.hasProperty("Manufacturer"));
     clientTest2Obj.setPropertyValue("Manufacturer", "TestManufacturer2");
 
     ASSERT_EQ(propertyWriteHistory, 1u);

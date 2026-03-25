@@ -29,8 +29,21 @@ class LoadInstanceConfigDialog(Dialog):
         self.item_meta = {}
 
         self._syncing_overlays = False
-        self._overlay_comboboxes = {}
+        self._overlay_widgets = {}
         self._active_dropdown_cb = None
+
+        style = ttk.Style(self)
+        style.configure('Selection.TCombobox',
+                        fieldbackground='white',
+                        background='white',
+                        foreground='#1a1a1a',
+                        selectbackground='white',
+                        selectforeground='#1a1a1a')
+        style.configure('Editable.TCombobox',
+                        fieldbackground='white',
+                        background='white',
+                        foreground='#1a1a1a')
+        style.configure('Overlay.TCheckbutton', background='white')
 
         button_frame = ttk.Frame(self)
         button_frame.pack(side=tk.BOTTOM, anchor=tk.E, pady=10)
@@ -80,7 +93,7 @@ class LoadInstanceConfigDialog(Dialog):
 
     def _printed_value(self, value_type, value):
         if value_type == daq.CoreType.ctBool:
-            return utils.yes_no[value]
+            return ''
         if value is None:
             return ''
         return value
@@ -89,6 +102,32 @@ class LoadInstanceConfigDialog(Dialog):
         if value is None:
             return ''
         return str(value)
+
+    def _place_bool_checkbox(self, iid, prop, meta):
+        bbox = self.tree.bbox(iid, meta['editable_column'])
+        if not bbox:
+            return
+        x, y, width, height = self._get_overlay_place_geometry(bbox)
+        var = tk.BooleanVar(value=bool(prop.value))
+        cb = ttk.Checkbutton(self.tree, variable=var, takefocus=False, style='Overlay.TCheckbutton')
+        cb.place(x=x, y=y, width=width, height=height)
+
+        def on_change(_prop=prop, _var=var):
+            try:
+                _prop.value = _var.get()
+            except Exception as e:
+                print("Failed to set bool:", e)
+                return
+            self.refresh()
+
+        cb.configure(command=on_change)
+        def _on_mousewheel(e):
+            self.yview_scroll(int(-1 * (e.delta / 120)), 'units')
+            self._sync_overlays()
+            return 'break'
+
+        cb.bind('<MouseWheel>', _on_mousewheel)
+        self._overlay_widgets[iid] = cb
 
     def _make_combobox(self, iid, values, current_value, column, editable=False):
         bbox = self.tree.bbox(iid, column)
@@ -137,11 +176,7 @@ class LoadInstanceConfigDialog(Dialog):
         cb.bind('<Button-5>', lambda e: 'break')
         return cb
 
-    def _place_enum_combobox(self, iid, option):
-        meta = self.item_meta.get(iid)
-        if meta is None:
-            return
-
+    def _place_enum_combobox(self, iid, option, meta):
         keys = [name for name in dir(daq.DeviceUpdateMode) if not name.startswith("_") and not name.lower() == name]
         current_key = option.update_mode.name
         cb = self._make_combobox(iid, keys, current_key, meta['editable_column'], editable=False)
@@ -157,7 +192,7 @@ class LoadInstanceConfigDialog(Dialog):
             self.on_refresh_event(None)
 
         cb.bind('<<ComboboxSelected>>', on_change)
-        self._overlay_comboboxes[iid] = cb
+        self._overlay_widgets[iid] = cb
 
     def _get_overlay_place_geometry(self, bbox):
         x, y, width, height = bbox
@@ -165,6 +200,36 @@ class LoadInstanceConfigDialog(Dialog):
         place_y = y + vertical_inset
         place_height = max(1, height - 2 * vertical_inset)
         return x, place_y, width, place_height
+
+    def _sync_option(self, iid, meta):
+        # Filter - only IDeviceOption.update_mode and IProperty.value_type == ctBool get overlays
+        if meta['kind'] not in ['device_option', 'property']:
+            return
+        is_property = meta['kind'] == 'property'
+        if is_property and meta['type'] != 'bool':
+            return
+        elif not is_property and meta['field'] != 'update_mode':
+            return
+
+        bbox = self.tree.bbox(iid, meta['editable_column'])
+        if bbox:
+            if iid not in self._overlay_widgets:
+                if is_property:
+                    path = meta['path']
+                    prop = self.get_regular_property_by_path(path)
+                    self._place_bool_checkbox(iid, prop, meta)
+                else:
+                    path = meta['option_path']
+                    option = self.get_device_options_by_path(path)
+                    self._place_enum_combobox(iid, option, meta)
+            else:
+                x, py, w, ph = self._get_overlay_place_geometry(bbox)
+                self._overlay_widgets[iid].place(x=x, y=py, width=w, height=ph)
+                self._overlay_widgets[iid].lift()
+        else:
+            if iid in self._overlay_widgets:
+                self._overlay_widgets[iid].place_forget()
+
 
     def _sync_overlays(self):
         if self._syncing_overlays:
@@ -174,33 +239,18 @@ class LoadInstanceConfigDialog(Dialog):
             if not self.tree.winfo_viewable():
                 return
             for iid, meta in self.item_meta.items():
-                if meta['kind'] == "property" or meta['field'] != "update_mode":
-                    continue
-                print(f"{meta=}")
-                bbox = self.tree.bbox(iid, meta['editable_column'])
-                if bbox:
-                    if iid not in self._overlay_comboboxes:
-                        path = meta['option_path']
-                        option = self.get_device_options_by_path(path)
-                        self._place_enum_combobox(iid, option)
-                    else:
-                        x, py, w, ph = self._get_overlay_place_geometry(bbox)
-                        self._overlay_comboboxes[iid].place(x=x, y=py, width=w, height=ph)
-                        self._overlay_comboboxes[iid].lift()
-                else:
-                    if iid in self._overlay_comboboxes:
-                        self._overlay_comboboxes[iid].place_forget()
+                self._sync_option(iid, meta)
         finally:
             self._syncing_overlays = False
 
-    def _clear_overlay_comboboxes(self):
+    def _clear_overlay_widgets(self):
         self._active_dropdown_cb = None
-        for cb in self._overlay_comboboxes.values():
+        for cb in self._overlay_widgets.values():
             try:
                 cb.destroy()
             except Exception:
                 pass
-        self._overlay_comboboxes = {}
+        self._overlay_widgets = {}
 
     def _post_combobox_dropdown(self, cb):
         try:
@@ -237,7 +287,10 @@ class LoadInstanceConfigDialog(Dialog):
                 )
                 self.item_meta[item_id] = {
                     'kind': 'property',
-                    'path': utils.get_item_path(self.tree, item_id)
+                    'path': utils.get_item_path(self.tree, item_id),
+                    'editable_column': '#1',
+                    'type': 'bool' if property.value_type == daq.CoreType.ctBool else 'other',
+                    'readonly': property.read_only
                 }
 
         if not parent_node and self.update_params.device_update_options is not None:
@@ -336,17 +389,31 @@ class LoadInstanceConfigDialog(Dialog):
             option = option.child_device_options[index]
         return option
 
+    def get_regular_property_by_path(self, path):
+        def _get_property(prop_obj, path, depth=0):
+            for property in self.context.properties_of_component(prop_obj):
+                if property.name != path[depth]:
+                    continue
+
+                if depth == len(path) - 1:
+                    return property
+                prop = prop_obj.get_property_value(property.name)
+                if isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop):
+                    cast_prop_obj = daq.IPropertyObject.cast_from(prop)
+                    _get_property(cast_prop_obj, path, depth + 1)
+        return _get_property(self.update_params, path)
+
     def update_regular_property_value(self, path, new_value):
-        def update_property(context, path, new_value, depth=0):
-            for property in self.context.properties_of_component(context):
+        def update_property(prop_obj, path, new_value, depth=0):
+            for property in self.context.properties_of_component(prop_obj):
                 if property.name == path[depth]:
                     if depth == len(path) - 1:
-                        context.set_property_value(property.name, daq.EvalValue(new_value))
+                        prop_obj.set_property_value(property.name, daq.EvalValue(new_value))
                         return
-                    prop = context.get_property_value(property.name)
+                    prop = prop_obj.get_property_value(property.name)
                     if isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop):
-                        casted_property = daq.IPropertyObject.cast_from(prop)
-                        update_property(casted_property, path,
+                        cast_prop_obj = daq.IPropertyObject.cast_from(prop)
+                        update_property(cast_prop_obj, path,
                                         new_value, depth + 1)
 
         update_property(self.update_params, path, new_value)
@@ -476,6 +543,6 @@ class LoadInstanceConfigDialog(Dialog):
         self.destroy()
 
     def on_refresh_event(self, event):
-        self._clear_overlay_comboboxes()
+        self._clear_overlay_widgets()
         self.display_config_options('', self.update_params)
         self.after_idle(self._sync_overlays)

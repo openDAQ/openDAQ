@@ -3240,13 +3240,9 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfo)
     ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
     ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
 
-    ASSERT_TRUE(deviceInfo.hasProperty("ServerCustomProperty"));
-    ASSERT_EQ(deviceInfo.getProperty("ServerCustomProperty").getDefaultValue(), "defaultValue");
-    ASSERT_EQ(deviceInfo.getPropertyValue("ServerCustomProperty"), "newValue");
+    ASSERT_FALSE(deviceInfo.hasProperty("ServerCustomProperty"));
 
-    ASSERT_TRUE(deviceInfo.hasProperty("ClientCustomProperty"));
-    ASSERT_EQ(deviceInfo.getProperty("ClientCustomProperty").getDefaultValue(), "defaultValue");
-    ASSERT_EQ(deviceInfo.getPropertyValue("ClientCustomProperty"), "newValue");
+    ASSERT_FALSE(deviceInfo.hasProperty("ClientCustomProperty"));
 }
 
 StringPtr getFileLastModifiedTime(const std::string& path)

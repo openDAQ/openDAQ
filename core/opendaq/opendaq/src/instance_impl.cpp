@@ -424,6 +424,16 @@ ErrCode InstanceImpl::getActive(Bool* active)
     return rootDevice->getActive(active);
 }
 
+ErrCode InstanceImpl::getLocalActive(Bool* localActive)
+{
+    return rootDevice->getLocalActive(localActive);
+}
+
+ErrCode InstanceImpl::getParentActive(Bool* parentActive)
+{
+    return rootDevice->getParentActive(parentActive);
+}
+
 ErrCode InstanceImpl::setActive(Bool active)
 {
     return rootDevice->setActive(active);
@@ -437,6 +447,7 @@ ErrCode InstanceImpl::getParent(IComponent** parent)
 
     return OPENDAQ_SUCCESS;
 }
+
 
 ErrCode InstanceImpl::getName(IString** name)
 {
@@ -640,6 +651,11 @@ ErrCode InstanceImpl::setPropertyValue(IString* propertyName, IBaseObject* value
 ErrCode InstanceImpl::getPropertyValue(IString* propertyName, IBaseObject** value)
 {
     return rootDevice->getPropertyValue(propertyName, value);
+}
+
+ErrCode InstanceImpl::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
+{
+    return rootDevice->setPropertySelectionValue(propertyName, value);
 }
 
 ErrCode InstanceImpl::getPropertySelectionValue(IString* propertyName, IBaseObject** value)

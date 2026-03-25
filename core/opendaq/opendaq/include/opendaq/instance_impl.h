@@ -102,6 +102,8 @@ public:
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
+    ErrCode INTERFACE_FUNC getLocalActive(Bool* localActive) override;
+    ErrCode INTERFACE_FUNC getParentActive(Bool* parentActive) override;
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -128,6 +130,7 @@ public:
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
 
+    ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
 

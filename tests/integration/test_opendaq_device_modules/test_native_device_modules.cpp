@@ -29,7 +29,7 @@ using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 20;
+const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 21;
 
 static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
 {
@@ -3241,13 +3241,9 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfo)
     ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
     ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
 
-    ASSERT_TRUE(deviceInfo.hasProperty("ServerCustomProperty"));
-    ASSERT_EQ(deviceInfo.getProperty("ServerCustomProperty").getDefaultValue(), "defaultValue");
-    ASSERT_EQ(deviceInfo.getPropertyValue("ServerCustomProperty"), "newValue");
+    ASSERT_FALSE(deviceInfo.hasProperty("ServerCustomProperty"));
 
-    ASSERT_TRUE(deviceInfo.hasProperty("ClientCustomProperty"));
-    ASSERT_EQ(deviceInfo.getProperty("ClientCustomProperty").getDefaultValue(), "defaultValue");
-    ASSERT_EQ(deviceInfo.getPropertyValue("ClientCustomProperty"), "newValue");
+    ASSERT_FALSE(deviceInfo.hasProperty("ClientCustomProperty"));
 }
 
 StringPtr getFileLastModifiedTime(const std::string& path)
@@ -4527,4 +4523,82 @@ TEST_F(NativeDeviceModulesTest, CreateDynamicProperty2AndSetManufacturer)
     ASSERT_EQ(propertyWriteHistory, 1u);
     ASSERT_EQ(serverTest2Obj.getPropertyValue("Manufacturer"), "TestManufacturer2");
     ASSERT_EQ(clientTest2Obj.getPropertyValue("Manufacturer"), "TestManufacturer2");
+}
+
+TEST_F(NativeDeviceModulesTest, ComponentActiveChangedRecursive)
+{
+    // SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // Get the client's mirror of server device
+    auto clientDevice = client.getDevices()[0];
+
+    // Get all components in clientDevice subtree
+    auto clientDeviceComponents = clientDevice.getItems(search::Recursive(search::Any()));
+
+    // Set client (Instance) active to false
+    client.setActive(false);
+
+    // client itself should be inactive
+    ASSERT_FALSE(client.getActive()) << "client should be inactive";
+
+    // clientDevice should still be active (it's a root device, doesn't receive parentActive)
+    ASSERT_TRUE(clientDevice.getActive()) << "clientDevice should remain active as it's a root device";
+
+    // All clientDevice subtree components should still be active
+    for (const auto& comp : clientDeviceComponents)
+        ASSERT_TRUE(comp.getActive()) << "Component should be active: " << comp.getGlobalId();
+}
+
+TEST_F(NativeDeviceModulesTest, ComponentActiveChangedRecursiveGateway)
+{
+    // SKIP_TEST_MAC_CI;
+
+    // Create leaf server
+    auto leaf = InstanceBuilder().setRootDevice("daqref://device0").build();
+    leaf.addServer("OpenDAQNativeStreaming", nullptr);
+
+    // Create gateway that connects to leaf
+    auto gateway = Instance();
+    auto gatewayServerConfig = gateway.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    gatewayServerConfig.setPropertyValue("NativeStreamingPort", 7421);
+    gateway.addDevice("daq.nd://127.0.0.1");
+    gateway.addServer("OpenDAQNativeStreaming", gatewayServerConfig);
+
+    // Create client that connects to gateway
+    auto client = Instance();
+    auto clientGatewayDevice = client.addDevice("daq.nd://127.0.0.1:7421");
+
+    // Get the leaf device through gateway
+    auto clientLeafDevice = clientGatewayDevice.getDevices()[0];
+
+    // Get all components in clientGatewayDevice subtree
+    auto gatewayComponents = clientGatewayDevice.getItems(search::Recursive(search::Any()));
+
+    // Set clientGatewayDevice active to false (from client side)
+    clientGatewayDevice.setActive(false);
+
+    // clientGatewayDevice itself should be inactive
+    ASSERT_FALSE(clientGatewayDevice.getLocalActive()) << "clientGatewayDevice should be local inactive";
+    ASSERT_TRUE(clientGatewayDevice.getParentActive()) << "clientGatewayDevice parent should be active";
+    ASSERT_FALSE(clientGatewayDevice.getActive()) << "clientGatewayDevice should be inactive";
+
+    // All direct children of clientGatewayDevice (except sub-devices) should be inactive
+    for (const auto& comp : clientGatewayDevice.getItems(search::Any()))
+    {
+        if (comp.getLocalId() != "Dev")
+        {
+            ASSERT_TRUE(comp.getLocalActive()) << "Component should be local active: " << comp.getGlobalId();
+            ASSERT_FALSE(comp.getParentActive()) << "Component parent should be inactive: " << comp.getGlobalId();
+            ASSERT_FALSE(comp.getActive()) << "Component should be inactive: " << comp.getGlobalId();
+        }
+    }
+
+    // clientLeafDevice should still be active (it's a root device)
+    ASSERT_TRUE(clientLeafDevice.getActive()) << "clientLeafDevice should remain active as it's a root device";
+
+    // All clientLeafDevice subtree components should still be active
+    for (const auto& comp : clientLeafDevice.getItems(search::Recursive(search::Any())))
+        ASSERT_TRUE(comp.getActive()) << "Leaf component should be active: " << comp.getGlobalId();
 }

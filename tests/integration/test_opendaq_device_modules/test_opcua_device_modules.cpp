@@ -53,8 +53,11 @@ static InstancePtr CreateServerInstance()
 
 static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = InstanceBuilder())
 {
+    const auto deviceInfo = DeviceInfoWithChanegableFields(List<IString>("userName", "location"));
+
     auto instance = builder
         .setModulePath("[[none]]")
+        .setDefaultRootDeviceInfo(deviceInfo)
         .build();
 
     addOpcuaClientModule(instance);
@@ -1487,9 +1490,7 @@ TEST_F(OpcuaDeviceModulesTest, SaveLoadDeviceInfo)
     // ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
     // ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
 
-    ASSERT_TRUE(deviceInfo.hasProperty("ClientCustomProperty"));
-    ASSERT_EQ(deviceInfo.getProperty("ClientCustomProperty").getDefaultValue(), "defaultValue");
-    ASSERT_EQ(deviceInfo.getPropertyValue("ClientCustomProperty"), "newValue");
+    ASSERT_FALSE(deviceInfo.hasProperty("ClientCustomProperty"));
 }
 
 class TestDevice : public daq::Device

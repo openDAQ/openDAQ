@@ -112,6 +112,16 @@ daqErrCode daqComponent_getOperationMode(daqComponent* self, daqOperationModeTyp
     return reinterpret_cast<daq::IComponent*>(self)->getOperationMode(reinterpret_cast<daq::OperationModeType*>(modeType));
 }
 
+daqErrCode daqComponent_getLocalActive(daqComponent* self, daqBool* localActive)
+{
+    return reinterpret_cast<daq::IComponent*>(self)->getLocalActive(localActive);
+}
+
+daqErrCode daqComponent_getParentActive(daqComponent* self, daqBool* parentActive)
+{
+    return reinterpret_cast<daq::IComponent*>(self)->getParentActive(parentActive);
+}
+
 daqErrCode daqComponent_createComponent(daqComponent** obj, daqContext* context, daqComponent* parent, daqString* localId, daqString* className)
 {
     daq::IComponent* ptr = nullptr;

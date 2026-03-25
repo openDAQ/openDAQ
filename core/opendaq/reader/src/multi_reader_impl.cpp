@@ -279,7 +279,7 @@ ErrCode MultiReaderImpl::checkDomainUnits(const ListPtr<InputPortConfigPtr>& por
 
 ErrCode MultiReaderImpl::checkReferenceDomainInfo(const ListPtr<InputPortConfigPtr>& ports) const
 {
-    TimeProtocol TimeProtocol = TimeProtocol::Unknown;
+    TimeProtocol commonTimeProtocol = TimeProtocol::Unknown;
     std::set<ReferenceDomainBin> bins;
 
     for (const auto& port : ports)
@@ -302,63 +302,55 @@ ErrCode MultiReaderImpl::checkReferenceDomainInfo(const ListPtr<InputPortConfigP
         if (!referenceDomainInfo.assigned())
         {
             LOG_D(R"(Domain signal "{}" Reference Domain Info is not assigned.)", domain.getLocalId());
+            continue;
+        }
+
+        auto referenceDomainId = referenceDomainInfo.getReferenceDomainId();
+        if (!referenceDomainId.assigned() || referenceDomainId.getLength() == 0)
+        {
+            // This will perhaps be bumped up to a higher severity later on (warning)
+            LOG_D(R"(Domain signal "{}" Reference Domain ID not assigned.)", domain.getLocalId());
+        }
+
+        auto referenceTimeProtocol = referenceDomainInfo.getReferenceTimeProtocol();
+        if (referenceTimeProtocol == TimeProtocol::Unknown)
+        {
+            // This will perhaps be bumped up to a higher severity later on (warning)
+            LOG_D(R"(Domain signal "{}" Reference Time Source is Unknown.)", domain.getLocalId());
         }
         else
         {
-            auto referenceDomainID = referenceDomainInfo.getReferenceDomainId();
-
-            if (!referenceDomainID.assigned() || referenceDomainID.getLength() == 0)
+            if (commonTimeProtocol != TimeProtocol::Unknown && referenceTimeProtocol != commonTimeProtocol)
             {
-                // This will perhaps be bumped up to a higher severity later on (warning)
-                LOG_D(R"(Domain signal "{}" Reference Domain ID not assigned.)", domain.getLocalId());
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Only one known TimeProtocol is allowed per Multi Reader.");
             }
+            commonTimeProtocol = referenceTimeProtocol;
+        }
 
-            if (referenceDomainInfo.getReferenceTimeProtocol() == TimeProtocol::Unknown)
+        // Insert the relevant info into a sorted container
+        bins.insert(ReferenceDomainBin{referenceDomainId, referenceTimeProtocol});
+    }
+
+    auto elt = bins.begin();
+    while (elt != bins.end())
+    {
+        // Check a group (domain signals with identical domain ID)
+        auto groupDomainId = elt->id;
+        bool hasKnownTimeProtocol = false;
+
+        while (elt != bins.end() && elt->id == groupDomainId)
+        {
+            if (elt->timeProtocol != TimeProtocol::Unknown)
             {
-                // This will perhaps be bumped up to a higher severity later on (warning)
-                LOG_D(R"(Domain signal "{}" Reference Time Source is Unknown.)", domain.getLocalId());
+                hasKnownTimeProtocol = true;
             }
-            else
-            {
-                if (TimeProtocol != TimeProtocol::Unknown && referenceDomainInfo.getReferenceTimeProtocol() != TimeProtocol)
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE,
-                                               "Only one known Reference Time Source is allowed per Multi Reader.");
-                TimeProtocol = referenceDomainInfo.getReferenceTimeProtocol();
-            }
+            ++elt;
+        }
 
-            ReferenceDomainBin bin = {referenceDomainInfo.getReferenceDomainId(), referenceDomainInfo.getReferenceTimeProtocol()};
-            auto elt = bins.begin();
-            while (elt != bins.end())
-            {
-                // Traverse one group
-
-                bool needsKnownTimeProtocol = false;
-                bool hasKnownTimeProtocol = false;
-                auto groupDomainId = elt->id;
-
-                while (elt != bins.end() && elt->id == groupDomainId)
-                {
-                    if (groupDomainId.assigned() && bin.id.assigned() && groupDomainId != bin.id)
-                    {
-                        // Both are assigned, but not matching
-                        // Needs at least one known time source
-                        needsKnownTimeProtocol = true;
-                    }
-                    if (elt->timeProtocol != TimeProtocol::Unknown)
-                    {
-                        // Group (domain signals with identical domain ID) has at least one known time source
-                        hasKnownTimeProtocol = true;
-                    }
-                    ++elt;
-                }
-
-                if (needsKnownTimeProtocol && !hasKnownTimeProtocol)
-                {
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Reference domain is incompatible.");
-                }
-            }
-
-            bins.insert(bin);
+        // Require groups with assigned domain ID at least one known time protocol
+        if (groupDomainId.assigned() && !hasKnownTimeProtocol)
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Reference domain group has no known time protocol.");
         }
     }
 

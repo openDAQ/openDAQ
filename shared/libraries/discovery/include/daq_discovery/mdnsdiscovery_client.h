@@ -527,7 +527,7 @@ inline void MDNSDiscoveryClient::openClientSockets()
                 if ((saddr->sin_addr.S_un.S_un_b.s_b1 != 127) || (saddr->sin_addr.S_un.S_un_b.s_b2 != 0) ||
                     (saddr->sin_addr.S_un.S_un_b.s_b3 != 0) || (saddr->sin_addr.S_un.S_un_b.s_b4 != 1))
                 {
-                    saddr->sin_port = htons(static_cast<unsigned short>(0));
+                    saddr->sin_port = htons(5353);
                     int sock = mdns_socket_open_ipv4(saddr);
                     if (sock >= 0)
                     {
@@ -544,7 +544,7 @@ inline void MDNSDiscoveryClient::openClientSockets()
                 if ((unicast->DadState == NldsPreferred) && memcmp(saddr->sin6_addr.s6_addr, localhost, 16) &&
                     memcmp(saddr->sin6_addr.s6_addr, localhostMapped, 16))
                 {
-                    saddr->sin6_port = htons(static_cast<unsigned short>(0));
+                    saddr->sin6_port = htons(5353);
                     auto ifindex = (unsigned int) adapter->Ipv6IfIndex;
                     int sock = mdns_socket_open_ipv6(saddr, ifindex);
                     if (sock >= 0)
@@ -578,7 +578,7 @@ inline void MDNSDiscoveryClient::openClientSockets()
             struct sockaddr_in* saddr = (struct sockaddr_in*) ifa->ifa_addr;
             if (saddr->sin_addr.s_addr != htonl(INADDR_LOOPBACK))
             {
-                saddr->sin_port = htons(static_cast<unsigned short>(0));
+                saddr->sin_port = htons(5353);
                 int sock = mdns_socket_open_ipv4(saddr);
                 if (sock >= 0)
                 {
@@ -593,7 +593,7 @@ inline void MDNSDiscoveryClient::openClientSockets()
             static const unsigned char localhost_mapped[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0, 0, 1};
             if (memcmp(saddr->sin6_addr.s6_addr, localhost, 16) && memcmp(saddr->sin6_addr.s6_addr, localhost_mapped, 16))
             {
-                saddr->sin6_port = htons(static_cast<unsigned short>(0));
+                saddr->sin6_port = htons(5353);
                 unsigned int ifindex = if_nametoindex(ifa->ifa_name);
                 int sock = mdns_socket_open_ipv6(saddr, ifindex);
                 if (sock >= 0)

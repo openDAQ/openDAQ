@@ -349,6 +349,19 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 )
 
 /*!
+ * @brief Creates Core event args that are passed as argument after all values of a property object were cleared.
+ * @param propOwner The property object whose values were cleared.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties.
+ *
+ * The ID of the event is 200, and the event name is "PropertyObjectCleared".
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, CoreEventArgsPropertyObjectCleared, ICoreEventArgs,
+    IPropertyObject*, propOwner,
+    IString*, path
+)
+
+/*!
  * @brief Creates Core event args that are passed as argument when a property is added to a component.
  * @param propOwner The property object that owns the added property.
  * @param prop The property that was added.

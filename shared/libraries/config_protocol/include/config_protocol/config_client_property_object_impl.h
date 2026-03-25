@@ -93,6 +93,7 @@ private:
     void updatePropertyValues(const SerializedObjectPtr& serObj);
     void propertyValueChanged(const CoreEventArgsPtr& args);
     void propertyObjectUpdateEnd(const CoreEventArgsPtr& args);
+    void propertyObjectCleared(const CoreEventArgsPtr& args);
     void propertyAdded(const CoreEventArgsPtr& args);
     void propertyRemoved(const CoreEventArgsPtr& args);
     void propertyOrderChanged(const CoreEventArgsPtr& args);
@@ -641,6 +642,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(co
         case CoreEventId::PropertyObjectUpdateEnd:
             propertyObjectUpdateEnd(args);
             break;
+        case CoreEventId::PropertyObjectCleared:
+            propertyObjectCleared(args);
+            break;
         case CoreEventId::PropertyAdded:
             propertyAdded(args);
             break;
@@ -834,6 +838,15 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyObjectUpdateEnd(const Cor
 
         checkErrorInfo(Impl::endUpdateInternal(false));
     }
+}
+
+template <class Impl>
+void ConfigClientPropertyObjectBaseImpl<Impl>::propertyObjectCleared(const CoreEventArgsPtr& args)
+{
+    const PropertyObjectPtr obj = getObjectAtPath(args);
+    ScopedRemoteUpdate update(obj);
+
+    checkErrorInfo(Impl::clearValuesProtected());
 }
 
 template <class Impl>

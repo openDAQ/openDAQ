@@ -22,6 +22,13 @@ ErrCode PUBLIC_EXPORT createCoreEventArgsPropertyObjectUpdateEnd(ICoreEventArgs*
 }
 
 extern "C"
+ErrCode PUBLIC_EXPORT createCoreEventArgsPropertyObjectCleared(ICoreEventArgs** objTmp, IPropertyObject* propOwner, IString* path)
+{
+    const auto dict = Dict<IString, IBaseObject>({{"Owner", propOwner}, {"Path", path}});
+    return daq::createObject<ICoreEventArgs, CoreEventArgsImpl, CoreEventId, IDict*>(objTmp, CoreEventId::PropertyObjectCleared, dict);
+}
+
+extern "C"
 ErrCode PUBLIC_EXPORT createCoreEventArgsPropertyAdded(ICoreEventArgs** objTmp, IPropertyObject* propOwner, IProperty* prop, IString* path)
 {
     const auto dict = Dict<IString, IBaseObject>({{"Owner", propOwner}, {"Property", prop}, {"Path", path}});

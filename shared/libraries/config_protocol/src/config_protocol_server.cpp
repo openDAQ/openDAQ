@@ -575,6 +575,7 @@ void ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const Co
     {
         case CoreEventId::PropertyValueChanged:
         case CoreEventId::PropertyObjectUpdateEnd:
+        case CoreEventId::PropertyObjectCleared:
         case CoreEventId::PropertyAdded:
         case CoreEventId::TagsChanged:
         case CoreEventId::PropertyRemoved:

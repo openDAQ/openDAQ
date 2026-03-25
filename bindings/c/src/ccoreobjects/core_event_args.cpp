@@ -51,6 +51,14 @@ daqErrCode daqCoreEventArgs_createCoreEventArgsPropertyObjectUpdateEnd(daqCoreEv
     return err;
 }
 
+daqErrCode daqCoreEventArgs_createCoreEventArgsPropertyObjectCleared(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqString* path)
+{
+    daq::ICoreEventArgs* ptr = nullptr;
+    daqErrCode err = daq::createCoreEventArgsPropertyObjectCleared(&ptr, reinterpret_cast<daq::IPropertyObject*>(propOwner), reinterpret_cast<daq::IString*>(path));
+    *obj = reinterpret_cast<daqCoreEventArgs*>(ptr);
+    return err;
+}
+
 daqErrCode daqCoreEventArgs_createCoreEventArgsPropertyAdded(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqProperty* prop, daqString* path)
 {
     daq::ICoreEventArgs* ptr = nullptr;

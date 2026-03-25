@@ -70,6 +70,19 @@ inline CoreEventArgsPtr CoreEventArgsPropertyObjectUpdateEnd(const PropertyObjec
 }
 
 /*!
+ * @brief Creates Core event args that are passed as argument after all values of a property object were cleared.
+ * @param propOwner The property object whose values were cleared.
+ * @param path The relative path to the property owner from the sender component. Used for object-type properties.
+ *
+ * The ID of the event is 200, and the event name is "PropertyObjectCleared".
+ */
+inline CoreEventArgsPtr CoreEventArgsPropertyObjectCleared(const PropertyObjectPtr& propOwner, const StringPtr& path)
+{
+    CoreEventArgsPtr obj(CoreEventArgsPropertyObjectCleared_Create(propOwner, path));
+    return obj;
+}
+
+/*!
  * @brief Creates Core event args that are passed as argument when a property is added to a component.
  * @param propOwner The property object that owns the added property.
  * @param prop The property that was added.

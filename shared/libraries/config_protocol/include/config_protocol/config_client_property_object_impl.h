@@ -50,16 +50,12 @@ public:
     ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
     ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
-    ErrCode INTERFACE_FUNC getProperty(IString* propertyName, IProperty** value) override;
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
     ErrCode INTERFACE_FUNC removeProperty(IString* propertyName) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueWrite(IString* propertyName, IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnPropertyValueRead(IString* propertyName, IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnAnyPropertyValueWrite(IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnAnyPropertyValueRead(IEvent** event) override;
-    ErrCode INTERFACE_FUNC getVisibleProperties(IList** properties) override;
-    ErrCode INTERFACE_FUNC hasProperty(IString* propertyName, Bool* hasProperty) override;
-    ErrCode INTERFACE_FUNC getAllProperties(IList** properties) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
 
     ErrCode INTERFACE_FUNC beginUpdate() override;
@@ -310,12 +306,6 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValue(IS
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getProperty(IString* propertyName, IProperty** value)
-{
-    return Impl::getProperty(propertyName, value);
-}
-
-template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::addProperty(IProperty* property)
 {
     if (!deserializationComplete)
@@ -352,24 +342,6 @@ template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getOnAnyPropertyValueRead(IEvent** /*event*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
-}
-
-template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getVisibleProperties(IList** properties)
-{
-    return Impl::getVisibleProperties(properties);
-}
-
-template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::hasProperty(IString* propertyName, Bool* hasProperty)
-{
-    return Impl::hasProperty(propertyName, hasProperty);
-}
-
-template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getAllProperties(IList** properties)
-{
-    return Impl::getAllProperties(properties);
 }
 
 template <class Impl>

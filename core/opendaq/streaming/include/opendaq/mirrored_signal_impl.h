@@ -348,10 +348,12 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString*
     {
         auto lock = this->getRecursiveConfigLock();
         this->lastDataValue = nullptr;
+        this->lastDataDescriptor = nullptr;
     }
     else
     {
         this->lastDataValue = nullptr;
+        this->lastDataDescriptor = nullptr;
     }
 
     if (onUnsubscribeCompleteEvent.hasListeners())

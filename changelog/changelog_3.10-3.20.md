@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#1112](https://github.com/openDAQ/openDAQ/pull/1112) Reset last value calc values on unsubscribe completion
 - [#1087](https://github.com/openDAQ/openDAQ/pull/1087) Add removedNoLock virtual method to component. Fix deadlock race condition on signal disconnect.
 - [#1072](https://github.com/openDAQ/openDAQ/pull/1072) Reduce unnecessary RPC calls and signal updates by sending values only when the attribute, operation mode, or descriptor has actually changed.
 - [#1019](https://github.com/openDAQ/openDAQ/pull/1019) Fix OPC UA Value and AnalogValue node data types for signals

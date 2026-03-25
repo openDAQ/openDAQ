@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#981](https://github.com/openDAQ/openDAQ/pull/981) Component active state now considers parent's active state. `getActive()` returns `active && parentActive`. Add posibility to generate c and python bindings on MacOs
 - [#914](https://github.com/openDAQ/openDAQ/pull/914) Implementing time delay function block. Fix overflow while calculating timestamp in renderer
 - [#886](https://github.com/openDAQ/openDAQ/pull/886) Adds simulator device module.
 - [#975](https://github.com/openDAQ/openDAQ/pull/975) Add `DevelopmentVersionInfo` for more detailed version information (tweak, branch and hash).
@@ -29,6 +30,8 @@
 
 ## Bug fixes
 
+- [#1093](https://github.com/openDAQ/openDAQ/pull/1093) Device info - serialize only editable properties
+- [#1108](https://github.com/openDAQ/openDAQ/pull/1108) Add a patch for pybind11 to avoid leaking in python bindings.
 - [#1104](https://github.com/openDAQ/openDAQ/pull/1104) Fix path configuration option getting ignored by Parquet and CSV recorders in some cases.
 - [#1103](https://github.com/openDAQ/openDAQ/pull/1103) Reject loading of duplicating modules by Id and path
 - [#1098](https://github.com/openDAQ/openDAQ/pull/1098) Fix setting active streaming source for InputPort

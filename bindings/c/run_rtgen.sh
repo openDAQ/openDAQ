@@ -4,6 +4,10 @@ export RTGEN="$PWD/../../shared/tools/RTGen/bin/rtgen.exe"
 export CORE_DIR="$PWD/../../core"
 export BINDINGS_DIR="$PWD"
 
+if command -v mono &>/dev/null; then
+    export RTGEN="mono ${RTGEN}"
+fi
+
 function run_rtgen {
     lib_name=$1
     lib_dir1=$2
@@ -23,9 +27,9 @@ function run_rtgen {
 
     echo "------------------------------------------"
     echo "$command_h"
-    $command_h
+    eval "$command_h"
     echo "$command_cpp"
-    $command_cpp
+    eval "$command_cpp"
 }
 
 run_rtgen ccoretypes coretypes coretypes binarydata binarydata

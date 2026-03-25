@@ -210,6 +210,57 @@ TEST_P(StreamingTest, DataPackets)
     EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
 
+TEST_P(StreamingTest, LastValue)
+{
+    if (std::get<1>(GetParam()).find("daq.ns://") == 0 || std::get<1>(GetParam()).find("daq.lt://") == 0)
+    {
+        GTEST_SKIP();
+    }
+
+    auto serverSignal = getSignal(serverInstance, "IntStep");
+    auto mirroredSignalPtr = getSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture;
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+
+    // before any packet send
+    ASSERT_FALSE(serverSignal.getLastValue().assigned());
+    ASSERT_FALSE(mirroredSignalPtr.getLastValue().assigned());
+
+    {
+        auto serverReader = PacketReader(serverSignal);
+        auto clientReader = PacketReader(mirroredSignalPtr);
+
+        ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
+        generatePackets(5);
+
+        auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 6);
+        auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, 6);
+
+        ASSERT_TRUE(serverSignal.getLastValue().assigned());
+        ASSERT_TRUE(mirroredSignalPtr.getLastValue().assigned());
+        // generated packets are sent and read, signal is still subscribed via streaming - mirrored signal gets last value from streaming
+        EXPECT_EQ(serverSignal.getLastValue(), mirroredSignalPtr.getLastValue());
+    }
+
+    ASSERT_TRUE(serverSignal.getLastValue().assigned());
+    ASSERT_TRUE(mirroredSignalPtr.getLastValue().assigned());
+    // signal is not subscribed via streaming anymore - mirrored signal gets last value from config but it hasn't changed yet
+    EXPECT_EQ(serverSignal.getLastValue(), mirroredSignalPtr.getLastValue());
+    {
+        auto serverReader = PacketReader(serverSignal);
+        generatePackets(3);
+
+        auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 3);
+
+        ASSERT_TRUE(serverSignal.getLastValue().assigned());
+        ASSERT_TRUE(mirroredSignalPtr.getLastValue().assigned());
+        // more generated packets are sent and read, signal was not subscribed via streaming
+        // - mirrored signal gets last value from config and it differs from one previously obtained from streaming
+        EXPECT_EQ(serverSignal.getLastValue(), mirroredSignalPtr.getLastValue());
+    }
+}
+
 TEST_P(StreamingTest, SetNullDescriptor)
 {
     if (!usingLTPseudoDevice)

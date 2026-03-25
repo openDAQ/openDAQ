@@ -107,4 +107,13 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
         },
         py::return_value_policy::take_ownership,
         "Retrieves the configuration which was used to create the component. / Sets the configuration which was used to create the component.");
+    cls.def_property("parent_active",
+        nullptr,
+        [](daq::IComponentPrivate *object, const bool parentActive)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
+            objectPtr.setParentActive(parentActive);
+        },
+        "Called by parent component to notify this component about parent's active state change.");
 }

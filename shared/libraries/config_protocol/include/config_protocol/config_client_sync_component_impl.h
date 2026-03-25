@@ -92,6 +92,6 @@ BaseObjectPtr ConfigClientBaseSyncComponentImpl<Impl>::DeserializeSyncComponent(
 template <class Impl>
 void ConfigClientBaseSyncComponentImpl<Impl>::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
 {
-    ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(sender, args);
+    Super::handleRemoteCoreObjectInternal(sender, args);
 }
 } // namespace daq::config_protocol

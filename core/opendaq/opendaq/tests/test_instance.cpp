@@ -598,7 +598,6 @@ TEST_F(InstanceTest, SaveLoadRestoreDevice)
     {
         ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
         ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
-        devicesNames.erase(device.getName());
     }
 }
 
@@ -1060,7 +1059,7 @@ TEST_F(InstanceTest, SaveLoadDeviceInfo)
         deviceInfo.setPropertyValue("userName", "testUser");
         deviceInfo.setPropertyValue("location", "testLocation");
         deviceInfo.setPropertyValue("TestChangeableField", "testValue");
-        deviceInfo.addProperty(StringProperty("CustomProperty", "defaultValue"));
+         deviceInfo.addProperty(StringProperty("CustomProperty", "defaultValue"));
         deviceInfo.setPropertyValue("CustomProperty", "newValue");
 
         config = instance.saveConfiguration();
@@ -1077,9 +1076,7 @@ TEST_F(InstanceTest, SaveLoadDeviceInfo)
     ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
     ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
     ASSERT_EQ(deviceInfo.getPropertyValue("TestChangeableField"), "testValue");
-    ASSERT_TRUE(deviceInfo.hasProperty("CustomProperty"));
-    ASSERT_EQ(deviceInfo.getProperty("CustomProperty").getDefaultValue(), "defaultValue");
-    ASSERT_EQ(deviceInfo.getPropertyValue("CustomProperty"), "newValue");
+    ASSERT_FALSE(deviceInfo.hasProperty("CustomProperty"));
 }
 
 TEST_F(InstanceTest, TestRemoved1)

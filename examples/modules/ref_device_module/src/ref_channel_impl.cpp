@@ -553,10 +553,4 @@ void RefChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, b
     }
 }
 
-void RefChannelImpl::activeChanged()
-{
-    for (const auto& signal : this->signals.getItems())
-        signal.setActive(this->active);
-}
-
 END_NAMESPACE_REF_DEVICE_MODULE

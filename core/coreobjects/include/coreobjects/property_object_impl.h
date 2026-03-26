@@ -2277,10 +2277,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
     }
 
     localProperties.erase(propertyName);
-    if (propValues.find(propertyName) != propValues.cend())
-    {
-        propValues.erase(propertyName);
-    }
+    if (const auto it = propValues.find(propertyName); it != propValues.cend())
+        propValues.erase(it);
+
+    if (const auto it = valueReadEvents.find(propertyName); it != valueReadEvents.cend())
+        valueReadEvents.erase(it);
+
+    if (const auto it = valueWriteEvents.find(propertyName); it != valueWriteEvents.cend())
+        valueWriteEvents.erase(it);
 
     triggerCoreEventInternal(CoreEventArgsPropertyRemoved(objPtr, propertyName, path));
 

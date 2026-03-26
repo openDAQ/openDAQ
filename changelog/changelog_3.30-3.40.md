@@ -27,6 +27,7 @@
 - [#1007](https://github.com/openDAQ/openDAQ/pull/1007) Add a missing error popup when adding a Function Block fails in Python GUI demo app.
 - [#1029](https://github.com/openDAQ/openDAQ/pull/1029) Fix python binding for iterators to enable list comprehensions.
 - [#1035](https://github.com/openDAQ/openDAQ/pull/1035) Fix showing description metadata of properties in Python GUI app
+- [#1081](https://github.com/openDAQ/openDAQ/pull/1081) Adds device load options to the Python GUI.
 
 ## Bug fixes
 

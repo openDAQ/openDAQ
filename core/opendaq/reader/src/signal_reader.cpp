@@ -55,36 +55,31 @@ SignalReader::SignalReader(const SignalReader& old,
 void SignalReader::readDescriptorFromPort()
 {
     PacketPtr packet = connection.peek();
-    if (packet.assigned() && packet.getType() == PacketType::Event)
+    if (!packet.assigned() || packet.getType() != PacketType::Event)
+        return;
+
+    auto eventPacket = packet.asPtr<IEventPacket>(true);
+    if (eventPacket.getEventId() != event_packet_id::DATA_DESCRIPTOR_CHANGED)
+        return;
+
+    try
     {
-        auto eventPacket = packet.asPtr<IEventPacket>(true);
-        if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-        {
-            try
-            {
-                handleDescriptorChanged(connection.dequeue());
-            }
-            catch (const std::exception& e)
-            {
-                invalid = true;
-                LOG_D("Failed to handle descriptor read from port: {}", e.what())
-                (void) e;
-            }
-        }
+        handleDescriptorChanged(connection.dequeue());
+    }
+    catch (const std::exception& e)
+    {
+        invalid = true;
+        LOG_D("Failed to handle descriptor read from port: {}", e.what())
+        (void) e;
     }
 }
 
-SizeT SignalReader::getAvailable(bool acrossDescriptorChanges = false) const
+SizeT SignalReader::getAvailable(bool acrossDescriptorChanges) const
 {
-    SizeT count = 0;
     if (!info.dataPacket.assigned())
-    {
         return 0;
-    }
-    else
-    {
-        count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
-    }
+
+    SizeT count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
 
     if (connection.assigned())
     {
@@ -217,8 +212,6 @@ void SignalReader::prepareWithDomain(void* outValues, void* domain, SizeT count)
 
 void SignalReader::setStartInfo(std::chrono::system_clock::time_point minEpoch, const RatioPtr& maxResolution)
 {
-    LOG_T("---")
-
     domainInfo.adjustToCommonEpochResolution(minEpoch, maxResolution);
     synced = SyncStatus::Unsynchronized;
 }
@@ -371,20 +364,15 @@ bool SignalReader::skipUntilLastEventPacket()
         if (packet.getType() == PacketType::Event)
         {
             auto eventPacket = packet.asPtr<IEventPacket>(true);
-            if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
-                connection.dequeue();
-            }
-            else
-            {
+                // But this is actually the first event packet that is found?
                 hasEventPacket = true;
                 break;
             }
         }
-        else
-        {
-            connection.dequeue();
-        }
+
+        connection.dequeue();
     }
 
     if (!hasEventPacket)
@@ -425,34 +413,36 @@ bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock
                 domainInfo, commonStart, domainPacket.getData(), domainPacket.getSampleCount(), &cachedFirstTimestamp);
         }
 
-        if (info.prevSampleIndex == static_cast<SizeT>(-1))
+        if (info.prevSampleIndex != static_cast<SizeT>(-1))
         {
-            // commonStart is outside the packet.
-            // Drop the entire packet (startSamples have already been used).
-            droppedSamples += static_cast<Int>(domainPacket.getSampleCount() - startSamples);
-
-            info.dataPacket = nullptr;
-
-            // Dequeue a Data packet into info.dataPacket
-            if (isFirstPacketEvent())
-                // Encountered an Event packet before arriving at common start
-                return false;
-
-            startSamples = 0;
-        }
-        else
-        {
+            // Sync succeeded
             droppedSamples += static_cast<Int>(info.prevSampleIndex - startSamples);
             if (firstSampleAbsoluteTimestamp)
                 *firstSampleAbsoluteTimestamp = cachedFirstTimestamp;
-            break;
+            synced = SyncStatus::Synchronized;
+            LOG_T("[Syncing: {} | {}, dropped {} samples]", port.getSignal().getLocalId(), printSync(synced), droppedSamples);
+            return true;
         }
+
+        // commonStart is outside the packet.
+        // Drop the entire packet (startSamples have already been used).
+        droppedSamples += static_cast<Int>(domainPacket.getSampleCount() - startSamples);
+
+        info.dataPacket = nullptr;
+
+        // Dequeue a Data packet into info.dataPacket
+        if (isFirstPacketEvent())
+        {
+            // Encountered an Event packet before arriving at common start
+            return false;
+        }
+
+        startSamples = 0;
     }
 
-    synced = info.prevSampleIndex != static_cast<SizeT>(-1) ? SyncStatus::Synchronized : SyncStatus::Synchronizing;
-
+    synced = SyncStatus::Synchronizing;
     LOG_T("[Syncing: {} | {}, dropped {} samples]", port.getSignal().getLocalId(), printSync(synced), droppedSamples);
-    return synced == SyncStatus::Synchronized;
+    return false;
 }
 
 ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
@@ -473,31 +463,30 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
             // Handle events
 
             auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
-            if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            if (eventPacket.getEventId() != event_packet_id::DATA_DESCRIPTOR_CHANGED)
+                break;
+
+            try
             {
-                try
-                {
-                    handleDescriptorChanged(eventPacket);
-                }
-                catch (...)
-                {
-                    errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to handle descriptor change");
-                }
-
-                if (OPENDAQ_FAILED(errCode))
-                {
-                    invalid = true;
-
-                    return DAQ_EXTEND_ERROR_INFO(
-                        errCode, OPENDAQ_ERR_INVALID_DATA, "Exception occurred while processing a signal descriptor change");
-                }
-
-                if (invalid)
-                {
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_DATA, "Signal no longer compatible with the reader or other signals");
-                }
+                handleDescriptorChanged(eventPacket);
             }
-            break;
+            catch (...)
+            {
+                errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Failed to handle descriptor change");
+            }
+
+            if (OPENDAQ_FAILED(errCode))
+            {
+                invalid = true;
+
+                return DAQ_EXTEND_ERROR_INFO(
+                    errCode, OPENDAQ_ERR_INVALID_DATA, "Exception occurred while processing a signal descriptor change");
+            }
+
+            if (invalid)
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_DATA, "Signal no longer compatible with the reader or other signals");
+            }
         }
         case PacketType::None:
             break;

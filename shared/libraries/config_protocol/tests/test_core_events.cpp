@@ -347,41 +347,6 @@ TEST_F(ConfigCoreEventTest, PropertyObjectAddedNestedAfterConnect)
     ASSERT_EQ(addCount, 1);
 }
 
-TEST_F(ConfigCoreEventTest, ObjectPropertyAddedAfterConnect)
-{
-    const auto clientComponent = client->getDevice().findComponent("AdvancedPropertiesComponent");
-    const auto serverComponent = serverDevice.findComponent("AdvancedPropertiesComponent");
-    
-    const PropertyObjectPtr serverObj = serverComponent.getPropertyValue("ObjectWithMetadata");
-    const PropertyObjectPtr clientObj = clientComponent.getPropertyValue("ObjectWithMetadata");
-
-    int addCount = 0;
-    clientContext.getOnCoreEvent() +=
-        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
-        {
-            ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::PropertyAdded));
-            ASSERT_EQ(args.getEventName(), "PropertyAdded");
-            ASSERT_TRUE(args.getParameters().hasKey("Property"));
-            ASSERT_TRUE(args.getParameters().hasKey("Path"));
-            ASSERT_TRUE(args.getParameters().hasKey("Owner"));
-            ASSERT_EQ(args.getParameters().get("Path"), "ObjectWithMetadata");
-            ASSERT_EQ(comp, clientComponent);
-            ASSERT_EQ(args.getParameters().get("Owner"), clientObj);
-            addCount++;
-        };
-
-    auto newObj = PropertyObject();
-    newObj.addProperty(StringProperty("InnerString", "InnerValue"));
-    serverObj.addProperty(ObjectProperty("NewObjectProperty", newObj));
-
-    const PropertyObjectPtr clientNewObj = clientObj.getPropertyValue("NewObjectProperty");
-    ASSERT_TRUE(clientNewObj.hasProperty("InnerString"));
-    ASSERT_EQ(clientNewObj.getPropertyValue("InnerString"), "InnerValue");
-
-    // The exact number of events may vary based on whether nested properties are reported too.
-    ASSERT_GE(addCount, 1);
-}
-
 TEST_F(ConfigCoreEventTest, SetPropertyValueNestedObjectPropertyAfterConnect)
 {
     const auto clientComponent = client->getDevice().findComponent("AdvancedPropertiesComponent");

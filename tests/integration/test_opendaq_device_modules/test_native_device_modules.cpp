@@ -132,7 +132,6 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
         nativeDeviceConfig.setPropertyValue("ProtocolVersion", nativeConfigProtocolVersion);
 
     nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", restoreClientConfigOnReconnect);
-    nativeDeviceConfig.setPropertyValue("TransportLayerConfig.MonitoringEnabled", false);
 
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));

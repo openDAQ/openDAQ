@@ -1714,11 +1714,20 @@ StringPtr GenericDevice<TInterface, Interfaces...>::getDevicePrefixOrEmpty(const
     if (!device.assigned())
         return "";
 
-    auto info = device.getInfo();
-    if (!info.assigned())
-        return "";
+    DeviceTypePtr type;
+    if (auto mirroredDev = device.asPtrOrNull<IMirroredDevice>(); mirroredDev.assigned())
+    {
+        type = mirroredDev.getMirroredDeviceType();
+    }
+    else
+    {
+        auto info = device.getInfo();
+        if (!info.assigned())
+            return "";
 
-    auto type = info.getDeviceType();
+        type = info.getDeviceType();
+    }
+
     if (!type.assigned())
         return "";
 
@@ -2068,10 +2077,18 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             return;
 
         const bool deviceExists = devices.hasItem(deviceId);
-        if (!deviceExists && mode == DeviceUpdateMode::UpdateOnly)
-            return;
-        
-        if (deviceExists)
+        if (!deviceExists)
+        {
+            switch (mode)
+            {
+                case DeviceUpdateMode::UpdateOnly:
+                case DeviceUpdateMode::Remove:
+                    return;
+                default:
+                    break;
+            }
+        }
+        else
         {
             switch (mode)
             {

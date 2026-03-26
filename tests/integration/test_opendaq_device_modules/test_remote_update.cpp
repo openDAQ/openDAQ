@@ -521,4 +521,5 @@ TEST_F(RemoteModulesUpdateTest, OptionsSkipNative)
     ASSERT_EQ(freshInstance.getDevices().getCount(), 0u);
 }
 
+// TODO: Add DeviceUpdateOptions::Remove test
 // TODO: Client-to-device loading is not properly establishing connections.

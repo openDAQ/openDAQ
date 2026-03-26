@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
 from tkinter.filedialog import asksaveasfile
+from tkinter.filedialog import askopenfile
 from tkinter.filedialog import askopenfilename
 import opendaq as daq
 from tkinter import messagebox
@@ -533,7 +534,16 @@ class App(tk.Tk):
         file.close()
 
     def handle_load_config_button_clicked(self):
-        dialog = LoadInstanceConfigDialog(self, self.context)
+        file = askopenfile(
+            parent=self,
+            title='Load configuration',
+            defaultextension="json",
+            filetypes=[('JSON', f'*.json')]
+        )
+        if file is None:
+            return
+
+        dialog = LoadInstanceConfigDialog(self, self.context, file)
         dialog.show()
         self.tree_update()
 

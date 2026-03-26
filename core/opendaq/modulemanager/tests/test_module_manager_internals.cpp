@@ -101,6 +101,36 @@ TEST_F(ModuleManagerInternalsTest, LoadCrashingDll)
     );
 }
 
+TEST_F(ModuleManagerInternalsTest, ModuleDepCheckObsoleteFailed)
+{
+    fs::path modulePath = GetMockModulePath(DEPENDENCIES_OBSOLETE_FAILED_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePath.string());
+
+    ASSERT_THROW_MSG(
+        auto module = manager.loadModule(modulePath.string()),
+        ModuleIncompatibleDependenciesException,
+        fmt::format(
+            "Module \"{}\" failed dependencies check",
+            modulePath.string(),
+            OPENDAQ_ERR_GENERALERROR,
+            "Mock failure"
+        )
+    );
+}
+
+TEST_F(ModuleManagerInternalsTest, ModuleDepCheckObsoleteSucceed)
+{
+    fs::path modulePath = GetMockModulePath(DEPENDENCIES_OBSOLETE_SUCCEEDED_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePath.string());
+
+    ModulePtr module;
+    ASSERT_NO_THROW(
+        module = manager.loadModule(modulePath.string())
+    );
+    ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
+    ASSERT_EQ(module.getModuleInfo().getId(), "mock_dep_obsolete");
+}
+
 TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckFailed)
 {
     fs::path modulePath = GetMockModulePath(DEPENDENCIES_FAILED_MODULE_NAME);
@@ -128,7 +158,7 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckSucceed)
         module = manager.loadModule(modulePath.string())
     );
     ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
-    ASSERT_EQ(module.getModuleInfo().getId(), "mock");
+    ASSERT_EQ(module.getModuleInfo().getId(), "mock_dep");
 }
 
 TEST_F(ModuleManagerInternalsTest, NullStringIdModule)
@@ -210,19 +240,19 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleWithIdAfterAddedFromMemory)
     auto manager = ModuleManager("[[none]]");
     manager.loadModules(NullContext());
 
-    auto mock = createWithImplementation<IModule, MockModuleImpl>("mock");
+    auto mock = createWithImplementation<IModule, MockModuleImpl>("mock_ver_match");
     ASSERT_NO_THROW(manager.addModule(mock));
     ASSERT_EQ(manager.getModules().getCount(), 1u);
     ASSERT_EQ(manager.getModules()[0], mock);
 
-    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
+    fs::path modulePath = GetMockModulePath(SDK_VERSION_MATCH_MODULE_NAME);
     LOG_I("Load module: \"{}\"", modulePath.string());
 
     ASSERT_THROW_MSG(
         auto module = manager.loadModule(modulePath.string()),
         AlreadyExistsException,
         fmt::format(
-            "Module with id \"mock\" was already loaded from memory. Reject loading module from path \"{}\"",
+            "Module with id \"mock_ver_match\" was already loaded from memory. Reject loading module from path \"{}\"",
             modulePath.string(),
             OPENDAQ_ERR_GENERALERROR,
             "Mock failure"
@@ -251,7 +281,7 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleCopyWithId)
         moduleCopy = manager.loadModule(modulePathCopy.string()),
         AlreadyExistsException,
         fmt::format(
-            "Module with id \"mock\" was already loaded and added from path \"{}\". Reject loading module from \"{}\"",
+            "Module with id \"mock_dep\" was already loaded and added from path \"{}\". Reject loading module from \"{}\"",
             modulePath.string(),
             modulePathCopy.string(),
             OPENDAQ_ERR_GENERALERROR,

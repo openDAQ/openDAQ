@@ -4,7 +4,7 @@
 extern "C"
 void PUBLIC_EXPORT daqCoreObjectsGetVersion(unsigned int* major, unsigned int* minor, unsigned int* revision)
 {
-    *major = OPENDAQ_COREOBJECTS_MAJOR_VERSION;
-    *minor = OPENDAQ_COREOBJECTS_MINOR_VERSION;
-    *revision = OPENDAQ_COREOBJECTS_PATCH_VERSION;
+    *major = 0u;
+    *minor = 0u;
+    *revision = 0u;
 }

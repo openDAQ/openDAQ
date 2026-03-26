@@ -22,6 +22,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <map>
+#include <opendaq/module_check_dependencies.h>
 #include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
@@ -44,8 +45,9 @@ static OrphanedModules orphanedModules;
 
 static constexpr std::chrono::milliseconds DefaultrescanTimer = 5000ms;
 static constexpr char createModuleFactory[] = "createModule";
-static constexpr char checkDependenciesFunc[] = "checkDependencies";
-
+static constexpr char checkDependenciesObsoleteFunc[] = "checkDependencies";
+static constexpr char checkDependenciesFunc[] = "checkModuleDependencies";
+static constexpr char getCoreVersionMetadataFunc[] = "getCoreVersionMetadata";
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
 static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
 
@@ -2051,21 +2053,66 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         );
     }
 
-    if (moduleLibrary.has(checkDependenciesFunc))
+    if (moduleLibrary.has(checkDependenciesObsoleteFunc) && !moduleLibrary.has(checkDependenciesFunc))
     {
-        using CheckDependenciesFunc = ErrCode (*)(IString**);
-        CheckDependenciesFunc checkDeps = moduleLibrary.get<ErrCode(IString**)>(checkDependenciesFunc);
+        // The check always fails for modules built with older openDAQ which use default implementation of obsolete checking dependencies function
+        // However, if the obsolete checking dependencies function has custom implementation (with older or modern openDAQ SDK) - it may succeseed
+        using CheckDependenciesObsoleteFunc = ErrCode (*)(IString**);
+        CheckDependenciesObsoleteFunc checkDepsObsolete = moduleLibrary.get<ErrCode(IString**)>(checkDependenciesObsoleteFunc);
 
-        LOG_T("Checking dependencies of \"{}\".", path.string());
+        LOG_W("Checking dependencies of \"{}\" via obsolete \"{}\" function because \"{}\" is absent.", path.string(), checkDependenciesObsoleteFunc, checkDependenciesFunc);
 
         StringPtr errMsg;
-        const ErrCode errCode = checkDeps(&errMsg);
+        const ErrCode errCode = checkDepsObsolete(&errMsg);
         if (OPENDAQ_FAILED(errCode))
         {
             LOG_T("Failed to check dependencies for \"{}\"", relativePath);
-            DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES, fmt::format(R"(Module "{}" failed dependencies check: {})", path.string(), errMsg));
+            DAQ_EXTEND_ERROR_INFO(
+                errCode,
+                OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
+                fmt::format(R"(Module "{}" failed dependencies check via "{}": {})",
+                            path.string(),
+                            checkDependenciesObsoleteFunc,
+                            errMsg.assigned() ? errMsg : ""
+                )
+            );
             checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
         }
+    }
+
+    if (moduleLibrary.has(checkDependenciesFunc))
+    {
+        using CheckDependenciesFunc = ErrCode (*)();
+        CheckDependenciesFunc checkDeps = moduleLibrary.get<ErrCode()>(checkDependenciesFunc);
+
+        LOG_T("Checking dependencies of \"{}\" via \"{}\".", path.string(), checkDependenciesFunc);
+
+        const ErrCode errCode = checkDeps();
+        if (OPENDAQ_FAILED(errCode))
+        {
+            LOG_T("Failed to check dependencies for \"{}\"", relativePath);
+            DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES, fmt::format(R"(Module "{}" failed dependencies check via "{}")", path.string(), checkDependenciesFunc));
+            checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
+        }
+    }
+
+    if (moduleLibrary.has(getCoreVersionMetadataFunc))
+    {
+        GetCoreVersionMetadataFunc getMetadata = moduleLibrary.get<ErrCode(EnumerateMetadataFieldFunc, void*)>(getCoreVersionMetadataFunc);
+        StringPtr logMessage;
+        const ErrCode errCode = daqCoreValidateVersionMetadata(getMetadata, &logMessage);
+        if (logMessage.assigned())
+        {
+            if (errCode == OPENDAQ_SUCCESS)
+            {
+                LOG_T("{}", logMessage);
+            }
+            else if (errCode == OPENDAQ_PARTIAL_SUCCESS)
+            {
+                LOG_W("{}", logMessage);
+            }
+        }
+        checkErrorInfo(errCode);
     }
 
     if (!moduleLibrary.has(createModuleFactory))

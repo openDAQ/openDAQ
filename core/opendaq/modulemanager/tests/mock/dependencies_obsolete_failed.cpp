@@ -10,7 +10,8 @@ daq::ErrCode PUBLIC_EXPORT createModule(daq::IModule**)
 
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT checkModuleDependencies()
+daq::ErrCode PUBLIC_EXPORT checkDependencies(daq::IString** message)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Mock failure");
+    createString(message, "Mock failure");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
 }

@@ -8,11 +8,10 @@ daq::ErrCode PUBLIC_EXPORT createModule(daq::IModule** module)
 {
     OPENDAQ_PARAM_NOT_NULL(module);
 
-    return daq::createObject<daq::IModule, MockModuleImpl>(module, "mock_dep");
+    return daq::createObject<daq::IModule, MockModuleImpl>(module, "mock_dep_obsolete");
 }
-
 extern "C"
-daq::ErrCode PUBLIC_EXPORT checkModuleDependencies()
+daq::ErrCode PUBLIC_EXPORT checkDependencies(daq::IString** message)
 {
     return OPENDAQ_SUCCESS;
 }

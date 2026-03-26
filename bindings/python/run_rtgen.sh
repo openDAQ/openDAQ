@@ -187,4 +187,5 @@ run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronizat
 run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  sync_component_private
 run_rtgen opendaq opendaq/modulemanager   opendaq opendaq/generated/modulemanager    module_info
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_type
+run_rtgen opendaq opendaq/utility         opendaq opendaq/generated/utility          device_update_options
 

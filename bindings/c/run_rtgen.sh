@@ -369,6 +369,8 @@ run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_input_port_confi
 run_rtgen copendaq/synchronization opendaq/synchronization opendaq sync_component sync_component
 run_rtgen copendaq/synchronization opendaq/synchronization opendaq sync_component_private sync_component_private
 
+run_rtgen copendaq/utility opendaq/utility opendaq device_update_options device_update_options
+
 # opendaq utility
 
 # run_rtgen copendaq/utility opendaq/utility opendaq utility_errors utility_errors # contains error codes

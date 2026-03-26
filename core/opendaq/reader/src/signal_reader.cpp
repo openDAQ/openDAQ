@@ -77,7 +77,11 @@ void SignalReader::readDescriptorFromPort()
 SizeT SignalReader::getAvailable(bool acrossDescriptorChanges = false) const
 {
     SizeT count = 0;
-    if (info.dataPacket.assigned())
+    if (!info.dataPacket.assigned())
+    {
+        return 0;
+    }
+    else
     {
         count = info.dataPacket.getSampleCount() - info.prevSampleIndex;
     }

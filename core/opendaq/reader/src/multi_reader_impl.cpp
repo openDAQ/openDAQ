@@ -928,7 +928,7 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IMultiReaderStatus** status)
     if (minReadCount > *count)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be larger than minReadCount.");
 
-    const SizeT samplesToRead = *count;
+    const SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepare(nullptr, samplesToRead, milliseconds(0));
 
     auto statusPtr = readPackets();
@@ -950,9 +950,6 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
             continue;
 
         auto sigSamples = signal.getAvailable(acrossDescriptorChanges);
-
-        if (!signal.info.dataPacket.assigned())
-            sigSamples = 0;
 
         if (sigSamples < min)
         {
@@ -1083,8 +1080,7 @@ bool MultiReaderImpl::eventOrGapInQueue() const
 
 bool MultiReaderImpl::dataPacketsOrEventReady()
 {
-    bool hasEventPacket = false;
-    bool hasDataPacket = true;
+    bool allHaveDataPacket = true;
 
     for (auto& signal : signals)
     {
@@ -1096,10 +1092,10 @@ bool MultiReaderImpl::dataPacketsOrEventReady()
             return true;
         }
 
-        hasDataPacket &= (signal.getAvailable(true) != 0);
+        allHaveDataPacket &= (signal.getAvailable(true) != 0);
     }
 
-    return hasEventPacket || hasDataPacket;
+    return allHaveDataPacket;
 }
 
 NumberPtr MultiReaderImpl::calculateOffset() const
@@ -1318,24 +1314,9 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 ErrCode MultiReaderImpl::getEmpty(Bool* empty)
 {
     OPENDAQ_PARAM_NOT_NULL(empty);
-    bool hasDataPacket = true;
 
     std::scoped_lock lock(mutex);
-    for (auto& signal : signals)
-    {
-        if (signal.unused)
-            continue;
-
-        if (signal.isFirstPacketEvent())
-        {
-            *empty = false;
-            return OPENDAQ_SUCCESS;
-        }
-
-        hasDataPacket &= (signal.getAvailable(true) != 0);
-    }
-
-    *empty = !hasDataPacket;
+    *empty = !dataPacketsOrEventReady();
     return OPENDAQ_SUCCESS;
 }
 

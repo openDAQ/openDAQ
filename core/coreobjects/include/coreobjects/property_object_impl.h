@@ -2025,13 +2025,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearValuesI
 
             if (protectedAccess)
             {
-                auto nested = valuePtr.asPtr<IPropertyObjectProtected>(true);
-                OPENDAQ_RETURN_IF_FAILED(nested->clearValuesProtected());
+                auto nested = valuePtr.asPtr<IPropertyObjectInternal>(true);
+                OPENDAQ_RETURN_IF_FAILED(nested->clearValuesProtectedNoLock());
             }
             else
             {
-                auto nested = valuePtr.asPtr<IPropertyObject>(true);
-                OPENDAQ_RETURN_IF_FAILED(nested->clearValues());
+                auto nested = valuePtr.asPtr<IPropertyObjectInternal>(true);
+                OPENDAQ_RETURN_IF_FAILED(nested->clearValuesNoLock());
             }
         }
         else

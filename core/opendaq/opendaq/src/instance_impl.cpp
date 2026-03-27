@@ -166,12 +166,12 @@ void InstanceImpl::stopAndRemoveServers() const
     if (rootDevice.isRemoved())
         return;
 
-    for (const auto& server : rootDevice.getServers())
-    {
+    auto servers = rootDevice.getServers();
+    for (const auto& server : servers)
         server.stop();
-        // Manually remove servers from the root device to clean-up circular references to root device held by servers
+
+    for (const auto& server : servers)
         rootDevice.removeServer(server);
-    }
 }
 
 ErrCode InstanceImpl::getContext(IContext** context)

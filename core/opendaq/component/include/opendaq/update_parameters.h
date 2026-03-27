@@ -50,6 +50,30 @@ DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
      * @param options The device update options object.
      */
     virtual ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) = 0;
+
+    /*!
+     * @brief Gets whether all function blocks should be removed before configuration load.
+     * @param enabled True if all function blocks should be removed before loading.
+     */
+    virtual ErrCode INTERFACE_FUNC getRemoveFunctionBlocksBeforeLoadEnabled(Bool* enabled) = 0;
+
+    /*!
+     * @brief Sets whether all function blocks should be removed before configuration load.
+     * @param enabled True to remove all function blocks before loading.
+     */
+    virtual ErrCode INTERFACE_FUNC setRemoveFunctionBlocksBeforeLoadEnabled(Bool enabled) = 0;
+
+    /*!
+     * @brief Gets whether servers should be restarted after configuration load.
+     * @param enabled True if servers should be restarted after loading.
+     */
+    virtual ErrCode INTERFACE_FUNC getRemoteUpdateEnabled(Bool* enabled) = 0;
+
+    /*!
+     * @brief Sets whether servers should be restarted after configuration load.
+     * @param enabled True to restart servers after loading.
+     */
+    virtual ErrCode INTERFACE_FUNC setRemoteUpdateEnabled(Bool enabled) = 0;
 };
 /*!@}*/
 

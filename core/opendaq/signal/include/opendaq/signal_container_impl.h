@@ -121,7 +121,6 @@ protected:
     ErrCode addFunctionBlockInternal(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr);
     ErrCode removeFunctionBlockInternal(IFunctionBlock* functionBlock);
 
-    virtual bool clearFunctionBlocksOnUpdate();
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
     virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
@@ -654,9 +653,12 @@ template <class Intf, class... Intfs>
 void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     Super::updateObject(obj, context);
-    const auto availableTypes = onGetAvailableFunctionBlockTypes();
-    if (clearFunctionBlocksOnUpdate())
+    ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
+    UpdateParametersPtr updateParameters = contextPtr.getUpdateParameters();
+
+    if (updateParameters.getRemoveFunctionBlocksBeforeLoadEnabled())
     {
+        const auto availableTypes = onGetAvailableFunctionBlockTypes();
         for (const auto& fb : functionBlocks.getItems())
         {
             const auto typeId = fb.template asPtr<IFunctionBlock>().getFunctionBlockType().getId();
@@ -721,12 +723,6 @@ void GenericSignalContainerImpl<Intf, Intfs...>::deserializeCustomObjectValues(
 
     deserializeDefaultFolder<ISignal>(serializedObject, context, factoryCallback, this->signals, "Sig");
     deserializeDefaultFolder<IFunctionBlock>(serializedObject, context, factoryCallback, this->functionBlocks, "FB");
-}
-
-template <class Intf, class ... Intfs>
-bool GenericSignalContainerImpl<Intf, Intfs...>::clearFunctionBlocksOnUpdate()
-{
-    return false;
 }
 
 template <class Intf, class ... Intfs>

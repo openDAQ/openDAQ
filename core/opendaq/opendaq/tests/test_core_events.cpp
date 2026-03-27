@@ -270,23 +270,12 @@ TEST_F(CoreEventTest, PropertyObjectCleared)
     component.addProperty(StringProperty("String", "foo"));
     component.addProperty(IntProperty("Int", 1));
 
-    int clearedCount = 0;
-
-    component.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
-    context.getOnCoreEvent() += [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
-    {
-        if (args.getEventId() == static_cast<int>(CoreEventId::PropertyObjectCleared))
-        {
-            ASSERT_EQ(args.getEventName(), "PropertyObjectCleared");
-            clearedCount++;
-        }
-    };
-
     component.setPropertyValue("String", "bar");
     component.setPropertyValue("Int", 2);
-    component.asPtr<IPropertyObject>(true)->clearValues();
+    component.clearValues();
 
-    ASSERT_EQ(clearedCount, 1);
+    ASSERT_EQ(component.getPropertyValue("String"), "foo");
+    ASSERT_EQ(component.getPropertyValue("Int"), "1");
 }
 
 TEST_F(CoreEventTest, EndUpdateEventSerilizer)

@@ -69,8 +69,6 @@ namespace core_event_args_impl
                 return "DeviceOperationModeChanged";
             case CoreEventId::PropertyOrderChanged:
                 return "PropertyOrderChanged";
-            case CoreEventId::PropertyObjectCleared:
-                return "PropertyObjectCleared";
             default:
                 break;
         }
@@ -243,9 +241,6 @@ inline bool CoreEventArgsImpl::validateParameters() const
             return parameters.hasKey("OperationMode");
         case CoreEventId::PropertyOrderChanged:
             return parameters.hasKey("PropertyOrder") && parameters.hasKey("Path");
-        case CoreEventId::PropertyObjectCleared:
-            // "Owner" parameter might be removed by config protocol server when forwarding core events.
-            return parameters.hasKey("Path");
         default:
             break;
     }

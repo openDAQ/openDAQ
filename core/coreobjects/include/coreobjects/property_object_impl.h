@@ -47,7 +47,6 @@
 #include <cmath>
 #include <limits>
 #include <map>
-#include <thread>
 #include <utility>
 #include <coretypes/recursive_search_ptr.h>
 #include <coreobjects/property_object_core.h>
@@ -56,9 +55,6 @@
 #include <coreobjects/property_object_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-// Forward declaration to ensure core event args factory is visible in all translation units.
-inline CoreEventArgsPtr CoreEventArgsPropertyObjectCleared(const PropertyObjectPtr& propOwner, const StringPtr& path);
 
 using PropertyOrderedMap = tsl::ordered_map<StringPtr, PropertyPtr, StringHash, StringEqualTo>;
 
@@ -1962,11 +1958,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearValues(
     auto lock = getRecursiveConfigLock2();
     const ErrCode errCode = clearValuesNoLock();
     OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    // Suppress the summary event for batched updates.
-    if (updateCount == 0)
-        triggerCoreEventInternal(CoreEventArgsPropertyObjectCleared(objPtr, path));
-
     return errCode;
 }
 
@@ -1986,14 +1977,7 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearValuesProtected()
 {
     auto lock = getRecursiveConfigLock2();
-    const ErrCode errCode = clearValuesProtectedNoLock();
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    // Suppress the summary event for batched updates.
-    if (updateCount == 0)
-        triggerCoreEventInternal(CoreEventArgsPropertyObjectCleared(objPtr, path));
-
-    return errCode;
+    return clearValuesProtectedNoLock();
 }
 
 template <class PropObjInterface, class... Interfaces>

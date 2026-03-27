@@ -43,7 +43,6 @@ extern "C"
         daqCoreEventIdConnectionStatusChanged = 170,
         daqCoreEventIdDeviceOperationModeChanged = 180,
         daqCoreEventIdPropertyOrderChanged = 190,
-        daqCoreEventIdPropertyObjectCleared = 200,
     } daqCoreEventId;
 
     typedef enum daqPermission

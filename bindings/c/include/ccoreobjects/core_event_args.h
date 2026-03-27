@@ -49,7 +49,6 @@ extern "C"
     daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgs(daqCoreEventArgs** obj, daqCoreEventId eventId, daqString* eventName, daqDict* parameters);
     daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyValueChanged(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqString* propName, daqBaseObject* value, daqString* path);
     daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyObjectUpdateEnd(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqDict* updatedProperties, daqString* path);
-    daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyObjectCleared(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqString* path);
     daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyAdded(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqProperty* prop, daqString* path);
     daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsPropertyRemoved(daqCoreEventArgs** obj, daqPropertyObject* propOwner, daqString* propName, daqString* path);
     daqErrCode EXPORTED daqCoreEventArgs_createCoreEventArgsTypeAdded(daqCoreEventArgs** obj, daqType* type);

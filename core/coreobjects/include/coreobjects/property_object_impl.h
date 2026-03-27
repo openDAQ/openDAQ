@@ -1986,43 +1986,62 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearValuesI
     if (frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
-    beginUpdate();
-    Finally finally([this]() { endUpdate(); });
+    // Only the outermost clearValues call should delimit an update transaction.
+    // Nested PropertyObjects can still call clearValues(), but they must not start/end update themselves.
+    static thread_local int clearValuesDepth = 0;
+    const bool isOutermost = (clearValuesDepth++ == 0);
+
+    Finally depthFinally([]() { clearValuesDepth--; });
+
+    if (isOutermost)
+    {
+        const ErrCode beginErr = beginUpdate();
+        OPENDAQ_RETURN_IF_FAILED(beginErr);
+    }
+
+    Finally finally([this, isOutermost]()
+    {
+        if (isOutermost)
+            endUpdate();
+    });
 
     ListPtr<IProperty> properties;
-    const ErrCode errCode = getAllProperties(&properties);
-    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get all properties");
+    OPENDAQ_RETURN_IF_FAILED(getAllProperties(&properties), "Failed to get all properties");
 
     for (const auto& prop : properties)
     {
+        if (!protectedAccess && prop.asPtrOrNull<IPropertyInternal>().getReadOnlyNoLock())
+            continue;
+
+        if (prop.getPropertyType() == PropertyType::Reference)
+            continue;
+
         if (prop.getValueType() == ctObject)
         {
-            // clearValuesInternal works on first-level properties only.
-            // For object-type properties we clear their nested PropertyObject values directly.
-            PropertyPtr boundProp = prop;
-            boundProp = checkForRefPropAndGetBoundProp(boundProp, objPtr);
-
-            const auto boundName = boundProp.getName();
-            auto it = propValues.find(boundName);
-            if (it == propValues.end() || !it->second.assigned())
-                continue;
+            PropertyPtr propPtr;
+            BaseObjectPtr valuePtr;
+            ErrCode err = getPropertyAndValueInternal(prop.getName(), valuePtr, propPtr, false);
+            OPENDAQ_RETURN_IF_FAILED(err);
 
             if (protectedAccess)
             {
-                auto nested = it->second.template asPtr<IPropertyObjectProtected>(true);
+                auto nested = valuePtr.asPtr<IPropertyObjectProtected>(true);
                 OPENDAQ_RETURN_IF_FAILED(nested->clearValuesProtected());
             }
             else
             {
-                auto nested = it->second.template asPtr<IPropertyObject>(true);
+                auto nested = valuePtr.asPtr<IPropertyObject>(true);
                 OPENDAQ_RETURN_IF_FAILED(nested->clearValues());
             }
         }
         else
         {
+            if (localProperties.find(prop.getName()) == localProperties.end())
+                continue;
+
             // For non-object properties, use the internal clear function and let begin/endUpdate apply the changes.
-            const ErrCode clearErr = clearPropertyValueInternal(prop.getName(), protectedAccess, updateCount > 0);
-            OPENDAQ_RETURN_IF_FAILED(clearErr);
+            const ErrCode errCode = clearPropertyValueInternal(prop.getName(), protectedAccess, true, true);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
         }
     }
 

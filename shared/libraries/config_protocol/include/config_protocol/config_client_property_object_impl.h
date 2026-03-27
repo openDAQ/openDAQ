@@ -57,6 +57,8 @@ public:
     ErrCode INTERFACE_FUNC getOnAnyPropertyValueWrite(IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnAnyPropertyValueRead(IEvent** event) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
+    ErrCode INTERFACE_FUNC clearValues() override;
+    ErrCode INTERFACE_FUNC clearValuesProtected() override;
 
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;
@@ -350,6 +352,26 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* ordere
     if (!deserializationComplete)
         return Impl::setPropertyOrderInternal(orderedPropertyNames, true);
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION);
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearValues()
+{
+    const ErrCode errCode = daqTry([this]()
+    {
+        std::string path{};
+        if (this->getPath().assigned())
+            path = this->getPath().toStdString();
+        clientComm->clearValues(remoteGlobalId, path);
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearValuesProtected()
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE);
 }
 
 template <class Impl>

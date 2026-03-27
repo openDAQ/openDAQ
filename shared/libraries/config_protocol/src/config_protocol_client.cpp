@@ -233,6 +233,15 @@ void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std:
     parseRpcOrRejectReply(setPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
+void ConfigProtocolClientComm::clearValues(const std::string& globalId, const std::string& path)
+{
+    auto params = Dict<IString, IBaseObject>();
+    if (!path.empty())
+        params.set("Path", String(path));
+
+    sendComponentCommand(globalId, ClientCommand("ClearValues", 22), params);    
+}
+
 DictPtr<IString, IFunctionBlockType> ConfigProtocolClientComm::getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb)
 {
     auto command = isFb ? ClientCommand("GetAvailableFunctionBlockTypes", 9) : ClientCommand("GetAvailableFunctionBlockTypes");
@@ -294,7 +303,8 @@ DictPtr<IString, IComponentHolder> ConfigProtocolClientComm::addDevices(const st
 }
 
 void ConfigProtocolClientComm::removeDevice(const std::string& globalId, const StringPtr& deviceLocalId)
-{    auto params = Dict<IString, IBaseObject>({{"LocalId", deviceLocalId}});
+{
+    auto params = Dict<IString, IBaseObject>({{"LocalId", deviceLocalId}});
     sendComponentCommand(globalId, ClientCommand("RemoveDevice", 4), params);
 }
 

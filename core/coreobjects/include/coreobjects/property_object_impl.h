@@ -1090,15 +1090,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
     {
         auto propName = StringPtr::Borrow(name);
         auto valuePtr = BaseObjectPtr::Borrow(value);
+        
+        StringPtr subName;
+        const auto isChildProp = isChildProperty(propName);
 
-        if (batch)
+        if (batch && !isChildProp)
         {
             updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr}));
             return OPENDAQ_SUCCESS;
         }
 
-        StringPtr subName;
-        const auto isChildProp = isChildProperty(propName);
         if (isChildProp)
         {
             splitOnFirstDot(propName, propName, subName);
@@ -1113,16 +1114,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
         }
 
         propName = prop.getName();
-        const auto propInternal = prop.asPtr<IPropertyInternal>();
-
-        if (!protectedAccess)
-        {
-            if (propInternal.getReadOnlyNoLock() && !isChildProp)
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
-            }
-        }
-
         if (isChildProp)
         {
             BaseObjectPtr childProp;
@@ -1139,69 +1130,71 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
                 childPropAsPropertyObject.setPropertyValue(subName, valuePtr);
             }
+
+            return OPENDAQ_SUCCESS;
+        }
+
+        const auto propInternal = prop.asPtr<IPropertyInternal>();
+        // TODO: If function type, check if return value is correct type.
+        if (!protectedAccess)
+        {
+            if (propInternal.getReadOnlyNoLock() || propInternal.getValueTypeNoLock() == ctObject)
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+            }
+        }
+
+        OPENDAQ_RETURN_IF_FAILED(checkPropertyTypeAndConvert(prop, valuePtr));
+        OPENDAQ_RETURN_IF_FAILED(checkContainerType(prop, valuePtr));
+        OPENDAQ_RETURN_IF_FAILED(checkSelectionValues(prop, valuePtr));
+        OPENDAQ_RETURN_IF_FAILED(checkStructType(prop, valuePtr));
+        OPENDAQ_RETURN_IF_FAILED(checkEnumerationType(prop, valuePtr));
+
+        coercePropertyWrite(prop, valuePtr, objPtr);
+        validatePropertyWrite(prop, valuePtr, objPtr);
+        coerceMinMax(prop, valuePtr);
+
+        const auto ct = propInternal.getValueTypeNoLock();
+        if (ct == ctList || ct == ctDict)
+        {
+            BaseObjectPtr clonedValue;
+            OPENDAQ_RETURN_IF_FAILED(valuePtr.asPtr<ICloneable>()->clone(&clonedValue));
+
+            valuePtr = clonedValue.detach();
+        }
+        else if (ct == ctObject)
+        {
+            configureClonedObj(propName, valuePtr);
+        }
+
+        if (triggerEvent)
+        {
+            BaseObjectPtr newValue = valuePtr;
+            ErrCode err = callPropertyValueWrite(prop, newValue, PropertyEventType::Update, isUpdating);
+            OPENDAQ_RETURN_IF_FAILED(err);
+
+            if (err == OPENDAQ_IGNORED)
+                return OPENDAQ_SUCCESS;
+
+            if (valuePtr == newValue)
+            {
+                writeLocalValue(propName, newValue);
+                setOwnerToPropertyValue(newValue);
+            }
+
+            if (!isUpdating)
+                triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, newValue, path));
         }
         else
         {
-            // TODO: If function type, check if return value is correct type.
-            if (!protectedAccess)
-            {
-                if (propInternal.getReadOnlyNoLock() || propInternal.getValueTypeNoLock() == ctObject)
-                {
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
-                }
-            }
-
-            OPENDAQ_RETURN_IF_FAILED(checkPropertyTypeAndConvert(prop, valuePtr));
-            OPENDAQ_RETURN_IF_FAILED(checkContainerType(prop, valuePtr));
-            OPENDAQ_RETURN_IF_FAILED(checkSelectionValues(prop, valuePtr));
-            OPENDAQ_RETURN_IF_FAILED(checkStructType(prop, valuePtr));
-            OPENDAQ_RETURN_IF_FAILED(checkEnumerationType(prop, valuePtr));
-
-            coercePropertyWrite(prop, valuePtr, objPtr);
-            validatePropertyWrite(prop, valuePtr, objPtr);
-            coerceMinMax(prop, valuePtr);
-
-            const auto ct = propInternal.getValueTypeNoLock();
-            if (ct == ctList || ct == ctDict)
-            {
-                BaseObjectPtr clonedValue;
-                OPENDAQ_RETURN_IF_FAILED(valuePtr.asPtr<ICloneable>()->clone(&clonedValue));
-
-                valuePtr = clonedValue.detach();
-            }
-            else if (ct == ctObject)
-            {
-                configureClonedObj(propName, valuePtr);
-            }
-
-            if (triggerEvent)
-            {
-                BaseObjectPtr newValue = valuePtr;
-                ErrCode err = callPropertyValueWrite(prop, newValue, PropertyEventType::Update, isUpdating);
-                OPENDAQ_RETURN_IF_FAILED(err);
-
-                if (err == OPENDAQ_IGNORED)
-                    return OPENDAQ_SUCCESS;
-
-                if (valuePtr == newValue)
-                {
-                    writeLocalValue(propName, newValue);
-                    setOwnerToPropertyValue(newValue);
-                }
-
-                if (!isUpdating)
-                    triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, newValue, path));
-            }
-            else
-            {
-                if (!writeLocalValue(propName, valuePtr))
-                    return OPENDAQ_IGNORED;
-                setOwnerToPropertyValue(valuePtr);
-            }
+            if (!writeLocalValue(propName, valuePtr))
+                return OPENDAQ_IGNORED;
+            setOwnerToPropertyValue(valuePtr);
         }
 
         return OPENDAQ_SUCCESS;
     });
+
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set property value");
     return errCode;
 }
@@ -2655,7 +2648,11 @@ template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginApplyUpdate()
 {
     beginApplyProperties(updatingPropsAndValues, isParentUpdating());
+}
 
+template <typename PropObjInterface, typename... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate()
+{
     auto ignoredProps = List<IString>();
     for (auto& [propName, action] : updatingPropsAndValues)
     {
@@ -2665,8 +2662,6 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginApplyUpdat
         {
             err = setPropertyValueInternal(name, action.value, true, action.protectedAccess, false, true);
             checkErrorInfo(err);
-            if (const auto propObj = action.value.template asPtrOrNull<IPropertyObject>(true); propObj.assigned())
-                propObj.beginUpdate();
         }
         else
         {
@@ -2696,11 +2691,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginApplyUpdat
         if (it != updatingPropsAndValues.end())
             updatingPropsAndValues.erase(it);
     }
-}
 
-template <typename PropObjInterface, typename... Interfaces>
-void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate()
-{
     endApplyProperties(updatingPropsAndValues, isParentUpdating());
     updatingPropsAndValues.clear();
 }

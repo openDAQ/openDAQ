@@ -1488,15 +1488,16 @@ void MultiReaderImpl::sync()
             continue;
 
         system_clock::rep firstSampleAbsoluteTime;
-        synced = signal.sync(*commonStart, &firstSampleAbsoluteTime) && synced;
+        bool success = signal.sync(*commonStart, &firstSampleAbsoluteTime) && synced;
 
-        if (synced)
+        if (success)
         {
             if (earliestTime > firstSampleAbsoluteTime)
                 earliestTime = firstSampleAbsoluteTime;
             if (latestTime < firstSampleAbsoluteTime)
                 latestTime = firstSampleAbsoluteTime;
         }
+        synced = synced && success;
     }
 
     if (synced && tickOffsetTolerance.assigned())

@@ -371,7 +371,6 @@ bool SignalReader::skipUntilLastEventPacket()
                 break;
             }
         }
-
         connection.dequeue();
     }
 

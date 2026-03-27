@@ -223,6 +223,9 @@ TEST_P(StreamingTest, LastValue)
     std::future<StringPtr> subscribeCompleteFuture;
     test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
 
+    std::promise<StringPtr> unsubscribeCompletePromise;
+    std::future<StringPtr> unsubscribeCompleteFuture;
+
     // before any packet send
     ASSERT_FALSE(serverSignal.getLastValue().assigned());
     ASSERT_FALSE(mirroredSignalPtr.getLastValue().assigned());
@@ -241,8 +244,11 @@ TEST_P(StreamingTest, LastValue)
         ASSERT_TRUE(mirroredSignalPtr.getLastValue().assigned());
         // generated packets are sent and read, signal is still subscribed via streaming - mirrored signal gets last value from streaming
         EXPECT_EQ(serverSignal.getLastValue(), mirroredSignalPtr.getLastValue());
+        
+        test_helpers::setupUnsubscribeAckHandler(unsubscribeCompletePromise, unsubscribeCompleteFuture, mirroredSignalPtr);
     }
-
+    
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(unsubscribeCompleteFuture));
     ASSERT_TRUE(serverSignal.getLastValue().assigned());
     ASSERT_TRUE(mirroredSignalPtr.getLastValue().assigned());
     // signal is not subscribed via streaming anymore - mirrored signal gets last value from config but it hasn't changed yet

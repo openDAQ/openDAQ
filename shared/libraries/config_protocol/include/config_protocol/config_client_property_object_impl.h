@@ -28,6 +28,7 @@
 #include <config_protocol/errors.h>
 #include <config_protocol/config_client_property.h>
 #include <opendaq/component_update_context_ptr.h>
+#include <opendaq/update_parameters_factory.h>
 
 namespace daq::config_protocol
 {
@@ -389,7 +390,12 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObje
     const ErrCode errCode = daqTry([this, &obj, &context]()
     {
         ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
-        UpdateParametersPtr updateParameters = contextPtr.getUpdateParameters();
+        UpdateParametersPtr updateParameters;
+        if (contextPtr.assigned())
+            updateParameters = contextPtr.getUpdateParameters();
+        else
+            updateParameters = UpdateParameters();
+
         if (!updateParameters.getRemoteUpdateEnabled())
             return;
 

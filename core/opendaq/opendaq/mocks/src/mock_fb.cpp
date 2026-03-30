@@ -52,6 +52,12 @@ FunctionBlockPtr MockFunctionBlockImpl::onAddFunctionBlock(const StringPtr& type
     DAQ_THROW_EXCEPTION(NotSupportedException, "Mock function block supports only NestedFBId");
 }
 
+void MockFunctionBlockImpl::onRemoveFunctionBlock(const daq::FunctionBlockPtr& functionBlock)
+{
+    Super::onRemoveFunctionBlock(functionBlock);
+    if (functionBlocks.getItems().getCount() == 0)
+        nesteadFbCount = 0;
+}
 
 void MockFunctionBlockImpl::createFunctionBlocks()
 {

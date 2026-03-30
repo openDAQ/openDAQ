@@ -46,6 +46,8 @@ public:
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
+    void setRemoteGlobalId(const std::string newId) override;
+
     Bool hasOnReadListeners;
     Bool hasOnGetSuggestedValuesListeners;
     Bool hasOnGetSelectionValuesListeners;
@@ -174,4 +176,15 @@ inline ErrCode ConfigClientPropertyImpl::Deserialize(ISerializedObject* serializ
         return OPENDAQ_SUCCESS;
     });
 }
+
+inline void ConfigClientPropertyImpl::setRemoteGlobalId(const std::string newId)
+{
+    ConfigClientObjectImpl::setRemoteGlobalId(newId);
+    if (this->valueType == CoreType::ctObject)
+    {
+        if (auto configObj = defaultValue.asPtrOrNull<IConfigClientObject>(true); configObj.assigned())
+            configObj->setRemoteGlobalId(String(newId));
+    }
+}
+
 }

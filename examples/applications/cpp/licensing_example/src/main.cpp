@@ -6,6 +6,7 @@
 #include <fstream>
 #include <opendaq/opendaq.h>
 #include <licensing_example/module_authenticator_impl_win.h>
+#include <thread>
 
 using namespace daq;
 

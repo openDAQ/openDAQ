@@ -88,6 +88,7 @@ public:
     bool isLocked(const std::string& globalId);
     void beginUpdate(const std::string& globalId, const std::string& path = "");
     void endUpdate(const std::string& globalId, const std::string& path = "", const ListPtr<IDict>& props = nullptr);
+    void clearValues(const std::string& globalId, const std::string& path = "");
 
     DictPtr<IString, IFunctionBlockType> getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb = false);
     ComponentHolderPtr addFunctionBlock(const std::string& globalId,

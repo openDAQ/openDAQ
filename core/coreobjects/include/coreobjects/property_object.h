@@ -406,6 +406,17 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      * or the value part of a key-value pair in the dictionary). Use setPropertyValue when setting by index/key.
      */
     virtual ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) = 0;
+
+    /*!
+     * @brief Clears values of all properties contained in the Property object, including nested child properties.
+     *
+     * This function clears the values by internally invoking `clearPropertyValue(...)` for all properties returned by
+     * `getAllProperties()`; for object-type properties it therefore clears their child properties as well.
+     *
+     * @note If the Property object is currently performing a batched update (between `beginUpdate` and `endUpdate`),
+     * core events for the cleared values are suppressed in the same way as with `clearPropertyValue(...)`.
+     */
+    virtual ErrCode INTERFACE_FUNC clearValues() = 0;
 };
 
 /*!@}*/

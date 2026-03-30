@@ -2,6 +2,7 @@
 #include <coreobjects/core_event_args_ids.h>
 #include <iostream>
 #include <condition_variable>
+#include <thread>
 
 using namespace daq;
 using namespace std::chrono_literals;

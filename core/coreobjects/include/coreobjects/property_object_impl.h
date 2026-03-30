@@ -47,7 +47,6 @@
 #include <cmath>
 #include <limits>
 #include <map>
-#include <thread>
 #include <utility>
 #include <coretypes/recursive_search_ptr.h>
 #include <coreobjects/property_object_core.h>
@@ -100,6 +99,7 @@ public:
     virtual ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* propertyName) override;
+    virtual ErrCode INTERFACE_FUNC clearValues() override;
 
     virtual ErrCode INTERFACE_FUNC hasProperty(IString* propertyName, Bool* hasProperty) override;
     virtual ErrCode INTERFACE_FUNC getProperty(IString* propertyName, IProperty** property) override;
@@ -142,6 +142,8 @@ public:
     virtual ErrCode INTERFACE_FUNC getLockingStrategy(LockingStrategy* strategy) override;
     virtual ErrCode INTERFACE_FUNC getMutex(IMutex** mutex) override;
     virtual ErrCode INTERFACE_FUNC getMutexOwner(IPropertyObjectInternal** owner) override;
+    virtual ErrCode INTERFACE_FUNC clearValuesNoLock() override;
+    virtual ErrCode INTERFACE_FUNC clearValuesProtectedNoLock() override;
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
@@ -173,6 +175,7 @@ public:
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
+    virtual ErrCode INTERFACE_FUNC clearValuesProtected() override;
     
     using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
     using EndUpdateEventEmitter = EventEmitter<PropertyObjectPtr, EndUpdateEventArgsPtr>;
@@ -344,6 +347,7 @@ private:
     ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
     ErrCode setPropertySelectionValueInternal(IString* propertyName, IBaseObject* value, bool protectedAccess);
     ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
+    ErrCode clearValuesInternal(bool protectedAccess);
     ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
     ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
@@ -1946,6 +1950,102 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValueNoLock(IString* propertyName)
 {
     return clearPropertyValueInternal(propertyName, false, updateCount > 0);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearValues()
+{
+    auto lock = getRecursiveConfigLock2();
+    const ErrCode errCode = clearValuesNoLock();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearValuesNoLock()
+{
+    return clearValuesInternal(false);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearValuesProtectedNoLock()
+{
+    return clearValuesInternal(true);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearValuesProtected()
+{
+    auto lock = getRecursiveConfigLock2();
+    return clearValuesProtectedNoLock();
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearValuesInternal(bool protectedAccess)
+{
+    if (frozen)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
+
+    // Only the outermost clearValues call should delimit an update transaction.
+    // Nested PropertyObjects can still call clearValues(), but they must not start/end update themselves.
+    static thread_local int clearValuesDepth = 0;
+    const bool isOutermost = (clearValuesDepth++ == 0);
+
+    Finally depthFinally([]() { clearValuesDepth--; });
+
+    if (isOutermost)
+    {
+        const ErrCode beginErr = beginUpdate();
+        OPENDAQ_RETURN_IF_FAILED(beginErr);
+    }
+
+    Finally finally([this, isOutermost]()
+    {
+        if (isOutermost)
+            endUpdate();
+    });
+
+    ListPtr<IProperty> properties;
+    OPENDAQ_RETURN_IF_FAILED(getAllProperties(&properties), "Failed to get all properties");
+
+    for (const auto& prop : properties)
+    {
+        if (!protectedAccess && prop.asPtrOrNull<IPropertyInternal>().getReadOnlyNoLock())
+            continue;
+
+        if (prop.getPropertyType() == PropertyType::Reference)
+            continue;
+
+        if (prop.getValueType() == ctObject)
+        {
+            PropertyPtr propPtr;
+            BaseObjectPtr valuePtr;
+            ErrCode err = getPropertyAndValueInternal(prop.getName(), valuePtr, propPtr, false);
+            OPENDAQ_RETURN_IF_FAILED(err);
+
+            if (protectedAccess)
+            {
+                auto nested = valuePtr.asPtr<IPropertyObjectInternal>(true);
+                OPENDAQ_RETURN_IF_FAILED(nested->clearValuesProtectedNoLock());
+            }
+            else
+            {
+                auto nested = valuePtr.asPtr<IPropertyObjectInternal>(true);
+                OPENDAQ_RETURN_IF_FAILED(nested->clearValuesNoLock());
+            }
+        }
+        else
+        {
+            if (localProperties.find(prop.getName()) == localProperties.end())
+                continue;
+
+            // For non-object properties, use the internal clear function and let begin/endUpdate apply the changes.
+            const ErrCode errCode = clearPropertyValueInternal(prop.getName(), protectedAccess, true, true);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <class PropObjInterface, class... Interfaces>

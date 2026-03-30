@@ -6,7 +6,7 @@ BEGIN_NAMESPACE_OPENDAQ
 UpdateParametersImpl::UpdateParametersImpl()
     : Super()
 {
-    Super::addProperty(BoolProperty("RemoteUpdate", false));
+    Super::addProperty(BoolProperty("RemoteUpdate", true));
 }
 
 template <typename T>
@@ -27,6 +27,22 @@ ErrCode UpdateParametersImpl::setDeviceUpdateOptions(IDeviceUpdateOptions* optio
 {
     deviceOptions = options;
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode UpdateParametersImpl::getRemoteUpdateEnabled(Bool* enabled)
+{
+    OPENDAQ_PARAM_NOT_NULL(enabled);
+
+    return daqTry([&]
+    {
+        *enabled = getTypedProperty<IBoolean>("RemoteUpdate");
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode UpdateParametersImpl::setRemoteUpdateEnabled(Bool enabled)
+{
+    return Super::setPropertyValue(String("RemoteUpdate"), BooleanPtr(enabled));
 }
 
 ErrCode UpdateParametersImpl::serializeCustomValues(ISerializer* serializer, bool)

@@ -30,6 +30,9 @@ public:
 
     ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) override;
     ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) override;
+
+    ErrCode INTERFACE_FUNC getRemoteUpdateEnabled(Bool* enabled) override;
+    ErrCode INTERFACE_FUNC setRemoteUpdateEnabled(Bool enabled) override;
     
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     static ConstCharPtr SerializeId();

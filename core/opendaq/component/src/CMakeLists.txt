@@ -92,6 +92,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/component_deserialize_context_impl.cpp
         ${SDK_HEADERS_DIR}/component_update_context.h
         ${SDK_HEADERS_DIR}/component_update_context_impl.h
+        ${SDK_SRC_DIR}/component_update_context_impl.cpp
         ${SDK_HEADERS_DIR}/update_parameters.h
         ${SDK_HEADERS_DIR}/update_parameters_impl.h
         ${SDK_SRC_DIR}/update_parameters_impl.cpp
@@ -174,10 +175,11 @@ set(SRC_PrivateHeaders_Component
     PARENT_SCOPE
 )
 
-set(SRC_Cpp_Component 
+set(SRC_Cpp_Component
     component_impl.cpp
     folder_impl.cpp
     component_deserialize_context_impl.cpp
+    component_update_context_impl.cpp
     search_filter_impl.cpp
     tags_impl.cpp
     component_status_container_impl.cpp

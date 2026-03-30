@@ -1209,7 +1209,8 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         auto start = std::chrono::steady_clock::now();
 #endif
 
-        readSamplesAndSetRemainingSamples(toRead);
+        readSamples(toRead);
+        remainingSamplesToRead -= toRead;
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto end = std::chrono::steady_clock::now();
@@ -1422,12 +1423,6 @@ void MultiReaderImpl::readSamples(SizeT samples)
         signal.info.remainingToRead = samples / signal.sampleRateDivider;
         signal.readPackets();
     }
-}
-
-void MultiReaderImpl::readSamplesAndSetRemainingSamples(SizeT samples)
-{
-    readSamples(samples);
-    remainingSamplesToRead -= samples;
 }
 
 void MultiReaderImpl::readDomainStart()

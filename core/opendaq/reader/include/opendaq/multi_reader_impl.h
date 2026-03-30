@@ -134,7 +134,6 @@ private:
     SyncStatus getSyncStatus() const;
 
     void readSamples(SizeT samples);
-    void readSamplesAndSetRemainingSamples(SizeT samples);
     NumberPtr calculateOffset() const;
 
     // Check for event packets; Synchronize; Skip if event/packet in queue and available samples < minReadCount

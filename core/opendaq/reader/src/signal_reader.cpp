@@ -292,6 +292,8 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
         if (packet.getType() == PacketType::Data)
         {
             connection.dequeue();
+            info.dataPacket = packet;
+            info.prevSampleIndex = 0;
             break;
         }
 
@@ -323,12 +325,6 @@ EventPacketPtr SignalReader::readUntilNextDataPacket()
             }
         }
         connection.dequeue();
-    }
-
-    if (packet.assigned() && packet.getType() == PacketType::Data)
-    {
-        info.dataPacket = packet;
-        info.prevSampleIndex = 0;
     }
 
     if (!packetToReturn.assigned() && (valueDescriptorChanged || domainDescriptorChanged))

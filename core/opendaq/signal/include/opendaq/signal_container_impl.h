@@ -656,21 +656,18 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateObject(const SerializedOb
     ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
     UpdateParametersPtr updateParameters = contextPtr.getUpdateParameters();
 
-    if (updateParameters.getRemoveFunctionBlocksBeforeLoadEnabled())
+    const auto availableTypes = onGetAvailableFunctionBlockTypes();
+    for (const auto& fb : functionBlocks.getItems())
     {
-        const auto availableTypes = onGetAvailableFunctionBlockTypes();
-        for (const auto& fb : functionBlocks.getItems())
+        const auto typeId = fb.template asPtr<IFunctionBlock>(true).getFunctionBlockType().getId();
+        if (availableTypes.hasKey(typeId))
         {
-            const auto typeId = fb.template asPtr<IFunctionBlock>().getFunctionBlockType().getId();
-            if (availableTypes.hasKey(typeId))
-            {
-                onRemoveFunctionBlock(fb);
-            }
-            else
-            {
-                auto loggerComponent = signalContainerLoggerComponent;
-                LOG_D("Update did not remove static function block with type ID {} and local ID {}", typeId, fb.getLocalId())
-            }
+            onRemoveFunctionBlock(fb);
+        }
+        else
+        {
+            auto loggerComponent = signalContainerLoggerComponent;
+            LOG_D("Update did not remove static function block with type ID {} and local ID {}", typeId, fb.getLocalId())
         }
     }
 
@@ -820,38 +817,44 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
                                                                      const SerializedObjectPtr& serializedFunctionBlock,
                                                                      const BaseObjectPtr& context)
 {
+    // we are now removing all existing functions block excluding the static ones
+    // so for the dynamic function blocks we dont need to check if the function block is already exist or not
     const auto availableTypes = onGetAvailableFunctionBlockTypes();
-    UpdatablePtr updatableFb;
-    if (!this->functionBlocks.hasItem(fbId))
+    const auto typeId = serializedFunctionBlock.readString("typeId");
+
+    // handle the function block which are not availble to add
+    if (!availableTypes.hasKey(typeId))
     {
-        auto typeId = serializedFunctionBlock.readString("typeId");
-        if (!availableTypes.hasKey(typeId))
+        if (this->functionBlocks.hasItem(fbId))
         {
+            // handaling static function block
+            const UpdatablePtr updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
+            updatableFb.updateInternal(serializedFunctionBlock, context);
+        }
+        else
+        {
+            // probably the needed library with this function block type is not loaded, log and skip it
             auto loggerComponent = signalContainerLoggerComponent;
             LOG_W("Failed to add missing FB with ID {} while updating parent FB with ID {}", fbId, this->localId)
-            return;
         }
-
-        PropertyObjectPtr config;
-        if (serializedFunctionBlock.hasKey("ComponentConfig"))
-            config = serializedFunctionBlock.readObject("ComponentConfig");
-        else
-            config = PropertyObject();
-
-        if (!config.hasProperty("LocalId"))
-            config.addProperty(StringProperty("LocalId", fbId));
-        else
-            config.setPropertyValue("LocalId", fbId);
-
-        auto fb = onAddFunctionBlock(typeId, config);
-        updatableFb = fb.template asPtr<IUpdatable>(true);
+        return;
     }
+
+    PropertyObjectPtr config;
+    if (serializedFunctionBlock.hasKey("ComponentConfig"))
+        config = serializedFunctionBlock.readObject("ComponentConfig");
     else
-    {
-        updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
-    }
+        config = PropertyObject();
 
-    updatableFb.updateInternal(serializedFunctionBlock, context);
+    if (!config.hasProperty("LocalId"))
+        config.addProperty(StringProperty("LocalId", fbId));
+    else
+        config.setPropertyValue("LocalId", fbId);
+
+    auto fb = onAddFunctionBlock(typeId, config);
+
+    const UpdatablePtr updatableFb = fb.template asPtr<IUpdatable>(true);
+    updatableFb.updateInternal(serializedFunctionBlock, context);    
 }
 
 template <class Intf, class... Intfs>

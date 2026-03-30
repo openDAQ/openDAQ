@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 11.03.2026 09:53:29.
+//     RTGen (CGenerator v0.7.0) on 30.03.2026 12:26:24.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -30,6 +30,16 @@ daqErrCode daqUpdateParameters_getDeviceUpdateOptions(daqUpdateParameters* self,
 daqErrCode daqUpdateParameters_setDeviceUpdateOptions(daqUpdateParameters* self, daqDeviceUpdateOptions* options)
 {
     return reinterpret_cast<daq::IUpdateParameters*>(self)->setDeviceUpdateOptions(reinterpret_cast<daq::IDeviceUpdateOptions*>(options));
+}
+
+daqErrCode daqUpdateParameters_getRemoteUpdateEnabled(daqUpdateParameters* self, daqBool* enabled)
+{
+    return reinterpret_cast<daq::IUpdateParameters*>(self)->getRemoteUpdateEnabled(enabled);
+}
+
+daqErrCode daqUpdateParameters_setRemoteUpdateEnabled(daqUpdateParameters* self, daqBool enabled)
+{
+    return reinterpret_cast<daq::IUpdateParameters*>(self)->setRemoteUpdateEnabled(enabled);
 }
 
 daqErrCode daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj)

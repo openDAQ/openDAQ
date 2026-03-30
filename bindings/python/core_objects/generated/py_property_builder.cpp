@@ -384,5 +384,5 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
             const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
             objectPtr.setIsIntegerValueSelection(isIntegerValueSelection);
         },
-        "Sets the value selection property flag. / Sets the value selection property flag.");
+        "Gets the integer value selection flag for selection properties with valueType == ctInt. / Sets the integer value selection flag for selection properties with valueType == ctInt.");
 }

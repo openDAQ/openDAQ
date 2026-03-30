@@ -373,6 +373,9 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString*
 {
     OPENDAQ_PARAM_NOT_NULL(streamingConnectionString);
 
+    if (this->isComponentRemoved)
+        return OPENDAQ_IGNORED;
+
     const auto streamingConnectionStringPtr = StringPtr::Borrow(streamingConnectionString);
     auto thisPtr = this->template borrowPtr<MirroredSignalConfigPtr>();
 

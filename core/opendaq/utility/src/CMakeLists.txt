@@ -5,24 +5,23 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_PacketBufferBuilder packet_buffer_builder.h)
     rtgen(SRC_DeviceUpdateOptions device_update_options.h)
 
-    set(SRC_PublicHeader_PacketBuffer_Generated
+    set(SRC_PublicHeaders_Component_Generated
 	${SRC_PacketBuffer_PublicHeaders}
 	${SRC_PacketBufferBuilder_PublicHeaders}
 	${SRC_DeviceUpdateOptions_PublicHeaders}
 	PARENT_SCOPE
     )
 
-    set(SRC_PrivateHeader_PacketBuffer_Generated
+    set(SRC_PrivateHeaders_Component_Generated
 	${SRC_PacketBuffer_PrivateHeaders}
 	${SRC_PacketBufferBuilder_PrivateHeaders}
 	${SRC_DeviceUpdateOptions_PrivateHeaders}
 	PARENT_SCOPE
     )
 
-    set(SRC_Cpp_Packet_BufferGenerated
+    set(SRC_Cpp_Component_Generated
 	${SRC_PacketBuffer_Cpp}
 	${SRC_PacketBufferBuilder_Cpp}
-	${SRC_DeviceUpdateOptionsBuilder_Cpp}
 	${SRC_DeviceUpdateOptions_Cpp}
 	PARENT_SCOPE
     )

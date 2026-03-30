@@ -80,7 +80,6 @@ private:
     Bool allowDifferentRates;
     PacketReadyNotification notificationMethod;
     ListPtr<PacketReadyNotification> notificationMethodsList;
-    ContextPtr context;
 };
 
 END_NAMESPACE_OPENDAQ

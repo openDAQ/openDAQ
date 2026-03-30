@@ -59,45 +59,14 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  std::int64_t requiredCommonSampleRate,
                                  Bool startOnFullUnitOfDomain,
                                  SizeT minReadCount)
-    : tickOffsetTolerance(nullptr)
-    , requiredCommonSampleRate(requiredCommonSampleRate)
-    , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
-    , minReadCount(minReadCount)
-    , notificationMethod(PacketReadyNotification::None)
-    , notificationMethodsList(List<PacketReadyNotification>())
-    , valueReadType(valueReadType)
-    , domainReadType(domainReadType)
-    , readMode(mode)
-    , typeOfInputs(InputType::Unknown)
+    : MultiReaderImpl(makeBuilder(list,
+        valueReadType,
+        domainReadType,
+        mode,
+        requiredCommonSampleRate,
+        startOnFullUnitOfDomain,
+        minReadCount))
 {
-    this->internalAddRef();
-    try
-    {
-        checkListSizeAndCacheContext(list);
-        loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
-        typeOfInputs = sourceComponentsType(list);
-
-        if (typeOfInputs == InputType::Signals)
-            notificationMethod = PacketReadyNotification::SameThread;
-        else  // Ports
-            notificationMethod = PacketReadyNotification::Scheduler;
-
-        auto ports = createOrAdoptPorts(list);
-        configureAndStorePorts(ports, valueReadType, domainReadType, mode);
-
-        auto err = isDomainValid(ports);
-        if (OPENDAQ_FAILED(err))
-        {
-            invalid = true;
-            LOG_D("Multi reader signal domains are not valid: {}", getErrorInfoMessage(err));
-            clearErrorInfo();
-        }
-    }
-    catch (...)
-    {
-        this->releaseWeakRefOnException();
-        throw;
-    }
 }
 
 // From old
@@ -203,6 +172,51 @@ ListPtr<ISignal> MultiReaderImpl::getSignals() const
         list.pushBack(reader.connection.getSignal());
     }
     return list;
+}
+
+MultiReaderBuilderPtr MultiReaderImpl::makeBuilder(const ListPtr<IComponent>& list,
+                                                SampleType valueReadType,
+                                                SampleType domainReadType,
+                                                ReadMode mode,
+                                                std::int64_t requiredCommonSampleRate,
+                                                Bool startOnFullUnitOfDomain,
+                                                SizeT minReadCount)
+{
+    auto builder = MultiReaderBuilder();
+    auto typeOfInputs = sourceComponentsType(list);
+    auto notificationMethod = typeOfInputs == InputType::Signals ? PacketReadyNotification::SameThread : PacketReadyNotification::Scheduler;
+    if (typeOfInputs == InputType::Signals)
+    {
+        builder.addSignals(list);
+    }
+    else
+    {
+        builder.addInputPorts(list);
+    }
+    builder.setInputPortNotificationMethod(notificationMethod)
+        .setInputPortNotificationMethods(List<PacketReadyNotification>())
+        .setValueReadType(valueReadType)
+        .setDomainReadType(domainReadType)
+        .setReadMode(mode)
+        .setRequiredCommonSampleRate(requiredCommonSampleRate)
+        .setStartOnFullUnitOfDomain(startOnFullUnitOfDomain)
+        .setMinReadCount(minReadCount)
+        .setAllowDifferentSamplingRates(true)
+        .setTickOffsetTolerance(nullptr);
+    return builder;
+}
+
+MultiReaderImpl::InputType MultiReaderImpl::sourceComponentsType(const ListPtr<IComponent>& sources)
+{
+    if (sources.getCount() == 0)
+        return InputType::Unknown;
+
+    if (sources[0].supportsInterface(IInputPort::Id))
+        return InputType::Ports;
+    else if (sources[0].supportsInterface(ISignal::Id))
+        return InputType::Signals;
+    else
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid component type, only IInputPort and ISignal are supported.");
 }
 
 void MultiReaderImpl::checkListSizeAndCacheContext(const ListPtr<IComponent>& list)
@@ -370,19 +384,6 @@ ErrCode MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) co
     OPENDAQ_RETURN_IF_FAILED(checkDomainUnits(list));
     OPENDAQ_RETURN_IF_FAILED(checkReferenceDomainInfo(list));
     return OPENDAQ_SUCCESS;
-}
-
-MultiReaderImpl::InputType MultiReaderImpl::sourceComponentsType(const ListPtr<IComponent>& sources) const
-{
-    if (sources.getCount() == 0)
-        return InputType::Unknown;
-
-    if (sources[0].supportsInterface(IInputPort::Id))
-        return InputType::Ports;
-    else if (sources[0].supportsInterface(ISignal::Id))
-        return InputType::Signals;
-    else
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid component type, only IInputPort and ISignal are supported.");
 }
 
 std::list<SignalReader>::iterator MultiReaderImpl::findByGlobalId(const StringPtr& id)

@@ -94,6 +94,21 @@ private:
     using Clock = std::chrono::steady_clock;
     using Duration = Clock::duration;
 
+    static MultiReaderBuilderPtr makeBuilder(const ListPtr<IComponent>& list,
+                                          SampleType valueReadType,
+                                          SampleType domainReadType,
+                                          ReadMode mode,
+                                          std::int64_t requiredCommonSampleRate,
+                                          Bool startOnFullUnitOfDomain,
+                                          SizeT minReadCount);
+    enum class InputType
+    {
+        Unknown,
+        Signals,
+        Ports,
+    };
+    static InputType sourceComponentsType(const ListPtr<IComponent>& sources);
+
     // Checks for list size > 0, caches context of 1st component
     void checkListSizeAndCacheContext(const ListPtr<IComponent>& list);
     // Returns true if all ports are connected
@@ -159,13 +174,6 @@ private:
 
     MultiReaderStatusPtr createReaderStatus(const DictPtr<IString, IEventPacket>& eventPackets = nullptr, const NumberPtr& offset = nullptr) const;
 
-    enum class InputType
-    {
-        Unknown,
-        Signals,
-        Ports,
-    };
-    InputType sourceComponentsType(const ListPtr<IComponent>& sources) const;
     std::list<SignalReader>::iterator findByGlobalId(const StringPtr& id);
 
     std::mutex mutex;

@@ -2012,7 +2012,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
                 continue;
 
             // For non-object properties, use the internal clear function and let begin/endUpdate apply the changes.
-            const ErrCode errCode = clearPropertyValueInternal(prop.getName(), protectedAccess, true, true);
+            const ErrCode errCode = clearPropertyValueInternal(prop.getName(), protectedAccess, updateCount > 0);
             OPENDAQ_RETURN_IF_FAILED(errCode);
         }
     }

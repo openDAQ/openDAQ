@@ -48,6 +48,7 @@
 
 ## Misc
 
+- [#1126](https://github.com/openDAQ/openDAQ/pull/1126) Send multicast query in addition to unicast for discovery on IPv4 addresses. Allows discovery of IPv4 devices on different subnets.
 - [#921](https://github.com/openDAQ/openDAQ/pull/921) Allow getting last value on signals that are invisible
 - [#908](https://github.com/openDAQ/openDAQ/pull/908) Add support for Intel-LLVM compiler
 - [#903](https://github.com/openDAQ/openDAQ/pull/903) Enable suppressed type conversion warnings on Windows

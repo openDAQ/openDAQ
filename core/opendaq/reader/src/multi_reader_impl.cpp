@@ -59,45 +59,14 @@ MultiReaderImpl::MultiReaderImpl(const ListPtr<IComponent>& list,
                                  std::int64_t requiredCommonSampleRate,
                                  Bool startOnFullUnitOfDomain,
                                  SizeT minReadCount)
-    : tickOffsetTolerance(nullptr)
-    , requiredCommonSampleRate(requiredCommonSampleRate)
-    , startOnFullUnitOfDomain(startOnFullUnitOfDomain)
-    , minReadCount(minReadCount)
-    , notificationMethod(PacketReadyNotification::None)
-    , notificationMethodsList(List<PacketReadyNotification>())
-    , valueReadType(valueReadType)
-    , domainReadType(domainReadType)
-    , readMode(mode)
-    , typeOfInputs(InputType::Unknown)
+    : MultiReaderImpl(makeBuilder(list,
+        valueReadType,
+        domainReadType,
+        mode,
+        requiredCommonSampleRate,
+        startOnFullUnitOfDomain,
+        minReadCount))
 {
-    this->internalAddRef();
-    try
-    {
-        checkListSizeAndCacheContext(list);
-        loggerComponent = context.getLogger().getOrAddComponent("MultiReader");
-        typeOfInputs = sourceComponentsType(list);
-
-        if (typeOfInputs == InputType::Signals)
-            notificationMethod = PacketReadyNotification::SameThread;
-        else  // Ports
-            notificationMethod = PacketReadyNotification::Scheduler;
-
-        auto ports = createOrAdoptPorts(list);
-        configureAndStorePorts(ports, valueReadType, domainReadType, mode);
-
-        auto err = isDomainValid(ports);
-        if (OPENDAQ_FAILED(err))
-        {
-            invalid = true;
-            LOG_D("Multi reader signal domains are not valid: {}", getErrorInfoMessage(err));
-            clearErrorInfo();
-        }
-    }
-    catch (...)
-    {
-        this->releaseWeakRefOnException();
-        throw;
-    }
 }
 
 // From old
@@ -203,6 +172,51 @@ ListPtr<ISignal> MultiReaderImpl::getSignals() const
         list.pushBack(reader.connection.getSignal());
     }
     return list;
+}
+
+MultiReaderBuilderPtr MultiReaderImpl::makeBuilder(const ListPtr<IComponent>& list,
+                                                SampleType valueReadType,
+                                                SampleType domainReadType,
+                                                ReadMode mode,
+                                                std::int64_t requiredCommonSampleRate,
+                                                Bool startOnFullUnitOfDomain,
+                                                SizeT minReadCount)
+{
+    auto builder = MultiReaderBuilder();
+    auto typeOfInputs = sourceComponentsType(list);
+    auto notificationMethod = typeOfInputs == InputType::Signals ? PacketReadyNotification::SameThread : PacketReadyNotification::Scheduler;
+    if (typeOfInputs == InputType::Signals)
+    {
+        builder.addSignals(list);
+    }
+    else
+    {
+        builder.addInputPorts(list);
+    }
+    builder.setInputPortNotificationMethod(notificationMethod)
+        .setInputPortNotificationMethods(List<PacketReadyNotification>())
+        .setValueReadType(valueReadType)
+        .setDomainReadType(domainReadType)
+        .setReadMode(mode)
+        .setRequiredCommonSampleRate(requiredCommonSampleRate)
+        .setStartOnFullUnitOfDomain(startOnFullUnitOfDomain)
+        .setMinReadCount(minReadCount)
+        .setAllowDifferentSamplingRates(true)
+        .setTickOffsetTolerance(nullptr);
+    return builder;
+}
+
+MultiReaderImpl::InputType MultiReaderImpl::sourceComponentsType(const ListPtr<IComponent>& sources)
+{
+    if (sources.getCount() == 0)
+        return InputType::Unknown;
+
+    if (sources[0].supportsInterface(IInputPort::Id))
+        return InputType::Ports;
+    else if (sources[0].supportsInterface(ISignal::Id))
+        return InputType::Signals;
+    else
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid component type, only IInputPort and ISignal are supported.");
 }
 
 void MultiReaderImpl::checkListSizeAndCacheContext(const ListPtr<IComponent>& list)
@@ -381,19 +395,6 @@ ErrCode MultiReaderImpl::isDomainValid(const ListPtr<IInputPortConfig>& list) co
     OPENDAQ_RETURN_IF_FAILED(checkDomainUnits(list));
     OPENDAQ_RETURN_IF_FAILED(checkReferenceDomainInfo(list));
     return OPENDAQ_SUCCESS;
-}
-
-MultiReaderImpl::InputType MultiReaderImpl::sourceComponentsType(const ListPtr<IComponent>& sources) const
-{
-    if (sources.getCount() == 0)
-        return InputType::Unknown;
-
-    if (sources[0].supportsInterface(IInputPort::Id))
-        return InputType::Ports;
-    else if (sources[0].supportsInterface(ISignal::Id))
-        return InputType::Signals;
-    else
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid component type, only IInputPort and ISignal are supported.");
 }
 
 std::list<SignalReader>::iterator MultiReaderImpl::findByGlobalId(const StringPtr& id)
@@ -939,7 +940,7 @@ ErrCode MultiReaderImpl::skipSamples(SizeT* count, IMultiReaderStatus** status)
     if (minReadCount > *count)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be larger than minReadCount.");
 
-    const SizeT samplesToRead = *count;
+    const SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
     prepare(nullptr, samplesToRead, milliseconds(0));
 
     auto statusPtr = readPackets();
@@ -961,9 +962,6 @@ SizeT MultiReaderImpl::getMinSamplesAvailable(bool acrossDescriptorChanges) cons
             continue;
 
         auto sigSamples = signal.getAvailable(acrossDescriptorChanges);
-
-        if (!signal.info.dataPacket.assigned())
-            sigSamples = 0;
 
         if (sigSamples < min)
         {
@@ -1094,8 +1092,7 @@ bool MultiReaderImpl::eventOrGapInQueue() const
 
 bool MultiReaderImpl::dataPacketsOrEventReady()
 {
-    bool hasEventPacket = false;
-    bool hasDataPacket = true;
+    bool allHaveDataPacket = true;
 
     for (auto& signal : signals)
     {
@@ -1107,10 +1104,10 @@ bool MultiReaderImpl::dataPacketsOrEventReady()
             return true;
         }
 
-        hasDataPacket &= (signal.getAvailable(true) != 0);
+        allHaveDataPacket &= (signal.getAvailable(true) != 0);
     }
 
-    return hasEventPacket || hasDataPacket;
+    return allHaveDataPacket;
 }
 
 NumberPtr MultiReaderImpl::calculateOffset() const
@@ -1224,7 +1221,8 @@ MultiReaderStatusPtr MultiReaderImpl::readPackets()
         auto start = std::chrono::steady_clock::now();
 #endif
 
-        readSamplesAndSetRemainingSamples(toRead);
+        readSamples(toRead);
+        remainingSamplesToRead -= toRead;
 
 #if (OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_TRACE)
         auto end = std::chrono::steady_clock::now();
@@ -1329,24 +1327,9 @@ ErrCode MultiReaderImpl::disconnected(IInputPort* port)
 ErrCode MultiReaderImpl::getEmpty(Bool* empty)
 {
     OPENDAQ_PARAM_NOT_NULL(empty);
-    bool hasDataPacket = true;
 
     std::scoped_lock lock(mutex);
-    for (auto& signal : signals)
-    {
-        if (signal.unused)
-            continue;
-
-        if (signal.isFirstPacketEvent())
-        {
-            *empty = false;
-            return OPENDAQ_SUCCESS;
-        }
-
-        hasDataPacket &= (signal.getAvailable(true) != 0);
-    }
-
-    *empty = !hasDataPacket;
+    *empty = !dataPacketsOrEventReady();
     return OPENDAQ_SUCCESS;
 }
 
@@ -1454,12 +1437,6 @@ void MultiReaderImpl::readSamples(SizeT samples)
     }
 }
 
-void MultiReaderImpl::readSamplesAndSetRemainingSamples(SizeT samples)
-{
-    readSamples(samples);
-    remainingSamplesToRead -= samples;
-}
-
 void MultiReaderImpl::readDomainStart()
 {
     assert(getSyncStatus() != SyncStatus::Synchronized);
@@ -1518,15 +1495,16 @@ void MultiReaderImpl::sync()
             continue;
 
         system_clock::rep firstSampleAbsoluteTime;
-        synced = signal.sync(*commonStart, &firstSampleAbsoluteTime) && synced;
+        bool success = signal.sync(*commonStart, &firstSampleAbsoluteTime) && synced;
 
-        if (synced)
+        if (success)
         {
             if (earliestTime > firstSampleAbsoluteTime)
                 earliestTime = firstSampleAbsoluteTime;
             if (latestTime < firstSampleAbsoluteTime)
                 latestTime = firstSampleAbsoluteTime;
         }
+        synced = synced && success;
     }
 
     if (synced && tickOffsetTolerance.assigned())

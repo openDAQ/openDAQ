@@ -17,7 +17,7 @@
 #pragma once
 
 #include <coreobjects/property_object.h>
-#include <opendaq/tags.h>
+#include <opendaq/device_update_options.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -40,21 +40,16 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
 {
     /*!
-     * @brief Returns whether the re-add devices is enabled. If enabled, the devices will be re-added in update process.
-     * @param[out] enabled The flag indicating whether the re-add devices is enabled.
-     *
-     * The configuration is set from the property `ReAddDevices` of configuration object.
+     * @brief Gets the device update options object that allows for specifying how a device and its subdevices are to be updated.
+     * @param options The device update options object.
      */
-    virtual ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) = 0;
-
-    // [returnSelf]
+    virtual ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) = 0;
+    
     /*!
-     * @brief Sets the re-add devices enabled flag.
-     * @param enabled The flag indicating whether the re-add devices is enabled.
-     *
-     * The configuration is set to the property `ReAddDevices` of configuration object.
+     * @brief Sets the device update options object that allows for specifying how a device and its subdevices are to be updated.
+     * @param options The device update options object.
      */
-    virtual ErrCode INTERFACE_FUNC setReAddDevicesEnabled(Bool enabled) = 0;
+    virtual ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) = 0;
 };
 /*!@}*/
 

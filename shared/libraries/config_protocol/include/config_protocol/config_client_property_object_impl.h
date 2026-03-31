@@ -27,6 +27,7 @@
 #include <opendaq/context_factory.h>
 #include <config_protocol/errors.h>
 #include <config_protocol/config_client_property.h>
+#include <opendaq/component_update_context_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -381,16 +382,27 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    const ErrCode errCode = daqTry([this, &obj]()
+    const ErrCode errCode = daqTry([this, &obj, &context]()
     {
         StringPtr serialized;
+        ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
         checkErrorInfo(obj->toJson(&serialized));
-        clientComm->update(remoteGlobalId, serialized, this->getPath());
+
+        const auto protocolVersion = this->clientComm->getProtocolVersion();
+        if (protocolVersion < 20)
+            clientComm->update(remoteGlobalId, serialized, this->getPath(), nullptr);
+        else
+        {
+            auto serverContext = clientComm->update(remoteGlobalId, serialized, this->getPath(), contextPtr);
+            if (serverContext.assigned())
+                contextPtr.overrideState(serverContext);
+        }
     });
+
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }

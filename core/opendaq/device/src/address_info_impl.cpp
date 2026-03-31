@@ -20,9 +20,17 @@ typename InterfaceToSmartPtr<T>::SmartPtr AddressInfoImpl::getTypedProperty(cons
 AddressInfoImpl::AddressInfoImpl()
     : Super()
 {
+    const auto reachabilityStatusOptions = Dict<IInteger, IString>(
+        {
+            {static_cast<int>(AddressReachabilityStatus::Unknown), "Unknown"},
+            {static_cast<int>(AddressReachabilityStatus::Reachable), "Reachable"},
+            {static_cast<int>(AddressReachabilityStatus::Unreachable), "Unreachable"},
+        }
+    );
+
     Super::addProperty(StringProperty(Address, ""));
     Super::addProperty(StringProperty(Type, ""));
-    Super::addProperty(IntProperty(ReachabilityStatus, static_cast<int>(AddressReachabilityStatus::Unknown)));
+    Super::addProperty(SparseSelectionProperty(ReachabilityStatus,reachabilityStatusOptions, static_cast<int>(AddressReachabilityStatus::Unknown)));
     Super::addProperty(StringProperty(ConnectionString, ""));
 }
 

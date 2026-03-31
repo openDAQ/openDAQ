@@ -121,6 +121,7 @@ DeviceTypePtr RefDeviceImpl::CreateType(const ModuleInfoPtr& moduleInfo)
     defaultConfig.addProperty(BoolProperty("EnableLogging", False));
     defaultConfig.addProperty(StringProperty("LoggingPath", "ref_device_simulator.log"));
     defaultConfig.addProperty(StringProperty("Name", ""));
+    defaultConfig.addProperty(StringProperty("LocalId", ""));
     defaultConfig.addProperty(BoolProperty("UsePacketBuffer", False));
 
     auto deviceType = DeviceType("daqref",

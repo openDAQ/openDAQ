@@ -160,17 +160,19 @@ void ConfigProtocolClientComm::clearProtectedPropertyValue(const std::string& gl
     parseRpcOrRejectReply(clearPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
-void ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path)
+ComponentUpdateContextPtr ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path, const ComponentUpdateContextPtr& context)
 {
     auto dict = Dict<IString, IBaseObject>();
     dict.set("ComponentGlobalId", String(globalId));
     dict.set("Serialized", String(serialized));
     dict.set("Path", String(path));
+    if (context.assigned())
+        dict.set("UpdateContext", context);
     auto updateRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "Update", dict);
     const auto updateRpcReplyPacketBuffer = sendRequestCallback(updateRpcRequestPacketBuffer );
 
     // ReSharper disable once CppExpressionWithoutSideEffects
-    parseRpcOrRejectReply(updateRpcReplyPacketBuffer.parseRpcRequestOrReply());
+    return parseRpcOrRejectReply(updateRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
 BaseObjectPtr ConfigProtocolClientComm::callProperty(const std::string& globalId,

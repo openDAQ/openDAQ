@@ -2780,9 +2780,9 @@ TEST_F(PropertyObjectTest, InheritedLocking2)
     ASSERT_EQ(objInternal, objInternal1.getMutexOwner());
     ASSERT_EQ(objInternal, objInternal2.getMutexOwner());
 }
-// --- clearValues / clearPropertyValue on nested property objects ---
+// --- clearPropertyValues / clearPropertyValue on nested property objects ---
 
-TEST_F(PropertyObjectTest, ClearValuesRecursiveNestedObject)
+TEST_F(PropertyObjectTest, ClearPropertyValuesRecursiveNestedObject)
 {
     // Build a 3-level deep hierarchy:
     //   root
@@ -2818,8 +2818,8 @@ TEST_F(PropertyObjectTest, ClearValuesRecursiveNestedObject)
     ASSERT_EQ(root.getPropertyValue("level1.level2.String"), "changed");
     ASSERT_DOUBLE_EQ(root.getPropertyValue("level1.level2.level3.Float"), 2.71);
 
-    // clearValues on root resets everything recursively
-    root.clearValues();
+    // clearPropertyValues on root resets everything recursively
+    root.clearPropertyValues();
 
     ASSERT_EQ(root.getPropertyValue("RootStr"), "root");
     ASSERT_EQ(root.getPropertyValue("level1.Int"), 10);
@@ -2827,7 +2827,7 @@ TEST_F(PropertyObjectTest, ClearValuesRecursiveNestedObject)
     ASSERT_DOUBLE_EQ(root.getPropertyValue("level1.level2.level3.Float"), 3.14);
 }
 
-TEST_F(PropertyObjectTest, ClearValuesAtIntermediateLevel)
+TEST_F(PropertyObjectTest, ClearPropertyValuesAtIntermediateLevel)
 {
     const auto level3 = PropertyObject();
     level3.addProperty(IntProperty("DeepInt", 7));
@@ -2849,9 +2849,9 @@ TEST_F(PropertyObjectTest, ClearValuesAtIntermediateLevel)
     root.setPropertyValue("level1.level2.Str", "bar");
     root.setPropertyValue("level1.level2.level3.DeepInt", 42);
 
-    // clearValues on level2 only resets level2 and its children
+    // clearPropertyValues on level2 only resets level2 and its children
     const PropertyObjectPtr l2 = root.getPropertyValue("level1.level2");
-    l2.clearValues();
+    l2.clearPropertyValues();
 
     // root and level1 unchanged
     ASSERT_EQ(root.getPropertyValue("RootInt"), 200);
@@ -2861,7 +2861,7 @@ TEST_F(PropertyObjectTest, ClearValuesAtIntermediateLevel)
     ASSERT_EQ(root.getPropertyValue("level1.level2.level3.DeepInt"), 7);
 }
 
-TEST_F(PropertyObjectTest, ClearValuesNestedMixedTypes)
+TEST_F(PropertyObjectTest, ClearPropertyValuesNestedMixedTypes)
 {
     const auto child1 = PropertyObject();
     child1.addProperty(IntProperty("Int", 1));
@@ -2884,7 +2884,7 @@ TEST_F(PropertyObjectTest, ClearValuesNestedMixedTypes)
     root.setPropertyValue("child2.Int", 20);
     root.setPropertyValue("child2.Str", "changed");
 
-    root.clearValues();
+    root.clearPropertyValues();
 
     ASSERT_EQ(root.getPropertyValue("child1.Int"), 1);
     ASSERT_DOUBLE_EQ(root.getPropertyValue("child1.Float"), 1.1);

@@ -133,7 +133,7 @@ public:
     ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
-    ErrCode INTERFACE_FUNC clearValues() override;
+    ErrCode INTERFACE_FUNC clearPropertyValues() override;
 
     ErrCode INTERFACE_FUNC getProperty(IString* propertyName, IProperty** property) override;
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;

@@ -272,7 +272,7 @@ TEST_F(CoreEventTest, PropertyObjectCleared)
 
     component.setPropertyValue("String", "bar");
     component.setPropertyValue("Int", 2);
-    component.clearValues();
+    component.clearPropertyValues();
 
     ASSERT_EQ(component.getPropertyValue("String"), "foo");
     ASSERT_EQ(component.getPropertyValue("Int"), "1");

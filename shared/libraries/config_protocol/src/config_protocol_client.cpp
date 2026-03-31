@@ -233,13 +233,13 @@ void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std:
     parseRpcOrRejectReply(setPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
-void ConfigProtocolClientComm::clearValues(const std::string& globalId, const std::string& path)
+void ConfigProtocolClientComm::clearPropertyValues(const std::string& globalId, const std::string& path)
 {
     auto params = Dict<IString, IBaseObject>();
     if (!path.empty())
         params.set("Path", String(path));
 
-    sendComponentCommand(globalId, ClientCommand("ClearValues", 22), params);    
+    sendComponentCommand(globalId, ClientCommand("ClearPropertyValues", 22), params);    
 }
 
 DictPtr<IString, IFunctionBlockType> ConfigProtocolClientComm::getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb)

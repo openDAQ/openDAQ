@@ -412,11 +412,9 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
      *
      * This function clears the values by internally invoking `clearPropertyValue(...)` for all properties returned by
      * `getAllProperties()`; for object-type properties it therefore clears their child properties as well.
-     *
-     * @note If the Property object is currently performing a batched update (between `beginUpdate` and `endUpdate`),
-     * core events for the cleared values are suppressed in the same way as with `clearPropertyValue(...)`.
+     * Read-only properties and frozen objects are skipped.
      */
-    virtual ErrCode INTERFACE_FUNC clearValues() = 0;
+    virtual ErrCode INTERFACE_FUNC clearPropertyValues() = 0;
 };
 
 /*!@}*/

@@ -45,18 +45,18 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectProtected, IBaseObject)
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) = 0;
 
     /*!
-    * @brief Sets a Selection property value by the selection item value. Does not fail if the property is read-only.
-    * @param propertyName The name of the Property.
-    * @param value The selection value to set (must be one of the Property's selection values).
-    */
+     * @brief Sets a Selection property value by the selection item value. Does not fail if the property is read-only.
+     * @param propertyName The name of the Property.
+     * @param value The selection value to set (must be one of the Property's selection values).
+     */
     virtual ErrCode INTERFACE_FUNC setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value) = 0;
 
     /*!
-    * @brief Clears values of all properties contained in the Property object, including nested child properties.
-    *
-    * This function behaves similarly to `IPropertyObject::clearValues()`, but does not fail if the property is Read-only.
-    */
-    virtual ErrCode INTERFACE_FUNC clearValuesProtected() = 0;
+     * @brief Clears values of all properties contained in the Property object, including nested child properties.
+     *
+     * This function behaves similarly to `IPropertyObject::clearPropertyValues()`, but also clears read-only properties.
+     */
+    virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValues() = 0;
 };
 
 /*!

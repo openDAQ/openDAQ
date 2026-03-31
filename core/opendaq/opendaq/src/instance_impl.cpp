@@ -668,9 +668,9 @@ ErrCode InstanceImpl::clearPropertyValue(IString* propertyName)
     return rootDevice->clearPropertyValue(propertyName);
 }
 
-ErrCode InstanceImpl::clearValues()
+ErrCode InstanceImpl::clearPropertyValues()
 {
-    return rootDevice->clearValues();
+    return rootDevice->clearPropertyValues();
 }
 
 ErrCode InstanceImpl::getProperty(IString* propertyName, IProperty** property)

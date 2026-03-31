@@ -149,7 +149,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
     addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue);
     addHandler<ComponentPtr>("Update", &ConfigServerComponent::update);
-    addHandler<ComponentPtr>("ClearValues", &ConfigServerComponent::clearValues);
+    addHandler<ComponentPtr>("ClearPropertyValues", &ConfigServerComponent::clearPropertyValues);
     
     addHandler<ComponentPtr>("GetAvailableFunctionBlockTypes", &ConfigServerComponent::getAvailableFunctionBlockTypes);
     addHandler<ComponentPtr>("AddFunctionBlock", &ConfigServerComponent::addFunctionBlock);

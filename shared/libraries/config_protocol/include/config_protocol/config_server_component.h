@@ -39,7 +39,7 @@ public:
     static BaseObjectPtr getSuggestedValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr getSelectionValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr callProperty(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
-    static BaseObjectPtr clearValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr clearPropertyValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
 
     // Component methods
     static BaseObjectPtr beginUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
@@ -229,7 +229,7 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerComponent::clearValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params)
+inline BaseObjectPtr ConfigServerComponent::clearPropertyValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectLockedComponent(component);
     ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
@@ -241,7 +241,7 @@ inline BaseObjectPtr ConfigServerComponent::clearValues(const RpcContext& contex
     else
         obj = component;
 
-    obj.clearValues();
+    obj.clearPropertyValues();
     return nullptr;
 }
 

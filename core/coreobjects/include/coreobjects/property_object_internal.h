@@ -90,21 +90,6 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      * strategy is not `OwnLock`, returns the closest ancestor with the `OwnLock` strategy.
      */
     virtual ErrCode INTERFACE_FUNC getMutexOwner(IPropertyObjectInternal** owner) = 0;
-
-    /*!
-    * @brief Clears values of all properties contained in the Property object without acquiring the lock.
-    *
-    * The caller is responsible for thread-safety.
-    */
-    virtual ErrCode INTERFACE_FUNC clearValuesNoLock() = 0;
-
-    /*!
-    * @brief Clears values of all properties contained in the Property object without acquiring the lock.
-    *
-    * The clearing is performed with protected access (read-only properties are allowed to be cleared).
-    * The caller is responsible for thread-safety.
-    */
-    virtual ErrCode INTERFACE_FUNC clearValuesProtectedNoLock() = 0;
 };
 
 /*!@}*/

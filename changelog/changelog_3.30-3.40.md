@@ -15,8 +15,7 @@
 - [#1079](https://github.com/openDAQ/openDAQ/pull/1079) Add support for parallel RPC calls in native configuration protocol server
 - [#1088](https://github.com/openDAQ/openDAQ/pull/1088) Enable bundling of sent core events within the native configuration protocol
 - [#1097](https://github.com/openDAQ/openDAQ/pull/1097) Implement value based selection list
-- [#1124](https://github.com/openDAQ/openDAQ/pull/1124) Implement clearValues() for property objects
-
+- [#1124](https://github.com/openDAQ/openDAQ/pull/1124) Implement clearPropertyValues() for property objects
 
 ## Python
 

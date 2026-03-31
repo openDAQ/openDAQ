@@ -1161,17 +1161,17 @@ TEST_F(ConfigPropertyObjectNestedDevicesTest, OnReadCallbackDeviceInfoNestedDevi
     }
 }
 
-// Client calls clearValues() on a nested child object obtained via dot-access path
-TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClearValuesAtPath)
+// Client calls clearPropertyValues() on a nested child object obtained via dot-access path
+TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClearPropertyValuesAtPath)
 {
     clientDevice.setPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String", "new_string");
     clientDevice.setPropertyValue("ObjectProperty.child1.child1_1.Float", 2.1);
     clientDevice.setPropertyValue("ObjectProperty.child1.child1_2.Int", 2);
     clientDevice.setPropertyValue("ObjectProperty.child2.child2_1.Ratio", Ratio(1, 5));
 
-    // clearValues on child1 subtree only
+    // clearPropertyValues on child1 subtree only
     const PropertyObjectPtr clientChild1 = clientDevice.getPropertyValue("ObjectProperty.child1");
-    clientChild1.clearValues();
+    clientChild1.clearPropertyValues();
 
     // child1 subtree reset
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
@@ -1186,8 +1186,8 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClearValuesAtPath)
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 5));
 }
 
-// Server calls clearValues() — client reflects all resets including deeply nested nodes
-TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearValues)
+// Server calls clearPropertyValues() — client reflects all resets including deeply nested nodes
+TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearPropertyValues)
 {
     serverDevice.setPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String", "new_string");
     serverDevice.setPropertyValue("ObjectProperty.child1.child1_1.Float", 2.1);
@@ -1196,7 +1196,7 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearValues)
 
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "new_string");
 
-    serverDevice.clearValues();
+    serverDevice.clearPropertyValues();
 
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_DOUBLE_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 1.1);
@@ -1204,17 +1204,17 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearValues)
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 2));
 }
 
-// Server calls clearValues() on a subtree — only that subtree is reflected on client
-TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearValuesAtPath)
+// Server calls clearPropertyValues() on a subtree — only that subtree is reflected on client
+TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearPropertyValuesAtPath)
 {
     serverDevice.setPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String", "new_string");
     serverDevice.setPropertyValue("ObjectProperty.child1.child1_1.Float", 2.1);
     serverDevice.setPropertyValue("ObjectProperty.child1.child1_2.Int", 2);
     serverDevice.setPropertyValue("ObjectProperty.child2.child2_1.Ratio", Ratio(1, 5));
 
-    // clearValues on child1_2 subtree only
+    // clearPropertyValues on child1_2 subtree only
     const PropertyObjectPtr serverChild1_2 = serverDevice.getPropertyValue("ObjectProperty.child1.child1_2");
-    serverChild1_2.clearValues();
+    serverChild1_2.clearPropertyValues();
 
     // child1_2 and its children reset
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
@@ -1224,17 +1224,17 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectServerClearValuesAtPath)
     ASSERT_EQ(clientDevice.getPropertyValue("ObjectProperty.child2.child2_1.Ratio"), Ratio(1, 5));
 }
 
-// clearValues on deeply nested leaf container
-TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClearValuesDeeplyNested)
+// clearPropertyValues on deeply nested leaf container
+TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClearPropertyValuesDeeplyNested)
 {
     clientDevice.setPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String", "new_string");
     clientDevice.setPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.Selection", 1);
     clientDevice.setPropertyValue("ObjectProperty.child1.child1_2.Int", 2);
     clientDevice.setPropertyValue("ObjectProperty.child1.child1_1.Float", 2.1);
 
-    // clearValues on the deepest child1_2_1 object only
+    // clearPropertyValues on the deepest child1_2_1 object only
     const PropertyObjectPtr child1_2_1 = clientDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1");
-    child1_2_1.clearValues();
+    child1_2_1.clearPropertyValues();
 
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.String"), "String");
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.child1_2_1.Selection"), 0);

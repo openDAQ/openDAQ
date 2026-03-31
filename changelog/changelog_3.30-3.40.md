@@ -32,6 +32,7 @@
 ## Bug fixes
 
 - [#1122](https://github.com/openDAQ/openDAQ/pull/1122) Revert endUpdate nested property application order back to bottom-up; Batch update values on target child object when using dot notation
+- [#1116](https://github.com/openDAQ/openDAQ/pull/1116) Fix set/get for dynamically added object properties via Native Client
 - [#1093](https://github.com/openDAQ/openDAQ/pull/1093) Device info - serialize only editable properties
 - [#1108](https://github.com/openDAQ/openDAQ/pull/1108) Add a patch for pybind11 to avoid leaking in python bindings.
 - [#1104](https://github.com/openDAQ/openDAQ/pull/1104) Fix path configuration option getting ignored by Parquet and CSV recorders in some cases.

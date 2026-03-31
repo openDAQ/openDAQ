@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 17.03.2026 13:26:46.
+//     RTGen (CGenerator v0.7.0) on 31.03.2026 11:20:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -135,6 +135,11 @@ daqErrCode daqPropertyObject_findProperties(daqPropertyObject* self, daqList** p
 daqErrCode daqPropertyObject_setPropertySelectionValue(daqPropertyObject* self, daqString* propertyName, daqBaseObject* value)
 {
     return reinterpret_cast<daq::IPropertyObject*>(self)->setPropertySelectionValue(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IBaseObject*>(value));
+}
+
+daqErrCode daqPropertyObject_clearPropertyValues(daqPropertyObject* self)
+{
+    return reinterpret_cast<daq::IPropertyObject*>(self)->clearPropertyValues();
 }
 
 daqErrCode daqPropertyObject_createPropertyObject(daqPropertyObject** obj)

@@ -2,6 +2,8 @@
 #include <coretypes/impl.h>
 
 #include "mock_module.h"
+#include <opendaq/opendaq_config.h>
+#include <opendaq/version.h>
 
 extern "C"
 daq::ErrCode PUBLIC_EXPORT createModule(daq::IModule** module)
@@ -12,7 +14,18 @@ daq::ErrCode PUBLIC_EXPORT createModule(daq::IModule** module)
 }
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT checkModuleDependencies()
+daq::ErrCode PUBLIC_EXPORT checkDependencies()
 {
+    return OPENDAQ_SUCCESS;
+}
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT getCoreVersionMetadata(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+{
+    enumerateFieldFunc("major", OPENDAQ_OPENDAQ_MAJOR_VERSION_STR, userData);
+    enumerateFieldFunc("minor", OPENDAQ_OPENDAQ_MINOR_VERSION_STR, userData);
+    enumerateFieldFunc("patch", OPENDAQ_OPENDAQ_PATCH_VERSION_STR, userData);
+    enumerateFieldFunc("branch", OPENDAQ_OPENDAQ_BRANCH_NAME, userData);
+    enumerateFieldFunc("sha", OPENDAQ_OPENDAQ_REVISION_HASH, userData);
     return OPENDAQ_SUCCESS;
 }

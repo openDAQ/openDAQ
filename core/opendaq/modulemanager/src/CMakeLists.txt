@@ -47,7 +47,6 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/module_factory.h
         ${SDK_HEADERS_DIR}/module_check_dependencies.h
         ${SDK_SRC_DIR}/module_impl.cpp
-        ${SDK_SRC_DIR}/module_check_dependencies.cpp
     )
 
     source_group("module_manager//manager" FILES
@@ -138,7 +137,6 @@ set(SRC_Cpp_Component
     icmp_ping.cpp
     mdns_discovery_server_impl.cpp
     module_info_impl.cpp
-    module_check_dependencies.cpp
     module_manager.natvis
     PARENT_SCOPE
 )

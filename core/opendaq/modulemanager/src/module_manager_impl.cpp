@@ -22,7 +22,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <map>
-#include <opendaq/module_check_dependencies.h>
+#include <opendaq/version.h>
 #include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
@@ -45,8 +45,7 @@ static OrphanedModules orphanedModules;
 
 static constexpr std::chrono::milliseconds DefaultrescanTimer = 5000ms;
 static constexpr char createModuleFactory[] = "createModule";
-static constexpr char checkDependenciesObsoleteFunc[] = "checkDependencies";
-static constexpr char checkDependenciesFunc[] = "checkModuleDependencies";
+static constexpr char checkDependenciesFunc[] = "checkDependencies";
 static constexpr char getCoreVersionMetadataFunc[] = "getCoreVersionMetadata";
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
 static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode);
@@ -2041,6 +2040,14 @@ static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
 #endif
 }
 
+// C-style wrapper
+static void enumerateMetadataFieldToDict(const char* key, const char* value, void* userData)
+{
+    auto dictRawPtr = static_cast<IDict*>(userData);
+    DictPtr<IString, IString> dictPtr = DictPtr<IString, IString>::Borrow(dictRawPtr);
+    dictPtr[key] = value;
+}
+
 ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode)
 {
     LOG_T("Loading module \"{}\".", path.string());
@@ -2058,66 +2065,54 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         );
     }
 
-    if (moduleLibrary.has(checkDependenciesObsoleteFunc) && !moduleLibrary.has(checkDependenciesFunc))
+    if (moduleLibrary.has(checkDependenciesFunc))
     {
-        // The check always fails for modules built with older openDAQ which use default implementation of obsolete checking dependencies function
-        // However, if the obsolete checking dependencies function has custom implementation (with older or modern openDAQ SDK) - it may succeseed
-        using CheckDependenciesObsoleteFunc = ErrCode (*)(IString**);
-        CheckDependenciesObsoleteFunc checkDepsObsolete = moduleLibrary.get<ErrCode(IString**)>(checkDependenciesObsoleteFunc);
+        using CheckDependenciesFunc = ErrCode (*)(IString**);
+        CheckDependenciesFunc checkDeps = moduleLibrary.get<ErrCode(IString**)>(checkDependenciesFunc);
 
-        LOG_W("Checking dependencies of \"{}\" via obsolete \"{}\" function because \"{}\" is absent.", path.string(), checkDependenciesObsoleteFunc, checkDependenciesFunc);
+        LOG_T("Checking dependencies of \"{}\" via \"{}\" ", path.string(), checkDependenciesFunc);
 
-        StringPtr errMsg;
-        const ErrCode errCode = checkDepsObsolete(&errMsg);
+        StringPtr logMsg;
+        const ErrCode errCode = checkDeps(&logMsg);
         if (OPENDAQ_FAILED(errCode))
         {
-            LOG_T("Failed to check dependencies for \"{}\"", relativePath);
             DAQ_EXTEND_ERROR_INFO(
                 errCode,
                 OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
                 fmt::format(R"(Module "{}" failed dependencies check via "{}": {})",
                             path.string(),
-                            checkDependenciesObsoleteFunc,
-                            errMsg.assigned() ? errMsg : ""
+                            checkDependenciesFunc,
+                            logMsg.assigned() ? logMsg : ""
                 )
             );
             checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
         }
-    }
-
-    if (moduleLibrary.has(checkDependenciesFunc))
-    {
-        using CheckDependenciesFunc = ErrCode (*)();
-        CheckDependenciesFunc checkDeps = moduleLibrary.get<ErrCode()>(checkDependenciesFunc);
-
-        LOG_T("Checking dependencies of \"{}\" via \"{}\".", path.string(), checkDependenciesFunc);
-
-        const ErrCode errCode = checkDeps();
-        if (OPENDAQ_FAILED(errCode))
+        else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
         {
-            LOG_T("Failed to check dependencies for \"{}\"", relativePath);
-            DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES, fmt::format(R"(Module "{}" failed dependencies check via "{}")", path.string(), checkDependenciesFunc));
-            checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
+            LOG_W("{}", logMsg);
         }
     }
 
     if (moduleLibrary.has(getCoreVersionMetadataFunc))
     {
+        using GetCoreVersionMetadataFunc = ErrCode (*)(EnumerateMetadataFieldFunc, void*);
         GetCoreVersionMetadataFunc getMetadata = moduleLibrary.get<ErrCode(EnumerateMetadataFieldFunc, void*)>(getCoreVersionMetadataFunc);
-        StringPtr logMessage;
-        const ErrCode errCode = daqCoreValidateVersionMetadata(getMetadata, &logMessage);
-        if (logMessage.assigned())
+
+        auto coreVersionMetadataDict = Dict<IString, IString>();
+        const ErrCode errCode = getMetadata(&enumerateMetadataFieldToDict, coreVersionMetadataDict.getObject());
+
+        if (OPENDAQ_SUCCEEDED(errCode))
         {
-            if (errCode == OPENDAQ_SUCCESS)
+            for (const auto& [key, value] : coreVersionMetadataDict)
             {
-                LOG_T("{}", logMessage);
-            }
-            else if (errCode == OPENDAQ_PARTIAL_SUCCESS)
-            {
-                LOG_W("{}", logMessage);
+                LOG_T("Module \'{}\' was built with SDK version \"{}\": \"{}\"", path.string(), key, value);
             }
         }
-        checkErrorInfo(errCode);
+        else
+        {
+            LOG_W("Module \'{}\' failed to get SDK core version: {}", path.string(), getErrorInfoMessage(errCode));
+            daqClearErrorInfo();
+        }
     }
 
     if (!moduleLibrary.has(createModuleFactory))

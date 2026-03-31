@@ -8,21 +8,73 @@
 #include <opendaq/version.h>
 #include <coretypes/version.h>
 #include <coreobjects/version.h>
+#include <coretypes/dictobject_factory.h>
 
 using namespace daq;
 
 using CheckDependenciesTest = testing::Test;
 
-TEST_F(CheckDependenciesTest, ObsoleteGetVersionFailure)
+TEST_F(CheckDependenciesTest, GetVersion)
 {
     unsigned int major;
     unsigned int minor;
     unsigned int revision;
     daqOpenDaqGetVersion(&major, &minor, &revision);
 
-    ASSERT_EQ(major, 0u);
-    ASSERT_EQ(minor, 0u);
-    ASSERT_EQ(revision, 0u);
+    ASSERT_EQ(major, OPENDAQ_OPENDAQ_MAJOR_VERSION);
+    ASSERT_EQ(minor, OPENDAQ_OPENDAQ_MINOR_VERSION);
+    ASSERT_EQ(revision, OPENDAQ_OPENDAQ_PATCH_VERSION);
+}
+
+// C-style wrapper
+static void enumerateMetadataFieldWrapper(const char* key, const char* value, void* userData)
+{
+    auto dictRawPtr = static_cast<IDict*>(userData);
+    DictPtr<IString, IString> dictPtr = DictPtr<IString, IString>::Borrow(dictRawPtr);
+    dictPtr[key] = value;
+}
+
+TEST_F(CheckDependenciesTest, GetVersionMetadata)
+{
+    auto coreVersionMetadata = Dict<IString, IString>();
+
+    daq::ErrCode errCode = getSdkCoreVersionMetadata(&enumerateMetadataFieldWrapper, coreVersionMetadata.getObject());
+    ASSERT_EQ(errCode, OPENDAQ_SUCCESS);
+
+    ASSERT_TRUE(coreVersionMetadata.hasKey("major"));
+    ASSERT_TRUE(coreVersionMetadata.hasKey("minor"));
+    ASSERT_TRUE(coreVersionMetadata.hasKey("patch"));
+    ASSERT_TRUE(coreVersionMetadata.hasKey("branch"));
+    ASSERT_TRUE(coreVersionMetadata.hasKey("sha"));
+
+    ASSERT_EQ(coreVersionMetadata.get("major"), OPENDAQ_OPENDAQ_MAJOR_VERSION_STR);
+    ASSERT_EQ(coreVersionMetadata.get("minor"), OPENDAQ_OPENDAQ_MINOR_VERSION_STR);
+    ASSERT_EQ(coreVersionMetadata.get("patch"), OPENDAQ_OPENDAQ_PATCH_VERSION_STR);
+    ASSERT_EQ(coreVersionMetadata.get("branch"), OPENDAQ_OPENDAQ_BRANCH_NAME);
+    ASSERT_EQ(coreVersionMetadata.get("sha"), OPENDAQ_OPENDAQ_REVISION_HASH);
+}
+
+TEST_F(CheckDependenciesTest, TestVersions)
+{
+    auto linkedVersion = [](unsigned int* major, unsigned int* minor, unsigned int* revision)
+    {
+        *major = 1;
+        *minor = 1;
+        *revision = 0;
+    };
+    StringPtr errMsg;
+
+    LibraryVersion matchingVersion{1, 1, 0};
+    ASSERT_TRUE(isCompatibleVersion("CoreTypes", linkedVersion, matchingVersion, &errMsg));
+
+    LibraryVersion compatibleVersion{1, 1, 1};
+    ASSERT_TRUE(isCompatibleVersion("CoreTypes", linkedVersion, compatibleVersion, &errMsg));
+
+    LibraryVersion incompatibleMajorVersion{2, 1, 0};
+    ASSERT_FALSE(isCompatibleVersion("CoreTypes", linkedVersion, incompatibleMajorVersion, &errMsg));
+
+    LibraryVersion incompatibleMinorVersion{1, 2, 0};
+    ASSERT_FALSE(isCompatibleVersion("CoreTypes", linkedVersion, incompatibleMinorVersion, &errMsg));
 }
 
 static void ExpectLogMessageContain(const std::string& message, const std::string& substring)

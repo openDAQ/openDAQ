@@ -13,7 +13,7 @@ TEST_F(VersionTest, CheckVersion)
     unsigned int revision;
     daqCoreTypesGetVersion(&major, &minor, &revision);
 
-    ASSERT_EQ(major, 0u);
-    ASSERT_EQ(minor, 0u);
-    ASSERT_EQ(revision, 0u);
+    ASSERT_EQ(major, OPENDAQ_CORETYPES_MAJOR_VERSION);
+    ASSERT_EQ(minor, OPENDAQ_CORETYPES_MINOR_VERSION);
+    ASSERT_EQ(revision, OPENDAQ_CORETYPES_PATCH_VERSION);
 }

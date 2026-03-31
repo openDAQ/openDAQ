@@ -16,10 +16,6 @@ opendaq_add_test_mock_module(dependencies_failed dependencies_failed.cpp)
 opendaq_add_test_mock_module(dependencies_succeeded dependencies_succeeded.cpp mock_module.cpp mock_module.h)
 opendaq_add_test_mock_module(null_string_id_module null_string_id_module.cpp mock_module.cpp mock_module.h)
 opendaq_add_test_mock_module(empty_string_id_module empty_string_id_module.cpp mock_module.cpp mock_module.h)
-opendaq_add_test_mock_module(dependencies_obsolete_failed dependencies_obsolete_failed.cpp)
-opendaq_add_test_mock_module(dependencies_obsolete_succeeded dependencies_obsolete_succeeded.cpp mock_module.cpp mock_module.h)
-opendaq_add_test_mock_module(sdk_version_mismatch sdk_version_mismatch.cpp mock_module.cpp mock_module.h)
-opendaq_add_test_mock_module(sdk_version_match sdk_version_match.cpp mock_module.cpp mock_module.h)
 
 set_target_properties(
     empty_dll
@@ -28,10 +24,6 @@ set_target_properties(
     dependencies_succeeded
     null_string_id_module
     empty_string_id_module
-    dependencies_obsolete_failed
-    dependencies_obsolete_succeeded
-    sdk_version_mismatch
-    sdk_version_match
 	
     PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>/mock

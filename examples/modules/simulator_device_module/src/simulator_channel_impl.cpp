@@ -95,8 +95,7 @@ void SimulatorChannelImpl::initProperties()
                                   .setReadOnly(true)
                                   .build();
 
-    // TODO: Fix bug and change to SparseSelectionProperty builder.
-    auto sampleRateProp = SelectionProperty("SampleRate", EvalValue("$AvailableSRDividers"), 1);
+    auto sampleRateProp = SparseSelectionProperty("SampleRate", EvalValue("$AvailableSRDividers"), 1);
 
     objPtr.addProperty(signalGeneratorProp);
     objPtr.addProperty(availableRatesProp);

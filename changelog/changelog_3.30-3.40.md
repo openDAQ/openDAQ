@@ -77,6 +77,10 @@
 
 The IFunctionBlockWrapper interface was removed as it was never used. Similarly, the base implementation headers were removed. The wrapper objects should no longer be used.
 
+### [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load
+
+On load configuration, all non-static function blocks will be removed and recreated if they are in the load config
+ 
 ## Required module changes
 
 ### [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Mandatory device types

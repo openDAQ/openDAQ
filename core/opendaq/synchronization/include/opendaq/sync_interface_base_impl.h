@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <opendaq/sync_interface.h>
+#include <opendaq/sync_interface_ptr.h>
 #include <opendaq/sync_interface_internal.h>
 #include <coreobjects/property_object_impl.h>
 #include <coretypes/string_ptr.h>
@@ -61,7 +61,9 @@ public:
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
 protected:
+    virtual SyncInterfacePtr createClone();
     void setModeOptions(const ListPtr<IString>& options);
+    void setMode(const StringPtr& mode);
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -127,6 +129,12 @@ void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setModeOptions(const List
 }
 
 template <typename TInterface, typename... Interfaces>
+void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setMode(const StringPtr& mode)
+{
+    this->objPtr.setPropertyValue("Mode", mode);
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
@@ -162,11 +170,18 @@ ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::Deserialize(ISerialize
 }
 
 template <typename TInterface, typename... Interfaces>
+SyncInterfacePtr SyncInterfaceBaseImpl<TInterface, Interfaces...>::createClone()
+{
+    return createWithImplementation<ISyncInterface, SyncInterfaceBase>();
+}
+
+
+template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::clone(IPropertyObject** cloned)
 {
     OPENDAQ_PARAM_NOT_NULL(cloned);
 
-    auto obj = createWithImplementation<ISyncInterface, SyncInterfaceBase>();
+    auto obj = createClone();
 
     return daqTry([this, &obj, &cloned]()
     {

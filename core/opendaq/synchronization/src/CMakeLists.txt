@@ -55,6 +55,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/sync_component2_impl.h
         ${SDK_HEADERS_DIR}/sync_interface_base_impl.h
         ${SDK_HEADERS_DIR}/clock_sync_interface_impl.h
+        ${SDK_HEADERS_DIR}/ptp_sync_interface_impl.h
         ${SDK_SRC_DIR}/sync_component_impl.cpp
         ${SDK_SRC_DIR}/sync_component2_impl.cpp
         ${SDK_SRC_DIR}/sync_interface_base_impl.cpp

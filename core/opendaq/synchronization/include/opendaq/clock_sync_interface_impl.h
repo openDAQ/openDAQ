@@ -29,6 +29,9 @@ public:
 
     // ISyncInterfaceInternal
     ErrCode INTERFACE_FUNC setAsSource(Bool isSource) override;
+
+protected:
+    SyncInterfacePtr createClone() override;
 };
 
 inline ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
@@ -39,17 +42,17 @@ inline ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
 inline ErrCode ClockSyncInterfaceImpl::setAsSource(Bool isSource)
 {
     auto lock = getRecursiveConfigLock2();
-    if (isSource)
-    {
-        setModeOptions(List<IString>("Input"));
-        this->objPtr.setPropertyValue("Mode", "Input");
-    }
-    else
-    {
-        setModeOptions(List<IString>("Off"));
-        this->objPtr.setPropertyValue("Mode", "Off");
-    }
+    const StringPtr mode = isSource ? "Input" : "Off";
+
+    setModeOptions(List<IString>(mode));
+    setMode(mode);
+
     return OPENDAQ_SUCCESS;
+}
+
+inline SyncInterfacePtr ClockSyncInterfaceImpl::createClone()
+{
+    return createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
 }
 
 END_NAMESPACE_OPENDAQ

@@ -17,8 +17,6 @@
 #pragma once
 
 #include <opendaq/sync_interface_base_impl.h>
-#include <coreobjects/property_object_factory.h>
-#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -29,12 +27,16 @@ public:
 
     explicit PtpSyncInterfaceBaseImpl();
 
+    // ISyncInterfaceInternal
+    ErrCode INTERFACE_FUNC setAsSource(Bool isSource) override;
+
 protected:
     void createPortProporties(const StringPtr& portName);
 
     void setProfileOptions(const ListPtr<IString>& options);
     void setTransportProtocolOptions(const ListPtr<IString>& options);
     void setPortModeOptions(const ListPtr<IString>& options);
+    void setPortsMode(const StringPtr& mode);
     void setPortDelayMechanismOptions(const ListPtr<IString>& options);
 
     PropertyObjectPtr status;
@@ -50,6 +52,24 @@ inline PtpSyncInterfaceBaseImpl::PtpSyncInterfaceBaseImpl()
     : Super("PtpSyncInterface")
 {
    createGeneralProperties();
+}
+
+inline ErrCode PtpSyncInterfaceBaseImpl::setAsSource(Bool isSource)
+{
+    auto lock = getRecursiveConfigLock2();
+
+    if (isSource)
+    {
+        setModeOptions(List<IString>("Input", "Auto"));
+        setMode("Input");
+    }
+    else if (this->objPtr.getPropertyValue("Mode") != "Off")
+    {
+        setModeOptions(List<IString>("Output", "Off"));
+        setMode("Output");
+    }
+    
+    return OPENDAQ_SUCCESS;
 }
 
 inline void PtpSyncInterfaceBaseImpl::createGeneralProperties()
@@ -132,6 +152,15 @@ inline void PtpSyncInterfaceBaseImpl::setPortModeOptions(const ListPtr<IString>&
     {
         const auto portConfigObj = portConfig.template asPtr<IPropertyObjectProtected>(true);
         portConfigObj.setProtectedPropertyValue("ModeOptions", options);
+    }
+}
+
+inline void PtpSyncInterfaceBaseImpl::setPortsMode(const StringPtr& mode)
+{
+    for (const auto& portConfig : portsConfiguration.getAllProperties())
+    {
+        const auto portConfigObj = portConfig.template asPtr<IPropertyObject>(true);
+        portConfigObj.setPropertyValue("Mode", mode);
     }
 }
 

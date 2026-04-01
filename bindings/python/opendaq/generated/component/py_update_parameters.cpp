@@ -57,18 +57,4 @@ void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParamete
         },
         py::return_value_policy::take_ownership,
         "Gets the device update options object that allows for specifying how a device and its subdevices are to be updated. / Sets the device update options object that allows for specifying how a device and its subdevices are to be updated.");
-    cls.def_property("remote_update_enabled",
-        [](daq::IUpdateParameters *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
-            return objectPtr.getRemoteUpdateEnabled();
-        },
-        [](daq::IUpdateParameters *object, const bool enabled)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
-            objectPtr.setRemoteUpdateEnabled(enabled);
-        },
-        "Gets whether updates should be propagated to the remote device we are connected to. / Sets whether updates should be propagated to the remote device we are connected to.");
 }

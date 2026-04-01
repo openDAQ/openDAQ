@@ -3245,50 +3245,6 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfo)
     ASSERT_FALSE(deviceInfo.hasProperty("ClientCustomProperty"));
 }
 
-TEST_F(NativeDeviceModulesTest, ClientSaveLoadRemoteUpdateIsDisabled)
-{
-    StringPtr config;
-    const auto server = CreateServerInstance();
-    SizeT statisticsFbBlockSize = 0u;
-
-    {
-        const auto client = CreateClientInstance();
-        const auto remoteRoot = client.getDevices()[0];
-
-        const auto clientFb = remoteRoot.addFunctionBlock("RefFBModuleStatistics");
-
-        config = client.saveConfiguration();
-
-        clientFb.addFunctionBlock("RefFBModuleTrigger");
-        statisticsFbBlockSize = clientFb.getPropertyValue("BlockSize");
-        clientFb.setPropertyValue("BlockSize", 20);
-    }
-
-    const auto restoredClient = Instance("[[none]]");
-    addNativeClientModule(restoredClient);
-
-    const auto loadConfig = UpdateParameters();
-    loadConfig.setRemoteUpdateEnabled(false);
-    restoredClient.loadConfiguration(config, loadConfig);
-
-    const auto remoteRoot = restoredClient.getDevices()[0];
-    ASSERT_EQ(remoteRoot.getFunctionBlocks().getCount(), 2u);
-   
-    FunctionBlockPtr statisticsFb;
-    for (const auto& fb : remoteRoot.getFunctionBlocks())
-    {
-        if (fb.getFunctionBlockType().getId() == "RefFBModuleStatistics")
-        {
-            statisticsFb = fb;
-            break;
-        }
-    }
-    ASSERT_TRUE(statisticsFb.assigned());
-
-    ASSERT_EQ(statisticsFb.getFunctionBlocks().getCount(), 0u);
-    ASSERT_EQ(statisticsFb.getPropertyValue("BlockSize"), statisticsFbBlockSize);
-}
-
 StringPtr getFileLastModifiedTime(const std::string& path)
 {
     auto ftime = fs::last_write_time(path);

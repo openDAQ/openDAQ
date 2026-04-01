@@ -32,16 +32,6 @@ daqErrCode daqUpdateParameters_setDeviceUpdateOptions(daqUpdateParameters* self,
     return reinterpret_cast<daq::IUpdateParameters*>(self)->setDeviceUpdateOptions(reinterpret_cast<daq::IDeviceUpdateOptions*>(options));
 }
 
-daqErrCode daqUpdateParameters_getRemoteUpdateEnabled(daqUpdateParameters* self, daqBool* enabled)
-{
-    return reinterpret_cast<daq::IUpdateParameters*>(self)->getRemoteUpdateEnabled(enabled);
-}
-
-daqErrCode daqUpdateParameters_setRemoteUpdateEnabled(daqUpdateParameters* self, daqBool enabled)
-{
-    return reinterpret_cast<daq::IUpdateParameters*>(self)->setRemoteUpdateEnabled(enabled);
-}
-
 daqErrCode daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj)
 {
     daq::IUpdateParameters* ptr = nullptr;

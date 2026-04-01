@@ -50,18 +50,6 @@ DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
      * @param options The device update options object.
      */
     virtual ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) = 0;
-
-    /*!
-     * @brief Gets whether updates should be propagated to the remote device we are connected to.
-     * @param enabled True if updates should be propagated to the remote device (default: true).
-     */
-    virtual ErrCode INTERFACE_FUNC getRemoteUpdateEnabled(Bool* enabled) = 0;
-
-    /*!
-     * @brief Sets whether updates should be propagated to the remote device we are connected to.
-     * @param enabled True to propagate updates to the remote device (default: true).
-     */
-    virtual ErrCode INTERFACE_FUNC setRemoteUpdateEnabled(Bool enabled) = 0;
 };
 /*!@}*/
 

@@ -389,24 +389,17 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObje
 
     const ErrCode errCode = daqTry([this, &obj, &context]()
     {
-        ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
-        UpdateParametersPtr updateParameters;
-        if (contextPtr.assigned())
-            updateParameters = contextPtr.getUpdateParameters();
-        else
-            updateParameters = UpdateParameters();
-
-        if (!updateParameters.getRemoteUpdateEnabled())
-            return;
-
         StringPtr serialized;
         checkErrorInfo(obj->toJson(&serialized));
 
         const auto protocolVersion = this->clientComm->getProtocolVersion();
         if (protocolVersion < 20)
+        {
             clientComm->update(remoteGlobalId, serialized, this->getPath(), nullptr);
+        }
         else
         {
+            ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
             auto serverContext = clientComm->update(remoteGlobalId, serialized, this->getPath(), contextPtr);
             if (serverContext.assigned())
                 contextPtr.overrideState(serverContext);

@@ -42,8 +42,7 @@ extern "C"
 
     daqErrCode EXPORTED daqUpdateParameters_getDeviceUpdateOptions(daqUpdateParameters* self, daqDeviceUpdateOptions** options);
     daqErrCode EXPORTED daqUpdateParameters_setDeviceUpdateOptions(daqUpdateParameters* self, daqDeviceUpdateOptions* options);
-    daqErrCode EXPORTED daqUpdateParameters_getRemoteUpdateEnabled(daqUpdateParameters* self, daqBool* enabled);
-    daqErrCode EXPORTED daqUpdateParameters_setRemoteUpdateEnabled(daqUpdateParameters* self, daqBool enabled);
+
     daqErrCode EXPORTED daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj);
 
 #ifdef __cplusplus

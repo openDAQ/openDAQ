@@ -6,6 +6,7 @@ BEGIN_NAMESPACE_OPENDAQ
 UpdateParametersImpl::UpdateParametersImpl()
     : Super()
 {
+    Super::addProperty(BoolProperty("RemoteUpdate", false));
 }
 
 template <typename T>

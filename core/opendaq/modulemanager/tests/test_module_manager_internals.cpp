@@ -111,9 +111,7 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckFailed)
         ModuleIncompatibleDependenciesException,
         fmt::format(
             "Module \"{}\" failed dependencies check",
-            modulePath.string(),
-            OPENDAQ_ERR_GENERALERROR,
-            "Mock failure"
+            modulePath.string()
         )
     );
 }
@@ -128,7 +126,7 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckSucceed)
         module = manager.loadModule(modulePath.string())
     );
     ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
-    ASSERT_EQ(module.getModuleInfo().getId(), "mock");
+    ASSERT_EQ(module.getModuleInfo().getId(), "mock_dep");
 }
 
 TEST_F(ModuleManagerInternalsTest, NullStringIdModule)
@@ -210,7 +208,7 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleWithIdAfterAddedFromMemory)
     auto manager = ModuleManager("[[none]]");
     manager.loadModules(NullContext());
 
-    auto mock = createWithImplementation<IModule, MockModuleImpl>("mock");
+    auto mock = createWithImplementation<IModule, MockModuleImpl>("mock_dep");
     ASSERT_NO_THROW(manager.addModule(mock));
     ASSERT_EQ(manager.getModules().getCount(), 1u);
     ASSERT_EQ(manager.getModules()[0], mock);
@@ -222,10 +220,8 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleWithIdAfterAddedFromMemory)
         auto module = manager.loadModule(modulePath.string()),
         AlreadyExistsException,
         fmt::format(
-            "Module with id \"mock\" was already loaded from memory. Reject loading module from path \"{}\"",
-            modulePath.string(),
-            OPENDAQ_ERR_GENERALERROR,
-            "Mock failure"
+            "Module with id \"mock_dep\" was already loaded from memory. Reject loading module from path \"{}\"",
+            modulePath.string()
         )
     );
     ASSERT_EQ(manager.getModules().getCount(), 1u);
@@ -251,11 +247,9 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleCopyWithId)
         moduleCopy = manager.loadModule(modulePathCopy.string()),
         AlreadyExistsException,
         fmt::format(
-            "Module with id \"mock\" was already loaded and added from path \"{}\". Reject loading module from \"{}\"",
+            "Module with id \"mock_dep\" was already loaded and added from path \"{}\". Reject loading module from \"{}\"",
             modulePath.string(),
-            modulePathCopy.string(),
-            OPENDAQ_ERR_GENERALERROR,
-            "Mock failure"
+            modulePathCopy.string()
         )
     );
     ASSERT_EQ(manager.getModules().getCount(), 1u);

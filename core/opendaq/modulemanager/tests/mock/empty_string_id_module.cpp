@@ -10,9 +10,3 @@ daq::ErrCode PUBLIC_EXPORT createModule(daq::IModule** module)
 
     return daq::createObject<daq::IModule, MockModuleImpl>(module, "");
 }
-
-extern "C"
-daq::ErrCode PUBLIC_EXPORT checkDependencies(daq::IString** message)
-{
-    return OPENDAQ_SUCCESS;
-}

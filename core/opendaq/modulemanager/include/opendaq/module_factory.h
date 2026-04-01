@@ -58,7 +58,20 @@
     }
 
 // ReSharper disable once CppNonInlineFunctionDefinitionInHeaderFile
-OPENDAQ_MODULE_API daq::ErrCode checkDependencies(daq::IString** errMsg)
+OPENDAQ_MODULE_API daq::ErrCode getCoreVersionMetadata(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+{
+#if defined(OPENDAQ_LINKS_OPENDAQ)
+    enumerateFieldFunc("major", OPENDAQ_OPENDAQ_MAJOR_VERSION_STR, userData);
+    enumerateFieldFunc("minor", OPENDAQ_OPENDAQ_MINOR_VERSION_STR, userData);
+    enumerateFieldFunc("patch", OPENDAQ_OPENDAQ_PATCH_VERSION_STR, userData);
+    enumerateFieldFunc("branch", OPENDAQ_OPENDAQ_BRANCH_NAME, userData);
+    enumerateFieldFunc("sha", OPENDAQ_OPENDAQ_REVISION_HASH, userData);
+#endif
+    return OPENDAQ_SUCCESS;
+}
+
+// ReSharper disable once CppNonInlineFunctionDefinitionInHeaderFile
+OPENDAQ_MODULE_API daq::ErrCode checkDependencies(daq::IString** logMessage)
 {
 #if defined(OPENDAQ_LINKS_CORE_OBJECTS)
     daq::LibraryVersion version{
@@ -67,7 +80,7 @@ OPENDAQ_MODULE_API daq::ErrCode checkDependencies(daq::IString** errMsg)
         OPENDAQ_CORETYPES_PATCH_VERSION,
     };
 
-    if (!isCompatibleVersion("CoreTypes", daqCoreTypesGetVersion, version, errMsg))
+    if (!isCompatibleVersion("CoreTypes", daqCoreTypesGetVersion, version, logMessage))
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
     }
@@ -75,7 +88,7 @@ OPENDAQ_MODULE_API daq::ErrCode checkDependencies(daq::IString** errMsg)
     version.major = OPENDAQ_COREOBJECTS_MAJOR_VERSION;
     version.minor = OPENDAQ_COREOBJECTS_MINOR_VERSION;
     version.patch = OPENDAQ_COREOBJECTS_PATCH_VERSION;
-    if (!isCompatibleVersion("CoreObjects", daqCoreObjectsGetVersion, version, errMsg))
+    if (!isCompatibleVersion("CoreObjects", daqCoreObjectsGetVersion, version, logMessage))
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
     }
@@ -86,11 +99,13 @@ OPENDAQ_MODULE_API daq::ErrCode checkDependencies(daq::IString** errMsg)
     version.major = OPENDAQ_OPENDAQ_MAJOR_VERSION;
     version.minor = OPENDAQ_OPENDAQ_MINOR_VERSION;
     version.patch = OPENDAQ_OPENDAQ_PATCH_VERSION;
-    if (!isCompatibleVersion("OpenDaq", daqOpenDaqGetVersion, version, errMsg))
+    if (!isCompatibleVersion("OpenDaq", daqOpenDaqGetVersion, version, logMessage))
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
     }
+    return daqCoreValidateVersionMetadata(&getCoreVersionMetadata, logMessage);
 #endif
-
     return OPENDAQ_SUCCESS;
 }
+
+

@@ -1,51 +1,231 @@
 #include <gtest/gtest.h>
-#include <coretypes/listptr.h>
+#include <coretypes/stringobject_factory.h>
 #include <opendaq/module_check_dependencies.h>
+#include <testutils/testutils.h>
+#include <coretypes/exceptions.h>
+#include <opendaq/opendaq_config.h>
+
+#include <opendaq/version.h>
+#include <coretypes/version.h>
+#include <coreobjects/version.h>
+#include <coretypes/dictobject_factory.h>
 
 using namespace daq;
 
 using CheckDependenciesTest = testing::Test;
 
-TEST_F(CheckDependenciesTest, TestCompiledMinorGreater)
+TEST_F(CheckDependenciesTest, GetVersion)
 {
-    LibraryVersion compiledVersion
-    {
-        1,
-        2,
-        0,
-    };
+    unsigned int major;
+    unsigned int minor;
+    unsigned int revision;
+    daqOpenDaqGetVersion(&major, &minor, &revision);
 
+    ASSERT_EQ(major, OPENDAQ_OPENDAQ_MAJOR_VERSION);
+    ASSERT_EQ(minor, OPENDAQ_OPENDAQ_MINOR_VERSION);
+    ASSERT_EQ(revision, OPENDAQ_OPENDAQ_PATCH_VERSION);
+}
+
+// C-style wrapper
+static void enumerateMetadataFieldWrapper(const char* key, const char* value, void* userData)
+{
+    auto dictRawPtr = static_cast<IDict*>(userData);
+    DictPtr<IString, IString> dictPtr = DictPtr<IString, IString>::Borrow(dictRawPtr);
+    dictPtr[key] = value;
+}
+
+TEST_F(CheckDependenciesTest, GetVersionMetadata)
+{
+    auto coreVersionMetadata = Dict<IString, IString>();
+
+    daq::ErrCode errCode = getSdkCoreVersionMetadata(&enumerateMetadataFieldWrapper, coreVersionMetadata.getObject());
+    ASSERT_EQ(errCode, OPENDAQ_SUCCESS);
+
+    ASSERT_TRUE(coreVersionMetadata.hasKey("major"));
+    ASSERT_TRUE(coreVersionMetadata.hasKey("minor"));
+    ASSERT_TRUE(coreVersionMetadata.hasKey("patch"));
+    ASSERT_TRUE(coreVersionMetadata.hasKey("branch"));
+    ASSERT_TRUE(coreVersionMetadata.hasKey("sha"));
+
+    ASSERT_EQ(coreVersionMetadata.get("major"), OPENDAQ_OPENDAQ_MAJOR_VERSION_STR);
+    ASSERT_EQ(coreVersionMetadata.get("minor"), OPENDAQ_OPENDAQ_MINOR_VERSION_STR);
+    ASSERT_EQ(coreVersionMetadata.get("patch"), OPENDAQ_OPENDAQ_PATCH_VERSION_STR);
+    ASSERT_EQ(coreVersionMetadata.get("branch"), OPENDAQ_OPENDAQ_BRANCH_NAME);
+    ASSERT_EQ(coreVersionMetadata.get("sha"), OPENDAQ_OPENDAQ_REVISION_HASH);
+}
+
+TEST_F(CheckDependenciesTest, TestVersions)
+{
     auto linkedVersion = [](unsigned int* major, unsigned int* minor, unsigned int* revision)
     {
         *major = 1;
         *minor = 1;
         *revision = 0;
     };
-
     StringPtr errMsg;
-    bool compatible = isCompatibleVersion("CoreTypes", linkedVersion, compiledVersion, &errMsg);
 
-    ASSERT_TRUE(compatible);
+    LibraryVersion matchingVersion{1, 1, 0};
+    ASSERT_TRUE(isCompatibleVersion("CoreTypes", linkedVersion, matchingVersion, &errMsg));
+
+    LibraryVersion compatibleVersion{1, 1, 1};
+    ASSERT_TRUE(isCompatibleVersion("CoreTypes", linkedVersion, compatibleVersion, &errMsg));
+
+    LibraryVersion incompatibleMajorVersion{2, 1, 0};
+    ASSERT_FALSE(isCompatibleVersion("CoreTypes", linkedVersion, incompatibleMajorVersion, &errMsg));
+
+    LibraryVersion incompatibleMinorVersion{1, 2, 0};
+    ASSERT_FALSE(isCompatibleVersion("CoreTypes", linkedVersion, incompatibleMinorVersion, &errMsg));
 }
 
-TEST_F(CheckDependenciesTest, TestLinkedMinorGreater)
+static void ExpectLogMessageContain(const std::string& message, const std::string& substring)
 {
-    LibraryVersion compiledVersion
-    {
-        1,
-        1,
-        0,
-    };
+    ASSERT_TRUE(std::string(message).find(substring) != std::string::npos)
+        << "Expected log message contains \"" << substring << "\"" << std::endl
+        << "Actual message is \"" << message << "\".";
+}
 
-    auto linkedVersion = [](unsigned int* major, unsigned int* minor, unsigned int* revision)
-    {
-        *major = 1;
-        *minor = 2;
-        *revision = 0;
-    };
+static ErrCode getCoreVersionMetadataDefault(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+{
+    enumerateFieldFunc("major", OPENDAQ_OPENDAQ_MAJOR_VERSION_STR, userData);
+    enumerateFieldFunc("minor", OPENDAQ_OPENDAQ_MINOR_VERSION_STR, userData);
+    enumerateFieldFunc("patch", OPENDAQ_OPENDAQ_PATCH_VERSION_STR, userData);
+    enumerateFieldFunc("branch", OPENDAQ_OPENDAQ_BRANCH_NAME, userData);
+    enumerateFieldFunc("sha", OPENDAQ_OPENDAQ_REVISION_HASH, userData);
+    return OPENDAQ_SUCCESS;
+}
 
-    StringPtr errMsg;
-    bool compatible = isCompatibleVersion("CoreTypes", linkedVersion, compiledVersion, &errMsg);
+TEST_F(CheckDependenciesTest, InvalidParamsFailure)
+{
+    ASSERT_THROW(checkErrorInfo(daqCoreValidateVersionMetadata(&getCoreVersionMetadataDefault, nullptr)), ArgumentNullException);
 
-    ASSERT_TRUE(compatible);
+    StringPtr logMessage;
+    ASSERT_THROW(checkErrorInfo(daqCoreValidateVersionMetadata(nullptr, &logMessage)), ArgumentNullException);
+}
+
+TEST_F(CheckDependenciesTest, DefaultMetadataSuccess)
+{
+    StringPtr logMessage;
+    ErrCode errCode = daqCoreValidateVersionMetadata(&getCoreVersionMetadataDefault, &logMessage);
+    ASSERT_EQ(errCode, OPENDAQ_SUCCESS);
+    ASSERT_TRUE(logMessage.assigned());
+}
+
+static ErrCode getCoreVersionMetadataFailure(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "In-module failure");
+}
+
+TEST_F(CheckDependenciesTest, GetMetadataFailure)
+{
+    StringPtr logMessage;
+    ASSERT_THROW_MSG(checkErrorInfo(daqCoreValidateVersionMetadata(&getCoreVersionMetadataFailure, &logMessage)),
+                     GeneralErrorException,
+                     "In-module failure");
+}
+
+static ErrCode getCoreVersionMetadataMinimalMissingFields(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+{
+    enumerateFieldFunc("major", OPENDAQ_OPENDAQ_MAJOR_VERSION_STR, userData);
+    enumerateFieldFunc("minor", OPENDAQ_OPENDAQ_MINOR_VERSION_STR, userData);
+    return OPENDAQ_SUCCESS;
+}
+
+TEST_F(CheckDependenciesTest, MinimalMetadataMissingFields)
+{
+    StringPtr logMessage;
+    ErrCode errCode = daqCoreValidateVersionMetadata(&getCoreVersionMetadataMinimalMissingFields, &logMessage);
+    ASSERT_EQ(errCode, OPENDAQ_PARTIAL_SUCCESS);
+    ASSERT_TRUE(logMessage.assigned());
+
+    auto logMessageStr = logMessage.toStdString();
+    ExpectLogMessageContain(logMessageStr, "The module has not provided the version patch number");
+    ExpectLogMessageContain(logMessageStr, "The module has not provided the git branch name");
+    ExpectLogMessageContain(logMessageStr, "The module has not provided the git commit sha");
+}
+
+static ErrCode getCoreVersionMetadataMinimalMismatchFields(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+{
+    enumerateFieldFunc("major", OPENDAQ_OPENDAQ_MAJOR_VERSION_STR, userData);
+    enumerateFieldFunc("minor", OPENDAQ_OPENDAQ_MINOR_VERSION_STR, userData);
+    enumerateFieldFunc("patch", "not-a-number", userData); // comparison vs any number will fail
+    enumerateFieldFunc("branch", " .. ", userData); // uses not allowed symbols so the comparison vs real or empty name always fails
+    enumerateFieldFunc("sha", "it-is-not-hex", userData); // uses not allowed symbols so comparison vs real or empty sha always fails
+    return OPENDAQ_SUCCESS;
+}
+
+TEST_F(CheckDependenciesTest, MinimalMetadataMismatchFields)
+{
+    StringPtr logMessage;
+    ErrCode errCode = daqCoreValidateVersionMetadata(&getCoreVersionMetadataMinimalMismatchFields, &logMessage);
+    ASSERT_EQ(errCode, OPENDAQ_PARTIAL_SUCCESS);
+    ASSERT_TRUE(logMessage.assigned());
+
+    auto logMessageStr = logMessage.toStdString();
+    ExpectLogMessageContain(logMessageStr, "the patch number mismatches");
+    ExpectLogMessageContain(logMessageStr, "the git branch name mismatches");
+    ExpectLogMessageContain(logMessageStr, "the git commit sha mismatches");
+}
+
+static ErrCode getCoreVersionMetadataMajorEmpty(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+{
+    enumerateFieldFunc("major", "not-a-number", userData); // comparison vs any number will fail
+    enumerateFieldFunc("minor", OPENDAQ_OPENDAQ_MINOR_VERSION_STR, userData);
+    enumerateFieldFunc("patch", OPENDAQ_OPENDAQ_PATCH_VERSION_STR, userData);
+    enumerateFieldFunc("branch", OPENDAQ_OPENDAQ_BRANCH_NAME, userData);
+    enumerateFieldFunc("sha", OPENDAQ_OPENDAQ_REVISION_HASH, userData);
+    return OPENDAQ_SUCCESS;
+}
+
+static ErrCode getCoreVersionMetadataMajorMissing(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+{
+    enumerateFieldFunc("minor", OPENDAQ_OPENDAQ_MINOR_VERSION_STR, userData);
+    enumerateFieldFunc("patch", OPENDAQ_OPENDAQ_PATCH_VERSION_STR, userData);
+    enumerateFieldFunc("branch", OPENDAQ_OPENDAQ_BRANCH_NAME, userData);
+    enumerateFieldFunc("sha", OPENDAQ_OPENDAQ_REVISION_HASH, userData);
+    return OPENDAQ_SUCCESS;
+}
+
+TEST_F(CheckDependenciesTest, MajorNumberFailure)
+{
+    StringPtr logMessage;
+
+    ASSERT_THROW_MSG(checkErrorInfo(daqCoreValidateVersionMetadata(&getCoreVersionMetadataMajorEmpty, &logMessage)),
+                     NotCompatibleVersionException,
+                     "the major number mismatches");
+
+    ASSERT_THROW_MSG(checkErrorInfo(daqCoreValidateVersionMetadata(&getCoreVersionMetadataMajorMissing, &logMessage)),
+                     NotCompatibleVersionException,
+                     "The module has not provided the version major number");
+}
+
+static ErrCode getCoreVersionMetadataMinorEmpty(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+{
+    enumerateFieldFunc("major", OPENDAQ_OPENDAQ_MAJOR_VERSION_STR, userData);
+    enumerateFieldFunc("minor", "not-a-number", userData); // comparison vs any number will fail
+    enumerateFieldFunc("patch", OPENDAQ_OPENDAQ_PATCH_VERSION_STR, userData);
+    enumerateFieldFunc("branch", OPENDAQ_OPENDAQ_BRANCH_NAME, userData);
+    enumerateFieldFunc("sha", OPENDAQ_OPENDAQ_REVISION_HASH, userData);
+    return OPENDAQ_SUCCESS;
+}
+
+static ErrCode getCoreVersionMetadataMinorMissing(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+{
+    enumerateFieldFunc("major", OPENDAQ_OPENDAQ_MAJOR_VERSION_STR, userData);
+    enumerateFieldFunc("patch", OPENDAQ_OPENDAQ_PATCH_VERSION_STR, userData);
+    enumerateFieldFunc("branch", OPENDAQ_OPENDAQ_BRANCH_NAME, userData);
+    enumerateFieldFunc("sha", OPENDAQ_OPENDAQ_REVISION_HASH, userData);
+    return OPENDAQ_SUCCESS;
+}
+
+TEST_F(CheckDependenciesTest, MinorNumberFailure)
+{
+    StringPtr logMessage;
+
+    ASSERT_THROW_MSG(checkErrorInfo(daqCoreValidateVersionMetadata(&getCoreVersionMetadataMinorEmpty, &logMessage)),
+                     NotCompatibleVersionException,
+                     "the minor number mismatches");
+
+    ASSERT_THROW_MSG(checkErrorInfo(daqCoreValidateVersionMetadata(&getCoreVersionMetadataMinorMissing, &logMessage)),
+                     NotCompatibleVersionException,
+                     "The module has not provided the version minor number");
 }

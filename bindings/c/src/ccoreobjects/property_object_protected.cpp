@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 17.03.2026 13:26:47.
+//     RTGen (CGenerator v0.7.0) on 31.03.2026 11:20:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -35,4 +35,9 @@ daqErrCode daqPropertyObjectProtected_clearProtectedPropertyValue(daqPropertyObj
 daqErrCode daqPropertyObjectProtected_setProtectedPropertySelectionValue(daqPropertyObjectProtected* self, daqString* propertyName, daqBaseObject* value)
 {
     return reinterpret_cast<daq::IPropertyObjectProtected*>(self)->setProtectedPropertySelectionValue(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IBaseObject*>(value));
+}
+
+daqErrCode daqPropertyObjectProtected_clearProtectedPropertyValues(daqPropertyObjectProtected* self)
+{
+    return reinterpret_cast<daq::IPropertyObjectProtected*>(self)->clearProtectedPropertyValues();
 }

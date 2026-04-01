@@ -1,6 +1,7 @@
 #include <opendaq/event_packet_params.h>
 #include <opendaq/opendaq.h>
 #include <iostream>
+#include <thread>
 
 using namespace daq;
 using namespace std::chrono_literals;

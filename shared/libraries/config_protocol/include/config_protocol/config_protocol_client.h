@@ -32,6 +32,7 @@
 #include <coreobjects/property_object_class_internal_ptr.h>
 #include <opendaq/mirrored_input_port_private_ptr.h>
 #include <algorithm>
+#include <opendaq/component_update_context_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -77,7 +78,7 @@ public:
 
     void clearPropertyValue(const std::string& globalId, const std::string& propertyName);
     void clearProtectedPropertyValue(const std::string& globalId, const std::string& propertyName);
-    void update(const std::string& globalId, const std::string& serialized, const std::string& path);
+    ComponentUpdateContextPtr update(const std::string& globalId, const std::string& serialized, const std::string& path, const ComponentUpdateContextPtr& context);
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
     void setAttributeValue(const std::string& globalId, const std::string& attributeName, const BaseObjectPtr& attributeValue);
     BaseObjectPtr getLastValue(const std::string& globalId);
@@ -87,6 +88,7 @@ public:
     bool isLocked(const std::string& globalId);
     void beginUpdate(const std::string& globalId, const std::string& path = "");
     void endUpdate(const std::string& globalId, const std::string& path = "", const ListPtr<IDict>& props = nullptr);
+    void clearPropertyValues(const std::string& globalId, const std::string& path = "");
 
     DictPtr<IString, IFunctionBlockType> getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb = false);
     ComponentHolderPtr addFunctionBlock(const std::string& globalId,

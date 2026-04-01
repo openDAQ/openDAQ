@@ -16,22 +16,20 @@
 
 #pragma once
 
-#include <config_protocol/config_protocol_client.h>
-
-namespace daq::config_protocol
+#ifdef __cplusplus
+extern "C"
 {
+#endif
 
-class ConfigClientObjectImpl
-{
-public:
-    ConfigClientObjectImpl(ConfigProtocolClientCommPtr clientComm, std::string remoteGlobalId);
-    virtual ~ConfigClientObjectImpl() = default;
+    typedef enum daqDeviceUpdateMode
+    {
+        daqDeviceUpdateModeLoad = 0,
+        daqDeviceUpdateModeUpdateOnly,
+        daqDeviceUpdateModeSkip,
+        daqDeviceUpdateModeRemove,
+        daqDeviceUpdateModeRemap
+    } daqDeviceUpdateMode;
 
-    virtual void setRemoteGlobalId(const std::string newId);
-
-protected:
-    ConfigProtocolClientCommPtr clientComm;
-    std::string remoteGlobalId;
-};
-
+#ifdef __cplusplus
 }
+#endif

@@ -29,7 +29,7 @@ using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 21;
+const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 22;
 
 static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
 {
@@ -4414,6 +4414,114 @@ TEST_F(NativeDeviceModulesTest, ParallelRpcCallsDefault)
     ASSERT_EQ(propertyWriteHistory.size(), 2u);
     ASSERT_EQ(propertyWriteHistory[0], 500);
     ASSERT_EQ(propertyWriteHistory[1], 100);
+}
+
+TEST_F(NativeDeviceModulesTest, CreateDynamicProperty1AndSetManufacturer)
+{
+    // SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto serverRoot = server.getRootDevice();
+
+    size_t propertyWriteHistory = 0;
+    auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+    {
+        propertyWriteHistory += 1;
+    };
+
+    // Register dynamic property on server
+    {
+        const auto procBuilder = FunctionPropertyBuilder("CreateDynamicProperty", FunctionInfo(CoreType::ctBool));
+        serverRoot.addProperty(procBuilder.build());
+        serverRoot.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(
+            "CreateDynamicProperty",
+            Function(
+                [&](IBaseObject* input, IBaseObject** output)
+                {
+                    auto group = PropertyObject();
+
+                    group.addProperty(StringPropertyBuilder("Manufacturer", "").build());
+                    group.getOnPropertyValueWrite("Manufacturer") += propertyWriteCallback;
+
+                    serverRoot.addProperty(ObjectPropertyBuilder("Test1Obj", group).build());
+
+                    *output = Boolean(true).detach();
+                    return OPENDAQ_SUCCESS;
+                }));
+    }
+
+
+    auto client = CreateClientInstance();
+    auto clientRoot = client.getDevices()[0];
+
+    ASSERT_TRUE(clientRoot.hasProperty("CreateDynamicProperty"));
+    FunctionPtr fn = clientRoot.getPropertyValue("CreateDynamicProperty");
+    fn();
+
+    ASSERT_TRUE(server.hasProperty("Test1Obj"));
+    const auto serverTest1Obj = server.getPropertyValue("Test1Obj").asPtr<IPropertyObject>();
+    ASSERT_TRUE(serverTest1Obj.hasProperty("Manufacturer"));
+    ASSERT_EQ(serverTest1Obj.getPropertyValue("Manufacturer"), "");
+
+    const auto clientTest1Obj = clientRoot.getPropertyValue("Test1Obj").asPtr<IPropertyObject>();
+    ASSERT_TRUE(clientTest1Obj.hasProperty("Manufacturer"));
+    clientTest1Obj.setPropertyValue("Manufacturer", "TestManufacturer1");
+    ASSERT_EQ(propertyWriteHistory, 1u);
+
+    ASSERT_EQ(serverTest1Obj.getPropertyValue("Manufacturer"), "TestManufacturer1");
+    ASSERT_EQ(clientTest1Obj.getPropertyValue("Manufacturer"), "TestManufacturer1");
+}
+
+TEST_F(NativeDeviceModulesTest, CreateDynamicProperty2AndSetManufacturer)
+{
+    // SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto serverRoot = server.getRootDevice();
+
+    int propertyWriteHistory = 0;
+    auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+    {
+        propertyWriteHistory += 1;
+    };
+
+    // Register dynamic property on server
+    {
+        const auto procBuilder = FunctionPropertyBuilder("CreateDynamicProperty", FunctionInfo(CoreType::ctBool));
+        serverRoot.addProperty(procBuilder.build());
+        serverRoot.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(
+            "CreateDynamicProperty",
+            Function(
+                [&](IBaseObject* input, IBaseObject** output)
+                {
+                    auto group = PropertyObject();
+                    serverRoot.addProperty(ObjectPropertyBuilder("Test2Obj", group).build());
+
+                    group.addProperty(StringPropertyBuilder("Manufacturer", "").build());
+                    group.getOnPropertyValueWrite("Manufacturer") += propertyWriteCallback;
+
+                    *output = Boolean(true).detach();
+                    return OPENDAQ_SUCCESS;
+                }));
+    }
+
+    auto client = CreateClientInstance();
+    auto clientRoot = client.getDevices()[0];
+
+    ASSERT_TRUE(clientRoot.hasProperty("CreateDynamicProperty"));
+    FunctionPtr fn = clientRoot.getPropertyValue("CreateDynamicProperty");
+    fn();
+
+    ASSERT_TRUE(server.hasProperty("Test2Obj"));
+    const auto serverTest2Obj = server.getPropertyValue("Test2Obj").asPtr<IPropertyObject>();
+    ASSERT_TRUE(serverTest2Obj.hasProperty("Manufacturer"));
+    ASSERT_EQ(serverTest2Obj.getPropertyValue("Manufacturer"), "");
+
+    const auto clientTest2Obj = clientRoot.getPropertyValue("Test2Obj").asPtr<IPropertyObject>();
+    ASSERT_TRUE(clientTest2Obj.hasProperty("Manufacturer"));
+    clientTest2Obj.setPropertyValue("Manufacturer", "TestManufacturer2");
+
+    ASSERT_EQ(propertyWriteHistory, 1u);
+    ASSERT_EQ(serverTest2Obj.getPropertyValue("Manufacturer"), "TestManufacturer2");
+    ASSERT_EQ(clientTest2Obj.getPropertyValue("Manufacturer"), "TestManufacturer2");
 }
 
 TEST_F(NativeDeviceModulesTest, ComponentActiveChangedRecursive)

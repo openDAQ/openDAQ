@@ -313,6 +313,53 @@ TEST_F(ConfigCoreEventTest, PropertyAddedNested)
     ASSERT_EQ(addCount, 2);
 }
 
+TEST_F(ConfigCoreEventTest, PropertyObjectAddedNestedAfterConnect)
+{
+    const auto clientComponent = client->getDevice().findComponent("AdvancedPropertiesComponent");
+    const auto serverComponent = serverDevice.findComponent("AdvancedPropertiesComponent");
+
+    const PropertyObjectPtr serverObj = serverComponent.getPropertyValue("ObjectWithMetadata");
+    const PropertyObjectPtr clientObj = clientComponent.getPropertyValue("ObjectWithMetadata");
+
+    int addCount = 0;
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::PropertyAdded));
+            ASSERT_EQ(args.getEventName(), "PropertyAdded");
+            ASSERT_TRUE(args.getParameters().hasKey("Property"));
+            ASSERT_TRUE(args.getParameters().hasKey("Owner"));
+            ASSERT_TRUE(args.getParameters().hasKey("Path"));
+            ASSERT_EQ(args.getParameters().get("Path"), "ObjectWithMetadata");
+            ASSERT_EQ(args.getParameters().get("Owner"), clientObj);
+            ASSERT_EQ(comp, clientComponent);
+            addCount++;
+        };
+
+    auto newNestedObj = PropertyObject();
+    newNestedObj.addProperty(StringProperty("InnerString", "InnerValue"));
+    serverObj.addProperty(ObjectProperty("NewNestedObj", newNestedObj));
+
+    const PropertyObjectPtr clientNewNestedObj = clientObj.getPropertyValue("NewNestedObj");
+    ASSERT_TRUE(clientNewNestedObj.hasProperty("InnerString"));
+    ASSERT_EQ(clientNewNestedObj.getPropertyValue("InnerString"), "InnerValue");
+
+    ASSERT_EQ(addCount, 1);
+}
+
+TEST_F(ConfigCoreEventTest, SetPropertyValueNestedObjectPropertyAfterConnect)
+{
+    const auto clientComponent = client->getDevice().findComponent("AdvancedPropertiesComponent");
+    const auto serverComponent = serverDevice.findComponent("AdvancedPropertiesComponent");
+
+    // Replace nested PropertyObject value with a new one.
+    const auto newChildObj = PropertyObject();
+    newChildObj.addProperty(StringProperty("String", "child_new_value"));
+    newChildObj.addProperty(IntProperty("Additional", 42));
+
+    ASSERT_THROW(serverComponent.setPropertyValue("ObjectWithMetadata.child", newChildObj), AccessDeniedException) << "Setting the new property object via the method setPropertyValue should is not allowed";
+}
+
 TEST_F(ConfigCoreEventTest, PropertyRemoved)
 {
     const auto clientComponent = client->getDevice().findComponent("AdvancedPropertiesComponent");

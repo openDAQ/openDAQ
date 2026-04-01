@@ -15,23 +15,24 @@
  */
 
 #pragma once
+#include <opendaq/device_update_options_ptr.h>
 
-#include <config_protocol/config_protocol_client.h>
+BEGIN_NAMESPACE_OPENDAQ
 
-namespace daq::config_protocol
+/*!
+ * @ingroup opendaq_setup_node
+ * @addtogroup opendaq_setup_node_factories Factories
+ * @{
+ */
+
+/*
+ * @brief Parses a given setup string and creates a new DeviceUpdateOptions object.
+ */
+inline DeviceUpdateOptionsPtr DeviceUpdateOptions(const StringPtr& setupString)
 {
-
-class ConfigClientObjectImpl
-{
-public:
-    ConfigClientObjectImpl(ConfigProtocolClientCommPtr clientComm, std::string remoteGlobalId);
-    virtual ~ConfigClientObjectImpl() = default;
-
-    virtual void setRemoteGlobalId(const std::string newId);
-
-protected:
-    ConfigProtocolClientCommPtr clientComm;
-    std::string remoteGlobalId;
-};
-
+    return DeviceUpdateOptionsPtr(DeviceUpdateOptions_Create(setupString));
 }
+
+/*!@}*/
+
+END_NAMESPACE_OPENDAQ

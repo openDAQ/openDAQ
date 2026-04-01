@@ -263,6 +263,21 @@ TEST_F(CoreEventTest, PropertyChangedWithInternalEvent)
     ASSERT_EQ(callCount, 3);
 }
 
+TEST_F(CoreEventTest, PropertyObjectCleared)
+{
+    const auto context = NullContext();
+    const auto component = Component(context, nullptr, "comp");
+    component.addProperty(StringProperty("String", "foo"));
+    component.addProperty(IntProperty("Int", 1));
+
+    component.setPropertyValue("String", "bar");
+    component.setPropertyValue("Int", 2);
+    component.clearPropertyValues();
+
+    ASSERT_EQ(component.getPropertyValue("String"), "foo");
+    ASSERT_EQ(component.getPropertyValue("Int"), "1");
+}
+
 TEST_F(CoreEventTest, EndUpdateEventSerilizer)
 {
     const auto context = NullContext();

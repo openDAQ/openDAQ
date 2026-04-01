@@ -27,6 +27,7 @@
 #include <opendaq/context_factory.h>
 #include <config_protocol/errors.h>
 #include <config_protocol/config_client_property.h>
+#include <opendaq/component_update_context_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -57,6 +58,8 @@ public:
     ErrCode INTERFACE_FUNC getOnAnyPropertyValueWrite(IEvent** event) override;
     ErrCode INTERFACE_FUNC getOnAnyPropertyValueRead(IEvent** event) override;
     ErrCode INTERFACE_FUNC setPropertyOrder(IList* orderedPropertyNames) override;
+    ErrCode INTERFACE_FUNC clearPropertyValues() override;
+    ErrCode INTERFACE_FUNC clearProtectedPropertyValues() override;
 
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;
@@ -353,6 +356,26 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyOrder(IList* ordere
 }
 
 template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearPropertyValues()
+{
+    const ErrCode errCode = daqTry([this]()
+    {
+        std::string path{};
+        if (this->getPath().assigned())
+            path = this->getPath().toStdString();
+        clientComm->clearPropertyValues(remoteGlobalId, path);
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValues()
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NATIVE_CLIENT_CALL_NOT_AVAILABLE, "Calling protected clearPropertyValues is not available on ConfigClientPropertyObject");
+}
+
+template <class Impl>
 ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::beginUpdate()
 {
     const ErrCode errCode = daqTry([this]()
@@ -381,16 +404,27 @@ ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
 }
 
 template <class Impl>
-ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* /* context */)
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::updateInternal(ISerializedObject* obj, IBaseObject* context)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    const ErrCode errCode = daqTry([this, &obj]()
+    const ErrCode errCode = daqTry([this, &obj, &context]()
     {
         StringPtr serialized;
+        ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
         checkErrorInfo(obj->toJson(&serialized));
-        clientComm->update(remoteGlobalId, serialized, this->getPath());
+
+        const auto protocolVersion = this->clientComm->getProtocolVersion();
+        if (protocolVersion < 20)
+            clientComm->update(remoteGlobalId, serialized, this->getPath(), nullptr);
+        else
+        {
+            auto serverContext = clientComm->update(remoteGlobalId, serialized, this->getPath(), contextPtr);
+            if (serverContext.assigned())
+                contextPtr.overrideState(serverContext);
+        }
     });
+
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
@@ -423,6 +457,14 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setRemoteGlobalId(IString* rem
     OPENDAQ_PARAM_NOT_NULL(remoteGlobalId);
 
     this->remoteGlobalId = StringPtr::Borrow(remoteGlobalId).toStdString();
+    for (const auto & prop : this->objPtr.getAllProperties())
+    {
+        if (prop.getValueType() == CoreType::ctObject)
+        {
+            if (auto configObj = dynamic_cast<ConfigClientPropertyImpl*>(prop.getObject()); configObj)
+                configObj->setRemoteGlobalId(this->remoteGlobalId);
+        }
+    }
     return OPENDAQ_SUCCESS;
 }
 
@@ -1060,6 +1102,9 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
 
                 return propObj;
             });
+
+        if (const auto impl = dynamic_cast<ConfigClientPropertyObjectImpl*>(propObj.getObject()); impl != nullptr)
+            impl->unfreeze();
 
         const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
         deserializeComponent.complete();

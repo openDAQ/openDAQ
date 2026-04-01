@@ -132,7 +132,7 @@ class PropertiesTreeview(ttk.Treeview):
                 # This property was marked as hidden
                 continue
 
-            if property_info.selection_values is not None:
+            if property_info.selection_values is not None and property_info.item_type != daq.CoreType.ctUndefined:
                 if len(property_info.selection_values) > 0:
                     property_value = printed_value(
                         property_info.item_type, node.get_property_selection_value(property_info.name))
@@ -490,15 +490,22 @@ class PropertiesTreeview(ttk.Treeview):
         labels, indices = self._get_selection_options(prop.selection_values)
         if not labels:
             return
-        current_idx = prop.value
-        current_label = labels[indices.index(current_idx)] if current_idx in indices else labels[0]
+        if prop.item_type != daq.CoreType.ctUndefined:
+            current_idx = prop.value
+            current_label = labels[indices.index(current_idx)] if current_idx in indices else labels[0]
+        else:
+            current_label = prop.value
+            
         cb = self._make_combobox(iid, labels, current_label)
         if cb is None:
             return
 
         def on_change(event, _prop=prop, _labels=labels, _indices=indices, _cb=cb):
             try:
-                _prop.value = _indices[_labels.index(_cb.get())]
+                if _prop.item_type != daq.CoreType.ctUndefined:
+                    _prop.value = _indices[_labels.index(_cb.get())]
+                else:
+                    _prop.value = _cb.get()
             except Exception as e:
                 print("Failed to set selection:", e)
                 return

@@ -84,7 +84,7 @@ public:
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
-    ErrCode INTERFACE_FUNC setName(IString* name) override;
+    virtual ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC getTags(ITags** tags) override;
@@ -958,10 +958,11 @@ template <class Intf, class... Intfs>
 ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj, IBaseObject* config)
 {
     auto configPtr = BaseObjectPtr::Borrow(config);
-    if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>())
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
-    }
+
+    // Config object can be either the update parameters provided by the user
+    // or the constructed context when propagated from a native configuration client.
+    if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>() && !configPtr.supportsInterface<IComponentUpdateContext>())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update config must support either IUpdateParameters or IComponentUpdateContext");
 
     const bool muted = this->coreEventMuted;
     const auto thisPtr = this->template borrowPtr<ComponentPtr>();
@@ -969,10 +970,18 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     if (!muted)
         propInternalPtr.disableCoreEventTrigger();
 
-    BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config));
+    BaseObjectPtr context;
+    if (configPtr.supportsInterface<IComponentUpdateContext>())
+        context = configPtr;
+    else
+        context = createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config);
+
     ErrCode errCode = updateInternal(obj, context);
     if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        OPENDAQ_RETURN_IF_FAILED(context.asPtr<IComponentUpdateContext>()->remapInputPortConnections());
         errCode = this->updateEnded(context);
+    }
     else
         errCode = DAQ_EXTEND_ERROR_INFO(errCode, "Component update failed");
 

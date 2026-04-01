@@ -2089,7 +2089,7 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         }
         else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
         {
-            LOG_W("{}", logMsg);
+            LOG_W("Module \"{}\" check dependencies warning: {}", path.string(), logMsg);
         }
     }
 

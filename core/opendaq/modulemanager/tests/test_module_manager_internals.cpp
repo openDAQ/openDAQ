@@ -110,7 +110,7 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckFailed)
         auto module = manager.loadModule(modulePath.string()),
         ModuleIncompatibleDependenciesException,
         fmt::format(
-            "Error loading module \"{}\": Mock module checkDependencies failure",
+            "Module \"{}\" failed dependencies check",
             modulePath.string()
         )
     );

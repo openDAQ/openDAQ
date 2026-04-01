@@ -41,13 +41,13 @@ inline ErrCode ClockSyncInterfaceImpl::setAsSource(Bool isSource)
     auto lock = getRecursiveConfigLock2();
     if (isSource)
     {
-        setModeOptions(Dict<IInteger, IString>({{static_cast<Int>(SyncMode::Input), "Input"}}));
-        this->objPtr.setPropertyValue("Mode", static_cast<Int>(SyncMode::Input));
+        setModeOptions(List<IString>("Input"));
+        this->objPtr.setPropertyValue("Mode", "Input");
     }
     else
     {
-        setModeOptions(Dict<IInteger, IString>({{static_cast<Int>(SyncMode::Off), "Off"}}));
-        this->objPtr.setPropertyValue("Mode", static_cast<Int>(SyncMode::Off));
+        setModeOptions(List<IString>("Off"));
+        this->objPtr.setPropertyValue("Mode", "Off");
     }
     return OPENDAQ_SUCCESS;
 }

@@ -31,7 +31,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::getSelectedSource(ISyncInterfa
     OPENDAQ_PARAM_NOT_NULL(selectedSource);
     return daqTry([&]
     {
-        StringPtr sourceName = this->objPtr.getPropertySelectionValue("Source");
+        StringPtr sourceName = this->objPtr.getPropertyValue("Source");
         PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
         *selectedSource = interfaces.getPropertyValue(sourceName).template as<ISyncInterface>();
         return OPENDAQ_SUCCESS;
@@ -48,7 +48,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::setSelectedSource(IString* sel
         PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
         if (!interfaces.hasProperty(selectedSourceNamePtr))
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format("Interface '{}' not found in interfaces", selectedSourceNamePtr));
-        this->objPtr.setPropertySelectionValue("Source", selectedSourceNamePtr);
+        this->objPtr.setPropertyValue("Source", selectedSourceNamePtr);
         return OPENDAQ_SUCCESS;
     });
 }

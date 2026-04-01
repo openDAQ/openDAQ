@@ -28,14 +28,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-enum class SyncMode : int
-{
-    Input = 0,
-    Output = 1,
-    Auto = 2,
-    Off = 3
-};
-
 template <typename TInterface = IPropertyObject, typename... Interfaces>
 class SyncInterfaceBaseImpl;
 
@@ -69,25 +61,18 @@ public:
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
 protected:
-
-    void setModeOptions(const DictPtr<IInteger, IString>& options);
+    void setModeOptions(const ListPtr<IString>& options);
 };
 
 template <typename TInterface, typename... Interfaces>
 SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl()
     : Super()
 {   
-    const auto modeOptions = Dict<IInteger, IString>(
-    {
-        {static_cast<Int>(SyncMode::Input), "Input"}, 
-        {static_cast<Int>(SyncMode::Output), "Output"}, 
-        {static_cast<Int>(SyncMode::Auto), "Auto"}, 
-        {static_cast<Int>(SyncMode::Off), "Off"}
-    });
+    const auto modeOptions = List<IString>("Input", "Output", "Auto", "Off");
 
     this->objPtr.addProperty(StringPropertyBuilder("Name", "SyncInterfaceBase").setReadOnly(true).build());
-    this->objPtr.addProperty(DictProperty("ModeOptions", modeOptions, false));
-    this->objPtr.addProperty(SelectionProperty("Mode", EvalValue("$ModeOptions"), 3));
+    this->objPtr.addProperty(ListPropertyBuilder("ModeOptions", modeOptions).setReadOnly(true).setVisible(false).build());
+    this->objPtr.addProperty(StringPropertyBuilder("Mode", "Off").setSelectionValues(EvalValue("$ModeOptions")).build());
 
     auto statusProperty = PropertyObject();
     statusProperty.addProperty(BoolPropertyBuilder("Synchronized", False).setReadOnly(true).build());
@@ -136,9 +121,9 @@ ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::setAsSource(Bool isSou
 }
 
 template <typename TInterface, typename... Interfaces>
-void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setModeOptions(const DictPtr<IInteger, IString>& options)
+void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setModeOptions(const ListPtr<IString>& options)
 {
-    this->objPtr.setPropertyValue("ModeOptions", options);
+    this->objPtr.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("ModeOptions", options);
 }
 
 template <typename TInterface, typename... Interfaces>

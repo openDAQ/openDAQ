@@ -251,7 +251,7 @@ TEST_F(ConfigSyncComponent2Test, SetSelectedSourceViaProperty)
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    clientSync.asPtr<IPropertyObject>(true).setPropertySelectionValue("Source", "TestInterface");
+    clientSync.asPtr<IPropertyObject>(true).setPropertyValue("Source", "TestInterface");
 
     // Verify server has the new selected source
     ASSERT_EQ(clientSync.getSelectedSource().getName(), "TestInterface");
@@ -272,12 +272,12 @@ TEST_F(ConfigSyncComponent2Test, SetSyncInterfaceModeViaProperty)
     ASSERT_EQ(initialMode, clientSource.getPropertyValue("Mode"));
 
     // Set mode on client
-    clientSource.setPropertySelectionValue("Mode", "Off");
-    ASSERT_EQ(serverSource.getPropertySelectionValue("Mode"), "Off");
-    ASSERT_EQ(clientSource.getPropertySelectionValue("Mode"), "Off");
+    clientSource.setPropertyValue("Mode", "Off");
+    ASSERT_EQ(serverSource.getPropertyValue("Mode"), "Off");
+    ASSERT_EQ(clientSource.getPropertyValue("Mode"), "Off");
 
     // Set mode on client
-    clientSource.setPropertySelectionValue("Mode", "Input");
-    ASSERT_EQ(serverSource.getPropertySelectionValue("Mode"), "Input");
-    ASSERT_EQ(clientSource.getPropertySelectionValue("Mode"), "Input");
+    clientSource.setPropertyValue("Mode", "Input");
+    ASSERT_EQ(serverSource.getPropertyValue("Mode"), "Input");
+    ASSERT_EQ(clientSource.getPropertyValue("Mode"), "Input");
 }

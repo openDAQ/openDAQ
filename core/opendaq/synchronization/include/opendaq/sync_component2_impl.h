@@ -102,14 +102,17 @@ void SyncComponent2Impl<Intf, Intfs...>::init(bool registerEvents)
     interfaces.addProperty(ObjectProperty(source.getName(), source));
     Super::addProperty(ObjectProperty("Interfaces", interfaces));
 
-    Super::addProperty(SelectionProperty("Source", EvalValue("%Interfaces:PropertyNames"), 0));
+    const auto souceProperty = StringPropertyBuilder("Source", source.getName())
+                                                        .setSelectionValues(EvalValue("%Interfaces:PropertyNames"))
+                                                        .build();
+    Super::addProperty(souceProperty);
+
     if (registerEvents)
     {
         this->objPtr.getOnPropertyValueWrite("Source") += [this](const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
         {
             auto lock = this->getRecursiveConfigLock();
-            StringPtr sourceName = objPtr.getPropertySelectionValue("Source");
-            onSelectedSourceChanged(sourceName);
+            onSelectedSourceChanged(eventArgs.getValue());
         };
     }
 }
@@ -131,6 +134,7 @@ void SyncComponent2Impl<Intf, Intfs...>::onSelectedSourceChanged(const StringPtr
 
     const PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
     source = interfaces.getPropertyValue(sourceName);
+
     if (auto sourceInternal = source.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
         sourceInternal.setAsSource(true);
 }
@@ -140,22 +144,10 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::setSelectedSource(IString* selectedS
 {
     OPENDAQ_PARAM_NOT_NULL(selectedSourceName);
     auto lock = this->getRecursiveConfigLock();
-    return daqTry([&]
-    {
-        const StringPtr selectedSourceNamePtr = StringPtr::Borrow(selectedSourceName);
 
-        if (source.getName() == selectedSourceNamePtr)
-            return OPENDAQ_SUCCESS;
-
-        const PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
-
-        if (!interfaces.hasProperty(selectedSourceNamePtr))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format("Interface '{}' not found in interfaces", selectedSourceNamePtr));
-
-        const ErrCode errCode = this->setPropertySelectionValue(String("Source"), selectedSourceNamePtr);
-        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set 'Source' property");
-        return errCode;
-    });
+    const ErrCode errCode = this->setPropertyValue(String("Source"), selectedSourceName);
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set 'Source' property");
+    return errCode;
 }
 
 template <class Intf, class... Intfs>
@@ -220,8 +212,8 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::complete()
         const PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
         if (interfaces.assigned() && this->objPtr.hasProperty("Source"))
         {
-            const StringPtr sourceName = this->objPtr.getPropertySelectionValue("Source");
-            OPENDAQ_RETURN_IF_FAILED(this->setSelectedSource(sourceName));
+            const StringPtr sourceName = this->objPtr.getPropertyValue("Source");
+            onSelectedSourceChanged(sourceName);
         }
         
         return Super::complete();

@@ -17,7 +17,7 @@ static void enumerateMetadataFieldWrapper(const char* key, const char* value, vo
 }
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT checkDependencies()
+daq::ErrCode PUBLIC_EXPORT checkDependencies(daq::IString** logMessage)
 {
     auto coreVersionMetadata = daq::Dict<daq::IString, daq::IString>();
 

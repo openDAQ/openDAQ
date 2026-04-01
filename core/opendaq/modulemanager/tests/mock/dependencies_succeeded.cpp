@@ -14,7 +14,7 @@ daq::ErrCode PUBLIC_EXPORT createModule(daq::IModule** module)
 }
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT checkDependencies()
+daq::ErrCode PUBLIC_EXPORT checkDependencies(daq::IString** logMessage)
 {
     return OPENDAQ_SUCCESS;
 }

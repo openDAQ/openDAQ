@@ -32,7 +32,6 @@ target_compile_definitions(${TEST_APP} PRIVATE MODULE_TEST_DIR="mock"
                                                COPY_DEPENDENCIES_SUCCEEDED_MODULE_NAME="copy_$<TARGET_FILE_NAME:dependencies_succeeded>"
                                                NULL_STRING_ID_MODULE_NAME="$<TARGET_FILE_NAME:null_string_id_module>"
                                                EMPTY_STRING_ID_MODULE_NAME="$<TARGET_FILE_NAME:empty_string_id_module>"
-
 )
 
 target_link_libraries(${TEST_APP}

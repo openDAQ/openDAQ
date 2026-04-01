@@ -679,6 +679,9 @@ jobs:
         with:
           version: 1.10.2
 
+      - name: Install dependencies
+        run: brew install mono
+
       - name: Set up Pythons
         uses: actions/setup-python@v5
         with:

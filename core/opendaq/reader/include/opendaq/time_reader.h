@@ -233,7 +233,7 @@ inline void TimeReaderBase::handleDescriptorChanged(const DataDescriptorPtr& des
     }
 
     std::istringstream epochString(reader::fixupIso8601(descriptor.getOrigin()));
-    epochString >> date::parse("%FT%T%z", parsedEpoch);
+    date::from_stream(epochString, "%FT%T%z", parsedEpoch);
 
     domainDataDescriptor = descriptor;
     resolution = descriptor.getTickResolution();

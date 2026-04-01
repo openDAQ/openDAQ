@@ -1,0 +1,8 @@
+diff a/core/opendaq/reader/tests/test_multi_reader.cpp b/core/opendaq/reader/tests/test_multi_reader.cpp	(rejected hunks)
+@@ -5233,4 +5233,4 @@ TEST_F(MultiReaderTest, UsedUnusedInput)
+         ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+         ASSERT_TRUE(status.getValid());
+     }
+-}
+\ No newline at end of file
++}

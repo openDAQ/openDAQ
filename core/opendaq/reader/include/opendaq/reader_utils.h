@@ -86,7 +86,7 @@ namespace reader
         std::chrono::system_clock::time_point epoch;
 
         std::istringstream epochString(fixupIso8601(origin));
-        epochString >> date::parse("%FT%T%z", epoch);
+        date::from_stream(epochString, "%FT%T%z", epoch);
 
         return epoch;
     }

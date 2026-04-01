@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 17.03.2026 13:26:47.
+//     RTGen (CGenerator v0.7.0) on 31.03.2026 11:20:45.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -43,6 +43,7 @@ extern "C"
     daqErrCode EXPORTED daqPropertyObjectProtected_setProtectedPropertyValue(daqPropertyObjectProtected* self, daqString* propertyName, daqBaseObject* value);
     daqErrCode EXPORTED daqPropertyObjectProtected_clearProtectedPropertyValue(daqPropertyObjectProtected* self, daqString* propertyName);
     daqErrCode EXPORTED daqPropertyObjectProtected_setProtectedPropertySelectionValue(daqPropertyObjectProtected* self, daqString* propertyName, daqBaseObject* value);
+    daqErrCode EXPORTED daqPropertyObjectProtected_clearProtectedPropertyValues(daqPropertyObjectProtected* self);
 
 #ifdef __cplusplus
 }

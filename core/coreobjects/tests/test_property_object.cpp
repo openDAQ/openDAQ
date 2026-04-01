@@ -2780,3 +2780,116 @@ TEST_F(PropertyObjectTest, InheritedLocking2)
     ASSERT_EQ(objInternal, objInternal1.getMutexOwner());
     ASSERT_EQ(objInternal, objInternal2.getMutexOwner());
 }
+// --- clearPropertyValues / clearPropertyValue on nested property objects ---
+
+TEST_F(PropertyObjectTest, ClearPropertyValuesRecursiveNestedObject)
+{
+    // Build a 3-level deep hierarchy:
+    //   root
+    //     level1 (ObjectProperty)
+    //       Int = 10
+    //       level2 (ObjectProperty)
+    //         String = "hello"
+    //         level3 (ObjectProperty)
+    //           Float = 3.14
+
+    const auto level3 = PropertyObject();
+    level3.addProperty(FloatProperty("Float", 3.14));
+
+    const auto level2 = PropertyObject();
+    level2.addProperty(StringProperty("String", "hello"));
+    level2.addProperty(ObjectProperty("level3", level3));
+
+    const auto level1 = PropertyObject();
+    level1.addProperty(IntProperty("Int", 10));
+    level1.addProperty(ObjectProperty("level2", level2));
+
+    const auto root = PropertyObject();
+    root.addProperty(StringProperty("RootStr", "root"));
+    root.addProperty(ObjectProperty("level1", level1));
+
+    root.setPropertyValue("RootStr", "modified");
+    root.setPropertyValue("level1.Int", 99);
+    root.setPropertyValue("level1.level2.String", "changed");
+    root.setPropertyValue("level1.level2.level3.Float", 2.71);
+
+    ASSERT_EQ(root.getPropertyValue("RootStr"), "modified");
+    ASSERT_EQ(root.getPropertyValue("level1.Int"), 99);
+    ASSERT_EQ(root.getPropertyValue("level1.level2.String"), "changed");
+    ASSERT_DOUBLE_EQ(root.getPropertyValue("level1.level2.level3.Float"), 2.71);
+
+    // clearPropertyValues on root resets everything recursively
+    root.clearPropertyValues();
+
+    ASSERT_EQ(root.getPropertyValue("RootStr"), "root");
+    ASSERT_EQ(root.getPropertyValue("level1.Int"), 10);
+    ASSERT_EQ(root.getPropertyValue("level1.level2.String"), "hello");
+    ASSERT_DOUBLE_EQ(root.getPropertyValue("level1.level2.level3.Float"), 3.14);
+}
+
+TEST_F(PropertyObjectTest, ClearPropertyValuesAtIntermediateLevel)
+{
+    const auto level3 = PropertyObject();
+    level3.addProperty(IntProperty("DeepInt", 7));
+
+    const auto level2 = PropertyObject();
+    level2.addProperty(StringProperty("Str", "foo"));
+    level2.addProperty(ObjectProperty("level3", level3));
+
+    const auto level1 = PropertyObject();
+    level1.addProperty(IntProperty("L1Int", 1));
+    level1.addProperty(ObjectProperty("level2", level2));
+
+    const auto root = PropertyObject();
+    root.addProperty(IntProperty("RootInt", 100));
+    root.addProperty(ObjectProperty("level1", level1));
+
+    root.setPropertyValue("RootInt", 200);
+    root.setPropertyValue("level1.L1Int", 50);
+    root.setPropertyValue("level1.level2.Str", "bar");
+    root.setPropertyValue("level1.level2.level3.DeepInt", 42);
+
+    // clearPropertyValues on level2 only resets level2 and its children
+    const PropertyObjectPtr l2 = root.getPropertyValue("level1.level2");
+    l2.clearPropertyValues();
+
+    // root and level1 unchanged
+    ASSERT_EQ(root.getPropertyValue("RootInt"), 200);
+    ASSERT_EQ(root.getPropertyValue("level1.L1Int"), 50);
+    // level2 and level3 reset
+    ASSERT_EQ(root.getPropertyValue("level1.level2.Str"), "foo");
+    ASSERT_EQ(root.getPropertyValue("level1.level2.level3.DeepInt"), 7);
+}
+
+TEST_F(PropertyObjectTest, ClearPropertyValuesNestedMixedTypes)
+{
+    const auto child1 = PropertyObject();
+    child1.addProperty(IntProperty("Int", 1));
+    child1.addProperty(FloatProperty("Float", 1.1));
+    child1.addProperty(StringProperty("Str", "a"));
+    child1.addProperty(BoolProperty("Bool", false));
+
+    const auto child2 = PropertyObject();
+    child2.addProperty(IntProperty("Int", 2));
+    child2.addProperty(StringProperty("Str", "b"));
+
+    const auto root = PropertyObject();
+    root.addProperty(ObjectProperty("child1", child1));
+    root.addProperty(ObjectProperty("child2", child2));
+
+    root.setPropertyValue("child1.Int", 10);
+    root.setPropertyValue("child1.Float", 9.9);
+    root.setPropertyValue("child1.Str", "modified");
+    root.setPropertyValue("child1.Bool", true);
+    root.setPropertyValue("child2.Int", 20);
+    root.setPropertyValue("child2.Str", "changed");
+
+    root.clearPropertyValues();
+
+    ASSERT_EQ(root.getPropertyValue("child1.Int"), 1);
+    ASSERT_DOUBLE_EQ(root.getPropertyValue("child1.Float"), 1.1);
+    ASSERT_EQ(root.getPropertyValue("child1.Str"), "a");
+    ASSERT_EQ(root.getPropertyValue("child1.Bool"), False);
+    ASSERT_EQ(root.getPropertyValue("child2.Int"), 2);
+    ASSERT_EQ(root.getPropertyValue("child2.Str"), "b");
+}

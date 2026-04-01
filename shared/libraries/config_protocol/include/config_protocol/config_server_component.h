@@ -40,6 +40,7 @@ public:
     static BaseObjectPtr getSuggestedValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr getSelectionValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr callProperty(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr clearPropertyValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
 
     // Component methods
     static BaseObjectPtr beginUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
@@ -229,6 +230,22 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
     return nullptr;
 }
 
+inline BaseObjectPtr ConfigServerComponent::clearPropertyValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    PropertyObjectPtr obj;
+    if (params.hasKey("Path"))
+        obj = component.getPropertyValue(params.get("Path"));
+    else
+        obj = component;
+
+    obj.clearPropertyValues();
+    return nullptr;
+}
+
 inline BaseObjectPtr ConfigServerComponent::beginUpdate(const RpcContext& context,
                                                         const ComponentPtr& component,
                                                         const ParamsDictPtr& params)
@@ -237,13 +254,13 @@ inline BaseObjectPtr ConfigServerComponent::beginUpdate(const RpcContext& contex
     ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
+    PropertyObjectPtr obj;
     if (params.hasKey("Path"))
-    {
-        const PropertyObjectPtr obj = component.getPropertyValue(params.get("Path"));
-        obj.beginUpdate();
-    }
+        obj = component.getPropertyValue(params.get("Path"));
     else
-        component.beginUpdate();
+        obj = component;
+
+    obj.beginUpdate();
     return nullptr;
 }
 
@@ -255,9 +272,7 @@ inline BaseObjectPtr ConfigServerComponent::endUpdate(const RpcContext& context,
 
     PropertyObjectPtr obj;
     if (params.hasKey("Path"))
-    {
         obj = component.getPropertyValue(params.get("Path"));
-    }
     else
         obj = component;
 

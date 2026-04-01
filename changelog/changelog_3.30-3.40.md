@@ -16,7 +16,7 @@
 - [#1081](https://github.com/openDAQ/openDAQ/pull/1081) Pre-parsing of a JSON setup that allows users to select from a set of actions to be performed when loading devices (load, remove, remap...)
 - [#1088](https://github.com/openDAQ/openDAQ/pull/1088) Enable bundling of sent core events within the native configuration protocol
 - [#1097](https://github.com/openDAQ/openDAQ/pull/1097) Implement value based selection list
-
+- [#1124](https://github.com/openDAQ/openDAQ/pull/1124) Implement clearPropertyValues() for property objects
 
 ## Python
 

@@ -67,4 +67,12 @@ void defineIPropertyObjectProtected(pybind11::module_ m, PyDaqIntf<daq::IPropert
         },
         py::arg("property_name"), py::arg("value"),
         "Sets a Selection property value by the selection item value. Does not fail if the property is read-only.");
+    cls.def("clear_protected_property_values",
+        [](daq::IPropertyObjectProtected *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyObjectProtectedPtr::Borrow(object);
+            objectPtr.clearProtectedPropertyValues();
+        },
+        "Clears values of all properties contained in the Property object, including nested child properties.");
 }

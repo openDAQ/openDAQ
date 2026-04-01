@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 17.03.2026 13:26:46.
+//     RTGen (CGenerator v0.7.0) on 31.03.2026 11:20:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -69,6 +69,7 @@ extern "C"
     daqErrCode EXPORTED daqPropertyObject_getPermissionManager(daqPropertyObject* self, daqPermissionManager** permissionManager);
     daqErrCode EXPORTED daqPropertyObject_findProperties(daqPropertyObject* self, daqList** properties, daqSearchFilter* propertyFilter, daqSearchFilter* componentFilter);
     daqErrCode EXPORTED daqPropertyObject_setPropertySelectionValue(daqPropertyObject* self, daqString* propertyName, daqBaseObject* value);
+    daqErrCode EXPORTED daqPropertyObject_clearPropertyValues(daqPropertyObject* self);
     daqErrCode EXPORTED daqPropertyObject_createPropertyObject(daqPropertyObject** obj);
     daqErrCode EXPORTED daqPropertyObject_createPropertyObjectWithClassAndManager(daqPropertyObject** obj, daqTypeManager* manager, daqString* className);
 

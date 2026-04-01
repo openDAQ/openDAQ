@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.06.2025 21:37:16.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:23.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_MODULE_MANAGER_INTF_ID = { daq::IModuleManager::Id.Data1, daq::IModuleManager::Id.Data2, daq::IModuleManager::Id.Data3, daq::IModuleManager::Id.Data4_UInt64 };
+
+void daqModuleManager_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_MODULE_MANAGER_INTF_ID;
+}
 
 daqErrCode daqModuleManager_getModules(daqModuleManager* self, daqList** modules)
 {
@@ -35,6 +40,21 @@ daqErrCode daqModuleManager_loadModules(daqModuleManager* self, daqContext* cont
 daqErrCode daqModuleManager_loadModule(daqModuleManager* self, daqString* path, daqModule** module)
 {
     return reinterpret_cast<daq::IModuleManager*>(self)->loadModule(reinterpret_cast<daq::IString*>(path), reinterpret_cast<daq::IModule**>(module));
+}
+
+daqErrCode daqModuleManager_setAuthenticatedOnly(daqModuleManager* self, daqBool authenticatedOnly)
+{
+    return reinterpret_cast<daq::IModuleManager*>(self)->setAuthenticatedOnly(authenticatedOnly);
+}
+
+daqErrCode daqModuleManager_setModuleAuthenticator(daqModuleManager* self, daqModuleAuthenticator* authenticator)
+{
+    return reinterpret_cast<daq::IModuleManager*>(self)->setModuleAuthenticator(reinterpret_cast<daq::IModuleAuthenticator*>(authenticator));
+}
+
+daqErrCode daqModuleManager_getVendorKeys(daqModuleManager* self, daqDict** vendorKeys)
+{
+    return reinterpret_cast<daq::IModuleManager*>(self)->getVendorKeys(reinterpret_cast<daq::IDict**>(vendorKeys));
 }
 
 daqErrCode daqModuleManager_createModuleManager(daqModuleManager** obj, daqString* path)

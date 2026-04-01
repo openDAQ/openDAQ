@@ -278,8 +278,8 @@ jobs:
               -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
 
     env:
-      CC: clang
-      CXX: clang++
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
 
     steps:
       - name: Checkout

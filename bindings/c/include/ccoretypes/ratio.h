@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:57.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:39.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqRatio daqRatio;
 
     EXPORTED extern const daqIntfID DAQ_RATIO_INTF_ID;
+    void EXPORTED daqRatio_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqRatio_getNumerator(daqRatio* self, daqInt* numerator);
     daqErrCode EXPORTED daqRatio_getDenominator(daqRatio* self, daqInt* denominator);

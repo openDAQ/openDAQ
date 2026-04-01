@@ -6,7 +6,8 @@
 #include <opendaq/device_ptr.h>
 #include <coretypes/common.h>
 #include <opendaq/context_factory.h>
-#include <opendaq/scheduler_factory.h>
+#include <opendaq/instance_factory.h>
+#include <opendaq/module_manager_ptr.h>
 
 using AudioDeviceModuleTest = testing::Test;
 using namespace daq;
@@ -100,6 +101,20 @@ TEST_F(AudioDeviceModuleTest, CreateDeviceConnectionStringCorrect)
         DevicePtr device;
         ASSERT_NO_THROW(device = module.createDevice(connectionString, nullptr));
     }
+}
+
+TEST_F(AudioDeviceModuleTest, AddFunctionBlockBackwardsCompat)
+{
+    auto instance = Instance("[[none]]");
+    {
+        ModulePtr audioModule;
+        createAudioDeviceModule(&audioModule, instance.getContext());
+
+        instance.getModuleManager()
+                .addModule(audioModule);
+    }
+
+    ASSERT_NO_THROW(instance.addFunctionBlock("audio_device_module_wav_writer"));
 }
 
 TEST_F(AudioDeviceModuleTest, GetAvailableComponentTypes)

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.06.2025 17:27:48.
+//     RTGen (CGenerator v0.7.0) on 31.03.2026 11:20:44.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -44,6 +44,7 @@ extern "C"
     typedef struct daqTypeManager daqTypeManager;
 
     EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_INTF_ID;
+    void EXPORTED daqPropertyObject_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqPropertyObject_getClassName(daqPropertyObject* self, daqString** className);
     daqErrCode EXPORTED daqPropertyObject_setPropertyValue(daqPropertyObject* self, daqString* propertyName, daqBaseObject* value);
@@ -67,6 +68,8 @@ extern "C"
     daqErrCode EXPORTED daqPropertyObject_getOnEndUpdate(daqPropertyObject* self, daqEvent** event);
     daqErrCode EXPORTED daqPropertyObject_getPermissionManager(daqPropertyObject* self, daqPermissionManager** permissionManager);
     daqErrCode EXPORTED daqPropertyObject_findProperties(daqPropertyObject* self, daqList** properties, daqSearchFilter* propertyFilter, daqSearchFilter* componentFilter);
+    daqErrCode EXPORTED daqPropertyObject_setPropertySelectionValue(daqPropertyObject* self, daqString* propertyName, daqBaseObject* value);
+    daqErrCode EXPORTED daqPropertyObject_clearPropertyValues(daqPropertyObject* self);
     daqErrCode EXPORTED daqPropertyObject_createPropertyObject(daqPropertyObject** obj);
     daqErrCode EXPORTED daqPropertyObject_createPropertyObjectWithClassAndManager(daqPropertyObject** obj, daqTypeManager* manager, daqString* className);
 

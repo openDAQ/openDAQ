@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:26.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:28.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -36,11 +36,14 @@ extern "C"
 
     typedef struct daqReader daqReader;
     typedef struct daqProcedure daqProcedure;
+    typedef struct daqInputPortNotifications daqInputPortNotifications;
 
     EXPORTED extern const daqIntfID DAQ_READER_INTF_ID;
+    void EXPORTED daqReader_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqReader_getAvailableCount(daqReader* self, daqSizeT* count);
     daqErrCode EXPORTED daqReader_setOnDataAvailable(daqReader* self, daqProcedure* callback);
+    daqErrCode EXPORTED daqReader_setExternalListener(daqReader* self, daqInputPortNotifications* listener);
     daqErrCode EXPORTED daqReader_getEmpty(daqReader* self, daqBool* empty);
 
 #ifdef __cplusplus

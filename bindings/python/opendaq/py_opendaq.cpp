@@ -134,6 +134,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIUpdateParameters = declareIUpdateParameters(m);
     auto classILogFileInfo = declareILogFileInfo(m);
     auto classILogFileInfoBuilder = declareILogFileInfoBuilder(m);
+    auto classIDeviceUpdateOptions = declareIDeviceUpdateOptions(m);
 
     defineIModuleInfo(m, classIModuleInfo);
     defineIComponentType(m, classIComponentType);
@@ -241,6 +242,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIUpdateParameters(m, classIUpdateParameters);
     defineILogFileInfo(m, classILogFileInfo);
     defineILogFileInfoBuilder(m, classILogFileInfoBuilder);
+    defineIDeviceUpdateOptions(m, classIDeviceUpdateOptions);
 
     defineComponentSearchFilterFactories(m);
 

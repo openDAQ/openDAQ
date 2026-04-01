@@ -1,6 +1,7 @@
 #include <coretypes/common.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/instance_factory.h>
+#include <opendaq/instance_ptr.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/reader_factory.h>
@@ -155,10 +156,13 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_NO_THROW(functionBlockTypes = module.getAvailableFunctionBlockTypes());
     ASSERT_TRUE(functionBlockTypes.assigned());
 
+#ifdef OPENDAQ_ENABLE_RENDERER
     ASSERT_EQ(functionBlockTypes.getCount(), 12u);
-
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleRenderer"));
     ASSERT_EQ("RefFBModuleRenderer", functionBlockTypes.get("RefFBModuleRenderer").getId());
+#else
+    ASSERT_EQ(functionBlockTypes.getCount(), 10u);
+#endif
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStatistics"));
     ASSERT_EQ("RefFBModuleStatistics", functionBlockTypes.get("RefFBModuleStatistics").getId());
@@ -181,8 +185,10 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStructDecoder"));
     ASSERT_EQ("RefFBModuleStructDecoder", functionBlockTypes.get("RefFBModuleStructDecoder").getId());
 
+#ifdef OPENDAQ_ENABLE_RENDERER
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleVideoPlayer"));
     ASSERT_EQ("RefFBModuleVideoPlayer", functionBlockTypes.get("RefFBModuleVideoPlayer").getId());
+#endif
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleSumReader"));
     ASSERT_EQ("RefFBModuleSumReader", functionBlockTypes.get("RefFBModuleSumReader").getId());
@@ -226,7 +232,7 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 TEST_F(RefFbModuleTest, ScalingVersion)
 {
     auto module = CreateModule();
-    
+
     auto fb = module.createFunctionBlock("RefFBModuleScaling", nullptr, "fb");
     ASSERT_EQ(fb.getFunctionBlockType().getModuleInfo().getVersionInfo(), module.getModuleInfo().getVersionInfo());
 }
@@ -238,6 +244,7 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockNotFound)
     ASSERT_THROW(module.createFunctionBlock("test", nullptr, "Id"), NotFoundException);
 }
 
+#ifdef OPENDAQ_ENABLE_RENDERER
 TEST_F(RefFbModuleTest, FunctionBlockRendererDefaultConfig)
 {
     const auto module = CreateModule();
@@ -254,6 +261,7 @@ TEST_F(RefFbModuleTest, FunctionBlockRendererDefaultConfig)
     ASSERT_TRUE(config.getPropertyValue("UseMainLoopForRenderer"));
 #endif
 }
+#endif
 
 TEST_F(RefFbModuleTest, DISABLED_CreateFunctionBlockRenderer)
 {
@@ -301,7 +309,13 @@ TEST_F(RefFbModuleTest, CreateFunctionBlockTrigger)
 
 TEST_F(RefFbModuleTest, AddFunctionBlockBackwardsCompat)
 {
-    const auto instance = Instance();
+    InstancePtr instance = Instance("[[none]]");
+    {
+        ModulePtr refFbs;
+        createRefFBModule(&refFbs, instance.getContext());
+
+        instance.getModuleManager().addModule(refFbs);
+    }
 
     instance.addFunctionBlock("ref_fb_module_classifier");
     instance.addFunctionBlock("ref_fb_module_fft");
@@ -310,7 +324,6 @@ TEST_F(RefFbModuleTest, AddFunctionBlockBackwardsCompat)
     instance.addFunctionBlock("ref_fb_module_scaling");
     instance.addFunctionBlock("ref_fb_module_statistics");
     instance.addFunctionBlock("ref_fb_module_trigger");
-    instance.addFunctionBlock("audio_device_module_wav_writer");
 }
 
 TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
@@ -334,7 +347,7 @@ TEST_F(RefFbModuleTest, TriggerWithReferenceDomainOffset)
     // Check domain data
 
     // input data:      0, 1, 2, 3, 4
-    //                     ^ trigger, becauase greater than 0.5
+    //                     ^ trigger, because greater than 0.5
     // input domain:    104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
     //                        ^ expected output domain, one sample with value 109
 

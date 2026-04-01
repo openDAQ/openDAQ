@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:52.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:02.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqPropertyObject daqPropertyObject;
 
     EXPORTED extern const daqIntfID DAQ_COMPONENT_PRIVATE_INTF_ID;
+    void EXPORTED daqComponentPrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqComponentPrivate_lockAttributes(daqComponentPrivate* self, daqList* attributes);
     daqErrCode EXPORTED daqComponentPrivate_lockAllAttributes(daqComponentPrivate* self);
@@ -49,6 +50,7 @@ extern "C"
     daqErrCode EXPORTED daqComponentPrivate_updateOperationMode(daqComponentPrivate* self, daqOperationModeType modeType);
     daqErrCode EXPORTED daqComponentPrivate_setComponentConfig(daqComponentPrivate* self, daqPropertyObject* config);
     daqErrCode EXPORTED daqComponentPrivate_getComponentConfig(daqComponentPrivate* self, daqPropertyObject** config);
+    daqErrCode EXPORTED daqComponentPrivate_setParentActive(daqComponentPrivate* self, daqBool parentActive);
 
 #ifdef __cplusplus
 }

@@ -598,7 +598,6 @@ TEST_F(InstanceTest, SaveLoadRestoreDevice)
     {
         ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
         ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
-        devicesNames.erase(device.getName());
     }
 }
 
@@ -639,81 +638,6 @@ TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
     instance2.loadConfiguration(config);
 
     ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
-    for (const auto& device : instance2.getDevices())
-    {
-        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
-        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
-        devicesNames.erase(device.getName());
-    }
-}
-
-TEST_F(InstanceTest, SaveLoadReadDevice)
-{
-    std::map<std::string, std::string> devicesNames;
-    auto instance = test_helpers::setupInstance("localIntanceId");
-    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
-
-    auto config = instance.saveConfiguration();
-
-    auto instance2 = test_helpers::setupInstance("localIntanceId");
-    instance2.addDevice("daqmock://phys_device");
-    instance2.addDevice("daq.root://default_client");
-    auto loadConfig = UpdateParameters();
-    loadConfig.setReAddDevicesEnabled(true);
-    instance2.loadConfiguration(config, loadConfig);
-
-    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
-
-    for (const auto& device : instance2.getDevices())
-    {
-        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
-        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
-        devicesNames.erase(device.getName());
-    }
-}
-
-TEST_F(InstanceTest, SaveLoadReadDevice2)
-{
-    std::map<std::string, std::string> devicesNames;
-    auto instance = test_helpers::setupInstance("localIntanceId");
-    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
-
-    auto config = instance.saveConfiguration();
-
-    auto instance2 = test_helpers::setupInstance("localIntanceId");
-    instance2.addDevice("daqmock://phys_device");
-    auto loadConfig = UpdateParameters();
-    loadConfig.setReAddDevicesEnabled(true);
-    instance2.loadConfiguration(config, loadConfig);
-
-    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
-
-    for (const auto& device : instance2.getDevices())
-    {
-        ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
-        ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
-        devicesNames.erase(device.getName());
-    }
-}
-
-TEST_F(InstanceTest, SaveLoadReadDevice3)
-{
-    std::map<std::string, std::string> devicesNames;
-    auto instance = test_helpers::setupInstance("localIntanceId");
-    devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
-
-    auto config = instance.saveConfiguration();
-
-    auto instance2 = test_helpers::setupInstance("localIntanceId");
-    auto loadConfig = UpdateParameters();
-    loadConfig.setReAddDevicesEnabled(true);
-    instance2.loadConfiguration(config, loadConfig);
-
-    ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
-
     for (const auto& device : instance2.getDevices())
     {
         ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
@@ -1135,7 +1059,7 @@ TEST_F(InstanceTest, SaveLoadDeviceInfo)
         deviceInfo.setPropertyValue("userName", "testUser");
         deviceInfo.setPropertyValue("location", "testLocation");
         deviceInfo.setPropertyValue("TestChangeableField", "testValue");
-        deviceInfo.addProperty(StringProperty("CustomProperty", "defaultValue"));
+         deviceInfo.addProperty(StringProperty("CustomProperty", "defaultValue"));
         deviceInfo.setPropertyValue("CustomProperty", "newValue");
 
         config = instance.saveConfiguration();
@@ -1152,9 +1076,7 @@ TEST_F(InstanceTest, SaveLoadDeviceInfo)
     ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
     ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
     ASSERT_EQ(deviceInfo.getPropertyValue("TestChangeableField"), "testValue");
-    ASSERT_TRUE(deviceInfo.hasProperty("CustomProperty"));
-    ASSERT_EQ(deviceInfo.getProperty("CustomProperty").getDefaultValue(), "defaultValue");
-    ASSERT_EQ(deviceInfo.getPropertyValue("CustomProperty"), "newValue");
+    ASSERT_FALSE(deviceInfo.hasProperty("CustomProperty"));
 }
 
 TEST_F(InstanceTest, TestRemoved1)

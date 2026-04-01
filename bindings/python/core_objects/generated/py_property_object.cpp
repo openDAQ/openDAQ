@@ -248,5 +248,13 @@ void defineIPropertyObject(pybind11::module_ m, PyDaqIntf<daq::IPropertyObject, 
             objectPtr.setPropertySelectionValue(getVariantValue<daq::IString*>(propertyName), pyObjectToBaseObject(value));
         },
         py::arg("property_name"), py::arg("value"),
-        "Sets the value of a Selection property by providing the selected value instead of the index/key.");
+        "Sets the value of a Selection property by the selection item value (e.g. string, float, or list/dict value).");
+    cls.def("clear_property_values",
+        [](daq::IPropertyObject *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyObjectPtr::Borrow(object);
+            objectPtr.clearPropertyValues();
+        },
+        "Clears values of all properties contained in the Property object, including nested child properties.");
 }

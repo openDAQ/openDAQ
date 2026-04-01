@@ -162,13 +162,14 @@ set(SRC_PrivateLinkLibraries_Component
     ${BOOST_LIBS}
     ${CMAKE_DL_LIBS}
     ${STDCFS_LIBS}
-	${PING_LIBS}
-    $<BUILD_INTERFACE:Boost::dll>
+    ${PING_LIBS}
     $<BUILD_INTERFACE:Boost::asio>
-    $<BUILD_INTERFACE:Threads::Threads>
-    $<BUILD_INTERFACE:fmt::fmt>
-    $<BUILD_INTERFACE:daq::discovery_server>
+    $<BUILD_INTERFACE:Boost::dll>
     $<BUILD_INTERFACE:daq::discovery>
+    $<BUILD_INTERFACE:daq::discovery_server>
+    $<BUILD_INTERFACE:fmt::fmt>
+    $<BUILD_INTERFACE:std::filesystem>
+    $<BUILD_INTERFACE:Threads::Threads>
     PARENT_SCOPE
 )
 

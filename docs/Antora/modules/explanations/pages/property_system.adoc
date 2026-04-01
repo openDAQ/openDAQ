@@ -238,12 +238,40 @@ us to build the Property with the configured metadata.
 
 |===
 
+:note-caption: Important
+[IMPORTANT]
+====
+When implementing device modules with properties that persist values in hardware (e.g., calibration data read back after a power cycle), do not use the hardware value as the default value in the property builder. Instead, use a fixed default value and set the actual hardware value separately:
+
+[source,cpp]
+----
+// Correct approach for hardware-persisted values:
+objPtr.addProperty(StringProperty("ChannelVPs", ""));  // fixed default
+objPtr.setPropertyValue("ChannelVPs", actualValueFromHW);  // actual value from hardware
+----
+
+This ensures proper synchronization during device reconnection, as only explicitly set values (not defaults) are synchronized with the client-side mirror.
+====
+
 === Types of Properties
 
 A Property can be split into several different kinds of Property types. In openDAQ(TM), we
 provide a separate factory method for each Property type that automatically pre-configures
 the minimal set of required fields for a said type. In this section, we list and describe
 the available type, referencing the relevant Property fields outlined in the above table.
+
+:note-caption: Note
+[NOTE]
+====
+Property types are represented by the `PropertyType` enumeration, which mirrors the `CoreType`
+enumeration values (e.g. `Bool`, `Int`, `Float`, `String`, `List`, `Dict`, etc.). In addition
+to the core types, `PropertyType` defines the following Property-specific types:
+
+* *Reference* — a reference to another property on the same Property Object.
+* *IndexSelection* — a selection property where the value is an integer index into a list of selectable values.
+* *Selection* — a selection property where the value is the selected item itself (not an index). Supports `Int`, `Float`, and `String` value types.
+* *SparseSelection* — a selection property where the value is an integer key into a dictionary of selectable values.
+====
 
 [#numerical]
 ==== Numerical Properties
@@ -437,6 +465,69 @@ propObj.SetPropertyValue("ListSelection", 2);
 Console.WriteLine((string)propObj.GetPropertySelectionValue("DictSelection"));
 // Selects "foo"
 propObj.SetPropertyValue("DictSelection", 0);
+----
+====
+
+[#value_selection]
+==== Value Selection Properties
+
+Value Selection Properties (``PropertyType::Selection``) differ from <<selection,Index Selection Properties>>
+in a fundamental way: the Property Value holds the *selected item itself*, not an index or key.
+Supported value types are `Int`, `Float`, and `String`.
+
+The `set`/`get` Property Value calls work directly with the actual value — no additional lookup
+via `getPropertySelectionValue` is needed.
+
+:note-caption: Important
+[IMPORTANT]
+====
+When the selection values are of type `Int`, the Property type would be ambiguous with
+`IndexSelection`. To resolve this, call `setIsIntegerValueSelection(true)` on the Property
+Builder. This flag tells the SDK that the integer value is the selected item, not an index.
+====
+
+.Value Selection Properties example
+
+[tabs]
+====
+Cpp::
++
+[source,cpp]
+----
+auto propObj = PropertyObject();
+
+// String value selection — value IS the selected string
+propObj.addProperty(
+    PropertyBuilder("StringSelection")
+        .setSelectionValues(List<IString>("Apple", "Banana", "Kiwi"))
+        .setDefaultValue(String("Banana"))
+        .build());
+
+// Float value selection — value IS the selected float
+propObj.addProperty(
+    PropertyBuilder("FloatSelection")
+        .setSelectionValues(List<IFloat>(1.0, 2.5, 5.0))
+        .setDefaultValue(Float(2.5))
+        .build());
+
+// Integer value selection — must set setIsIntegerValueSelection(true)
+// to distinguish from IndexSelection
+propObj.addProperty(
+    PropertyBuilder("IntSelection")
+        .setSelectionValues(List<IInteger>(10, 20, 30))
+        .setDefaultValue(Integer(20))
+        .setIsIntegerValueSelection(true)
+        .build());
+
+// Prints "Banana" directly — get/set works with the actual value
+std::cout << propObj.getPropertyValue("StringSelection") << std::endl;
+propObj.setPropertyValue("StringSelection", String("Kiwi"));
+std::cout << propObj.getPropertyValue("StringSelection") << std::endl;
+
+// Prints "20" directly
+std::cout << propObj.getPropertyValue("IntSelection") << std::endl;
+propObj.setPropertyValue("IntSelection", Integer(30));
+std::cout << propObj.getPropertyValue("IntSelection") << std::endl;
 ----
 ====
 
@@ -1539,15 +1630,29 @@ Console.WriteLine((string)propObj.GetPropertyValue("Child.Child.String"));
 
 ==== Selection Properties
 
-Selection Properties always have a Value type of _Integer_. As such, the value getter will always
-return the integer key/index into the list/dictionary of Selection values. To directly obtain
-the selected value, a Selection value getter is available.
+openDAQ(TM) provides two distinct kinds of selection properties with different get/set semantics:
+
+*Index-based selection* (`IndexSelection`, `SparseSelection`) — the Property Value is always an
+_Integer_ representing the index (for a list) or key (for a dictionary) of the selected item.
+The `getPropertyValue` / `setPropertyValue` calls work with the integer index/key.
+To retrieve the actual selected item, use the dedicated `getPropertySelectionValue` getter.
 
 :note-caption: Note
 [NOTE]
 ====
 The "dot" notation used to get/set values of nested objects does not work on the Selection
 value getter function.
+====
+
+*Value-based selection* (`Selection`) — the Property Value *is* the selected item itself.
+`getPropertyValue` / `setPropertyValue` return and accept the actual value (`Int`, `Float`,
+or `String`). No separate selection value getter is needed.
+
+:note-caption: Note
+[NOTE]
+====
+For value-based selection properties with integer values, `setIsIntegerValueSelection(true)`
+must be set on the builder to distinguish them from index-based integer selection properties.
 ====
 
 [tabs]

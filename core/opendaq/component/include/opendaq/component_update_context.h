@@ -19,6 +19,8 @@
 #include <coretypes/dictobject.h>
 #include <opendaq/component.h>
 #include <opendaq/signal.h>
+#include <opendaq/device_update_options.h>
+#include <opendaq/update_parameters.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -51,6 +53,16 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
      * @param parentId The ID of the parent component.
      */
     virtual ErrCode INTERFACE_FUNC removeInputPortConnection(IString* parentId) = 0;
+    
+    /*!
+     * @brief Sets the root component of the current component. Iterates through the parent components until the root is found and sets it
+     * as the root component for the context.
+     * @param baseComponent The base component from which we iterate to the openDAQ root.
+     *
+     * This method shortcuts the need for callers to provide the openDAQ root device as the component, by automatically iterating
+     * to the root component from any component in the hierarchy.
+     */
+    virtual ErrCode INTERFACE_FUNC setRootComponent(IComponent* baseComponent) = 0;
 
     /*!
      * @brief Gets the root component of the current component.
@@ -74,12 +86,42 @@ DECLARE_OPENDAQ_INTERFACE(IComponentUpdateContext, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setSignalDependency(IString* signalId, IString* parentId) = 0;
 
     /*!
-     * @brief Returns whether the re-add devices is enabled. If enabled, the devices will be re-added in update process.
-     * @param[out] enabled The flag indicating whether the re-add devices is enabled.
-     *
-     * The configuration is set from the property `ReAddDevices` of configuration object.
+     * @brief Adds a device remapping from the original device's local ID to the new device local ID. 
+     * @param originalDeviceId The local ID of the original device to be remapped.
+     * @param newDeviceId The local ID of the new device to be used for remapping.
+     * 
+     * Used to remap signal -> input port connections to the remapped device when loading.
      */
-    virtual ErrCode INTERFACE_FUNC getReAddDevicesEnabled(Bool* enabled) = 0;
+    virtual ErrCode INTERFACE_FUNC addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId) = 0;
+
+    /*!
+     * @brief Gets the DeviceUpdateOptions object for the device with the specified local ID. Returns null if no options are found for the device.
+     * @param localId The local ID of the device to get the options for.
+     * @param options The DeviceUpdateOptions object for the device with the specified local ID; null if no options are found for the device.
+     */
+    virtual ErrCode INTERFACE_FUNC getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options) = 0;
+
+    /*!
+     * @brief Internal method that uses the device mapping to remap the input port connections.
+     *
+     * Should be called after the initial update, but before `onUpdatableUpdateEnd`.
+     */
+    virtual ErrCode INTERFACE_FUNC remapInputPortConnections() = 0;
+
+    /*!
+     * @brief Gets the update parameters provided by the user through the `update` call.
+     * @param updateParameters The update parameters.
+     */
+    virtual ErrCode INTERFACE_FUNC getUpdateParameters(IUpdateParameters** updateParameters) = 0;
+
+    /*!
+     * @brief Overrides the internal context state with that of another.
+     * @param updateContext The context with which the object is to be overridden.
+     */
+    virtual ErrCode INTERFACE_FUNC overrideState(IComponentUpdateContext* updateContext) = 0; 
+    
+    // [templateType(state, IString, IBaseObject)]
+    virtual ErrCode INTERFACE_FUNC getInternalState(IDict** state) = 0;
 };
 
 /*!

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -394,21 +394,27 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObject, IBaseObject)
     virtual ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) = 0;
 
     /*!
-     * @brief Sets the value of a Selection property by providing the selected value instead of the index/key.
+     * @brief Sets the value of a Selection property by the selection item value (e.g. string, float, or list/dict value).
      * @param propertyName The name of the Property.
-     * @param value The selection value to find and set.
-     * @retval OPENDAQ_ERR_NOTFOUND if a Property with given `propertyName` is not part of the Property object.
-     * @retval OPENDAQ_ERR_INVALIDPROPERTY if the Property either has no Selection values, or the Selection values are not a list or dictionary.
-     * @retval OPENDAQ_ERR_INVALIDVALUE if the provided `value` is not found in the Selection values.
+     * @param value The selection value to set (must be one of the Property's selection values). Cannot be null.
+     * @retval OPENDAQ_ERR_NOTFOUND if a Property with given `propertyName` is not part of the Property object, or the value is not in the selection.
+     * @retval OPENDAQ_ERR_INVALIDPROPERTY if the Property has no Selection values.
      * @retval OPENDAQ_ERR_ACCESSDENIED if the property is Read-only.
      * @retval OPENDAQ_ERR_FROZEN if the Property object is frozen.
      *
-     * This function serves as a shortcut for setting the Property value of a Selection property by providing the actual
-     * selection value rather than its index/key. For example, if the Selection values contain the following list
-     * "["banana", "apple", "pear"]", calling this function with the value "apple" will set the Property value to 1.
-     * For dictionary-based Selection values, the function will find the key corresponding to the provided value.
+     * Works for all Selection properties (list or dictionary): the value is the actual selection item (e.g. a string from the list,
+     * or the value part of a key-value pair in the dictionary). Use setPropertyValue when setting by index/key.
      */
     virtual ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) = 0;
+
+    /*!
+     * @brief Clears values of all properties contained in the Property object, including nested child properties.
+     *
+     * This function clears the values by internally invoking `clearPropertyValue(...)` for all properties returned by
+     * `getAllProperties()`; for object-type properties it therefore clears their child properties as well.
+     * Read-only properties and frozen objects are skipped.
+     */
+    virtual ErrCode INTERFACE_FUNC clearPropertyValues() = 0;
 };
 
 /*!@}*/

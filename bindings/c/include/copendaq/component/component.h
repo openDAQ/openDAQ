@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:50.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:00.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -43,6 +43,7 @@ extern "C"
     typedef struct daqComponentStatusContainer daqComponentStatusContainer;
 
     EXPORTED extern const daqIntfID DAQ_COMPONENT_INTF_ID;
+    void EXPORTED daqComponent_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqComponent_getLocalId(daqComponent* self, daqString** localId);
     daqErrCode EXPORTED daqComponent_getGlobalId(daqComponent* self, daqString** globalId);
@@ -62,6 +63,8 @@ extern "C"
     daqErrCode EXPORTED daqComponent_getStatusContainer(daqComponent* self, daqComponentStatusContainer** statusContainer);
     daqErrCode EXPORTED daqComponent_findComponent(daqComponent* self, daqString* id, daqComponent** outComponent);
     daqErrCode EXPORTED daqComponent_getOperationMode(daqComponent* self, daqOperationModeType* modeType);
+    daqErrCode EXPORTED daqComponent_getLocalActive(daqComponent* self, daqBool* localActive);
+    daqErrCode EXPORTED daqComponent_getParentActive(daqComponent* self, daqBool* parentActive);
     daqErrCode EXPORTED daqComponent_createComponent(daqComponent** obj, daqContext* context, daqComponent* parent, daqString* localId, daqString* className);
 
 #ifdef __cplusplus

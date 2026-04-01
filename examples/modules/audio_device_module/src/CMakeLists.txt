@@ -63,6 +63,7 @@ target_link_libraries(${LIB_NAME}
         PRIVATE
             miniaudio::miniaudio
             ${BOOST_LIBS}
+            $<BUILD_INTERFACE:std::filesystem>
 )
 
 # Should link only what you need $<BUILD_INTERFACE:Boost::locale>

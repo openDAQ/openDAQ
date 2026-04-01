@@ -19,7 +19,7 @@
 namespace daq::test_utils
 {
 
-DevicePtr createTestDevice(const std::string& localId, bool addStatic)
+DevicePtr createTestDevice(const std::string& localId, bool addStatic, bool allPublic)
 {
     const auto logger = Logger();
     const auto moduleManager = ModuleManager("[[none]]");
@@ -40,6 +40,13 @@ DevicePtr createTestDevice(const std::string& localId, bool addStatic)
     const FolderConfigPtr fbsFolder = rootDevice.getItem("FB");
     
     devicesFolder.addItem(MockPhysicalDevice_Create(context, devicesFolder, String("mock_phys_dev"), nullptr));
+
+    if (allPublic)
+    {
+        auto childDevice = devicesFolder.getItem("mock_phys_dev").asPtr<IDevice>();
+        auto signal = childDevice.getSignals(search::LocalId("devicetimesigprivate"))[0];
+        signal.setPublic(true);
+    }
 
     if (addStatic)
     {
@@ -383,7 +390,7 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
     devices.addItem(dev);
 
 	const auto structMembers = Dict<IString, IBaseObject>({{"String", "bar"}, {"Integer", 10}, {"Float", 5.123}});
-	const auto defStructValue = Struct("FooStruct", structMembers, manager.getRef());
+	const auto defStructValue = Struct("FooStruct", structMembers, getTypeManager());
 
 	objPtr.addProperty(StructPropertyBuilder("StructProp", defStructValue).build());
     

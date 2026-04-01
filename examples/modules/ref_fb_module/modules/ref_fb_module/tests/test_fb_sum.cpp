@@ -40,7 +40,7 @@ protected:
     void SetUp() override
     {
         // Create module
-        
+
         context = createContext();
         module = createModule(context);
 
@@ -146,7 +146,7 @@ TEST_F(SumTest, DisconnectSignals)
 
     for (const auto& ip : fb.getInputPorts())
         ip.disconnect();
-    
+
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
     ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
 }
@@ -158,7 +158,7 @@ TEST_F(SumTest, InvalidSignals)
         fb.getInputPorts()[i * 2].connect(validSignals[i]);
         fb.getInputPorts()[i * 2 + 1].connect(invalidSignals[i]);
     }
-    
+
     ASSERT_EQ(fb.getInputPorts().getCount(), 21u);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
 }
@@ -177,7 +177,7 @@ TEST_F(SumTest, InvalidSignalsRecovery)
     auto ip = fb.getInputPorts();
     for (int i = static_cast<int>(fb.getInputPorts().getCount()) - 2; i > 0; i-=2)
         ip[i].disconnect();
-    
+
     ASSERT_EQ(fb.getInputPorts().getCount(), 11u);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
 }
@@ -196,10 +196,10 @@ TEST_F(SumTest, SumSignals)
 
     auto status = reader.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-    
+
     count = reader.getAvailableCount();
     ASSERT_EQ(count, 100u);
-    
+
     double data[100];
     status = reader.read(&data, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
@@ -214,13 +214,13 @@ TEST_F(SumTest, SumSignalsReconnect)
 {
     for (size_t i = 0; i < validSignals.getCount(); ++i)
         fb.getInputPorts()[i].connect(validSignals[i]);
-    
+
     auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
 
     auto ip = fb.getInputPorts();
     for (size_t i = 0; i < 5; ++i)
         ip[i].disconnect();
-    
+
     sendData(100, 0, false, std::make_pair(5, 10));
 
     SizeT count = reader.getAvailableCount();
@@ -236,7 +236,7 @@ TEST_F(SumTest, SumSignalsReconnect)
 
     for (size_t i = 5; i < 10; ++i)
         fb.getInputPorts()[i].connect(validSignals[i - 5]);
-    
+
     sendData(100, 100, false, std::make_pair(0, 10));
 
     count = reader.getAvailableCount();
@@ -324,7 +324,7 @@ TEST_F(SumTest, IncompatibleDomainsReconnect)
 
     fb.getInputPorts()[1].connect(validSignals[1]);
     sendData(100, 100, false, std::make_pair(0, 2));
-    
+
     count = reader.getAvailableCount();
     ASSERT_EQ(count, 100u);
 }

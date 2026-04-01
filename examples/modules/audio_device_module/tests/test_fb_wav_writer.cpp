@@ -6,18 +6,22 @@
 #include <opendaq/context_internal_ptr.h>
 #include <opendaq/reader_factory.h>
 #include <opendaq/recorder_ptr.h>
-#include <filesystem>
+#include <coretypes/filesystem.h>
 #include <thread>
 #include <string>
 
 using AudioDeviceModuleTest = testing::Test;
 
-namespace fs = std::filesystem;
 using namespace daq;
 std::string wavWriterResourcePath = TEST_RESOURCE_PATH;
 
 inline std::string resolvePath(const std::string& relPath)
 {
+    auto inputPath = fs::path(relPath);
+    if (fs::exists(inputPath)) {
+        return inputPath.string();
+    }
+
     auto baseDir = fs::current_path();
     while (baseDir.has_parent_path())
     {

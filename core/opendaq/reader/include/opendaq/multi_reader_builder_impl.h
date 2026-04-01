@@ -33,7 +33,7 @@ public:
     ErrCode INTERFACE_FUNC addInputPorts(IList* inputPorts) override;
 
     ErrCode INTERFACE_FUNC getSourceComponents(IList** ports) override;
-   
+
     ErrCode INTERFACE_FUNC setValueReadType(SampleType type) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* type) override;
 
@@ -80,6 +80,7 @@ private:
     Bool allowDifferentRates;
     PacketReadyNotification notificationMethod;
     ListPtr<PacketReadyNotification> notificationMethodsList;
+    ContextPtr context;
 };
 
 END_NAMESPACE_OPENDAQ

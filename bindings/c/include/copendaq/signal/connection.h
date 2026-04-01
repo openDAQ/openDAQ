@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:37.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:36.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -42,6 +42,7 @@ extern "C"
     typedef struct daqContext daqContext;
 
     EXPORTED extern const daqIntfID DAQ_CONNECTION_INTF_ID;
+    void EXPORTED daqConnection_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqConnection_enqueue(daqConnection* self, daqPacket* packet);
     daqErrCode EXPORTED daqConnection_enqueueOnThisThread(daqConnection* self, daqPacket* packet);
@@ -61,6 +62,7 @@ extern "C"
     daqErrCode EXPORTED daqConnection_getSamplesUntilNextGapPacket(daqConnection* self, daqSizeT* samples);
     daqErrCode EXPORTED daqConnection_hasEventPacket(daqConnection* self, daqBool* hasEventPacket);
     daqErrCode EXPORTED daqConnection_hasGapPacket(daqConnection* self, daqBool* hasGapPacket);
+    daqErrCode EXPORTED daqConnection_enqueueWithScheduler(daqConnection* self, daqPacket* packet);
     daqErrCode EXPORTED daqConnection_createConnection(daqConnection** obj, daqInputPort* inputPort, daqSignal* signal, daqContext* context);
 
 #ifdef __cplusplus

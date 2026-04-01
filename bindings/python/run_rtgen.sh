@@ -3,7 +3,11 @@
 export RTGEN="$PWD/../../shared/tools/RTGen/bin/rtgen.exe"
 export CORE_DIR="$PWD/../../core"
 export BINDINGS_DIR="$PWD"
-#${RTGEN} --help
+
+if command -v mono &>/dev/null; then
+    export RTGEN="mono ${RTGEN}"
+fi
+# eval "${RTGEN} --help"
 
 # 1: library name (CamelCase)
 # 2: library/subdir
@@ -23,9 +27,9 @@ function run_rtgen {
 
     mkdir -p "${dest_dir}"
 
+    echo "Generating bindings for: ${file_h}"
     command="${RTGEN} --language=python --library=${lib_name} --namespace=daq --source=${source_dir}/${file_h} --outputDir=${dest_dir}"
-    echo "$command"
-    $command
+    eval "$command"
     #unix2dos "${dest_dir}/${file_py}"
 }
 
@@ -185,4 +189,5 @@ run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronizat
 run_rtgen opendaq opendaq/synchronization opendaq opendaq/generated/synchronization  sync_component2
 run_rtgen opendaq opendaq/modulemanager   opendaq opendaq/generated/modulemanager    module_info
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        component_type
+run_rtgen opendaq opendaq/utility         opendaq opendaq/generated/utility          device_update_options
 

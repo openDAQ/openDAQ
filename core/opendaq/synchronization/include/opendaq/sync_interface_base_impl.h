@@ -185,15 +185,16 @@ ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::clone(IPropertyObject*
 
     return daqTry([this, &obj, &cloned]()
     {
-        auto implPtr = static_cast<SyncInterfaceBase*>(obj.getObject());
-        implPtr->configureClonedMembers(this->valueWriteEvents,
-                                        this->valueReadEvents,
-                                        this->endUpdateEvent,
-                                        this->triggerCoreEvent,
-                                        this->localProperties,
-                                        this->propValues,
-                                        this->customOrder,
-                                        this->permissionManager);
+        auto implPtr = dynamic_cast<SyncInterfaceBase*>(obj.getObject());
+        const auto params = this->getCloneParameters();
+        implPtr->configureClonedMembers(params.valueWriteEvents,
+                                        params.valueReadEvents,
+                                        params.endUpdateEvent,
+                                        params.triggerCoreEvent,
+                                        params.localProperties,
+                                        params.propValues,
+                                        params.customOrder,
+                                        params.permissionManager);
 
         *cloned = obj.template as<IPropertyObject>();
         return OPENDAQ_SUCCESS;

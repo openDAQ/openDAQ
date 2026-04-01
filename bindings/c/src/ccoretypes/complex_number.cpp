@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:45.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:33.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_COMPLEX_NUMBER_INTF_ID = { daq::IComplexNumber::Id.Data1, daq::IComplexNumber::Id.Data2, daq::IComplexNumber::Id.Data3, daq::IComplexNumber::Id.Data4_UInt64 };
+
+void daqComplexNumber_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_COMPLEX_NUMBER_INTF_ID;
+}
 
 /*
 daqErrCode daqComplexNumber_getValue(daqComplexNumber* self, daqComplexFloat64* value)

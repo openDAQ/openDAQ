@@ -2,6 +2,8 @@
 #include <opendaq/mock/mock_device_module.h>
 #include <coreobjects/authentication_provider_factory.h>
 
+#include "test_helpers/device_modules.h"
+
 using namespace daq;
 using namespace std::chrono_literals;
 
@@ -76,7 +78,7 @@ protected:
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
-        auto moduleManager = ModuleManager("");
+        auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
@@ -85,6 +87,9 @@ protected:
         moduleManager.addModule(deviceModule);
 
         auto instance = InstanceCustom(context, "local");
+        addLtServerModule(instance);
+        addNativeServerModule(instance);
+        addOpcuaServerModule(instance);
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
@@ -98,7 +103,11 @@ protected:
 
     InstancePtr CreateClientInstance()
     {
-        auto instance = Instance();
+        auto instance = Instance("[[none]]");
+        addLtClientModule(instance);
+        addNativeClientModule(instance);
+        addOpcuaClientModule(instance);
+
         auto connectionString = std::get<1>(GetParam());
 
         auto config = instance.createDefaultAddDeviceConfig();
@@ -199,6 +208,57 @@ TEST_P(StreamingTest, DataPackets)
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToRead);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
+}
+
+TEST_P(StreamingTest, LastValue)
+{
+    if (std::get<1>(GetParam()).find("daq.ns://") == 0 || std::get<1>(GetParam()).find("daq.lt://") == 0)
+    {
+        GTEST_SKIP();
+    }
+
+    auto serverSignal = getSignal(serverInstance, "IntStep");
+    auto mirroredSignalPtr = getSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
+    std::promise<StringPtr> subscribeCompletePromise;
+    std::future<StringPtr> subscribeCompleteFuture;
+    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+
+    // before any packet send
+    ASSERT_FALSE(serverSignal.getLastValue().assigned());
+    ASSERT_FALSE(mirroredSignalPtr.getLastValue().assigned());
+
+    {
+        auto serverReader = PacketReader(serverSignal);
+        auto clientReader = PacketReader(mirroredSignalPtr);
+
+        ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture));
+        generatePackets(5);
+
+        auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 6);
+        auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, 6);
+
+        ASSERT_TRUE(serverSignal.getLastValue().assigned());
+        ASSERT_TRUE(mirroredSignalPtr.getLastValue().assigned());
+        // generated packets are sent and read, signal is still subscribed via streaming - mirrored signal gets last value from streaming
+        EXPECT_EQ(serverSignal.getLastValue(), mirroredSignalPtr.getLastValue());
+    }
+
+    ASSERT_TRUE(serverSignal.getLastValue().assigned());
+    ASSERT_TRUE(mirroredSignalPtr.getLastValue().assigned());
+    // signal is not subscribed via streaming anymore - mirrored signal gets last value from config but it hasn't changed yet
+    EXPECT_EQ(serverSignal.getLastValue(), mirroredSignalPtr.getLastValue());
+    {
+        auto serverReader = PacketReader(serverSignal);
+        generatePackets(3);
+
+        auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 3);
+
+        ASSERT_TRUE(serverSignal.getLastValue().assigned());
+        ASSERT_TRUE(mirroredSignalPtr.getLastValue().assigned());
+        // more generated packets are sent and read, signal was not subscribed via streaming
+        // - mirrored signal gets last value from config and it differs from one previously obtained from streaming
+        EXPECT_EQ(serverSignal.getLastValue(), mirroredSignalPtr.getLastValue());
+    }
 }
 
 TEST_P(StreamingTest, SetNullDescriptor)
@@ -492,7 +552,7 @@ protected:
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
-        auto moduleManager = ModuleManager("");
+        auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
@@ -501,6 +561,10 @@ protected:
         moduleManager.addModule(deviceModule);
 
         auto instance = InstanceCustom(context, "local");
+        addRefFBModule(instance);
+        addNativeServerModule(instance);
+        addLtServerModule(instance);
+        addOpcuaServerModule(instance);
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
@@ -559,7 +623,7 @@ protected:
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
-        auto moduleManager = ModuleManager("");
+        auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
         auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
@@ -568,6 +632,9 @@ protected:
         moduleManager.addModule(deviceModule);
 
         auto instance = InstanceCustom(context, "local");
+        addLtServerModule(instance);
+        addOpcuaServerModule(instance);
+        addNativeServerModule(instance);
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
@@ -654,11 +721,13 @@ class NativeDeviceStreamingTest : public testing::Test
 TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
 {
     SKIP_TEST_MAC_CI;
-    const auto moduleManager = ModuleManager("");
+    const auto moduleManager = ModuleManager("[[none]]");
     auto serverInstance = InstanceBuilder().setModuleManager(moduleManager).build();
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
     moduleManager.addModule(deviceModule);
     serverInstance.setRootDevice("daqmock://phys_device");
+
+    addNativeServerModule(serverInstance);
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
 
     const auto channels = serverInstance.getChannelsRecursive();
@@ -666,7 +735,9 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSu
     for (const auto& ch : channels)
         sigCount += ch.getSignalsRecursive().getCount();
 
-    const auto clientInstance = Instance();
+    const auto clientInstance = Instance("[[none]]");
+
+    addNativeClientModule(clientInstance);
     clientInstance.addDevice("daq.nd://127.0.0.1");
 
 

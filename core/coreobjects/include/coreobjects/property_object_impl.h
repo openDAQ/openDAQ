@@ -44,13 +44,15 @@
 #include <coretypes/updatable.h>
 #include <coretypes/validation.h>
 #include <tsl/ordered_map.h>
-#include <atomic>
+#include <cmath>
+#include <limits>
 #include <map>
-#include <thread>
 #include <utility>
 #include <coretypes/recursive_search_ptr.h>
+#include <coreobjects/property_object_core.h>
 #include <coreobjects/mutex_factory.h>
 #include <coreobjects/mutex_impl.h>
+#include <coreobjects/property_object_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -62,201 +64,13 @@ struct PropertyNameInfo
     Int index{};
 };
 
-namespace object_utils
+namespace config_protocol
 {
-    struct NullMutex
-    {
-        void lock() {}
-        void unlock() noexcept {}
-        bool try_lock() { return true; }
-    };
-
-    inline const auto UnrestrictedPermissions = []() { 
-        daqDisableObjectTracking();
-        auto permissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
-        daqEnableObjectTracking();
-        return permissions;
-    }();
+    class ConfigClientDeviceInfoImpl;
+    
+    template <typename Impl>
+    class ConfigClientPropertyObjectBaseImpl;
 }
-
-class RecursiveConfigLockGuard : public std::enable_shared_from_this<RecursiveConfigLockGuard>
-{
-public:
-    virtual ~RecursiveConfigLockGuard() = default;
-};
-
-template <typename TMutex>
-class GenericRecursiveConfigLockGuard : public RecursiveConfigLockGuard
-{
-public:
-    GenericRecursiveConfigLockGuard(const TMutex& lock, std::thread::id* threadId, int* depth)
-        : id(threadId)
-        , depth(depth)
-        , mutex(lock)
-        , lock(std::lock_guard(mutex))
-    {
-        assert(this->id != nullptr);
-        assert(this->depth != nullptr);
-
-        *id = std::this_thread::get_id();
-        ++(*this->depth);
-    }
-
-    ~GenericRecursiveConfigLockGuard() override
-    {
-        --(*depth);
-        if (*depth == 0)
-            *id = std::thread::id();
-    }
-
-private:
-    std::thread::id* id;
-    int* depth;
-    TMutex mutex;
-    std::lock_guard<TMutex> lock;
-};
-
-struct LockGuardImpl : public ImplementationOf<ILockGuard>
-{
-    LockGuardImpl(IPropertyObject* owner, MutexPtr lock)
-        : owner(owner)
-        , mutex(lock)
-        , lock(std::lock_guard(mutex))
-    {
-    }
-
-private:
-    // to ensure that owner is destroyed after lock
-    PropertyObjectPtr owner;
-    MutexPtr mutex;
-    std::lock_guard<MutexPtr> lock;
-};
-
-template <typename TMutex>
-class RecursiveLockGuardImpl : public ImplementationOf<ILockGuard>
-{
-public:
-    RecursiveLockGuardImpl(IPropertyObject* owner, const TMutex& lock, std::thread::id* threadId, int* depth)
-        : owner(owner) 
-        , id(threadId)
-        , depth(depth)
-        , mutex(lock)
-        , lockGuard(std::lock_guard(mutex))
-    {
-        assert(this->id != nullptr);
-        assert(this->depth != nullptr);
-        *id = std::this_thread::get_id();
-        ++(*this->depth);
-    }
-
-    ~RecursiveLockGuardImpl() override
-    {
-        --(*depth);
-        if (*depth == 0)
-            *id = std::thread::id();
-    }
-
-private:
-    // to ensure that owner is destroyed after lock
-    PropertyObjectPtr owner;
-    std::thread::id* id;
-    int* depth;
-    TMutex mutex;
-    std::lock_guard<TMutex> lockGuard;
-};
-
-class PropertyUpdateStack
-{
-    struct PropertyUpdateStackItem
-    {
-        PropertyUpdateStackItem(const BaseObjectPtr& value)
-            : value(value)
-            , stackLevel(1)
-            , isPushed(true)
-        {
-        }
-
-        bool setValue(const BaseObjectPtr& value)
-        {
-            if (this->value == value)
-                return false;
-
-            this->value = value;
-            this->isPushed = true;
-            this->stackLevel++;
-            return true;
-        }
-
-        bool unregister()
-        {
-            bool result = this->isPushed;
-            this->isPushed = false;
-            this->stackLevel--;
-            return result;
-        }
-
-        size_t getStackLevel() const
-        {
-            return this->stackLevel;
-        }
-
-        BaseObjectPtr value;
-        size_t stackLevel;
-        bool isPushed;
-    };
-
-public:
-    PropertyUpdateStack() = default;
-
-    // return true if property is registered
-    bool registerPropertyUpdating(const std::string& name, const BaseObjectPtr& value)
-    {
-        auto [it, inserted] = updatePropertyStack.try_emplace(name, value);
-
-        if (inserted)
-            return true;
-
-        auto& propertItem = it->second;
-        return propertItem.setValue(value);
-    }
-
-    // returns true is object need to be written
-    bool unregisetPropertyUpdating(const std::string& name)
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        auto& propertItem = it->second;
-        bool result = propertItem.unregister();
-        if (propertItem.getStackLevel() == 0)
-            updatePropertyStack.erase(it);
-        return result;
-    }
-
-    bool isBaseStackLevel(const std::string& name) const
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        return it->second.getStackLevel() == 1;
-    }
-
-    bool getPropertyValue(const std::string& name, BaseObjectPtr& value) const
-    {
-        auto it = updatePropertyStack.find(name);
-        if (it == updatePropertyStack.end())
-            return false;
-
-        // if value is not assigned, it means, that property is on clearing stage (clearPropertyValue)
-        value = it->second.value;
-        return true;
-    }
-
-private:
-    std::map<std::string, PropertyUpdateStackItem> updatePropertyStack;
-};
 
 template <typename PropObjInterface, typename... Interfaces>
 class GenericPropertyObjectImpl : public ImplementationOfWeak<PropObjInterface,
@@ -285,6 +99,7 @@ public:
     virtual ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* propertyName) override;
+    virtual ErrCode INTERFACE_FUNC clearPropertyValues() override;
 
     virtual ErrCode INTERFACE_FUNC hasProperty(IString* propertyName, Bool* hasProperty) override;
     virtual ErrCode INTERFACE_FUNC getProperty(IString* propertyName, IProperty** property) override;
@@ -358,10 +173,24 @@ public:
     virtual ErrCode INTERFACE_FUNC setProtectedPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
-
+    virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValues() override;
+    
     using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
     using EndUpdateEventEmitter = EventEmitter<PropertyObjectPtr, EndUpdateEventArgsPtr>;
 
+    struct CloneParameters
+    {
+        const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueWriteEvents;
+        const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueReadEvents;
+        const EndUpdateEventEmitter& endUpdateEvent;
+        const ProcedurePtr& triggerCoreEvent;
+        const PropertyOrderedMap& localProperties;
+        const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues;
+        const std::vector<StringPtr>& customOrder;
+        const PermissionManagerPtr& permissionManager;
+    };
+
+    void configureClonedMembers(const CloneParameters& parameters);
     void configureClonedMembers(const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueWriteEvents,
                                 const std::unordered_map<StringPtr, PropertyValueEventEmitter>& valueReadEvents,
                                 const EndUpdateEventEmitter& endUpdateEvent,
@@ -370,12 +199,14 @@ public:
                                 const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
                                 const std::vector<StringPtr>& customOrder,
                                 const PermissionManagerPtr& permissionManager);
+      
+    // TODO: Make remove friend classes once private methods are properly exposed in protected scope.
+    template <typename TInterface, typename... TInterfaces>
+    friend class DeviceInfoConfigImpl;
+    friend class config_protocol::ConfigClientDeviceInfoImpl;
 
-    friend class AddressInfoImpl;
-    friend class ServerCapabilityConfigImpl;
-    friend class ConnectedClientInfoImpl;
-    template <typename, typename...>
-    friend class SyncInterfaceBaseImpl;
+    template <class Impl>
+    friend class config_protocol::ConfigClientPropertyObjectBaseImpl;
 
 protected:
     struct UpdatingAction
@@ -392,8 +223,6 @@ protected:
      * Gets a lock for the configuration of the object. Can be used to lock the sync mutex in a function
      * that is called during a property value read/write event to prevent deadlocks. The lock behaves
      * similarly to a lock guard created with recursive mutex.
-     *
-     * WARNING: Only usable if locking strategy is set to `OwnLock` or `ForwardOwnerLockOwn`.
      */
     std::unique_ptr<RecursiveConfigLockGuard> getRecursiveConfigLock();
     
@@ -437,39 +266,89 @@ protected:
      * Wraps the mutex of the closest owner/parent if the locking strategy is set to `InheritLock`.
      */
     std::unique_lock<MutexPtr> getUniqueLock2();
-
-    bool frozen;
-    LockingStrategy lockingStrategy;
-    WeakRefPtr<IPropertyObject> owner;
-    std::vector<StringPtr> customOrder;
+    
     PropertyObjectPtr objPtr;
-    int updateCount;
-    UpdatingActions updatingPropsAndValues;
     std::atomic<bool> coreEventMuted;
-    WeakRefPtr<ITypeManager> manager;
-    PropertyOrderedMap localProperties;
-    StringPtr path;
-    PermissionManagerPtr permissionManager;
+
+    bool isFrozen();
+    void unfreeze();
+    StringPtr getPath() const;
+    TypeManagerPtr getTypeManager();
+    CloneParameters getCloneParameters();    
 
     void setMutex(const MutexPtr& mutex);
     void setLockOwner(const PropertyObjectInternalPtr& owner);
     void internalDispose(bool) override;
-    ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
-    ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
-    ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
-    ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
-    ErrCode setPropertySelectionValueInternal(IString* propertyName, IBaseObject* value, bool protectedAccess);
-    ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
     ErrCode setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating = false);
 
     // Serialization
 
-    ErrCode serializePropertyValues(ISerializer* serializer);
-    ErrCode serializeLocalProperties(ISerializer* serializer);
-
     virtual ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate);
-    virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
+    virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate = false);
     virtual ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer);
+
+    // Update
+    virtual void endApplyUpdate();
+    virtual void beginApplyUpdate();
+    virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
+    virtual void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
+    bool isParentUpdating();
+    virtual void onUpdatableUpdateEnd(const BaseObjectPtr& context);
+
+    template <class F>
+    static PropertyObjectPtr DeserializePropertyObject(const SerializedObjectPtr& serialized,
+                                                       const BaseObjectPtr& context,
+                                                       const FunctionPtr& factoryCallback,
+                                                       F&& f);
+
+    virtual void callBeginUpdateOnChildren();
+    virtual void callEndUpdateOnChildren();
+
+    virtual PropertyObjectPtr getPropertyObjectParent();
+    virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
+
+private:
+    ObjectPtr<IPropertyObjectCore> propObjCore;
+
+    // Mutex that is locked in the getRecursiveConfigLock and getAcquisitionLock methods. Those should
+    // be used instead of locking this mutex directly unless a different type of lock is needed.
+    MutexPtr sync;
+    WeakRefPtr<IPropertyObjectInternal> lockOwner;
+    std::mutex* getLocalMutex();
+    LockingStrategy lockingStrategy;
+
+    StringPtr className;
+    PropertyObjectClassPtr objectClass;
+    
+    const std::string AnyReadEventName = "DAQ_AnyReadEvent";
+    const std::string AnyWriteEventName = "DAQ_AnyWriteEvent";
+
+    std::unordered_map<StringPtr, PropertyValueEventEmitter> valueWriteEvents;
+    std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
+    EndUpdateEventEmitter endUpdateEvent;
+    ProcedurePtr triggerCoreEvent;
+
+    PropertyUpdateStack updatePropertyStack;
+
+    std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
+    PropertyOrderedMap localProperties;
+
+    WeakRefPtr<IPropertyObject> owner;
+    int updateCount;
+    UpdatingActions updatingPropsAndValues;
+    WeakRefPtr<ITypeManager> manager;
+    std::vector<StringPtr> customOrder;
+    StringPtr path;
+    PermissionManagerPtr permissionManager;
+    bool frozen;
+
+    ErrCode setPropertyValueInternal(IString* name, IBaseObject* value, bool triggerEvent, bool protectedAccess, bool batch, bool isUpdating = false);
+    ErrCode setPropertySelectionValueInternal(IString* propertyName, IBaseObject* value, bool protectedAccess);
+    ErrCode clearPropertyValueInternal(IString* name, bool protectedAccess, bool batch, bool isUpdating = false);
+    ErrCode clearPropertyValuesInternal(bool protectedAccess);
+    ErrCode getPropertyValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
+    ErrCode getPropertySelectionValueInternal(IString* propertyName, IBaseObject** value, Bool retrieveUpdatingValue = false);
+    ErrCode checkForReferencesInternal(IProperty* property, Bool* isReferenced);
 
     static void DeserializePropertyValues(const SerializedObjectPtr& serialized,
                                           const BaseObjectPtr& context,
@@ -486,79 +365,31 @@ protected:
                                          const FunctionPtr& factoryCallback,
                                          PropertyObjectPtr& propObjPtr);
 
-    // Child property handling - Used when a property is queried in the "parent.child" format
-    bool isChildProperty(const StringPtr& name) const;
-    void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
-    void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail) const;
+    static ErrCode setPropertyFromSerialized(const StringPtr& propName,
+                                             const PropertyObjectPtr& propObj,
+                                             const SerializedObjectPtr& serialized,
+                                             const TypeManagerPtr& typeManager);
 
-    // Update
-
-    ErrCode setPropertyFromSerialized(const StringPtr& propName,
-                                      const PropertyObjectPtr& propObj,
-                                      const SerializedObjectPtr& serialized);
-
-    virtual void endApplyUpdate();
-    virtual void beginApplyUpdate();
-    virtual void beginApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
-    virtual void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating);
-    bool isParentUpdating();
-    virtual void onUpdatableUpdateEnd(const BaseObjectPtr& context);
-
-    template <class F>
-    static PropertyObjectPtr DeserializePropertyObject(const SerializedObjectPtr& serialized,
-                                                       const BaseObjectPtr& context,
-                                                       const FunctionPtr& factoryCallback,
-                                                       F&& f);
+    ErrCode serializePropertyValues(ISerializer* serializer, bool forUpdate = false);
+    ErrCode serializeLocalProperties(ISerializer* serializer);
 
     // Does not bind property to object and does not look up reference property
     PropertyPtr getUnboundProperty(const StringPtr& name);
     PropertyPtr getUnboundPropertyOrNull(const StringPtr& name) const;
 
-    virtual void callBeginUpdateOnChildren();
-    virtual void callEndUpdateOnChildren();
-
-    virtual PropertyObjectPtr getPropertyObjectParent();
-
     bool shouldWriteLocalValue(const StringPtr& name, const BaseObjectPtr& value) const;
     // Adds the value to the local list of values (`propValues`)
     bool writeLocalValue(const StringPtr& name, const BaseObjectPtr& value, bool forceWrite = false);
 
-    // Used when cloning object-type property default values of property object classes on construction.
-    // Must be overridden by modules that have their own property object implementation.
-    virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
-    bool checkIsChildObjectProperty(const PropertyPtr& prop);
+    
+    // Child property handling - Used when a property is queried in the "parent.child" format
+    static bool isChildProperty(const StringPtr& name);
+    static void splitOnFirstDot(const StringPtr& input, StringPtr& head, StringPtr& tail);
+    static void splitOnLastDot(const StringPtr& input, StringPtr& head, StringPtr& tail);
+
+    static bool checkIsChildObjectProperty(const PropertyPtr& prop);
     void setChildPropertyObject(const StringPtr& propName, const PropertyObjectPtr& cloned);
     void configureClonedObj(const StringPtr& objPropName, const PropertyObjectPtr& obj);
-
-    ErrCode beginUpdateInternal(bool deep);
-    ErrCode endUpdateInternal(bool deep);
-    ErrCode getUpdatingInternal(Bool* updating);
-
-private:
-    // Mutex that is locked in the getRecursiveConfigLock and getAcquisitionLock methods. Those should
-    // be used instead of locking this mutex directly unless a different type of lock is needed.
-    MutexPtr sync;
-    WeakRefPtr<IPropertyObjectInternal> lockOwner;
-    std::mutex* getLocalMutex();
-
-    StringPtr className;
-    PropertyObjectClassPtr objectClass;
-    
-    const std::string AnyReadEventName = "DAQ_AnyReadEvent";
-    const std::string AnyWriteEventName = "DAQ_AnyWriteEvent";
-
-    std::unordered_map<StringPtr, PropertyValueEventEmitter> valueWriteEvents;
-    std::unordered_map<StringPtr, PropertyValueEventEmitter> valueReadEvents;
-    EndUpdateEventEmitter endUpdateEvent;
-    ProcedurePtr triggerCoreEvent;
-
-    object_utils::NullMutex nullSync;
-    std::thread::id externalCallThreadId{};
-    int externalCallDepth = 0;
-
-    PropertyUpdateStack updatePropertyStack;
-
-    std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
 
     void triggerCoreEventInternal(const CoreEventArgsPtr& args);
 
@@ -569,19 +400,19 @@ private:
     // Gets the property value, if stored in local value dictionary (propValues)
     // Parses brackets, if the property is a list
     ErrCode readLocalValue(const StringPtr& name, BaseObjectPtr& value) const;
-    PropertyNameInfo getPropertyNameInfo(const StringPtr& name) const;
+    static PropertyNameInfo getPropertyNameInfo(const StringPtr& name);
 
     // Checks if the value is a container type, or base `IPropertyObject`. Only such values can be set in `setProperty`
-    ErrCode checkContainerType(const PropertyPtr& prop, const BaseObjectPtr& value);
+    static ErrCode checkContainerType(const PropertyPtr& prop, const BaseObjectPtr& value);
 
     // Checks if the property is a struct type, and checks its fields for type/name compatibility
-    ErrCode checkStructType(const PropertyPtr& prop, const BaseObjectPtr& value);
+    static ErrCode checkStructType(const PropertyPtr& prop, const BaseObjectPtr& value);
 
     // Checks if the property is a enumeration type and checks for type/name compatibility
-    ErrCode checkEnumerationType(const PropertyPtr& prop, const BaseObjectPtr& value);
+    static ErrCode checkEnumerationType(const PropertyPtr& prop, const BaseObjectPtr& value);
 
     // Checks if value is a correct key into the list/dictionary of selection values
-    ErrCode checkSelectionValues(const PropertyPtr& prop, const BaseObjectPtr& value);
+    static ErrCode checkSelectionValues(const PropertyPtr& prop, const BaseObjectPtr& value);
 
     // Called when `setPropertyValue` successfully sets a new value
     [[maybe_unused]]
@@ -594,56 +425,62 @@ private:
     BaseObjectPtr callPropertyValueRead(const PropertyPtr& prop, const BaseObjectPtr& readValue);
 
     // Checks if property and value type match. If not, attempts to convert the value
-    ErrCode checkPropertyTypeAndConvert(const PropertyPtr& prop, BaseObjectPtr& value);
+    static ErrCode checkPropertyTypeAndConvert(const PropertyPtr& prop, BaseObjectPtr& value);
 
     // Sets `this` as owner of `value`, if `value` is ownable
     void setOwnerToPropertyValue(const BaseObjectPtr& value);
 
     // Gets the index integer value between two square brackets
-    int parseIndex(char const* lBracket) const;
+    static int parseIndex(char const* lBracket);
 
     // Gets the property name without the index as the `propName` output parameter
     // Returns the index in the form of [index], eg. [0]
-    ConstCharPtr getPropNameWithoutIndex(const StringPtr& name, StringPtr& propName) const;
+    static ConstCharPtr getPropNameWithoutIndex(const StringPtr& name, StringPtr& propName);
 
     // Child property handling - Used when a property is queried in the "parent.child" format
     ErrCode getChildPropertyValue(const StringPtr& childName, const StringPtr& subName, BaseObjectPtr& value);
 
-    PropertyPtr checkForRefPropAndGetBoundProp(PropertyPtr& prop, bool* isReferenced = nullptr) const;
+    static PropertyPtr checkForRefPropAndGetBoundProp(PropertyPtr& prop, const PropertyObjectPtr& objPtr, bool* isReferenced = nullptr);
 
     // Checks whether the property is a reference property that references an already referenced property
-    bool hasDuplicateReferences(const PropertyPtr& prop);
+    static bool hasDuplicateReferences(const PropertyPtr& prop, const PropertyObjectPtr& objPtr);
 
     // Coercion/Validation
-    void coercePropertyWrite(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr) const;
-    void validatePropertyWrite(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr) const;
-    void coerceMinMax(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr);
-    Bool checkIsReferenced(const StringPtr& referencedPropName, const PropertyInternalPtr& prop);
+    static void coercePropertyWrite(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr, const PropertyObjectPtr& objPtr);
+    static void validatePropertyWrite(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr, const PropertyObjectPtr& objPtr);
+    static void coerceMinMax(const PropertyPtr& prop, ObjectPtr<IBaseObject>& valuePtr);
+    static Bool checkIsReferenced(const StringPtr& referencedPropName, const PropertyInternalPtr& prop);
 
-    // update
+    // Update
     ErrCode updateObjectProperties(const PropertyObjectPtr& propObj,
                                    const SerializedObjectPtr& serialized,
                                    const ListPtr<IProperty>& props);
 
-    bool hasUserReadAccess(const BaseObjectPtr& userContext, const BaseObjectPtr& obj);
+    ErrCode beginUpdateInternal(bool deep);
+    ErrCode endUpdateInternal(bool deep);
+    ErrCode getUpdatingInternal(Bool* updating);
+
+    static bool hasUserReadAccess(const BaseObjectPtr& userContext, const BaseObjectPtr& obj);
 };
 
 using PropertyObjectImpl = GenericPropertyObjectImpl<IPropertyObject>;
 
 template <class PropObjInterface, class... Interfaces>
 GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl()
-    : frozen(false)
-    , lockingStrategy(LockingStrategy::OwnLock)
-    , updateCount(0)
-    , coreEventMuted(true)
-    , path("")
+    : coreEventMuted(true)
     , sync(Mutex())
+    , lockingStrategy(LockingStrategy::OwnLock)
     , className(nullptr)
     , objectClass(nullptr)
+    , updateCount(0)
+    , path("")
+    , frozen(false)
 {
     this->internalAddRef();
     objPtr = this->template borrowPtr<PropertyObjectPtr>();
+    propObjCore = PropertyObjectCore_Create();
 
+    setLockOwner(owner);
     this->permissionManager = PermissionManager();
     this->permissionManager.setPermissions(object_utils::UnrestrictedPermissions);
 
@@ -687,6 +524,45 @@ GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjec
             }
         }
     }
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isFrozen()
+{
+    return frozen;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::unfreeze()
+{
+    frozen = false;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+StringPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPath() const
+{
+    return path;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+TypeManagerPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getTypeManager()
+{
+    return manager.getRef();
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+typename GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::CloneParameters GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getCloneParameters()
+{
+    return CloneParameters{
+        valueWriteEvents,
+        valueReadEvents,
+        endUpdateEvent,
+        triggerCoreEvent,
+        localProperties,
+        propValues,
+        customOrder,
+        permissionManager
+    };
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -743,7 +619,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getClassName
 #endif
 
 template <class PropObjInterface, class... Interfaces>
-bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty(const StringPtr& name) const
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty(const StringPtr& name)
 {
     auto chr = strchr(name.getCharPtr(), '.');
     return chr != nullptr;
@@ -752,7 +628,7 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isChildProperty
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::splitOnFirstDot(const StringPtr& input,
                                                                                  StringPtr& head,
-                                                                                 StringPtr& tail) const
+                                                                                 StringPtr& tail)
 {
     const std::string inputStr = input;
     head = input;
@@ -768,7 +644,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::splitOnFirstDot
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::splitOnLastDot(const StringPtr& input,
                                                                                 StringPtr& head,
-                                                                                StringPtr& tail) const
+                                                                                StringPtr& tail)
 {
     const std::string inputStr = input;
     head = input;
@@ -793,7 +669,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
     {
         prop = getUnboundProperty(childName);
 
-        prop = checkForRefPropAndGetBoundProp(prop);
+        prop = checkForRefPropAndGetBoundProp(prop, objPtr);
         name = prop.getName();
         return OPENDAQ_SUCCESS;
     });
@@ -839,7 +715,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
     {
         if (newValue.assigned() && !shouldWriteLocalValue(name, newValue))
         {
-            updatePropertyStack.unregisetPropertyUpdating(name);
+            updatePropertyStack.unregisterPropertyUpdating(name);
             return OPENDAQ_IGNORED;
         }
     }
@@ -877,7 +753,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
         valueWriteEvents[AnyWriteEventName](objPtr, args);
     }
 
-    bool shouldUpdate = updatePropertyStack.unregisetPropertyUpdating(name);
+    bool shouldUpdate = updatePropertyStack.unregisterPropertyUpdating(name);
     // If the event execution failed, forward the error code
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
@@ -936,7 +812,8 @@ BaseObjectPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callPr
 
 template <class PropObjInterface, class... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coercePropertyWrite(const PropertyPtr& prop,
-                                                                                     ObjectPtr<IBaseObject>& valuePtr) const
+                                                                                     ObjectPtr<IBaseObject>& valuePtr,
+                                                                                     const PropertyObjectPtr& objPtr)
 {
     if (prop.assigned() && valuePtr.assigned())
     {
@@ -961,7 +838,8 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::coercePropertyW
 
 template <class PropObjInterface, class... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::validatePropertyWrite(const PropertyPtr& prop,
-                                                                                       ObjectPtr<IBaseObject>& valuePtr) const
+                                                                                       ObjectPtr<IBaseObject>& valuePtr,
+                                                                                       const PropertyObjectPtr& objPtr)
 {
     if (prop.assigned() && valuePtr.assigned())
     {
@@ -1032,13 +910,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setProtected
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value)
-{
-    auto lock = getRecursiveConfigLock2();
-    return setPropertySelectionValueInternal(propertyName, value, true);
-}
-
-template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     auto lock = getRecursiveConfigLock2();
@@ -1079,7 +950,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkContain
         return true;
     };
 
-    const auto propInternal = prop.asPtr<IPropertyInternal>();
+    const auto propInternal = prop.asPtr<IPropertyInternal>(true);
     if (coreType == ctDict)
     {
         const auto dict = value.asPtr<IDict>();
@@ -1154,18 +1025,49 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkSelectionValues(const PropertyPtr& prop,
                                                                                          const BaseObjectPtr& value)
 {
-    const auto selectionValues = prop.asPtr<IPropertyInternal>().getSelectionValuesNoLock();
+    const auto selectionValues = prop.asPtr<IPropertyInternal>(true).getSelectionValuesNoLock();
     if (selectionValues.assigned())
     {
-        const SizeT key = value;
-        const auto list = selectionValues.asPtrOrNull<IList>();
-        if (list.assigned() && key < list.getCount())
-            return OPENDAQ_SUCCESS;
-
-        const auto dict = selectionValues.asPtrOrNull<IDict>();
-        if (dict.assigned() && dict.hasKey(value))
-            return OPENDAQ_SUCCESS;
-
+        const PropertyType propType = prop.getPropertyType();
+        if (propType == PropertyType::IndexSelection)
+        {
+            if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
+            {
+                const SizeT key = value;
+                if (key < list.getCount())
+                    return OPENDAQ_SUCCESS;
+            }
+        }
+        else if (propType == PropertyType::Selection)
+        {
+            if (const auto list = selectionValues.asPtrOrNull<IList>(true); list.assigned())
+            {
+                if (prop.getValueType() == ctFloat)
+                {
+                    const double valueDouble = value;
+                    const double preScale =  std::max({1.0, std::abs(valueDouble)});
+                    for (const double& item : list)
+                    {
+                        const double scale = std::max({preScale, std::abs(item)});
+                        if (std::abs(item - valueDouble) <= std::numeric_limits<double>::epsilon() * scale)
+                            return OPENDAQ_SUCCESS;
+                    }
+                }
+                else 
+                {
+                    for (const auto& item : list)
+                    {
+                        if (item == value)
+                            return OPENDAQ_SUCCESS;
+                    }
+                }
+            }
+        }
+        else if (propType == PropertyType::SparseSelection)
+        {
+            if (const auto dict = selectionValues.asPtrOrNull<IDict>(true); dict.assigned() && dict.hasKey(value))
+                return OPENDAQ_SUCCESS;
+        }
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "Value is not a key/index of selection values.");
     }
 
@@ -1190,22 +1092,23 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
     {
         auto propName = StringPtr::Borrow(name);
         auto valuePtr = BaseObjectPtr::Borrow(value);
+        
+        StringPtr subName;
+        const auto isChildProp = isChildProperty(propName);
 
-        if (batch)
+        if (batch && !isChildProp)
         {
             updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr}));
             return OPENDAQ_SUCCESS;
         }
 
-        StringPtr subName;
-        const auto isChildProp = isChildProperty(propName);
         if (isChildProp)
         {
             splitOnFirstDot(propName, propName, subName);
         }
 
         PropertyPtr prop = getUnboundProperty(propName);
-        prop = checkForRefPropAndGetBoundProp(prop);
+        prop = checkForRefPropAndGetBoundProp(prop, objPtr);
 
         if (!prop.assigned())
         {
@@ -1213,16 +1116,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
         }
 
         propName = prop.getName();
-        const auto propInternal = prop.asPtr<IPropertyInternal>();
-
-        if (!protectedAccess)
-        {
-            if (propInternal.getReadOnlyNoLock() && !isChildProp)
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
-            }
-        }
-
         if (isChildProp)
         {
             BaseObjectPtr childProp;
@@ -1239,79 +1132,71 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
                 const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
                 childPropAsPropertyObject.setPropertyValue(subName, valuePtr);
             }
+
+            return OPENDAQ_SUCCESS;
+        }
+
+        const auto propInternal = prop.asPtr<IPropertyInternal>();
+        // TODO: If function type, check if return value is correct type.
+        if (!protectedAccess)
+        {
+            if (propInternal.getReadOnlyNoLock() || propInternal.getValueTypeNoLock() == ctObject)
+            {
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+            }
+        }
+
+        OPENDAQ_RETURN_IF_FAILED(checkPropertyTypeAndConvert(prop, valuePtr));
+        OPENDAQ_RETURN_IF_FAILED(checkContainerType(prop, valuePtr));
+        OPENDAQ_RETURN_IF_FAILED(checkSelectionValues(prop, valuePtr));
+        OPENDAQ_RETURN_IF_FAILED(checkStructType(prop, valuePtr));
+        OPENDAQ_RETURN_IF_FAILED(checkEnumerationType(prop, valuePtr));
+
+        coercePropertyWrite(prop, valuePtr, objPtr);
+        validatePropertyWrite(prop, valuePtr, objPtr);
+        coerceMinMax(prop, valuePtr);
+
+        const auto ct = propInternal.getValueTypeNoLock();
+        if (ct == ctList || ct == ctDict)
+        {
+            BaseObjectPtr clonedValue;
+            OPENDAQ_RETURN_IF_FAILED(valuePtr.asPtr<ICloneable>()->clone(&clonedValue));
+
+            valuePtr = clonedValue.detach();
+        }
+        else if (ct == ctObject)
+        {
+            configureClonedObj(propName, valuePtr);
+        }
+
+        if (triggerEvent)
+        {
+            BaseObjectPtr newValue = valuePtr;
+            ErrCode err = callPropertyValueWrite(prop, newValue, PropertyEventType::Update, isUpdating);
+            OPENDAQ_RETURN_IF_FAILED(err);
+
+            if (err == OPENDAQ_IGNORED)
+                return OPENDAQ_SUCCESS;
+
+            if (valuePtr == newValue)
+            {
+                writeLocalValue(propName, newValue);
+                setOwnerToPropertyValue(newValue);
+            }
+
+            if (!isUpdating)
+                triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, newValue, path));
         }
         else
         {
-            // TODO: If function type, check if return value is correct type.
-            if (!protectedAccess)
-            {
-                if (propInternal.getReadOnlyNoLock() || propInternal.getValueTypeNoLock() == ctObject)
-                {
-                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
-                }
-            }
-
-            ErrCode err = checkPropertyTypeAndConvert(prop, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            err = checkContainerType(prop, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            err = checkSelectionValues(prop, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            err = checkStructType(prop, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            err = checkEnumerationType(prop, valuePtr);
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            coercePropertyWrite(prop, valuePtr);
-            validatePropertyWrite(prop, valuePtr);
-            coerceMinMax(prop, valuePtr);
-
-            const auto ct = propInternal.getValueTypeNoLock();
-            if (ct == ctList || ct == ctDict)
-            {
-                BaseObjectPtr clonedValue;
-                err = valuePtr.asPtr<ICloneable>()->clone(&clonedValue);
-                OPENDAQ_RETURN_IF_FAILED(err);
-
-                valuePtr = clonedValue.detach();
-            }
-            else if (ct == ctObject)
-            {
-                configureClonedObj(propName, valuePtr);
-            }
-
-            if (triggerEvent)
-            {
-                BaseObjectPtr newValue = valuePtr;
-                err = callPropertyValueWrite(prop, newValue, PropertyEventType::Update, isUpdating);
-                OPENDAQ_RETURN_IF_FAILED(err);
-
-                if (err == OPENDAQ_IGNORED)
-                    return OPENDAQ_SUCCESS;
-
-                if (valuePtr == newValue)
-                {
-                    writeLocalValue(propName, newValue);
-                    setOwnerToPropertyValue(newValue);
-                }
-
-                if (!isUpdating)
-                    triggerCoreEventInternal(CoreEventArgsPropertyValueChanged(objPtr, propName, newValue, path));
-            }
-            else
-            {
-                if (!writeLocalValue(propName, valuePtr))
-                    return OPENDAQ_IGNORED;
-                setOwnerToPropertyValue(valuePtr);
-            }
+            if (!writeLocalValue(propName, valuePtr))
+                return OPENDAQ_IGNORED;
+            setOwnerToPropertyValue(valuePtr);
         }
 
         return OPENDAQ_SUCCESS;
     });
+
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set property value");
     return errCode;
 }
@@ -1350,6 +1235,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkPropert
         }
         return OPENDAQ_SUCCESS;
     });
+
     OPENDAQ_RETURN_IF_FAILED(errCode, "Value type is different than Property type and conversion failed");
     return errCode;
 }
@@ -1466,7 +1352,8 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getUnbou
 
 template <class PropObjInterface, class... Interfaces>
 PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefPropAndGetBoundProp(PropertyPtr& prop,
-                                                                                                       bool* isReferenced) const
+                                                                                                       const PropertyObjectPtr& objPtr,
+                                                                                                       bool* isReferenced)
 {
     if (!prop.assigned())
     {
@@ -1485,7 +1372,7 @@ PropertyPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkFor
         if (isReferenced)
             *isReferenced = true;
 
-        return checkForRefPropAndGetBoundProp(refProp);
+        return checkForRefPropAndGetBoundProp(refProp, objPtr);
     }
 
     if (isReferenced)
@@ -1533,18 +1420,20 @@ template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureClonedObj(const StringPtr& objPropName,
                                                                                     const PropertyObjectPtr& obj)
 {
-    const auto objInternal = obj.asPtrOrNull<IPropertyObjectInternal>();
-    if (!coreEventMuted && objInternal.assigned())
+    if (!coreEventMuted)
     {
-        const auto childPath = path != "" ? path + "." + objPropName : objPropName;
-        objInternal.setPath(childPath);
-        objInternal.setCoreEventTrigger(triggerCoreEvent);
-        objInternal.enableCoreEventTrigger();
+        if (const auto objInternal = obj.asPtrOrNull<IPropertyObjectInternal>(true); objInternal.assigned())
+        {
+            const auto childPath = path != "" ? path + "." + objPropName : objPropName;
+            objInternal.setPath(childPath);
+            objInternal.setCoreEventTrigger(triggerCoreEvent);
+            objInternal.enableCoreEventTrigger();
+        }
     }
 }
 
 template <typename PropObjInterface, typename... Interfaces>
-bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasDuplicateReferences(const PropertyPtr& prop)
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasDuplicateReferences(const PropertyPtr& prop, const PropertyObjectPtr& objPtr)
 {
     auto refEval = prop.asPtr<IPropertyInternal>().getReferencedPropertyUnresolved();
     if (refEval.assigned())
@@ -1593,7 +1482,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::readLocalVal
 }
 
 template <class PropObjInterface, class... Interfaces>
-int GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::parseIndex(char const* lBracket) const
+int GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::parseIndex(char const* lBracket)
 {
     auto last = strchr(lBracket, ']');
     if (last != nullptr)
@@ -1617,7 +1506,7 @@ int GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::parseIndex(char 
 #endif
 
 template <class PropObjInterface, class... Interfaces>
-PropertyNameInfo GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyNameInfo(const StringPtr& name) const
+PropertyNameInfo GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyNameInfo(const StringPtr& name)
 {
     PropertyNameInfo nameInfo;
 
@@ -1639,7 +1528,7 @@ PropertyNameInfo GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::get
 
 template <class PropObjInterface, class... Interfaces>
 ConstCharPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropNameWithoutIndex(const StringPtr& name,
-                                                                                                 StringPtr& propName) const
+                                                                                                 StringPtr& propName)
 {
     auto propNameData = name.getCharPtr();
     auto first = strchr(propNameData, '[');
@@ -1680,7 +1569,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
     }
 
     bool isRef;
-    property = checkForRefPropAndGetBoundProp(property, &isRef);
+    property = checkForRefPropAndGetBoundProp(property, objPtr, &isRef);
 
     // TODO: Extract this to own function
     if (bracket != nullptr)
@@ -1747,6 +1636,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyA
 
     if (triggerEvent)
         value = callPropertyValueRead(property, value);
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -1779,13 +1669,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
                                                                                                     IBaseObject** value)
 {
     return getPropertySelectionValueInternal(propertyName, value, true);
-}
-
-template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
-{
-    auto lock = getRecursiveConfigLock2();
-    return setPropertySelectionValueInternal(propertyName, value, false);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1872,10 +1755,36 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyS
 }
 
 template <class PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
+{
+    auto lock = getRecursiveConfigLock2();
+    return setPropertySelectionValueInternal(propertyName, value, false);
+}
+
+template <class PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value)
+{
+    auto lock = getRecursiveConfigLock2();
+    return setPropertySelectionValueInternal(propertyName, value, true);
+}
+template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearProtectedPropertyValue(IString* propertyName)
 {
     auto lock = getRecursiveConfigLock2();
     return clearPropertyValueInternal(propertyName, true, updateCount > 0);
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureClonedMembers(const CloneParameters& parameters)
+{
+    configureClonedMembers(parameters.valueWriteEvents,
+                           parameters.valueReadEvents,
+                           parameters.endUpdateEvent,
+                           parameters.triggerCoreEvent,
+                           parameters.localProperties,
+                           parameters.propValues,
+                           parameters.customOrder,
+                           parameters.permissionManager);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1889,15 +1798,32 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     const std::vector<StringPtr>& customOrder,
     const PermissionManagerPtr& permissionManager)
 {
-    this->valueWriteEvents = valueWriteEvents;
-    this->valueReadEvents = valueReadEvents;
-    this->endUpdateEvent = endUpdateEvent;
+    this->valueWriteEvents.clear();
+    for (const auto& [name, srcEmitter] : valueWriteEvents)
+    {
+        BaseObjectPtr cloned;
+        srcEmitter.template asPtr<ICloneable>(true)->clone(&cloned);
+        this->valueWriteEvents.emplace(name, cloned);
+    }
+        
+    this->valueReadEvents.clear();
+    for (const auto& [name, srcEmitter] : valueReadEvents)
+    {
+        BaseObjectPtr cloned;
+        srcEmitter.template asPtr<ICloneable>(true)->clone(&cloned);
+        this->valueReadEvents.emplace(name, cloned);
+    }
+
+    BaseObjectPtr cloned;
+    endUpdateEvent.template asPtr<ICloneable>(true)->clone(&cloned);
+
+    this->endUpdateEvent = cloned;
     this->triggerCoreEvent = triggerCoreEvent;
     this->localProperties = localProperties;
     this->customOrder = customOrder;
 
     BaseObjectPtr permissionManagerClone;
-    permissionManager.asPtr<ICloneable>()->clone(&permissionManagerClone);
+    permissionManager.template asPtr<ICloneable>()->clone(&permissionManagerClone);
     this->permissionManager = permissionManagerClone;
 
     for (const auto& val : propValues)
@@ -1945,15 +1871,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
 template <typename PropObjInterface, typename... Interfaces>
 std::unique_ptr<RecursiveConfigLockGuard> GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveConfigLock()
 {
-    if (this->lockingStrategy == LockingStrategy::InheritLock)
-    {
-        DAQ_THROW_EXCEPTION(daq::InvalidStateException, "Can't build recursive lock locally if using InheritLock strategy.");
-    }
-
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return std::make_unique<GenericRecursiveConfigLockGuard<object_utils::NullMutex>>(nullSync, &externalCallThreadId, &externalCallDepth);
-
-    return std::make_unique<GenericRecursiveConfigLockGuard<MutexPtr>>(sync, &externalCallThreadId, &externalCallDepth);
+    LockGuardPtr lockGuard;
+    checkErrorInfo(getRecursiveLockGuard(&lockGuard));
+    return std::make_unique<RecursiveConfigLockGuard>(lockGuard);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2004,6 +1924,76 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
 }
 
 template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValues()
+{
+    auto lock = getRecursiveConfigLock2();
+    const ErrCode errCode = clearPropertyValuesInternal(false);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearProtectedPropertyValues()
+{
+    auto lock = getRecursiveConfigLock2();
+    const ErrCode errCode = clearPropertyValuesInternal(true);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValuesInternal(bool protectedAccess)
+{
+    if (frozen)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
+
+    ListPtr<IProperty> properties;
+    OPENDAQ_RETURN_IF_FAILED(getAllProperties(&properties), "Failed to get all properties");
+
+    for (const auto& prop : properties)
+    {
+        if (!protectedAccess && prop.asPtrOrNull<IPropertyInternal>(true).getReadOnlyNoLock())
+            continue;
+
+        if (prop.getPropertyType() == PropertyType::Reference)
+            continue;
+
+        if (prop.getValueType() == ctObject)
+        {
+            PropertyPtr propPtr;
+            BaseObjectPtr valuePtr;
+            ErrCode err = getPropertyAndValueInternal(prop.getName(), valuePtr, propPtr, false);
+            OPENDAQ_RETURN_IF_FAILED(err);
+
+            if (const auto freezable = valuePtr.asPtrOrNull<IFreezable>(true); freezable.assigned() && freezable.isFrozen())
+                continue;
+
+            if (protectedAccess)
+            {
+                auto nested = valuePtr.asPtr<IPropertyObjectProtected>(true);
+                OPENDAQ_RETURN_IF_FAILED(nested->clearProtectedPropertyValues());
+            }
+            else
+            {
+                auto nested = valuePtr.asPtr<IPropertyObject>(true);
+                OPENDAQ_RETURN_IF_FAILED(nested->clearPropertyValues());
+            }
+        }
+        else
+        {
+            if (localProperties.find(prop.getName()) == localProperties.end())
+                continue;
+
+            // For non-object properties, use the internal clear function and let begin/endUpdate apply the changes.
+            const ErrCode errCode = clearPropertyValueInternal(prop.getName(), protectedAccess, updateCount > 0);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropertyValueInternal(IString* name,
                                                                                                bool protectedAccess,
                                                                                                bool batch,
@@ -2032,7 +2022,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
         }
 
         PropertyPtr prop = getUnboundPropertyOrNull(propName);
-        prop = checkForRefPropAndGetBoundProp(prop);
+        prop = checkForRefPropAndGetBoundProp(prop, objPtr);
 
         if (!prop.assigned())
         {
@@ -2185,9 +2175,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
         if (!values.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" has no selection values assigned)", propName));
 
-        if (auto valuesList = values.asPtrOrNull<IList, ListPtr<IBaseObject>>(true); valuesList.assigned())
+        const PropertyType propType = prop.getPropertyType();
+        if (propType != PropertyType::IndexSelection && propType != PropertyType::SparseSelection)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Property "{}" is not an index selection or sparse selection property)", propName));
+
+        if (auto valuesList = values.asPtrOrNull<IList>(true); valuesList.assigned())
             valuePtr = valuesList.getItemAt(valuePtr);
-        else if (auto valuesDict = values.asPtrOrNull<IDict, DictPtr<IBaseObject, IBaseObject>>(true); valuesDict.assigned())
+        else if (auto valuesDict = values.asPtrOrNull<IDict>(true); valuesDict.assigned())
             valuePtr = valuesDict.get(valuePtr);
         else
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, fmt::format(R"(Selection property "{}" values is not a list or dictionary)", propName));
@@ -2258,7 +2252,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         if (!propName.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, "Property does not have an assigned name.");
 
-        if (hasDuplicateReferences(propPtr))
+        if (hasDuplicateReferences(propPtr, objPtr))
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE,
                                        "Reference property references a property that is already referenced by another.");
 
@@ -2710,19 +2704,20 @@ template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate()
 {
     auto ignoredProps = List<IString>();
-    for (auto& item : updatingPropsAndValues)
+    for (auto& [propName, action] : updatingPropsAndValues)
     {
-        StringPtr name = item.first;
+        StringPtr name = propName;
         ErrCode err;
-        if (item.second.setValue)
+        if (action.setValue)
         {
-            err = setPropertyValueInternal(name, item.second.value, true, item.second.protectedAccess, false, true);
+            err = setPropertyValueInternal(name, action.value, true, action.protectedAccess, false, true);
+            checkErrorInfo(err);
         }
         else
         {
-            err = clearPropertyValueInternal(name, item.second.protectedAccess, false, true);
+            err = clearPropertyValueInternal(name, action.protectedAccess, false, true);
+            checkErrorInfo(err);
         }
-        checkErrorInfo(err);
 
         if (err == OPENDAQ_IGNORED)
         {
@@ -2731,7 +2726,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
         else
         {
             PropertyPtr prop;
-            getPropertyAndValueInternal(name, item.second.value, prop);
+            getPropertyAndValueInternal(name, action.value, prop);
         }
     }
 
@@ -2907,12 +2902,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEv
 {
     coreEventMuted = false;
 
-    for (auto& item : propValues)
+    for (auto& [propName, propValue] : propValues)
     {
-        if (item.second.supportsInterface(IPropertyObject::Id))
-        {
-            configureClonedObj(item.first, item.second);
-        }
+        if (const auto & propObj = propValue.template asPtrOrNull<IPropertyObject>(true); propObj.assigned())
+            configureClonedObj(propName, propObj);
     }
 
     return OPENDAQ_SUCCESS;
@@ -3036,37 +3029,24 @@ template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadAccess(IBaseObject* userContext, Bool* hasAccessOut)
 {
     OPENDAQ_PARAM_NOT_NULL(hasAccessOut);
-    const auto self = this->template borrowPtr<PropertyObjectPtr>();
-    *hasAccessOut = hasUserReadAccess(userContext, self);
+    *hasAccessOut = hasUserReadAccess(userContext, this->objPtr);
     return OPENDAQ_SUCCESS;
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
 {
-    OPENDAQ_PARAM_NOT_NULL(lockGuard);
-    
-    // Prevent access violation when lock is obtained during destruction.
-    auto objRef = this->refCount ? this->objPtr : nullptr;
-    return createObject<ILockGuard, LockGuardImpl, IPropertyObject*, MutexPtr>(lockGuard, objRef, sync);
+    return propObjCore->getLockGuard(lockGuard, sync);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getRecursiveLockGuard(ILockGuard** lockGuard)
 {
-    OPENDAQ_PARAM_NOT_NULL(lockGuard);
-
     auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr;
     if (lockOwnerPtr.assigned() && lockingStrategy == LockingStrategy::InheritLock)
         return lockOwnerPtr->getRecursiveLockGuard(lockGuard);
-    
-    // Prevent access violation when lock is obtained during destruction.
-    auto objRef = this->refCount ? this->objPtr : nullptr;
-    if (externalCallThreadId != std::thread::id() && externalCallThreadId == std::this_thread::get_id())
-        return createObject<ILockGuard, RecursiveLockGuardImpl<object_utils::NullMutex>, IPropertyObject*, object_utils::NullMutex, std::thread::id*, int*>
-            (lockGuard, objRef, nullSync, &externalCallThreadId, &externalCallDepth);
-    return createObject<ILockGuard, RecursiveLockGuardImpl<MutexPtr>, IPropertyObject*, MutexPtr, std::thread::id*, int*>
-        (lockGuard, objRef, sync, &externalCallThreadId, &externalCallDepth);
+
+    return propObjCore->getRecursiveLockGuard(lockGuard, sync);
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -3076,6 +3056,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockingSt
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Locking strategy can not be changed after owner is already assigned!");
 
     this->lockingStrategy = strategy;
+    IntegerPtr strategyIntPtr = static_cast<Int>(lockingStrategy);
     return OPENDAQ_SUCCESS;
 }
 
@@ -3121,7 +3102,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeCus
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValue(const StringPtr& name,
                                                                                            const ObjectPtr<IBaseObject>& value,
-                                                                                           ISerializer* serializer)
+                                                                                           ISerializer* serializer,
+                                                                                           bool /*forUpdate*/)
 {
     if (value.assigned())
     {
@@ -3165,7 +3147,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer, bool forUpdate)
 {
     auto serializerPtr = SerializerPtr::Borrow(serializer);
 
@@ -3191,7 +3173,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
                 if (!hasUserReadAccess(serializerPtr.getUser(), propValue->second))
                     continue;
 
-                ErrCode err = serializePropertyValue(propValue->first, propValue->second, serializer);
+                ErrCode err = serializePropertyValue(propValue->first, propValue->second, serializer, forUpdate);
                 OPENDAQ_RETURN_IF_FAILED(err);
                 sorted.erase(propValue);
             }
@@ -3203,7 +3185,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
             if (!hasUserReadAccess(serializerPtr.getUser(), propValue.second))
                 continue;
 
-            ErrCode err = serializePropertyValue(propValue.first, propValue.second, serializer);
+            ErrCode err = serializePropertyValue(propValue.first, propValue.second, serializer, forUpdate);
             OPENDAQ_RETURN_IF_FAILED(err);
         }
     }
@@ -3275,7 +3257,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serialize(IS
     serializeErrCode = serializeCustomValues(serializer, false);
     OPENDAQ_RETURN_IF_FAILED(serializeErrCode);
 
-    serializeErrCode = serializePropertyValues(serializer);
+    serializeErrCode = serializePropertyValues(serializer, false);
     OPENDAQ_RETURN_IF_FAILED(serializeErrCode);
 
     serializeErrCode = serializeLocalProperties(serializer);
@@ -3357,6 +3339,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProp
     const auto propValues = serialized.readSerializedObject("propValues");
 
     const auto keys = propValues.getKeys();
+
+    if (keys.getCount() == 0)
+        return;
 
     const auto protectedPropObjPtr = propObjPtr.asPtr<IPropertyObjectProtected>(true);
 
@@ -3467,8 +3452,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setOwner(IPr
         {
             PropertyObjectInternalPtr lockOwnerPtr;
             OPENDAQ_RETURN_IF_FAILED(getMutexOwner(&lockOwnerPtr));
-
-            lockOwner = lockOwnerPtr;
+            setLockOwner(lockOwnerPtr);
             setMutex(lockOwnerPtr.getMutex());
         }
     }
@@ -3554,7 +3538,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyFromSerialized(const StringPtr& propName,
                                                                                               const PropertyObjectPtr& propObj,
-                                                                                              const SerializedObjectPtr& serialized)
+                                                                                              const SerializedObjectPtr& serialized,
+                                                                                              const TypeManagerPtr& typeManager)
 {
     if (!serialized.assigned())
     {
@@ -3578,23 +3563,21 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
             propValue = serialized.readString(propName);
             break;
         case ctList:
-            propValue = serialized.readList<IBaseObject>(propName, manager.assigned() ? manager.getRef() : nullptr);
+            propValue = serialized.readList<IBaseObject>(propName, typeManager);
             break;
         case ctDict:
         case ctRatio:
         case ctStruct:
         case ctObject:
         {
-            const auto strongManager = manager.assigned() ? manager.getRef() : nullptr;
-
             const auto obj = propObj.getPropertyValue(propName);
             if (const auto updatable = obj.asPtrOrNull<IUpdatable>(true); updatable.assigned())
             {
                 const auto serializedNestedObj = serialized.readSerializedObject(propName);
-                return updatable->update(serializedNestedObj, strongManager);
+                return updatable->update(serializedNestedObj, typeManager);
             }
 
-            propValue = serialized.readObject(propName, strongManager);
+            propValue = serialized.readObject(propName, typeManager);
             break;
         }
         case ctProc:
@@ -3646,7 +3629,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
 
     if (serialized.hasKey("propValues"))
         serializedProps = serialized.readSerializedObject("propValues");
- 
+
     beginUpdate();
     Finally finally([this]() { endUpdate(); });
 
@@ -3671,7 +3654,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
             continue;
         }
 
-        const auto err = setPropertyFromSerialized(propName, propObj, serializedProps);
+        auto typeManager = manager.assigned() ? manager.getRef() : nullptr;
+        const auto err = setPropertyFromSerialized(propName, propObj, serializedProps, typeManager);
         OPENDAQ_RETURN_IF_FAILED(err);
     }
 
@@ -3743,7 +3727,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeFor
     ErrCode errCode = serializeCustomValues(serializer, true);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    errCode = serializePropertyValues(serializer);
+    errCode = serializePropertyValues(serializer, true);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     serializer->endObject();

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:08:01.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:54.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SYNC_COMPONENT_PRIVATE_INTF_ID = { daq::ISyncComponentPrivate::Id.Data1, daq::ISyncComponentPrivate::Id.Data2, daq::ISyncComponentPrivate::Id.Data3, daq::ISyncComponentPrivate::Id.Data4_UInt64 };
+
+void daqSyncComponentPrivate_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SYNC_COMPONENT_PRIVATE_INTF_ID;
+}
 
 daqErrCode daqSyncComponentPrivate_setSyncLocked(daqSyncComponentPrivate* self, daqBool synchronizationLocked)
 {

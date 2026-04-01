@@ -6,6 +6,7 @@ set(TEST_SOURCES
     test_config_packet.cpp
     test_config_client_server.cpp
     test_config_protocol_integration.cpp
+    test_config_protocol_integration_non_public.cpp
     test_config_protocol_device_locking.cpp
     test_config_protocol_view_only_client.cpp
     test_config_serialization.cpp
@@ -17,6 +18,7 @@ set(TEST_SOURCES
     test_c2d_streaming.cpp
     test_gateway_devices.cpp
     test_sync_component2.cpp
+    test_property_object.cpp
 )
 
 if (OPENDAQ_ENABLE_ACCESS_CONTROL)
@@ -25,18 +27,20 @@ endif()
 
 add_executable(${TEST_APP} ${TEST_SOURCES})
 
-target_link_libraries(${TEST_APP} PRIVATE
-    ${SDK_TARGET_NAMESPACE}::${BASE_NAME}
-    ${SDK_TARGET_NAMESPACE}::test_utils
-    daq::opendaq
-    daq::opendaq_mocks
-    daq::opendaq_gmocks
+target_link_libraries(${TEST_APP}
+    PRIVATE
+        ${SDK_TARGET_NAMESPACE}::${BASE_NAME}
+        ${SDK_TARGET_NAMESPACE}::test_utils
+        daq::opendaq
+        daq::opendaq_mocks
+        daq::opendaq_gmocks
 )
 
 if (DAQMODULES_REF_FB_MODULE AND DAQMODULES_REF_DEVICE_MODULE)
-    add_dependencies(${TEST_APP}
-        ${SDK_TARGET_NAMESPACE}::ref_device_module
-        ${SDK_TARGET_NAMESPACE}::ref_fb_module
+    target_link_libraries(${TEST_APP}
+        PRIVATE
+            ${SDK_TARGET_NAMESPACE}::ref_device_module
+            ${SDK_TARGET_NAMESPACE}::ref_fb_module
     )
 
     target_compile_definitions(${TEST_APP} PRIVATE OPENDAQ_TEST_WITH_REF_MODULES)

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:55.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:59.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,8 +40,10 @@ extern "C"
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqString daqString;
     typedef struct daqLockGuard daqLockGuard;
+    typedef struct daqMutex daqMutex;
 
     EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_INTERNAL_INTF_ID;
+    void EXPORTED daqPropertyObjectInternal_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqPropertyObjectInternal_checkForReferences(daqPropertyObjectInternal* self, daqProperty* property, daqBool* isReferenced);
     daqErrCode EXPORTED daqPropertyObjectInternal_checkForReferencesNoLock(daqPropertyObjectInternal* self, daqProperty* property, daqBool* isReferenced);
@@ -51,14 +53,20 @@ extern "C"
     daqErrCode EXPORTED daqPropertyObjectInternal_setCoreEventTrigger(daqPropertyObjectInternal* self, daqProcedure* trigger);
     daqErrCode EXPORTED daqPropertyObjectInternal_clone(daqPropertyObjectInternal* self, daqPropertyObject** cloned);
     daqErrCode EXPORTED daqPropertyObjectInternal_setPath(daqPropertyObjectInternal* self, daqString* path);
+    daqErrCode EXPORTED daqPropertyObjectInternal_getPath(daqPropertyObjectInternal* self, daqString** path);
     daqErrCode EXPORTED daqPropertyObjectInternal_isUpdating(daqPropertyObjectInternal* self, daqBool* updating);
     daqErrCode EXPORTED daqPropertyObjectInternal_hasUserReadAccess(daqPropertyObjectInternal* self, daqBaseObject* userContext, daqBool* hasAccessOut);
     daqErrCode EXPORTED daqPropertyObjectInternal_getPropertyValueNoLock(daqPropertyObjectInternal* self, daqString* name, daqBaseObject** value);
     daqErrCode EXPORTED daqPropertyObjectInternal_getPropertySelectionValueNoLock(daqPropertyObjectInternal* self, daqString* name, daqBaseObject** value);
     daqErrCode EXPORTED daqPropertyObjectInternal_setPropertyValueNoLock(daqPropertyObjectInternal* self, daqString* name, daqBaseObject* value);
+    daqErrCode EXPORTED daqPropertyObjectInternal_setProtectedPropertyValueNoLock(daqPropertyObjectInternal* self, daqString* name, daqBaseObject* value);
     daqErrCode EXPORTED daqPropertyObjectInternal_clearPropertyValueNoLock(daqPropertyObjectInternal* self, daqString* name);
     daqErrCode EXPORTED daqPropertyObjectInternal_getLockGuard(daqPropertyObjectInternal* self, daqLockGuard** lockGuard);
     daqErrCode EXPORTED daqPropertyObjectInternal_getRecursiveLockGuard(daqPropertyObjectInternal* self, daqLockGuard** lockGuard);
+    daqErrCode EXPORTED daqPropertyObjectInternal_setLockingStrategy(daqPropertyObjectInternal* self, daqLockingStrategy strategy);
+    daqErrCode EXPORTED daqPropertyObjectInternal_getLockingStrategy(daqPropertyObjectInternal* self, daqLockingStrategy* strategy);
+    daqErrCode EXPORTED daqPropertyObjectInternal_getMutex(daqPropertyObjectInternal* self, daqMutex** mutex);
+    daqErrCode EXPORTED daqPropertyObjectInternal_getMutexOwner(daqPropertyObjectInternal* self, daqPropertyObjectInternal** owner);
 
 #ifdef __cplusplus
 }

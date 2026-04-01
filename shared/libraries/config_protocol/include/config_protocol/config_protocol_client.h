@@ -32,6 +32,7 @@
 #include <coreobjects/property_object_class_internal_ptr.h>
 #include <opendaq/mirrored_input_port_private_ptr.h>
 #include <algorithm>
+#include <opendaq/component_update_context_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -77,7 +78,7 @@ public:
 
     void clearPropertyValue(const std::string& globalId, const std::string& propertyName);
     void clearProtectedPropertyValue(const std::string& globalId, const std::string& propertyName);
-    void update(const std::string& globalId, const std::string& serialized, const std::string& path);
+    ComponentUpdateContextPtr update(const std::string& globalId, const std::string& serialized, const std::string& path, const ComponentUpdateContextPtr& context);
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
     void setAttributeValue(const std::string& globalId, const std::string& attributeName, const BaseObjectPtr& attributeValue);
     BaseObjectPtr getLastValue(const std::string& globalId);
@@ -87,6 +88,7 @@ public:
     bool isLocked(const std::string& globalId);
     void beginUpdate(const std::string& globalId, const std::string& path = "");
     void endUpdate(const std::string& globalId, const std::string& path = "", const ListPtr<IDict>& props = nullptr);
+    void clearPropertyValues(const std::string& globalId, const std::string& path = "");
 
     DictPtr<IString, IFunctionBlockType> getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb = false);
     ComponentHolderPtr addFunctionBlock(const std::string& globalId,
@@ -527,30 +529,33 @@ template<class TRootDeviceImpl>
 void ConfigProtocolClient<TRootDeviceImpl>::triggerNotificationObject(const BaseObjectPtr& object)
 {
     ListPtr<IBaseObject> packedEvent = object.asPtrOrNull<IList>();
-    if (!packedEvent.assigned() || packedEvent.getCount() != 2)
+    if (!packedEvent.assigned() || packedEvent.getCount() % 2 != 0)
         return;
 
-    const ComponentPtr component = findComponent(packedEvent[0]);
-    const CoreEventArgsPtr argsPtr = unpackCoreEvents(packedEvent[1]);
-    if (component.assigned())
+    for (SizeT i = 0; i < packedEvent.getCount(); i += 2)
     {
-        component.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(component, argsPtr);
-    }
-    else
-    {
-        try
+        const ComponentPtr component = findComponent(packedEvent[i]);
+        const CoreEventArgsPtr argsPtr = unpackCoreEvents(packedEvent[i + 1]);
+        if (component.assigned())
         {
-            handleNonComponentEvent(argsPtr);
+            component.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(component, argsPtr);
         }
-        catch([[maybe_unused]] const std::exception& e)
+        else
         {
-            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
-            LOG_D("Failed to handle non-component event {}: {}", argsPtr.getEventName(), e.what());
-        }
-        catch(...)
-        {
-            const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
-            LOG_D("Failed to handle non-component event {}", argsPtr.getEventName());
+            try
+            {
+                handleNonComponentEvent(argsPtr);
+            }
+            catch([[maybe_unused]] const std::exception& e)
+            {
+                const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+                LOG_D("Failed to handle non-component event {}: {}", argsPtr.getEventName(), e.what());
+            }
+            catch(...)
+            {
+                const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+                LOG_D("Failed to handle non-component event {}", argsPtr.getEventName());
+            }
         }
     }
 }

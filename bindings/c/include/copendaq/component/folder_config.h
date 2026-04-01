@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:57.
+//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:06.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqContext daqContext;
 
     EXPORTED extern const daqIntfID DAQ_FOLDER_CONFIG_INTF_ID;
+    void EXPORTED daqFolderConfig_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqFolderConfig_addItem(daqFolderConfig* self, daqComponent* item);
     daqErrCode EXPORTED daqFolderConfig_removeItem(daqFolderConfig* self, daqComponent* item);

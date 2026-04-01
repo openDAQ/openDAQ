@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:56.
+//     RTGen (CGenerator v0.7.0) on 17.03.2026 11:25:18.
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_COMPONENT_UPDATE_CONTEXT_INTF_ID = { daq::IComponentUpdateContext::Id.Data1, daq::IComponentUpdateContext::Id.Data2, daq::IComponentUpdateContext::Id.Data3, daq::IComponentUpdateContext::Id.Data4_UInt64 };
+
+void daqComponentUpdateContext_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_COMPONENT_UPDATE_CONTEXT_INTF_ID;
+}
 
 daqErrCode daqComponentUpdateContext_setInputPortConnection(daqComponentUpdateContext* self, daqString* parentId, daqString* portId, daqString* signalId)
 {
@@ -30,6 +35,11 @@ daqErrCode daqComponentUpdateContext_getInputPortConnections(daqComponentUpdateC
 daqErrCode daqComponentUpdateContext_removeInputPortConnection(daqComponentUpdateContext* self, daqString* parentId)
 {
     return reinterpret_cast<daq::IComponentUpdateContext*>(self)->removeInputPortConnection(reinterpret_cast<daq::IString*>(parentId));
+}
+
+daqErrCode daqComponentUpdateContext_setRootComponent(daqComponentUpdateContext* self, daqComponent* rootComponent)
+{
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->setRootComponent(reinterpret_cast<daq::IComponent*>(rootComponent));
 }
 
 daqErrCode daqComponentUpdateContext_getRootComponent(daqComponentUpdateContext* self, daqComponent** rootComponent)
@@ -47,7 +57,32 @@ daqErrCode daqComponentUpdateContext_setSignalDependency(daqComponentUpdateConte
     return reinterpret_cast<daq::IComponentUpdateContext*>(self)->setSignalDependency(reinterpret_cast<daq::IString*>(signalId), reinterpret_cast<daq::IString*>(parentId));
 }
 
-daqErrCode daqComponentUpdateContext_getReAddDevicesEnabled(daqComponentUpdateContext* self, daqBool* enabled)
+daqErrCode daqComponentUpdateContext_addDeviceRemapping(daqComponentUpdateContext* self, daqString* originalDeviceId, daqString* newDeviceId)
 {
-    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->getReAddDevicesEnabled(enabled);
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->addDeviceRemapping(reinterpret_cast<daq::IString*>(originalDeviceId), reinterpret_cast<daq::IString*>(newDeviceId));
+}
+
+daqErrCode daqComponentUpdateContext_getDeviceUpdateOptionsWithLocalIdOrNull(daqComponentUpdateContext* self, daqString* localId, daqDeviceUpdateOptions** options)
+{
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->getDeviceUpdateOptionsWithLocalIdOrNull(reinterpret_cast<daq::IString*>(localId), reinterpret_cast<daq::IDeviceUpdateOptions**>(options));
+}
+
+daqErrCode daqComponentUpdateContext_remapInputPortConnections(daqComponentUpdateContext* self)
+{
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->remapInputPortConnections();
+}
+
+daqErrCode daqComponentUpdateContext_getUpdateParameters(daqComponentUpdateContext* self, daqUpdateParameters** updateParameters)
+{
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->getUpdateParameters(reinterpret_cast<daq::IUpdateParameters**>(updateParameters));
+}
+
+daqErrCode daqComponentUpdateContext_overrideState(daqComponentUpdateContext* self, daqComponentUpdateContext* updateContext)
+{
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->overrideState(reinterpret_cast<daq::IComponentUpdateContext*>(updateContext));
+}
+
+daqErrCode daqComponentUpdateContext_getInternalState(daqComponentUpdateContext* self, daqDict** state)
+{
+    return reinterpret_cast<daq::IComponentUpdateContext*>(self)->getInternalState(reinterpret_cast<daq::IDict**>(state));
 }

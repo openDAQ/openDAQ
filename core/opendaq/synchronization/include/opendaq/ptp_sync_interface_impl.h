@@ -119,13 +119,16 @@ inline void PtpSyncInterfaceBaseImpl::createGeneralProperties()
 
     // Parameters
     const PropertyObjectPtr parameters = PropertyObject();
+    this->objPtr.addProperty(ObjectProperty(PtpPropertyNames::Parameters, parameters));
 
     {
         // PTP Configuration
+        configuration = PropertyObject();
+        parameters.addProperty(ObjectProperty(PtpPropertyNames::PtpConfiguration, configuration));
+
         const auto profileOptions = List<IString>("I558", "802_1AS", "None");
         const auto transportProtocolOptions = List<IString>("IEEE802_3", "UDP_IPV4", "UDP_IPV6");
 
-        configuration = PropertyObject();
         configuration.addProperty(ListPropertyBuilder     (PtpPropertyNames::PtpConfigProfileOptions,     profileOptions).setReadOnly(true).setVisible(false).build());
         configuration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigProfile,            "None").setSelectionValues(EvalValue("$ProfileOptions")).build());
         configuration.addProperty(BoolProperty            (PtpPropertyNames::PtpConfigTwoStepFlag,        true));
@@ -135,8 +138,6 @@ inline void PtpSyncInterfaceBaseImpl::createGeneralProperties()
         configuration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority2,          128).setMinValue(0).setMaxValue(255).build());
         configuration.addProperty(ListPropertyBuilder     (PtpPropertyNames::PtpConfigTransportProtocolOptions, transportProtocolOptions).setReadOnly(true).setVisible(false).build());
         configuration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigTransportProtocol, "IEEE802_3").setSelectionValues(EvalValue("$TransportProtocolOptions")).build());
-
-        parameters.addProperty(ObjectProperty(PtpPropertyNames::PtpConfiguration, configuration));
     }
 
     {
@@ -144,8 +145,6 @@ inline void PtpSyncInterfaceBaseImpl::createGeneralProperties()
         portsConfiguration = PropertyObject();
         parameters.addProperty(ObjectProperty(PtpPropertyNames::ParametersPorts, portsConfiguration));
     }
-
-    this->objPtr.addProperty(ObjectProperty(PtpPropertyNames::Parameters, parameters));
 }
 
 inline void PtpSyncInterfaceBaseImpl::createPortProporties(const StringPtr& portName)

@@ -1729,8 +1729,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyS
         const auto propInternal = prop.asPtr<IPropertyInternal>(true);
         const auto selectionValues = propInternal.getSelectionValuesNoLock();
         BaseObjectPtr indexOrKey;
+        PropertyType propType = prop.getPropertyType();
 
-        if (prop.getPropertyType() == PropertyType::IndexSelection)
+        if (propType == PropertyType::IndexSelection)
         {
             if (!selectionValues.assigned())
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, 
@@ -1753,7 +1754,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyS
             if (!indexOrKey.assigned())
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Value not found in selection values of property "{}")", propName));
         }
-        else if (prop.getPropertyType() == PropertyType::SparseSelection)
+        else if (propType == PropertyType::SparseSelection)
         {
             if (!selectionValues.assigned())
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPROPERTY, 
@@ -1775,6 +1776,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyS
 
             if (!indexOrKey.assigned())
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Value not found in sparse selection values of property "{}")", propName));
+        }
+        else if (propType == PropertyType::Selection)
+        {
+            indexOrKey = valuePtr;
         }
         else 
         {

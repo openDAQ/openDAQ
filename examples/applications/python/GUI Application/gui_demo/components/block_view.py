@@ -10,6 +10,7 @@ from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .recorder_view import RecorderView
 from .attributes_dialog import AttributesDialog
+from .domain_view import DomainView
 
 class BlockView(ttk.Frame):
 
@@ -90,6 +91,7 @@ class BlockView(ttk.Frame):
             self.properties = None
             self.input_ports = None
             self.output_signals = None
+            self.domain_view = None
             self.recoder = None
             
             if daq.IDevice.can_cast_from(self.node):
@@ -97,6 +99,8 @@ class BlockView(ttk.Frame):
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
                 self.output_signals = OutputSignalsView(
+                    self.expanded_frame, self.node, self.context)
+                self.domain_view = DomainView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.device_img)
                 self.cols = [0, 1]
@@ -138,13 +142,32 @@ class BlockView(ttk.Frame):
 
                 opt.trace_add('write', on_option_change)
 
-                combined = tk.Frame(self.expanded_frame)
-                combined.grid(row=1, column=0, padx=5, pady=5, sticky='w')
+                control_header = ttk.Label(self.expanded_frame, text="Control", 
+                                           font=("TkDefaultFont", 10, "bold"))
+                control_header.grid(row=1, column=1, columnspan=2, padx=10, sticky='w')
 
-                label = tk.Label(combined, text='Operation mode: ')
-                label.pack(side='left')
-                options = tk.OptionMenu(combined, opt, *available_op_modes)
-                options.pack(side='left')
+                control_row = ttk.Frame(self.expanded_frame)
+                control_row.grid(row=2, column=1, columnspan=2, padx=10, sticky='w')
+
+                ttk.Label(control_row, text="Operation mode:", foreground="gray").pack(side=tk.LEFT, padx=(0, 2))
+                options = tk.OptionMenu(control_row, opt, *available_op_modes)
+                options.pack(side=tk.LEFT, padx=(0, 15))
+
+                self.status_square = tk.Frame(control_row, width=10, height=10)
+                self.status_square.pack_propagate(False)
+                self.status_square.pack(side=tk.LEFT, padx=(0, 4))
+                self.status_message = ttk.Label(control_row, text="Status not set")
+                self.status_message.pack(side=tk.LEFT, padx=(0, 10))
+
+                container = self.node.status_container
+                if len(container.statuses.items()) > 0:
+                    tk.Button(control_row, text='Show all',
+                              command=lambda: self.show_all_statuses(container),
+                              borderwidth=0).pack(side=tk.LEFT)
+
+                self.change_status()
+
+                self.change_status()
             
             elif daq.IFunctionBlock.can_cast_from(self.node):
                 if daq.IRecorder.can_cast_from(self.node):
@@ -183,21 +206,7 @@ class BlockView(ttk.Frame):
                 self.cols = [0]
                 self.rows = [0]
 
-        combined = tk.Frame(self.expanded_frame)
-        combined.grid(row=2, column=0, padx=5, pady=5, sticky='w')
-
         self.on_expand()
-        self.status_square = tk.Frame(combined, width=10, height=10)
-        self.status_square.pack(side='left')
-        self.status_message = tk.Message(combined, text='Status not set', width=400)
-        self.status_message.pack(side='left')
-
-        container = self.node.status_container
-        if len(container.statuses.items()) > 0:
-            self.status_full_button = tk.Button(combined, text = 'Show all statuses', command=lambda: self.show_all_statuses(container))
-            self.status_full_button.pack(side='left')
-
-        self.change_status()
 
 
     def show_all_statuses(self, container):
@@ -267,6 +276,10 @@ class BlockView(ttk.Frame):
             if self.output_signals:
                 self.output_signals.grid(
                     row=1 if self.input_ports else 0, column=1, sticky=tk.NSEW)
+            
+            if self.domain_view:
+                self.domain_view.grid(
+                    row=1 if self.input_ports else 1, column=0, sticky=tk.NSEW)
                 
             if self.recoder:
                 self.recoder.grid(
@@ -280,6 +293,8 @@ class BlockView(ttk.Frame):
                 self.input_ports.grid_forget()
             if self.output_signals:
                 self.output_signals.grid_forget()   
+            if self.domain_view:
+                self.domain_view.grid_forget()
             if self.recoder:
                 self.recoder.grid_forget()
             self.expanded_frame.pack_forget()

@@ -29,9 +29,6 @@ public:
 
     // ISyncInterfaceInternal
     ErrCode INTERFACE_FUNC setAsSource(Bool isSource) override;
-
-protected:
-    SyncInterfacePtr createClone() override;
 };
 
 inline ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
@@ -48,11 +45,6 @@ inline ErrCode ClockSyncInterfaceImpl::setAsSource(Bool isSource)
     setMode(mode);
 
     return OPENDAQ_SUCCESS;
-}
-
-inline SyncInterfacePtr ClockSyncInterfaceImpl::createClone()
-{
-    return createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
 }
 
 END_NAMESPACE_OPENDAQ

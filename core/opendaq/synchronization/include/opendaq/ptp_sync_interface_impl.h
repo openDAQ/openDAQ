@@ -75,8 +75,6 @@ protected:
     void setPortsMode(const StringPtr& mode);
     void setPortDelayMechanismOptions(const ListPtr<IString>& options);
 
-    SyncInterfacePtr createClone() override;
-
     PropertyObjectPtr status;
     PropertyObjectPtr portsStatus;
     PropertyObjectPtr configuration;
@@ -208,11 +206,6 @@ inline void PtpSyncInterfaceBaseImpl::setPortDelayMechanismOptions(const ListPtr
         const PropertyObjectProtectedPtr portConfig = portsConfiguration.getPropertyValue(portProperty.getName());
         portConfig.setProtectedPropertyValue(PtpPropertyNames::PortConfigDelayMechanismOptions, options);
     }
-}
-
-inline SyncInterfacePtr PtpSyncInterfaceBaseImpl::createClone()
-{
-    return createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
 }
 
 END_NAMESPACE_OPENDAQ

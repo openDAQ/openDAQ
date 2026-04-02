@@ -61,7 +61,6 @@ public:
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
 protected:
-    virtual SyncInterfacePtr createClone();
     void setModeOptions(const ListPtr<IString>& options);
     void setMode(const StringPtr& mode);
 };
@@ -170,18 +169,11 @@ ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::Deserialize(ISerialize
 }
 
 template <typename TInterface, typename... Interfaces>
-SyncInterfacePtr SyncInterfaceBaseImpl<TInterface, Interfaces...>::createClone()
-{
-    return createWithImplementation<ISyncInterface, SyncInterfaceBase>();
-}
-
-
-template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::clone(IPropertyObject** cloned)
 {
     OPENDAQ_PARAM_NOT_NULL(cloned);
 
-    auto obj = createClone();
+    auto obj = createWithImplementation<ISyncInterface, SyncInterfaceBase>();
 
     return daqTry([this, &obj, &cloned]()
     {

@@ -57,7 +57,7 @@ public:
     ErrCode INTERFACE_FUNC resolveSignalDependency(IString* signalId, ISignal** signal);
     ErrCode INTERFACE_FUNC overrideState(IComponentUpdateContext* updateContext) override;
     ErrCode INTERFACE_FUNC getInternalState(IDict** state) override;
-    
+
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
@@ -93,8 +93,8 @@ inline DevicePtr ComponentUpdateContextImpl::GetDevice(const StringPtr& id, cons
 {
     if (parentDevice.getLocalId() == id)
         return parentDevice;
-    
-    for (const auto& device: parentDevice.getDevices())
+
+    for (const auto& device : parentDevice.getDevices())
     {
         const auto devicePtr = GetDevice(id, device);
         if (devicePtr.assigned())
@@ -107,7 +107,7 @@ inline std::string ComponentUpdateContextImpl::GetRootDeviceId(const std::string
 {
     if (id.empty())
         return id;
-    
+
     auto idx = id.find('/', 1);
     if (idx == std::string::npos)
         return id;
@@ -146,7 +146,7 @@ inline ErrCode ComponentUpdateContextImpl::setInputPortConnection(IString* paren
     OPENDAQ_PARAM_NOT_NULL(signalId);
 
     DictPtr<IString, IString> ports;
-    
+
     if (!connections.hasKey(parentId))
     {
         ports = Dict<IString, IString>();
@@ -183,7 +183,7 @@ inline ErrCode ComponentUpdateContextImpl::setRootComponent(IComponent* baseComp
 {
     OPENDAQ_PARAM_NOT_NULL(baseComponent);
     if (this->rootComponent.assigned())
-        return OPENDAQ_ERR_ALREADYEXISTS;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Root component already set");
 
     this->rootComponent = GetRootComponent(baseComponent);
     return OPENDAQ_SUCCESS;
@@ -209,35 +209,14 @@ inline ErrCode ComponentUpdateContextImpl::getSignal(IString* parentId, IString*
     getInputPortConnections(parentId, &signalConnections);
     if (!signalConnections.hasKey(portId))
         return OPENDAQ_NOTFOUND;
-    
+
     auto signalId = signalConnections.get(portId);
 
-    Bool isCircle = false;
-    for (SizeT i = 0; i < parentDependencies.getCount(); i++)
-    {
-        const auto & parentDep = parentDependencies.getItemAt(i);
-        if (parentDep == parentId)
-        {
-            std::ostringstream deps;
-            for (SizeT j = i; j < parentDependencies.getCount(); j++)
-            {
-                deps << parentDependencies.getItemAt(j).toStdString() + " -> ";
-            }
-            auto loggerComponent = rootComponent.getContext().getLogger().getOrAddComponent("Component");
-            LOG_W("Circular dependency detected: {}{}", deps.str(), parentDep);
-            isCircle = true;
-            break;
-        }
-    }
-
-    if (isCircle == false)
-    {
-        parentDependencies.pushBack(parentId);
-        ErrCode errCode = resolveSignalDependency(signalId, signal);
-        parentDependencies.popBack();
-        if (errCode == OPENDAQ_SUCCESS)
-            return OPENDAQ_SUCCESS;
-    }
+    parentDependencies.pushBack(parentId);
+    ErrCode errCode = resolveSignalDependency(signalId, signal);
+    parentDependencies.popBack();
+    if (errCode == OPENDAQ_SUCCESS)
+        return OPENDAQ_SUCCESS;
 
     auto signalRootId = GetRootDeviceId(signalId);
     ComponentPtr signalRootComponent;
@@ -317,7 +296,7 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
     // Check that signal has parent
     if (!signalDependencies.hasKey(signalId))
         return OPENDAQ_NOTFOUND;
-    
+
     auto parentId = signalDependencies.get(signalId);
 
     // Check that the parent is function block which is not finished with the update
@@ -336,10 +315,10 @@ inline ErrCode ComponentUpdateContextImpl::resolveSignalDependency(IString* sign
 
     // unregister dependency
     signalDependencies->deleteItem(signalId);
-    
+
     auto signalIdPtr = StringPtr::Borrow(signalId);
     StringPtr signalLocalId = signalIdPtr.toStdString().substr(parentId.getLength());
-    
+
     ComponentPtr signalComponent;
     parentComponent->findComponent(signalLocalId, &signalComponent);
     if (!signalComponent.assigned())
@@ -424,7 +403,7 @@ inline ErrCode ComponentUpdateContextImpl::serialize(ISerializer* serializer)
 }
 
 inline ErrCode ComponentUpdateContextImpl::getSerializeId(ConstCharPtr* id) const
-{    
+{
     OPENDAQ_PARAM_NOT_NULL(id);
 
     *id = SerializeId();
@@ -443,7 +422,7 @@ inline ErrCode ComponentUpdateContextImpl::Deserialize(ISerializedObject* serial
 
     auto deviceUpdateOptions = createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>();
     ComponentUpdateContextImpl* impl = dynamic_cast<ComponentUpdateContextImpl*>(deviceUpdateOptions.getObject());
-    
+
     const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
     if (serializedPtr.hasKey("DeviceMapping"))
         impl->deviceMapping = serializedPtr.readObject("DeviceMapping");
@@ -453,8 +432,8 @@ inline ErrCode ComponentUpdateContextImpl::Deserialize(ISerializedObject* serial
     if (serializedPtr.hasKey("Connections"))
         impl->connections = serializedPtr.readObject("Connections");
     else
-        impl->connections = Dict<IString, IDict>();    
-    
+        impl->connections = Dict<IString, IDict>();
+
     if (serializedPtr.hasKey("SignalDependencies"))
         impl->signalDependencies = serializedPtr.readObject("SignalDependencies");
     else
@@ -464,7 +443,6 @@ inline ErrCode ComponentUpdateContextImpl::Deserialize(ISerializedObject* serial
         impl->parentDependencies = serializedPtr.readObject("ParentDependencies");
     else
         impl->parentDependencies = List<IString>();
-
 
     if (serializedPtr.hasKey("Config"))
     {
@@ -489,7 +467,7 @@ inline StringPtr ComponentUpdateContextImpl::remapDeviceLocalIds(const std::stri
     {
         const size_t end = componentGlobalId.find('/', start);
         auto seg = componentGlobalId.substr(start, end - start);
-        
+
         if (deviceMapping.hasKey(seg))
             output += deviceMapping.get(seg).toStdString();
         else
@@ -501,7 +479,7 @@ inline StringPtr ComponentUpdateContextImpl::remapDeviceLocalIds(const std::stri
         output += "/";
         start = end + 1;
     }
-    
+
     return output;
 }
 

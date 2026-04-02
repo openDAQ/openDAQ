@@ -795,15 +795,21 @@ class App(tk.Tk):
         branch = None
         hash_digest = None
 
+        ttk.Label(frame, 
+                  text=info.name or info.id,
+                  font=("TkDefaultFont", 13, "bold")).pack(
+                      anchor=tk.W, 
+                      padx=10, 
+                      pady=(10, 5))
+
         if daq.IDevelopmentVersionInfo.can_cast_from(vi):
-            dev_vi = daq.ID
+            dev_vi = daq.IDevelopmentVersionInfo.cast_from(vi)
             version_str = f"{dev_vi.major}.{dev_vi.minor}.{dev_vi.patch}.{dev_vi.tweak}"
             branch = dev_vi.branch_name
             hash_digest = dev_vi.hash_digest
         elif vi:
             version_str = f"{vi.major}.{vi.minor}.{vi.patch}"
         fields = [
-            ("Name", info.name),
             ("ID", info.id),
             ("Version", version_str),
         ]
@@ -943,7 +949,7 @@ class App(tk.Tk):
                     config_frame.pack_propagate(False)
 
                     try:
-                        pv = PropertiesView(config_frame, config, self.context)
+                        pv = PropertiesView(config_frame, config, self.context, read_only=True)
                         pv.pack(fill=tk.BOTH, expand=True)
                     except Exception as e:
                         import traceback

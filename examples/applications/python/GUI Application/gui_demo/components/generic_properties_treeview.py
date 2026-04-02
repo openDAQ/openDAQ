@@ -13,7 +13,7 @@ from .metadata_fields_selector_dialog import MetadataFieldsSelectorDialog
 
 
 class PropertiesTreeview(ttk.Treeview):
-    def __init__(self, parent, node=None, context: AppContext = None, **kwargs):
+    def __init__(self, parent, node=None, context: AppContext = None, read_only=False, **kwargs):
         self.hidden = kwargs.pop("hidden", [])
         self._metadata_fields = list(context.metadata_fields)
         ttk.Treeview.__init__(self, parent, columns=('value', *self._metadata_fields), show='tree headings', **kwargs)
@@ -25,6 +25,7 @@ class PropertiesTreeview(ttk.Treeview):
         self._active_dropdown_cb = None
         self._last_configure_size = (0, 0)
         self._syncing_overlays = False
+        self.read_only = read_only
 
         style = ttk.Style(self)
         style.configure('Selection.TCombobox',
@@ -67,8 +68,9 @@ class PropertiesTreeview(ttk.Treeview):
             self.column(field, anchor=tk.W, minwidth=100, width=int(100 * self.context.dpi_factor), stretch=False)
 
         # bind double-click to editing
-        self.bind('<Double-1>', lambda event: self.edit_value())
-        self.bind('<Button-3>', lambda event: self.show_menu(event))
+        if not self.read_only:
+            self.bind('<Double-1>', lambda event: self.edit_value())
+            self.bind('<Button-3>', lambda event: self.show_menu(event))
         self.bind('<MouseWheel>', lambda e: self.after_idle(self._sync_overlays))
         self.bind('<ButtonRelease-1>', lambda e: self.after(10, self._sync_overlays), add='+')
         self.bind('<Configure>', self._on_configure)
@@ -167,7 +169,7 @@ class PropertiesTreeview(ttk.Treeview):
                 text=property_info.name,
                 values=(property_value, *meta_fields))
 
-            if property_info.read_only:
+            if property_info.read_only or self.read_only:
                 self.item(iid, tags=('readonly',))
 
             if property_info.value_type == daq.CoreType.ctObject:
@@ -368,6 +370,8 @@ class PropertiesTreeview(ttk.Treeview):
         return labels, indices
 
     def _collect_overlay_items(self, parent_iid):
+        if self.read_only:
+            return
         for iid in self.get_children(parent_iid):
             path = utils.get_item_path(self, iid)
             prop = utils.get_property_for_path(self.context, path, self.node)

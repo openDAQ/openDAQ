@@ -724,7 +724,7 @@ jobs:
           python$last_version -m venv build/venv
           . build/venv/bin/activate
           pip install build/pip/packages/opendaq*.whl
-          ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
+          sudo -E ctest --output-on-failure --preset ${{ env.ctest_preset }} -C ${{ matrix.cmake_build_type }} --test-dir build --verbose
 
       - name: Upload test results
         if: always()

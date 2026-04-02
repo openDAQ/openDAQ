@@ -205,27 +205,55 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignals(IList* s
         if (clientComm->getProtocolVersion() < 4)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
 
-        ListPtr<IString> signalRemoteIdList = ListPtr<IString>();
+        // Build a list of accept flags with initial values equal to the defaults from acceptsSignal method (equivalence).
+        SizeT numOfTrue = 0;
+        ListPtr<Bool> acceptanceList = List<Bool>();
+
+        ListPtr<IString> signalRemoteIdList = List<IString>();
         for (const auto signal : signalList)
         {
             const auto configObject = signal.asPtrOrNull<IConfigClientObject>(true);
             if (!configObject.assigned() || !clientComm->isComponentNested(signal.getGlobalId()))
             {
-                // TODO: Discuss. To replicate behavior for a one signal, we should insert True at the index of such a signal.
-                // break by throwing
-                checkErrorInfo(OPENDAQ_ERR_CREATE_FAILED);
+                // Theses signals cannot be checked remotely, but should be allowed (equivalence).
+                acceptanceList.pushBack(True);
+                ++numOfTrue;
+                continue;
             }
             StringPtr signalRemoteGlobalId;
             checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+
             signalRemoteIdList.pushBack(signalRemoteGlobalId);
+            // Equivalence
+            acceptanceList.pushBack(False);
         }
-        ListPtr<IBoolean> flags = clientComm->acceptsSignals(remoteGlobalId, signalRemoteIdList);
-        if (!flags.assigned() || flags.getCount() != signalList.getCount())
+
+        ListPtr<IBoolean> remoteAccepts = clientComm->acceptsSignals(remoteGlobalId, signalRemoteIdList);
+
+        SizeT numOfRemote = remoteAccepts.assigned() ? remoteAccepts.getCount() : 0;
+        if (numOfRemote + numOfTrue != signalList.getCount())
         {
-            // TODO: Discuss if we should default or throw here on result not assigned - I think we should throw, but above we default.
-            checkErrorInfo(OPENDAQ_ERR_GENERALERROR);
+            throwExceptionFromErrorCode(OPENDAQ_ERR_GENERALERROR, "Failed to get remote responses.");
         }
-        *accepts = flags.detach();
+
+        if (numOfRemote)
+        {
+            *accepts = acceptanceList.detach();
+            return OPENDAQ_SUCCESS;
+        }
+
+        SizeT acceptsIdx = 0;
+        for (SizeT i = 0; i < acceptanceList.getCount(); ++i)
+        {
+            if (acceptanceList[i] == True)
+            {
+                continue;
+            }
+            acceptanceList.setItemAt(i, remoteAccepts[acceptsIdx]);
+            ++acceptsIdx;
+        }
+
+        *accepts = acceptanceList.detach();
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);

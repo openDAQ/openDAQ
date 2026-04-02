@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-from typing import Optional
 
 import opendaq as daq
 
@@ -21,16 +20,17 @@ class BlockView(ttk.Frame):
         self.node = node
         self.context = context
         self.event_port = EventPort(self, event_callback=self.refresh)
-        self._component_core_event_handler = None
 
-        self.active = False
-        self.parent_active = True
+        active = False
         name = 'None'
 
         if node and daq.IComponent.can_cast_from(self.node):
             node = daq.IComponent.cast_from(self.node)
-            self.active = node.active
-            self.parent_active = node.parent_active
+            active = node.active
+            try:
+                self.parent_active = node.parent_active
+            except AttributeError:
+                self.parent_active = True
             name = node.name
         self.configure(relief=tk.SOLID, border=0.5, padding=5)
 
@@ -78,12 +78,10 @@ class BlockView(ttk.Frame):
         self.label.pack(side=tk.LEFT)
         self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image, borderwidth=0, 
                                      command=lambda: AttributesDialog(self, 'Attributes', self.node, self.context).show())
-        self.edit_button.pack(side=tk.RIGHT, padx=(6, 14))
-        self.active_var = tk.IntVar(self, value=self.active)
-        checkbox_state = tk.NORMAL if self.parent_active else tk.DISABLED
+        self.edit_button.pack(side=tk.RIGHT)
+        self.active_var = tk.IntVar(self, value=active)
         self.checkbox = ttk.Checkbutton(
-            self.header_frame, text='Active', command=self.handle_active_toggle, variable=self.active_var,
-            state=checkbox_state)
+            self.header_frame, text='Active', command=self.handle_active_toggle, variable=self.active_var)
         self.checkbox.pack(side=tk.RIGHT)
 
         self.expanded_frame = ttk.Frame(self, padding=5)
@@ -104,8 +102,8 @@ class BlockView(ttk.Frame):
                 self.cols = [0, 1]
                 self.rows = [0]
 
-                op_modes_nums = list(self.node.available_operation_modes)
                 available_op_modes = []
+                op_modes_nums = list(self.node.available_operation_modes)
                 if 0 in op_modes_nums:
                     available_op_modes.append('Unknown')
                 if 1 in op_modes_nums:
@@ -113,7 +111,7 @@ class BlockView(ttk.Frame):
                 if 2 in op_modes_nums:
                     available_op_modes.append('Operation')
                 if 3 in op_modes_nums:
-                    available_op_modes.append('Safe operation')
+                    available_op_modes.append('SafeOperation')
 
                 op_mode = self.node.operation_mode
                 mode_string = ''
@@ -124,36 +122,29 @@ class BlockView(ttk.Frame):
                 elif op_mode == daq.OperationModeType.Operation:
                     mode_string = 'Operation'
                 elif op_mode == daq.OperationModeType.SafeOperation:
-                    mode_string = 'Safe operation'
+                    mode_string = 'SafeOperation'
 
-                mode_to_enum = {
-                    'Unknown': daq.OperationModeType.Unknown,
-                    'Idle': daq.OperationModeType.Idle,
-                    'Operation': daq.OperationModeType.Operation,
-                    'Safe operation': daq.OperationModeType.SafeOperation,
-                }
+                opt = tk.StringVar(value=mode_string)
+                def on_option_change(*args):
+                    var = opt.get()
+                    if var == 'Unknown':
+                        self.node.operation_mode = daq.OperationModeType.Unknown
+                    elif var == 'Idle':
+                        self.node.operation_mode = daq.OperationModeType.Idle
+                    elif var == 'Operation':
+                        self.node.operation_mode = daq.OperationModeType.Operation
+                    elif var == 'SafeOperation':
+                        self.node.operation_mode = daq.OperationModeType.SafeOperation
 
-                ttk.Label(self.header_frame, text=' | ').pack(side=tk.LEFT)
+                opt.trace_add('write', on_option_change)
 
-                op_mode_btn = ttk.Menubutton(
-                    self.header_frame,
-                    text=mode_string,
-                    direction='below',
-                )
-                op_mode_btn.pack(side=tk.LEFT)
+                combined = tk.Frame(self.expanded_frame)
+                combined.grid(row=1, column=0, padx=5, pady=5, sticky='w')
 
-                op_mode_menu = tk.Menu(op_mode_btn, tearoff=0)
-                op_mode_btn['menu'] = op_mode_menu
-
-                def make_select(mode):
-                    def select():
-                        self.node.operation_mode = mode_to_enum.get(mode, daq.OperationModeType.Unknown)
-                        op_mode_btn.config(text=mode)
-                        self.event_port.emit()
-                    return select
-
-                for mode in available_op_modes:
-                    op_mode_menu.add_command(label=mode, command=make_select(mode))
+                label = tk.Label(combined, text='Operation mode: ')
+                label.pack(side='left')
+                options = tk.OptionMenu(combined, opt, *available_op_modes)
+                options.pack(side='left')
             
             elif daq.IFunctionBlock.can_cast_from(self.node):
                 if daq.IRecorder.can_cast_from(self.node):
@@ -192,84 +183,27 @@ class BlockView(ttk.Frame):
                 self.cols = [0]
                 self.rows = [0]
 
-        self.on_expand()
+        combined = tk.Frame(self.expanded_frame)
+        combined.grid(row=2, column=0, padx=5, pady=5, sticky='w')
 
-        self.status_square = None
-        self.status_message = None
+        self.on_expand()
+        self.status_square = tk.Frame(combined, width=10, height=10)
+        self.status_square.pack(side='left')
+        self.status_message = tk.Message(combined, text='Status not set', width=400)
+        self.status_message.pack(side='left')
 
         container = self.node.status_container
         if len(container.statuses.items()) > 0:
-            ttk.Label(self.header_frame, text=' | ').pack(side=tk.LEFT)
+            self.status_full_button = tk.Button(combined, text = 'Show all statuses', command=lambda: self.show_all_statuses(container))
+            self.status_full_button.pack(side='left')
 
-            status_frame = tk.Frame(self.header_frame, cursor='hand2')
-            status_frame.pack(side=tk.LEFT)
+        self.change_status()
 
-            self.status_square = tk.Frame(status_frame, width=10, height=10, cursor='hand2')
-            self.status_square.pack_propagate(False)
-            self.status_square.pack(side=tk.LEFT, padx=(0, 4))
-
-            self.status_message = tk.Label(status_frame, text='', cursor='hand2')
-            self.status_message.pack(side=tk.LEFT)
-
-            def _on_click(e, c=container):
-                self.show_all_statuses(c)
-
-            def _on_enter(e):
-                for w in (status_frame, self.status_message):
-                    w.configure(bg='#e0e0e0')
-
-            def _on_leave(e):
-                bg = self.header_frame.winfo_rgb(ttk.Style().lookup('TFrame', 'background'))
-                bg_hex = '#{:04x}{:04x}{:04x}'.format(*bg)
-                for w in (status_frame, self.status_message):
-                    w.configure(bg=bg_hex)
-
-            for widget in (status_frame, self.status_square, self.status_message):
-                widget.bind('<Button-1>', _on_click)
-                widget.bind('<Enter>', _on_enter)
-                widget.bind('<Leave>', _on_leave)
-
-            self.change_status()
-
-        if node and daq.IComponent.can_cast_from(self.node):
-            component = daq.IComponent.cast_from(self.node)
-            self._component_core_event_handler = daq.QueuedEventHandler(self._on_component_core_event)
-            component.on_component_core_event + self._component_core_event_handler
-            self.bind('<Destroy>', self._on_destroy)
-
-    def _on_destroy(self, event):
-        if self._component_core_event_handler is not None and self.node is not None and daq.IComponent.can_cast_from(self.node):
-            try:
-                component = daq.IComponent.cast_from(self.node)
-                component.on_component_core_event - self._component_core_event_handler
-            except Exception:
-                pass
-            self._component_core_event_handler = None
-
-    def _on_component_core_event(self, sender, args: daq.IEventArgs):
-        if args.event_name == "AttributeChanged":
-            if not daq.ICoreEventArgs.can_cast_from(args):
-                return
-            core_event_args = daq.ICoreEventArgs.cast_from(args)
-            params = core_event_args.parameters
-
-            if params["AttributeName"] == "Active":
-                self.active = bool(params["Active"])
-                if "ParentActive" in params:
-                    self.parent_active = bool(params["ParentActive"])
-                self.update_active_checkbox(self.active, self.parent_active)
-        elif args.event_name in ("PropertyValueChanged", "PropertyAdded", "PropertyRemoved"):
-            if self.properties is not None:
-                self.properties.refresh()
 
     def show_all_statuses(self, container):
-        dpi = self.context.dpi_factor if self.context else 1.0
-        w, h = int(600 * dpi), int(200 * dpi)
-        window = tk.Toplevel(self)
-        window.withdraw()
+        window = tk.Toplevel()
         window.title('All statuses')
-        window.attributes('-topmost', True)
-        window.transient(self)
+        window.geometry(f'{600}x{200}')
 
         columns = ('Name', 'Status', 'Message')
 
@@ -287,17 +221,8 @@ class BlockView(ttk.Frame):
 
         tree.pack(expand=True, fill='both')
 
-        main = self.winfo_toplevel()
-        window.update_idletasks()
-        x = main.winfo_rootx() + main.winfo_width() // 2 - w // 2
-        y = main.winfo_rooty() + main.winfo_height() // 2 - h // 2
-        window.geometry(f'{w}x{h}+{x}+{y}')
-        window.deiconify()
-
 
     def change_status(self):
-        if self.status_square is None:
-            return
         color = utils.StatusColor.NOT_SET
         try:
             status = self.node.status_container.get_status('ComponentStatus')
@@ -309,13 +234,12 @@ class BlockView(ttk.Frame):
                 color = utils.StatusColor.ERROR
             message = self.node.status_container.get_status_message('ComponentStatus')
             if status and message and message != '':
-                self.status_message.config(text= status.name + ' - ' + message)
+                self.status_message.config(text='Status: ' + status.name + ' Message: ' + message)
             elif status:
-                self.status_message.config(text= status.name)
+                self.status_message.config(text='Status: ' + status.name)
             else:
-                self.status_message.config(text= 'Status')
+                self.status_message.config(text='')
         except:
-            self.status_message.config(text= 'Status')
             pass
         self.status_square.config(bg=color)
 
@@ -328,11 +252,11 @@ class BlockView(ttk.Frame):
         if self.expanded:
             self.expanded_frame.pack(fill=tk.BOTH)
             self.expanded_frame.grid_columnconfigure(
-                self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
+                self.cols, weight=1, minsize=300, uniform='column')
             self.expanded_frame.grid_rowconfigure(self.rows, weight=1,
-                                                  minsize=int(300 * self.context.dpi_factor) if self.input_ports and self.output_signals
+                                                  minsize=300 if self.input_ports and self.output_signals
                                                                  or daq.IFolder.can_cast_from(self.node) and
-                                                                 not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
+                                                                 not daq.IDevice.can_cast_from(self.node) else 600)
             if self.properties:
                 self.properties.grid(
                     row=0, column=0, rowspan=2 if self.input_ports and self.output_signals else 1, sticky=tk.NSEW)
@@ -363,11 +287,6 @@ class BlockView(ttk.Frame):
 
     def refresh(self, event):
         pass
-
-    def update_active_checkbox(self, active: bool, parent_active: Optional[bool] = None):
-        self.active_var.set(1 if active else 0)
-        if parent_active is not None:
-            self.checkbox.config(state=tk.NORMAL if parent_active else tk.DISABLED)
 
     def handle_active_toggle(self):
         if daq.IComponent.can_cast_from(self.node):

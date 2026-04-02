@@ -31,6 +31,7 @@
 
 ## Bug fixes
 
+- [#1130](https://github.com/openDAQ/openDAQ/pull/1130) Fix active rework issue with older devices
 - [#1122](https://github.com/openDAQ/openDAQ/pull/1122) Revert endUpdate nested property application order back to bottom-up; Batch update values on target child object when using dot notation
 - [#1116](https://github.com/openDAQ/openDAQ/pull/1116) Fix set/get for dynamically added object properties via Native Client
 - [#1093](https://github.com/openDAQ/openDAQ/pull/1093) Device info - serialize only editable properties

@@ -680,7 +680,7 @@ CoreEventArgsPtr ConfigProtocolServer::processAttributeChangedCoreEvent(const Co
     if (params.get("AttributeName") == "Active")
     {
         assert(params.hasKey("Active"));
-        if (protocolVersion > 20 && !params.hasKey("LocalActive"))
+        if (protocolVersion > 21 && !params.hasKey("LocalActive"))
             return nullptr;
     }
 

@@ -39,7 +39,7 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SCALING_CALC_PRIVATE_INTF_ID;
     void EXPORTED daqScalingCalcPrivate_getInterfaceId(daqIntfID* intfId);
 
-   void EXPORTED daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount);
+    void EXPORTED daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount);
     void EXPORTED daqScalingCalcPrivate_scaleDataOutput(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount, void** output);
     daqBool EXPORTED daqScalingCalcPrivate_hasScalingCalc(daqScalingCalcPrivate* self);
 

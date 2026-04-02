@@ -42,6 +42,7 @@ public:
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC acceptsSignals(IList* signals, IList** accepts) override;
 
     // IInputPortPrivate
     ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
@@ -186,6 +187,45 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
             return OPENDAQ_SUCCESS;
         }
         *accepts = True;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignals(IList* signals, IList** accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(signals);
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+
+    const auto signalList = ListPtr<ISignal>::Borrow(signals);
+
+    const ErrCode errCode = daqTry([this, &signalList, &accepts]
+    {
+        if (clientComm->getProtocolVersion() < 4)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+
+        ListPtr<IString> signalRemoteIdList = ListPtr<IString>();
+        for (const auto signal : signalList)
+        {
+            const auto configObject = signal.asPtrOrNull<IConfigClientObject>(true);
+            if (!configObject.assigned() || !clientComm->isComponentNested(signal.getGlobalId()))
+            {
+                // TODO: Discuss. To replicate behavior for a one signal, we should insert True at the index of such a signal.
+                // break by throwing
+                checkErrorInfo(OPENDAQ_ERR_CREATE_FAILED);
+            }
+            StringPtr signalRemoteGlobalId;
+            checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+            signalRemoteIdList.pushBack(signalRemoteGlobalId);
+        }
+        ListPtr<IBoolean> flags = clientComm->acceptsSignals(remoteGlobalId, signalRemoteIdList);
+        if (!flags.assigned() || flags.getCount() != signalList.getCount())
+        {
+            // TODO: Discuss if we should default or throw here on result not assigned - I think we should throw, but above we default.
+            checkErrorInfo(OPENDAQ_ERR_GENERALERROR);
+        }
+        *accepts = flags.detach();
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);

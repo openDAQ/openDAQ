@@ -95,13 +95,22 @@ DECLARE_OPENDAQ_INTERFACE(IInputPort, IComponent)
      * @brief Returns true if the port is public; false otherwise.
      * @param[out] isPublic True if the port is public; false otherwise.
      */
-    virtual ErrCode INTERFACE_FUNC getPublic(Bool * isPublic) = 0;
+    virtual ErrCode INTERFACE_FUNC getPublic(Bool* isPublic) = 0;
 
     /*!
      * @brief Sets the port to be either public or private.
      * @param isPublic If false, the port is set to private; if true, the port is set to be public.
      */
     virtual ErrCode INTERFACE_FUNC setPublic(Bool isPublic) = 0;
+
+    // [elementType(signals, ISignal), elementType(accepts, Bool)]
+    /*!
+     * @brief Returns a list of flags that signify if the signals can be connected to the input port.
+     * @param signal The list of signals being evaluated for compatibility.
+     * @param[out] accepts List of flags: True if the signal at the same index can be connected; false otherwise.
+     * @retval OPENDAQ_ERR_NOTASSIGNED if the accepted signal criteria is not defined by the input port.
+     */
+    virtual ErrCode INTERFACE_FUNC acceptsSignals(IList* signals, IList** accepts) = 0;
 };
 /*!@}*/
 

@@ -51,8 +51,8 @@ namespace PtpPropertyNames
     // Port Configuration properties
     constexpr const char* PortConfigModeOptions = "ModeOptions";
     constexpr const char* PortConfigMode = "Mode";
-    constexpr const char* PortConfigDelayMechanism = "DelayMechanismOptions";
-    constexpr const char* PortConfigDelayMechanismOptions = "DelayMechanism";
+    constexpr const char* PortConfigDelayMechanismOptions = "DelayMechanismOptions";
+    constexpr const char* PortConfigDelayMechanism = "DelayMechanism";
     constexpr const char* PortConfigLogSyncInterval = "LogSyncInterval";
 }
 
@@ -74,6 +74,8 @@ protected:
     void setPortModeOptions(const ListPtr<IString>& options);
     void setPortsMode(const StringPtr& mode);
     void setPortDelayMechanismOptions(const ListPtr<IString>& options);
+
+    SyncInterfacePtr createClone() override;
 
     PropertyObjectPtr status;
     PropertyObjectPtr portsStatus;
@@ -184,29 +186,34 @@ inline void PtpSyncInterfaceBaseImpl::setTransportProtocolOptions(const ListPtr<
 
 inline void PtpSyncInterfaceBaseImpl::setPortModeOptions(const ListPtr<IString>& options)
 {
-    for (const auto& portConfig : portsConfiguration.getAllProperties())
+    for (const auto& portProperty : portsConfiguration.getAllProperties())
     {
-        const auto portConfigObj = portConfig.template asPtr<IPropertyObjectProtected>(true);
-        portConfigObj.setProtectedPropertyValue(PtpPropertyNames::PortConfigModeOptions, options);
+        const PropertyObjectProtectedPtr portConfig = portsConfiguration.getPropertyValue(portProperty.getName());
+        portConfig.setProtectedPropertyValue(PtpPropertyNames::PortConfigModeOptions, options);
     }
 }
 
 inline void PtpSyncInterfaceBaseImpl::setPortsMode(const StringPtr& mode)
 {
-    for (const auto& portConfig : portsConfiguration.getAllProperties())
+    for (const auto& portProperty : portsConfiguration.getAllProperties())
     {
-        const auto portConfigObj = portConfig.template asPtr<IPropertyObject>(true);
-        portConfigObj.setPropertyValue(PtpPropertyNames::PortConfigMode, mode);
+        const PropertyObjectPtr portConfig = portsConfiguration.getPropertyValue(portProperty.getName());
+        portConfig.setPropertyValue(PtpPropertyNames::PortConfigMode, mode);
     }
 }
 
 inline void PtpSyncInterfaceBaseImpl::setPortDelayMechanismOptions(const ListPtr<IString>& options)
 {
-    for (const auto& portConfig : portsConfiguration.getAllProperties())
+    for (const auto& portProperty : portsConfiguration.getAllProperties())
     {
-        const auto portConfigObj = portConfig.template asPtr<IPropertyObjectProtected>(true);
-        portConfigObj.setProtectedPropertyValue(PtpPropertyNames::PortConfigDelayMechanismOptions, options);
+        const PropertyObjectProtectedPtr portConfig = portsConfiguration.getPropertyValue(portProperty.getName());
+        portConfig.setProtectedPropertyValue(PtpPropertyNames::PortConfigDelayMechanismOptions, options);
     }
+}
+
+inline SyncInterfacePtr PtpSyncInterfaceBaseImpl::createClone()
+{
+    return createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
 }
 
 END_NAMESPACE_OPENDAQ

@@ -81,10 +81,6 @@ RefDeviceImpl::RefDeviceImpl(const ModuleInfoPtr& moduleInfo,
     updateAcqLoopTime();
     enableLogging();
 
-    auto syncComponentObj = SyncComponent2(ctx, this->template thisPtr<ComponentPtr>(), "Synchronization2");
-    syncComponentObj.template asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
-    this->addExistingComponent(syncComponentObj.detach());
-
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
 }
 

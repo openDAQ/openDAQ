@@ -14,6 +14,7 @@
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_class_factory.h>
 #include <testutils/base_test_listener.h>
+#include <testutils/testutils.h>
 
 using namespace daq;
 using namespace daq::opcua;

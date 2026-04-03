@@ -202,7 +202,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignals(IList* s
 
     const ErrCode errCode = daqTry([this, &signalList, &accepts]
     {
-        if (clientComm->getProtocolVersion() < 4)
+        if (clientComm->getProtocolVersion() < 23)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
 
         // Build a list of accept flags with initial values equal to the defaults from acceptsSignal method (equivalence).

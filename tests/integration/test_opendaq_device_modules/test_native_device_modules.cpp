@@ -29,7 +29,7 @@ using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 22;
+const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 23;
 
 static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
 {

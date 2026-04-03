@@ -707,15 +707,28 @@ void RendererFbImpl::updateSingleXAxis()
 
 void RendererFbImpl::initializeRenderer()
 {
+    defaultWaitTime = std::chrono::milliseconds(20);
+    startRendererWindow();
+}
+
+void RendererFbImpl::createRendererWindow()
+{
+    unsigned int width;
+    unsigned int height;
+    getWidthAndHeight(width, height);
+    window = std::make_unique<sf::RenderWindow>(sf::VideoMode({width, height}), "Renderer", sf::Style::Close | sf::Style::Titlebar);
+
     renderFont = std::make_unique<sf::Font>();
     if (!renderFont->openFromMemory(ARIAL_TTF, sizeof(ARIAL_TTF)))
     {
+        window.reset();
         setComponentStatusWithMessage(ComponentStatus::Error, "Failed to load renderFont");
         throw std::runtime_error("Failed to load renderFont");
     }
 
-    defaultWaitTime = std::chrono::milliseconds(20);
-    startRendererWindow();
+    topLeft = sf::Vector2(0.0f, 0.0f);
+    bottomRight = sf::Vector2f(width, height);
+    waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
 }
 
 void RendererFbImpl::startRendererWindow()
@@ -723,77 +736,100 @@ void RendererFbImpl::startRendererWindow()
     if (window)
         return;
 
-    unsigned int width;
-    unsigned int height;
-    getWidthAndHeight(width, height);
-    window = std::make_unique<sf::RenderWindow>(sf::VideoMode({width, height}), "Renderer", sf::Style::Close | sf::Style::Titlebar);
-    topLeft = sf::Vector2(0.0f, 0.0f);
-    bottomRight = sf::Vector2f(width, height);
-
-    waitTime = std::chrono::steady_clock::now() + defaultWaitTime;
+    // Join previous render thread if it has stopped (e.g. user closed the window via X button)
+    if (renderThread.joinable())
+        renderThread.join();
 
     if (rendererUsesMainLoop)
     {
         LOGP_D("Using main thread for rendering")
-        auto scheduler = context.getScheduler();
+        const auto scheduler = context.getScheduler();
         auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
-        scheduler.scheduleWorkOnMainLoop(WorkRepetitive([this, thisWeakRef = std::move(thisWeakRef)]
+        scheduler.scheduleWorkOnMainLoop(Work([this, thisWeakRef = std::move(thisWeakRef)]
         {
             const auto thisFb = thisWeakRef.getRef();
             if (!thisFb.assigned())
-                return false;
+                return;
 
-            if (rendererStopRequested || !window)
-                return false;
+            createRendererWindow();
 
-            if (std::chrono::steady_clock::now() < waitTime)
-                return true;
-            waitTime += defaultWaitTime;
-
-            if (resolutionChangedFlag)
+            const auto scheduler = context.getScheduler();
+            scheduler.scheduleWorkOnMainLoop(WorkRepetitive([this, thisWeakRef = std::move(thisWeakRef)]
             {
-                resolutionChangedFlag = false;
-                resize(*window);
-            }
-
-            while (auto event = window->pollEvent())
-            {
-                if (event->is<sf::Event::Closed>())
-                {
-                    window.reset();
+                const auto thisFb = thisWeakRef.getRef();
+                if (!thisFb.assigned())
                     return false;
+
+                if (rendererStopRequested)
+                {
+                    (void)window->setActive(true);
+                    renderFont.reset();
+                    window.reset();
                 }
-            }
 
-            processSignalContexts();
+                if (!window)
+                    return false;
 
-            window->clear();
+                if (std::chrono::steady_clock::now() < waitTime)
+                    return true;
 
-            updateSingleXAxis();
-
-            if (singleXAxis)
-                prepareSingleXAxis();
-            renderAxes(*window, *renderFont);
-            renderSignals(*window, *renderFont);
-
-            window->display();
-
-            setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
-            futureComponentStatus = ComponentStatus::Ok;
-            futureComponentMessage = "";
-            return true;
+                const bool result = renderFrame();
+                waitTime += defaultWaitTime;
+                return result;
+            }));
         }));
+       
     }
-    else 
+    else
     {
         LOGP_D("Using separate thread for rendering")
-        (void)(window->setActive(false));
-        renderThread = std::thread([this] 
+        // Window must be created on the render thread so that Windows delivers WM_CLOSE
+        // to that thread's message queue, ensuring pollEvent() receives sf::Event::Closed.
+        renderThread = std::thread([this]
         {
-            (void)(window->setActive(true));
+            createRendererWindow();
             renderLoop();
         });
     }
+}
+
+bool RendererFbImpl::renderFrame()
+{
+    if (resolutionChangedFlag)
+    {
+        resolutionChangedFlag = false;
+        resize(*window);
+    }
+
+    while (auto event = window->pollEvent())
+    {
+        if (event->is<sf::Event::Closed>())
+        {
+            (void)window->setActive(true);
+            renderFont.reset();
+            window.reset();
+            return false;
+        }
+    }
+
+    processSignalContexts();
+
+    window->clear();
+
+    updateSingleXAxis();
+
+    if (singleXAxis)
+        prepareSingleXAxis();
+    renderAxes(*window, *renderFont);
+    renderSignals(*window, *renderFont);
+
+    window->display();
+
+    setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
+    futureComponentStatus = ComponentStatus::Ok;
+    futureComponentMessage = "";
+
+    return true;
 }
 
 void RendererFbImpl::renderLoop()
@@ -809,38 +845,15 @@ void RendererFbImpl::renderLoop()
 
         waitTime += defaultWaitTime;
 
-        if (resolutionChangedFlag)
-        {
-            resolutionChangedFlag = false;
-            resize(*window);
-        }
-
-        while (auto event = window->pollEvent())
-        {
-            if (event->is<sf::Event::Closed>())
-            {
-                window.reset();
-                break;
-            }
-        }
-
-        processSignalContexts();
-
-        window->clear();
-
-        updateSingleXAxis();
-
-        if (singleXAxis)
-            prepareSingleXAxis();
-        renderAxes(*window, *renderFont);
-        renderSignals(*window, *renderFont);
-
-        window->display();
-
-        setComponentStatusWithMessage(futureComponentStatus, futureComponentMessage);
-        futureComponentStatus = ComponentStatus::Ok;
-        futureComponentMessage = "";
+        if (!renderFrame())
+            return;
     }
+
+    // Clean up GL resources on the render thread while the GL context is still active.
+    // Resetting after the thread exits would fail because WGL does not allow activating
+    // a context on a different thread.
+    renderFont.reset();
+    window.reset();
 
     resolutionChangedFlag = false;
 }

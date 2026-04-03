@@ -46,7 +46,7 @@ class DisplayType(enum.Enum):
     FUNCTION_BLOCKS = 3
     TOPOLOGY = 4
     TOPOLOGY_CUSTOM_COMPONENTS = 5
-    UNSPECIFIED = 6
+    UNSPECIFIED = 99
 
     def from_tab_index(index):
         if index == 0:

@@ -943,7 +943,7 @@ class App(tk.Tk):
                 config_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
                 config_frame.pack_propagate(False)
                 try:
-                    PropertiesView(config_frame, config, self.context).pack(fill=tk.BOTH, expand=True)
+                    PropertiesView(config_frame, config, self.context, read_only=True).pack(fill=tk.BOTH, expand=True)
                 except Exception as e:
                     import traceback
                     traceback.print_exc()

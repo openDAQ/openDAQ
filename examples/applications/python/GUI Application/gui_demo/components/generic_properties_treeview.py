@@ -171,7 +171,8 @@ class PropertiesTreeview(ttk.Treeview):
                 text=property_info.name,
                 values=(property_value, *meta_fields))
 
-            if property_info.read_only:
+            if (property_info.read_only) and \
+                    property_info.value_type not in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
                 self.item(iid, tags=('readonly',))
 
             if property_info.value_type == daq.CoreType.ctObject:
@@ -507,7 +508,7 @@ class PropertiesTreeview(ttk.Treeview):
             elif _prop.value_type == daq.CoreType.ctProc:
                 FunctionDialog(self, _prop, daq.IProcedure.cast_from(_prop.value), self.context).show()
 
-        btn = ttk.Button(self, text='Execute', command=execute)
+        btn = ttk.Button(self, text='Run', command=execute)
         btn.place(x=x, y=y, width=width, height=height)
         self._overlay_comboboxes[iid] = btn
 

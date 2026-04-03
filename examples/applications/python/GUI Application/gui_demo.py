@@ -23,6 +23,7 @@ except Exception:
 
 try:
     from gui_demo.components.block_view import BlockView
+    from gui_demo.components.properties_view import PropertiesView
     from gui_demo.components.add_device_dialog import AddDeviceDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
@@ -31,6 +32,7 @@ try:
     from gui_demo.event_port import EventPort
 except Exception as e:
     from opendaq.gui_demo.components.block_view import BlockView
+    from opendaq.gui_demo.components.properties_view import PropertiesView
     from opendaq.gui_demo.components.add_device_dialog import AddDeviceDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
@@ -46,7 +48,8 @@ class DisplayType(enum.Enum):
     FUNCTION_BLOCKS = 3
     TOPOLOGY = 4
     TOPOLOGY_CUSTOM_COMPONENTS = 5
-    UNSPECIFIED = 6
+    MODULES = 6
+    UNSPECIFIED = 99
 
     def from_tab_index(index):
         if index == 0:
@@ -59,6 +62,8 @@ class DisplayType(enum.Enum):
             return DisplayType.FUNCTION_BLOCKS
         elif index == 4:
             return DisplayType.TOPOLOGY
+        elif index == 5:
+            return DisplayType.MODULES
         return DisplayType.UNSPECIFIED
 
 class ContextParams:
@@ -126,6 +131,7 @@ class App(tk.Tk):
         nb.add(ttk.Frame(nb), text='Channels')
         nb.add(ttk.Frame(nb), text='Function blocks')
         nb.add(ttk.Frame(nb), text='Full Topology')
+        nb.add(ttk.Frame(nb), text='Modules')
         nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
         nb.pack(fill=tk.X)
         self.nb = nb
@@ -265,6 +271,23 @@ class App(tk.Tk):
         self.right_side_panel_clear()
 
         self.context.selected_node = new_selected_node
+
+        if self.current_tab() == DisplayType.MODULES:
+            self.modules_map = {}
+            for mod in self.context.instance.module_manager.modules:
+                info = mod.module_info
+                try:
+                    raw_id = str(info.id)
+                except RuntimeError:
+                    raw_id = ''
+                mod_id = raw_id if raw_id else str(id(mod))
+                try:
+                    display_name = str(info.name) if info.name else mod_id
+                except RuntimeError:
+                    display_name = mod_id
+                self.tree.insert('', tk.END, iid=mod_id, text=self._format_tree_item_text(display_name), open=False)
+                self.modules_map[mod_id] = mod
+            return
 
         self.tree_traverse_components_recursive(
             self.context.instance, self.current_tab())
@@ -502,6 +525,7 @@ class App(tk.Tk):
         sframe_id = canvas.create_window(0, 0, window=sframe, anchor=tk.NW)
 
         self.right_side_panel = sframe
+        self.right_side_canvas = canvas
 
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.bind('<Configure>', canvas_on_configure)
@@ -762,6 +786,171 @@ class App(tk.Tk):
             block_view.handle_expand_toggle()
             block_view.pack(fill=tk.X, padx=5, pady=5)
 
+    # MARK: - Right hand side panel - MODULES
+    def right_side_panel_draw_module(self, mod_id):
+        if not hasattr(self, 'modules_map') or mod_id not in self.modules_map:
+            return
+        mod = self.modules_map[mod_id]
+        self._draw_module_header(self.right_side_panel, mod)
+        self._draw_module_type_columns(self.right_side_panel, mod)
+
+    def _draw_module_header(self, frame, mod):
+        info = mod.module_info
+        vi = info.version_info
+
+        try:
+            name = str(info.name) or str(info.id)
+        except RuntimeError:
+            name = "Unknown"
+
+        ttk.Label(frame, text=name,
+                  font=("TkDefaultFont", 13, "bold")).pack(anchor=tk.W, padx=10, pady=(10, 5))
+
+        if daq.IDevelopmentVersionInfo.can_cast_from(vi):
+            dev_vi = daq.IDevelopmentVersionInfo.cast_from(vi)
+            version_str = f"{dev_vi.major}.{dev_vi.minor}.{dev_vi.patch}.{dev_vi.tweak}"
+            branch = dev_vi.branch_name
+            hash_digest = dev_vi.hash_digest
+        elif vi:
+            version_str = f"{vi.major}.{vi.minor}.{vi.patch}"
+            branch = hash_digest = None
+        else:
+            version_str = "N/A"
+            branch = hash_digest = None
+
+        try:
+            raw_id = str(info.id)
+        except RuntimeError:
+            raw_id = "N/A"
+
+        fields = [("ID", raw_id), ("Version", version_str)]
+        if branch:
+            fields.append(("Branch", branch))
+        if hash_digest:
+            fields.append(("Hash", hash_digest))
+
+        for label, value in fields:
+            row = ttk.Frame(frame)
+            row.pack(fill=tk.X, padx=10, pady=1)
+            ttk.Label(row, text=f"{label}:", width=12, anchor=tk.W).pack(side=tk.LEFT)
+            ttk.Label(row, text=str(value), anchor=tk.W).pack(side=tk.LEFT)
+
+        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=10, pady=(10, 5))
+
+    def _draw_module_type_columns(self, frame, mod):
+        columns_frame = ttk.PanedWindow(frame, orient=tk.HORIZONTAL)
+        columns_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        left_frame = ttk.Frame(columns_frame)
+        type_tree = ttk.Treeview(left_frame, show='tree', selectmode=tk.BROWSE)
+        type_tree.column('#0', width=int(250 * self.context.dpi_factor))
+        type_scroll = ttk.Scrollbar(left_frame, orient=tk.VERTICAL, command=type_tree.yview)
+        type_tree.configure(yscrollcommand=type_scroll.set)
+        type_tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
+        type_scroll.pack(fill=tk.Y, side=tk.RIGHT)
+        columns_frame.add(left_frame, weight=1)
+
+        right_frame = ttk.Frame(columns_frame)
+        columns_frame.add(right_frame, weight=1)
+
+        def set_sash(event=None):
+            w = columns_frame.winfo_width()
+            if w > 1:
+                columns_frame.sashpos(0, w // 2)
+        columns_frame.bind('<Map>', set_sash)
+
+        def _safe_get(getter):
+            try:
+                return getter()
+            except (AttributeError, RuntimeError):
+                return {}
+
+        sections = [
+            ("Device Types", _safe_get(lambda: mod.available_device_types), "device"),
+            ("Function Block Types", _safe_get(lambda: mod.available_function_block_types), "function_block"),
+            ("Server Types", _safe_get(lambda: mod.available_server_types), "server"),
+            ("Streaming Types", _safe_get(lambda: mod.available_streaming_types), "streaming"),
+        ]
+
+        type_data_map = {}
+        for section_name, types_dict, type_kind in sections:
+            count = len(types_dict) if types_dict else 0
+            section_id = type_tree.insert('', tk.END, text=f" {section_name} ({count})", open=False)
+            if types_dict:
+                for key, comp_type in types_dict.items():
+                    ctype = daq.IComponentType.cast_from(comp_type)
+                    iid = type_tree.insert(section_id, tk.END, text=f" {ctype.name or key}")
+                    type_data_map[iid] = {"comp_type": comp_type, "type_kind": type_kind, "key": key}
+
+        def on_type_selected(event):
+            selected = utils.treeview_get_first_selection(type_tree)
+            if selected is None or selected not in type_data_map:
+                return
+            for widget in right_frame.winfo_children():
+                widget.destroy()
+            self._draw_module_type_detail(right_frame, type_data_map[selected])
+
+        type_tree.bind('<<TreeviewSelect>>', on_type_selected)
+
+        def update_columns_height(event=None):
+            self.right_side_canvas.update_idletasks()
+            canvas_h = self.right_side_canvas.winfo_height()
+            remaining = canvas_h - columns_frame.winfo_y() - 10
+            if remaining > 100:
+                columns_frame.configure(height=remaining)
+
+        self.right_side_canvas.bind('<Configure>', update_columns_height, add='+')
+        columns_frame.after_idle(update_columns_height)
+
+    def _draw_module_type_detail(self, frame, entry):
+        comp_type = entry["comp_type"]
+        type_kind = entry["type_kind"]
+        key = entry["key"]
+        ctype = daq.IComponentType.cast_from(comp_type)
+
+        ttk.Label(frame, text=ctype.name or key,
+                  font=("TkDefaultFont", 11, "bold")).pack(anchor=tk.W, padx=10, pady=(5, 2))
+
+        if ctype.description:
+            ttk.Label(frame, text=ctype.description, foreground="gray",
+                      wraplength=400).pack(anchor=tk.W, padx=10, pady=(0, 5))
+
+        info_fields = [("ID", ctype.id)]
+        if type_kind == "device":
+            try:
+                info_fields.append(("Prefix", daq.IDeviceType.cast_from(comp_type).prefix))
+            except Exception:
+                pass
+        elif type_kind == "streaming":
+            try:
+                info_fields.append(("Prefix", daq.IStreamingType.cast_from(comp_type).prefix))
+            except Exception:
+                pass
+
+        for label, value in info_fields:
+            row = ttk.Frame(frame)
+            row.pack(fill=tk.X, padx=10, pady=1)
+            ttk.Label(row, text=f"{label}:", width=12, anchor=tk.W).pack(side=tk.LEFT)
+            ttk.Label(row, text=str(value) if value else "N/A", anchor=tk.W).pack(side=tk.LEFT)
+
+        try:
+            config = ctype.create_default_config()
+            if config is not None and len(config.all_properties) > 0:
+                ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=10, pady=10)
+                ttk.Label(frame, text="Default Configuration",
+                          font=("TkDefaultFont", 10, "bold")).pack(anchor=tk.W, padx=10, pady=(0, 5))
+                config_frame = ttk.Frame(frame, height=int(300 * self.context.dpi_factor))
+                config_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+                config_frame.pack_propagate(False)
+                try:
+                    PropertiesView(config_frame, config, self.context, read_only=True).pack(fill=tk.BOTH, expand=True)
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    ttk.Label(config_frame, text=f"Error: {e}", foreground="red").pack(anchor=tk.W)
+        except Exception as e:
+            print(f"No default config for {key}: {e}")
+
     # MARK: - Tree view handlers
 
     def handle_tree_select(self, event):
@@ -770,6 +959,12 @@ class App(tk.Tk):
         if selected_iid is None:
             self.context.selected_node = None
             return
+        
+        if self.current_tab() == DisplayType.MODULES:
+            self.right_side_panel_clear()
+            self.right_side_panel_draw_module(selected_iid)
+            return
+
         item = self.tree.item(selected_iid)
         # WA for IDs with spaces
         node_unique_id = ' '.join(str(val) for val in item['values'])

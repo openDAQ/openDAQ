@@ -236,21 +236,15 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignals(IList* s
             throwExceptionFromErrorCode(OPENDAQ_ERR_GENERALERROR, "Failed to get remote responses.");
         }
 
-        if (numOfRemote)
-        {
-            *accepts = acceptanceList.detach();
-            return OPENDAQ_SUCCESS;
-        }
-
-        SizeT acceptsIdx = 0;
+        SizeT remoteIdx = 0;
         for (SizeT i = 0; i < acceptanceList.getCount(); ++i)
         {
             if (acceptanceList[i] == True)
             {
                 continue;
             }
-            acceptanceList.setItemAt(i, remoteAccepts[acceptsIdx]);
-            ++acceptsIdx;
+            acceptanceList.setItemAt(i, remoteAccepts[remoteIdx]);
+            ++remoteIdx;
         }
 
         *accepts = acceptanceList.detach();

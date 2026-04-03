@@ -23,6 +23,7 @@ except Exception:
 
 try:
     from gui_demo.components.block_view import BlockView
+    from gui_demo.components.properties_view import PropertiesView
     from gui_demo.components.add_device_dialog import AddDeviceDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
@@ -31,6 +32,7 @@ try:
     from gui_demo.event_port import EventPort
 except Exception as e:
     from opendaq.gui_demo.components.block_view import BlockView
+    from opendaq.gui_demo.components.properties_view import PropertiesView
     from opendaq.gui_demo.components.add_device_dialog import AddDeviceDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
@@ -46,6 +48,7 @@ class DisplayType(enum.Enum):
     FUNCTION_BLOCKS = 3
     TOPOLOGY = 4
     TOPOLOGY_CUSTOM_COMPONENTS = 5
+    MODULES = 6
     UNSPECIFIED = 99
 
     def from_tab_index(index):
@@ -59,6 +62,8 @@ class DisplayType(enum.Enum):
             return DisplayType.FUNCTION_BLOCKS
         elif index == 4:
             return DisplayType.TOPOLOGY
+        elif index == 5:
+            return DisplayType.MODULES
         return DisplayType.UNSPECIFIED
 
 class ContextParams:
@@ -126,6 +131,7 @@ class App(tk.Tk):
         nb.add(ttk.Frame(nb), text='Channels')
         nb.add(ttk.Frame(nb), text='Function blocks')
         nb.add(ttk.Frame(nb), text='Full Topology')
+        nb.add(ttk.Frame(nb), text='Modules')
         nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
         nb.pack(fill=tk.X)
         self.nb = nb
@@ -265,6 +271,23 @@ class App(tk.Tk):
         self.right_side_panel_clear()
 
         self.context.selected_node = new_selected_node
+
+        if self.current_tab() == DisplayType.MODULES:
+            self.modules_map = {}
+            for mod in self.context.instance.module_manager.modules:
+                info = mod.module_info
+                try:
+                    raw_id = str(info.id)
+                except RuntimeError:
+                    raw_id = ''
+                mod_id = raw_id if raw_id else str(id(mod))
+                try:
+                    display_name = str(info.name) if info.name else mod_id
+                except RuntimeError:
+                    display_name = mod_id
+                self.tree.insert('', tk.END, iid=mod_id, text=self._format_tree_item_text(display_name), open=False)
+                self.modules_map[mod_id] = mod
+            return
 
         self.tree_traverse_components_recursive(
             self.context.instance, self.current_tab())
@@ -502,6 +525,7 @@ class App(tk.Tk):
         sframe_id = canvas.create_window(0, 0, window=sframe, anchor=tk.NW)
 
         self.right_side_panel = sframe
+        self.right_side_canvas = canvas
 
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.bind('<Configure>', canvas_on_configure)

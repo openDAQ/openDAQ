@@ -49,6 +49,7 @@
 - [#1052](https://github.com/openDAQ/openDAQ/pull/1052) Renderer FB labels take into account reference domain offset from ReferenceDomainInfo.
 - [#1054](https://github.com/openDAQ/openDAQ/pull/1054) Add validation default value items type for List And Dict Property
 - [#1059](https://github.com/openDAQ/openDAQ/pull/1059) Prevent post scaling in descriptors with vector/matrix dimensions.
+- [#1110](https://github.com/openDAQ/openDAQ/pull/1110) Add clearing on property value read/write events for the removed property
 
 ## Misc
 

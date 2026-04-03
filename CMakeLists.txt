@@ -707,17 +707,23 @@ if(CMAKE_COMPILER_IS_CLANGXX)
         )
     endif()
 
-    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND MSVC)
-        message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
-        # cmd-line options might be mixed - suppress warnings
-        set(CLANG_FLAGS "${CLANG_FLAGS} \
-            -Xclang -Wno-unknown-argument \
-            -Wno-unused-command-line-argument"
-        )
-        # suppress warning in MSVC toolchain header file
-        set(CLANG_FLAGS "${CLANG_FLAGS} \
-            -Xclang -Wno-delete-non-abstract-non-virtual-dtor"
-        )
+    if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+        # Use precise floating-point model to avoid aggressive optimizations
+        if (MSVC)
+            message(STATUS "IntelLLVM Compiler is detected but MSVC is also set")
+            # cmd-line options might be mixed - suppress warnings
+            set(CLANG_FLAGS "${CLANG_FLAGS} \
+                -Xclang -Wno-unknown-argument \
+                -Wno-unused-command-line-argument"
+            )
+            # suppress warning in MSVC toolchain header file
+            set(CLANG_FLAGS "${CLANG_FLAGS} \
+                -Xclang -Wno-delete-non-abstract-non-virtual-dtor"
+            )
+            set(CLANG_FLAGS "${CLANG_FLAGS} /fp:precise")
+        else()
+            set(CLANG_FLAGS "${CLANG_FLAGS} -ffp-model=precise")
+        endif()
     endif ()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANG_FLAGS}")

@@ -86,7 +86,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22, 23}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
     , packedCoreEvents(List<IBaseObject>())
 {
@@ -183,6 +183,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<InputPortPtr>("ChangeInputPortStreamingSource", std::bind(&ConfigProtocolServer::changeInputPortStreamingSource, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
     addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
+    addHandler<InputPortPtr>("AcceptsSignals", std::bind(&ConfigProtocolServer::acceptsSignals, this, _1, _2, _3));
 
     addHandler<RecorderPtr>("StartRecording", &ConfigServerRecorder::startRecording);
     addHandler<RecorderPtr>("StopRecording", &ConfigServerRecorder::stopRecording);
@@ -535,6 +536,18 @@ BaseObjectPtr ConfigProtocolServer::acceptsSignal(const RpcContext& context, con
     const StringPtr signalId = params.get("SignalId");
     const SignalPtr signal = findComponent(signalId);
     return ConfigServerInputPort::accepts(context, inputPort, signal, user);
+}
+
+BaseObjectPtr ConfigProtocolServer::acceptsSignals(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+{
+    const ListPtr<IString> signalIdList = params.get("SignalIdList");
+    auto acceptanceList = List<IBoolean>();
+    for (const StringPtr& id : signalIdList)
+    {
+        const SignalPtr signal = findComponent(id);
+        acceptanceList.pushBack(ConfigServerInputPort::accepts(context, inputPort, signal, user));
+    }
+    return acceptanceList;
 }
 
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)

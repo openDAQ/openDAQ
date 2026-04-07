@@ -19,24 +19,36 @@ ErrCode INTERFACE_FUNC ModuleInfoImpl::getVersionInfo(IVersionInfo** versionInfo
 {
     OPENDAQ_PARAM_NOT_NULL(versionInfo);
 
-    *versionInfo = this->fields.get("VersionInfo").asPtr<IVersionInfo>().addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return daqTry(
+        [&]
+        {
+            *versionInfo = this->fields.get("VersionInfo").asPtr<IVersionInfo>().addRefAndReturn();
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 ErrCode INTERFACE_FUNC ModuleInfoImpl::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
-    *name = this->fields.get("Name").asPtr<IString>().addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return daqTry(
+        [&]
+        {
+            *name = this->fields.get("Name").asPtr<IString>().addRefAndReturn();
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 ErrCode INTERFACE_FUNC ModuleInfoImpl::getId(IString** id)
 {
     OPENDAQ_PARAM_NOT_NULL(id);
 
-    *id = this->fields.get("Id").asPtr<IString>().addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    return daqTry(
+        [&]
+        {
+            *id = this->fields.get("Id").asPtr<IString>().addRefAndReturn();
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 ErrCode INTERFACE_FUNC ModuleInfoImpl::serialize(ISerializer* serializer)

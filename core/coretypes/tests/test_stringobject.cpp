@@ -169,7 +169,7 @@ TEST_F(StringObjectTest, ToStdStringIfObjectNull)
 {
     StringPtr ptr;
 
-    ASSERT_THROW(auto str = ptr.toStdString(), InvalidParameterException);
+    ASSERT_EQ(ptr.toStdString(), "");
 }
 
 TEST_F(StringObjectTest, StringPtrToStdString)

@@ -26,6 +26,7 @@ struct IConnection;
  * [interfaceSmartPtr(IComponent, GenericComponentPtr, "<opendaq/component_ptr.h>")]
  * [templated(defaultAliasName: InputPortPtr)]
  * [interfaceSmartPtr(IInputPort, GenericInputPortPtr)]
+ * [interfaceSmartPtr(IBoolean, BoolPtr, "<coretypes/boolean_factory.h>")]
  */
 
 /*!

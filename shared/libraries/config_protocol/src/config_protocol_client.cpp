@@ -331,7 +331,7 @@ ListPtr<IBoolean> ConfigProtocolClientComm::acceptsSignals(const std::string& gl
                                                            const ListPtr<IString>& globalSignalIdList)
 {
     auto params = ParamsDict({{"SignalIdList", globalSignalIdList}});
-    return sendComponentCommand(globalId, ClientCommand("AcceptsSignals", 23), params, nullptr);
+    return sendComponentCommand(globalId, ClientCommand("AcceptsSignals"), params, nullptr);
 }
 
 DeviceInfoPtr ConfigProtocolClientComm::getInfo(const std::string& globalId)

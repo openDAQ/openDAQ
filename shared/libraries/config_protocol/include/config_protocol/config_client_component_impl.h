@@ -44,6 +44,9 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
+    // IComponentPrivate overrides
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
     template <class Interface, class Implementation>
@@ -82,6 +85,23 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); 
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class Impl>
+ErrCode ConfigClientComponentBaseImpl<Impl>::setParentActive(Bool parentActive)
+{
+    if (this->clientComm->getProtocolVersion() > 21)
+        return Impl::setParentActive(parentActive);
+
+    const bool muted = this->coreEventMuted;
+    if (!muted)
+        Impl::disableCoreEventTrigger();
+
+    const ErrCode errCode = Impl::setActive(parentActive);
+
+    if (!muted)
+        Impl::enableCoreEventTrigger();
     return errCode;
 }
 

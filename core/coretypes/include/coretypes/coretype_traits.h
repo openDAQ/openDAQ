@@ -540,9 +540,9 @@ struct BinOperation<T, BinOperationType::sub>
 };
 
 template <>
-struct BinOperation<std::wstring, BinOperationType::sub>
+struct BinOperation<std::string, BinOperationType::sub>
 {
-    static std::wstring Op(const std::wstring& /*val1*/, const std::wstring& /*val2*/)
+    static std::string Op(const std::string& /*val1*/, const std::string& /*val2*/)
     {
         throw std::logic_error("Undefined");
     }
@@ -558,9 +558,9 @@ struct BinOperation<T, BinOperationType::mul>
 };
 
 template <>
-struct BinOperation<std::wstring, BinOperationType::mul>
+struct BinOperation<std::string, BinOperationType::mul>
 {
-    static std::wstring Op(const std::wstring& /*val1*/, const std::wstring& /*val2*/)
+    static std::string Op(const std::string& /*val1*/, const std::string& /*val2*/)
     {
         throw std::logic_error("Undefined");
     }
@@ -576,9 +576,9 @@ struct BinOperation<T, BinOperationType::div>
 };
 
 template <>
-struct BinOperation<std::wstring, BinOperationType::div>
+struct BinOperation<std::string, BinOperationType::div>
 {
-    static std::wstring Op(const std::wstring& /*val1*/, const std::wstring& /*val2*/)
+    static std::string Op(const std::string& /*val1*/, const std::string& /*val2*/)
     {
         throw std::logic_error("Undefined");
     }
@@ -594,9 +594,9 @@ struct BinOperation<T, BinOperationType::logOr>
 };
 
 template <>
-struct BinOperation<std::wstring, BinOperationType::logOr>
+struct BinOperation<std::string, BinOperationType::logOr>
 {
-    static bool Op(const std::wstring& /*val1*/, const std::wstring& /*val2*/)
+    static bool Op(const std::string& /*val1*/, const std::string& /*val2*/)
     {
         throw std::logic_error("Undefined");
     }
@@ -613,9 +613,9 @@ struct BinOperation<T, BinOperationType::logAnd>
 };
 
 template <>
-struct BinOperation<std::wstring, BinOperationType::logAnd>
+struct BinOperation<std::string, BinOperationType::logAnd>
 {
-    static bool Op(const std::wstring& /*val1*/, const std::wstring& /*val2*/)
+    static bool Op(const std::string& /*val1*/, const std::string& /*val2*/)
     {
         throw std::logic_error("Undefined");
     }

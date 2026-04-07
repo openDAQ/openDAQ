@@ -66,12 +66,6 @@ namespace daq::test_utils
         uint64_t onGetTicksSinceOrigin() override;
         DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
 
-    protected:
-        bool clearFunctionBlocksOnUpdate() override
-        {
-            return false;
-        }
-
     private:
         uint64_t ticksSinceOrigin;
     };
@@ -102,10 +96,6 @@ namespace daq::test_utils
         }
 
     protected:
-        bool clearFunctionBlocksOnUpdate() override
-        {
-            return false;
-        }
         bool allowAddDevicesFromModules() override
         {
             return true;

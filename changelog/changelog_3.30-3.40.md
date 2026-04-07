@@ -32,6 +32,7 @@
 
 ## Bug fixes
 
+- [#1130](https://github.com/openDAQ/openDAQ/pull/1130) Fix active rework issue with older devices
 - [#1122](https://github.com/openDAQ/openDAQ/pull/1122) Revert endUpdate nested property application order back to bottom-up; Batch update values on target child object when using dot notation
 - [#1116](https://github.com/openDAQ/openDAQ/pull/1116) Fix set/get for dynamically added object properties via Native Client
 - [#1093](https://github.com/openDAQ/openDAQ/pull/1093) Device info - serialize only editable properties
@@ -52,6 +53,7 @@
 
 ## Misc
 
+- [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load 
 - [#1090](https://github.com/openDAQ/openDAQ/pull/1090) Reduce unnecessary RPC calls and signal updates
 - [#1049](https://github.com/openDAQ/openDAQ/pull/1049) Extract LT and OpcUa modules to remote repos
 - [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removes the FB wrapper implementation as it was never used.
@@ -79,6 +81,10 @@
 
 The IFunctionBlockWrapper interface was removed as it was never used. Similarly, the base implementation headers were removed. The wrapper objects should no longer be used.
 
+### [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load
+
+On load configuration, all non-static function blocks will be removed and recreated if they are in the load config
+ 
 ## Required module changes
 
 ### [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Mandatory device types

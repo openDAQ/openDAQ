@@ -270,30 +270,50 @@ class BlockView(ttk.Frame):
         window.title('All statuses')
         window.attributes('-topmost', True)
         window.transient(self)
-
+    
         columns = ('Name', 'Status', 'Message')
-
+    
         tree = ttk.Treeview(window, columns=columns, show='headings')
-
+    
         scroll_bar = ttk.Scrollbar(window, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
-
+    
         for col in columns:
             tree.heading(col, text=col, anchor='w')
-
-        for k, v in container.statuses.items():
-            tree.insert('', tk.END, values=(k, v.name, container.get_status_message(k)))
-
+    
         tree.pack(expand=True, fill='both')
-
+    
+        def refresh_statuses():
+            tree.delete(*tree.get_children())
+            for k, v in container.statuses.items():
+                tree.insert('', tk.END, values=(k, v.name, container.get_status_message(k)))
+    
+        refresh_statuses()
+    
+        poll_job = [None]
+    
+        def poll():
+            if not window.winfo_exists():
+                return
+            refresh_statuses()
+            poll_job[0] = window.after(1000, poll)
+    
+        poll_job[0] = window.after(1000, poll)
+    
+        def on_close():
+            if poll_job[0] is not None:
+                window.after_cancel(poll_job[0])
+            window.destroy()
+    
+        window.protocol('WM_DELETE_WINDOW', on_close)
+    
         main = self.winfo_toplevel()
         window.update_idletasks()
         x = main.winfo_rootx() + main.winfo_width() // 2 - w // 2
         y = main.winfo_rooty() + main.winfo_height() // 2 - h // 2
         window.geometry(f'{w}x{h}+{x}+{y}')
         window.deiconify()
-
 
     def change_status(self):
         if self.status_square is None:

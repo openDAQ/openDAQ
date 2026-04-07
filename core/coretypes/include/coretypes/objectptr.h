@@ -925,7 +925,7 @@ ObjectPtr<IBaseObject> baseObjectBinOp(const ObjectPtr<U>& left, const ObjectPtr
         case ctFloat:
             return baseObjectBinOpOfType<U, V, O, Float>(left, right);
         case ctString:
-            return baseObjectBinOpOfType<U, V, O, std::wstring>(left, right);
+            return baseObjectBinOpOfType<U, V, O, std::string>(left, right);
         case ctList:
             return baseObjectBinOpOfList<U, V, O>(left, leftCoreType, right, rightCoreType);
         default:

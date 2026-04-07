@@ -929,23 +929,38 @@ TEST_F(InstanceTest, SaveLoadFunctionNeastedFb3)
     ASSERT_EQ(nestedFbs.getCount(), 3u);
 }
 
-TEST_F(InstanceTest, DISABLED_SaveLoadServers)
+TEST_F(InstanceTest, SaveLoadFunctionsBlocksWhichAreNotInConfigurationShouldBeRemoved)
 {
     StringPtr config;
-    StringPtr serverId;
+    auto instance = test_helpers::setupInstance("localIntanceId");
     {
-        auto instance = Instance();
-        auto server = instance.addServer("OpenDAQOPCUA", nullptr);
-        serverId = server.getId();
+        const auto fb = instance.addFunctionBlock("mock_fb_uid");
+        fb.addFunctionBlock("NestedFBId");
+        ASSERT_EQ(fb.getFunctionBlocks().getCount(), 2u);
+
         config = instance.saveConfiguration();
+
+        // adding the nested function blocks after saving the configuration, they should be removed when loading the configuration
+        fb.addFunctionBlock("NestedFBId");
+        fb.addFunctionBlock("NestedFBId");
+
+        ASSERT_EQ(fb.getFunctionBlocks().getCount(), 4u);
+
+        // and lets add another not nested function block
+        instance.addFunctionBlock("mock_fb_uid");
+        ASSERT_EQ(instance.getFunctionBlocks().getCount(), 2u);
     }
 
-    auto instance2 = Instance();
-    instance2.loadConfiguration(config);
+    instance.loadConfiguration(config);
 
-    auto servers = instance2.getServers();
-    ASSERT_EQ(servers.getCount(), 1u);
-    ASSERT_EQ(servers[0].getId(), serverId);
+    // we should see only one mock_fb_uid with two nestead function blocks (the configuration which was saved)
+
+    auto restoredFbs = instance.getFunctionBlocks();
+    ASSERT_EQ(restoredFbs.getCount(), 1u);
+    auto restoredFb = restoredFbs[0];
+
+    auto nestedFbs = restoredFb.getFunctionBlocks();
+    ASSERT_EQ(nestedFbs.getCount(), 2u);
 }
 
 TEST_F(InstanceTest, SaveLoadDeviceConfigOld)

@@ -90,6 +90,9 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      * strategy is not `OwnLock`, returns the closest ancestor with the `OwnLock` strategy.
      */
     virtual ErrCode INTERFACE_FUNC getMutexOwner(IPropertyObjectInternal** owner) = 0;
+
+    // [templateType(updatingProps, IBaseObject)]
+    virtual ErrCode INTERFACE_FUNC collectUpdatingProperties(IList** updatingProps) = 0;
 };
 
 /*!@}*/

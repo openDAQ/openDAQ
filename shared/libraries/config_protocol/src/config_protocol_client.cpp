@@ -244,6 +244,40 @@ void ConfigProtocolClientComm::clearPropertyValues(const std::string& globalId, 
     sendComponentCommand(globalId, ClientCommand("ClearPropertyValues", 22), params);    
 }
 
+bool ConfigProtocolClientComm::isBulkUpdateSupported()
+{
+    return protocolVersion >= 23;
+}
+
+void ConfigProtocolClientComm::bulkUpdate(const std::string& globalId, const ListPtr<IBaseObject>& updateList)
+{
+    requireMinServerVersion(ClientCommand("BulkUpdate", 23));
+
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    dict.set("UpdateList", updateList);
+
+    auto buffer = createRpcRequestPacketBuffer(generateId(), "BulkUpdate", dict);
+    const auto reply = sendRequestCallback(buffer);
+
+    parseRpcOrRejectReply(reply.parseRpcRequestOrReply());
+}
+
+ErrCode ConfigProtocolClientComm::tryBulkUpdate(const std::string& globalId, const ListPtr<IBaseObject>& updateList)
+{
+    try
+    {
+        bulkUpdate(globalId, updateList);
+    }
+    catch (const DaqException& e)
+    {
+        LOG_E("BulkUpdate operation failed: {}", e.what());
+        return errorFromException(e);
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
 DictPtr<IString, IFunctionBlockType> ConfigProtocolClientComm::getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb)
 {
     auto command = isFb ? ClientCommand("GetAvailableFunctionBlockTypes", 9) : ClientCommand("GetAvailableFunctionBlockTypes");

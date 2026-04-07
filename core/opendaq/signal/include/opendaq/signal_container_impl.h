@@ -43,6 +43,7 @@ public:
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
+    ErrCode INTERFACE_FUNC collectUpdatingProperties(IList** updatingProps) override;
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
@@ -201,6 +202,31 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::disableCoreEventTrigger()
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
+}
+
+template <class Intf, class... Intfs>
+inline ErrCode INTERFACE_FUNC GenericSignalContainerImpl<Intf, Intfs...>::collectUpdatingProperties(IList** updatingProps)
+{
+    ListPtr<IBaseObject> propsOut;
+    Super::collectUpdatingProperties(&propsOut);
+
+    for (const auto& comp : components)
+    {
+        auto freezable = comp.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned() && freezable.isFrozen())
+            continue;
+
+        const auto childProps = comp.asPtr<IPropertyObjectInternal>().collectUpdatingProperties();
+
+        if (childProps.assigned())
+        {
+            for (const auto& prop : childProps)
+                propsOut.pushBack(prop);
+        }
+    }
+
+    *updatingProps = propsOut.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class ... Intfs>

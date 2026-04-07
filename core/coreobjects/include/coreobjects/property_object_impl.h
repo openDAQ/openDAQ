@@ -174,7 +174,9 @@ public:
     virtual ErrCode INTERFACE_FUNC setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
     virtual ErrCode INTERFACE_FUNC clearProtectedPropertyValues() override;
-    
+
+    virtual ErrCode INTERFACE_FUNC collectUpdatingProperties(IList** updatingProps) override;
+
     using PropertyValueEventEmitter = EventEmitter<PropertyObjectPtr, PropertyValueEventArgsPtr>;
     using EndUpdateEventEmitter = EventEmitter<PropertyObjectPtr, EndUpdateEventArgsPtr>;
 
@@ -269,6 +271,7 @@ protected:
     
     PropertyObjectPtr objPtr;
     std::atomic<bool> coreEventMuted;
+    int updateCount;
 
     bool isFrozen();
     void unfreeze();
@@ -334,7 +337,6 @@ private:
     PropertyOrderedMap localProperties;
 
     WeakRefPtr<IPropertyObject> owner;
-    int updateCount;
     UpdatingActions updatingPropsAndValues;
     WeakRefPtr<ITypeManager> manager;
     std::vector<StringPtr> customOrder;
@@ -1805,6 +1807,31 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                            parameters.propValues,
                            parameters.customOrder,
                            parameters.permissionManager);
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+inline ErrCode INTERFACE_FUNC GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::collectUpdatingProperties(IList** updatingProps)
+{
+    auto listOut = List<IBaseObject>();
+
+    for (const auto& [_, propValue] : propValues)
+    {
+        const auto propObj = propValue.template asPtrOrNull<IPropertyObject>(true);
+        if (!propObj.assigned())
+            continue;
+
+        auto freezable = propObj.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned() && freezable.isFrozen())
+            continue;
+
+        auto childProps = propObj.template asPtrOrNull<IPropertyObjectInternal>(true).collectUpdatingProperties();
+
+        for (const auto& prop : childProps)
+            listOut.pushBack(prop);
+    }
+
+    *updatingProps = listOut.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename PropObjInterface, typename... Interfaces>

@@ -106,10 +106,10 @@ DECLARE_OPENDAQ_INTERFACE(IInputPort, IComponent)
 
     // [elementType(signals, ISignal), elementType(accepts, IBoolean)]
     /*!
-     * @brief Returns a list of flags that signify if the signals can be connected to the input port.
-     * @param signal The list of signals being evaluated for compatibility.
-     * @param[out] accepts List of flags: True if the signal at the same index can be connected; false otherwise.
-     * @retval OPENDAQ_ERR_NOTASSIGNED if the accepted signal criteria is not defined by the input port.
+     * @brief Checks whether the given signals can be connected to the input port.
+     * @param signals The signals to check.
+     * @param[out] accepts Output list of boolean values matching @p signals by index. A value of `true`
+     * indicates that the corresponding signal can be connected; `false` otherwise.
      */
     virtual ErrCode INTERFACE_FUNC acceptsSignals(IList* signals, IList** accepts) = 0;
 };

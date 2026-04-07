@@ -29,7 +29,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
-
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IInputPort, daq::IComponent> declareIInputPort(pybind11::module_ m)
 {
@@ -106,4 +106,13 @@ void defineIInputPort(pybind11::module_ m, PyDaqIntf<daq::IInputPort, daq::IComp
             objectPtr.setPublic(isPublic);
         },
         "Returns true if the port is public; false otherwise. / Sets the port to be either public or private.");
+    cls.def("accepts_signals",
+        [](daq::IInputPort *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& signals)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InputPortPtr::Borrow(object);
+            return objectPtr.acceptsSignals(getVariantValue<daq::IList*>(signals)).detach();
+        },
+        py::arg("signals"),
+        "Checks whether the given signals can be connected to the input port.");
 }

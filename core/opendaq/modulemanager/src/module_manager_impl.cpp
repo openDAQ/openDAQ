@@ -2065,7 +2065,7 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         unsigned int major, minor, patch;
         StringPtr branch, sha;
 
-        const ErrCode errCode = getMetadata(&major, &minor, &patch, &branch, &sha, nullptr);
+        ErrCode errCode = getMetadata(&major, &minor, &patch, &branch, &sha, nullptr);
 
         if (OPENDAQ_SUCCEEDED(errCode))
         {
@@ -2079,7 +2079,7 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
             LOG_T("Module \'{}\' was built with SDK version: \"{}\"", path.string(), inModuleMetadataAsString);
 
             StringPtr logMsg;
-            const ErrCode errCode = daqCoreValidateVersionMetadata(major, minor, patch, branch, sha, nullptr, &logMsg);
+            errCode = daqCoreValidateVersionMetadata(major, minor, patch, branch, sha, nullptr, &logMsg);
             if (OPENDAQ_FAILED(errCode))
             {
                DAQ_EXTEND_ERROR_INFO(

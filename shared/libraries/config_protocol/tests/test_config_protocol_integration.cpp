@@ -753,7 +753,7 @@ TEST_F(ConfigProtocolIntegrationTest, AcceptsSignals)
     signalList.pushBack(parentlessSignal);
     signalList.pushBack(serverSignal);
 
-    daq::ListPtr<daq::Bool> acceptanceList = nullptr;
+    daq::ListPtr<daq::IBoolean> acceptanceList = nullptr;
     ASSERT_NO_THROW(acceptanceList =
                         clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignals(signalList));
     ASSERT_TRUE(acceptanceList.assigned());

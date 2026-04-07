@@ -103,7 +103,7 @@ DECLARE_OPENDAQ_INTERFACE(IInputPort, IComponent)
      */
     virtual ErrCode INTERFACE_FUNC setPublic(Bool isPublic) = 0;
 
-    // [elementType(signals, ISignal), elementType(accepts, Bool)]
+    // [elementType(signals, ISignal), elementType(accepts, IBoolean)]
     /*!
      * @brief Returns a list of flags that signify if the signals can be connected to the input port.
      * @param signal The list of signals being evaluated for compatibility.

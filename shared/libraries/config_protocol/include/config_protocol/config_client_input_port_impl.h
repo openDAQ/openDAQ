@@ -207,7 +207,7 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignals(IList* s
 
         // Build a list of accept flags with initial values equal to the defaults from acceptsSignal method (equivalence).
         SizeT numOfTrue = 0;
-        ListPtr<Bool> acceptanceList = List<Bool>();
+        auto acceptanceList = List<IBoolean>();
 
         ListPtr<IString> signalRemoteIdList = List<IString>();
         for (const auto signal : signalList)

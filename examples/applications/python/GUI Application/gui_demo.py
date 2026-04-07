@@ -275,17 +275,26 @@ class App(tk.Tk):
         if self.current_tab() == DisplayType.MODULES:
             self.modules_map = {}
             for mod in self.context.instance.module_manager.modules:
-                info = mod.module_info
                 try:
-                    raw_id = str(info.id)
-                except RuntimeError:
-                    raw_id = ''
-                mod_id = raw_id if raw_id else str(id(mod))
+                    info = mod.module_info
+                    raw_id = str(info.id) if info.id is not None else ''
+                except RuntimeError as e:
+                    print(f"Skipping module with broken metadata ({e})", file=sys.stderr)
+                    continue
+                
+                if not raw_id or raw_id is None:
+                    print("Skipping module with broken metadata (empty ID)", file=sys.stderr)
+                    continue
+
+                mod_id = raw_id
                 try:
                     display_name = str(info.name) if info.name else mod_id
                 except RuntimeError:
-                    display_name = mod_id
-                self.tree.insert('', tk.END, iid=mod_id, text=self._format_tree_item_text(display_name), open=False)
+                    print("Skipping module with broken metadata (empty display name)", file=sys.stderr)
+                    continue
+
+                self.tree.insert('', tk.END, iid=mod_id,
+                                 text=self._format_tree_item_text(display_name), open=False)
                 self.modules_map[mod_id] = mod
             return
 
@@ -933,23 +942,15 @@ class App(tk.Tk):
             ttk.Label(row, text=f"{label}:", width=12, anchor=tk.W).pack(side=tk.LEFT)
             ttk.Label(row, text=str(value) if value else "N/A", anchor=tk.W).pack(side=tk.LEFT)
 
-        try:
-            config = ctype.create_default_config()
-            if config is not None and len(config.all_properties) > 0:
-                ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=10, pady=10)
-                ttk.Label(frame, text="Default Configuration",
-                          font=("TkDefaultFont", 10, "bold")).pack(anchor=tk.W, padx=10, pady=(0, 5))
-                config_frame = ttk.Frame(frame, height=int(300 * self.context.dpi_factor))
-                config_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-                config_frame.pack_propagate(False)
-                try:
-                    PropertiesView(config_frame, config, self.context, read_only=True).pack(fill=tk.BOTH, expand=True)
-                except Exception as e:
-                    import traceback
-                    traceback.print_exc()
-                    ttk.Label(config_frame, text=f"Error: {e}", foreground="red").pack(anchor=tk.W)
-        except Exception as e:
-            print(f"No default config for {key}: {e}")
+        config = ctype.create_default_config()
+        if config is not None and len(config.all_properties) > 0:
+            ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=10, pady=10)
+            ttk.Label(frame, text="Default Configuration",
+                      font=("TkDefaultFont", 10, "bold")).pack(anchor=tk.W, padx=10, pady=(0, 5))
+            config_frame = ttk.Frame(frame, height=int(300 * self.context.dpi_factor))
+            config_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            config_frame.pack_propagate(False)
+            PropertiesView(config_frame, config, self.context, read_only=True).pack(fill=tk.BOTH, expand=True)
 
     # MARK: - Tree view handlers
 

@@ -20,12 +20,17 @@ daq::ErrCode PUBLIC_EXPORT checkDependencies(daq::IString** logMessage)
 }
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT getCoreVersionMetadata(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+daq::ErrCode PUBLIC_EXPORT getCoreVersionMetadata(unsigned int* major, unsigned int* minor, unsigned int* patch, daq::IString** branch, daq::IString** sha, daq::IString** fork)
 {
-    enumerateFieldFunc("major", OPENDAQ_OPENDAQ_MAJOR_VERSION_STR, userData);
-    enumerateFieldFunc("minor", OPENDAQ_OPENDAQ_MINOR_VERSION_STR, userData);
-    enumerateFieldFunc("patch", OPENDAQ_OPENDAQ_PATCH_VERSION_STR, userData);
-    enumerateFieldFunc("branch", OPENDAQ_OPENDAQ_BRANCH_NAME, userData);
-    enumerateFieldFunc("sha", OPENDAQ_OPENDAQ_REVISION_HASH, userData);
+    if (major != nullptr)
+        *major = OPENDAQ_OPENDAQ_MAJOR_VERSION;
+    if (minor != nullptr)
+        *minor = OPENDAQ_OPENDAQ_MINOR_VERSION;
+    if (patch != nullptr)
+        *patch = OPENDAQ_OPENDAQ_PATCH_VERSION;
+    if (branch != nullptr)
+        *branch = daq::String(OPENDAQ_OPENDAQ_BRANCH_NAME).detach();
+    if (sha != nullptr)
+        *sha = daq::String(OPENDAQ_OPENDAQ_REVISION_HASH).detach();
     return OPENDAQ_SUCCESS;
 }

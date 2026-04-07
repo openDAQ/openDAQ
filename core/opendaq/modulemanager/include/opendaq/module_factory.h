@@ -28,6 +28,7 @@
     #include <opendaq/opendaq_config.h>
     #include <opendaq/module_manager_errors.h>
     #include <opendaq/module_check_dependencies.h>
+    #include <coretypes/stringobject_factory.h>
 #endif
 
 #define DEFINE_MODULE_EXPORTS(moduleImpl)                                               \
@@ -58,14 +59,19 @@
     }
 
 // ReSharper disable once CppNonInlineFunctionDefinitionInHeaderFile
-OPENDAQ_MODULE_API daq::ErrCode getCoreVersionMetadata(EnumerateMetadataFieldFunc enumerateFieldFunc, void* userData)
+OPENDAQ_MODULE_API daq::ErrCode getCoreVersionMetadata(unsigned int* major, unsigned int* minor, unsigned int* patch, daq::IString** branch, daq::IString** sha, daq::IString** fork)
 {
 #if defined(OPENDAQ_LINKS_OPENDAQ)
-    enumerateFieldFunc("major", OPENDAQ_OPENDAQ_MAJOR_VERSION_STR, userData);
-    enumerateFieldFunc("minor", OPENDAQ_OPENDAQ_MINOR_VERSION_STR, userData);
-    enumerateFieldFunc("patch", OPENDAQ_OPENDAQ_PATCH_VERSION_STR, userData);
-    enumerateFieldFunc("branch", OPENDAQ_OPENDAQ_BRANCH_NAME, userData);
-    enumerateFieldFunc("sha", OPENDAQ_OPENDAQ_REVISION_HASH, userData);
+    if (major != nullptr)
+        *major = OPENDAQ_OPENDAQ_MAJOR_VERSION;
+    if (minor != nullptr)
+        *minor = OPENDAQ_OPENDAQ_MINOR_VERSION;
+    if (patch != nullptr)
+        *patch = OPENDAQ_OPENDAQ_PATCH_VERSION;
+    if (branch != nullptr)
+        *branch = daq::String(OPENDAQ_OPENDAQ_BRANCH_NAME).detach();
+    if (sha != nullptr)
+        *sha = daq::String(OPENDAQ_OPENDAQ_REVISION_HASH).detach();
 #endif
     return OPENDAQ_SUCCESS;
 }
@@ -103,7 +109,6 @@ OPENDAQ_MODULE_API daq::ErrCode checkDependencies(daq::IString** logMessage)
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
     }
-    return daqCoreValidateVersionMetadata(&getCoreVersionMetadata, logMessage);
 #endif
     return OPENDAQ_SUCCESS;
 }

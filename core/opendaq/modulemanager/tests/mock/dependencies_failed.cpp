@@ -9,19 +9,13 @@ daq::ErrCode PUBLIC_EXPORT createModule(daq::IModule**)
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR);
 }
 
-static void enumerateMetadataFieldWrapper(const char* key, const char* value, void* userData)
-{
-    auto dictRawPtr = static_cast<daq::IDict*>(userData);
-    daq::DictPtr<daq::IString, daq::IString> dictPtr = daq::DictPtr<daq::IString, daq::IString>::Borrow(dictRawPtr);
-    dictPtr[key] = value;
-}
-
 extern "C"
 daq::ErrCode PUBLIC_EXPORT checkDependencies(daq::IString** logMessage)
 {
-    auto coreVersionMetadata = daq::Dict<daq::IString, daq::IString>();
+    unsigned int major, minor, patch;
+    daq::StringPtr branch, sha;
 
-    daq::ErrCode errCode = getSdkCoreVersionMetadata(&enumerateMetadataFieldWrapper, coreVersionMetadata.getObject());
+    daq::ErrCode errCode = getSdkCoreVersionMetadata(&major, &minor, &patch, &branch, &sha, nullptr);
     OPENDAQ_RETURN_IF_FAILED(errCode, "Getting SDK version metadata failed");
 
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Mock module checkDependencies failure");

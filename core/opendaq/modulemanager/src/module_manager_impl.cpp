@@ -2040,14 +2040,6 @@ static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
 #endif
 }
 
-// C-style wrapper
-static void enumerateMetadataFieldToDict(const char* key, const char* value, void* userData)
-{
-    auto dictRawPtr = static_cast<IDict*>(userData);
-    DictPtr<IString, IString> dictPtr = DictPtr<IString, IString>::Borrow(dictRawPtr);
-    dictPtr[key] = value;
-}
-
 ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode)
 {
     LOG_T("Loading module \"{}\".", path.string());
@@ -2063,6 +2055,53 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
                             libraryErrCode.value(),
                             GetMessageFromLibraryErrCode(libraryErrCode)
         );
+    }
+
+    if (moduleLibrary.has(getCoreVersionMetadataFunc))
+    {
+        using GetCoreVersionMetadataFunc = ErrCode (*)(unsigned int*, unsigned int*, unsigned int*, IString**, IString**, IString**);
+        GetCoreVersionMetadataFunc getMetadata = moduleLibrary.get<ErrCode(unsigned int*, unsigned int*, unsigned int*, IString**, IString**, IString**)>(getCoreVersionMetadataFunc);
+
+        unsigned int major, minor, patch;
+        StringPtr branch, sha;
+
+        const ErrCode errCode = getMetadata(&major, &minor, &patch, &branch, &sha, nullptr);
+
+        if (OPENDAQ_SUCCEEDED(errCode))
+        {
+            std::string inModuleMetadataAsString =
+                fmt::format(R"([[ 'major': '{}'; 'minor': '{}'; 'patch': '{}'; 'branch': '{}'; 'sha': '{}'; ]])",
+                            major,
+                            minor,
+                            patch,
+                            branch,
+                            sha);
+            LOG_T("Module \'{}\' was built with SDK version: \"{}\"", path.string(), inModuleMetadataAsString);
+
+            StringPtr logMsg;
+            const ErrCode errCode = daqCoreValidateVersionMetadata(major, minor, patch, branch, sha, nullptr, &logMsg);
+            if (OPENDAQ_FAILED(errCode))
+            {
+               DAQ_EXTEND_ERROR_INFO(
+                   errCode,
+                   OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
+                   fmt::format(R"(Module "{}" failed dependencies check via version metadata: {})",
+                               path.string(),
+                               logMsg.assigned() ? logMsg : ""
+                        )
+                   );
+               checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
+            }
+        }
+        else
+        {
+            LOG_W("Module \'{}\' failed to get SDK core version metadata: {}", path.string(), getErrorInfoMessage(errCode));
+            daqClearErrorInfo();
+        }
+    }
+    else
+    {
+        LOG_W("Module \"{}\" does not provide SDK core version metadata", path.string());
     }
 
     if (moduleLibrary.has(checkDependenciesFunc))
@@ -2090,28 +2129,6 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
         {
             LOG_W("Module \"{}\" check dependencies warning: {}", path.string(), logMsg);
-        }
-    }
-
-    if (moduleLibrary.has(getCoreVersionMetadataFunc))
-    {
-        using GetCoreVersionMetadataFunc = ErrCode (*)(EnumerateMetadataFieldFunc, void*);
-        GetCoreVersionMetadataFunc getMetadata = moduleLibrary.get<ErrCode(EnumerateMetadataFieldFunc, void*)>(getCoreVersionMetadataFunc);
-
-        auto coreVersionMetadataDict = Dict<IString, IString>();
-        const ErrCode errCode = getMetadata(&enumerateMetadataFieldToDict, coreVersionMetadataDict.getObject());
-
-        if (OPENDAQ_SUCCEEDED(errCode))
-        {
-            for (const auto& [key, value] : coreVersionMetadataDict)
-            {
-                LOG_T("Module \'{}\' was built with SDK version \"{}\": \"{}\"", path.string(), key, value);
-            }
-        }
-        else
-        {
-            LOG_W("Module \'{}\' failed to get SDK core version: {}", path.string(), getErrorInfoMessage(errCode));
-            daqClearErrorInfo();
         }
     }
 

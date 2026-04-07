@@ -70,7 +70,7 @@ class PropertiesTreeview(ttk.Treeview):
         # bind double-click to editing (if not read_only)
         if not self.read_only:
             self.bind('<Double-1>', lambda event: self.edit_value())
-            self.bind('<Button-3>', lambda event: self.show_menu(event))
+        self.bind('<Button-3>', lambda event: self.show_menu(event))
         self.bind('<MouseWheel>', lambda e: self.after_idle(self._sync_overlays))
         self.bind('<ButtonRelease-1>', lambda e: self.after(10, self._sync_overlays), add='+')
         self.bind('<Configure>', self._on_configure)
@@ -271,8 +271,8 @@ class PropertiesTreeview(ttk.Treeview):
         else:
             utils.treeview_select_item(self, event)
             menu.add_command(label='Copy', command=self.handle_copy)
-            menu.add_command(label='Paste',
-                             command=self.handle_paste)
+            if not self.read_only:
+                menu.add_command(label='Paste', command=self.handle_paste)
             menu.add_separator()
             menu.add_command(label='Metadata', command=self.handle_show_metadata)
         menu.tk_popup(event.x_root, event.y_root)

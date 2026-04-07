@@ -2092,6 +2092,10 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
                    );
                checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
             }
+            else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
+            {
+                LOG_W("Module \'{}\' SDK core version metadata checking result: {}", path.string(), logMsg);
+            }
         }
         else
         {

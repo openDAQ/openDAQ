@@ -275,18 +275,13 @@ class App(tk.Tk):
         if self.current_tab() == DisplayType.MODULES:
             self.modules_map = {}
             for mod in self.context.instance.module_manager.modules:
-                try:
-                    info = mod.module_info
-                    raw_id = str(info.id) if info.id is not None else ''
-                except RuntimeError as e:
-                    print(f"Skipping module with broken metadata ({e})", file=sys.stderr)
+                info = mod.module_info
+                
+                if info is None:
                     continue
                 
-                if not raw_id or raw_id is None:
-                    print("Skipping module with broken metadata (empty ID)", file=sys.stderr)
-                    continue
-
-                mod_id = raw_id
+                mod_id = str(info.id)
+                
                 try:
                     display_name = str(info.name) if info.name else mod_id
                 except RuntimeError:

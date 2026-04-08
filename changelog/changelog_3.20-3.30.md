@@ -28,6 +28,7 @@
 
 ## Bug fixes
 
+- [#1144](https://github.com/openDAQ/openDAQ/pull/1144) Return error code instead of throwing exceptions from module info.
 - [#1133](https://github.com/openDAQ/openDAQ/pull/1133) Backport LLVM and cpp20 build fixes
 - [#1113](https://github.com/openDAQ/openDAQ/pull/1113) Reset last value calc values on unsubscribe completion
 - [#1021](https://github.com/openDAQ/openDAQ/pull/1021), [#1022](https://github.com/openDAQ/openDAQ/pull/1022) Fix reachability status for IPv4 addresses where there are multiple devices

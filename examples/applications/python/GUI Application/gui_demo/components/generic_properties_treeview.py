@@ -679,7 +679,7 @@ class PropertiesTreeview(ttk.Treeview):
             return  # handled by overlay combobox
         elif prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
             EditContainerPropertyDialog(self, prop, self.context).show()
-            self.refresh() # TODO needed? check
+            self.refresh()
         elif prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt):
             if prop.suggested_values is not None and len(prop.suggested_values) > 0:
                 return  # handled by overlay combobox

@@ -98,8 +98,10 @@ class BlockView(ttk.Frame):
                 self.node = daq.IDevice.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
-                self.output_signals = OutputSignalsView(
-                    self.expanded_frame, self.node, self.context)
+                
+                signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
+                self.output_signals = OutputSignalsView(self.expanded_frame, self.node, self.context)
+                    
                 self.label_icon.config(image=self.device_img)
                 self.cols = [0, 1]
                 self.rows = [0]
@@ -162,14 +164,18 @@ class BlockView(ttk.Frame):
                 self.node = daq.IFunctionBlock.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
-                self.input_ports = InputPortsView(
-                    self.expanded_frame, self.node, self.context)
-                self.output_signals = OutputSignalsView(
-                    self.expanded_frame, self.node, self.context)
+                
+                if len(self.node.input_ports) > 0:
+                    self.input_ports = InputPortsView(
+                        self.expanded_frame, self.node, self.context)
+
+                self.output_signals = OutputSignalsView(self.expanded_frame, self.node, self.context)
+                
                 self.label_icon.config(image=self.function_block_img)
                 
                 self.cols = [0, 1]
                 self.rows = [0, 1]
+                
             elif daq.IFolder.can_cast_from(self.node):
                 self.node = daq.IFolder.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -350,19 +356,19 @@ class BlockView(ttk.Frame):
             self.expanded_frame.grid_columnconfigure(
                 self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
             self.expanded_frame.grid_rowconfigure(self.rows, weight=1,
-                                                  minsize=int(300 * self.context.dpi_factor) if self.input_ports and self.output_signals
+                                                  minsize=int(600 * self.context.dpi_factor) if self.input_ports and self.output_signals
                                                                  or daq.IFolder.can_cast_from(self.node) and
                                                                  not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
             if self.properties:
                 self.properties.grid(
-                    row=0, column=0, rowspan=2 if self.input_ports and self.output_signals else 1, sticky=tk.NSEW)
+                    row=0, column=0, rowspan=2, sticky=tk.NSEW)
 
             if self.input_ports:
                 self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
 
             if self.output_signals:
-                self.output_signals.grid(
-                    row=1 if self.input_ports else 0, column=1, sticky=tk.NSEW)
+                row_idx = 1 if self.input_ports else 0
+                self.output_signals.grid(row=row_idx, column=1, sticky=tk.NSEW)
                 
             if self.recoder:
                 self.recoder.grid(

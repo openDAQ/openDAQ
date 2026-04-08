@@ -146,9 +146,9 @@ protected:
     // Key is serviceInstance
     std::unordered_map<std::string, TXTRecord> txtRecords;
     // Key is serviceInstance
-    std::unordered_map<std::string, std::vector<std::string>> fromIpV4Addresses;
+    std::unordered_map<std::string, std::vector<std::string>> senderIPv4Addresses;
     // Key is serviceInstance
-    std::unordered_map<std::string, std::vector<std::string>> fromIpV6Addresses;
+    std::unordered_map<std::string, std::vector<std::string>> senderIPv6Addresses;
 
     std::mutex recordsLock;
     std::atomic_bool started;
@@ -661,6 +661,8 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
         if (it == serviceInstances.end())
             continue;
 
+        bool oneDeviceEntryPerAddress = false;
+
         auto device = MdnsDiscoveredDevice{};
         device.serviceName = it->second;
         device.serviceInstance = srvServiceInstance;
@@ -668,24 +670,6 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
         device.servicePriority = srv.priority;
         device.serviceWeight = srv.weight;
         device.servicePort = srv.port;
-
-        for (const auto& [serviceQualified, a] : aRecords)
-        {
-            if (serviceQualified == srv.serviceQualified)
-            {
-                for (const auto& ipv4 : a.addresses)
-                    device.ipv4Addresses.insert(ipv4);
-            }
-        }
-
-        for (const auto& [serviceQualified, aaaa] : aaaaRecords)
-        {
-            if (serviceQualified == srv.serviceQualified)
-            {
-                for (const auto& ipv6 : aaaa.addresses)
-                    device.ipv6Addresses.insert(ipv6);
-            }
-        }
 
         for (const auto& [txtServiceInstance, txt] : txtRecords)
         {
@@ -696,35 +680,95 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
             }
         }
 
-        if (device.ipv4Addresses.empty() && device.ipv6Addresses.empty())
+        if (device.properties.count("Manufacturer") == 0 || device.properties.count("SerialNumber") == 0)
         {
-            for (const auto& [serviceInstance, addresses] : fromIpV4Addresses)
+            oneDeviceEntryPerAddress = true;
+        }
+
+        const auto completeAndAddDeviceEntry =
+            [&devices](MdnsDiscoveredDevice& device)
+        {
+            // Kept to maintain API compatibility
+            if (!device.ipv4Addresses.empty())
+                device.ipv4Address = *device.ipv4Addresses.begin();
+            if (!device.ipv6Addresses.empty())
+                device.ipv6Address = *device.ipv6Addresses.begin();
+
+            if (!device.ipv4Addresses.empty() || !device.ipv6Addresses.empty())
+                devices.emplace_back(device);
+        };
+
+        const auto submitIPv4Address =
+            [&](const std::string& address)
+        {
+            if (oneDeviceEntryPerAddress)
+            {
+                auto deviceCopy = device;
+                deviceCopy.ipv4Addresses.insert(address);
+                completeAndAddDeviceEntry(deviceCopy);
+            }
+            else
+            {
+                device.ipv4Addresses.insert(address);
+            }
+        };
+        const auto submitIPv6Address =
+            [&](const std::string& address)
+        {
+            if (oneDeviceEntryPerAddress)
+            {
+                auto deviceCopy = device;
+                deviceCopy.ipv6Addresses.insert(address);
+                completeAndAddDeviceEntry(deviceCopy);
+            }
+            else
+            {
+                device.ipv6Addresses.insert(address);
+            }
+        };
+
+        if (aRecords.count(srv.serviceQualified) == 0 && aaaaRecords.count(srv.serviceQualified) == 0) // none addresses known from A / AAAA records - get from saved sender addresses
+        {
+            for (const auto& [serviceInstance, addresses] : senderIPv4Addresses)
             {
                 if (serviceInstance == srvServiceInstance)
                 {
                     for (const auto& ipv4 : addresses)
-                        device.ipv4Addresses.insert(ipv4);
+                        submitIPv4Address(ipv4);
                 }
             }
-            for (const auto& [serviceInstance, addresses] : fromIpV6Addresses)
+            for (const auto& [serviceInstance, addresses] : senderIPv6Addresses)
             {
                 if (serviceInstance == srvServiceInstance)
                 {
                     for (const auto& ipv6 : addresses)
-                        device.ipv6Addresses.insert(ipv6);
+                        submitIPv6Address(ipv6);
+                }
+            }
+        }
+        else
+        {
+            for (const auto& [serviceQualified, a] : aRecords)
+            {
+                if (serviceQualified == srv.serviceQualified)
+                {
+                    for (const auto& ipv4 : a.addresses)
+                        submitIPv4Address(ipv4);
+                }
+            }
+
+            for (const auto& [serviceQualified, aaaa] : aaaaRecords)
+            {
+                if (serviceQualified == srv.serviceQualified)
+                {
+                    for (const auto& ipv6 : aaaa.addresses)
+                        submitIPv6Address(ipv6);
                 }
             }
         }
 
-        // Kept to maintain API compatibility
-        if (!device.ipv4Addresses.empty())
-            device.ipv4Address = *device.ipv4Addresses.begin();
-
-        if (!device.ipv6Addresses.empty())
-            device.ipv6Address = *device.ipv6Addresses.begin();
-
-        if (!device.ipv4Addresses.empty() || !device.ipv6Addresses.empty())
-            devices.emplace_back(device);
+        if (!oneDeviceEntryPerAddress)
+            completeAndAddDeviceEntry(device);
     }
 
     aRecords.clear();
@@ -732,8 +776,8 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
     txtRecords.clear();
     ptrRecords.clear();
     srvRecords.clear();
-    fromIpV4Addresses.clear();
-    fromIpV6Addresses.clear();
+    senderIPv4Addresses.clear();
+    senderIPv6Addresses.clear();
     return devices;
 }
 
@@ -759,7 +803,7 @@ inline std::string MDNSDiscoveryClient::ipv6AddressToString(const sockaddr_in6* 
 
     std::string hostStr(host);
 
-    if (IN6_IS_ADDR_LINKLOCAL(&addr->sin6_addr))
+    if (IN6_IS_ADDR_LINKLOCAL(&addr->sin6_addr) && addr->sin6_scope_id == 0)
     {
         if (ifindex == 0)
             return "";
@@ -798,7 +842,7 @@ inline void MDNSDiscoveryClient::cacheFromAddress(int sock, const sockaddr* from
         struct sockaddr_in* saddr = (struct sockaddr_in*) from;
         std::string address = ipv4AddressToString(saddr, sizeof(*saddr));
 
-        auto& addresses = fromIpV4Addresses[serviceInstance];
+        auto& addresses = senderIPv4Addresses[serviceInstance];
         addresses.emplace_back(address);
     }
     else if (from->sa_family == AF_INET6)
@@ -812,7 +856,7 @@ inline void MDNSDiscoveryClient::cacheFromAddress(int sock, const sockaddr* from
         if (address.empty())
             return;
 
-        auto& addresses = fromIpV6Addresses[serviceInstance];
+        auto& addresses = senderIPv6Addresses[serviceInstance];
         addresses.emplace_back(address);
     }
 }
@@ -896,6 +940,9 @@ inline int MDNSDiscoveryClient::discoveryQueryCallback(int sock,
         unsigned int ifindex = 0;
         if (const auto it = socketToIfIpv6Index.find(sock); it != socketToIfIpv6Index.end())
             ifindex = it->second;
+
+        if (ifindex == 0) // skip IPv4 sockets for which index is not saved
+            return 0;
 
         std::string address = ipv6AddressToString(&addr, sizeof(addr), ifindex);
 

@@ -22,6 +22,7 @@ class PropertiesTreeview(ttk.Treeview):
         self.node = node
         self._overlay_comboboxes = {}
         self._overlay_items = {}
+        self._last_method_results = {}
         self._active_dropdown_cb = None
         self._last_configure_size = (0, 0)
         self._syncing_overlays = False
@@ -128,7 +129,7 @@ class PropertiesTreeview(ttk.Treeview):
                 return self._format_value(value) 
             else:
                 return value
-
+        
         for property_info in self.context.properties_of_component(node):
             if property_info.name in hidden:
                 # This property was marked as hidden
@@ -141,9 +142,9 @@ class PropertiesTreeview(ttk.Treeview):
                 else:
                     property_value = 'Selection list is empty'
             elif property_info.value_type == daq.CoreType.ctProc:
-                property_value = 'Method'
+                property_value = self._last_method_results.get(property_info.name, '')
             elif property_info.value_type == daq.CoreType.ctFunc:
-                property_value = 'Method'
+                property_value = self._last_method_results.get(property_info.name, '')
             elif property_info.value_type == daq.CoreType.ctStruct:
                 property_value = ''
             elif property_info.value_type == daq.CoreType.ctObject:
@@ -178,7 +179,7 @@ class PropertiesTreeview(ttk.Treeview):
             if property_info.value_type == daq.CoreType.ctObject:
                 hidden_children = [s.removeprefix(f"{property_info.name}.") for s in hidden if s.startswith(f"{property_info.name}.")]
                 self.fill_properties(
-                    iid, node.get_property_value(property_info.name), hidden_children)
+                    iid, node.get_property_value(property_info.name), hidden_children)  
             elif property_info.value_type == daq.CoreType.ctStruct:
                 self.fill_struct(
                     iid, node.get_property_value(property_info.name), property_info.read_only)
@@ -408,11 +409,12 @@ class PropertiesTreeview(ttk.Treeview):
         try:
             if not self.winfo_viewable():
                 return
-            for iid, prop in self._overlay_items.items():
-                bbox = self.bbox(iid, '#1')
+            for iid, item_prop in self._overlay_items.items():
+                is_method = item_prop.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc)
+                bbox = self.bbox(iid, '#0' if is_method else '#1')
                 if bbox:
                     if iid not in self._overlay_comboboxes:
-                        self._create_overlay_for_item(iid, prop)
+                        self._create_overlay_for_item(iid, item_prop)
                     else:
                         x, py, w, ph = self._get_overlay_place_geometry(bbox)
                         self._overlay_comboboxes[iid].place(x=x, y=py, width=w, height=ph)
@@ -500,18 +502,47 @@ class PropertiesTreeview(ttk.Treeview):
         self._overlay_comboboxes[iid] = cb
 
     def _place_method_button(self, iid, prop):
-        bbox = self.bbox(iid, '#1')
+        bbox = self.bbox(iid, '#0')
         if not bbox:
             return
         x, y, width, height = self._get_overlay_place_geometry(bbox)
 
-        def execute(_prop=prop):
-            if _prop.value_type == daq.CoreType.ctFunc:
-                FunctionDialog(self, _prop, daq.IFunction.cast_from(_prop.value), self.context).show()
-            elif _prop.value_type == daq.CoreType.ctProc:
-                FunctionDialog(self, _prop, daq.IProcedure.cast_from(_prop.value), self.context).show()
+        def execute(_prop=prop, _iid=iid):
+            result = None
+            has_args = bool(_prop.callable_info.arguments)
 
-        btn = ttk.Button(self, text='Run', command=execute)
+            if has_args:
+                if _prop.value_type == daq.CoreType.ctFunc:
+                    dialog = FunctionDialog(self, _prop, daq.IFunction.cast_from(_prop.value), self.context)
+                    dialog.show()
+                    result = dialog.result
+                elif _prop.value_type == daq.CoreType.ctProc:
+                    dialog = FunctionDialog(self, _prop, daq.IProcedure.cast_from(_prop.value), self.context)
+                    dialog.show()
+                    result = dialog.result
+            else:
+                try:
+                    if _prop.value_type == daq.CoreType.ctFunc:
+                        result = daq.IFunction.cast_from(_prop.value)()
+                    elif _prop.value_type == daq.CoreType.ctProc:
+                        daq.IProcedure.cast_from(_prop.value)()
+                        result = True
+                except Exception as e:
+                    result = e
+
+            # Boolean True (which == 1) means success, display as "OK"
+            if result is True or result is False:
+                result_str = 'OK' if result else 'Fail'
+            elif isinstance(result, Exception):
+                result_str = str(result)
+            else:
+                result_str = self._format_value(result)
+
+            self._last_method_results[_prop.name] = result_str
+            if self.exists(_iid):
+                self.set(_iid, 'value', result_str)
+                
+        btn = ttk.Button(self, text=prop.name, command=execute)
         btn.place(x=x, y=y, width=width, height=height)
         self._overlay_comboboxes[iid] = btn
 
@@ -642,6 +673,8 @@ class PropertiesTreeview(ttk.Treeview):
         # handle struct
         if len(path) > 1:
             parent = utils.get_property_for_path(self.context, path[:-1], self.node)
+            if parent.read_only:
+                return
             if type(parent.value) is complex or type(parent.value) is Fraction:
                 return # complex and fraction/ratio isn't editable yet
             elif parent.value_type == daq.CoreType.ctStruct:
@@ -662,12 +695,49 @@ class PropertiesTreeview(ttk.Treeview):
 
         if prop.value_type == daq.CoreType.ctFunc:
             f = daq.IFunction.cast_from(prop.value)
-            FunctionDialog(self, prop, f, self.context).show()
+            if prop.callable_info.arguments:
+                dialog = FunctionDialog(self, prop, f, self.context)
+                dialog.show()
+                result = dialog.result
+            else:
+                try:
+                    result = f()
+                except Exception as e:
+                    result = e
+        
+            if result is True or result is False:
+                result_str = 'OK' if result else 'Fail'
+            elif isinstance(result, Exception):
+                result_str = str(result)
+            else:
+                result_str = self._format_value(result)
+            self._last_method_results[prop.name] = result_str
+            if self.exists(selected_item_id):
+                self.set(selected_item_id, 'value', result_str)
             return
-
+        
         if prop.value_type == daq.CoreType.ctProc:
             p = daq.IProcedure.cast_from(prop.value)
-            FunctionDialog(self, prop, p, self.context).show()
+            if prop.callable_info.arguments:
+                dialog = FunctionDialog(self, prop, p, self.context)
+                dialog.show()
+                result = dialog.result
+            else:
+                try:
+                    p()
+                    result = True
+                except Exception as e:
+                    result = e
+        
+            if result is True or result is False:
+                result_str = 'OK' if result else 'Fail'
+            elif isinstance(result, Exception):
+                result_str = str(result)
+            else:
+                result_str = str(result)
+            self._last_method_results[prop.name] = result_str
+            if self.exists(selected_item_id):
+                self.set(selected_item_id, 'value', result_str)
             return
 
         if prop.read_only:

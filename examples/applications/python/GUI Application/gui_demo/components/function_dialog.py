@@ -15,6 +15,7 @@ class FunctionDialog(Dialog):
         self.function = function
 
         self.arguments = {}
+        self.result = None
 
         self.minsize(600, 200)
 
@@ -105,10 +106,10 @@ class FunctionDialog(Dialog):
                 for argument in self.node.callable_info.arguments:
                     args.append(self.create_argument(argument.Type,
                                 self.arguments[argument.Name].get()))
-
             ret = self.function(*args)
         except (Exception, ValueError) as e:
             ret = e
+        self.result = ret
         self.return_value.set(str(ret))
 
     def cancel_clicked(self):

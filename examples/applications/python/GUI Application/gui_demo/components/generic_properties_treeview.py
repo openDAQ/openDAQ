@@ -436,6 +436,8 @@ class PropertiesTreeview(ttk.Treeview):
         cb.set(current_value)
         cb.place(x=x, y=combo_y, width=width, height=combo_height)
         if not editable:
+            cb.configure(takefocus=False)
+            
             def _toggle_dropdown(e, _cb=cb):
                 # Manually toggle dropdown and block default Tk click handling
                 # to avoid close-on-press and reopen-on-release behavior.
@@ -464,6 +466,7 @@ class PropertiesTreeview(ttk.Treeview):
             cb.bind('<Button-1>', _toggle_dropdown)
             cb.bind('<Escape>', _clear_active_if_needed)
             cb.bind('<FocusOut>', _clear_active_if_needed)
+            cb.bind('<KeyPress>', lambda e : 'break')
 
         cb.bind('<MouseWheel>', lambda e: 'break')
         cb.bind('<Button-4>', lambda e: 'break')

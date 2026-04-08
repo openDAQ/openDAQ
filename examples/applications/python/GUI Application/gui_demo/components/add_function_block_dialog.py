@@ -269,14 +269,16 @@ class AddFunctionBlockDialog(Dialog):
         self.configure(cursor='watch')
         parent_top.configure(cursor='watch')
         self.update_idletasks()
+        new_fb = None
         try:
-            self.parent_component.add_function_block(fb_id, config)
+            new_fb = self.parent_component.add_function_block(fb_id, config)
         except Exception as e:
             self.configure(cursor='')
             parent_top.configure(cursor='')
             utils.show_error('Error adding function block', f'{fb_id}: {str(e)}', self)
             return
         parent_top.configure(cursor='')
+        self.context.selected_node = new_fb
         self.event_port.emit()
         if self._keep_open_var.get():
             self.update_function_blocks()

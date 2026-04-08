@@ -468,6 +468,7 @@ class App(tk.Tk):
             if desired_iid != current_iid:  # if component is not already selected
                 self.tree.selection_set(desired_iid)
                 self.tree.focus(desired_iid)
+                self.tree.see(desired_iid)
         elif old_node and old_node.parent:  # try to select parent
             self.tree_restore_selection(old_node.parent)
         else:  # fallback

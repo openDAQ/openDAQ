@@ -86,7 +86,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22, 23}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
     , packedCoreEvents(List<IBaseObject>())
 {
@@ -150,7 +150,8 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue);
     addHandler<ComponentPtr>("Update", &ConfigServerComponent::update);
     addHandler<ComponentPtr>("ClearPropertyValues", &ConfigServerComponent::clearPropertyValues);
-    
+    addHandler<ComponentPtr>("BulkUpdate", &ConfigServerComponent::bulkUpdate);
+
     addHandler<ComponentPtr>("GetAvailableFunctionBlockTypes", &ConfigServerComponent::getAvailableFunctionBlockTypes);
     addHandler<ComponentPtr>("AddFunctionBlock", &ConfigServerComponent::addFunctionBlock);
     addHandler<ComponentPtr>("RemoveFunctionBlock", &ConfigServerComponent::removeFunctionBlock);

@@ -80,6 +80,14 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
     if (this->localActive == (bool) active)
         return OPENDAQ_IGNORED;
 
+    if (this->updateCount > 0 && this->clientComm->isBulkUpdateSupported())
+    {
+        auto action = Dict<IString, IBaseObject>();
+        action.set("Value", active);
+        this->clientUpdatingActions.push_back({"SetActive", action});
+        return OPENDAQ_SUCCESS;
+    }
+
     const ErrCode errCode = daqTry([this, &active]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); 

@@ -180,7 +180,7 @@ public:
 
 inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
-    return 22;
+    return 23;
 }
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()

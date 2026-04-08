@@ -33,6 +33,12 @@
 namespace daq::config_protocol
 {
 
+struct ClientUpdatingAction
+{
+    std::string type;
+    DictPtr<IString, IBaseObject> params;
+};
+
 template <typename Impl>
 class ConfigClientPropertyObjectBaseImpl;
 
@@ -76,19 +82,21 @@ public:
     ErrCode INTERFACE_FUNC remoteUpdate(ISerializedObject* serialized) override;
     ErrCode INTERFACE_FUNC setRemoteUpdating(Bool remoteUpdating) override;
 
+    ErrCode INTERFACE_FUNC collectUpdatingProperties(IList** updatingProps) override;
+
 protected:
     bool deserializationComplete;
+
 
     virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
     virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
     PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop) override;
 
-/*
     void beginApplyUpdate() override;
     void endApplyUpdate() override;
-    */
 
     bool remoteUpdating;
+    std::vector<ClientUpdatingAction> clientUpdatingActions;
 
 private:
     BaseObjectPtr getValueFromServer(const StringPtr& propName, bool& setValue);
@@ -181,11 +189,19 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertyValue(IString* prop
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
-//    if (this->updateCount > 0)
-//        return Impl::setPropertyValue(propertyName, value);
-
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
     const auto valuePtr = BaseObjectPtr::Borrow(value);
+
+    if (this->updateCount > 0 && this->clientComm->isBulkUpdateSupported())
+    {
+        auto action = Dict<IString, IBaseObject>();
+        action.set("Name", propertyNamePtr);
+        action.set("Value", valuePtr);
+        action.set("Path", this->getPath());
+        clientUpdatingActions.push_back({"SetPropertyValue", action});
+        return OPENDAQ_SUCCESS;
+    }
+
     const ErrCode errCode = daqTry([this, &propertyNamePtr, &valuePtr]()
     {
         checkCanSetPropertyValue(propertyNamePtr);
@@ -285,6 +301,16 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearPropertyValue(IString* pr
     OPENDAQ_PARAM_NOT_NULL(propertyName);
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
+
+    if (this->updateCount > 0 && this->clientComm->isBulkUpdateSupported())
+    {
+        auto action = Dict<IString, IBaseObject>();
+        action.set("Name", propertyNamePtr);
+        action.set("Path", this->getPath());
+        clientUpdatingActions.push_back({"ClearPropertyValue", action});
+        return OPENDAQ_SUCCESS;
+    }
+
     const ErrCode errCode = daqTry([this, &propertyNamePtr]()
     {
         clientComm->clearPropertyValue(remoteGlobalId, propertyNamePtr);
@@ -379,29 +405,63 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValues()
 template <class Impl>
 ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::beginUpdate()
 {
-    const ErrCode errCode = daqTry([this]()
+    if (clientComm->isBulkUpdateSupported())
     {
-        std::string path{};
-        if (this->getPath().assigned())
-            path = this->getPath().toStdString();
-        clientComm->beginUpdate(remoteGlobalId, path);
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
+        return Impl::beginUpdate();
+    }
+    else
+    {
+        const ErrCode errCode = daqTry(
+            [this]()
+            {
+                std::string path{};
+                if (this->getPath().assigned())
+                    path = this->getPath().toStdString();
+                clientComm->beginUpdate(remoteGlobalId, path);
+            });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
+    }
 }
 
 template <class Impl>
 ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::endUpdate()
 {
-    const ErrCode errCode = daqTry([this]()
+    if (clientComm->isBulkUpdateSupported())
     {
-        std::string path{};
-        if (this->getPath().assigned())
-            path = this->getPath().toStdString();
-        clientComm->endUpdate(remoteGlobalId, path);
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
+        if (this->updateCount > 1)
+            return Impl::endUpdate();
+
+        return daqTry(
+            [this]()
+            {
+                ListPtr<IBaseObject> updateList;
+                ConfigClientPropertyObjectBaseImpl::collectUpdatingProperties(&updateList);
+
+                ErrCode status = Impl::endUpdate();
+
+                if (OPENDAQ_FAILED(status))
+                    return status;
+
+                if (updateList.getCount() > 0)
+                    status = clientComm->tryBulkUpdate(remoteGlobalId, updateList);
+
+                return status;
+            });
+    }
+    else
+    {
+        const ErrCode errCode = daqTry(
+            [this]()
+            {
+                std::string path{};
+                if (this->getPath().assigned())
+                    path = this->getPath().toStdString();
+                clientComm->endUpdate(remoteGlobalId, path);
+            });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
+    }
 }
 
 template <class Impl>
@@ -535,6 +595,29 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setRemoteUpdating(Bool remoteU
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     this->remoteUpdating = remoteUpdating;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Impl>
+inline ErrCode INTERFACE_FUNC ConfigClientPropertyObjectBaseImpl<Impl>::collectUpdatingProperties(IList** updatingProps)
+{
+    ListPtr<IBaseObject> childProps;
+    Impl::collectUpdatingProperties(&childProps);
+
+    auto propsOut = List<IBaseObject>();
+
+    for (const auto& action : clientUpdatingActions)
+    {
+        propsOut.pushBack(List<IBaseObject>(action.type, remoteGlobalId, action.params));
+    }
+
+    for (const auto& prop : childProps)
+    {
+        propsOut.pushBack(prop);
+    }
+
+    clientUpdatingActions.clear();
+    *updatingProps = propsOut.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -752,47 +835,22 @@ PropertyObjectPtr ConfigClientPropertyObjectBaseImpl<Impl>::cloneChildPropertyOb
     return nullptr;
 }
 
-/*
 template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::beginApplyUpdate()
 {
-    if (remoteUpdating)
-        return Impl::beginApplyUpdate();
+    if (this->clientComm->isBulkUpdateSupported())
+        this->clientUpdatingActions.clear();
 
-    clientComm->beginUpdate(remoteGlobalId, getPathInternal());
+    return Impl::beginApplyUpdate();
 }
 
 template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::endApplyUpdate()
 {
-    if (remoteUpdating)
-        return Impl::endApplyUpdate();
-
-    ListPtr<IDict> propsAndValuesEx;
-
-    if (clientComm->getProtocolVersion() >= 1)
-    {
-        propsAndValuesEx = List<IDict>();
-
-        auto ignoredProps = List<IString>();
-        for (auto& item : this->updatingPropsAndValues)
-        {
-            auto itemEx = Dict<IString, IBaseObject>();
-            itemEx.set("Name", String(item.first));
-            itemEx.set("SetValue", Boolean(item.second.setValue));
-            itemEx.set("ProtectedAccess", Boolean(item.second.protectedAccess));
-            itemEx.set("Value", item.second.value);
-            propsAndValuesEx.pushBack(itemEx);
-        }
-    }
-    else
-        applyUpdatingPropsAndValuesProtocolVer0();
-
-    this->updatingPropsAndValues.clear();
-
-    clientComm->endUpdate(remoteGlobalId, getPathInternal(), propsAndValuesEx);
+    return Impl::endApplyUpdate();
 }
 
+/*
 template <class Impl>
 void ConfigClientPropertyObjectBaseImpl<Impl>::applyUpdatingPropsAndValuesProtocolVer0()
 {

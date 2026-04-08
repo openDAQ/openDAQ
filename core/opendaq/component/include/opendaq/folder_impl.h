@@ -62,6 +62,7 @@ public:
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
     ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
+    ErrCode INTERFACE_FUNC collectUpdatingProperties(IList** updatingProps) override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -363,6 +364,31 @@ ErrCode FolderImpl<Intf, Intfs...>::disableCoreEventTrigger()
     }
 
     return ComponentImpl<Intf, Intfs...>::disableCoreEventTrigger();
+}
+
+template <class Intf, class... Intfs>
+inline ErrCode INTERFACE_FUNC FolderImpl<Intf, Intfs...>::collectUpdatingProperties(IList** updatingProps)
+{
+    ListPtr<IBaseObject> propsOut;
+    Super::collectUpdatingProperties(&propsOut);
+
+    for (const auto& [_, item] : items)
+    {
+        auto freezable = item.template asPtrOrNull<IFreezable>(true);
+        if (freezable.assigned() && freezable.isFrozen())
+            continue;
+
+        const auto childProps = item.template asPtr<IPropertyObjectInternal>().collectUpdatingProperties();
+
+        if (childProps.assigned())
+        {
+            for (const auto& prop : childProps)
+                propsOut.pushBack(prop);
+        }
+    }
+
+    *updatingProps = propsOut.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>

@@ -51,6 +51,7 @@ public:
     static BaseObjectPtr addFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr removeFunctionBlock(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr getComponentConfig(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr bulkUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
 
 private:
     static void applyProps(uint16_t protocolVersion, const PropertyObjectPtr& obj, const ListPtr<IDict>& props);
@@ -470,6 +471,75 @@ inline BaseObjectPtr ConfigServerComponent::getComponentConfig(const RpcContext&
 
     if (const auto & componentPrivate = component.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
         return componentPrivate.getComponentConfig();
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerComponent::bulkUpdate(const RpcContext& context,
+                                                       const ComponentPtr& component,
+                                                       const ParamsDictPtr& params)
+{
+    static const auto getRelativeGlobalId = [](std::string str, const std::string& prefixToStrip)
+    {
+        if (str.rfind(prefixToStrip, 0) == 0)
+            str = str.substr(prefixToStrip.length());
+
+        if (!str.empty() && str[0] == '/')
+            str = str.substr(1);
+
+        return str;
+    };
+
+    // bulkUpdate
+
+    ListPtr<IBaseObject> updateList = params.get("UpdateList");
+    if (!updateList.assigned() || updateList.getCount() == 0)
+        return nullptr;
+
+    const auto globalId = params.get("ComponentGlobalId");
+
+    component.beginUpdate();
+
+    for (const ListPtr<IBaseObject>& action : updateList)
+    {
+        const auto actionType = action[0];
+        const auto remoteId = String(action[1]);
+        const auto relativeGlobalId = getRelativeGlobalId(remoteId, globalId);
+        const DictPtr<IString, IBaseObject> actionParams = action[2];
+
+        PropertyObjectPtr obj = component;
+        if (!relativeGlobalId.empty())
+            obj = component.findComponent(relativeGlobalId);
+
+        if (actionType == "SetPropertyValue")
+        {
+            const auto name = String(actionParams.get("Name"));
+            const auto value = actionParams.get("Value");
+            const auto path = String(actionParams.get("Path"));
+
+            if (path.getLength() > 0)
+                obj = obj.getPropertyValue(path);
+
+            obj.setPropertyValue(name, value);
+        }
+        if (actionType == "ClearPropertyValue")
+        {
+            const auto name = String(actionParams.get("Name"));
+            const auto path = String(actionParams.get("Path"));
+
+            if (path.getLength() > 0)
+                obj = obj.getPropertyValue(path);
+
+            obj.clearPropertyValue(name);
+        }
+        else if (actionType == "SetActive")
+        {
+            const Bool active = actionParams.get("Value");
+            obj.asPtr<IComponent>().setActive(active);
+        }
+    }
+
+    component.endUpdate();
+
     return nullptr;
 }
 

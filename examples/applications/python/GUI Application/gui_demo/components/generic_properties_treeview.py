@@ -647,6 +647,10 @@ class PropertiesTreeview(ttk.Treeview):
             elif parent.value_type == daq.CoreType.ctStruct:
                 self.edit_struct_property(selected_item_id, name, parent)
                 return
+            elif parent.value_type == daq.CoreType.ctList:
+                EditContainerPropertyDialog(self, parent, self.context).show()
+                self.refresh()
+                return
 
         prop = utils.get_property_for_path(self.context, path, self.node)
 

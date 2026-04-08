@@ -698,17 +698,17 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
 
         if (device.ipv4Addresses.empty() && device.ipv6Addresses.empty())
         {
-            for (const auto& [serviceQualified, addresses] : fromIpV4Addresses)
+            for (const auto& [serviceInstance, addresses] : fromIpV4Addresses)
             {
-                if (serviceQualified == srvServiceInstance)
+                if (serviceInstance == srvServiceInstance)
                 {
                     for (const auto& ipv4 : addresses)
                         device.ipv4Addresses.insert(ipv4);
                 }
             }
-            for (const auto& [serviceQualified, addresses] : fromIpV6Addresses)
+            for (const auto& [serviceInstance, addresses] : fromIpV6Addresses)
             {
-                if (serviceQualified == srvServiceInstance)
+                if (serviceInstance == srvServiceInstance)
                 {
                     for (const auto& ipv6 : addresses)
                         device.ipv6Addresses.insert(ipv6);

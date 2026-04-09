@@ -137,6 +137,7 @@ private:
     BaseObjectPtr changeInputPortStreamingSource(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr removeExternalSignals(const ParamsDictPtr& params);
     BaseObjectPtr acceptsSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    BaseObjectPtr acceptsSignals(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
 
     template <class SmartPtr>
     void addHandler(const std::string& name, const RpcHandlerFunction<SmartPtr>& handler);

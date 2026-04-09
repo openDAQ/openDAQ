@@ -30,6 +30,7 @@ struct MockInputPort : daq::MockGenericComponent<MockInputPort, daq::IInputPortC
     > Strict;
 
     MOCK_METHOD(daq::ErrCode, acceptsSignal, (daq::ISignal* signal, daq::Bool* accepts), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, acceptsSignals, (daq::IList* signals, daq::IList** accepts), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, connect, (daq::ISignal* signal), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, disconnect, (), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getSignal, (daq::ISignal** signal), (override MOCK_CALL));

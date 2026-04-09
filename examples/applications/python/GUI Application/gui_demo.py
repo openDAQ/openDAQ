@@ -99,6 +99,7 @@ class App(tk.Tk):
         except ValueError:
             self.context.connection_string = None
 
+        self.modules_map = {}
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
@@ -281,12 +282,10 @@ class App(tk.Tk):
                     continue
                 
                 mod_id = str(info.id)
-                
-                try:
-                    display_name = str(info.name) if info.name else mod_id
-                except RuntimeError:
-                    print("Skipping module with broken metadata (empty display name)", file=sys.stderr)
-                    continue
+                if not mod_id:
+                    mod_id = f'__module_{len(self.modules_map)}__'
+
+                display_name = str(info.name) if info.name else mod_id
 
                 self.tree.insert('', tk.END, iid=mod_id,
                                  text=self._format_tree_item_text(display_name), open=False)
@@ -792,7 +791,7 @@ class App(tk.Tk):
 
     # MARK: - Right hand side panel - MODULES
     def right_side_panel_draw_module(self, mod_id):
-        if not hasattr(self, 'modules_map') or mod_id not in self.modules_map:
+        if mod_id not in self.modules_map:
             return
         mod = self.modules_map[mod_id]
         self._draw_module_header(self.right_side_panel, mod)
@@ -802,10 +801,7 @@ class App(tk.Tk):
         info = mod.module_info
         vi = info.version_info
 
-        try:
-            name = str(info.name) or str(info.id)
-        except RuntimeError:
-            name = "Unknown"
+        name = str(info.name) if info.name else str(info.id)
 
         ttk.Label(frame, text=name,
                   font=("TkDefaultFont", 13, "bold")).pack(anchor=tk.W, padx=10, pady=(10, 5))
@@ -822,12 +818,7 @@ class App(tk.Tk):
             version_str = "N/A"
             branch = hash_digest = None
 
-        try:
-            raw_id = str(info.id)
-        except RuntimeError:
-            raw_id = "N/A"
-
-        fields = [("ID", raw_id), ("Version", version_str)]
+        fields = [("ID", str(info.id)), ("Version", version_str)]
         if branch:
             fields.append(("Branch", branch))
         if hash_digest:
@@ -920,16 +911,12 @@ class App(tk.Tk):
                       wraplength=400).pack(anchor=tk.W, padx=10, pady=(0, 5))
 
         info_fields = [("ID", ctype.id)]
-        if type_kind == "device":
-            try:
-                info_fields.append(("Prefix", daq.IDeviceType.cast_from(comp_type).prefix))
-            except Exception:
-                pass
-        elif type_kind == "streaming":
-            try:
-                info_fields.append(("Prefix", daq.IStreamingType.cast_from(comp_type).prefix))
-            except Exception:
-                pass
+        if type_kind == "device" and daq.IDeviceType.can_cast_from(comp_type):
+            prefix = getattr(daq.IDeviceType.cast_from(comp_type), 'prefix', None)
+            info_fields.append(("Prefix", prefix))  # the label row already handles None -> "N/A"
+        elif type_kind == "streaming" and daq.IStreamingType.can_cast_from(comp_type):
+            prefix = getattr(daq.IStreamingType.cast_from(comp_type), 'prefix', None)
+            info_fields.append(("Prefix", prefix))
 
         for label, value in info_fields:
             row = ttk.Frame(frame)

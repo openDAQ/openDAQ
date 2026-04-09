@@ -31,11 +31,12 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 enum class DeviceUpdateMode : EnumType
 {
-    Load = 0,    ///< The device is updated and added if missing.
-    UpdateOnly,  ///< The device is updated, but not added if missing.
-    Skip,        ///< The device is not updated. Does neither add nor remove the device.
-    Remove,      ///< Removes the device from the tree, if present.
-    Remap        ///< Same as load, but removes old device (if present) and uses the new manufacturer, serial number, and connection string to add a new one and update.
+    Load = 0,     ///< The device is updated and added if missing.
+    UpdateOnly,   ///< The device is updated, but not added if missing.
+    Skip,         ///< The device is not updated. Does neither add nor remove the device.
+    Remove,       ///< Removes the device from the tree, if present.
+    Remap,        ///< Same as load, but removes old device (if present) and uses the new manufacturer, serial number, and connection string to add a new one and update.
+    Switch        ///< Switches the local ID found in the setup with the new local ID. Requires a device with the new local ID to be present, otherwise the update will be skipped.
 };
 
 /*!
@@ -51,6 +52,8 @@ enum class DeviceUpdateMode : EnumType
  *  - Skip: The device is not updated. Does neither add nor remove the device.
  *  - Remove: Removes the device from the tree, if present.
  *  - Remap: Same as load, but removes old device (if present) and uses the new manufacturer, serial number, and connection string to add a new one and update.
+ *  - Switch: Switches the local ID found in the setup with the new local ID. Requires a device with the new local ID to be present, otherwise the update will be skipped. 
+ *            The device with the new local ID will be updated with the settings of the device with the old local ID.
  *
  * @subsection opendaq_device_options_remapping Remapping
  * 
@@ -125,6 +128,16 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceUpdateOptions, IBaseObject)
      * The manufacturer and serial number combination has priority over the connection string when remapping.
      */
     virtual ErrCode INTERFACE_FUNC getNewConnectionString(IString** connectionString) = 0;
+    /*!    
+     * @brief Sets the new local ID of the device to be used for remapping when the update mode is set to Switch.
+     * @param localId The new local ID of the device to be used for remapping.
+     */
+    virtual ErrCode INTERFACE_FUNC setNewLocalId(IString* localId) = 0;
+    /*!    
+     * @brief Gets the new local ID of the device to be used for remapping when the update mode is set to Switch.
+     * @param localId The new local ID of the device to be used for remapping.
+     */
+    virtual ErrCode INTERFACE_FUNC getNewLocalId(IString** localId) = 0;
 
     /*!
      * @brief Gets the update mode for the device.

@@ -2075,13 +2075,27 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         if (mode == DeviceUpdateMode::Skip)
             return;
 
-        const bool deviceExists = devices.hasItem(deviceId);
+        std::string deviceIdLocal = deviceId;
+        if (mode == DeviceUpdateMode::Switch)
+        {
+            deviceIdLocal = options.getNewLocalId().toStdString();
+            if (deviceIdLocal == "")
+            {
+                LOG_E("No new local ID provided for switching device with ID {} in parent Device with ID {}.", deviceId, this->localId);
+                return;
+            }
+        }
+
+        const bool deviceExists = devices.hasItem(deviceIdLocal);
         if (!deviceExists)
         {
             switch (mode)
             {
                 case DeviceUpdateMode::UpdateOnly:
                 case DeviceUpdateMode::Remove:
+                    return;
+                case DeviceUpdateMode::Switch:
+                    LOG_E("Device with ID {} does not exist for switching in parent Device with ID {}.", deviceIdLocal, this->localId);
                     return;
                 default:
                     break;
@@ -2092,15 +2106,16 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             switch (mode)
             {
                 case DeviceUpdateMode::Remap:
-                    removeDeviceIfNotStatic(deviceId);
+                    removeDeviceIfNotStatic(deviceIdLocal);
                     break;  // Remove, but continue with adding the remapped device.
                 case DeviceUpdateMode::Remove:
-                    removeDeviceIfNotStatic(deviceId);
+                    removeDeviceIfNotStatic(deviceIdLocal);
                     return;  // Early return since device is removed and should not be updated
                 case DeviceUpdateMode::Load:
                 case DeviceUpdateMode::UpdateOnly:
+                case DeviceUpdateMode::Switch:
                 {
-                    DevicePtr device = devices.getItem(deviceId);
+                    DevicePtr device = devices.getItem(deviceIdLocal);
                     const auto updatableDevice = device.template asPtr<IUpdatable>(true);
                     updatableDevice.updateInternal(serializedDevice, context);
                     return;
@@ -2166,11 +2181,11 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         {
             if (mode == DeviceUpdateMode::Remap)
             {
-                LOG_E("Unable to remap device with ID {}.", deviceId);
+                LOG_E("Unable to remap device with ID {}.", deviceIdLocal);
             }
             else
             {
-                LOG_E("No connection string found for device {} when loading setup", deviceId);
+                LOG_E("No connection string found for device {} when loading setup", deviceIdLocal);
             }
             return;
         }
@@ -2178,12 +2193,12 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         DevicePtr device = onAddDevice(connectionString, deviceConfig);
         if (!device.assigned())
         {
-            LOG_E("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceId, this->localId)
+            LOG_E("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceIdLocal, this->localId)
             return;
         }
 
         if (mode == DeviceUpdateMode::Remap)
-            contextPtr.addDeviceRemapping(deviceId, device.getLocalId());
+            contextPtr.addDeviceRemapping(deviceIdLocal, device.getLocalId());
 
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);

@@ -680,7 +680,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
             }
         }
 
-        if (device.properties.count("Manufacturer") == 0 || device.properties.count("SerialNumber") == 0)
+        if (device.properties.count("manufacturer") == 0 || device.properties.count("serialNumber") == 0)
         {
             oneDeviceEntryPerAddress = true;
         }

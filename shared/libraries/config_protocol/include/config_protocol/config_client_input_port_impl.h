@@ -203,7 +203,18 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignals(IList* s
     const ErrCode errCode = daqTry([this, &signalList, &accepts]
     {
         if (clientComm->getProtocolVersion() < 23)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SERVER_VERSION_TOO_LOW);
+        {
+            // Falback to multi-RPC version
+            auto acceptanceList = List<IBoolean>();
+            for (const auto& signal : signalList)
+            {
+                Bool acc = True;
+                this->acceptsSignal(signal, &acc);
+                acceptanceList.pushBack(acc);
+            }
+            *accepts = acceptanceList.detach();
+            return OPENDAQ_SUCCESS;
+        }
 
         // Build a list of accept flags with initial values equal to the defaults from acceptsSignal method (equivalence).
         SizeT numOfTrue = 0;

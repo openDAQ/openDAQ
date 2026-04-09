@@ -249,6 +249,9 @@ private:
     std::string getIpv6NetworkInterfaceFromIndex(unsigned int ifindex);
 
     void cacheFromAddress(int sock, const sockaddr* from, const std::string& serviceInstance);
+    void completeAndAddDeviceEntry(std::vector<MdnsDiscoveredDevice>& devices, MdnsDiscoveredDevice& device);
+    void bindIPv4AddressToDevice(bool oneDeviceEntryPerAddress, std::vector<MdnsDiscoveredDevice>& devices, MdnsDiscoveredDevice& device, const std::string& address);
+    void bindIPv6AddressToDevice(bool oneDeviceEntryPerAddress, std::vector<MdnsDiscoveredDevice>& devices, MdnsDiscoveredDevice& device, const std::string& address);
 
     std::vector<mdns_query_t> discoveryQueries;
     std::vector<std::string> serviceNames;
@@ -642,6 +645,47 @@ inline void MDNSDiscoveryClient::closeClientSockets()
     socketToIfIpv6Index.clear();
 }
 
+inline void MDNSDiscoveryClient::completeAndAddDeviceEntry(std::vector<MdnsDiscoveredDevice>& devices, MdnsDiscoveredDevice& device)
+{
+    // Kept to maintain API compatibility
+    if (!device.ipv4Addresses.empty())
+        device.ipv4Address = *device.ipv4Addresses.begin();
+    if (!device.ipv6Addresses.empty())
+        device.ipv6Address = *device.ipv6Addresses.begin();
+
+    if (!device.ipv4Addresses.empty() || !device.ipv6Addresses.empty())
+        devices.emplace_back(device);
+}
+
+inline void daq::discovery::MDNSDiscoveryClient::bindIPv4AddressToDevice(bool oneDeviceEntryPerAddress, std::vector<MdnsDiscoveredDevice>& devices, MdnsDiscoveredDevice& device, const std::string& address)
+{
+
+    if (oneDeviceEntryPerAddress)
+    {
+        auto deviceCopy = device;
+        deviceCopy.ipv4Addresses.insert(address);
+        completeAndAddDeviceEntry(devices, deviceCopy);
+    }
+    else
+    {
+        device.ipv4Addresses.insert(address);
+    }
+}
+
+inline void daq::discovery::MDNSDiscoveryClient::bindIPv6AddressToDevice(bool oneDeviceEntryPerAddress, std::vector<MdnsDiscoveredDevice>& devices, MdnsDiscoveredDevice& device, const std::string& address)
+{
+    if (oneDeviceEntryPerAddress)
+    {
+        auto deviceCopy = device;
+        deviceCopy.ipv6Addresses.insert(address);
+        completeAndAddDeviceEntry(devices, deviceCopy);
+    }
+    else
+    {
+        device.ipv6Addresses.insert(address);
+    }
+}
+
 inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
 {
     std::unordered_map<std::string, std::string> serviceInstances;
@@ -685,48 +729,6 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
             oneDeviceEntryPerAddress = true;
         }
 
-        const auto completeAndAddDeviceEntry =
-            [&devices](MdnsDiscoveredDevice& device)
-        {
-            // Kept to maintain API compatibility
-            if (!device.ipv4Addresses.empty())
-                device.ipv4Address = *device.ipv4Addresses.begin();
-            if (!device.ipv6Addresses.empty())
-                device.ipv6Address = *device.ipv6Addresses.begin();
-
-            if (!device.ipv4Addresses.empty() || !device.ipv6Addresses.empty())
-                devices.emplace_back(device);
-        };
-
-        const auto submitIPv4Address =
-            [&](const std::string& address)
-        {
-            if (oneDeviceEntryPerAddress)
-            {
-                auto deviceCopy = device;
-                deviceCopy.ipv4Addresses.insert(address);
-                completeAndAddDeviceEntry(deviceCopy);
-            }
-            else
-            {
-                device.ipv4Addresses.insert(address);
-            }
-        };
-        const auto submitIPv6Address =
-            [&](const std::string& address)
-        {
-            if (oneDeviceEntryPerAddress)
-            {
-                auto deviceCopy = device;
-                deviceCopy.ipv6Addresses.insert(address);
-                completeAndAddDeviceEntry(deviceCopy);
-            }
-            else
-            {
-                device.ipv6Addresses.insert(address);
-            }
-        };
-
         if (aRecords.count(srv.serviceQualified) == 0 && aaaaRecords.count(srv.serviceQualified) == 0) // none addresses known from A / AAAA records - get from saved sender addresses
         {
             for (const auto& [serviceInstance, addresses] : senderIPv4Addresses)
@@ -734,7 +736,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
                 if (serviceInstance == srvServiceInstance)
                 {
                     for (const auto& ipv4 : addresses)
-                        submitIPv4Address(ipv4);
+                        bindIPv4AddressToDevice(oneDeviceEntryPerAddress, devices, device, ipv4);
                 }
             }
             for (const auto& [serviceInstance, addresses] : senderIPv6Addresses)
@@ -742,7 +744,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
                 if (serviceInstance == srvServiceInstance)
                 {
                     for (const auto& ipv6 : addresses)
-                        submitIPv6Address(ipv6);
+                        bindIPv6AddressToDevice(oneDeviceEntryPerAddress, devices, device, ipv6);
                 }
             }
         }
@@ -753,7 +755,7 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
                 if (serviceQualified == srv.serviceQualified)
                 {
                     for (const auto& ipv4 : a.addresses)
-                        submitIPv4Address(ipv4);
+                        bindIPv4AddressToDevice(oneDeviceEntryPerAddress, devices, device, ipv4);
                 }
             }
 
@@ -762,13 +764,13 @@ inline std::vector<MdnsDiscoveredDevice> MDNSDiscoveryClient::createDevices()
                 if (serviceQualified == srv.serviceQualified)
                 {
                     for (const auto& ipv6 : aaaa.addresses)
-                        submitIPv6Address(ipv6);
+                        bindIPv6AddressToDevice(oneDeviceEntryPerAddress, devices, device, ipv6);
                 }
             }
         }
 
         if (!oneDeviceEntryPerAddress)
-            completeAndAddDeviceEntry(device);
+            completeAndAddDeviceEntry(devices, device);
     }
 
     aRecords.clear();

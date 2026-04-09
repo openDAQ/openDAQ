@@ -25,6 +25,7 @@ try:
     from gui_demo.components.block_view import BlockView
     from gui_demo.components.properties_view import PropertiesView
     from gui_demo.components.add_device_dialog import AddDeviceDialog
+    from gui_demo.components.add_server_dialog import AddServerDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
     from gui_demo.app_context import AppContext
@@ -34,6 +35,7 @@ except Exception as e:
     from opendaq.gui_demo.components.block_view import BlockView
     from opendaq.gui_demo.components.properties_view import PropertiesView
     from opendaq.gui_demo.components.add_device_dialog import AddDeviceDialog
+    from opendaq.gui_demo.components.add_server_dialog import AddServerDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
     from opendaq.gui_demo.app_context import AppContext
@@ -68,6 +70,7 @@ class DisplayType(enum.Enum):
 
 class ContextParams:
     module_path: str = ''
+    discovery_servers: list = None
 
 class App(tk.Tk):
 
@@ -84,6 +87,13 @@ class App(tk.Tk):
                 context_params.module_path = None
         except ValueError:
             context_params.module_path = None
+            
+        if args.discovery_server:
+            context_params.discovery_servers = [
+                s.strip() for s in args.discovery_server.split(',') if s.strip()
+            ]
+        else:
+            context_params.discovery_servers = []
 
         self.context = AppContext(context_params)
         self.context.on_needs_refresh = lambda: self.on_refresh_event(None)
@@ -118,6 +128,10 @@ class App(tk.Tk):
         add_function_block_button = ttk.Button(
             main_frame_top, text='Add function block', command=self.handle_add_function_block_button_clicked)
         add_function_block_button.pack(side=tk.LEFT, padx=5)
+        
+        add_server_button = ttk.Button(
+            main_frame_top, text='Add server', command=self.handle_add_server_button_clicked)
+        add_server_button.pack(side=tk.LEFT, padx=5)
 
         refresh_button = ttk.Button(
             main_frame_top, text='Refresh', command=self.handle_refresh_button_clicked)
@@ -544,6 +558,11 @@ class App(tk.Tk):
     def add_function_block_dialog_show(self, component=None):
         dialog = AddFunctionBlockDialog(self, self.context, component)
         dialog.show()
+        
+    # MARK: - Add server dialog
+    def add_server_dialog_show(self, component=None):
+        dialog = AddServerDialog(self, self.context, component)
+        dialog.show()
 
     # MARK: - Button handlers
     def handle_add_device_button_clicked(self):
@@ -551,6 +570,9 @@ class App(tk.Tk):
 
     def handle_add_function_block_button_clicked(self):
         self.add_function_block_dialog_show()
+        
+    def handle_add_server_button_clicked(self):
+        self.add_server_dialog_show()
 
     def handle_save_config_button_clicked(self):
         file = asksaveasfile(initialfile='config.json', title='Save configuration',
@@ -1173,6 +1195,9 @@ if __name__ == '__main__':
         '--module_path', help='Additional modules path', type=str, default='')
     parser.add_argument('-v', '--version', action='version',
         version=f'{os.path.dirname(__file__)} {daq.__dict__.get("__version__", "@VERSION@").replace("@VERSION@", "Unknown version")}')
+    parser.add_argument(
+        '--discovery_server', help='Discovery server protocols (comma-separated, e.g. "mdns")',
+        type=str, default='mdns')
 
     app = App(parser.parse_args())
     app.mainloop()

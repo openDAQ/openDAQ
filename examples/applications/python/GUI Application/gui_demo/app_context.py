@@ -46,6 +46,9 @@ class AppContext(object):
         if params.module_path != None:
             builder.add_module_path(params.module_path)
 
+        for protocol in getattr(params, 'discovery_servers', []):
+            builder.add_discovery_server(protocol)
+
         self.instance = daq.InstanceFromBuilder(builder)
         self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)
         self.connection_string = ''
@@ -178,9 +181,11 @@ class AppContext(object):
 
     def properties_of_component(self, component: daq.IComponent):
         if component is None:
-            return daq.IList()
-
-        return component.all_properties if self.view_hidden_components else component.visible_properties
+            return []
+        try:
+            return component.all_properties if self.view_hidden_components else component.visible_properties
+        except RuntimeError:
+            return []
 
     def on_core_event(self, sender: Optional[daq.IComponent], args: daq.IEventArgs):
         if sender is None or self.on_needs_refresh is None:

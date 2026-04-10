@@ -36,6 +36,7 @@
 #include <opendaq/component_type_private_ptr.h>
 
 #include <opendaq/thread_name.h>
+#include <opendaq/module_manager_check_dependencies.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -2079,18 +2080,18 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
             LOG_T("Module \'{}\' was built with SDK version: \"{}\"", path.string(), inModuleMetadataAsString);
 
             StringPtr logMsg;
-            errCode = daqCoreValidateVersionMetadata(major, minor, patch, branch, sha, nullptr, &logMsg);
+            errCode = checkModuleCoreVersionMetadata(major, minor, patch, branch, sha, nullptr, &logMsg);
             if (OPENDAQ_FAILED(errCode))
             {
-               DAQ_EXTEND_ERROR_INFO(
-                   errCode,
-                   OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
-                   fmt::format(R"(Module "{}" failed dependencies check via version metadata: {})",
-                               path.string(),
-                               logMsg.assigned() ? logMsg : ""
-                        )
-                   );
-               checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
+                DAQ_EXTEND_ERROR_INFO(
+                    errCode,
+                    OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
+                    fmt::format(R"(Module "{}" failed dependencies check via version metadata: {})",
+                                path.string(),
+                                logMsg.assigned() ? logMsg : ""
+                    )
+                );
+                checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
             }
             else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
             {

@@ -55,6 +55,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/module_manager_init.h
         ${SDK_HEADERS_DIR}/module_manager_utils.h
         ${SDK_HEADERS_DIR}/module_manager_factory.h
+        ${SDK_HEADERS_DIR}/module_manager_check_dependencies.h
         ${SDK_SRC_DIR}/module_manager_impl.cpp
     )
 
@@ -113,6 +114,7 @@ set(SRC_PublicHeaders_Component
     module_info.h
     module_info_factory.h
     module_info_impl.h
+    module_manager_check_dependencies.h
     PARENT_SCOPE
 )
 

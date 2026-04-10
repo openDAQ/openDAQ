@@ -22,14 +22,4 @@ extern "C"
 void PUBLIC_EXPORT daqOpenDaqGetVersion(unsigned int* major, unsigned int* minor, unsigned int* revision);
 
 extern "C"
-daq::ErrCode PUBLIC_EXPORT daqCoreValidateVersionMetadata(
-    unsigned int major,
-    unsigned int minor,
-    unsigned int patch,
-    daq::IString* branch,
-    daq::IString* sha,
-    [[maybe_unused]] daq::IString* fork,
-    daq::IString** warningMessage);
-
-extern "C"
 daq::ErrCode PUBLIC_EXPORT getSdkCoreVersionMetadata(unsigned int* major, unsigned int* minor, unsigned int* patch, daq::IString** branch, daq::IString** sha, daq::IString** fork);

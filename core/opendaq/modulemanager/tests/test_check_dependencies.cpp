@@ -94,13 +94,13 @@ TEST_F(CheckDependenciesTest, InvalidParamsFailure)
 {
     StringPtr dummy = String("");
     ASSERT_THROW(
-        checkErrorInfo(checkModuleCoreVersionMetadata(OPENDAQ_OPENDAQ_MAJOR_VERSION, OPENDAQ_OPENDAQ_MINOR_VERSION, OPENDAQ_OPENDAQ_PATCH_VERSION, dummy, dummy, dummy, nullptr)),
+        checkErrorInfo(checkModuleVersionCompatibility(OPENDAQ_OPENDAQ_MAJOR_VERSION, OPENDAQ_OPENDAQ_MINOR_VERSION, OPENDAQ_OPENDAQ_PATCH_VERSION, dummy, dummy, dummy, nullptr)),
         ArgumentNullException
     );
 
     StringPtr logMessage;
     ASSERT_THROW(
-        checkErrorInfo(checkModuleCoreVersionMetadata(OPENDAQ_OPENDAQ_MAJOR_VERSION, OPENDAQ_OPENDAQ_MINOR_VERSION, OPENDAQ_OPENDAQ_PATCH_VERSION, nullptr, nullptr, nullptr, &logMessage)),
+        checkErrorInfo(checkModuleVersionCompatibility(OPENDAQ_OPENDAQ_MAJOR_VERSION, OPENDAQ_OPENDAQ_MINOR_VERSION, OPENDAQ_OPENDAQ_PATCH_VERSION, nullptr, nullptr, nullptr, &logMessage)),
         ArgumentNullException
     );
 }
@@ -112,7 +112,7 @@ TEST_F(CheckDependenciesTest, DefaultMetadataSuccess)
     getCoreVersionMetadataDefault(&major, &minor, &patch, &branch, &sha, nullptr);
 
     StringPtr logMessage;
-    ErrCode errCode = checkModuleCoreVersionMetadata(major, minor, patch, branch, sha, nullptr, &logMessage);
+    ErrCode errCode = checkModuleVersionCompatibility(major, minor, patch, branch, sha, nullptr, &logMessage);
     ASSERT_EQ(errCode, OPENDAQ_SUCCESS);
     ASSERT_TRUE(logMessage.assigned());
 }
@@ -139,7 +139,7 @@ TEST_F(CheckDependenciesTest, MinimalMetadataMismatchFields)
     getCoreVersionMetadataMinimalMismatchFields(&major, &minor, &patch, &branch, &sha, nullptr);
 
     StringPtr logMessage;
-    ErrCode errCode = checkModuleCoreVersionMetadata(major, minor, patch, branch, sha, nullptr, &logMessage);
+    ErrCode errCode = checkModuleVersionCompatibility(major, minor, patch, branch, sha, nullptr, &logMessage);
     ASSERT_EQ(errCode, OPENDAQ_PARTIAL_SUCCESS);
     ASSERT_TRUE(logMessage.assigned());
 
@@ -172,7 +172,7 @@ TEST_F(CheckDependenciesTest, MajorNumberFailure)
 
     StringPtr logMessage;
 
-    ASSERT_THROW_MSG(checkErrorInfo(checkModuleCoreVersionMetadata(major, minor, patch, branch, sha, nullptr, &logMessage)),
+    ASSERT_THROW_MSG(checkErrorInfo(checkModuleVersionCompatibility(major, minor, patch, branch, sha, nullptr, &logMessage)),
                      NotCompatibleVersionException,
                      "the major number mismatches");
 }
@@ -200,7 +200,7 @@ TEST_F(CheckDependenciesTest, MinorNumberFailure)
 
     StringPtr logMessage;
 
-    ASSERT_THROW_MSG(checkErrorInfo(checkModuleCoreVersionMetadata(major, minor, patch, branch, sha, nullptr, &logMessage)),
+    ASSERT_THROW_MSG(checkErrorInfo(checkModuleVersionCompatibility(major, minor, patch, branch, sha, nullptr, &logMessage)),
                      NotCompatibleVersionException,
                      "the minor number mismatches");
 }

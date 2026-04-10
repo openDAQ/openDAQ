@@ -2080,7 +2080,7 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
             LOG_T("Module \'{}\' was built with SDK version: \"{}\"", path.string(), inModuleMetadataAsString);
 
             StringPtr logMsg;
-            errCode = checkModuleCoreVersionMetadata(major, minor, patch, branch, sha, nullptr, &logMsg);
+            errCode = checkModuleVersionCompatibility(major, minor, patch, branch, sha, nullptr, &logMsg);
             if (OPENDAQ_FAILED(errCode))
             {
                 DAQ_EXTEND_ERROR_INFO(

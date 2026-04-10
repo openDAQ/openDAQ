@@ -24,7 +24,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline daq::ErrCode checkModuleCoreVersionMetadata(
+inline daq::ErrCode checkModuleVersionCompatibility(
     unsigned int major,
     unsigned int minor,
     unsigned int patch,

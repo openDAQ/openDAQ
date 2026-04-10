@@ -31,6 +31,7 @@
 - [#1081](https://github.com/openDAQ/openDAQ/pull/1081) Adds device load options to the Python GUI.
 
 ## Bug fixes
+- [#1149](https://github.com/openDAQ/openDAQ/pull/1149) Return error code instead of throwing exceptions from module info.
 - [#1146](https://github.com/openDAQ/openDAQ/pull/1146) Use sender addresses if device does not provide A or AAAA records
 - [#1143] (https://github.com/openDAQ/openDAQ/pull/1143) Fix uncaught exception when closing renderer window
 - [#1130](https://github.com/openDAQ/openDAQ/pull/1130) Fix active rework issue with older devices
@@ -54,7 +55,7 @@
 
 ## Misc
 
-- [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load 
+- [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load
 - [#1090](https://github.com/openDAQ/openDAQ/pull/1090) Reduce unnecessary RPC calls and signal updates
 - [#1049](https://github.com/openDAQ/openDAQ/pull/1049) Extract LT and OpcUa modules to remote repos
 - [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removes the FB wrapper implementation as it was never used.
@@ -85,7 +86,7 @@ The IFunctionBlockWrapper interface was removed as it was never used. Similarly,
 ### [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load
 
 On load configuration, all non-static function blocks will be removed and recreated if they are in the load config
- 
+
 ## Required module changes
 
 ### [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Mandatory device types

@@ -61,3 +61,8 @@ daqErrCode daqInputPort_setPublic(daqInputPort* self, daqBool isPublic)
 {
     return reinterpret_cast<daq::IInputPort*>(self)->setPublic(isPublic);
 }
+
+daqErrCode daqInputPort_acceptsSignals(daqInputPort* self, daqList* signals, daqList** accepts)
+{
+    return reinterpret_cast<daq::IInputPort*>(self)->acceptsSignals(reinterpret_cast<daq::IList*>(signals), reinterpret_cast<daq::IList**>(accepts));
+}

@@ -42,6 +42,7 @@ public:
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC acceptsSignals(IList* signals, IList** accepts) override;
 
     // IInputPortPrivate
     ErrCode INTERFACE_FUNC connectSignalSchedulerNotification(ISignal* signal) override;
@@ -186,6 +187,78 @@ inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignal(ISignal* 
             return OPENDAQ_SUCCESS;
         }
         *accepts = True;
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+inline ErrCode INTERFACE_FUNC ConfigClientInputPortImpl::acceptsSignals(IList* signals, IList** accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(signals);
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+
+    const auto signalList = ListPtr<ISignal>::Borrow(signals);
+
+    const ErrCode errCode = daqTry([this, &signalList, &accepts]
+    {
+        if (clientComm->getProtocolVersion() < 23)
+        {
+            // Falback to multi-RPC version
+            auto acceptanceList = List<IBoolean>();
+            for (const auto& signal : signalList)
+            {
+                Bool acc = True;
+                this->acceptsSignal(signal, &acc);
+                acceptanceList.pushBack(acc);
+            }
+            *accepts = acceptanceList.detach();
+            return OPENDAQ_SUCCESS;
+        }
+
+        // Build a list of accept flags with initial values equal to the defaults from acceptsSignal method (equivalence).
+        SizeT numOfTrue = 0;
+        auto acceptanceList = List<IBoolean>();
+
+        ListPtr<IString> signalRemoteIdList = List<IString>();
+        for (const auto signal : signalList)
+        {
+            const auto configObject = signal.asPtrOrNull<IConfigClientObject>(true);
+            if (!configObject.assigned() || !clientComm->isComponentNested(signal.getGlobalId()))
+            {
+                // Theses signals cannot be checked remotely, but should be allowed (equivalence).
+                acceptanceList.pushBack(True);
+                ++numOfTrue;
+                continue;
+            }
+            StringPtr signalRemoteGlobalId;
+            checkErrorInfo(configObject->getRemoteGlobalId(&signalRemoteGlobalId));
+
+            signalRemoteIdList.pushBack(signalRemoteGlobalId);
+            // Equivalence
+            acceptanceList.pushBack(False);
+        }
+
+        ListPtr<IBoolean> remoteAccepts = clientComm->acceptsSignals(remoteGlobalId, signalRemoteIdList);
+
+        SizeT numOfRemote = remoteAccepts.assigned() ? remoteAccepts.getCount() : 0;
+        if (numOfRemote + numOfTrue != signalList.getCount())
+        {
+            throwExceptionFromErrorCode(OPENDAQ_ERR_GENERALERROR, "Failed to get remote responses.");
+        }
+
+        SizeT remoteIdx = 0;
+        for (SizeT i = 0; i < acceptanceList.getCount(); ++i)
+        {
+            if (acceptanceList[i] == True)
+            {
+                continue;
+            }
+            acceptanceList.setItemAt(i, remoteAccepts[remoteIdx]);
+            ++remoteIdx;
+        }
+
+        *accepts = acceptanceList.detach();
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);

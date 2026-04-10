@@ -20,25 +20,29 @@ class OutputSignalRow(ttk.Frame):
         self.configure(padding=(10, 5))
 
         last_value, raw_value = self._read_values()
-        ttk.Label(self, text=output_signal.name, anchor=tk.W).grid(
-            row=0, column=0, sticky=tk.W)
-
-        # Value column with optional View button
-        value_frame = ttk.Frame(self)
-        value_frame.grid(row=0, column=1, sticky=tk.EW)
-        self.value_label = ttk.Label(value_frame, text=str(last_value), anchor=tk.E, justify=tk.RIGHT)
-        self.value_label.pack(side=tk.RIGHT, fill=tk.X, expand=True)
         self._view_value = last_value
 
         is_struct_or_string = False
         if isinstance(raw_value, daq.IBaseObject) and IStruct.can_cast_from(raw_value) or isinstance(raw_value, str):
             is_struct_or_string = True
 
+        ttk.Label(self, text=output_signal.name, anchor=tk.W).grid(
+            row=0, column=0, sticky=tk.W)
+
+        # Value column with optional View button
+        value_frame = ttk.Frame(self)
+        value_frame.grid(row=0, column=1, sticky=tk.EW)
+
         self.view_button = None
         if is_struct_or_string:
             self.view_button = ttk.Button(
-                self, text='View', command=lambda: self.handle_view_clicked(self._view_value))
-            self.view_button.grid(row=0, column=1, sticky=tk.E)
+                value_frame, text='View', command=lambda: self.handle_view_clicked(self._view_value))
+            # Pack button first (to the right) so it always stays visible
+            self.view_button.pack(side=tk.RIGHT, padx=(4, 0))
+
+        display_value = self._truncate_for_display(last_value, is_struct_or_string)
+        self.value_label = ttk.Label(value_frame, text=display_value, anchor=tk.E, justify=tk.RIGHT)
+        self.value_label.pack(side=tk.RIGHT, fill=tk.X, expand=True)
 
         self.edit_icon = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
         self.edit_button = tk.Button(
@@ -52,10 +56,24 @@ class OutputSignalRow(ttk.Frame):
 
     def refresh(self):
         last_value, raw_value = self._read_values()
-        self.value_label.config(text=str(last_value))
+        is_viewable = (isinstance(raw_value, daq.IBaseObject) and IStruct.can_cast_from(raw_value)) or isinstance(raw_value, str)
+        display_value = self._truncate_for_display(last_value, is_viewable)
+        self.value_label.config(text=display_value)
         self._view_value = raw_value if (isinstance(raw_value, daq.IBaseObject) and IStruct.can_cast_from(raw_value)) else last_value
         if self.view_button is not None:
             self.view_button.configure(command=lambda: self.handle_view_clicked(self._view_value))
+            
+    @staticmethod
+    def _truncate_for_display(value, is_viewable):
+        """For values that have a View button, truncate the inline label
+        to prevent layout overflow. Numeric/timestamp values pass through unchanged."""
+        if not is_viewable:
+            return str(value)
+        text = str(value)
+        max_len = 32
+        if len(text) > max_len:
+            return text[:max_len] + '...'
+        return text
 
     def _read_values(self):
         last_value = utils.get_last_value_for_signal(self.output_signal)

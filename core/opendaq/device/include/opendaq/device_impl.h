@@ -1197,6 +1197,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 {
     // TODO: Consider either ignoring calls to this or even returning error codes - the correct way to set device's
     // operation mode should be through setOperationMode
+    if (onGetAvailableOperationModes().count(modeType) == 0)
+    {
+        this->updateOperationModeInternal(onGetDefaultOperationMode());
+        return OPENDAQ_IGNORED;
+    }
     return this->updateOperationModeInternal(modeType);
 }
 

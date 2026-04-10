@@ -242,6 +242,7 @@ protected:
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
     virtual std::set<OperationModeType> onGetAvailableOperationModes();
+    virtual OperationModeType onGetDefaultOperationMode();
 
     ListPtr<ILockGuard> getTreeLockGuard();
     ErrCode updateOperationModeNoCoreEvent(OperationModeType modeType);
@@ -266,7 +267,7 @@ private:
     void removeDeviceIfNotStatic(const StringPtr& deviceId);
 
     DeviceDomainPtr deviceDomain;
-    OperationModeType operationMode {OperationModeType::Idle};
+    OperationModeType operationMode {OperationModeType::Unknown};
     ListPtr<IInteger> availableOperationModes;
 };
 
@@ -364,7 +365,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock2();
 
     this->isRootDevice = true;
-    this->updateOperationMode(OperationModeType::Unknown);
+    this->updateOperationModeInternal(this->onGetDefaultOperationMode());
     return OPENDAQ_SUCCESS;
 }
 
@@ -1144,6 +1145,12 @@ std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvail
 }
 
 template <typename TInterface, typename... Interfaces>
+OperationModeType GenericDevice<TInterface, Interfaces...>::onGetDefaultOperationMode()
+{
+    return OperationModeType::SafeOperation;
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableOperationModes(IList** availableOpModes)
 {
     OPENDAQ_PARAM_NOT_NULL(availableOpModes);
@@ -1186,9 +1193,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(Op
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /* modeType */)
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType modeType)
 {
-    return this->updateOperationModeInternal(OperationModeType::SafeOperation);
+    // TODO: Consider either ignoring calls to this or even returning error codes - the correct way to set device's
+    // operation mode should be through setOperationMode
+    return this->updateOperationModeInternal(modeType);
 }
 
 template <typename TInterface, typename... Interfaces>

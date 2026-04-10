@@ -96,7 +96,7 @@ ErrCode DeviceUpdateOptionsImpl::getConnectionString(IString** connectionString)
 ErrCode DeviceUpdateOptionsImpl::setNewManufacturer(IString* manufacturer)
 {
     if (isRoot)
-        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Root device setup options can not be modified.");
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Failed to set new manufacturer: Root device setup options can not be modified.");
 
     this->newManufacturer = manufacturer;
     return OPENDAQ_SUCCESS;
@@ -113,7 +113,7 @@ ErrCode DeviceUpdateOptionsImpl::getNewManufacturer(IString** manufacturer)
 ErrCode DeviceUpdateOptionsImpl::setNewSerialNumber(IString* serialNumber)
 {
     if (isRoot)
-        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Root device setup options can not be modified.");
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Failed to set new serial number: Root device setup options can not be modified.");
 
     this->newSerialNumber = serialNumber;
     return OPENDAQ_SUCCESS;
@@ -130,7 +130,7 @@ ErrCode DeviceUpdateOptionsImpl::getNewSerialNumber(IString** serialNumber)
 ErrCode DeviceUpdateOptionsImpl::setNewConnectionString(IString* connectionString)
 {
     if (isRoot)
-        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Root device setup options can not be modified.");
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Failed to set new connection string: Root device setup options can not be modified.");
 
     this->newConnectionString = connectionString;
     return OPENDAQ_SUCCESS;
@@ -147,7 +147,7 @@ ErrCode DeviceUpdateOptionsImpl::getNewConnectionString(IString** connectionStri
 ErrCode DeviceUpdateOptionsImpl::setNewLocalId(IString* localId)
 {
     if (isRoot)
-        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Root device setup options can not be modified.");
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Failed to set new local ID: Root device setup options can not be modified.");
 
     this->newLocalId = localId;
     return OPENDAQ_SUCCESS;

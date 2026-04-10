@@ -39,7 +39,7 @@ PyDaqIntf<daq::IDeviceUpdateOptions, daq::IBaseObject> declareIDeviceUpdateOptio
         .value("Skip", daq::DeviceUpdateMode::Skip)
         .value("Remove", daq::DeviceUpdateMode::Remove)
         .value("Remap", daq::DeviceUpdateMode::Remap)
-        .value("Switch", daq::DeviceUpdateMode::Switch);
+        .value("Retarget", daq::DeviceUpdateMode::Retarget);
 
     return wrapInterface<daq::IDeviceUpdateOptions, daq::IBaseObject>(m, "IDeviceUpdateOptions");
 }

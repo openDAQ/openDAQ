@@ -36,7 +36,7 @@ enum class DeviceUpdateMode : EnumType
     Skip,         ///< The device is not updated. Does neither add nor remove the device.
     Remove,       ///< Removes the device from the tree, if present.
     Remap,        ///< Same as load, but removes old device (if present) and uses the new manufacturer, serial number, and connection string to add a new one and update.
-    Switch        ///< Switches the local ID found in the setup with the new local ID. Requires a device with the new local ID to be present, otherwise the update will be skipped.
+    Retarget      ///< Same as UpdateOnly, but applies the setup to a different existing device by switching the target local ID. Requires a device with the new local ID to already be present.
 };
 
 /*!
@@ -52,8 +52,8 @@ enum class DeviceUpdateMode : EnumType
  *  - Skip: The device is not updated. Does neither add nor remove the device.
  *  - Remove: Removes the device from the tree, if present.
  *  - Remap: Same as load, but removes old device (if present) and uses the new manufacturer, serial number, and connection string to add a new one and update.
- *  - Switch: Switches the local ID found in the setup with the new local ID. Requires a device with the new local ID to be present, otherwise the update will be skipped. 
- *            The device with the new local ID will be updated with the settings of the device with the old local ID.
+ *  - Retarget: Same as UpdateOnly, but applies the setup to a different existing device by switching the target local ID. Requires a device with the new local ID
+ *              to already be present; otherwise the update is skipped. As opposed to Remap, the device onto which the setup is loaded is not removed/added.
  *
  * @subsection opendaq_device_options_remapping Remapping
  * 

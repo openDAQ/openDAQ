@@ -28,7 +28,7 @@ extern "C"
         daqDeviceUpdateModeSkip,
         daqDeviceUpdateModeRemove,
         daqDeviceUpdateModeRemap
-        daqDeviceUpdateModeSwitch
+        daqDeviceUpdateModeRetarget
     } daqDeviceUpdateMode;
 
 #ifdef __cplusplus

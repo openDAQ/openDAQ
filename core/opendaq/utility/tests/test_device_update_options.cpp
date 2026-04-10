@@ -562,7 +562,7 @@ TEST_F(DeviceUpdateOptionsTest, SerializeDeserialize)
     ASSERT_EQ(options, optionsDeserialized);
 }
 
-TEST_F(DeviceUpdateOptionsTest, Switch)
+TEST_F(DeviceUpdateOptionsTest, Retarget)
 {
     auto child1 = instance.getDevices()[0];
     auto child2 = instance.getDevices()[1];
@@ -584,10 +584,10 @@ TEST_F(DeviceUpdateOptionsTest, Switch)
     auto child2Options = rootChildOptions[1];
     auto child2ChildOptions = child2Options.getChildDeviceOptions();
 
-    child1Options.setUpdateMode(DeviceUpdateMode::Switch);
+    child1Options.setUpdateMode(DeviceUpdateMode::Retarget);
     child1Options.setNewLocalId("Man2_Ser2");
 
-    child2Options.setUpdateMode(DeviceUpdateMode::Switch);
+    child2Options.setUpdateMode(DeviceUpdateMode::Retarget);
     child2Options.setNewLocalId("Man1_Ser1");
     
     child2ChildOptions[0].setUpdateMode(DeviceUpdateMode::Skip);

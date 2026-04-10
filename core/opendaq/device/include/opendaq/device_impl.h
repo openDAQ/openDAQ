@@ -2076,12 +2076,12 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             return;
 
         std::string deviceIdLocal = deviceId;
-        if (mode == DeviceUpdateMode::Switch)
+        if (mode == DeviceUpdateMode::Retarget)
         {
             deviceIdLocal = options.getNewLocalId().toStdString();
             if (deviceIdLocal == "")
             {
-                LOG_E("No new local ID provided for switching device with ID {} in parent Device with ID {}.", deviceId, this->localId);
+                LOG_E("No new local ID provided when retargeting device with ID {} in parent Device with ID {}.", deviceId, this->localId);
                 return;
             }
         }
@@ -2094,8 +2094,8 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                 case DeviceUpdateMode::UpdateOnly:
                 case DeviceUpdateMode::Remove:
                     return;
-                case DeviceUpdateMode::Switch:
-                    LOG_E("Device with ID {} does not exist for switching in parent Device with ID {}.", deviceIdLocal, this->localId);
+                case DeviceUpdateMode::Retarget:
+                    LOG_E("Device with ID {} does not exist when retargeting  retargeting in parent Device with ID {}.", deviceIdLocal, this->localId);
                     return;
                 default:
                     break;
@@ -2113,7 +2113,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                     return;  // Early return since device is removed and should not be updated
                 case DeviceUpdateMode::Load:
                 case DeviceUpdateMode::UpdateOnly:
-                case DeviceUpdateMode::Switch:
+                case DeviceUpdateMode::Retarget:
                 {
                     DevicePtr device = devices.getItem(deviceIdLocal);
                     const auto updatableDevice = device.template asPtr<IUpdatable>(true);

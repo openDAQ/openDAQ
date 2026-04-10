@@ -53,6 +53,7 @@ protected:
     ListPtr<ILogFileInfo> onGetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
     std::set<OperationModeType> onGetAvailableOperationModes() override;
+    OperationModeType onGetDefaultOperationMode() override;
     void onOperationModeChanged(OperationModeType modeType) override;
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED
@@ -95,7 +96,7 @@ private:
     std::chrono::microseconds startTimeInMs;
     std::chrono::microseconds lastCollectTime;
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
-    
+
     std::vector<ChannelPtr> channels;
     ChannelPtr canChannel;
     ChannelPtr protectedChannel;

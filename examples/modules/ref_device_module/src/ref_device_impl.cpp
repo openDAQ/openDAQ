@@ -547,7 +547,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::onGetLogFileInfos()
                                            .setEncoding("utf-8")
                                            .setLastModified(lastModified)
                                            .build();
-    
+
     return List<ILogFileInfo>(logFileInfo);
 }
 
@@ -588,6 +588,11 @@ StringPtr RefDeviceImpl::onGetLog(const StringPtr& id, Int size, Int offset)
 std::set<OperationModeType> RefDeviceImpl::onGetAvailableOperationModes()
 {
     return {OperationModeType::Idle, OperationModeType::Operation, OperationModeType::SafeOperation};
+}
+
+OperationModeType RefDeviceImpl::onGetDefaultOperationMode()
+{
+    return OperationModeType::Idle;
 }
 
 void RefDeviceImpl::onOperationModeChanged(OperationModeType modeType)

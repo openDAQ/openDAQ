@@ -68,9 +68,6 @@ class BlockView(ttk.Frame):
 
         self.header_frame = ttk.Frame(self)
         self.header_frame.pack(fill=tk.X)
-        self.toggle_button = tk.Button(
-            self.header_frame, text='+', image=self.collapsed_img, borderwidth=0, command=self.handle_expand_toggle)
-        self.toggle_button.pack(side=tk.LEFT)
 
         self.label_icon = ttk.Label(self.header_frame)
         self.label_icon.pack(side=tk.LEFT)
@@ -345,47 +342,26 @@ class BlockView(ttk.Frame):
             pass
         self.status_square.config(bg=color)
 
-
-    def handle_expand_toggle(self):
-        self.expanded = not self.expanded
-        self.on_expand()
-
     def on_expand(self):
-        if self.expanded:
-            self.expanded_frame.pack(fill=tk.BOTH)
-            self.expanded_frame.grid_columnconfigure(
-                self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
-            self.expanded_frame.grid_rowconfigure(self.rows, weight=1,
-                                                  minsize=int(350 * self.context.dpi_factor) if self.input_ports and self.output_signals
-                                                                 or daq.IFolder.can_cast_from(self.node) and
-                                                                 not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
-            if self.properties:
-                self.properties.grid(
-                    row=0, column=0, rowspan=2, sticky=tk.NSEW)
-
-            if self.input_ports:
-                self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
-
-            if self.output_signals:
-                row_idx = 1 if self.input_ports else 0
-                self.output_signals.grid(row=row_idx, column=1, sticky=tk.NSEW)
-                
-            if self.recoder:
-                self.recoder.grid(
-                    row=2, column=1, sticky=tk.NSEW)
-
-            self.toggle_button.config(text='-', image=self.expanded_img)
-        else:  # collapsed
-            if self.properties:
-                self.properties.grid_forget()
-            if self.input_ports:
-                self.input_ports.grid_forget()
-            if self.output_signals:
-                self.output_signals.grid_forget()   
-            if self.recoder:
-                self.recoder.grid_forget()
-            self.expanded_frame.pack_forget()
-            self.toggle_button.config(text='+', image=self.collapsed_img)
+        self.expanded_frame.pack(fill=tk.BOTH)
+        self.expanded_frame.grid_columnconfigure(
+            self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
+        self.expanded_frame.grid_rowconfigure(self.rows, weight=1,
+                                              minsize=int(350 * self.context.dpi_factor) if self.input_ports and self.output_signals
+                                                             or daq.IFolder.can_cast_from(self.node) and
+                                                             not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
+        if self.properties:
+            self.properties.grid(
+                row=0, column=0, rowspan=2, sticky=tk.NSEW)
+        if self.input_ports:
+            self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
+        if self.output_signals:
+            row_idx = 1 if self.input_ports else 0
+            self.output_signals.grid(row=row_idx, column=1, sticky=tk.NSEW)
+            
+        if self.recoder:
+            self.recoder.grid(
+                row=2, column=1, sticky=tk.NSEW)
 
     def refresh(self, event):
         pass

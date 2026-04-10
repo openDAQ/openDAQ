@@ -722,8 +722,8 @@ class App(tk.Tk):
             node.parent) if node is not None else None
 
     def right_side_panel_clear(self):
-        for widget in self.right_side_panel.children.values():
-            widget.pack_forget()
+        for widget in list(self.right_side_panel.children.values()):
+            widget.destroy()
 
     def right_side_panel_draw_node(self, node):
         if node is None:
@@ -735,88 +735,17 @@ class App(tk.Tk):
             return
         if not found.visible and not self.context.view_hidden_components:
             return
-        if type(found) in (daq.IChannel, daq.IFunctionBlock, daq.IFolder):
 
-            upper_nodes = list()
-            parent_hidden = False
-
-            current = found.parent
-            while current is not None:
-                if not current.visible and not self.context.view_hidden_components:
-                    parent_hidden = True
-                    break
-                if daq.IDevice.can_cast_from(current):
-                    break  # stop at device
-                if daq.ISyncComponent.can_cast_from(current):
-                    break  # stop at sync component
-                if daq.IFolder.can_cast_from(current):
-                    if current.local_id == 'IO':
-                        break  # stop at IO folder
-                    elif current.local_id == 'FB':
-                        pass  # skip FB folder
-                    else:
-                        upper_nodes.append(
-                            daq.IFolder.cast_from(current))
-                elif daq.IFunctionBlock.can_cast_from(current):
-                    upper_nodes.append(
-                        daq.IFunctionBlock.cast_from(current))
-                current = current.parent
-
-            if parent_hidden:
-                return
-
-            for upper_node in reversed(upper_nodes):
-                block_view = BlockView(
-                    self.right_side_panel, upper_node, self.context)
-                block_view.pack(fill=tk.X, padx=5, pady=5)
-
-            def draw_sub_components(component, level=0):
-                if component is None:
-                    return
-
-                if not component.visible and not self.context.view_hidden_components:
-                    return
-
-                if daq.IFunctionBlock.can_cast_from(component):
-                    component = daq.IFunctionBlock.cast_from(component)
-                    b = BlockView(self.right_side_panel, component,
-                                  self.context, level == 0)
-                    b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
-                    if component.has_item('FB'):
-                        fb_folder = component.get_item('FB')
-                        fb_folder = daq.IFolder.cast_from(fb_folder)
-                        for component in fb_folder.items:
-                            draw_sub_components(component, level + 1)
-                elif daq.IDevice.can_cast_from(component):
-                    component = daq.IDevice.cast_from(component)
-                    b = BlockView(self.right_side_panel, component,
-                                  self.context, level == 0)
-                    b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
-                    if component.has_item('Dev'):
-                        dev_folder = component.get_item('Dev')
-                        dev_folder = daq.IFolder.cast_from(dev_folder)
-                        for item in dev_folder.items:
-                            draw_sub_components(item, level + 1)
-                elif daq.IFolder.can_cast_from(component):
-                    component = daq.IFolder.cast_from(component)
-                    b = BlockView(self.right_side_panel, component,
-                                  self.context, level == 0)
-                    b.pack(fill=tk.X, padx=(5 + 10 * level, 5), pady=5)
-                    for item in component.items:
-                        draw_sub_components(item, level + 1)
-
-            draw_sub_components(found)
-
-        elif type(found) in (daq.IDevice, daq.IComponent, daq.ISyncComponent):
-            block_view = BlockView(self.right_side_panel, found, self.context)
-            block_view.handle_expand_toggle()
-            block_view.pack(fill=tk.X, padx=5, pady=5)
+        block_view = BlockView(self.right_side_panel, found, self.context, expanded=True)
+        block_view.pack(fill=tk.X, padx=5, pady=5)
 
     # MARK: - Right hand side panel - MODULES
     def right_side_panel_draw_module(self, mod_id):
         if mod_id not in self.modules_map:
             return
+        
         mod = self.modules_map[mod_id]
+        
         self._draw_module_header(self.right_side_panel, mod)
         self._draw_module_type_columns(self.right_side_panel, mod)
 

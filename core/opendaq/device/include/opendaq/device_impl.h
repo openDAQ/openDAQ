@@ -1188,7 +1188,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(Op
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /* modeType */)
 {
-    return this->updateOperationModeInternal(OperationModeType::Operation);
+    return this->updateOperationModeInternal(OperationModeType::SafeOperation);
 }
 
 template <typename TInterface, typename... Interfaces>

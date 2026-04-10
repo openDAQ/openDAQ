@@ -616,8 +616,8 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
     auto mode2 = device.getAvailableOperationModes()[1];
     ASSERT_EQ(mode2, daq::OperationModeType::Operation);
 
-    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
-    checkDeviceOperationMode(subDevice, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(device, daq::OperationModeType::SafeOperation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::SafeOperation);
 
     ASSERT_NO_THROW(device.setOperationModeRecursive(daq::OperationModeType::Idle));
     checkDeviceOperationMode(device, daq::OperationModeType::Idle);

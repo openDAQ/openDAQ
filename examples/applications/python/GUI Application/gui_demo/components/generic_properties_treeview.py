@@ -46,11 +46,11 @@ class PropertiesTreeview(ttk.Treeview):
         self.configure(yscrollcommand=lambda *a: (
             self._scroll_bar.set(*a), self._sync_overlays()))
         self._scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
-        scroll_bar_x = ttk.Scrollbar(
+        self._scroll_bar_x = ttk.Scrollbar(
             self, orient=tk.HORIZONTAL, command=self.xview)
         self.configure(xscrollcommand=lambda *a: (
-            scroll_bar_x.set(*a), self.after_idle(self._sync_overlays)))
-        scroll_bar_x.pack(side=tk.BOTTOM, fill=tk.X)
+            self._scroll_bar_x.set(*a), self.after_idle(self._sync_overlays)))
+        self._scroll_bar_x.pack(side=tk.BOTTOM, fill=tk.X)
         self.pack(fill=tk.BOTH, expand=True)
 
         self.tag_configure('readonly', foreground='gray')
@@ -414,16 +414,34 @@ class PropertiesTreeview(ttk.Treeview):
         try:
             if not self.winfo_viewable():
                 return
+
+            sb_x_h = self._scroll_bar_x.winfo_height() if self._scroll_bar_x.winfo_ismapped() else 0
+            sb_y_w = self._scroll_bar.winfo_width() if self._scroll_bar.winfo_ismapped() else 0
+            visible_w = self.winfo_width() - sb_y_w
+            visible_h = self.winfo_height() - sb_x_h
+
             for iid, item_prop in self._overlay_items.items():
                 is_method = item_prop.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc)
                 bbox = self.bbox(iid, '#0' if is_method else '#1')
                 if bbox:
                     if iid not in self._overlay_comboboxes:
                         self._create_overlay_for_item(iid, item_prop)
-                    else:
+
+                    if iid in self._overlay_comboboxes:
                         x, py, w, ph = self._get_overlay_place_geometry(bbox)
-                        self._overlay_comboboxes[iid].place(x=x, y=py, width=w, height=ph)
-                        self._overlay_comboboxes[iid].lift()
+                        
+                        if x >= visible_w or (x + w) <= 0:
+                            fully_visible = False
+                        else:
+                            w = min(w, visible_w - x)
+                            fully_visible = py >= 0 and py + ph <= visible_h
+                            
+                        
+                        if fully_visible:
+                            self._overlay_comboboxes[iid].place(x=x, y=py, width=w, height=ph)
+                            self._overlay_comboboxes[iid].lift()
+                        else:
+                            self._overlay_comboboxes[iid].place_forget()
                 else:
                     if iid in self._overlay_comboboxes:
                         self._overlay_comboboxes[iid].place_forget()

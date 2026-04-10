@@ -11,6 +11,7 @@ from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .recorder_view import RecorderView
 from .attributes_dialog import AttributesDialog
+from .output_signal_row import OutputSignalRow
 
 class BlockView(ttk.Frame):
 
@@ -218,6 +219,78 @@ class BlockView(ttk.Frame):
                 self.label_icon.config(image=self.sync_component_img)
                 self.cols = [0]
                 self.rows = [0]
+            elif daq.ISignal.can_cast_from(self.node):
+                self.node = daq.ISignal.cast_from(self.node)
+                signal_icon = context.icons.get('signal') if context and context.icons else None
+                self.label_icon.config(image=signal_icon)
+
+                wrapper = ttk.Frame(self.expanded_frame)
+
+                PropertiesView(wrapper, self.node, self.context, read_only=True).pack(
+                    fill=tk.BOTH, expand=True)
+
+                # Last value with live polling
+                info_frame = ttk.Frame(wrapper, padding=(10, 5))
+                info_frame.pack(fill=tk.X)
+                info_frame.columnconfigure(1, weight=1)
+
+                last_value = utils.get_last_value_for_signal(self.node)
+                ttk.Label(info_frame, text='Last Value').grid(
+                    row=0, column=0, sticky=tk.W, pady=2)
+                self._signal_last_value_label = ttk.Label(info_frame, text=str(last_value))
+                self._signal_last_value_label.grid(
+                    row=0, column=1, sticky=tk.W, padx=(8, 0), pady=2)
+
+                self._signal_rows = []
+
+                if self.node.domain_signal is not None:
+                    ttk.Label(wrapper, text='Domain Signal',
+                                  padding=(10, 5, 0, 0)).pack(anchor=tk.W)
+                    try:
+                        domain_sig = self.node.domain_signal
+                        domain_row = OutputSignalRow(wrapper, domain_sig, self.context)
+                        domain_row.pack(anchor=tk.NW, fill=tk.X, padx=(20, 0))
+                        self._signal_rows.append(domain_row)
+                    except RuntimeError:
+                        pass
+
+                try:
+                    related = self.node.related_signals
+                    ttk.Label(wrapper, text='Related Signals',
+                                  padding=(10, 5, 0, 0)).pack(anchor=tk.W)
+                    if related and len(related) > 0:
+                        
+                        for sig in related:
+                            row = OutputSignalRow(wrapper, sig, self.context)
+                            row.pack(anchor=tk.NW, fill=tk.X, padx=(20, 0))
+                            self._signal_rows.append(row)
+                    else:
+                        ttk.Label(wrapper, text='None',padding=(20, 0)).pack(anchor=tk.W)
+                except RuntimeError:
+                    pass
+
+                self.properties = wrapper
+                self.cols = [0]
+                self.rows = [0]
+
+                self._signal_refresh_job = None
+
+                def _poll_signal_info():
+                    self._signal_refresh_job = None
+                    if not self.winfo_exists():
+                        return
+                    if self.winfo_ismapped():
+                        new_value = utils.get_last_value_for_signal(self.node)
+                        self._signal_last_value_label.config(text=str(new_value))
+                        for signal_row in self._signal_rows:
+                            try:
+                                if signal_row.winfo_exists():
+                                    signal_row.refresh()
+                            except Exception:
+                                pass
+                    self._signal_refresh_job = self.after(200, _poll_signal_info)
+
+                self._signal_refresh_job = self.after(200, _poll_signal_info)
             elif daq.IComponent.can_cast_from(self.node):
                 self.node = daq.IComponent.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -272,6 +345,12 @@ class BlockView(ttk.Frame):
             self.bind('<Destroy>', self._on_destroy)
 
     def _on_destroy(self, event):
+        if hasattr(self, '_signal_refresh_job') and self._signal_refresh_job is not None:
+            try:
+                self.after_cancel(self._signal_refresh_job)
+            except Exception:
+                pass
+            self._signal_refresh_job = None
         if self._component_core_event_handler is not None and self.node is not None and daq.IComponent.can_cast_from(self.node):
             try:
                 component = daq.IComponent.cast_from(self.node)

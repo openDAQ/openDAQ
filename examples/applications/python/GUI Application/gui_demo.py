@@ -689,6 +689,8 @@ class App(tk.Tk):
             return daq.ISyncComponent.cast_from(node)
         elif daq.IFolder.can_cast_from(node):
             return daq.IFolder.cast_from(node)
+        elif daq.ISignal.can_cast_from(node):
+            return daq.ISignal.cast_from(node)
 
         return self.find_fb_device_folder(
             node.parent) if node is not None else None

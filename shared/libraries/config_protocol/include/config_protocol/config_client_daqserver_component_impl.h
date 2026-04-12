@@ -21,12 +21,12 @@
 namespace daq::config_protocol
 {
 
-class ConfigClientServerImpl : public ConfigClientComponentBaseImpl<ServerImpl<IServer, IConfigClientObject>>
+class ConfigClientDaqServerComponentImpl : public ConfigClientComponentBaseImpl<ServerImpl<IServer, IConfigClientObject>>
 {
 public:
     using Super = ConfigClientComponentBaseImpl<ServerImpl<IServer, IConfigClientObject>>;
 
-    ConfigClientServerImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+    ConfigClientDaqServerComponentImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                            const std::string& remoteGlobalId,
                            const StringPtr& id,
                            const DevicePtr& parentDevice,
@@ -35,6 +35,7 @@ public:
 
     // IServer
     ErrCode INTERFACE_FUNC enableDiscovery() override;
+    ErrCode INTERFACE_FUNC disableDiscovery() override;
     ErrCode INTERFACE_FUNC stop() override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -43,7 +44,7 @@ protected:
     void removed() override;
 };
 
-inline ConfigClientServerImpl::ConfigClientServerImpl(
+inline ConfigClientDaqServerComponentImpl::ConfigClientDaqServerComponentImpl(
     const ConfigProtocolClientCommPtr& configProtocolClientComm,
     const std::string& remoteGlobalId,
     const StringPtr& id,
@@ -54,17 +55,26 @@ inline ConfigClientServerImpl::ConfigClientServerImpl(
 {
 }
 
-inline ErrCode ConfigClientServerImpl::enableDiscovery()
+inline ErrCode ConfigClientDaqServerComponentImpl::enableDiscovery()
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    const ErrCode errCode = daqTry([this] { this->clientComm->enableDiscovery(this->remoteGlobalId); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
-inline ErrCode ConfigClientServerImpl::stop()
+inline ErrCode ConfigClientDaqServerComponentImpl::disableDiscovery()
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    const ErrCode errCode = daqTry([this] { this->clientComm->disableDiscovery(this->remoteGlobalId); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
-inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized,
+inline ErrCode ConfigClientDaqServerComponentImpl::stop()
+{
+    return OPENDAQ_IGNORED;
+}
+
+inline ErrCode ConfigClientDaqServerComponentImpl::Deserialize(ISerializedObject* serialized,
                                                    IBaseObject* context,
                                                    IFunction* factoryCallback,
                                                    IBaseObject** obj)
@@ -97,7 +107,7 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
                                 DAQ_THROW_EXCEPTION(GeneralErrorException, "The server-component can be placed only under device's servers folder");
                         }
 
-                        return createWithImplementation<IServer, ConfigClientServerImpl>(
+                        return createWithImplementation<IServer, ConfigClientDaqServerComponentImpl>(
                             configDeserializeContext->getClientComm(),
                             configDeserializeContext->getRemoteGlobalId(),
                             id,
@@ -111,7 +121,7 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
     return errCode;
 }
 
-inline void ConfigClientServerImpl::removed()
+inline void ConfigClientDaqServerComponentImpl::removed()
 {
     Super::Super::removed();
 }

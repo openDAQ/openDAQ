@@ -132,6 +132,9 @@ public:
     void stopRecording(const std::string& globalId);
     BooleanPtr getIsRecording(const std::string& globalId);
 
+    void enableDiscovery(const std::string& globalId);
+    void disableDiscovery(const std::string& globalId);
+
     bool getConnected() const;
     ContextPtr getDaqContext();
 

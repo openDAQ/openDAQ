@@ -33,7 +33,7 @@ set(SRC_PublicHeaders config_protocol.h
                       config_client_input_port.h
                       config_client_sync_component_impl.h
                       config_client_device_info_impl.h
-                      config_client_server_impl.h
+                      config_client_daqserver_component_impl.h
                       config_server_component.h
                       config_server_device.h
                       config_server_signal.h
@@ -44,6 +44,7 @@ set(SRC_PublicHeaders config_protocol.h
                       errors.h
                       config_server_recorder.h
                       config_client_property.h
+                      config_server_daqserver_component.h
 )
 
 set(SRC_PrivateHeaders config_protocol_deserialize_context_impl.h

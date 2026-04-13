@@ -14,10 +14,9 @@ from .attributes_dialog import AttributesDialog
 
 class BlockView(ttk.Frame):
 
-    def __init__(self, parent, node, context=None, expanded=False, **kwargs):
+    def __init__(self, parent, node, context=None, **kwargs):
         ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
-        self.expanded = expanded
         self.node = node
         self.context = context
         self.event_port = EventPort(self, event_callback=self.refresh)
@@ -32,11 +31,9 @@ class BlockView(ttk.Frame):
             self.active = node.active
             self.parent_active = node.parent_active
             name = node.name
-        self.configure(relief=tk.SOLID, border=0.5, padding=5)
+        self.configure(relief=tk.FLAT, border=0, padding=(0,5,10,0))
 
         self.edit_image = None
-        self.collapsed_img = None
-        self.expanded_img = None
 
         self.device_img = None
         self.function_block_img = None
@@ -50,11 +47,6 @@ class BlockView(ttk.Frame):
         if context and context.icons:
             if 'settings' in context.icons:
                 self.edit_image = context.icons['settings']
-            if 'right' in context.icons:
-                self.collapsed_img = context.icons['right']
-            if 'down' in context.icons:
-                self.expanded_img = context.icons['down']
-
             if 'device' in context.icons:
                 self.device_img = context.icons['device']
             if 'function_block' in context.icons:
@@ -83,7 +75,7 @@ class BlockView(ttk.Frame):
             state=checkbox_state)
         self.checkbox.pack(side=tk.RIGHT)
 
-        self.expanded_frame = ttk.Frame(self, padding=5)
+        self.expanded_frame = ttk.Frame(self)
 
         if node:
             self.properties = None
@@ -155,23 +147,62 @@ class BlockView(ttk.Frame):
                     op_mode_menu.add_command(label=mode, command=make_select(mode))
             
             elif daq.IFunctionBlock.can_cast_from(self.node):
+                self._right_container = ttk.Frame(self.expanded_frame)
+                right_canvas = tk.Canvas(self._right_container, highlightthickness=0)
+                right_scrollbar = ttk.Scrollbar(
+                    self._right_container, orient=tk.VERTICAL, command=right_canvas.yview)
+                self.right_stack = ttk.Frame(right_canvas)
+
+                self.right_stack.bind('<Configure>',
+                    lambda e: right_canvas.configure(scrollregion=right_canvas.bbox('all')))
+                right_canvas.create_window((0, 0), window=self.right_stack, anchor=tk.NW)
+                right_canvas.configure(yscrollcommand=right_scrollbar.set)
+                right_canvas.bind('<Configure>',
+                    lambda e: right_canvas.itemconfig('all', width=e.width))
+
+                def _on_mousewheel(e):
+                    # Check if the entire content is already visible
+                    if right_canvas.yview() == (0.0, 1.0):
+                        return
+                    right_canvas.yview_scroll(int(-1 * (e.delta / 120)), 'units')
+
+                right_canvas.bind('<MouseWheel>', _on_mousewheel)
+                self.right_stack.bind('<MouseWheel>', _on_mousewheel)
+
+                right_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+                right_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+                self.cols = [0, 1]
+
                 if daq.IRecorder.can_cast_from(self.node):
                     self.node = daq.IRecorder.cast_from(self.node)
-                    self.recoder = RecorderView(self.expanded_frame, self.node, self.context)
+                    self.recoder = RecorderView(self.right_stack, self.node, self.context)
                 self.node = daq.IFunctionBlock.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
-                
+
                 if len(self.node.input_ports) > 0:
                     self.input_ports = InputPortsView(
-                        self.expanded_frame, self.node, self.context)
+                        self.right_stack, self.node, self.context)
+                    self.input_ports.pack(fill=tk.BOTH, expand=True)
 
-                self.output_signals = OutputSignalsView(self.expanded_frame, self.node, self.context)
+                self.output_signals = OutputSignalsView(self.right_stack, self.node, self.context)
+                self.output_signals.pack(fill=tk.BOTH, expand=True)
+
+                if self.recoder:
+                    self.recoder.pack(fill=tk.X)
                 
                 self.label_icon.config(image=self.function_block_img)
-                
+
                 self.cols = [0, 1]
-                self.rows = [0, 1]
+                self.rows = [0]
+                
+                def _bind_mousewheel_recursive(widget):
+                    widget.bind('<MouseWheel>', _on_mousewheel)
+                    for child in widget.winfo_children():
+                        _bind_mousewheel_recursive(child)
+                
+                _bind_mousewheel_recursive(self.right_stack)
                 
             elif daq.IFolder.can_cast_from(self.node):
                 self.node = daq.IFolder.cast_from(self.node)
@@ -195,7 +226,7 @@ class BlockView(ttk.Frame):
                 self.cols = [0]
                 self.rows = [0]
 
-        self.on_expand()
+        self.layout_view()
 
         self.status_square = None
         self.status_message = None
@@ -342,8 +373,8 @@ class BlockView(ttk.Frame):
             pass
         self.status_square.config(bg=color)
 
-    def on_expand(self):
-        self.expanded_frame.pack(fill=tk.BOTH)
+    def layout_view(self):
+        self.expanded_frame.pack(fill=tk.BOTH, expand=True)
         self.expanded_frame.grid_columnconfigure(
             self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
         self.expanded_frame.grid_rowconfigure(self.rows, weight=1,
@@ -352,16 +383,16 @@ class BlockView(ttk.Frame):
                                                              not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
         if self.properties:
             self.properties.grid(
-                row=0, column=0, rowspan=2, sticky=tk.NSEW)
-        if self.input_ports:
+                row=0, column=0, sticky=tk.NSEW)
+        if hasattr(self, '_right_container'):
+            self._right_container.grid(row=0, column=1, sticky=tk.NSEW)
+        elif self.input_ports:
             self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
-        if self.output_signals:
-            row_idx = 1 if self.input_ports else 0
-            self.output_signals.grid(row=row_idx, column=1, sticky=tk.NSEW)
-            
-        if self.recoder:
-            self.recoder.grid(
-                row=2, column=1, sticky=tk.NSEW)
+        elif self.output_signals:
+            self.output_signals.grid(row=0, column=1, sticky=tk.NSEW)
+
+        if self.recoder and not hasattr(self, 'right_stack'):
+            self.recoder.grid(row=1, column=1, sticky=tk.NSEW)
 
     def refresh(self, event):
         pass

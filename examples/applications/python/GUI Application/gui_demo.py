@@ -515,39 +515,11 @@ class App(tk.Tk):
             self.tree.selection_set('')
 
     def right_side_panel_create(self, parent_frame):
-
-        def canvas_on_configure(event):
-            canvas.itemconfig(sframe_id, width=event.width)
-
-        def inner_frame_on_configure(event):
-            reqwidth, reqheight = sframe.winfo_reqwidth(), sframe.winfo_reqheight()
-            canvas.config(scrollregion=f'0 0 {reqwidth} {reqheight}')
-
-        def yview_wrapper(*args):
-            moveto = float(args[1])
-            moveto = moveto if moveto > 0 else 0.0
-            return canvas.yview(tk.MOVETO, moveto)
-
-        frame = parent_frame
-        canvas = tk.Canvas(frame)
-        canvas.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
-
-        canvas.xview_moveto(0)
-        canvas.yview_moveto(0)
-
-        scrollbar = ttk.Scrollbar(
-            frame, orient=tk.VERTICAL, command=yview_wrapper)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        sframe = ttk.Frame(canvas)
-        sframe_id = canvas.create_window(0, 0, window=sframe, anchor=tk.NW)
+        sframe = ttk.Frame(parent_frame)
+        sframe.pack(fill=tk.BOTH, expand=True)
 
         self.right_side_panel = sframe
-        self.right_side_canvas = canvas
-
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.bind('<Configure>', canvas_on_configure)
-        sframe.bind('<Configure>', inner_frame_on_configure)
+        self.right_side_canvas = None
 
     # MARK: - Add device dialog
     def add_device_dialog_show(self):
@@ -736,8 +708,8 @@ class App(tk.Tk):
         if not found.visible and not self.context.view_hidden_components:
             return
 
-        block_view = BlockView(self.right_side_panel, found, self.context, expanded=True)
-        block_view.pack(fill=tk.X, padx=5, pady=5)
+        block_view = BlockView(self.right_side_panel, found, self.context)
+        block_view.pack(fill=tk.BOTH,  expand=True)
 
     # MARK: - Right hand side panel - MODULES
     def right_side_panel_draw_module(self, mod_id):
@@ -840,13 +812,15 @@ class App(tk.Tk):
         type_tree.bind('<<TreeviewSelect>>', on_type_selected)
 
         def update_columns_height(event=None):
-            self.right_side_canvas.update_idletasks()
-            canvas_h = self.right_side_canvas.winfo_height()
-            remaining = canvas_h - columns_frame.winfo_y() - 10
-            if remaining > 100:
-                columns_frame.configure(height=remaining)
+            if self.right_side_canvas is not None:
+                self.right_side_canvas.update_idletasks()
+                canvas_h = self.right_side_canvas.winfo_height()
+                remaining = canvas_h - columns_frame.winfo_y() - 10
+                if remaining > 100:
+                    columns_frame.configure(height=remaining)
 
-        self.right_side_canvas.bind('<Configure>', update_columns_height, add='+')
+        if self.right_side_canvas is not None:
+            self.right_side_canvas.bind('<Configure>', update_columns_height, add='+')
         columns_frame.after_idle(update_columns_height)
 
     def _draw_module_type_detail(self, frame, entry):

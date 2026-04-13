@@ -31,6 +31,8 @@
 - [#1081](https://github.com/openDAQ/openDAQ/pull/1081) Adds device load options to the Python GUI.
 
 ## Bug fixes
+
+- [#1150](https://github.com/openDAQ/openDAQ/pull/1150) Serialize public flag for input ports
 - [#1149](https://github.com/openDAQ/openDAQ/pull/1149) Return error code instead of throwing exceptions from module info.
 - [#1146](https://github.com/openDAQ/openDAQ/pull/1146) Use sender addresses if device does not provide A or AAAA records
 - [#1143] (https://github.com/openDAQ/openDAQ/pull/1143) Fix uncaught exception when closing renderer window

@@ -32,7 +32,7 @@ class AddFunctionBlockDialog(Dialog):
             yscrollcommand=parent_device_scroll_bar.set)
         parent_device_scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        parent_device_tree.heading('#0', text='Parent device', anchor=tk.W)
+        parent_device_tree.heading('#0', text='Parent', anchor=tk.W)
 
         parent_device_tree.column(
             '#0', anchor=tk.W, minwidth=int(200 * self.context.dpi_factor), stretch=True)
@@ -281,6 +281,7 @@ class AddFunctionBlockDialog(Dialog):
         self.context.selected_node = new_fb
         self.event_port.emit()
         if self._keep_open_var.get():
+            self.update_dialog()
             self.update_function_blocks()
         else:
             self.close()

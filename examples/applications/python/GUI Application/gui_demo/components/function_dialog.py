@@ -109,8 +109,8 @@ class FunctionDialog(Dialog):
             ret = self.function(*args)
         except (Exception, ValueError) as e:
             ret = e
-        self.result = ret
-        self.return_value.set(str(ret))
+        display = '""' if isinstance(ret, str) and ret == '' else str(ret)
+        self.return_value.set(display)
 
     def cancel_clicked(self):
         self.destroy()

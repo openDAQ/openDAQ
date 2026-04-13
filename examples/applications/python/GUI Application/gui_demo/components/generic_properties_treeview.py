@@ -151,6 +151,8 @@ class PropertiesTreeview(ttk.Treeview):
                 property_value = ''
             elif property_info.value_type == daq.CoreType.ctObject:
                 property_value = ''
+            elif property_info.value_type in (daq.CoreType.ctList, daq.CoreType.ctDict):
+                property_value = str(node.get_property_value(property_info.name))
             else:
                 property_value = printed_value(
                     property_info.value_type, node.get_property_value(property_info.name))
@@ -558,6 +560,8 @@ class PropertiesTreeview(ttk.Treeview):
                 result_str = 'OK' if result else 'Fail'
             elif isinstance(result, Exception):
                 result_str = str(result)
+            elif isinstance(result, str) and result == '':
+                result_str = '""'
             else:
                 result_str = self._format_value(result)
 
@@ -732,6 +736,8 @@ class PropertiesTreeview(ttk.Treeview):
                 result_str = 'OK' if result else 'Fail'
             elif isinstance(result, Exception):
                 result_str = str(result)
+            elif isinstance(result, str) and result == '':
+                result_str = '""'
             else:
                 result_str = self._format_value(result)
             self._last_method_results[prop.name] = result_str
@@ -756,6 +762,8 @@ class PropertiesTreeview(ttk.Treeview):
                 result_str = 'OK' if result else 'Fail'
             elif isinstance(result, Exception):
                 result_str = str(result)
+            elif isinstance(result, str) and result == '':
+                result_str = '""'
             else:
                 result_str = str(result)
             self._last_method_results[prop.name] = result_str

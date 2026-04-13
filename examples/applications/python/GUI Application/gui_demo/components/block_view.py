@@ -224,18 +224,51 @@ class BlockView(ttk.Frame):
                 signal_icon = context.icons.get('signal') if context and context.icons else None
                 self.label_icon.config(image=signal_icon)
 
-                wrapper = ttk.Frame(self.expanded_frame)
+                _banner_bg = '#afafaf'
+                _banner_fg = 'white'
 
-                PropertiesView(wrapper, self.node, self.context, read_only=True).pack(
-                    fill=tk.BOTH, expand=True)
+                def _make_banner(parent, text):
+                    bar = tk.Frame(parent, bg=_banner_bg, bd=0, highlightthickness=0)
+                    bar.pack(fill=tk.X, pady=(0, 8))
+                    tk.Label(bar, text=text, bg=_banner_bg, fg=_banner_fg,
+                             font=('TkDefaultFont', 10, 'bold')).pack(
+                        side=tk.LEFT, padx=6, pady=2)
+                    return bar
 
-                # Last value with live polling
-                info_frame = ttk.Frame(wrapper, padding=(10, 5))
+                self.properties = PropertiesView(
+                    self.expanded_frame, self.node, self.context, read_only=True)
+
+                self._right_container = ttk.Frame(self.expanded_frame)
+                right_canvas = tk.Canvas(self._right_container, highlightthickness=0)
+                right_scrollbar = ttk.Scrollbar(
+                    self._right_container, orient=tk.VERTICAL, command=right_canvas.yview)
+                self.right_stack = ttk.Frame(right_canvas)
+
+                self.right_stack.bind('<Configure>',
+                    lambda e: right_canvas.configure(scrollregion=right_canvas.bbox('all')))
+                right_canvas.create_window((0, 0), window=self.right_stack, anchor=tk.NW)
+                right_canvas.configure(yscrollcommand=right_scrollbar.set)
+                right_canvas.bind('<Configure>',
+                    lambda e: right_canvas.itemconfig('all', width=e.width))
+
+                def _on_mousewheel(e):
+                    if right_canvas.yview() == (0.0, 1.0):
+                        return
+                    right_canvas.yview_scroll(int(-1 * (e.delta / 120)), 'units')
+                right_canvas.bind('<MouseWheel>', _on_mousewheel)
+                self.right_stack.bind('<MouseWheel>', _on_mousewheel)
+
+                right_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+                right_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+                # -- Signal Info section --
+                _make_banner(self.right_stack, 'Signal info')
+                info_frame = ttk.Frame(self.right_stack, padding=(10, 0, 10, 5))
                 info_frame.pack(fill=tk.X)
                 info_frame.columnconfigure(1, weight=1)
 
                 last_value = utils.get_last_value_for_signal(self.node)
-                ttk.Label(info_frame, text='Last Value').grid(
+                ttk.Label(info_frame, text='Last value').grid(
                     row=0, column=0, sticky=tk.W, pady=2)
                 self._signal_last_value_label = ttk.Label(info_frame, text=str(last_value))
                 self._signal_last_value_label.grid(
@@ -243,34 +276,38 @@ class BlockView(ttk.Frame):
 
                 self._signal_rows = []
 
+                # -- Domain Signal section --
+                _make_banner(self.right_stack, 'Domain signal')
                 if self.node.domain_signal is not None:
-                    ttk.Label(wrapper, text='Domain Signal',
-                                  padding=(10, 5, 0, 0)).pack(anchor=tk.W)
                     try:
-                        domain_sig = self.node.domain_signal
-                        domain_row = OutputSignalRow(wrapper, domain_sig, self.context)
-                        domain_row.pack(anchor=tk.NW, fill=tk.X, padx=(20, 0))
+                        domain_row = OutputSignalRow(
+                            self.right_stack, self.node.domain_signal, self.context)
+                        domain_row.pack(fill=tk.X)
                         self._signal_rows.append(domain_row)
                     except RuntimeError:
-                        pass
+                        ttk.Label(self.right_stack, text='N/A',
+                                  padding=(10, 0)).pack(anchor=tk.W)
+                else:
+                    ttk.Label(self.right_stack, text='None',
+                              padding=(10, 0)).pack(anchor=tk.W)
 
+                # -- Related Signals section --
+                _make_banner(self.right_stack, 'Related signals')
                 try:
                     related = self.node.related_signals
-                    ttk.Label(wrapper, text='Related Signals',
-                                  padding=(10, 5, 0, 0)).pack(anchor=tk.W)
                     if related and len(related) > 0:
-                        
                         for sig in related:
-                            row = OutputSignalRow(wrapper, sig, self.context)
-                            row.pack(anchor=tk.NW, fill=tk.X, padx=(20, 0))
+                            row = OutputSignalRow(self.right_stack, sig, self.context)
+                            row.pack(fill=tk.X)
                             self._signal_rows.append(row)
                     else:
-                        ttk.Label(wrapper, text='None',padding=(20, 0)).pack(anchor=tk.W)
+                        ttk.Label(self.right_stack, text='None',
+                                  padding=(10, 0)).pack(anchor=tk.W)
                 except RuntimeError:
-                    pass
+                    ttk.Label(self.right_stack, text='N/A',
+                              padding=(10, 0)).pack(anchor=tk.W)
 
-                self.properties = wrapper
-                self.cols = [0]
+                self.cols = [0, 1]
                 self.rows = [0]
 
                 self._signal_refresh_job = None

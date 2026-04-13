@@ -105,9 +105,14 @@ jobs:
           path: ${{ steps.build-and-test.outputs.gtest-xml-path }}
 
   build_linux:
-    runs-on: ubuntu-latest
-    name: ${{ matrix.name }}
     if: ${{ ! github.event.pull_request.draft }}
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
+    container:
+      image: ${{ matrix.image }}
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        TZ: Etc/UTC
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
@@ -120,35 +125,37 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Ubuntu Latest gcc-9 Release
-            cc: gcc-9
-            cxx: g++-9
-            additional-packages: g++-9
+          - name: Ubuntu 20.04 armv8 gcc-7 Release
+            image: ubuntu:20.04
+            runner: ubuntu-24.04-arm
+            cc: gcc-7
+            cxx: g++-7
+            additional-packages: gcc-7 g++-7 python3-pip python3-dev
             cmake-generator: Ninja
             cmake-build-type: Release
-            cmake-defines:
-          - name: Ubuntu Latest gcc-14 Release
+            cmake-defines: -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
+          - name: Ubuntu Latest x86_64 gcc-14 Release
             cc: gcc-14
             cxx: g++-14
             additional-packages: g++-14
             cmake-generator: Ninja
             cmake-build-type: Release
             cmake-defines:
-          - name: Ubuntu Latest clang-14 Release
+          - name: Ubuntu Latest x86_64 clang-14 Release
             cc: clang-14
             cxx: clang++-14
             additional-packages: clang-14
             cmake-generator: Ninja
             cmake-build-type: Release
             cmake-defines:
-          - name: Ubuntu Latest clang-16 Release
+          - name: Ubuntu Latest x86_64 clang-16 Release
             cc: clang-16
             cxx: clang++-16
             additional-packages: clang-16
             cmake-generator: Ninja
             cmake-build-type: Release
             cmake-defines:
-          - name: Ubuntu Latest gcc x86_32 Release
+          - name: Ubuntu Latest x86 gcc x86 Release
             cc: gcc
             cxx: g++
             additional-packages:
@@ -189,6 +196,12 @@ jobs:
           #   cmake-defines:
 
     steps:
+      - name: Container bootstrap
+        if: matrix.image != ''
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -204,6 +217,7 @@ jobs:
           enable-32bit: ${{ matrix.enable-32bit == true }}
           enable-tests: true
           ctest-preset: ${{ env.ctest_preset }}
+          skip-setup-python: ${{ matrix.image != '' }}
 
       - name: Upload test results
         if: always()

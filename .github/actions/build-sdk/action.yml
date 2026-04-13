@@ -122,9 +122,6 @@ runs:
         python-version: '3.14'
         architecture: ${{ inputs.enable-32bit == 'true' && 'x86' || 'x64' }}
 
-    - name: Setup cmake
-      uses: jwlawson/actions-setup-cmake@v2
-
     - name: Install Windows dependencies
       if: runner.os == 'Windows' && inputs.additional-dependencies != ''
       shell: pwsh
@@ -134,15 +131,16 @@ runs:
       if: steps.detect-linux.outputs.pkg-manager == 'apt' && inputs.enable-32bit == 'true'
       shell: bash
       run: |
+        SUDO=""; command -v sudo &> /dev/null && SUDO="sudo"
         echo "Removing bootloader packages that conflict with i386 multi-arch"
-        if ! sudo apt-get remove -y --allow-remove-essential shim-signed grub-efi-amd64-signed grub2-common grub-efi-amd64-bin grub-common; then
+        if ! $SUDO apt-get remove -y --allow-remove-essential shim-signed grub-efi-amd64-signed grub2-common grub-efi-amd64-bin grub-common; then
           echo "::warning::Failed to remove bootloader packages"
         fi
         echo "Removing pre-installed 64-bit Python to avoid conflicts with 32-bit build"
-        if ! sudo apt-get remove -y python3 python3-pip python3-dev; then
+        if ! $SUDO apt-get remove -y python3 python3-pip python3-dev; then
           echo "::warning::Failed to remove pre-installed Python packages"
         fi
-        sudo apt-get autoremove -y
+        $SUDO apt-get autoremove -y
 
     - name: Install Linux dependencies (apt)
       if: steps.detect-linux.outputs.pkg-manager == 'apt'
@@ -150,14 +148,15 @@ runs:
       env:
         ENABLE_32BIT: ${{ inputs.enable-32bit }}
       run: |
+        SUDO=""; command -v sudo &> /dev/null && SUDO="sudo"
         if [ "$ENABLE_32BIT" == "true" ]; then
-          sudo dpkg --add-architecture i386
+          $SUDO dpkg --add-architecture i386
           PKG_FILE=".github/packages/apt-i386.txt"
         else
           PKG_FILE=".github/packages/apt.txt"
         fi
 
-        sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+        $SUDO apt-get update && $SUDO apt-get install -y --no-install-recommends \
           ${{ inputs.additional-dependencies || '' }} \
           $(cat "$PKG_FILE")
 
@@ -175,9 +174,23 @@ runs:
       run: |
         HOMEBREW_NO_AUTO_UPDATE=1 brew install mono ${{ inputs.additional-dependencies }}
 
+    - name: Format pip command
+      shell: bash
+      run: |
+        if pip install --break-system-packages --dry-run pip &> /dev/null; then
+          echo "CMD_PIP_INSTALL=pip install --break-system-packages" >> $GITHUB_ENV
+        else
+          echo "CMD_PIP_INSTALL=pip install" >> $GITHUB_ENV
+        fi
+
+    - name: Setup cmake
+      shell: bash
+      run: ${CMD_PIP_INSTALL} cmake
+
     - name: Install ninja-build
       if: inputs.cmake-generator == 'Ninja' && inputs.skip-setup-ninja != 'true'
-      uses: seanmiddleditch/gha-setup-ninja@v6
+      shell: bash
+      run: ${CMD_PIP_INSTALL} ninja
 
     - name: Setup MSYS2 MINGW64
       if: runner.os == 'Windows' && env.CXX == 'g++'

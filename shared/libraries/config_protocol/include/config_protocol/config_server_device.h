@@ -21,6 +21,7 @@
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/device_private_ptr.h>
 #include <opendaq/component_factory.h>
+#include <opendaq/mirrored_device.h>
 
 namespace daq::config_protocol
 {
@@ -289,7 +290,7 @@ inline BaseObjectPtr ConfigServerDevice::setOperationMode(const RpcContext& cont
                                                           const DevicePtr& device,
                                                           const ParamsDictPtr& params)
 {
-    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Write);
     const auto modeType = static_cast<std::string>(params["ModeType"]);
     device.setOperationMode(OperationModeTypeFromString(modeType));
     return nullptr;
@@ -299,9 +300,24 @@ inline BaseObjectPtr ConfigServerDevice::setOperationModeRecursive(const RpcCont
                                                                    const DevicePtr& device,
                                                                    const ParamsDictPtr& params)
 {
-    ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
-    const auto modeType = static_cast<std::string>(params["ModeType"]);
-    device.setOperationModeRecursive(OperationModeTypeFromString(modeType));
+    ConfigServerAccessControl::protectObject(device, context.user, Permission::Write);
+    const auto modeType = OperationModeTypeFromString(static_cast<std::string>(params["ModeType"]));
+    device.setOperationMode(modeType);
+
+    const auto subdevices = device.getDevices(search::Recursive(search::Any()));
+    for (const auto subdev : subdevices)
+    {
+        if (subdev.supportsInterface<IMirroredDevice>())
+        {
+            subdev.setOperationModeRecursive(modeType);
+        }
+        else
+        {
+            ConfigServerAccessControl::protectObject(subdev, context.user, Permission::Write);
+            subdev.setOperationMode(modeType);
+        }
+    }
+
     return nullptr;
 }
 

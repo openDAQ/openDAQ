@@ -64,6 +64,50 @@ static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenti
     return instance;
 }
 
+static InstancePtr CreateCustomServerInstanceWithPermissions(AuthenticationProviderPtr authenticationProvider, PermissionsPtr permissions, bool protectOnlyNestedDevice = false)
+{
+    auto logger = Logger();
+    auto scheduler = Scheduler(logger);
+    auto moduleManager = ModuleManager("[[none]]");
+    auto typeManager = TypeManager();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+
+    auto instance = InstanceCustom(context, "serverLocal");
+    {
+        addNativeServerModule(instance);
+        addRefDeviceModule(instance);
+        addRefDeviceModule(instance);
+        addRefFBModule(instance);
+
+        addLtServerModule(instance);
+    }
+
+    const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
+    const auto refDevice = instance.addDevice("daqref://device0");
+
+    if (!protectOnlyNestedDevice)
+    {
+        instance.getPermissionManager().setPermissions(permissions);
+        statistics.getPermissionManager().setPermissions(permissions);
+        refDevice.getPermissionManager().setPermissions(permissions);
+    }
+
+    refDevice.addProperty(IntProperty("CustomProp", 0));
+    statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
+    statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
+
+    const auto refDeviceInternal = refDevice.addDevice("daqref://device1");
+    refDeviceInternal.getPermissionManager().setPermissions(permissions);
+
+    const auto statusType = EnumerationType("StatusType", List<IString>("Off", "On"));
+    typeManager.addType(statusType);
+    const auto statusValue = Enumeration("StatusType", "On", typeManager);
+
+    instance.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusValue);
+
+    return instance;
+}
+
 static InstancePtr CreateDefaultServerInstance()
 {
     auto authenticationProvider = AuthenticationProvider();
@@ -135,6 +179,39 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
 
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
+
+    auto refDevice = instance.addDevice("daq.nd://127.0.0.1", config);
+    return instance;
+}
+
+static InstancePtr CreateClientInstanceForUser(const std::string& user, const std::string& password)
+{
+    auto logger = Logger();
+    auto scheduler = Scheduler(logger);
+    auto moduleManager = ModuleManager("[[none]]");
+    auto typeManager = TypeManager();
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+
+    const ModulePtr deviceModule(MockDeviceModule_Create(context));
+    moduleManager.addModule(deviceModule);
+
+    auto instance = InstanceCustom(context, "clientLocal");
+    addNativeClientModule(instance);
+    addRefDeviceModule(instance);
+
+    auto config = instance.createDefaultAddDeviceConfig();
+
+    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
+
+
+    nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", False);
+
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
+    general.setPropertyValue("Username", user);
+    general.setPropertyValue("Password", password);
 
     auto refDevice = instance.addDevice("daq.nd://127.0.0.1", config);
     return instance;
@@ -3415,6 +3492,210 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
+}
+
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
+{
+    auto CreateUsers = []()
+    {
+        auto users = List<IUser>();
+        const std::vector<std::pair<std::string, std::string>> templateForUser = {{"reader", "reader"}, {"admin", "admin"}};
+        for (const auto& [user, group] : templateForUser)
+            users.pushBack(User(user + "User", user + "UserPass", group.empty() ? nullptr : ListPtr<IString>{group}));
+
+        return users;
+    };
+
+    auto CreatePermissionsBuilder = []() -> daq::PermissionsBuilderPtr
+    {
+        using namespace daq;
+        return PermissionsBuilder()
+            .inherit(false)
+            .assign("everyone", PermissionMaskBuilder())
+            .assign("reader", PermissionMaskBuilder().read())
+            .assign("admin", PermissionMaskBuilder().read().write().execute());
+    };
+
+    const auto permissions = CreatePermissionsBuilder().build();
+
+    const auto authenticationProvider = StaticAuthenticationProvider(true, CreateUsers());
+
+    auto server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
+    auto client = CreateClientInstanceForUser("readerUser", "readerUserPass");
+    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+
+    ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
+    ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
+
+    // setting the operation mode for server root device
+    ASSERT_NO_THROW(server.setOperationModeRecursive(daq::OperationModeType::Idle));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
+
+    // setting the operation mode for server sub device
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+
+    // setting the operation mode for client sub device
+    ASSERT_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation), daq::AccessDeniedException);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+
+    // setting the operation mode for client device not recursively
+    ASSERT_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::Operation), daq::AccessDeniedException);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+
+    // setting the operation mode for client device
+    ASSERT_NO_THROW(server.setOperationMode(daq::OperationModeType::SafeOperation));
+    ASSERT_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle), daq::AccessDeniedException);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+}
+
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
+{
+    auto CreateUsers = []()
+    {
+        auto users = List<IUser>();
+        const std::vector<std::pair<std::string, std::string>> templateForUser = {{"reader", "reader"}, {"admin", "admin"}};
+        for (const auto& [user, group] : templateForUser)
+            users.pushBack(User(user + "User", user + "UserPass", group.empty() ? nullptr : ListPtr<IString>{group}));
+
+        return users;
+    };
+
+    auto CreatePermissionsBuilder = []() -> daq::PermissionsBuilderPtr
+    {
+        using namespace daq;
+        return PermissionsBuilder()
+            .inherit(false)
+            .assign("everyone", PermissionMaskBuilder())
+            .assign("reader", PermissionMaskBuilder().read())
+            .assign("admin", PermissionMaskBuilder().read().write().execute());
+    };
+
+    const auto permissions = CreatePermissionsBuilder().build();
+
+    const auto authenticationProvider = StaticAuthenticationProvider(true, CreateUsers());
+
+    auto server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
+    auto client = CreateClientInstanceForUser("adminUser", "adminUserPass");
+    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+
+    ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
+    ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
+
+    ASSERT_NO_THROW(server.setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation, true);
+
+    ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
+}
+
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
+{
+    auto CreateUsers = []()
+    {
+        auto users = List<IUser>();
+        const std::vector<std::pair<std::string, std::string>> templateForUser = {{"reader", "reader"}, {"admin", "admin"}};
+        for (const auto& [user, group] : templateForUser)
+            users.pushBack(User(user + "User", user + "UserPass", group.empty() ? nullptr : ListPtr<IString>{group}));
+
+        return users;
+    };
+
+    auto CreatePermissionsBuilder = []() -> daq::PermissionsBuilderPtr
+    {
+        using namespace daq;
+        return PermissionsBuilder()
+            .inherit(false)
+            .assign("everyone", PermissionMaskBuilder())
+            .assign("reader", PermissionMaskBuilder().read())
+            .assign("admin", PermissionMaskBuilder().read().write().execute());
+    };
+
+    const auto permissions = CreatePermissionsBuilder().build();
+
+    const auto authenticationProvider = StaticAuthenticationProvider(true, CreateUsers());
+
+    auto server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions, true));
+    auto client = CreateClientInstanceForUser("readerUser", "readerUserPass");
+    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+
+    ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
+    ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
+
+    ASSERT_NO_THROW(server.setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation, true);
+
+    ASSERT_NO_THROW(client.setOperationMode(daq::OperationModeType::Idle));
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::Idle));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationMode(daq::OperationModeType::Idle));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
+
+    ASSERT_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle), daq::AccessDeniedException);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation, true);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
 }
 
 TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)

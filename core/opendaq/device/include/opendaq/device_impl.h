@@ -1193,16 +1193,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(Op
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType modeType)
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /*modeType*/)
 {
-    // TODO: Consider either ignoring calls to this or even returning error codes - the correct way to set device's
-    // operation mode should be through setOperationMode
-    if (onGetAvailableOperationModes().count(modeType) == 0)
-    {
-        this->updateOperationModeInternal(onGetDefaultOperationMode());
-        return OPENDAQ_IGNORED;
-    }
-    return this->updateOperationModeInternal(modeType);
+    // This method gets called when a device is added to the IFolder. Device ignores its parent's operation mode and
+    // enters default operation mode.
+    return this->updateOperationModeInternal(this->onGetDefaultOperationMode());
 }
 
 template <typename TInterface, typename... Interfaces>

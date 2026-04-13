@@ -78,21 +78,17 @@ class AddServerDialog(Dialog):
 
             available_server_types = self.context.instance.available_server_types
             for server_type_id in available_server_types:
-                self.server_tree.insert('', tk.END, iid=server_type_id, values=(
-                    server_type_id, 
-                    daq.IServerType.cast_from(available_server_types[server_type_id]).name))
+                self.server_tree.insert('', tk.END, iid=server_type_id, 
+                                        values=(server_type_id, daq.IServerType.cast_from(available_server_types[server_type_id]).name))
 
     def handle_server_type_selected(self, e=None):
         can_config = False
         selected = utils.treeview_get_first_selection(self.server_tree)
+
         if selected:
-            try:
-                server_id = self.server_tree.item(selected)['values'][0]
-                server_type = self.context.instance.available_server_types[server_id]
-                cfg = daq.IComponentType.cast_from(server_type).create_default_config()
-                can_config = len(cfg.all_properties) > 0
-            except Exception:
-                pass
+            server_id = self.server_tree.item(selected)['values'][0]
+            can_config = self._is_server_configurable(server_id)
+
         self._server_config_btn.configure(state=tk.NORMAL if can_config else tk.DISABLED)
 
     def handle_right_click(self, event):
@@ -101,13 +97,8 @@ class AddServerDialog(Dialog):
         can_config = False
         selected = utils.treeview_get_first_selection(self.server_tree)
         if selected:
-            try:
-                server_id = self.server_tree.item(selected)['values'][0]
-                server_type = self.context.instance.available_server_types[server_id]
-                cfg = daq.IComponentType.cast_from(server_type).create_default_config()
-                can_config = len(cfg.all_properties) > 0
-            except Exception:
-                pass
+            server_id = self.server_tree.item(selected)['values'][0]
+            can_config = self._is_server_configurable(server_id)
 
         menu = tk.Menu(self, tearoff=0)
         menu.add_command(label='Add', command=lambda: self.handle_button(False))
@@ -115,6 +106,20 @@ class AddServerDialog(Dialog):
                          command=lambda: self.handle_button(True),
                          state=tk.NORMAL if can_config else tk.DISABLED)
         menu.tk_popup(event.x_root, event.y_root)
+        
+    def _is_server_configurable(self, server_id):
+        available_types = self.context.instance.available_server_types
+        if server_id not in available_types:
+            return False
+
+        server_type = available_types[server_id]
+
+        if daq.IComponentType.can_cast_from(server_type):
+            comp_type = daq.IComponentType.cast_from(server_type)
+            config = comp_type.create_default_config()
+            return len(config.all_properties) > 0
+
+        return False
 
     def handle_button(self, config: bool):
         parent_top = self.parent.winfo_toplevel()
@@ -210,8 +215,7 @@ class AddServerDialog(Dialog):
             except Exception as e:
                 # Server was added successfully but discovery failed -- warn, don't undo the add
                 parent_top.configure(cursor='')
-                utils.show_error('Warning',
-                                 f'Server added but enable_discovery failed: {str(e)}', self)
+                utils.show_error('Warning', f'Server added but enable_discovery failed: {str(e)}', self)
 
         parent_top.configure(cursor='')
         self.event_port.emit()

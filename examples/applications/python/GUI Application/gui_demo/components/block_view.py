@@ -377,10 +377,7 @@ class BlockView(ttk.Frame):
         self.expanded_frame.pack(fill=tk.BOTH, expand=True)
         self.expanded_frame.grid_columnconfigure(
             self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
-        self.expanded_frame.grid_rowconfigure(self.rows, weight=1,
-                                              minsize=int(350 * self.context.dpi_factor) if self.input_ports and self.output_signals
-                                                             or daq.IFolder.can_cast_from(self.node) and
-                                                             not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
+        self.expanded_frame.grid_rowconfigure(self.rows, weight=1, minsize=int(350 * self.context.dpi_factor) if self.input_ports and self.output_signals or daq.IFolder.can_cast_from(self.node) and not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
         if self.properties:
             self.properties.grid(
                 row=0, column=0, sticky=tk.NSEW)

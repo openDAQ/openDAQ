@@ -535,27 +535,21 @@ class PropertiesTreeview(ttk.Treeview):
         def execute(_prop=prop, _iid=iid):
             result = None
             has_args = bool(_prop.callable_info.arguments)
+            
+            method_class = daq.IFunction if _prop.value_type == daq.CoreType.ctFunc else daq.IProcedure
+            method = method_class.cast_from(_prop.value)
 
             if has_args:
-                if _prop.value_type == daq.CoreType.ctFunc:
-                    dialog = FunctionDialog(self, _prop, daq.IFunction.cast_from(_prop.value), self.context)
-                    dialog.show()
-                    result = dialog.result
-                elif _prop.value_type == daq.CoreType.ctProc:
-                    dialog = FunctionDialog(self, _prop, daq.IProcedure.cast_from(_prop.value), self.context)
-                    dialog.show()
-                    result = dialog.result
+                dialog = FunctionDialog(self, _prop, method, self.context)
+                dialog.show()
+                result = dialog.result
             else:
                 try:
-                    if _prop.value_type == daq.CoreType.ctFunc:
-                        result = daq.IFunction.cast_from(_prop.value)()
-                    elif _prop.value_type == daq.CoreType.ctProc:
-                        daq.IProcedure.cast_from(_prop.value)()
-                        result = True
+                    res = method()
+                    result = res if _prop.value_type == daq.CoreType.ctFunc else True
                 except Exception as e:
                     result = e
 
-            # Boolean True (which == 1) means success, display as "OK"
             if result is True or result is False:
                 result_str = 'OK' if result else 'Fail'
             elif isinstance(result, Exception):
@@ -720,18 +714,21 @@ class PropertiesTreeview(ttk.Treeview):
         if prop.value_type == daq.CoreType.ctEnumeration:
             return  # handled by overlay combobox
 
-        if prop.value_type == daq.CoreType.ctFunc:
-            f = daq.IFunction.cast_from(prop.value)
+        if prop.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
+            method_class = daq.IFunction if prop.value_type == daq.CoreType.ctFunc else daq.IProcedure
+            method = method_class.cast_from(prop.value)
+            
             if prop.callable_info.arguments:
-                dialog = FunctionDialog(self, prop, f, self.context)
+                dialog = FunctionDialog(self, prop, method, self.context)
                 dialog.show()
                 result = dialog.result
             else:
                 try:
-                    result = f()
+                    res = method()
+                    result = res if prop.value_type == daq.CoreType.ctFunc else True
                 except Exception as e:
                     result = e
-        
+
             if result is True or result is False:
                 result_str = 'OK' if result else 'Fail'
             elif isinstance(result, Exception):
@@ -740,32 +737,7 @@ class PropertiesTreeview(ttk.Treeview):
                 result_str = '""'
             else:
                 result_str = self._format_value(result)
-            self._last_method_results[prop.name] = result_str
-            if self.exists(selected_item_id):
-                self.set(selected_item_id, 'value', result_str)
-            return
-        
-        if prop.value_type == daq.CoreType.ctProc:
-            p = daq.IProcedure.cast_from(prop.value)
-            if prop.callable_info.arguments:
-                dialog = FunctionDialog(self, prop, p, self.context)
-                dialog.show()
-                result = dialog.result
-            else:
-                try:
-                    p()
-                    result = True
-                except Exception as e:
-                    result = e
-        
-            if result is True or result is False:
-                result_str = 'OK' if result else 'Fail'
-            elif isinstance(result, Exception):
-                result_str = str(result)
-            elif isinstance(result, str) and result == '':
-                result_str = '""'
-            else:
-                result_str = str(result)
+                
             self._last_method_results[prop.name] = result_str
             if self.exists(selected_item_id):
                 self.set(selected_item_id, 'value', result_str)

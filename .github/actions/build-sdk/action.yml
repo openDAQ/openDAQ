@@ -177,18 +177,25 @@ runs:
     - name: Format pip command
       shell: bash
       run: |
-        if pip install --break-system-packages --dry-run pip &> /dev/null; then
-          echo "CMD_PIP_INSTALL=pip install --break-system-packages" >> $GITHUB_ENV
-        else
-          echo "CMD_PIP_INSTALL=pip install" >> $GITHUB_ENV
+        PIP_CMD=""
+        if command -v pip &> /dev/null; then
+          PIP_CMD="pip"
+        elif command -v pip3 &> /dev/null; then
+          PIP_CMD="pip3"
+        fi
+        if [ -n "$PIP_CMD" ] && $PIP_CMD install --break-system-packages --dry-run pip &> /dev/null; then
+          echo "CMD_PIP_INSTALL=$PIP_CMD install --break-system-packages" >> $GITHUB_ENV
+        elif [ -n "$PIP_CMD" ]; then
+          echo "CMD_PIP_INSTALL=$PIP_CMD install" >> $GITHUB_ENV
         fi
 
     - name: Setup cmake
+      if: env.CMD_PIP_INSTALL != ''
       shell: bash
       run: ${CMD_PIP_INSTALL} cmake
 
     - name: Install ninja-build
-      if: inputs.cmake-generator == 'Ninja' && inputs.skip-setup-ninja != 'true'
+      if: env.CMD_PIP_INSTALL != '' && inputs.cmake-generator == 'Ninja' && inputs.skip-setup-ninja != 'true'
       shell: bash
       run: ${CMD_PIP_INSTALL} ninja
 

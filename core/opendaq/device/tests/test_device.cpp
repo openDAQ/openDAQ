@@ -48,10 +48,10 @@ public:
 
         return deviceInfo;
     }
-        
-    std::set<daq::OperationModeType> onGetAvailableOperationModes() override 
-    { 
-        return {daq::OperationModeType::Idle, daq::OperationModeType::Operation}; 
+
+    std::set<daq::OperationModeType> onGetAvailableOperationModes() override
+    {
+        return {daq::OperationModeType::Idle, daq::OperationModeType::SafeOperation};
     }
 
     std::unordered_set<std::string> getDefaultComponents()
@@ -615,7 +615,7 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
     ASSERT_EQ(device.getAvailableOperationModes()[0], daq::OperationModeType::Idle);
     ASSERT_EQ(device.getAvailableOperationModes()[1], daq::OperationModeType::Operation);
     ASSERT_EQ(device.getAvailableOperationModes()[2], daq::OperationModeType::SafeOperation);
-    
+
     // check getting operation mode from the list
     daq::OperationModeType mode = device.getAvailableOperationModes()[0];
     ASSERT_EQ(mode, daq::OperationModeType::Idle);
@@ -661,7 +661,7 @@ TEST_F(DeviceTest, CheckNotSupportedOpMode)
     ASSERT_EQ(device.getAvailableOperationModes(), expectedDeviceModes);
     ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::SafeOperation);
 
-    ASSERT_EQ(device->setOperationMode(daq::OperationModeType::Operation), OPENDAQ_IGNORED);
+    ASSERT_EQ(device->setOperationMode(daq::OperationModeType::SafeOperation), OPENDAQ_IGNORED);
     ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::SafeOperation);
 }
 

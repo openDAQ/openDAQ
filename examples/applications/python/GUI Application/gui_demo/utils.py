@@ -186,6 +186,19 @@ def parse_iso_string(date_string: str) -> datetime:
     except ValueError as e:
         raise RuntimeError(f'Failed to parse date: {e}')
 
+def _get_reference_domain_offset(desc):
+    """Extract the Reference Domain Offset (in ticks) from a descriptor's
+    ReferenceDomainInfo, if present."""
+    try:
+        ref_info = desc.reference_domain_info
+        if ref_info is not None and ref_info.reference_domain_offset is not None:
+            return int(ref_info.reference_domain_offset)
+    except (RuntimeError, AttributeError):
+        # Not every descriptor carries ReferenceDomainInfo -- that is
+        # perfectly normal and just means no offset correction is needed.
+        pass
+    return 0
+
 def get_last_value_for_signal(output_signal):
     last_value = 'N/A'
     if output_signal is not None and daq.ISignal.can_cast_from(output_signal):
@@ -200,10 +213,19 @@ def get_last_value_for_signal(output_signal):
             if origin_str is not None:
                 try:
                     origin = datetime.fromisoformat(origin_str)
-                except ValueError as e:
+                except ValueError:
                     origin = parse_iso_string(origin_str)
                 if last_value is not None:
-                    last_value_in_seconds = int(last_value) * desc.tick_resolution.numerator / desc.tick_resolution.denominator
+                    tick_value = int(last_value)
+                    # The Reference Domain Offset must be summed into the
+                    # tick count *before* scaling -- omitting it produces a
+                    # timestamp that is off by the device's sync correction.
+                    offset_ticks = _get_reference_domain_offset(desc)
+                    last_value_in_seconds = (
+                        (tick_value + offset_ticks)
+                        * desc.tick_resolution.numerator
+                        / desc.tick_resolution.denominator
+                    )
                     last_value = origin + timedelta(seconds=last_value_in_seconds)
 
             if isinstance(last_value, float):

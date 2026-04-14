@@ -53,8 +53,8 @@ class OutputSignalsView(ttk.Frame):
                     self._rows.append(row)
                 return
 
-        ttk.Label(self, text='No output signals').pack(
-            anchor=tk.CENTER, expand=True)
+        ttk.Label(self, text='None').pack(
+            anchor=tk.W, expand=True, padx=(10,0), pady=(5,0))
 
     def _schedule_periodic_refresh(self):
         if self._refresh_job is not None:

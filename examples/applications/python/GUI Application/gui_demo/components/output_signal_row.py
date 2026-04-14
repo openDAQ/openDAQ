@@ -34,15 +34,24 @@ class OutputSignalRow(ttk.Frame):
         value_frame.grid(row=0, column=1, sticky=tk.EW)
 
         self.view_button = None
+        
         if is_struct_or_string:
             self.view_button = ttk.Button(
-                value_frame, text='View', command=lambda: self.handle_view_clicked(self._view_value))
-            # Pack button first (to the right) so it always stays visible
+                value_frame, text='View', command=lambda: self.handle_view_clicked(self._view_value)
+            )
             self.view_button.pack(side=tk.RIGHT, padx=(4, 0))
+            
+            display_value = str(last_value)
+            self.value_label = ttk.Label(value_frame, text=display_value, anchor=tk.E, justify=tk.RIGHT)
+            if len(display_value) < 25:
+                self.value_label.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+                
+        else:
+            display_value = self._truncate_for_display(last_value, is_struct_or_string)
+            self.value_label = ttk.Label(value_frame, text=display_value, anchor=tk.E, justify=tk.RIGHT)
+            self.value_label.pack(side=tk.RIGHT, fill=tk.X, expand=True)
 
-        display_value = self._truncate_for_display(last_value, is_struct_or_string)
-        self.value_label = ttk.Label(value_frame, text=display_value, anchor=tk.E, justify=tk.RIGHT)
-        self.value_label.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+
 
         self.edit_icon = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
         self.edit_button = tk.Button(

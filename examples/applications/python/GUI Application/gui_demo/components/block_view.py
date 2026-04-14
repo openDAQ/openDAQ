@@ -12,7 +12,6 @@ from .properties_view import PropertiesView
 from .recorder_view import RecorderView
 from .attributes_dialog import AttributesDialog
 from .output_signal_row import OutputSignalRow
-from datetime import datetime, timedelta
 
 class BlockView(ttk.Frame):
 
@@ -153,84 +152,29 @@ class BlockView(ttk.Frame):
 
                 for mode in available_op_modes:
                     op_mode_menu.add_command(label=mode, command=make_select(mode))
-                
-                device_domain = None
-                    
-                try:
-                    device_domain = self.node.domain
-                except RuntimeError:
-                    device_domain = None
+            
+            elif daq.IFunctionBlock.can_cast_from(self.node):
+                self._right_container = ttk.Frame(self.expanded_frame)
+                right_canvas = tk.Canvas(self._right_container, highlightthickness=0)
+                right_scrollbar = ttk.Scrollbar(
+                    self._right_container, orient=tk.VERTICAL, command=right_canvas.yview)
+                self.right_stack = ttk.Frame(right_canvas)
 
-                if device_domain is not None:
-                    self._domain_expanded = False
-                    domain_banner = self._make_banner(self.right_stack, 'Device domain')
+                self.right_stack.bind('<Configure>',
+                    lambda e: right_canvas.configure(scrollregion=right_canvas.bbox('all')))
+                right_canvas.create_window((0, 0), window=self.right_stack, anchor=tk.NW)
+                right_canvas.configure(yscrollcommand=right_scrollbar.set)
+                right_canvas.bind('<Configure>',
+                    lambda e: right_canvas.itemconfig('all', width=e.width))
 
-                    self._domain_arrow = tk.Label(
-                        domain_banner, text='\u25b6', bg=domain_banner.cget('bg'),
-                        fg='white', font=('TkDefaultFont', 8))
-                    self._domain_arrow.pack(side=tk.RIGHT, padx=(0, 4))
+                def _on_mousewheel(e):
+                    # Check if the entire content is already visible
+                    if right_canvas.yview() == (0.0, 1.0):
+                        return
+                    right_canvas.yview_scroll(int(-1 * (e.delta / 120)), 'units')
 
-                    self._domain_detail = ttk.Frame(self.right_stack)
-                    ticks_row = ttk.Frame(self._domain_detail)
-                    ticks_row.pack(fill=tk.X, padx=10, pady=4)
-                    ttk.Label(ticks_row, text='Last value:').pack(side=tk.LEFT)
-                    self.ticks_label = ttk.Label(ticks_row, text='N/A')
-                    self.ticks_label.pack(side=tk.RIGHT, padx=(4, 0))
-
-                    def _toggle_domain(event=None):
-                        if self._domain_expanded:
-                            self._domain_detail.pack_forget()
-                            self._domain_arrow.config(text='\u25b6')
-                        else:
-                            self._domain_detail.pack(
-                                after=domain_banner, fill=tk.X)
-                            self._domain_arrow.config(text='\u25bc')
-                        self._domain_expanded = not self._domain_expanded
-
-                    for w in (domain_banner, self._domain_arrow,
-                              *domain_banner.winfo_children()):
-                        w.bind('<Button-1>', _toggle_domain)
-                        w.configure(cursor='hand2')
-
-                    try:
-                        res = device_domain.tick_resolution
-                        origin_str = str(device_domain.origin) if device_domain.origin else ''
-                        try:
-                            origin_dt = datetime.fromisoformat(origin_str)
-                        except ValueError:
-                            origin_dt = utils.parse_iso_string(origin_str)
-                        self._domain_res_num = res.numerator
-                        self._domain_res_den = res.denominator
-                        self._domain_origin = origin_dt
-                    except Exception as e:
-                        print(f'[DeviceDomain] poll failed: {e}')
-
-                    self._device_refresh_job = None
-
-                    def _poll_device_info():
-                        self._device_refresh_job = None
-                        if not self.winfo_exists():
-                            return
-                        if self.winfo_ismapped():
-                            try:
-                                ticks = self.node.ticks_since_origin
-                                if self._domain_origin is not None:
-                                    seconds = (
-                                        ticks
-                                        * self._domain_res_num
-                                        / self._domain_res_den
-                                    )
-                                    ts = self._domain_origin + timedelta(seconds=seconds)
-                                    self.ticks_label.config(
-                                        text=ts.strftime('%Y-%m-%d %H:%M:%S.%f')
-                                        .rstrip('0').rstrip('.'))
-                                else:
-                                    self.ticks_label.config(text=f'Ticks: {ticks}')
-                            except Exception as e:
-                                print(f'[DeviceDomain] poll failed: {e}')
-                        self._device_refresh_job = self.after(200, _poll_device_info)
-
-                    _poll_device_info()
+                right_canvas.bind('<MouseWheel>', _on_mousewheel)
+                self.right_stack.bind('<MouseWheel>', _on_mousewheel)
 
                 self._bind_mousewheel_recursive(self.right_stack)
             
@@ -341,9 +285,8 @@ class BlockView(ttk.Frame):
                     if not self.winfo_exists():
                         return
                     if self.winfo_ismapped():
-                        if hasattr(self, '_signal_row') and self._signal_row.winfo_exists():
-                            self._signal_row.refresh()
-                            
+                        new_value = utils.get_last_value_for_signal(self.node)
+                        self._signal_last_value_label.config(text=str(new_value))
                         for signal_row in self._signal_rows:
                             try:
                                 if signal_row.winfo_exists():
@@ -449,12 +392,6 @@ class BlockView(ttk.Frame):
             except Exception:
                 pass
             self._signal_refresh_job = None
-        if hasattr(self, '_device_refresh_job') and self._device_refresh_job is not None:
-            try:
-                self.after_cancel(self._device_refresh_job)
-            except Exception:
-                pass
-            self._device_refresh_job = None
         if self._component_core_event_handler is not None and self.node is not None and daq.IComponent.can_cast_from(self.node):
             try:
                 component = daq.IComponent.cast_from(self.node)

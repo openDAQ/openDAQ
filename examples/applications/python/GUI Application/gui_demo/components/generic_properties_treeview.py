@@ -198,9 +198,10 @@ class PropertiesTreeview(ttk.Treeview):
                 text=property_info.name,
                 values=(property_value, *meta_fields))
 
-            if (property_info.read_only or self.read_only) and \
-                    property_info.value_type not in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
-                self.item(iid, tags=('readonly',))
+            container_types = (daq.CoreType.ctObject, daq.CoreType.ctStruct, daq.CoreType.ctList, daq.CoreType.ctDict)
+            if (property_info.read_only or self.read_only) and property_info.value_type not in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
+                if property_info.value_type not in container_types:
+                    self.item(iid, tags=('readonly',))
 
             if property_info.value_type == daq.CoreType.ctObject:
                 hidden_children = [s.removeprefix(f"{property_info.name}.") for s in hidden if s.startswith(f"{property_info.name}.")]
@@ -295,11 +296,29 @@ class PropertiesTreeview(ttk.Treeview):
             )
         else:
             utils.treeview_select_item(self, event)
-            menu.add_command(label='Copy', command=self.handle_copy)
-            if not self.read_only:
+            selected_item_id = utils.treeview_get_first_selection(self)
+            if not selected_item_id:
+                return
+
+            path = utils.get_item_path(self, selected_item_id)
+            prop = utils.get_property_for_path(self.context, path, self.node)
+            
+            is_container = False
+            if prop:
+                container_types = (daq.CoreType.ctObject, daq.CoreType.ctStruct, 
+                                   daq.CoreType.ctList, daq.CoreType.ctDict)
+                is_container = prop.value_type in container_types
+
+            is_readonly = 'readonly' in self.item(selected_item_id, 'tags')
+            if not is_container:
+                menu.add_command(label='Copy', command=self.handle_copy)
+            if not self.read_only and not is_readonly and not is_container:
                 menu.add_command(label='Paste', command=self.handle_paste)
-            menu.add_separator()
+            if not is_container:
+                menu.add_separator()
+                
             menu.add_command(label='Metadata', command=self.handle_show_metadata)
+            
         menu.tk_popup(event.x_root, event.y_root)
 
     def update_property(self, component, path, new_value, depth=0):
@@ -716,10 +735,12 @@ class PropertiesTreeview(ttk.Treeview):
         # handle struct
         if len(path) > 1:
             parent = utils.get_property_for_path(self.context, path[:-1], self.node)
-            if parent.read_only:
+            
+            if 'readonly' in self.item(selected_item_id, 'tags'):
                 return
+ 
             if type(parent.value) is complex or type(parent.value) is Fraction:
-                return # complex and fraction/ratio isn't editable yet
+                return 
             elif parent.value_type == daq.CoreType.ctStruct:
                 self.edit_struct_property(selected_item_id, name, parent)
                 return

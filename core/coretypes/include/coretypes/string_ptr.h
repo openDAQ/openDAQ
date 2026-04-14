@@ -106,9 +106,7 @@ public:
     [[nodiscard]] std::string toStdString() const
     {
         if (!object)
-        {
-            DAQ_THROW_EXCEPTION(InvalidParameterException);
-        }
+            return "";
 
         return getValue<std::string>("");
     }

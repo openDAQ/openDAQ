@@ -17,6 +17,7 @@
 - [#1088](https://github.com/openDAQ/openDAQ/pull/1088) Enable bundling of sent core events within the native configuration protocol
 - [#1097](https://github.com/openDAQ/openDAQ/pull/1097) Implement value based selection list
 - [#1124](https://github.com/openDAQ/openDAQ/pull/1124) Implement clearPropertyValues() for property objects
+- [#1137](https://github.com/openDAQ/openDAQ/pull/1137) Add `IInputPort::acceptsSignals` to check multiple signals at once, using a single RPC call via native protocol.
 - [#1157](https://github.com/openDAQ/openDAQ/pull/1157) Devices default to `OperationModeType::SafeOperation` when added to folder or set as root. Add virtual method to make it customizable.
 
 ## Python
@@ -32,6 +33,10 @@
 
 ## Bug fixes
 
+- [#1150](https://github.com/openDAQ/openDAQ/pull/1150) Serialize public flag for input ports
+- [#1149](https://github.com/openDAQ/openDAQ/pull/1149) Return error code instead of throwing exceptions from module info.
+- [#1146](https://github.com/openDAQ/openDAQ/pull/1146) Use sender addresses if device does not provide A or AAAA records
+- [#1143] (https://github.com/openDAQ/openDAQ/pull/1143) Fix uncaught exception when closing renderer window
 - [#1130](https://github.com/openDAQ/openDAQ/pull/1130) Fix active rework issue with older devices
 - [#1122](https://github.com/openDAQ/openDAQ/pull/1122) Revert endUpdate nested property application order back to bottom-up; Batch update values on target child object when using dot notation
 - [#1116](https://github.com/openDAQ/openDAQ/pull/1116) Fix set/get for dynamically added object properties via Native Client

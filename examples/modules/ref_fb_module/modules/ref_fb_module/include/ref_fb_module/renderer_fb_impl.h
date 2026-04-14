@@ -265,6 +265,8 @@ private:
 
     void updateSingleXAxis();
 
+    bool renderFrame();
+    void createRendererWindow();
     void startRendererWindow();
     void initializeRenderer();
 };

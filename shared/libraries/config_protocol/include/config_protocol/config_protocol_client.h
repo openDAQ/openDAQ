@@ -114,6 +114,7 @@ public:
     void connectSignal(const std::string& globalId, const std::string& globaSignallId);
     void disconnectSignal(const std::string& globalId);
     BooleanPtr acceptsSignal(const std::string& globalId, const std::string& globaSignallId);
+    ListPtr<IBoolean> acceptsSignals(const std::string& globalId, const ListPtr<IString>& globaSignallIdVector);
     DeviceInfoPtr getInfo(const std::string& globalId);
     TypeManagerPtr getTypeManager();
     ListPtr<ILogFileInfo> getLogFileInfos(const std::string& globalId);

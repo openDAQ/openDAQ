@@ -599,9 +599,10 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
     const auto device = daq::createWithImplementation<daq::IDevice, MockDevice>(daq::NullContext(), nullptr, "dev", true);
     const auto subDevice = device.getDevices()[0];
 
-    checkDeviceOperationMode(device, daq::OperationModeType::Unknown);
-    checkDeviceOperationMode(subDevice, daq::OperationModeType::Unknown);
+    checkDeviceOperationMode(device, daq::OperationModeType::Unknown); // setAsRoot has not been called yet
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle); // Was added via addItem and default op mode idle
 
+    // Stateless methods checks
     auto expectedDeviceModes = daq::List<daq::IInteger>(
         static_cast<daq::Int>(daq::OperationModeType::Idle),
         static_cast<daq::Int>(daq::OperationModeType::Operation),
@@ -621,30 +622,31 @@ TEST_F(DeviceTest, DeviceSetOperationModeSanity)
 
     auto mode2 = device.getAvailableOperationModes()[1];
     ASSERT_EQ(mode2, daq::OperationModeType::Operation);
+    // end of stateless checks
 
     ASSERT_NO_THROW(device.asPtr<daq::IDevicePrivate>(true).setAsRoot());
-    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
-    checkDeviceOperationMode(subDevice, daq::OperationModeType::Unknown);
+    checkDeviceOperationMode(device, daq::OperationModeType::Idle); // Set as root sets to default mode (Idle)
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle); // Still Idle after the initial addItem
 
     ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::SafeOperation));
     checkDeviceOperationMode(device, daq::OperationModeType::SafeOperation);
-    checkDeviceOperationMode(subDevice, daq::OperationModeType::Unknown);
-
-    ASSERT_NO_THROW(device.setOperationModeRecursive(daq::OperationModeType::Idle));
-    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
     checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
 
-    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Operation));
+    ASSERT_NO_THROW(device.setOperationModeRecursive(daq::OperationModeType::Operation));
     checkDeviceOperationMode(device, daq::OperationModeType::Operation);
-    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Operation);
+
+    ASSERT_NO_THROW(device.setOperationMode(daq::OperationModeType::Idle));
+    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Operation);
 
     ASSERT_NO_THROW(subDevice.setOperationModeRecursive(daq::OperationModeType::SafeOperation));
-    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
     checkDeviceOperationMode(subDevice, daq::OperationModeType::SafeOperation);
 
-    ASSERT_NO_THROW(device.setOperationModeRecursive(daq::OperationModeType::Idle));
-    checkDeviceOperationMode(device, daq::OperationModeType::Idle);
-    checkDeviceOperationMode(subDevice, daq::OperationModeType::Idle);
+    ASSERT_NO_THROW(device.setOperationModeRecursive(daq::OperationModeType::Operation));
+    checkDeviceOperationMode(device, daq::OperationModeType::Operation);
+    checkDeviceOperationMode(subDevice, daq::OperationModeType::Operation);
 }
 
 TEST_F(DeviceTest, CheckNotSupportedOpMode)

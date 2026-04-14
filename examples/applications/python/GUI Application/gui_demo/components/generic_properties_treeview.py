@@ -81,14 +81,36 @@ class PropertiesTreeview(ttk.Treeview):
         self.refresh()
 
     def refresh(self):
+        collapsed = self._collect_collapsed_paths('')
+        scroll_pos = self.yview()
+
         self._clear_overlay_comboboxes()
         self._overlay_items = {}
         self.delete(*self.get_children())
         if self.node is not None:
             if daq.IPropertyObject.can_cast_from(self.node):
                 self.fill_properties('', daq.IPropertyObject.cast_from(self.node), self.hidden)
+            self._restore_collapsed_paths('', collapsed)
             self._collect_overlay_items('')
         self.after_idle(self._sync_overlays)
+
+        self.after_idle(lambda: self.yview_moveto(scroll_pos[0]))
+
+    def _collect_collapsed_paths(self, parent_iid):
+        collapsed = set()
+        for iid in self.get_children(parent_iid):
+            path = tuple(utils.get_item_path(self, iid))
+            if not self.item(iid, 'open'):
+                collapsed.add(path)
+            collapsed |= self._collect_collapsed_paths(iid)
+        return collapsed
+
+    def _restore_collapsed_paths(self, parent_iid, collapsed):
+        for iid in self.get_children(parent_iid):
+            path = tuple(utils.get_item_path(self, iid))
+            if path in collapsed:
+                self.item(iid, open=False)
+            self._restore_collapsed_paths(iid, collapsed)
 
     def fill_list(self, parent_iid, l, read_only):
         for i, value in enumerate(l):

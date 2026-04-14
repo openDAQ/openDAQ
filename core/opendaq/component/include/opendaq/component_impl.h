@@ -1417,8 +1417,8 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
             "ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called before setComponentStatus.");
     }
 
-    // Check if status and message are the same as before, and also Ok and empty string, and if so, return
-    if (status == oldStatus && status == ComponentStatus::Ok && message == oldMessage && message == "")
+    // Skip the update and logging if the component status is identical to old one
+    if (status == oldStatus && message == oldMessage)
         return;
 
     // Set status if initialized

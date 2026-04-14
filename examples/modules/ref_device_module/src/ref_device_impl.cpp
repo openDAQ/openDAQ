@@ -592,7 +592,7 @@ std::set<OperationModeType> RefDeviceImpl::onGetAvailableOperationModes()
 
 OperationModeType RefDeviceImpl::onGetDefaultOperationMode()
 {
-    return OperationModeType::Idle;
+    return OperationModeType::Operation;
 }
 
 void RefDeviceImpl::onOperationModeChanged(OperationModeType modeType)

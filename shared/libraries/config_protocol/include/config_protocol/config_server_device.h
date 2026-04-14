@@ -304,7 +304,7 @@ inline BaseObjectPtr ConfigServerDevice::setOperationModeRecursive(const RpcCont
     const auto modeType = OperationModeTypeFromString(static_cast<std::string>(params["ModeType"]));
     device.setOperationMode(modeType);
 
-    const auto subdevices = device.getDevices(search::Recursive(search::Any()));
+    const auto subdevices = device.getDevices(search::Any());
     for (const auto subdev : subdevices)
     {
         if (subdev.supportsInterface<IMirroredDevice>())
@@ -313,8 +313,7 @@ inline BaseObjectPtr ConfigServerDevice::setOperationModeRecursive(const RpcCont
         }
         else
         {
-            ConfigServerAccessControl::protectObject(subdev, context.user, Permission::Write);
-            subdev.setOperationMode(modeType);
+            ConfigServerDevice::setOperationModeRecursive(context, subdev, params);
         }
     }
 

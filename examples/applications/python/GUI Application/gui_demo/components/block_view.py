@@ -88,9 +88,15 @@ class BlockView(ttk.Frame):
                 self.node = daq.IDevice.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
+
+                self._create_right_stack()
+
+                self.input_ports = InputPortsView(self.right_stack, self.node, self.context)
+                self.input_ports.pack(fill=tk.BOTH, expand=True)
                 
                 signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
-                self.output_signals = OutputSignalsView(self.expanded_frame, self.node, self.context)
+                self.output_signals = OutputSignalsView(self.right_stack, self.node, self.context)
+                self.output_signals.pack(fill=tk.X)
                     
                 self.label_icon.config(image=self.device_img)
                 self.cols = [0, 1]
@@ -170,8 +176,10 @@ class BlockView(ttk.Frame):
                 right_canvas.bind('<MouseWheel>', _on_mousewheel)
                 self.right_stack.bind('<MouseWheel>', _on_mousewheel)
 
-                right_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-                right_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                self._bind_mousewheel_recursive(self.right_stack)
+            
+            elif daq.IFunctionBlock.can_cast_from(self.node):
+                self._create_right_stack()
 
                 self.cols = [0, 1]
 
@@ -182,10 +190,8 @@ class BlockView(ttk.Frame):
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
 
-                if len(self.node.input_ports) > 0:
-                    self.input_ports = InputPortsView(
-                        self.right_stack, self.node, self.context)
-                    self.input_ports.pack(fill=tk.BOTH, expand=True)
+                self.input_ports = InputPortsView(self.right_stack, self.node, self.context)
+                self.input_ports.pack(fill=tk.BOTH, expand=True)
 
                 self.output_signals = OutputSignalsView(self.right_stack, self.node, self.context)
                 self.output_signals.pack(fill=tk.BOTH, expand=True)
@@ -198,12 +204,7 @@ class BlockView(ttk.Frame):
                 self.cols = [0, 1]
                 self.rows = [0]
                 
-                def _bind_mousewheel_recursive(widget):
-                    widget.bind('<MouseWheel>', _on_mousewheel)
-                    for child in widget.winfo_children():
-                        _bind_mousewheel_recursive(child)
-                
-                _bind_mousewheel_recursive(self.right_stack)
+                self._bind_mousewheel_recursive(self.right_stack)
                 
             elif daq.IFolder.can_cast_from(self.node):
                 self.node = daq.IFolder.cast_from(self.node)
@@ -223,61 +224,28 @@ class BlockView(ttk.Frame):
                 self.node = daq.ISignal.cast_from(self.node)
                 signal_icon = context.icons.get('signal') if context and context.icons else None
                 self.label_icon.config(image=signal_icon)
-
-                _banner_bg = '#afafaf'
-                _banner_fg = 'white'
-
-                def _make_banner(parent, text):
-                    bar = tk.Frame(parent, bg=_banner_bg, bd=0, highlightthickness=0)
-                    bar.pack(fill=tk.X, pady=(0, 8))
-                    tk.Label(bar, text=text, bg=_banner_bg, fg=_banner_fg,
-                             font=('TkDefaultFont', 10, 'bold')).pack(
-                        side=tk.LEFT, padx=6, pady=2)
-                    return bar
-
+                self.edit_button.pack_forget()
+                self.checkbox.pack(side=tk.RIGHT, padx=(6, 14))
+                
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context, read_only=True)
 
-                self._right_container = ttk.Frame(self.expanded_frame)
-                right_canvas = tk.Canvas(self._right_container, highlightthickness=0)
-                right_scrollbar = ttk.Scrollbar(
-                    self._right_container, orient=tk.VERTICAL, command=right_canvas.yview)
-                self.right_stack = ttk.Frame(right_canvas)
+                self._create_right_stack()
 
-                self.right_stack.bind('<Configure>',
-                    lambda e: right_canvas.configure(scrollregion=right_canvas.bbox('all')))
-                right_canvas.create_window((0, 0), window=self.right_stack, anchor=tk.NW)
-                right_canvas.configure(yscrollcommand=right_scrollbar.set)
-                right_canvas.bind('<Configure>',
-                    lambda e: right_canvas.itemconfig('all', width=e.width))
-
-                def _on_mousewheel(e):
-                    if right_canvas.yview() == (0.0, 1.0):
-                        return
-                    right_canvas.yview_scroll(int(-1 * (e.delta / 120)), 'units')
-                right_canvas.bind('<MouseWheel>', _on_mousewheel)
-                self.right_stack.bind('<MouseWheel>', _on_mousewheel)
-
-                right_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-                right_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-                # -- Signal Info section --
-                _make_banner(self.right_stack, 'Signal info')
-                info_frame = ttk.Frame(self.right_stack, padding=(10, 0, 10, 5))
-                info_frame.pack(fill=tk.X)
-                info_frame.columnconfigure(1, weight=1)
-
-                last_value = utils.get_last_value_for_signal(self.node)
-                ttk.Label(info_frame, text='Last value').grid(
-                    row=0, column=0, sticky=tk.W, pady=2)
-                self._signal_last_value_label = ttk.Label(info_frame, text=str(last_value))
-                self._signal_last_value_label.grid(
-                    row=0, column=1, sticky=tk.W, padx=(8, 0), pady=2)
+                # Signal Info
+                self._make_banner(self.right_stack, 'Signal info')
+                
+                self._signal_row = OutputSignalRow(
+                    self.right_stack, 
+                    output_signal=self.node, 
+                    context=getattr(self, 'context', None), 
+                )
+                self._signal_row.pack(fill=tk.X)
 
                 self._signal_rows = []
 
-                # -- Domain Signal section --
-                _make_banner(self.right_stack, 'Domain signal')
+                # Domain Signal
+                self._make_banner(self.right_stack, 'Domain signal')
                 if self.node.domain_signal is not None:
                     try:
                         domain_row = OutputSignalRow(
@@ -291,8 +259,8 @@ class BlockView(ttk.Frame):
                     ttk.Label(self.right_stack, text='None',
                               padding=(10, 0)).pack(anchor=tk.W)
 
-                # -- Related Signals section --
-                _make_banner(self.right_stack, 'Related signals')
+                # Related Signals section
+                self._make_banner(self.right_stack, 'Related signals')
                 try:
                     related = self.node.related_signals
                     if related and len(related) > 0:
@@ -328,6 +296,9 @@ class BlockView(ttk.Frame):
                     self._signal_refresh_job = self.after(200, _poll_signal_info)
 
                 self._signal_refresh_job = self.after(200, _poll_signal_info)
+
+                self._bind_mousewheel_recursive(self.right_stack)
+
             elif daq.IComponent.can_cast_from(self.node):
                 self.node = daq.IComponent.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -380,6 +351,39 @@ class BlockView(ttk.Frame):
             self._component_core_event_handler = daq.QueuedEventHandler(self._on_component_core_event)
             component.on_component_core_event + self._component_core_event_handler
             self.bind('<Destroy>', self._on_destroy)
+
+    def _create_right_stack(self):
+        self._right_container = ttk.Frame(self.expanded_frame)
+        self._right_canvas = tk.Canvas(self._right_container, highlightthickness=0)
+        right_scrollbar = ttk.Scrollbar(
+            self._right_container, orient=tk.VERTICAL, command=self._right_canvas.yview)
+        self.right_stack = ttk.Frame(self._right_canvas)
+
+        # Keep the scroll region in sync with the content size
+        self.right_stack.bind('<Configure>',
+            lambda e: self._right_canvas.configure(scrollregion=self._right_canvas.bbox('all')))
+        self._right_canvas.create_window((0, 0), window=self.right_stack, anchor=tk.NW)
+        self._right_canvas.configure(yscrollcommand=right_scrollbar.set)
+        self._right_canvas.bind('<Configure>',
+            lambda e: self._right_canvas.itemconfig('all', width=e.width))
+
+        self._right_canvas.bind('<MouseWheel>', self._on_right_mousewheel)
+        self.right_stack.bind('<MouseWheel>', self._on_right_mousewheel)
+
+        right_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self._right_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    def _on_right_mousewheel(self, event):
+        # Only do scroll when needed
+        if self._right_canvas.yview() == (0.0, 1.0):
+            return
+        self._right_canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
+
+    def _bind_mousewheel_recursive(self, widget):
+        # Propagate mouse wheel from children up
+        widget.bind('<MouseWheel>', self._on_right_mousewheel)
+        for child in widget.winfo_children():
+            self._bind_mousewheel_recursive(child)
 
     def _on_destroy(self, event):
         if hasattr(self, '_signal_refresh_job') and self._signal_refresh_job is not None:
@@ -521,3 +525,13 @@ class BlockView(ttk.Frame):
             ctx.active = not ctx.active
             self.active_var.set(ctx.active)
             self.event_port.emit()
+    
+    def _make_banner(self, parent, text):
+        _banner_bg = '#afafaf'
+        _banner_fg = 'white'
+        bar = tk.Frame(parent, bg=_banner_bg, bd=0, highlightthickness=0)
+        bar.pack(fill=tk.X, pady=(0, 8))
+        tk.Label(bar, text=text, bg=_banner_bg, fg=_banner_fg,
+                 font=('TkDefaultFont', 10, 'bold')).pack(
+            side=tk.LEFT, padx=6, pady=2)
+        return bar

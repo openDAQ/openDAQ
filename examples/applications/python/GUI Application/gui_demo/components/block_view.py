@@ -152,29 +152,7 @@ class BlockView(ttk.Frame):
 
                 for mode in available_op_modes:
                     op_mode_menu.add_command(label=mode, command=make_select(mode))
-            
-            elif daq.IFunctionBlock.can_cast_from(self.node):
-                self._right_container = ttk.Frame(self.expanded_frame)
-                right_canvas = tk.Canvas(self._right_container, highlightthickness=0)
-                right_scrollbar = ttk.Scrollbar(
-                    self._right_container, orient=tk.VERTICAL, command=right_canvas.yview)
-                self.right_stack = ttk.Frame(right_canvas)
 
-                self.right_stack.bind('<Configure>',
-                    lambda e: right_canvas.configure(scrollregion=right_canvas.bbox('all')))
-                right_canvas.create_window((0, 0), window=self.right_stack, anchor=tk.NW)
-                right_canvas.configure(yscrollcommand=right_scrollbar.set)
-                right_canvas.bind('<Configure>',
-                    lambda e: right_canvas.itemconfig('all', width=e.width))
-
-                def _on_mousewheel(e):
-                    # Check if the entire content is already visible
-                    if right_canvas.yview() == (0.0, 1.0):
-                        return
-                    right_canvas.yview_scroll(int(-1 * (e.delta / 120)), 'units')
-
-                right_canvas.bind('<MouseWheel>', _on_mousewheel)
-                self.right_stack.bind('<MouseWheel>', _on_mousewheel)
 
                 self._bind_mousewheel_recursive(self.right_stack)
             
@@ -285,8 +263,9 @@ class BlockView(ttk.Frame):
                     if not self.winfo_exists():
                         return
                     if self.winfo_ismapped():
-                        new_value = utils.get_last_value_for_signal(self.node)
-                        self._signal_last_value_label.config(text=str(new_value))
+                        if hasattr(self, '_signal_row') and self._signal_row.winfo_exists():
+                            self._signal_row.refresh()
+                            
                         for signal_row in self._signal_rows:
                             try:
                                 if signal_row.winfo_exists():

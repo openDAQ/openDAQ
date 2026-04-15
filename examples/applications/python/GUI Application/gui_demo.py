@@ -268,6 +268,8 @@ class App(tk.Tk):
         tree.bind('<<TreeviewSelect>>', self.handle_tree_select)
         tree.bind('<ButtonRelease-3>', self.handle_tree_right_button_release)
         tree.bind('<Button-3>', self.handle_tree_right_button)
+        #tree.bind('<Double-1>', lambda e: 'break')
+        tree.bind('<Button-1>', self.handle_tree_click)
 
         # add a scrollbar
         scroll_bar = ttk.Scrollbar(
@@ -625,6 +627,17 @@ class App(tk.Tk):
                 event.widget.selection_set(iid)
         else:
             event.widget.selection_set()
+            
+    def handle_tree_click(self, event):
+        iid = self.tree.identify_row(event.y)
+        element = self.tree.identify_element(event.x, event.y)
+
+        if element == 'indicator':
+            return
+
+        if iid and iid == utils.treeview_get_first_selection(self.tree):
+            self.tree.item(iid, open=not self.tree.item(iid, 'open'))
+            return 'break'  # prevent <<TreeviewSelect>> from refiring unnecessarily
 
     def create_property_object_menu(self, node):
         popup = tk.Menu(self.tree, tearoff=0)

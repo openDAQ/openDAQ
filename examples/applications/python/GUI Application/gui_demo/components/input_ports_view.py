@@ -35,4 +35,4 @@ class InputPortsView(ttk.Frame):
                         input_port_row.pack(anchor=tk.NW, fill=tk.X)
                     return
         ttk.Label(self, text='None').pack(
-            anchor=tk.W, expand=True, padx=(10,0), pady=(5,0))
+            anchor=tk.W, expand=True, padx=(10,0), pady=(5))

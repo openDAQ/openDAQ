@@ -286,6 +286,34 @@ class PropertiesTreeview(ttk.Treeview):
         except Exception as e:
             utils.show_error('Paste error', f'Can\'t paste: {e}', parent=self)
 
+    def handle_clear_properties(self):
+        selected_item_id = utils.treeview_get_first_selection(self)
+        if selected_item_id is None:
+            return
+
+        path = utils.get_item_path(self, selected_item_id)
+        prop = utils.get_property_for_path(self.context, path, self.node)
+
+        if not prop:
+            return
+
+        try:
+            if prop.value_type == daq.CoreType.ctObject:
+                obj = daq.IPropertyObject.cast_from(prop.value)
+                self._clear_object_properties(obj)
+            elif prop.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
+                self._last_method_results.pop(prop.name, None)
+            else:
+                self._clear_single_property(path)
+
+            self.refresh()
+        except Exception as e:
+            utils.show_error(
+                'Clear property values error',
+                f"Can't clear: {e}",
+                parent=self,
+            )
+
     def show_menu(self, event):
         region = self.identify_region(event.x, event.y)
         menu = tk.Menu(self, tearoff=0)
@@ -314,6 +342,8 @@ class PropertiesTreeview(ttk.Treeview):
                 menu.add_command(label='Copy', command=self.handle_copy)
             if not self.read_only and not is_readonly and not is_container:
                 menu.add_command(label='Paste', command=self.handle_paste)
+            if not self.read_only and (is_container or not is_readonly):
+                menu.add_command(label='Clear property values', command=self.handle_clear_properties)
             if not is_container:
                 menu.add_separator()
                 
@@ -382,6 +412,46 @@ class PropertiesTreeview(ttk.Treeview):
         finally:
             entry.destroy()
 
+    def _clear_object_properties(self, obj):
+        for prop_info in self.context.properties_of_component(obj):
+            if prop_info.read_only:
+                continue
+
+            if prop_info.value_type == daq.CoreType.ctObject:
+                child = obj.get_property_value(prop_info.name)
+                if daq.IPropertyObject.can_cast_from(child):
+                    self._clear_object_properties(
+                        daq.IPropertyObject.cast_from(child))
+            elif prop_info.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
+                self._last_method_results.pop(prop_info.name, None)
+            else:
+                try:
+                    default = prop_info.default_value
+                    obj.set_property_value(prop_info.name, default)
+                except Exception as e:
+                    # Some properties may lack a default
+                    print(f"Skipped clearing '{prop_info.name}': {e}")
+
+    def _clear_single_property(self, path):
+        component = daq.IPropertyObject.cast_from(self.node)
+
+        for segment in path[:-1]:
+            child = component.get_property_value(segment)
+            if not daq.IPropertyObject.can_cast_from(child):
+                return
+            component = daq.IPropertyObject.cast_from(child)
+
+        prop_info = None
+        for p in self.context.properties_of_component(component):
+            if p.name == path[-1]:
+                prop_info = p
+                break
+
+        if prop_info is None:
+            return
+
+        default = prop_info.default_value
+        component.set_property_value(path[-1], default)
     def _clear_overlay_comboboxes(self):
         self._active_dropdown_cb = None
         for cb in self._overlay_comboboxes.values():

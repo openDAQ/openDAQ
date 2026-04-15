@@ -238,8 +238,9 @@ class AddDeviceDialog(Dialog):
         self.configure(cursor='watch')
         parent_top.configure(cursor='watch')
         self.update_idletasks()
+        new_device = None
         try:
-            self.context.add_device(DeviceInfoLocal(
+            new_device = self.context.add_device(DeviceInfoLocal(
                 connection_string), self.dialog_parent_device, config)
         except Exception as e:
             self.configure(cursor='')
@@ -247,6 +248,7 @@ class AddDeviceDialog(Dialog):
             utils.show_error('Error adding device', f'{connection_string}: {str(e)}', self)
             return
         parent_top.configure(cursor='')
+        self.context.selected_node = new_device
         self.event_port.emit()
         if self._keep_open_var.get():
             self.update_child_devices(self.device_tree, self.dialog_parent_device)

@@ -209,72 +209,11 @@ class BlockView(ttk.Frame):
                     self.expanded_frame, self.node, self.context, read_only=True)
 
                 self._create_right_stack()
-
-                # Signal Info
-                self._make_banner(self.right_stack, 'Signal info')
+                self.output_signals = OutputSignalsView(self.right_stack, self.node, self.context)
+                self.output_signals.pack(fill=tk.BOTH, expand=True)
                 
-                self._signal_row = OutputSignalRow(
-                    self.right_stack, 
-                    output_signal=self.node, 
-                    context=getattr(self, 'context', None), 
-                )
-                self._signal_row.pack(fill=tk.X)
-
-                self._signal_rows = []
-
-                # Domain Signal
-                self._make_banner(self.right_stack, 'Domain signal')
-                if self.node.domain_signal is not None:
-                    try:
-                        domain_row = OutputSignalRow(
-                            self.right_stack, self.node.domain_signal, self.context)
-                        domain_row.pack(fill=tk.X)
-                        self._signal_rows.append(domain_row)
-                    except RuntimeError:
-                        ttk.Label(self.right_stack, text='N/A',
-                                  padding=(10, 0)).pack(anchor=tk.W)
-                else:
-                    ttk.Label(self.right_stack, text='None',
-                              padding=(10, 0)).pack(anchor=tk.W)
-
-                # Related Signals section
-                self._make_banner(self.right_stack, 'Related signals')
-                try:
-                    related = self.node.related_signals
-                    if related and len(related) > 0:
-                        for sig in related:
-                            row = OutputSignalRow(self.right_stack, sig, self.context)
-                            row.pack(fill=tk.X)
-                            self._signal_rows.append(row)
-                    else:
-                        ttk.Label(self.right_stack, text='None',
-                                  padding=(10, 0)).pack(anchor=tk.W)
-                except RuntimeError:
-                    ttk.Label(self.right_stack, text='N/A',
-                              padding=(10, 0)).pack(anchor=tk.W)
-
                 self.cols = [0, 1]
                 self.rows = [0]
-
-                self._signal_refresh_job = None
-
-                def _poll_signal_info():
-                    self._signal_refresh_job = None
-                    if not self.winfo_exists():
-                        return
-                    if self.winfo_ismapped():
-                        if hasattr(self, '_signal_row') and self._signal_row.winfo_exists():
-                            self._signal_row.refresh()
-                            
-                        for signal_row in self._signal_rows:
-                            try:
-                                if signal_row.winfo_exists():
-                                    signal_row.refresh()
-                            except Exception:
-                                pass
-                    self._signal_refresh_job = self.after(200, _poll_signal_info)
-
-                self._signal_refresh_job = self.after(200, _poll_signal_info)
 
                 self._bind_mousewheel_recursive(self.right_stack)
 
@@ -505,12 +444,3 @@ class BlockView(ttk.Frame):
             self.active_var.set(ctx.active)
             self.event_port.emit()
     
-    def _make_banner(self, parent, text):
-        _banner_bg = '#afafaf'
-        _banner_fg = 'white'
-        bar = tk.Frame(parent, bg=_banner_bg, bd=0, highlightthickness=0)
-        bar.pack(fill=tk.X, pady=(0, 8))
-        tk.Label(bar, text=text, bg=_banner_bg, fg=_banner_fg,
-                 font=('TkDefaultFont', 10, 'bold')).pack(
-            side=tk.LEFT, padx=6, pady=2)
-        return bar

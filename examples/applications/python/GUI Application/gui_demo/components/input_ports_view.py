@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 import opendaq as daq
+from .. import utils
 
 from .input_port_row_view import InputPortRowView
 
@@ -14,24 +15,13 @@ class InputPortsView(ttk.Frame):
         self.context = context
 
         self.configure(padding=(0, 5), borderwidth=0, relief=tk.FLAT)
-        self._title_bg = '#afafaf'
-        self._title_fg = 'white'
-
         self.refresh()
 
     def refresh(self):
         for widget in self.children.values():
             widget.pack_forget()
 
-        title_bar = tk.Frame(self, bg=self._title_bg, bd=0, highlightthickness=0)
-        title_bar.pack(side=tk.TOP, fill=tk.X, pady=(0, 8))
-        tk.Label(
-            title_bar,
-            text='Input ports',
-            bg=self._title_bg,
-            fg=self._title_fg,
-            font=('TkDefaultFont', 10, 'bold')
-        ).pack(side=tk.LEFT, padx=6, pady=2)
+        utils.make_banner(self, 'Input ports')
         self.fill_input_ports(self.node)
 
     def fill_input_ports(self, node):

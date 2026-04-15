@@ -32,14 +32,14 @@ class AddServerDialog(Dialog):
         scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # define headings
-        tree.heading('id', text='TypeId', anchor=tk.W)
-        tree.heading('name', text='Name', anchor=tk.W)
+        tree.heading('id', text='Name', anchor=tk.W)
+        tree.heading('name', text='Description', anchor=tk.W)
 
         tree.column('#0', width=0, stretch=tk.NO)
         dpi = self.context.dpi_factor
-        tree.column('id', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+        tree.column('id', anchor=tk.W, minwidth=int(300 * dpi), width=int(400 *
                     self.context.ui_scaling_factor * dpi), stretch=tk.NO)
-        tree.column('name', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+        tree.column('name', anchor=tk.W, minwidth=int(300 * dpi), width=int(400 *
                     self.context.ui_scaling_factor * dpi))
 
         # bind double-click and right-click

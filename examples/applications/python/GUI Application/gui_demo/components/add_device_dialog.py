@@ -50,8 +50,8 @@ class AddDeviceDialog(Dialog):
 
         right_side_frame = ttk.Frame(self)
         device_tree_frame = ttk.Frame(right_side_frame)
-        device_tree = ttk.Treeview(device_tree_frame, columns=('name', 'conn'), displaycolumns=(
-            'name', 'conn'), show='tree headings', selectmode=tk.BROWSE)
+        device_tree = ttk.Treeview(device_tree_frame, columns=('name', 'loc', 'conn'), displaycolumns=(
+            'name', 'loc', 'conn'), show='tree headings', selectmode=tk.BROWSE)
 
         device_scroll_bar = ttk.Scrollbar(
             device_tree_frame, orient=tk.VERTICAL, command=device_tree.yview)
@@ -62,10 +62,12 @@ class AddDeviceDialog(Dialog):
         self.parent_device_tree = parent_device_tree
 
         device_tree.heading('name', text='Name', anchor=tk.W)
+        device_tree.heading('loc', text=' Location', anchor=tk.W)
         device_tree.heading('conn', text='Connection string', anchor=tk.W)
 
         device_tree.column('#0', width=0, stretch=False)
         device_tree.column('name', anchor=tk.W, minwidth=int(200 * self.context.dpi_factor))
+        device_tree.column('loc',  anchor=tk.W, minwidth=int(100 * self.context.dpi_factor))
         device_tree.column('conn', anchor=tk.W, minwidth=int(300 * self.context.dpi_factor))
 
         device_tree.bind('<Double-1>', self.handle_device_tree_double_click)
@@ -139,7 +141,7 @@ class AddDeviceDialog(Dialog):
         # Fill the textbox with connection string from the device
         connection_string = self.device_tree.item(selected_item_iid, 'values')
         self.conn_string_entry.delete(0, tk.END)
-        self.conn_string_entry.insert(0, connection_string[1])
+        self.conn_string_entry.insert(0, connection_string[2])
 
     def handle_device_tree_double_click(self, event):
         self.process_add_device(False)
@@ -298,6 +300,7 @@ class AddDeviceDialog(Dialog):
             try:
                 devices = [
                     (daq.IDeviceInfo.cast_from(d).name,
+                     daq.IDeviceInfo.cast_from(d).location,
                      daq.IDeviceInfo.cast_from(d).connection_string)
                     for d in parent_device.available_devices
                 ]
@@ -313,8 +316,8 @@ class AddDeviceDialog(Dialog):
         try:
             tree.delete(*tree.get_children())
             tree.configure(cursor='')
-            for name, conn in devices:
-                tree.insert('', tk.END, iid=conn, values=(name, conn))
+            for name, loc, conn in devices:
+                tree.insert('', tk.END, iid=conn, values=(name, loc, conn))
         except tk.TclError:
             pass  # dialog was closed before results arrived
 

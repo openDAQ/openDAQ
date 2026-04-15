@@ -33,7 +33,7 @@ else()
     return()
 endif()
 
-set(buildDir ${CMAKE_SOURCE_DIR}/build)
+set(buildDir ${OPENDAQ_SOURCE_DIR}/build)
 set(bindingsDir ${buildDir}/bindings/CSharp)
 set(bindingsSrcDir ${bindingsDir}/core)
 set(outputBinDir ${bindingsDir}/bin/${platform}/$<CONFIG>)
@@ -120,8 +120,8 @@ set(dependencyTargets ${SDK_TARGET_NAMESPACE}::coretypes
                       ${SDK_TARGET_NAMESPACE}::coreobjects
                       ${SDK_TARGET_NAMESPACE}::opendaq
 )
-add_cmake_targets(${CMAKE_SOURCE_DIR}/modules/. dependencyTargets)
-add_cmake_targets(${CMAKE_SOURCE_DIR}/examples/modules/. dependencyTargets)
+add_cmake_targets(${OPENDAQ_SOURCE_DIR}/modules/. dependencyTargets)
+add_cmake_targets(${OPENDAQ_SOURCE_DIR}/examples/modules/. dependencyTargets)
 
 message(DEBUG "Adding target dependencies: ${dependencyTargets}")
 

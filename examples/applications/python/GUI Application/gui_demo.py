@@ -315,7 +315,7 @@ class App(tk.Tk):
         self.set_node_active_status()
 
     def tree_traverse_components_recursive(
-            self, component, display_type=DisplayType.UNSPECIFIED):
+            self, component, display_type=DisplayType.UNSPECIFIED, tree_parent_id=None):
         if component is None:
             return
 
@@ -329,9 +329,18 @@ class App(tk.Tk):
         ) if self.context.view_hidden_components else None) if folder else []
 
         # tree view only in topology mode + parent exists
-        parent_id = '' if display_type not in (
-            DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW, DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None) or component.parent is None else component.parent.global_id
-
+        if tree_parent_id is not None:
+            parent_id = tree_parent_id
+        elif display_type not in (
+                DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY, DisplayType.SYSTEM_OVERVIEW,
+                DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None) or component.parent is None:
+            parent_id = ''
+        else:
+            parent_id = component.parent.global_id
+        
+        is_fb = daq.IFunctionBlock.can_cast_from(component)
+        is_channel = daq.IChannel.can_cast_from(component)
+            
         if folder is None or items or display_type == DisplayType.TOPOLOGY_CUSTOM_COMPONENTS:
             if display_type in (DisplayType.UNSPECIFIED, DisplayType.TOPOLOGY,
                                 DisplayType.TOPOLOGY_CUSTOM_COMPONENTS, None):
@@ -350,18 +359,27 @@ class App(tk.Tk):
                 if daq.IChannel.can_cast_from(component):
                     self.tree_add_component(
                         parent_id, daq.IChannel.cast_from(component))
+                elif tree_parent_id is not None and is_fb:
+                    self.tree_add_component(parent_id, daq.IFunctionBlock.cast_from(component))
             elif display_type == DisplayType.FUNCTION_BLOCKS:
                 if daq.IFunctionBlock.can_cast_from(
                         component) and not daq.IChannel.can_cast_from(component):
                     self.tree_add_component(
                         parent_id, daq.IFunctionBlock.cast_from(component))
 
-        if folder is not None:
-            if not (daq.IFunctionBlock.can_cast_from(component)
-                    and display_type == DisplayType.FUNCTION_BLOCKS) and (self.context.view_hidden_components or folder.visible):
+        if folder is not None and (self.context.view_hidden_components or folder.visible):
+            if display_type == DisplayType.FUNCTION_BLOCKS and is_fb and not is_channel:
                 for item in items:
                     self.tree_traverse_components_recursive(
-                        item, display_type=display_type)
+                        item, display_type=display_type, tree_parent_id=component.global_id)
+            elif display_type == DisplayType.CHANNELS and (is_channel or (tree_parent_id is not None and is_fb)):
+                for item in items:
+                    self.tree_traverse_components_recursive(
+                        item, display_type=display_type, tree_parent_id=component.global_id)
+            elif not (is_fb and display_type == DisplayType.FUNCTION_BLOCKS):
+                for item in items:
+                    self.tree_traverse_components_recursive(
+                        item, display_type=display_type, tree_parent_id=tree_parent_id)
 
         if device is not None and display_type == DisplayType.TOPOLOGY:
             custom_components = device.custom_components
@@ -406,9 +424,11 @@ class App(tk.Tk):
                     status_string = 'error'
             except:
                 pass
-
+            
+            is_open = not daq.IFunctionBlock.can_cast_from(component)
+            
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
-                             text=self._format_tree_item_text(component_name), open=True, values=(component_node_id,), tags=(status_string,))
+                             text=self._format_tree_item_text(component_name), open=is_open, values=(component_node_id,), tags=(status_string,))
 
 
 
@@ -882,8 +902,15 @@ class App(tk.Tk):
         if node_unique_id not in self.context.nodes:
             return
         node = self.context.nodes[node_unique_id]
-        self.context.selected_node = node
+        if (daq.IFolder.can_cast_from(node)
+                and not daq.IDevice.can_cast_from(node)
+                and not daq.IFunctionBlock.can_cast_from(node)):
+            self.tree.item(selected_iid, open=not self.tree.item(selected_iid, 'open'))
+            self.tree.selection_set('')
+            return
 
+        self.context.selected_node = node
+        
         self.right_side_panel_clear()
         self.right_side_panel_draw_node(node)
 

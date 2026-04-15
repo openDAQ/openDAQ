@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 import opendaq as daq
+from .. import utils
 
 from ..app_context import AppContext
 from .metadata_fields_selector_dialog import MetadataFieldsSelectorDialog
@@ -16,7 +17,7 @@ class RecorderView(ttk.Frame):
 
         header_frame = ttk.Frame(self)
 
-        ttk.Label(header_frame, text='Recording').pack(side=tk.LEFT, padx=5, pady=5)
+        utils.make_banner(header_frame, 'Recording')
         self.pb = ttk.Progressbar(header_frame, mode='indeterminate', style="Striped.Horizontal.TProgressbar",maximum=10, value=0)
         self.pb.pack(side=tk.LEFT, anchor=tk.CENTER)
         self.startstop = ttk.Button(header_frame, text='Start/Stop',command=self.toggleRecording)

@@ -91,14 +91,16 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setParentActive(Bool parentActive)
 {
+    ErrCode errCode = Impl::setParentActive(parentActive);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     if (this->clientComm->getProtocolVersion() > 21)
-        return Impl::setParentActive(parentActive);
+        return errCode;
 
     const bool muted = this->coreEventMuted;
     if (!muted)
         Impl::disableCoreEventTrigger();
 
-    const ErrCode errCode = Impl::setActive(parentActive);
+    errCode = Impl::setActive(parentActive);
 
     if (!muted)
         Impl::enableCoreEventTrigger();
@@ -273,7 +275,8 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
     ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
 
     if (serialized.hasKey("active"))
-        this->active = serialized.readBool("active");
+        this->localActive = serialized.readBool("active");
+    this->active = this->parentActive && this->localActive;
 
     if (serialized.hasKey("visible"))
         this->visible = serialized.readBool("visible");

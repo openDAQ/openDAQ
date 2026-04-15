@@ -103,7 +103,7 @@ function(_rtgen_interface LANGUAGES FILENAME OUTFILES_VAR)
             # If generating bindings set the output directory to "bindings/{LANG}"
             # Create the directory if it doesn't exist yet
             if(LOWERCASE_LANG STREQUAL "csharp")
-                set(RTGEN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build/bindings/${LANG}/${RTGEN_RELATIVE_PARENT_DIR}")
+                set(RTGEN_OUTPUT_DIR "${OPENDAQ_SOURCE_DIR}/build/bindings/${LANG}/${RTGEN_RELATIVE_PARENT_DIR}")
             else()
                 set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
             endif()
@@ -382,7 +382,7 @@ function(rtgen_config LIB_NAME LIB_OUTPUT_NAME MAJOR_VER MINOR_VER PATCH_VER)
             # If generating bindings set the output directory to "bindings/{LANG}"
             # Create the directory if it doesn't exist yet
             if(LOWERCASE_LANG STREQUAL "csharp")
-                set(RTGEN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build/bindings/${LANG}/${RTGEN_RELATIVE_PARENT_DIR}")
+                set(RTGEN_OUTPUT_DIR "${OPENDAQ_SOURCE_DIR}/build/bindings/${LANG}/${RTGEN_RELATIVE_PARENT_DIR}")
             else()
                 set(RTGEN_OUTPUT_DIR "${CURR_BINDINGS_DIR}/${LANG}")
             endif()

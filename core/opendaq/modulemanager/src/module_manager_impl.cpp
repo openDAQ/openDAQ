@@ -189,6 +189,15 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Context cannot be changed after loading modules");
     }
 
+    std::string sdkVersionMetadataAsString =
+        fmt::format(R"([[ 'major': '{}'; 'minor': '{}'; 'patch': '{}'; 'branch': '{}'; 'sha': '{}'; ]])",
+                    OPENDAQ_OPENDAQ_MAJOR_VERSION,
+                    OPENDAQ_OPENDAQ_MINOR_VERSION,
+                    OPENDAQ_OPENDAQ_PATCH_VERSION,
+                    OPENDAQ_OPENDAQ_BRANCH_NAME,
+                    OPENDAQ_OPENDAQ_REVISION_HASH);
+    LOG_I("Loading modules ... the running SDK core version: \"{}\"", sdkVersionMetadataAsString);
+
     std::vector<std::string> paths;
     auto envPath = std::getenv("OPENDAQ_MODULES_PATH");
     if (envPath != nullptr)
@@ -2077,7 +2086,6 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
                             patch,
                             branch,
                             sha);
-            LOG_T("Module \'{}\' was built with SDK version: \"{}\"", path.string(), inModuleMetadataAsString);
 
             StringPtr logMsg;
             errCode = checkModuleVersionCompatibility(major, minor, patch, branch, sha, nullptr, &logMsg);
@@ -2097,6 +2105,7 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
             {
                 LOG_W("Module \'{}\' SDK core version metadata checking result: {}", path.string(), logMsg);
             }
+            LOG_I("Loaded module \'{}\' was built with SDK version: \"{}\"", path.string(), inModuleMetadataAsString);
         }
         else
         {

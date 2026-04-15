@@ -38,6 +38,7 @@ inline daq::ErrCode checkModuleVersionCompatibility(
     OPENDAQ_PARAM_NOT_NULL(sha);
 
     daq::ErrCode errCode = OPENDAQ_SUCCESS;
+    bool isOpenDaqDevelopmentVersion = (OPENDAQ_OPENDAQ_MINOR_VERSION % 2) != 0; // Development versions have a odd minor number, whereas release ones have an even.
 
     auto runningSdkMetadataAsString =
         fmt::format(R"([[ 'major': '{}'; 'minor': '{}'; 'patch': '{}'; 'branch': '{}'; 'sha': '{}'; ]])",
@@ -78,7 +79,7 @@ inline daq::ErrCode checkModuleVersionCompatibility(
         );
     }
 
-    if (patch != OPENDAQ_OPENDAQ_PATCH_VERSION)
+    if (isOpenDaqDevelopmentVersion && patch != OPENDAQ_OPENDAQ_PATCH_VERSION)
     {
         message +=
             fmt::format("\nThe running version of openDAQ is: \"{}\";\nthe core SDK libraries version has been used to build module differs: \"{}\" - the patch number mismatches.",
@@ -88,7 +89,7 @@ inline daq::ErrCode checkModuleVersionCompatibility(
         errCode = OPENDAQ_PARTIAL_SUCCESS;
     }
 
-    if (daq::StringPtr::Borrow(branch) != OPENDAQ_OPENDAQ_BRANCH_NAME)
+    if (isOpenDaqDevelopmentVersion && daq::StringPtr::Borrow(branch) != OPENDAQ_OPENDAQ_BRANCH_NAME)
     {
         message +=
             fmt::format("\nThe running version of openDAQ is: \"{}\";\nthe core SDK libraries version has been used to build module differs: \"{}\" - the git branch name mismatches.",
@@ -98,7 +99,7 @@ inline daq::ErrCode checkModuleVersionCompatibility(
         errCode = OPENDAQ_PARTIAL_SUCCESS;
     }
 
-    if (daq::StringPtr::Borrow(sha) != OPENDAQ_OPENDAQ_REVISION_HASH)
+    if (isOpenDaqDevelopmentVersion && daq::StringPtr::Borrow(sha) != OPENDAQ_OPENDAQ_REVISION_HASH)
     {
         message +=
             fmt::format("\nThe running version of openDAQ is: \"{}\";\nthe core SDK libraries version has been used to build module differs: \"{}\" - the git commit sha mismatches.",

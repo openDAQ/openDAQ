@@ -132,8 +132,11 @@ static ErrCode getCoreVersionMetadataMinimalMismatchFields(unsigned int* major, 
     return OPENDAQ_SUCCESS;
 }
 
-TEST_F(CheckDependenciesTest, MinimalMetadataMismatchFields)
+TEST_F(CheckDependenciesTest, MinimalMetadataMismatchFieldsDev)
 {
+    if ((OPENDAQ_OPENDAQ_MINOR_VERSION % 2) == 0) // Development versions have a odd minor number, whereas release ones have an even
+        GTEST_SKIP();
+
     unsigned int major, minor, patch;
     StringPtr branch, sha;
     getCoreVersionMetadataMinimalMismatchFields(&major, &minor, &patch, &branch, &sha, nullptr);
@@ -147,6 +150,20 @@ TEST_F(CheckDependenciesTest, MinimalMetadataMismatchFields)
     ExpectLogMessageContain(logMessageStr, "the patch number mismatches");
     ExpectLogMessageContain(logMessageStr, "the git branch name mismatches");
     ExpectLogMessageContain(logMessageStr, "the git commit sha mismatches");
+}
+
+TEST_F(CheckDependenciesTest, MinimalMetadataMismatchFieldsRel)
+{
+    if ((OPENDAQ_OPENDAQ_MINOR_VERSION % 2) != 0) // Development versions have a odd minor number, whereas release ones have an even
+        GTEST_SKIP();
+
+    unsigned int major, minor, patch;
+    StringPtr branch, sha;
+    getCoreVersionMetadataMinimalMismatchFields(&major, &minor, &patch, &branch, &sha, nullptr);
+
+    StringPtr logMessage;
+    ErrCode errCode = checkModuleVersionCompatibility(major, minor, patch, branch, sha, nullptr, &logMessage);
+    ASSERT_EQ(errCode, OPENDAQ_SUCCESS);
 }
 
 static ErrCode getCoreVersionMetadataMajorZero(unsigned int* major, unsigned int* minor, unsigned int* patch, daq::IString** branch, daq::IString** sha, daq::IString** /*fork*/)

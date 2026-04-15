@@ -590,11 +590,6 @@ std::set<OperationModeType> RefDeviceImpl::onGetAvailableOperationModes()
     return {OperationModeType::Idle, OperationModeType::Operation, OperationModeType::SafeOperation};
 }
 
-OperationModeType RefDeviceImpl::onGetDefaultOperationMode()
-{
-    return OperationModeType::Operation;
-}
-
 void RefDeviceImpl::onOperationModeChanged(OperationModeType modeType)
 {
     bool active = modeType != OperationModeType::Idle;

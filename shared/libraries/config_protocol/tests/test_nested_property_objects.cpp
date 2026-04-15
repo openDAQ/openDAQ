@@ -1242,3 +1242,9 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientClearPropertyValues
     ASSERT_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_2.Int"), 2);
     ASSERT_DOUBLE_EQ(serverDevice.getPropertyValue("ObjectProperty.child1.child1_1.Float"), 2.1);
 }
+
+TEST_F(ConfigNestedPropertyObjectTest, TestSetPropertySelectionValue)
+{
+    clientDevice.setPropertySelectionValue("ObjectProperty.child1.child1_2.child1_2_1.Selection", "b");
+    ASSERT_EQ(serverDevice.getPropertySelectionValue("ObjectProperty.child1.child1_2.child1_2_1.Selection"), "b");
+}

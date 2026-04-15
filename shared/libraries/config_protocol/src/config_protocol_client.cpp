@@ -94,6 +94,12 @@ void ConfigProtocolClientComm::setProtectedPropertyValue(const std::string& glob
     parseRpcOrRejectReply(setProtectedPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
+void ConfigProtocolClientComm::setPropertySelectionValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue)
+{
+    auto params = Dict<IString, IBaseObject>({{"PropertyName", propertyName}, {"PropertyValue", propertyValue}});
+    sendComponentCommand(globalId, ClientCommand("SetPropertySelectionValue", 23), params);    
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getPropertyValue(const std::string& globalId, const std::string& propertyName)
 {
     auto dict = Dict<IString, IBaseObject>();

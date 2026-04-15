@@ -90,9 +90,6 @@ class BlockView(ttk.Frame):
                     self.expanded_frame, self.node, self.context)
 
                 self._create_right_stack()
-
-                self.input_ports = InputPortsView(self.right_stack, self.node, self.context)
-                self.input_ports.pack(fill=tk.BOTH, expand=True)
                 
                 signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
                 self.output_signals = OutputSignalsView(self.right_stack, self.node, self.context)

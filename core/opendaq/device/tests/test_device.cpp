@@ -112,9 +112,9 @@ public:
 class MockDevice final : public daq::Device
 {
 public:
-    MockDevice(const daq::ContextPtr& ctx, 
-               const daq::ComponentPtr& parent, 
-               const daq::StringPtr& localId, 
+    MockDevice(const daq::ContextPtr& ctx,
+               const daq::ComponentPtr& parent,
+               const daq::StringPtr& localId,
                bool addSubDevice = false)
         : daq::Device(ctx, parent, localId)
     {
@@ -136,9 +136,9 @@ public:
         }
     }
 
-    std::set<daq::OperationModeType> onGetAvailableOperationModes() override 
-    { 
-        return {daq::OperationModeType::Idle, daq::OperationModeType::Operation, daq::OperationModeType::SafeOperation}; 
+    std::set<daq::OperationModeType> onGetAvailableOperationModes() override
+    {
+        return {daq::OperationModeType::Idle, daq::OperationModeType::Operation, daq::OperationModeType::SafeOperation};
     }
 
     daq::OperationModeType onGetDefaultOperationMode() override
@@ -182,7 +182,7 @@ TEST_F(DeviceTest, DeviceInfoForwardCallbacks)
     };
 
     daq::SizeT writeCounter = 0;
-    info.getOnPropertyValueWrite("CustomChangeableField") += [&writeCounter](daq::PropertyObjectPtr& obj, daq::PropertyValueEventArgsPtr& args) 
+    info.getOnPropertyValueWrite("CustomChangeableField") += [&writeCounter](daq::PropertyObjectPtr& obj, daq::PropertyValueEventArgsPtr& args)
     {
         writeCounter++;
     };
@@ -539,7 +539,7 @@ TEST_F(DeviceTest, SerializeAndDeserializeManufacturer)
 {
     const auto context = daq::NullContext();
     const auto dev = daq::createWithImplementation<daq::IDevice, MockDevice>(context, nullptr, "dev");
-    
+
     const auto serializer = daq::JsonSerializer(daq::True);
     dev.serialize(serializer);
     const std::string str1 = serializer.getOutput();
@@ -661,7 +661,8 @@ TEST_F(DeviceTest, CheckNotSupportedOpMode)
     ASSERT_EQ(device.getAvailableOperationModes(), expectedDeviceModes);
     ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::SafeOperation);
 
-    ASSERT_EQ(device->setOperationMode(daq::OperationModeType::SafeOperation), OPENDAQ_IGNORED);
+    // Check that not supported modes are ignored
+    ASSERT_EQ(device->setOperationMode(daq::OperationModeType::Operation), OPENDAQ_IGNORED);
     ASSERT_EQ(device.getOperationMode(), daq::OperationModeType::SafeOperation);
 }
 

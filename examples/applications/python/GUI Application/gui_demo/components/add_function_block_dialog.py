@@ -54,8 +54,8 @@ class AddFunctionBlockDialog(Dialog):
         scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # define headings
-        tree.heading('id', text='TypeId', anchor=tk.W)
-        tree.heading('name', text='Name', anchor=tk.W)
+        tree.heading('id', text='Name', anchor=tk.W)
+        tree.heading('name', text='Description', anchor=tk.W)
 
         # layout
         tree.column('#0', width=0, stretch=tk.NO)

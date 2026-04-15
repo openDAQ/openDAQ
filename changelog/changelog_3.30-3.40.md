@@ -32,6 +32,7 @@
 
 ## Bug fixes
 
+- [#1158](https://github.com/openDAQ/openDAQ/pull/1158) Skip logging for identical component statuses.
 - [#1150](https://github.com/openDAQ/openDAQ/pull/1150) Serialize public flag for input ports
 - [#1149](https://github.com/openDAQ/openDAQ/pull/1149) Return error code instead of throwing exceptions from module info.
 - [#1146](https://github.com/openDAQ/openDAQ/pull/1146) Use sender addresses if device does not provide A or AAAA records

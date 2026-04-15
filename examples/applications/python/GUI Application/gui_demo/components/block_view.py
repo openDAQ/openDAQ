@@ -68,7 +68,7 @@ class BlockView(ttk.Frame):
         self.label.pack(side=tk.LEFT)
         self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image, borderwidth=0, 
                                      command=lambda: AttributesDialog(self, 'Attributes', self.node, self.context).show())
-        self.edit_button.pack(side=tk.RIGHT, padx=(6, 14))
+        self.edit_button.pack(side=tk.RIGHT, padx=(6, 10))
         self.active_var = tk.IntVar(self, value=self.active)
         checkbox_state = tk.NORMAL if self.parent_active else tk.DISABLED
         self.checkbox = ttk.Checkbutton(

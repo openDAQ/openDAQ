@@ -226,13 +226,12 @@ runs:
 
     - name: Install Python dependencies
       if: |
-        inputs.skip-setup-python != 'true' &&
         inputs.generate-python-bindings != 'false' &&
         !(inputs.enable-32bit == 'true' && runner.os == 'Linux')
       shell: bash
       run: |
         echo "Installing numpy for Python: $(python --version)"
-        python -m pip install numpy
+        python -c "import numpy" 2>/dev/null || ${CMD_PIP_INSTALL} numpy
         echo "Done installing Python dependencies"
 
     - name: Configure

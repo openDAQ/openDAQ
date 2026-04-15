@@ -136,8 +136,6 @@ jobs:
             cmake-defines: >-
               -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF 
               -DDAQMODULES_BASIC_CSV_RECORDER_MODULE=OFF
-              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF 
-              -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
           - name: Ubuntu Latest x86_64 gcc-14 Release
             cc: gcc-14
             cxx: g++-14

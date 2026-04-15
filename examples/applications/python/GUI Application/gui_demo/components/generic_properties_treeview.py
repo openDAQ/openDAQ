@@ -543,6 +543,11 @@ class PropertiesTreeview(ttk.Treeview):
                     if iid in self._overlay_comboboxes:
                         x, py, w, ph = self._get_overlay_place_geometry(bbox)
                         
+                        if is_method:
+                            indent = self._tree_indent()
+                            x += indent
+                            w = max(1, w - indent)
+                        
                         if x >= visible_w or (x + w) <= 0:
                             fully_visible = False
                         else:
@@ -642,6 +647,10 @@ class PropertiesTreeview(ttk.Treeview):
         if not bbox:
             return
         x, y, width, height = self._get_overlay_place_geometry(bbox)
+        
+        indent = self._tree_indent()
+        x += indent
+        width = max(1, width - indent)
 
         def execute(_prop=prop, _iid=iid):
             result = None
@@ -677,6 +686,13 @@ class PropertiesTreeview(ttk.Treeview):
         btn = ttk.Button(self, text=prop.name, command=execute)
         btn.place(x=x, y=y, width=width, height=height)
         self._overlay_comboboxes[iid] = btn
+        
+    def _tree_indent(self):
+        try:
+            return int(str(self.tk.call(
+                "ttk::style", "lookup", "Treeview", "-indent")))
+        except Exception:
+            return 20
 
     def _place_selection_combobox(self, iid, prop):
         labels, indices = self._get_selection_options(prop.selection_values)
@@ -876,9 +892,9 @@ class PropertiesTreeview(ttk.Treeview):
         try:
             f = float(value)
             if f == int(f):
-                return str(int(f))
+                return str(int(f)).strip()
             rounded = float(f'{f:.7g}')
-            return str(rounded)
+            return str(rounded).strip()
         except Exception:
             return str(value)
 

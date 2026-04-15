@@ -21,14 +21,14 @@
 namespace daq::config_protocol
 {
 
-class ConfigServerDaqServerComponent
+class ConfigServerServer
 {
 public:
     static BaseObjectPtr enableDiscovery(const RpcContext& context, const ServerPtr& daqServerComponent, const ParamsDictPtr& params);
     static BaseObjectPtr disableDiscovery(const RpcContext& context, const ServerPtr& daqServerComponent, const ParamsDictPtr& params);
 };
 
-inline BaseObjectPtr ConfigServerDaqServerComponent::enableDiscovery(const RpcContext& context, const ServerPtr& daqServerComponent, const ParamsDictPtr& /*params*/)
+inline BaseObjectPtr ConfigServerServer::enableDiscovery(const RpcContext& context, const ServerPtr& daqServerComponent, const ParamsDictPtr& /*params*/)
 {
     ComponentPtr component = daqServerComponent.asPtr<IComponent>();
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
@@ -39,7 +39,7 @@ inline BaseObjectPtr ConfigServerDaqServerComponent::enableDiscovery(const RpcCo
     return nullptr;
 }
 
-inline BaseObjectPtr ConfigServerDaqServerComponent::disableDiscovery(const RpcContext& context, const ServerPtr& daqServerComponent, const ParamsDictPtr& /*params*/)
+inline BaseObjectPtr ConfigServerServer::disableDiscovery(const RpcContext& context, const ServerPtr& daqServerComponent, const ParamsDictPtr& /*params*/)
 {
     ComponentPtr component = daqServerComponent.asPtr<IComponent>();
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);

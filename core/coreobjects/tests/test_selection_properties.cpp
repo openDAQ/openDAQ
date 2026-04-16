@@ -191,9 +191,9 @@ TEST_F(SelectionPropertyTest, InvalidWriteValueBasedSelection)
 TEST_F(SelectionPropertyTest, ReadSelectionValue)
 {
     // TODO: What does this throw?
-    ASSERT_THROW(obj.getPropertySelectionValue("StringSelection"), daq::InvalidPropertyException);
-    ASSERT_THROW(obj.getPropertySelectionValue("IntSelection"), daq::InvalidPropertyException);
-    ASSERT_THROW(obj.getPropertySelectionValue("FloatSelection"), daq::InvalidPropertyException);
+    ASSERT_EQ(obj.getPropertySelectionValue("StringSelection"), "foo");
+    ASSERT_EQ(obj.getPropertySelectionValue("IntSelection"), 10u);
+    ASSERT_DOUBLE_EQ(obj.getPropertySelectionValue("FloatSelection"), 5.12);
 }
 
 TEST_F(SelectionPropertyTest, ReferenceBasedSelectionInvalidRead)

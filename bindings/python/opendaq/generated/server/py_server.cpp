@@ -91,4 +91,12 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cl
         },
         py::return_value_policy::take_ownership,
         "Gets a streaming source associated with server.");
+    cls.def("disable_discovery",
+        [](daq::IServer *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            objectPtr.disableDiscovery();
+        },
+        "Disables the server to be discovered by the clients.");
 }

@@ -48,6 +48,7 @@ public:
 
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
+    ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC getPropertyValue(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC getPropertySelectionValue(IString* propertyName, IBaseObject** value) override;
     ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
@@ -211,6 +212,25 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setProtectedPropertyValue(IStr
         checkCanSetPropertyValue(propertyNamePtr);
         auto fullPropName = this->getFullPropName(propertyNamePtr);
         clientComm->setProtectedPropertyValue(remoteGlobalId, fullPropName, valuePtr);
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class Impl>
+ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
+{
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+
+    if (!deserializationComplete)
+        return Impl::setPropertySelectionValue(propertyName, value);
+
+    const auto propertyNamePtr = StringPtr::Borrow(propertyName);
+    const auto valuePtr = BaseObjectPtr::Borrow(value);
+    const ErrCode errCode = daqTry([this, &propertyNamePtr, &valuePtr]()
+    {
+        auto fullPropName = this->getFullPropName(propertyNamePtr);
+        clientComm->setPropertySelectionValue(remoteGlobalId, fullPropName, valuePtr);
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;

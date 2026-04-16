@@ -85,7 +85,6 @@ PropertyBuilderImpl::PropertyBuilderImpl(const StringPtr& name, IPropertyObject*
     : PropertyBuilderImpl(name, BaseObjectPtr(defaultValue))
 {
     this->valueType = ctObject;
-    this->readOnly = true;
     if (defaultValue == nullptr)
         this->defaultValue = PropertyObject().detach();
 }

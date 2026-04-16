@@ -19,6 +19,7 @@
 - [#1124](https://github.com/openDAQ/openDAQ/pull/1124) Implement clearPropertyValues() for property objects
 - [#1137](https://github.com/openDAQ/openDAQ/pull/1137) Add `IInputPort::acceptsSignals` to check multiple signals at once, using a single RPC call via native protocol.
 - [#1157](https://github.com/openDAQ/openDAQ/pull/1157) Devices default to `OperationModeType::SafeOperation` when added to folder or set as root. Add virtual method to make it customizable.
+- [#1153](https://github.com/openDAQ/openDAQ/pull/1153) Enable and disable discovery for openDAQ Server via native.
 
 ## Python
 
@@ -33,6 +34,7 @@
 
 ## Bug fixes
 
+- [#1158](https://github.com/openDAQ/openDAQ/pull/1158) Skip logging for identical component statuses.
 - [#1150](https://github.com/openDAQ/openDAQ/pull/1150) Serialize public flag for input ports
 - [#1149](https://github.com/openDAQ/openDAQ/pull/1149) Return error code instead of throwing exceptions from module info.
 - [#1146](https://github.com/openDAQ/openDAQ/pull/1146) Use sender addresses if device does not provide A or AAAA records

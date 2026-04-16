@@ -11,13 +11,13 @@ from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .recorder_view import RecorderView
 from .attributes_dialog import AttributesDialog
+from .output_signal_row import OutputSignalRow
 
 class BlockView(ttk.Frame):
 
-    def __init__(self, parent, node, context=None, expanded=False, **kwargs):
+    def __init__(self, parent, node, context=None, **kwargs):
         ttk.Frame.__init__(self, parent, **kwargs)
         self.parent = parent
-        self.expanded = expanded
         self.node = node
         self.context = context
         self.event_port = EventPort(self, event_callback=self.refresh)
@@ -32,11 +32,9 @@ class BlockView(ttk.Frame):
             self.active = node.active
             self.parent_active = node.parent_active
             name = node.name
-        self.configure(relief=tk.SOLID, border=0.5, padding=5)
+        self.configure(relief=tk.FLAT, border=0, padding=(0,5,10,0))
 
         self.edit_image = None
-        self.collapsed_img = None
-        self.expanded_img = None
 
         self.device_img = None
         self.function_block_img = None
@@ -50,11 +48,6 @@ class BlockView(ttk.Frame):
         if context and context.icons:
             if 'settings' in context.icons:
                 self.edit_image = context.icons['settings']
-            if 'right' in context.icons:
-                self.collapsed_img = context.icons['right']
-            if 'down' in context.icons:
-                self.expanded_img = context.icons['down']
-
             if 'device' in context.icons:
                 self.device_img = context.icons['device']
             if 'function_block' in context.icons:
@@ -68,9 +61,6 @@ class BlockView(ttk.Frame):
 
         self.header_frame = ttk.Frame(self)
         self.header_frame.pack(fill=tk.X)
-        self.toggle_button = tk.Button(
-            self.header_frame, text='+', image=self.collapsed_img, borderwidth=0, command=self.handle_expand_toggle)
-        self.toggle_button.pack(side=tk.LEFT)
 
         self.label_icon = ttk.Label(self.header_frame)
         self.label_icon.pack(side=tk.LEFT)
@@ -86,7 +76,7 @@ class BlockView(ttk.Frame):
             state=checkbox_state)
         self.checkbox.pack(side=tk.RIGHT)
 
-        self.expanded_frame = ttk.Frame(self, padding=5)
+        self.expanded_frame = ttk.Frame(self)
 
         if node:
             self.properties = None
@@ -98,8 +88,13 @@ class BlockView(ttk.Frame):
                 self.node = daq.IDevice.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
-                self.output_signals = OutputSignalsView(
-                    self.expanded_frame, self.node, self.context)
+
+                self._create_right_stack()
+                
+                signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
+                self.output_signals = OutputSignalsView(self.right_stack, self.node, self.context)
+                self.output_signals.pack(fill=tk.X)
+                    
                 self.label_icon.config(image=self.device_img)
                 self.cols = [0, 1]
                 self.rows = [0]
@@ -154,22 +149,38 @@ class BlockView(ttk.Frame):
 
                 for mode in available_op_modes:
                     op_mode_menu.add_command(label=mode, command=make_select(mode))
+
+
+                self._bind_mousewheel_recursive(self.right_stack)
             
             elif daq.IFunctionBlock.can_cast_from(self.node):
+                self._create_right_stack()
+
+                self.cols = [0, 1]
+
                 if daq.IRecorder.can_cast_from(self.node):
                     self.node = daq.IRecorder.cast_from(self.node)
-                    self.recoder = RecorderView(self.expanded_frame, self.node, self.context)
+                    self.recoder = RecorderView(self.right_stack, self.node, self.context)
                 self.node = daq.IFunctionBlock.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
-                self.input_ports = InputPortsView(
-                    self.expanded_frame, self.node, self.context)
-                self.output_signals = OutputSignalsView(
-                    self.expanded_frame, self.node, self.context)
-                self.label_icon.config(image=self.function_block_img)
+
+                self.input_ports = InputPortsView(self.right_stack, self.node, self.context)
+                self.input_ports.pack(fill=tk.BOTH, expand=True)
+
+                self.output_signals = OutputSignalsView(self.right_stack, self.node, self.context)
+                self.output_signals.pack(fill=tk.BOTH, expand=True)
+
+                if self.recoder:
+                    self.recoder.pack(fill=tk.X)
                 
+                self.label_icon.config(image=self.function_block_img)
+
                 self.cols = [0, 1]
-                self.rows = [0, 1]
+                self.rows = [0]
+                
+                self._bind_mousewheel_recursive(self.right_stack)
+                
             elif daq.IFolder.can_cast_from(self.node):
                 self.node = daq.IFolder.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -184,6 +195,25 @@ class BlockView(ttk.Frame):
                 self.label_icon.config(image=self.sync_component_img)
                 self.cols = [0]
                 self.rows = [0]
+            elif daq.ISignal.can_cast_from(self.node):
+                self.node = daq.ISignal.cast_from(self.node)
+                signal_icon = context.icons.get('signal') if context and context.icons else None
+                self.label_icon.config(image=signal_icon)
+                self.edit_button.pack_forget()
+                self.checkbox.pack(side=tk.RIGHT, padx=(6, 14))
+                
+                self.properties = PropertiesView(
+                    self.expanded_frame, self.node, self.context, read_only=True)
+
+                self._create_right_stack()
+                self.output_signals = OutputSignalsView(self.right_stack, self.node, self.context)
+                self.output_signals.pack(fill=tk.BOTH, expand=True)
+                
+                self.cols = [0, 1]
+                self.rows = [0]
+
+                self._bind_mousewheel_recursive(self.right_stack)
+
             elif daq.IComponent.can_cast_from(self.node):
                 self.node = daq.IComponent.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -192,7 +222,7 @@ class BlockView(ttk.Frame):
                 self.cols = [0]
                 self.rows = [0]
 
-        self.on_expand()
+        self.layout_view()
 
         self.status_square = None
         self.status_message = None
@@ -237,7 +267,46 @@ class BlockView(ttk.Frame):
             component.on_component_core_event + self._component_core_event_handler
             self.bind('<Destroy>', self._on_destroy)
 
+    def _create_right_stack(self):
+        self._right_container = ttk.Frame(self.expanded_frame)
+        self._right_canvas = tk.Canvas(self._right_container, highlightthickness=0)
+        right_scrollbar = ttk.Scrollbar(
+            self._right_container, orient=tk.VERTICAL, command=self._right_canvas.yview)
+        self.right_stack = ttk.Frame(self._right_canvas)
+
+        # Keep the scroll region in sync with the content size
+        self.right_stack.bind('<Configure>',
+            lambda e: self._right_canvas.configure(scrollregion=self._right_canvas.bbox('all')))
+        self._right_canvas.create_window((0, 0), window=self.right_stack, anchor=tk.NW)
+        self._right_canvas.configure(yscrollcommand=right_scrollbar.set)
+        self._right_canvas.bind('<Configure>',
+            lambda e: self._right_canvas.itemconfig('all', width=e.width))
+
+        self._right_canvas.bind('<MouseWheel>', self._on_right_mousewheel)
+        self.right_stack.bind('<MouseWheel>', self._on_right_mousewheel)
+
+        right_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self._right_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    def _on_right_mousewheel(self, event):
+        # Only do scroll when needed
+        if self._right_canvas.yview() == (0.0, 1.0):
+            return
+        self._right_canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
+
+    def _bind_mousewheel_recursive(self, widget):
+        # Propagate mouse wheel from children up
+        widget.bind('<MouseWheel>', self._on_right_mousewheel)
+        for child in widget.winfo_children():
+            self._bind_mousewheel_recursive(child)
+
     def _on_destroy(self, event):
+        if hasattr(self, '_signal_refresh_job') and self._signal_refresh_job is not None:
+            try:
+                self.after_cancel(self._signal_refresh_job)
+            except Exception:
+                pass
+            self._signal_refresh_job = None
         if self._component_core_event_handler is not None and self.node is not None and daq.IComponent.can_cast_from(self.node):
             try:
                 component = daq.IComponent.cast_from(self.node)
@@ -339,47 +408,23 @@ class BlockView(ttk.Frame):
             pass
         self.status_square.config(bg=color)
 
+    def layout_view(self):
+        self.expanded_frame.pack(fill=tk.BOTH, expand=True)
+        self.expanded_frame.grid_columnconfigure(
+            self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
+        self.expanded_frame.grid_rowconfigure(self.rows, weight=1, minsize=int(350 * self.context.dpi_factor) if self.input_ports and self.output_signals or daq.IFolder.can_cast_from(self.node) and not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
+        if self.properties:
+            self.properties.grid(
+                row=0, column=0, sticky=tk.NSEW)
+        if hasattr(self, '_right_container'):
+            self._right_container.grid(row=0, column=1, sticky=tk.NSEW)
+        elif self.input_ports:
+            self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
+        elif self.output_signals:
+            self.output_signals.grid(row=0, column=1, sticky=tk.NSEW)
 
-    def handle_expand_toggle(self):
-        self.expanded = not self.expanded
-        self.on_expand()
-
-    def on_expand(self):
-        if self.expanded:
-            self.expanded_frame.pack(fill=tk.BOTH)
-            self.expanded_frame.grid_columnconfigure(
-                self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
-            self.expanded_frame.grid_rowconfigure(self.rows, weight=1,
-                                                  minsize=int(300 * self.context.dpi_factor) if self.input_ports and self.output_signals
-                                                                 or daq.IFolder.can_cast_from(self.node) and
-                                                                 not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
-            if self.properties:
-                self.properties.grid(
-                    row=0, column=0, rowspan=2 if self.input_ports and self.output_signals else 1, sticky=tk.NSEW)
-
-            if self.input_ports:
-                self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
-
-            if self.output_signals:
-                self.output_signals.grid(
-                    row=1 if self.input_ports else 0, column=1, sticky=tk.NSEW)
-                
-            if self.recoder:
-                self.recoder.grid(
-                    row=2, column=1, sticky=tk.NSEW)
-
-            self.toggle_button.config(text='-', image=self.expanded_img)
-        else:  # collapsed
-            if self.properties:
-                self.properties.grid_forget()
-            if self.input_ports:
-                self.input_ports.grid_forget()
-            if self.output_signals:
-                self.output_signals.grid_forget()   
-            if self.recoder:
-                self.recoder.grid_forget()
-            self.expanded_frame.pack_forget()
-            self.toggle_button.config(text='+', image=self.collapsed_img)
+        if self.recoder and not hasattr(self, 'right_stack'):
+            self.recoder.grid(row=1, column=1, sticky=tk.NSEW)
 
     def refresh(self, event):
         pass
@@ -395,3 +440,4 @@ class BlockView(ttk.Frame):
             ctx.active = not ctx.active
             self.active_var.set(ctx.active)
             self.event_port.emit()
+    

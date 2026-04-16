@@ -71,8 +71,9 @@ public:
 
     void setPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
     void setProtectedPropertyValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
-    BaseObjectPtr getPropertyValue(const std::string& globalId, const std::string& propertyName);
+    void setPropertySelectionValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue);
 
+    BaseObjectPtr getPropertyValue(const std::string& globalId, const std::string& propertyName);
     BaseObjectPtr getSelectionValues(const std::string& globalId, const std::string& path, const std::string& propertyName);
     ListPtr<IBaseObject> getSuggestedValues(const std::string& globalId, const std::string& path, const std::string& propertyName);
 
@@ -131,6 +132,9 @@ public:
     void startRecording(const std::string& globalId);
     void stopRecording(const std::string& globalId);
     BooleanPtr getIsRecording(const std::string& globalId);
+
+    void enableDiscovery(const std::string& globalId);
+    void disableDiscovery(const std::string& globalId);
 
     bool getConnected() const;
     ContextPtr getDaqContext();

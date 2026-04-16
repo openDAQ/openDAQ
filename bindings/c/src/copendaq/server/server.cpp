@@ -46,3 +46,8 @@ daqErrCode daqServer_getStreaming(daqServer* self, daqStreaming** streaming)
 {
     return reinterpret_cast<daq::IServer*>(self)->getStreaming(reinterpret_cast<daq::IStreaming**>(streaming));
 }
+
+daqErrCode daqServer_disableDiscovery(daqServer* self)
+{
+    return reinterpret_cast<daq::IServer*>(self)->disableDiscovery();
+}

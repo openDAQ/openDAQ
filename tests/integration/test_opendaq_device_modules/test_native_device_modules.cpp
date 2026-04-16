@@ -29,7 +29,7 @@ using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 23;
+const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 24;
 
 static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
 {
@@ -917,6 +917,100 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 bool isRemovedServer = test_helpers::isSufix(capability.getConnectionString(), path);
                 bool isNewServer = test_helpers::isSufix(capability.getConnectionString(), path2);
                 if (!isRemovedServer && !isNewServer)
+                    break;
+
+                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+                {
+                    deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 1u);
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, ServerEnableDisableDiscovery)
+{
+    auto serverInstance = InstanceBuilder()
+    .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .setDefaultRootDeviceLocalId("local")
+        .build();
+
+    addRefDeviceModule(serverInstance);
+    serverInstance.addDevice("daqref://device1");
+
+    addNativeServerModule(serverInstance);
+    auto serverConfig = serverInstance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    auto path = "/test/native_configuration/enableDisableDiscovery/";
+    serverConfig.setPropertyValue("Path", path);
+    auto nativeServer = serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
+
+    auto connectedClient = Instance("[[none]]");
+    addNativeClientModule(connectedClient);
+    auto device = connectedClient.addDevice("daq.nd://127.0.0.1");
+    ASSERT_GT(device.getServers().getCount(), 0u);
+    auto mirroredServer = device.getServers()[0];
+
+    // enable discovery from client and check that server is discoverable
+    mirroredServer.enableDiscovery();
+    {
+        auto client = Instance("[[none]]");
+        addNativeClientModule(client);
+
+        size_t deviceFound = 0;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                    break;
+
+                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+                {
+                    deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 1u);
+    }
+
+    // disable discovery from client and check that server now is not discoverable
+    mirroredServer.disableDiscovery();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    {
+        auto client = Instance("[[none]]");
+        addNativeClientModule(client);
+
+        size_t deviceFound = 0;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                    break;
+
+                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+                {
+                    deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 0u);
+    }
+
+    // enable discovery from client again and check that server is discoverable
+    mirroredServer.enableDiscovery();
+    {
+        auto client = Instance("[[none]]");
+        addNativeClientModule(client);
+
+        size_t deviceFound = 0;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
                     break;
 
                 if (capability.getProtocolName() == "OpenDAQNativeConfiguration")

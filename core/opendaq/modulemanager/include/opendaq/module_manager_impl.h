@@ -144,6 +144,7 @@ private:
 
     std::chrono::time_point<std::chrono::steady_clock> lastScanTime;
     std::chrono::milliseconds rescanTimer;
+    Bool safeLoadingMode;
 };
 
 END_NAMESPACE_OPENDAQ

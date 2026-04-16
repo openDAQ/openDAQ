@@ -59,7 +59,8 @@
 
 ## Misc
 
-- [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load
+- [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load 
+- [#1109](https://github.com/openDAQ/openDAQ/pull/1109) New check version dependencies mechanism for modules
 - [#1090](https://github.com/openDAQ/openDAQ/pull/1090) Reduce unnecessary RPC calls and signal updates
 - [#1049](https://github.com/openDAQ/openDAQ/pull/1049) Extract LT and OpcUa modules to remote repos
 - [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removes the FB wrapper implementation as it was never used.

@@ -95,7 +95,7 @@ private:
     std::chrono::microseconds startTimeInMs;
     std::chrono::microseconds lastCollectTime;
     std::chrono::microseconds microSecondsFromEpochToDeviceStart;
-    
+
     std::vector<ChannelPtr> channels;
     ChannelPtr canChannel;
     ChannelPtr protectedChannel;

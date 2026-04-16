@@ -34,6 +34,15 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceSmartPtr(IUpdateParameters, GenericUpdateParametersPtrPtr)]
  */
 
+ /*!
+ * @brief Defines how configuration should be applied to existing opendaq tree.
+ */
+enum class ConfigurationLoadMode : EnumType
+{
+    Exact = 0,    ///< Replicate configuration exactly - if a connected device is not mentioned in the configuration it will be removed.
+    Merge,  ///< Apply the configuration on top of existing state. Devices won't be removed unless configured so explicitly.
+};
+
 /*!
  * @brief IUpdateParameters interface provides a set of methods to give user flexibility to load instance configuration.
  */
@@ -44,12 +53,24 @@ DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
      * @param options The device update options object.
      */
     virtual ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) = 0;
-    
+
     /*!
      * @brief Sets the device update options object that allows for specifying how a device and its subdevices are to be updated.
      * @param options The device update options object.
      */
     virtual ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) = 0;
+
+    /*!
+     * @brief Gets the strategy with which the configuration will be loaded.
+     * @param mode The configuration load mode.
+     */
+    virtual ErrCode INTERFACE_FUNC getConfigurationLoadMode(ConfigurationLoadMode* mode) = 0;
+
+    /*!
+     * @brief Sets the strategy with which the configuration will be loaded.
+     * @param mode The configuration load mode.
+     */
+    virtual ErrCode INTERFACE_FUNC setConfigurationLoadMode(ConfigurationLoadMode mode) = 0;
 };
 /*!@}*/
 

@@ -421,7 +421,6 @@ class BlockView(ttk.Frame):
                 right_widget = self.output_signals
 
             if self.properties and right_widget:
-
                 self.properties.place(
                     relx=0, rely=0, relwidth=0.55, relheight=1.0)
                 right_widget.place(

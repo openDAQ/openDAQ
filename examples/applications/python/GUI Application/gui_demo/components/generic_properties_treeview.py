@@ -452,6 +452,7 @@ class PropertiesTreeview(ttk.Treeview):
 
         default = prop_info.default_value
         component.set_property_value(path[-1], default)
+        
     def _clear_overlay_comboboxes(self):
         self._active_dropdown_cb = None
         for cb in self._overlay_comboboxes.values():

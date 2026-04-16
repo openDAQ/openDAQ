@@ -481,8 +481,8 @@ TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateRecursive)
 {
     clientDevice.beginUpdate();
     clientDevice.getChannels()[0].setPropertyValue("StrProp", "SomeValue");
-    ASSERT_EQ(clientDevice.getChannels()[0].getPropertyValue("StrProp"), "-");
-    ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "-");
+    ASSERT_EQ(clientDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");
+    ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");
     clientDevice.endUpdate();
     ASSERT_EQ(clientDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");
     ASSERT_EQ(serverDevice.getChannels()[0].getPropertyValue("StrProp"), "SomeValue");

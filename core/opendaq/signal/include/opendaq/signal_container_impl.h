@@ -125,9 +125,6 @@ protected:
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
     virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
 
-    void callBeginUpdateOnChildren() override;
-    void callEndUpdateOnChildren() override;
-
 private:
     template <class Component>
     void swapComponent(Component& origComponent, const Component& newComponent);
@@ -703,7 +700,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const Base
 {
     for (const auto& comp : components)
     {
-        const auto updatable = comp.template asPtrOrNull<IUpdatable>();
+        const auto updatable = comp.template asPtrOrNull<IUpdatable>(true);
         if (updatable.assigned())
             updatable.updateEnded(context);
     }
@@ -744,36 +741,6 @@ void GenericSignalContainerImpl<Intf, Intfs...>::onRemoveFunctionBlock(const Fun
 
     auto lock = this->getRecursiveConfigLock2();
     this->functionBlocks.removeItem(functionBlock);
-}
-
-template <class Intf, class... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
-{
-    Super::callBeginUpdateOnChildren();
-
-    for (const auto& comp : components)
-    {
-        auto freezable = comp.template asPtrOrNull<IFreezable>(true);
-        if (freezable.assigned() && freezable.isFrozen())
-            continue;
-
-        comp.beginUpdate();
-    }
-}
-
-template <class Intf, class... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::callEndUpdateOnChildren()
-{
-    for (const auto& comp : components)
-    {
-        auto freezable = comp.template asPtrOrNull<IFreezable>(true);
-        if (freezable.assigned() && freezable.isFrozen())
-            continue;
-
-        comp.endUpdate();
-    }
-
-    Super::callEndUpdateOnChildren();
 }
 
 template <class Intf, class... Intfs>

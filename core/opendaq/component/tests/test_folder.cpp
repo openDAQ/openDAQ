@@ -255,7 +255,7 @@ TEST_F(FolderTest, BeginUpdateEndUpdate)
     ASSERT_EQ(folder.getPropertyValue("FolderProp"), "-");
 
     component.setPropertyValue("ComponentProp", "cs");
-    ASSERT_EQ(component.getPropertyValue("ComponentProp"), "-");
+    ASSERT_EQ(component.getPropertyValue("ComponentProp"), "cs");
 
     folder.endUpdate();
 

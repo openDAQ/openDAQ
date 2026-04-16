@@ -362,7 +362,7 @@ TEST_F(DeviceTest, BeginUpdateEndUpdate)
     ASSERT_EQ(dev.getPropertyValue("DevProp"), "-");
 
     sig.setPropertyValue("SigProp", "cs");
-    ASSERT_EQ(sig.getPropertyValue("SigProp"), "-");
+    ASSERT_EQ(sig.getPropertyValue("SigProp"), "cs");
 
     dev.endUpdate();
 

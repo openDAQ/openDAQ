@@ -87,7 +87,7 @@ TEST_F(ServerTest, BeginUpdateEndUpdate)
     ASSERT_EQ(srv.getPropertyValue("SrvProp"), "-");
 
     sig.setPropertyValue("SigProp", "cs");
-    ASSERT_EQ(sig.getPropertyValue("SigProp"), "-");
+    ASSERT_EQ(sig.getPropertyValue("SigProp"), "cs");
 
     srv.endUpdate();
 

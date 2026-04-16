@@ -140,10 +140,15 @@ TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
 {
+    const auto deviceInfo = DeviceInfo("daq.root://default_client", "OpenDAQClient");
+    deviceInfo.setManufacturer("OpcuaDeviceModulesTest");
+    deviceInfo.setSerialNumber("DiscoveringServer");
+
     auto server = InstanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .setDefaultRootDeviceLocalId("local")
+        .setDefaultRootDeviceInfo(deviceInfo)
         .build();
 
     addRefDeviceModule(server);
@@ -453,8 +458,13 @@ TEST_F(OpcuaDeviceModulesTest, TestProtocolVersion)
 {
     auto path = "/test/opcua/test_protocol_version/";
 
+    const auto deviceInfo = DeviceInfo("daq.root://default_client", "OpenDAQClient");
+    deviceInfo.setManufacturer("OpcuaDeviceModulesTest");
+    deviceInfo.setSerialNumber("TestProtocolVersion");
+
     auto server = InstanceBuilder()
         .setModulePath("[[none]]")
+        .setDefaultRootDeviceInfo(deviceInfo)
         .addDiscoveryServer("mdns")
         .build();
     {

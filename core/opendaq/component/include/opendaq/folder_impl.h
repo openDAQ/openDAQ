@@ -83,8 +83,6 @@ protected:
                                            const BaseObjectPtr& context,
                                            const FunctionPtr& factoryCallback);
 
-    void callBeginUpdateOnChildren() override;
-    void callEndUpdateOnChildren() override;
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
     virtual void syncComponentOperationMode(const ComponentPtr& component);
@@ -510,36 +508,6 @@ void FolderImpl<Intf, Intfs...>::deserializeCustomObjectValues(
             const auto comp = item.template asPtr<IComponent>(true);
             addItemInternal(comp);
         }
-    }
-}
-
-template <class Intf, class... Intfs>
-void FolderImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
-{
-    Super::callBeginUpdateOnChildren();
-
-    for (const auto& [_, item] : items)
-    {
-        auto freezable = item.template asPtrOrNull<IFreezable>(true);
-        if (freezable.assigned() && freezable.isFrozen())
-            continue;
-
-        item.beginUpdate();
-    }
-}
-
-template <class Intf, class... Intfs>
-void FolderImpl<Intf, Intfs...>::callEndUpdateOnChildren()
-{
-    Super::callEndUpdateOnChildren();
-
-    for (const auto& [_, item] : items)
-    {
-        auto freezable = item.template asPtrOrNull<IFreezable>(true);
-        if (freezable.assigned() && freezable.isFrozen())
-            continue;
-
-        item.endUpdate();
     }
 }
 

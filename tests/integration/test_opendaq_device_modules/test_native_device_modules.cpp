@@ -752,10 +752,15 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 {
     auto path = "/test/native_configuration/discovery/";
 
+    const auto deviceInfo = DeviceInfo("daq.root://default_client", "OpenDAQClient");
+    deviceInfo.setManufacturer("NativeDeviceModulesTest");
+    deviceInfo.setSerialNumber("DiscoveringServer");
+
     auto server = InstanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .setDefaultRootDeviceLocalId("local")
+        .setDefaultRootDeviceInfo(deviceInfo)
         .build();
     {
         addRefDeviceModule(server);
@@ -790,7 +795,9 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServer)
 
 TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
 {
-    const auto info = DeviceInfo("", "foo");
+    const auto info = DeviceInfo("daq.root://default_client", "OpenDAQClient");
+    info.setManufacturer("NativeDeviceModulesTest");
+    info.setSerialNumber("DiscoveringServerInfoMerge");
     info.setMacAddress("custom_mac");
 
     auto path = "/test/native_configuration/discovery/";
@@ -838,10 +845,15 @@ TEST_F(NativeDeviceModulesTest, DiscoveringServerInfoMerge)
 
 TEST_F(NativeDeviceModulesTest, RemoveServer)
 {
+    const auto deviceInfo = DeviceInfo("daq.root://default_client", "OpenDAQClient");
+    deviceInfo.setManufacturer("NativeDeviceModulesTest");
+    deviceInfo.setSerialNumber("RemoveServer");
+
     auto server = InstanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .setDefaultRootDeviceLocalId("local")
+        .setDefaultRootDeviceInfo(deviceInfo)
         .build();
 
     addRefDeviceModule(server);
@@ -1248,9 +1260,14 @@ DevicePtr FindNativeDeviceByPath(const InstancePtr& instance, const std::string&
 
 TEST_F(NativeDeviceModulesTest, TestProtocolVersion)
 {
-    auto server = InstanceBuilder()
+    const auto deviceInfo = DeviceInfo("daq.root://default_client", "OpenDAQClient");
+    deviceInfo.setManufacturer("NativeDeviceModulesTest");
+    deviceInfo.setSerialNumber("TestProtocolVersion");
+
+    const auto server = InstanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
+        .setDefaultRootDeviceInfo(deviceInfo)
         .build();
 
     addNativeServerModule(server);
@@ -1294,8 +1311,8 @@ TEST_F(NativeDeviceModulesTest, TestProtocolVersion)
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
     auto deviceInfo = DeviceInfo("testdevice://");
-    deviceInfo.setManufacturer("openDAQ");
-    deviceInfo.setSerialNumber("TestSerial");
+    deviceInfo.setManufacturer("NativeDeviceModulesTest");
+    deviceInfo.setSerialNumber("TestDiscoveryReachabilityAfterConnect");
 
     auto path = "/test/native_configurator/discovery_reachability/";
 

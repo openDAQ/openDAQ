@@ -184,7 +184,7 @@ TEST_F(FunctionBlockTest, BeginUpdateEndUpdate)
     ASSERT_EQ(fb.getPropertyValue("FbProp"), "-");
 
     sig.setPropertyValue("SigProp", "cs");
-    ASSERT_EQ(sig.getPropertyValue("SigProp"), "-");
+    ASSERT_EQ(sig.getPropertyValue("SigProp"), "cs");
 
     fb.endUpdate();
 

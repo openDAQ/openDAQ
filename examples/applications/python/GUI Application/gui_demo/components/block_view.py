@@ -68,7 +68,7 @@ class BlockView(ttk.Frame):
         self.label.pack(side=tk.LEFT)
         self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image, borderwidth=0, 
                                      command=lambda: AttributesDialog(self, 'Attributes', self.node, self.context).show())
-        self.edit_button.pack(side=tk.RIGHT, padx=(6, 14))
+        self.edit_button.pack(side=tk.RIGHT, padx=(6, 10))
         self.active_var = tk.IntVar(self, value=self.active)
         checkbox_state = tk.NORMAL if self.parent_active else tk.DISABLED
         self.checkbox = ttk.Checkbutton(
@@ -409,22 +409,29 @@ class BlockView(ttk.Frame):
         self.status_square.config(bg=color)
 
     def layout_view(self):
-        self.expanded_frame.pack(fill=tk.BOTH, expand=True)
-        self.expanded_frame.grid_columnconfigure(
-            self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
-        self.expanded_frame.grid_rowconfigure(self.rows, weight=1, minsize=int(350 * self.context.dpi_factor) if self.input_ports and self.output_signals or daq.IFolder.can_cast_from(self.node) and not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
-        if self.properties:
-            self.properties.grid(
-                row=0, column=0, sticky=tk.NSEW)
-        if hasattr(self, '_right_container'):
-            self._right_container.grid(row=0, column=1, sticky=tk.NSEW)
-        elif self.input_ports:
-            self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
-        elif self.output_signals:
-            self.output_signals.grid(row=0, column=1, sticky=tk.NSEW)
+            self.expanded_frame.pack(fill=tk.BOTH, expand=True)
 
-        if self.recoder and not hasattr(self, 'right_stack'):
-            self.recoder.grid(row=1, column=1, sticky=tk.NSEW)
+            # Determine the right-side widget (if any)
+            right_widget = None
+            if hasattr(self, '_right_container'):
+                right_widget = self._right_container
+            elif self.input_ports:
+                right_widget = self.input_ports
+            elif self.output_signals:
+                right_widget = self.output_signals
+
+            if self.properties and right_widget:
+                self.properties.place(
+                    relx=0, rely=0, relwidth=0.55, relheight=1.0)
+                right_widget.place(
+                    relx=0.55, rely=0, relwidth=0.45, relheight=1.0)
+            elif self.properties:
+                self.properties.place(
+                    relx=0, rely=0, relwidth=1.0, relheight=1.0)
+
+            if self.recoder and not hasattr(self, 'right_stack'):
+                self.recoder.place(
+                    relx=0.55, rely=0, relwidth=0.45, relheight=1.0)
 
     def refresh(self, event):
         pass

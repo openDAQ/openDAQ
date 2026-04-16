@@ -364,7 +364,7 @@ def make_banner(parent, text):
     _banner_bg = '#afafaf'
     _banner_fg = 'white'
     bar = tk.Frame(parent, bg=_banner_bg, bd=0, highlightthickness=0)
-    bar.pack(fill=tk.X, pady=(0, 8))
+    bar.pack(fill=tk.X, pady=(8))
     tk.Label(bar, text=text, bg=_banner_bg, fg=_banner_fg,
              font=('TkDefaultFont', 10, 'bold')).pack(
         side=tk.LEFT, padx=6, pady=2)

@@ -56,7 +56,7 @@ class OutputSignalsView(ttk.Frame):
             return
 
         ttk.Label(self, text='None').pack(
-            anchor=tk.W, expand=True, padx=(10,0), pady=(5,0))
+            anchor=tk.W, expand=True, padx=(10,0), pady=(5))
         
     def _on_destroy(self, event):
         if event.widget is not self:
